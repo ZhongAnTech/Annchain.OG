@@ -1,0 +1,10 @@
+.idea/
+*.log
+*.swp
+*.swo
+.bak
+*.bak
+.DS_Store
+build/*
+logs/
+*.iml

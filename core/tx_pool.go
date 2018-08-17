@@ -1,4 +1,4 @@
-package og
+package core
 
 type TxPool struct {
 }

@@ -1,4 +1,4 @@
-package og
+package core
 
 import (
 	"github.com/annchain/OG/ogdb"

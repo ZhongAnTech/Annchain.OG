@@ -21,6 +21,8 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"github.com/prometheus/common/log"
+	"github.com/annchain/OG/og"
 )
 
 // runCmd represents the run command
@@ -35,7 +37,9 @@ var runCmd = &cobra.Command{
 		//fmt.Println(viper.GetString("title"))
 		//fmt.Println(viper.GetStringSlice("database.ports"))
 		//fmt.Println(viper.Get("clients.data"))
-		fmt.Println("OG Started")
+		log.Info("OG Starting")
+		og := &og.Og{}
+		og.Start()
 	},
 }
 

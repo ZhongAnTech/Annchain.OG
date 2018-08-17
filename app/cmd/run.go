@@ -27,7 +27,7 @@ import (
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Start a full node",
-	Long: `Start a full node`,
+	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// init logs and other facilities before the node starts
 		initLogger()
@@ -40,7 +40,7 @@ var runCmd = &cobra.Command{
 }
 
 func readConfig() {
-	absPath,err := filepath.Abs(viper.GetString("config"))
+	absPath, err := filepath.Abs(viper.GetString("config"))
 	panicIfError(err, fmt.Sprintf("Error on parsing config file path: %s", absPath))
 
 	file, err := os.Open(absPath)

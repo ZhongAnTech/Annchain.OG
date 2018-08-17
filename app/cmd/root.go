@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sirupsen/logrus"
-	"path"
 	"io"
+	"path"
 	"path/filepath"
 )
 
@@ -32,7 +32,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "OG",
 	Short: "OG: The next generation of DLT",
-	Long: `OG to da moon`,
+	Long:  `OG to da moon`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -8,3 +8,5 @@
 build/*
 logs/
 *.iml
+vendor/
+*.lock

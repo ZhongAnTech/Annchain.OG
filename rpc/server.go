@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/http"
+	"github.com/sirupsen/logrus"
 )
 
 type RpcServer struct {
@@ -20,7 +20,10 @@ func (srv *RpcServer) Start() {
 	// http.HandleFunc("/blocks", handleBlocks)
 	// http.HandleFunc("/add_peer", handleAddPeer)
 	go func() {
-		log.Println("Listen HTTP on", srv.rpcport)
-		log.Fatalln("start api server", http.ListenAndServe(srv.rpcport, nil))
+		logrus.Info("Listening HTTP on ", srv.rpcport)
+		http.ListenAndServe(srv.rpcport, nil)
 	}()
+}
+func (server *RpcServer) Stop() {
+	logrus.Info("RPC Stopped")
 }

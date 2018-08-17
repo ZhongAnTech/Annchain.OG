@@ -21,8 +21,10 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
-	"github.com/prometheus/common/log"
-	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/node"
+	log "github.com/sirupsen/logrus"
+	"os/signal"
+	"syscall"
 )
 
 // runCmd represents the run command
@@ -37,9 +39,25 @@ var runCmd = &cobra.Command{
 		//fmt.Println(viper.GetString("title"))
 		//fmt.Println(viper.GetStringSlice("database.ports"))
 		//fmt.Println(viper.Get("clients.data"))
-		log.Info("OG Starting")
-		og := &og.Og{}
-		og.Start()
+		log.Info("Node Starting")
+		node := node.NewNode()
+		node.Start()
+
+		// prevent sudden stop. Do your clean up here
+
+		var gracefulStop = make(chan os.Signal)
+
+		signal.Notify(gracefulStop, syscall.SIGTERM)
+		signal.Notify(gracefulStop, syscall.SIGINT)
+
+		func() {
+			sig := <-gracefulStop
+			log.Warnf("caught sig: %+v", sig)
+			log.Warn("Exiting... Please do no kill me")
+			node.Stop()
+			os.Exit(0)
+		}()
+
 	},
 }
 

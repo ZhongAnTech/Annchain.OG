@@ -9,15 +9,14 @@ import (
 )
 
 const (
-	queryBlock = iota
+	queryBlock     = iota
 	queryAll
 	respQueryBlock
 	respQueryChain
 )
 
 type P2PServer struct {
-	port string
-
+	port  string
 	peers []*Peer
 }
 
@@ -35,8 +34,8 @@ func (srv *P2PServer) Start() {
 	}
 
 	http.Handle("/", websocket.Handler(srv.readloop))
-	log.Println("Listen P2P on ", srv.port)
-	go errFatal("start p2p server", http.ListenAndServe(srv.port, nil))
+	log.Info("Listening p2p on ", srv.port)
+	go http.ListenAndServe("127.0.0.1:"+srv.port, nil)
 }
 
 func (srv *P2PServer) Close() {
@@ -88,15 +87,15 @@ func (srv *P2PServer) readloop(ws *websocket.Conn) {
 		var msg []byte
 		err := websocket.Message.Receive(ws, &msg)
 		if err == io.EOF {
-			log.Printf("p2p Peer[%s] shutdown, remove it form peers pool.\n", peer)
+			log.Infof("p2p Peer[%s] shutdown, remove it form peers pool.\n", peer)
 			break
 		}
 		if err != nil {
-			log.Println("Can't receive p2p msg from ", peer, err.Error())
+			log.WithError(err).Infof("Can't receive p2p msg from %s", peer)
 			break
 		}
 
-		log.Printf("Received[from %s]: %s.\n", peer, msg)
+		log.Infof("Received[from %s]: %s.\n", peer, msg)
 		err = json.Unmarshal(msg, v)
 		errFatal("invalid p2p msg", err)
 
@@ -143,11 +142,14 @@ func (srv *P2PServer) readloop(ws *websocket.Conn) {
 
 	}
 }
+func (server *P2PServer) Stop() {
+	log.Info("P2P Stopped")
+}
 
 // ----------
 
 func errFatal(msg string, err error) {
 	if err != nil {
-		log.Fatalln(msg, err)
+		log.WithError(err).Fatal(msg)
 	}
 }

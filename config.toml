@@ -2,6 +2,16 @@
 
 title = "TOML Example"
 
+[rpc]
+enabled = true
+port = 6000
+
+[p2p]
+enabled = true
+port = 6001
+
+
+
 [owner]
 name = "Tom Preston-Werner"
 dob = 1979-05-27T07:32:00-08:00 # First class dates

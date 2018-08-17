@@ -14,7 +14,7 @@ type Peer struct {
 func NewPeer(peerAddr string) (*Peer, error) {
 	ws, err := websocket.Dial(peerAddr, "", peerAddr)
 	if err != nil {
-		log.Println("dial to peer", peerAddr)
+		log.Infof("Dialing to peer %s", peerAddr)
 		return nil, err
 	}
 	p := &Peer{

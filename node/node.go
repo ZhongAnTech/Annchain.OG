@@ -11,7 +11,6 @@ import (
 // Node is the basic entrypoint for all modules to start.
 type Node struct {
 	og *og.Og
-
 	p2pServer *p2p.P2PServer
 	rpcServer *rpc.RpcServer
 }

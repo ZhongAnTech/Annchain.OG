@@ -16,6 +16,7 @@ type Og struct {
 }
 
 func (og *Og) Start() {
+
 	logrus.Info("OG Started")
 }
 func (og *Og) Stop() {

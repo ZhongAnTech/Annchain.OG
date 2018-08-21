@@ -1,30 +1,48 @@
 package core
 
 import (
+	"fmt"
+	"time"
 	"sync"
+	"github.com/spf13/viper"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common"
 )
 
-type TxPool struct {
-	mu 		sync.RWMutex
-	wg		sync.WaitGroup 		// for TxPool Stop()	
+const (
+	local int = iota
+	remote
+)
 
-	// TODO change type later
-	queue 		[]types.TX		// queue stores txs that need to validate later 
+type TxPool struct {
+	conf			TxPoolConfig
+
+	queueLocal 		chan *txEvent		// queue stores txs that need to validate later 
+	queueRemote		chan *txEvent
 	// TODO change type later
 	tips		[]types.TX		// tips stores all the tips
 	txLookup	*txLookUp		// txLookUp stores all the txs for external query
+
+	closeChan		chan bool
+
+	mu 			sync.RWMutex
+	wg			sync.WaitGroup 		// for TxPool Stop()	
 }
-
-func NewTxPool() *TxPool {
+func NewTxPool(conf TxPoolConfig) *TxPool {
 	pool := &TxPool{
-		txLookup: newTxLookUp(),
+		conf:			conf,
+		// TODO replace the viper GetInt key with real one
+		queueLocal:		make(chan *txEvent, viper.GetInt("txpool.xxx.xxxx")),
+		queueRemote:	make(chan *txEvent, viper.GetInt("txpool.xxx.xxxx")),
+		txLookup: 		newTxLookUp(),
+		closeChan:		make(chan bool),
 	}
-
 	return pool
+}
+type TxPoolConfig struct {
+	TxValidateTime	time.Duration
 }
 
 // Start begin the txpool sevices
@@ -32,7 +50,6 @@ func (pool *TxPool) Start() {
 	log.Infof("TxPool Start")
 	// TODO
 
-	pool.wg.Add(1)
 	go pool.loop()
 }
 
@@ -61,7 +78,7 @@ func (pool *TxPool) Get(hash common.Hash) types.TX {
 // GetRandomTips returns n tips randomly. 
 func (pool *TxPool) GetRandomTips(n int) {
 	// TODO
-	return
+	return 
 }
 
 // GetAllTips returns all the tips in TxPool.
@@ -76,7 +93,7 @@ func (pool *TxPool) AddLocalTx(tx types.TX) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	return pool.addTx(tx)
+	return pool.addTx(tx, local)
 }
 
 // AddLocalTxs adds a list of txs to txpool if they are valid. It returns 
@@ -88,7 +105,7 @@ func (pool *TxPool) AddLocalTxs(txs []types.TX) []error {
 
 	result := make([]error, len(txs))
 	for _, tx := range txs {
-		result = append(result, pool.addTx(tx))
+		result = append(result, pool.addTx(tx, local))
 	}
 	return result
 }
@@ -97,80 +114,172 @@ func (pool *TxPool) AddLocalTxs(txs []types.TX) []error {
 // sent by remote nodes, and will hold extra functions to prevent from ddos 
 // (large amount of invalid tx sent from one node in a short time) attack. 
 func (pool *TxPool) AddRemoteTx(tx types.TX) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
-	return nil
+	return pool.addTx(tx, remote)
 }
 
-// AddRemoteTxs 
-func (pool *TxPool) AddRemoteTxs(tx []types.TX) []error {
-	
-	return []error{}
+// AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
+func (pool *TxPool) AddRemoteTxs(txs []types.TX) []error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	result := make([]error, len(txs))
+	for _, tx := range txs {
+		result = append(result, pool.addTx(tx, remote))
+	}
+	return result
 }
 
 func (pool *TxPool) loop() {
 	defer log.Debugf("TxPool.loop() terminates")
+
+	pool.wg.Add(1)
 	defer pool.wg.Done()
 
 	// TODO
 }
 
-// addTx does not hold any txpool locks, every function that call this should 
+// addTx does not hold any txpool locks, every function that calls this should 
 // handle the lock by itself.
-func (pool *TxPool) addTx(tx types.TX) error {
-	// TODO
+func (pool *TxPool) addTx(tx types.TX, senderType int) error {
+	timer := time.NewTimer(pool.conf.TxValidateTime)
+	defer timer.Stop()
 
-	select {
-
+	te := &txEvent{
+		tx: 			tx,
+		callbackChan:	make(chan error),
 	}
 
-	log.Debugf("addTx: %s", tx.Hash().Hex())
+	switch senderType {
+	case local:
+		select {
+		case pool.queueLocal <- te:
+			break
+		case <-timer.C:
+			return fmt.Errorf("addTx timeout, cannot add tx to local queue, tx hash: %s", tx.Hash().Hex())
+		}
+		break	
+	case remote:
+		select {
+		case pool.queueRemote <- te:
+			break
+		case <-timer.C:
+			return fmt.Errorf("addTx timeout, cannot add tx to remote queue, tx hash: %s", tx.Hash().Hex())
+		}
+		break
+	default:
+		return fmt.Errorf("unknown senderType")
+	}
+
+	select {
+	case err := <- te.callbackChan:
+		if err != nil {	return err }
+	// case <-timer.C:
+	// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
+	}
+
+	log.Debugf("successfully add locak tx: %s", tx.Hash().Hex())
 	return nil
 }
 
-// func (pool *TxPool) enqueueTx(tx types.TX) error {
+// addLocalTx does not hold any txpool locks, every function that calls this should 
+// handle the lock by itself.
+// TODO delete this function later?
+func (pool *TxPool) addLocalTx(tx types.TX) error {
+	timer := time.NewTimer(pool.conf.TxValidateTime)
+	defer timer.Stop()
 
-// 	return nil
-// }
+	te := &txEvent{
+		tx: 			tx,
+		callbackChan:	make(chan error),
+	}
+
+	select {
+	case pool.queueLocal <- te:
+		break
+	case <-timer.C:
+		return fmt.Errorf("addLocalTx timeout, cannot add tx to local queue, tx hash: %s", tx.Hash().Hex())
+	}
+
+	select {
+	case err := <- te.callbackChan:
+		if err != nil {	return err }
+	}
+
+	log.Debugf("successfully add locak tx: %s", tx.Hash().Hex())
+	return nil
+}
+
+// addRemoteTx does not hold any txpool locks, every function that calls this should 
+// handle the lock by itself.
+// TODO delete this function later?
+func (pool *TxPool) addRemoteTx(tx types.TX) error {
+	timer := time.NewTimer(pool.conf.TxValidateTime)
+	defer timer.Stop()
+
+	te := &txEvent{
+		tx: 			tx,
+		callbackChan:	make(chan error),
+	}
+
+	select {
+	case pool.queueRemote <- te:
+		break
+	case <-timer.C:
+		return fmt.Errorf("addRemoteTx timeout, cannot add tx to remote queue, tx hash: %s", tx.Hash().Hex())
+	}
+
+	select {
+	case err := <- te.callbackChan:
+		if err != nil {	return err }
+	}
+
+	log.Debugf("successfully add locak tx: %s", tx.Hash().Hex())
+	return nil
+}
 
 
 type txLookUp struct {
-	mu		sync.RWMutex
 	txs		map[common.Hash]types.TX
+	mu		sync.RWMutex
 }
-
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
 		txs: 	make(map[common.Hash]types.TX),
 	}
 }
-
 func (t *txLookUp) get(h common.Hash) types.TX {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.txs[h]
 }
-
 func (t *txLookUp) add(tx types.TX) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.txs[tx.Hash()] = tx
 }
-
 func (t *txLookUp) remove(h common.Hash) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	delete(t.txs, h)
 }
-
 func (t *txLookUp) count() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	
 	return len(t.txs)
 }
+
+type txEvent struct {
+	tx				types.TX
+	callbackChan	chan error
+}
+
 
 
 

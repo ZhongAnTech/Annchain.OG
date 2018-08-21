@@ -8,7 +8,11 @@ import (
 	"encoding/hex"
 )
 
-// RUN "go generate" to generate all help codes
+// Define your own structure and then use messagepack to generate codes
+// You can add functions for your struct here.
+// RUN "go generate" to generate all helper codes
+
+// DO NOT DELETE THIS TWO COMMENTS. THEY ARE FUNCTIONAL.
 
 //go:generate msgp
 //msgp:tuple Foo

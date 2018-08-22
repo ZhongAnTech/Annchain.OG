@@ -1,12 +1,16 @@
 package types
 
-import (
-	"github.com/annchain/OG/common"
-)
+//go:generate msgp
+//msgp:tuple TxBase
 
-type TX interface{
-
+type Txi interface {
 	// Hash returns a tx hash
-	Hash() common.Hash
+	BlockHash() Hash
+}
 
+type TxBase struct {
+	Type          int    `msgp:"type"`
+	ParentsHash   []Hash `msgp:"parentHash"`
+	SequenceNonce uint64 `msgp:"sequenceNonce"`
+	Height        uint64 `msgp:"height"`
 }

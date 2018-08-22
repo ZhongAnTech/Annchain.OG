@@ -1,24 +1,26 @@
 package types
 
 import (
+	"golang.org/x/crypto/sha3"
 	"bytes"
 	"encoding/binary"
-	"golang.org/x/crypto/sha3"
+	"github.com/annchain/OG/common/math"
 )
 
 //go:generate msgp
-//msgp:tuple Sequencer
+//msgp:tuple Tx
 
-type Sequencer struct {
-	Id uint64 `msgp:"id"`
+type Tx struct {
 	TxBase
-	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+	From          Address
+	To            Address
+	Value         *math.BigInt
 }
 
-func (t *Sequencer) BlockHash() (hash Hash) {
+func (t *Tx) BlockHash() (hash Hash) {
 	var buf bytes.Buffer
 
-	err := binary.Write(&buf, binary.LittleEndian, t.Id)
+	err := binary.Write(&buf, binary.LittleEndian, t.Height)
 	panicIfError(err)
 
 	for _, ancestor := range t.ParentsHash {

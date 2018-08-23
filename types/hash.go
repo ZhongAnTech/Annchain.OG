@@ -40,7 +40,7 @@ var (
 
 // Hash represents the 20 byte of Hash.
 type Hash struct {
-	Bytes []byte `msgp:"bytes"`
+	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
 // BytesToHash sets b to hash.
@@ -60,10 +60,10 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
 
 // Big converts an Hash to a big integer.
-func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes) }
+func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 
 // Hex converts a Hash to a hex string.
-func (h Hash) Hex() string { return hexutil.Encode(h.Bytes) }
+func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.
@@ -85,17 +85,17 @@ func (h Hash) Format(s fmt.State, c rune) {
 
 // UnmarshalText parses an Hash in hex syntax.
 func (h *Hash) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("Hash", input, h.Bytes)
+	return hexutil.UnmarshalFixedText("Hash", input, h.Bytes[:])
 }
 
 // UnmarshalJSON parses an Hash in hex syntax.
 func (h *Hash) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalFixedJSON(hashT, input, h.Bytes)
+	return hexutil.UnmarshalFixedJSON(hashT, input, h.Bytes[:])
 }
 
 // MarshalText returns the hex representation of h.
 func (h Hash) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(h.Bytes).MarshalText()
+	return hexutil.Bytes(h.Bytes[:]).MarshalText()
 }
 
 // SetBytes sets the Hash to the value of b.
@@ -104,15 +104,15 @@ func (h *Hash) MustSetBytes(b []byte) {
 	if len(b) > HashLength {
 		panic(fmt.Sprintf("byte to set is longer than expected length: %d > %d", len(b), HashLength))
 	}
-	h.Bytes = make([]byte, HashLength)
-	copy(h.Bytes, b)
+	h.Bytes = [HashLength]byte{}
+	copy(h.Bytes[:], b)
 }
 
 // Generate implements testing/quick.Generator.
 func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := rand.Intn(HashLength)
 	for i := HashLength - 1; i > m; i-- {
-		h.Bytes = append(h.Bytes, byte(rand.Uint32()))
+		h.Bytes[i] = byte(rand.Uint32())
 	}
 	return reflect.ValueOf(h)
 }

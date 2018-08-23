@@ -22,6 +22,8 @@ type Foo struct {
 	Address Address            `msg:"address"`
 	Parents []Hash             `msg:"parents"`
 	KV      map[string]float64 `msg:"kv"`
+	Seq     Sequencer          `msg:"seq"`
+	TxInner Tx                 `msg:"tx"`
 	//BIG *big.Int `msg:"big"`
 }
 

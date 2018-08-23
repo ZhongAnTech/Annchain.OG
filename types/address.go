@@ -27,7 +27,7 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Address
+//cccmsgp:tuple Address
 
 // Length of Addresses in bytes.
 const (
@@ -104,6 +104,7 @@ func (h *Address) MustSetBytes(b []byte) {
 	if len(b) > AddressLength {
 		panic(fmt.Sprintf("byte to set is longer than expected length: %d > %d", len(b), AddressLength))
 	}
+	h.Bytes = make([]byte, AddressLength)
 	copy(h.Bytes, b)
 }
 

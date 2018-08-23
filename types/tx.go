@@ -8,7 +8,7 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Tx
+//cccmsgp:tuple Tx
 
 type Tx struct {
 	TxBase
@@ -24,9 +24,11 @@ func (t *Tx) BlockHash() (hash Hash) {
 	panicIfError(err)
 
 	for _, ancestor := range t.ParentsHash {
-		err = binary.Write(&buf, binary.LittleEndian, ancestor)
-		panicIfError(err)
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])

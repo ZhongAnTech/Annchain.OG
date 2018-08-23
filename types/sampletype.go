@@ -14,7 +14,7 @@ import (
 // DO NOT DELETE THIS TWO COMMENTS. THEY ARE FUNCTIONAL.
 
 //go:generate msgp
-//msgp:tuple Foo
+//cccmsgp:tuple Foo
 
 type Foo struct {
 	Bar     string             `msg:"bar"`

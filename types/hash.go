@@ -27,7 +27,7 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Hash
+//cccmsgp:tuple Hash
 
 // Length of hash in bytes.
 const (
@@ -104,6 +104,7 @@ func (h *Hash) MustSetBytes(b []byte) {
 	if len(b) > HashLength {
 		panic(fmt.Sprintf("byte to set is longer than expected length: %d > %d", len(b), HashLength))
 	}
+	h.Bytes = make([]byte, HashLength)
 	copy(h.Bytes, b)
 }
 

@@ -1,7 +1,7 @@
 package types
 
 //go:generate msgp
-//msgp:tuple TxBase
+//cccmsgp:tuple TxBase
 
 type Txi interface {
 	// Hash returns a tx hash

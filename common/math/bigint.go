@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 )
 
+//go:generate msgp
+
 // A BigInt represents a signed multi-precision integer.
 type BigInt struct {
 	bigint *big.Int

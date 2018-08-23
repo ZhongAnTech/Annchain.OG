@@ -7,7 +7,7 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Sequencer
+//cccmsgp:tuple Sequencer
 
 type Sequencer struct {
 	Id uint64 `msgp:"id"`
@@ -18,12 +18,14 @@ type Sequencer struct {
 func (t *Sequencer) BlockHash() (hash Hash) {
 	var buf bytes.Buffer
 
-	err := binary.Write(&buf, binary.LittleEndian, t.Id)
-	panicIfError(err)
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
 
 	for _, ancestor := range t.ParentsHash {
-		err = binary.Write(&buf, binary.LittleEndian, ancestor)
-		panicIfError(err)
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+	}
+
+	for _, orderHash := range t.ContractHashOrder {
+		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
 	}
 
 	result := sha3.Sum256(buf.Bytes())

@@ -5,9 +5,11 @@ package types
 
 type Txi interface {
 	// Hash returns a tx hash
-	BlockHash() Hash
-}
+	Hash() Hash
 
+	// Parents returns the hash of txs that it directly proves.
+	Parents() []Hash
+}
 type TxBase struct {
 	Type          int    `msgp:"type"`
 	ParentsHash   []Hash `msgp:"parentHash"`

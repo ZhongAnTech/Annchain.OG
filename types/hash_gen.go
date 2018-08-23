@@ -23,7 +23,7 @@ func (z *Hash) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Bytes":
-			z.Bytes, err = dc.ReadBytes(z.Bytes)
+			err = dc.ReadExactBytes((z.Bytes)[:])
 			if err != nil {
 				return
 			}
@@ -45,7 +45,7 @@ func (z *Hash) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Bytes)
+	err = en.WriteBytes((z.Bytes)[:])
 	if err != nil {
 		return
 	}
@@ -58,7 +58,7 @@ func (z *Hash) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 1
 	// string "Bytes"
 	o = append(o, 0x81, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
-	o = msgp.AppendBytes(o, z.Bytes)
+	o = msgp.AppendBytes(o, (z.Bytes)[:])
 	return
 }
 
@@ -79,7 +79,7 @@ func (z *Hash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Bytes":
-			z.Bytes, bts, err = msgp.ReadBytesBytes(bts, z.Bytes)
+			bts, err = msgp.ReadExactBytes(bts, (z.Bytes)[:])
 			if err != nil {
 				return
 			}
@@ -96,6 +96,6 @@ func (z *Hash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Hash) Msgsize() (s int) {
-	s = 1 + 6 + msgp.BytesPrefixSize + len(z.Bytes)
+	s = 1 + 6 + msgp.ArrayHeaderSize + (HashLength * (msgp.ByteSize))
 	return
 }

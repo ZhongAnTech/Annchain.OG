@@ -40,7 +40,7 @@ var (
 
 // Address represents the 20 byte of address.
 type Address struct {
-	Bytes []byte `msgp:"bytes"`
+	Bytes [AddressLength]byte `msgp:"bytes"`
 }
 
 // BytesToAddress sets b to hash.
@@ -60,10 +60,10 @@ func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 func HexToAddress(s string) Address { return BytesToAddress(common.FromHex(s)) }
 
 // Big converts an Address to a big integer.
-func (h Address) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes) }
+func (h Address) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 
 // Hex converts a Address to a hex string.
-func (h Address) Hex() string { return hexutil.Encode(h.Bytes) }
+func (h Address) Hex() string { return hexutil.Encode(h.Bytes[:]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.
@@ -85,17 +85,17 @@ func (h Address) Format(s fmt.State, c rune) {
 
 // UnmarshalText parses an Address in hex syntax.
 func (h *Address) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("Address", input, h.Bytes)
+	return hexutil.UnmarshalFixedText("Address", input, h.Bytes[:])
 }
 
 // UnmarshalJSON parses an Address in hex syntax.
 func (h *Address) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalFixedJSON(addressT, input, h.Bytes)
+	return hexutil.UnmarshalFixedJSON(addressT, input, h.Bytes[:])
 }
 
 // MarshalText returns the hex representation of h.
 func (h Address) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(h.Bytes).MarshalText()
+	return hexutil.Bytes(h.Bytes[:]).MarshalText()
 }
 
 // SetBytes sets the Address to the value of b.
@@ -104,15 +104,15 @@ func (h *Address) MustSetBytes(b []byte) {
 	if len(b) > AddressLength {
 		panic(fmt.Sprintf("byte to set is longer than expected length: %d > %d", len(b), AddressLength))
 	}
-	h.Bytes = make([]byte, AddressLength)
-	copy(h.Bytes, b)
+	h.Bytes = [AddressLength]byte{}
+	copy(h.Bytes[:], b)
 }
 
 // Generate implements testing/quick.Generator.
 func (h Address) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := rand.Intn(AddressLength)
 	for i := AddressLength - 1; i > m; i-- {
-		h.Bytes = append(h.Bytes, byte(rand.Uint32()))
+		h.Bytes[i] = byte(rand.Uint32())
 	}
 	return reflect.ValueOf(h)
 }

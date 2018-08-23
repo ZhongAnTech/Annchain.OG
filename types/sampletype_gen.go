@@ -81,6 +81,16 @@ func (z *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 				}
 				z.KV[za0002] = za0003
 			}
+		case "seq":
+			err = z.Seq.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "tx":
+			err = z.TxInner.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -93,9 +103,9 @@ func (z *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Foo) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
+	// map header, size 7
 	// write "bar"
-	err = en.Append(0x85, 0xa3, 0x62, 0x61, 0x72)
+	err = en.Append(0x87, 0xa3, 0x62, 0x61, 0x72)
 	if err != nil {
 		return
 	}
@@ -155,15 +165,33 @@ func (z *Foo) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	// write "seq"
+	err = en.Append(0xa3, 0x73, 0x65, 0x71)
+	if err != nil {
+		return
+	}
+	err = z.Seq.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "tx"
+	err = en.Append(0xa2, 0x74, 0x78)
+	if err != nil {
+		return
+	}
+	err = z.TxInner.EncodeMsg(en)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Foo) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
+	// map header, size 7
 	// string "bar"
-	o = append(o, 0x85, 0xa3, 0x62, 0x61, 0x72)
+	o = append(o, 0x87, 0xa3, 0x62, 0x61, 0x72)
 	o = msgp.AppendString(o, z.Bar)
 	// string "baz"
 	o = append(o, 0xa3, 0x62, 0x61, 0x7a)
@@ -189,6 +217,18 @@ func (z *Foo) MarshalMsg(b []byte) (o []byte, err error) {
 	for za0002, za0003 := range z.KV {
 		o = msgp.AppendString(o, za0002)
 		o = msgp.AppendFloat64(o, za0003)
+	}
+	// string "seq"
+	o = append(o, 0xa3, 0x73, 0x65, 0x71)
+	o, err = z.Seq.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "tx"
+	o = append(o, 0xa2, 0x74, 0x78)
+	o, err = z.TxInner.MarshalMsg(o)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -268,6 +308,16 @@ func (z *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				}
 				z.KV[za0002] = za0003
 			}
+		case "seq":
+			bts, err = z.Seq.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "tx":
+			bts, err = z.TxInner.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -292,5 +342,6 @@ func (z *Foo) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(za0002) + msgp.Float64Size
 		}
 	}
+	s += 4 + z.Seq.Msgsize() + 3 + z.TxInner.Msgsize()
 	return
 }

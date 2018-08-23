@@ -39,7 +39,6 @@ func NewTxPool(conf TxPoolConfig, d dag) *TxPool {
 	pool := &TxPool{
 		conf:			conf,
 		dag:			d,
-		// TODO replace the viper GetInt key with real one
 		queue:			make(chan *txEvent, conf.TxPoolQueueSize),
 		txLookup: 		newTxLookUp(),
 		closeChan:		make(chan bool),
@@ -83,9 +82,8 @@ func (pool *TxPool) Stop() {
 }
 
 // PoolStatus returns the current status of txpool. 
-func (pool *TxPool) PoolStatus() {
-	// TODO
-	return 
+func (pool *TxPool) PoolStatus() (int, int) {
+	return pool.txLookup.stats()
 }
 
 // Get get a transaction or sequencer according to input hash, 
@@ -111,7 +109,7 @@ func (pool *TxPool) GetRandomTips(n int) map[common.Hash]types.TX {
 			return result
 		}
 		result[k] = v
-		i = i + 1
+		i = i + 1 
 	}
 	return result
 }
@@ -162,8 +160,6 @@ func (pool *TxPool) loop() {
 
 	pool.wg.Add(1)
 	defer pool.wg.Done()
-
-	// TODO
 
 	for {
 		select {
@@ -273,12 +269,26 @@ func (t *txLookUp) remove(h common.Hash) {
 	defer t.mu.Unlock()
 
 	delete(t.txs, h)
-}
+} 
 func (t *txLookUp) count() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	
 	return len(t.txs)
+}
+func (t *txLookUp) stats() (int, int) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	queue, tips := 0, 0
+	for _, v := range t.txs {
+		if v.txType == TxStatusQueue {
+			queue += 1
+		} else {
+			tips += 1
+		}
+	}
+	return queue, tips
 }
 func (t *txLookUp) status(h common.Hash) int {
 	t.mu.RLock()

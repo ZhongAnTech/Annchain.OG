@@ -4,6 +4,7 @@ import (
 	"testing"
 	"fmt"
 	"github.com/annchain/OG/common/math"
+	"encoding/hex"
 )
 
 func TestSequencer(t *testing.T) {
@@ -20,4 +21,42 @@ func TestSequencer(t *testing.T) {
 	fmt.Println(seq2.BlockHash().String())
 	fmt.Println(seq3.BlockHash().String())
 
+}
+
+func TestSequencerSize(t *testing.T) {
+	seq := Sequencer{Id: 100}
+	n := 100
+
+	// make 1000 hashes
+	for i := 0; i < n; i ++ {
+		seq.ContractHashOrder = append(seq.ContractHashOrder, HexToHash("0xAABB000000000000000000000000EEFF"))
+	}
+
+	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)
+	bts, err := seq.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(hex.Dump(bts))
+}
+
+func TestSequencerRawSize(t *testing.T) {
+	seq := Sequencer{Id: 100}
+	n := 100
+
+	// make 1000 hashes
+	for i := 0; i < n; i ++ {
+		seq.Raws = append(seq.Raws, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
+	}
+
+	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)
+	bts, err := seq.MarshalMsg(nil)
+	fmt.Println("ActualLength", len(bts), len(bts) / n)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(hex.Dump(bts))
 }

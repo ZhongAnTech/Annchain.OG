@@ -27,7 +27,7 @@ import (
 )
 
 //go:generate msgp
-//cccmsgp:tuple Address
+//msgp:tuple Address
 
 // Length of Addresses in bytes.
 const (

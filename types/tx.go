@@ -8,7 +8,7 @@ import (
 )
 
 //go:generate msgp
-//cccmsgp:tuple Tx
+//msgp:tuple Tx
 
 type Tx struct {
 	TxBase

@@ -7,12 +7,13 @@ import (
 )
 
 //go:generate msgp
-//cccmsgp:tuple Sequencer
+//msgp:tuple Sequencer
 
 type Sequencer struct {
-	Id uint64 `msgp:"id"`
+	Id                uint64     `msgp:"id"`
 	TxBase
-	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+	ContractHashOrder []Hash     `msgp:"contractHashOrder"`
+	Raws              [][32]byte `msgp:"Hashes"`
 }
 
 func (t *Sequencer) BlockHash() (hash Hash) {

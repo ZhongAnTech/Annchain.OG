@@ -7,6 +7,7 @@ import (
 )
 
 //go:generate msgp
+//msgp:tuple BigInt
 
 // A BigInt represents a signed multi-precision integer.
 type BigInt struct {

@@ -27,7 +27,7 @@ import (
 )
 
 //go:generate msgp
-//cccmsgp:tuple Hash
+//msgp:tuple Hash
 
 // Length of hash in bytes.
 const (

@@ -8,40 +8,26 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *Hash) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Bytes":
-			err = dc.ReadExactBytes((z.Bytes)[:])
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((z.Bytes)[:])
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Hash) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Bytes"
-	err = en.Append(0x81, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
@@ -55,40 +41,26 @@ func (z *Hash) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Hash) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Bytes"
-	o = append(o, 0x81, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
+	// array header, size 1
+	o = append(o, 0x91)
 	o = msgp.AppendBytes(o, (z.Bytes)[:])
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Hash) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Bytes":
-			bts, err = msgp.ReadExactBytes(bts, (z.Bytes)[:])
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Bytes)[:])
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -96,6 +68,6 @@ func (z *Hash) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Hash) Msgsize() (s int) {
-	s = 1 + 6 + msgp.ArrayHeaderSize + (HashLength * (msgp.ByteSize))
+	s = 1 + msgp.ArrayHeaderSize + (HashLength * (msgp.ByteSize))
 	return
 }

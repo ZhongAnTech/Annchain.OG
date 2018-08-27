@@ -209,7 +209,7 @@ func (s *ProtocolSession) TestExchanges(exchanges ...Exchange) error {
 		if err := s.testExchange(e); err != nil {
 			return fmt.Errorf("exchange #%d %q: %v", i, e.Label, err)
 		}
-		log.Trace(fmt.Sprintf("exchange #%d %q: run successfully", i, e.Label))
+		log.Debug(fmt.Sprintf("exchange #%d %q: run successfully", i, e.Label))
 	}
 	return nil
 }

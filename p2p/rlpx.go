@@ -114,7 +114,7 @@ func (t *rlpx) close(err error) {
 			// a write deadline. Because of this only try to send
 			// the disconnect reason message if there is no error.
 			if err := t.fd.SetWriteDeadline(time.Now().Add(discWriteTimeout)); err == nil {
-				SendItems(t.rw, discMsg, r)
+				SendItemsRlp(t.rw, discMsg, r)
 			}
 		}
 	}
@@ -127,7 +127,7 @@ func (t *rlpx) doProtoHandshake(our *protoHandshake) (their *protoHandshake, err
 	// disconnects us early with a valid reason, we should return it
 	// as the error so it can be tracked elsewhere.
 	werr := make(chan error, 1)
-	go func() { werr <- Send(t.rw, handshakeMsg, our) }()
+	go func() { werr <- SendRlp(t.rw, handshakeMsg, our) }()
 	if their, err = readProtocolHandshake(t.rw, our); err != nil {
 		<-werr // make sure the write terminates too
 		return nil, err

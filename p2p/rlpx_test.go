@@ -260,7 +260,7 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 
 	for i, test := range tests {
 		p1, p2 := MsgPipe()
-		go Send(p1, test.code, test.msg)
+		go SendRlp(p1, test.code, test.msg)
 		_, err := readProtocolHandshake(p2, our)
 		if !reflect.DeepEqual(err, test.err) {
 			t.Errorf("test %d: error mismatch: got %q, want %q", i, err, test.err)
@@ -286,7 +286,7 @@ ba628a4ba590cb43f7848f41c4382885
 `)
 
 	// Check WriteMsg. This puts a message into the buffer.
-	if err := Send(rw, 8, []uint{1, 2, 3, 4}); err != nil {
+	if err := SendRlp(rw, 8, []uint{1, 2, 3, 4}); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
 	}
 	written := buf.Bytes()
@@ -358,7 +358,7 @@ func TestRLPXFrameRW(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		// write message into conn buffer
 		wmsg := []interface{}{"foo", "bar", strings.Repeat("test", i)}
-		err := Send(rw1, uint64(i), wmsg)
+		err := SendRlp(rw1, uint64(i), wmsg)
 		if err != nil {
 			t.Fatalf("WriteMsg error (i=%d): %v", i, err)
 		}

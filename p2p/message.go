@@ -44,6 +44,10 @@ type Msg struct {
 	ReceivedAt time.Time
 }
 
+func (msg Msg) GetPayLoad() ([]byte, error) {
+	return ioutil.ReadAll(msg.Payload)
+}
+
 // Decode parses the RLP content of a message into
 // the given value, which must be a pointer.
 //
@@ -89,11 +93,17 @@ type MsgReadWriter interface {
 
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
-func Send(w MsgWriter, msgcode uint64, data interface{}) error {
+func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
 		return err
 	}
+	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
+}
+
+func Send(w MsgWriter, msgcode uint64, data []byte) error {
+	size := len(data)
+	r := bytes.NewReader(data)
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
 }
 
@@ -106,8 +116,8 @@ func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 //
 //    [e1, e2, e3]
 //
-func SendItems(w MsgWriter, msgcode uint64, elems ...interface{}) error {
-	return Send(w, msgcode, elems)
+func SendItemsRlp(w MsgWriter, msgcode uint64, elems ...interface{}) error {
+	return SendRlp(w, msgcode, elems)
 }
 
 // eofSignal wraps a reader with eof signaling. the eof channel is

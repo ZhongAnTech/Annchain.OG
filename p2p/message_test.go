@@ -27,11 +27,36 @@ import (
 	"time"
 )
 
+func ExampleMessagePipe() {
+	rw1, rw2 := MsgPipe()
+	go func() {
+		Send(rw1, 8, []byte{0, 0})
+		Send(rw1, 5, []byte{1, 1})
+		rw1.Close()
+	}()
+
+	for {
+		msg, err := rw2.ReadMsg()
+		if err != nil {
+			break
+		}
+		data, err := msg.GetPayLoad()
+		//err = msg.Decode(&data)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("msg: %d, %x\n", msg.Code, data)
+	}
+	// Output:
+	// msg: 8, 0000
+	// msg: 5, 0101
+}
+
 func ExampleMsgPipe() {
 	rw1, rw2 := MsgPipe()
 	go func() {
-		Send(rw1, 8, [][]byte{{0, 0}})
-		Send(rw1, 5, [][]byte{{1, 1}})
+		SendRlp(rw1, 8, [][]byte{{0, 0}})
+		SendRlp(rw1, 5, [][]byte{{1, 1}})
 		rw1.Close()
 	}()
 
@@ -55,7 +80,7 @@ loop:
 		rw1, rw2 := MsgPipe()
 		done := make(chan struct{})
 		go func() {
-			if err := SendItems(rw1, 1); err == nil {
+			if err := SendItemsRlp(rw1, 1); err == nil {
 				t.Error("EncodeMsg returned nil error")
 			} else if err != ErrPipeClosed {
 				t.Errorf("EncodeMsg returned wrong error: got %v, want %v", err, ErrPipeClosed)

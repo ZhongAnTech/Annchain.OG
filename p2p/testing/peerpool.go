@@ -42,7 +42,7 @@ func NewTestPeerPool() *TestPeerPool {
 func (p *TestPeerPool) Add(peer TestPeer) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	log.Trace(fmt.Sprintf("pp add peer  %v", peer.ID()))
+	log.Debug(fmt.Sprintf("pp add peer  %v", peer.ID()))
 	p.peers[peer.ID()] = peer
 
 }

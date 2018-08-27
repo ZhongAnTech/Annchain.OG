@@ -63,7 +63,7 @@ func testPeer(protos []Protocol) (func(), *conn, *Peer, <-chan error) {
 	return closer, c2, peer, errc
 }
 
-func TestPeerProtoReadMsg(t *testing.T) {
+func TestPeerProtoReadMsgRlp(t *testing.T) {
 	proto := Protocol{
 		Name:   "a",
 		Length: 5,
@@ -84,9 +84,9 @@ func TestPeerProtoReadMsg(t *testing.T) {
 	closer, rw, _, errc := testPeer([]Protocol{proto})
 	defer closer()
 
-	Send(rw, baseProtocolLength+2, []uint{1})
-	Send(rw, baseProtocolLength+3, []uint{2})
-	Send(rw, baseProtocolLength+4, []uint{3})
+	SendRlp(rw, baseProtocolLength+2, []uint{1})
+	SendRlp(rw, baseProtocolLength+3, []uint{2})
+	SendRlp(rw, baseProtocolLength+4, []uint{3})
 
 	select {
 	case err := <-errc:
@@ -98,15 +98,49 @@ func TestPeerProtoReadMsg(t *testing.T) {
 	}
 }
 
+func TestPeerProtoReadMsg(t *testing.T) {
+	proto := Protocol{
+		Name:   "a",
+		Length: 5,
+		Run: func(peer *Peer, rw MsgReadWriter) error {
+			if err := ExpectMsg(rw, 2, []byte{1}); err != nil {
+				t.Error(err)
+			}
+			if err := ExpectMsg(rw, 3, []byte{2}); err != nil {
+				t.Error(err)
+			}
+			if err := ExpectMsg(rw, 4, []byte{3}); err != nil {
+				t.Error(err)
+			}
+			return nil
+		},
+	}
+
+	closer, rw, _, errc := testPeer([]Protocol{proto})
+	defer closer()
+
+	SendRlp(rw, baseProtocolLength+2, []byte{1})
+	SendRlp(rw, baseProtocolLength+3, []byte{2})
+	SendRlp(rw, baseProtocolLength+4, []byte{3})
+
+	select {
+	case err := <-errc:
+		if err != errProtocolReturned {
+			t.Errorf("peer returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Errorf("receive timeout")
+	}
+}
 func TestPeerProtoEncodeMsg(t *testing.T) {
 	proto := Protocol{
 		Name:   "a",
 		Length: 2,
 		Run: func(peer *Peer, rw MsgReadWriter) error {
-			if err := SendItems(rw, 2); err == nil {
+			if err := SendItemsRlp(rw, 2); err == nil {
 				t.Error("expected error for out-of-range msg code, got nil")
 			}
-			if err := SendItems(rw, 1, "foo", "bar"); err != nil {
+			if err := SendItemsRlp(rw, 1, "foo", "bar"); err != nil {
 				t.Errorf("write error: %v", err)
 			}
 			return nil
@@ -123,7 +157,7 @@ func TestPeerProtoEncodeMsg(t *testing.T) {
 func TestPeerPing(t *testing.T) {
 	closer, rw, _, _ := testPeer(nil)
 	defer closer()
-	if err := SendItems(rw, pingMsg); err != nil {
+	if err := SendItemsRlp(rw, pingMsg); err != nil {
 		t.Fatal(err)
 	}
 	if err := ExpectMsg(rw, pongMsg, nil); err != nil {
@@ -134,7 +168,7 @@ func TestPeerPing(t *testing.T) {
 func TestPeerDisconnect(t *testing.T) {
 	closer, rw, _, disc := testPeer(nil)
 	defer closer()
-	if err := SendItems(rw, discMsg, DiscQuitting); err != nil {
+	if err := SendItemsRlp(rw, discMsg, DiscQuitting); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -169,8 +203,8 @@ func TestPeerDisconnectRace(t *testing.T) {
 		})
 
 		// Simulate incoming messages.
-		go SendItems(rw, baseProtocolLength+1)
-		go SendItems(rw, baseProtocolLength+2)
+		go SendItemsRlp(rw, baseProtocolLength+1)
+		go SendItemsRlp(rw, baseProtocolLength+2)
 		// Close the network connection.
 		go closer()
 		// Make protocol "closereq" return.
@@ -183,7 +217,7 @@ func TestPeerDisconnectRace(t *testing.T) {
 		}
 		// In some cases, simulate remote requesting a disconnect.
 		if maybe() {
-			go SendItems(rw, discMsg, DiscQuitting)
+			go SendItemsRlp(rw, discMsg, DiscQuitting)
 		}
 
 		select {

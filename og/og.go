@@ -22,3 +22,7 @@ func (og *Og) Start() {
 func (og *Og) Stop() {
 	logrus.Info("OG Stopped")
 }
+
+func (og *Og) Name() string {
+	return "OG"
+}

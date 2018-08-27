@@ -60,6 +60,9 @@ func init() {
 	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
 	viper.BindPFlag("log_verbosity", rootCmd.PersistentFlags().Lookup("log_verbosity"))
+
+	viper.SetDefault("hub.outgoing_buffer_size", 10)
+	viper.SetDefault("hub.incoming_buffer_size", 10)
 }
 
 func panicIfError(err error, message string) {

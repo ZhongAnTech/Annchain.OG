@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/websocket"
 	"io"
 	"net/http"
+	"fmt"
 )
 
 const (
@@ -36,6 +37,10 @@ func (srv *P2PServer) Start() {
 	http.Handle("/", websocket.Handler(srv.readloop))
 	log.Info("Listening p2p on ", srv.port)
 	go http.ListenAndServe("127.0.0.1:"+srv.port, nil)
+}
+
+func (srv *P2PServer) Name() string {
+	return fmt.Sprintf("P2PServer at port %s", srv.port)
 }
 
 func (srv *P2PServer) Close() {
@@ -142,7 +147,7 @@ func (srv *P2PServer) readloop(ws *websocket.Conn) {
 
 	}
 }
-func (server *P2PServer) Stop() {
+func (srv *P2PServer) Stop() {
 	log.Info("P2P Stopped")
 }
 

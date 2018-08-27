@@ -7,10 +7,10 @@ import "github.com/sirupsen/logrus"
 // Hub will also prevent duplicate requests.
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 type Hub struct {
-	Outgoing         chan *P2PMessage
-	Incoming         chan *P2PMessage
-	Quit             chan bool
-	CallbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
+	outgoing         chan *P2PMessage
+	incoming         chan *P2PMessage
+	quit             chan bool
+	callbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
 }
 
 type HubConfig struct {
@@ -19,10 +19,10 @@ type HubConfig struct {
 }
 
 func (h *Hub) Init(config *HubConfig) {
-	h.Outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
-	h.Incoming = make(chan *P2PMessage, config.IncomingBufferSize)
-	h.Quit = make(chan bool)
-	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
+	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
+	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
+	h.quit = make(chan bool)
+	h.callbackRegistry = make(map[MessageType]func(*P2PMessage))
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -32,52 +32,56 @@ func NewHub(config *HubConfig) *Hub {
 }
 
 func (h *Hub) Start() {
-	go h.LoopSend()
-	go h.LoopReceive()
+	go h.loopSend()
+	go h.loopReceive()
 }
 
 func (h *Hub) Stop() {
-	h.Quit <- true
-	h.Quit <- true
+	h.quit <- true
+	h.quit <- true
 }
 
 func (h *Hub) Name() string {
 	return "Hub"
 }
 
-func (h *Hub) LoopSend() {
+func (h *Hub) loopSend() {
 	for {
 		select {
-		case m := <-h.Outgoing:
+		case m := <-h.outgoing:
 			// start a new routine in order not to block other communications
-			go h.SendMessage(m)
-		case <-h.Quit:
-			logrus.Info("HubSend received quit message. Quitting...")
+			go h.sendMessage(m)
+		case <-h.quit:
+			logrus.Info("HubSend reeived quit message. Quitting...")
 			return
 		}
 	}
 }
-func (h *Hub) LoopReceive() {
+func (h *Hub) loopReceive() {
 	for {
 		select {
-		case m := <-h.Incoming:
+		case m := <-h.incoming:
 			// start a new routine in order not to block other communications
-			go h.ReceiveMessage(m)
-		case <-h.Quit:
+			go h.receiveMessage(m)
+		case <-h.quit:
 			logrus.Info("HubReceive received quit message. Quitting...")
 			return
 		}
 	}
 }
 
-func (h *Hub) SendMessage(msg *P2PMessage) {
+func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
+	h.outgoing <- &P2PMessage{MessageType: messageType, Message: msg}
+}
+
+func (h *Hub) sendMessage(msg *P2PMessage) {
 	// choose a peer and then send.
 	// DUMMY: Send to me
-	h.Incoming <- msg
+	h.incoming <- msg
 }
-func (h *Hub) ReceiveMessage(msg *P2PMessage) {
+func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
-	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
+	if v, ok := h.callbackRegistry[msg.MessageType]; ok {
 		v(msg)
 	} else {
 		logrus.Warnf("Received an unknown message type: %d", msg.MessageType)

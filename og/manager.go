@@ -8,9 +8,9 @@ import (
 
 // Manager manages the intern msg between each OG part
 type Manager struct {
-	txPool         *core.TxPool
-	hub            *Hub
-	acquireTxQueue chan types.Hash
+	txPool *core.TxPool
+	hub    *Hub
+	syncer *Syncer
 }
 
 type ManagerConfig struct {
@@ -18,18 +18,21 @@ type ManagerConfig struct {
 	BatchAcquireSize   uint // length of the buffer for batch tx acquire for a single node
 }
 
-func NewManager(config ManagerConfig, hub *Hub) (*Manager) {
+func NewManager(config ManagerConfig, hub *Hub, syncer *Syncer, txPool *core.TxPool) (*Manager) {
 	m := Manager{}
-	m.acquireTxQueue = make(chan types.Hash, config.AcquireTxQueueSize)
 	// init hub
 	m.SetupCallbacks(hub)
+	m.syncer = syncer
+	m.txPool = txPool
 	return &m
 }
 
 // SetupCallbacks Regist callbacks to handle different messages
 func (m *Manager) SetupCallbacks(hub *Hub) {
-	hub.CallbackRegistry[MessageTypePing] = m.HandleMessageTypePing
-	hub.CallbackRegistry[MessageTypePong] = m.HandleMessageTypePong
+	hub.callbackRegistry[MessageTypePing] = m.HandleMessageTypePing
+	hub.callbackRegistry[MessageTypePong] = m.HandleMessageTypePong
+	hub.callbackRegistry[MessageTypeFetchByHash] = m.HandleMessageTypeFetchByHash
+	hub.callbackRegistry[MessageTypeFetchByHashResponse] = m.HandleMessageTypeFetchByHashResponse
 	m.hub = hub
 }
 
@@ -39,8 +42,8 @@ func (m *Manager) SetupCallbacks(hub *Hub) {
 func (m *Manager) EnsurePreviousTxs(tipHash types.Hash) bool {
 	tx := m.txPool.Get(tipHash)
 	if tx == nil {
-		// needs to fetch this hash
-		m.acquireTxQueue <- tipHash
+		// need to fetch this hash
+		m.syncer.Enqueue(tipHash)
 		return false
 	}
 	// no need to further fetch the ancestors. They will be checked sooner or later
@@ -53,22 +56,78 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 }
 
 func (m *Manager) Start() {
-	m.hub.Outgoing <- &P2PMessage{MessageType: MessageTypePing, Message: []byte{}}
+	m.hub.SendMessage(MessageTypePing, []byte{})
+	m.syncer.Enqueue(types.HexToHash("0x00"))
+	m.syncer.Enqueue(types.HexToHash("0x01"))
 }
 
-func (m *Manager) Stop(){
+func (m *Manager) Stop() {
 
 }
 
-func (m *Manager) Name() string{
+func (m *Manager) Name() string {
 	return "Manager"
 }
 
 func (m *Manager) HandleMessageTypePing(*P2PMessage) {
-	logrus.Info("Received your ping. Respond you a pong")
-	m.hub.Outgoing <- &P2PMessage{MessageType: MessageTypePong, Message: []byte{}}
+	logrus.Debug("Received your ping. Respond you a pong")
+	m.hub.outgoing <- &P2PMessage{MessageType: MessageTypePong, Message: []byte{}}
 }
 
 func (m *Manager) HandleMessageTypePong(*P2PMessage) {
-	logrus.Info("Received your pong.")
+	logrus.Debug("Received your pong.")
+}
+
+func (m *Manager) HandleMessageTypeFetchByHash(msg *P2PMessage) {
+	logrus.Debug("Received MessageSyncRequest")
+	syncRequest := types.MessageSyncRequest{}
+	_, err := syncRequest.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.Debug("Invalid MessageSyncRequest format")
+		return
+	}
+	if len(syncRequest.Hashes) == 0 {
+		logrus.Debug("Empty MessageSyncRequest")
+		return
+	}
+
+	var txs []types.Txi
+	for _, hash := range syncRequest.Hashes {
+		// DUMMY CODE
+		switch hash.Bytes[0] {
+		case 0:
+			tx := types.SampleSequencer()
+			txs = append(txs, tx)
+		case 1:
+			tx := types.SampleTx()
+			txs = append(txs, tx)
+		}
+	}
+	syncResponse := types.MessageSyncResponse{
+		Txs: txs,
+	}
+	data, err := syncResponse.MarshalMsg(nil)
+	if err != nil {
+		logrus.Warn("Failed to marshall MessageSyncResponse message")
+		return
+	}
+
+	m.hub.SendMessage(MessageTypeFetchByHashResponse, data)
+}
+
+func (m *Manager) HandleMessageTypeFetchByHashResponse(msg *P2PMessage) {
+	logrus.Debug("Received MessageSyncResponse")
+	syncResponse := types.MessageSyncResponse{}
+	_, err := syncResponse.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.Debug("Invalid MessageSyncResponse format")
+		return
+	}
+	if len(syncResponse.Txs) == 0 {
+		logrus.Debug("Empty MessageSyncResponse")
+		return
+	}
+	for _, v := range syncResponse.Txs {
+		logrus.Infof("Received Tx: %s", v.Hash())
+	}
 }

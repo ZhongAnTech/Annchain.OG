@@ -12,12 +12,25 @@ import (
 
 type Tx struct {
 	TxBase
-	From          Address
-	To            Address
-	Value         *math.BigInt
+	From  Address
+	To    Address
+	Value *math.BigInt
 }
 
-func (t *Tx) BlockHash() (hash Hash) {
+func SampleTx() *Tx {
+	return &Tx{TxBase: TxBase{
+		Height:        12,
+		ParentsHash:   []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+		Type:          1,
+		SequenceNonce: 234,
+	},
+		From: HexToAddress("0x99"),
+		To: HexToAddress("0x88"),
+		Value: math.NewBigInt(54235432),
+	}
+}
+
+func (t *Tx) Hash() (hash Hash) {
 	var buf bytes.Buffer
 
 	err := binary.Write(&buf, binary.LittleEndian, t.Height)

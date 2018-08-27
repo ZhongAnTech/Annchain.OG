@@ -10,13 +10,29 @@ import (
 //msgp:tuple Sequencer
 
 type Sequencer struct {
-	Id                uint64     `msgp:"id"`
 	TxBase
+	Id                uint64     `msgp:"id"`
 	ContractHashOrder []Hash     `msgp:"contractHashOrder"`
 	Raws              [][32]byte `msgp:"Hashes"`
 }
 
-func (t *Sequencer) BlockHash() (hash Hash) {
+func SampleSequencer() *Sequencer {
+	return &Sequencer{Id: 99,
+		TxBase: TxBase{
+			Height:        12,
+			ParentsHash:   []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+			Type:          1,
+			SequenceNonce: 234,
+		},
+		ContractHashOrder: []Hash{
+			HexToHash("0x00667788"),
+			HexToHash("0xAA667788"),
+			HexToHash("0xBB667788"), // 20 bytes
+		},
+	}
+}
+
+func (t *Sequencer) Hash() (hash Hash) {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
@@ -33,3 +49,4 @@ func (t *Sequencer) BlockHash() (hash Hash) {
 	hash.MustSetBytes(result[0:])
 	return
 }
+

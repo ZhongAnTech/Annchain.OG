@@ -8,6 +8,8 @@ type MessageType uint
 const (
 	MessageTypePing MessageType = iota
 	MessageTypePong
+	MessageTypeFetchByHash
+	MessageTypeFetchByHashResponse
 )
 
 type P2PMessage struct {

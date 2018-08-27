@@ -17,11 +17,11 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	z.Id, err = dc.ReadUint64()
+	err = z.TxBase.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.DecodeMsg(dc)
+	z.Id, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -67,11 +67,11 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.Id)
+	err = z.TxBase.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.EncodeMsg(en)
+	err = en.WriteUint64(z.Id)
 	if err != nil {
 		return
 	}
@@ -103,11 +103,11 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 4
 	o = append(o, 0x94)
-	o = msgp.AppendUint64(o, z.Id)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
+	o = msgp.AppendUint64(o, z.Id)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.ContractHashOrder)))
 	for za0001 := range z.ContractHashOrder {
 		o, err = z.ContractHashOrder[za0001].MarshalMsg(o)
@@ -133,11 +133,11 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	z.Id, bts, err = msgp.ReadUint64Bytes(bts)
+	bts, err = z.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
+	z.Id, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -179,7 +179,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + msgp.Uint64Size + z.TxBase.Msgsize() + msgp.ArrayHeaderSize
+	s = 1 + z.TxBase.Msgsize() + msgp.Uint64Size + msgp.ArrayHeaderSize
 	for za0001 := range z.ContractHashOrder {
 		s += z.ContractHashOrder[za0001].Msgsize()
 	}

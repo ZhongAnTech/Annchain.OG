@@ -29,9 +29,18 @@ func NewNode() *Node {
 		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
 	})
 
+	syncer := og.NewSyncer(&og.SyncerConfig{
+		BatchTimeoutMilliSecond: 5000,
+		AcquireTxQueueSize:      1000,
+		MaxBatchSize:            100,
+	}, hub)
+
 	n.Components = append(n.Components, new(og.Og))
 	n.Components = append(n.Components, hub)
-	n.Components = append(n.Components, og.NewManager(og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10}, hub))
+	n.Components = append(n.Components, syncer)
+
+	//var txPool core.TxPool
+	n.Components = append(n.Components, og.NewManager(og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10}, hub, syncer, nil))
 	return n
 }
 

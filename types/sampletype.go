@@ -1,45 +1,42 @@
 package types
 
 import (
-	"fmt"
 	"golang.org/x/crypto/sha3"
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
+	"fmt"
 )
 
-// RUN "go generate" to generate all help codes
+// Define your own structure and then use messagepack to generate codes
+// You can add functions for your struct here.
+// RUN "go generate" to generate all helper codes
+
+// DO NOT DELETE THIS TWO COMMENTS. THEY ARE FUNCTIONAL.
 
 //go:generate msgp
-//msgp:tuple Foo
-
-type Hash []byte
+//cccmsgp:tuple Foo
 
 type Foo struct {
 	Bar     string             `msg:"bar"`
 	Baz     float64            `msg:"baz"`
-	Address Hash               `msg:"address"`
+	Address Address            `msg:"address"`
 	Parents []Hash             `msg:"parents"`
 	KV      map[string]float64 `msg:"kv"`
+	Seq     Sequencer          `msg:"seq"`
+	TxInner Tx                 `msg:"tx"`
 	//BIG *big.Int `msg:"big"`
 }
 
-func (f *Foo) CalcHash() {
+func (f *Foo) CalcHash() (hash Hash, err error) {
 	var buf bytes.Buffer
 
-	//panicIfError(binary.Write(&buf, binary.LittleEndian, f.Bar))
-	panicIfError(binary.Write(&buf, binary.LittleEndian, f.Baz))
-	panicIfError(binary.Write(&buf, binary.LittleEndian, f.Address))
-	//panicIfError(binary.Write(&buf, binary.LittleEndian, f.Parents))
-	//panicIfError(binary.Write(&buf, binary.LittleEndian, f.KV))
+	if err := binary.Write(&buf, binary.LittleEndian, f.Bar); err != nil {
+		return Hash{}, err
+	}
 
 	hasher := sha3.New512()
 	v := hasher.Sum(buf.Bytes())
-	fmt.Println(hex.Dump(v))
-
-}
-func panicIfError(err error) {
-	if err != nil {
-		panic(err)
-	}
+	hash.MustSetBytes(v)
+	fmt.Println(hash.Hex())
+	return
 }

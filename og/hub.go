@@ -1,4 +1,4 @@
-package p2p
+package og
 
 import "github.com/sirupsen/logrus"
 
@@ -10,7 +10,7 @@ type Hub struct {
 	Outgoing         chan *P2PMessage
 	Incoming         chan *P2PMessage
 	Quit             chan bool
-	CallbackRegistry map[uint]func(*P2PMessage) // All callbacks
+	CallbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
 }
 
 type HubConfig struct {
@@ -22,6 +22,7 @@ func (h *Hub) Init(config *HubConfig) {
 	h.Outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.Incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.Quit = make(chan bool)
+	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -71,6 +72,8 @@ func (h *Hub) LoopReceive() {
 
 func (h *Hub) SendMessage(msg *P2PMessage) {
 	// choose a peer and then send.
+	// DUMMY: Send to me
+	h.Incoming <- msg
 }
 func (h *Hub) ReceiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.

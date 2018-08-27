@@ -1,14 +1,16 @@
-package p2p
+package og
 
 //go:generate msgp
 //msgp:tuple P2PMessage
 
+type MessageType uint
+
 const (
-	MessageTypePing uint = iota
+	MessageTypePing MessageType = iota
 	MessageTypePong
 )
 
 type P2PMessage struct {
-	MessageType uint
+	MessageType MessageType
 	Message     []byte
 }

@@ -9,9 +9,7 @@ import (
 type Og struct {
 	dag    *core.Dag
 	txpool *core.TxPool
-
 	accountManager *account.AccountManager
-
 	manager *Manager
 }
 

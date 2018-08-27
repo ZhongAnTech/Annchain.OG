@@ -23,11 +23,15 @@ func NewNode() *Node {
 	if viper.GetBool("rpc.enabled") {
 		n.Components = append(n.Components, rpc.NewRpcServer(viper.GetString("rpc.port")))
 	}
-	n.Components = append(n.Components, p2p.NewHub(&p2p.HubConfig{
+
+	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize: viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
-	}))
+	})
+
 	n.Components = append(n.Components, new(og.Og))
+	n.Components = append(n.Components, hub)
+	n.Components = append(n.Components, og.NewManager(og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10}, hub))
 	return n
 }
 

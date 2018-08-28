@@ -7,14 +7,14 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (t *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
 	{
@@ -23,29 +23,33 @@ func (t *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		t.Type = TxBaseType(zb0002)
+		z.Type = TxBaseType(zb0002)
+	}
+	err = z.Hash.DecodeMsg(dc)
+	if err != nil {
+		return
 	}
 	var zb0003 uint32
 	zb0003, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	if cap(t.ParentsHash) >= int(zb0003) {
-		t.ParentsHash = (t.ParentsHash)[:zb0003]
+	if cap(z.ParentsHash) >= int(zb0003) {
+		z.ParentsHash = (z.ParentsHash)[:zb0003]
 	} else {
-		t.ParentsHash = make([]Hash, zb0003)
+		z.ParentsHash = make([]Hash, zb0003)
 	}
-	for za0001 := range t.ParentsHash {
-		err = t.ParentsHash[za0001].DecodeMsg(dc)
+	for za0001 := range z.ParentsHash {
+		err = z.ParentsHash[za0001].DecodeMsg(dc)
 		if err != nil {
 			return
 		}
 	}
-	t.SequenceNonce, err = dc.ReadUint64()
+	z.AccountNonce, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
-	t.Height, err = dc.ReadUint64()
+	z.Height, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -53,31 +57,35 @@ func (t *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (t *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
+func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 5
+	err = en.Append(0x95)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint(uint(t.Type))
+	err = en.WriteUint(uint(z.Type))
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(t.ParentsHash)))
+	err = z.Hash.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	for za0001 := range t.ParentsHash {
-		err = t.ParentsHash[za0001].EncodeMsg(en)
+	err = en.WriteArrayHeader(uint32(len(z.ParentsHash)))
+	if err != nil {
+		return
+	}
+	for za0001 := range z.ParentsHash {
+		err = z.ParentsHash[za0001].EncodeMsg(en)
 		if err != nil {
 			return
 		}
 	}
-	err = en.WriteUint64(t.SequenceNonce)
+	err = en.WriteUint64(z.AccountNonce)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(t.Height)
+	err = en.WriteUint64(z.Height)
 	if err != nil {
 		return
 	}
@@ -85,32 +93,36 @@ func (t *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (t *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, t.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
-	o = msgp.AppendUint(o, uint(t.Type))
-	o = msgp.AppendArrayHeader(o, uint32(len(t.ParentsHash)))
-	for za0001 := range t.ParentsHash {
-		o, err = t.ParentsHash[za0001].MarshalMsg(o)
+func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 5
+	o = append(o, 0x95)
+	o = msgp.AppendUint(o, uint(z.Type))
+	o, err = z.Hash.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	o = msgp.AppendArrayHeader(o, uint32(len(z.ParentsHash)))
+	for za0001 := range z.ParentsHash {
+		o, err = z.ParentsHash[za0001].MarshalMsg(o)
 		if err != nil {
 			return
 		}
 	}
-	o = msgp.AppendUint64(o, t.SequenceNonce)
-	o = msgp.AppendUint64(o, t.Height)
+	o = msgp.AppendUint64(o, z.AccountNonce)
+	o = msgp.AppendUint64(o, z.Height)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (t *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
 	{
@@ -119,29 +131,33 @@ func (t *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		t.Type = TxBaseType(zb0002)
+		z.Type = TxBaseType(zb0002)
+	}
+	bts, err = z.Hash.UnmarshalMsg(bts)
+	if err != nil {
+		return
 	}
 	var zb0003 uint32
 	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if cap(t.ParentsHash) >= int(zb0003) {
-		t.ParentsHash = (t.ParentsHash)[:zb0003]
+	if cap(z.ParentsHash) >= int(zb0003) {
+		z.ParentsHash = (z.ParentsHash)[:zb0003]
 	} else {
-		t.ParentsHash = make([]Hash, zb0003)
+		z.ParentsHash = make([]Hash, zb0003)
 	}
-	for za0001 := range t.ParentsHash {
-		bts, err = t.ParentsHash[za0001].UnmarshalMsg(bts)
+	for za0001 := range z.ParentsHash {
+		bts, err = z.ParentsHash[za0001].UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
 	}
-	t.SequenceNonce, bts, err = msgp.ReadUint64Bytes(bts)
+	z.AccountNonce, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
-	t.Height, bts, err = msgp.ReadUint64Bytes(bts)
+	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -150,31 +166,31 @@ func (t *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (t *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.UintSize + msgp.ArrayHeaderSize
-	for za0001 := range t.ParentsHash {
-		s += t.ParentsHash[za0001].Msgsize()
+func (z *TxBase) Msgsize() (s int) {
+	s = 1 + msgp.UintSize + z.Hash.Msgsize() + msgp.ArrayHeaderSize
+	for za0001 := range z.ParentsHash {
+		s += z.ParentsHash[za0001].Msgsize()
 	}
 	s += msgp.Uint64Size + msgp.Uint64Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
-func (t *TxBaseType) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *TxBaseType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zb0001 uint
 		zb0001, err = dc.ReadUint()
 		if err != nil {
 			return
 		}
-		(*t) = TxBaseType(zb0001)
+		(*z) = TxBaseType(zb0001)
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
-func (t TxBaseType) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteUint(uint(t))
+func (z TxBaseType) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteUint(uint(z))
 	if err != nil {
 		return
 	}
@@ -182,28 +198,28 @@ func (t TxBaseType) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (t TxBaseType) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, t.Msgsize())
-	o = msgp.AppendUint(o, uint(t))
+func (z TxBaseType) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendUint(o, uint(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (t *TxBaseType) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *TxBaseType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
 		var zb0001 uint
 		zb0001, bts, err = msgp.ReadUintBytes(bts)
 		if err != nil {
 			return
 		}
-		(*t) = TxBaseType(zb0001)
+		(*z) = TxBaseType(zb0001)
 	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (t TxBaseType) Msgsize() (s int) {
+func (z TxBaseType) Msgsize() (s int) {
 	s = msgp.UintSize
 	return
 }

@@ -44,10 +44,13 @@ type Txi interface {
 
 //msgp:tuple TxBase
 type TxBase struct {
-	Type          TxBaseType `msgp:"type"`
-	ParentsHash   []Hash     `msgp:"parentHash"`
-	SequenceNonce uint64     `msgp:"sequenceNonce"`
-	Height        uint64     `msgp:"height"`
+	Type         TxBaseType
+	Hash         Hash
+	ParentsHash  []Hash
+	AccountNonce uint64
+	Height       uint64
+	PublicKey    []byte
+	Signature    []byte
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -58,11 +61,15 @@ func (t *TxBase) Parents() []Hash {
 	return t.ParentsHash
 }
 
+func (t *TxBase) SetHash(hash Hash) {
+	t.Hash = hash
+}
+
 func (t *TxBase) String() string {
 	var hashes []string
 	for _, v := range t.ParentsHash {
 		hashes = append(hashes, v.Hex()[0:10])
 	}
 
-	return fmt.Sprintf("%s Parent [%s]", t.Type.String(), strings.Join(hashes, ","))
+	return fmt.Sprintf("%s %s Parent [%s]", t.Type.String(), t.Hash.Hex()[:10], strings.Join(hashes, ","))
 }

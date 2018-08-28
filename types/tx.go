@@ -22,10 +22,10 @@ func SampleTx() *Tx {
 	v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
 
 	return &Tx{TxBase: TxBase{
-		Height:        12,
-		ParentsHash:   []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
-		Type:          TxBaseTypeNormal,
-		SequenceNonce: 234,
+		Height:       12,
+		ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+		Type:         TxBaseTypeNormal,
+		AccountNonce: 234,
 	},
 		From: HexToAddress("0x99"),
 		To: HexToAddress("0x88"),

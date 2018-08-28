@@ -4,16 +4,15 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/core"
 	"github.com/sirupsen/logrus"
-	"bytes"
-	"github.com/tinylib/msgp/msgp"
-	"fmt"
 )
 
 // Manager manages the intern msg between each OG part
 type Manager struct {
-	txPool *core.TxPool
-	hub    *Hub
-	syncer *Syncer
+	TxPool   *core.TxPool
+	Hub      *Hub
+	Syncer   *Syncer
+	Verifier *Verifier
+	Config   *ManagerConfig
 }
 
 type ManagerConfig struct {
@@ -21,32 +20,20 @@ type ManagerConfig struct {
 	BatchAcquireSize   uint // length of the buffer for batch tx acquire for a single node
 }
 
-func NewManager(config ManagerConfig, hub *Hub, syncer *Syncer, txPool *core.TxPool) (*Manager) {
+func NewManager(config *ManagerConfig) (*Manager) {
 	m := Manager{}
-	// init hub
-	m.SetupCallbacks(hub)
-	m.syncer = syncer
-	m.txPool = txPool
+	m.Config = config
 	return &m
-}
-
-// SetupCallbacks Regist callbacks to handle different messages
-func (m *Manager) SetupCallbacks(hub *Hub) {
-	hub.callbackRegistry[MessageTypePing] = m.HandlePing
-	hub.callbackRegistry[MessageTypePong] = m.HandlePong
-	hub.callbackRegistry[MessageTypeFetchByHash] = m.HandleFetchByHash
-	hub.callbackRegistry[MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
-	m.hub = hub
 }
 
 // EnsurePreviousTxs checks if all ancestors of the tip is in the local tx pool
 // If tx is missing, send to fetching queue
 // Return true if the hash's parent is there, or false if the hash's parent is missing.
 func (m *Manager) EnsurePreviousTxs(tipHash types.Hash) bool {
-	tx := m.txPool.Get(tipHash)
+	tx := m.TxPool.Get(tipHash)
 	if tx == nil {
 		// need to fetch this hash
-		m.syncer.Enqueue(tipHash)
+		m.Syncer.Enqueue(tipHash)
 		return false
 	}
 	// no need to further fetch the ancestors. They will be checked sooner or later
@@ -59,9 +46,9 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 }
 
 func (m *Manager) Start() {
-	m.hub.SendMessage(MessageTypePing, []byte{})
-	m.syncer.Enqueue(types.HexToHash("0x00"))
-	m.syncer.Enqueue(types.HexToHash("0x01"))
+	m.Hub.SendMessage(MessageTypePing, []byte{})
+	m.Syncer.Enqueue(types.HexToHash("0x00"))
+	m.Syncer.Enqueue(types.HexToHash("0x01"))
 }
 
 func (m *Manager) Stop() {
@@ -74,7 +61,7 @@ func (m *Manager) Name() string {
 
 func (m *Manager) HandlePing(*P2PMessage) {
 	logrus.Debug("Received your ping. Respond you a pong")
-	m.hub.outgoing <- &P2PMessage{MessageType: MessageTypePong, Message: []byte{}}
+	m.Hub.outgoing <- &P2PMessage{MessageType: MessageTypePong, Message: []byte{}}
 }
 
 func (m *Manager) HandlePong(*P2PMessage) {
@@ -102,9 +89,11 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		switch hash.Bytes[0] {
 		case 0:
 			tx := types.SampleSequencer()
+			tx.SetHash(tx.Hash())
 			seqs = append(seqs, tx)
 		case 1:
 			tx := types.SampleTx()
+			tx.SetHash(tx.Hash())
 			txs = append(txs, tx)
 		}
 	}
@@ -118,16 +107,16 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		return
 	}
 
-	m.hub.SendMessage(MessageTypeFetchByHashResponse, data)
+	m.Hub.SendMessage(MessageTypeFetchByHashResponse, data)
 }
 
 func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 	logrus.Debug("Received MessageSyncResponse")
 	syncResponse := types.MessageSyncResponse{}
-	bytebufferd := bytes.NewBuffer(nil)
-	bytebuffers := bytes.NewBuffer(msg.Message)
-	msgp.CopyToJSON(bytebufferd, bytebuffers)
-	fmt.Println(bytebufferd.String())
+	//bytebufferd := bytes.NewBuffer(nil)
+	//bytebuffers := bytes.NewBuffer(msg.Message)
+	//msgp.CopyToJSON(bytebufferd, bytebuffers)
+	//fmt.Println(bytebufferd.String())
 
 	_, err := syncResponse.UnmarshalMsg(msg.Message)
 	if err != nil {

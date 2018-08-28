@@ -20,10 +20,10 @@ type Sequencer struct {
 func SampleSequencer() *Sequencer {
 	return &Sequencer{Id: 99,
 		TxBase: TxBase{
-			Height:        12,
-			ParentsHash:   []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
-			Type:          TxBaseTypeSequencer,
-			SequenceNonce: 234,
+			Height:       12,
+			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+			Type:         TxBaseTypeSequencer,
+			AccountNonce: 234,
 		},
 		ContractHashOrder: []Hash{
 			HexToHash("0x00667788"),

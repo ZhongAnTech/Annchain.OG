@@ -12,3 +12,11 @@ type MessageSyncResponse struct {
 	Txs []*Tx
 	Sequencer []*Sequencer
 }
+
+type MessageNewTx struct{
+	Tx *Tx
+}
+
+type MessageNewSequence struct {
+	Sequencer *Sequencer
+}

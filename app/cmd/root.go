@@ -63,6 +63,7 @@ func init() {
 
 	viper.SetDefault("hub.outgoing_buffer_size", 10)
 	viper.SetDefault("hub.incoming_buffer_size", 10)
+	viper.SetDefault("crypto.algorithm", "ed25519")
 }
 
 func panicIfError(err error, message string) {

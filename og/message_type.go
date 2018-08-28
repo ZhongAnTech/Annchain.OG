@@ -10,6 +10,8 @@ const (
 	MessageTypePong
 	MessageTypeFetchByHash
 	MessageTypeFetchByHashResponse
+	MessageTypeNewTx
+	MessageTypeNewSequence
 )
 
 type P2PMessage struct {

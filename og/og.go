@@ -2,15 +2,25 @@ package og
 
 import (
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/core"
+	"github.com/sirupsen/logrus"
 )
 
 type Og struct {
-	dag    *Dag
-	txpool *TxPool
-
+	dag    *core.Dag
+	txpool *core.TxPool
 	accountManager *account.AccountManager
-
 	manager *Manager
 }
 
-func (og *Og) Start() {}
+func (og *Og) Start() {
+
+	logrus.Info("OG Started")
+}
+func (og *Og) Stop() {
+	logrus.Info("OG Stopped")
+}
+
+func (og *Og) Name() string {
+	return "OG"
+}

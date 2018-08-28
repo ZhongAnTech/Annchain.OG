@@ -1,16 +1,15 @@
 package og
 
 import (
-	"time"
-	"math/big"
-	"sync"
+	"errors"
+	"fmt"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	mapset "github.com/deckarep/golang-set"
 	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/ethlib/common"
-	"errors"
-	"fmt"
+	"math/big"
+	"sync"
+	"time"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 )
 
 const (
-	maxKnownTxs    = 32768 // Maximum transactions hashes to keep in the known list (prevent DOS)
+	maxKnownTxs = 32768 // Maximum transactions hashes to keep in the known list (prevent DOS)
 
 	// maxQueuedTxs is the maximum number of transaction lists to queue up before
 	// dropping broadcasts. This is a sensitive number as a transaction list might
@@ -40,7 +39,6 @@ const (
 	handshakeTimeout = 5 * time.Second
 )
 
-
 type peer struct {
 	id string
 
@@ -50,14 +48,13 @@ type peer struct {
 	version  int         // Protocol version negotiated
 	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
-	head common.Hash
-	td   *big.Int
-	lock sync.RWMutex
-	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
-	queuedTxs   chan []*types.Tx // Queue of transactions to broadcast to the peer
-	term        chan struct{}             // Termination channel to stop the broadcaster
+	head      types.Hash
+	td        *big.Int
+	lock      sync.RWMutex
+	knownTxs  mapset.Set       // Set of transaction hashes known to be known by this peer
+	queuedTxs chan []*types.Tx // Queue of transactions to broadcast to the peer
+	term      chan struct{}    // Termination channel to stop the broadcaster
 }
-
 
 type PeerInfo struct {
 	Version    int      `json:"version"`    // Ethereum protocol version negotiated
@@ -65,19 +62,17 @@ type PeerInfo struct {
 	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
 }
 
-
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:        p,
-		rw:          rw,
-		version:     version,
-		id:          fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		knownTxs:    mapset.NewSet(),
-		queuedTxs:   make(chan []*types.Tx, maxQueuedTxs),
-		term:        make(chan struct{}),
+		Peer:      p,
+		rw:        rw,
+		version:   version,
+		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		knownTxs:  mapset.NewSet(),
+		queuedTxs: make(chan []*types.Tx, maxQueuedTxs),
+		term:      make(chan struct{}),
 	}
 }
-
 
 // broadcast is a write loop that multiplexes block propagations, announcements
 // and transaction broadcasts into the remote peer. The goal is to have an async
@@ -97,7 +92,6 @@ func (p *peer) broadcast() {
 	}
 }
 
-
 // close signals the broadcast goroutine to terminate.
 func (p *peer) close() {
 	close(p.term)
@@ -108,34 +102,33 @@ func (p *peer) Info() *PeerInfo {
 	hash := p.Head()
 
 	return &PeerInfo{
-		Version:    p.version,
-		Head:       hash.Hex(),
+		Version: p.version,
+		Head:    hash.Hex(),
 	}
 }
 
 // Head retrieves a copy of the current head hash and total difficulty of the
 // peer.
-func (p *peer) Head() (hash common.Hash) {
+func (p *peer) Head() (hash types.Hash) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	copy(hash[:], p.head[:])
+	copy(hash.Bytes[:], p.head.Bytes[:])
 	return hash
 }
 
 // SetHead updates the head hash and total difficulty of the peer.
-func (p *peer) SetHead(hash common.Hash, td *big.Int) {
+func (p *peer) SetHead(hash types.Hash, td *big.Int) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	copy(p.head[:], hash[:])
+	copy(p.head.Bytes[:], hash.Bytes[:])
 	p.td.Set(td)
 }
 
-
 // MarkTransaction marks a transaction as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkTransaction(hash common.Hash) {
+func (p *peer) MarkTransaction(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownTxs.Cardinality() >= maxKnownTxs {
 		p.knownTxs.Pop()
@@ -149,8 +142,8 @@ func (p *peer) SendTransactions(txs types.Txs) error {
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
-	bts,err :=  txs.MarshalMsg(nil)
-	if err!=nil {
+	bts, err := txs.MarshalMsg(nil)
+	if err != nil {
 		//todo
 	}
 
@@ -170,35 +163,31 @@ func (p *peer) AsyncSendTransactions(txs []*types.Txs) {
 	}
 }
 
-
 // SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
 	return p2p.Send(p.rw, NodeDataMsg, data)
 }
 
-
 // RequestBodies fetches a batch of blocks' bodies corresponding to the hashes
 // specified.
-func (p *peer) RequestTransactions(hashes []common.Hash) error {
+func (p *peer) RequestTransactions(hashes []types.Hash) error {
 	log.Debug("Fetching batch of block bodies", "count", len(hashes))
 	return p2p.Send(p.rw, GetTxMsg, hashes)
 }
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
-func (p *peer) RequestNodeData(hashes []common.Hash) error {
+func (p *peer) RequestNodeData(hashes []types.Hash) error {
 	log.Debug("Fetching batch of state data", "count", len(hashes))
 	return p2p.Send(p.rw, GetNodeDataMsg, hashes)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
-func (p *peer) RequestReceipts(hashes []common.Hash) error {
+func (p *peer) RequestReceipts(hashes []types.Hash) error {
 	log.Debug("Fetching batch of receipts", "count", len(hashes))
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
-
-
 
 // String implements fmt.Stringer.
 func (p *peer) String() string {
@@ -273,11 +262,9 @@ func (ps *peerSet) Len() int {
 	return len(ps.peers)
 }
 
-
-
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
+func (ps *peerSet) PeersWithoutTx(hash types.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -300,7 +287,7 @@ func (ps *peerSet) BestPeer() *peer {
 	for _, p := range ps.peers {
 		//todo
 		bestPeer = p
-		}
+	}
 	return bestPeer
 }
 
@@ -315,4 +302,3 @@ func (ps *peerSet) Close() {
 	}
 	ps.closed = true
 }
-

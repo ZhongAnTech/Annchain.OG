@@ -22,8 +22,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"

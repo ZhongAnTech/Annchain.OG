@@ -230,9 +230,20 @@ func (z *Txs) DecodeMsg(dc *msgp.Reader) (err error) {
 		(*z) = make(Txs, zb0002)
 	}
 	for zb0001 := range *z {
-		err = (*z)[zb0001].DecodeMsg(dc)
-		if err != nil {
-			return
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(Tx)
+			}
+			err = (*z)[zb0001].DecodeMsg(dc)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -245,9 +256,16 @@ func (z Txs) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for zb0003 := range z {
-		err = z[zb0003].EncodeMsg(en)
-		if err != nil {
-			return
+		if z[zb0003] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = z[zb0003].EncodeMsg(en)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -258,9 +276,13 @@ func (z Txs) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
 	for zb0003 := range z {
-		o, err = z[zb0003].MarshalMsg(o)
-		if err != nil {
-			return
+		if z[zb0003] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z[zb0003].MarshalMsg(o)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -279,9 +301,20 @@ func (z *Txs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		(*z) = make(Txs, zb0002)
 	}
 	for zb0001 := range *z {
-		bts, err = (*z)[zb0001].UnmarshalMsg(bts)
-		if err != nil {
-			return
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(Tx)
+			}
+			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
 		}
 	}
 	o = bts
@@ -292,7 +325,11 @@ func (z *Txs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z Txs) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
 	for zb0003 := range z {
-		s += z[zb0003].Msgsize()
+		if z[zb0003] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z[zb0003].Msgsize()
+		}
 	}
 	return
 }

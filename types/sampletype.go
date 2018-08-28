@@ -1,10 +1,10 @@
 package types
 
 import (
-	"golang.org/x/crypto/sha3"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 )
 
 // Define your own structure and then use messagepack to generate codes

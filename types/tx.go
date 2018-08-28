@@ -1,23 +1,22 @@
 package types
 
 import (
-	"golang.org/x/crypto/sha3"
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
+	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp
 //cccmsgp:tuple Tx
 
-type Txs  []Tx
-
+type Txs []*Tx
 
 type Tx struct {
 	TxBase
-	From          Address
-	To            Address
-	Value         *math.BigInt
+	From  Address
+	To    Address
+	Value *math.BigInt
 }
 
 func (t *Tx) BlockHash() (hash Hash) {
@@ -38,6 +37,6 @@ func (t *Tx) BlockHash() (hash Hash) {
 	return
 }
 
-func (t*Tx)Hash ()(hash Hash){
-  return
+func (t Tx) Hash() (hash Hash) {
+	return
 }

@@ -2,7 +2,6 @@ package og
 
 import (
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/ethlib/common"
 	"math/big"
 )
 
@@ -25,9 +24,9 @@ const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a prot
 // eth protocol message codes
 const (
 	// Protocol messages belonging to eth/62
-	StatusMsg          = 0x00
+	StatusMsg = 0x00
 	//NewBlockHashesMsg  = 0x01
-	TxMsg              = 0x02
+	TxMsg    = 0x02
 	GetTxMsg = 0x03
 	NewTxMsg = 0x04
 
@@ -75,7 +74,7 @@ type txPool interface {
 
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending() (map[common.Address]types.Txs, error)
+	Pending() (map[types.Address]types.Txs, error)
 
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.
@@ -87,6 +86,6 @@ type statusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
 	TD              *big.Int
-	CurrentBlock    common.Hash
-	GenesisBlock    common.Hash
+	CurrentBlock    types.Hash
+	GenesisBlock    types.Hash
 }

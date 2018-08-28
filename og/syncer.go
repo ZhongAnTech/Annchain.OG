@@ -38,7 +38,7 @@ func (m *Syncer) Stop() {
 }
 
 func (m *Syncer) Name() string {
-	return "Manager"
+	return "Syncer"
 }
 
 func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {

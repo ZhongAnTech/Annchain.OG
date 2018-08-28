@@ -52,7 +52,7 @@ type TxPoolConfig struct {
 	TxValidateTime	time.Duration
 }
 type dag interface {
-	AddTx(types.Txi)
+	InsertTx(types.Txi)
 }
 type txEvent struct {
 	txEnv			*txEnvelope
@@ -167,7 +167,7 @@ func (pool *TxPool) loop() {
 
 		case txEvent := <-pool.queue:
 			txEnv := txEvent.txEnv
-			if err := pool.validateTx(txEnv.tx); err != nil {
+			if err := pool.verifyTx(txEnv.tx); err != nil {
 				txEvent.callbackChan <- err
 				continue
 			}
@@ -215,7 +215,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	return nil
 }
 
-func (pool *TxPool) validateTx(tx types.Txi) error {
+func (pool *TxPool) verifyTx(tx types.Txi) error {
 	// TODO
 
 	return nil
@@ -229,7 +229,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	}
 	for _, hash := range tx.Parents() { 
 		if parent, ok := pool.tips[hash]; ok {
-			pool.dag.AddTx(parent)
+			pool.dag.InsertTx(parent)
 			delete(pool.tips, hash)
 			pool.txLookup.remove(hash)
 		}

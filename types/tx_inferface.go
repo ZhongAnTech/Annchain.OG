@@ -9,7 +9,11 @@ type Txi interface {
 
 	// Parents returns the hash of txs that it directly proves.
 	Parents() []Hash
+
+	// Compare compares two txs, return true if they are the same.
+	Compare(Txi) bool
 }
+
 type TxBase struct {
 	Type          int    `msgp:"type"`
 	ParentsHash   []Hash `msgp:"parentHash"`

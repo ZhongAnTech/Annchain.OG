@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -8,21 +9,33 @@ import (
 	"github.com/annchain/OG/types"
 )
 
+type DagConfig struct {
+
+}
+
 type Dag struct {
-	db ogdb.Database
+	conf 	DagConfig
+
+	db 		ogdb.Database
 
 	statePending	ogdb.StateDB		
 	txPending		map[types.Hash]types.Txi		
 
 	genesis			types.Txi
-	currentSeqencer	*types.Sequencer
-
-	TxPool		*TxPool
+	latestSeqencer	*types.Sequencer
 
 	close 	chan struct{}
 
 	wg	sync.WaitGroup
 	mu	sync.RWMutex
+}
+func NewDag(conf DagConfig, db ogdb.Database) *Dag {
+	dag := &Dag{
+		conf:	conf,
+		db:		db,
+	}
+
+	return dag
 }
 
 func (dag *Dag) Start() {
@@ -42,21 +55,23 @@ func (dag *Dag) Genesis() types.Txi {
 	return dag.genesis
 }
 
-// CurrentSequencer returns the latest sequencer stored in dag
-func (dag *Dag) CurrentSequencer() *types.Sequencer {
-	// TODO 
-	return nil
+// LatestSequencer returns the latest sequencer stored in dag
+func (dag *Dag) LatestSequencer() *types.Sequencer {
+	return dag.latestSeqencer
 }
 
 // AddTx trys to insert a tx from tx pool to dag network pending list
-func (dag *Dag) AddTx(types.Txi)  {
-	// TODO
+func (dag *Dag) InsertTx(tx types.Txi) error {
+	return dag.insertTx(tx)
 }
 
 // GetTx gets tx from dag network indexs by tx hash. This function querys 
 // txPending first and then search in db.
-func (dag *Dag) GetTx(types.Hash) types.Txi {
+func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	// TODO
+	// 1. check pending
+	// 2. check db
+
 	return nil
 }
 
@@ -65,8 +80,32 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
+func (dag *Dag) insertTx(tx types.Txi) error {
+	// dag.mu.Lock()
+	// defer dag.mu.Unlock()
 
+	if dag.GetTx(tx.Hash()) != nil {
+		return fmt.Errorf("tx inserted already exists, hash: %s", tx.Hash().Hex())
+	}
+	switch tx := tx.(type) {
+	case *types.Tx:
+		return dag.pendingTx(tx)
+	case *types.Sequencer:
+		return dag.pendingSequencer(tx)
+	default:
+		return fmt.Errorf("unknown tx type: %v", tx)
+	}
+}
 
+func (dag *Dag) pendingTx(tx *types.Tx) error {
+	// TODO
+	return nil
+}
+
+func (dag *Dag) pendingSequencer(seq *types.Sequencer) error {
+	// TODO
+	return nil
+}
 
 func (dag *Dag) loop() {
 
@@ -78,5 +117,53 @@ func (dag *Dag) loop() {
 		}
 	}
 }
+
+
+type TxPending struct {
+	txs	map[types.Hash]types.Txi
+	mu	sync.RWMutex
+}
+func NewTxPending() *TxPending {
+	tp := &TxPending{
+		txs: make(map[types.Hash]types.Txi),
+	}
+	return tp
+}
+
+func (tp *TxPending) Get(hash types.Hash) types.Txi {
+	tp.mu.RLock()
+	defer tp.mu.RUnlock()
+
+	return tp.txs[hash]
+}
+func (tp *TxPending) Exists(tx types.Txi) bool {
+	tp.mu.RLock()
+	defer tp.mu.RUnlock()
+	
+	if tp.txs[tx.Hash()] == nil {
+		return false
+	}
+	return true
+}
+func (tp *TxPending) Remove(hash types.Hash) {
+	tp.mu.Lock()
+	defer tp.mu.Unlock()
+
+	delete(tp.txs, hash)
+}
+func (tp *TxPending) Add(tx types.Txi) {
+	tp.mu.Lock()
+	defer tp.mu.Unlock()
+
+	if tp.txs[tx.Hash()] == nil {
+		tp.txs[tx.Hash()] = tx
+	}
+}
+
+
+
+
+
+
 
 

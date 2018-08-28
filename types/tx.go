@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
+	"github.com/google/go-cmp/cmp"
 )
 
 //go:generate msgp
@@ -17,7 +18,7 @@ type Tx struct {
 	Value         *math.BigInt
 }
 
-func (t *Tx) BlockHash() (hash Hash) {
+func (t *Tx) Hash() (hash Hash) {
 	var buf bytes.Buffer
 
 	err := binary.Write(&buf, binary.LittleEndian, t.Height)
@@ -33,4 +34,17 @@ func (t *Tx) BlockHash() (hash Hash) {
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
+}
+
+func (t *Tx) Parents() []Hash {
+	return t.ParentsHash
+}
+
+func (t *Tx) Compare(tx Txi) bool {
+	switch tx := tx.(type) {
+	case *Tx:
+		return cmp.Equal(t, tx)
+	default:
+		return false
+	}
 }

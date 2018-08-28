@@ -1,15 +1,19 @@
 package types
 
 import (
-	"golang.org/x/crypto/sha3"
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
 	"fmt"
+
+	"golang.org/x/crypto/sha3"
+
 )
 
 //go:generate msgp
 //msgp:tuple Tx
+
+type Txs []*Tx
 
 type Tx struct {
 	TxBase
@@ -53,4 +57,5 @@ func (t *Tx) Hash() (hash Hash) {
 
 func (t *Tx) String() string {
 	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
+
 }

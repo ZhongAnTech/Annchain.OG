@@ -2,27 +2,37 @@ package node
 
 import (
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/rpc"
-	"github.com/spf13/viper"
 	"github.com/sirupsen/logrus"
+
 	"github.com/annchain/OG/common/crypto"
+
+	"github.com/spf13/viper"
+
 )
 
 // Node is the basic entrypoint for all modules to start.
 type Node struct {
+
 	Components []Component
+
 }
 
 func NewNode() *Node {
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
+	/*
 	if viper.GetBool("p2p.enabled") {
 		n.Components = append(n.Components, p2p.NewP2PServer(viper.GetString("p2p.port")))
 	}
+	*/
 	if viper.GetBool("rpc.enabled") {
 		n.Components = append(n.Components, rpc.NewRpcServer(viper.GetString("rpc.port")))
+	}
+	if viper.GetBool("p2p.enabled") {
+		privKey := getNodePrivKey()
+		n.Components = append(n.Components , NewP2PServer(privKey)
 	}
 
 	hub := og.NewHub(&og.HubConfig{
@@ -68,6 +78,7 @@ func (n *Node) Start() {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()
 		logrus.Infof("Started: %s", component.Name())
+
 	}
 	logrus.Info("Node Started")
 }

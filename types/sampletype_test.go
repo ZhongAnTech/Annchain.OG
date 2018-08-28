@@ -1,13 +1,13 @@
 package types
 
 import (
-	"testing"
-	"fmt"
-	"encoding/hex"
-	"github.com/tinylib/msgp/msgp"
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/annchain/OG/common/math"
+	"github.com/tinylib/msgp/msgp"
+	"testing"
 )
 
 func TestMap(t *testing.T) {
@@ -41,6 +41,7 @@ func TestSerializer(t *testing.T) {
 				ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
 				Type:         1,
 				AccountNonce: 234,
+
 			},
 			ContractHashOrder: []Hash{
 				HexToHash("0x00667788"),
@@ -49,13 +50,15 @@ func TestSerializer(t *testing.T) {
 			},
 		},
 		TxInner: Tx{TxBase: TxBase{
+
 			Height:       12,
 			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
 			Type:         1,
 			AccountNonce: 234,
+
 		},
-			From: HexToAddress("0x99"),
-			To: HexToAddress("0x88"),
+			From:  HexToAddress("0x99"),
+			To:    HexToAddress("0x88"),
 			Value: math.NewBigInt(54235432),
 		},
 	}

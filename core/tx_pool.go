@@ -27,7 +27,7 @@ type TxPool struct {
 	dag				dag
 
 	queue 			chan *txEvent				// queue stores txs that need to validate later 
-	tips			map[types.Hash]types.Txi		// tips stores all the tips
+	tips			map[types.Hash]types.Txi	// tips stores all the tips
 	txLookup		*txLookUp					// txLookUp stores all the txs for external query
 
 	close			chan struct{}

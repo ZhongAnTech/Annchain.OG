@@ -1,60 +1,75 @@
 package core
 
 import (
+	"sync"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/ogdb"
-	// "github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/types"
 )
 
 type Dag struct {
 	db ogdb.Database
 
-	// genesisBlock *types.Block
-	// latestBlock  *types.Block
+	statePending	ogdb.StateDB		
+	txPending		map[types.Hash]types.Txi		
 
-	// chain	[]*types.Block
+	genesis			types.Txi
+	currentSeqencer	*types.Sequencer
 
+	TxPool		*TxPool
+
+	close 	chan struct{}
+
+	wg	sync.WaitGroup
+	mu	sync.RWMutex
 }
 
 func (dag *Dag) Start() {
+	log.Infof("TxPool Start")
 
 	go dag.loop()
 }
 
-// func (dag *Dag) GetBlock(i int) *types.Block {
-// 	if i == -1 {
-// 		return dag.chain[len(dag.chain)-1]
-// 	}
-// 	if i < 0 || i > len(dag.chain) {
-// 		return nil
-// 	}
-// 	return dag.chain[i]
-// }
-
-// func (dag *Dag) TryAppendBlock(block *types.Block) {
-// 	if block.Index == dag.latestBlock.Index + 1 {
-// 		block.PrevBlock = dag.latestBlock
-// 		block.NextBlock = nil
-// 		dag.latestBlock.NextBlock = block
-// 		dag.latestBlock = block
-// 		dag.chain = append(dag.chain, block)
-// 	}
-// 	return
-// }
-
-func (dag *Dag) Bytes() []byte {
-	return []byte(dag.String())
-}
-func (dag *Dag) String() string {
-	result := ""
-	// for _, block := range dag.chain{
-	// 	result += block.String()
-	// }
-	return result
+func (dag *Dag) Stop() {
+	close(dag.close) 
+	
+	log.Infof("TxPool Stopped")
 }
 
-// func (dag *Dag) Len() int { return int(dag.latestBlock.Index) }
+// Genesis returns the genesis tx of dag
+func (dag *Dag) Genesis() types.Txi {
+	return dag.genesis
+}
+
+// CurrentSequencer returns the latest sequencer stored in dag
+func (dag *Dag) CurrentSequencer() *types.Sequencer {
+	// TODO 
+	return nil
+}
+
+// AddTx trys to insert a tx from tx pool to dag network pending list
+func (dag *Dag) AddTx(types.Txi)  {
+	// TODO
+}
+
+// GetTx gets tx from dag network indexs by tx hash. This function querys 
+// txPending first and then search in db.
+func (dag *Dag) GetTx(types.Hash) types.Txi {
+	// TODO
+	return nil
+}
+
+// RollBack rolls back the dag network.
+func (dag *Dag) RollBack() {
+	// TODO
+}
+
+
+
 
 func (dag *Dag) loop() {
+
 	for {
 		select {
 		// TODO
@@ -63,3 +78,5 @@ func (dag *Dag) loop() {
 		}
 	}
 }
+
+

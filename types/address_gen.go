@@ -7,7 +7,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *Address) DecodeMsg(dc *msgp.Reader) (err error) {
+func (h *Address) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -17,7 +17,7 @@ func (z *Address) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
-	err = dc.ReadExactBytes((z.Bytes)[:])
+	err = dc.ReadExactBytes((h.Bytes)[:])
 	if err != nil {
 		return
 	}
@@ -25,13 +25,13 @@ func (z *Address) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Address) EncodeMsg(en *msgp.Writer) (err error) {
+func (h *Address) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 1
 	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes((z.Bytes)[:])
+	err = en.WriteBytes((h.Bytes)[:])
 	if err != nil {
 		return
 	}
@@ -39,16 +39,16 @@ func (z *Address) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Address) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
+func (h *Address) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, h.Msgsize())
 	// array header, size 1
 	o = append(o, 0x91)
-	o = msgp.AppendBytes(o, (z.Bytes)[:])
+	o = msgp.AppendBytes(o, (h.Bytes)[:])
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (h *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -58,7 +58,7 @@ func (z *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
-	bts, err = msgp.ReadExactBytes(bts, (z.Bytes)[:])
+	bts, err = msgp.ReadExactBytes(bts, (h.Bytes)[:])
 	if err != nil {
 		return
 	}
@@ -67,7 +67,7 @@ func (z *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Address) Msgsize() (s int) {
+func (h *Address) Msgsize() (s int) {
 	s = 1 + msgp.ArrayHeaderSize + (AddressLength * (msgp.ByteSize))
 	return
 }

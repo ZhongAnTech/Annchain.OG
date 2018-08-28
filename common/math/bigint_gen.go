@@ -4,6 +4,7 @@ package math
 
 import (
 	"github.com/tinylib/msgp/msgp"
+	"math/big"
 )
 
 // DecodeMsg implements msgp.Decodable
@@ -13,17 +14,35 @@ func (z *BigInt) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 0 {
-		err = msgp.ArrayError{Wanted: 0, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
+	}
+	sign, err := dc.ReadBool()
+	if err != nil{
+		return
+	}
+
+	bytes, err := dc.ReadBytes([]byte{})
+	if err != nil {
+		return
+	}
+	z.Value = big.NewInt(0).SetBytes(bytes)
+	if !sign{
+		z.Value = z.Value.Neg(z.Value)
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z BigInt) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 0
-	err = en.Append(0x90)
+func (z *BigInt) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Value.Sign() > 0)
+	err = en.WriteBytes(z.Value.Bytes())
 	if err != nil {
 		return
 	}
@@ -31,10 +50,12 @@ func (z BigInt) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z BigInt) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *BigInt) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 0
-	o = append(o, 0x90)
+	// array header, size 1
+	o = append(o, 0x91)
+	o = msgp.AppendBool(o, z.Sign() > 0)
+	o = msgp.AppendBytes(o, z.Value.Bytes())
 	return
 }
 
@@ -45,16 +66,28 @@ func (z *BigInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 0 {
-		err = msgp.ArrayError{Wanted: 0, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
+	}
+	sign, bts, err := msgp.ReadBoolBytes(bts)
+	if err != nil{
+		return
+	}
+	bytes, bts, err := msgp.ReadBytesBytes(bts, []byte{})
+	if err != nil {
+		return
+	}
+	z.Value = big.NewInt(0).SetBytes(bytes)
+	if !sign{
+		z.Value = z.Value.Neg(z.Value)
 	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z BigInt) Msgsize() (s int) {
-	s = 1
+func (z *BigInt) Msgsize() (s int) {
+	s = 1 + msgp.BytesPrefixSize + 1 + len(z.Value.Bytes())
 	return
 }

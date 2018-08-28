@@ -4,6 +4,9 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/core"
 	"github.com/sirupsen/logrus"
+	"bytes"
+	"github.com/tinylib/msgp/msgp"
+	"fmt"
 )
 
 // Manager manages the intern msg between each OG part
@@ -91,20 +94,23 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		return
 	}
 
-	var txs []types.Txi
+	var txs []*types.Tx
+	var seqs []*types.Sequencer
+
 	for _, hash := range syncRequest.Hashes {
 		// DUMMY CODE
 		switch hash.Bytes[0] {
 		case 0:
 			tx := types.SampleSequencer()
-			txs = append(txs, tx)
+			seqs = append(seqs, tx)
 		case 1:
 			tx := types.SampleTx()
 			txs = append(txs, tx)
 		}
 	}
 	syncResponse := types.MessageSyncResponse{
-		Txs: txs,
+		Txs:       txs,
+		Sequencer: seqs,
 	}
 	data, err := syncResponse.MarshalMsg(nil)
 	if err != nil {
@@ -118,16 +124,26 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 	logrus.Debug("Received MessageSyncResponse")
 	syncResponse := types.MessageSyncResponse{}
+	bytebufferd := bytes.NewBuffer(nil)
+	bytebuffers := bytes.NewBuffer(msg.Message)
+	msgp.CopyToJSON(bytebufferd, bytebuffers)
+	fmt.Println(bytebufferd.String())
+
 	_, err := syncResponse.UnmarshalMsg(msg.Message)
 	if err != nil {
 		logrus.Debug("Invalid MessageSyncResponse format")
 		return
 	}
-	if len(syncResponse.Txs) == 0 {
+	if len(syncResponse.Txs) == 0 && len(syncResponse.Sequencer) == 0 {
 		logrus.Debug("Empty MessageSyncResponse")
 		return
 	}
 	for _, v := range syncResponse.Txs {
-		logrus.Infof("Received Tx: %s", v.Hash())
+		logrus.Infof("Received Tx: %s", v.Hash().Hex())
+		logrus.Infof(v.String())
+	}
+	for _, v := range syncResponse.Sequencer {
+		logrus.Infof("Received Seq: %s", v.Hash().Hex())
+		logrus.Infof(v.String())
 	}
 }

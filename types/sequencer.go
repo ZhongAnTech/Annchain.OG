@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"golang.org/x/crypto/sha3"
+	"fmt"
+	"strings"
 )
 
 //go:generate msgp
@@ -11,9 +13,8 @@ import (
 
 type Sequencer struct {
 	TxBase
-	Id                uint64     `msgp:"id"`
-	ContractHashOrder []Hash     `msgp:"contractHashOrder"`
-	Raws              [][32]byte `msgp:"Hashes"`
+	Id                uint64 `msgp:"id"`
+	ContractHashOrder []Hash `msgp:"contractHashOrder"`
 }
 
 func SampleSequencer() *Sequencer {
@@ -21,7 +22,7 @@ func SampleSequencer() *Sequencer {
 		TxBase: TxBase{
 			Height:        12,
 			ParentsHash:   []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
-			Type:          1,
+			Type:          TxBaseTypeSequencer,
 			SequenceNonce: 234,
 		},
 		ContractHashOrder: []Hash{
@@ -50,3 +51,11 @@ func (t *Sequencer) Hash() (hash Hash) {
 	return
 }
 
+func (t *Sequencer) String() string {
+	var hashes []string
+	for _, v := range t.ContractHashOrder {
+		hashes = append(hashes, v.Hex()[0:10])
+	}
+
+	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
+}

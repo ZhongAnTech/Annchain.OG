@@ -9,5 +9,6 @@ type MessageSyncRequest struct {
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	Txs []Txi
+	Txs []*Tx
+	Sequencer []*Sequencer
 }

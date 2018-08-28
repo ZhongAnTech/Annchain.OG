@@ -8,7 +8,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
+func (t *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -18,15 +18,15 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	err = z.TxBase.DecodeMsg(dc)
+	err = t.TxBase.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	err = z.From.DecodeMsg(dc)
+	err = t.From.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	err = z.To.DecodeMsg(dc)
+	err = t.To.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -35,12 +35,12 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		z.Value = nil
+		t.Value = nil
 	} else {
-		if z.Value == nil {
-			z.Value = new(math.BigInt)
+		if t.Value == nil {
+			t.Value = new(math.BigInt)
 		}
-		err = z.Value.DecodeMsg(dc)
+		err = t.Value.DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -49,31 +49,31 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
+func (t *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 4
 	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.EncodeMsg(en)
+	err = t.TxBase.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = z.From.EncodeMsg(en)
+	err = t.From.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = z.To.EncodeMsg(en)
+	err = t.To.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	if z.Value == nil {
+	if t.Value == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.Value.EncodeMsg(en)
+		err = t.Value.EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -82,26 +82,26 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
+func (t *Tx) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, t.Msgsize())
 	// array header, size 4
 	o = append(o, 0x94)
-	o, err = z.TxBase.MarshalMsg(o)
+	o, err = t.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o, err = z.From.MarshalMsg(o)
+	o, err = t.From.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o, err = z.To.MarshalMsg(o)
+	o, err = t.To.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	if z.Value == nil {
+	if t.Value == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.Value.MarshalMsg(o)
+		o, err = t.Value.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -110,7 +110,7 @@ func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (t *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -120,15 +120,15 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
+	bts, err = t.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	bts, err = z.From.UnmarshalMsg(bts)
+	bts, err = t.From.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	bts, err = z.To.UnmarshalMsg(bts)
+	bts, err = t.To.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -137,12 +137,12 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.Value = nil
+		t.Value = nil
 	} else {
-		if z.Value == nil {
-			z.Value = new(math.BigInt)
+		if t.Value == nil {
+			t.Value = new(math.BigInt)
 		}
-		bts, err = z.Value.UnmarshalMsg(bts)
+		bts, err = t.Value.UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -152,12 +152,12 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Tx) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + z.From.Msgsize() + z.To.Msgsize()
-	if z.Value == nil {
+func (t *Tx) Msgsize() (s int) {
+	s = 1 + t.TxBase.Msgsize() + t.From.Msgsize() + t.To.Msgsize()
+	if t.Value == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.Value.Msgsize()
+		s += t.Value.Msgsize()
 	}
 	return
 }

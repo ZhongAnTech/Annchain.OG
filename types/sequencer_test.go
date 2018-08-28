@@ -47,7 +47,7 @@ func TestSequencerRawSize(t *testing.T) {
 
 	// make 1000 hashes
 	for i := 0; i < n; i ++ {
-		seq.Raws = append(seq.Raws, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
+		seq.Hashes = append(seq.Hashes, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
 	}
 
 	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)

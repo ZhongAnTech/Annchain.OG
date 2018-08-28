@@ -118,8 +118,8 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	var zb0002 uint32
@@ -130,12 +130,50 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.Txs) >= int(zb0002) {
 		z.Txs = (z.Txs)[:zb0002]
 	} else {
-		z.Txs = make([]Txi, zb0002)
+		z.Txs = make([]*Tx, zb0002)
 	}
 	for za0001 := range z.Txs {
-		err = z.Txs[za0001].DecodeMsg(dc)
-		if err != nil {
-			return
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			z.Txs[za0001] = nil
+		} else {
+			if z.Txs[za0001] == nil {
+				z.Txs[za0001] = new(Tx)
+			}
+			err = z.Txs[za0001].DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		}
+	}
+	var zb0003 uint32
+	zb0003, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap(z.Sequencer) >= int(zb0003) {
+		z.Sequencer = (z.Sequencer)[:zb0003]
+	} else {
+		z.Sequencer = make([]*Sequencer, zb0003)
+	}
+	for za0002 := range z.Sequencer {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			z.Sequencer[za0002] = nil
+		} else {
+			if z.Sequencer[za0002] == nil {
+				z.Sequencer[za0002] = new(Sequencer)
+			}
+			err = z.Sequencer[za0002].DecodeMsg(dc)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -143,8 +181,8 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 1
-	err = en.Append(0x91)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
@@ -153,9 +191,33 @@ func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for za0001 := range z.Txs {
-		err = z.Txs[za0001].EncodeMsg(en)
-		if err != nil {
-			return
+		if z.Txs[za0001] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = z.Txs[za0001].EncodeMsg(en)
+			if err != nil {
+				return
+			}
+		}
+	}
+	err = en.WriteArrayHeader(uint32(len(z.Sequencer)))
+	if err != nil {
+		return
+	}
+	for za0002 := range z.Sequencer {
+		if z.Sequencer[za0002] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = z.Sequencer[za0002].EncodeMsg(en)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -164,13 +226,28 @@ func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageSyncResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 1
-	o = append(o, 0x91)
+	// array header, size 2
+	o = append(o, 0x92)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Txs)))
 	for za0001 := range z.Txs {
-		o, err = z.Txs[za0001].MarshalMsg(o)
-		if err != nil {
-			return
+		if z.Txs[za0001] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z.Txs[za0001].MarshalMsg(o)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Sequencer)))
+	for za0002 := range z.Sequencer {
+		if z.Sequencer[za0002] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z.Sequencer[za0002].MarshalMsg(o)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -183,8 +260,8 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	var zb0002 uint32
@@ -195,12 +272,50 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap(z.Txs) >= int(zb0002) {
 		z.Txs = (z.Txs)[:zb0002]
 	} else {
-		z.Txs = make([]Txi, zb0002)
+		z.Txs = make([]*Tx, zb0002)
 	}
 	for za0001 := range z.Txs {
-		bts, err = z.Txs[za0001].UnmarshalMsg(bts)
-		if err != nil {
-			return
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			z.Txs[za0001] = nil
+		} else {
+			if z.Txs[za0001] == nil {
+				z.Txs[za0001] = new(Tx)
+			}
+			bts, err = z.Txs[za0001].UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	var zb0003 uint32
+	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap(z.Sequencer) >= int(zb0003) {
+		z.Sequencer = (z.Sequencer)[:zb0003]
+	} else {
+		z.Sequencer = make([]*Sequencer, zb0003)
+	}
+	for za0002 := range z.Sequencer {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			z.Sequencer[za0002] = nil
+		} else {
+			if z.Sequencer[za0002] == nil {
+				z.Sequencer[za0002] = new(Sequencer)
+			}
+			bts, err = z.Sequencer[za0002].UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
 		}
 	}
 	o = bts
@@ -211,7 +326,19 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z *MessageSyncResponse) Msgsize() (s int) {
 	s = 1 + msgp.ArrayHeaderSize
 	for za0001 := range z.Txs {
-		s += z.Txs[za0001].Msgsize()
+		if z.Txs[za0001] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z.Txs[za0001].Msgsize()
+		}
+	}
+	s += msgp.ArrayHeaderSize
+	for za0002 := range z.Sequencer {
+		if z.Sequencer[za0002] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z.Sequencer[za0002].Msgsize()
+		}
 	}
 	return
 }

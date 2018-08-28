@@ -16,7 +16,7 @@ type Syncer struct {
 
 type SyncerConfig struct {
 	AcquireTxQueueSize      uint
-	MaxBatchSize            uint
+	MaxBatchSize            int
 	BatchTimeoutMilliSecond uint
 }
 
@@ -41,6 +41,31 @@ func (m *Syncer) Name() string {
 	return "Manager"
 }
 
+func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
+	if len(buffer) == 0 {
+		return
+	}
+	req := types.MessageSyncRequest{
+		Hashes: []types.Hash{},
+	}
+	for key := range buffer {
+		req.Hashes = append(req.Hashes, key)
+	}
+	bytes, err := req.MarshalMsg(nil)
+	if err != nil {
+		logrus.WithError(err).Warnf("Failed to marshal request: %+v", req)
+		return
+	}
+	logrus.WithField("type", MessageTypeFetchByHash).
+		WithField("length", len(req.Hashes)).
+		Debugf("Sending message MessageTypeFetchByHash")
+
+	m.hub.outgoing <- &P2PMessage{
+		MessageType: MessageTypeFetchByHash,
+		Message:     bytes,
+	}
+}
+
 // LoopSync checks if there is new hash to fetch. Dedup.
 func (m *Syncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
@@ -53,28 +78,15 @@ func (m *Syncer) loopSync() {
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
 			buffer[hash] = struct{}{}
+			if len(buffer) >= m.config.MaxBatchSize{
+				m.fireRequest(buffer)
+				buffer = make(map[types.Hash]struct{})
+			}
 		case <-time.After(sleepDuration):
 			// trigger the message if we do not have new queries in such duration
 			// check duplicate here in the future
-			req := types.MessageSyncRequest{
-				Hashes: []types.Hash{},
-			}
-			for key := range buffer {
-				req.Hashes = append(req.Hashes, key)
-			}
-			bytes, err := req.MarshalMsg(nil)
-			if err != nil {
-				logrus.WithError(err).Warnf("Failed to marshal request: %+v", req)
-				continue
-			}
-			logrus.WithField("type", MessageTypeFetchByHash).
-				WithField("length", len(req.Hashes)).
-				Debugf("Sending message MessageTypeFetchByHash")
-
-			m.hub.outgoing <- &P2PMessage{
-				MessageType: MessageTypeFetchByHash,
-				Message:     bytes,
-			}
+			m.fireRequest(buffer)
+			buffer = make(map[types.Hash]struct{})
 		}
 	}
 }

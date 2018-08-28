@@ -7,21 +7,21 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
+func (t *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
-	err = z.TxBase.DecodeMsg(dc)
+	err = t.TxBase.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	z.Id, err = dc.ReadUint64()
+	t.Id, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -30,29 +30,13 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if cap(z.ContractHashOrder) >= int(zb0002) {
-		z.ContractHashOrder = (z.ContractHashOrder)[:zb0002]
+	if cap(t.ContractHashOrder) >= int(zb0002) {
+		t.ContractHashOrder = (t.ContractHashOrder)[:zb0002]
 	} else {
-		z.ContractHashOrder = make([]Hash, zb0002)
+		t.ContractHashOrder = make([]Hash, zb0002)
 	}
-	for za0001 := range z.ContractHashOrder {
-		err = z.ContractHashOrder[za0001].DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if cap(z.Raws) >= int(zb0003) {
-		z.Raws = (z.Raws)[:zb0003]
-	} else {
-		z.Raws = make([][32]byte, zb0003)
-	}
-	for za0002 := range z.Raws {
-		err = dc.ReadExactBytes((z.Raws[za0002])[:])
+	for za0001 := range t.ContractHashOrder {
+		err = t.ContractHashOrder[za0001].DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -61,36 +45,26 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
+func (t *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.EncodeMsg(en)
+	err = t.TxBase.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.Id)
+	err = en.WriteUint64(t.Id)
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.ContractHashOrder)))
+	err = en.WriteArrayHeader(uint32(len(t.ContractHashOrder)))
 	if err != nil {
 		return
 	}
-	for za0001 := range z.ContractHashOrder {
-		err = z.ContractHashOrder[za0001].EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	err = en.WriteArrayHeader(uint32(len(z.Raws)))
-	if err != nil {
-		return
-	}
-	for za0002 := range z.Raws {
-		err = en.WriteBytes((z.Raws[za0002])[:])
+	for za0001 := range t.ContractHashOrder {
+		err = t.ContractHashOrder[za0001].EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -99,45 +73,41 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
-	o, err = z.TxBase.MarshalMsg(o)
+func (t *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, t.Msgsize())
+	// array header, size 3
+	o = append(o, 0x93)
+	o, err = t.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o = msgp.AppendUint64(o, z.Id)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.ContractHashOrder)))
-	for za0001 := range z.ContractHashOrder {
-		o, err = z.ContractHashOrder[za0001].MarshalMsg(o)
+	o = msgp.AppendUint64(o, t.Id)
+	o = msgp.AppendArrayHeader(o, uint32(len(t.ContractHashOrder)))
+	for za0001 := range t.ContractHashOrder {
+		o, err = t.ContractHashOrder[za0001].MarshalMsg(o)
 		if err != nil {
 			return
 		}
-	}
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Raws)))
-	for za0002 := range z.Raws {
-		o = msgp.AppendBytes(o, (z.Raws[za0002])[:])
 	}
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (t *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
+	bts, err = t.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	z.Id, bts, err = msgp.ReadUint64Bytes(bts)
+	t.Id, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -146,29 +116,13 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if cap(z.ContractHashOrder) >= int(zb0002) {
-		z.ContractHashOrder = (z.ContractHashOrder)[:zb0002]
+	if cap(t.ContractHashOrder) >= int(zb0002) {
+		t.ContractHashOrder = (t.ContractHashOrder)[:zb0002]
 	} else {
-		z.ContractHashOrder = make([]Hash, zb0002)
+		t.ContractHashOrder = make([]Hash, zb0002)
 	}
-	for za0001 := range z.ContractHashOrder {
-		bts, err = z.ContractHashOrder[za0001].UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if cap(z.Raws) >= int(zb0003) {
-		z.Raws = (z.Raws)[:zb0003]
-	} else {
-		z.Raws = make([][32]byte, zb0003)
-	}
-	for za0002 := range z.Raws {
-		bts, err = msgp.ReadExactBytes(bts, (z.Raws[za0002])[:])
+	for za0001 := range t.ContractHashOrder {
+		bts, err = t.ContractHashOrder[za0001].UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -178,11 +132,10 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.Uint64Size + msgp.ArrayHeaderSize
-	for za0001 := range z.ContractHashOrder {
-		s += z.ContractHashOrder[za0001].Msgsize()
+func (t *Sequencer) Msgsize() (s int) {
+	s = 1 + t.TxBase.Msgsize() + msgp.Uint64Size + msgp.ArrayHeaderSize
+	for za0001 := range t.ContractHashOrder {
+		s += t.ContractHashOrder[za0001].Msgsize()
 	}
-	s += msgp.ArrayHeaderSize + (len(z.Raws) * (32 * (msgp.ByteSize)))
 	return
 }

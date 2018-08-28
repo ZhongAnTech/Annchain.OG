@@ -21,19 +21,17 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"net"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/annchain/OG/ethlib/common"
 	"github.com/annchain/OG/ethlib/common/mclock"
-	"github.com/annchain/OG/ethlib/event"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
 	log "github.com/sirupsen/logrus"
+	"net"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -176,7 +174,7 @@ type Server struct {
 	addpeer       chan *conn
 	delpeer       chan peerDrop
 	loopWG        sync.WaitGroup // loop, listenLoop
-	peerFeed      event.Feed
+	//peerFeed      event.Feed
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -335,10 +333,12 @@ func (srv *Server) RemoveTrustedPeer(node *discover.Node) {
 	}
 }
 
+/*
 // SubscribePeers subscribes the given channel to peer events
 func (srv *Server) SubscribeEvents(ch chan *PeerEvent) event.Subscription {
 	return srv.peerFeed.Subscribe(ch)
 }
+*/
 
 // Self returns the local node's endpoint information.
 func (srv *Server) Self() *discover.Node {
@@ -692,7 +692,7 @@ running:
 				// If message events are enabled, pass the peerFeed
 				// to the peer
 				if srv.EnableMsgEvents {
-					p.events = &srv.peerFeed
+					//p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
 				log.Debug("Adding p2p peer", "name", name, "addr", c.fd.RemoteAddr(), "peers", len(peers)+1)
@@ -833,7 +833,7 @@ func (srv *Server) listenLoop() {
 			}
 		}
 
-		fd = newMeteredConn(fd, true)
+		//fd = newMeteredConn(fd, true)
 		log.Debug("Accepted connection", "addr", fd.RemoteAddr())
 		go func() {
 			srv.SetupConn(fd, inboundConn, nil)
@@ -938,21 +938,23 @@ func (srv *Server) runPeer(p *Peer) {
 	}
 
 	// broadcast peer add
-	srv.peerFeed.Send(&PeerEvent{
+	/*srv.peerFeed.Send(&PeerEvent{
 		Type: PeerEventTypeAdd,
 		Peer: p.ID(),
 	})
+	*/
 
 	// run the protocol
 	remoteRequested, err := p.run()
 
 	// broadcast peer drop
-	srv.peerFeed.Send(&PeerEvent{
-		Type:  PeerEventTypeDrop,
-		Peer:  p.ID(),
-		Error: err.Error(),
-	})
-
+	/*
+		srv.peerFeed.Send(&PeerEvent{
+			Type:  PeerEventTypeDrop,
+			Peer:  p.ID(),
+			Error: err.Error(),
+		})
+	*/
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.
 	srv.delpeer <- peerDrop{p, err, remoteRequested}

@@ -350,8 +350,8 @@ func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
 	if err != nil {
 		return &dialError{err}
 	}
-	mfd := newMeteredConn(fd, false)
-	return srv.SetupConn(mfd, t.flags, dest)
+	//mfd := newMeteredConn(fd, false)
+	return srv.SetupConn(fd, t.flags, dest)
 }
 
 func (t *dialTask) String() string {

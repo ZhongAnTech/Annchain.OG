@@ -10,6 +10,9 @@ import (
 //go:generate msgp
 //cccmsgp:tuple Tx
 
+type Txs  []Tx
+
+
 type Tx struct {
 	TxBase
 	From          Address
@@ -33,4 +36,8 @@ func (t *Tx) BlockHash() (hash Hash) {
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
+}
+
+func (t*Tx)Hash ()(hash Hash){
+
 }

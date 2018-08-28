@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/ethlib/common/mclock"
-	"github.com/annchain/OG/ethlib/event"
 	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
 	log "github.com/sirupsen/logrus"
@@ -110,7 +109,7 @@ type Peer struct {
 	disc     chan DiscReason
 
 	// events receives message send / receive events if set
-	events *event.Feed
+	//events *event.Feed
 }
 
 // NewPeer returns a peer for testing purposes.
@@ -339,9 +338,11 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		proto.wstart = writeStart
 		proto.werr = writeErr
 		var rw MsgReadWriter = proto
-		if p.events != nil {
-			rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
-		}
+		/*
+			if p.events != nil {
+				rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
+			}
+		*/
 		log.Debug(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
 		go func() {
 			err := proto.Run(p, rw)

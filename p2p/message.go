@@ -25,9 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/annchain/OG/ethlib/event"
 	"github.com/annchain/OG/ethlib/rlp"
-	"github.com/annchain/OG/p2p/discover"
 )
 
 // Msg defines the structure of a p2p message.
@@ -257,6 +255,7 @@ func ExpectMsg(r MsgReader, code uint64, content interface{}) error {
 	return nil
 }
 
+/*
 // msgEventer wraps a MsgReadWriter and sends events whenever a message is sent
 // or received
 type msgEventer struct {
@@ -320,3 +319,5 @@ func (ev *msgEventer) Close() error {
 	}
 	return nil
 }
+
+*/

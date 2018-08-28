@@ -26,7 +26,6 @@ import (
 	"net"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -35,7 +34,6 @@ import (
 	"github.com/annchain/OG/ethlib/crypto/sha3"
 	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
-	"github.com/annchain/OG/p2p/simulations/pipes"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -147,6 +145,7 @@ func testEncHandshake(token []byte) error {
 	return nil
 }
 
+/*
 func TestProtocolHandshake(t *testing.T) {
 	var (
 		prv0, _ = crypto.GenerateKey()
@@ -223,7 +222,7 @@ func TestProtocolHandshake(t *testing.T) {
 	}()
 	wg.Wait()
 }
-
+*/
 func TestProtocolHandshakeErrors(t *testing.T) {
 	our := &protoHandshake{Version: 3, Caps: []Cap{{"foo", 2}, {"bar", 3}}, Name: "quux"}
 	tests := []struct {

@@ -32,8 +32,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/crypto"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/crypto"
      log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/p2p/netutil"
 )
@@ -45,7 +45,7 @@ const (
 
 	// We keep buckets for the upper 1/15 of distances because
 	// it's very unlikely we'll ever encounter a node that's closer.
-	hashBits          = len(common.Hash{}) * 8
+	hashBits          = len(types.Hash{}.Bytes) * 8
 	nBuckets          = hashBits / 15       // Number of buckets
 	bucketMinDistance = hashBits - nBuckets // Log distance of closest bucket
 
@@ -519,7 +519,7 @@ func (tab *Table) copyLiveNodes() {
 
 // closest returns the n nodes in the table that are closest to the
 // given id. The caller must hold tab.mutex.
-func (tab *Table) closest(target common.Hash, nresults int) *nodesByDistance {
+func (tab *Table) closest(target types.Hash, nresults int) *nodesByDistance {
 	// This is a very wasteful way to find the closest nodes but
 	// obviously correct. I believe that tree-based buckets would make
 	// this easier to implement efficiently.
@@ -540,7 +540,7 @@ func (tab *Table) len() (n int) {
 }
 
 // bucket returns the bucket for the given node ID hash.
-func (tab *Table) bucket(sha common.Hash) *bucket {
+func (tab *Table) bucket(sha types.Hash) *bucket {
 	d := logdist(tab.self.sha, sha)
 	if d <= bucketMinDistance {
 		return tab.buckets[0]
@@ -724,7 +724,7 @@ func deleteNode(list []*Node, n *Node) []*Node {
 // distance to target.
 type nodesByDistance struct {
 	entries []*Node
-	target  common.Hash
+	target  types.Hash
 }
 
 // push adds the given node to the list, keeping the total size below maxElems.

@@ -24,13 +24,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/common/mclock"
-	"github.com/annchain/OG/ethlib/crypto"
-	"github.com/annchain/OG/ethlib/crypto/sha3"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/mclock"
+	"github.com/annchain/OG/common/crypto"
 	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/p2p/netutil"
-	"github.com/annchain/OG/ethlib/rlp"
 )
 
 var (
@@ -93,9 +91,9 @@ type Network struct {
 type transport interface {
 	sendPing(remote *Node, remoteAddr *net.UDPAddr, topics []Topic) (hash []byte)
 	sendNeighbours(remote *Node, nodes []*Node)
-	sendFindnodeHash(remote *Node, target common.Hash)
+	sendFindnodeHash(remote *Node, target types.Hash)
 	sendTopicRegister(remote *Node, topics []Topic, topicIdx int, pong []byte)
-	sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node)
+	sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node)
 
 	send(remote *Node, ptype nodeEvent, p interface{}) (hash []byte)
 
@@ -105,7 +103,7 @@ type transport interface {
 
 type findnodeQuery struct {
 	remote   *Node
-	target   common.Hash
+	target   types.Hash
 	reply    chan<- []*Node
 	nresults int // counter for received nodes
 }
@@ -235,7 +233,7 @@ func (net *Network) Lookup(targetID NodeID) []*Node {
 	return net.lookup(crypto.Keccak256Hash(targetID[:]), false)
 }
 
-func (net *Network) lookup(target common.Hash, stopOnMatch bool) []*Node {
+func (net *Network) lookup(target types.Hash, stopOnMatch bool) []*Node {
 	var (
 		asked          = make(map[NodeID]bool)
 		seen           = make(map[NodeID]bool)
@@ -324,7 +322,7 @@ func (net *Network) reqRefresh(nursery []*Node) <-chan struct{} {
 	}
 }
 
-func (net *Network) reqQueryFindnode(n *Node, target common.Hash, reply chan []*Node) bool {
+func (net *Network) reqQueryFindnode(n *Node, target types.Hash, reply chan []*Node) bool {
 	q := &findnodeQuery{remote: n, target: target, reply: reply}
 	select {
 	case net.queryReq <- q:
@@ -474,7 +472,7 @@ loop:
 			// chance to start it sooner. This should speed up convergence of the radius
 			// determination for new topics.
 			// if topicRegisterLookupDone == nil {
-			if topicRegisterLookupTarget.target == (common.Hash{}) {
+			if topicRegisterLookupTarget.target == (types.Hash{}) {
 				log.Debug("topicRegisterLookupTarget == null")
 				if topicRegisterLookupTick.Stop() {
 					<-topicRegisterLookupTick.C
@@ -497,7 +495,7 @@ loop:
 
 		case <-topicRegisterLookupTick.C:
 			log.Debug("<-topicRegisterLookupTick")
-			if (topicRegisterLookupTarget.target == common.Hash{}) {
+			if (topicRegisterLookupTarget.target == types.Hash{}) {
 				target, delay := net.ticketStore.nextRegisterLookup()
 				topicRegisterLookupTarget = target
 				topicRegisterLookupTick.Reset(delay)
@@ -590,14 +588,14 @@ loop:
 				if printTestImgLogs {
 					rad := r.radius / (maxRadius/1000000 + 1)
 					minrad := r.minRadius / (maxRadius/1000000 + 1)
-					fmt.Printf("*R %d %v %016x %v\n", tm/1000000, topic, net.tab.self.sha[:8], rad)
-					fmt.Printf("*MR %d %v %016x %v\n", tm/1000000, topic, net.tab.self.sha[:8], minrad)
+					fmt.Printf("*R %d %v %016x %v\n", tm/1000000, topic, net.tab.self.sha.Bytes[:8], rad)
+					fmt.Printf("*MR %d %v %016x %v\n", tm/1000000, topic, net.tab.self.sha.Bytes[:8], minrad)
 				}
 			}
 			for topic, t := range net.topictab.topics {
 				wp := t.wcl.nextWaitPeriod(tm)
 				if printTestImgLogs {
-					fmt.Printf("*W %d %v %016x %d\n", tm/1000000, topic, net.tab.self.sha[:8], wp/1000000)
+					fmt.Printf("*W %d %v %016x %d\n", tm/1000000, topic, net.tab.self.sha.Bytes[:8], wp/1000000)
 				}
 			}
 
@@ -769,7 +767,7 @@ type nodeNetGuts struct {
 	// possible to write tests that need a node at a certain distance.
 	// In those tests, the content of sha will not actually correspond
 	// with ID.
-	sha common.Hash
+	sha types.Hash
 
 	// State machine fields. Access to these fields
 	// is restricted to the Network.loop goroutine.
@@ -798,7 +796,7 @@ func (n *nodeNetGuts) startNextQuery(net *Network) {
 func (q *findnodeQuery) start(net *Network) bool {
 	// Satisfy queries against the local node directly.
 	if q.remote == net.tab.self {
-		closest := net.tab.closest(crypto.Keccak256Hash(q.target[:]), bucketSize)
+		closest := net.tab.closest(crypto.Keccak256Hash(q.target.Bytes[:]), bucketSize)
 		q.reply <- closest.entries
 		return true
 	}
@@ -1190,8 +1188,8 @@ func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) 
 		if len(results) > 10 {
 			results = results[:10]
 		}
-		var hash common.Hash
-		copy(hash[:], pkt.hash)
+		var hash types.Hash
+		copy(hash.Bytes[:], pkt.hash)
 		net.conn.sendTopicNodes(n, hash, results)
 		return n.state, nil
 	case topicNodesPacket:
@@ -1231,10 +1229,10 @@ func (net *Network) checkTopicRegister(data *topicRegister) (*pong, error) {
 	return pongpkt.data.(*pong), nil
 }
 
-func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
+func rlpHash(x interface{}) (h types.Hash) {
+	//hw := sha3.NewKeccak256()
+	//rlp.Encode(hw, x)
+	//hw.Sum(h.Bytes[:0])
 	return h
 }
 

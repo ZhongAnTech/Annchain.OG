@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common/mclock"
+	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
 	log "github.com/sirupsen/logrus"

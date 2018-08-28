@@ -23,7 +23,7 @@ import (
 	"crypto/elliptic"
 	"fmt"
 
-	"github.com/annchain/OG/ethlib/common/math"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ethlib/crypto/secp256k1"
 )
 

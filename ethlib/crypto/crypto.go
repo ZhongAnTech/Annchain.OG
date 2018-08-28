@@ -28,10 +28,11 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/common/math"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ethlib/crypto/sha3"
 	"github.com/annchain/OG/ethlib/rlp"
+	"github.com/annchain/OG/common"
 )
 
 var (
@@ -52,12 +53,12 @@ func Keccak256(data ...[]byte) []byte {
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
-func Keccak256Hash(data ...[]byte) (h common.Hash) {
+func Keccak256Hash(data ...[]byte) (h types.Hash) {
 	d := sha3.NewKeccak256()
 	for _, b := range data {
 		d.Write(b)
 	}
-	d.Sum(h[:0])
+	d.Sum(h.Bytes[:0])
 	return h
 }
 
@@ -71,15 +72,16 @@ func Keccak512(data ...[]byte) []byte {
 }
 
 // CreateAddress creates an ethereum address given the bytes and the nonce
-func CreateAddress(b common.Address, nonce uint64) common.Address {
+func CreateAddress(b types.Address, nonce uint64) types.Address {
 	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
-	return common.BytesToAddress(Keccak256(data)[12:])
+	return types.BytesToAddress(Keccak256(data)[12:])
 }
 
 // CreateAddress2 creates an ethereum address given the address bytes, initial
 // contract code and a salt.
-func CreateAddress2(b common.Address, salt common.Hash, code []byte) common.Address {
-	return common.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes(), salt.Bytes(), code)[12:])
+func CreateAddress2(b types.Address, salt types.Hash, code []byte) types.Address {
+	//return types.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes(), salt.Bytes(), code)[12:])
+	return types.BytesToAddress(Keccak256([]byte{0xff}))
 }
 
 // ToECDSA creates a private key with the given D value.
@@ -200,9 +202,9 @@ func ValidateSignatureValues(v byte, r, s *big.Int, homestead bool) bool {
 	return r.Cmp(secp256k1N) < 0 && s.Cmp(secp256k1N) < 0 && (v == 0 || v == 1)
 }
 
-func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
+func PubkeyToAddress(p ecdsa.PublicKey) types.Address {
 	pubBytes := FromECDSAPub(&p)
-	return common.BytesToAddress(Keccak256(pubBytes[1:])[12:])
+	return types.BytesToAddress(Keccak256(pubBytes[1:])[12:])
 }
 
 func zeroBytes(bytes []byte) {

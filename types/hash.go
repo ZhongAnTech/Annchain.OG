@@ -43,6 +43,8 @@ type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
+type HashBytes [HashLength]byte
+
 // BytesToHash sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToHash(b []byte) Hash {

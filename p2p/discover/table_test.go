@@ -28,8 +28,8 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/crypto"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/crypto"
 )
 
 func TestTable_pingReplace(t *testing.T) {
@@ -99,7 +99,7 @@ func TestBucket_bumpNoDuplicates(t *testing.T) {
 			n := rand.Intn(bucketSize-1) + 1
 			nodes := make([]*Node, n)
 			for i := range nodes {
-				nodes[i] = nodeAtDistance(common.Hash{}, 200)
+				nodes[i] = nodeAtDistance(types.Hash{}, 200)
 			}
 			args[0] = reflect.ValueOf(nodes)
 			// generate random bump positions.
@@ -178,11 +178,11 @@ func fillBucket(tab *Table, n *Node) (last *Node) {
 
 // nodeAtDistance creates a node for which logdist(base, n.sha) == ld.
 // The node's ID does not correspond to n.sha.
-func nodeAtDistance(base common.Hash, ld int) (n *Node) {
+func nodeAtDistance(base  types.Hash, ld int) (n *Node) {
 	n = new(Node)
 	n.sha = hashAtDistance(base, ld)
 	n.IP = net.IP{byte(ld), 0, 2, byte(ld)}
-	copy(n.ID[:], n.sha[:]) // ensure the node still has a unique ID
+	copy(n.ID[:], n.sha.Bytes[:]) // ensure the node still has a unique ID
 	return n
 }
 
@@ -308,7 +308,7 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 
 type closeTest struct {
 	Self   NodeID
-	Target common.Hash
+	Target types.Hash
 	All    []*Node
 	N      int
 }
@@ -316,7 +316,7 @@ type closeTest struct {
 func (*closeTest) Generate(rand *rand.Rand, size int) reflect.Value {
 	t := &closeTest{
 		Self:   gen(NodeID{}, rand).(NodeID),
-		Target: gen(common.Hash{}, rand).(common.Hash),
+		Target: gen(types.Hash{}, rand).(types.Hash),
 		N:      rand.Intn(bucketSize),
 	}
 	for _, id := range gen([]NodeID{}, rand).([]NodeID) {
@@ -326,7 +326,7 @@ func (*closeTest) Generate(rand *rand.Rand, size int) reflect.Value {
 }
 
 func TestTable_Lookup(t *testing.T) {
-	self := nodeAtDistance(common.Hash{}, 0)
+	self := nodeAtDistance(types.Hash{}, 0)
 	tab, _ := newTable(lookupTestnet, self.ID, &net.UDPAddr{}, "", nil)
 	defer tab.Close()
 
@@ -359,7 +359,7 @@ func TestTable_Lookup(t *testing.T) {
 // The nodes were obtained by running testnet.mine with a random NodeID as target.
 var lookupTestnet = &preminedTestnet{
 	target:    MustHexID("166aea4f556532c6d34e8b740e5d314af7e9ac0ca79833bd751d6b665f12dfd38ec563c363b32f02aef4a80b44fd3def94612d497b99cb5f17fd24de454927ec"),
-	targetSha: common.Hash{0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61},
+	targetSha: types.Hash {[32]byte{ 0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61}},
 	dists: [257][]NodeID{
 		240: {
 			MustHexID("2001ad5e3e80c71b952161bc0186731cf5ffe942d24a79230a0555802296238e57ea7a32f5b6f18564eadc1c65389448481f8c9338df0a3dbd18f708cbc2cbcb"),
@@ -552,7 +552,7 @@ var lookupTestnet = &preminedTestnet{
 
 type preminedTestnet struct {
 	target    NodeID
-	targetSha common.Hash // sha3(target)
+	targetSha types.Hash // sha3(target)
 	dists     [hashBits + 1][]NodeID
 }
 
@@ -623,8 +623,8 @@ func hasDuplicates(slice []*Node) bool {
 	return false
 }
 
-func sortedByDistanceTo(distbase common.Hash, slice []*Node) bool {
-	var last common.Hash
+func sortedByDistanceTo(distbase types.Hash, slice []*Node) bool {
+	var last types.Hash
 	for i, e := range slice {
 		if i > 0 && distcmp(distbase, e.sha, last) < 0 {
 			return false

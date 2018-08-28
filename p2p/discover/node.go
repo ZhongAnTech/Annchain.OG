@@ -31,9 +31,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/crypto"
-	"github.com/annchain/OG/ethlib/crypto/secp256k1"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 const NodeIDBits = 512
@@ -50,7 +49,7 @@ type Node struct {
 	// possible to write tests that need a node at a certain distance.
 	// In those tests, the content of sha will not actually correspond
 	// with ID.
-	sha common.Hash
+	sha types.Hash
 
 	// Time when the node was added to the table.
 	addedAt time.Time
@@ -331,7 +330,7 @@ func (id NodeID) Pubkey() (*ecdsa.PublicKey, error) {
 // recoverNodeID computes the public key used to sign the
 // given hash from the signature.
 func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
-	pubkey, err := secp256k1.RecoverPubkey(hash, sig)
+	pubkey, err := crypto.RecoverPubkey(hash, sig)
 	if err != nil {
 		return id, err
 	}
@@ -347,10 +346,11 @@ func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
 // distcmp compares the distances a->target and b->target.
 // Returns -1 if a is closer to target, 1 if b is closer to target
 // and 0 if they are equal.
-func distcmp(target, a, b common.Hash) int {
+func distcmp(targetHash, a, b types.Hash) int {
+	target:= targetHash.Bytes
 	for i := range target {
-		da := a[i] ^ target[i]
-		db := b[i] ^ target[i]
+		da := a.Bytes[i] ^ target[i]
+		db := b.Bytes[i] ^ target[i]
 		if da > db {
 			return 1
 		} else if da < db {
@@ -397,10 +397,10 @@ var lzcount = [256]int{
 }
 
 // logdist returns the logarithmic distance between a and b, log2(a ^ b).
-func logdist(a, b common.Hash) int {
+func logdist(a, b types.Hash) int {
 	lz := 0
-	for i := range a {
-		x := a[i] ^ b[i]
+	for i := range a.Bytes {
+		x := a.Bytes[i] ^ b.Bytes[i]
 		if x == 0 {
 			lz += 8
 		} else {
@@ -408,25 +408,25 @@ func logdist(a, b common.Hash) int {
 			break
 		}
 	}
-	return len(a)*8 - lz
+	return len(a.Bytes)*8 - lz
 }
 
 // hashAtDistance returns a random hash such that logdist(a, b) == n
-func hashAtDistance(a common.Hash, n int) (b common.Hash) {
+func hashAtDistance(a types.Hash, n int) (b types.Hash) {
 	if n == 0 {
 		return a
 	}
 	// flip bit at position n, fill the rest with random bits
 	b = a
-	pos := len(a) - n/8 - 1
+	pos := len(a.Bytes) - n/8 - 1
 	bit := byte(0x01) << (byte(n%8) - 1)
 	if bit == 0 {
 		pos++
 		bit = 0x80
 	}
-	b[pos] = a[pos]&^bit | ^a[pos]&bit // TODO: randomize end bits
-	for i := pos + 1; i < len(a); i++ {
-		b[i] = byte(rand.Intn(255))
+	b.Bytes[pos] = a.Bytes[pos]&^bit | ^a.Bytes[pos]&bit // TODO: randomize end bits
+	for i := pos + 1; i < len(a.Bytes); i++ {
+		b.Bytes[i] = byte(rand.Intn(255))
 	}
 	return b
 }

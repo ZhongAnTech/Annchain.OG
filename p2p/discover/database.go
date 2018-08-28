@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ethlib/crypto"
+	"github.com/annchain/OG/common/crypto"
     log  "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/syndtr/goleveldb/leveldb"

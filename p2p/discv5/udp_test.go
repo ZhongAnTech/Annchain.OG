@@ -26,9 +26,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/crypto"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ethlib/rlp"
+	"github.com/annchain/OG/common"
 )
 
 func init() {

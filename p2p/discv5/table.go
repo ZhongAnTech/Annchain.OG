@@ -29,13 +29,13 @@ import (
 	"net"
 	"sort"
 
-	"github.com/annchain/OG/ethlib/common"
+	"github.com/annchain/OG/types"
 )
 
 const (
 	alpha      = 3  // Kademlia concurrency factor
 	bucketSize = 16 // Kademlia bucket size
-	hashBits   = len(common.Hash{}) * 8
+	hashBits   = len(types.Hash{}.Bytes) * 8
 	nBuckets   = hashBits + 1 // Number of buckets
 
 	maxFindnodeFailures = 5
@@ -76,7 +76,7 @@ const printTable = false
 // with a distance less than twice of that of the selected node.
 // This algorithm will be improved later to specifically target the least recently
 // used buckets.
-func (tab *Table) chooseBucketRefreshTarget() common.Hash {
+func (tab *Table) chooseBucketRefreshTarget() types.Hash {
 	entries := 0
 	if printTable {
 		fmt.Println()
@@ -90,13 +90,13 @@ func (tab *Table) chooseBucketRefreshTarget() common.Hash {
 		}
 	}
 
-	prefix := binary.BigEndian.Uint64(tab.self.sha[0:8])
+	prefix := binary.BigEndian.Uint64(tab.self.sha.Bytes[0:8])
 	dist := ^uint64(0)
 	entry := int(randUint(uint32(entries + 1)))
 	for _, b := range &tab.buckets {
 		if entry < len(b.entries) {
 			n := b.entries[entry]
-			dist = binary.BigEndian.Uint64(n.sha[0:8]) ^ prefix
+			dist = binary.BigEndian.Uint64(n.sha.Bytes[0:8]) ^ prefix
 			break
 		}
 		entry -= len(b.entries)
@@ -108,9 +108,9 @@ func (tab *Table) chooseBucketRefreshTarget() common.Hash {
 	}
 	targetPrefix := prefix ^ randUint64n(ddist)
 
-	var target common.Hash
-	binary.BigEndian.PutUint64(target[0:8], targetPrefix)
-	rand.Read(target[8:])
+	var target types.Hash
+	binary.BigEndian.PutUint64(target.Bytes[0:8], targetPrefix)
+	rand.Read(target.Bytes[8:])
 	return target
 }
 
@@ -170,7 +170,7 @@ func randUint64n(max uint64) uint64 {
 
 // closest returns the n nodes in the table that are closest to the
 // given id. The caller must hold tab.mutex.
-func (tab *Table) closest(target common.Hash, nresults int) *nodesByDistance {
+func (tab *Table) closest(target types.Hash, nresults int) *nodesByDistance {
 	// This is a very wasteful way to find the closest nodes but
 	// obviously correct. I believe that tree-based buckets would make
 	// this easier to implement efficiently.
@@ -299,7 +299,7 @@ func (b *bucket) bump(n *Node) bool {
 // distance to target.
 type nodesByDistance struct {
 	entries []*Node
-	target  common.Hash
+	target  types.Hash
 }
 
 // push adds the given node to the list, keeping the total size below maxElems.

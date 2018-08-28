@@ -24,12 +24,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
-	"github.com/annchain/OG/ethlib/crypto"
+	"github.com/annchain/OG/common/crypto"
 	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/ethlib/rlp"
+	"github.com/annchain/OG/types"
 )
 
 const Version = 4
@@ -74,7 +74,7 @@ type (
 		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 
 		// v5
-		TopicHash    common.Hash
+		TopicHash    types.Hash
 		TicketSerial uint32
 		WaitPeriods  []uint32
 
@@ -92,7 +92,7 @@ type (
 
 	// findnode is a query for nodes close to the given target.
 	findnodeHash struct {
-		Target     common.Hash
+		Target     types.Hash
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
@@ -119,7 +119,7 @@ type (
 
 	// reply to topicQuery
 	topicNodes struct {
-		Echo  common.Hash
+		Echo  types.Hash
 		Nodes []rpcNode
 	}
 
@@ -293,7 +293,7 @@ func (t *udp) sendNeighbours(remote *Node, results []*Node) {
 	}
 }
 
-func (t *udp) sendFindnodeHash(remote *Node, target common.Hash) {
+func (t *udp) sendFindnodeHash(remote *Node, target types.Hash) {
 	t.sendPacket(remote.ID, remote.addr(), byte(findnodeHashPacket), findnodeHash{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
@@ -308,7 +308,7 @@ func (t *udp) sendTopicRegister(remote *Node, topics []Topic, idx int, pong []by
 	})
 }
 
-func (t *udp) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
+func (t *udp) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
 	p := topicNodes{Echo: queryHash}
 	var sent bool
 	for _, result := range nodes {

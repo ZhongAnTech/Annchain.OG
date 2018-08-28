@@ -23,7 +23,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common/mclock"
+	"github.com/annchain/OG/common/mclock"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -80,7 +80,7 @@ type topicTable struct {
 
 func newTopicTable(db *nodeDB, self *Node) *topicTable {
 	if printTestImgLogs {
-		fmt.Printf("*N %016x\n", self.sha[:8])
+		fmt.Printf("*N %016x\n", self.sha.Bytes[:8])
 	}
 	return &topicTable{
 		db:     db,
@@ -197,7 +197,7 @@ func (t *topicTable) addEntry(node *Node, topic Topic) {
 		expire:  tm + mclock.AbsTime(fallbackRegistrationExpiry),
 	}
 	if printTestImgLogs {
-		fmt.Printf("*+ %d %v %016x %016x\n", tm/1000000, topic, t.self.sha[:8], node.sha[:8])
+		fmt.Printf("*+ %d %v %016x %016x\n", tm/1000000, topic, t.self.sha.Bytes[:8], node.sha.Bytes[:8])
 	}
 	te.entries[fifoIdx] = entry
 	n.entries[topic] = entry
@@ -219,7 +219,7 @@ func (t *topicTable) leastRequested() *topicEntry {
 // entry should exist
 func (t *topicTable) deleteEntry(e *topicEntry) {
 	if printTestImgLogs {
-		fmt.Printf("*- %d %v %016x %016x\n", mclock.Now()/1000000, e.topic, t.self.sha[:8], e.node.sha[:8])
+		fmt.Printf("*- %d %v %016x %016x\n", mclock.Now()/1000000, e.topic, t.self.sha.Bytes[:8], e.node.sha.Bytes[:8])
 	}
 	ne := t.nodes[e.node].entries
 	delete(ne, e.topic)

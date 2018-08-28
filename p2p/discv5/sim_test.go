@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/annchain/OG/ethlib/common"
+	"github.com/annchain/OG/types"
 )
 
 // In this test, nodes try to randomly resolve each other.
@@ -374,7 +374,7 @@ func (st *simTransport) sendPong(remote *Node, pingHash []byte) {
 	})
 }
 
-func (st *simTransport) sendFindnodeHash(remote *Node, target common.Hash) {
+func (st *simTransport) sendFindnodeHash(remote *Node, target types.Hash) {
 	st.sendPacket(remote.ID, ingressPacket{
 		remoteID:   st.sender,
 		remoteAddr: st.senderAddr,
@@ -436,9 +436,9 @@ func (st *simTransport) sendNeighbours(remote *Node, nodes []*Node) {
 
 func (st *simTransport) nextHash() []byte {
 	v := atomic.AddUint64(&st.hashctr, 1)
-	var hash common.Hash
-	binary.BigEndian.PutUint64(hash[:], v)
-	return hash[:]
+	var hash types.Hash
+	binary.BigEndian.PutUint64(hash.Bytes[:], v)
+	return hash.Bytes[:]
 }
 
 const packetLoss = 0 // 1/1000

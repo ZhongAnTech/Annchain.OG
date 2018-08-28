@@ -39,5 +39,5 @@ func (t *Tx) BlockHash() (hash Hash) {
 }
 
 func (t*Tx)Hash ()(hash Hash){
-
+  return
 }

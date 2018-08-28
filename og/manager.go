@@ -29,10 +29,10 @@ func NewManager(config ManagerConfig, hub *Hub, syncer *Syncer, txPool *core.TxP
 
 // SetupCallbacks Regist callbacks to handle different messages
 func (m *Manager) SetupCallbacks(hub *Hub) {
-	hub.callbackRegistry[MessageTypePing] = m.HandleMessageTypePing
-	hub.callbackRegistry[MessageTypePong] = m.HandleMessageTypePong
-	hub.callbackRegistry[MessageTypeFetchByHash] = m.HandleMessageTypeFetchByHash
-	hub.callbackRegistry[MessageTypeFetchByHashResponse] = m.HandleMessageTypeFetchByHashResponse
+	hub.callbackRegistry[MessageTypePing] = m.HandlePing
+	hub.callbackRegistry[MessageTypePong] = m.HandlePong
+	hub.callbackRegistry[MessageTypeFetchByHash] = m.HandleFetchByHash
+	hub.callbackRegistry[MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
 	m.hub = hub
 }
 
@@ -69,16 +69,16 @@ func (m *Manager) Name() string {
 	return "Manager"
 }
 
-func (m *Manager) HandleMessageTypePing(*P2PMessage) {
+func (m *Manager) HandlePing(*P2PMessage) {
 	logrus.Debug("Received your ping. Respond you a pong")
 	m.hub.outgoing <- &P2PMessage{MessageType: MessageTypePong, Message: []byte{}}
 }
 
-func (m *Manager) HandleMessageTypePong(*P2PMessage) {
+func (m *Manager) HandlePong(*P2PMessage) {
 	logrus.Debug("Received your pong.")
 }
 
-func (m *Manager) HandleMessageTypeFetchByHash(msg *P2PMessage) {
+func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 	logrus.Debug("Received MessageSyncRequest")
 	syncRequest := types.MessageSyncRequest{}
 	_, err := syncRequest.UnmarshalMsg(msg.Message)
@@ -115,7 +115,7 @@ func (m *Manager) HandleMessageTypeFetchByHash(msg *P2PMessage) {
 	m.hub.SendMessage(MessageTypeFetchByHashResponse, data)
 }
 
-func (m *Manager) HandleMessageTypeFetchByHashResponse(msg *P2PMessage) {
+func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 	logrus.Debug("Received MessageSyncResponse")
 	syncResponse := types.MessageSyncResponse{}
 	_, err := syncResponse.UnmarshalMsg(msg.Message)

@@ -7,6 +7,220 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageNewSequence) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Sequencer = nil
+	} else {
+		if z.Sequencer == nil {
+			z.Sequencer = new(Sequencer)
+		}
+		err = z.Sequencer.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageNewSequence) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	if z.Sequencer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Sequencer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageNewSequence) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	if z.Sequencer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Sequencer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageNewSequence) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Sequencer = nil
+	} else {
+		if z.Sequencer == nil {
+			z.Sequencer = new(Sequencer)
+		}
+		bts, err = z.Sequencer.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageNewSequence) Msgsize() (s int) {
+	s = 1
+	if z.Sequencer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Sequencer.Msgsize()
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *MessageNewTx) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Tx = nil
+	} else {
+		if z.Tx == nil {
+			z.Tx = new(Tx)
+		}
+		err = z.Tx.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageNewTx) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	if z.Tx == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Tx.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageNewTx) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	if z.Tx == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Tx.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageNewTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Tx = nil
+	} else {
+		if z.Tx == nil {
+			z.Tx = new(Tx)
+		}
+		bts, err = z.Tx.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageNewTx) Msgsize() (s int) {
+	s = 1
+	if z.Tx == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Tx.Msgsize()
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
@@ -154,23 +368,23 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if cap(z.Sequencer) >= int(zb0003) {
-		z.Sequencer = (z.Sequencer)[:zb0003]
+	if cap(z.Sequencers) >= int(zb0003) {
+		z.Sequencers = (z.Sequencers)[:zb0003]
 	} else {
-		z.Sequencer = make([]*Sequencer, zb0003)
+		z.Sequencers = make([]*Sequencer, zb0003)
 	}
-	for za0002 := range z.Sequencer {
+	for za0002 := range z.Sequencers {
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
 				return
 			}
-			z.Sequencer[za0002] = nil
+			z.Sequencers[za0002] = nil
 		} else {
-			if z.Sequencer[za0002] == nil {
-				z.Sequencer[za0002] = new(Sequencer)
+			if z.Sequencers[za0002] == nil {
+				z.Sequencers[za0002] = new(Sequencer)
 			}
-			err = z.Sequencer[za0002].DecodeMsg(dc)
+			err = z.Sequencers[za0002].DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -203,18 +417,18 @@ func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 			}
 		}
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Sequencer)))
+	err = en.WriteArrayHeader(uint32(len(z.Sequencers)))
 	if err != nil {
 		return
 	}
-	for za0002 := range z.Sequencer {
-		if z.Sequencer[za0002] == nil {
+	for za0002 := range z.Sequencers {
+		if z.Sequencers[za0002] == nil {
 			err = en.WriteNil()
 			if err != nil {
 				return
 			}
 		} else {
-			err = z.Sequencer[za0002].EncodeMsg(en)
+			err = z.Sequencers[za0002].EncodeMsg(en)
 			if err != nil {
 				return
 			}
@@ -239,12 +453,12 @@ func (z *MessageSyncResponse) MarshalMsg(b []byte) (o []byte, err error) {
 			}
 		}
 	}
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Sequencer)))
-	for za0002 := range z.Sequencer {
-		if z.Sequencer[za0002] == nil {
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Sequencers)))
+	for za0002 := range z.Sequencers {
+		if z.Sequencers[za0002] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			o, err = z.Sequencer[za0002].MarshalMsg(o)
+			o, err = z.Sequencers[za0002].MarshalMsg(o)
 			if err != nil {
 				return
 			}
@@ -296,23 +510,23 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if cap(z.Sequencer) >= int(zb0003) {
-		z.Sequencer = (z.Sequencer)[:zb0003]
+	if cap(z.Sequencers) >= int(zb0003) {
+		z.Sequencers = (z.Sequencers)[:zb0003]
 	} else {
-		z.Sequencer = make([]*Sequencer, zb0003)
+		z.Sequencers = make([]*Sequencer, zb0003)
 	}
-	for za0002 := range z.Sequencer {
+	for za0002 := range z.Sequencers {
 		if msgp.IsNil(bts) {
 			bts, err = msgp.ReadNilBytes(bts)
 			if err != nil {
 				return
 			}
-			z.Sequencer[za0002] = nil
+			z.Sequencers[za0002] = nil
 		} else {
-			if z.Sequencer[za0002] == nil {
-				z.Sequencer[za0002] = new(Sequencer)
+			if z.Sequencers[za0002] == nil {
+				z.Sequencers[za0002] = new(Sequencer)
 			}
-			bts, err = z.Sequencer[za0002].UnmarshalMsg(bts)
+			bts, err = z.Sequencers[za0002].UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -333,11 +547,11 @@ func (z *MessageSyncResponse) Msgsize() (s int) {
 		}
 	}
 	s += msgp.ArrayHeaderSize
-	for za0002 := range z.Sequencer {
-		if z.Sequencer[za0002] == nil {
+	for za0002 := range z.Sequencers {
+		if z.Sequencers[za0002] == nil {
 			s += msgp.NilSize
 		} else {
-			s += z.Sequencer[za0002].Msgsize()
+			s += z.Sequencers[za0002].Msgsize()
 		}
 	}
 	return

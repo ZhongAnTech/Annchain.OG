@@ -9,7 +9,7 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Sequencer
+//msgp:tuple Sequencers
 
 type Sequencer struct {
 	TxBase

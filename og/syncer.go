@@ -73,7 +73,7 @@ func (m *Syncer) loopSync() {
 	for {
 		select {
 		case <-m.quit:
-			logrus.Info("Syncer reeived quit message. Quitting...")
+			logrus.Info("Syncer received quit message. Quitting...")
 			return
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch

@@ -98,4 +98,6 @@ func SetupCallbacks(m *og.Manager, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypePong] = m.HandlePong
 	hub.CallbackRegistry[og.MessageTypeFetchByHash] = m.HandleFetchByHash
 	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
+	hub.CallbackRegistry[og.MessageTypeNewTx] = m.HandleNewTx
+	hub.CallbackRegistry[og.MessageTypeNewSequence] = m.HandleNewSequence
 }

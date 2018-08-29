@@ -16,6 +16,9 @@ func TestSigner(t *testing.T) {
 
 	fmt.Println(hex.Dump(pub.Bytes))
 	fmt.Println(hex.Dump(priv.Bytes))
+	address := signer.Address(pub)
+	fmt.Println(hex.Dump(address.Bytes[:]))
+	fmt.Println(signer.Address(pub).Hex())
 
 	pub2 := signer.PubKey(priv)
 	fmt.Println(hex.Dump(pub2.Bytes))

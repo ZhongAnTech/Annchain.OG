@@ -1,11 +1,16 @@
 package crypto
 
-import "golang.org/x/crypto/ed25519"
+import (
+	"golang.org/x/crypto/ed25519"
+	"github.com/annchain/OG/types"
+	"bytes"
+	"golang.org/x/crypto/ripemd160"
+)
 
 type SignerEd25519 struct {
 }
 
-func (s *SignerEd25519) GetCryptoType() CryptoType{
+func (s *SignerEd25519) GetCryptoType() CryptoType {
 	return CryptoTypeEd25519
 }
 
@@ -31,4 +36,15 @@ func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey Private
 	publicKey = PublicKeyFromBytes(CryptoTypeEd25519, public)
 	privateKey = PrivateKeyFromBytes(CryptoTypeEd25519, private)
 	return
+}
+
+// Address calculate the address from the pubkey
+func (s *SignerEd25519) Address(pubKey PublicKey) types.Address {
+	var w bytes.Buffer
+	w.Write([]byte{byte(pubKey.Type)})
+	w.Write(pubKey.Bytes)
+	hasher := ripemd160.New()
+	hasher.Write(w.Bytes())
+	result := hasher.Sum(nil)
+	return types.BytesToAddress(result)
 }

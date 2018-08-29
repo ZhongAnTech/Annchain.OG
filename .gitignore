@@ -11,3 +11,4 @@ logs/
 vendor/
 *.lock
 /.project
+app/app

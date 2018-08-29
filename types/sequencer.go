@@ -5,15 +5,33 @@ import (
 	"encoding/binary"
 	"golang.org/x/crypto/sha3"
 	"github.com/google/go-cmp/cmp"
+	"fmt"
+	"strings"
 )
 
 //go:generate msgp
-//cccmsgp:tuple Sequencer
+//msgp:tuple Sequencers
 
 type Sequencer struct {
-	Id uint64 `msgp:"id"`
 	TxBase
+	Id                uint64 `msgp:"id"`
 	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+}
+
+func SampleSequencer() *Sequencer {
+	return &Sequencer{Id: 99,
+		TxBase: TxBase{
+			Height:       12,
+			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+			Type:         TxBaseTypeSequencer,
+			AccountNonce: 234,
+		},
+		ContractHashOrder: []Hash{
+			HexToHash("0x00667788"),
+			HexToHash("0xAA667788"),
+			HexToHash("0xBB667788"), // 20 bytes
+		},
+	}
 }
 
 func (seq *Sequencer) Hash() (hash Hash) {
@@ -45,4 +63,13 @@ func (seq *Sequencer) Compare(tx Txi) bool {
 	default:
 		return false
 	}
+}
+
+func (seq *Sequencer) String() string {
+	var hashes []string
+	for _, v := range seq.ContractHashOrder {
+		hashes = append(hashes, v.Hex()[0:10])
+	}
+
+	return fmt.Sprintf("[%s] %d Hashes %s", seq.TxBase.String(), seq.Id, strings.Join(hashes, ","))
 }

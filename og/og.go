@@ -9,9 +9,7 @@ import (
 type Og struct {
 	dag    *core.Dag
 	txpool *core.TxPool
-
 	accountManager *account.AccountManager
-
 	manager *Manager
 }
 
@@ -21,4 +19,8 @@ func (og *Og) Start() {
 }
 func (og *Og) Stop() {
 	logrus.Info("OG Stopped")
+}
+
+func (og *Og) Name() string {
+	return "OG"
 }

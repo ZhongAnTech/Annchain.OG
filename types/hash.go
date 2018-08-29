@@ -22,12 +22,12 @@ import (
 	"math/rand"
 	"reflect"
 
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/hexutil"
 )
 
 //go:generate msgp
-//cccmsgp:tuple Hash
+//msgp:tuple Hash
 
 // Length of hash in bytes.
 const (
@@ -42,6 +42,8 @@ var (
 type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
+
+type HashBytes [HashLength]byte
 
 // BytesToHash sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"time"
 	"context"
+	"fmt"
 )
 
 const ShutdownTimeoutSeconds = 5
@@ -58,4 +59,8 @@ func (srv *RpcServer) Stop() {
 		logrus.WithError(err).Fatalf("Error while shutting down the Http server")
 	}
 	logrus.Infof("Http server Stopped")
+}
+
+func (srv *RpcServer) Name() string {
+	return fmt.Sprintf("RpcServer at port %s", srv.port)
 }

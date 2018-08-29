@@ -7,45 +7,31 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *Address) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
+func (h *Address) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Bytes":
-			err = dc.ReadExactBytes((z.Bytes)[:])
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((h.Bytes)[:])
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Address) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Bytes"
-	err = en.Append(0x81, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
+func (h *Address) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes((z.Bytes)[:])
+	err = en.WriteBytes((h.Bytes)[:])
 	if err != nil {
 		return
 	}
@@ -53,49 +39,35 @@ func (z *Address) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Address) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Bytes"
-	o = append(o, 0x81, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
-	o = msgp.AppendBytes(o, (z.Bytes)[:])
+func (h *Address) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, h.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	o = msgp.AppendBytes(o, (h.Bytes)[:])
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
+func (h *Address) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Bytes":
-			bts, err = msgp.ReadExactBytes(bts, (z.Bytes)[:])
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (h.Bytes)[:])
+	if err != nil {
+		return
 	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Address) Msgsize() (s int) {
-	s = 1 + 6 + msgp.ArrayHeaderSize + (AddressLength * (msgp.ByteSize))
+func (h *Address) Msgsize() (s int) {
+	s = 1 + msgp.ArrayHeaderSize + (AddressLength * (msgp.ByteSize))
 	return
 }

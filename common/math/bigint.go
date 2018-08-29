@@ -6,11 +6,16 @@ import (
 	"encoding/json"
 )
 
-//go:generate msgp
+
+// DO NOT USE MSGP FOR AUTO-GENERATING HERE.
+// THE bigint_gen.go has been modified intentionally to adapt big.Int
+
+// FORBID: go:generate msgp
+// FORBID: msgp:tuple BigInt
 
 // A BigInt represents a signed multi-precision integer.
 type BigInt struct {
-	bigint *big.Int
+	Value *big.Int
 }
 
 // NewBigInt allocates and returns a new BigInt set to x.
@@ -31,23 +36,23 @@ func NewBigIntFromBigInt(x *big.Int) *BigInt {
 
 // GetBytes returns the absolute value of x as a big-endian byte slice.
 func (bi *BigInt) GetBytes() []byte {
-	return bi.bigint.Bytes()
+	return bi.Value.Bytes()
 }
 
 // String returns the value of x as a formatted decimal string.
 func (bi *BigInt) String() string {
-	return bi.bigint.String()
+	return bi.Value.String()
 }
 
 // GetInt64 returns the int64 representation of x. If x cannot be represented in
 // an int64, the result is undefined.
 func (bi *BigInt) GetInt64() int64 {
-	return bi.bigint.Int64()
+	return bi.Value.Int64()
 }
 
 // SetInt64 sets the big int to x.
 func (bi *BigInt) SetInt64(x int64) {
-	bi.bigint.SetInt64(x)
+	bi.Value.SetInt64(x)
 }
 
 // Sign returns:
@@ -57,7 +62,7 @@ func (bi *BigInt) SetInt64(x int64) {
 //	+1 if x >  0
 //
 func (bi *BigInt) Sign() int {
-	return bi.bigint.Sign()
+	return bi.Value.Sign()
 }
 
 // SetString sets the big int to x.
@@ -66,16 +71,16 @@ func (bi *BigInt) Sign() int {
 // "0X" selects base 16; the "0" prefix selects base 8, and a "0b" or "0B" prefix
 // selects base 2. Otherwise the selected base is 10.
 func (bi *BigInt) SetString(x string, base int) {
-	bi.bigint.SetString(x, base)
+	bi.Value.SetString(x, base)
 }
 
 // GetString returns the value of x as a formatted string in some number base.
 func (bi *BigInt) GetString(base int) string {
-	return bi.bigint.Text(base)
+	return bi.Value.Text(base)
 }
 
 func (bi *BigInt) MarshalJSON() ([]byte, error) {
-	res := fmt.Sprintf("%d", bi.bigint)
+	res := fmt.Sprintf("%d", bi.Value)
 	fmt.Println("Marshaling into ", res)
 	return json.Marshal(res)
 }
@@ -90,5 +95,3 @@ func (bi *BigInt) UnmarshalJSON(b []byte) error {
 	bi.SetString(val, 10)
 	return nil
 }
-
-

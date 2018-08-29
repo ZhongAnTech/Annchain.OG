@@ -19,7 +19,7 @@ type Dag struct {
 	db 		ogdb.Database
 
 	statePending	ogdb.StateDB		
-	txPending		map[types.Hash]types.Txi		
+	txPending		*TxPending		
 
 	genesis			types.Txi
 	latestSeqencer	*types.Sequencer
@@ -31,8 +31,9 @@ type Dag struct {
 }
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{
-		conf:	conf,
-		db:		db,
+		conf:		conf,
+		db:			db,
+		txPending:	NewTxPending(),
 	}
 
 	return dag
@@ -98,7 +99,9 @@ func (dag *Dag) insertTx(tx types.Txi) error {
 }
 
 func (dag *Dag) pendingTx(tx *types.Tx) error {
+	dag.txPending.Add(tx)
 	// TODO
+
 	return nil
 }
 
@@ -129,7 +132,6 @@ func NewTxPending() *TxPending {
 	}
 	return tp
 }
-
 func (tp *TxPending) Get(hash types.Hash) types.Txi {
 	tp.mu.RLock()
 	defer tp.mu.RUnlock()

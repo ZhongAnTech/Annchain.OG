@@ -14,9 +14,9 @@ type DagConfig struct {
 }
 
 type Dag struct {
-	conf 	DagConfig
+	conf	DagConfig
 
-	db 		ogdb.Database
+	db		ogdb.Database
 
 	statePending	ogdb.StateDB		
 	txPending		*TxPending		
@@ -61,9 +61,9 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	return dag.latestSeqencer
 }
 
-// AddTx trys to insert a tx from tx pool to dag network pending list
-func (dag *Dag) InsertTx(tx types.Txi) error {
-	return dag.insertTx(tx)
+// Commit trys to move a tx from tx pool to dag network pending list
+func (dag *Dag) Commit(tx types.Txi) error {
+	return dag.commit(tx)
 }
 
 // GetTx gets tx from dag network indexs by tx hash. This function querys 
@@ -81,7 +81,7 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) insertTx(tx types.Txi) error {
+func (dag *Dag) commit(tx types.Txi) error {
 	// dag.mu.Lock()
 	// defer dag.mu.Unlock()
 

@@ -10,6 +10,23 @@ port = 8000
 enabled = false
 port = 8001
 
+[db]
+name = "leveldb"
+
+[leveldb]
+path = "/"
+cache = 16
+handles = 16
+
+[txpool]
+queue_size = 100
+tips_size = 1000
+reset_duration = 10
+tx_verify_time = 2
+tx_valid_time = 100
+
+[dag]
+
 # samples below
 
 #[owner]

@@ -30,6 +30,7 @@ type MemDatabase struct {
 	db   map[string][]byte
 	lock sync.RWMutex
 }
+type MemDBConfig struct {}
 
 func NewMemDatabase() *MemDatabase {
 	return &MemDatabase{

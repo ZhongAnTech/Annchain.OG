@@ -30,7 +30,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -177,30 +176,28 @@ func (db *nodeDB) storeInt64(key []byte, n int64) error {
 	return db.lvl.Put(key, blob, nil)
 }
 
-func (db *nodeDB) storeRLP(key []byte, val interface{}) error {
-	blob, err := rlp.EncodeToBytes(val)
-	if err != nil {
-		return err
-	}
+func (db *nodeDB) storeData(key []byte, blob []byte) error {
+
 	return db.lvl.Put(key, blob, nil)
 }
 
-func (db *nodeDB) fetchRLP(key []byte, val interface{}) error {
-	blob, err := db.lvl.Get(key, nil)
+func (db *nodeDB) fetchData(key []byte) (blob []byte, err error) {
+	blob, err = db.lvl.Get(key, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = rlp.DecodeBytes(blob, val)
-	if err != nil {
-		log.Warn(fmt.Sprintf("key %x (%T) %v", key, val, err))
-	}
-	return err
+	return blob, err
 }
 
 // node retrieves a node with a given id from the database.
 func (db *nodeDB) node(id NodeID) *Node {
 	var node Node
-	if err := db.fetchRLP(makeKey(id, nodeDBDiscoverRoot), &node); err != nil {
+	data, err := db.fetchData(makeKey(id, nodeDBDiscoverRoot))
+	if err != nil {
+		return nil
+	}
+	_, err = node.UnmarshalMsg(data)
+	if err != nil {
 		return nil
 	}
 	node.sha = crypto.Keccak256Hash(node.ID[:])
@@ -209,7 +206,8 @@ func (db *nodeDB) node(id NodeID) *Node {
 
 // updateNode inserts - potentially overwriting - a node into the peer database.
 func (db *nodeDB) updateNode(node *Node) error {
-	return db.storeRLP(makeKey(node.ID, nodeDBDiscoverRoot), node)
+	data, _ := node.MarshalMsg(nil)
+	return db.storeData(makeKey(node.ID, nodeDBDiscoverRoot), data)
 }
 
 // deleteNode deletes all information/keys associated with a node.
@@ -313,16 +311,24 @@ func (db *nodeDB) updateFindFails(id NodeID, fails int) error {
 
 // localEndpoint returns the last local endpoint communicated to the
 // given remote node.
-func (db *nodeDB) localEndpoint(id NodeID) *rpcEndpoint {
-	var ep rpcEndpoint
-	if err := db.fetchRLP(makeKey(id, nodeDBDiscoverLocalEndpoint), &ep); err != nil {
+func (db *nodeDB) localEndpoint(id NodeID) *RpcEndpoint {
+	var ep RpcEndpoint
+
+	data, err := db.fetchData(makeKey(id, nodeDBDiscoverLocalEndpoint))
+	if err != nil {
+		return nil
+	}
+	_, err = ep.UnmarshalMsg(data)
+	if err != nil {
+		log.Warn("unmarshal RpcEndpoint err,", err)
 		return nil
 	}
 	return &ep
 }
 
-func (db *nodeDB) updateLocalEndpoint(id NodeID, ep rpcEndpoint) error {
-	return db.storeRLP(makeKey(id, nodeDBDiscoverLocalEndpoint), &ep)
+func (db *nodeDB) updateLocalEndpoint(id NodeID, ep RpcEndpoint) error {
+	data, _ := ep.MarshalMsg(nil)
+	return db.storeData(makeKey(id, nodeDBDiscoverLocalEndpoint), data)
 }
 
 // querySeeds retrieves random nodes to be used as potential seed nodes
@@ -395,7 +401,7 @@ func nextNode(it iterator.Iterator) *Node {
 			continue
 		}
 		var n Node
-		if err := rlp.DecodeBytes(it.Value(), &n); err != nil {
+		if _, err := n.UnmarshalMsg(it.Value()); err != nil {
 			log.Warn(fmt.Sprintf("invalid node %x: %v", id, err))
 			continue
 		}

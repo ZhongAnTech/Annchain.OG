@@ -18,11 +18,11 @@ func TestSequencer(t *testing.T) {
 		Value: math.NewBigInt(0),
 	}
 
-	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.BlockHash(), seq2.BlockHash()}}}
+	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.Hash(), seq2.Hash()}}}
 
-	fmt.Println(seq1.BlockHash().String())
-	fmt.Println(seq2.BlockHash().String())
-	fmt.Println(seq3.BlockHash().String())
+	fmt.Println(seq1.Hash().String())
+	fmt.Println(seq2.Hash().String())
+	fmt.Println(seq3.Hash().String())
 
 }
 
@@ -50,7 +50,7 @@ func TestSequencerRawSize(t *testing.T) {
 
 	// make 1000 hashes
 	for i := 0; i < n; i ++ {
-		seq.Hashes = append(seq.Hashes, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
+		//seq.Hashes = append(seq.Hashes, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
 	}
 
 	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)

@@ -43,6 +43,9 @@ type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
+
+type Hashs []Hash
+
 type HashBytes [HashLength]byte
 
 // BytesToHash sets b to hash.

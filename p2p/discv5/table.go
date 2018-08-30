@@ -85,7 +85,8 @@ func (tab *Table) chooseBucketRefreshTarget() types.Hash {
 		entries += len(b.entries)
 		if printTable {
 			for _, e := range b.entries {
-				fmt.Println(i, e.state, e.addr().String(), e.ID.String(), e.sha.Hex())
+				id := NodeID(e.ID)
+				fmt.Println(i, e.state, e.addr().String(), id.String(), e.sha.Hex())
 			}
 		}
 	}

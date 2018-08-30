@@ -52,6 +52,8 @@ func ExampleMessagePipe() {
 	// msg: 5, 0101
 }
 
+/*
+
 func ExampleMsgPipe() {
 	rw1, rw2 := MsgPipe()
 	go func() {
@@ -74,13 +76,15 @@ func ExampleMsgPipe() {
 	// msg: 5, 0101
 }
 
+*/
+
 func TestMsgPipeUnblockWrite(t *testing.T) {
 loop:
 	for i := 0; i < 100; i++ {
 		rw1, rw2 := MsgPipe()
 		done := make(chan struct{})
 		go func() {
-			if err := SendItemsRlp(rw1, 1); err == nil {
+			if err := Send(rw1, 1, nil); err == nil {
 				t.Error("EncodeMsg returned nil error")
 			} else if err != ErrPipeClosed {
 				t.Errorf("EncodeMsg returned wrong error: got %v, want %v", err, ErrPipeClosed)

@@ -21,10 +21,10 @@ package discover
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"sort"
 	"time"
-log "github.com/sirupsen/logrus"
 )
 
 const (

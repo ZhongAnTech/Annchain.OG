@@ -12,56 +12,58 @@ import (
 )
 
 const (
-	local int = iota
+	local  int = iota
 	remote
 )
 
 const (
 	TxStatusNotExist int = iota
-	TxStatusQueue 
-	TxStatusTip	
+	TxStatusQueue
+	TxStatusTip
 )
 
 type TxPool struct {
-	conf			TxPoolConfig
-	dag				dag
+	conf TxPoolConfig
+	dag  IDag
 
-	queue 			chan *txEvent				// queue stores txs that need to validate later 
-	tips			map[types.Hash]types.Txi	// tips stores all the tips
-	txLookup		*txLookUp					// txLookUp stores all the txs for external query
+	queue    chan *txEvent            // queue stores txs that need to validate later
+	tips     map[types.Hash]types.Txi // tips stores all the tips
+	txLookup *txLookUp                // txLookUp stores all the txs for external query
 
-	close			chan struct{}
+	close chan struct{}
 
-	mu 		sync.RWMutex
-	wg		sync.WaitGroup 		// for TxPool Stop()	
+	mu sync.RWMutex
+	wg sync.WaitGroup // for TxPool Stop()
 }
-func NewTxPool(conf TxPoolConfig, d dag) *TxPool {
+
+func NewTxPool(conf TxPoolConfig, d IDag) *TxPool {
 	pool := &TxPool{
-		conf:			conf,
-		dag:			d,
-		queue:			make(chan *txEvent, conf.TxPoolQueueSize),
-		txLookup: 		newTxLookUp(),
-		close:			make(chan struct{}),
+		conf:     conf,
+		dag:      d,
+		queue:    make(chan *txEvent, conf.TxPoolQueueSize),
+		txLookup: newTxLookUp(),
+		close:    make(chan struct{}),
 	}
 	return pool
 }
 
 type TxPoolConfig struct {
-	TxPoolQueueSize	int
-	TxPoolTipsSize	int
-	TxValidateTime	time.Duration
+	TxPoolQueueSize int
+	TxPoolTipsSize  int
+	TxValidateTime  time.Duration
 }
-type dag interface {
+type IDag interface {
 	InsertTx(types.Txi)
+	GetTx(types.Hash) types.Txi
 }
 type txEvent struct {
-	txEnv			*txEnvelope
-	callbackChan	chan error
+	txEnv        *txEnvelope
+	callbackChan chan error
 }
 type txEnvelope struct {
-	tx		types.Txi
-	txType	int
-	status	int
+	tx     types.Txi
+	txType int
+	status int
 }
 
 // Start begin the txpool sevices
@@ -108,7 +110,7 @@ func (pool *TxPool) GetRandomTips(n int) map[types.Hash]types.Txi {
 			return result
 		}
 		result[k] = v
-		i = i + 1 
+		i = i + 1
 	}
 	return result
 }
@@ -177,7 +179,7 @@ func (pool *TxPool) loop() {
 			}
 			pool.txLookup.switchStatus(txEnv.tx.Hash(), TxStatusTip)
 			txEvent.callbackChan <- nil
-		// TODO case reset?
+			// TODO case reset?
 		}
 	}
 }
@@ -190,9 +192,9 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
-			tx: 	tx,
-			txType:	senderType,
-			status:	TxStatusQueue,	
+			tx:     tx,
+			txType: senderType,
+			status: TxStatusQueue,
 		},
 	}
 
@@ -205,10 +207,12 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	}
 
 	select {
-	case err := <- te.callbackChan:
-		if err != nil {	return err }
-	// case <-timer.C:
-	// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
+	case err := <-te.callbackChan:
+		if err != nil {
+			return err
+		}
+		// case <-timer.C:
+		// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.Hash().Hex())
@@ -222,12 +226,12 @@ func (pool *TxPool) verifyTx(tx types.Txi) error {
 }
 
 // commit commits tx to tip pool. if this tx proves any txs in the tip pool, those 
-// tips will be removed from pool but stored in dag.
-func (pool *TxPool) commit(tx types.Txi) error { 
-	if len(pool.tips) >= pool.conf.TxPoolTipsSize { 
+// tips will be removed from pool but stored in IDag.
+func (pool *TxPool) commit(tx types.Txi) error {
+	if len(pool.tips) >= pool.conf.TxPoolTipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
-	for _, hash := range tx.Parents() { 
+	for _, hash := range tx.Parents() {
 		if parent, ok := pool.tips[hash]; ok {
 			pool.dag.InsertTx(parent)
 			delete(pool.tips, hash)
@@ -238,14 +242,14 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	return nil
 }
 
-
 type txLookUp struct {
-	txs		map[types.Hash]*txEnvelope
-	mu		sync.RWMutex
+	txs map[types.Hash]*txEnvelope
+	mu  sync.RWMutex
 }
+
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		txs: 	make(map[types.Hash]*txEnvelope),
+		txs: make(map[types.Hash]*txEnvelope),
 	}
 }
 func (t *txLookUp) get(h types.Hash) types.Txi {
@@ -268,11 +272,11 @@ func (t *txLookUp) remove(h types.Hash) {
 	defer t.mu.Unlock()
 
 	delete(t.txs, h)
-} 
+}
 func (t *txLookUp) count() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	return len(t.txs)
 }
 func (t *txLookUp) stats() (int, int) {
@@ -306,6 +310,3 @@ func (t *txLookUp) switchStatus(h types.Hash, status int) {
 		txEnv.status = status
 	}
 }
-
-
-

@@ -20,6 +20,7 @@ const (
 	TxStatusNotExist int = iota
 	TxStatusQueue 
 	TxStatusTip	
+	TxStatusPending
 )
 
 type TxPool struct {
@@ -28,6 +29,7 @@ type TxPool struct {
 
 	queue 			chan *txEvent				// queue stores txs that need to validate later 
 	tips			map[types.Hash]types.Txi	// tips stores all the tips
+	txPending		*TxPending
 	txLookup		*txLookUp					// txLookUp stores all the txs for external query
 
 	close			chan struct{}
@@ -47,14 +49,15 @@ func NewTxPool(conf TxPoolConfig, d dag) *TxPool {
 }
 
 type TxPoolConfig struct {
-	QueueSize			int				`mapstructure:"queue_size"`
-	TipsSize			int				`mapstructure:"tips_size"`
-	ResetDuration		int				`mapstructure:"reset_duration"`
-	TxVerifyTime		int				`mapstructure:"tx_verify_time"`
-	TxValidTime			int				`mapstructure:"tx_valid_time"`
+	QueueSize		int		`mapstructure:"queue_size"`
+	TipsSize		int		`mapstructure:"tips_size"`
+	ResetDuration	int		`mapstructure:"reset_duration"`
+	TxVerifyTime	int		`mapstructure:"tx_verify_time"`
+	TxValidTime		int		`mapstructure:"tx_valid_time"`
 }
 type dag interface {
-	Commit(types.Txi)
+	GetTx(hash types.Hash) types.Txi
+	Push(tx types.Txi) error
 }
 type txEvent struct {
 	txEnv			*txEnvelope
@@ -169,16 +172,12 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
-			txEnv := txEvent.txEnv
-			if err := pool.verifyTx(txEnv.tx); err != nil {
+			tx := txEvent.txEnv.tx
+			if err := pool.commit(tx); err != nil {
 				txEvent.callbackChan <- err
 				continue
 			}
-			if err := pool.commit(txEnv.tx); err != nil {
-				txEvent.callbackChan <- err
-				continue
-			}
-			pool.txLookup.switchStatus(txEnv.tx.Hash(), TxStatusTip)
+			pool.txLookup.switchStatus(tx.Hash(), TxStatusTip)
 			txEvent.callbackChan <- nil
 
 		// TODO case reset?
@@ -188,7 +187,7 @@ func (pool *TxPool) loop() {
 	}
 }
 
-// addTx push tx to the pool queue and wait to become tip after validation. 
+// addTx adds tx to the pool queue and wait to become tip after validation. 
 func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
@@ -221,26 +220,68 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	return nil
 }
 
-func (pool *TxPool) verifyTx(tx types.Txi) error {
-	// TODO
-
-	return nil
-}
-
-// commit commits tx to tip pool. if this tx proves any txs in the tip pool, those 
-// tips will be removed from pool but stored in dag.
+// commit commits tx to tips pool. if this tx proves any txs in the tip pool, those 
+// tips will be removed from tips but stored in txpending.
 func (pool *TxPool) commit(tx types.Txi) error { 
 	if len(pool.tips) >= pool.conf.TipsSize { 
 		return fmt.Errorf("tips pool reaches max size")
 	}
-	for _, hash := range tx.Parents() { 
-		if parent, ok := pool.tips[hash]; ok {
-			pool.dag.Commit(parent)
-			delete(pool.tips, hash)
-			pool.txLookup.remove(hash)
-		}
+	// move parents to txpending
+	for _, pHash := range tx.Parents() { 
+		if parent, ok := pool.tips[pHash]; ok {
+			pool.txPending.Add(parent)
+			delete(pool.tips, pHash)
+			pool.txLookup.switchStatus(pHash, TxStatusPending)
+
+			switch parent := parent.(type){ 
+			case *types.Sequencer:
+				pool.confirm(parent)
+			}
+		}	
 	}
 	pool.tips[tx.Hash()] = tx
+	return nil
+}
+
+// confirm pushes a batch of txs that confirmed by a sequencer to the dag.
+func (pool *TxPool) confirm(seq *types.Sequencer) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// get sequencer's unconfirmed elders
+	elders := make(map[types.Hash]types.Txi)
+	pool.seekElders(elders, seq)
+	// verify the elders
+	if err := pool.verifyConfirmBatch(elders); err != nil {
+		return err
+	}
+	// move elders to dag
+	for _, elder := range elders {
+		pool.dag.Push(elder)
+		pool.txPending.Remove(elder.Hash())
+		pool.txLookup.remove(elder.Hash())
+	}
+	return nil
+}
+
+func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
+	if baseTx == nil || pool.dag.GetTx(baseTx.Hash()) != nil {
+		return
+	}
+	if batch[baseTx.Hash()] == nil {
+		batch[baseTx.Hash()] = baseTx
+	}
+	for _, pHash := range baseTx.Parents() {
+		parent := pool.txPending.Get(pHash)
+		pool.seekElders(batch, parent)
+	}
+	return
+}
+
+func (pool *TxPool) verifyConfirmBatch(batch map[types.Hash]types.Txi) error {
+	// TODO
+	// verify the conflicts
+	// implement later after the finish of ogdb
 	return nil
 }
 
@@ -318,5 +359,43 @@ func (t *txLookUp) switchStatus(h types.Hash, status int) {
 	}
 }
 
+type TxPending struct {
+	txs	map[types.Hash]types.Txi
+	mu	sync.RWMutex
+}
+func NewTxPending() *TxPending {
+	tp := &TxPending{
+		txs: make(map[types.Hash]types.Txi),
+	}
+	return tp
+}
+func (tp *TxPending) Get(hash types.Hash) types.Txi {
+	tp.mu.RLock()
+	defer tp.mu.RUnlock()
 
+	return tp.txs[hash]
+}
+func (tp *TxPending) Exists(tx types.Txi) bool {
+	tp.mu.RLock()
+	defer tp.mu.RUnlock()
+	
+	if tp.txs[tx.Hash()] == nil {
+		return false
+	}
+	return true
+}
+func (tp *TxPending) Remove(hash types.Hash) {
+	tp.mu.Lock()
+	defer tp.mu.Unlock()
+
+	delete(tp.txs, hash)
+}
+func (tp *TxPending) Add(tx types.Txi) {
+	tp.mu.Lock()
+	defer tp.mu.Unlock()
+
+	if tp.txs[tx.Hash()] == nil {
+		tp.txs[tx.Hash()] = tx
+	}
+}
 

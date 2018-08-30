@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	// "fmt"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -19,7 +19,7 @@ type Dag struct {
 	db		ogdb.Database
 
 	statePending	ogdb.StateDB		
-	txPending		*TxPending		
+	// txPending		*TxPending		
 
 	genesis			types.Txi
 	latestSeqencer	*types.Sequencer
@@ -33,7 +33,7 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{
 		conf:		conf,
 		db:			db,
-		txPending:	NewTxPending(),
+		// txPending:	NewTxPending(),
 	}
 
 	return dag
@@ -61,17 +61,17 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	return dag.latestSeqencer
 }
 
-// Commit trys to move a tx from tx pool to dag network pending list
-func (dag *Dag) Commit(tx types.Txi) error {
-	return dag.commit(tx)
+// Push trys to move a tx from tx pool to dag db.
+func (dag *Dag) Push(tx types.Txi) error {
+	// return dag.commit(tx)
+	return nil
 }
 
 // GetTx gets tx from dag network indexs by tx hash. This function querys 
-// txPending first and then search in db.
+// ogdb only.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	// TODO
-	// 1. check pending
-	// 2. check db
+	// check db
 
 	return nil
 }
@@ -81,34 +81,34 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) commit(tx types.Txi) error {
-	// dag.mu.Lock()
-	// defer dag.mu.Unlock()
+// func (dag *Dag) commit(tx types.Txi) error {
+// 	// dag.mu.Lock()
+// 	// defer dag.mu.Unlock()
 
-	if dag.GetTx(tx.Hash()) != nil {
-		return fmt.Errorf("tx inserted already exists, hash: %s", tx.Hash().Hex())
-	}
-	switch tx := tx.(type) {
-	case *types.Tx:
-		return dag.pendingTx(tx)
-	case *types.Sequencer:
-		return dag.pendingSequencer(tx)
-	default:
-		return fmt.Errorf("unknown tx type: %v", tx)
-	}
-}
+// 	if dag.GetTx(tx.Hash()) != nil {
+// 		return fmt.Errorf("tx inserted already exists, hash: %s", tx.Hash().Hex())
+// 	}
+// 	switch tx := tx.(type) {
+// 	case *types.Tx:
+// 		return dag.pendingTx(tx)
+// 	case *types.Sequencer:
+// 		return dag.pendingSequencer(tx)
+// 	default:
+// 		return fmt.Errorf("unknown tx type: %v", tx)
+// 	}
+// }
 
-func (dag *Dag) pendingTx(tx *types.Tx) error {
-	dag.txPending.Add(tx)
-	// TODO
+// func (dag *Dag) pendingTx(tx *types.Tx) error {
+// 	dag.txPending.Add(tx)
+// 	// TODO
 
-	return nil
-}
+// 	return nil
+// }
 
-func (dag *Dag) pendingSequencer(seq *types.Sequencer) error {
-	// TODO
-	return nil
-}
+// func (dag *Dag) pendingSequencer(seq *types.Sequencer) error {
+// 	// TODO
+// 	return nil
+// }
 
 func (dag *Dag) loop() {
 
@@ -122,45 +122,45 @@ func (dag *Dag) loop() {
 }
 
 
-type TxPending struct {
-	txs	map[types.Hash]types.Txi
-	mu	sync.RWMutex
-}
-func NewTxPending() *TxPending {
-	tp := &TxPending{
-		txs: make(map[types.Hash]types.Txi),
-	}
-	return tp
-}
-func (tp *TxPending) Get(hash types.Hash) types.Txi {
-	tp.mu.RLock()
-	defer tp.mu.RUnlock()
+// type TxPending struct {
+// 	txs	map[types.Hash]types.Txi
+// 	mu	sync.RWMutex
+// }
+// func NewTxPending() *TxPending {
+// 	tp := &TxPending{
+// 		txs: make(map[types.Hash]types.Txi),
+// 	}
+// 	return tp
+// }
+// func (tp *TxPending) Get(hash types.Hash) types.Txi {
+// 	tp.mu.RLock()
+// 	defer tp.mu.RUnlock()
 
-	return tp.txs[hash]
-}
-func (tp *TxPending) Exists(tx types.Txi) bool {
-	tp.mu.RLock()
-	defer tp.mu.RUnlock()
+// 	return tp.txs[hash]
+// }
+// func (tp *TxPending) Exists(tx types.Txi) bool {
+// 	tp.mu.RLock()
+// 	defer tp.mu.RUnlock()
 	
-	if tp.txs[tx.Hash()] == nil {
-		return false
-	}
-	return true
-}
-func (tp *TxPending) Remove(hash types.Hash) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
+// 	if tp.txs[tx.Hash()] == nil {
+// 		return false
+// 	}
+// 	return true
+// }
+// func (tp *TxPending) Remove(hash types.Hash) {
+// 	tp.mu.Lock()
+// 	defer tp.mu.Unlock()
 
-	delete(tp.txs, hash)
-}
-func (tp *TxPending) Add(tx types.Txi) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
+// 	delete(tp.txs, hash)
+// }
+// func (tp *TxPending) Add(tx types.Txi) {
+// 	tp.mu.Lock()
+// 	defer tp.mu.Unlock()
 
-	if tp.txs[tx.Hash()] == nil {
-		tp.txs[tx.Hash()] = tx
-	}
-}
+// 	if tp.txs[tx.Hash()] == nil {
+// 		tp.txs[tx.Hash()] = tx
+// 	}
+// }
 
 
 

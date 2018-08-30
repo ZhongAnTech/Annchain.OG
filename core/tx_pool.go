@@ -9,6 +9,7 @@ import (
 
 	"github.com/annchain/OG/types"
 	// "github.com/annchain/OG/common"
+	"math/rand"
 )
 
 const (
@@ -98,21 +99,46 @@ func (pool *TxPool) GetStatus(hash types.Hash) int {
 	return pool.txLookup.status(hash)
 }
 
-// GetRandomTips returns n tips randomly. 
-func (pool *TxPool) GetRandomTips(n int) map[types.Hash]types.Txi {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
-	result := map[types.Hash]types.Txi{}
-	i := 0
-	for k, v := range pool.tips {
-		if i >= n {
-			return result
-		}
-		result[k] = v
-		i = i + 1
+// generate [count] unique random number within range [0, upper)
+// if count > upper, use all available indices
+func generateRandomIndices(count int, upper int) []int {
+	if count > upper {
+		count = upper
 	}
-	return result
+	// avoid dup
+	generated := make(map[int]struct{})
+	for count > 0 {
+		i := rand.Intn(upper)
+		if _, ok := generated[i]; ok {
+			continue
+		}
+		generated[i] = struct{}{}
+	}
+	arr := make([]int, 0, len(generated))
+	for k := range generated {
+		arr = append(arr, k)
+	}
+	return arr
+}
+
+// GetRandomTips returns n tips randomly.
+func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// select n random hashes
+	indices := generateRandomIndices(n, len(pool.tips))
+
+	// slice of keys
+	keys := make([]types.Hash, len(pool.tips))
+	for k := range pool.tips{
+		keys = append(keys, k)
+	}
+
+	for i := range indices {
+		v = append(v, pool.tips[keys[i]])
+	}
+	return v
 }
 
 // GetAllTips returns all the tips in TxPool.

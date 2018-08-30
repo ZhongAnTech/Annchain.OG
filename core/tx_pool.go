@@ -25,7 +25,7 @@ const (
 
 type TxPool struct {
 	conf TxPoolConfig
-	dag  IDag
+	dag  *Dag
 
 	queue    chan *txEvent            // queue stores txs that need to validate later
 	tips     map[types.Hash]types.Txi // tips stores all the tips
@@ -37,26 +37,23 @@ type TxPool struct {
 	wg sync.WaitGroup // for TxPool Stop()
 }
 
-func NewTxPool(conf TxPoolConfig, d IDag) *TxPool {
+func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:			conf,
-		dag:			d,
-		queue:			make(chan *txEvent, conf.QueueSize),
-		txLookup: 		newTxLookUp(),
-		close:			make(chan struct{}),
+		conf:     conf,
+		dag:      d,
+		queue:    make(chan *txEvent, conf.QueueSize),
+		txLookup: newTxLookUp(),
+		close:    make(chan struct{}),
 	}
 	return pool
 }
 
 type TxPoolConfig struct {
-	QueueSize			int				`mapstructure:"queue_size"`
-	TipsSize			int				`mapstructure:"tips_size"`
-	ResetDuration		int				`mapstructure:"reset_duration"`
-	TxVerifyTime		int				`mapstructure:"tx_verify_time"`
-	TxValidTime			int				`mapstructure:"tx_valid_time"`
-}
-type dag interface {
-	Commit(types.Txi)
+	QueueSize     int `mapstructure:"queue_size"`
+	TipsSize      int `mapstructure:"tips_size"`
+	ResetDuration int `mapstructure:"reset_duration"`
+	TxVerifyTime  int `mapstructure:"tx_verify_time"`
+	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
 type txEvent struct {
 	txEnv        *txEnvelope
@@ -75,6 +72,7 @@ func (pool *TxPool) Start() {
 
 	go pool.loop()
 }
+
 // Stop stops all the txpool sevices
 func (pool *TxPool) Stop() {
 	close(pool.close)
@@ -131,7 +129,7 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 
 	// slice of keys
 	keys := make([]types.Hash, len(pool.tips))
-	for k := range pool.tips{
+	for k := range pool.tips {
 		keys = append(keys, k)
 	}
 
@@ -208,7 +206,7 @@ func (pool *TxPool) loop() {
 			pool.txLookup.switchStatus(txEnv.tx.Hash(), TxStatusTip)
 			txEvent.callbackChan <- nil
 
-		// TODO case reset?
+			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -258,7 +256,7 @@ func (pool *TxPool) verifyTx(tx types.Txi) error {
 
 // commit commits tx to tip pool. if this tx proves any txs in the tip pool, those 
 // tips will be removed from pool but stored in dag.
-func (pool *TxPool) commit(tx types.Txi) error { 
+func (pool *TxPool) commit(tx types.Txi) error {
 	if len(pool.tips) >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
@@ -277,7 +275,6 @@ func (pool *TxPool) commit(tx types.Txi) error {
 func (pool *TxPool) reset() {
 	// TODO
 }
-
 
 type txLookUp struct {
 	txs map[types.Hash]*txEnvelope

@@ -24,7 +24,7 @@ const (
 // Once the parents are got, Tx will be send to TxPool for further processing.
 // TxBuffer will
 type TxBuffer struct {
-	dag             IDag
+	dag             *Dag
 	verifier        *og.Verifier
 	syncer          *og.Syncer
 	txPool          *TxPool
@@ -33,7 +33,7 @@ type TxBuffer struct {
 }
 
 type TxBufferConfig struct {
-	Dag                              IDag
+	Dag                              *Dag
 	Verifier                         *og.Verifier
 	Syncer                           *og.Syncer
 	TxPool                           *TxPool
@@ -90,7 +90,7 @@ func (buffer *TxBuffer) resolve(tx types.Txi) {
 
 	buffer.dependencyCache.Remove(tx.GetBase().Hash)
 	// try resolve the remainings
-	for k, v := range vs.(map[types.Hash]types.Txi) {
+	for _, v := range vs.(map[types.Hash]types.Txi) {
 		buffer.tryResolve(v)
 	}
 
@@ -115,9 +115,9 @@ func (buffer *TxBuffer) isKnownHash(hash types.Hash) bool {
 // It will check if the given hash has no more dependencies in the cache.
 // If so, resolve this hash and try resolve its children
 func (buffer *TxBuffer) tryResolve(tx types.Txi) bool {
-	for parent := range tx.Parents(){
+	for parent := range tx.Parents() {
 		_, err := buffer.dependencyCache.GetIFPresent(parent)
-		if err == nil{
+		if err == nil {
 			// dependency presents.
 			return false
 		}
@@ -126,7 +126,6 @@ func (buffer *TxBuffer) tryResolve(tx types.Txi) bool {
 	buffer.resolve(tx)
 	return true
 }
-
 
 // fetchAllAncestors examine if all ancestors are in our local cache.
 // If not, go fetch it and record it in the map for future reference

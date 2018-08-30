@@ -25,11 +25,10 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
-	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 const Version = 4
@@ -50,88 +49,99 @@ const (
 )
 
 // RPC request structures
+
+type CommonHash [32]byte
+
 type (
-	ping struct {
+	Ping struct {
 		Version    uint
-		From, To   rpcEndpoint
+		From, To   RpcEndpoint
 		Expiration uint64
 
 		// v5
-		Topics []Topic
-
+		//Topics []Topic
+		Topics []string
 		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
+		Rest [][]byte `rlp:"tail"`
 	}
 
 	// pong is the reply to ping.
-	pong struct {
+	Pong struct {
 		// This field should mirror the UDP envelope address
 		// of the ping packet, which provides a way to discover the
 		// the external address (after NAT).
-		To rpcEndpoint
+		To RpcEndpoint
 
 		ReplyTok   []byte // This contains the hash of the ping packet.
 		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 
 		// v5
-		TopicHash    types.Hash
+		TopicHash    CommonHash
 		TicketSerial uint32
 		WaitPeriods  []uint32
 
 		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
+		Rest [][]byte `rlp:"tail"`
 	}
 
 	// findnode is a query for nodes close to the given target.
-	findnode struct {
-		Target     NodeID // doesn't need to be an actual public key
+	Findnode struct {
+		//Target     NodeID // doesn't need to be an actual public key
+		Target     [64]byte
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
+		Rest [][]byte `rlp:"tail"`
 	}
 
 	// findnode is a query for nodes close to the given target.
-	findnodeHash struct {
-		Target     types.Hash
+	FindnodeHash struct {
+		//Target     types.Hash
+		Target     CommonHash
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
+		Rest [][]byte `rlp:"tail"`
 	}
 
 	// reply to findnode
-	neighbors struct {
-		Nodes      []rpcNode
+	Neighbors struct {
+		Nodes      []RpcNode
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
+		Rest [][]byte `rlp:"tail"`
 	}
 
-	topicRegister struct {
-		Topics []Topic
+	TopicRegister struct {
+		//Topics []Topic
+		Topics []string
 		Idx    uint
 		Pong   []byte
 	}
 
-	topicQuery struct {
-		Topic      Topic
+	TopicQuery struct {
+		//Topic      Topic
+		Topic      string
 		Expiration uint64
 	}
 
 	// reply to topicQuery
-	topicNodes struct {
-		Echo  types.Hash
-		Nodes []rpcNode
+	TopicNodes struct {
+		//Echo  types.Hash
+		Echo  CommonHash
+		Nodes []RpcNode
 	}
 
-	rpcNode struct {
-		IP  net.IP // len 4 for IPv4 or 16 for IPv6
+	RpcNode struct {
+		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
+		IP  []byte
 		UDP uint16 // for discovery protocol
 		TCP uint16 // for RLPx protocol
-		ID  NodeID
+		//ID  NodeID
+		ID [64]byte
 	}
 
-	rpcEndpoint struct {
-		IP  net.IP // len 4 for IPv4 or 16 for IPv6
+	RpcEndpoint struct {
+		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
+		IP  []byte
 		UDP uint16 // for discovery protocol
 		TCP uint16 // for RLPx protocol
 	}
@@ -148,15 +158,17 @@ var (
 // stay below the 1280 byte limit. We compute the maximum number
 // of entries by stuffing a packet until it grows too large.
 var maxNeighbors = func() int {
-	p := neighbors{Expiration: ^uint64(0)}
-	maxSizeNode := rpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
+	p := Neighbors{Expiration: ^uint64(0)}
+	maxSizeNode := RpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
 	for n := 0; ; n++ {
 		p.Nodes = append(p.Nodes, maxSizeNode)
-		size, _, err := rlp.EncodeToReader(p)
+		_, err := p.MarshalMsg(nil)
+		//size, _, err := rlp.EncodeToReader(p)
 		if err != nil {
 			// If this ever happens, it will be caught by the unit tests.
 			panic("cannot encode: " + err.Error())
 		}
+		size := p.Msgsize()
 		if headSize+size+1 >= 1280 {
 			return n
 		}
@@ -164,34 +176,38 @@ var maxNeighbors = func() int {
 }()
 
 var maxTopicNodes = func() int {
-	p := topicNodes{}
-	maxSizeNode := rpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
+	p := TopicNodes{}
+	maxSizeNode := RpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
 	for n := 0; ; n++ {
 		p.Nodes = append(p.Nodes, maxSizeNode)
-		size, _, err := rlp.EncodeToReader(p)
+		//size, _, err := rlp.EncodeToReader(p)
+		_, err := p.MarshalMsg(nil)
+
 		if err != nil {
 			// If this ever happens, it will be caught by the unit tests.
 			panic("cannot encode: " + err.Error())
 		}
+		size := p.Msgsize()
 		if headSize+size+1 >= 1280 {
 			return n
 		}
 	}
 }()
 
-func makeEndpoint(addr *net.UDPAddr, tcpPort uint16) rpcEndpoint {
+func makeEndpoint(addr *net.UDPAddr, tcpPort uint16) RpcEndpoint {
 	ip := addr.IP.To4()
 	if ip == nil {
 		ip = addr.IP.To16()
 	}
-	return rpcEndpoint{IP: ip, UDP: uint16(addr.Port), TCP: tcpPort}
+	return RpcEndpoint{IP: ip, UDP: uint16(addr.Port), TCP: tcpPort}
 }
 
-func (e1 rpcEndpoint) equal(e2 rpcEndpoint) bool {
-	return e1.UDP == e2.UDP && e1.TCP == e2.TCP && e1.IP.Equal(e2.IP)
+func (e1 RpcEndpoint) equal(e2 RpcEndpoint) bool {
+	e1Ip := net.IP(e1.IP)
+	return e1.UDP == e2.UDP && e1.TCP == e2.TCP && e1Ip.Equal(e2.IP)
 }
 
-func nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*Node, error) {
+func nodeFromRPC(sender *net.UDPAddr, rn RpcNode) (*Node, error) {
 	if err := netutil.CheckRelayIP(sender.IP, rn.IP); err != nil {
 		return nil, err
 	}
@@ -200,8 +216,8 @@ func nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*Node, error) {
 	return n, err
 }
 
-func nodeToRPC(n *Node) rpcNode {
-	return rpcNode{ID: n.ID, IP: n.IP, UDP: n.UDP, TCP: n.TCP}
+func nodeToRPC(n *Node) RpcNode {
+	return RpcNode{ID: n.ID, IP: n.IP, UDP: n.UDP, TCP: n.TCP}
 }
 
 type ingressPacket struct {
@@ -224,7 +240,7 @@ type conn interface {
 type udp struct {
 	conn        conn
 	priv        *ecdsa.PrivateKey
-	ourEndpoint rpcEndpoint
+	ourEndpoint RpcEndpoint
 	nat         nat.Interface
 	net         *Network
 }
@@ -257,78 +273,90 @@ func (t *udp) Close() {
 	t.conn.Close()
 }
 
-func (t *udp) send(remote *Node, ptype nodeEvent, data interface{}) (hash []byte) {
+func (t *udp) send(remote *Node, ptype nodeEvent, data []byte) (hash []byte) {
 	hash, _ = t.sendPacket(remote.ID, remote.addr(), byte(ptype), data)
 	return hash
 }
 
 func (t *udp) sendPing(remote *Node, toaddr *net.UDPAddr, topics []Topic) (hash []byte) {
-	hash, _ = t.sendPacket(remote.ID, toaddr, byte(pingPacket), ping{
+	ping := Ping{
 		Version:    Version,
 		From:       t.ourEndpoint,
 		To:         makeEndpoint(toaddr, uint16(toaddr.Port)), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Topics:     topics,
-	})
+		Topics:     topicsToStrings(topics),
+	}
+	data, _ := ping.MarshalMsg(nil)
+	hash, _ = t.sendPacket(remote.ID, toaddr, byte(pingPacket), data)
 	return hash
 }
 
 func (t *udp) sendFindnode(remote *Node, target NodeID) {
-	t.sendPacket(remote.ID, remote.addr(), byte(findnodePacket), findnode{
+	f := Findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-	})
+	}
+	data, _ := f.MarshalMsg(nil)
+	t.sendPacket(remote.ID, remote.addr(), byte(findnodePacket), data)
 }
 
 func (t *udp) sendNeighbours(remote *Node, results []*Node) {
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the 1280 byte limit.
-	p := neighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
+	p := Neighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
 	for i, result := range results {
 		p.Nodes = append(p.Nodes, nodeToRPC(result))
 		if len(p.Nodes) == maxNeighbors || i == len(results)-1 {
-			t.sendPacket(remote.ID, remote.addr(), byte(neighborsPacket), p)
+			data, _ := p.MarshalMsg(nil)
+			t.sendPacket(remote.ID, remote.addr(), byte(neighborsPacket), data)
 			p.Nodes = p.Nodes[:0]
 		}
 	}
 }
 
 func (t *udp) sendFindnodeHash(remote *Node, target types.Hash) {
-	t.sendPacket(remote.ID, remote.addr(), byte(findnodeHashPacket), findnodeHash{
-		Target:     target,
+	f := FindnodeHash{
+		Target:     target.Bytes,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-	})
+	}
+	data, _ := f.MarshalMsg(nil)
+	t.sendPacket(remote.ID, remote.addr(), byte(findnodeHashPacket), data)
 }
 
 func (t *udp) sendTopicRegister(remote *Node, topics []Topic, idx int, pong []byte) {
-	t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), topicRegister{
-		Topics: topics,
+	tp := TopicRegister{
+		Topics: topicsToStrings(topics),
 		Idx:    uint(idx),
 		Pong:   pong,
-	})
+	}
+	data, _ := tp.MarshalMsg(nil)
+	t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), data)
 }
 
 func (t *udp) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
-	p := topicNodes{Echo: queryHash}
+	p := TopicNodes{Echo: queryHash.Bytes}
 	var sent bool
 	for _, result := range nodes {
-		if result.IP.Equal(t.net.tab.self.IP) || netutil.CheckRelayIP(remote.IP, result.IP) == nil {
+		IP := net.IP(result.IP)
+		if IP.Equal(t.net.tab.self.IP) || netutil.CheckRelayIP(remote.IP, result.IP) == nil {
 			p.Nodes = append(p.Nodes, nodeToRPC(result))
 		}
 		if len(p.Nodes) == maxTopicNodes {
-			t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+			data, _ := p.MarshalMsg(nil)
+			t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), data)
 			p.Nodes = p.Nodes[:0]
 			sent = true
 		}
 	}
 	if !sent || len(p.Nodes) > 0 {
-		t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+		data, _ := p.MarshalMsg(nil)
+		t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), data)
 	}
 }
 
-func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, req interface{}) (hash []byte, err error) {
+func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, data []byte) (hash []byte, err error) {
 	//fmt.Println("sendPacket", nodeEvent(ptype), toaddr.String(), toid.String())
-	packet, hash, err := encodePacket(t.priv, ptype, req)
+	packet, hash, err := encodePacket(t.priv, ptype, data)
 	if err != nil {
 		//fmt.Println(err)
 		return hash, err
@@ -346,14 +374,11 @@ func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, req inter
 // zeroed padding space for encodePacket.
 var headSpace = make([]byte, headSize)
 
-func encodePacket(priv *ecdsa.PrivateKey, ptype byte, req interface{}) (p, hash []byte, err error) {
+func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (p, hash []byte, err error) {
 	b := new(bytes.Buffer)
 	b.Write(headSpace)
 	b.WriteByte(ptype)
-	if err := rlp.Encode(b, req); err != nil {
-		log.Error(fmt.Sprint("error encoding packet:", err))
-		return nil, nil, err
-	}
+	b.Write(data)
 	packet := b.Bytes()
 	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
@@ -418,27 +443,44 @@ func decodePacket(buffer []byte, pkt *ingressPacket) error {
 	pkt.rawData = buf
 	pkt.hash = crypto.Keccak256(buf[versionPrefixSize:])
 	pkt.remoteID = fromID
+	data := sigdata[1:]
 	switch pkt.ev = nodeEvent(sigdata[0]); pkt.ev {
 	case pingPacket:
-		pkt.data = new(ping)
+		req := new(Ping)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case pongPacket:
-		pkt.data = new(pong)
+		req := new(Pong)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case findnodePacket:
-		pkt.data = new(findnode)
+		req := new(Findnode)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case neighborsPacket:
-		pkt.data = new(neighbors)
+		req := new(Neighbors)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case findnodeHashPacket:
-		pkt.data = new(findnodeHash)
+		req := new(FindnodeHash)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case topicRegisterPacket:
-		pkt.data = new(topicRegister)
+		req := new(TopicRegister)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case topicQueryPacket:
-		pkt.data = new(topicQuery)
+		req := new(TopicQuery)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	case topicNodesPacket:
-		pkt.data = new(topicNodes)
+		req := new(TopicNodes)
+		_, err = req.UnmarshalMsg(data)
+		pkt.data = req
 	default:
 		return fmt.Errorf("unknown packet type: %d", sigdata[0])
 	}
-	s := rlp.NewStream(bytes.NewReader(sigdata[1:]), 0)
-	err = s.Decode(pkt.data)
+	//s := rlp.NewStream(bytes.NewReader(sigdata[1:]), 0)
+	//err = s.Decode(pkt.data)
 	return err
 }

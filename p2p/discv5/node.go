@@ -30,16 +30,18 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 // Node represents a host on the network.
 // The public fields of Node may not be modified.
 type Node struct {
-	IP       net.IP // len 4 for IPv4 or 16 for IPv6
+	//IP       net.IP // len 4 for IPv4 or 16 for IPv6
+	IP       []byte
 	UDP, TCP uint16 // port numbers
-	ID       NodeID // the node's public key
+	//ID       NodeID // the node's public key
+	ID [64]byte
 
 	// Network-related fields are contained in nodeNetGuts.
 	// These fields are not supposed to be used off the
@@ -80,7 +82,8 @@ func (n *Node) addrEqual(a *net.UDPAddr) bool {
 	if ipv4 := a.IP.To4(); ipv4 != nil {
 		ip = ipv4
 	}
-	return n.UDP == uint16(a.Port) && n.IP.Equal(ip)
+	IP := net.IP(n.IP)
+	return n.UDP == uint16(a.Port) && IP.Equal(ip)
 }
 
 // Incomplete returns true for nodes with no IP address.
@@ -99,10 +102,12 @@ func (n *Node) validateComplete() error {
 	if n.TCP == 0 {
 		return errors.New("missing TCP port")
 	}
-	if n.IP.IsMulticast() || n.IP.IsUnspecified() {
+	IP := net.IP(n.IP)
+	if IP.IsMulticast() || IP.IsUnspecified() {
 		return errors.New("invalid IP (multicast/unspecified)")
 	}
-	_, err := n.ID.Pubkey() // validate the key (on curve, etc.)
+	ID := NodeID(n.ID)
+	_, err := ID.Pubkey() // validate the key (on curve, etc.)
 	return err
 }
 

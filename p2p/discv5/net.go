@@ -24,11 +24,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/common/crypto"
-	log "github.com/sirupsen/logrus"
+	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
+	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -95,7 +95,7 @@ type transport interface {
 	sendTopicRegister(remote *Node, topics []Topic, topicIdx int, pong []byte)
 	sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node)
 
-	send(remote *Node, ptype nodeEvent, p interface{}) (hash []byte)
+	send(remote *Node, ptype nodeEvent, data []byte) (hash []byte)
 
 	localAddr() *net.UDPAddr
 	Close()
@@ -425,7 +425,7 @@ loop:
 			if err := net.handle(n, pkt.ev, &pkt); err != nil {
 				status = err.Error()
 			}
-			msgStr:= fmt.Sprintf("<<< (%d) %v from %x@%v: %v -> %v (%v)",
+			msgStr := fmt.Sprintf("<<< (%d) %v from %x@%v: %v -> %v (%v)",
 				net.tab.count, pkt.ev, pkt.remoteID[:8], pkt.remoteAddr, prestate, n.state, status)
 			log.Debug("", "msg", msgStr)
 			// TODO: persist state if n.state goes >= known, delete if it goes <= known
@@ -443,7 +443,7 @@ loop:
 			if err := net.handle(timeout.node, timeout.ev, nil); err != nil {
 				status = err.Error()
 			}
-			msgStr :=fmt.Sprintf("--- (%d) %v for %x@%v: %v -> %v (%v)",
+			msgStr := fmt.Sprintf("--- (%d) %v for %x@%v: %v -> %v (%v)",
 				net.tab.count, timeout.ev, timeout.node.ID[:8], timeout.node.addr(), prestate, timeout.node.state, status)
 			log.Debug("", "msg", msgStr)
 
@@ -562,7 +562,9 @@ loop:
 			}
 			net.ticketStore.searchLookupDone(res.target, res.nodes, func(n *Node, topic Topic) []byte {
 				if n.state != nil && n.state.canQuery {
-					return net.conn.send(n, topicQueryPacket, topicQuery{Topic: topic}) // TODO: set expiration
+					tp := TopicQuery{Topic: string(topic)}
+					data, _ := tp.MarshalMsg(nil)
+					return net.conn.send(n, topicQueryPacket, data) // TODO: set expiration
 				} else {
 					if n.state == unknown {
 						net.ping(n, n.addr())
@@ -684,7 +686,7 @@ func (net *Network) refresh(done chan<- struct{}) {
 		} else {
 			age = "unknown"
 		}
-		msgStr:= fmt.Sprintf("seed node (age %s): %v", age, n)
+		msgStr := fmt.Sprintf("seed node (age %s): %v", age, n)
 		log.Debug("", "msg", msgStr)
 		n = net.internNodeFromDB(n)
 		if n.state == unknown {
@@ -726,27 +728,28 @@ func (net *Network) internNodeFromDB(dbn *Node) *Node {
 	return n
 }
 
-func (net *Network) internNodeFromNeighbours(sender *net.UDPAddr, rn rpcNode) (n *Node, err error) {
-	if rn.ID == net.tab.self.ID {
+func (network *Network) internNodeFromNeighbours(sender *net.UDPAddr, rn RpcNode) (n *Node, err error) {
+	if rn.ID == network.tab.self.ID {
 		return nil, errors.New("is self")
 	}
 	if rn.UDP <= lowPort {
 		return nil, errors.New("low port")
 	}
-	n = net.nodes[rn.ID]
+	n = network.nodes[rn.ID]
 	if n == nil {
 		// We haven't seen this node before.
 		n, err = nodeFromRPC(sender, rn)
-		if net.netrestrict != nil && !net.netrestrict.Contains(n.IP) {
+		if network.netrestrict != nil && !network.netrestrict.Contains(n.IP) {
 			return n, errors.New("not contained in netrestrict whitelist")
 		}
 		if err == nil {
 			n.state = unknown
-			net.nodes[n.ID] = n
+			network.nodes[n.ID] = n
 		}
 		return n, err
 	}
-	if !n.IP.Equal(rn.IP) || n.UDP != rn.UDP || n.TCP != rn.TCP {
+	IP := net.IP(n.IP)
+	if !IP.Equal(rn.IP) || n.UDP != rn.UDP || n.TCP != rn.TCP {
 		if n.state == known {
 			// reject address change if node is known by us
 			err = fmt.Errorf("metadata mismatch: got %v, want %v", rn, n)
@@ -1054,7 +1057,7 @@ func (net *Network) checkPacket(n *Node, ev nodeEvent, pkt *ingressPacket) error
 		// TODO: check date is > last date seen
 		// TODO: check ping version
 	case pongPacket:
-		if !bytes.Equal(pkt.data.(*pong).ReplyTok, n.pingEcho) {
+		if !bytes.Equal(pkt.data.(*Pong).ReplyTok, n.pingEcho) {
 			// fmt.Println("pong reply token mismatch")
 			return fmt.Errorf("pong reply token mismatch")
 		}
@@ -1112,17 +1115,22 @@ func (net *Network) ping(n *Node, addr *net.UDPAddr) {
 
 func (net *Network) handlePing(n *Node, pkt *ingressPacket) {
 	log.Debug("Handling remote ping", "node", n.ID)
-	ping := pkt.data.(*ping)
+	ping := pkt.data.(*Ping)
 	n.TCP = ping.From.TCP
-	t := net.topictab.getTicket(n, ping.Topics)
+	var topics []Topic
+	for _, v := range ping.Topics {
+		topics = append(topics, Topic(v))
+	}
+	t := net.topictab.getTicket(n, topics)
 
-	pong := &pong{
+	pong := &Pong{
 		To:         makeEndpoint(n.addr(), n.TCP), // TODO: maybe use known TCP port from DB
 		ReplyTok:   pkt.hash,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	}
 	ticketToPong(t, pong)
-	net.conn.send(n, pongPacket, pong)
+	data, _ := pong.MarshalMsg(nil)
+	net.conn.send(n, pongPacket, data)
 }
 
 func (net *Network) handleKnownPong(n *Node, pkt *ingressPacket) error {
@@ -1132,7 +1140,7 @@ func (net *Network) handleKnownPong(n *Node, pkt *ingressPacket) error {
 	ticket, err := pongToTicket(now, n.pingTopics, n, pkt)
 	if err == nil {
 		// fmt.Printf("(%x) ticket: %+v\n", net.tab.self.ID[:8], pkt.data)
-		net.ticketStore.addTicket(now, pkt.data.(*pong).ReplyTok, ticket)
+		net.ticketStore.addTicket(now, pkt.data.(*Pong).ReplyTok, ticket)
 	} else {
 		log.Debug("Failed to convert pong to ticket", "err", err)
 	}
@@ -1144,7 +1152,7 @@ func (net *Network) handleKnownPong(n *Node, pkt *ingressPacket) error {
 func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) (*nodeState, error) {
 	switch ev {
 	case findnodePacket:
-		target := crypto.Keccak256Hash(pkt.data.(*findnode).Target[:])
+		target := crypto.Keccak256Hash(pkt.data.(*Findnode).Target[:])
 		results := net.tab.closest(target, bucketSize).entries
 		net.conn.sendNeighbours(n, results)
 		return n.state, nil
@@ -1165,22 +1173,29 @@ func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) 
 	// v5
 
 	case findnodeHashPacket:
-		results := net.tab.closest(pkt.data.(*findnodeHash).Target, bucketSize).entries
+		var tpHash types.Hash
+		tpHash.Bytes = pkt.data.(*FindnodeHash).Target
+		results := net.tab.closest(tpHash, bucketSize).entries
 		net.conn.sendNeighbours(n, results)
 		return n.state, nil
 	case topicRegisterPacket:
 		//fmt.Println("got topicRegisterPacket")
-		regdata := pkt.data.(*topicRegister)
+		regdata := pkt.data.(*TopicRegister)
 		pong, err := net.checkTopicRegister(regdata)
 		if err != nil {
 			//fmt.Println(err)
 			return n.state, fmt.Errorf("bad waiting ticket: %v", err)
 		}
-		net.topictab.useTicket(n, pong.TicketSerial, regdata.Topics, int(regdata.Idx), pong.Expiration, pong.WaitPeriods)
+		var topics []Topic
+		for _, v := range regdata.Topics {
+			topics = append(topics, Topic(v))
+		}
+		net.topictab.useTicket(n, pong.TicketSerial, topics, int(regdata.Idx), pong.Expiration, pong.WaitPeriods)
 		return n.state, nil
 	case topicQueryPacket:
 		// TODO: handle expiration
-		topic := pkt.data.(*topicQuery).Topic
+		topicString := pkt.data.(*TopicQuery).Topic
+		topic := Topic(topicString)
 		results := net.topictab.getEntries(topic)
 		if _, ok := net.ticketStore.tickets[topic]; ok {
 			results = append(results, net.tab.self) // we're not registering in our own table but if we're advertising, return ourselves too
@@ -1193,8 +1208,10 @@ func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) 
 		net.conn.sendTopicNodes(n, hash, results)
 		return n.state, nil
 	case topicNodesPacket:
-		p := pkt.data.(*topicNodes)
-		if net.ticketStore.gotTopicNodes(n, p.Echo, p.Nodes) {
+		p := pkt.data.(*TopicNodes)
+		tpHash := types.Hash{}
+		tpHash.Bytes = p.Echo
+		if net.ticketStore.gotTopicNodes(n, tpHash, p.Nodes) {
 			n.queryTimeouts++
 			if n.queryTimeouts > maxFindnodeFailures && n.state == known {
 				return contested, errors.New("too many timeouts")
@@ -1207,7 +1224,7 @@ func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) 
 	}
 }
 
-func (net *Network) checkTopicRegister(data *topicRegister) (*pong, error) {
+func (net *Network) checkTopicRegister(data *TopicRegister) (*Pong, error) {
 	var pongpkt ingressPacket
 	if err := decodePacket(data.Pong, &pongpkt); err != nil {
 		return nil, err
@@ -1220,13 +1237,14 @@ func (net *Network) checkTopicRegister(data *topicRegister) (*pong, error) {
 	}
 	// check that we previously authorised all topics
 	// that the other side is trying to register.
-	if rlpHash(data.Topics) != pongpkt.data.(*pong).TopicHash {
+	btHash := CommonHash(rlpHash(data.Topics).Bytes)
+	if btHash != pongpkt.data.(*Pong).TopicHash {
 		return nil, errors.New("topic hash mismatch")
 	}
 	if int(data.Idx) < 0 || int(data.Idx) >= len(data.Topics) {
 		return nil, errors.New("topic index out of range")
 	}
-	return pongpkt.data.(*pong), nil
+	return pongpkt.data.(*Pong), nil
 }
 
 func rlpHash(x interface{}) (h types.Hash) {
@@ -1242,7 +1260,7 @@ func (net *Network) handleNeighboursPacket(n *Node, pkt *ingressPacket) error {
 	}
 	net.abortTimedEvent(n, neighboursTimeout)
 
-	req := pkt.data.(*neighbors)
+	req := pkt.data.(*Neighbors)
 	nodes := make([]*Node, len(req.Nodes))
 	for i, rn := range req.Nodes {
 		nn, err := net.internNodeFromNeighbours(pkt.remoteAddr, rn)

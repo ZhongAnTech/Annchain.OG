@@ -32,7 +32,7 @@ func TestTopicRadius(t *testing.T) {
 	targetRad := (^uint64(0)) / 100
 
 	waitFn := func(addr types.Hash) time.Duration {
-		prefix := binary.BigEndian.Uint64(addr[0:8])
+		prefix := binary.BigEndian.Uint64(addr.Bytes[0:8])
 		dist := prefix ^ rad.topicHashPrefix
 		relDist := float64(dist) / float64(targetRad)
 		relTime := (1 - relDist/2) * 2

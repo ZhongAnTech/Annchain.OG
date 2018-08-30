@@ -27,8 +27,8 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 type nullTransport struct{}
@@ -267,7 +267,7 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 
 type closeTest struct {
 	Self   NodeID
-	Target  types.Hash
+	Target types.Hash
 	All    []*Node
 	N      int
 }

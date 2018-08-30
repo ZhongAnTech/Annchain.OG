@@ -39,7 +39,6 @@ import (
 	"github.com/annchain/OG/ethlib/crypto/ecies"
 	"github.com/annchain/OG/ethlib/crypto/secp256k1"
 	"github.com/annchain/OG/ethlib/crypto/sha3"
-	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/golang/snappy"
 )
@@ -83,6 +82,29 @@ type rlpx struct {
 	rw       *rlpxFrameRW
 }
 
+// RLPx v4 handshake auth (defined in EIP-8).
+type AuthMsgV4 struct {
+	gotPlain bool // whether read packet had plain format.
+
+	Signature       [sigLen]byte
+	InitiatorPubkey [pubLen]byte
+	Nonce           [shaLen]byte
+	Version         uint
+
+	// Ignore additional fields (forward-compatibility)
+	Rest [][]byte `rlp:"tail"`
+}
+
+// RLPx v4 handshake response (defined in EIP-8).
+type AuthRespV4 struct {
+	RandomPubkey [pubLen]byte
+	Nonce        [shaLen]byte
+	Version      uint
+
+	// Ignore additional fields (forward-compatibility)
+	Rest [][]byte `rlp:"tail"`
+}
+
 func newRLPX(fd net.Conn) transport {
 	fd.SetDeadline(time.Now().Add(handshakeTimeout))
 	return &rlpx{fd: fd}
@@ -114,20 +136,22 @@ func (t *rlpx) close(err error) {
 			// a write deadline. Because of this only try to send
 			// the disconnect reason message if there is no error.
 			if err := t.fd.SetWriteDeadline(time.Now().Add(discWriteTimeout)); err == nil {
-				SendItemsRlp(t.rw, discMsg, r)
+				b, _ := r.MarshalMsg(nil)
+				Send(t.rw, discMsg, b)
 			}
 		}
 	}
 	t.fd.Close()
 }
 
-func (t *rlpx) doProtoHandshake(our *protoHandshake) (their *protoHandshake, err error) {
+func (t *rlpx) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err error) {
 	// Writing our handshake happens concurrently, we prefer
 	// returning the handshake read error. If the remote side
 	// disconnects us early with a valid reason, we should return it
 	// as the error so it can be tracked elsewhere.
 	werr := make(chan error, 1)
-	go func() { werr <- SendRlp(t.rw, handshakeMsg, our) }()
+	b, _ := our.MarshalMsg(nil)
+	go func() { werr <- Send(t.rw, handshakeMsg, b) }()
 	if their, err = readProtocolHandshake(t.rw, our); err != nil {
 		<-werr // make sure the write terminates too
 		return nil, err
@@ -141,7 +165,7 @@ func (t *rlpx) doProtoHandshake(our *protoHandshake) (their *protoHandshake, err
 	return their, nil
 }
 
-func readProtocolHandshake(rw MsgReader, our *protoHandshake) (*protoHandshake, error) {
+func readProtocolHandshake(rw MsgReader, our *ProtoHandshake) (*ProtoHandshake, error) {
 	msg, err := rw.ReadMsg()
 	if err != nil {
 		return nil, err
@@ -154,15 +178,21 @@ func readProtocolHandshake(rw MsgReader, our *protoHandshake) (*protoHandshake, 
 		// spec and we send it ourself if the posthanshake checks fail.
 		// We can't return the reason directly, though, because it is echoed
 		// back otherwise. Wrap it in a string instead.
-		var reason [1]DiscReason
-		rlp.Decode(msg.Payload, &reason)
+		var reason OneReason
+		//rlp.Decode(msg.Payload, &reason)
+		b, _ := ioutil.ReadAll(msg.Payload)
+		reason.UnmarshalMsg(b)
 		return nil, reason[0]
 	}
 	if msg.Code != handshakeMsg {
 		return nil, fmt.Errorf("expected handshake, got %x", msg.Code)
 	}
-	var hs protoHandshake
-	if err := msg.Decode(&hs); err != nil {
+	var hs ProtoHandshake
+	data, _ := ioutil.ReadAll(msg.Payload)
+	_, err = hs.UnmarshalMsg(data)
+	if err != nil {
+
+		//if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
 	if (hs.ID == discover.NodeID{}) {
@@ -212,29 +242,6 @@ type secrets struct {
 	AES, MAC              []byte
 	EgressMAC, IngressMAC hash.Hash
 	Token                 []byte
-}
-
-// RLPx v4 handshake auth (defined in EIP-8).
-type authMsgV4 struct {
-	gotPlain bool // whether read packet had plain format.
-
-	Signature       [sigLen]byte
-	InitiatorPubkey [pubLen]byte
-	Nonce           [shaLen]byte
-	Version         uint
-
-	// Ignore additional fields (forward-compatibility)
-	Rest []rlp.RawValue `rlp:"tail"`
-}
-
-// RLPx v4 handshake response (defined in EIP-8).
-type authRespV4 struct {
-	RandomPubkey [pubLen]byte
-	Nonce        [shaLen]byte
-	Version      uint
-
-	// Ignore additional fields (forward-compatibility)
-	Rest []rlp.RawValue `rlp:"tail"`
 }
 
 // secrets is called after the handshake is completed.
@@ -294,8 +301,8 @@ func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remoteID d
 		return s, err
 	}
 
-	authRespMsg := new(authRespV4)
-	authRespPacket, err := readHandshakeMsg(authRespMsg, encAuthRespLen, prv, conn)
+	authRespMsg := new(AuthRespV4)
+	authRespPacket, err := readHandshakeMsgResp(authRespMsg, encAuthRespLen, prv, conn)
 	if err != nil {
 		return s, err
 	}
@@ -306,7 +313,7 @@ func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remoteID d
 }
 
 // makeAuthMsg creates the initiator handshake message.
-func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*authMsgV4, error) {
+func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*AuthMsgV4, error) {
 	rpub, err := h.remoteID.Pubkey()
 	if err != nil {
 		return nil, fmt.Errorf("bad remoteID: %v", err)
@@ -334,7 +341,7 @@ func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*authMsgV4, error) {
 		return nil, err
 	}
 
-	msg := new(authMsgV4)
+	msg := new(AuthMsgV4)
 	copy(msg.Signature[:], signature)
 	copy(msg.InitiatorPubkey[:], crypto.FromECDSAPub(&prv.PublicKey)[1:])
 	copy(msg.Nonce[:], h.initNonce)
@@ -342,7 +349,7 @@ func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*authMsgV4, error) {
 	return msg, nil
 }
 
-func (h *encHandshake) handleAuthResp(msg *authRespV4) (err error) {
+func (h *encHandshake) handleAuthResp(msg *AuthRespV4) (err error) {
 	h.respNonce = msg.Nonce[:]
 	h.remoteRandomPub, err = importPublicKey(msg.RandomPubkey[:])
 	return err
@@ -353,7 +360,7 @@ func (h *encHandshake) handleAuthResp(msg *authRespV4) (err error) {
 //
 // prv is the local client's private key.
 func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (s secrets, err error) {
-	authMsg := new(authMsgV4)
+	authMsg := new(AuthMsgV4)
 	authPacket, err := readHandshakeMsg(authMsg, encAuthMsgLen, prv, conn)
 	if err != nil {
 		return s, err
@@ -371,7 +378,7 @@ func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (s secrets,
 	if authMsg.gotPlain {
 		authRespPacket, err = authRespMsg.sealPlain(h)
 	} else {
-		authRespPacket, err = sealEIP8(authRespMsg, h)
+		authRespPacket, err = sealEIP8Resp(authRespMsg, h)
 	}
 	if err != nil {
 		return s, err
@@ -382,7 +389,7 @@ func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (s secrets,
 	return h.secrets(authPacket, authRespPacket)
 }
 
-func (h *encHandshake) handleAuthMsg(msg *authMsgV4, prv *ecdsa.PrivateKey) error {
+func (h *encHandshake) handleAuthMsg(msg *AuthMsgV4, prv *ecdsa.PrivateKey) error {
 	// Import the remote identity.
 	h.initNonce = msg.Nonce[:]
 	h.remoteID = msg.InitiatorPubkey
@@ -415,21 +422,21 @@ func (h *encHandshake) handleAuthMsg(msg *authMsgV4, prv *ecdsa.PrivateKey) erro
 	return nil
 }
 
-func (h *encHandshake) makeAuthResp() (msg *authRespV4, err error) {
+func (h *encHandshake) makeAuthResp() (msg *AuthRespV4, err error) {
 	// Generate random nonce.
 	h.respNonce = make([]byte, shaLen)
 	if _, err = rand.Read(h.respNonce); err != nil {
 		return nil, err
 	}
 
-	msg = new(authRespV4)
+	msg = new(AuthRespV4)
 	copy(msg.Nonce[:], h.respNonce)
 	copy(msg.RandomPubkey[:], exportPubkey(&h.randomPrivKey.PublicKey))
 	msg.Version = 4
 	return msg, nil
 }
 
-func (msg *authMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
+func (msg *AuthMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
 	buf := make([]byte, authMsgLen)
 	n := copy(buf, msg.Signature[:])
 	n += copy(buf[n:], crypto.Keccak256(exportPubkey(&h.randomPrivKey.PublicKey)))
@@ -439,7 +446,7 @@ func (msg *authMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
 	return ecies.Encrypt(rand.Reader, h.remotePub, buf, nil, nil)
 }
 
-func (msg *authMsgV4) decodePlain(input []byte) {
+func (msg *AuthMsgV4) decodePlain(input []byte) {
 	n := copy(msg.Signature[:], input)
 	n += shaLen // skip sha3(initiator-ephemeral-pubk)
 	n += copy(msg.InitiatorPubkey[:], input[n:])
@@ -448,14 +455,14 @@ func (msg *authMsgV4) decodePlain(input []byte) {
 	msg.gotPlain = true
 }
 
-func (msg *authRespV4) sealPlain(hs *encHandshake) ([]byte, error) {
+func (msg *AuthRespV4) sealPlain(hs *encHandshake) ([]byte, error) {
 	buf := make([]byte, authRespLen)
 	n := copy(buf, msg.RandomPubkey[:])
 	copy(buf[n:], msg.Nonce[:])
 	return ecies.Encrypt(rand.Reader, hs.remotePub, buf, nil, nil)
 }
 
-func (msg *authRespV4) decodePlain(input []byte) {
+func (msg *AuthRespV4) decodePlain(input []byte) {
 	n := copy(msg.RandomPubkey[:], input)
 	copy(msg.Nonce[:], input[n:])
 	msg.Version = 4
@@ -463,11 +470,43 @@ func (msg *authRespV4) decodePlain(input []byte) {
 
 var padSpace = make([]byte, 300)
 
-func sealEIP8(msg interface{}, h *encHandshake) ([]byte, error) {
+func sealEIP8(msg *AuthMsgV4, h *encHandshake) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, msg); err != nil {
+	b, err := msg.MarshalMsg(nil)
+	if err != nil {
 		return nil, err
 	}
+	buf.Write(b)
+
+	/*
+		if err := rlp.Encode(buf, msg); err != nil {
+			return nil, err
+		}
+	*/
+	// pad with random amount of data. the amount needs to be at least 100 bytes to make
+	// the message distinguishable from pre-EIP-8 handshakes.
+	pad := padSpace[:mrand.Intn(len(padSpace)-100)+100]
+	buf.Write(pad)
+	prefix := make([]byte, 2)
+	binary.BigEndian.PutUint16(prefix, uint16(buf.Len()+eciesOverhead))
+
+	enc, err := ecies.Encrypt(rand.Reader, h.remotePub, buf.Bytes(), nil, prefix)
+	return append(prefix, enc...), err
+}
+
+func sealEIP8Resp(msg *AuthRespV4, h *encHandshake) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	b, err := msg.MarshalMsg(nil)
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(b)
+	/*
+		if err := rlp.Encode(buf, msg); err != nil {
+			return nil, err
+		}
+	*/
+
 	// pad with random amount of data. the amount needs to be at least 100 bytes to make
 	// the message distinguishable from pre-EIP-8 handshakes.
 	pad := padSpace[:mrand.Intn(len(padSpace)-100)+100]
@@ -483,7 +522,7 @@ type plainDecoder interface {
 	decodePlain([]byte)
 }
 
-func readHandshakeMsg(msg plainDecoder, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) ([]byte, error) {
+func readHandshakeMsgResp(msg *AuthRespV4, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) ([]byte, error) {
 	buf := make([]byte, plainSize)
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return buf, err
@@ -510,8 +549,43 @@ func readHandshakeMsg(msg plainDecoder, plainSize int, prv *ecdsa.PrivateKey, r 
 	}
 	// Can't use rlp.DecodeBytes here because it rejects
 	// trailing data (forward-compatibility).
-	s := rlp.NewStream(bytes.NewReader(dec), 0)
-	return buf, s.Decode(msg)
+	//s := rlp.NewStream(bytes.NewReader(dec), 0)
+	_, err = msg.UnmarshalMsg(dec)
+	//return buf, s.Decode(msg)
+	return buf, err
+}
+
+func readHandshakeMsg(msg *AuthMsgV4, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) ([]byte, error) {
+	buf := make([]byte, plainSize)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		return buf, err
+	}
+	// Attempt decoding pre-EIP-8 "plain" format.
+	key := ecies.ImportECDSA(prv)
+	if dec, err := key.Decrypt(buf, nil, nil); err == nil {
+		msg.decodePlain(dec)
+		return buf, nil
+	}
+	// Could be EIP-8 format, try that.
+	prefix := buf[:2]
+	size := binary.BigEndian.Uint16(prefix)
+	if size < uint16(plainSize) {
+		return buf, fmt.Errorf("size underflow, need at least %d bytes", plainSize)
+	}
+	buf = append(buf, make([]byte, size-uint16(plainSize)+2)...)
+	if _, err := io.ReadFull(r, buf[plainSize:]); err != nil {
+		return buf, err
+	}
+	dec, err := key.Decrypt(buf[2:], nil, prefix)
+	if err != nil {
+		return buf, err
+	}
+	// Can't use rlp.DecodeBytes here because it rejects
+	// trailing data (forward-compatibility).
+	//s := rlp.NewStream(bytes.NewReader(dec), 0)
+	_, err = msg.UnmarshalMsg(dec)
+	//return buf, s.Decode(msg)
+	return buf, err
 }
 
 // importPublicKey unmarshals 512 bit public keys.
@@ -597,8 +671,8 @@ func newRLPXFrameRW(conn io.ReadWriter, s secrets) *rlpxFrameRW {
 }
 
 func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
-	ptype, _ := rlp.EncodeToBytes(msg.Code)
-
+	//ptype, _ := rlp.EncodeToBytes(msg.Code)
+	ptype, _ := Mint64(msg.Code).MarshalMsg(nil)
 	// if snappy is enabled, compress message now
 	if rw.snappy {
 		if msg.Size > maxUint24 {
@@ -689,13 +763,21 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	rw.dec.XORKeyStream(framebuf, framebuf)
 
 	// decode message code
-	content := bytes.NewReader(framebuf[:fsize])
-	if err := rlp.Decode(content, &msg.Code); err != nil {
+	//content := bytes.NewReader(framebuf[:fsize])
+	/*
+		if err := rlp.Decode(content, &msg.Code); err != nil {
+			return msg, err
+		}
+	*/
+	var muint64 Muint64
+	out, err := muint64.UnmarshalMsg(framebuf[:fsize])
+	if err != nil {
 		return msg, err
 	}
+	content := bytes.NewReader(out)
+	msg.Code = uint64(muint64)
 	msg.Size = uint32(content.Len())
 	msg.Payload = content
-
 	// if snappy is enabled, verify and decompress message
 	if rw.snappy {
 		payload, err := ioutil.ReadAll(msg.Payload)

@@ -152,7 +152,7 @@ func (p *peer) SendTransactions(txs types.Txs) error {
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendTransactions(txs []*types.Txs) {
+func (p *peer) AsyncSendTransactions(txs []*types.Tx) {
 	select {
 	case p.queuedTxs <- txs:
 		for _, tx := range txs {
@@ -171,22 +171,25 @@ func (p *peer) SendNodeData(data []byte) error {
 
 // RequestBodies fetches a batch of blocks' bodies corresponding to the hashes
 // specified.
-func (p *peer) RequestTransactions(hashes []types.Hash) error {
+func (p *peer) RequestTransactions(hashes types.Hashs) error {
 	log.Debug("Fetching batch of block bodies", "count", len(hashes))
-	return p2p.Send(p.rw, GetTxMsg, hashes)
+	b,_:= hashes.MarshalMsg(nil)
+	return p2p.Send(p.rw, GetTxMsg, b)
 }
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
-func (p *peer) RequestNodeData(hashes []types.Hash) error {
+func (p *peer) RequestNodeData(hashes types.Hashs) error {
 	log.Debug("Fetching batch of state data", "count", len(hashes))
-	return p2p.Send(p.rw, GetNodeDataMsg, hashes)
+	b,_:= hashes.MarshalMsg(nil)
+	return p2p.Send(p.rw, GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
-func (p *peer) RequestReceipts(hashes []types.Hash) error {
+func (p *peer) RequestReceipts(hashes types.Hashs) error {
 	log.Debug("Fetching batch of receipts", "count", len(hashes))
-	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
+	b,_:= hashes.MarshalMsg(nil)
+	return p2p.Send(p.rw, GetReceiptsMsg, b)
 }
 
 // String implements fmt.Stringer.

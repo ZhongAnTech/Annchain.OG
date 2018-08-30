@@ -56,8 +56,8 @@ func (c *testTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover
 	return c.id, nil
 }
 
-func (c *testTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
-	return &protoHandshake{ID: c.id, Name: "test"}, nil
+func (c *testTransport) doProtoHandshake(our *ProtoHandshake) (*ProtoHandshake, error) {
+	return &ProtoHandshake{ID: c.id, Name: "test"}, nil
 }
 
 func (c *testTransport) close(err error) {
@@ -67,7 +67,7 @@ func (c *testTransport) close(err error) {
 
 func startTestServer(t *testing.T, id discover.NodeID, pf func(*Peer)) *Server {
 	config := Config{
-		Name:       "test",
+		NodeName:   "test",
 		MaxPeers:   10,
 		ListenAddr: "127.0.0.1:0",
 		PrivateKey: newkey(),
@@ -77,7 +77,7 @@ func startTestServer(t *testing.T, id discover.NodeID, pf func(*Peer)) *Server {
 		newPeerHook:  pf,
 		newTransport: func(fd net.Conn) transport { return newTestTransport(id, fd) },
 	}
-	if err := server.Start(); err != nil {
+	if err := server.start(); err != nil {
 		t.Fatalf("Could not start server: %v", err)
 	}
 	return server
@@ -353,7 +353,7 @@ func TestServerAtCap(t *testing.T) {
 			TrustedNodes: []*discover.Node{{ID: trustedID}},
 		},
 	}
-	if err := srv.Start(); err != nil {
+	if err := srv.start(); err != nil {
 		t.Fatalf("could not start: %v", err)
 	}
 	defer srv.Stop()
@@ -412,7 +412,7 @@ func TestServerPeerLimits(t *testing.T) {
 
 	var tp *setupTransport = &setupTransport{
 		id: clientid,
-		phs: &protoHandshake{
+		phs: &ProtoHandshake{
 			ID: clientid,
 			// Force "DiscUselessPeer" due to unmatching caps
 			// Caps: []Cap{discard.cap()},
@@ -430,7 +430,7 @@ func TestServerPeerLimits(t *testing.T) {
 		},
 		newTransport: func(fd net.Conn) transport { return tp },
 	}
-	if err := srv.Start(); err != nil {
+	if err := srv.start(); err != nil {
 		t.Fatalf("couldn't start server: %v", err)
 	}
 	defer srv.Stop()
@@ -501,7 +501,7 @@ func TestServerSetupConn(t *testing.T) {
 			wantCloseErr: DiscUnexpectedIdentity,
 		},
 		{
-			tt:           &setupTransport{id: id, phs: &protoHandshake{ID: randomID()}},
+			tt:           &setupTransport{id: id, phs: &ProtoHandshake{ID: randomID()}},
 			dialDest:     &discover.Node{ID: id},
 			flags:        dynDialedConn,
 			wantCalls:    "doEncHandshake,doProtoHandshake,close,",
@@ -515,13 +515,13 @@ func TestServerSetupConn(t *testing.T) {
 			wantCloseErr: errors.New("foo"),
 		},
 		{
-			tt:           &setupTransport{id: srvid, phs: &protoHandshake{ID: srvid}},
+			tt:           &setupTransport{id: srvid, phs: &ProtoHandshake{ID: srvid}},
 			flags:        inboundConn,
 			wantCalls:    "doEncHandshake,close,",
 			wantCloseErr: DiscSelf,
 		},
 		{
-			tt:           &setupTransport{id: id, phs: &protoHandshake{ID: id}},
+			tt:           &setupTransport{id: id, phs: &ProtoHandshake{ID: id}},
 			flags:        inboundConn,
 			wantCalls:    "doEncHandshake,doProtoHandshake,close,",
 			wantCloseErr: DiscUselessPeer,
@@ -539,7 +539,7 @@ func TestServerSetupConn(t *testing.T) {
 			newTransport: func(fd net.Conn) transport { return test.tt },
 		}
 		if !test.dontstart {
-			if err := srv.Start(); err != nil {
+			if err := srv.start(); err != nil {
 				t.Fatalf("couldn't start server: %v", err)
 			}
 		}
@@ -558,7 +558,7 @@ type setupTransport struct {
 	id              discover.NodeID
 	encHandshakeErr error
 
-	phs               *protoHandshake
+	phs               *ProtoHandshake
 	protoHandshakeErr error
 
 	calls    string
@@ -569,7 +569,7 @@ func (c *setupTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discove
 	c.calls += "doEncHandshake,"
 	return c.id, c.encHandshakeErr
 }
-func (c *setupTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
+func (c *setupTransport) doProtoHandshake(our *ProtoHandshake) (*ProtoHandshake, error) {
 	c.calls += "doProtoHandshake,"
 	if c.protoHandshakeErr != nil {
 		return nil, c.protoHandshakeErr

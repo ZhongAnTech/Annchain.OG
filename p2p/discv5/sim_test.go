@@ -318,7 +318,7 @@ func (st *simTransport) localAddr() *net.UDPAddr {
 
 func (st *simTransport) Close() {}
 
-func (st *simTransport) send(remote *Node, ptype nodeEvent, data interface{}) (hash []byte) {
+func (st *simTransport) send(remote *Node, ptype nodeEvent, data []byte) (hash []byte) {
 	hash = st.nextHash()
 	var raw []byte
 	if ptype == pongPacket {
@@ -347,12 +347,12 @@ func (st *simTransport) sendPing(remote *Node, remoteAddr *net.UDPAddr, topics [
 		remoteAddr: st.senderAddr,
 		hash:       hash,
 		ev:         pingPacket,
-		data: &ping{
+		data: &Ping{
 			Version:    4,
-			From:       rpcEndpoint{IP: st.senderAddr.IP, UDP: uint16(st.senderAddr.Port), TCP: 30303},
-			To:         rpcEndpoint{IP: remoteAddr.IP, UDP: uint16(remoteAddr.Port), TCP: 30303},
+			From:       RpcEndpoint{IP: st.senderAddr.IP, UDP: uint16(st.senderAddr.Port), TCP: 30303},
+			To:         RpcEndpoint{IP: remoteAddr.IP, UDP: uint16(remoteAddr.Port), TCP: 30303},
 			Expiration: uint64(time.Now().Unix() + int64(expiration)),
-			Topics:     topics,
+			Topics:     topicsToStrings(topics),
 		},
 	})
 	return hash
@@ -366,8 +366,8 @@ func (st *simTransport) sendPong(remote *Node, pingHash []byte) {
 		remoteAddr: st.senderAddr,
 		hash:       st.nextHash(),
 		ev:         pongPacket,
-		data: &pong{
-			To:         rpcEndpoint{IP: raddr.IP, UDP: uint16(raddr.Port), TCP: 30303},
+		data: &Pong{
+			To:         RpcEndpoint{IP: raddr.IP, UDP: uint16(raddr.Port), TCP: 30303},
 			ReplyTok:   pingHash,
 			Expiration: uint64(time.Now().Unix() + int64(expiration)),
 		},
@@ -380,8 +380,8 @@ func (st *simTransport) sendFindnodeHash(remote *Node, target types.Hash) {
 		remoteAddr: st.senderAddr,
 		hash:       st.nextHash(),
 		ev:         findnodeHashPacket,
-		data: &findnodeHash{
-			Target:     target,
+		data: &FindnodeHash{
+			Target:     target.Bytes,
 			Expiration: uint64(time.Now().Unix() + int64(expiration)),
 		},
 	})
@@ -394,16 +394,16 @@ func (st *simTransport) sendTopicRegister(remote *Node, topics []Topic, idx int,
 		remoteAddr: st.senderAddr,
 		hash:       st.nextHash(),
 		ev:         topicRegisterPacket,
-		data: &topicRegister{
-			Topics: topics,
+		data: &TopicRegister{
+			Topics: topicsToStrings(topics),
 			Idx:    uint(idx),
 			Pong:   pong,
 		},
 	})
 }
 
-func (st *simTransport) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
-	rnodes := make([]rpcNode, len(nodes))
+func (st *simTransport) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
+	rnodes := make([]RpcNode, len(nodes))
 	for i := range nodes {
 		rnodes[i] = nodeToRPC(nodes[i])
 	}
@@ -412,13 +412,13 @@ func (st *simTransport) sendTopicNodes(remote *Node, queryHash common.Hash, node
 		remoteAddr: st.senderAddr,
 		hash:       st.nextHash(),
 		ev:         topicNodesPacket,
-		data:       &topicNodes{Echo: queryHash, Nodes: rnodes},
+		data:       &TopicNodes{Echo: queryHash.Bytes, Nodes: rnodes},
 	})
 }
 
 func (st *simTransport) sendNeighbours(remote *Node, nodes []*Node) {
 	// TODO: send multiple packets
-	rnodes := make([]rpcNode, len(nodes))
+	rnodes := make([]RpcNode, len(nodes))
 	for i := range nodes {
 		rnodes[i] = nodeToRPC(nodes[i])
 	}
@@ -427,7 +427,7 @@ func (st *simTransport) sendNeighbours(remote *Node, nodes []*Node) {
 		remoteAddr: st.senderAddr,
 		hash:       st.nextHash(),
 		ev:         neighborsPacket,
-		data: &neighbors{
+		data: &Neighbors{
 			Nodes:      rnodes,
 			Expiration: uint64(time.Now().Unix() + int64(expiration)),
 		},

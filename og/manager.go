@@ -13,6 +13,7 @@ type Manager struct {
 	Syncer   *Syncer
 	Verifier *Verifier
 	Config   *ManagerConfig
+	TxBuffer *core.TxBuffer
 }
 
 type ManagerConfig struct {

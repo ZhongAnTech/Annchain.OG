@@ -151,7 +151,7 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 		logrus.Debug("Empty MessageNewTx")
 		return
 	}
-	m.TxPool.AddRemoteTx(newTx.Tx)
+	m.TxBuffer.AddTx(newTx.Tx)
 }
 
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {

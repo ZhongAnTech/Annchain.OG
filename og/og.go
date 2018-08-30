@@ -10,17 +10,18 @@ import (
 )
 
 type Og struct {
-	dag    *core.Dag
-	txpool *core.TxPool
-	accountManager *account.AccountManager
-	manager *Manager
+	Dag            *core.Dag
+	Txpool         *core.TxPool
+	AccountManager *account.AccountManager
+	Manager        *Manager
 }
+
 func NewOg() (*Og, error) {
 	og := &Og{}
 
 	var (
-		dagconfig 		core.DagConfig
-		txpoolconfig	core.TxPoolConfig
+		dagconfig    core.DagConfig
+		txpoolconfig core.TxPoolConfig
 	)
 
 	db, derr := CreateDB()
@@ -30,12 +31,12 @@ func NewOg() (*Og, error) {
 	if err := viper.UnmarshalKey("dag", &dagconfig); err != nil {
 		return nil, err
 	}
-	og.dag = core.NewDag(dagconfig, db)
-	
+	og.Dag = core.NewDag(dagconfig, db)
+
 	if err := viper.UnmarshalKey("txpool", &txpoolconfig); err != nil {
 		return nil, err
 	}
-	og.txpool = core.NewTxPool(txpoolconfig, og.dag)
+	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
 
 	// TODO
 	// account manager and protocol manager
@@ -66,4 +67,3 @@ func CreateDB() (ogdb.Database, error) {
 		return ogdb.NewMemDatabase(), nil
 	}
 }
-

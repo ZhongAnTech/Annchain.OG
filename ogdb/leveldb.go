@@ -57,6 +57,11 @@ type LevelDB struct {
 	quitLock sync.Mutex      // Mutex protecting the quit channel access
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 }
+type LevelDBConfig struct {
+	Path	string
+	Cache	int
+	Handles	int
+}
 
 // NewLevelDB returns a LevelDB wrapped object.
 func NewLevelDB(file string, cache int, handles int) (*LevelDB, error) {

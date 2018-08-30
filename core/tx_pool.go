@@ -39,23 +39,24 @@ type TxPool struct {
 
 func NewTxPool(conf TxPoolConfig, d IDag) *TxPool {
 	pool := &TxPool{
-		conf:     conf,
-		dag:      d,
-		queue:    make(chan *txEvent, conf.TxPoolQueueSize),
-		txLookup: newTxLookUp(),
-		close:    make(chan struct{}),
+		conf:			conf,
+		dag:			d,
+		queue:			make(chan *txEvent, conf.QueueSize),
+		txLookup: 		newTxLookUp(),
+		close:			make(chan struct{}),
 	}
 	return pool
 }
 
 type TxPoolConfig struct {
-	TxPoolQueueSize int
-	TxPoolTipsSize  int
-	TxValidateTime  time.Duration
+	QueueSize			int				`mapstructure:"queue_size"`
+	TipsSize			int				`mapstructure:"tips_size"`
+	ResetDuration		int				`mapstructure:"reset_duration"`
+	TxVerifyTime		int				`mapstructure:"tx_verify_time"`
+	TxValidTime			int				`mapstructure:"tx_valid_time"`
 }
-type IDag interface {
-	InsertTx(types.Txi)
-	GetTx(types.Hash) types.Txi
+type dag interface {
+	Commit(types.Txi)
 }
 type txEvent struct {
 	txEnv        *txEnvelope
@@ -74,7 +75,6 @@ func (pool *TxPool) Start() {
 
 	go pool.loop()
 }
-
 // Stop stops all the txpool sevices
 func (pool *TxPool) Stop() {
 	close(pool.close)
@@ -188,6 +188,8 @@ func (pool *TxPool) loop() {
 	pool.wg.Add(1)
 	defer pool.wg.Done()
 
+	resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
+
 	for {
 		select {
 		case <-pool.close:
@@ -205,14 +207,17 @@ func (pool *TxPool) loop() {
 			}
 			pool.txLookup.switchStatus(txEnv.tx.Hash(), TxStatusTip)
 			txEvent.callbackChan <- nil
-			// TODO case reset?
+
+		// TODO case reset?
+		case <-resetTimer.C:
+			pool.reset()
 		}
 	}
 }
 
 // addTx push tx to the pool queue and wait to become tip after validation. 
 func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
-	timer := time.NewTimer(pool.conf.TxValidateTime)
+	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
 
 	te := &txEvent{
@@ -252,14 +257,14 @@ func (pool *TxPool) verifyTx(tx types.Txi) error {
 }
 
 // commit commits tx to tip pool. if this tx proves any txs in the tip pool, those 
-// tips will be removed from pool but stored in IDag.
-func (pool *TxPool) commit(tx types.Txi) error {
-	if len(pool.tips) >= pool.conf.TxPoolTipsSize {
+// tips will be removed from pool but stored in dag.
+func (pool *TxPool) commit(tx types.Txi) error { 
+	if len(pool.tips) >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
 	for _, hash := range tx.Parents() {
 		if parent, ok := pool.tips[hash]; ok {
-			pool.dag.InsertTx(parent)
+			pool.dag.Commit(parent)
 			delete(pool.tips, hash)
 			pool.txLookup.remove(hash)
 		}
@@ -267,6 +272,12 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	pool.tips[tx.Hash()] = tx
 	return nil
 }
+
+// reset clears the tips that haven't been proved for a long time
+func (pool *TxPool) reset() {
+	// TODO
+}
+
 
 type txLookUp struct {
 	txs map[types.Hash]*txEnvelope

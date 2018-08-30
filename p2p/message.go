@@ -24,8 +24,6 @@ import (
 	"io/ioutil"
 	"sync/atomic"
 	"time"
-
-	"github.com/annchain/OG/ethlib/rlp"
 )
 
 // Msg defines the structure of a p2p message.
@@ -49,6 +47,7 @@ func (msg Msg) GetPayLoad() ([]byte, error) {
 // Decode parses the RLP content of a message into
 // the given value, which must be a pointer.
 //
+/*
 // For the decoding rules, please see package rlp.
 func (msg Msg) Decode(val interface{}) error {
 	s := rlp.NewStream(msg.Payload, uint64(msg.Size))
@@ -57,6 +56,8 @@ func (msg Msg) Decode(val interface{}) error {
 	}
 	return nil
 }
+
+*/
 
 func (msg Msg) String() string {
 	return fmt.Sprintf("msg #%v (%v bytes)", msg.Code, msg.Size)
@@ -91,6 +92,7 @@ type MsgReadWriter interface {
 
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
+/*
 func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
@@ -98,6 +100,8 @@ func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 	}
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
 }
+
+*/
 
 func Send(w MsgWriter, msgcode uint64, data []byte) error {
 	size := len(data)
@@ -114,9 +118,11 @@ func Send(w MsgWriter, msgcode uint64, data []byte) error {
 //
 //    [e1, e2, e3]
 //
+/*
 func SendItemsRlp(w MsgWriter, msgcode uint64, elems ...interface{}) error {
 	return SendRlp(w, msgcode, elems)
 }
+*/
 
 // eofSignal wraps a reader with eof signaling. the eof channel is
 // closed when the wrapped reader returns an error or when count bytes
@@ -227,7 +233,8 @@ func (p *MsgPipeRW) Close() error {
 // ExpectMsg reads a message from r and verifies that its
 // code and encoded RLP content match the provided values.
 // If content is nil, the payload is discarded and not verified.
-func ExpectMsg(r MsgReader, code uint64, content interface{}) error {
+
+func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
 	msg, err := r.ReadMsg()
 	if err != nil {
 		return err
@@ -238,7 +245,69 @@ func ExpectMsg(r MsgReader, code uint64, content interface{}) error {
 	if content == nil {
 		return msg.Discard()
 	}
-	contentEnc, err := rlp.EncodeToBytes(content)
+	a := ArrByte(content)
+	contentEnc, err := a.MarshalMsg(nil)
+	//contentEnc, err := rlp.EncodeToBytes(content)
+	if err != nil {
+		panic("content encode error: " + err.Error())
+	}
+	if int(msg.Size) != len(contentEnc) {
+		return fmt.Errorf("message size mismatch: got %d, want %d", msg.Size, len(contentEnc))
+	}
+	actualContent, err := ioutil.ReadAll(msg.Payload)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(actualContent, contentEnc) {
+		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
+	}
+	return nil
+}
+
+func ExpectMsgArrUint(r MsgReader, code uint64, content []uint) error {
+	msg, err := r.ReadMsg()
+	if err != nil {
+		return err
+	}
+	if msg.Code != code {
+		return fmt.Errorf("message code mismatch: got %d, expected %d", msg.Code, code)
+	}
+	if content == nil {
+		return msg.Discard()
+	}
+	a := ArrUint(content)
+	contentEnc, err := a.MarshalMsg(nil)
+	//contentEnc, err := rlp.EncodeToBytes(content)
+	if err != nil {
+		panic("content encode error: " + err.Error())
+	}
+	if int(msg.Size) != len(contentEnc) {
+		return fmt.Errorf("message size mismatch: got %d, want %d", msg.Size, len(contentEnc))
+	}
+	actualContent, err := ioutil.ReadAll(msg.Payload)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(actualContent, contentEnc) {
+		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
+	}
+	return nil
+}
+
+func ExpectMsgArrString(r MsgReader, code uint64, content []string) error {
+	msg, err := r.ReadMsg()
+	if err != nil {
+		return err
+	}
+	if msg.Code != code {
+		return fmt.Errorf("message code mismatch: got %d, expected %d", msg.Code, code)
+	}
+	if content == nil {
+		return msg.Discard()
+	}
+	a := ArrString(content)
+	contentEnc, err := a.MarshalMsg(nil)
+	//contentEnc, err := rlp.EncodeToBytes(content)
 	if err != nil {
 		panic("content encode error: " + err.Error())
 	}

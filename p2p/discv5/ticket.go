@@ -25,10 +25,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/common/crypto"
-	log "github.com/sirupsen/logrus"
+	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
+	"net"
 )
 
 const (
@@ -90,11 +91,14 @@ func (ref ticketRef) topicRegTime() mclock.AbsTime {
 }
 
 func pongToTicket(localTime mclock.AbsTime, topics []Topic, node *Node, p *ingressPacket) (*ticket, error) {
-	wps := p.data.(*pong).WaitPeriods
+	wps := p.data.(*Pong).WaitPeriods
 	if len(topics) != len(wps) {
 		return nil, fmt.Errorf("bad wait period list: got %d values, want %d", len(topics), len(wps))
 	}
-	if rlpHash(topics) != p.data.(*pong).TopicHash {
+
+	tpHash := rlpHash(topics)
+	btHash := CommonHash(tpHash.Bytes)
+	if btHash != p.data.(*Pong).TopicHash {
 		return nil, fmt.Errorf("bad topic hash")
 	}
 	t := &ticket{
@@ -111,9 +115,10 @@ func pongToTicket(localTime mclock.AbsTime, topics []Topic, node *Node, p *ingre
 	return t, nil
 }
 
-func ticketToPong(t *ticket, pong *pong) {
+func ticketToPong(t *ticket, pong *Pong) {
 	pong.Expiration = uint64(t.issueTime / mclock.AbsTime(time.Second))
-	pong.TopicHash = rlpHash(t.topics)
+	tpHash := rlpHash(t.topics)
+	pong.TopicHash = CommonHash(tpHash.Bytes)
 	pong.TicketSerial = t.serial
 	pong.WaitPeriods = make([]uint32, len(t.regTime))
 	for i, regTime := range t.regTime {
@@ -616,7 +621,7 @@ func (s *ticketStore) cleanupTopicQueries(now mclock.AbsTime) {
 	s.nextTopicQueryCleanup = now + mclock.AbsTime(topicQueryTimeout)
 }
 
-func (s *ticketStore) gotTopicNodes(from *Node, hash types.Hash, nodes []rpcNode) (timeout bool) {
+func (s *ticketStore) gotTopicNodes(from *Node, hash types.Hash, nodes []RpcNode) (timeout bool) {
 	now := mclock.Now()
 	//fmt.Println("got", from.addr().String(), hash, len(nodes))
 	qq := s.queriesSent[from]
@@ -638,7 +643,7 @@ func (s *ticketStore) gotTopicNodes(from *Node, hash types.Hash, nodes []rpcNode
 		return false
 	}
 	for _, node := range nodes {
-		ip := node.IP
+		ip := net.IP(node.IP)
 		if ip.IsUnspecified() || ip.IsLoopback() {
 			ip = from.IP
 		}

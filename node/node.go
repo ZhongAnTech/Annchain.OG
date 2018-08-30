@@ -32,7 +32,7 @@ func NewNode() *Node {
 	}
 	if viper.GetBool("p2p.enabled") {
 		privKey := getNodePrivKey()
-		n.Components = append(n.Components , NewP2PServer(privKey)
+		n.Components = append(n.Components , NewP2PServer(privKey))
 	}
 
 	hub := og.NewHub(&og.HubConfig{

@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
 	"github.com/google/go-cmp/cmp"
+
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
-
 )
 
 //go:generate msgp
@@ -28,12 +28,12 @@ func SampleTx() *Tx {
 
 	return &Tx{TxBase: TxBase{
 		Height:       12,
-		ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+		ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From: HexToAddress("0x99"),
-		To: HexToAddress("0x88"),
+		From:  HexToAddress("0x99"),
+		To:    HexToAddress("0x88"),
 		Value: v,
 	}
 }

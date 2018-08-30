@@ -32,7 +32,6 @@ import (
 	"github.com/annchain/OG/ethlib/crypto"
 	"github.com/annchain/OG/ethlib/crypto/ecies"
 	"github.com/annchain/OG/ethlib/crypto/sha3"
-	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -224,16 +223,21 @@ func TestProtocolHandshake(t *testing.T) {
 }
 */
 func TestProtocolHandshakeErrors(t *testing.T) {
-	our := &protoHandshake{Version: 3, Caps: []Cap{{"foo", 2}, {"bar", 3}}, Name: "quux"}
+	our := &ProtoHandshake{Version: 3, Caps: []Cap{{"foo", 2}, {"bar", 3}}, Name: "quux"}
+	quitData, _ := DiscQuitting.MarshalMsg(nil)
+	pro := ProtoHandshake{Version: 3}
+	protoData, _ := pro.MarshalMsg(nil)
 	tests := []struct {
 		code uint64
-		msg  interface{}
-		err  error
+		//msg  interface{}
+		msg []byte
+		err error
 	}{
 		{
 			code: discMsg,
-			msg:  []DiscReason{DiscQuitting},
-			err:  DiscQuitting,
+			//msg:  []DiscReason{DiscQuitting},
+			msg: quitData,
+			err: DiscQuitting,
 		},
 		{
 			code: 0x989898,
@@ -252,14 +256,15 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 		},
 		{
 			code: handshakeMsg,
-			msg:  &protoHandshake{Version: 3},
-			err:  DiscInvalidIdentity,
+			//msg:  &ProtoHandshake{Version: 3},
+			msg: protoData,
+			err: DiscInvalidIdentity,
 		},
 	}
 
 	for i, test := range tests {
 		p1, p2 := MsgPipe()
-		go SendRlp(p1, test.code, test.msg)
+		go Send(p1, test.code, test.msg)
 		_, err := readProtocolHandshake(p2, our)
 		if !reflect.DeepEqual(err, test.err) {
 			t.Errorf("test %d: error mismatch: got %q, want %q", i, err, test.err)
@@ -285,7 +290,9 @@ ba628a4ba590cb43f7848f41c4382885
 `)
 
 	// Check WriteMsg. This puts a message into the buffer.
-	if err := SendRlp(rw, 8, []uint{1, 2, 3, 4}); err != nil {
+	a := ArrUint{1, 2, 3, 4}
+	b, _ := a.MarshalMsg(nil)
+	if err := Send(rw, 8, b); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
 	}
 	written := buf.Bytes()
@@ -356,8 +363,9 @@ func TestRLPXFrameRW(t *testing.T) {
 	// send some messages
 	for i := 0; i < 10; i++ {
 		// write message into conn buffer
-		wmsg := []interface{}{"foo", "bar", strings.Repeat("test", i)}
-		err := SendRlp(rw1, uint64(i), wmsg)
+		wmsg := ArrString{"foo", "bar", strings.Repeat("test", i)}
+		b, _ := wmsg.MarshalMsg(nil)
+		err := Send(rw1, uint64(i), b)
 		if err != nil {
 			t.Fatalf("WriteMsg error (i=%d): %v", i, err)
 		}
@@ -371,7 +379,8 @@ func TestRLPXFrameRW(t *testing.T) {
 			t.Fatalf("msg code mismatch: got %d, want %d", msg.Code, i)
 		}
 		payload, _ := ioutil.ReadAll(msg.Payload)
-		wantPayload, _ := rlp.EncodeToBytes(wmsg)
+		wantPayload, _ := wmsg.MarshalMsg(nil)
+		//wantPayload, _ := rlp.EncodeToBytes(wmsg)
 		if !bytes.Equal(payload, wantPayload) {
 			t.Fatalf("msg payload mismatch:\ngot  %x\nwant %x", payload, wantPayload)
 		}
@@ -382,7 +391,7 @@ type handshakeAuthTest struct {
 	input       string
 	isPlain     bool
 	wantVersion uint
-	wantRest    []rlp.RawValue
+	wantRest    [][]byte
 }
 
 var eip8HandshakeAuthTests = []handshakeAuthTest{
@@ -417,7 +426,7 @@ var eip8HandshakeAuthTests = []handshakeAuthTest{
 			3bf7678318e2d5b5340c9e488eefea198576344afbdf66db5f51204a6961a63ce072c8926c
 		`,
 		wantVersion: 4,
-		wantRest:    []rlp.RawValue{},
+		wantRest:    [][]byte{{}},
 	},
 	// (Auth₃) RLPx v4 EIP-8 encoding with version 56, additional list elements
 	{
@@ -436,14 +445,14 @@ var eip8HandshakeAuthTests = []handshakeAuthTest{
 			d490
 		`,
 		wantVersion: 56,
-		wantRest:    []rlp.RawValue{{0x01}, {0x02}, {0xC2, 0x04, 0x05}},
+		wantRest:    [][]byte{{0x01}, {0x02}, {0xC2, 0x04, 0x05}},
 	},
 }
 
 type handshakeAckTest struct {
 	input       string
 	wantVersion uint
-	wantRest    []rlp.RawValue
+	wantRest    [][]byte
 }
 
 var eip8HandshakeRespTests = []handshakeAckTest{
@@ -477,7 +486,7 @@ var eip8HandshakeRespTests = []handshakeAckTest{
 			5833c2464c805246155289f4
 		`,
 		wantVersion: 4,
-		wantRest:    []rlp.RawValue{},
+		wantRest:    [][]byte{},
 	},
 	// (Ack₃) EIP-8 encoding with version 57, additional list elements
 	{
@@ -497,7 +506,7 @@ var eip8HandshakeRespTests = []handshakeAckTest{
 			35b9593b48b9d3ca4c13d245d5f04169b0b1
 		`,
 		wantVersion: 57,
-		wantRest:    []rlp.RawValue{{0x06}, {0xC2, 0x07, 0x08}, {0x81, 0xFA}},
+		wantRest:    [][]byte{{0x06}, {0xC2, 0x07, 0x08}, {0x81, 0xFA}},
 	},
 }
 
@@ -517,15 +526,15 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		authSignature = unhex("299ca6acfd35e3d72d8ba3d1e2b60b5561d5af5218eb5bc182045769eb4226910a301acae3b369fffc4a4899d6b02531e89fd4fe36a2cf0d93607ba470b50f7800")
 		_             = authSignature
 	)
-	makeAuth := func(test handshakeAuthTest) *authMsgV4 {
-		msg := &authMsgV4{Version: test.wantVersion, Rest: test.wantRest, gotPlain: test.isPlain}
+	makeAuth := func(test handshakeAuthTest) *AuthMsgV4 {
+		msg := &AuthMsgV4{Version: test.wantVersion, Rest: test.wantRest, gotPlain: test.isPlain}
 		copy(msg.Signature[:], authSignature)
 		copy(msg.InitiatorPubkey[:], pubA)
 		copy(msg.Nonce[:], nonceA)
 		return msg
 	}
-	makeAck := func(test handshakeAckTest) *authRespV4 {
-		msg := &authRespV4{Version: test.wantVersion, Rest: test.wantRest}
+	makeAck := func(test handshakeAckTest) *AuthRespV4 {
+		msg := &AuthRespV4{Version: test.wantVersion, Rest: test.wantRest}
 		copy(msg.RandomPubkey[:], ephPubB)
 		copy(msg.Nonce[:], nonceB)
 		return msg
@@ -534,7 +543,7 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 	// check auth msg parsing
 	for _, test := range eip8HandshakeAuthTests {
 		r := bytes.NewReader(unhex(test.input))
-		msg := new(authMsgV4)
+		msg := new(AuthMsgV4)
 		ciphertext, err := readHandshakeMsg(msg, encAuthMsgLen, keyB, r)
 		if err != nil {
 			t.Errorf("error for input %x:\n  %v", unhex(test.input), err)
@@ -553,8 +562,8 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 	for _, test := range eip8HandshakeRespTests {
 		input := unhex(test.input)
 		r := bytes.NewReader(input)
-		msg := new(authRespV4)
-		ciphertext, err := readHandshakeMsg(msg, encAuthRespLen, keyA, r)
+		msg := new(AuthRespV4)
+		ciphertext, err := readHandshakeMsgResp(msg, encAuthRespLen, keyA, r)
 		if err != nil {
 			t.Errorf("error for input %x:\n  %v", input, err)
 			continue

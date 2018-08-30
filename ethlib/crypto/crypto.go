@@ -31,7 +31,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ethlib/crypto/sha3"
-	"github.com/annchain/OG/ethlib/rlp"
+	//"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/common"
 )
 
@@ -73,8 +73,9 @@ func Keccak512(data ...[]byte) []byte {
 
 // CreateAddress creates an ethereum address given the bytes and the nonce
 func CreateAddress(b types.Address, nonce uint64) types.Address {
-	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
-	return types.BytesToAddress(Keccak256(data)[12:])
+	//data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
+	 var data [32]byte
+	return types.BytesToAddress(Keccak256((data)[12:]))
 }
 
 // CreateAddress2 creates an ethereum address given the address bytes, initial

@@ -70,5 +70,8 @@ func (t *Tx) Compare(tx Txi) bool {
 }
 func (t *Tx) String() string {
 	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
+}
 
+func (t *Tx) GetBase() TxBase{
+	return t.TxBase
 }

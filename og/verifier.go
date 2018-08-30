@@ -14,12 +14,13 @@ func NewVerifier(signer crypto.Signer) *Verifier {
 	return &Verifier{signer: signer, cryptoType: signer.GetCryptoType()}
 }
 
-func (v *Verifier) VerifyHash(t *types.Tx) bool {
-	return t.Hash() == t.TxBase.Hash
+func (v *Verifier) VerifyHash(t types.Txi) bool {
+	return t.Hash() == t.GetBase().Hash
 }
 
-func (v *Verifier) VerifySignature(t *types.Tx) bool {
-	return v.signer.Verify(crypto.PublicKey{Type:  v.cryptoType, Bytes: t.PublicKey},
-		crypto.Signature{Type:  v.cryptoType, Bytes: t.Signature},
-		t.TxBase.Hash.Bytes[:])
+func (v *Verifier) VerifySignature(t types.Txi) bool {
+	base := t.GetBase()
+	return v.signer.Verify(crypto.PublicKey{Type:  v.cryptoType, Bytes: base.PublicKey},
+		crypto.Signature{Type:  v.cryptoType, Bytes: base.Signature},
+		base.Hash.Bytes[:])
 }

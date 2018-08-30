@@ -37,6 +37,7 @@ type Txi interface {
 	Compare(tx Txi) bool
 
 	GetType() TxBaseType
+	GetBase() TxBase
 	String() string
 
 	DecodeMsg(dc *msgp.Reader) (err error)

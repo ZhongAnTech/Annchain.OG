@@ -1,13 +1,13 @@
-package core
+package og
 
 import (
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"sync"
 	"errors"
 	"time"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/core"
 )
 
 type txStatus int
@@ -24,19 +24,19 @@ const (
 // Once the parents are got, Tx will be send to TxPool for further processing.
 // TxBuffer will
 type TxBuffer struct {
-	dag             *Dag
-	verifier        *og.Verifier
-	syncer          *og.Syncer
-	txPool          *TxPool
+	dag             *core.Dag
+	verifier        *Verifier
+	syncer          *Syncer
+	txPool          *core.TxPool
 	dependencyCache gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
 	affmu           sync.RWMutex
 }
 
 type TxBufferConfig struct {
-	Dag                              *Dag
-	Verifier                         *og.Verifier
-	Syncer                           *og.Syncer
-	TxPool                           *TxPool
+	Dag                              *core.Dag
+	Verifier                         *Verifier
+	Syncer                           *Syncer
+	TxPool                           *core.TxPool
 	DependencyCacheMaxSize           int
 	DependencyCacheExpirationSeconds int
 }

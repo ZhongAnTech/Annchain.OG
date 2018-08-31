@@ -74,8 +74,13 @@ func (h *Hub) loopReceive() {
 	}
 }
 
-func (h *Hub) SendMessage(messageType MessageType, msgHash types.Hash, msg []byte) {
-	h.outgoing <- &P2PMessage{MessageType: messageType,Hash:msgHash, Message: msg}
+func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
+	h.outgoing <- &P2PMessage{MessageType: messageType, Message: msg}
+}
+
+func (h *Hub) calcMessageHash(msg *P2PMessage) (hash types.Hash){
+	// TODO: implement hash for message
+	return
 }
 
 func (h *Hub) sendMessage(msg *P2PMessage) {
@@ -83,7 +88,7 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 	// choose a peer and then send.
 	switch msg.MessageType {
 	case MessageTypeNewTx :
-		peers =    h.peers.PeersWithoutTx(msg.Hash)
+		peers =    h.peers.PeersWithoutTx(h.calcMessageHash(msg))
 	default:
 		peers = h.peers.Peers()
 	}

@@ -69,7 +69,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*types.Tx, maxqueuedMsg),
+		queuedMsg: make(chan []*types.Tx, maxqueuedMsg), // TODO: compile error
 		term:      make(chan struct{}),
 	}
 }

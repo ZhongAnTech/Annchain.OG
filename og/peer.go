@@ -51,9 +51,9 @@ type peer struct {
 	head      types.Hash
 	td        *big.Int
 	lock      sync.RWMutex
-	knownMsg  mapset.Set       // Set of transaction hashes known to be known by this peer
+	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
 	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
-	term      chan struct{}    // Termination channel to stop the broadcaster
+	term      chan struct{}      // Termination channel to stop the broadcaster
 }
 
 type PeerInfo struct {
@@ -69,7 +69,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*types.Tx, maxqueuedMsg), // TODO: compile error
+		queuedMsg: make(chan []*P2PMessage, maxqueuedMsg), // TODO: compile error
 		term:      make(chan struct{}),
 	}
 }
@@ -141,8 +141,11 @@ func (p *peer) MarkTransaction(hash types.Hash) {
 func (p *peer) SendMessages(messages []*P2PMessage) error {
 	var msgBytes []byte
 	for _, msg := range messages {
-		p.knownMsg.Add(msg.Hash)
-		msgBytes= append(msgBytes,msg.Message...)
+		if msg.needCheckRepeat {
+			p.knownMsg.Add(msg.hash)
+		}
+
+		msgBytes = append(msgBytes, msg.Message...)
 	}
 	return p2p.Send(p.rw, TxMsg, msgBytes)
 }
@@ -152,24 +155,29 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
 	select {
 	case p.queuedMsg <- messages:
-		for _, tx := range messages {
-			p.knownMsg.Add(tx.Hash)
+		for _, msg := range messages {
+			if msg.needCheckRepeat {
+				p.knownMsg.Add(msg.hash)
+			}
 		}
 	default:
 		log.Debug("Dropping transaction propagation", "count", len(messages))
 	}
 }
 
-func (p *peer) AsyncSendMessage(message *P2PMessage) {
+func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 	var messages []*P2PMessage
-	messages = append(messages,message)
+	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:
-			p.knownMsg.Add(message.Hash)
+		if msg.needCheckRepeat {
+			p.knownMsg.Add(msg.hash)
+		}
 	default:
 		log.Debug("Dropping transaction propagation")
 	}
 }
+
 // SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
@@ -180,7 +188,7 @@ func (p *peer) SendNodeData(data []byte) error {
 // specified.
 func (p *peer) RequestTransactions(hashes types.Hashs) error {
 	log.Debug("Fetching batch of block bodies", "count", len(hashes))
-	b,_:= hashes.MarshalMsg(nil)
+	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, GetTxMsg, b)
 }
 
@@ -188,14 +196,14 @@ func (p *peer) RequestTransactions(hashes types.Hashs) error {
 // data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes types.Hashs) error {
 	log.Debug("Fetching batch of state data", "count", len(hashes))
-	b,_:= hashes.MarshalMsg(nil)
+	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes types.Hashs) error {
 	log.Debug("Fetching batch of receipts", "count", len(hashes))
-	b,_:= hashes.MarshalMsg(nil)
+	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, GetReceiptsMsg, b)
 }
 
@@ -220,7 +228,6 @@ func newPeerSet() *peerSet {
 		peers: make(map[string]*peer),
 	}
 }
-
 
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
@@ -273,7 +280,7 @@ func (ps *peerSet) Len() int {
 	return len(ps.peers)
 }
 
-func (ps *peerSet)Peers()([]*peer) {
+func (ps *peerSet) Peers() []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	list := make([]*peer, 0, len(ps.peers))
@@ -283,10 +290,9 @@ func (ps *peerSet)Peers()([]*peer) {
 	return list
 }
 
-
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutTx(hash types.Hash) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash types.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

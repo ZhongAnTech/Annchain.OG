@@ -1,22 +1,22 @@
 package og
 
 import (
-	"github.com/annchain/OG/types"
-	"sync"
 	"errors"
-	"time"
+	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/core"
+	"sync"
+	"time"
 )
 
 type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
@@ -98,10 +98,10 @@ func (buffer *TxBuffer) resolve(tx types.Txi) {
 
 // verifyTx checks if the signatures and hashes are correct in tx
 func (buffer *TxBuffer) verifyTx(tx types.Txi) error {
-	if !buffer.verifier.VerifyHash(&tx) {
+	if !buffer.verifier.VerifyHash(tx) {
 		return errors.New("hash is not valid")
 	}
-	if !buffer.verifier.VerifySignature(&tx) {
+	if !buffer.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
 	return nil

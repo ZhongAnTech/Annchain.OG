@@ -2,7 +2,6 @@ package og
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/types"
 )
 
 // Hub is the middle layer between p2p and business layer
@@ -14,7 +13,7 @@ type Hub struct {
 	incoming         chan *P2PMessage
 	quit             chan bool
 	CallbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
-	peers      *peerSet
+	peers            *peerSet
 }
 
 type HubConfig struct {
@@ -75,24 +74,24 @@ func (h *Hub) loopReceive() {
 }
 
 func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
+	p2pMsg := P2PMessage{MessageType: messageType, Message: msg}
+	if messageType != MessageTypePong && messageType != MessageTypePing {
+		p2pMsg.needCheckRepeat = true
+		p2pMsg.calculateHash()
+	}
 	h.outgoing <- &P2PMessage{MessageType: messageType, Message: msg}
 }
 
-func (h *Hub) calcMessageHash(msg *P2PMessage) (hash types.Hash){
-	// TODO: implement hash for message
-	return
-}
-
 func (h *Hub) sendMessage(msg *P2PMessage) {
-	var  peers  []*peer
+	var peers []*peer
 	// choose a peer and then send.
-	switch msg.MessageType {
-	case MessageTypeNewTx :
-		peers =    h.peers.PeersWithoutTx(h.calcMessageHash(msg))
-	default:
+	if msg.needCheckRepeat {
+		peers = h.peers.PeersWithoutMsg(msg.hash)
+	} else {
+
 		peers = h.peers.Peers()
 	}
-	for _,peer :=  range peers {
+	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)
 	}
 	return

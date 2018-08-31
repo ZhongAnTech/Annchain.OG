@@ -1,8 +1,8 @@
 package og
 
 import (
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ type ManagerConfig struct {
 	BatchAcquireSize   uint // length of the buffer for batch tx acquire for a single node
 }
 
-func NewManager(config *ManagerConfig) (*Manager) {
+func NewManager(config *ManagerConfig) *Manager {
 	m := Manager{}
 	m.Config = config
 	return &m

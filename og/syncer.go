@@ -2,8 +2,8 @@ package og
 
 import (
 	"github.com/annchain/OG/types"
-	"time"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // Syncer fetches tx from other peers.
@@ -78,7 +78,7 @@ func (m *Syncer) loopSync() {
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
 			buffer[hash] = struct{}{}
-			if len(buffer) >= m.config.MaxBatchSize{
+			if len(buffer) >= m.config.MaxBatchSize {
 				m.fireRequest(buffer)
 				buffer = make(map[types.Hash]struct{})
 			}

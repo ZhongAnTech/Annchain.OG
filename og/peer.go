@@ -126,9 +126,9 @@ func (p *peer) SetHead(hash types.Hash, td *big.Int) {
 	p.td.Set(td)
 }
 
-// MarkTransaction marks a transaction as known for the peer, ensuring that it
+// MarkMessage marks a message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkTransaction(hash types.Hash) {
+func (p *peer) MarkMessage(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
@@ -139,15 +139,16 @@ func (p *peer) MarkTransaction(hash types.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendMessages(messages []*P2PMessage) error {
+	var msgType uint64
 	var msgBytes []byte
 	for _, msg := range messages {
 		if msg.needCheckRepeat {
 			p.knownMsg.Add(msg.hash)
 		}
-
+		msgType = uint64(msg.MessageType)
 		msgBytes = append(msgBytes, msg.Message...)
 	}
-	return p2p.Send(p.rw, TxMsg, msgBytes)
+	return p2p.Send(p.rw, msgType, msgBytes)
 }
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
@@ -181,15 +182,7 @@ func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 // SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
-	return p2p.Send(p.rw, NodeDataMsg, data)
-}
-
-// RequestBodies fetches a batch of blocks' bodies corresponding to the hashes
-// specified.
-func (p *peer) RequestTransactions(hashes types.Hashs) error {
-	log.Debug("Fetching batch of block bodies", "count", len(hashes))
-	b, _ := hashes.MarshalMsg(nil)
-	return p2p.Send(p.rw, GetTxMsg, b)
+	return p2p.Send(p.rw, uint64(NodeDataMsg), data)
 }
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
@@ -197,14 +190,14 @@ func (p *peer) RequestTransactions(hashes types.Hashs) error {
 func (p *peer) RequestNodeData(hashes types.Hashs) error {
 	log.Debug("Fetching batch of state data", "count", len(hashes))
 	b, _ := hashes.MarshalMsg(nil)
-	return p2p.Send(p.rw, GetNodeDataMsg, b)
+	return p2p.Send(p.rw, uint64(GetNodeDataMsg), b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes types.Hashs) error {
 	log.Debug("Fetching batch of receipts", "count", len(hashes))
 	b, _ := hashes.MarshalMsg(nil)
-	return p2p.Send(p.rw, GetReceiptsMsg, b)
+	return p2p.Send(p.rw, uint64(GetReceiptsMsg), b)
 }
 
 // String implements fmt.Stringer.
@@ -329,4 +322,72 @@ func (ps *peerSet) Close() {
 		p.Disconnect(p2p.DiscQuitting)
 	}
 	ps.closed = true
+}
+
+// Handshake executes the og protocol handshake, negotiating version number,
+// network IDs, head and genesis blocks.
+func (p *peer) Handshake(network uint64, head types.Hash, genesis types.Hash) error {
+	// Send out own handshake in a new thread
+	errc := make(chan error, 2)
+	var status StatusData // safe to read after two values have been received from errc
+
+	go func() {
+		s := StatusData{
+			ProtocolVersion: uint32(p.version),
+			NetworkId:       network,
+			CurrentBlock:    head,
+			GenesisBlock:    genesis,
+		}
+		data, _ := s.MarshalMsg(nil)
+		errc <- p2p.Send(p.rw, uint64(StatusMsg), data)
+	}()
+	go func() {
+		errc <- p.readStatus(network, &status, genesis)
+	}()
+	timeout := time.NewTimer(handshakeTimeout)
+	defer timeout.Stop()
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-errc:
+			if err != nil {
+				return err
+			}
+		case <-timeout.C:
+			return p2p.DiscReadTimeout
+		}
+	}
+	p.head = status.CurrentBlock
+	return nil
+}
+
+func (p *peer) readStatus(network uint64, status *StatusData, genesis types.Hash) (err error) {
+	msg, err := p.rw.ReadMsg()
+	if err != nil {
+		return err
+	}
+	if msg.Code != uint64(StatusMsg) {
+		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, StatusMsg)
+	}
+	if msg.Size > ProtocolMaxMsgSize {
+		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
+	}
+	data, err := msg.GetPayLoad()
+	if err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	_, err = status.UnmarshalMsg(data)
+	// Decode the handshake and make sure everything matches
+	if err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	if status.GenesisBlock != genesis {
+		return errResp(ErrGenesisBlockMismatch, "%x (!= %x)", status.GenesisBlock.Bytes[:8], genesis.Bytes[:8])
+	}
+	if status.NetworkId != network {
+		return errResp(ErrNetworkIdMismatch, "%d (!= %d)", status.NetworkId, network)
+	}
+	if int(status.ProtocolVersion) != p.version {
+		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
+	}
+	return nil
 }

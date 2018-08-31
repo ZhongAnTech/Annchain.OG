@@ -36,7 +36,6 @@ type IVerifier interface {
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
-// TxBuffer will
 type TxBuffer struct {
 	dag             IDag
 	verifier        IVerifier
@@ -95,12 +94,17 @@ func (b *TxBuffer) loop() {
 	}
 }
 
+// AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
 }
 
-// handleTx is called once there are new tx coming in.
 func (b *TxBuffer) handleTx(tx types.Txi) {
+	// already in the dag or tx_pool.
+	if b.isKnownHash(tx.GetBase().Hash) {
+		return
+	}
+
 	if b.fetchAllAncestors(tx) {
 		// already fulfilled, insert into txpool
 		// needs to resolve itself first
@@ -179,9 +183,6 @@ func (b *TxBuffer) tryResolve(tx types.Txi) bool {
 // Returns true if all ancestors are local now.
 func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
 	allFetched := true
-	if b.isKnownHash(tx.GetBase().Hash) {
-		return true
-	}
 	// not in the pool, check its parents
 	for _, parentHash := range tx.GetBase().ParentsHash {
 		if !b.isKnownHash(parentHash) {

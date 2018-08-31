@@ -68,7 +68,7 @@ func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
 func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 
 // Hex converts a Hash to a hex string.
-func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:]) }
+func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:1]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.

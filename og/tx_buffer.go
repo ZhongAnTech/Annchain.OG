@@ -7,7 +7,6 @@ import (
 	"time"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/core"
 )
 
 type txStatus int
@@ -19,24 +18,39 @@ const (
 	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
+type ISyncer interface {
+	Enqueue(hash types.Hash)
+}
+type ITxPool interface {
+	Get(hash types.Hash) types.Txi
+	AddRemoteTx(tx types.Txi) error
+}
+type IDag interface {
+	GetTx(hash types.Hash) types.Txi
+}
+type IVerifier interface {
+	VerifyHash(t types.Txi) bool
+	VerifySignature(t types.Txi) bool
+}
+
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
 // TxBuffer will
 type TxBuffer struct {
-	dag             *core.Dag
-	verifier        *Verifier
-	syncer          *Syncer
-	txPool          *core.TxPool
+	dag             IDag
+	verifier        IVerifier
+	syncer          ISyncer
+	txPool          ITxPool
 	dependencyCache gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
 	affmu           sync.RWMutex
 }
 
 type TxBufferConfig struct {
-	Dag                              *core.Dag
-	Verifier                         *Verifier
-	Syncer                           *Syncer
-	TxPool                           *core.TxPool
+	Dag                              IDag
+	Verifier                         IVerifier
+	Syncer                           ISyncer
+	TxPool                           ITxPool
 	DependencyCacheMaxSize           int
 	DependencyCacheExpirationSeconds int
 }
@@ -98,10 +112,10 @@ func (buffer *TxBuffer) resolve(tx types.Txi) {
 
 // verifyTx checks if the signatures and hashes are correct in tx
 func (buffer *TxBuffer) verifyTx(tx types.Txi) error {
-	if !buffer.verifier.VerifyHash(&tx) {
+	if !buffer.verifier.VerifyHash(tx) {
 		return errors.New("hash is not valid")
 	}
-	if !buffer.verifier.VerifySignature(&tx) {
+	if !buffer.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
 	return nil

@@ -92,6 +92,7 @@ func setup() *TxBuffer {
 		Dag:                    new(dummyDag),
 		Syncer:                 new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
+		NewTxQueueSize:                   100,
 	})
 
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)

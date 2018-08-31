@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
+//go:generate msgp
 package p2p
 
 import (
@@ -62,6 +62,18 @@ func (p Protocol) cap() Cap {
 type Cap struct {
 	Name    string
 	Version uint
+}
+
+// protoHandshake is the RLP structure of the protocol handshake.
+type ProtoHandshake struct {
+	Version    uint64   `msg:"version"`
+	Name       string   `msg:"name"`
+	Caps       []Cap    `msg:"caps"`
+	ListenPort uint64   `msg:"listen_port"`
+	ID         [64]byte `msg:"id"`
+
+	// Ignore additional fields (for forward compatibility).
+	Rest [][]byte `rlp:"tail" msg:"tail"`
 }
 
 func (cap Cap) RlpData() interface{} {

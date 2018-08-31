@@ -28,8 +28,8 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 func ExampleNewNode() {
@@ -260,9 +260,9 @@ func TestNodeID_pubkeyBad(t *testing.T) {
 
 func TestNodeID_distcmp(t *testing.T) {
 	distcmpBig := func(target, a, b types.Hash) int {
-		tbig := new(big.Int).SetBytes(target[:])
-		abig := new(big.Int).SetBytes(a[:])
-		bbig := new(big.Int).SetBytes(b[:])
+		tbig := new(big.Int).SetBytes(target.Bytes[:])
+		abig := new(big.Int).SetBytes(a.Bytes[:])
+		bbig := new(big.Int).SetBytes(b.Bytes[:])
 		return new(big.Int).Xor(tbig, abig).Cmp(new(big.Int).Xor(tbig, bbig))
 	}
 	if err := quick.CheckEqual(distcmp, distcmpBig, quickcfg()); err != nil {
@@ -272,10 +272,10 @@ func TestNodeID_distcmp(t *testing.T) {
 
 // the random tests is likely to miss the case where they're equal.
 func TestNodeID_distcmpEqual(t *testing.T) {
-	 h := types.Hash{}
-	xHash := types.Hash{}
-	base := h.Bytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	x := xHash.Bytes{15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
+	base := types.Hash{}
+	x := types.Hash{}
+	base.Bytes = types.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	x.Bytes = types.HashBytes{15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
 	if distcmp(base, x, x) != 0 {
 		t.Errorf("distcmp(base, x, x) != 0")
 	}
@@ -283,7 +283,7 @@ func TestNodeID_distcmpEqual(t *testing.T) {
 
 func TestNodeID_logdist(t *testing.T) {
 	logdistBig := func(a, b types.Hash) int {
-		abig, bbig := new(big.Int).SetBytes(a[:]), new(big.Int).SetBytes(b[:])
+		abig, bbig := new(big.Int).SetBytes(a.Bytes[:]), new(big.Int).SetBytes(b.Bytes[:])
 		return new(big.Int).Xor(abig, bbig).BitLen()
 	}
 	if err := quick.CheckEqual(logdist, logdistBig, quickcfg()); err != nil {
@@ -293,8 +293,8 @@ func TestNodeID_logdist(t *testing.T) {
 
 // the random tests is likely to miss the case where they're equal.
 func TestNodeID_logdistEqual(t *testing.T) {
-	h:= types.Hash{}
-	x := h.Bytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	x := types.Hash{}
+	x.Bytes = types.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	if logdist(x, x) != 0 {
 		t.Errorf("logdist(x, x) != 0")
 	}

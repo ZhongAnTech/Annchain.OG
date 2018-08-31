@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 func TestNetwork_Lookup(t *testing.T) {
@@ -49,7 +49,7 @@ func TestNetwork_Lookup(t *testing.T) {
 	results := network.Lookup(lookupTestnet.target)
 	t.Logf("results:")
 	for _, e := range results {
-		t.Logf("  ld=%d, %x", logdist(lookupTestnet.targetSha, e.sha), e.sha[:])
+		t.Logf("  ld=%d, %x", logdist(lookupTestnet.targetSha, e.sha), e.sha.Bytes[:])
 	}
 	if len(results) != bucketSize {
 		t.Errorf("wrong number of results: got %d, want %d", len(results), bucketSize)
@@ -67,7 +67,7 @@ func TestNetwork_Lookup(t *testing.T) {
 // The nodes were obtained by running testnet.mine with a random NodeID as target.
 var lookupTestnet = &preminedTestnet{
 	target:    MustHexID("166aea4f556532c6d34e8b740e5d314af7e9ac0ca79833bd751d6b665f12dfd38ec563c363b32f02aef4a80b44fd3def94612d497b99cb5f17fd24de454927ec"),
-	targetSha: types.Hash{Bytes:[32]byte{0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61}},
+	targetSha: types.Hash{Bytes: [32]byte{0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61}},
 	dists: [257][]NodeID{
 		240: {
 			MustHexID("2001ad5e3e80c71b952161bc0186731cf5ffe942d24a79230a0555802296238e57ea7a32f5b6f18564eadc1c65389448481f8c9338df0a3dbd18f708cbc2cbcb"),
@@ -276,22 +276,22 @@ func (tn *preminedTestnet) sendFindnodeHash(to *Node, target types.Hash) {
 		panic("query to node at or below distance 0")
 	}
 	next := to.UDP - 1
-	var result []rpcNode
+	var result []RpcNode
 	for i, id := range tn.dists[to.UDP-lowPort] {
 		result = append(result, nodeToRPC(NewNode(id, net.ParseIP("10.0.2.99"), next, uint16(i)+1+lowPort)))
 	}
-	injectResponse(tn.net, to, neighborsPacket, &neighbors{Nodes: result})
+	injectResponse(tn.net, to, neighborsPacket, &Neighbors{Nodes: result})
 }
 
 func (tn *preminedTestnet) sendPing(to *Node, addr *net.UDPAddr, topics []Topic) []byte {
-	injectResponse(tn.net, to, pongPacket, &pong{ReplyTok: []byte{1}})
+	injectResponse(tn.net, to, pongPacket, &Pong{ReplyTok: []byte{1}})
 	return []byte{1}
 }
 
-func (tn *preminedTestnet) send(to *Node, ptype nodeEvent, data interface{}) (hash []byte) {
+func (tn *preminedTestnet) send(to *Node, ptype nodeEvent, data []byte) (hash []byte) {
 	switch ptype {
 	case pingPacket:
-		injectResponse(tn.net, to, pongPacket, &pong{ReplyTok: []byte{1}})
+		injectResponse(tn.net, to, pongPacket, &Pong{ReplyTok: []byte{1}})
 	case pongPacket:
 		// ignored
 	case findnodeHashPacket:
@@ -301,11 +301,11 @@ func (tn *preminedTestnet) send(to *Node, ptype nodeEvent, data interface{}) (ha
 			panic("query to node at or below  distance 0")
 		}
 		next := to.UDP - 1
-		var result []rpcNode
+		var result []RpcNode
 		for i, id := range tn.dists[to.UDP-lowPort] {
 			result = append(result, nodeToRPC(NewNode(id, net.ParseIP("10.0.2.99"), next, uint16(i)+1+lowPort)))
 		}
-		injectResponse(tn.net, to, neighborsPacket, &neighbors{Nodes: result})
+		injectResponse(tn.net, to, neighborsPacket, &Neighbors{Nodes: result})
 	default:
 		panic("send(" + ptype.String() + ")")
 	}

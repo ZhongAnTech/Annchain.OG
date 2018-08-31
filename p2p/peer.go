@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/mclock"
-	"github.com/annchain/OG/ethlib/rlp"
 	"github.com/annchain/OG/p2p/discover"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 )
 
 var (
@@ -52,18 +52,6 @@ const (
 	pingMsg      = 0x02
 	pongMsg      = 0x03
 )
-
-// protoHandshake is the RLP structure of the protocol handshake.
-type protoHandshake struct {
-	Version    uint64
-	Name       string
-	Caps       []Cap
-	ListenPort uint64
-	ID         discover.NodeID
-
-	// Ignore additional fields (for forward compatibility).
-	Rest []rlp.RawValue `rlp:"tail"`
-}
 
 // PeerEventType is the type of peer events emitted by a p2p.Server
 type PeerEventType string
@@ -236,7 +224,7 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			if err := SendItemsRlp(p.rw, pingMsg); err != nil {
+			if err := Send(p.rw, pingMsg, nil); err != nil {
 				p.protoErr <- err
 				return
 			}
@@ -267,12 +255,14 @@ func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
 		msg.Discard()
-		go SendItemsRlp(p.rw, pongMsg)
+		go Send(p.rw, pongMsg, nil)
 	case msg.Code == discMsg:
-		var reason [1]DiscReason
+		var reason OneReason
 		// This is the last message. We don't need to discard or
 		// check errors because, the connection will be closed after it.
-		rlp.Decode(msg.Payload, &reason)
+		//rlp.Decode(msg.Payload, &reason)
+		data, _ := ioutil.ReadAll(msg.Payload)
+		reason.UnmarshalMsg(data)
 		return reason[0]
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages

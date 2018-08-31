@@ -32,10 +32,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
-     log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/p2p/netutil"
+	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

@@ -1,6 +1,9 @@
 package og
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/types"
+)
 
 // Hub is the middle layer between p2p and business layer
 // When there is a general request coming from the upper layer, Hub will find the appropriate peer to handle.
@@ -11,6 +14,7 @@ type Hub struct {
 	incoming         chan *P2PMessage
 	quit             chan bool
 	CallbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
+	peers      *peerSet
 }
 
 type HubConfig struct {
@@ -74,11 +78,28 @@ func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
 	h.outgoing <- &P2PMessage{MessageType: messageType, Message: msg}
 }
 
-func (h *Hub) sendMessage(msg *P2PMessage) {
-	// choose a peer and then send.
-	// DUMMY: Send to me
-	h.incoming <- msg
+func (h *Hub) calcMessageHash(msg *P2PMessage) (hash types.Hash){
+	// TODO: implement hash for message
+	return
 }
+
+func (h *Hub) sendMessage(msg *P2PMessage) {
+	var  peers  []*peer
+	// choose a peer and then send.
+	switch msg.MessageType {
+	case MessageTypeNewTx :
+		peers =    h.peers.PeersWithoutTx(h.calcMessageHash(msg))
+	default:
+		peers = h.peers.Peers()
+	}
+	for _,peer :=  range peers {
+		peer.AsyncSendMessage(msg)
+	}
+	return
+	// DUMMY: Send to me
+	//h.incoming <- msg
+}
+
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {

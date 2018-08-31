@@ -9,10 +9,11 @@ import (
 
 	"github.com/annchain/OG/types"
 	// "github.com/annchain/OG/common"
+	"math/rand"
 )
 
 const (
-	local int = iota
+	local  int = iota
 	remote
 )
 
@@ -20,30 +21,36 @@ const (
 	TxStatusNotExist int = iota
 	TxStatusQueue 
 	TxStatusTip	
+	TxStatusBadTx	
 	TxStatusPending
 )
 
 type TxPool struct {
-	conf			TxPoolConfig
-	dag				dag
+	conf TxPoolConfig
+	dag  *Dag
 
 	queue 			chan *txEvent				// queue stores txs that need to validate later 
-	tips			map[types.Hash]types.Txi	// tips stores all the tips
-	txPending		*TxPending
+	tips			*TxMap						// tips stores all the tips
+	badtxs			*TxMap
+	txPending		*TxMap
 	txLookup		*txLookUp					// txLookUp stores all the txs for external query
 
-	close			chan struct{}
+	close chan struct{}
 
-	mu 		sync.RWMutex
-	wg		sync.WaitGroup 		// for TxPool Stop()	
+	mu sync.RWMutex
+	wg sync.WaitGroup // for TxPool Stop()
 }
-func NewTxPool(conf TxPoolConfig, d dag) *TxPool {
+
+func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:			conf,
-		dag:			d,
-		queue:			make(chan *txEvent, conf.QueueSize),
-		txLookup: 		newTxLookUp(),
-		close:			make(chan struct{}),
+		conf:		conf,
+		dag:		d,
+		queue:		make(chan *txEvent, conf.QueueSize),
+		tips:		NewTxMap(),
+		badtxs:		NewTxMap(),
+		txPending:	NewTxMap(),
+		txLookup:	newTxLookUp(),
+		close:		make(chan struct{}),
 	}
 	return pool
 }
@@ -60,13 +67,13 @@ type dag interface {
 	Push(tx types.Txi) error
 }
 type txEvent struct {
-	txEnv			*txEnvelope
-	callbackChan	chan error
+	txEnv        *txEnvelope
+	callbackChan chan error
 }
 type txEnvelope struct {
-	tx		types.Txi
-	txType	int
-	status	int
+	tx     types.Txi
+	txType int
+	status int
 }
 
 // Start begin the txpool sevices
@@ -76,6 +83,7 @@ func (pool *TxPool) Start() {
 
 	go pool.loop()
 }
+
 // Stop stops all the txpool sevices
 func (pool *TxPool) Stop() {
 	close(pool.close)
@@ -100,21 +108,46 @@ func (pool *TxPool) GetStatus(hash types.Hash) int {
 	return pool.txLookup.status(hash)
 }
 
-// GetRandomTips returns n tips randomly. 
-func (pool *TxPool) GetRandomTips(n int) map[types.Hash]types.Txi {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
-	result := map[types.Hash]types.Txi{}
-	i := 0
-	for k, v := range pool.tips {
-		if i >= n {
-			return result
-		}
-		result[k] = v
-		i = i + 1 
+// generate [count] unique random number within range [0, upper)
+// if count > upper, use all available indices
+func generateRandomIndices(count int, upper int) []int {
+	if count > upper {
+		count = upper
 	}
-	return result
+	// avoid dup
+	generated := make(map[int]struct{})
+	for count > 0 {
+		i := rand.Intn(upper)
+		if _, ok := generated[i]; ok {
+			continue
+		}
+		generated[i] = struct{}{}
+	}
+	arr := make([]int, 0, len(generated))
+	for k := range generated {
+		arr = append(arr, k)
+	}
+	return arr
+}
+
+// GetRandomTips returns n tips randomly.
+func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// select n random hashes
+	indices := generateRandomIndices(n, len(pool.tips.txs))
+
+	// slice of keys
+	keys := make([]types.Hash, len(pool.tips.txs))
+	for k := range pool.tips.txs {
+		keys = append(keys, k)
+	}
+
+	for i := range indices {
+		v = append(v, pool.tips.txs[keys[i]])
+	}
+	return v
 }
 
 // GetAllTips returns all the tips in TxPool.
@@ -122,7 +155,7 @@ func (pool *TxPool) GetAllTips() map[types.Hash]types.Txi {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
-	return pool.tips
+	return pool.tips.txs
 }
 
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
@@ -158,6 +191,15 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
+// Remove removes a tx from tx pool. Only be called if a tx moves to dag, 
+// or a tx need to be clear in reset().
+func (pool *TxPool) remove(hash types.Hash) {
+	if pool.tips.Get(hash) != nil { pool.tips.Remove(hash) } 
+	if pool.badtxs.Get(hash) != nil { pool.badtxs.Remove(hash) }
+	if pool.txPending.Get(hash) != nil { pool.txPending.Remove(hash) }
+	pool.txLookup.remove(hash)
+}
+
 func (pool *TxPool) loop() {
 	defer log.Debugf("TxPool.loop() terminates")
 
@@ -172,15 +214,17 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
+			var err error
 			tx := txEvent.txEnv.tx
-			if err := pool.commit(tx); err != nil {
-				txEvent.callbackChan <- err
-				continue
+			switch tx := tx.(type) {
+			case *types.Tx:
+				err = pool.commit(tx)
+			case *types.Sequencer:
+				err = pool.confirm(tx)
 			}
-			pool.txLookup.switchStatus(tx.Hash(), TxStatusTip)
-			txEvent.callbackChan <- nil
+			txEvent.callbackChan <- err
 
-		// TODO case reset?
+			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -195,9 +239,9 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
-			tx: 	tx,
-			txType:	senderType,
-			status:	TxStatusQueue,	
+			tx:     tx,
+			txType: senderType,
+			status: TxStatusQueue,
 		},
 	}
 
@@ -210,37 +254,48 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	}
 
 	select {
-	case err := <- te.callbackChan:
-		if err != nil {	return err }
-	// case <-timer.C:
-	// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
+	case err := <-te.callbackChan:
+		if err != nil {
+			return err
+		}
+		// case <-timer.C:
+		// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.Hash().Hex())
 	return nil
 }
 
-// commit commits tx to tips pool. if this tx proves any txs in the tip pool, those 
-// tips will be removed from tips but stored in txpending.
-func (pool *TxPool) commit(tx types.Txi) error { 
-	if len(pool.tips) >= pool.conf.TipsSize { 
+// commit commits tx to tips pool. commit() checks if this tx is bad tx and moves 
+// bad tx to badtx list other than tips list. If this tx proves any txs in the 
+// tip pool, those tips will be removed from tips but stored in txpending.
+func (pool *TxPool) commit(tx *types.Tx) error { 
+	if pool.tips.Count() >= pool.conf.TipsSize { 
 		return fmt.Errorf("tips pool reaches max size")
+	}
+	if pool.isBadTx(tx) {
+		pool.badtxs.Add(tx)
+		pool.txLookup.switchStatus(tx.Hash(), TxStatusPending)
+		return nil
 	}
 	// move parents to txpending
 	for _, pHash := range tx.Parents() { 
-		if parent, ok := pool.tips[pHash]; ok {
+		if parent := pool.tips.Get(pHash); parent != nil {
 			pool.txPending.Add(parent)
-			delete(pool.tips, pHash)
+			pool.tips.Remove(pHash)
 			pool.txLookup.switchStatus(pHash, TxStatusPending)
-
-			switch parent := parent.(type){ 
-			case *types.Sequencer:
-				pool.confirm(parent)
-			}
 		}	
 	}
-	pool.tips[tx.Hash()] = tx
+	pool.tips.Add(tx)
+	pool.txLookup.switchStatus(tx.Hash(), TxStatusTip)
 	return nil
+}
+
+func (pool *TxPool) isBadTx(tx *types.Tx) bool {
+	// TODO
+	// check if tx's parents are bad tx
+	// check if tx itself is valid
+	return false
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
@@ -258,15 +313,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// move elders to dag
 	for _, elder := range elders {
 		pool.dag.Push(elder)
-		pool.txPending.Remove(elder.Hash())
-		pool.txLookup.remove(elder.Hash())
+		pool.remove(elder.Hash())
 	}
+	pool.tips.Add(seq)
+	pool.txLookup.switchStatus(seq.Hash(), TxStatusTip)
 	return nil
 }
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
 	if baseTx == nil || pool.dag.GetTx(baseTx.Hash()) != nil {
-		return
+		return 
 	}
 	if batch[baseTx.Hash()] == nil {
 		batch[baseTx.Hash()] = baseTx
@@ -290,14 +346,14 @@ func (pool *TxPool) reset() {
 	// TODO
 }
 
-
 type txLookUp struct {
-	txs		map[types.Hash]*txEnvelope
-	mu		sync.RWMutex
+	txs map[types.Hash]*txEnvelope
+	mu  sync.RWMutex
 }
+
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		txs: 	make(map[types.Hash]*txEnvelope),
+		txs: make(map[types.Hash]*txEnvelope),
 	}
 }
 func (t *txLookUp) get(h types.Hash) types.Txi {
@@ -320,11 +376,11 @@ func (t *txLookUp) remove(h types.Hash) {
 	defer t.mu.Unlock()
 
 	delete(t.txs, h)
-} 
+}
 func (t *txLookUp) count() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	return len(t.txs)
 }
 func (t *txLookUp) stats() (int, int) {
@@ -359,43 +415,49 @@ func (t *txLookUp) switchStatus(h types.Hash, status int) {
 	}
 }
 
-type TxPending struct {
+type TxMap struct {
 	txs	map[types.Hash]types.Txi
 	mu	sync.RWMutex
 }
-func NewTxPending() *TxPending {
-	tp := &TxPending{
+func NewTxMap() *TxMap {
+	tm := &TxMap{
 		txs: make(map[types.Hash]types.Txi),
 	}
-	return tp
+	return tm
 }
-func (tp *TxPending) Get(hash types.Hash) types.Txi {
-	tp.mu.RLock()
-	defer tp.mu.RUnlock()
+func (tm *TxMap) Count() int {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
 
-	return tp.txs[hash]
+	return len(tm.txs)
 }
-func (tp *TxPending) Exists(tx types.Txi) bool {
-	tp.mu.RLock()
-	defer tp.mu.RUnlock()
+func (tm *TxMap) Get(hash types.Hash) types.Txi {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	return tm.txs[hash]
+}
+func (tm *TxMap) Exists(tx types.Txi) bool {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
 	
-	if tp.txs[tx.Hash()] == nil {
+	if tm.txs[tx.Hash()] == nil {
 		return false
 	}
 	return true
 }
-func (tp *TxPending) Remove(hash types.Hash) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
+func (tm *TxMap) Remove(hash types.Hash) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
-	delete(tp.txs, hash)
+	delete(tm.txs, hash)
 }
-func (tp *TxPending) Add(tx types.Txi) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
+func (tm *TxMap) Add(tx types.Txi) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
-	if tp.txs[tx.Hash()] == nil {
-		tp.txs[tx.Hash()] = tx
+	if tm.txs[tx.Hash()] == nil {
+		tm.txs[tx.Hash()] = tx
 	}
 }
 

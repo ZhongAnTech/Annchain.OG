@@ -50,7 +50,6 @@ const (
 
 	// Maximum amount of time allowed for writing a complete message.
 	frameWriteTimeout = 20 * time.Second
->>>>>>> mainflow
 )
 
 var errServerStopped = errors.New("server stopped")
@@ -84,7 +83,7 @@ type Config struct {
 
 	// Name sets the node name of this server.
 	// Use common.MakeName to create a name that follows existing conventions.
-	Name string `toml:"-"`
+	NodeName string `toml:"-"`
 
 	// BootstrapNodes are used to establish connectivity
 	// with the rest of the network.
@@ -160,7 +159,7 @@ type Server struct {
 
 	ntab         discoverTable
 	listener     net.Listener
-	ourHandshake *protoHandshake
+	ourHandshake *ProtoHandshake
 	lastLookup   time.Time
 	DiscV5       *discv5.Network
 
@@ -212,7 +211,7 @@ type conn struct {
 type transport interface {
 	// The two handshakes.
 	doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error)
-	doProtoHandshake(our *protoHandshake) (*protoHandshake, error)
+	doProtoHandshake(our *ProtoHandshake) (*ProtoHandshake, error)
 	// The MsgReadWriter can only be used after the encryption
 	// handshake has completed. The code uses conn.id to track this
 	// by setting it to a non-nil value after the encryption handshake.
@@ -429,9 +428,21 @@ func (s *sharedUDPConn) Close() error {
 	return nil
 }
 
+func (srv *Server) Name() string {
+	return srv.NodeName
+}
+
+func (srv *Server) Start() {
+	err := srv.start()
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
 // Start starts running the server.
 // Servers can not be re-used after stopping.
-func (srv *Server) Start() (err error) {
+func (srv *Server) start() (err error) {
 	srv.lock.Lock()
 	defer srv.lock.Unlock()
 	if srv.running {
@@ -534,7 +545,7 @@ func (srv *Server) Start() (err error) {
 	dialer := newDialState(srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict)
 
 	// handshake
-	srv.ourHandshake = &protoHandshake{Version: baseProtocolVersion, Name: srv.Name, ID: discover.PubkeyID(&srv.PrivateKey.PublicKey)}
+	srv.ourHandshake = &ProtoHandshake{Version: baseProtocolVersion, Name: srv.NodeName, ID: discover.PubkeyID(&srv.PrivateKey.PublicKey)}
 	for _, p := range srv.Protocols {
 		srv.ourHandshake.Caps = append(srv.ourHandshake.Caps, p.cap())
 	}
@@ -854,53 +865,53 @@ func (srv *Server) listenLoop() {
 		}()
 	}
 
-		/*
+	/*
 		log.Infof("Received[from %s]: %s.\n", peer, msg)
 		err = json.Unmarshal(msg, v)
 		errFatal("invalid p2p msg", err)
-    */
-		//switch v.Type {
-		// case queryBlock:
-		// 	var queryData QueryBlockMsg
-		// 	err = json.Unmarshal([]byte(v.Data), &queryData)
-		// 	if err != nil {
-		// 		log.Println("Can't unmarshal QueryBlockMsg from ", peer, err.Error())
-		// 		continue
-		// 	}
-		// 	block := srv.blockchain.GetBlock(queryData.Index)
-		// 	if block == nil {
-		// 		log.Println("GetBlock with wrong index")
-		// 		continue
-		// 	}
-		// 	v.Type = respQueryBlock
-		// 	v.Data = block.Bytes()
-		// 	bs, _ := json.Marshal(v)
-		// 	log.Printf("responseLatestMsg: %s\n", bs)
-		// 	ws.Write(bs)
+	*/
+	//switch v.Type {
+	// case queryBlock:
+	// 	var queryData QueryBlockMsg
+	// 	err = json.Unmarshal([]byte(v.Data), &queryData)
+	// 	if err != nil {
+	// 		log.Println("Can't unmarshal QueryBlockMsg from ", peer, err.Error())
+	// 		continue
+	// 	}
+	// 	block := srv.blockchain.GetBlock(queryData.Index)
+	// 	if block == nil {
+	// 		log.Println("GetBlock with wrong index")
+	// 		continue
+	// 	}
+	// 	v.Type = respQueryBlock
+	// 	v.Data = block.Bytes()
+	// 	bs, _ := json.Marshal(v)
+	// 	log.Printf("responseLatestMsg: %s\n", bs)
+	// 	ws.Write(bs)
 
-		// case queryAll:
-		// 	// TODO query all
-		// 	v.Type = respQueryChain
-		// 	v.Data = srv.blockchain.Bytes()
-		// 	bs, _ := json.Marshal(v)
-		// 	log.Printf("responseChainMsg: %s\n", bs)
-		// 	ws.Write(bs)
+	// case queryAll:
+	// 	// TODO query all
+	// 	v.Type = respQueryChain
+	// 	v.Data = srv.blockchain.Bytes()
+	// 	bs, _ := json.Marshal(v)
+	// 	log.Printf("responseChainMsg: %s\n", bs)
+	// 	ws.Write(bs)
 
-		// case respQueryBlock:
-		// 	// handleBlockchainResponse([]byte(v.Data))
-		// 	var block types.Block
-		// 	err = json.Unmarshal(v.Data, &block)
-		// 	if err != nil {
-		// 		log.Println("Can't unmarshal msg.Data to Block")
-		// 		continue
-		// 	}
-		// 	srv.blockchain.TryAppendBlock(&block)
+	// case respQueryBlock:
+	// 	// handleBlockchainResponse([]byte(v.Data))
+	// 	var block types.Block
+	// 	err = json.Unmarshal(v.Data, &block)
+	// 	if err != nil {
+	// 		log.Println("Can't unmarshal msg.Data to Block")
+	// 		continue
+	// 	}
+	// 	srv.blockchain.TryAppendBlock(&block)
 
-		// case respQueryChain:
-		// 	// TODO
-		//}
+	// case respQueryChain:
+	// 	// TODO
+	//}
 
-	}
+}
 
 /*
 func (srv *P2PServer) Stop() {
@@ -1054,10 +1065,10 @@ func (srv *Server) NodeInfo() *NodeInfo {
 
 	// Gather and assemble the generic node infos
 	info := &NodeInfo{
-		Name:       srv.Name,
+		Name:       srv.NodeName,
 		Enode:      node.String(),
 		ID:         node.ID.String(),
-		IP:         node.IP.String(),
+		IP:         net.IP(node.IP).String(),
 		ListenAddr: srv.ListenAddr,
 		Protocols:  make(map[string]interface{}),
 	}

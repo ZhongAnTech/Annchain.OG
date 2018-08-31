@@ -18,8 +18,8 @@ type Dag struct {
 
 	db		ogdb.Database
 
-	statePending	ogdb.StateDB		
-	// txPending		*TxPending		
+	// statePending	ogdb.StateDB		
+	// txPending		*TxPending	 	
 
 	genesis			types.Txi
 	latestSeqencer	*types.Sequencer

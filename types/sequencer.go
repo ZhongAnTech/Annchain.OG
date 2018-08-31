@@ -73,3 +73,7 @@ func (seq *Sequencer) String() string {
 
 	return fmt.Sprintf("[%s] %d Hashes %s", seq.TxBase.String(), seq.Id, strings.Join(hashes, ","))
 }
+
+func (seq *Sequencer) GetBase() TxBase{
+	return seq.TxBase
+}

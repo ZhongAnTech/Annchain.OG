@@ -9,13 +9,12 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/annchain/OG/core"
 )
 
 // Node is the basic entrypoint for all modules to start.
 type Node struct {
-
 	Components []Component
-
 }
 
 func NewNode() *Node {
@@ -32,7 +31,7 @@ func NewNode() *Node {
 	}
 	if viper.GetBool("p2p.enabled") {
 		privKey := getNodePrivKey()
-		n.Components = append(n.Components , NewP2PServer(privKey)
+		n.Components = append(n.Components, NewP2PServer(privKey))
 	}
 
 	hub := og.NewHub(&og.HubConfig{
@@ -46,11 +45,15 @@ func NewNode() *Node {
 		MaxBatchSize:            100,
 	}, hub)
 
-	n.Components = append(n.Components, new(og.Og))
+	org, err := og.NewOg()
+	if err != nil {
+		logrus.WithError(err).Fatalf("Error occurred while initializing Node")
+		panic("Error occurred while initializing Node")
+	}
+
+	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
-
-	//var txPool core.TxPool
 
 	m := og.NewManager(&og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10})
 
@@ -68,6 +71,15 @@ func NewNode() *Node {
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
+
+	m.TxBuffer = core.NewTxBuffer(core.TxBufferConfig{
+		Syncer:                           syncer,
+		Verifier:                         m.Verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
+		DependencyCacheExpirationSeconds: 10 * 60,
+		DependencyCacheMaxSize:           5000,
+	})
 
 	n.Components = append(n.Components, m)
 	return n

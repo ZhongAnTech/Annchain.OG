@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package discover
 
 import (
@@ -37,10 +36,15 @@ import (
 
 const NodeIDBits = 512
 
+// NodeID is a unique identifier for each node.
+// The node identifier is a marshaled elliptic curve public key.
+type NodeID [64]byte
+
 // Node represents a host on the network.
 // The fields of Node may not be modified.
 type Node struct {
-	IP       net.IP // len 4 for IPv4 or 16 for IPv6
+	//IP       net.IP // len 4 for IPv4 or 16 for IPv6
+	IP       []byte
 	UDP, TCP uint16 // port numbers
 	ID       NodeID // the node's public key
 
@@ -90,7 +94,8 @@ func (n *Node) validateComplete() error {
 	if n.TCP == 0 {
 		return errors.New("missing TCP port")
 	}
-	if n.IP.IsMulticast() || n.IP.IsUnspecified() {
+	IP := net.IP(n.IP)
+	if IP.IsMulticast() || IP.IsUnspecified() {
 		return errors.New("invalid IP (multicast/unspecified)")
 	}
 	_, err := n.ID.Pubkey() // validate the key (on curve, etc.)
@@ -220,10 +225,6 @@ func (n *Node) UnmarshalText(text []byte) error {
 	return err
 }
 
-// NodeID is a unique identifier for each node.
-// The node identifier is a marshaled elliptic curve public key.
-type NodeID [NodeIDBits / 8]byte
-
 // Bytes returns a byte slice representation of the NodeID
 func (n NodeID) Bytes() []byte {
 	return n[:]
@@ -347,7 +348,7 @@ func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
 // Returns -1 if a is closer to target, 1 if b is closer to target
 // and 0 if they are equal.
 func distcmp(targetHash, a, b types.Hash) int {
-	target:= targetHash.Bytes
+	target := targetHash.Bytes
 	for i := range target {
 		da := a.Bytes[i] ^ target[i]
 		db := b.Bytes[i] ^ target[i]

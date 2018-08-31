@@ -28,8 +28,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-    log  "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/ethlib/rlp"
+	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -183,17 +182,26 @@ func (db *nodeDB) node(id NodeID) *Node {
 		return nil
 	}
 	node := new(Node)
-	if err := rlp.DecodeBytes(blob, node); err != nil {
+	//node.
+	_, err = node.UnmarshalMsg(blob)
+	if err != nil {
 		log.Error("Failed to decode node RLP", "err", err)
 		return nil
 	}
+	/*
+		if err := rlp.DecodeBytes(blob, node); err != nil {
+			log.Error("Failed to decode node RLP", "err", err)
+			return nil
+		}
+	*/
 	node.sha = crypto.Keccak256Hash(node.ID[:])
 	return node
 }
 
 // updateNode inserts - potentially overwriting - a node into the peer database.
 func (db *nodeDB) updateNode(node *Node) error {
-	blob, err := rlp.EncodeToBytes(node)
+	blob, err := node.MarshalMsg(nil)
+	//blob, err := rlp.EncodeToBytes(node)
 	if err != nil {
 		return err
 	}
@@ -354,7 +362,9 @@ func nextNode(it iterator.Iterator) *Node {
 			continue
 		}
 		var n Node
-		if err := rlp.DecodeBytes(it.Value(), &n); err != nil {
+		_, err := n.UnmarshalMsg(it.Value())
+		if err != nil {
+			//if err := rlp.DecodeBytes(it.Value(), &n); err != nil {
 			log.Warn("Failed to decode node RLP", "id", id, "err", err)
 			continue
 		}

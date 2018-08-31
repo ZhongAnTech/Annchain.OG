@@ -1,5 +1,7 @@
 package og
 
+import "github.com/annchain/OG/types"
+
 //go:generate msgp
 //msgp:tuple P2PMessage
 
@@ -17,4 +19,5 @@ const (
 type P2PMessage struct {
 	MessageType MessageType
 	Message     []byte
+	Hash        types.Hash    //
 }

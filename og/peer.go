@@ -19,12 +19,12 @@ var (
 )
 
 const (
-	maxKnownTxs = 32768 // Maximum transactions hashes to keep in the known list (prevent DOS)
+	maxknownMsg = 32768 // Maximum transactions hashes to keep in the known list (prevent DOS)
 
-	// maxQueuedTxs is the maximum number of transaction lists to queue up before
+	// maxqueuedMsg is the maximum number of transaction lists to queue up before
 	// dropping broadcasts. This is a sensitive number as a transaction list might
 	// contain a single transaction, or thousands.
-	maxQueuedTxs = 128
+	maxqueuedMsg = 128
 
 	// maxQueuedProps is the maximum number of block propagations to queue up before
 	// dropping broadcasts. There's not much point in queueing stale blocks, so a few
@@ -51,8 +51,8 @@ type peer struct {
 	head      types.Hash
 	td        *big.Int
 	lock      sync.RWMutex
-	knownTxs  mapset.Set       // Set of transaction hashes known to be known by this peer
-	queuedTxs chan []*types.Tx // Queue of transactions to broadcast to the peer
+	knownMsg  mapset.Set       // Set of transaction hashes known to be known by this peer
+	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
 	term      chan struct{}    // Termination channel to stop the broadcaster
 }
 
@@ -68,8 +68,8 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		rw:        rw,
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		knownTxs:  mapset.NewSet(),
-		queuedTxs: make(chan []*types.Tx, maxQueuedTxs),
+		knownMsg:  mapset.NewSet(),
+		queuedMsg: make(chan []*types.Tx, maxqueuedMsg),
 		term:      make(chan struct{}),
 	}
 }
@@ -80,11 +80,11 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 func (p *peer) broadcast() {
 	for {
 		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
+		case msg := <-p.queuedMsg:
+			if err := p.SendMessages(msg); err != nil {
 				return
 			}
-			log.Debug("Broadcast transactions", "count", len(txs))
+			log.Debug("Broadcast transactions", "count", len(msg))
 
 		case <-p.term:
 			return
@@ -130,39 +130,46 @@ func (p *peer) SetHead(hash types.Hash, td *big.Int) {
 // will never be propagated to this particular peer.
 func (p *peer) MarkTransaction(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
-	for p.knownTxs.Cardinality() >= maxKnownTxs {
-		p.knownTxs.Pop()
+	for p.knownMsg.Cardinality() >= maxknownMsg {
+		p.knownMsg.Pop()
 	}
-	p.knownTxs.Add(hash)
+	p.knownMsg.Add(hash)
 }
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
-func (p *peer) SendTransactions(txs types.Txs) error {
-	for _, tx := range txs {
-		p.knownTxs.Add(tx.Hash())
+func (p *peer) SendMessages(messages []*P2PMessage) error {
+	var msgBytes []byte
+	for _, msg := range messages {
+		p.knownMsg.Add(msg.Hash)
+		msgBytes= append(msgBytes,msg.Message...)
 	}
-	bts, err := txs.MarshalMsg(nil)
-	if err != nil {
-		//todo
-	}
-
-	return p2p.Send(p.rw, TxMsg, bts)
+	return p2p.Send(p.rw, TxMsg, msgBytes)
 }
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendTransactions(txs []*types.Tx) {
+func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
 	select {
-	case p.queuedTxs <- txs:
-		for _, tx := range txs {
-			p.knownTxs.Add(tx.Hash())
+	case p.queuedMsg <- messages:
+		for _, tx := range messages {
+			p.knownMsg.Add(tx.Hash)
 		}
 	default:
-		log.Debug("Dropping transaction propagation", "count", len(txs))
+		log.Debug("Dropping transaction propagation", "count", len(messages))
 	}
 }
 
+func (p *peer) AsyncSendMessage(message *P2PMessage) {
+	var messages []*P2PMessage
+	messages = append(messages,message)
+	select {
+	case p.queuedMsg <- messages:
+			p.knownMsg.Add(message.Hash)
+	default:
+		log.Debug("Dropping transaction propagation")
+	}
+}
 // SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
@@ -213,6 +220,7 @@ func newPeerSet() *peerSet {
 		peers: make(map[string]*peer),
 	}
 }
+
 
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
@@ -265,6 +273,17 @@ func (ps *peerSet) Len() int {
 	return len(ps.peers)
 }
 
+func (ps *peerSet)Peers()([]*peer) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		list = append(list, p)
+	}
+	return list
+}
+
+
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
 func (ps *peerSet) PeersWithoutTx(hash types.Hash) []*peer {
@@ -273,7 +292,7 @@ func (ps *peerSet) PeersWithoutTx(hash types.Hash) []*peer {
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
-		if !p.knownTxs.Contains(hash) {
+		if !p.knownMsg.Contains(hash) {
 			list = append(list, p)
 		}
 	}

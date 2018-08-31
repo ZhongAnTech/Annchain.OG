@@ -8,7 +8,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 
 	"github.com/spf13/viper"
-
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -39,9 +38,11 @@ func NewNode() *Node {
 	})
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond: 1000,
-		AcquireTxQueueSize:      1000,
-		MaxBatchSize:            100,
+		BatchTimeoutMilliSecond:              1000,
+		AcquireTxQueueSize:                   1000,
+		MaxBatchSize:                         100,
+		AcquireTxDedupCacheMaxSize:           10000,
+		AcquireTxDedupCacheExpirationSeconds: 60,
 	}, hub)
 
 	org, err := og.NewOg()
@@ -78,6 +79,7 @@ func NewNode() *Node {
 		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
+		NewTxQueueSize:                   1000,
 	})
 
 	n.Components = append(n.Components, m)

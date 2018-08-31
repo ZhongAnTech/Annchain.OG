@@ -4,20 +4,24 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
+	"github.com/bluele/gcache"
 )
 
 // Syncer fetches tx from other peers.
 type Syncer struct {
-	config         *SyncerConfig
-	hub            *Hub
-	acquireTxQueue chan types.Hash
-	quit           chan bool
+	config              *SyncerConfig
+	hub                 *Hub
+	acquireTxQueue      chan types.Hash
+	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
+	quit                chan bool
 }
 
 type SyncerConfig struct {
-	AcquireTxQueueSize      uint
-	MaxBatchSize            int
-	BatchTimeoutMilliSecond uint
+	AcquireTxQueueSize                   uint
+	MaxBatchSize                         int
+	BatchTimeoutMilliSecond              uint
+	AcquireTxDedupCacheMaxSize           int
+	AcquireTxDedupCacheExpirationSeconds int
 }
 
 func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
@@ -25,7 +29,9 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		config:         config,
 		hub:            hub,
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
-		quit:           make(chan bool),
+		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
+			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
+		quit: make(chan bool),
 	}
 }
 
@@ -97,5 +103,10 @@ func (m *Syncer) loopSwipe() {
 }
 
 func (m *Syncer) Enqueue(hash types.Hash) {
+	if _, err := m.acquireTxDedupCache.Get(hash); err == nil{
+		logrus.Debugf("Duplicate sync task: %s", hash.Hex())
+		return
+	}
+	m.acquireTxDedupCache.Set(hash,struct{}{})
 	m.acquireTxQueue <- hash
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/annchain/OG/core"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -72,7 +71,7 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	m.TxBuffer = core.NewTxBuffer(core.TxBufferConfig{
+	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
 		Syncer:                           syncer,
 		Verifier:                         m.Verifier,
 		Dag:                              org.Dag,

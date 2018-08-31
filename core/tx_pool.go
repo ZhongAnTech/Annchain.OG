@@ -275,7 +275,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	if pool.isBadTx(tx) {
 		pool.badtxs.Add(tx)
-		pool.txLookup.switchStatus(tx.Hash(), TxStatusPending)
+		pool.txLookup.switchStatus(tx.Hash(), TxStatusBadTx)
 		return nil
 	}
 	// move parents to txpending

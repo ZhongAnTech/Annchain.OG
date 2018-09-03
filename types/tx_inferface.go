@@ -39,6 +39,7 @@ type Txi interface {
 	GetType() TxBaseType
 	GetBase() TxBase
 	String() string
+	SetMineNonce(mineNonce uint64)
 
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
@@ -56,6 +57,7 @@ type TxBase struct {
 	Height       uint64
 	PublicKey    []byte
 	Signature    []byte
+	MineNonce    uint64
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -68,6 +70,9 @@ func (t *TxBase) Parents() []Hash {
 
 func (t *TxBase) SetHash(hash Hash) {
 	t.Hash = hash
+}
+func (t *TxBase) SetMineNonce(mineNonce uint64) {
+	t.MineNonce = mineNonce
 }
 
 func (t *TxBase) String() string {

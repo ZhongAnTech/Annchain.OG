@@ -1,9 +1,9 @@
 package crypto
 
 import (
-	"golang.org/x/crypto/ed25519"
-	"github.com/annchain/OG/types"
 	"bytes"
+	"github.com/annchain/OG/types"
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
 )
 

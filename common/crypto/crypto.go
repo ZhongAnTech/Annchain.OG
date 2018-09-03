@@ -1,21 +1,21 @@
 package crypto
 
-
 //go:generate msgp
 import (
-"github.com/annchain/OG/types"
-"crypto/elliptic"
-"crypto/ecdsa"
-"crypto/rand"
-"encoding/hex"
-"fmt"
-"math/big"
-"errors"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"github.com/annchain/OG/types"
+	"math/big"
 )
+
 type CryptoType int
 
 const (
-	CryptoTypeEd25519   CryptoType = iota
+	CryptoTypeEd25519 CryptoType = iota
 	CryptoTypeSecp256k1
 )
 
@@ -44,10 +44,6 @@ func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
 	return Signature{Type: typev, Bytes: bytes}
 }
 
-
-
-
-
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
@@ -59,34 +55,29 @@ func Keccak256Hash(data ...[]byte) (h types.Hash) {
 	return
 }
 
-
 func RecoverPubkey(msg []byte, sig []byte) ([]byte, error) {
-	return nil,nil
+	return nil, nil
 }
 
- func Ecrecover (msg []byte,sig []byte)([]byte, error) {
-	 return nil,nil
- }
-
-func  S256()      elliptic.Curve {
- return   nil
+func Ecrecover(msg []byte, sig []byte) ([]byte, error) {
+	return nil, nil
 }
 
+func S256() elliptic.Curve {
+	return nil
+}
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(S256(), rand.Reader)
 }
 
-
 func Keccak256([]byte) []byte {
-	return nil 
+	return nil
 }
 
-func Sign(data[]byte,priv *ecdsa.PrivateKey) ([]byte ,error){
-	return nil,nil
+func Sign(data []byte, priv *ecdsa.PrivateKey) ([]byte, error) {
+	return nil, nil
 }
-
-
 
 // HexToECDSA parses a secp256k1 private key.
 func HexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {

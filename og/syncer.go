@@ -66,10 +66,7 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		WithField("length", len(req.Hashes)).
 		Debugf("Sending message MessageTypeFetchByHash")
 
-	m.hub.outgoing <- &P2PMessage{
-		MessageType: MessageTypeFetchByHash,
-		Message:     bytes,
-	}
+	m.hub.SendMessage(MessageTypeFetchByHash, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.

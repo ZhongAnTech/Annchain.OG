@@ -16,7 +16,7 @@ import (
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"gx/ipfs/QmWq5PJgAQKDWQerAijYUVKW8mN5MDatK5j7VMp8rizKQd/btcec"
+	"github.com/btcsuite/btcd/btcec"
 )
 
 var (

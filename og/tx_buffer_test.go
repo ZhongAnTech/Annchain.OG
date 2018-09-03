@@ -192,6 +192,7 @@ func TestBufferCache(t *testing.T) {
 			// not found
 			logrus.Info("Not in cache")
 			success = true
+			break
 		} else {
 			logrus.Info("In cache")
 		}

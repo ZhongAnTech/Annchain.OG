@@ -104,6 +104,10 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.isKnownHash(tx.GetBase().Hash) {
 		return
 	}
+	if err := b.verifyTx(tx); err != nil{
+		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetBase().Hash.Hex())
+		return
+	}
 
 	if b.fetchAllAncestors(tx) {
 		// already fulfilled, insert into txpool

@@ -47,6 +47,8 @@ func (seq *Sequencer) Hash() (hash Hash) {
 		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
 	}
 
+	panicIfError(binary.Write(&buf, binary.BigEndian, seq.MineNonce))
+
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return

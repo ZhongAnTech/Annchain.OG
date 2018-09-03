@@ -29,9 +29,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/annchain/OG/ethlib/crypto"
-	"github.com/annchain/OG/ethlib/crypto/ecies"
-	"github.com/annchain/OG/ethlib/crypto/sha3"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/ecies"
+	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )

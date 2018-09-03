@@ -35,10 +35,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ethlib/crypto"
-	"github.com/annchain/OG/ethlib/crypto/ecies"
-	"github.com/annchain/OG/ethlib/crypto/secp256k1"
-	"github.com/annchain/OG/ethlib/crypto/sha3"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/ecies"
+	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/golang/snappy"
 )
@@ -414,7 +413,8 @@ func (h *encHandshake) handleAuthMsg(msg *AuthMsgV4, prv *ecdsa.PrivateKey) erro
 		return err
 	}
 	signedMsg := xor(token, h.initNonce)
-	remoteRandomPub, err := secp256k1.RecoverPubkey(signedMsg, msg.Signature[:])
+	//remoteRandomPub, err := crypto.RecoverPubkey(signedMsg, msg.Signature[:])
+	remoteRandomPub, err := crypto.Ecrecover(signedMsg, msg.Signature[:])
 	if err != nil {
 		return err
 	}

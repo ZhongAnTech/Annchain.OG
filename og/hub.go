@@ -92,7 +92,7 @@ func (h *Hub) handle(p *peer) error {
 		head    = types.Hash{}
 	)
 	if err := p.Handshake(h.networkID, head, genesis.Hash()); err != nil {
-		log.Debug("Ethereum handshake failed", "err", err)
+		log.Debug("OG handshake failed", "err", err)
 		return err
 	}
 	// Register the peer locally
@@ -170,6 +170,8 @@ func (h *Hub) Start() {
 func (h *Hub) Stop() {
 	h.quit <- true
 	h.quit <- true
+	h.peers.Close()
+	h.wg.Wait()
 }
 
 func (h *Hub) Name() string {

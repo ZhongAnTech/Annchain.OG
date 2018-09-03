@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "github.com/annchain/OG/ethlib/crypto"
+	ethcrypto "github.com/annchain/OG/common/crypto"
 )
 
 var (

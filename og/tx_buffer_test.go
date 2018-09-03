@@ -1,12 +1,12 @@
 package og
 
 import (
-	"testing"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 	"github.com/bluele/gcache"
-	"time"
 	"github.com/magiconair/properties/assert"
+	"github.com/sirupsen/logrus"
+	"testing"
+	"time"
 )
 
 type dummyDag struct {
@@ -86,11 +86,11 @@ func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
 
 func setup() *TxBuffer {
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifier:                         new(dummyVerifier),
-		DependencyCacheMaxSize:           20,
-		TxPool:                           new(dummyTxPool),
-		Dag:                              new(dummyDag),
-		Syncer:                           new(dummySyncer),
+		Verifier:               new(dummyVerifier),
+		DependencyCacheMaxSize: 20,
+		TxPool:                 new(dummyTxPool),
+		Dag:                    new(dummyDag),
+		Syncer:                 new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 	})
 
@@ -183,7 +183,7 @@ func TestBufferCache(t *testing.T) {
 	buffer.AddTx(sampleTx("0x0A", []string{"0x09"}))
 	buffer.Start()
 	success := false
-	for i := 0; i < 8; i ++ {
+	for i := 0; i < 8; i++ {
 		time.Sleep(time.Second * 2)
 		// query request cache
 		_, err := m.acquireTxDedupCache.Get(types.HexToHash("0x09"))

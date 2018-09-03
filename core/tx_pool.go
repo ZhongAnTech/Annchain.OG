@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 	// "github.com/spf13/viper"
 	log "github.com/sirupsen/logrus"
 
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	local  int = iota
+	local int = iota
 	remote
 )
 
@@ -81,12 +81,12 @@ func (pool *TxPool) Stop() {
 	log.Infof("TxPool Stopped")
 }
 
-// PoolStatus returns the current status of txpool. 
+// PoolStatus returns the current status of txpool.
 func (pool *TxPool) PoolStatus() (int, int) {
 	return pool.txLookup.stats()
 }
 
-// Get get a transaction or sequencer according to input hash, 
+// Get get a transaction or sequencer according to input hash,
 // if tx not exists return nil
 func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	return pool.txLookup.get(hash)
@@ -153,8 +153,8 @@ func (pool *TxPool) AddLocalTx(tx types.Txi) error {
 	return pool.addTx(tx, local)
 }
 
-// AddLocalTxs adds a list of txs to txpool if they are valid. It returns 
-// the process result of each tx with an error list. AddLocalTxs only process 
+// AddLocalTxs adds a list of txs to txpool if they are valid. It returns
+// the process result of each tx with an error list. AddLocalTxs only process
 // txs that sent by local node.
 func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 	result := make([]error, len(txs))
@@ -164,9 +164,9 @@ func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 	return result
 }
 
-// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx 
-// sent by remote nodes, and will hold extra functions to prevent from ddos 
-// (large amount of invalid tx sent from one node in a short time) attack. 
+// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
+// sent by remote nodes, and will hold extra functions to prevent from ddos
+// (large amount of invalid tx sent from one node in a short time) attack.
 func (pool *TxPool) AddRemoteTx(tx types.Txi) error {
 	return pool.addTx(tx, remote)
 }
@@ -213,7 +213,7 @@ func (pool *TxPool) loop() {
 	}
 }
 
-// addTx push tx to the pool queue and wait to become tip after validation. 
+// addTx push tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
@@ -254,7 +254,7 @@ func (pool *TxPool) verifyTx(tx types.Txi) error {
 	return nil
 }
 
-// commit commits tx to tip pool. if this tx proves any txs in the tip pool, those 
+// commit commits tx to tip pool. if this tx proves any txs in the tip pool, those
 // tips will be removed from pool but stored in dag.
 func (pool *TxPool) commit(tx types.Txi) error {
 	if len(pool.tips) >= pool.conf.TipsSize {

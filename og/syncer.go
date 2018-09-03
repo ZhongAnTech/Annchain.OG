@@ -2,9 +2,9 @@ package og
 
 import (
 	"github.com/annchain/OG/types"
+	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"time"
-	"github.com/bluele/gcache"
 )
 
 // Syncer fetches tx from other peers.
@@ -100,10 +100,10 @@ func (m *Syncer) loopSwipe() {
 }
 
 func (m *Syncer) Enqueue(hash types.Hash) {
-	if _, err := m.acquireTxDedupCache.Get(hash); err == nil{
+	if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
 		logrus.Debugf("Duplicate sync task: %s", hash.Hex())
 		return
 	}
-	m.acquireTxDedupCache.Set(hash,struct{}{})
+	m.acquireTxDedupCache.Set(hash, struct{}{})
 	m.acquireTxQueue <- hash
 }

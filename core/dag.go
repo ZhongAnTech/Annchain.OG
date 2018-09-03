@@ -4,36 +4,36 @@ import (
 	"fmt"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type DagConfig struct {
-
 }
 
 type Dag struct {
-	conf	DagConfig
+	conf DagConfig
 
-	db		ogdb.Database
+	db ogdb.Database
 
-	statePending	ogdb.StateDB		
-	txPending		*TxPending		
+	statePending ogdb.StateDB
+	txPending    *TxPending
 
-	genesis			types.Txi
-	latestSeqencer	*types.Sequencer
+	genesis        types.Txi
+	latestSeqencer *types.Sequencer
 
-	close 	chan struct{}
+	close chan struct{}
 
-	wg	sync.WaitGroup
-	mu	sync.RWMutex
+	wg sync.WaitGroup
+	mu sync.RWMutex
 }
+
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{
-		conf:		conf,
-		db:			db,
-		txPending:	NewTxPending(),
+		conf:      conf,
+		db:        db,
+		txPending: NewTxPending(),
 	}
 
 	return dag
@@ -46,8 +46,8 @@ func (dag *Dag) Start() {
 }
 
 func (dag *Dag) Stop() {
-	close(dag.close) 
-	
+	close(dag.close)
+
 	log.Infof("TxPool Stopped")
 }
 
@@ -66,7 +66,7 @@ func (dag *Dag) Commit(tx types.Txi) error {
 	return dag.commit(tx)
 }
 
-// GetTx gets tx from dag network indexs by tx hash. This function querys 
+// GetTx gets tx from dag network indexs by tx hash. This function querys
 // txPending first and then search in db.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	// TODO
@@ -121,11 +121,11 @@ func (dag *Dag) loop() {
 	}
 }
 
-
 type TxPending struct {
-	txs	map[types.Hash]types.Txi
-	mu	sync.RWMutex
+	txs map[types.Hash]types.Txi
+	mu  sync.RWMutex
 }
+
 func NewTxPending() *TxPending {
 	tp := &TxPending{
 		txs: make(map[types.Hash]types.Txi),
@@ -141,7 +141,7 @@ func (tp *TxPending) Get(hash types.Hash) types.Txi {
 func (tp *TxPending) Exists(tx types.Txi) bool {
 	tp.mu.RLock()
 	defer tp.mu.RUnlock()
-	
+
 	if tp.txs[tx.Hash()] == nil {
 		return false
 	}
@@ -161,11 +161,3 @@ func (tp *TxPending) Add(tx types.Txi) {
 		tp.txs[tx.Hash()] = tx
 	}
 }
-
-
-
-
-
-
-
-

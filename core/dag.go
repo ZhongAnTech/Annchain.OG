@@ -14,9 +14,10 @@ type DagConfig struct {
 }
 
 type Dag struct {
-	conf	DagConfig
+	conf		DagConfig
 
-	db		ogdb.Database
+	db			ogdb.Database
+	accessor	*Accessor
 
 	// statePending	ogdb.StateDB		
 	// txPending		*TxPending	 	
@@ -32,7 +33,8 @@ type Dag struct {
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{
 		conf:		conf,
-		db:			db,
+		db:			db, 
+		accessor:	NewAccessor(db),
 		// txPending:	NewTxPending(),
 	}
 

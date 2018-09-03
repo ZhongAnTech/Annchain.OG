@@ -62,10 +62,10 @@ type TxPoolConfig struct {
 	TxVerifyTime	int		`mapstructure:"tx_verify_time"`
 	TxValidTime		int		`mapstructure:"tx_valid_time"`
 }
-type dag interface {
-	GetTx(hash types.Hash) types.Txi
-	Push(tx types.Txi) error
-}
+// type dag interface {
+// 	GetTx(hash types.Hash) types.Txi
+// 	Push(tx types.Txi) error
+// }
 type txEvent struct {
 	txEnv        *txEnvelope
 	callbackChan chan error
@@ -224,7 +224,7 @@ func (pool *TxPool) loop() {
 			}
 			txEvent.callbackChan <- err
 
-			// TODO case reset?
+		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -248,7 +248,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	select {
 	case pool.queue <- te:
 		pool.txLookup.add(te.txEnv)
-		break
 	case <-timer.C:
 		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.Hash().Hex())
 	}
@@ -258,8 +257,9 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		if err != nil {
 			return err
 		}
-		// case <-timer.C:
-		// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
+	// case <-timer.C:
+	// 	// close(te.callbackChan)
+	// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.Hash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.Hash().Hex())
@@ -268,7 +268,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 
 // commit commits tx to tips pool. commit() checks if this tx is bad tx and moves 
 // bad tx to badtx list other than tips list. If this tx proves any txs in the 
-// tip pool, those tips will be removed from tips but stored in txpending.
+// tip pool, those tips will be removed from tips but stored in txpending.              
 func (pool *TxPool) commit(tx *types.Tx) error { 
 	if pool.tips.Count() >= pool.conf.TipsSize { 
 		return fmt.Errorf("tips pool reaches max size")

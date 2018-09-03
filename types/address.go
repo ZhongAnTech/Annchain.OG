@@ -59,6 +59,9 @@ func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 // If b is larger than len(h), b will be cropped from the left.
 func HexToAddress(s string) Address { return BytesToAddress(common.FromHex(s)) }
 
+// ToBytes convers Address to []byte.
+func (h Address) ToBytes() []byte { return h.Bytes[:] }
+
 // Big converts an Address to a big integer.
 func (h Address) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 

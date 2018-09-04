@@ -24,6 +24,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	"github.com/sirupsen/logrus"
+	"os"
 )
 
 var discard = Protocol{
@@ -178,6 +180,7 @@ func TestPeerPing(t *testing.T) {
 }
 
 func TestPeerDisconnect(t *testing.T) {
+	logrus.Debug("started here")
 	closer, rw, _, disc := testPeer(nil)
 	defer closer()
 	b, _ := DiscQuitting.MarshalMsg(nil)
@@ -188,10 +191,12 @@ func TestPeerDisconnect(t *testing.T) {
 	case reason := <-disc:
 		if reason != DiscQuitting {
 			t.Errorf("run returned wrong reason: got %v, want %v", reason, DiscQuitting)
+			logrus.Debug("run returned wrong reason: got %v, want %v", reason, DiscQuitting)
 		}
 	case <-time.After(500 * time.Millisecond):
 		t.Error("peer did not return")
 	}
+	logrus.Debug("end here")
 }
 
 // This test is supposed to verify that Peer can reliably handle
@@ -356,4 +361,18 @@ func TestMatchProtocols(t *testing.T) {
 			}
 		}
 	}
+}
+
+func init(){
+	logrus.SetLevel(logrus.DebugLevel)
+	fname:= "log334.log"
+	f,err := os.Create(fname)
+	if err!=nil {
+		os.Remove(fname)
+		f,err = os.Create(fname)
+	}
+	if err!=nil {
+		panic(err)
+	}
+	logrus.SetOutput(f)
 }

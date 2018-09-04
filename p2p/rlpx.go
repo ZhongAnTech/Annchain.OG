@@ -177,20 +177,20 @@ func readProtocolHandshake(rw MsgReader, our *ProtoHandshake) (*ProtoHandshake, 
 		// spec and we send it ourself if the posthanshake checks fail.
 		// We can't return the reason directly, though, because it is echoed
 		// back otherwise. Wrap it in a string instead.
-		var reason OneReason
+		var reason DiscReason
 		//rlp.Decode(msg.Payload, &reason)
-		b, _ := ioutil.ReadAll(msg.Payload)
+		b, _ := msg.GetPayLoad()
 		reason.UnmarshalMsg(b)
-		return nil, reason[0]
+		return nil, reason
 	}
 	if msg.Code != handshakeMsg {
 		return nil, fmt.Errorf("expected handshake, got %x", msg.Code)
 	}
 	var hs ProtoHandshake
-	data, _ := ioutil.ReadAll(msg.Payload)
+	data, _ := msg.GetPayLoad()
 	_, err = hs.UnmarshalMsg(data)
 	if err != nil {
-
+         err =  newPeerError(errInvalidMsg, "(code %x) (size %d) %v", msg.Code, msg.Size, err)
 		//if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
@@ -310,6 +310,7 @@ func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remoteID d
 	}
 	return h.secrets(authPacket, authRespPacket)
 }
+
 
 // makeAuthMsg creates the initiator handshake message.
 func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*AuthMsgV4, error) {
@@ -436,6 +437,17 @@ func (h *encHandshake) makeAuthResp() (msg *AuthRespV4, err error) {
 	return msg, nil
 }
 
+
+func (msg*AuthMsgV4)preSealPlain( local_pubKey * ecies.PublicKey, remotePubkey * ecies.PublicKey)([]byte, error) {
+	buf := make([]byte, authMsgLen)
+	n := copy(buf, msg.Signature[:])
+	n += copy(buf[n:], crypto.Keccak256(exportPubkey(local_pubKey)))
+	n += copy(buf[n:], msg.InitiatorPubkey[:])
+	n += copy(buf[n:], msg.Nonce[:])
+	buf[n] = 0 // token-flag
+	return ecies.Encrypt(rand.Reader, remotePubkey, buf, nil, nil)
+}
+
 func (msg *AuthMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
 	buf := make([]byte, authMsgLen)
 	n := copy(buf, msg.Signature[:])
@@ -518,6 +530,44 @@ func sealEIP8Resp(msg *AuthRespV4, h *encHandshake) ([]byte, error) {
 	return append(prefix, enc...), err
 }
 
+//test function ,just for test
+func  preEip8test ( msg *AuthMsgV4, remotePubkey * ecies.PublicKey) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	b, err := msg.MarshalMsg(nil)
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(b)
+
+	pad := padSpace[:mrand.Intn(len(padSpace)-100)+100]
+	buf.Write(pad)
+	prefix := make([]byte, 2)
+	binary.BigEndian.PutUint16(prefix, uint16(buf.Len()+eciesOverhead))
+
+	enc, err := ecies.Encrypt(rand.Reader, remotePubkey, buf.Bytes(), nil, prefix)
+	return append(prefix, enc...), err
+
+}
+
+////test function ,just for test
+func  preEip8Resptest ( msg *AuthRespV4, remotePubkey * ecies.PublicKey) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	b, err := msg.MarshalMsg(nil)
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(b)
+
+	pad := padSpace[:mrand.Intn(len(padSpace)-100)+100]
+	buf.Write(pad)
+	prefix := make([]byte, 2)
+	binary.BigEndian.PutUint16(prefix, uint16(buf.Len()+eciesOverhead))
+
+	enc, err := ecies.Encrypt(rand.Reader, remotePubkey, buf.Bytes(), nil, prefix)
+	return append(prefix, enc...), err
+
+}
+
 type plainDecoder interface {
 	decodePlain([]byte)
 }
@@ -531,6 +581,7 @@ func readHandshakeMsgResp(msg *AuthRespV4, plainSize int, prv *ecdsa.PrivateKey,
 	key := ecies.ImportECDSA(prv)
 	if dec, err := key.Decrypt(buf, nil, nil); err == nil {
 		msg.decodePlain(dec)
+	//	fmt.Println("is plain",msg)
 		return buf, nil
 	}
 	// Could be EIP-8 format, try that.
@@ -564,8 +615,10 @@ func readHandshakeMsg(msg *AuthMsgV4, plainSize int, prv *ecdsa.PrivateKey, r io
 	key := ecies.ImportECDSA(prv)
 	if dec, err := key.Decrypt(buf, nil, nil); err == nil {
 		msg.decodePlain(dec)
+		//fmt.Println("is plain",msg)
 		return buf, nil
 	}
+
 	// Could be EIP-8 format, try that.
 	prefix := buf[:2]
 	size := binary.BigEndian.Uint16(prefix)
@@ -678,7 +731,7 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 		if msg.Size > maxUint24 {
 			return errPlainMessageTooLarge
 		}
-		payload, _ := ioutil.ReadAll(msg.Payload)
+		payload, _ := msg.GetPayLoad()
 		payload = snappy.Encode(nil, payload)
 
 		msg.Payload = bytes.NewReader(payload)

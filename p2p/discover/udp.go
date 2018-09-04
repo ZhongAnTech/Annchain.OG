@@ -324,7 +324,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 			nreceived++
 			n, err := t.nodeFromRPC(toaddr, rn)
 			if err != nil {
-				log.Debug("Invalid neighbor node received", "ip", rn.IP, "addr", toaddr, "err", err)
+				log.Debug("Invalid neighbor node received ", "ip", rn.IP, "addr", toaddr, "err ", rn.UDP, err)
 				continue
 			}
 			nodes = append(nodes, n)
@@ -478,13 +478,13 @@ func init() {
 	maxSizeNode := RpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
 	for n := 0; ; n++ {
 		p.Nodes = append(p.Nodes, maxSizeNode)
-		_, err := p.MarshalMsg(nil)
+		data, err := p.MarshalMsg(nil)
 		//size, _, err := rlp.EncodeToReader(p)
 		if err != nil {
 			// If this ever happens, it will be caught by the unit tests.
 			panic("cannot encode: " + err.Error())
 		}
-		size := p.Msgsize()
+		size := len(data)
 		if headSize+size+1 >= 1280 {
 			maxNeighbors = n
 			break
@@ -502,7 +502,7 @@ func (t *udp) send(toaddr *net.UDPAddr, ptype byte, data []byte, name string) ([
 
 func (t *udp) write(toaddr *net.UDPAddr, what string, packet []byte) error {
 	_, err := t.conn.WriteToUDP(packet, toaddr)
-	log.Debug(">> "+what, "addr", toaddr, "err", err)
+	log.Debug(">>write  "+what, "addr", toaddr, "err", err)
 	return err
 }
 
@@ -619,7 +619,7 @@ func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 		return err
 	}
 	err = packet.handle(t, from, fromID, hash)
-	log.Debug("<< "+packet.name(), "addr", from, "err", err)
+	log.Debug("<< handel  "+packet.name(), "addr", from, "err", err)
 	return err
 }
 

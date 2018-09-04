@@ -162,13 +162,13 @@ var maxNeighbors = func() int {
 	maxSizeNode := RpcNode{IP: make(net.IP, 16), UDP: ^uint16(0), TCP: ^uint16(0)}
 	for n := 0; ; n++ {
 		p.Nodes = append(p.Nodes, maxSizeNode)
-		_, err := p.MarshalMsg(nil)
+		data, err := p.MarshalMsg(nil)
 		//size, _, err := rlp.EncodeToReader(p)
 		if err != nil {
 			// If this ever happens, it will be caught by the unit tests.
 			panic("cannot encode: " + err.Error())
 		}
-		size := p.Msgsize()
+		size := len(data)
 		if headSize+size+1 >= 1280 {
 			return n
 		}

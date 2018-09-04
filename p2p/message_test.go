@@ -50,6 +50,7 @@ func ExampleMessagePipe() {
 	// Output:
 	// msg: 8, 0000
 	// msg: 5, 0101
+	time.Sleep(time.Second)
 }
 
 /*

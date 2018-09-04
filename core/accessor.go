@@ -125,7 +125,8 @@ func (da *Accessor) DeleteBalance(addr types.Address) error {
 	return da.db.Delete(addressBalanceKey(addr))
 }
 
-// AddBalance adds an amount of value to the address balance.
+// AddBalance adds an amount of value to the address balance. Note that AddBalance 
+// doesn't hold any locks so upper level program must manage this.
 func (da *Accessor) AddBalance(addr types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
@@ -139,7 +140,8 @@ func (da *Accessor) AddBalance(addr types.Address, amount *math.BigInt) error {
 	return da.SetBalance(addr, &math.BigInt{ Value: newbalance })
 }
 
-// SubBalance subs an amount of value to the address balance.
+// SubBalance subs an amount of value to the address balance. Note that SubBalance 
+// doesn't hold any locks so upper level program must manage this.
 func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
@@ -153,7 +155,7 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 		return fmt.Errorf("address %s has no enough balance to sub. balance: %d, sub amount: %d", 
 			addr.String(), balance.GetInt64(), amount.GetInt64())
 	}
-	
+
 	return nil
 }
 

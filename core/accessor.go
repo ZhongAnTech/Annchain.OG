@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"bytes"
 	"encoding/json"
 
@@ -44,18 +45,23 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return nil
 	}
 	prefix := data[:2]
+	data = data[2:]
 	if bytes.Equal(prefix, prefixTransaction) {
 		var tx types.Tx
 		// TODO use other decode function
 		err := json.Unmarshal(data, &tx)
-		if err != nil { return nil }
+		if err != nil { 
+			return nil 
+		}
 		return &tx
 	} 
 	if bytes.Equal(prefix, prefixSequencer) {
 		var sq types.Sequencer
 		// TODO use other decode function
 		err := json.Unmarshal(data, &sq)
-		if err != nil { return nil }
+		if err != nil { 
+			return nil 
+		}
 		return &sq
 	} 
 	return nil
@@ -63,50 +69,91 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 
 // WriteTransaction write the tx or sequencer into ogdb, data will be overwritten
 // if it already exist in db.
-func (da *Accessor) WriteTransaction(txi types.Txi) error {
-	key := transactionKey(txi.Hash())
+func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	// TODO use other encode function
-	data, err := json.Marshal(txi)
+	data, err := json.Marshal(tx)
 	if err != nil { 
 		return err 
 	}
-	return da.db.Put(key, data)
+	switch tx.(type) {
+	case *types.Tx:
+		data = append(prefixTransaction, data...)
+	case *types.Sequencer:
+		data = append(prefixSequencer, data...)
+	default:
+		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
+	}
+	return da.db.Put(transactionKey(tx.Hash()), data)
 }
 
 // DeleteTransaction delete the tx or sequencer.
 func (da *Accessor) DeleteTransaction(hash types.Hash) error {
-	// TODO
-	return nil
+	return da.db.Delete(transactionKey(hash))
 }
 
 // ReadBalance get the balance of an address.
 func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
-	// TODO
-	return nil
+	data, _ := da.db.Get(addressBalanceKey(addr))
+	if len(data) == 0 {
+		return nil
+	}
+	var bigint math.BigInt
+	// TODO use other encode function
+	err := json.Unmarshal(data, &bigint)
+	if err != nil { 
+		return nil 
+	}
+	return &bigint
 }
 
 // SetBalance write the balance of an address into ogdb.  
 // Data will be overwritten if it already exist in db. 
 func (da *Accessor) SetBalance(addr types.Address, value *math.BigInt) error {
-	// TODO
-	return nil
+	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
+		return fmt.Errorf("the value of the balance must be positive!")
+	}
+	// TODO use other encode function
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(addressBalanceKey(addr), data)
 }
 
 // DeleteBalance delete the balance of an address.
 func (da *Accessor) DeleteBalance(addr types.Address) error {
-	// TODO
-	return nil
+	return da.db.Delete(addressBalanceKey(addr))
 }
 
 // AddBalance adds an amount of value to the address balance.
 func (da *Accessor) AddBalance(addr types.Address, amount *math.BigInt) error {
-	// TODO
-	return nil
+	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
+		return fmt.Errorf("add amount must be positive!")
+	}
+	balance := da.ReadBalance(addr)
+	// no balance exists
+	if balance == nil {	
+		return da.SetBalance(addr, amount)
+	}
+	newbalance := balance.Value.Add(balance.Value, amount.Value)
+	return da.SetBalance(addr, &math.BigInt{ Value: newbalance })
 }
 
 // SubBalance subs an amount of value to the address balance.
-func (da *Accessor) SubBalance(addr types.Address, ammount *math.BigInt) error {
-	// TODO
+func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
+	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
+		return fmt.Errorf("add amount must be positive!")
+	}
+	balance := da.ReadBalance(addr)
+	// no balance exists
+	if balance == nil {	
+		return fmt.Errorf("address %s has no balance yet, cannot process sub", addr.String())
+	}
+	if balance.Value.Cmp(amount.Value) == -1 {
+		return fmt.Errorf("address %s has no enough balance to sub. balance: %d, sub amount: %d", 
+			addr.String(), balance.GetInt64(), amount.GetInt64())
+	}
+	
 	return nil
 }
 

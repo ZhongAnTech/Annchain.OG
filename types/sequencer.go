@@ -107,6 +107,6 @@ func (t *Sequencer) String() string {
 	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
 }
 
-func (t *Sequencer) GetBase() TxBase{
-	return t.TxBase
+func (t *Sequencer) GetBase() *TxBase{
+	return &t.TxBase
 }

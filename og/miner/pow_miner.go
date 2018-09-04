@@ -7,7 +7,6 @@ import (
 )
 
 type PoWMiner struct {
-	tx   types.Txi
 	quit bool
 }
 

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
+	"math/rand"
 )
 
 //go:generate msgp
@@ -35,6 +36,28 @@ func SampleTx() *Tx {
 		From: HexToAddress("0x99"),
 		To: HexToAddress("0x88"),
 		Value: v,
+	}
+}
+
+func randomHash() Hash{
+	v := math.NewBigInt(rand.Int63())
+	return BigToHash(v.Value)
+}
+func randomAddress() Address{
+	v := math.NewBigInt(rand.Int63())
+	return BigToAddress(v.Value)
+}
+
+func RandomTx() *Tx{
+	return &Tx{TxBase: TxBase{
+		Height:       rand.Uint64(),
+		ParentsHash:  []Hash{randomHash(),randomHash()},
+		Type:         TxBaseTypeNormal,
+		AccountNonce: uint64(rand.Int63n(50000)),
+	},
+		From: randomAddress(),
+		To: randomAddress(),
+		Value: math.NewBigInt(rand.Int63()),
 	}
 }
 
@@ -100,6 +123,6 @@ func (t *Tx) String() string {
 	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
 }
 
-func (t *Tx) GetBase() TxBase {
-	return t.TxBase
+func (t *Tx) GetBase() *TxBase {
+	return &t.TxBase
 }

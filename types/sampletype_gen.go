@@ -7,7 +7,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -17,15 +17,15 @@ func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
-	f.Bar, err = dc.ReadString()
+	z.Bar, err = dc.ReadString()
 	if err != nil {
 		return
 	}
-	f.Baz, err = dc.ReadFloat64()
+	z.Baz, err = dc.ReadFloat64()
 	if err != nil {
 		return
 	}
-	err = f.Address.DecodeMsg(dc)
+	err = z.Address.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -34,13 +34,13 @@ func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if cap(f.Parents) >= int(zb0002) {
-		f.Parents = (f.Parents)[:zb0002]
+	if cap(z.Parents) >= int(zb0002) {
+		z.Parents = (z.Parents)[:zb0002]
 	} else {
-		f.Parents = make([]Hash, zb0002)
+		z.Parents = make([]Hash, zb0002)
 	}
-	for za0001 := range f.Parents {
-		err = f.Parents[za0001].DecodeMsg(dc)
+	for za0001 := range z.Parents {
+		err = z.Parents[za0001].DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -50,11 +50,11 @@ func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if f.KV == nil {
-		f.KV = make(map[string]float64, zb0003)
-	} else if len(f.KV) > 0 {
-		for key := range f.KV {
-			delete(f.KV, key)
+	if z.KV == nil {
+		z.KV = make(map[string]float64, zb0003)
+	} else if len(z.KV) > 0 {
+		for key := range z.KV {
+			delete(z.KV, key)
 		}
 	}
 	for zb0003 > 0 {
@@ -69,13 +69,13 @@ func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		f.KV[za0002] = za0003
+		z.KV[za0002] = za0003
 	}
-	err = f.Seq.DecodeMsg(dc)
+	err = z.Seq.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	err = f.TxInner.DecodeMsg(dc)
+	err = z.TxInner.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -83,39 +83,39 @@ func (f *Foo) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (f *Foo) EncodeMsg(en *msgp.Writer) (err error) {
+func (z *Foo) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 7
 	err = en.Append(0x97)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(f.Bar)
+	err = en.WriteString(z.Bar)
 	if err != nil {
 		return
 	}
-	err = en.WriteFloat64(f.Baz)
+	err = en.WriteFloat64(z.Baz)
 	if err != nil {
 		return
 	}
-	err = f.Address.EncodeMsg(en)
+	err = z.Address.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(f.Parents)))
+	err = en.WriteArrayHeader(uint32(len(z.Parents)))
 	if err != nil {
 		return
 	}
-	for za0001 := range f.Parents {
-		err = f.Parents[za0001].EncodeMsg(en)
+	for za0001 := range z.Parents {
+		err = z.Parents[za0001].EncodeMsg(en)
 		if err != nil {
 			return
 		}
 	}
-	err = en.WriteMapHeader(uint32(len(f.KV)))
+	err = en.WriteMapHeader(uint32(len(z.KV)))
 	if err != nil {
 		return
 	}
-	for za0002, za0003 := range f.KV {
+	for za0002, za0003 := range z.KV {
 		err = en.WriteString(za0002)
 		if err != nil {
 			return
@@ -125,11 +125,11 @@ func (f *Foo) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	err = f.Seq.EncodeMsg(en)
+	err = z.Seq.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = f.TxInner.EncodeMsg(en)
+	err = z.TxInner.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -137,33 +137,33 @@ func (f *Foo) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (f *Foo) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, f.Msgsize())
+func (z *Foo) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
 	// array header, size 7
 	o = append(o, 0x97)
-	o = msgp.AppendString(o, f.Bar)
-	o = msgp.AppendFloat64(o, f.Baz)
-	o, err = f.Address.MarshalMsg(o)
+	o = msgp.AppendString(o, z.Bar)
+	o = msgp.AppendFloat64(o, z.Baz)
+	o, err = z.Address.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o = msgp.AppendArrayHeader(o, uint32(len(f.Parents)))
-	for za0001 := range f.Parents {
-		o, err = f.Parents[za0001].MarshalMsg(o)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Parents)))
+	for za0001 := range z.Parents {
+		o, err = z.Parents[za0001].MarshalMsg(o)
 		if err != nil {
 			return
 		}
 	}
-	o = msgp.AppendMapHeader(o, uint32(len(f.KV)))
-	for za0002, za0003 := range f.KV {
+	o = msgp.AppendMapHeader(o, uint32(len(z.KV)))
+	for za0002, za0003 := range z.KV {
 		o = msgp.AppendString(o, za0002)
 		o = msgp.AppendFloat64(o, za0003)
 	}
-	o, err = f.Seq.MarshalMsg(o)
+	o, err = z.Seq.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o, err = f.TxInner.MarshalMsg(o)
+	o, err = z.TxInner.MarshalMsg(o)
 	if err != nil {
 		return
 	}
@@ -171,7 +171,7 @@ func (f *Foo) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -181,15 +181,15 @@ func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
-	f.Bar, bts, err = msgp.ReadStringBytes(bts)
+	z.Bar, bts, err = msgp.ReadStringBytes(bts)
 	if err != nil {
 		return
 	}
-	f.Baz, bts, err = msgp.ReadFloat64Bytes(bts)
+	z.Baz, bts, err = msgp.ReadFloat64Bytes(bts)
 	if err != nil {
 		return
 	}
-	bts, err = f.Address.UnmarshalMsg(bts)
+	bts, err = z.Address.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -198,13 +198,13 @@ func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if cap(f.Parents) >= int(zb0002) {
-		f.Parents = (f.Parents)[:zb0002]
+	if cap(z.Parents) >= int(zb0002) {
+		z.Parents = (z.Parents)[:zb0002]
 	} else {
-		f.Parents = make([]Hash, zb0002)
+		z.Parents = make([]Hash, zb0002)
 	}
-	for za0001 := range f.Parents {
-		bts, err = f.Parents[za0001].UnmarshalMsg(bts)
+	for za0001 := range z.Parents {
+		bts, err = z.Parents[za0001].UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -214,11 +214,11 @@ func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if f.KV == nil {
-		f.KV = make(map[string]float64, zb0003)
-	} else if len(f.KV) > 0 {
-		for key := range f.KV {
-			delete(f.KV, key)
+	if z.KV == nil {
+		z.KV = make(map[string]float64, zb0003)
+	} else if len(z.KV) > 0 {
+		for key := range z.KV {
+			delete(z.KV, key)
 		}
 	}
 	for zb0003 > 0 {
@@ -233,13 +233,13 @@ func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		f.KV[za0002] = za0003
+		z.KV[za0002] = za0003
 	}
-	bts, err = f.Seq.UnmarshalMsg(bts)
+	bts, err = z.Seq.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	bts, err = f.TxInner.UnmarshalMsg(bts)
+	bts, err = z.TxInner.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -248,18 +248,18 @@ func (f *Foo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (f *Foo) Msgsize() (s int) {
-	s = 1 + msgp.StringPrefixSize + len(f.Bar) + msgp.Float64Size + f.Address.Msgsize() + msgp.ArrayHeaderSize
-	for za0001 := range f.Parents {
-		s += f.Parents[za0001].Msgsize()
+func (z *Foo) Msgsize() (s int) {
+	s = 1 + msgp.StringPrefixSize + len(z.Bar) + msgp.Float64Size + z.Address.Msgsize() + msgp.ArrayHeaderSize
+	for za0001 := range z.Parents {
+		s += z.Parents[za0001].Msgsize()
 	}
 	s += msgp.MapHeaderSize
-	if f.KV != nil {
-		for za0002, za0003 := range f.KV {
+	if z.KV != nil {
+		for za0002, za0003 := range z.KV {
 			_ = za0003
 			s += msgp.StringPrefixSize + len(za0002) + msgp.Float64Size
 		}
 	}
-	s += f.Seq.Msgsize() + f.TxInner.Msgsize()
+	s += z.Seq.Msgsize() + z.TxInner.Msgsize()
 	return
 }

@@ -65,22 +65,36 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 
 // Push trys to move a tx from tx pool to dag db.
 func (dag *Dag) Push(tx types.Txi) error {
-	// return dag.commit(tx)
-	return nil
+	return dag.push(tx)
 }
 
-// GetTx gets tx from dag network indexs by tx hash. This function querys 
+// GetTx gets tx from dag network indexed by tx hash. This function querys 
 // ogdb only.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
-	// TODO
-	// check db
-
-	return nil
+	return dag.getTx(hash)
 }
 
 // RollBack rolls back the dag network.
 func (dag *Dag) RollBack() {
 	// TODO
+}
+
+func (dag *Dag) push(tx types.Txi) error {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
+	return dag.accessor.WriteTransaction(tx)
+}
+
+func (dag *Dag) getTx(hash types.Hash) types.Txi {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
+	return dag.accessor.ReadTransaction(hash)
 }
 
 // func (dag *Dag) commit(tx types.Txi) error {

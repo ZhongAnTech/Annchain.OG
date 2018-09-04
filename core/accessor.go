@@ -70,19 +70,21 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 // WriteTransaction write the tx or sequencer into ogdb, data will be overwritten
 // if it already exist in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
+	var prefix []byte
+	switch tx.(type) {
+	case *types.Tx:
+		prefix = prefixTransaction
+	case *types.Sequencer:
+		prefix = prefixSequencer
+	default:
+		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
+	}
 	// TODO use other encode function
 	data, err := json.Marshal(tx)
 	if err != nil { 
 		return err 
 	}
-	switch tx.(type) {
-	case *types.Tx:
-		data = append(prefixTransaction, data...)
-	case *types.Sequencer:
-		data = append(prefixSequencer, data...)
-	default:
-		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
-	}
+	data = append(prefix, data...)
 	return da.db.Put(transactionKey(tx.Hash()), data)
 }
 

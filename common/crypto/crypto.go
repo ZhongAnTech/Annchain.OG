@@ -1,6 +1,6 @@
 package crypto
 
-type CryptoType int
+type CryptoType int8
 
 const (
 	CryptoTypeEd25519 CryptoType = iota

@@ -131,7 +131,7 @@ func (p *peer) SetHead(hash types.Hash, td *big.Int) {
 func (p *peer) MarkMessage(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
-		p.knownMsg.Pop()
+		p.knownMsg.Clear()	// TODO: Fix it
 	}
 	p.knownMsg.Add(hash)
 }

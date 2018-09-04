@@ -158,6 +158,3 @@ func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 
 }
 
-func (m *Manager) NewTx(){
-
-}

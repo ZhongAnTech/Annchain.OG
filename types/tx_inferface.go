@@ -43,14 +43,14 @@ func (t TxBaseType) String() string {
 //msgp:tuple Txi
 type Txi interface {
 	MinedHash() Hash          // MinedHash returns a full tx hash (MineNonce sealed)
-	StructureHash() Hash    // StructureHash returns the part that needs to be copnsidered in building the structure of dag.
+	StructureHash() Hash      // StructureHash returns the part that needs to be copnsidered in building the structure of dag.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
 
-	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
+	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
 	GetType() TxBaseType
-	GetBase() TxBase
+	GetBase() *TxBase
 	String() string
 	SetMineNonce(mineNonce uint64)
 

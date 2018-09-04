@@ -47,8 +47,8 @@ func NewNode() *Node {
 
 	org, err := og.NewOg()
 	if err != nil {
-		logrus.WithError(err).Fatalf("Error occurred while initializing Node")
-		panic("Error occurred while initializing Node")
+		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
+		panic("Error occurred while initializing OG")
 	}
 
 	n.Components = append(n.Components, org)
@@ -81,7 +81,7 @@ func NewNode() *Node {
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
-
+	n.Components = append(n.Components, m.TxBuffer)
 	n.Components = append(n.Components, m)
 	return n
 }

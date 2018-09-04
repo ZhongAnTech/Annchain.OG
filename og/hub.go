@@ -91,7 +91,7 @@ func (h *Hub) handle(p *peer) error {
 		genesis = types.Tx{} //todo
 		head    = types.Hash{}
 	)
-	if err := p.Handshake(h.networkID, head, genesis.Hash()); err != nil {
+	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
 		log.Debug("OG handshake failed", "err", err)
 		return err
 	}

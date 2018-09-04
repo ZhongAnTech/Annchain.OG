@@ -85,8 +85,8 @@ func (dag *Dag) commit(tx types.Txi) error {
 	// dag.mu.Lock()
 	// defer dag.mu.Unlock()
 
-	if dag.GetTx(tx.Hash()) != nil {
-		return fmt.Errorf("tx inserted already exists, hash: %s", tx.Hash().Hex())
+	if dag.GetTx(tx.MinedHash()) != nil {
+		return fmt.Errorf("tx inserted already exists, hash: %s", tx.MinedHash().Hex())
 	}
 	switch tx := tx.(type) {
 	case *types.Tx:
@@ -142,7 +142,7 @@ func (tp *TxPending) Exists(tx types.Txi) bool {
 	tp.mu.RLock()
 	defer tp.mu.RUnlock()
 
-	if tp.txs[tx.Hash()] == nil {
+	if tp.txs[tx.MinedHash()] == nil {
 		return false
 	}
 	return true
@@ -157,7 +157,7 @@ func (tp *TxPending) Add(tx types.Txi) {
 	tp.mu.Lock()
 	defer tp.mu.Unlock()
 
-	if tp.txs[tx.Hash()] == nil {
-		tp.txs[tx.Hash()] = tx
+	if tp.txs[tx.MinedHash()] == nil {
+		tp.txs[tx.MinedHash()] = tx
 	}
 }

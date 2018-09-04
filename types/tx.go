@@ -51,6 +51,9 @@ func (t *Tx) Hash() (hash Hash) {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
 
+	err = binary.Write(&buf, binary.BigEndian, t.MineNonce)
+	panicIfError(err)
+
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return

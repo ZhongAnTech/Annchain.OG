@@ -203,7 +203,7 @@ func (pool *TxPool) loop() {
 				txEvent.callbackChan <- err
 				continue
 			}
-			pool.txLookup.switchStatus(txEnv.tx.Hash(), TxStatusTip)
+			pool.txLookup.switchStatus(txEnv.tx.MinedHash(), TxStatusTip)
 			txEvent.callbackChan <- nil
 
 			// TODO case reset?
@@ -232,7 +232,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		pool.txLookup.add(te.txEnv)
 		break
 	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.Hash().Hex())
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.MinedHash().Hex())
 	}
 
 	select {
@@ -244,7 +244,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		// 	return fmt.Errorf("addLocalTx timeout, tx hash: %s", tx.Hash().Hex())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.Hash().Hex())
+	log.Debugf("successfully add tx: %s", tx.MinedHash().Hex())
 	return nil
 }
 
@@ -267,7 +267,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 			pool.txLookup.remove(hash)
 		}
 	}
-	pool.tips[tx.Hash()] = tx
+	pool.tips[tx.MinedHash()] = tx
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.txs[txEnv.tx.Hash()] = txEnv
+	t.txs[txEnv.tx.MinedHash()] = txEnv
 }
 func (t *txLookUp) remove(h types.Hash) {
 	t.mu.Lock()

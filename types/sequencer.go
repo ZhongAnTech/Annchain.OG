@@ -34,48 +34,79 @@ func SampleSequencer() *Sequencer {
 	}
 }
 
-func (seq *Sequencer) Hash() (hash Hash) {
+func (t *Sequencer) MinedHash() (hash Hash) {
 	var buf bytes.Buffer
 
-	panicIfError(binary.Write(&buf, binary.BigEndian, seq.Id))
-
-	for _, ancestor := range seq.ParentsHash {
+	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
 
-	for _, orderHash := range seq.ContractHashOrder {
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
+	for _, orderHash := range t.ContractHashOrder {
 		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
 	}
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, seq.MineNonce))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
 }
 
-func (seq *Sequencer) Parents() []Hash {
-	return seq.ParentsHash
+func (t *Sequencer) StructureHash() (hash Hash) {
+	var buf bytes.Buffer
+	for _, ancestor := range t.ParentsHash {
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+	}
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+
+	result := sha3.Sum256(buf.Bytes())
+	hash.MustSetBytes(result[0:])
+	return
 }
 
-func (seq *Sequencer) Compare(tx Txi) bool {
+func (t *Sequencer) SignatureTargets() []byte {
+	var buf bytes.Buffer
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
+	for _, orderHash := range t.ContractHashOrder {
+		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
+	}
+
+	return buf.Bytes()
+}
+
+
+func (t *Sequencer) Parents() []Hash {
+	return t.ParentsHash
+}
+
+func (t *Sequencer) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:
-		return cmp.Equal(seq, tx)
+		return cmp.Equal(t, tx)
 	default:
 		return false
 	}
 }
 
-func (seq *Sequencer) String() string {
+func (t *Sequencer) String() string {
 	var hashes []string
-	for _, v := range seq.ContractHashOrder {
+	for _, v := range t.ContractHashOrder {
 		hashes = append(hashes, v.Hex()[0:10])
 	}
 
-	return fmt.Sprintf("[%s] %d Hashes %s", seq.TxBase.String(), seq.Id, strings.Join(hashes, ","))
+	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
 }
 
-func (seq *Sequencer) GetBase() TxBase{
-	return seq.TxBase
+func (t *Sequencer) GetBase() TxBase{
+	return t.TxBase
 }

@@ -32,31 +32,56 @@ func SampleTx() *Tx {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From:  HexToAddress("0x99"),
-		To:    HexToAddress("0x88"),
+		From: HexToAddress("0x99"),
+		To: HexToAddress("0x88"),
 		Value: v,
 	}
 }
 
-func (t *Tx) Hash() (hash Hash) {
+func (t *Tx) MinedHash() (hash Hash) {
 	var buf bytes.Buffer
-
-	err := binary.Write(&buf, binary.BigEndian, t.Height)
-	panicIfError(err)
 
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
+
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
 
-	err = binary.Write(&buf, binary.BigEndian, t.MineNonce)
-	panicIfError(err)
+	result := sha3.Sum256(buf.Bytes())
+	hash.MustSetBytes(result[0:])
+	return
+}
+
+func (t *Tx) StructureHash() (hash Hash) {
+	var buf bytes.Buffer
+	for _, ancestor := range t.ParentsHash {
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
+}
+
+func (t *Tx) SignatureTargets() []byte {
+	var buf bytes.Buffer
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
+
+	return buf.Bytes()
 }
 
 func (t *Tx) Parents() []Hash {
@@ -75,6 +100,6 @@ func (t *Tx) String() string {
 	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
 }
 
-func (t *Tx) GetBase() TxBase{
+func (t *Tx) GetBase() TxBase {
 	return t.TxBase
 }

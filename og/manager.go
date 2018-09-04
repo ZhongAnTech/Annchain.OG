@@ -90,11 +90,11 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		switch hash.Bytes[0] {
 		case 0:
 			tx := types.SampleSequencer()
-			tx.SetHash(tx.Hash())
+			tx.SetHash(tx.MinedHash())
 			seqs = append(seqs, tx)
 		case 1:
 			tx := types.SampleTx()
-			tx.SetHash(tx.Hash())
+			tx.SetHash(tx.MinedHash())
 			txs = append(txs, tx)
 		}
 	}
@@ -130,11 +130,11 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 		return
 	}
 	for _, v := range syncResponse.Txs {
-		logrus.Infof("Received Tx: %s", v.Hash().Hex())
+		logrus.Infof("Received Tx: %s", v.Hash.Hex())
 		logrus.Infof(v.String())
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.Infof("Received Seq: %s", v.Hash().Hex())
+		logrus.Infof("Received Seq: %s", v.Hash.Hex())
 		logrus.Infof(v.String())
 	}
 }
@@ -155,5 +155,9 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 }
 
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
+
+}
+
+func (m *Manager) NewTx(){
 
 }

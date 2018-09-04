@@ -43,7 +43,6 @@ type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
-
 type Hashs []Hash
 
 type HashBytes [HashLength]byte
@@ -68,7 +67,7 @@ func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
 func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 
 // Hex converts a Hash to a hex string.
-func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:1]) }
+func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.
@@ -120,4 +119,16 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 		h.Bytes[i] = byte(rand.Uint32())
 	}
 	return reflect.ValueOf(h)
+}
+
+// Cmp compares two hashes. Returns -1 if the self hash is less than parameter hash
+func (h Hash) Cmp(another Hash) int {
+	for i := 0; i < HashLength; i++ {
+		if h.Bytes[i] < another.Bytes[i]{
+			return -1
+		}else if h.Bytes[i] > another.Bytes[i]{
+			return 1
+		}
+	}
+	return 0
 }

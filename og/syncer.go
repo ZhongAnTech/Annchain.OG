@@ -8,6 +8,7 @@ import (
 )
 
 // Syncer fetches tx from other peers.
+// Syncer will not fire duplicate requests in a period of time.
 type Syncer struct {
 	config              *SyncerConfig
 	hub                 *Hub

@@ -92,6 +92,7 @@ func setup() *TxBuffer {
 		Dag:                    new(dummyDag),
 		Syncer:                 new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
+		NewTxQueueSize:                   100,
 	})
 
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
@@ -191,6 +192,7 @@ func TestBufferCache(t *testing.T) {
 			// not found
 			logrus.Info("Not in cache")
 			success = true
+			break
 		} else {
 			logrus.Info("In cache")
 		}

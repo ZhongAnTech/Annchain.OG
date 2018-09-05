@@ -105,6 +105,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 				}
 				if _, ok := m.tryConnect(tx, txs); ok {
 					done = true
+					tx.GetBase().Hash = tx.CalcTxHash()
 					break
 				}
 			}

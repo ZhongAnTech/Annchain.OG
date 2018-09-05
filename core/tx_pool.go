@@ -282,7 +282,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	if pool.isBadTx(tx) {
 		pool.badtxs.Add(tx)
-		pool.txLookup.switchStatus(tx.MinedHash(), TxStatusBadTx)
+		pool.txLookup.switchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
 	}
 	// move parents to txpending
@@ -294,7 +294,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		}
 	}
 	pool.tips.Add(tx)
-	pool.txLookup.switchStatus(tx.MinedHash(), TxStatusTip)
+	pool.txLookup.switchStatus(tx.GetTxHash(), TxStatusTip)
 	return nil
 }
 
@@ -320,19 +320,19 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// move elders to dag
 	for _, elder := range elders {
 		pool.dag.Push(elder)
-		pool.remove(elder.MinedHash())
+		pool.remove(elder.GetTxHash())
 	}
 	pool.tips.Add(seq)
-	pool.txLookup.switchStatus(seq.MinedHash(), TxStatusTip)
+	pool.txLookup.switchStatus(seq.GetTxHash(), TxStatusTip)
 	return nil
 }
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
-	if baseTx == nil || pool.dag.GetTx(baseTx.MinedHash()) != nil {
+	if baseTx == nil || pool.dag.GetTx(baseTx.GetTxHash()) != nil {
 		return
 	}
-	if batch[baseTx.MinedHash()] == nil {
-		batch[baseTx.MinedHash()] = baseTx
+	if batch[baseTx.GetTxHash()] == nil {
+		batch[baseTx.GetTxHash()] = baseTx
 	}
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.txPending.Get(pHash)
@@ -449,7 +449,7 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	if tm.txs[tx.MinedHash()] == nil {
+	if tm.txs[tx.GetTxHash()] == nil {
 		return false
 	}
 	return true
@@ -464,7 +464,7 @@ func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.txs[tx.MinedHash()] == nil {
-		tm.txs[tx.MinedHash()] = tx
+	if tm.txs[tx.GetTxHash()] == nil {
+		tm.txs[tx.GetTxHash()] = tx
 	}
 }

@@ -504,7 +504,6 @@ bab86a05baa126ce572b01d345f21c6011b9e2aebad983b3beaaa66c2a4c729012ca691b9fe38cbe
 	},
 }
 
-
 func TestHandshakeForwardCompatibility(t *testing.T) {
 	var (
 		keyA, _       = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
@@ -539,17 +538,17 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 	for _, test := range eip8HandshakeAuthTests {
 		r := bytes.NewReader(unhex(test.input))
 		msg := new(AuthMsgV4)
-        /*
-		var someText []byte
-		msg2 := makeAuth(test)
-		pub_b:=  ecies.ImportECDSAPublic(&keyB.PublicKey)
-		if !msg2.gotPlain{
-			someText,_= preEip8test(msg2,pub_b)
-			r2 := bytes.NewReader(someText)
-			fmt.Println(r2.Size())
-		}
+		/*
+			var someText []byte
+			msg2 := makeAuth(test)
+			pub_b:=  ecies.ImportECDSAPublic(&keyB.PublicKey)
+			if !msg2.gotPlain{
+				someText,_= preEip8test(msg2,pub_b)
+				r2 := bytes.NewReader(someText)
+				fmt.Println(r2.Size())
+			}
 
- */
+		*/
 		ciphertext, err := readHandshakeMsg(msg, encAuthMsgLen, keyB, r)
 		if err != nil {
 			t.Errorf("error for input %x:\n  %v ", unhex(test.input), err)
@@ -561,7 +560,7 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		want := makeAuth(test)
 		if !reflect.DeepEqual(msg, want) {
 			t.Errorf("wrong msg for input %x:\ngot %s\nwant %s", unhex(test.input), spew.Sdump(msg), spew.Sdump(want))
-			fmt.Println(msg.Version!=want.Version,msg.gotPlain)
+			fmt.Println(msg.Version != want.Version, msg.gotPlain)
 		}
 	}
 
@@ -571,15 +570,15 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		r := bytes.NewReader(input)
 		msg := new(AuthRespV4)
 		/*
-		var someText []byte
-		msg2 := makeAck(test)
-		pub_a:=  ecies.ImportECDSAPublic(&keyA.PublicKey)
+			var someText []byte
+			msg2 := makeAck(test)
+			pub_a:=  ecies.ImportECDSAPublic(&keyA.PublicKey)
 
-			someText,_= preEip8Resptest(msg2,pub_a)
-			r = bytes.NewReader(someText)
-			fmt.Println(r.Size())
+				someText,_= preEip8Resptest(msg2,pub_a)
+				r = bytes.NewReader(someText)
+				fmt.Println(r.Size())
 
-              */
+		*/
 		ciphertext, err := readHandshakeMsgResp(msg, encAuthRespLen, keyA, r)
 		if err != nil {
 			t.Errorf("error for input %x:\n  %v", input, err)

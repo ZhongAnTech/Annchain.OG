@@ -209,7 +209,7 @@ loop:
 			break loop
 		}
 	}
-    log.Debug("reason ",reason,remoteRequested,err )
+	log.Debug("reason ", reason, remoteRequested, err)
 	close(p.closed)
 	p.rw.close(reason)
 	p.wg.Wait()

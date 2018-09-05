@@ -19,13 +19,13 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"testing"
 	"time"
-	"github.com/sirupsen/logrus"
-	"os"
 )
 
 var discard = Protocol{
@@ -363,15 +363,15 @@ func TestMatchProtocols(t *testing.T) {
 	}
 }
 
-func init(){
+func init() {
 	logrus.SetLevel(logrus.DebugLevel)
-	fname:= "log334.log"
-	f,err := os.Create(fname)
-	if err!=nil {
+	fname := "log334.log"
+	f, err := os.Create(fname)
+	if err != nil {
 		os.Remove(fname)
-		f,err = os.Create(fname)
+		f, err = os.Create(fname)
 	}
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	logrus.SetOutput(f)

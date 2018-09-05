@@ -5,6 +5,6 @@ import (
 )
 
 type Miner interface{
-	StartMine(tx types.Txi, targetMax types.Hash, responseChan chan uint64)
+	StartMine(tx types.Txi, targetMax types.Hash, start uint64, responseChan chan uint64)
 	Stop()
 }

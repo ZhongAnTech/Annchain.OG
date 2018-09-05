@@ -5,11 +5,9 @@ import (
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
 	"github.com/google/go-cmp/cmp"
-
 	"fmt"
-
-	"golang.org/x/crypto/sha3"
 	"math/rand"
+	"github.com/annchain/OG/common/crypto/sha3"
 )
 
 //go:generate msgp
@@ -39,19 +37,20 @@ func SampleTx() *Tx {
 	}
 }
 
-func randomHash() Hash{
+func randomHash() Hash {
 	v := math.NewBigInt(rand.Int63())
 	return BigToHash(v.Value)
 }
-func randomAddress() Address{
+func randomAddress() Address {
 	v := math.NewBigInt(rand.Int63())
 	return BigToAddress(v.Value)
 }
 
-func RandomTx() *Tx{
+func RandomTx() *Tx {
 	return &Tx{TxBase: TxBase{
+		Hash:         randomHash(),
 		Height:       rand.Uint64(),
-		ParentsHash:  []Hash{randomHash(),randomHash()},
+		ParentsHash:  []Hash{randomHash(), randomHash()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 	},
@@ -61,35 +60,26 @@ func RandomTx() *Tx{
 	}
 }
 
-func (t *Tx) MinedHash() (hash Hash) {
+func (t *Tx) TxHash() (hash Hash) {
 	var buf bytes.Buffer
 
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.NonceHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
 }
 
-func (t *Tx) StructureHash() (hash Hash) {
+func (t *Tx) NonceHash() (hash Hash) {
 	var buf bytes.Buffer
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
-	}
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])

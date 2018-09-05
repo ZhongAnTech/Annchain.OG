@@ -15,7 +15,7 @@ func NewVerifier(signer crypto.Signer) *Verifier {
 }
 
 func (v *Verifier) VerifyHash(t types.Txi) bool {
-	return t.MinedHash() == t.GetBase().Hash
+	return t.TxHash() == t.GetBase().Hash
 }
 
 func (v *Verifier) VerifySignature(t types.Txi) bool {

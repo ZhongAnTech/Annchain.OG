@@ -31,7 +31,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/ethereum/go-ethereum/metrics"	// TODO replace eth metrics with go-metrics
+	"github.com/annchain/OG/metrics"	
 )
 
 const (

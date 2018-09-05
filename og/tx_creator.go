@@ -61,8 +61,8 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	tx.GetBase().ParentsHash = parentHashes
 	logrus.Infof("Parent length: %d", len(parentHashes))
 	// verify if the hash of the structure meet the standard.
-	if tx.TxHash().Cmp(m.MaxTxHash) < 0 {
-		logrus.Debugf("Connected %s %s", tx.TxHash().Hex(), m.MaxTxHash.Hex())
+	if tx.CalcTxHash().Cmp(m.MaxTxHash) < 0 {
+		logrus.Debugf("Connected %s %s", tx.CalcTxHash().Hex(), m.MaxTxHash.Hex())
 		logrus.Debugf("Parents: %s %s", tx.GetBase().ParentsHash[0].Hex(), tx.GetBase().ParentsHash[1].Hex())
 		// yes
 		txRet = tx
@@ -70,7 +70,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		logrus.Debugf("Validate graph structure [%t] : %s %s", ok, parentHashes[0].Hex(), parentHashes[1].Hex())
 		return txRet, ok
 	} else {
-		logrus.Debugf("Failed to connected %s %s", tx.TxHash().Hex(), m.MaxTxHash.Hex())
+		logrus.Debugf("Failed to connected %s %s", tx.CalcTxHash().Hex(), m.MaxTxHash.Hex())
 		return nil, false
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"math/rand"
-	"github.com/annchain/OG/common/crypto/sha3"
 )
 
 //go:generate msgp
@@ -58,32 +57,6 @@ func RandomTx() *Tx {
 		To: randomAddress(),
 		Value: math.NewBigInt(rand.Int63()),
 	}
-}
-
-func (t *Tx) TxHash() (hash Hash) {
-	var buf bytes.Buffer
-
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
-	}
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.NonceHash().Bytes))
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
-}
-
-func (t *Tx) NonceHash() (hash Hash) {
-	var buf bytes.Buffer
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
 }
 
 func (t *Tx) SignatureTargets() []byte {

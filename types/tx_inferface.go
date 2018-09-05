@@ -45,8 +45,8 @@ func (t TxBaseType) String() string {
 
 //msgp:tuple Txi
 type Txi interface {
-	TxHash() Hash             // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	NonceHash() Hash          // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+	CalcNonceHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
 
@@ -54,6 +54,7 @@ type Txi interface {
 
 	GetType() TxBaseType
 	GetBase() *TxBase
+	GetTxHash() Hash
 	String() string
 
 	DecodeMsg(dc *msgp.Reader) (err error)
@@ -79,6 +80,10 @@ func (t *TxBase) GetType() TxBaseType {
 	return t.Type
 }
 
+func (t *TxBase) GetTxHash() Hash {
+	return t.Hash
+}
+
 func (t *TxBase) Parents() []Hash {
 	return t.ParentsHash
 }
@@ -96,21 +101,21 @@ func (t *TxBase) String() string {
 	return fmt.Sprintf("%s %s Parent [%s]", t.Type.String(), t.Hash.Hex()[:10], strings.Join(hashes, ","))
 }
 
-func (t *TxBase) TxHash() (hash Hash) {
+func (t *TxBase) CalcTxHash() (hash Hash) {
 	var buf bytes.Buffer
 
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.NonceHash().Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcNonceHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
 }
 
-func (t *TxBase) NonceHash() (hash Hash) {
+func (t *TxBase) CalcNonceHash() (hash Hash) {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))

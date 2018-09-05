@@ -190,7 +190,7 @@ func readProtocolHandshake(rw MsgReader, our *ProtoHandshake) (*ProtoHandshake, 
 	data, _ := msg.GetPayLoad()
 	_, err = hs.UnmarshalMsg(data)
 	if err != nil {
-         err =  newPeerError(errInvalidMsg, "(code %x) (size %d) %v", msg.Code, msg.Size, err)
+		err = newPeerError(errInvalidMsg, "(code %x) (size %d) %v", msg.Code, msg.Size, err)
 		//if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
@@ -310,7 +310,6 @@ func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remoteID d
 	}
 	return h.secrets(authPacket, authRespPacket)
 }
-
 
 // makeAuthMsg creates the initiator handshake message.
 func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*AuthMsgV4, error) {
@@ -437,8 +436,7 @@ func (h *encHandshake) makeAuthResp() (msg *AuthRespV4, err error) {
 	return msg, nil
 }
 
-
-func (msg*AuthMsgV4)preSealPlain( local_pubKey * ecies.PublicKey, remotePubkey * ecies.PublicKey)([]byte, error) {
+func (msg *AuthMsgV4) preSealPlain(local_pubKey *ecies.PublicKey, remotePubkey *ecies.PublicKey) ([]byte, error) {
 	buf := make([]byte, authMsgLen)
 	n := copy(buf, msg.Signature[:])
 	n += copy(buf[n:], crypto.Keccak256(exportPubkey(local_pubKey)))
@@ -531,7 +529,7 @@ func sealEIP8Resp(msg *AuthRespV4, h *encHandshake) ([]byte, error) {
 }
 
 //test function ,just for test
-func  preEip8test ( msg *AuthMsgV4, remotePubkey * ecies.PublicKey) ([]byte, error) {
+func preEip8test(msg *AuthMsgV4, remotePubkey *ecies.PublicKey) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {
@@ -550,7 +548,7 @@ func  preEip8test ( msg *AuthMsgV4, remotePubkey * ecies.PublicKey) ([]byte, err
 }
 
 ////test function ,just for test
-func  preEip8Resptest ( msg *AuthRespV4, remotePubkey * ecies.PublicKey) ([]byte, error) {
+func preEip8Resptest(msg *AuthRespV4, remotePubkey *ecies.PublicKey) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {
@@ -581,7 +579,7 @@ func readHandshakeMsgResp(msg *AuthRespV4, plainSize int, prv *ecdsa.PrivateKey,
 	key := ecies.ImportECDSA(prv)
 	if dec, err := key.Decrypt(buf, nil, nil); err == nil {
 		msg.decodePlain(dec)
-	//	fmt.Println("is plain",msg)
+		//	fmt.Println("is plain",msg)
 		return buf, nil
 	}
 	// Could be EIP-8 format, try that.

@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
+	"github.com/annchain/OG/common/math"
 )
 
 type DagConfig struct {
@@ -37,6 +38,13 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	return dag
 }
 
+type confirmBatch map[types.Address]subConfirmBatch
+type subConfirmBatch struct {
+	txList	map[types.Hash]types.Txi
+	neg		*math.BigInt
+	pos		*math.BigInt
+}
+
 func (dag *Dag) Start() {
 	log.Infof("TxPool Start")
 
@@ -60,8 +68,8 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 }
 
 // Push trys to move a tx from tx pool to dag db.
-func (dag *Dag) Push(tx types.Txi) error {
-	return dag.push(tx)
+func (dag *Dag) Push(batch *confirmBatch) error {
+	return dag.push(batch)
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
@@ -75,13 +83,15 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) push(tx types.Txi) error {
+func (dag *Dag) push(batch *confirmBatch) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 	dag.wg.Add(1)
 	defer dag.wg.Done()
 
-	return dag.accessor.WriteTransaction(tx)
+	// TODO update state
+	// dag.accessor.WriteTransaction(tx)
+	return nil
 }
 
 func (dag *Dag) getTx(hash types.Hash) types.Txi {
@@ -92,6 +102,7 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 
 	return dag.accessor.ReadTransaction(hash)
 }
+
 
 // func (dag *Dag) loop() {
 

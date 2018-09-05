@@ -1,11 +1,11 @@
 package crypto
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"fmt"
-	"encoding/hex"
 	"bytes"
+	"encoding/hex"
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestSigner(t *testing.T) {

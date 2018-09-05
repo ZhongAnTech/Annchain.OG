@@ -25,20 +25,34 @@ func (t TxBaseType) String() string {
 	}
 }
 
+// Here indicates what fields should be concerned during hash calculation and signature generation
+// |      |                   | Signature target | StructureHash(Slow) | MinedHash(Fast) |
+// |------|-------------------|------------------|---------------------|-----------------|
+// | Base | ParentsHash       |                  |                   1 |               1 |
+// | Base | AccountNonce      |                1 |                     |               1 |
+// | Base | Height            |                  |                   1 |               1 |
+// | Base | PublicKey         |                  |                   1 |               1 |
+// | Base | Signature         |                  |                   1 |               1 |
+// | Base | MineNonce         |                  |                     |               1 |
+// | Tx   | From              |                1 |                     |               1 |
+// | Tx   | To                |                1 |                     |               1 |
+// | Tx   | Value             |                1 |                     |               1 |
+// | Seq  | Id                |                1 |                     |               1 |
+// | Seq  | ContractHashOrder |                1 |                     |               1 |
+
 //msgp:tuple Txi
 type Txi interface {
-	// Hash returns a tx hash
-	Hash() Hash
+	MinedHash() Hash          // MinedHash returns a full tx hash (MineNonce sealed)
+	StructureHash() Hash      // StructureHash returns the part that needs to be copnsidered in building the structure of dag.
+	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
+	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
 
-	// Parents returns the hash of txs that it directly proves.
-	Parents() []Hash
-
-	// Compare compares two txs, return true if they are the same.
-	Compare(tx Txi) bool
+	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
 	GetType() TxBaseType
-	GetBase() TxBase
+	GetBase() *TxBase
 	String() string
+	SetMineNonce(mineNonce uint64)
 
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
@@ -56,6 +70,7 @@ type TxBase struct {
 	Height       uint64
 	PublicKey    []byte
 	Signature    []byte
+	MineNonce    uint64
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -68,6 +83,9 @@ func (t *TxBase) Parents() []Hash {
 
 func (t *TxBase) SetHash(hash Hash) {
 	t.Hash = hash
+}
+func (t *TxBase) SetMineNonce(mineNonce uint64) {
+	t.MineNonce = mineNonce
 }
 
 func (t *TxBase) String() string {

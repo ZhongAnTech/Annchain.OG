@@ -1,8 +1,8 @@
 package og
 
 import (
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
 )
 
 type Verifier struct {
@@ -15,12 +15,12 @@ func NewVerifier(signer crypto.Signer) *Verifier {
 }
 
 func (v *Verifier) VerifyHash(t types.Txi) bool {
-	return t.Hash() == t.GetBase().Hash
+	return t.MinedHash() == t.GetBase().Hash
 }
 
 func (v *Verifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
-	return v.signer.Verify(crypto.PublicKey{Type:  v.cryptoType, Bytes: base.PublicKey},
-		crypto.Signature{Type:  v.cryptoType, Bytes: base.Signature},
+	return v.signer.Verify(crypto.PublicKey{Type: v.cryptoType, Bytes: base.PublicKey},
+		crypto.Signature{Type: v.cryptoType, Bytes: base.Signature},
 		base.Hash.Bytes[:])
 }

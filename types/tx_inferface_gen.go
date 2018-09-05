@@ -13,8 +13,8 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 8 {
+		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
 		return
 	}
 	{
@@ -53,13 +53,25 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	z.Signature, err = dc.ReadBytes(z.Signature)
+	if err != nil {
+		return
+	}
+	z.MineNonce, err = dc.ReadUint64()
+	if err != nil {
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 5
-	err = en.Append(0x95)
+	// array header, size 8
+	err = en.Append(0x98)
 	if err != nil {
 		return
 	}
@@ -89,14 +101,26 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	err = en.WriteBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Signature)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.MineNonce)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
+	// array header, size 8
+	o = append(o, 0x98)
 	o = msgp.AppendUint(o, uint(z.Type))
 	o, err = z.Hash.MarshalMsg(o)
 	if err != nil {
@@ -111,6 +135,9 @@ func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o = msgp.AppendUint64(o, z.AccountNonce)
 	o = msgp.AppendUint64(o, z.Height)
+	o = msgp.AppendBytes(o, z.PublicKey)
+	o = msgp.AppendBytes(o, z.Signature)
+	o = msgp.AppendUint64(o, z.MineNonce)
 	return
 }
 
@@ -121,8 +148,8 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 8 {
+		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
 		return
 	}
 	{
@@ -161,6 +188,18 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+	if err != nil {
+		return
+	}
+	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+	if err != nil {
+		return
+	}
+	z.MineNonce, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
@@ -171,7 +210,7 @@ func (z *TxBase) Msgsize() (s int) {
 	for za0001 := range z.ParentsHash {
 		s += z.ParentsHash[za0001].Msgsize()
 	}
-	s += msgp.Uint64Size + msgp.Uint64Size
+	s += msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size
 	return
 }
 

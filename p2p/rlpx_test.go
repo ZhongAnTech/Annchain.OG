@@ -29,9 +29,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/annchain/OG/ethlib/crypto"
-	"github.com/annchain/OG/ethlib/crypto/ecies"
-	"github.com/annchain/OG/ethlib/crypto/sha3"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/ecies"
+	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -252,7 +252,7 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 		{
 			code: handshakeMsg,
 			msg:  []byte{1, 2, 3},
-			err:  newPeerError(errInvalidMsg, "(code 0) (size 4) rlp: expected input list for p2p.protoHandshake"),
+			err:  newPeerError(errInvalidMsg, "(code 0) (size 3) msgp: attempted to decode type \"int\" with method for \"map\""),
 		},
 		{
 			code: handshakeMsg,
@@ -285,7 +285,7 @@ func TestRLPXFrameFake(t *testing.T) {
 	golden := unhex(`
 00828ddae471818bb0bfa6b551d1cb42
 01010101010101010101010101010101
-ba628a4ba590cb43f7848f41c4382885
+ba328a4ba590cb43f7848f41c4382885
 01010101010101010101010101010101
 `)
 
@@ -313,7 +313,7 @@ ba628a4ba590cb43f7848f41c4382885
 		t.Errorf("msg code mismatch: got %d, want %d", msg.Code, 8)
 	}
 	payload, _ := ioutil.ReadAll(msg.Payload)
-	wantPayload := unhex("C401020304")
+	wantPayload := unhex("9401020304")
 	if !bytes.Equal(payload, wantPayload) {
 		t.Errorf("msg payload mismatch:\ngot  %x\nwant %x", payload, wantPayload)
 	}
@@ -413,36 +413,38 @@ var eip8HandshakeAuthTests = []handshakeAuthTest{
 	// (Auth₂) EIP-8 encoding
 	{
 		input: `
-			01b304ab7578555167be8154d5cc456f567d5ba302662433674222360f08d5f1534499d3678b513b
-			0fca474f3a514b18e75683032eb63fccb16c156dc6eb2c0b1593f0d84ac74f6e475f1b8d56116b84
-			9634a8c458705bf83a626ea0384d4d7341aae591fae42ce6bd5c850bfe0b999a694a49bbbaf3ef6c
-			da61110601d3b4c02ab6c30437257a6e0117792631a4b47c1d52fc0f8f89caadeb7d02770bf999cc
-			147d2df3b62e1ffb2c9d8c125a3984865356266bca11ce7d3a688663a51d82defaa8aad69da39ab6
-			d5470e81ec5f2a7a47fb865ff7cca21516f9299a07b1bc63ba56c7a1a892112841ca44b6e0034dee
-			70c9adabc15d76a54f443593fafdc3b27af8059703f88928e199cb122362a4b35f62386da7caad09
-			c001edaeb5f8a06d2b26fb6cb93c52a9fca51853b68193916982358fe1e5369e249875bb8d0d0ec3
-			6f917bc5e1eafd5896d46bd61ff23f1a863a8a8dcd54c7b109b771c8e61ec9c8908c733c0263440e
-			2aa067241aaa433f0bb053c7b31a838504b148f570c0ad62837129e547678c5190341e4f1693956c
-			3bf7678318e2d5b5340c9e488eefea198576344afbdf66db5f51204a6961a63ce072c8926c
+		 01fd04e21891e689df83f64e0f6fd092c3060aeaebeae4abd52898524a6dde5167
+aeecce9bc44234c8953db2b084ee7f8f0773e43861469cc1021b2154aed092988d49ff079abe
+52b24069b344b08e0680dd0d388b53e2651f86259c91eaad261e09d5be94c070f91c0ae3cb1af
+fa11017aabdc223a5919596da1999260715eda05f3653623c05350fa7bf06dcde5a754066f8d4
+64a3fa99c47d50e0ff3b7b58ad43e85ceaca2646cc36206e0b0648b92604b6593559d202d1b294
+60af08d6818decf069118ded9eaabac157fa77494b90c23d94a3932694bbdd65abcfbe44000b
+1b5e19dec5345968756f7be241b614f239613bfd1b073d23f83bb9916013f02bd815800cdded
+09c429ced8526d0b433bf400e54eb30ec5ce9dc6f96a75dee773afbbb73d64ffc9dc5db4080a
+5571b3ad9122f67a24815e53d43522209606800d9ff8dd29411ce279d40ec12f202370356396
+62248f1ce553bab7b35aa13bd76a0ae435fc3515a5708b4f8f71af5bf96657e04d572850c6cb
+241fc2dccdfd4f9fc04ce5d53e6e502f2fc9477aabaa829ee26e2e2f377a434d5e2e6e6632b
+8100013c90c05828fa14e6dbc2d32a10eed51877ad5cf06396220bab227405f48dc725c2bc
+2281f762212dc192d672cb5bc3289ac50a0244c68d33f509d49d8789744464dc2909fffda0
+31155bad633ad7b30eb43263aa565c086f326a8cea4c5
 		`,
 		wantVersion: 4,
-		wantRest:    [][]byte{{}},
+		//wantRest:    [][]byte{},
 	},
 	// (Auth₃) RLPx v4 EIP-8 encoding with version 56, additional list elements
 	{
 		input: `
-			01b8044c6c312173685d1edd268aa95e1d495474c6959bcdd10067ba4c9013df9e40ff45f5bfd6f7
-			2471f93a91b493f8e00abc4b80f682973de715d77ba3a005a242eb859f9a211d93a347fa64b597bf
-			280a6b88e26299cf263b01b8dfdb712278464fd1c25840b995e84d367d743f66c0e54a586725b7bb
-			f12acca27170ae3283c1073adda4b6d79f27656993aefccf16e0d0409fe07db2dc398a1b7e8ee93b
-			cd181485fd332f381d6a050fba4c7641a5112ac1b0b61168d20f01b479e19adf7fdbfa0905f63352
-			bfc7e23cf3357657455119d879c78d3cf8c8c06375f3f7d4861aa02a122467e069acaf513025ff19
-			6641f6d2810ce493f51bee9c966b15c5043505350392b57645385a18c78f14669cc4d960446c1757
-			1b7c5d725021babbcd786957f3d17089c084907bda22c2b2675b4378b114c601d858802a55345a15
-			116bc61da4193996187ed70d16730e9ae6b3bb8787ebcaea1871d850997ddc08b4f4ea668fbf3740
-			7ac044b55be0908ecb94d4ed172ece66fd31bfdadf2b97a8bc690163ee11f5b575a4b44e36e2bfb2
-			f0fce91676fd64c7773bac6a003f481fddd0bae0a1f31aa27504e2a533af4cef3b623f4791b2cca6
-			d490
+		 020e0439c7b8803f6c8939c83ab2e024093a2ab2e5834512f47bf84aa33439f03539053a84cec7469803d
+		4edeeea66059be82d4fa0aa419d3ab77631c228f1936e27e57ce6c5dc9a785fd19892367ecb21a716fbf8d
+     498280924d63c2b27977797ff71742fa9960f8e9f6571045c5a1e812644f541221aac59c5e27d5daba1f8119db944f
+      1466d6c0e068bbd7621b18ec237be63ed26f0e5b664b3395d344a3c0c57d89653816329e9e2ffd79e01ce4b5614ea
+      e80755e0aca3655eb3a435c1e7a443e0af36a9908b3dd076d01905d4c9224e0f941ebdd51e8d4
+    7fb4f495ea88c928e176ced61917da8f18bcca3365970df65f357d099dc720fdaf4aa3aaaf779af0074425551c38222c2899353028d92bf
+   ecf2b8003cf35d4bcc9ce2a25dcdc79d79cc0022835515938a59ee79bfbd78c6bef57fda03c0c42231783c7445015f247a248cdcd5a61a2
+   e108929197d3e0e83bd6d2f025115fb21e890193b3c752880a6e1758e5ded5633d81de771f68659e77511b36bac3892868148a332c3d9fb
+   1f6e060a94c10d6466ab43d44b7fde993aba6542a3d16ddbbf1308ff8b4ad04ec3b9856953931e3b18d15036deb415796fb3ec06cfb9341
+    c0072a1d60d1f416b57fd7d7800ad6923b4497aeb3210f5af001f731c7c65a22b282eecfdc6da46fa9c482a22ffa9c86073a2caf2f4da1
+         550fd79c43a03824a4932f032e8d3828844a02fab8eede2030c8d9fb0ea0a408699
 		`,
 		wantVersion: 56,
 		wantRest:    [][]byte{{0x01}, {0x02}, {0xC2, 0x04, 0x05}},
@@ -471,39 +473,31 @@ var eip8HandshakeRespTests = []handshakeAckTest{
 	// (Ack₂) EIP-8 encoding
 	{
 		input: `
-			01ea0451958701280a56482929d3b0757da8f7fbe5286784beead59d95089c217c9b917788989470
-			b0e330cc6e4fb383c0340ed85fab836ec9fb8a49672712aeabbdfd1e837c1ff4cace34311cd7f4de
-			05d59279e3524ab26ef753a0095637ac88f2b499b9914b5f64e143eae548a1066e14cd2f4bd7f814
-			c4652f11b254f8a2d0191e2f5546fae6055694aed14d906df79ad3b407d94692694e259191cde171
-			ad542fc588fa2b7333313d82a9f887332f1dfc36cea03f831cb9a23fea05b33deb999e85489e645f
-			6aab1872475d488d7bd6c7c120caf28dbfc5d6833888155ed69d34dbdc39c1f299be1057810f34fb
-			e754d021bfca14dc989753d61c413d261934e1a9c67ee060a25eefb54e81a4d14baff922180c395d
-			3f998d70f46f6b58306f969627ae364497e73fc27f6d17ae45a413d322cb8814276be6ddd13b885b
-			201b943213656cde498fa0e9ddc8e0b8f8a53824fbd82254f3e2c17e8eaea009c38b4aa0a3f306e8
-			797db43c25d68e86f262e564086f59a2fc60511c42abfb3057c247a8a8fe4fb3ccbadde17514b7ac
-			8000cdb6a912778426260c47f38919a91f25f4b5ffb455d6aaaf150f7e5529c100ce62d6d92826a7
-			1778d809bdf60232ae21ce8a437eca8223f45ac37f6487452ce626f549b3b5fdee26afd2072e4bc7
-			5833c2464c805246155289f4
+0197047250f566862bb97317b79c342e96f8b7ac4deedb677a687b6914dccdb7f283e0ae2ddff9efc799c8d0804ca6
+2fbc0681ae93d5e3d4fdbcf573e75bf0fb0237456335bccfeabb0de09cbab881fc055eb1a86b455df2fc0b75d88978
+9bb5c8887eed760079a6d0df3cee6947d3f58b6f7fb4a8999bb21bfbf218fdb06a43cc78d1bc48a513999860e8ea99
+ff3c1f5182fe89a4df4f3c5b3c578bdc4ec64334f09f78ee3158e6162da9515bb6dd30a9b9d48e78c5f2a6c076e212
+41b2a39ea04c439a3d9567ee27e76dc3b89484bf6305536a0485a5e4859c78370b315b57f9f72fd78e880bdbff1b13
+b4f750e0343056bed0190cab1da47af608d9fc6cc4f41f631b4a312e5541b89b57e5472407ba5543b1e624b266a597
+99a08595b0dbae70bde98718abe5bd361cb396f5e9fc0b04f0157cd9bf002075a27a4b7e86a6c8a6895831d4d366b3
+1204ef1112b53c1aac130a2a1477a952a3b346154f02cd609e90545a4e12a0df4f8a1cf39296ab2b319aa7d61952d6d9
+2f8173f5d8081e8c69e05ca50ec9e831bb3ce5301100ee9e975f0ef34db54a30
 		`,
 		wantVersion: 4,
-		wantRest:    [][]byte{},
+		//wantRest:    [][]byte{},
 	},
 	// (Ack₃) EIP-8 encoding with version 57, additional list elements
 	{
 		input: `
-			01f004076e58aae772bb101ab1a8e64e01ee96e64857ce82b1113817c6cdd52c09d26f7b90981cd7
-			ae835aeac72e1573b8a0225dd56d157a010846d888dac7464baf53f2ad4e3d584531fa203658fab0
-			3a06c9fd5e35737e417bc28c1cbf5e5dfc666de7090f69c3b29754725f84f75382891c561040ea1d
-			dc0d8f381ed1b9d0d4ad2a0ec021421d847820d6fa0ba66eaf58175f1b235e851c7e2124069fbc20
-			2888ddb3ac4d56bcbd1b9b7eab59e78f2e2d400905050f4a92dec1c4bdf797b3fc9b2f8e84a482f3
-			d800386186712dae00d5c386ec9387a5e9c9a1aca5a573ca91082c7d68421f388e79127a5177d4f8
-			590237364fd348c9611fa39f78dcdceee3f390f07991b7b47e1daa3ebcb6ccc9607811cb17ce51f1
-			c8c2c5098dbdd28fca547b3f58c01a424ac05f869f49c6a34672ea2cbbc558428aa1fe48bbfd6115
-			8b1b735a65d99f21e70dbc020bfdface9f724a0d1fb5895db971cc81aa7608baa0920abb0a565c9c
-			436e2fd13323428296c86385f2384e408a31e104670df0791d93e743a3a5194ee6b076fb6323ca59
-			3011b7348c16cf58f66b9633906ba54a2ee803187344b394f75dd2e663a57b956cb830dd7a908d4f
-			39a2336a61ef9fda549180d4ccde21514d117b6c6fd07a9102b5efe710a32af4eeacae2cb3b1dec0
-			35b9593b48b9d3ca4c13d245d5f04169b0b1
+			01b90454cd2aa35b7e6b4498bff8297dde8394fe1184cc72b4d09bfba53b5f23da6b7a265db5b6ff40e954f7
+f0fd4c4a5466ed7a1ac15d6d7904f8aafa9c3d965a84e405e7da79dd1150bd0b17036697a6dfcd6a36a5819b45a706a3955f
+bb247d9fb1d7a3fa2d93088d7d4f34f99a5dc889033251b953b41c4d3c89633947b0bdf836ea908d4e290db26b76b7d2a403
+25c3e54373d7a654cb6839cb42fccf815763db6800268a5609643cb43ff32f7e20ccfe2a448c726cf8196e4327a071abaee5
+255a6d9b42807e87a322d4dccd155ef9cd1f02ca38c5dc3a8cf12272247449e85760db4042ce08f94729a02c36bae454e99c
+ba0ec489dd9ebc747b41ae38854605bd40e92c758403dec8dbc3b76422970015f3a63b7fa5d077cfd353dc06a0d01263ad59
+da6da1acd564f9d4a062c5569e111950307f90cf594980cc0d5ee7daa1a85218c94759243a7a0510e32dc2ad4a23c4c201f7
+bab86a05baa126ce572b01d345f21c6011b9e2aebad983b3beaaa66c2a4c729012ca691b9fe38cbe2b97c0a7120b85fdcd27
+2343b4116b98a71d535b471bb61a704f553ba4bfb70dbd77f6226262ed90135b842c23ae152e84aac09feb991ba04aacbe
 		`,
 		wantVersion: 57,
 		wantRest:    [][]byte{{0x06}, {0xC2, 0x07, 0x08}, {0x81, 0xFA}},
@@ -544,9 +538,20 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 	for _, test := range eip8HandshakeAuthTests {
 		r := bytes.NewReader(unhex(test.input))
 		msg := new(AuthMsgV4)
+		/*
+			var someText []byte
+			msg2 := makeAuth(test)
+			pub_b:=  ecies.ImportECDSAPublic(&keyB.PublicKey)
+			if !msg2.gotPlain{
+				someText,_= preEip8test(msg2,pub_b)
+				r2 := bytes.NewReader(someText)
+				fmt.Println(r2.Size())
+			}
+
+		*/
 		ciphertext, err := readHandshakeMsg(msg, encAuthMsgLen, keyB, r)
 		if err != nil {
-			t.Errorf("error for input %x:\n  %v", unhex(test.input), err)
+			t.Errorf("error for input %x:\n  %v ", unhex(test.input), err)
 			continue
 		}
 		if !bytes.Equal(ciphertext, unhex(test.input)) {
@@ -555,6 +560,7 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		want := makeAuth(test)
 		if !reflect.DeepEqual(msg, want) {
 			t.Errorf("wrong msg for input %x:\ngot %s\nwant %s", unhex(test.input), spew.Sdump(msg), spew.Sdump(want))
+			fmt.Println(msg.Version != want.Version, msg.gotPlain)
 		}
 	}
 
@@ -563,13 +569,23 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		input := unhex(test.input)
 		r := bytes.NewReader(input)
 		msg := new(AuthRespV4)
+		/*
+			var someText []byte
+			msg2 := makeAck(test)
+			pub_a:=  ecies.ImportECDSAPublic(&keyA.PublicKey)
+
+				someText,_= preEip8Resptest(msg2,pub_a)
+				r = bytes.NewReader(someText)
+				fmt.Println(r.Size())
+
+		*/
 		ciphertext, err := readHandshakeMsgResp(msg, encAuthRespLen, keyA, r)
 		if err != nil {
 			t.Errorf("error for input %x:\n  %v", input, err)
 			continue
 		}
 		if !bytes.Equal(ciphertext, input) {
-			t.Errorf("wrong ciphertext for input %x:\n  %x", input, err)
+			t.Errorf("wrong ciphertext for input %x:\n  %x", input, ciphertext)
 		}
 		want := makeAck(test)
 		if !reflect.DeepEqual(msg, want) {
@@ -589,7 +605,8 @@ func TestHandshakeForwardCompatibility(t *testing.T) {
 		authMsg            = makeAuth(eip8HandshakeAuthTests[1])
 		wantAES            = unhex("80e8632c05fed6fc2a13b0f8d31a3cf645366239170ea067065aba8e28bac487")
 		wantMAC            = unhex("2ea74ec5dae199227dff1af715362700e989d889d7a493cb0639691efb8e5f98")
-		wantFooIngressHash = unhex("0c7ec6340062cc46f5e9f1e3cf86f8c8c403c5a0964f5df0ebd34a75ddc86db5")
+		//wantFooIngressHash = unhex("0c7ec6340062cc46f5e9f1e3cf86f8c8c403c5a0964f5df0ebd34a75ddc86db5")
+		wantFooIngressHash = unhex("d402a923042e8aab1f01f0783c343d574d3a0d70872e874168ea4d6174129e77")
 	)
 	if err := hs.handleAuthMsg(authMsg, keyB); err != nil {
 		t.Fatalf("handleAuthMsg: %v", err)

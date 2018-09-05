@@ -43,7 +43,6 @@ type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
-
 type Hashs []Hash
 
 type HashBytes [HashLength]byte
@@ -123,4 +122,16 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 		h.Bytes[i] = byte(rand.Uint32())
 	}
 	return reflect.ValueOf(h)
+}
+
+// Cmp compares two hashes. Returns -1 if the self hash is less than parameter hash
+func (h Hash) Cmp(another Hash) int {
+	for i := 0; i < HashLength; i++ {
+		if h.Bytes[i] < another.Bytes[i]{
+			return -1
+		}else if h.Bytes[i] > another.Bytes[i]{
+			return 1
+		}
+	}
+	return 0
 }

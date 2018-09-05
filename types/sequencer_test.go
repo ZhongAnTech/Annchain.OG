@@ -18,11 +18,11 @@ func TestSequencer(t *testing.T) {
 		Value: math.NewBigInt(0),
 	}
 
-	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.Hash(), seq2.Hash()}}}
+	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.MinedHash(), seq2.MinedHash()}}}
 
-	fmt.Println(seq1.Hash().String())
-	fmt.Println(seq2.Hash().String())
-	fmt.Println(seq3.Hash().String())
+	fmt.Println(seq1.MinedHash().String())
+	fmt.Println(seq2.MinedHash().String())
+	fmt.Println(seq3.MinedHash().String())
 
 }
 

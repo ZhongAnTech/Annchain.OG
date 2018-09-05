@@ -331,7 +331,7 @@ func (id NodeID) Pubkey() (*ecdsa.PublicKey, error) {
 // recoverNodeID computes the public key used to sign the
 // given hash from the signature.
 func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
-	pubkey, err := crypto.RecoverPubkey(hash, sig)
+	pubkey, err := crypto.Ecrecover(hash, sig)
 	if err != nil {
 		return id, err
 	}

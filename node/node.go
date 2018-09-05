@@ -8,8 +8,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 
 	"github.com/spf13/viper"
-
-	"github.com/annchain/OG/core"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -40,15 +38,17 @@ func NewNode() *Node {
 	})
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond: 1000,
-		AcquireTxQueueSize:      1000,
-		MaxBatchSize:            100,
+		BatchTimeoutMilliSecond:              1000,
+		AcquireTxQueueSize:                   1000,
+		MaxBatchSize:                         100,
+		AcquireTxDedupCacheMaxSize:           10000,
+		AcquireTxDedupCacheExpirationSeconds: 60,
 	}, hub)
 
 	org, err := og.NewOg()
 	if err != nil {
-		logrus.WithError(err).Fatalf("Error occurred while initializing Node")
-		panic("Error occurred while initializing Node")
+		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
+		panic("Error occurred while initializing OG")
 	}
 
 	n.Components = append(n.Components, org)
@@ -72,15 +72,16 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	m.TxBuffer = core.NewTxBuffer(core.TxBufferConfig{
+	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
 		Syncer:                           syncer,
 		Verifier:                         m.Verifier,
 		Dag:                              org.Dag,
 		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
+		NewTxQueueSize:                   1000,
 	})
-
+	n.Components = append(n.Components, m.TxBuffer)
 	n.Components = append(n.Components, m)
 	return n
 }

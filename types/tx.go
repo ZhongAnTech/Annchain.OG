@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
+	"math/rand"
 )
 
 //go:generate msgp
@@ -32,21 +33,46 @@ func SampleTx() *Tx {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From:  HexToAddress("0x99"),
-		To:    HexToAddress("0x88"),
+		From: HexToAddress("0x99"),
+		To: HexToAddress("0x88"),
 		Value: v,
 	}
 }
 
-func (t *Tx) Hash() (hash Hash) {
-	var buf bytes.Buffer
+func randomHash() Hash{
+	v := math.NewBigInt(rand.Int63())
+	return BigToHash(v.Value)
+}
+func randomAddress() Address{
+	v := math.NewBigInt(rand.Int63())
+	return BigToAddress(v.Value)
+}
 
-	err := binary.Write(&buf, binary.BigEndian, t.Height)
-	panicIfError(err)
+func RandomTx() *Tx{
+	return &Tx{TxBase: TxBase{
+		Height:       rand.Uint64(),
+		ParentsHash:  []Hash{randomHash(),randomHash()},
+		Type:         TxBaseTypeNormal,
+		AccountNonce: uint64(rand.Int63n(50000)),
+	},
+		From: randomAddress(),
+		To: randomAddress(),
+		Value: math.NewBigInt(rand.Int63()),
+	}
+}
+
+func (t *Tx) MinedHash() (hash Hash) {
+	var buf bytes.Buffer
 
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
+
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
@@ -54,6 +80,31 @@ func (t *Tx) Hash() (hash Hash) {
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
+}
+
+func (t *Tx) StructureHash() (hash Hash) {
+	var buf bytes.Buffer
+	for _, ancestor := range t.ParentsHash {
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+
+	result := sha3.Sum256(buf.Bytes())
+	hash.MustSetBytes(result[0:])
+	return
+}
+
+func (t *Tx) SignatureTargets() []byte {
+	var buf bytes.Buffer
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
+
+	return buf.Bytes()
 }
 
 func (t *Tx) Parents() []Hash {
@@ -72,6 +123,6 @@ func (t *Tx) String() string {
 	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
 }
 
-func (t *Tx) GetBase() TxBase{
-	return t.TxBase
+func (t *Tx) GetBase() *TxBase {
+	return &t.TxBase
 }

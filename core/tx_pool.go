@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 	// "github.com/spf13/viper"
 	log "github.com/sirupsen/logrus"
 
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	local  int = iota
+	local int = iota
 	remote
 )
 
@@ -92,12 +92,12 @@ func (pool *TxPool) Stop() {
 	log.Infof("TxPool Stopped")
 }
 
-// PoolStatus returns the current status of txpool. 
+// PoolStatus returns the current status of txpool.
 func (pool *TxPool) PoolStatus() (int, int) {
 	return pool.txLookup.stats()
 }
 
-// Get get a transaction or sequencer according to input hash, 
+// Get get a transaction or sequencer according to input hash,
 // if tx not exists return nil
 func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	return pool.txLookup.get(hash)
@@ -164,8 +164,8 @@ func (pool *TxPool) AddLocalTx(tx types.Txi) error {
 	return pool.addTx(tx, local)
 }
 
-// AddLocalTxs adds a list of txs to txpool if they are valid. It returns 
-// the process result of each tx with an error list. AddLocalTxs only process 
+// AddLocalTxs adds a list of txs to txpool if they are valid. It returns
+// the process result of each tx with an error list. AddLocalTxs only process
 // txs that sent by local node.
 func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 	result := make([]error, len(txs))
@@ -175,9 +175,9 @@ func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 	return result
 }
 
-// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx 
-// sent by remote nodes, and will hold extra functions to prevent from ddos 
-// (large amount of invalid tx sent from one node in a short time) attack. 
+// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
+// sent by remote nodes, and will hold extra functions to prevent from ddos
+// (large amount of invalid tx sent from one node in a short time) attack.
 func (pool *TxPool) AddRemoteTx(tx types.Txi) error {
 	return pool.addTx(tx, remote)
 }
@@ -249,7 +249,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	case pool.queue <- te:
 		pool.txLookup.add(te.txEnv)
 	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.Hash().Hex())
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.MinedHash().Hex())
 	}
 
 	select {
@@ -259,10 +259,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		}
 	// case <-timer.C:
 	// 	// close(te.callbackChan)
-	// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.Hash().Hex())
+	// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.MinedHash().Hex())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.Hash().Hex())
+	log.Debugf("successfully add tx: %s", tx.MinedHash().Hex())
 	return nil
 }
 
@@ -275,7 +275,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	if pool.isBadTx(tx) {
 		pool.badtxs.Add(tx)
-		pool.txLookup.switchStatus(tx.Hash(), TxStatusBadTx)
+		pool.txLookup.switchStatus(tx.MinedHash(), TxStatusBadTx)
 		return nil
 	}
 	// move parents to txpending
@@ -287,7 +287,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		}	
 	}
 	pool.tips.Add(tx)
-	pool.txLookup.switchStatus(tx.Hash(), TxStatusTip)
+	pool.txLookup.switchStatus(tx.MinedHash(), TxStatusTip)
 	return nil
 }
 
@@ -313,19 +313,19 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// move elders to dag
 	for _, elder := range elders {
 		pool.dag.Push(elder)
-		pool.remove(elder.Hash())
+		pool.remove(elder.MinedHash())
 	}
 	pool.tips.Add(seq)
-	pool.txLookup.switchStatus(seq.Hash(), TxStatusTip)
+	pool.txLookup.switchStatus(seq.MinedHash(), TxStatusTip)
 	return nil
 }
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
-	if baseTx == nil || pool.dag.GetTx(baseTx.Hash()) != nil {
+	if baseTx == nil || pool.dag.GetTx(baseTx.MinedHash()) != nil {
 		return 
 	}
-	if batch[baseTx.Hash()] == nil {
-		batch[baseTx.Hash()] = baseTx
+	if batch[baseTx.MinedHash()] == nil {
+		batch[baseTx.MinedHash()] = baseTx
 	}
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.txPending.Get(pHash)
@@ -369,7 +369,7 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.txs[txEnv.tx.Hash()] = txEnv
+	t.txs[txEnv.tx.MinedHash()] = txEnv
 }
 func (t *txLookUp) remove(h types.Hash) {
 	t.mu.Lock()
@@ -441,7 +441,7 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 	
-	if tm.txs[tx.Hash()] == nil {
+	if tm.txs[tx.MinedHash()] == nil {
 		return false
 	}
 	return true
@@ -456,8 +456,8 @@ func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.txs[tx.Hash()] == nil {
-		tm.txs[tx.Hash()] = tx
+	if tm.txs[tx.MinedHash()] == nil {
+		tm.txs[tx.MinedHash()] = tx
 	}
 }
 

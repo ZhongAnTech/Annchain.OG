@@ -56,8 +56,6 @@ var errProtocolReturned = errors.New("protocol returned")
 
 type DiscReason uint
 
-type OneReason [1]DiscReason
-
 const (
 	DiscRequested DiscReason = iota
 	DiscNetworkError

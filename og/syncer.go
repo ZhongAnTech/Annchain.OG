@@ -2,22 +2,27 @@ package og
 
 import (
 	"github.com/annchain/OG/types"
-	"time"
+	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // Syncer fetches tx from other peers.
+// Syncer will not fire duplicate requests in a period of time.
 type Syncer struct {
-	config         *SyncerConfig
-	hub            *Hub
-	acquireTxQueue chan types.Hash
-	quit           chan bool
+	config              *SyncerConfig
+	hub                 *Hub
+	acquireTxQueue      chan types.Hash
+	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
+	quit                chan bool
 }
 
 type SyncerConfig struct {
-	AcquireTxQueueSize      uint
-	MaxBatchSize            int
-	BatchTimeoutMilliSecond uint
+	AcquireTxQueueSize                   uint
+	MaxBatchSize                         int
+	BatchTimeoutMilliSecond              uint
+	AcquireTxDedupCacheMaxSize           int
+	AcquireTxDedupCacheExpirationSeconds int
 }
 
 func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
@@ -25,7 +30,9 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		config:         config,
 		hub:            hub,
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
-		quit:           make(chan bool),
+		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
+			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
+		quit: make(chan bool),
 	}
 }
 
@@ -60,10 +67,7 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		WithField("length", len(req.Hashes)).
 		Debugf("Sending message MessageTypeFetchByHash")
 
-	m.hub.outgoing <- &P2PMessage{
-		MessageType: MessageTypeFetchByHash,
-		Message:     bytes,
-	}
+	m.hub.SendMessage(MessageTypeFetchByHash, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.
@@ -78,7 +82,7 @@ func (m *Syncer) loopSync() {
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
 			buffer[hash] = struct{}{}
-			if len(buffer) >= m.config.MaxBatchSize{
+			if len(buffer) >= m.config.MaxBatchSize {
 				m.fireRequest(buffer)
 				buffer = make(map[types.Hash]struct{})
 			}
@@ -97,5 +101,10 @@ func (m *Syncer) loopSwipe() {
 }
 
 func (m *Syncer) Enqueue(hash types.Hash) {
+	if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
+		logrus.Debugf("Duplicate sync task: %s", hash.Hex())
+		return
+	}
+	m.acquireTxDedupCache.Set(hash, struct{}{})
 	m.acquireTxQueue <- hash
 }

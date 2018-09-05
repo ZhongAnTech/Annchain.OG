@@ -28,7 +28,6 @@ import (
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 var (
@@ -210,7 +209,7 @@ loop:
 			break loop
 		}
 	}
-
+	log.Debug("reason ", reason, remoteRequested, err)
 	close(p.closed)
 	p.rw.close(reason)
 	p.wg.Wait()
@@ -257,13 +256,13 @@ func (p *Peer) handle(msg Msg) error {
 		msg.Discard()
 		go Send(p.rw, pongMsg, nil)
 	case msg.Code == discMsg:
-		var reason OneReason
+		var reason DiscReason
 		// This is the last message. We don't need to discard or
 		// check errors because, the connection will be closed after it.
 		//rlp.Decode(msg.Payload, &reason)
-		data, _ := ioutil.ReadAll(msg.Payload)
+		data, _ := msg.GetPayLoad()
 		reason.UnmarshalMsg(data)
-		return reason[0]
+		return reason
 	case msg.Code < baseProtocolLength:
 		// ignore other base protocol messages
 		return msg.Discard()

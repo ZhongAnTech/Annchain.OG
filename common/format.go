@@ -1,10 +1,10 @@
 package common
 
 import (
-	"time"
-	"regexp"
 	"fmt"
+	"regexp"
 	"strings"
+	"time"
 )
 
 //TODO now as example, delete later

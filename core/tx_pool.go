@@ -19,9 +19,9 @@ const (
 
 const (
 	TxStatusNotExist int = iota
-	TxStatusQueue 
-	TxStatusTip	
-	TxStatusBadTx	
+	TxStatusQueue
+	TxStatusTip
+	TxStatusBadTx
 	TxStatusPending
 )
 
@@ -29,11 +29,11 @@ type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
 
-	queue 			chan *txEvent				// queue stores txs that need to validate later 
-	tips			*TxMap						// tips stores all the tips
-	badtxs			*TxMap
-	txPending		*TxMap
-	txLookup		*txLookUp					// txLookUp stores all the txs for external query
+	queue     chan *txEvent // queue stores txs that need to validate later
+	tips      *TxMap        // tips stores all the tips
+	badtxs    *TxMap
+	txPending *TxMap
+	txLookup  *txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
 
@@ -43,25 +43,26 @@ type TxPool struct {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:		conf,
-		dag:		d,
-		queue:		make(chan *txEvent, conf.QueueSize),
-		tips:		NewTxMap(),
-		badtxs:		NewTxMap(),
-		txPending:	NewTxMap(),
-		txLookup:	newTxLookUp(),
-		close:		make(chan struct{}),
+		conf:      conf,
+		dag:       d,
+		queue:     make(chan *txEvent, conf.QueueSize),
+		tips:      NewTxMap(),
+		badtxs:    NewTxMap(),
+		txPending: NewTxMap(),
+		txLookup:  newTxLookUp(),
+		close:     make(chan struct{}),
 	}
 	return pool
 }
 
 type TxPoolConfig struct {
-	QueueSize		int		`mapstructure:"queue_size"`
-	TipsSize		int		`mapstructure:"tips_size"`
-	ResetDuration	int		`mapstructure:"reset_duration"`
-	TxVerifyTime	int		`mapstructure:"tx_verify_time"`
-	TxValidTime		int		`mapstructure:"tx_valid_time"`
+	QueueSize     int `mapstructure:"queue_size"`
+	TipsSize      int `mapstructure:"tips_size"`
+	ResetDuration int `mapstructure:"reset_duration"`
+	TxVerifyTime  int `mapstructure:"tx_verify_time"`
+	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
+
 // type dag interface {
 // 	GetTx(hash types.Hash) types.Txi
 // 	Push(tx types.Txi) error
@@ -191,12 +192,18 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
-// Remove removes a tx from tx pool. Only be called if a tx moves to dag, 
+// Remove removes a tx from tx pool. Only be called if a tx moves to dag,
 // or a tx need to be clear in reset().
 func (pool *TxPool) remove(hash types.Hash) {
-	if pool.tips.Get(hash) != nil { pool.tips.Remove(hash) } 
-	if pool.badtxs.Get(hash) != nil { pool.badtxs.Remove(hash) }
-	if pool.txPending.Get(hash) != nil { pool.txPending.Remove(hash) }
+	if pool.tips.Get(hash) != nil {
+		pool.tips.Remove(hash)
+	}
+	if pool.badtxs.Get(hash) != nil {
+		pool.badtxs.Remove(hash)
+	}
+	if pool.txPending.Get(hash) != nil {
+		pool.txPending.Remove(hash)
+	}
 	pool.txLookup.remove(hash)
 }
 
@@ -231,7 +238,7 @@ func (pool *TxPool) loop() {
 	}
 }
 
-// addTx adds tx to the pool queue and wait to become tip after validation. 
+// addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
@@ -257,20 +264,20 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		if err != nil {
 			return err
 		}
-	// case <-timer.C:
-	// 	// close(te.callbackChan)
-	// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.MinedHash().Hex())
+		// case <-timer.C:
+		// 	// close(te.callbackChan)
+		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.MinedHash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.MinedHash().Hex())
 	return nil
 }
 
-// commit commits tx to tips pool. commit() checks if this tx is bad tx and moves 
-// bad tx to badtx list other than tips list. If this tx proves any txs in the 
-// tip pool, those tips will be removed from tips but stored in txpending.              
-func (pool *TxPool) commit(tx *types.Tx) error { 
-	if pool.tips.Count() >= pool.conf.TipsSize { 
+// commit commits tx to tips pool. commit() checks if this tx is bad tx and moves
+// bad tx to badtx list other than tips list. If this tx proves any txs in the
+// tip pool, those tips will be removed from tips but stored in txpending.
+func (pool *TxPool) commit(tx *types.Tx) error {
+	if pool.tips.Count() >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
 	if pool.isBadTx(tx) {
@@ -279,12 +286,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		return nil
 	}
 	// move parents to txpending
-	for _, pHash := range tx.Parents() { 
+	for _, pHash := range tx.Parents() {
 		if parent := pool.tips.Get(pHash); parent != nil {
 			pool.txPending.Add(parent)
 			pool.tips.Remove(pHash)
 			pool.txLookup.switchStatus(pHash, TxStatusPending)
-		}	
+		}
 	}
 	pool.tips.Add(tx)
 	pool.txLookup.switchStatus(tx.MinedHash(), TxStatusTip)
@@ -322,7 +329,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
 	if baseTx == nil || pool.dag.GetTx(baseTx.MinedHash()) != nil {
-		return 
+		return
 	}
 	if batch[baseTx.MinedHash()] == nil {
 		batch[baseTx.MinedHash()] = baseTx
@@ -416,9 +423,10 @@ func (t *txLookUp) switchStatus(h types.Hash, status int) {
 }
 
 type TxMap struct {
-	txs	map[types.Hash]types.Txi
-	mu	sync.RWMutex
+	txs map[types.Hash]types.Txi
+	mu  sync.RWMutex
 }
+
 func NewTxMap() *TxMap {
 	tm := &TxMap{
 		txs: make(map[types.Hash]types.Txi),
@@ -440,7 +448,7 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
-	
+
 	if tm.txs[tx.MinedHash()] == nil {
 		return false
 	}
@@ -460,4 +468,3 @@ func (tm *TxMap) Add(tx types.Txi) {
 		tm.txs[tx.MinedHash()] = tx
 	}
 }
-

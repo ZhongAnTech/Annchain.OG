@@ -13,10 +13,10 @@ type DagConfig struct {
 }
 
 type Dag struct {
-	conf		DagConfig
+	conf DagConfig
 
-	db			ogdb.Database
-	accessor	*Accessor	
+	db       ogdb.Database
+	accessor *Accessor
 
 	genesis        types.Txi
 	latestSeqencer *types.Sequencer
@@ -29,9 +29,9 @@ type Dag struct {
 
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{
-		conf:		conf,
-		db:			db, 
-		accessor:	NewAccessor(db),
+		conf:     conf,
+		db:       db,
+		accessor: NewAccessor(db),
 	}
 
 	return dag
@@ -64,7 +64,7 @@ func (dag *Dag) Push(tx types.Txi) error {
 	return dag.push(tx)
 }
 
-// GetTx gets tx from dag network indexed by tx hash. This function querys 
+// GetTx gets tx from dag network indexed by tx hash. This function querys
 // ogdb only.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
@@ -104,12 +104,3 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 // 		}
 // 	}
 // }
-
-
-
-
-
-
-
-
-

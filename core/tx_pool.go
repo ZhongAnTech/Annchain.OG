@@ -314,14 +314,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	if err := pool.verifyConfirmBatch(elders); err != nil {
+	batch, err := pool.verifyConfirmBatch(elders); 
+	if err != nil {
 		return err
 	}
 	// move elders to dag
 	for _, elder := range elders {
-		pool.dag.Push(elder)
 		pool.remove(elder.MinedHash())
 	}
+	pool.dag.Push(batch)
 	pool.tips.Add(seq)
 	pool.txLookup.switchStatus(seq.MinedHash(), TxStatusTip)
 	return nil
@@ -341,11 +342,16 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 	return
 }
 
-func (pool *TxPool) verifyConfirmBatch(batch map[types.Hash]types.Txi) error {
+func (pool *TxPool) verifyConfirmBatch(elders map[types.Hash]types.Txi) (*confirmBatch, error) {
 	// TODO
 	// verify the conflicts
 	// implement later after the finish of ogdb
-	return nil
+	
+	// for _, tx := range elders {
+
+	// }
+
+	return nil, nil
 }
 
 // reset clears the tips that haven't been proved for a long time

@@ -90,11 +90,11 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		switch hash.Bytes[0] {
 		case 0:
 			tx := types.SampleSequencer()
-			tx.SetHash(tx.MinedHash())
+			tx.SetHash(tx.TxHash())
 			seqs = append(seqs, tx)
 		case 1:
 			tx := types.SampleTx()
-			tx.SetHash(tx.MinedHash())
+			tx.SetHash(tx.TxHash())
 			txs = append(txs, tx)
 		}
 	}

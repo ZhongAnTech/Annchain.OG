@@ -3,7 +3,6 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"golang.org/x/crypto/sha3"
 	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"strings"
@@ -34,44 +33,6 @@ func SampleSequencer() *Sequencer {
 	}
 }
 
-func (t *Sequencer) MinedHash() (hash Hash) {
-	var buf bytes.Buffer
-
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
-	}
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
-	for _, orderHash := range t.ContractHashOrder {
-		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
-	}
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
-}
-
-func (t *Sequencer) StructureHash() (hash Hash) {
-	var buf bytes.Buffer
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
-	}
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
-}
-
 func (t *Sequencer) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
@@ -83,7 +44,6 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 	return buf.Bytes()
 }
-
 
 func (t *Sequencer) Parents() []Hash {
 	return t.ParentsHash
@@ -107,6 +67,6 @@ func (t *Sequencer) String() string {
 	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
 }
 
-func (t *Sequencer) GetBase() *TxBase{
+func (t *Sequencer) GetBase() *TxBase {
 	return &t.TxBase
 }

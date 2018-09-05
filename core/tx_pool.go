@@ -256,7 +256,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	case pool.queue <- te:
 		pool.txLookup.add(te.txEnv)
 	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.MinedHash().Hex())
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.GetBase().Hash.Hex())
 	}
 
 	select {
@@ -269,7 +269,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.MinedHash().Hex())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.MinedHash().Hex())
+	log.Debugf("successfully add tx: %s", tx.GetBase().Hash.Hex())
 	return nil
 }
 
@@ -376,7 +376,7 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.txs[txEnv.tx.MinedHash()] = txEnv
+	t.txs[txEnv.tx.GetBase().Hash] = txEnv
 }
 func (t *txLookUp) remove(h types.Hash) {
 	t.mu.Lock()

@@ -966,7 +966,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
-		log.Debug(clogStr, "Rejected peer before protocol handshake", "err", err)
+		log.Debug(clogStr, "Rejected peer before protocol handshake ", " err ", err)
 		return err
 	}
 	// Run the protocol handshake
@@ -976,18 +976,18 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		return err
 	}
 	if phs.ID != c.id {
-		log.Debug(clogStr, "Wrong devp2p handshake identity", "err", phs.ID)
+		log.Debug(clogStr, "Wrong devp2p handshake identity ", " err ", phs.ID)
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
-		log.Debug(clogStr, "Rejected peer", "err", err)
+		log.Debug(clogStr, "Rejected peer ", "err ", err)
 		return err
 	}
 	// If the checks completed successfully, runPeer has now been
 	// launched by run.
-	log.Debug(clogStr, "connection set up", "inbound", dialDest == nil)
+	log.Debug(clogStr, "connection set up ", "inbound ", dialDest == nil)
 	return nil
 }
 

@@ -46,6 +46,27 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 	return tx
 }
 
+func (m *TxCreator) NewUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
+	tx := types.Sequencer{
+		Id:                id,
+		ContractHashOrder: contractHashOrder,
+		TxBase: types.TxBase{
+			AccountNonce: accountNonce,
+			Type:         types.TxBaseTypeSequencer,
+		},
+	}
+	return &tx
+}
+
+func (m *TxCreator) NewSignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+	tx := m.NewUnsignedSequencer(id, contractHashOrder, accountNonce)
+	// do sign work
+	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
+	tx.GetBase().Signature = signature.Bytes
+	tx.GetBase().PublicKey = m.Signer.PubKey(privateKey).Bytes
+	return tx
+}
+
 // validateGraphStructure validates if parents are not conflicted, not double spending or other misbehaviors
 // TODO: fill this.
 func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
@@ -59,18 +80,19 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	}
 
 	tx.GetBase().ParentsHash = parentHashes
-	logrus.Infof("Parent length: %d", len(parentHashes))
 	// verify if the hash of the structure meet the standard.
-	if tx.CalcTxHash().Cmp(m.MaxTxHash) < 0 {
-		logrus.Debugf("Connected %s %s", tx.CalcTxHash().Hex(), m.MaxTxHash.Hex())
-		logrus.Debugf("Parents: %s %s", tx.GetBase().ParentsHash[0].Hex(), tx.GetBase().ParentsHash[1].Hex())
+	hash := tx.CalcTxHash()
+	if hash.Cmp(m.MaxTxHash) < 0 {
+		tx.GetBase().Hash = hash
+		logrus.Debugf("Connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
+		logrus.Debugf("Parents: %s", types.HashesToString(tx.Parents()))
 		// yes
 		txRet = tx
 		ok = m.validateGraphStructure(parents)
-		logrus.Debugf("Validate graph structure [%t] : %s %s", ok, parentHashes[0].Hex(), parentHashes[1].Hex())
+		logrus.Debugf("Validate graph structure [%t] for tx %s", ok, hash.Hex())
 		return txRet, ok
 	} else {
-		logrus.Debugf("Failed to connected %s %s", tx.CalcTxHash().Hex(), m.MaxTxHash.Hex())
+		logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
 		return nil, false
 	}
 }
@@ -98,14 +120,15 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			for i := 0; i < m.MaxConnectingTries; i++ {
 				pickCount ++
 				txs := m.TipGenerator.GetRandomTips(2)
-				logrus.Debugf("Got 2 tips: %s %s", txs[0].GetBase().Hash.Hex(), txs[1].GetBase().Hash.Hex())
+
+				logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
 				if len(txs) == 0 {
 					// Impossible. At least genesis is there
 					panic("Impossible: At least genesis is there")
 				}
+
 				if _, ok := m.tryConnect(tx, txs); ok {
 					done = true
-					tx.GetBase().Hash = tx.CalcTxHash()
 					break
 				}
 			}

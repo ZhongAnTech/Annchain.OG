@@ -15,6 +15,7 @@ import (
 type Sequencer struct {
 	TxBase
 	Id                uint64 `msgp:"id"`
+	Issuer            Address
 	ContractHashOrder []Hash `msgp:"contractHashOrder"`
 }
 
@@ -26,6 +27,7 @@ func SampleSequencer() *Sequencer {
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
+		Issuer: HexToAddress("0x33"),
 		ContractHashOrder: []Hash{
 			HexToHash("0x00667788"),
 			HexToHash("0xAA667788"),
@@ -43,6 +45,7 @@ func RandomSequencer() *Sequencer {
 		AccountNonce: uint64(rand.Int63n(50000)),
 	},
 		Id: rand.Uint64(),
+		Issuer: randomAddress(),
 		ContractHashOrder: []Hash{randomHash(), randomHash(), randomHash()},
 	}
 }
@@ -51,6 +54,7 @@ func (t *Sequencer) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
 	for _, orderHash := range t.ContractHashOrder {
 		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
@@ -78,7 +82,7 @@ func (t *Sequencer) String() string {
 		hashes = append(hashes, v.Hex()[0:10])
 	}
 
-	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
+	return fmt.Sprintf("[%s] %d Issuer %s, Hashes %s", t.TxBase.String(), t.Id, t.Issuer, strings.Join(hashes, ","))
 }
 
 func (t *Sequencer) GetBase() *TxBase {

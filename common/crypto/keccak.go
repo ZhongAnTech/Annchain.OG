@@ -150,7 +150,8 @@ func LoadECDSA(file string) (*ecdsa.PrivateKey, error) {
 // SaveECDSA saves a secp256k1 private key to the given file with
 // restrictive permissions. The key data is saved hex-encoded.
 func SaveECDSA(file string, key *ecdsa.PrivateKey) error {
-	k := hex.EncodeToString(FromECDSA(key))
+	data := FromECDSA(key)
+	k := hex.EncodeToString(data)
 	return ioutil.WriteFile(file, []byte(k), 0600)
 }
 

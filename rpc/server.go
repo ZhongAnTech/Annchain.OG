@@ -15,19 +15,12 @@ type RpcServer struct {
 	router *gin.Engine
 	server *http.Server
 	port   string
+   C         *RpcControler
 }
 
 func NewRpcServer(port string) *RpcServer {
-
-	router := gin.Default()
-
-	// init paths here
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-
+    c:= RpcControler{}
+	router := c.Newrouter()
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: router,
@@ -37,8 +30,8 @@ func NewRpcServer(port string) *RpcServer {
 		port:   port,
 		router: router,
 		server: server,
+		C : &c,
 	}
-
 	return rpc
 }
 

@@ -117,11 +117,8 @@ func generateRandomIndices(count int, upper int) []int {
 	}
 	// avoid dup
 	generated := make(map[int]struct{})
-	for count > 0 {
+	for count > len(generated) {
 		i := rand.Intn(upper)
-		if _, ok := generated[i]; ok {
-			continue
-		}
 		generated[i] = struct{}{}
 	}
 	arr := make([]int, 0, len(generated))

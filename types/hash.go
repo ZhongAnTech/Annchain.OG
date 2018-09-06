@@ -24,6 +24,7 @@ import (
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
+	"strings"
 )
 
 //go:generate msgp
@@ -62,6 +63,14 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 // HexToHash sets byte representation of s to Hash.
 // If b is larger than len(h), b will be cropped from the left.
 func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
+
+func HashesToString(hashes []Hash) string{
+	var strs []string
+	for _, v := range hashes{
+		strs = append(strs, v.Hex())
+	}
+	return strings.Join(strs, ", ")
+}
 
 // ToBytes convers hash to []byte.
 func (h Hash) ToBytes() []byte { return h.Bytes[:] }

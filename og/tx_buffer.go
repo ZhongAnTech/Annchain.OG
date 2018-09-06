@@ -31,7 +31,7 @@ type IDag interface {
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
 	VerifySignature(t types.Txi) bool
-	VerifyFromAddress(t types.Txi) bool
+	VerifySourceAddress(t types.Txi) bool
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.

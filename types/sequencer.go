@@ -6,6 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"strings"
+	"math/rand"
 )
 
 //go:generate msgp
@@ -30,6 +31,19 @@ func SampleSequencer() *Sequencer {
 			HexToHash("0xAA667788"),
 			HexToHash("0xBB667788"), // 20 bytes
 		},
+	}
+}
+
+func RandomSequencer() *Sequencer {
+	return &Sequencer{TxBase: TxBase{
+		Hash:         randomHash(),
+		Height:       rand.Uint64(),
+		ParentsHash:  []Hash{randomHash(), randomHash()},
+		Type:         TxBaseTypeNormal,
+		AccountNonce: uint64(rand.Int63n(50000)),
+	},
+		Id: rand.Uint64(),
+		ContractHashOrder: []Hash{randomHash(), randomHash(), randomHash()},
 	}
 }
 

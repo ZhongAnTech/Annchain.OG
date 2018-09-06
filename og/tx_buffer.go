@@ -31,6 +31,7 @@ type IDag interface {
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
 	VerifySignature(t types.Txi) bool
+	VerifyFromAddress(t types.Txi) bool
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
@@ -114,7 +115,12 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		// needs to resolve itself first
 		logrus.Debugf("New tx fulfilled: %s", tx.GetTxHash().Hex())
 		b.resolve(tx)
-		b.txPool.AddRemoteTx(tx)
+		// Check if the tx is valid based on graph structure rules
+		// Only txs that are obeying rules will be added to the graph.
+		if b.VerifyGraphStructure(tx){
+			b.txPool.AddRemoteTx(tx)
+		}
+
 	}
 }
 
@@ -200,4 +206,7 @@ func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
 		}
 	}
 	return allFetched
+}
+func (b *TxBuffer) VerifyGraphStructure(txi types.Txi) bool{
+	return true
 }

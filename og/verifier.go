@@ -24,3 +24,14 @@ func (v *Verifier) VerifySignature(t types.Txi) bool {
 		crypto.Signature{Type: v.cryptoType, Bytes: base.Signature},
 		base.Hash.Bytes[:])
 }
+
+func (v *Verifier) VerifySourceAddress(t types.Txi) bool {
+	switch t.(type) {
+	case *types.Tx:
+		return t.(*types.Tx).From.Bytes == v.signer.Address(crypto.PublicKeyFromBytes(v.cryptoType, t.GetBase().PublicKey)).Bytes
+	case *types.Sequencer:
+		return t.(*types.Sequencer).Issuer.Bytes == v.signer.Address(crypto.PublicKeyFromBytes(v.cryptoType, t.GetBase().PublicKey)).Bytes
+	default:
+		return true
+	}
+}

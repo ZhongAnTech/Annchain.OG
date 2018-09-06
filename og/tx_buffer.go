@@ -13,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -104,7 +104,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.isKnownHash(tx.GetBase().Hash) {
 		return
 	}
-	if err := b.verifyTx(tx); err != nil{
+	if err := b.verifyTx(tx); err != nil {
 		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetBase().Hash.Hex())
 		return
 	}
@@ -157,6 +157,7 @@ func (b *TxBuffer) verifyTx(tx types.Txi) error {
 	if !b.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
+	// TODO: Nonce
 	return nil
 }
 

@@ -62,7 +62,7 @@ func (m *Manager) Name() string {
 
 func (m *Manager) HandlePing(*P2PMessage) {
 	logrus.Debug("Received your ping. Respond you a pong")
-	m.Hub.SendMessage(MessageTypePong, []byte{})
+	m.Hub.SendMessage(MessageTypePong, []byte{1})
 }
 
 func (m *Manager) HandlePong(*P2PMessage) {

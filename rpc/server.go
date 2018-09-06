@@ -1,12 +1,12 @@
 package rpc
 
 import (
-	"net/http"
-	"github.com/sirupsen/logrus"
-	"github.com/gin-gonic/gin"
-	"time"
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"net/http"
+	"time"
 )
 
 const ShutdownTimeoutSeconds = 5
@@ -15,11 +15,11 @@ type RpcServer struct {
 	router *gin.Engine
 	server *http.Server
 	port   string
-   C         *RpcControler
+	C      *RpcControler
 }
 
 func NewRpcServer(port string) *RpcServer {
-    c:= RpcControler{}
+	c := RpcControler{}
 	router := c.Newrouter()
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -30,7 +30,7 @@ func NewRpcServer(port string) *RpcServer {
 		port:   port,
 		router: router,
 		server: server,
-		C : &c,
+		C:      &c,
 	}
 	return rpc
 }

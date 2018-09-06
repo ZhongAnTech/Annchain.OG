@@ -9,6 +9,8 @@ import (
 
 	"github.com/annchain/OG/p2p"
 	"github.com/spf13/viper"
+	miner2 "github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/types"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -32,6 +34,7 @@ func NewNode() *Node {
 		n.Components = append(n.Components, rpcServer)
 	}
 	if viper.GetBool("p2p.enabled") {
+		// TODO: Merge private key loading. All keys should be stored at just one place.
 		privKey := getNodePrivKey()
 		p2pServer = NewP2PServer(privKey)
 		n.Components = append(n.Components, p2pServer)
@@ -70,12 +73,17 @@ func NewNode() *Node {
 	m.TxPool = nil
 
 	// Setup crypto algorithm
+	var signer crypto.Signer
 	switch viper.GetString("crypto.algorithm") {
 	case "ed25519":
-		m.Verifier = og.NewVerifier(&crypto.SignerEd25519{})
+		signer = &crypto.SignerEd25519{}
+	case "secp256k1":
+		signer = &crypto.SignerSecp256k1{}
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
+
+	m.Verifier = og.NewVerifier(signer)
 
 	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
 		Syncer:   syncer,
@@ -87,6 +95,42 @@ func NewNode() *Node {
 		NewTxQueueSize:                   1000,
 	})
 	n.Components = append(n.Components, m.TxBuffer)
+
+	miner := &miner2.PoWMiner{}
+
+	txCreator := &og.TxCreator{
+		Signer:             signer,
+		Miner:              miner,
+		TipGenerator:       &og.DummyTxPoolMiniTx{},
+		MaxConnectingTries: 100,
+		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxMinedHash:       types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+	}
+
+	var privateKey crypto.PrivateKey
+	if viper.IsSet("account.private_key") {
+		privateKey, err = crypto.PrivateKeyFromString(viper.GetString("account.private_key"))
+		logrus.Info("Loaded private key from configuration")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		_, privateKey, err = signer.RandomKeyPair()
+		logrus.Warnf("Generated public/private key pair")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if viper.GetBool("module.auto_sequencer.enabled") {
+		autoSequencer := &ClientAutoSequencer{
+			TxCreator:  txCreator,
+			PrivateKey: privateKey,
+			BlockTimeSeconds: 5,
+		}
+		n.Components = append(n.Components, autoSequencer)
+	}
+
 	n.Components = append(n.Components, m)
 	org.Manager = m
 	p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)

@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"sync"
+	"math/big"
 )
 
 // Hub is the middle layer between p2p and business layer
@@ -23,6 +24,7 @@ type Hub struct {
 	SubProtocols     []p2p.Protocol
 	newPeerCh        chan *peer
 	maxPeers         int
+	quitSync        chan struct{}
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	wg        sync.WaitGroup
@@ -34,22 +36,23 @@ type HubConfig struct {
 	IncomingBufferSize int
 }
 
-func (h *Hub) Init(config *HubConfig) {
+func (h *Hub) Init(config *HubConfig ,maxPeer int ) {
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.quit = make(chan bool)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
+	h.maxPeers = maxPeer
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 }
 
-func NewHub(config *HubConfig) *Hub {
+func NewHub(config *HubConfig,maxPeer int ) *Hub {
 	h := &Hub{}
-	h.Init(config)
+	h.Init(config,maxPeer)
 	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		// Skip protocol version if incompatible with the mode of operation
-		if version < OG32 {
+		if version < OG31 {
 			continue
 		}
 		// Compatible; initialise the sub-protocol
@@ -60,12 +63,17 @@ func NewHub(config *HubConfig) *Hub {
 			Length:  ProtocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				peer := newPeer(int(version), p, rw)
-				select {
-				case h.newPeerCh <- peer:
-					h.wg.Add(1)
-					defer h.wg.Done()
+				//select {
+				//case h.newPeerCh <- peer:
+					//h.wg.Add(1)
+				//	defer h.wg.Done()
 					return h.handle(peer)
-				}
+				//case <-h.quitSync:
+					//return p2p.DiscQuitting
+				//}
+			},
+			NodeInfo: func() interface{} {
+				return h.NodeInfo()
 			},
 			PeerInfo: func(id discover.NodeID) interface{} {
 				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
@@ -86,7 +94,7 @@ func (h *Hub) handle(p *peer) error {
 		return p2p.DiscTooManyPeers
 	}
 	log.Debug("og peer connected", "name", p.Name())
-	// Execute the Ethereum handshake
+	// Execute the og handshake
 	var (
 		genesis = types.Tx{} //todo
 		head    = types.Hash{}
@@ -172,6 +180,7 @@ func (h *Hub) Stop() {
 	h.quit <- true
 	h.peers.Close()
 	h.wg.Wait()
+	log.Info("hub stopped")
 }
 
 func (h *Hub) Name() string {
@@ -251,4 +260,23 @@ func (h *Hub) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+
+// NodeInfo represents a short summary of the Ethereum sub-protocol metadata
+// known about the host peer.
+type NodeInfo struct {
+	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
+	Genesis    types.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
+	Head       types.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+}
+
+// NodeInfo retrieves some protocol metadata about the running host node.
+func (h *Hub) NodeInfo() *NodeInfo {
+	return &NodeInfo{
+		Network:    h.networkID,
+		Genesis:    types.Hash{},
+		Head:       types.Hash{},
+	}
 }

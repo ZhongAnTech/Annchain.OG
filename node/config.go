@@ -3,22 +3,20 @@ package node
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discover"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"strings"
-	"path/filepath"
 	"os"
-	"github.com/annchain/OG/common/crypto"
+	"path/filepath"
+	"strings"
 )
-
 
 const (
-	datadirPrivateKey      = "nodekey"            // Path within the datadir to the node's private key
+	datadirPrivateKey = "nodekey" // Path within the datadir to the node's private key
 	defaultMaxPeers   = 50
 )
-
 
 func getNodePrivKey() *ecdsa.PrivateKey {
 	datadir := viper.GetString("datadir")
@@ -53,7 +51,6 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	return key
 }
 
-
 // ResolvePath resolves path in the instance directory.
 func resolvePath(path string) string {
 	datadir := viper.GetString("datadir")
@@ -64,22 +61,20 @@ func resolvePath(path string) string {
 	if filepath.IsAbs(oldpath) {
 		return oldpath
 	}
-	return  oldpath
+	return oldpath
 
 }
 
-
-
-func NewP2PServer( privKey *ecdsa.PrivateKey) *p2p.Server {
+func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	var p2pConfig p2p.Config
 	p2pConfig.PrivateKey = privKey
 	port := viper.GetString("p2p.port")
 	p2pConfig.ListenAddr = ":" + port
-	maxPeers :=  viper.GetInt("p2p.max_peers")
+	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers <= 0 {
-		maxPeers = 50
+		maxPeers = defaultMaxPeers
 	}
-	p2pConfig.MaxPeers = defaultMaxPeers
+	p2pConfig.MaxPeers = maxPeers
 	staticNodes := viper.GetString("p2p.static_nodes")
 	p2pConfig.StaticNodes = parserNodes(staticNodes)
 	trustNode := viper.GetString("p2p.trust_nodes")

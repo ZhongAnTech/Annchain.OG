@@ -7,8 +7,8 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 
-	"github.com/spf13/viper"
 	"github.com/annchain/OG/p2p"
+	"github.com/spf13/viper"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -23,6 +23,10 @@ func NewNode() *Node {
 
 	var rpcServer *rpc.RpcServer
 	var p2pServer *p2p.Server
+	 maxPerr := viper.GetInt("p2p.max_peers")
+	 if maxPerr ==0 {
+	 	maxPerr = defaultMaxPeers
+	 }
 	if viper.GetBool("rpc.enabled") {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
 		n.Components = append(n.Components, rpcServer)
@@ -36,7 +40,7 @@ func NewNode() *Node {
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize: viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
-	})
+	}, maxPerr)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
 		BatchTimeoutMilliSecond:              1000,
@@ -74,19 +78,19 @@ func NewNode() *Node {
 	}
 
 	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         m.Verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: m.Verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
 	n.Components = append(n.Components, m.TxBuffer)
 	n.Components = append(n.Components, m)
-    org.Manager = m
-
-	if rpcServer!=nil {
+	org.Manager = m
+	p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+	if rpcServer != nil {
 		rpcServer.C.P2pServer = p2pServer
 		rpcServer.C.Og = org
 	}
@@ -103,7 +107,7 @@ func (n *Node) Start() {
 	logrus.Info("Node Started")
 }
 func (n *Node) Stop() {
-	for i := len(n.Components) - 1; i >= 0; i -- {
+	for i := len(n.Components) - 1; i >= 0; i-- {
 		comp := n.Components[i]
 		logrus.Infof("Stopping %s", comp.Name())
 		comp.Stop()

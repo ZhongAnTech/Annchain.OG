@@ -190,6 +190,7 @@ func (h *Hub) loopSend() {
 		}
 	}
 }
+
 func (h *Hub) loopReceive() {
 	for {
 		select {
@@ -236,4 +237,18 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	} else {
 		log.Warnf("Received an unknown message type: %d", msg.MessageType)
 	}
+}
+
+
+// NodeInfo retrieves some protocol metadata about the running host node.
+func (h *Hub) PeersInfo() []*PeerInfo {
+     peers:= h.peers.Peers()
+	// Gather all the generic and sub-protocol specific infos
+	infos := make([]*PeerInfo, 0, len(peers))
+	for _, peer := range peers {
+		if peer != nil {
+			infos = append(infos, peer.Info())
+		}
+	}
+	return infos
 }

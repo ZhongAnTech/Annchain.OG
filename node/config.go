@@ -64,7 +64,7 @@ func resolvePath(path string) string {
 	if filepath.IsAbs(oldpath) {
 		return oldpath
 	}
-	return ""
+	return  oldpath
 
 }
 

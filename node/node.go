@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 
 	"github.com/spf13/viper"
+	"github.com/annchain/OG/p2p"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -19,17 +20,17 @@ func NewNode() *Node {
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
-	/*
-	if viper.GetBool("p2p.enabled") {
-		n.Components = append(n.Components, p2p.NewP2PServer(viper.GetString("p2p.port")))
-	}
-	*/
+
+	var rpcServer *rpc.RpcServer
+	var p2pServer *p2p.Server
 	if viper.GetBool("rpc.enabled") {
-		n.Components = append(n.Components, rpc.NewRpcServer(viper.GetString("rpc.port")))
+		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
+		n.Components = append(n.Components, rpcServer)
 	}
 	if viper.GetBool("p2p.enabled") {
 		privKey := getNodePrivKey()
-		n.Components = append(n.Components, NewP2PServer(privKey))
+		p2pServer = NewP2PServer(privKey)
+		n.Components = append(n.Components, p2pServer)
 	}
 
 	hub := og.NewHub(&og.HubConfig{
@@ -83,6 +84,12 @@ func NewNode() *Node {
 	})
 	n.Components = append(n.Components, m.TxBuffer)
 	n.Components = append(n.Components, m)
+    org.Manager = m
+
+	if rpcServer!=nil {
+		rpcServer.C.P2pServer = p2pServer
+		rpcServer.C.Og = org
+	}
 	return n
 }
 

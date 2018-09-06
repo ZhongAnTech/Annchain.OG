@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 )
 
-
 // DO NOT USE MSGP FOR AUTO-GENERATING HERE.
 // THE bigint_gen.go has been modified intentionally to adapt big.Int
 

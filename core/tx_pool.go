@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/math"
 	// "github.com/annchain/OG/common"
 	"math/rand"
 )
@@ -29,11 +30,11 @@ type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
 
-	queue     chan *txEvent // queue stores txs that need to validate later
-	tips      *TxMap        // tips stores all the tips
-	badtxs    *TxMap
-	txPending *TxMap
-	txLookup  *txLookUp // txLookUp stores all the txs for external query
+	queue		chan *txEvent // queue stores txs that need to validate later
+	tips		*TxMap        // tips stores all the tips
+	badtxs		*TxMap
+	poolPending *pending
+	txLookup	*txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
 
@@ -48,10 +49,10 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		queue:     make(chan *txEvent, conf.QueueSize),
 		tips:      NewTxMap(),
 		badtxs:    NewTxMap(),
-		txPending: NewTxMap(),
 		txLookup:  newTxLookUp(),
 		close:     make(chan struct{}),
 	}
+	pool.poolPending = NewPending(pool)
 	return pool
 }
 
@@ -95,18 +96,18 @@ func (pool *TxPool) Stop() {
 
 // PoolStatus returns the current status of txpool.
 func (pool *TxPool) PoolStatus() (int, int) {
-	return pool.txLookup.stats()
+	return pool.txLookup.Stats()
 }
 
 // Get get a transaction or sequencer according to input hash,
 // if tx not exists return nil
 func (pool *TxPool) Get(hash types.Hash) types.Txi {
-	return pool.txLookup.get(hash)
+	return pool.txLookup.Get(hash)
 }
 
 // GetStatus gets the current status of a tx
 func (pool *TxPool) GetStatus(hash types.Hash) int {
-	return pool.txLookup.status(hash)
+	return pool.txLookup.Status(hash)
 }
 
 // generate [count] unique random number within range [0, upper)
@@ -192,20 +193,20 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
-// Remove removes a tx from tx pool. Only be called if a tx moves to dag,
-// or a tx need to be clear in reset().
-func (pool *TxPool) remove(hash types.Hash) {
-	if pool.tips.Get(hash) != nil {
-		pool.tips.Remove(hash)
-	}
-	if pool.badtxs.Get(hash) != nil {
-		pool.badtxs.Remove(hash)
-	}
-	if pool.txPending.Get(hash) != nil {
-		pool.txPending.Remove(hash)
-	}
-	pool.txLookup.remove(hash)
-}
+// // Remove removes a tx from tx pool. Only be called if a tx moves to dag,
+// // or a tx need to be clear in reset().
+// func (pool *TxPool) remove(hash types.Hash) {
+// 	if pool.tips.Get(hash) != nil {
+// 		pool.tips.Remove(hash)
+// 	}
+// 	if pool.badtxs.Get(hash) != nil {
+// 		pool.badtxs.Remove(hash)
+// 	}
+// 	if pool.poolPending.Get(hash) != nil {
+// 		pool.poolPending.Remove(hash)
+// 	}
+// 	pool.txLookup.remove(hash)
+// }
 
 func (pool *TxPool) loop() {
 	defer log.Debugf("TxPool.loop() terminates")
@@ -254,7 +255,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 
 	select {
 	case pool.queue <- te:
-		pool.txLookup.add(te.txEnv)
+		pool.txLookup.Add(te.txEnv)
 	case <-timer.C:
 		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.MinedHash().Hex())
 	}
@@ -282,27 +283,58 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	if pool.isBadTx(tx) {
 		pool.badtxs.Add(tx)
-		pool.txLookup.switchStatus(tx.MinedHash(), TxStatusBadTx)
+		pool.txLookup.SwitchStatus(tx.MinedHash(), TxStatusBadTx)
 		return nil
 	}
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
-		if parent := pool.tips.Get(pHash); parent != nil {
-			pool.txPending.Add(parent)
-			pool.tips.Remove(pHash)
-			pool.txLookup.switchStatus(pHash, TxStatusPending)
+		parent := pool.tips.Get(pHash)
+		if parent == nil  {
+			break
 		}
+		// remove sequencer from tips
+		if parent.GetType() == types.TxBaseTypeSequencer {
+			pool.tips.Remove(pHash)
+			pool.txLookup.Remove(pHash)
+			continue
+		} 
+		// move normal tx to pending
+		pool.tips.Remove(pHash)
+		pool.poolPending.Add(parent)
+		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
 	pool.tips.Add(tx)
-	pool.txLookup.switchStatus(tx.MinedHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(tx.MinedHash(), TxStatusTip)
 	return nil
 }
 
+var (
+	okay = false
+	bad = true
+)
 func (pool *TxPool) isBadTx(tx *types.Tx) bool {
-	// TODO
-	// check if tx's parents are bad tx
-	// check if tx itself is valid
-	return false
+	// check if the tx's parents are bad txs
+	for _, parentHash := range tx.Parents() {
+		if pool.badtxs.Get(parentHash) != nil {
+			return bad
+		}
+	}
+
+	// check if the tx itself has no conflicts with local ledger
+	stateFrom, okFrom := pool.poolPending.state[tx.From] 
+	if !okFrom {
+		stateFrom = NewPendingState(tx.From, pool.dag.GetBalance(tx.From))
+	}
+	// if ( the value that 'from' already spent )
+	// 	+ ( the value that 'from' newly spent ) 
+	// 	> ( balance of 'from' in db )
+	newNeg := math.NewBigInt(0)
+	if newNeg.Value.Add(stateFrom.neg.Value, tx.Value.Value).Cmp(
+		stateFrom.originBalance.Value) > 0 {
+		return bad
+	}
+
+	return okay
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
@@ -314,17 +346,26 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	batch, err := pool.verifyConfirmBatch(elders); 
+	batch, err := pool.verifyConfirmBatch(seq, elders); 
 	if err != nil {
 		return err
 	}
 	// move elders to dag
 	for _, elder := range elders {
-		pool.remove(elder.MinedHash())
+		pool.poolPending.Confirm(elder.MinedHash())
+
+		status := pool.GetStatus(elder.MinedHash())
+		if status == TxStatusBadTx {
+			pool.badtxs.Remove(elder.MinedHash())
+		}
+		if status == TxStatusTip {
+			pool.tips.Remove(elder.MinedHash())
+		}
+		pool.txLookup.Remove(elder.MinedHash())
 	}
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
-	pool.txLookup.switchStatus(seq.MinedHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(seq.MinedHash(), TxStatusTip)
 	return nil
 }
 
@@ -336,13 +377,13 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 		batch[baseTx.MinedHash()] = baseTx
 	}
 	for _, pHash := range baseTx.Parents() {
-		parent := pool.txPending.Get(pHash)
+		parent := pool.poolPending.Get(pHash)
 		pool.seekElders(batch, parent)
 	}
 	return
 }
 
-func (pool *TxPool) verifyConfirmBatch(elders map[types.Hash]types.Txi) (*confirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*confirmBatch, error) {
 	// TODO
 	// verify the conflicts
 	// implement later after the finish of ogdb
@@ -359,72 +400,74 @@ func (pool *TxPool) reset() {
 	// TODO
 }
 
-type txLookUp struct {
-	txs map[types.Hash]*txEnvelope
-	mu  sync.RWMutex
-}
+type pending struct {
+	pool	*TxPool
 
-func newTxLookUp() *txLookUp {
-	return &txLookUp{
-		txs: make(map[types.Hash]*txEnvelope),
+	txs		*TxMap
+	state	map[types.Address]*pendingState
+}
+func NewPending(pool *TxPool) *pending{
+	return &pending{
+		pool:	pool,
+		txs:	NewTxMap(),
+		state:	make(map[types.Address]*pendingState),
 	}
 }
-func (t *txLookUp) get(h types.Hash) types.Txi {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
 
-	if txEnv := t.txs[h]; txEnv != nil {
-		return txEnv.tx
+func (p *pending) Get(hash types.Hash) types.Txi {
+	return p.txs.Get(hash)
+}
+
+// Add insert a normal tx into pool's pending and update the pending state.
+func (p *pending) Add(tx types.Txi) error {
+	switch tx := tx.(type) {
+	case *types.Tx:
+		// increase neg state of 'from'
+		stateFrom, okFrom := p.state[tx.From] 
+		if !okFrom {
+			balance := p.pool.dag.GetBalance(tx.From)
+			stateFrom = NewPendingState(tx.From, balance)
+		}
+		stateFrom.neg.Value.Add(stateFrom.neg.Value, tx.Value.Value)
+		// increase pos state of 'to' 
+		stateTo, okTo := p.state[tx.To]
+		if !okTo {
+			balance := p.pool.dag.GetBalance(tx.To)
+			stateTo = NewPendingState(tx.To, balance)
+		}
+		stateTo.pos.Value.Add(stateTo.pos.Value, tx.Value.Value)
+	case *types.Sequencer:
+		break
+	default:
+		return fmt.Errorf("unknown tx type")
 	}
+	p.txs.Add(tx)
 	return nil
 }
-func (t *txLookUp) add(txEnv *txEnvelope) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
 
-	t.txs[txEnv.tx.MinedHash()] = txEnv
-}
-func (t *txLookUp) remove(h types.Hash) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	delete(t.txs, h)
-}
-func (t *txLookUp) count() int {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	return len(t.txs)
-}
-func (t *txLookUp) stats() (int, int) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	queue, tips := 0, 0
-	for _, v := range t.txs {
-		if v.txType == TxStatusQueue {
-			queue += 1
-		} else {
-			tips += 1
-		}
+func (p *pending) Confirm(hash types.Hash) {
+	tx := p.txs.Get(hash)
+	switch tx := tx.(type) {
+	case *types.Sequencer:
+		break
+	case *types.Tx:
+		delete(p.state, tx.From)
+		delete(p.state, tx.To)
 	}
-	return queue, tips
+	p.txs.Remove(hash)
 }
-func (t *txLookUp) status(h types.Hash) int {
-	t.mu.RLock()
-	defer t.mu.Unlock()
 
-	if txEnv := t.txs[h]; txEnv != nil {
-		return txEnv.status
-	}
-	return TxStatusNotExist
+// type pendingState map[types.Address]pendingAddrState
+type pendingState struct {
+	neg				*math.BigInt
+	pos				*math.BigInt
+	originBalance	*math.BigInt
 }
-func (t *txLookUp) switchStatus(h types.Hash, status int) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if txEnv := t.txs[h]; txEnv != nil {
-		txEnv.status = status
+func NewPendingState(addr types.Address, balance *math.BigInt) *pendingState {
+	return &pendingState{
+		neg:			math.NewBigInt(0),
+		pos:			math.NewBigInt(0),
+		originBalance:	balance,
 	}
 }
 
@@ -449,6 +492,7 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
+	// TODO return nil as interface{} will not be nil
 	return tm.txs[hash]
 }
 func (tm *TxMap) Exists(tx types.Txi) bool {
@@ -474,3 +518,74 @@ func (tm *TxMap) Add(tx types.Txi) {
 		tm.txs[tx.MinedHash()] = tx
 	}
 }
+
+type txLookUp struct {
+	txs map[types.Hash]*txEnvelope
+	mu  sync.RWMutex
+}
+
+func newTxLookUp() *txLookUp {
+	return &txLookUp{
+		txs: make(map[types.Hash]*txEnvelope),
+	}
+}
+func (t *txLookUp) Get(h types.Hash) types.Txi {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	// TODO return nil as interface{} will not be nil
+	if txEnv := t.txs[h]; txEnv != nil {
+		return txEnv.tx
+	}
+	return nil
+}
+func (t *txLookUp) Add(txEnv *txEnvelope) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.txs[txEnv.tx.MinedHash()] = txEnv
+}
+func (t *txLookUp) Remove(h types.Hash) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	delete(t.txs, h)
+}
+func (t *txLookUp) Count() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return len(t.txs)
+}
+func (t *txLookUp) Stats() (int, int) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	queue, tips := 0, 0
+	for _, v := range t.txs {
+		if v.txType == TxStatusQueue {
+			queue += 1
+		} else {
+			tips += 1
+		}
+	}
+	return queue, tips
+}
+func (t *txLookUp) Status(h types.Hash) int {
+	t.mu.RLock()
+	defer t.mu.Unlock()
+
+	if txEnv := t.txs[h]; txEnv != nil {
+		return txEnv.status
+	}
+	return TxStatusNotExist
+}
+func (t *txLookUp) SwitchStatus(h types.Hash, status int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if txEnv := t.txs[h]; txEnv != nil {
+		txEnv.status = status
+	}
+}
+

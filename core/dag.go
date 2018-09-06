@@ -38,8 +38,11 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	return dag
 }
 
-type confirmBatch map[types.Address]subConfirmBatch
-type subConfirmBatch struct {
+type confirmBatch struct { 
+	seq		*types.Sequencer
+	batch	map[types.Address]Batch
+}
+type Batch struct {
 	txList	map[types.Hash]types.Txi
 	neg		*math.BigInt
 	pos		*math.BigInt
@@ -76,6 +79,11 @@ func (dag *Dag) Push(batch *confirmBatch) error {
 // ogdb only.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
+}
+
+// GetBalance read the confirmed balance of an address from ogdb.
+func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
+	return dag.accessor.ReadBalance(addr)
 }
 
 // RollBack rolls back the dag network.

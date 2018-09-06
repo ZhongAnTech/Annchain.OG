@@ -98,7 +98,7 @@ func (da *Accessor) DeleteTransaction(hash types.Hash) error {
 func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 	data, _ := da.db.Get(addressBalanceKey(addr))
 	if len(data) == 0 {
-		return nil
+		return math.NewBigInt(0)
 	}
 	var bigint math.BigInt
 	// TODO use other encode function

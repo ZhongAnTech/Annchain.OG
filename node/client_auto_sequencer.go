@@ -31,7 +31,8 @@ func (c *ClientAutoSequencer) loop() {
 			logrus.Warn("ClientAutoSequencer Failed to seal tx")
 			continue
 		}
-		logrus.Infof("Sequencer generated: %s", seq.GetTxHash())
+		logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
+		logrus.Infof("%+v", seq)
 		// TODO: announce tx
 		c.TxBuffer.AddTx(seq)
 	}

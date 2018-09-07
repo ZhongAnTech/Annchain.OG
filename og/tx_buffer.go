@@ -101,12 +101,13 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 }
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
+	logrus.Debugf("Handling tx with Hash %s", tx.GetTxHash().Hex())
 	// already in the dag or tx_pool.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	}
 	if err := b.verifyTxFormat(tx); err != nil {
-		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetTxHash().Hex())
+		logrus.WithError(err).Debugf("Received invalid tx %s", tx.GetTxHash().Hex())
 		return
 	}
 

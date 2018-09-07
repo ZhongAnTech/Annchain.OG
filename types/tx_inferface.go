@@ -108,14 +108,14 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcNonceHash().Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
 }
 
-func (t *TxBase) CalcNonceHash() (hash Hash) {
+func (t *TxBase) CalcMinedHash() (hash Hash) {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))

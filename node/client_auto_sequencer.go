@@ -10,6 +10,7 @@ import (
 
 type ClientAutoSequencer struct {
 	TxCreator        *og.TxCreator
+	TxBuffer         *og.TxBuffer
 	BlockTimeSeconds int
 	PrivateKey       crypto.PrivateKey
 	stop             bool
@@ -18,7 +19,7 @@ type ClientAutoSequencer struct {
 	manualChan       chan bool
 }
 
-func (c *ClientAutoSequencer) loop(){
+func (c *ClientAutoSequencer) loop() {
 	for !c.stop {
 		select {
 		case <-c.manualChan:
@@ -32,6 +33,7 @@ func (c *ClientAutoSequencer) loop(){
 		}
 		logrus.Infof("Sequencer generated: %s", seq.GetTxHash())
 		// TODO: announce tx
+		c.TxBuffer.AddTx(seq)
 	}
 }
 

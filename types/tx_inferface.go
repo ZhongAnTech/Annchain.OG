@@ -46,7 +46,7 @@ func (t TxBaseType) String() string {
 //msgp:tuple Txi
 type Txi interface {
 	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	CalcNonceHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
 

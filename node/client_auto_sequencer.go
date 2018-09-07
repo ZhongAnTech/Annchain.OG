@@ -3,9 +3,9 @@ package node
 import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/common/crypto"
+	"time"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type ClientAutoSequencer struct {
@@ -18,9 +18,7 @@ type ClientAutoSequencer struct {
 	manualChan       chan bool
 }
 
-func (c *ClientAutoSequencer) Start() {
-	c.stop = false
-
+func (c *ClientAutoSequencer) loop(){
 	for !c.stop {
 		select {
 		case <-c.manualChan:
@@ -34,8 +32,12 @@ func (c *ClientAutoSequencer) Start() {
 		}
 		logrus.Infof("Sequencer generated: %s", seq.GetTxHash())
 		// TODO: announce tx
-
 	}
+}
+
+func (c *ClientAutoSequencer) Start() {
+	c.stop = false
+	go c.loop()
 }
 
 func (c *ClientAutoSequencer) Stop() {

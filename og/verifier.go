@@ -6,16 +6,26 @@ import (
 )
 
 type Verifier struct {
-	signer     crypto.Signer
-	cryptoType crypto.CryptoType
+	signer       crypto.Signer
+	cryptoType   crypto.CryptoType
+	MaxTxHash    types.Hash // The difficultiy of TxHash
+	MaxMinedHash types.Hash // The difficultiy of MinedHash
 }
 
-func NewVerifier(signer crypto.Signer) *Verifier {
-	return &Verifier{signer: signer, cryptoType: signer.GetCryptoType()}
+func NewVerifier(signer crypto.Signer, maxTxHash types.Hash, maxMineHash types.Hash) *Verifier {
+	return &Verifier{
+		signer:       signer,
+		cryptoType:   signer.GetCryptoType(),
+		MaxTxHash:    maxTxHash,
+		MaxMinedHash: maxMineHash,
+	}
 }
 
 func (v *Verifier) VerifyHash(t types.Txi) bool {
-	return t.CalcTxHash() == t.GetTxHash()
+	return (t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) &&
+		t.CalcTxHash() == t.GetTxHash() &&
+		(t.GetTxHash().Cmp(v.MaxTxHash) < 0)
+
 }
 
 func (v *Verifier) VerifySignature(t types.Txi) bool {

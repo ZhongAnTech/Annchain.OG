@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/p2p"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"github.com/annchain/OG/types"
 )
 
 type RpcControler struct {
@@ -54,8 +55,17 @@ func (r *RpcControler) Validator(c *gin.Context) {
 	})
 }
 func (r *RpcControler) NewTransaction(c *gin.Context) {
+	var tx types.Tx
+	 err :=  c.ShouldBindJSON(&tx)
+	 if err!=nil {
+		 c.JSON(http.StatusOK, gin.H{
+			 "error": err.Error(),
+		 })
+		 return
+	 }
+	 //todo add transaction
 	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
+		"message": "ok",
 	})
 }
 func (r *RpcControler) QueryNonce(c *gin.Context) {

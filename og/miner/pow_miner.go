@@ -18,8 +18,8 @@ func (m *PoWMiner) StartMine(tx types.Txi, targetMax types.Hash, start uint64, r
 	for i = start; i <= math.MaxUint64; i++ {
 		base.MineNonce = i
 		//logrus.Debugf("%10d %s %s", i, tx.Hash().Hex(), targetMax.Hex())
-		if tx.CalcNonceHash().Cmp(targetMax) < 0 {
-			logrus.Debugf("Hash found: %s with %d", tx.CalcNonceHash().Hex(), i)
+		if tx.CalcMinedHash().Cmp(targetMax) < 0 {
+			logrus.Debugf("Hash found: %s with %d", tx.CalcMinedHash().Hex(), i)
 			responseChan <- i
 			return
 		}

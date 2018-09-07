@@ -24,20 +24,14 @@ func NewNode() *Node {
 	// Start myself first and then provide service and do p2p
 
 	var rpcServer *rpc.RpcServer
-	var p2pServer *p2p.Server
-	 maxPerr := viper.GetInt("p2p.max_peers")
-	 if maxPerr ==0 {
-	 	maxPerr = defaultMaxPeers
-	 }
+
+	maxPerr := viper.GetInt("p2p.max_peers")
+	if maxPerr == 0 {
+		maxPerr = defaultMaxPeers
+	}
 	if viper.GetBool("rpc.enabled") {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
 		n.Components = append(n.Components, rpcServer)
-	}
-	if viper.GetBool("p2p.enabled") {
-		// TODO: Merge private key loading. All keys should be stored at just one place.
-		privKey := getNodePrivKey()
-		p2pServer = NewP2PServer(privKey)
-		n.Components = append(n.Components, p2pServer)
 	}
 
 	hub := og.NewHub(&og.HubConfig{
@@ -83,13 +77,16 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	m.Verifier = og.NewVerifier(signer)
+	m.Verifier = og.NewVerifier(signer,
+		types.HexToHash(viper.GetString("max_tx_hash")),
+		types.HexToHash(viper.GetString("max_mined_hash")),
+	)
 
 	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: m.Verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifier:                         m.Verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
@@ -103,8 +100,8 @@ func NewNode() *Node {
 		Miner:              miner,
 		TipGenerator:       &og.DummyTxPoolMiniTx{},
 		MaxConnectingTries: 100,
-		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash:       types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
+		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
 	}
 
 	var privateKey crypto.PrivateKey
@@ -122,10 +119,10 @@ func NewNode() *Node {
 		}
 	}
 
-	if viper.GetBool("module.auto_sequencer.enabled") {
+	if viper.GetBool("auto_sequencer.enabled") {
 		autoSequencer := &ClientAutoSequencer{
-			TxCreator:  txCreator,
-			PrivateKey: privateKey,
+			TxCreator:        txCreator,
+			PrivateKey:       privateKey,
 			BlockTimeSeconds: 5,
 		}
 		n.Components = append(n.Components, autoSequencer)
@@ -133,7 +130,17 @@ func NewNode() *Node {
 
 	n.Components = append(n.Components, m)
 	org.Manager = m
-	p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+
+	var p2pServer *p2p.Server
+	if viper.GetBool("p2p.enabled") {
+		// TODO: Merge private key loading. All keys should be stored at just one place.
+		privKey := getNodePrivKey()
+		p2pServer = NewP2PServer(privKey)
+		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+
+		n.Components = append(n.Components, p2pServer)
+	}
+
 	if rpcServer != nil {
 		rpcServer.C.P2pServer = p2pServer
 		rpcServer.C.Og = org

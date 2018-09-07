@@ -21,12 +21,6 @@ type ManagerConfig struct {
 	BatchAcquireSize   uint // length of the buffer for batch tx acquire for a single node
 }
 
-func NewManager(config *ManagerConfig) *Manager {
-	m := Manager{}
-	m.Config = config
-	return &m
-}
-
 // EnsurePreviousTxs checks if all ancestors of the tip is in the local tx pool
 // If tx is missing, send to fetching queue
 // Return true if the hash's parent is there, or false if the hash's parent is missing.
@@ -48,8 +42,19 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 
 func (m *Manager) Start() {
 	m.Hub.SendMessage(MessageTypePing, []byte{})
-	m.Syncer.Enqueue(types.HexToHash("0x00"))
-	m.Syncer.Enqueue(types.HexToHash("0x01"))
+	m.TxPool.AddLocalTx(&types.Sequencer{
+		Issuer:            types.HexToAddress("0x00"),
+		ContractHashOrder: []types.Hash{},
+		Id:                0,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseTypeSequencer,
+			Hash:         types.HexToHash("0x00"),
+			Height:       0,
+			AccountNonce: 0,
+		},
+	})
+	//m.Syncer.Enqueue(types.HexToHash("0x00"))
+	//m.Syncer.Enqueue(types.HexToHash("0x01"))
 }
 
 func (m *Manager) Stop() {
@@ -157,4 +162,3 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 
 }
-

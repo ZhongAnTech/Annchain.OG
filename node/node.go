@@ -53,18 +53,10 @@ func NewNode() *Node {
 		panic("Error occurred while initializing OG")
 	}
 
+	n.Components = append(n.Components, org.Txpool)
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
-
-	m := og.NewManager(&og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10})
-
-	// Setup Hub
-	m.Hub = hub
-	SetupCallbacks(m, hub)
-
-	m.Syncer = syncer
-	m.TxPool = nil
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -77,20 +69,33 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	m.Verifier = og.NewVerifier(signer,
+	verifier := og.NewVerifier(signer,
 		types.HexToHash(viper.GetString("max_tx_hash")),
 		types.HexToHash(viper.GetString("max_mined_hash")),
 	)
 
-	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
+	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Syncer:                           syncer,
-		Verifier:                         m.Verifier,
+		Verifier:                         verifier,
 		Dag:                              org.Dag,
 		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
+	n.Components = append(n.Components, txBuffer)
+
+	m := &og.Manager{
+		TxPool:   org.Txpool,
+		TxBuffer: txBuffer,
+		Verifier: verifier,
+		Syncer:   syncer,
+		Hub:      hub,
+		Config:   &og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10},
+	}
+	// Setup Hub
+	SetupCallbacks(m, hub)
+
 	n.Components = append(n.Components, m.TxBuffer)
 
 	miner := &miner2.PoWMiner{}
@@ -98,7 +103,7 @@ func NewNode() *Node {
 	txCreator := &og.TxCreator{
 		Signer:             signer,
 		Miner:              miner,
-		TipGenerator:       &og.DummyTxPoolMiniTx{},
+		TipGenerator:       org.Txpool,
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),

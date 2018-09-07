@@ -17,13 +17,13 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/annchain/OG/node"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path/filepath"
-	"github.com/annchain/OG/node"
-	log "github.com/sirupsen/logrus"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 )
 

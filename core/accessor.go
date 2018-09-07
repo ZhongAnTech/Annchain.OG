@@ -11,13 +11,24 @@ import (
 )
 
 var (
+	prefixGenesisKey	 = []byte("genesis")
+	prefixLatestSeqKey	 = []byte("latestseq")
+
 	prefixTransactionKey = []byte("tk")
 	prefixTransaction    = []byte("tx")
 	prefixSequencer      = []byte("sq")
 
-	prefixAddressBalanceKey = []byte("balance")
+	prefixAddressBalanceKey = []byte("ba")
 	// prefixContractState = []byte("con")
 )
+
+func genesisKey() []byte {
+	return prefixGenesisKey
+}
+
+func latestSequencerKey() []byte {
+	return prefixLatestSeqKey
+}
 
 func transactionKey(hash types.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
@@ -39,14 +50,65 @@ func NewAccessor(db ogdb.Database) *Accessor {
 	return &Accessor{db: db}
 }
 
+// ReadGenesis get genesis sequencer from db. 
+// return nil if there is no genesis.
+func (da *Accessor) ReadGenesis() *types.Sequencer {
+	data, _ := da.db.Get(genesisKey())
+	if len(data) == 0 {
+		return nil
+	}
+	// TODO use other decode function
+	var seq types.Sequencer
+	err := json.Unmarshal(data, &seq)
+	if err != nil {
+		return nil
+	}
+	return &seq
+}
+
+// WriteGenesis writes geneis into db.
+func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
+	data, err := json.Marshal(genesis)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(genesisKey(), data)
+}
+
+// ReadLatestSequencer get latest sequencer from db. 
+// return nil if there is no sequencer.
+func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
+	data, _ := da.db.Get(latestSequencerKey())
+	if len(data) == 0 {
+		return nil
+	}
+	// TODO use other decode function
+	var seq types.Sequencer
+	err := json.Unmarshal(data, &seq)
+	if err != nil {
+		return nil
+	}
+	return &seq
+}
+
+// WriteGenesis writes latest sequencer into db.
+func (da *Accessor) WriteLatestSequencer(seq *types.Sequencer) error {
+	data, err := json.Marshal(seq)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(latestSequencerKey(), data)
+}
+
 // ReadTransaction get tx or sequencer from ogdb.
 func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	data, _ := da.db.Get(transactionKey(hash))
 	if len(data) == 0 {
 		return nil
 	}
-	prefix := data[:2]
-	data = data[2:]
+	prefixLen := len(prefixTransaction)
+	prefix := data[:prefixLen]
+	data = data[prefixLen:]
 	if bytes.Equal(prefix, prefixTransaction) {
 		var tx types.Tx
 		// TODO use other decode function

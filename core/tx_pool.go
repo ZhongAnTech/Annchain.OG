@@ -31,11 +31,11 @@ type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
 
-	queue		chan *txEvent // queue stores txs that need to validate later
-	tips		*TxMap        // tips stores all the tips
-	badtxs		*TxMap
+	queue       chan *txEvent // queue stores txs that need to validate later
+	tips        *TxMap        // tips stores all the tips
+	badtxs      *TxMap
 	poolPending *pending
-	txLookup	*txLookUp // txLookUp stores all the txs for external query
+	txLookup    *txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
 
@@ -45,13 +45,13 @@ type TxPool struct {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:      conf,
-		dag:       d,
-		queue:     make(chan *txEvent, conf.QueueSize),
-		tips:      NewTxMap(),
-		badtxs:    NewTxMap(),
-		txLookup:  newTxLookUp(),
-		close:     make(chan struct{}),
+		conf:     conf,
+		dag:      d,
+		queue:    make(chan *txEvent, conf.QueueSize),
+		tips:     NewTxMap(),
+		badtxs:   NewTxMap(),
+		txLookup: newTxLookUp(),
+		close:    make(chan struct{}),
 	}
 	pool.poolPending = NewPending(pool)
 	return pool
@@ -104,7 +104,7 @@ func (pool *TxPool) Init(genesis *types.Sequencer) {
 	log.Infof("TxPool finish init")
 }
 
-func (pool *TxPool) Name() string{
+func (pool *TxPool) Name() string {
 	return "TxPool"
 }
 
@@ -243,7 +243,7 @@ func (pool *TxPool) loop() {
 			}
 			txEvent.callbackChan <- err
 
-		// TODO case reset?
+			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -303,7 +303,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
 		parent := pool.tips.Get(pHash)
-		if parent == nil  {
+		if parent == nil {
 			break
 		}
 		// remove sequencer from tips
@@ -326,8 +326,9 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 
 var (
 	okay = false
-	bad = true
+	bad  = true
 )
+
 func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
@@ -453,16 +454,17 @@ func (pool *TxPool) reset() {
 }
 
 type pending struct {
-	pool	*TxPool
+	pool *TxPool
 
-	txs		*TxMap
-	state	map[types.Address]*pendingState
+	txs   *TxMap
+	state map[types.Address]*pendingState
 }
-func NewPending(pool *TxPool) *pending{
+
+func NewPending(pool *TxPool) *pending {
 	return &pending{
-		pool:	pool,
-		txs:	NewTxMap(),
-		state:	make(map[types.Address]*pendingState),
+		pool:  pool,
+		txs:   NewTxMap(),
+		state: make(map[types.Address]*pendingState),
 	}
 }
 
@@ -511,15 +513,16 @@ func (p *pending) Confirm(hash types.Hash) {
 
 // type pendingState map[types.Address]pendingAddrState
 type pendingState struct {
-	neg				*math.BigInt
-	pos				*math.BigInt
-	originBalance	*math.BigInt
+	neg           *math.BigInt
+	pos           *math.BigInt
+	originBalance *math.BigInt
 }
+
 func NewPendingState(addr types.Address, balance *math.BigInt) *pendingState {
 	return &pendingState{
-		neg:			math.NewBigInt(0),
-		pos:			math.NewBigInt(0),
-		originBalance:	balance,
+		neg:           math.NewBigInt(0),
+		pos:           math.NewBigInt(0),
+		originBalance: balance,
 	}
 }
 
@@ -550,7 +553,7 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	if tm.txs[tx.GetTxHash()] == nil {
+	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
 		return false
 	}
 	return true
@@ -565,7 +568,7 @@ func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.txs[tx.GetTxHash()] == nil {
+	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
 		tm.txs[tx.GetTxHash()] = tx
 	}
 }
@@ -587,6 +590,11 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}
+	log.Warnf("Hash not found %s", h.Hex())
+	for k := range t.txs {
+		log.Warnf("Available: %s", k.Hex())
+	}
+
 	return nil
 }
 func (t *txLookUp) Add(txEnv *txEnvelope) {
@@ -594,6 +602,7 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	defer t.mu.Unlock()
 
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
+	log.Infof("Hash added: %s", txEnv.tx.GetTxHash().Hex())
 }
 func (t *txLookUp) Remove(h types.Hash) {
 	t.mu.Lock()
@@ -638,4 +647,3 @@ func (t *txLookUp) SwitchStatus(h types.Hash, status int) {
 		txEnv.status = status
 	}
 }
-

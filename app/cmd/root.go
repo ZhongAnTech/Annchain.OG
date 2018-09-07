@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -54,10 +55,12 @@ func init() {
 	rootCmd.PersistentFlags().StringP("log_dir", "l", "", "Path for configuration file. Not enabled by default")
 	//rootCmd.PersistentFlags().BoolP("log_stdout", "ls", true, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().StringP("log_verbosity", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
+	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "log_line_number")
 
 	viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
+	viper.BindPFlag("log_line_number", rootCmd.PersistentFlags().Lookup("log_line_number"))
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
 	viper.BindPFlag("log_verbosity", rootCmd.PersistentFlags().Lookup("log_verbosity"))
 
@@ -142,6 +145,12 @@ func initLogger() {
 	// redirect standard log to logrus
 	//log.SetOutput(logrus.StandardLogger().Writer())
 	//log.Println("Standard logger. Am I here?")
+	lineNum := viper.GetBool("log_line_number")
+	if lineNum {
+		filenameHook := filename.NewHook()
+		filenameHook.Field = "line"
+		logrus.AddHook(filenameHook)
+	}
 
 	logrus.Debug("Logger initialized.")
 }

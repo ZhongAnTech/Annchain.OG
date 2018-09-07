@@ -96,8 +96,6 @@ func NewNode() *Node {
 	// Setup Hub
 	SetupCallbacks(m, hub)
 
-	n.Components = append(n.Components, m.TxBuffer)
-
 	miner := &miner2.PoWMiner{}
 
 	txCreator := &og.TxCreator{
@@ -133,6 +131,13 @@ func NewNode() *Node {
 		}
 		n.Components = append(n.Components, autoSequencer)
 	}
+
+	// DataLoader
+	dataLoader := &og.DataLoader{
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
+	}
+	n.Components = append(n.Components, dataLoader)
 
 	n.Components = append(n.Components, m)
 	org.Manager = m

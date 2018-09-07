@@ -1,6 +1,6 @@
 package node
 
-type Component interface{
+type Component interface {
 	Start()
 	Stop()
 	// Get the component name

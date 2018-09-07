@@ -12,4 +12,5 @@ vendor/
 *.lock
 /.project
 app/app
+client/client
 .vscode/

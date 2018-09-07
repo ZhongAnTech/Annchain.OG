@@ -16,7 +16,7 @@ type dummyDag struct {
 func (d *dummyDag) init() {
 	d.dmap = make(map[types.Hash]types.Txi)
 	tx := sampleTx("0x00", []string{})
-	d.dmap[tx.GetBase().Hash] = tx
+	d.dmap[tx.GetTxHash()] = tx
 }
 
 func (d *dummyDag) GetTx(hash types.Hash) types.Txi {
@@ -33,7 +33,7 @@ type dummyTxPool struct {
 func (d *dummyTxPool) init() {
 	d.dmap = make(map[types.Hash]types.Txi)
 	tx := sampleTx("0x01", []string{"0x00"})
-	d.dmap[tx.GetBase().Hash] = tx
+	d.dmap[tx.GetTxHash()] = tx
 }
 
 func (d *dummyTxPool) Get(hash types.Hash) types.Txi {
@@ -44,7 +44,7 @@ func (d *dummyTxPool) Get(hash types.Hash) types.Txi {
 }
 
 func (d *dummyTxPool) AddRemoteTx(tx types.Txi) error {
-	d.dmap[tx.GetBase().Hash] = tx
+	d.dmap[tx.GetTxHash()] = tx
 	return nil
 }
 
@@ -55,7 +55,7 @@ type dummySyncer struct {
 }
 
 func (d *dummySyncer) Know(tx types.Txi) {
-	d.dmap[tx.GetBase().Hash] = tx
+	d.dmap[tx.GetTxHash()] = tx
 }
 
 func (d *dummySyncer) Enqueue(hash types.Hash) {

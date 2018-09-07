@@ -148,7 +148,7 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 		return err
 	}
 	data = append(prefix, data...)
-	return da.db.Put(transactionKey(tx.MinedHash()), data)
+	return da.db.Put(transactionKey(tx.GetTxHash()), data)
 }
 
 // DeleteTransaction delete the tx or sequencer.

@@ -4,6 +4,9 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"fmt"
 	"strings"
+	"bytes"
+	"encoding/binary"
+	"github.com/annchain/OG/common/crypto/sha3"
 )
 
 //go:generate msgp
@@ -26,24 +29,24 @@ func (t TxBaseType) String() string {
 }
 
 // Here indicates what fields should be concerned during hash calculation and signature generation
-// |      |                   | Signature target | StructureHash(Slow) | MinedHash(Fast) |
+// |      |                   | Signature target |     NonceHash(Slow) |    TxHash(Fast) |
 // |------|-------------------|------------------|---------------------|-----------------|
-// | Base | ParentsHash       |                  |                   1 |               1 |
-// | Base | AccountNonce      |                1 |                     |               1 |
-// | Base | Height            |                  |                   1 |               1 |
-// | Base | PublicKey         |                  |                   1 |               1 |
-// | Base | Signature         |                  |                   1 |               1 |
-// | Base | MineNonce         |                  |                     |               1 |
-// | Tx   | From              |                1 |                     |               1 |
-// | Tx   | To                |                1 |                     |               1 |
-// | Tx   | Value             |                1 |                     |               1 |
-// | Seq  | Id                |                1 |                     |               1 |
-// | Seq  | ContractHashOrder |                1 |                     |               1 |
+// | Base | ParentsHash       |                  |                     |               1 |
+// | Base | Height            |                  |                     |               1 |
+// | Base | PublicKey         |                  |                   1 | 1 (nonce hash)  |
+// | Base | Signature         |                  |                   1 | 1 (nonce hash)  |
+// | Base | MinedNonce        |                  |                   1 | 1 (nonce hash)  |
+// | Base | AccountNonce      |                1 |                     |                 |
+// | Tx   | From              |                1 |                     |                 |
+// | Tx   | To                |                1 |                     |                 |
+// | Tx   | Value             |                1 |                     |                 |
+// | Seq  | Id                |                1 |                     |                 |
+// | Seq  | ContractHashOrder |                1 |                     |                 |
 
 //msgp:tuple Txi
 type Txi interface {
-	MinedHash() Hash          // MinedHash returns a full tx hash (MineNonce sealed)
-	StructureHash() Hash      // StructureHash returns the part that needs to be copnsidered in building the structure of dag.
+	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
 
@@ -51,8 +54,8 @@ type Txi interface {
 
 	GetType() TxBaseType
 	GetBase() *TxBase
+	GetTxHash() Hash
 	String() string
-	SetMineNonce(mineNonce uint64)
 
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
@@ -77,15 +80,16 @@ func (t *TxBase) GetType() TxBaseType {
 	return t.Type
 }
 
+func (t *TxBase) GetTxHash() Hash {
+	return t.Hash
+}
+
 func (t *TxBase) Parents() []Hash {
 	return t.ParentsHash
 }
 
 func (t *TxBase) SetHash(hash Hash) {
 	t.Hash = hash
-}
-func (t *TxBase) SetMineNonce(mineNonce uint64) {
-	t.MineNonce = mineNonce
 }
 
 func (t *TxBase) String() string {
@@ -95,4 +99,30 @@ func (t *TxBase) String() string {
 	}
 
 	return fmt.Sprintf("%s %s Parent [%s]", t.Type.String(), t.Hash.Hex()[:10], strings.Join(hashes, ","))
+}
+
+func (t *TxBase) CalcTxHash() (hash Hash) {
+	var buf bytes.Buffer
+
+	for _, ancestor := range t.ParentsHash {
+		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
+
+	result := sha3.Sum256(buf.Bytes())
+	hash.MustSetBytes(result[0:])
+	return
+}
+
+func (t *TxBase) CalcMinedHash() (hash Hash) {
+	var buf bytes.Buffer
+
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
+
+	result := sha3.Sum256(buf.Bytes())
+	hash.MustSetBytes(result[0:])
+	return
 }

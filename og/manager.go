@@ -62,7 +62,7 @@ func (m *Manager) Name() string {
 
 func (m *Manager) HandlePing(*P2PMessage) {
 	logrus.Debug("Received your ping. Respond you a pong")
-	m.Hub.SendMessage(MessageTypePong, []byte{})
+	m.Hub.SendMessage(MessageTypePong, []byte{1})
 }
 
 func (m *Manager) HandlePong(*P2PMessage) {
@@ -90,11 +90,11 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		switch hash.Bytes[0] {
 		case 0:
 			tx := types.SampleSequencer()
-			tx.SetHash(tx.MinedHash())
+			tx.SetHash(tx.CalcTxHash())
 			seqs = append(seqs, tx)
 		case 1:
 			tx := types.SampleTx()
-			tx.SetHash(tx.MinedHash())
+			tx.SetHash(tx.CalcTxHash())
 			txs = append(txs, tx)
 		}
 	}

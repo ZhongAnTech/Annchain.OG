@@ -92,7 +92,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		logrus.Debugf("Validate graph structure [%t] for tx %s", ok, hash.Hex())
 		return txRet, ok
 	} else {
-		logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
+		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
 		return nil, false
 	}
 }
@@ -121,10 +121,11 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 				pickCount ++
 				txs := m.TipGenerator.GetRandomTips(2)
 
-				logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
+				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
 				if len(txs) == 0 {
 					// Impossible. At least genesis is there
-					panic("Impossible: At least genesis is there")
+					logrus.Warn("At least genesis is there. Wait for loading")
+					time.Sleep(time.Second * 2)
 				}
 
 				if _, ok := m.tryConnect(tx, txs); ok {

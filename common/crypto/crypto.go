@@ -1,9 +1,11 @@
 package crypto
 
+import "encoding/base64"
+
 type CryptoType int8
 
 const (
-	CryptoTypeEd25519 CryptoType = iota
+	CryptoTypeEd25519   CryptoType = iota
 	CryptoTypeSecp256k1
 )
 
@@ -30,4 +32,23 @@ func PublicKeyFromBytes(typev CryptoType, bytes []byte) PublicKey {
 }
 func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
 	return Signature{Type: typev, Bytes: bytes}
+}
+
+func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
+	bytes, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return
+	}
+	priv = PrivateKey{
+		Type:  CryptoType(bytes[0]),
+		Bytes: bytes[1:],
+	}
+	return
+}
+
+func (k *PrivateKey) PrivateKeyToString() string {
+	var bytes []byte
+	bytes = append(bytes, byte(k.Type))
+	bytes = append(bytes, k.Bytes...)
+	return base64.StdEncoding.EncodeToString(bytes)
 }

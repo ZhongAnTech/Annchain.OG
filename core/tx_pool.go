@@ -126,11 +126,8 @@ func generateRandomIndices(count int, upper int) []int {
 	}
 	// avoid dup
 	generated := make(map[int]struct{})
-	for count > 0 {
+	for count > len(generated) {
 		i := rand.Intn(upper)
-		if _, ok := generated[i]; ok {
-			continue
-		}
 		generated[i] = struct{}{}
 	}
 	arr := make([]int, 0, len(generated))
@@ -265,7 +262,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 	case pool.queue <- te:
 		pool.txLookup.Add(te.txEnv)
 	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.MinedHash().Hex())
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
 	select {
@@ -275,10 +272,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		}
 		// case <-timer.C:
 		// 	// close(te.callbackChan)
-		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.MinedHash().Hex())
+		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.MinedHash().Hex())
+	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
 	return nil
 }
 
@@ -291,7 +288,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	if pool.isBadTx(tx) {
 		pool.badtxs.Add(tx)
-		pool.txLookup.SwitchStatus(tx.MinedHash(), TxStatusBadTx)
+		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
 	}
 	// move parents to txpending
@@ -312,7 +309,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
 	pool.tips.Add(tx)
-	pool.txLookup.SwitchStatus(tx.MinedHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 	return nil
 }
 
@@ -360,29 +357,29 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	// move elders to dag
 	for _, elder := range elders {
-		pool.poolPending.Confirm(elder.MinedHash())
+		pool.poolPending.Confirm(elder.GetTxHash())
 
-		status := pool.GetStatus(elder.MinedHash())
+		status := pool.GetStatus(elder.GetTxHash())
 		if status == TxStatusBadTx {
-			pool.badtxs.Remove(elder.MinedHash())
+			pool.badtxs.Remove(elder.GetTxHash())
 		}
 		if status == TxStatusTip {
-			pool.tips.Remove(elder.MinedHash())
+			pool.tips.Remove(elder.GetTxHash())
 		}
-		pool.txLookup.Remove(elder.MinedHash())
+		pool.txLookup.Remove(elder.GetTxHash())
 	}
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
-	pool.txLookup.SwitchStatus(seq.MinedHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 	return nil
 }
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
-	if baseTx == nil || pool.dag.GetTx(baseTx.MinedHash()) != nil {
+	if baseTx == nil || pool.dag.GetTx(baseTx.GetTxHash()) != nil {
 		return
 	}
-	if batch[baseTx.MinedHash()] == nil {
-		batch[baseTx.MinedHash()] = baseTx
+	if batch[baseTx.GetTxHash()] == nil {
+		batch[baseTx.GetTxHash()] = baseTx
 	}
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.poolPending.Get(pHash)
@@ -407,7 +404,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 				batchFrom.neg = math.NewBigInt(0)
 				batchFrom.pos = math.NewBigInt(0)
 			}
-			batchFrom.txList[tx.MinedHash()] = tx
+			batchFrom.txList[tx.GetTxHash()] = tx
 			batchFrom.neg.Value.Add(batchFrom.neg.Value, tx.Value.Value)
 
 			batchTo := batch[tx.To]
@@ -537,7 +534,7 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	if tm.txs[tx.MinedHash()] == nil {
+	if tm.txs[tx.GetTxHash()] == nil {
 		return false
 	}
 	return true
@@ -552,8 +549,8 @@ func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if tm.txs[tx.MinedHash()] == nil {
-		tm.txs[tx.MinedHash()] = tx
+	if tm.txs[tx.GetTxHash()] == nil {
+		tm.txs[tx.GetTxHash()] = tx
 	}
 }
 
@@ -580,7 +577,7 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.txs[txEnv.tx.MinedHash()] = txEnv
+	t.txs[txEnv.tx.GetTxHash()] = txEnv
 }
 func (t *txLookUp) Remove(h types.Hash) {
 	t.mu.Lock()

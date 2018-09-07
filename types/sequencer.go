@@ -3,10 +3,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"golang.org/x/crypto/sha3"
 	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"strings"
+	"math/rand"
 )
 
 //go:generate msgp
@@ -15,6 +15,7 @@ import (
 type Sequencer struct {
 	TxBase
 	Id                uint64 `msgp:"id"`
+	Issuer            Address
 	ContractHashOrder []Hash `msgp:"contractHashOrder"`
 }
 
@@ -26,6 +27,7 @@ func SampleSequencer() *Sequencer {
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
+		Issuer: HexToAddress("0x33"),
 		ContractHashOrder: []Hash{
 			HexToHash("0x00667788"),
 			HexToHash("0xAA667788"),
@@ -34,48 +36,25 @@ func SampleSequencer() *Sequencer {
 	}
 }
 
-func (t *Sequencer) MinedHash() (hash Hash) {
-	var buf bytes.Buffer
-
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
+func RandomSequencer() *Sequencer {
+	return &Sequencer{TxBase: TxBase{
+		Hash:         randomHash(),
+		Height:       rand.Uint64(),
+		ParentsHash:  []Hash{randomHash(), randomHash()},
+		Type:         TxBaseTypeNormal,
+		AccountNonce: uint64(rand.Int63n(50000)),
+	},
+		Id: rand.Uint64(),
+		Issuer: randomAddress(),
+		ContractHashOrder: []Hash{randomHash(), randomHash(), randomHash()},
 	}
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
-	for _, orderHash := range t.ContractHashOrder {
-		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
-	}
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
-}
-
-func (t *Sequencer) StructureHash() (hash Hash) {
-	var buf bytes.Buffer
-	for _, ancestor := range t.ParentsHash {
-		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
-	}
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
-
-	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
-	return
 }
 
 func (t *Sequencer) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
 	for _, orderHash := range t.ContractHashOrder {
 		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
@@ -83,7 +62,6 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 	return buf.Bytes()
 }
-
 
 func (t *Sequencer) Parents() []Hash {
 	return t.ParentsHash
@@ -104,9 +82,9 @@ func (t *Sequencer) String() string {
 		hashes = append(hashes, v.Hex()[0:10])
 	}
 
-	return fmt.Sprintf("[%s] %d Hashes %s", t.TxBase.String(), t.Id, strings.Join(hashes, ","))
+	return fmt.Sprintf("[%s] %d Issuer %s, Hashes %s", t.TxBase.String(), t.Id, t.Issuer, strings.Join(hashes, ","))
 }
 
-func (t *Sequencer) GetBase() *TxBase{
+func (t *Sequencer) GetBase() *TxBase {
 	return &t.TxBase
 }

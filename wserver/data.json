@@ -1,0 +1,34 @@
+{
+  nodes: [
+    {
+      data: {
+        unit: '/3WhIDCv2Ki2z+HGeknnGW2LOsXgketPUK3dtawgdek=',
+        unit_s: '/3WhIDC...'
+      },
+      is_on_main_chain: 1,
+      is_stable: 0,
+      rowid: 4071777,
+      sequence: 'good'
+    },
+    {
+      data: {
+        unit: '/8AAIDCv2Ki2z+HGeknnGW2LOsXgketPUK3dtawgdek=',
+        unit_s: '/3AAIDC...'
+      },
+      is_on_main_chain: 1,
+      is_stable: 0,
+      rowid: 4071778,
+      sequence: 'good'
+    }
+  ],
+  edges: {
+    data: {
+      best_parent_unit: true,
+      data: {
+        id: '99031584-2b04-42c8-82f3-efdc4a241ba8',
+        source: '/3WhIDCv2Ki2z+HGeknnGW2LOsXgketPUK3dtawgdek=',
+        target: '/8AAIDCv2Ki2z+HGeknnGW2LOsXgketPUK3dtawgdek='
+      }
+    }
+  }
+}

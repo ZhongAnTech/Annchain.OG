@@ -13,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -31,6 +31,7 @@ type IDag interface {
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
 	VerifySignature(t types.Txi) bool
+	VerifySourceAddress(t types.Txi) bool
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
@@ -101,27 +102,32 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	// already in the dag or tx_pool.
-	if b.isKnownHash(tx.GetBase().Hash) {
+	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	}
-	if err := b.verifyTx(tx); err != nil{
-		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetBase().Hash.Hex())
+	if err := b.verifyTxFormat(tx); err != nil {
+		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetTxHash().Hex())
 		return
 	}
 
 	if b.fetchAllAncestors(tx) {
 		// already fulfilled, insert into txpool
 		// needs to resolve itself first
-		logrus.Debugf("New tx fulfilled: %s", tx.GetBase().Hash.Hex())
+		logrus.Debugf("New tx fulfilled: %s", tx.GetTxHash().Hex())
 		b.resolve(tx)
-		b.txPool.AddRemoteTx(tx)
+		// Check if the tx is valid based on graph structure rules
+		// Only txs that are obeying rules will be added to the graph.
+		if b.VerifyGraphStructure(tx){
+			b.txPool.AddRemoteTx(tx)
+		}
+
 	}
 }
 
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
-	logrus.Infof("Updating dependency map: %s <- %s", parentHash.Hex()[:4], self.GetBase().Hash.Hex())
+	logrus.Infof("Updating dependency map: %s <- %s", parentHash.Hex()[:4], self.GetTxHash().Hex())
 	v, err := b.dependencyCache.GetIFPresent(parentHash)
 	if err != nil {
 		// key not present, need to build a inner map
@@ -133,30 +139,31 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 
 // resolve is called when all ancestors of the tx is got.
 func (b *TxBuffer) resolve(tx types.Txi) {
-	logrus.Debugf("Resolve %s", tx.GetBase().Hash.Hex())
-	vs, err := b.dependencyCache.GetIFPresent(tx.GetBase().Hash)
+	logrus.Debugf("Resolve %s", tx.GetTxHash().Hex())
+	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	if err != nil {
 		// key not present, already resolved.
 		return
 	}
 
-	b.dependencyCache.Remove(tx.GetBase().Hash)
+	b.dependencyCache.Remove(tx.GetTxHash())
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
-		logrus.Debugf("Resolving %s because %s is resolved", v.GetBase().Hash.Hex(), tx.GetBase().Hash.Hex())
+		logrus.Debugf("Resolving %s because %s is resolved", v.GetTxHash().Hex(), tx.GetTxHash().Hex())
 		b.tryResolve(v)
 	}
 
 }
 
-// verifyTx checks if the signatures and hashes are correct in tx
-func (b *TxBuffer) verifyTx(tx types.Txi) error {
+// verifyTxFormat checks if the signatures and hashes are correct in tx
+func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 	if !b.verifier.VerifyHash(tx) {
 		return errors.New("hash is not valid")
 	}
 	if !b.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
+	// TODO: Nonce
 	return nil
 }
 
@@ -168,12 +175,12 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 // It will check if the given hash has no more dependencies in the cache.
 // If so, resolve this hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) bool {
-	logrus.Debugf("Try to resolve %s", tx.GetBase().Hash.Hex())
+	logrus.Debugf("Try to resolve %s", tx.GetTxHash().Hex())
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		if err == nil {
 			// dependency presents.
-			logrus.Debugf("Cannot be resolved because %s is still a dependency of %s", parent.Hex(), tx.GetBase().Hash.Hex())
+			logrus.Debugf("Cannot be resolved because %s is still a dependency of %s", parent.Hex(), tx.GetTxHash().Hex())
 			return false
 		}
 	}
@@ -188,7 +195,7 @@ func (b *TxBuffer) tryResolve(tx types.Txi) bool {
 func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
-	for _, parentHash := range tx.GetBase().ParentsHash {
+	for _, parentHash := range tx.Parents() {
 		if !b.isKnownHash(parentHash) {
 			logrus.Infof("Hash not known by buffer tx: %s", parentHash.Hex())
 			allFetched = false
@@ -199,4 +206,7 @@ func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
 		}
 	}
 	return allFetched
+}
+func (b *TxBuffer) VerifyGraphStructure(txi types.Txi) bool{
+	return true
 }

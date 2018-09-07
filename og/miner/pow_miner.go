@@ -10,16 +10,16 @@ type PoWMiner struct {
 	quit bool
 }
 
-func (m *PoWMiner) StartMine(tx types.Txi, targetMax types.Hash, responseChan chan uint64) {
+func (m *PoWMiner) StartMine(tx types.Txi, targetMax types.Hash, start uint64, responseChan chan uint64) {
 	m.quit = false
-	defer close(responseChan)
 	// do brute force
 	var i uint64
-	for i = 0; i <= math.MaxUint64; i++ {
-		tx.SetMineNonce(i)
+	base := tx.GetBase()
+	for i = start; i <= math.MaxUint64; i++ {
+		base.MineNonce = i
 		//logrus.Debugf("%10d %s %s", i, tx.Hash().Hex(), targetMax.Hex())
-		if tx.MinedHash().Cmp(targetMax) < 0 {
-			logrus.Debugf("Hash found: %s with %d", tx.MinedHash().Hex(), i)
+		if tx.CalcMinedHash().Cmp(targetMax) < 0 {
+			logrus.Debugf("Hash found: %s with %d", tx.CalcMinedHash().Hex(), i)
 			responseChan <- i
 			return
 		}

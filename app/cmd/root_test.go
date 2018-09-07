@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"testing"
 	log "github.com/sirupsen/logrus"
+	"testing"
 )
 
 func TestLogger(t *testing.T) {

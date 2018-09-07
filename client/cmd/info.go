@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
 	"github.com/spf13/cobra"
-	"encoding/json"
-	"bytes"
 )
 
 var (
@@ -29,8 +29,8 @@ func status(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	var out  bytes.Buffer
-	json.Indent(&out,data,"","\t")
+	var out bytes.Buffer
+	json.Indent(&out, data, "", "\t")
 	fmt.Println(out.String())
 }
 

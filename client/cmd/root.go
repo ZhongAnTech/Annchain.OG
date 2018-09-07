@@ -29,6 +29,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&Host, "server", "s", "http://127.0.0.1:8000", fmt.Sprintf("serverurl,default: http://127.0.0.1:8000"))
 	InfoCmd.AddCommand(netInfoCmd)
 	rootCmd.AddCommand(InfoCmd)
+	txInit()
+	rootCmd.AddCommand(txCmd)
+	accountInit()
+	rootCmd.AddCommand(accountCmd)
 }
 
 func panicIfError(err error, message string) {

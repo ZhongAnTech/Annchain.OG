@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	local int = iota
-	remote
+	TxTypeGenesis int = iota
+	TxTypeLocal 
+	TxTypeRemote
 )
 
 const (
@@ -63,11 +64,6 @@ type TxPoolConfig struct {
 	TxVerifyTime  int `mapstructure:"tx_verify_time"`
 	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
-
-// type dag interface {
-// 	GetTx(hash types.Hash) types.Txi
-// 	Push(tx types.Txi) error
-// }
 type txEvent struct {
 	txEnv        *txEnvelope
 	callbackChan chan error
@@ -92,6 +88,18 @@ func (pool *TxPool) Stop() {
 	pool.wg.Wait()
 
 	log.Infof("TxPool Stopped")
+}
+
+func (pool *TxPool) Init(genesis *types.Sequencer) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	genesisEnvelope := &txEnvelope{}
+	genesisEnvelope.tx = genesis
+	genesisEnvelope.status = TxStatusTip
+	genesisEnvelope.txType = TxTypeGenesis
+	pool.txLookup.Add(genesisEnvelope)
+	pool.tips.Add(genesis)
 }
 
 // PoolStatus returns the current status of txpool.
@@ -163,7 +171,7 @@ func (pool *TxPool) GetAllTips() map[types.Hash]types.Txi {
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
 // AddLocalTx only process tx that sent by local node.
 func (pool *TxPool) AddLocalTx(tx types.Txi) error {
-	return pool.addTx(tx, local)
+	return pool.addTx(tx, TxTypeLocal)
 }
 
 // AddLocalTxs adds a list of txs to txpool if they are valid. It returns
@@ -172,7 +180,7 @@ func (pool *TxPool) AddLocalTx(tx types.Txi) error {
 func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, local))
+		result = append(result, pool.addTx(tx, TxTypeLocal))
 	}
 	return result
 }
@@ -181,14 +189,14 @@ func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 // sent by remote nodes, and will hold extra functions to prevent from ddos
 // (large amount of invalid tx sent from one node in a short time) attack.
 func (pool *TxPool) AddRemoteTx(tx types.Txi) error {
-	return pool.addTx(tx, remote)
+	return pool.addTx(tx, TxTypeRemote)
 }
 
 // AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
 func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, remote))
+		result = append(result, pool.addTx(tx, TxTypeRemote))
 	}
 	return result
 }
@@ -383,16 +391,47 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 	return
 }
 
-func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*confirmBatch, error) {
-	// TODO
-	// verify the conflicts
-	// implement later after the finish of ogdb
-	
-	// for _, tx := range elders {
+func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {	
+	// statistics of the confirmation term. 
+	// sums up the related address's income and outcome values
+	batch := map[types.Address]*BatchDetail{}
+	for _, txi := range elders {
+		switch tx := txi.(type) {
+		case *types.Sequencer:
+			break
+		case *types.Tx:
+			batchFrom := batch[tx.From]
+			if batchFrom == nil {
+				batchFrom = &BatchDetail{}
+				batchFrom.txList = make(map[types.Hash]types.Txi)
+				batchFrom.neg = math.NewBigInt(0)
+				batchFrom.pos = math.NewBigInt(0)
+			}
+			batchFrom.txList[tx.MinedHash()] = tx
+			batchFrom.neg.Value.Add(batchFrom.neg.Value, tx.Value.Value)
 
-	// }
+			batchTo := batch[tx.To]
+			if batchTo == nil {
+				batchTo = &BatchDetail{}
+				batchTo.txList = make(map[types.Hash]types.Txi)
+				batchTo.neg = math.NewBigInt(0)
+				batchTo.pos = math.NewBigInt(0)
+			}
+			batchTo.pos.Value.Add(batchTo.pos.Value, tx.Value.Value)
+		}
+	}
+	for addr, batchDetail := range batch {
+		confirmedBalance := pool.dag.GetBalance(addr)
+		// if balance of addr < outcome value of addr, then verify failed
+		if confirmedBalance.Value.Cmp(batchDetail.neg.Value) < 0 {
+			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
+		}
+	}
 
-	return nil, nil
+	cb := &ConfirmBatch{}
+	cb.seq = seq
+	cb.batch = batch
+	return cb, nil
 }
 
 // reset clears the tips that haven't been proved for a long time
@@ -492,7 +531,6 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	// TODO return nil as interface{} will not be nil
 	return tm.txs[hash]
 }
 func (tm *TxMap) Exists(tx types.Txi) bool {
@@ -533,7 +571,6 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	// TODO return nil as interface{} will not be nil
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}

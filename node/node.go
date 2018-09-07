@@ -122,6 +122,7 @@ func NewNode() *Node {
 	if viper.GetBool("auto_sequencer.enabled") {
 		autoSequencer := &ClientAutoSequencer{
 			TxCreator:        txCreator,
+			TxBuffer:         m.TxBuffer,
 			PrivateKey:       privateKey,
 			BlockTimeSeconds: 5,
 		}

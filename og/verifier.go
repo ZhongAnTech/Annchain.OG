@@ -30,9 +30,10 @@ func (v *Verifier) VerifyHash(t types.Txi) bool {
 
 func (v *Verifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
-	return v.signer.Verify(crypto.PublicKey{Type: v.cryptoType, Bytes: base.PublicKey},
+	return v.signer.Verify(
+		crypto.PublicKey{Type: v.cryptoType, Bytes: base.PublicKey},
 		crypto.Signature{Type: v.cryptoType, Bytes: base.Signature},
-		base.Hash.Bytes[:])
+		t.SignatureTargets())
 }
 
 func (v *Verifier) VerifySourceAddress(t types.Txi) bool {

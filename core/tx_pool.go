@@ -611,7 +611,7 @@ func (t *txLookUp) Stats() (int, int) {
 }
 func (t *txLookUp) Status(h types.Hash) int {
 	t.mu.RLock()
-	defer t.mu.Unlock()
+	defer t.mu.RUnlock()
 
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.status

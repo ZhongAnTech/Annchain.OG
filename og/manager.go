@@ -42,19 +42,6 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 
 func (m *Manager) Start() {
 	m.Hub.SendMessage(MessageTypePing, []byte{})
-	m.TxPool.AddLocalTx(&types.Sequencer{
-		Issuer:            types.HexToAddress("0x00"),
-		ContractHashOrder: []types.Hash{},
-		Id:                0,
-		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeSequencer,
-			Hash:         types.HexToHash("0x00"),
-			Height:       0,
-			AccountNonce: 0,
-		},
-	})
-	//m.Syncer.Enqueue(types.HexToHash("0x00"))
-	//m.Syncer.Enqueue(types.HexToHash("0x01"))
 }
 
 func (m *Manager) Stop() {
@@ -162,3 +149,5 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 
 }
+
+

@@ -69,7 +69,7 @@ func init() {
 	viper.SetDefault("crypto.algorithm", "ed25519")
 
 	viper.SetDefault("max_tx_hash", "0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-	viper.SetDefault("max_mined_hash", "0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	viper.SetDefault("max_mined_hash", "0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 }
 
 func panicIfError(err error, message string) {

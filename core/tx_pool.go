@@ -15,7 +15,7 @@ import (
 
 const (
 	TxTypeGenesis int = iota
-	TxTypeLocal 
+	TxTypeLocal
 	TxTypeRemote
 )
 
@@ -102,6 +102,10 @@ func (pool *TxPool) Init(genesis *types.Sequencer) {
 	pool.tips.Add(genesis)
 }
 
+func (pool *TxPool) Name() string{
+	return "TxPool"
+}
+
 // PoolStatus returns the current status of txpool.
 func (pool *TxPool) PoolStatus() (int, int) {
 	return pool.txLookup.Stats()
@@ -146,7 +150,7 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	indices := generateRandomIndices(n, len(pool.tips.txs))
 
 	// slice of keys
-	keys := make([]types.Hash, len(pool.tips.txs))
+	var keys []types.Hash
 	for k := range pool.tips.txs {
 		keys = append(keys, k)
 	}
@@ -302,7 +306,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 			pool.tips.Remove(pHash)
 			pool.txLookup.Remove(pHash)
 			continue
-		} 
+		}
 		// move normal tx to pending
 		pool.tips.Remove(pHash)
 		pool.poolPending.Add(parent)
@@ -326,12 +330,12 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	}
 
 	// check if the tx itself has no conflicts with local ledger
-	stateFrom, okFrom := pool.poolPending.state[tx.From] 
+	stateFrom, okFrom := pool.poolPending.state[tx.From]
 	if !okFrom {
 		stateFrom = NewPendingState(tx.From, pool.dag.GetBalance(tx.From))
 	}
 	// if ( the value that 'from' already spent )
-	// 	+ ( the value that 'from' newly spent ) 
+	// 	+ ( the value that 'from' newly spent )
 	// 	> ( balance of 'from' in db )
 	newNeg := math.NewBigInt(0)
 	if newNeg.Value.Add(stateFrom.neg.Value, tx.Value.Value).Cmp(
@@ -351,7 +355,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	batch, err := pool.verifyConfirmBatch(seq, elders); 
+	batch, err := pool.verifyConfirmBatch(seq, elders);
 	if err != nil {
 		return err
 	}
@@ -388,8 +392,8 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 	return
 }
 
-func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {	
-	// statistics of the confirmation term. 
+func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
+	// statistics of the confirmation term.
 	// sums up the related address's income and outcome values
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
@@ -459,13 +463,13 @@ func (p *pending) Add(tx types.Txi) error {
 	switch tx := tx.(type) {
 	case *types.Tx:
 		// increase neg state of 'from'
-		stateFrom, okFrom := p.state[tx.From] 
+		stateFrom, okFrom := p.state[tx.From]
 		if !okFrom {
 			balance := p.pool.dag.GetBalance(tx.From)
 			stateFrom = NewPendingState(tx.From, balance)
 		}
 		stateFrom.neg.Value.Add(stateFrom.neg.Value, tx.Value.Value)
-		// increase pos state of 'to' 
+		// increase pos state of 'to'
 		stateTo, okTo := p.state[tx.To]
 		if !okTo {
 			balance := p.pool.dag.GetBalance(tx.To)
@@ -607,7 +611,7 @@ func (t *txLookUp) Stats() (int, int) {
 }
 func (t *txLookUp) Status(h types.Hash) int {
 	t.mu.RLock()
-	defer t.mu.Unlock()
+	defer t.mu.RUnlock()
 
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.status

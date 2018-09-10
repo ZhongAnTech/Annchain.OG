@@ -15,10 +15,16 @@ func TestSigner(t *testing.T) {
 	assert.NoError(t, err)
 
 	fmt.Println(hex.Dump(pub.Bytes))
+
 	fmt.Println(hex.Dump(priv.Bytes))
 	address := signer.Address(pub)
 	fmt.Println(hex.Dump(address.Bytes[:]))
 	fmt.Println(signer.Address(pub).Hex())
+
+	fmt.Printf("%x\n",priv.Bytes[:])
+	fmt.Printf("%x\n",pub.Bytes[:])
+	fmt.Printf("%x\n",address.Bytes[:])
+
 
 	pub2 := signer.PubKey(priv)
 	fmt.Println(hex.Dump(pub2.Bytes))

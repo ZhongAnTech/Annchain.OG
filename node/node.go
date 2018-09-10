@@ -58,6 +58,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
 
+	hub.Dag =  org.Dag
 	// Setup crypto algorithm
 	var signer crypto.Signer
 	switch viper.GetString("crypto.algorithm") {

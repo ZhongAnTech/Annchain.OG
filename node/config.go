@@ -6,11 +6,13 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discover"
+	"github.com/annchain/OG/p2p/nat"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/annchain/OG/p2p/discv5"
 )
 
 const (
@@ -81,6 +83,14 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	p2pConfig.TrustedNodes = parserNodes(trustNode)
 	p2pConfig.NodeName = viper.GetString("p2p.node_name")
 	p2pConfig.NodeDatabase = viper.GetString("p2p.node_db")
+	bootNodes := viper.GetString("p2p.bootstrap_nodes")
+	p2pConfig.BootstrapNodesV5 = parserV5Nodes(bootNodes)
+	//p2pConfig.NoDiscovery = true
+	//p2pConfig.DiscoveryV5 = true
+	//p2pConfig.BootstrapNodesV5: config.BootstrapNodes.nodes,
+	//ListenAddr:       ":0",
+	p2pConfig.NAT = nat.Any()
+
 	return &p2p.Server{Config: p2pConfig}
 }
 
@@ -92,6 +102,23 @@ func parserNodes(nodeString string) []*discover.Node {
 			continue
 		}
 		node, err := discover.ParseNode(url)
+		if err != nil {
+			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
+			continue
+		}
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+func parserV5Nodes(nodeString string) []*discv5.Node {
+	nodeList := strings.Split(nodeString, ";")
+	var nodes []*discv5.Node
+	for _, url := range nodeList {
+		if url == "" {
+			continue
+		}
+		node, err := discv5.ParseNode(url)
 		if err != nil {
 			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
 			continue

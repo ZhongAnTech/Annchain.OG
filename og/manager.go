@@ -136,7 +136,7 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 	newTx := types.MessageNewTx{}
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid MessageNewTx format")
+		logrus.Debug("Invalid MessageNewTx format,err",err)
 		return
 	}
 	if newTx.Tx == nil {
@@ -147,7 +147,18 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 }
 
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
-
+	logrus.Debug("Received NewSequence")
+	newSq := types.MessageNewSequence{}
+	_, err := newSq.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.Debug("Invalid NewSequence format,err",err)
+		return
+	}
+	if newSq.Sequencer == nil {
+		logrus.Debug("Empty NewSequence")
+		return
+	}
+	m.TxBuffer.AddTx(newSq.Sequencer)
 }
 
 

@@ -53,10 +53,15 @@ func NewOg() (*Og, error) {
 }
 
 func (og *Og) Start() {
+	og.Dag.Start()
+	og.Txpool.Start()
 
 	logrus.Info("OG Started")
 }
 func (og *Og) Stop() {
+	og.Dag.Stop()
+	og.Txpool.Start()
+
 	logrus.Info("OG Stopped")
 }
 

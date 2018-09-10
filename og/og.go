@@ -32,15 +32,19 @@ func NewOg() (*Og, error) {
 		return nil, err
 	}
 	dag := core.NewDag(dagconfig, db)
-	
-
+	if !dag.LoadGenesis() {
+		// TODO use config to load the genesis
+		seq, balance := DefaultGenesis()
+		if err := dag.Init(seq, balance); err != nil {
+			return nil, err
+		}
+	}
+	og.Dag = dag
 
 	if err := viper.UnmarshalKey("txpool", &txpoolconfig); err != nil {
 		return nil, err
 	}
 	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
-
-
 
 	// TODO
 	// account manager and protocol manager

@@ -28,6 +28,9 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	fmt.Printf("pub: %x", seq.GetBase().PublicKey)
 	fmt.Printf("addr: %x", addr.ToBytes())
 
+	v := txCreator.Signer.Verify(txCreator.Signer.PubKey(pk), sig, seq.SignatureTargets())
+	fmt.Println(v)
+	
 	return seq.(*types.Sequencer), balance
 }
 

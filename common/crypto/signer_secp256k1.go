@@ -33,7 +33,7 @@ func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 }
 
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
-	return ed25519.Verify(pubKey.Bytes, msg, signature.Bytes)
+	// return ed25519.Verify(pubKey.Bytes, msg, signature.Bytes)
 
 	pub__, err := secp256k1.ParsePubKey(pubKey.Bytes, secp256k1.S256())
 	if err != nil {

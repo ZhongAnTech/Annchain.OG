@@ -6,9 +6,9 @@ import (
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"sync"
 	"math/big"
+	"github.com/annchain/OG/core"
 )
 
 // Hub is the middle layer between p2p and business layer
@@ -29,6 +29,7 @@ type Hub struct {
 	// and processing
 	wg        sync.WaitGroup
 	networkID uint64
+	Dag         * core.Dag
 }
 
 type HubConfig struct {
@@ -96,8 +97,8 @@ func (h *Hub) handle(p *peer) error {
 	log.Debug("og peer connected", "name", p.Name())
 	// Execute the og handshake
 	var (
-		genesis = types.Tx{} //todo
-		head    = types.Hash{}
+		genesis = h.Dag.Genesis()
+		head    = h.Dag.LatestSequencer().Hash
 	)
 	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
 		log.Debug("OG handshake failed", "err", err)
@@ -142,7 +143,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 	}
-	data, err := ioutil.ReadAll(msg.Payload)
+	data,err :=  msg.GetPayLoad()
 	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data}
 	p2pMsg.init()
 	if p2pMsg.needCheckRepeat {

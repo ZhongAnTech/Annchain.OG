@@ -7,10 +7,10 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 
-	"github.com/annchain/OG/p2p"
-	"github.com/spf13/viper"
 	miner2 "github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
+	"github.com/spf13/viper"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -53,18 +53,12 @@ func NewNode() *Node {
 		panic("Error occurred while initializing OG")
 	}
 
+	n.Components = append(n.Components, org.Txpool)
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
 
-	m := og.NewManager(&og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10})
-
-	// Setup Hub
-	m.Hub = hub
-	SetupCallbacks(m, hub)
-
-	m.Syncer = syncer
-	m.TxPool = nil
+	hub.Dag =  org.Dag
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -77,28 +71,40 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	m.Verifier = og.NewVerifier(signer,
+	verifier := og.NewVerifier(signer,
 		types.HexToHash(viper.GetString("max_tx_hash")),
 		types.HexToHash(viper.GetString("max_mined_hash")),
 	)
 
-	m.TxBuffer = og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         m.Verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
-	n.Components = append(n.Components, m.TxBuffer)
+	txBuffer.Hub =  hub
+	n.Components = append(n.Components, txBuffer)
+
+	m := &og.Manager{
+		TxPool:   org.Txpool,
+		TxBuffer: txBuffer,
+		Verifier: verifier,
+		Syncer:   syncer,
+		Hub:      hub,
+		Config:   &og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10},
+	}
+	// Setup Hub
+	SetupCallbacks(m, hub)
 
 	miner := &miner2.PoWMiner{}
 
 	txCreator := &og.TxCreator{
 		Signer:             signer,
 		Miner:              miner,
-		TipGenerator:       &og.DummyTxPoolMiniTx{},
+		TipGenerator:       org.Txpool,
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
@@ -126,8 +132,16 @@ func NewNode() *Node {
 			PrivateKey:       privateKey,
 			BlockTimeSeconds: 5,
 		}
+		autoSequencer.Dag = org.Dag
 		n.Components = append(n.Components, autoSequencer)
 	}
+
+	// DataLoader
+	dataLoader := &og.DataLoader{
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
+	}
+	n.Components = append(n.Components, dataLoader)
 
 	n.Components = append(n.Components, m)
 	org.Manager = m

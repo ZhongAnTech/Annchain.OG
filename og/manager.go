@@ -21,12 +21,6 @@ type ManagerConfig struct {
 	BatchAcquireSize   uint // length of the buffer for batch tx acquire for a single node
 }
 
-func NewManager(config *ManagerConfig) *Manager {
-	m := Manager{}
-	m.Config = config
-	return &m
-}
-
 // EnsurePreviousTxs checks if all ancestors of the tip is in the local tx pool
 // If tx is missing, send to fetching queue
 // Return true if the hash's parent is there, or false if the hash's parent is missing.
@@ -48,8 +42,6 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 
 func (m *Manager) Start() {
 	m.Hub.SendMessage(MessageTypePing, []byte{})
-	m.Syncer.Enqueue(types.HexToHash("0x00"))
-	m.Syncer.Enqueue(types.HexToHash("0x01"))
 }
 
 func (m *Manager) Stop() {
@@ -144,7 +136,7 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 	newTx := types.MessageNewTx{}
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid MessageNewTx format")
+		logrus.Debug("Invalid MessageNewTx format,err",err)
 		return
 	}
 	if newTx.Tx == nil {
@@ -155,6 +147,18 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 }
 
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
-
+	logrus.Debug("Received NewSequence")
+	newSq := types.MessageNewSequence{}
+	_, err := newSq.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.Debug("Invalid NewSequence format,err",err)
+		return
+	}
+	if newSq.Sequencer == nil {
+		logrus.Debug("Empty NewSequence")
+		return
+	}
+	m.TxBuffer.AddTx(newSq.Sequencer)
 }
+
 

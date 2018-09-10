@@ -1,11 +1,12 @@
 package node
 
 import (
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/common/crypto"
-	"time"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"time"
+	"github.com/annchain/OG/core"
 )
 
 type ClientAutoSequencer struct {
@@ -17,6 +18,7 @@ type ClientAutoSequencer struct {
 	currentNonce     uint64
 	currentID        uint64
 	manualChan       chan bool
+	Dag *core.Dag
 }
 
 func (c *ClientAutoSequencer) loop() {
@@ -25,13 +27,14 @@ func (c *ClientAutoSequencer) loop() {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Second * time.Duration(c.BlockTimeSeconds)).C:
 		}
-
+		c.currentID ++
 		seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
 		if ok := c.TxCreator.SealTx(seq); !ok {
 			logrus.Warn("ClientAutoSequencer Failed to seal tx")
 			continue
 		}
-		logrus.Infof("Sequencer generated: %s", seq.GetTxHash())
+		logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
+		logrus.Infof("%+v", seq)
 		// TODO: announce tx
 		c.TxBuffer.AddTx(seq)
 	}
@@ -39,6 +42,10 @@ func (c *ClientAutoSequencer) loop() {
 
 func (c *ClientAutoSequencer) Start() {
 	c.stop = false
+	lseq := c.Dag.LatestSequencer()
+	if lseq!=nil {
+		c.currentID = lseq.Id
+	}
 	go c.loop()
 }
 

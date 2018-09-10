@@ -46,6 +46,7 @@ type TxBuffer struct {
 	affmu           sync.RWMutex
 	newTxChan       chan types.Txi
 	quit            chan bool
+	Hub                *Hub
 }
 
 type TxBufferConfig struct {
@@ -101,13 +102,19 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 }
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
+	logrus.Debugf("Handling tx with Hash %s", tx.GetTxHash().Hex())
+	var shoudBrodcast bool
 	// already in the dag or tx_pool.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	}
 	if err := b.verifyTxFormat(tx); err != nil {
-		logrus.WithError(err).Debugf("Received invalid tx %s: %s", tx.GetTxHash().Hex())
+		logrus.WithError(err).Debugf("Received invalid tx %s", tx.GetTxHash().Hex())
 		return
+	}
+	// not in tx buffer , a new tx , shoud brodcast
+	if ! b.InBuffer(tx) {
+		shoudBrodcast  = true
 	}
 
 	if b.fetchAllAncestors(tx) {
@@ -121,7 +128,43 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 			b.txPool.AddRemoteTx(tx)
 		}
 
+
 	}
+
+	if shoudBrodcast {
+		b.sendMessage(tx)
+	}
+
+
+}
+
+func ( b *TxBuffer)InBuffer( tx types.Txi) bool {
+	_, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+	if err != nil {
+		// key not present, already resolved.
+		return false
+	}
+	return  true
+}
+
+
+//sendMessage  brodcase txi message
+func ( b* TxBuffer) sendMessage (txi types.Txi) {
+	txType := txi.GetType()
+	if  txType == types.TxBaseTypeNormal {
+		tx := 	txi.(*types.Tx)
+		msgTx := types.MessageNewTx{tx}
+		data,_:= msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewTx,data)
+	}else if txType == types.TxBaseTypeSequencer {
+		seq := 	txi.(*types.Sequencer)
+		msgTx := types.MessageNewSequence{seq}
+		data,_:= msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewSequence,data)
+	}else {
+		logrus.Warn("never come here ,unkown tx type",txType)
+	}
+
 }
 
 // updateDependencyMap will update dependency relationship currently known.

@@ -45,6 +45,20 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 	})
 }
 func (r *RpcControler) Sequencer(c *gin.Context) {
+	var sq *types.Sequencer
+	hashtr :=  c.Param("hash")
+	if hashtr == ""{
+		sq = r.Og.Dag.LatestSequencer()
+		if sq!=nil {
+			c.JSON(http.StatusOK,sq)
+		}else {
+			c.JSON(http.StatusOK, gin.H{
+				"error": "not found",
+			})
+		}
+		return
+	}
+	//todo with hashs
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})

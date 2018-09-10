@@ -31,7 +31,7 @@ func NewOg() (*Og, error) {
 	if err := viper.UnmarshalKey("dag", &dagconfig); err != nil {
 		return nil, err
 	}
-	og.Dag := core.NewDag(dagconfig, db)
+	og.Dag = core.NewDag(dagconfig, db)
 
 	if err := viper.UnmarshalKey("txpool", &txpoolconfig); err != nil {
 		return nil, err

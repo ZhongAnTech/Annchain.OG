@@ -130,7 +130,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 
 
 	}
-	
+
 	if shoudBrodcast {
 		b.sendMessage(tx)
 	}

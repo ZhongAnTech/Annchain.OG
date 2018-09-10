@@ -59,6 +59,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, syncer)
 
 	hub.Dag =  org.Dag
+
 	// Setup crypto algorithm
 	var signer crypto.Signer
 	switch viper.GetString("crypto.algorithm") {
@@ -131,6 +132,7 @@ func NewNode() *Node {
 			PrivateKey:       privateKey,
 			BlockTimeSeconds: 5,
 		}
+		autoSequencer.Dag = org.Dag
 		n.Components = append(n.Components, autoSequencer)
 	}
 

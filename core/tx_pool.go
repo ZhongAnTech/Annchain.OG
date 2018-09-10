@@ -100,6 +100,8 @@ func (pool *TxPool) Init(genesis *types.Sequencer) {
 	genesisEnvelope.txType = TxTypeGenesis
 	pool.txLookup.Add(genesisEnvelope)
 	pool.tips.Add(genesis)
+
+	log.Infof("TxPool finish init")
 }
 
 func (pool *TxPool) Name() string{

@@ -13,6 +13,7 @@ import (
 //msgp:tuple Sequencers
 
 type Sequencer struct {
+	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
 	Id                uint64 `msgp:"id"`
 	Issuer            Address

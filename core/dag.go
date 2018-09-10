@@ -91,6 +91,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 
 	dag.genesis = genesis
 	dag.latestSeqencer = genesis
+
+	log.Infof("Dag finish init")
 	return nil
 }
 

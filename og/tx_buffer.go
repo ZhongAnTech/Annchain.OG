@@ -103,6 +103,7 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.Debugf("Handling tx with Hash %s", tx.GetTxHash().Hex())
+	var shoudBrodcast bool
 	// already in the dag or tx_pool.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
@@ -110,6 +111,10 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if err := b.verifyTxFormat(tx); err != nil {
 		logrus.WithError(err).Debugf("Received invalid tx %s", tx.GetTxHash().Hex())
 		return
+	}
+	// not in tx buffer , a new tx , shoud brodcast
+	if ! b.InBuffer(tx) {
+		shoudBrodcast  = true
 	}
 
 	if b.fetchAllAncestors(tx) {
@@ -123,9 +128,23 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 			b.txPool.AddRemoteTx(tx)
 		}
 
-	}
-	b.sendMessage(tx)
 
+	}
+	
+	if shoudBrodcast {
+		b.sendMessage(tx)
+	}
+
+
+}
+
+func ( b *TxBuffer)InBuffer( tx types.Txi) bool {
+	_, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+	if err != nil {
+		// key not present, already resolved.
+		return false
+	}
+	return  true
 }
 
 

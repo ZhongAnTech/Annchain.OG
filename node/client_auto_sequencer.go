@@ -1,11 +1,11 @@
 package node
 
 import (
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/common/crypto"
-	"time"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type ClientAutoSequencer struct {

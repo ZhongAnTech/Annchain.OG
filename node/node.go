@@ -7,10 +7,10 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 
-	"github.com/annchain/OG/p2p"
-	"github.com/spf13/viper"
 	miner2 "github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
+	"github.com/spf13/viper"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -75,14 +75,15 @@ func NewNode() *Node {
 	)
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
+	txBuffer.Hub =  hub
 	n.Components = append(n.Components, txBuffer)
 
 	m := &og.Manager{

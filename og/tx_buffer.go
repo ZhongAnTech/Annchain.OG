@@ -46,6 +46,7 @@ type TxBuffer struct {
 	affmu           sync.RWMutex
 	newTxChan       chan types.Txi
 	quit            chan bool
+	Hub                *Hub
 }
 
 type TxBufferConfig struct {
@@ -123,6 +124,28 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		}
 
 	}
+	b.sendMessage(tx)
+
+}
+
+
+//sendMessage  brodcase txi message
+func ( b* TxBuffer) sendMessage (txi types.Txi) {
+	txType := txi.GetType()
+	if  txType == types.TxBaseTypeNormal {
+		tx := 	txi.(*types.Tx)
+		msgTx := types.MessageNewTx{tx}
+		data,_:= msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewTx,data)
+	}else if txType == types.TxBaseTypeSequencer {
+		seq := 	txi.(*types.Sequencer)
+		msgTx := types.MessageNewSequence{seq}
+		data,_:= msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewSequence,data)
+	}else {
+		logrus.Warn("never come here ,unkown tx type",txType)
+	}
+
 }
 
 // updateDependencyMap will update dependency relationship currently known.

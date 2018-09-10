@@ -33,6 +33,7 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 		conf:     conf,
 		db:       db,
 		accessor: NewAccessor(db),
+		close:    make(chan struct{}),
 	}
 	return dag
 }

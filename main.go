@@ -1,27 +1,16 @@
-package og
+package main
 
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og"
 )
 
-// type Sequencer struct {
-// 	Type         		TxBaseType
-// 	Hash         		Hash
-// 	ParentsHash  		[]Hash
-// 	AccountNonce 		uint64
-// 	Height       		uint64
-// 	PublicKey    		[]byte
-// 	Signature    		[]byte
-// 	MineNonce    		uint64
-// 	Id                	uint64 `msgp:"id"`
-// 	Issuer            	Address
-// 	ContractHashOrder 	[]Hash `msgp:"contractHashOrder"`
-// }
+
 func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
-	txCreator := TxCreator{
+	txCreator := og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
 	// TODO delete !
@@ -41,3 +30,8 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 
 	return seq.(*types.Sequencer), balance
 }
+
+func main() {
+	DefaultGenesis()
+}
+

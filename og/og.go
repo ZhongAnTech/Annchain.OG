@@ -60,7 +60,7 @@ func (og *Og) Start() {
 }
 func (og *Og) Stop() {
 	og.Dag.Stop()
-	og.Txpool.Start()
+	og.Txpool.Stop()
 
 	logrus.Info("OG Stopped")
 }

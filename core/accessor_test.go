@@ -1,3 +1,3 @@
-package core_test
+package core
 
 // TODO

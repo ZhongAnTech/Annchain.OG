@@ -11,8 +11,7 @@ import (
 	"github.com/annchain/OG/common/math"
 )
 
-type DagConfig struct {
-}
+type DagConfig struct {}
 
 type Dag struct {
 	conf DagConfig

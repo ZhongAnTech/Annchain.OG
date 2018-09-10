@@ -1,43 +1,23 @@
 package og
 
 import (
-	"fmt"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/crypto"
 )
 
-// type Sequencer struct {
-// 	Type         		TxBaseType
-// 	Hash         		Hash
-// 	ParentsHash  		[]Hash
-// 	AccountNonce 		uint64
-// 	Height       		uint64
-// 	PublicKey    		[]byte
-// 	Signature    		[]byte
-// 	MineNonce    		uint64
-// 	Id                	uint64 `msgp:"id"`
-// 	Issuer            	Address
-// 	ContractHashOrder 	[]Hash `msgp:"contractHashOrder"`
-// }
 func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	txCreator := TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	// TODO delete !
-	pk, _ := crypto.PrivateKeyFromString("6f6720697320746865206265737420636861696e000000000000000000000000")
 	seq := txCreator.NewUnsignedSequencer(0, []types.Hash{}, 0)
-	sig := txCreator.Signer.Sign(pk, seq.SignatureTargets())
-	seq.GetBase().Signature = sig.Bytes
-	seq.GetBase().PublicKey = txCreator.Signer.PubKey(pk).Bytes
+	seq.GetBase().Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
+	seq.GetBase().PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
 
-	addr := txCreator.Signer.Address(txCreator.Signer.PubKey(pk))
+	addr := types.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance := map[types.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
-
-	fmt.Printf("sig: %x", seq.GetBase().Signature)
-	fmt.Printf("pub: %x", seq.GetBase().PublicKey)
-	fmt.Printf("addr: %x", addr.ToBytes())
 
 	return seq.(*types.Sequencer), balance
 }

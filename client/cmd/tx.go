@@ -29,6 +29,7 @@ func txInit() {
 	txCmd.PersistentFlags().StringVarP(&priv_key, "priv_key", "k", "", "priv_key ***")
 	txCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
 	txCmd.PersistentFlags().Uint64VarP(&nonce, "nonce", "n", 0, "nonce 1")
+	txCmd.PersistentFlags().StringVarP(&algorithm, "algorithm", "a", "ed25519", "algorithm e (ed25519) ; algorithm s (secp256k1")
 }
 
 func newTx(cmd *cobra.Command, args []string) {
@@ -43,13 +44,24 @@ func newTx(cmd *cobra.Command, args []string) {
 		return
 	}
 	key := crypto.PrivateKey{
-		Type:  crypto.CryptoTypeEd25519,
 		Bytes: data,
 	}
+	if algorithm =="secp256k1" || algorithm =="s" {
+		key.Type = crypto.CryptoTypeSecp256k1
+	}else {
+		key.Type = crypto.CryptoTypeSecp256k1
+	}
+
 	//todo smart contracts
 	//data := common.Hex2Bytes(payload)
 	// do sign work
-	signer := &crypto.SignerEd25519{}
+	var signer crypto.Signer
+
+	if algorithm =="secp256k1" || algorithm =="s" {
+		signer = &crypto.SignerSecp256k1{}
+	}else {
+		signer = &crypto.SignerEd25519{}
+	}
 	pub := signer.PubKey(key)
 	from := signer.Address(pub)
 	tx := types.Tx{

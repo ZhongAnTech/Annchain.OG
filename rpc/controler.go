@@ -11,6 +11,7 @@ import (
 type RpcControler struct {
 	P2pServer *p2p.Server
 	Og        *og.Og
+	TxBuffer   *og.TxBuffer
 }
 
 type NodeStatus struct {
@@ -77,6 +78,7 @@ func (r *RpcControler) NewTransaction(c *gin.Context) {
 		 })
 		 return
 	 }
+	 r.TxBuffer.AddTx(&tx)
 	 //todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",

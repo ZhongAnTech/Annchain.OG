@@ -98,8 +98,14 @@ func (h *Hub) handle(p *peer) error {
 	// Execute the og handshake
 	var (
 		genesis = h.Dag.Genesis()
-		head    = h.Dag.LatestSequencer().Hash
+		lastSeq    = h.Dag.LatestSequencer()
+		head  = types.Hash{}
 	)
+	if lastSeq == nil {
+		log.Warn("last sequencer is nil")
+	}else {
+		head =  lastSeq.Hash
+	}
 	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
 		log.Debug("OG handshake failed", "err", err)
 		return err

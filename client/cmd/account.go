@@ -24,22 +24,35 @@ var (
 		Short: "account  operations for account",
 		Run:   accountCal,
 	}
-	priv_key string
+	priv_key  string
+	algorithm string
 )
 
 func accountInit() {
 	accountCmd.AddCommand(accountGenCmd, accountCalCmd)
+	accountCmd.PersistentFlags().StringVarP(&algorithm, "algorithm", "a", "ed25519", "algorithm e (ed25519) ; algorithm s (secp256k1")
 	accountCalCmd.PersistentFlags().StringVarP(&priv_key, "priv_key", "k", "", "priv_key ***")
 }
 
 func accountGen(cmd *cobra.Command, args []string) {
-	signer := &crypto.SignerEd25519{}
-	pub, priv, err := signer.RandomKeyPair()
-	if err != nil {
-		panic(err)
+	if algorithm == "secp256k1" || algorithm == "s" {
+		signer := &crypto.SignerSecp256k1{}
+		pub, priv, err := signer.RandomKeyPair()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%X\n", priv.Bytes[:])
+		fmt.Printf("%X\n", pub.Bytes[:])
+	} else {
+		signer := &crypto.SignerEd25519{}
+		pub, priv, err := signer.RandomKeyPair()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%X\n", priv.Bytes[:])
+		fmt.Printf("%X\n", pub.Bytes[:])
 	}
-	fmt.Printf("%X\n", priv.Bytes[:])
-	fmt.Printf("%X\n", pub.Bytes[:])
+
 }
 
 func accountCal(cmd *cobra.Command, args []string) {
@@ -54,12 +67,23 @@ func accountCal(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	priv := crypto.PrivateKey{
-		Type:  crypto.CryptoTypeEd25519,
-		Bytes: data,
+	if algorithm == "secp256k1" || algorithm == "s" {
+		priv := crypto.PrivateKey{
+			Type:  crypto.CryptoTypeSecp256k1,
+			Bytes: data,
+		}
+		signer := &crypto.SignerSecp256k1{}
+		pub := signer.PubKey(priv)
+		addr := signer.Address(pub)
+		fmt.Printf("%X\n", addr.Bytes[:])
+	} else {
+		priv := crypto.PrivateKey{
+			Type:  crypto.CryptoTypeEd25519,
+			Bytes: data,
+		}
+		signer := &crypto.SignerEd25519{}
+		pub := signer.PubKey(priv)
+		addr := signer.Address(pub)
+		fmt.Printf("%X\n", addr.Bytes[:])
 	}
-	signer := &crypto.SignerEd25519{}
-	pub := signer.PubKey(priv)
-	addr := signer.Address(pub)
-	fmt.Printf("%X\n", addr.Bytes[:])
 }

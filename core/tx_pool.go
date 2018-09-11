@@ -390,14 +390,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 }
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
-	if baseTx == nil || pool.dag.GetTx(baseTx.GetTxHash()) != nil {
-		return
-	}
-	if batch[baseTx.GetTxHash()] == nil {
-		batch[baseTx.GetTxHash()] = baseTx
-	}
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.poolPending.Get(pHash)
+
+		if parent == nil || pool.dag.GetTx(parent.GetTxHash()) != nil {
+			continue
+		}
+		if batch[parent.GetTxHash()] == nil {
+			batch[parent.GetTxHash()] = parent
+		}
 		pool.seekElders(batch, parent)
 	}
 	return

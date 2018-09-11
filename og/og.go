@@ -5,7 +5,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogdb"
 )
@@ -13,7 +12,6 @@ import (
 type Og struct {
 	Dag            *core.Dag
 	Txpool         *core.TxPool
-	AccountManager *account.AccountManager
 	Manager        *Manager
 }
 

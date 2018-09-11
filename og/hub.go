@@ -94,7 +94,7 @@ func (h *Hub) handle(p *peer) error {
 	if h.peers.Len() >= h.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
 	}
-	log.Debug("og peer connected", "name", p.Name())
+	log.WithField("name", p.Name()).Debug("OG peer connected")
 	// Execute the og handshake
 	var (
 		genesis = h.Dag.Genesis()
@@ -102,17 +102,17 @@ func (h *Hub) handle(p *peer) error {
 		head  = types.Hash{}
 	)
 	if lastSeq == nil {
-		log.Warn("last sequencer is nil")
+		log.Warn("Last sequencer is nil")
 	}else {
 		head =  lastSeq.Hash
 	}
 	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
-		log.Debug("OG handshake failed", "err", err)
+		log.WithError(err).Debug("OG handshake failed")
 		return err
 	}
 	// Register the peer locally
 	if err := h.peers.Register(p); err != nil {
-		log.Error("og peer registration failed", "err", err)
+		log.WithError(err).Error("og peer registration failed")
 		return err
 	}
 	defer h.removePeer(p.id)
@@ -120,7 +120,7 @@ func (h *Hub) handle(p *peer) error {
 	// main loop. handle incoming messages.
 	for {
 		if err := h.handleMsg(p); err != nil {
-			log.Debug("og message handling failed", "err", err)
+			log.WithError(err).Debug("og message handling failed")
 			return err
 		}
 	}
@@ -165,11 +165,12 @@ func (h *Hub) removePeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing og peer", "peer", id)
+	log.WithField("peer", id).Debug("Removing og peer")
 
 	// Unregister the peer from the downloader and Ethereum peer set
 	if err := h.peers.Unregister(id); err != nil {
-		log.Error("Peer removal failed", "peer", id, "err", err)
+		log.WithField("peer", "id").WithError(err).
+			Error("Peer removal failed")
 	}
 	// Hard disconnect at the networking layer
 	if peer != nil {

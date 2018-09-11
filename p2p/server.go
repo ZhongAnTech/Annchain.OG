@@ -624,7 +624,7 @@ func (srv *Server) run(dialstate dialer) {
 		i := 0
 		for ; len(runningTasks) < maxActiveDialTasks && i < len(ts); i++ {
 			t := ts[i]
-			log.Debug("New dial task", "task", t)
+			log.WithField("task", t).Debug("New dial task")
 			go func() { t.Do(srv); taskdone <- t }()
 			runningTasks = append(runningTasks, t)
 		}
@@ -652,13 +652,13 @@ running:
 			// This channel is used by AddPeer to add to the
 			// ephemeral static peer list. Add it to the dialer,
 			// it will keep the node connected.
-			log.Debug("Adding static node", "node", n)
+			log.WithField("node",n).Debug("Adding static node")
 			dialstate.addStatic(n)
 		case n := <-srv.removestatic:
 			// This channel is used by RemovePeer to send a
 			// disconnect request to a peer and begin the
 			// stop keeping the node connected.
-			log.Debug("Removing static node", "node", n)
+			log.WithField("node",n).Debug("Removing static node")
 			dialstate.removeStatic(n)
 			if p, ok := peers[n.ID]; ok {
 				p.Disconnect(DiscRequested)
@@ -666,7 +666,7 @@ running:
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
-			log.Debug("Adding trusted node", "node", n)
+			log.WithField("node",n).Debug("Adding trusted node")
 			trusted[n.ID] = true
 			// Mark any already-connected peer as trusted
 			if p, ok := peers[n.ID]; ok {
@@ -675,7 +675,7 @@ running:
 		case n := <-srv.removetrusted:
 			// This channel is used by RemoveTrustedPeer to remove an enode
 			// from the trusted node set.
-			log.Debug("Removing trusted node", "node", n)
+			log.WithField("node",n).Debug("Removing trusted node")
 			if _, ok := trusted[n.ID]; ok {
 				delete(trusted, n.ID)
 			}
@@ -691,7 +691,7 @@ running:
 			// A task got done. Tell dialstate about it so it
 			// can update its state and remove it from the active
 			// tasks list.
-			log.Debug("Dial task done", "task", t)
+			log.WithField("task", t).Debug("Dial task done")
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
 		case c := <-srv.posthandshake:
@@ -720,7 +720,8 @@ running:
 					//p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				log.Debug("Adding p2p peer", "name", name, "addr", c.fd.RemoteAddr(), "peers", len(peers)+1)
+				log.WithFields(log.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers)+1}).
+					Debug("Adding p2p peer")
 				go srv.runPeer(p)
 				peers[c.id] = p
 				if p.Inbound() {
@@ -738,7 +739,9 @@ running:
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
 			d := common.PrettyDuration(mclock.Now() - pd.created)
-			log.Debug("Removing p2p peer", "duration", d, "peers", len(peers)-1, "req", pd.requested, "err", pd.err)
+			log.WithFields(log.Fields{"duration": d, "peers": len(peers)-1, "req": pd.requested}).
+				WithError(pd.err).
+				Debug("Removing p2p peer")
 			delete(peers, pd.ID())
 			if pd.Inbound() {
 				inboundCount--
@@ -764,7 +767,7 @@ running:
 	// is closed.
 	for len(peers) > 0 {
 		p := <-srv.delpeer
-		log.Debug("<-delpeer (spindown)", "remainingTasks", len(runningTasks))
+		log.WithField("remainingTasks", len(runningTasks)).Debug("<-delpeer (spindown)")
 		delete(peers, p.ID())
 	}
 }

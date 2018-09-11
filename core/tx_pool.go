@@ -289,10 +289,13 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in txpending.
 func (pool *TxPool) commit(tx *types.Tx) error {
+	log.Debugf("start commit tx: %s", tx.GetTxHash().String())
+
 	if pool.tips.Count() >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
 	if pool.isBadTx(tx) {
+		log.Debugf("bad tx: %s", tx.GetTxHash().String())
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
@@ -316,6 +319,8 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
+	
+	log.Debugf("finish commit tx: %s", tx.GetTxHash().String())
 	return nil
 }
 
@@ -350,6 +355,8 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
+	log.Debugf("start confirm seq: %s", seq.GetTxHash().String())
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -377,6 +384,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+
+	log.Debugf("finish confirm seq: %s", seq.GetTxHash().String())
 	return nil
 }
 

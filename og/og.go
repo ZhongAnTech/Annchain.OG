@@ -44,8 +44,9 @@ func NewOg() (*Og, error) {
 		if err := og.Dag.Init(seq, balance); err != nil {
 			return nil, err
 		}
-		og.Txpool.Init(seq)
 	}
+	og.Txpool.Init(og.Dag.LatestSequencer())
+
 	// TODO
 	// account manager and protocol manager
 

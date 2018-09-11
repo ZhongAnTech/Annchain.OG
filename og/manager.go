@@ -14,6 +14,7 @@ type Manager struct {
 	Verifier *Verifier
 	Config   *ManagerConfig
 	TxBuffer *TxBuffer
+	Dag        *core.Dag
 }
 
 type ManagerConfig struct {
@@ -77,18 +78,19 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 	var txs []*types.Tx
 	var seqs []*types.Sequencer
 
+
 	for _, hash := range syncRequest.Hashes {
-		// DUMMY CODE
-		switch hash.Bytes[0] {
-		case 0:
-			tx := types.SampleSequencer()
-			tx.SetHash(tx.CalcTxHash())
+		txi := m.TxPool.Get(hash)
+		if txi ==nil  {
+			txi = m.Dag.GetTx(hash)
+		}
+		switch tx := txi.(type) {
+		case *types.Sequencer:
 			seqs = append(seqs, tx)
-		case 1:
-			tx := types.SampleTx()
-			tx.SetHash(tx.CalcTxHash())
+		case *types.Tx:
 			txs = append(txs, tx)
 		}
+		
 	}
 	syncResponse := types.MessageSyncResponse{
 		Txs:        txs,
@@ -124,10 +126,12 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 	for _, v := range syncResponse.Txs {
 		logrus.Infof("Received Tx: %s", v.Hash.Hex())
 		logrus.Infof(v.String())
+		m.TxBuffer.AddTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
 		logrus.Infof("Received Seq: %s", v.Hash.Hex())
 		logrus.Infof(v.String())
+		m.TxBuffer.AddTx(v)
 	}
 }
 

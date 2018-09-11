@@ -255,7 +255,7 @@ func ListenUDP(priv *ecdsa.PrivateKey, conn conn, realaddr *net.UDPAddr, nodeDBP
 	if err != nil {
 		return nil, err
 	}
-	log.Info("UDP listener up", "net", net.tab.self)
+	log.WithField("net", net.tab.self).Info("UDP listener up")
 	transport.net = net
 	go transport.readLoop()
 	return net, nil
@@ -361,9 +361,9 @@ func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, data []by
 		//fmt.Println(err)
 		return hash, err
 	}
-	log.Debug(fmt.Sprintf(">>> %v to %x@%v", nodeEvent(ptype), toid[:8], toaddr))
+	log.Debugf(">>> %v to %x@%v", nodeEvent(ptype), toid[:8], toaddr)
 	if _, err := t.conn.WriteToUDP(packet, toaddr); err != nil {
-		log.Debug(fmt.Sprint("UDP send failed:", err))
+		log.WithError(err).Debug("UDP send failed")
 	} else {
 		//egressTrafficMeter.Mark(int64(nbytes))
 	}
@@ -382,7 +382,7 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (p, hash []by
 	packet := b.Bytes()
 	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
-		log.Error(fmt.Sprint("could not sign packet:", err))
+		log.WithError(err).Error("could not sign packet")
 		return nil, nil, err
 	}
 	copy(packet, versionPrefix)
@@ -404,11 +404,11 @@ func (t *udp) readLoop() {
 		//ingressTrafficMeter.Mark(int64(nbytes))
 		if netutil.IsTemporaryError(err) {
 			// Ignore temporary read errors.
-			log.Debug(fmt.Sprintf("Temporary read error: %v", err))
+			log.WithError(err).Debug("Temporary read error")
 			continue
 		} else if err != nil {
 			// Shut down the loop for permament errors.
-			log.Debug(fmt.Sprintf("Read error: %v", err))
+			log.WithError(err).Debug("Read error")
 			return
 		}
 		t.handlePacket(from, buf[:nbytes])
@@ -418,7 +418,7 @@ func (t *udp) readLoop() {
 func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 	pkt := ingressPacket{remoteAddr: from}
 	if err := decodePacket(buf, &pkt); err != nil {
-		log.Debug(fmt.Sprintf("Bad packet from %v: %v", from, err))
+		log.WithError(err).WithField("from", from).Debug("Bad packet")
 		//fmt.Println("bad packet", err)
 		return err
 	}

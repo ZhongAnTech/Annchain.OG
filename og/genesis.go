@@ -19,5 +19,13 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	balance := map[types.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
 
+
+	//for test
+	addr1 := types.HexToAddress("C35DDE60050A3F2D023DEBE56D41C5CBF2588E21")
+	addr2 := types.HexToAddress("75460D010E942E9E93CE85E72D5714828CBF9397")
+	addr3 := types.HexToAddress("0DBCFC0A030222D7AD6CFE85314339A06803807C")
+	balance[addr1] = math.NewBigInt(8888888)
+	balance[addr2] = math.NewBigInt(7777777)
+	balance[addr3] = math.NewBigInt(6666666)
 	return seq.(*types.Sequencer), balance
 }

@@ -55,7 +55,7 @@ const (
 
 // RPC packet types
 const (
-	pingPacket = iota + 1 // zero is 'reserved'
+	pingPacket      = iota + 1 // zero is 'reserved'
 	pongPacket
 	findnodePacket
 	neighborsPacket
@@ -234,7 +234,7 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Info("UDP listener up", "self", tab.self)
+	log.WithField("self", tab.self).Info("UDP listener up")
 	return tab, nil
 }
 
@@ -324,7 +324,9 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 			nreceived++
 			n, err := t.nodeFromRPC(toaddr, rn)
 			if err != nil {
-				log.Debug("Invalid neighbor node received ", "ip", rn.IP, "addr", toaddr, "err ", rn.UDP, err)
+				log.WithFields(log.Fields{"ip": rn.IP, "addr": toaddr, "udp": rn.UDP}).
+					WithError(err).
+					Debug("Invalid neighbor node received")
 				continue
 			}
 			nodes = append(nodes, n)
@@ -502,7 +504,7 @@ func (t *udp) send(toaddr *net.UDPAddr, ptype byte, data []byte, name string) ([
 
 func (t *udp) write(toaddr *net.UDPAddr, what string, packet []byte) error {
 	_, err := t.conn.WriteToUDP(packet, toaddr)
-	log.Debug(">>write  "+what, "addr", toaddr, "err", err)
+	log.WithField("addr", toaddr).WithError(err).Debug(">>write  " + what)
 	return err
 }
 
@@ -512,7 +514,7 @@ func encodePingpacket(priv *ecdsa.PrivateKey, ptype byte, req *Ping) (packet, ha
 	b.WriteByte(ptype)
 	data, err := req.MarshalMsg(nil)
 	if err != nil {
-		log.Error("Can't encode discv4 packet", "err", err)
+		log.WithError(err).Error("Can't encode discv4 packet")
 		return nil, nil, err
 	}
 	b.Write(data)
@@ -526,7 +528,7 @@ func encodePingpacket(priv *ecdsa.PrivateKey, ptype byte, req *Ping) (packet, ha
 	packet = b.Bytes()
 	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
-		log.Error("Can't sign discv4 packet", "err", err)
+		log.WithError(err).Error("Can't sign discv4 packet")
 		return nil, nil, err
 	}
 	copy(packet[macSize:], sig)
@@ -546,7 +548,7 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (packet, hash
 	packet = b.Bytes()
 	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
-		log.Error("Can't sign discv4 packet", "err", err)
+		log.WithError(err).Error("Can't sign discv4 packet")
 		return nil, nil, err
 	}
 	copy(packet[macSize:], sig)
@@ -596,11 +598,11 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 		nbytes, from, err := t.conn.ReadFromUDP(buf)
 		if netutil.IsTemporaryError(err) {
 			// Ignore temporary read errors.
-			log.Debug("Temporary UDP read error", "err", err)
+			log.WithError(err).Debug("Temporary UDP read error")
 			continue
 		} else if err != nil {
 			// Shut down the loop for permament errors.
-			log.Debug("UDP read error", "err", err)
+			log.WithError(err).Debug("UDP read error")
 			return
 		}
 		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
@@ -615,11 +617,11 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 	packet, fromID, hash, err := decodePacket(buf)
 	if err != nil {
-		log.Debug("Bad discv4 packet", "addr", from, "err", err)
+		log.WithError(err).WithField("addr", from).Debug("Bad discv4 packet")
 		return err
 	}
 	err = packet.handle(t, from, fromID, hash)
-	log.Debug("<< handel  "+packet.name(), "addr", from, "err", err)
+	log.WithError(err).WithField("addr", from).Debug("<< handel  "+packet.name())
 	return err
 }
 

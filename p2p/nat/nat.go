@@ -98,7 +98,9 @@ const (
 // Map adds a port mapping on m and keeps it alive until c is closed.
 // This function is typically invoked in its own goroutine.
 func Map(m Interface, c chan struct{}, protocol string, extport, intport int, name string) {
-	logString := fmt.Sprint("proto", protocol, "extport", extport, "intport", intport, "interface", m)
+	fields := log.Fields{
+		"proto": protocol, "extport": extport, "intport": intport, "interface": m,
+	}
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer func() {
 		refresh.Stop()
@@ -106,9 +108,9 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 		m.DeleteMapping(protocol, extport, intport)
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
-		log.Debug(logString,"Couldn't add port mapping", "err", err)
+		log.WithFields(fields).WithError(err).Debug("Couldn't add port mapping")
 	} else {
-		log.Info(logString,"Mapped network port")
+		log.WithFields(fields).Info("Mapped network port")
 	}
 	for {
 		select {
@@ -117,9 +119,9 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 				return
 			}
 		case <-refresh.C:
-			log.Debug(logString,"Refreshing port mapping")
+			log.WithFields(fields).Debug("Refreshing port mapping")
 			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
-				log.Debug("Couldn't add port mapping", "err", err)
+				log.WithFields(fields).WithError(err).Debug("Couldn't add port mapping")
 			}
 			refresh.Reset(mapUpdateInterval)
 		}

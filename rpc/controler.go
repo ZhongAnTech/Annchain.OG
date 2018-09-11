@@ -41,7 +41,7 @@ func (r *RpcControler) Query(c *gin.Context) {
 	})
 }
 func (r *RpcControler) Transaction(c *gin.Context) {
-	hashtr := c.Param("hash")
+	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -50,6 +50,9 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 		return
 	}
 	txi := r.Og.Dag.GetTx(hash)
+	if txi ==nil {
+		txi = r.Og.Txpool.Get(hash)
+	}
 	if txi ==nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "not found",
@@ -89,7 +92,7 @@ func (r *RpcControler)Genesis( c* gin.Context){
 
 func (r *RpcControler) Sequencer(c *gin.Context) {
 	var sq *types.Sequencer
-	hashtr := c.Param("hash")
+	hashtr := c.Query("hash")
 	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
 		if sq != nil {
@@ -109,6 +112,9 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 			return
 		}
 		txi := r.Og.Dag.GetTx(hash)
+		if txi ==nil {
+			txi = r.Og.Txpool.Get(hash)
+		}
 		if txi ==nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "not found",

@@ -102,7 +102,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 	// record the mining times.
 	mineCount := 0
-	pickCount := 0
+	connectionTries := 0
 	minedNonce := uint64(0)
 
 	timeStart := time.Now()
@@ -115,10 +115,10 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 		select {
 		case minedNonce = <-respChan:
 			tx.GetBase().MineNonce = minedNonce // Actually, this value is already set during mining.
-			logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
+			//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
-				pickCount ++
+				connectionTries ++
 				txs := m.TipGenerator.GetRandomTips(2)
 
 				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
@@ -137,7 +137,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			return false
 		}
 	}
-	logrus.Debugf("Total time for Mining: %d ns, %d (%d) Mined, %d Picked",
-		time.Since(timeStart).Nanoseconds(), minedNonce, mineCount, pickCount)
+	logrus.Debugf("Total time for Mining: %d ns, %d (%d) Mined, %d Connection tries",
+		time.Since(timeStart).Nanoseconds(), minedNonce, mineCount, connectionTries)
 	return true
 }

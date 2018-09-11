@@ -83,7 +83,7 @@ func (t *Sequencer) String() string {
 		hashes = append(hashes, v.Hex()[0:10])
 	}
 
-	return fmt.Sprintf("[%s] %d Issuer %s, Hashes %s", t.TxBase.String(), t.Id, t.Issuer, strings.Join(hashes, ","))
+	return fmt.Sprintf("[%s] %d Issuer %s, Hashes %s", t.TxBase.String(), t.Id, t.Issuer.Hex(), strings.Join(hashes, ","))
 }
 
 func (t *Sequencer) GetBase() *TxBase {

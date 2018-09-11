@@ -391,8 +391,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
 	for _, pHash := range baseTx.Parents() {
-		parent := pool.poolPending.Get(pHash)
-
+		parent := pool.Get(pHash)
+		
 		if parent == nil || pool.dag.GetTx(parent.GetTxHash()) != nil {
 			continue
 		}

@@ -328,12 +328,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	return nil
 }
 
-var (
-	okay = false
-	bad  = true
-)
-
 func (pool *TxPool) isBadTx(tx *types.Tx) bool {
+	var (
+		okay = false
+		bad  = true
+	)
+
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
 		if pool.badtxs.Get(parentHash) != nil {
@@ -596,9 +596,9 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 		return txEnv.tx
 	}
 	log.Warnf("Hash not found %s", h.Hex())
-	for k := range t.txs {
-		log.Warnf("Available: %s", k.Hex())
-	}
+	// for k := range t.txs {
+	// 	log.Warnf("Available: %s", k.Hex())
+	// }
 
 	return nil
 }

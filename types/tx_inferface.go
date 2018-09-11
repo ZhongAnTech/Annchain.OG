@@ -55,6 +55,7 @@ type Txi interface {
 	GetType() TxBaseType
 	GetBase() *TxBase
 	GetTxHash() Hash
+	SetHash(h Hash)
 	String() string
 
 	DecodeMsg(dc *msgp.Reader) (err error)

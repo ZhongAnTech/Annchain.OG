@@ -177,6 +177,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		}
 	}
 	
+	// save latest sequencer into db
+	err = dag.accessor.WriteTransaction(batch.seq)
+	if err != nil {
+		return err
+	}
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(batch.seq)
 	if err != nil {

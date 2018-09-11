@@ -1,6 +1,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -45,7 +46,11 @@ func NewOg() (*Og, error) {
 			return nil, err
 		}
 	}
-	og.Txpool.Init(og.Dag.LatestSequencer())
+	seq := og.Dag.LatestSequencer()
+	if seq == nil {
+		return nil, fmt.Errorf("dag's latest sequencer is not initialized.")
+	}
+	og.Txpool.Init(seq)
 
 	// TODO
 	// account manager and protocol manager

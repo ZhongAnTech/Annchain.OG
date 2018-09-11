@@ -108,6 +108,7 @@ func (dag *Dag) LoadGenesis() bool {
 		return false
 	}
 	dag.genesis = genesis
+	dag.latestSeqencer = genesis
 	return true
 }
 

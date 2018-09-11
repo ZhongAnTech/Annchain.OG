@@ -190,7 +190,7 @@ type peerDrop struct {
 type connFlag int32
 
 const (
-	dynDialedConn connFlag = 1 << iota
+	dynDialedConn    connFlag = 1 << iota
 	staticDialedConn
 	inboundConn
 	trustedConn
@@ -199,7 +199,7 @@ const (
 // conn wraps a network connection with information gathered
 // during the two handshakes.
 type conn struct {
-	fd net.Conn
+	fd    net.Conn
 	transport
 	flags connFlag
 	cont  chan error      // The run loop uses cont to signal errors to SetupConn.
@@ -781,7 +781,7 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	switch {
-	case !c.is(trustedConn|staticDialedConn) && len(peers) >= srv.MaxPeers:
+	case !c.is(trustedConn | staticDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
 	case !c.is(trustedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
 		return DiscTooManyPeers
@@ -817,7 +817,8 @@ type tempError interface {
 // inbound connections.
 func (srv *Server) listenLoop() {
 	defer srv.loopWG.Done()
-	log.Info("RLPx listener up", "self", srv.makeSelf(srv.listener, srv.ntab))
+	node := srv.makeSelf(srv.listener, srv.ntab)
+	log.WithField("self", node).Infof("RLPx listener up")
 
 	tokens := defaultMaxPendingPeers
 	if srv.MaxPendingPeers > 0 {
@@ -839,10 +840,10 @@ func (srv *Server) listenLoop() {
 		for {
 			fd, err = srv.listener.Accept()
 			if tempErr, ok := err.(tempError); ok && tempErr.Temporary() {
-				log.Debug("Temporary read error", "err", err)
+				log.WithError(err).Debug("Temporary read error")
 				continue
 			} else if err != nil {
-				log.Debug("Read error", "err", err)
+				log.WithError(err).Debug("Read error")
 				return
 			}
 			break
@@ -850,7 +851,7 @@ func (srv *Server) listenLoop() {
 		// Reject connections that do not match NetRestrict.
 		if srv.NetRestrict != nil {
 			if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
-				log.Debug("Rejected conn (not whitelisted in NetRestrict)", "addr", fd.RemoteAddr())
+				log.WithField("addr", fd.RemoteAddr()).Debug("Rejected conn (not whitelisted in NetRestrict)")
 				fd.Close()
 				slots <- struct{}{}
 				continue
@@ -858,7 +859,7 @@ func (srv *Server) listenLoop() {
 		}
 
 		//fd = newMeteredConn(fd, true)
-		log.Debug("Accepted connection", "addr", fd.RemoteAddr())
+		log.WithField("addr", fd.RemoteAddr()).Debug("Accepted connection")
 		go func() {
 			srv.SetupConn(fd, inboundConn, nil)
 			slots <- struct{}{}
@@ -939,7 +940,7 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 
 	if err != nil {
 		c.close(err)
-		log.Debug("Setting up connection failed", "id", c.id, "err", err)
+		log.WithField("id", c.id).WithError(err).Debug("Setting up connection failed")
 	}
 	return err
 }
@@ -955,39 +956,39 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	// Run the encryption handshake.
 	var err error
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
-		log.Debug("Failed RLPx handshake", "addr", c.fd.RemoteAddr(), "conn", c.flags, "err", err)
+		log.WithError(err).WithFields(log.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
 		return err
 	}
-	clogStr := fmt.Sprint("id", c.id, "addr", c.fd.RemoteAddr(), "conn", c.flags)
+	clog := log.Fields{"id": c.id, "addr": c.fd.RemoteAddr(), "conn": c.flags}
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
-		log.Debug(clogStr, "Dialed identity mismatch", "want", c, dialDest.ID)
+		log.WithField("want", dialDest.ID).WithField("actual", c).Debug("Dialed identity mismatch")
 		return DiscUnexpectedIdentity
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
-		log.Debug(clogStr, "Rejected peer before protocol handshake ", " err ", err)
+		log.WithFields(clog).WithError(err).Debug("Rejected peer before protocol handshake")
 		return err
 	}
 	// Run the protocol handshake
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
-		log.Debug(clogStr, "Failed proto handshake", "err", err)
+		log.WithFields(clog).WithError(err).Debug("Failed proto handshake")
 		return err
 	}
 	if phs.ID != c.id {
-		log.Debug(clogStr, "Wrong devp2p handshake identity ", " err ", phs.ID)
+		log.WithFields(clog).WithField("phs.ID", phs.ID).Debug("Wrong devp2p handshake identity")
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
-		log.Debug(clogStr, "Rejected peer ", "err ", err)
+		log.WithFields(clog).WithError(err).Debug("Rejected peer")
 		return err
 	}
 	// If the checks completed successfully, runPeer has now been
 	// launched by run.
-	log.Debug(clogStr, "connection set up ", "inbound ", dialDest == nil)
+	log.WithFields(clog).WithField("inbound", dialDest == nil).Debug("connection set up")
 	return nil
 }
 

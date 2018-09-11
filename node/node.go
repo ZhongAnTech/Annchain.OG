@@ -52,12 +52,12 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic("Error occurred while initializing OG")
 	}
-	
+
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
 
-	hub.Dag =  org.Dag
+	hub.Dag = org.Dag
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -76,15 +76,15 @@ func NewNode() *Node {
 	)
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifier:                         verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1000,
 	})
-	txBuffer.Hub =  hub
+	txBuffer.Hub = hub
 	n.Components = append(n.Components, txBuffer)
 
 	m := &og.Manager{
@@ -129,10 +129,23 @@ func NewNode() *Node {
 			TxCreator:        txCreator,
 			TxBuffer:         m.TxBuffer,
 			PrivateKey:       privateKey,
-			BlockTimeSeconds: 5,
+			BlockTimeSeconds: 10,
+			Dag:              org.Dag,
 		}
 		autoSequencer.Dag = org.Dag
 		n.Components = append(n.Components, autoSequencer)
+	}
+
+	if viper.GetBool("auto_tx.enabled") {
+		autoTx := &ClientAutoTx{
+			TxCreator:         txCreator,
+			TxBuffer:          m.TxBuffer,
+			PrivateKey:        privateKey,
+			TxIntervalSeconds: 5,
+			Dag:               org.Dag,
+			InstanceCount:     viper.GetInt("auto_tx.count"),
+		}
+		n.Components = append(n.Components, autoTx)
 	}
 
 	// DataLoader

@@ -162,13 +162,13 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 	if len(data) == 0 {
 		return math.NewBigInt(0)
 	}
-	var bigint math.BigInt
+	bigint := math.NewBigInt(0)
 	// TODO use other encode function
 	err := json.Unmarshal(data, &bigint)
 	if err != nil {
 		return nil
 	}
-	return &bigint
+	return bigint
 }
 
 // SetBalance write the balance of an address into ogdb.

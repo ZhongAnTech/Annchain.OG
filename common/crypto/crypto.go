@@ -1,11 +1,13 @@
 package crypto
 
-import "encoding/base64"
+import (
+	"github.com/annchain/OG/common/hexutil"
+)
 
 type CryptoType int8
 
 const (
-	CryptoTypeEd25519 CryptoType = iota
+	CryptoTypeEd25519   CryptoType = iota
 	CryptoTypeSecp256k1
 )
 
@@ -35,7 +37,7 @@ func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
 }
 
 func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
-	bytes, err := base64.StdEncoding.DecodeString(value)
+	bytes, err := hexutil.Decode(value)
 	if err != nil {
 		return
 	}
@@ -50,5 +52,5 @@ func (k *PrivateKey) PrivateKeyToString() string {
 	var bytes []byte
 	bytes = append(bytes, byte(k.Type))
 	bytes = append(bytes, k.Bytes...)
-	return base64.StdEncoding.EncodeToString(bytes)
+	return hexutil.Encode(bytes)
 }

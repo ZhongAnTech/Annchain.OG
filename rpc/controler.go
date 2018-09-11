@@ -41,10 +41,52 @@ func (r *RpcControler) Query(c *gin.Context) {
 	})
 }
 func (r *RpcControler) Transaction(c *gin.Context) {
+	hashtr := c.Param("hash")
+	hash, err := types.HexStringToHash(hashtr)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "hash format error",
+		})
+		return
+	}
+	txi := r.Og.Dag.GetTx(hash)
+	if txi ==nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "not found",
+		})
+		return
+	}
+	if txi.GetType() == types.TxBaseTypeNormal {
+		tx := txi.(*types.Tx)
+		if tx!=nil {
+			c.JSON(http.StatusOK, tx)
+			return
+		}
+	}else if txi.GetType() == types.TxBaseTypeSequencer{
+		sq := txi.(*types.Sequencer)
+		if sq!=nil {
+			c.JSON(http.StatusOK, sq)
+			return
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
+		"message": "not found",
 	})
+
 }
+
+func (r *RpcControler)Genesis( c* gin.Context){
+	sq := r.Og.Dag.Genesis()
+	if sq != nil {
+		c.JSON(http.StatusOK, sq)
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "not found",
+		})
+	}
+	return
+}
+
 func (r *RpcControler) Sequencer(c *gin.Context) {
 	var sq *types.Sequencer
 	hashtr := c.Param("hash")
@@ -66,9 +108,22 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 			})
 			return
 		}
-		tx := r.Og.Dag.GetTx(hash)
-		c.JSON(http.StatusOK, tx)
+		txi := r.Og.Dag.GetTx(hash)
+		if txi ==nil {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "not found",
+			})
+			return
+		}
+		sq := txi.(*types.Sequencer)
+		if sq!=nil {
+			c.JSON(http.StatusOK, sq)
+			return
+		}
 	}
+	c.JSON(http.StatusOK, gin.H{
+		"error": "not found",
+	})
 }
 func (r *RpcControler) Validator(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{

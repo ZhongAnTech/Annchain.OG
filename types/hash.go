@@ -65,6 +65,12 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
 
 
+func HexStringToHash( s string) (Hash ,error) {
+	var h Hash
+	err :=  h.SetBytes(common.FromHex(s))
+	return h ,err
+}
+
 func HashesToString(hashes []Hash) string{
 	var strs []string
 	for _, v := range hashes{
@@ -123,6 +129,15 @@ func (h *Hash) MustSetBytes(b []byte) {
 	}
 	h.Bytes = [HashLength]byte{}
 	copy(h.Bytes[:], b)
+}
+
+func (h *Hash) SetBytes(b []byte) error {
+	if len(b) > HashLength {
+		return fmt.Errorf("byte to set is longer than expected length: %d > %d", len(b), HashLength)
+	}
+	h.Bytes = [HashLength]byte{}
+	copy(h.Bytes[:], b)
+	return nil
 }
 
 // Generate implements testing/quick.Generator.

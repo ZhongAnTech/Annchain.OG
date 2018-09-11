@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"sync"
@@ -84,7 +84,7 @@ func (p *peer) broadcast() {
 			if err := p.SendMessages(msg); err != nil {
 				return
 			}
-			log.Debug("Broadcast transactions", "count", len(msg))
+			log.WithField("count", len(msg)).Debug("Broadcast transactions")
 
 		case <-p.term:
 			return
@@ -131,7 +131,7 @@ func (p *peer) SetHead(hash types.Hash, td *big.Int) {
 func (p *peer) MarkMessage(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
-		p.knownMsg.Clear()	// TODO: Fix it
+		p.knownMsg.Clear() // TODO: Fix it
 	}
 	p.knownMsg.Add(hash)
 }
@@ -162,7 +162,7 @@ func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
 			}
 		}
 	default:
-		log.Debug("Dropping transaction propagation", "count", len(messages))
+		log.WithField("count", len(messages)).Debug("Dropping transaction propagation")
 	}
 }
 
@@ -188,14 +188,14 @@ func (p *peer) SendNodeData(data []byte) error {
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes types.Hashs) error {
-	log.Debug("Fetching batch of state data", "count", len(hashes))
+	log.WithField("count", len(hashes)).Debug("Fetching batch of state data")
 	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(GetNodeDataMsg), b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes types.Hashs) error {
-	log.Debug("Fetching batch of receipts", "count", len(hashes))
+	log.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(GetReceiptsMsg), b)
 }

@@ -52,8 +52,7 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic("Error occurred while initializing OG")
 	}
-
-	n.Components = append(n.Components, org.Txpool)
+	
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)

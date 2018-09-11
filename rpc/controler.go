@@ -3,15 +3,15 @@ package rpc
 import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"github.com/annchain/OG/types"
 )
 
 type RpcControler struct {
 	P2pServer *p2p.Server
 	Og        *og.Og
-	TxBuffer   *og.TxBuffer
+	TxBuffer  *og.TxBuffer
 }
 
 type NodeStatus struct {
@@ -47,22 +47,28 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 }
 func (r *RpcControler) Sequencer(c *gin.Context) {
 	var sq *types.Sequencer
-	hashtr :=  c.Param("hash")
-	if hashtr == ""{
+	hashtr := c.Param("hash")
+	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
-		if sq!=nil {
-			c.JSON(http.StatusOK,sq)
-		}else {
+		if sq != nil {
+			c.JSON(http.StatusOK, sq)
+		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"error": "not found",
 			})
 		}
 		return
+	} else {
+		hash, err := types.HexStringToHash(hashtr)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "hash format error",
+			})
+			return
+		}
+		tx := r.Og.Dag.GetTx(hash)
+		c.JSON(http.StatusOK, tx)
 	}
-	//todo with hashs
-	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
-	})
 }
 func (r *RpcControler) Validator(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
@@ -71,15 +77,15 @@ func (r *RpcControler) Validator(c *gin.Context) {
 }
 func (r *RpcControler) NewTransaction(c *gin.Context) {
 	var tx types.Tx
-	 err :=  c.ShouldBindJSON(&tx)
-	 if err!=nil {
-		 c.JSON(http.StatusOK, gin.H{
-			 "error": err.Error(),
-		 })
-		 return
-	 }
-	 r.TxBuffer.AddTx(&tx)
-	 //todo add transaction
+	err := c.ShouldBindJSON(&tx)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	r.TxBuffer.AddTx(&tx)
+	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 	})

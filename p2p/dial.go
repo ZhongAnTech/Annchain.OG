@@ -167,7 +167,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	var newtasks []task
 	addDial := func(flag connFlag, n *discover.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
-			log.Debug("Skipping dial candidate", "id", n.ID, "addr", &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}, "err", err)
+			log.WithFields(log.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
+				WithError(err).
+				Debug("Skipping dial candidate")
 			return false
 		}
 		s.dialing[n.ID] = flag
@@ -196,7 +198,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.Warn("Removing static dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)
+			log.WithFields(log.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+				WithError(err).
+				Debug("Removing static dial candidate")
 			delete(s.static, t.dest.ID)
 		case nil:
 			s.dialing[id] = t.flags
@@ -314,7 +318,8 @@ func (t *dialTask) Do(srv *Server) {
 // The backoff delay resets when the node is found.
 func (t *dialTask) resolve(srv *Server) bool {
 	if srv.ntab == nil {
-		log.Debug("Can't resolve node", "id", t.dest.ID, "err", "discovery is disabled")
+		log.WithFields(log.Fields{"id": t.dest.ID}).
+			Debug("Can't resolve node: discovery is disabled")
 		return false
 	}
 	if t.resolveDelay == 0 {
@@ -330,13 +335,14 @@ func (t *dialTask) resolve(srv *Server) bool {
 		if t.resolveDelay > maxResolveDelay {
 			t.resolveDelay = maxResolveDelay
 		}
-		log.Debug("Resolving node failed", "id", t.dest.ID, "newdelay", t.resolveDelay)
+		log.WithFields(log.Fields{"id": t.dest.ID, "newdelay": t.resolveDelay}).Debug("Resolving node failed")
 		return false
 	}
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)})
+	log.WithFields(log.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+		Debug("Resolved node")
 	return true
 }
 

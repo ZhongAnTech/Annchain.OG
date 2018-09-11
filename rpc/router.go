@@ -25,7 +25,7 @@ func (rpc *RpcControler) Newrouter() *gin.Engine {
 	router.GET("transaction", rpc.Transaction)
 	router.GET("validators", rpc.Validator)
 	router.GET("sequencer", rpc.Sequencer)
-
+	router.GET("genesis", rpc.Genesis)
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
@@ -55,6 +55,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"validators":    "",
 		"sequencer":     "",
 		"og_peers_info": "",
+		"genesis":"",
 		// broadcast API
 		"new_transaction": "tx",
 
@@ -66,7 +67,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"contract_payload": "payload, abistr",
 
 		"query_receipt": "hash",
-		"query_tx":      "hash",
+		"transaction":      "hash",
 
 		"query_contract": "tx",
 	}

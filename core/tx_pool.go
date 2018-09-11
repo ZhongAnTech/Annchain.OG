@@ -302,6 +302,10 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
+		status := pool.GetStatus(pHash)
+		if status != TxStatusTip {
+			break
+		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
 			break
@@ -371,14 +375,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	// move elders to dag
 	for _, elder := range elders {
-		pool.poolPending.Confirm(elder.GetTxHash())
-
 		status := pool.GetStatus(elder.GetTxHash())
 		if status == TxStatusBadTx {
 			pool.badtxs.Remove(elder.GetTxHash())
 		}
 		if status == TxStatusTip {
 			pool.tips.Remove(elder.GetTxHash())
+		}
+		if status == TxStatusPending {
+			pool.poolPending.Confirm(elder.GetTxHash())
 		}
 		pool.txLookup.Remove(elder.GetTxHash())
 	}

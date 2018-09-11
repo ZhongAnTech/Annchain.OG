@@ -93,6 +93,7 @@ func NewNode() *Node {
 		Verifier: verifier,
 		Syncer:   syncer,
 		Hub:      hub,
+		Dag:      org.Dag,
 		Config:   &og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10},
 	}
 	// Setup Hub

@@ -121,13 +121,12 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		// already fulfilled, insert into txpool
 		// needs to resolve itself first
 		logrus.Debugf("New tx fulfilled: %s", tx.GetTxHash().Hex())
-		b.resolve(tx)
 		// Check if the tx is valid based on graph structure rules
 		// Only txs that are obeying rules will be added to the graph.
 		if b.VerifyGraphStructure(tx){
 			b.txPool.AddRemoteTx(tx)
 		}
-
+		b.resolve(tx)
 
 	}
 

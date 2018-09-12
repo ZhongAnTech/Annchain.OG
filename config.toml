@@ -31,7 +31,7 @@ tx_valid_time = 100
 enabled = true
 
 [auto_tx]
-enabled = true
+enabled = false
 count = 1
 
 [dag]

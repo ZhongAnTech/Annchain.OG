@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
-	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"math/rand"
 )
@@ -77,7 +76,10 @@ func (t *Tx) Parents() []Hash {
 func (t *Tx) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Tx:
-		return cmp.Equal(t, tx)
+		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+			return true
+		}
+		return false
 	default:
 		return false
 	}

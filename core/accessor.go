@@ -111,20 +111,12 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, prefixTransaction) {
 		var tx types.Tx
-		// TODO use other decode function
-		err := json.Unmarshal(data, &tx)
-		if err != nil {
-			return nil
-		}
+		tx.UnmarshalMsg(data)
 		return &tx
 	}
 	if bytes.Equal(prefix, prefixSequencer) {
 		var sq types.Sequencer
-		// TODO use other decode function
-		err := json.Unmarshal(data, &sq)
-		if err != nil {
-			return nil
-		}
+		sq.UnmarshalMsg(data)
 		return &sq
 	}
 	return nil
@@ -133,19 +125,16 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 // WriteTransaction write the tx or sequencer into ogdb, data will be overwritten
 // if it already exist in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
-	var prefix []byte
-	switch tx.(type) {
+	var prefix, data []byte
+	switch tx := tx.(type) {
 	case *types.Tx:
 		prefix = prefixTransaction
+		data, _ = tx.MarshalMsg(nil)
 	case *types.Sequencer:
 		prefix = prefixSequencer
+		data, _ = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
-	}
-	// TODO use other encode function
-	data, err := json.Marshal(tx)
-	if err != nil {
-		return err
 	}
 	data = append(prefix, data...)
 	return da.db.Put(transactionKey(tx.GetTxHash()), data)

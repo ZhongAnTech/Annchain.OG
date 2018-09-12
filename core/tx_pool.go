@@ -204,21 +204,6 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
-// // Remove removes a tx from tx pool. Only be called if a tx moves to dag,
-// // or a tx need to be clear in reset().
-// func (pool *TxPool) remove(hash types.Hash) {
-// 	if pool.tips.Get(hash) != nil {
-// 		pool.tips.Remove(hash)
-// 	}
-// 	if pool.badtxs.Get(hash) != nil {
-// 		pool.badtxs.Remove(hash)
-// 	}
-// 	if pool.poolPending.Get(hash) != nil {
-// 		pool.poolPending.Remove(hash)
-// 	}
-// 	pool.txLookup.remove(hash)
-// }
-
 func (pool *TxPool) loop() {
 	defer log.Debugf("TxPool.loop() terminates")
 
@@ -263,7 +248,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 			status: TxStatusQueue,
 		},
 	}
-
 	select {
 	case pool.queue <- te:
 		pool.txLookup.Add(te.txEnv)
@@ -271,14 +255,12 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
+	// waiting for callback
 	select {
 	case err := <-te.callbackChan:
 		if err != nil {
 			return err
 		}
-		// case <-timer.C:
-		// 	// close(te.callbackChan)
-		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
@@ -398,9 +380,14 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.Get(pHash)
-		
-		if parent == nil || pool.dag.GetTx(parent.GetTxHash()) != nil {
+		if parent == nil {
 			continue
+		}
+		if parent.GetType() != types.TxBaseTypeSequencer {
+			// check if parent is not a seq and is in dag db 
+			if pool.dag.GetTx(parent.GetTxHash()) != nil {
+				continue
+			}
 		}
 		if batch[parent.GetTxHash()] == nil {
 			batch[parent.GetTxHash()] = parent

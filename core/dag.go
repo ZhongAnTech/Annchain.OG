@@ -81,6 +81,13 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	if err != nil {
 		return err
 	}
+	// store genesis as first tx
+	err = dag.accessor.WriteTransaction(genesis)
+	if err != nil {
+		return err
+	}
+	log.Debugf("successfully store genesis: %s", genesis.GetTxHash().String())
+
 	// init genesis balance
 	for addr, value := range genesisBalance {
 		err = dag.accessor.SetBalance(addr, value)
@@ -182,12 +189,15 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
+	log.Debugf("successfully store seq: %s", batch.seq.GetTxHash().String())
+
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(batch.seq)
 	if err != nil {
 		return err
 	}
 	dag.latestSeqencer = batch.seq
+	log.Debugf("successfully update latest seq: %s", batch.seq.GetTxHash().String())
 	
 	return nil
 }

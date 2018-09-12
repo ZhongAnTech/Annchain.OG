@@ -3,7 +3,6 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"strings"
 	"math/rand"
@@ -71,7 +70,10 @@ func (t *Sequencer) Parents() []Hash {
 func (t *Sequencer) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:
-		return cmp.Equal(t, tx)
+		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+			return true
+		}
+		return false
 	default:
 		return false
 	}

@@ -21,40 +21,47 @@ type ClientAutoTx struct {
 	currentID         uint64
 	manualChan        chan bool
 	Dag               *core.Dag
-	sampleAccounts    []account.SampleAccount
+	SampleAccounts    []account.SampleAccount
 	InstanceCount     int
 }
 
-func (c *ClientAutoTx) loop(from int, to int, nonce uint64) {
+func (c *ClientAutoTx) Init(){
+	c.stop = false
+	lseq := c.Dag.LatestSequencer()
+	if lseq != nil {
+		c.currentID = lseq.Id
+	}
+	c.SampleAccounts = og.GetSampleAccounts()
+}
+
+func (c *ClientAutoTx) GenerateRequest(from int, to int){
+	c.currentID ++
+	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(1), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
+	if ok := c.TxCreator.SealTx(tx); !ok {
+		logrus.Warn("ClientAutoTx Failed to seal tx")
+		return
+	}
+	logrus.Infof("Tx generated: %s", tx.GetTxHash().Hex())
+	logrus.Infof("%+v", tx)
+	// TODO: announce tx
+	c.TxBuffer.AddTx(tx)
+}
+
+func (c *ClientAutoTx) loop(from int, to int) {
 
 	for !c.stop {
 		select {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Millisecond * time.Duration(rand.Intn(c.TxIntervalSeconds * 1000))).C:
 		}
-		c.currentID ++
-		tx := c.TxCreator.NewSignedTx(c.sampleAccounts[from].Address, c.sampleAccounts[to].Address, math.NewBigInt(1), nonce, c.sampleAccounts[from].PrivateKey)
-		if ok := c.TxCreator.SealTx(tx); !ok {
-			logrus.Warn("ClientAutoTx Failed to seal tx")
-			continue
-		}
-		logrus.Infof("Tx generated: %s", tx.GetTxHash().Hex())
-		logrus.Infof("%+v", tx)
-		// TODO: announce tx
-		c.TxBuffer.AddTx(tx)
+		c.GenerateRequest(from, to)
 	}
 }
 
 func (c *ClientAutoTx) Start() {
-	c.stop = false
-	lseq := c.Dag.LatestSequencer()
-	if lseq != nil {
-		c.currentID = lseq.Id
-	}
-	c.sampleAccounts = og.GetSampleAccounts()
 	for i := 0; i < c.InstanceCount; i++ {
-		a, b := rand.Intn(len(c.sampleAccounts)), rand.Intn(len(c.sampleAccounts))
-		go c.loop(a, b, 0)
+		a, b := rand.Intn(len(c.SampleAccounts)), rand.Intn(len(c.SampleAccounts))
+		go c.loop(a, b)
 		logrus.Infof("Start auto Tx maker from %d to %d", a, b)
 	}
 

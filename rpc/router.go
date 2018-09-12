@@ -40,6 +40,8 @@ func (rpc *RpcControler) Newrouter() *gin.Engine {
 	router.GET("query_receipt", rpc.QueryReceipt)
 
 	router.GET("query_contract", rpc.QueryContract)
+
+	router.GET("debug", rpc.Debug)
 	return router
 
 }

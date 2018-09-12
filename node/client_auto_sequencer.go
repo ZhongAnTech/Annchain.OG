@@ -21,31 +21,38 @@ type ClientAutoSequencer struct {
 	Dag *core.Dag
 }
 
+func (c *ClientAutoSequencer) Init(){
+	c.stop = false
+	lseq := c.Dag.LatestSequencer()
+	if lseq!=nil {
+		c.currentID = lseq.Id
+	}
+}
+
+func (c *ClientAutoSequencer) GenerateRequest(){
+	c.currentID ++
+	seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
+	if ok := c.TxCreator.SealTx(seq); !ok {
+		logrus.Warn("ClientAutoSequencer Failed to seal tx")
+		return
+	}
+	logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
+	logrus.Infof("%+v", seq)
+	// TODO: announce tx
+	c.TxBuffer.AddTx(seq)
+}
+
 func (c *ClientAutoSequencer) loop() {
 	for !c.stop {
 		select {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Second * time.Duration(c.BlockTimeSeconds)).C:
 		}
-		c.currentID ++
-		seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
-		if ok := c.TxCreator.SealTx(seq); !ok {
-			logrus.Warn("ClientAutoSequencer Failed to seal tx")
-			continue
-		}
-		logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
-		logrus.Infof("%+v", seq)
-		// TODO: announce tx
-		c.TxBuffer.AddTx(seq)
+		c.GenerateRequest()
 	}
 }
 
 func (c *ClientAutoSequencer) Start() {
-	c.stop = false
-	lseq := c.Dag.LatestSequencer()
-	if lseq!=nil {
-		c.currentID = lseq.Id
-	}
 	go c.loop()
 }
 

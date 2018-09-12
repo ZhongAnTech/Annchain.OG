@@ -152,16 +152,11 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	defer pool.mu.Unlock()
 
 	// select n random hashes
-	indices := generateRandomIndices(n, len(pool.tips.txs))
-
-	// slice of keys
-	var keys []types.Hash
-	for k := range pool.tips.txs {
-		keys = append(keys, k)
-	}
+	values := pool.tips.GetAllValues()
+	indices := generateRandomIndices(n, len(values))
 
 	for i := range indices {
-		v = append(v, pool.tips.txs[keys[i]])
+		v = append(v, values[i])
 	}
 	return v
 }
@@ -552,6 +547,30 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 
 	return tm.txs[hash]
 }
+func (tm *TxMap) GetAllKeys() []types.Hash{
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	var keys []types.Hash
+	// slice of keys
+	for k := range tm.txs {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (tm *TxMap) GetAllValues() []types.Txi{
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	var values []types.Txi
+	// slice of keys
+	for _,v := range tm.txs {
+		values = append(values, v)
+	}
+	return values
+}
+
 func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()

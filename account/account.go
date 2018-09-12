@@ -10,14 +10,15 @@ type SampleAccount struct {
 	PrivateKey crypto.PrivateKey
 	PublicKey  crypto.PublicKey
 	Address    types.Address
+	Nonce      uint64
 }
 
-func NewAccount(privateKeyHex string) SampleAccount{
+func NewAccount(privateKeyHex string) SampleAccount {
 	signer := &crypto.SignerSecp256k1{}
 
 	s := SampleAccount{}
 	pv, err := crypto.PrivateKeyFromString(privateKeyHex)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	s.PrivateKey = pv

@@ -9,14 +9,24 @@ import (
 )
 
 type RpcControler struct {
-	P2pServer *p2p.Server
-	Og        *og.Og
-	TxBuffer  *og.TxBuffer
+	P2pServer     *p2p.Server
+	Og            *og.Og
+	TxBuffer      *og.TxBuffer
+	AutoSequencer SequenceRequester
+	AutoTx        TxRequester
 }
 
 type NodeStatus struct {
 	NodeInfo  *p2p.NodeInfo   `json:"node_info"`
 	PeersInfo []*p2p.PeerInfo `json:"peers_info"`
+}
+
+type TxRequester interface {
+	GenerateRequest(from int, to int)
+}
+
+type SequenceRequester interface {
+	GenerateRequest()
 }
 
 func (r *RpcControler) Status(c *gin.Context) {
@@ -50,10 +60,10 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 		return
 	}
 	txi := r.Og.Dag.GetTx(hash)
-	if txi ==nil {
+	if txi == nil {
 		txi = r.Og.Txpool.Get(hash)
 	}
-	if txi ==nil {
+	if txi == nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "not found",
 		})
@@ -61,13 +71,13 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 	}
 	if txi.GetType() == types.TxBaseTypeNormal {
 		tx := txi.(*types.Tx)
-		if tx!=nil {
+		if tx != nil {
 			c.JSON(http.StatusOK, tx)
 			return
 		}
-	}else if txi.GetType() == types.TxBaseTypeSequencer{
+	} else if txi.GetType() == types.TxBaseTypeSequencer {
 		sq := txi.(*types.Sequencer)
-		if sq!=nil {
+		if sq != nil {
 			c.JSON(http.StatusOK, sq)
 			return
 		}
@@ -78,7 +88,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 
 }
 
-func (r *RpcControler)Genesis( c* gin.Context){
+func (r *RpcControler) Genesis(c *gin.Context) {
 	sq := r.Og.Dag.Genesis()
 	if sq != nil {
 		c.JSON(http.StatusOK, sq)
@@ -112,17 +122,17 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 			return
 		}
 		txi := r.Og.Dag.GetTx(hash)
-		if txi ==nil {
+		if txi == nil {
 			txi = r.Og.Txpool.Get(hash)
 		}
-		if txi ==nil {
+		if txi == nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "not found",
 			})
 			return
 		}
 		sq := txi.(*types.Sequencer)
-		if sq!=nil {
+		if sq != nil {
 			c.JSON(http.StatusOK, sq)
 			return
 		}
@@ -188,4 +198,15 @@ func (r *RpcControler) QueryContract(c *gin.Context) {
 func (r *RpcControler) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
+}
+
+func (r *RpcControler) Debug(c *gin.Context) {
+	p := c.Request.URL.Query().Get("f")
+	switch p {
+	case "1":
+		r.AutoTx.GenerateRequest(0, 1)
+	case "2":
+		r.AutoSequencer.GenerateRequest()
+
+	}
 }

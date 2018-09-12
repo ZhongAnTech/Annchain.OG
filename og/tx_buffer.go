@@ -46,7 +46,7 @@ type TxBuffer struct {
 	affmu           sync.RWMutex
 	newTxChan       chan types.Txi
 	quit            chan bool
-	Hub                *Hub
+	Hub             *Hub
 }
 
 type TxBufferConfig struct {
@@ -114,54 +114,50 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 	// not in tx buffer , a new tx , shoud brodcast
 	if ! b.InBuffer(tx) {
-		shoudBrodcast  = true
+		shoudBrodcast = true
 	}
 
-	if b.fetchAllAncestors(tx) {
+	if b.buildDependencies(tx) {
 		// already fulfilled, insert into txpool
 		// needs to resolve itself first
 		logrus.Debugf("New tx fulfilled: %s", tx.GetTxHash().Hex())
 		// Check if the tx is valid based on graph structure rules
 		// Only txs that are obeying rules will be added to the graph.
-		if b.VerifyGraphStructure(tx){
+		if b.VerifyGraphStructure(tx) {
 			b.txPool.AddRemoteTx(tx)
 		}
 		b.resolve(tx)
-
 	}
 
 	if shoudBrodcast {
 		b.sendMessage(tx)
 	}
 
-
 }
 
-func ( b *TxBuffer)InBuffer( tx types.Txi) bool {
+func (b *TxBuffer) InBuffer(tx types.Txi) bool {
 	_, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	if err != nil {
-		// key not present, already resolved.
-		return false
+	if err == nil {
+		return true
 	}
-	return  true
+	return false
 }
-
 
 //sendMessage  brodcase txi message
-func ( b* TxBuffer) sendMessage (txi types.Txi) {
+func (b *TxBuffer) sendMessage(txi types.Txi) {
 	txType := txi.GetType()
-	if  txType == types.TxBaseTypeNormal {
-		tx := 	txi.(*types.Tx)
+	if txType == types.TxBaseTypeNormal {
+		tx := txi.(*types.Tx)
 		msgTx := types.MessageNewTx{tx}
-		data,_:= msgTx.MarshalMsg(nil)
-		b.Hub.SendMessage(MessageTypeNewTx,data)
-	}else if txType == types.TxBaseTypeSequencer {
-		seq := 	txi.(*types.Sequencer)
+		data, _ := msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewTx, data)
+	} else if txType == types.TxBaseTypeSequencer {
+		seq := txi.(*types.Sequencer)
 		msgTx := types.MessageNewSequence{seq}
-		data,_:= msgTx.MarshalMsg(nil)
-		b.Hub.SendMessage(MessageTypeNewSequence,data)
-	}else {
-		logrus.Warn("never come here ,unkown tx type",txType)
+		data, _ := msgTx.MarshalMsg(nil)
+		b.Hub.SendMessage(MessageTypeNewSequence, data)
+	} else {
+		logrus.Warn("never come here ,unkown tx type", txType)
 	}
 
 }
@@ -169,26 +165,41 @@ func ( b* TxBuffer) sendMessage (txi types.Txi) {
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
-	logrus.Infof("Updating dependency map: %s <- %s", parentHash.Hex()[:4], self.GetTxHash().Hex())
+	if self == nil{
+		logrus.Infof("Updating dependency map: %s <- nil", parentHash.Hex())
+	}else{
+		logrus.Infof("Updating dependency map: %s <- %s", parentHash.Hex(), self.GetTxHash().Hex())
+	}
+
 	v, err := b.dependencyCache.GetIFPresent(parentHash)
 	if err != nil {
 		// key not present, need to build a inner map
-		b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
+		if self == nil{
+			b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{})
+		}else{
+			b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
+		}
 	} else {
-		v.(map[types.Hash]types.Txi)[self.GetBase().Hash] = self
+		if self != nil{
+			v.(map[types.Hash]types.Txi)[self.GetBase().Hash] = self
+		}
+		// if self is nil, that means we received two duplicated update requests
 	}
 }
 
 // resolve is called when all ancestors of the tx is got.
+// Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi) {
-	logrus.Debugf("Resolve %s", tx.GetTxHash().Hex())
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	if err != nil {
 		// key not present, already resolved.
+		logrus.Debugf("Already resolved: %s", tx.GetTxHash().Hex())
 		return
 	}
 
 	b.dependencyCache.Remove(tx.GetTxHash())
+	b.txPool.AddRemoteTx(tx)
+	logrus.Debugf("Resolved: %s", tx.GetTxHash().Hex())
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
 		logrus.Debugf("Resolving %s because %s is resolved", v.GetTxHash().Hex(), tx.GetTxHash().Hex())
@@ -210,6 +221,10 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 }
 
 func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
+	logrus.WithField("Txpool", b.txPool.Get(hash)).
+		WithField("DAG", b.dag.GetTx(hash)).
+		WithField("Hash", hash.Hex()).
+		Info("Transaction location")
 	return b.txPool.Get(hash) != nil || b.dag.GetTx(hash) != nil
 }
 
@@ -231,10 +246,10 @@ func (b *TxBuffer) tryResolve(tx types.Txi) bool {
 	return true
 }
 
-// fetchAllAncestors examine if all ancestors are in our local cache.
+// buildDependencies examines if all ancestors are in our local cache.
 // If not, go fetch it and record it in the map for future reference
 // Returns true if all ancestors are local now.
-func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
+func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
@@ -247,8 +262,12 @@ func (b *TxBuffer) fetchAllAncestors(tx types.Txi) bool {
 			b.syncer.Enqueue(parentHash)
 		}
 	}
+	if !allFetched{
+		// add myself to the dependency map
+		b.updateDependencyMap(tx.GetTxHash(), nil)
+	}
 	return allFetched
 }
-func (b *TxBuffer) VerifyGraphStructure(txi types.Txi) bool{
+func (b *TxBuffer) VerifyGraphStructure(txi types.Txi) bool {
 	return true
 }

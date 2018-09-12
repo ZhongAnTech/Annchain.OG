@@ -125,27 +125,28 @@ func NewNode() *Node {
 		}
 	}
 
+	autoSequencer := &ClientAutoSequencer{
+		TxCreator:        txCreator,
+		TxBuffer:         m.TxBuffer,
+		PrivateKey:       privateKey,
+		BlockTimeSeconds: 300,
+		Dag:              org.Dag,
+	}
+	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
-		autoSequencer := &ClientAutoSequencer{
-			TxCreator:        txCreator,
-			TxBuffer:         m.TxBuffer,
-			PrivateKey:       privateKey,
-			BlockTimeSeconds: 10,
-			Dag:              org.Dag,
-		}
-		autoSequencer.Dag = org.Dag
 		n.Components = append(n.Components, autoSequencer)
 	}
 
+	autoTx := &ClientAutoTx{
+		TxCreator:         txCreator,
+		TxBuffer:          m.TxBuffer,
+		PrivateKey:        privateKey,
+		TxIntervalSeconds: 60,
+		Dag:               org.Dag,
+		InstanceCount:     viper.GetInt("auto_tx.count"),
+	}
+	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {
-		autoTx := &ClientAutoTx{
-			TxCreator:         txCreator,
-			TxBuffer:          m.TxBuffer,
-			PrivateKey:        privateKey,
-			TxIntervalSeconds: 5,
-			Dag:               org.Dag,
-			InstanceCount:     viper.GetInt("auto_tx.count"),
-		}
 		n.Components = append(n.Components, autoTx)
 	}
 
@@ -172,6 +173,8 @@ func NewNode() *Node {
 	if rpcServer != nil {
 		rpcServer.C.P2pServer = p2pServer
 		rpcServer.C.Og = org
+		rpcServer.C.AutoSequencer = autoSequencer
+		rpcServer.C.AutoTx = autoTx
 	}
 	return n
 }

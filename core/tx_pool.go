@@ -41,17 +41,20 @@ type TxPool struct {
 
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
+
+	OnNewTxReceived []chan types.Txi // for notifications of new txs.
 }
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:     conf,
-		dag:      d,
-		queue:    make(chan *txEvent, conf.QueueSize),
-		tips:     NewTxMap(),
-		badtxs:   NewTxMap(),
-		txLookup: newTxLookUp(),
-		close:    make(chan struct{}),
+		conf:            conf,
+		dag:             d,
+		queue:           make(chan *txEvent, conf.QueueSize),
+		tips:            NewTxMap(),
+		badtxs:          NewTxMap(),
+		txLookup:        newTxLookUp(),
+		close:           make(chan struct{}),
+		OnNewTxReceived: []chan types.Txi{},
 	}
 	pool.poolPending = NewPending(pool)
 	return pool
@@ -261,6 +264,14 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		if err != nil {
 			return err
 		}
+		// notify all subscribers of newTxEvent
+		for _, subscriber := range pool.OnNewTxReceived{
+			log.Info("Notify subscriber")
+			subscriber <- tx
+		}
+		// case <-timer.C:
+		// 	// close(te.callbackChan)
+		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
@@ -305,7 +316,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
-	
+
 	log.Debugf("finish commit tx: %s", tx.GetTxHash().String())
 	return nil
 }
@@ -384,7 +395,7 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 			continue
 		}
 		if parent.GetType() != types.TxBaseTypeSequencer {
-			// check if parent is not a seq and is in dag db 
+			// check if parent is not a seq and is in dag db
 			if pool.dag.GetTx(parent.GetTxHash()) != nil {
 				continue
 			}

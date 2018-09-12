@@ -16,7 +16,7 @@ static_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838
 name = "leveldb"
 
 [leveldb]
-path = "datadir"
+path = "datadir1"
 cache = 16
 handles = 16
 

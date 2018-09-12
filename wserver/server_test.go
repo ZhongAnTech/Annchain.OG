@@ -16,5 +16,7 @@ func TestServer(t *testing.T) {
 			time.Sleep(time.Millisecond * time.Duration(500))
 		}
 	}()
-	srv.ListenAndServe()
+	srv.Serve()
+
+	time.Sleep(time.Second * 60)
 }

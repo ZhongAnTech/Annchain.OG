@@ -4,6 +4,12 @@ package wserver
 import (
 	"net/http"
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"time"
+	"context"
+	"github.com/annchain/OG/types"
 )
 
 const (
@@ -43,13 +49,19 @@ type Server struct {
 	// will always be accepted.
 	PushAuth func(r *http.Request) bool
 
-	wh *websocketHandler
-	ph *pushHandler
+	// To receive new tx events
+	NewTxReceivedChan chan types.Txi
+
+	wh     *websocketHandler
+	ph     *pushHandler
+	engine *gin.Engine
+	server *http.Server
+	quit   chan bool
 }
 
 // ListenAndServe listens on the TCP network address and handle websocket
 // request.
-func (s *Server) ListenAndServe() error {
+func (s *Server) Serve() {
 	e2c := NewEvent2Cons()
 
 	// websocket request handler
@@ -61,7 +73,6 @@ func (s *Server) ListenAndServe() error {
 		wh.upgrader = s.Upgrader
 	}
 	s.wh = &wh
-	http.Handle(s.WSPath, s.wh)
 
 	// push request handler
 	ph := pushHandler{
@@ -71,9 +82,20 @@ func (s *Server) ListenAndServe() error {
 		ph.authFunc = s.PushAuth
 	}
 	s.ph = &ph
-	http.Handle(s.PushPath, s.ph)
 
-	return http.ListenAndServe(s.Addr, nil)
+	engine := gin.Default()
+	engine.GET(s.WSPath, wh.Handle)
+	engine.GET(s.PushPath, ph.Handle)
+
+	server := &http.Server{
+		Addr:    s.Addr,
+		Handler: engine,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
+		// cannot panic, because this probably is an intentional close
+		logrus.WithError(err).Errorf("Websocket server error")
+	}
 }
 
 // Push filters connections by userID and event, then write message
@@ -84,8 +106,42 @@ func (s *Server) Push(event, message string) (int, error) {
 // NewServer creates a new Server.
 func NewServer(addr string) *Server {
 	return &Server{
-		Addr:     addr,
-		WSPath:   serverDefaultWSPath,
-		PushPath: serverDefaultPushPath,
+		Addr:              addr,
+		WSPath:            serverDefaultWSPath,
+		PushPath:          serverDefaultPushPath,
+		NewTxReceivedChan: make(chan types.Txi),
+		quit:              make(chan bool),
 	}
+}
+
+func (s *Server) Start() {
+	go s.Serve()
+	go s.WatchNewTxs()
+}
+
+func (s *Server) Stop() {
+	s.quit <- true
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.server.Shutdown(ctx); err != nil {
+		logrus.WithError(err).Fatal("Server Shutdown")
+	}
+	logrus.Info("Server exiting")
+}
+
+func (s *Server) Name() string {
+	return fmt.Sprintf("Websocket Server at %s", s.Addr)
+}
+func (s *Server) WatchNewTxs() {
+	for {
+		select {
+		case tx := <-s.NewTxReceivedChan:
+			msg := tx2UIData(tx)
+			logrus.WithField("msg", msg).Info("Push to ws")
+			s.Push("new_unit", msg)
+		case <-s.quit:
+			break
+		}
+	}
+
 }

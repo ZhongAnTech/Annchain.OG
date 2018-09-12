@@ -131,7 +131,7 @@ func NewNode() *Node {
 		TxCreator:        txCreator,
 		TxBuffer:         m.TxBuffer,
 		PrivateKey:       privateKey,
-		BlockTimeSeconds: 300,
+		BlockTimeSeconds: 10,
 		Dag:              org.Dag,
 	}
 	autoSequencer.Init()
@@ -143,7 +143,7 @@ func NewNode() *Node {
 		TxCreator:         txCreator,
 		TxBuffer:          m.TxBuffer,
 		PrivateKey:        privateKey,
-		TxIntervalSeconds: 60,
+		TxIntervalSeconds: 3,
 		Dag:               org.Dag,
 		InstanceCount:     viper.GetInt("auto_tx.count"),
 	}

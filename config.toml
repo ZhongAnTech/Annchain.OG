@@ -32,11 +32,14 @@ tx_verify_time = 2
 tx_valid_time = 100
 
 [auto_sequencer]
-enabled = true
+enabled = false
 
 [auto_tx]
-enabled = true
+enabled = false
 count = 1
+
+[debug]
+node_id = 1
 
 [dag]
 

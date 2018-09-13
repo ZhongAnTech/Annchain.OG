@@ -38,6 +38,7 @@ func (c *ClientAutoSequencer) GenerateRequest(){
 	}
 	logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
 	logrus.Infof("%+v", seq)
+	c.currentNonce ++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(seq)
 }

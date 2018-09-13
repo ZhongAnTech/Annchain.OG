@@ -13,14 +13,17 @@ import (
 	"math/rand"
 )
 
+type TxType int
+type TxStatus int
+
 const (
-	TxTypeGenesis int = iota
+	TxTypeGenesis TxType = iota
 	TxTypeLocal
 	TxTypeRemote
 )
 
 const (
-	TxStatusNotExist int = iota
+	TxStatusNotExist TxStatus = iota
 	TxStatusQueue
 	TxStatusTip
 	TxStatusBadTx
@@ -73,8 +76,8 @@ type txEvent struct {
 }
 type txEnvelope struct {
 	tx     types.Txi
-	txType int
-	status int
+	txType TxType
+	status TxStatus
 }
 
 // Start begin the txpool sevices
@@ -123,7 +126,7 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 }
 
 // GetStatus gets the current status of a tx
-func (pool *TxPool) GetStatus(hash types.Hash) int {
+func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
@@ -234,7 +237,7 @@ func (pool *TxPool) loop() {
 }
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
-func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
+func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
 
@@ -260,8 +263,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 			return err
 		}
 		// notify all subscribers of newTxEvent
-		for _, subscriber := range pool.OnNewTxReceived{
-			log.Info("Notify subscriber")
+		for _, subscriber := range pool.OnNewTxReceived {
+			log.Debug("Notify subscriber")
 			subscriber <- tx
 		}
 		// case <-timer.C:
@@ -277,7 +280,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in txpending.
 func (pool *TxPool) commit(tx *types.Tx) error {
-	log.Debugf("start commit tx: %s", tx.GetTxHash().String())
+	log.Debugf("`: %s", tx.GetTxHash().String())
 
 	if pool.tips.Count() >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
@@ -292,10 +295,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {
+			log.WithField("hash", pHash.Hex()).Info("Parent is not a tip")
 			break
 		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
+			log.WithField("hash", pHash.Hex()).Info("Parent not in tips")
 			break
 		}
 		// remove sequencer from tips
@@ -547,7 +552,7 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 
 	return tm.txs[hash]
 }
-func (tm *TxMap) GetAllKeys() []types.Hash{
+func (tm *TxMap) GetAllKeys() []types.Hash {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
@@ -559,13 +564,13 @@ func (tm *TxMap) GetAllKeys() []types.Hash{
 	return keys
 }
 
-func (tm *TxMap) GetAllValues() []types.Txi{
+func (tm *TxMap) GetAllValues() []types.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
 	var values []types.Txi
 	// slice of keys
-	for _,v := range tm.txs {
+	for _, v := range tm.txs {
 		values = append(values, v)
 	}
 	return values
@@ -644,15 +649,15 @@ func (t *txLookUp) Stats() (int, int) {
 
 	queue, tips := 0, 0
 	for _, v := range t.txs {
-		if v.txType == TxStatusQueue {
+		if v.status == TxStatusQueue {
 			queue += 1
-		} else {
+		} else if v.status == TxStatusTip {
 			tips += 1
 		}
 	}
 	return queue, tips
 }
-func (t *txLookUp) Status(h types.Hash) int {
+func (t *txLookUp) Status(h types.Hash) TxStatus {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -661,7 +666,7 @@ func (t *txLookUp) Status(h types.Hash) int {
 	}
 	return TxStatusNotExist
 }
-func (t *txLookUp) SwitchStatus(h types.Hash, status int) {
+func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

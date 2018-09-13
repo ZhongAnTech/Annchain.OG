@@ -227,7 +227,9 @@ func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
 		p2pMsg.needCheckRepeat = true
 		p2pMsg.calculateHash()
 	}
-	h.outgoing <- &P2PMessage{MessageType: messageType, Message: msg}
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
+	log.WithField("type", messageType).Info("Sending message")
+	h.outgoing <- msgOut
 }
 
 func (h *Hub) sendMessage(msg *P2PMessage) {
@@ -250,6 +252,7 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
+		log.Warnf("Received a message type: %d", msg.MessageType)
 		v(msg)
 	} else {
 		log.Warnf("Received an unknown message type: %d", msg.MessageType)

@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"github.com/annchain/OG/common/math"
@@ -57,9 +56,8 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	// TODO use other decode function
 	var seq types.Sequencer
-	err := json.Unmarshal(data, &seq)
+	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
@@ -68,7 +66,7 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 
 // WriteGenesis writes geneis into db.
 func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
-	data, err := json.Marshal(genesis)
+	data, err := genesis.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
@@ -82,9 +80,8 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	// TODO use other decode function
 	var seq types.Sequencer
-	err := json.Unmarshal(data, &seq)
+	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
@@ -93,7 +90,7 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 
 // WriteGenesis writes latest sequencer into db.
 func (da *Accessor) WriteLatestSequencer(seq *types.Sequencer) error {
-	data, err := json.Marshal(seq)
+	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
@@ -126,15 +123,19 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 // if it already exist in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
+	var err error
 	switch tx := tx.(type) {
 	case *types.Tx:
 		prefix = prefixTransaction
-		data, _ = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg(nil)
 	case *types.Sequencer:
 		prefix = prefixSequencer
-		data, _ = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
+	}
+	if err != nil {
+		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
 	}
 	data = append(prefix, data...)
 	return da.db.Put(transactionKey(tx.GetTxHash()), data)
@@ -151,13 +152,12 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 	if len(data) == 0 {
 		return math.NewBigInt(0)
 	}
-	bigint := math.NewBigInt(0)
-	// TODO use other encode function
-	err := json.Unmarshal(data, &bigint)
+	var bigint math.BigInt
+	_, err := bigint.MarshalMsg(data)
 	if err != nil {
 		return nil
 	}
-	return bigint
+	return &bigint
 }
 
 // SetBalance write the balance of an address into ogdb.
@@ -166,8 +166,7 @@ func (da *Accessor) SetBalance(addr types.Address, value *math.BigInt) error {
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
-	// TODO use other encode function
-	data, err := json.Marshal(value)
+	data, err := value.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}

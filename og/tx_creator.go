@@ -21,6 +21,7 @@ type TxCreator struct {
 	MaxTxHash          types.Hash   // The difficultiy of TxHash
 	MaxMinedHash       types.Hash   // The difficultiy of MinedHash
 	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
+	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 }
 
 func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64) types.Txi {
@@ -31,6 +32,7 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeNormal,
+			Height:       uint64(m.DebugNodeId),
 		},
 	}
 	return &tx
@@ -53,6 +55,7 @@ func (m *TxCreator) NewUnsignedSequencer(id uint64, contractHashOrder []types.Ha
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,
+			Height:       uint64(m.DebugNodeId),
 		},
 	}
 	return &tx

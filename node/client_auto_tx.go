@@ -43,6 +43,7 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int){
 	}
 	logrus.Infof("Tx generated: %s", tx.GetTxHash().Hex())
 	logrus.Infof("%+v", tx)
+	c.SampleAccounts[from].Nonce ++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(tx)
 }

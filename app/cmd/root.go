@@ -53,7 +53,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("datadir", "d", "data", fmt.Sprintf("Runtime directory for storage and configurations"))
 	rootCmd.PersistentFlags().StringP("config", "c", "config.toml", "Path for configuration file")
 	rootCmd.PersistentFlags().StringP("log_dir", "l", "", "Path for configuration file. Not enabled by default")
-	//rootCmd.PersistentFlags().BoolP("log_stdout", "ls", true, "Whether the log will be printed to stdout")
+	rootCmd.PersistentFlags().BoolP("log_stdout", "s", false, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().StringP("log_verbosity", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "log_line_number")
 
@@ -70,6 +70,8 @@ func init() {
 
 	viper.SetDefault("max_tx_hash", "0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	viper.SetDefault("max_mined_hash", "0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+
+	viper.SetDefault("debug.node_id", 0)
 }
 
 func panicIfError(err error, message string) {
@@ -135,7 +137,7 @@ func initLogger() {
 	}
 
 	Formatter := new(logrus.TextFormatter)
-	Formatter.ForceColors = true
+	//Formatter.ForceColors = true
 	//Formatter.DisableColors = true
 	Formatter.TimestampFormat = "2006-01-02 15:04:05.000000"
 	Formatter.FullTimestamp = true

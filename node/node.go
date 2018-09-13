@@ -110,6 +110,7 @@ func NewNode() *Node {
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
+		DebugNodeId:        viper.GetInt("debug.node_id"),
 	}
 
 	var privateKey crypto.PrivateKey
@@ -178,7 +179,7 @@ func NewNode() *Node {
 		rpcServer.C.AutoSequencer = autoSequencer
 		rpcServer.C.AutoTx = autoTx
 	}
-	if viper.GetBool("websocket.enabled"){
+	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
 		org.Txpool.OnNewTxReceived = append(org.Txpool.OnNewTxReceived, wsServer.NewTxReceivedChan)

@@ -18,6 +18,7 @@ type Dag struct {
 
 	db       ogdb.Database
 	accessor *Accessor
+	seqIndex      *SeqIndex
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
@@ -33,6 +34,7 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 		conf:     conf,
 		db:       db,
 		accessor: NewAccessor(db),
+		seqIndex : NewSequenceIndex(db),
 		close:    make(chan struct{}),
 	}
 	return dag

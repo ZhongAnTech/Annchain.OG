@@ -53,6 +53,7 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		select {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Millisecond * time.Duration(rand.Intn(c.TxIntervalSeconds * 1000))).C:
+		//case <-time.NewTimer(time.Millisecond * time.Duration(c.TxIntervalSeconds * 1000)).C:
 		}
 		c.GenerateRequest(from, to)
 	}

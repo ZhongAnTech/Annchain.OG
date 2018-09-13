@@ -22,27 +22,19 @@ import (
 //}
 
 type NodeData struct {
-	Hash   string `json:"hash"`
-	Hash_s string `json:"hash_s"`
+	Unit   string `json:"unit"`
+	Unit_s string `json:"unit_s"`
 }
 
 type Node struct {
-	Data   NodeData `json:"data"`
-	Type   int      `json:"Type"`
-	Height uint64   `json:"Height"`
+	Data NodeData `json:"data"`
+	Type string   `json:"type"`
 }
 
-type EdgeData struct{
-	LinkType int `json:"link_type"`
-	Data struct{
-		Id string `json:"id"`
-		Source string `json:"source"`
-		Target string `json:"target"`
-	} `json:"data"`
-}
-
-type Edge struct{
-	Data EdgeData `json:"data"`
+type Edge struct {
+	Id     string `json:"id"`
+	Source string `json:"source"`
+	Target string `json:"target"`
 }
 
 type UIData struct {
@@ -50,41 +42,38 @@ type UIData struct {
 	Edges []Edge `json:"edges"`
 }
 
-func tx2UIData(tx types.Tx) string {
+func tx2UIData(tx types.Txi) string {
 	uiData := UIData{}
 	uiData.Nodes = make([]Node, 1)
 	nodeData := NodeData{
-		Hash:   tx.Hash.Hex(),
-		Hash_s: tx.Hash.Hex()[:6] + "...",
+		Unit:   tx.GetTxHash().Hex(),
+		Unit_s: tx.GetTxHash().Hex(), //[:6] + "...",
 	}
 	node := Node{
-		Data:   nodeData,
-		Type:   int(tx.Type),
-		Height: tx.Height,
+		Data: nodeData,
 	}
-	uiData.Nodes[0] = node;
 
-	for _,parent := range tx.ParentsHash{
-		edgeData := EdgeData{
-			LinkType: 0,//TODO
-			Data: struct{
-				Id string `json:"id"`
-				Source string `json:"source"`
-				Target string `json:"target"`
-			}{
-				Id: "",//TODO
-				Source: tx.Hash.Hex(),
-				Target: parent.Hex(),
-			},
-		}
+	switch tx.GetBase().Type {
+	case types.TxBaseTypeSequencer:
+		node.Type = "sequencer_unit"
+	case types.TxBaseTypeNormal:
+		node.Type = ""
+	default:
+		node.Type = "Unknown"
+	}
+
+	uiData.Nodes[0] = node
+	for _, parent := range tx.Parents() {
 		edge := Edge{
-			Data:edgeData,
+			Id:     tx.GetTxHash().Hex() + "_" + parent.Hex(),
+			Source: tx.GetTxHash().Hex(),
+			Target: parent.Hex(),
 		}
-		uiData.Edges = append(uiData.Edges,edge)
+		uiData.Edges = append(uiData.Edges, edge)
 	}
 
-	bs ,err := json.Marshal(&uiData)
-	if err != nil{
+	bs, err := json.Marshal(&uiData)
+	if err != nil {
 		return ""
 	}
 	return string(bs)

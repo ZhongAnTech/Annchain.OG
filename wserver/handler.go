@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/gin-gonic/gin"
 )
 
 // websocketHandler defines to handle websocket upgrade request.
@@ -24,6 +25,10 @@ type websocketHandler struct {
 type RegisterMessage struct {
 	//Token string
 	Event string `json:"event"`
+}
+
+func (wh *websocketHandler) Handle(ctx *gin.Context){
+	wh.ServeHTTP(ctx.Writer, ctx.Request)
 }
 
 // First try to upgrade connection to websocket. If success, connection will
@@ -65,6 +70,10 @@ type pushHandler struct {
 	authFunc func(r *http.Request) bool
 
 	event2Cons *event2Cons
+}
+
+func (s *pushHandler) Handle(ctx *gin.Context){
+	s.ServeHTTP(ctx.Writer, ctx.Request)
 }
 
 // Authorize if needed. Then decode the request and push message to each

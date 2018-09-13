@@ -53,6 +53,7 @@ type Txi interface {
 	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
 	GetType() TxBaseType
+	GetHeight() uint64
 	GetBase() *TxBase
 	GetTxHash() Hash
 	SetHash(h Hash)
@@ -79,6 +80,10 @@ type TxBase struct {
 
 func (t *TxBase) GetType() TxBaseType {
 	return t.Type
+}
+
+func (t *TxBase)GetHeight()uint64 {
+	return t.Height
 }
 
 func (t *TxBase) GetTxHash() Hash {

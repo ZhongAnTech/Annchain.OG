@@ -41,17 +41,20 @@ type TxPool struct {
 
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
+
+	OnNewTxReceived []chan types.Txi // for notifications of new txs.
 }
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:     conf,
-		dag:      d,
-		queue:    make(chan *txEvent, conf.QueueSize),
-		tips:     NewTxMap(),
-		badtxs:   NewTxMap(),
-		txLookup: newTxLookUp(),
-		close:    make(chan struct{}),
+		conf:            conf,
+		dag:             d,
+		queue:           make(chan *txEvent, conf.QueueSize),
+		tips:            NewTxMap(),
+		badtxs:          NewTxMap(),
+		txLookup:        newTxLookUp(),
+		close:           make(chan struct{}),
+		OnNewTxReceived: []chan types.Txi{},
 	}
 	pool.poolPending = NewPending(pool)
 	return pool
@@ -149,16 +152,11 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	defer pool.mu.Unlock()
 
 	// select n random hashes
-	indices := generateRandomIndices(n, len(pool.tips.txs))
-
-	// slice of keys
-	var keys []types.Hash
-	for k := range pool.tips.txs {
-		keys = append(keys, k)
-	}
+	values := pool.tips.GetAllValues()
+	indices := generateRandomIndices(n, len(values))
 
 	for i := range indices {
-		v = append(v, pool.tips.txs[keys[i]])
+		v = append(v, values[i])
 	}
 	return v
 }
@@ -261,6 +259,14 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 		if err != nil {
 			return err
 		}
+		// notify all subscribers of newTxEvent
+		for _, subscriber := range pool.OnNewTxReceived{
+			log.Info("Notify subscriber")
+			subscriber <- tx
+		}
+		// case <-timer.C:
+		// 	// close(te.callbackChan)
+		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
@@ -305,7 +311,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	}
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
-	
+
 	log.Debugf("finish commit tx: %s", tx.GetTxHash().String())
 	return nil
 }
@@ -351,7 +357,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	batch, err := pool.verifyConfirmBatch(seq, elders);
+	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return err
 	}
@@ -372,6 +378,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+ 	var txHashs types.Hashs
+		for hash, _:= range elders {
+			txHashs = append(txHashs, hash)
+		}
+		if len(txHashs) >0 {
+			pool.dag.seqIndex.WritetxsHashs(seq.Id, txHashs)
+		} else {
+		log.Warn("no transaction to confirm for seq  %d ",seq.Id)
+	}
+	pool.dag.seqIndex.WriteSequncerHash(seq)
 
 	log.Debugf("finish confirm seq: %s", seq.GetTxHash().String())
 	return nil
@@ -384,7 +400,7 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 			continue
 		}
 		if parent.GetType() != types.TxBaseTypeSequencer {
-			// check if parent is not a seq and is in dag db 
+			// check if parent is not a seq and is in dag db
 			if pool.dag.GetTx(parent.GetTxHash()) != nil {
 				continue
 			}
@@ -541,6 +557,30 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 
 	return tm.txs[hash]
 }
+func (tm *TxMap) GetAllKeys() []types.Hash{
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	var keys []types.Hash
+	// slice of keys
+	for k := range tm.txs {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (tm *TxMap) GetAllValues() []types.Txi{
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	var values []types.Txi
+	// slice of keys
+	for _,v := range tm.txs {
+		values = append(values, v)
+	}
+	return values
+}
+
 func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()

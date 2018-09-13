@@ -11,6 +11,8 @@ import (
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/spf13/viper"
+	"github.com/annchain/OG/wserver"
+	"fmt"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -129,7 +131,7 @@ func NewNode() *Node {
 		TxCreator:        txCreator,
 		TxBuffer:         m.TxBuffer,
 		PrivateKey:       privateKey,
-		BlockTimeSeconds: 300,
+		BlockTimeSeconds: 10,
 		Dag:              org.Dag,
 	}
 	autoSequencer.Init()
@@ -141,7 +143,7 @@ func NewNode() *Node {
 		TxCreator:         txCreator,
 		TxBuffer:          m.TxBuffer,
 		PrivateKey:        privateKey,
-		TxIntervalSeconds: 60,
+		TxIntervalSeconds: 3,
 		Dag:               org.Dag,
 		InstanceCount:     viper.GetInt("auto_tx.count"),
 	}
@@ -176,6 +178,12 @@ func NewNode() *Node {
 		rpcServer.C.AutoSequencer = autoSequencer
 		rpcServer.C.AutoTx = autoTx
 	}
+	if viper.GetBool("websocket.enabled"){
+		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
+		n.Components = append(n.Components, wsServer)
+		org.Txpool.OnNewTxReceived = append(org.Txpool.OnNewTxReceived, wsServer.NewTxReceivedChan)
+	}
+
 	return n
 }
 

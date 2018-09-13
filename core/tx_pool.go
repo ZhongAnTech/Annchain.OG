@@ -357,7 +357,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	batch, err := pool.verifyConfirmBatch(seq, elders);
+	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return err
 	}
@@ -378,6 +378,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+ 	var txHashs types.Hashs
+		for hash, _:= range elders {
+			txHashs = append(txHashs, hash)
+		}
+		if len(txHashs) >0 {
+			pool.dag.seqIndex.WritetxsHashs(seq.Id, txHashs)
+		} else {
+		log.Warn("no transaction to confirm for seq  %d ",seq.Id)
+	}
+	pool.dag.seqIndex.WriteSequncerHash(seq)
 
 	log.Debugf("finish confirm seq: %s", seq.GetTxHash().String())
 	return nil

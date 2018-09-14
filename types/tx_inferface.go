@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/crypto/sha3"
+	"strings"
 )
 
 //go:generate msgp
@@ -121,4 +122,12 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:])
 	return
+}
+
+func TxsToString(txs []Txi) string{
+	var strs []string
+	for _, v := range txs{
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
 }

@@ -87,8 +87,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	hash := tx.CalcTxHash()
 	if hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
-		logrus.WithField("hash", hash).Debug("new tx connected")
-		logrus.Debugf("parents: %s", types.HashesToString(tx.Parents()))
+		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Debug("new tx connected")
 		// yes
 		txRet = tx
 		ok = m.validateGraphStructure(parents)
@@ -140,7 +139,11 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			return false
 		}
 	}
-	logrus.Debugf("total time for Mining: %d ns, %d (%d) Mined, %d Connection tries",
-		time.Since(timeStart).Nanoseconds(), minedNonce, mineCount, connectionTries)
+	logrus.WithFields(logrus.Fields{
+		"elapsedns": time.Since(timeStart).Nanoseconds(),
+		"re-mine": mineCount,
+		"nonce": minedNonce,
+		"re-connect": connectionTries,
+	}).Debugf("total time for mining")
 	return true
 }

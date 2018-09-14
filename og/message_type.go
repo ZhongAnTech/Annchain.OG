@@ -29,7 +29,7 @@ type MessageType uint64
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
-	StatusMsg MessageType = iota
+	StatusMsg                      MessageType = iota
 	MessageTypePing
 	MessageTypePong
 	MessageTypeFetchByHash
@@ -42,6 +42,13 @@ const (
 	NodeDataMsg
 	GetReceiptsMsg
 )
+
+func (mt MessageType) String() string {
+	return []string{
+		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
+		"MessageTypeNewTx", "MessageTypeNewSequence", "GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
+	}[int(mt)]
+}
 
 type P2PMessage struct {
 	MessageType     MessageType
@@ -69,7 +76,7 @@ func (m *P2PMessage) init() {
 type errCode int
 
 const (
-	ErrMsgTooLarge = iota
+	ErrMsgTooLarge             = iota
 	ErrDecode
 	ErrInvalidMsgCode
 	ErrProtocolVersionMismatch

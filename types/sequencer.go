@@ -3,8 +3,6 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
-	"strings"
 	"math/rand"
 )
 
@@ -77,15 +75,6 @@ func (t *Sequencer) Compare(tx Txi) bool {
 	default:
 		return false
 	}
-}
-
-func (t *Sequencer) String() string {
-	var hashes []string
-	for _, v := range t.ContractHashOrder {
-		hashes = append(hashes, v.Hex()[0:10])
-	}
-
-	return fmt.Sprintf("[%s] %d Issuer %s, Hashes %s", t.TxBase.String(), t.Id, t.Issuer.Hex(), strings.Join(hashes, ","))
 }
 
 func (t *Sequencer) GetBase() *TxBase {

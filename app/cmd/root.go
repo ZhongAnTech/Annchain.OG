@@ -137,7 +137,7 @@ func initLogger() {
 	}
 
 	Formatter := new(logrus.TextFormatter)
-	//Formatter.ForceColors = true
+	Formatter.ForceColors = logdir == ""
 	//Formatter.DisableColors = true
 	Formatter.TimestampFormat = "2006-01-02 15:04:05.000000"
 	Formatter.FullTimestamp = true

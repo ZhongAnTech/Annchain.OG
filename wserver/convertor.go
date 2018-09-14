@@ -47,8 +47,8 @@ func tx2UIData(tx types.Txi) string {
 	uiData := UIData{}
 	uiData.Nodes = make([]Node, 1)
 	nodeData := NodeData{
-		Unit:   tx.GetTxHash().Hex(),
-		Unit_s: fmt.Sprintf("%d-%s", tx.GetBase().Height, tx.GetTxHash().Hex()),
+		Unit:   tx.GetTxHash().String(),
+		Unit_s: fmt.Sprintf("%d-%s", tx.GetBase().Height, tx),
 	}
 	node := Node{
 		Data: nodeData,
@@ -66,9 +66,9 @@ func tx2UIData(tx types.Txi) string {
 	uiData.Nodes[0] = node
 	for _, parent := range tx.Parents() {
 		edge := Edge{
-			Id:     tx.GetTxHash().Hex() + "_" + parent.Hex(),
-			Source: tx.GetTxHash().Hex(),
-			Target: parent.Hex(),
+			Id:     tx.String() + "_" + parent.String(),
+			Source: tx.String(),
+			Target: parent.String(),
 		}
 		uiData.Edges = append(uiData.Edges, edge)
 	}

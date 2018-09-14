@@ -33,11 +33,10 @@ func (c *ClientAutoSequencer) GenerateRequest(){
 	c.currentID ++
 	seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
 	if ok := c.TxCreator.SealTx(seq); !ok {
-		logrus.Warn("ClientAutoSequencer Failed to seal tx")
+		logrus.Warn("clientAutoSequencer Failed to seal tx")
 		return
 	}
-	logrus.Infof("Sequencer generated: %s", seq.GetTxHash().Hex())
-	logrus.Infof("%+v", seq)
+	logrus.WithField("seq", seq).Infof("sequencer generated")
 	c.currentNonce ++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(seq)

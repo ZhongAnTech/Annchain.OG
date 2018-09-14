@@ -88,7 +88,7 @@ func (b *TxBuffer) loop() {
 	for {
 		select {
 		case <-b.quit:
-			logrus.Info("TxBuffer received quit message. Quitting...")
+			logrus.Info("tx buffer received quit message. Quitting...")
 			return
 		case v := <-b.newTxChan:
 			b.handleTx(v)
@@ -102,14 +102,14 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 }
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
-	logrus.Debugf("Handling tx with Hash %s", tx.GetTxHash().Hex())
+	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
 	var shoudBrodcast bool
 	// already in the dag or tx_pool.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	}
 	if err := b.verifyTxFormat(tx); err != nil {
-		logrus.WithError(err).Debugf("Received invalid tx %s", tx.GetTxHash().Hex())
+		logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
 		return
 	}
 	// not in tx buffer , a new tx , shoud brodcast
@@ -120,7 +120,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.buildDependencies(tx) {
 		// already fulfilled, insert into txpool
 		// needs to resolve itself first
-		logrus.Debugf("New tx fulfilled: %s", tx.GetTxHash().Hex())
+		logrus.WithField("tx", tx).Debugf("new tx fulfilled in buffer")
 		// Check if the tx is valid based on graph structure rules
 		// Only txs that are obeying rules will be added to the graph.
 		if b.VerifyGraphStructure(tx) {
@@ -148,7 +148,7 @@ func (b *TxBuffer) sendMessage(txi types.Txi) {
 	txType := txi.GetType()
 	if txType == types.TxBaseTypeNormal {
 		tx := txi.(*types.Tx)
-		msgTx := types.MessageNewTx{tx}
+		msgTx := types.MessageNewTx{Tx: tx}
 		data, _ := msgTx.MarshalMsg(nil)
 		b.Hub.SendMessage(MessageTypeNewTx, data)
 	} else if txType == types.TxBaseTypeSequencer {
@@ -166,9 +166,9 @@ func (b *TxBuffer) sendMessage(txi types.Txi) {
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	if self == nil{
-		logrus.Infof("Updating dependency map: %s <- nil", parentHash.Hex())
+		logrus.Infof("updating dependency map: %s <- nil", parentHash.String())
 	}else{
-		logrus.Infof("Updating dependency map: %s <- %s", parentHash.Hex(), self.GetTxHash().Hex())
+		logrus.Infof("updating dependency map: %s <- %s", parentHash.String(), self.String())
 	}
 
 	v, err := b.dependencyCache.GetIFPresent(parentHash)
@@ -193,16 +193,16 @@ func (b *TxBuffer) resolve(tx types.Txi) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	if err != nil {
 		// key not present, already resolved.
-		logrus.Debugf("Already resolved: %s", tx.GetTxHash().Hex())
+		logrus.WithField("tx", tx).Debugf("tx already resolved before")
 		return
 	}
 
 	b.dependencyCache.Remove(tx.GetTxHash())
 	b.txPool.AddRemoteTx(tx)
-	logrus.Debugf("Resolved: %s", tx.GetTxHash().Hex())
+	logrus.WithField("tx", tx).Debugf("tx resolved")
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
-		logrus.Debugf("Resolving %s because %s is resolved", v.GetTxHash().Hex(), tx.GetTxHash().Hex())
+		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
 		b.tryResolve(v)
 	}
 
@@ -223,8 +223,8 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 	logrus.WithField("Txpool", b.txPool.Get(hash)).
 		WithField("DAG", b.dag.GetTx(hash)).
-		WithField("Hash", hash.Hex()).
-		Info("Transaction location")
+		WithField("Hash", hash).
+		Info("transaction location")
 	return b.txPool.Get(hash) != nil || b.dag.GetTx(hash) != nil
 }
 
@@ -232,12 +232,12 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 // It will check if the given hash has no more dependencies in the cache.
 // If so, resolve this hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) bool {
-	logrus.Debugf("Try to resolve %s", tx.GetTxHash().Hex())
+	logrus.Debugf("try to resolve %s", tx.String())
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		if err == nil {
 			// dependency presents.
-			logrus.Debugf("Cannot be resolved because %s is still a dependency of %s", parent.Hex(), tx.GetTxHash().Hex())
+			logrus.WithField("parent", parent).WithField("tx", tx).Debugf("cascade resolving is still ongoing")
 			return false
 		}
 	}
@@ -254,11 +254,11 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
 		if !b.isKnownHash(parentHash) {
-			logrus.Infof("Hash not known by buffer tx: %s", parentHash.Hex())
+			logrus.WithField("hash", parentHash).Infof("hash not known by buffer tx")
 			allFetched = false
 
 			b.updateDependencyMap(parentHash, tx)
-			logrus.Infof("Enqueue tx to syncer: %s", parentHash.Hex())
+			logrus.Infof("enqueue tx to syncer: %s", parentHash)
 			b.syncer.Enqueue(parentHash)
 		}
 	}

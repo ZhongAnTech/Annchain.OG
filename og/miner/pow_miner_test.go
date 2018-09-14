@@ -20,7 +20,7 @@ func TestPoW(t *testing.T) {
 	go miner.StartMine(tx, types.HexToHash("0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
 
 	c, ok := <-responseChan
-	logrus.Infof("Time: %d ms", time.Since(start).Nanoseconds()/1000000)
+	logrus.Infof("time: %d ms", time.Since(start).Nanoseconds()/1000000)
 	assert.Equal(t, ok, true)
 	logrus.Info(c)
 

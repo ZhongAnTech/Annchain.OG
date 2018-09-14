@@ -65,12 +65,11 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 	p.tipsMap[v.GetTxHash()] = v
 
 	for _, parentHash := range v.Parents() {
-		logrus.Infof("Parent: %s", parentHash.Hex())
 		if vp, ok := p.tipsMap[parentHash]; ok {
 			delete(p.tipsMap, parentHash)
 			p.poolMap[parentHash] = vp
 		}
 	}
-	logrus.Infof("Added tx %s to tip. Current pool size: tips: %d pool: %d",
-		v.GetTxHash().Hex(), len(p.tipsMap), len(p.poolMap))
+	logrus.Infof("added tx %s to tip. current pool size: tips: %d pool: %d",
+		v.String(), len(p.tipsMap), len(p.poolMap))
 }

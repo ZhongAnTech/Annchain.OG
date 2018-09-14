@@ -54,24 +54,24 @@ func (m *Manager) Name() string {
 }
 
 func (m *Manager) HandlePing(*P2PMessage) {
-	logrus.Debug("Received your ping. Respond you a pong")
+	logrus.Debug("received your ping. Respond you a pong")
 	m.Hub.SendMessage(MessageTypePong, []byte{1})
 }
 
 func (m *Manager) HandlePong(*P2PMessage) {
-	logrus.Debug("Received your pong.")
+	logrus.Debug("received your pong.")
 }
 
 func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
-	logrus.Debug("Received MessageSyncRequest")
+	logrus.Debug("received MessageSyncRequest")
 	syncRequest := types.MessageSyncRequest{}
 	_, err := syncRequest.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid MessageSyncRequest format")
+		logrus.Debug("invalid MessageSyncRequest format")
 		return
 	}
 	if len(syncRequest.Hashes) == 0 {
-		logrus.Debug("Empty MessageSyncRequest")
+		logrus.Debug("empty MessageSyncRequest")
 		return
 	}
 
@@ -98,7 +98,7 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 	}
 	data, err := syncResponse.MarshalMsg(nil)
 	if err != nil {
-		logrus.Warn("Failed to marshall MessageSyncResponse message")
+		logrus.Warn("failed to marshall MessageSyncResponse message")
 		return
 	}
 
@@ -106,7 +106,7 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 }
 
 func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
-	logrus.Debug("Received MessageSyncResponse")
+	logrus.Debug("received MessageSyncResponse")
 	syncResponse := types.MessageSyncResponse{}
 	//bytebufferd := bytes.NewBuffer(nil)
 	//bytebuffers := bytes.NewBuffer(msg.Message)
@@ -115,51 +115,49 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 
 	_, err := syncResponse.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid MessageSyncResponse format")
+		logrus.Debug("invalid MessageSyncResponse format")
 		return
 	}
 	if (syncResponse.Txs == nil || len(syncResponse.Txs) == 0) &&
 		(syncResponse.Sequencers == nil || len(syncResponse.Sequencers) == 0) {
-		logrus.Debug("Empty MessageSyncResponse")
+		logrus.Debug("empty MessageSyncResponse")
 		return
 	}
 	for _, v := range syncResponse.Txs {
-		logrus.Infof("Received Tx: %s", v.Hash.Hex())
-		logrus.Infof(v.String())
+		logrus.WithField("tx", v).Infof("received incoming Tx")
 		m.TxBuffer.AddTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.Infof("Received Seq: %s", v.Hash.Hex())
-		logrus.Infof(v.String())
+		logrus.WithField("seq", v).Infof("received incoming seq")
 		m.TxBuffer.AddTx(v)
 	}
 }
 
 func (m *Manager) HandleNewTx(msg *P2PMessage) {
-	logrus.Debug("Received MessageNewTx")
+	logrus.Debug("received MessageNewTx")
 	newTx := types.MessageNewTx{}
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid MessageNewTx format,err",err)
+		logrus.WithError(err).Debug("invalid MessageNewTx format")
 		return
 	}
 	if newTx.Tx == nil {
-		logrus.Debug("Empty MessageNewTx")
+		logrus.Debug("empty MessageNewTx")
 		return
 	}
 	m.TxBuffer.AddTx(newTx.Tx)
 }
 
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
-	logrus.Debug("Received NewSequence")
+	logrus.Debug("received NewSequence")
 	newSq := types.MessageNewSequence{}
 	_, err := newSq.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("Invalid NewSequence format,err",err)
+		logrus.WithError(err).Debug("invalid NewSequence format")
 		return
 	}
 	if newSq.Sequencer == nil {
-		logrus.Debug("Empty NewSequence")
+		logrus.Debug("empty NewSequence")
 		return
 	}
 	m.TxBuffer.AddTx(newSq.Sequencer)

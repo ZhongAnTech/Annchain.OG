@@ -60,17 +60,17 @@ func (d *dummySyncer) Know(tx types.Txi) {
 
 func (d *dummySyncer) Enqueue(hash types.Hash) {
 	if _, err := d.acquireTxDedupCache.Get(hash); err == nil {
-		logrus.Debugf("Duplicate sync task: %s", hash.Hex())
+		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	d.acquireTxDedupCache.Set(hash, struct{}{})
 
 	if v, ok := d.dmap[hash]; ok {
 		d.buffer.AddTx(v)
-		logrus.Infof("Syncer added tx: %s", hash.Hex())
-		logrus.Infof("Syncer returned tx: %s", hash.Hex())
+		logrus.WithField("hash", hash).Infof("syncer added tx")
+		logrus.WithField("hash", hash).Infof("syncer returned tx")
 	} else {
-		logrus.Infof("Syncer does not know tx: %s", hash.Hex())
+		logrus.WithField("hash", hash).Infof("syncer does not know tx")
 	}
 
 }
@@ -81,6 +81,9 @@ func (d *dummyVerifier) VerifyHash(t types.Txi) bool {
 	return true
 }
 func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
+	return true
+}
+func (d *dummyVerifier) VerifySourceAddress(t types.Txi) bool {
 	return true
 }
 
@@ -123,7 +126,7 @@ func doTest(buffer *TxBuffer) {
 	if buffer.dependencyCache.Len() != 0 {
 		for k, v := range buffer.dependencyCache.GetALL() {
 			for k1 := range v.(map[types.Hash]types.Txi) {
-				logrus.Warnf("Not fulfilled: %s <- %s", k.(types.Hash).Hex(), k1.Hex())
+				logrus.Warnf("not fulfilled: %s <- %s", k.(types.Hash), k1)
 			}
 		}
 	}
@@ -190,11 +193,11 @@ func TestBufferCache(t *testing.T) {
 		_, err := m.acquireTxDedupCache.Get(types.HexToHash("0x09"))
 		if err != nil {
 			// not found
-			logrus.Info("Not in cache")
+			logrus.Debug("not in cache")
 			success = true
 			break
 		} else {
-			logrus.Info("In cache")
+			logrus.Debug("in cache")
 		}
 	}
 	buffer.Stop()

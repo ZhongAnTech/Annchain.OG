@@ -36,11 +36,11 @@ func NewRpcServer(port string) *RpcServer {
 }
 
 func (srv *RpcServer) Start() {
-	logrus.Infof("Listening Http on %s", srv.port)
+	logrus.Infof("listening Http on %s", srv.port)
 	go func() {
 		// service connections
 		if err := srv.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logrus.WithError(err).Fatalf("Error in Http server")
+			logrus.WithError(err).Fatalf("error in Http server")
 		}
 	}()
 }
@@ -49,11 +49,11 @@ func (srv *RpcServer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), ShutdownTimeoutSeconds*time.Second)
 	defer cancel()
 	if err := srv.server.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Fatalf("Error while shutting down the Http server")
+		logrus.WithError(err).Fatalf("error while shutting down the Http server")
 	}
-	logrus.Infof("Http server Stopped")
+	logrus.Infof("http server Stopped")
 }
 
 func (srv *RpcServer) Name() string {
-	return fmt.Sprintf("RpcServer at port %s", srv.port)
+	return fmt.Sprintf("rpcServer at port %s", srv.port)
 }

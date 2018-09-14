@@ -17,7 +17,7 @@ func (d *DataLoader) Start() {
 }
 
 func (d *DataLoader) Stop() {
-	logrus.Info("DataLoader received stop signal. Quiting...")
+	logrus.Info("dataLoader received stop signal. Quiting...")
 }
 
 func (d *DataLoader) Name() string {

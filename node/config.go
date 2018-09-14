@@ -28,7 +28,7 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	if datadir == "" {
 		key, err := crypto.GenerateKey()
 		if err != nil {
-			panic(fmt.Sprintf("Failed to generate ephemeral node key: %v", err))
+			panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 		}
 		return key
 	}
@@ -40,15 +40,15 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	// No persistent key found, generate and store a new one.
 	key, err := crypto.GenerateKey()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to generate node key: %v", err))
+		panic(fmt.Sprintf("failed to generate node key: %v", err))
 	}
 	if err := os.MkdirAll(datadir, 0700); err != nil {
-		log.Error(fmt.Sprintf("Failed to persist node key: %v", err))
+		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 		return key
 	}
 	keyfile = filepath.Join(datadir, datadirPrivateKey)
 	if err := crypto.SaveECDSA(keyfile, key); err != nil {
-		log.Error(fmt.Sprintf("Failed to persist node key: %v", err))
+		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 	}
 	return key
 }
@@ -103,7 +103,7 @@ func parserNodes(nodeString string) []*discover.Node {
 		}
 		node, err := discover.ParseNode(url)
 		if err != nil {
-			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
+			log.Error(fmt.Sprintf("node URL %s: %v\n", url, err))
 			continue
 		}
 		nodes = append(nodes, node)
@@ -120,7 +120,7 @@ func parserV5Nodes(nodeString string) []*discv5.Node {
 		}
 		node, err := discv5.ParseNode(url)
 		if err != nil {
-			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
+			log.Error(fmt.Sprintf("node URL %s: %v\n", url, err))
 			continue
 		}
 		nodes = append(nodes, node)

@@ -74,7 +74,7 @@ func HexStringToHash( s string) (Hash ,error) {
 func HashesToString(hashes []Hash) string{
 	var strs []string
 	for _, v := range hashes{
-		strs = append(strs, v.Hex())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }
@@ -86,7 +86,7 @@ func (h Hash) ToBytes() []byte { return h.Bytes[:] }
 func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h.Bytes[:]) }
 
 // Hex converts a Hash to a hex string.
-func (h Hash) Hex() string { return fmt.Sprintf("[%s]", hexutil.Encode(h.Bytes[:4])) }
+func (h Hash) Hex() string { return hexutil.Encode(h.Bytes[:]) }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
 // output during logging.
@@ -97,14 +97,14 @@ func (h Hash) TerminalString() string {
 // String implements the stringer interface and is used also by the logger when
 // doing full logging into a file.
 func (h Hash) String() string {
-	return h.Hex()
+	return h.Hex()[:10]
 }
 
 // Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
 // without going through the stringer interface used for logging.
-func (h Hash) Format(s fmt.State, c rune) {
-	fmt.Fprintf(s, "%"+string(c), h.Bytes)
-}
+//func (h Hash) Format(s fmt.State, c rune) {
+//	fmt.Fprintf(s, "%"+string(c), h.Bytes)
+//}
 
 // UnmarshalText parses an Hash in hex syntax.
 func (h *Hash) UnmarshalText(input []byte) error {

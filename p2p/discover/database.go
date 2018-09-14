@@ -185,7 +185,7 @@ func (db *nodeDB) node(id NodeID) *Node {
 	//node.
 	_, err = node.UnmarshalMsg(blob)
 	if err != nil {
-		log.Error("Failed to decode node RLP", "err", err)
+		log.Error("failed to decode node RLP", "err", err)
 		return nil
 	}
 	/*
@@ -241,7 +241,7 @@ func (db *nodeDB) expirer() {
 		select {
 		case <-tick.C:
 			if err := db.expireNodes(); err != nil {
-				log.Error("Failed to expire nodedb items", "err", err)
+				log.Error("failed to expire nodedb items", "err", err)
 			}
 		case <-db.quit:
 			return
@@ -365,7 +365,7 @@ func nextNode(it iterator.Iterator) *Node {
 		_, err := n.UnmarshalMsg(it.Value())
 		if err != nil {
 			//if err := rlp.DecodeBytes(it.Value(), &n); err != nil {
-			log.Warn("Failed to decode node RLP", "id", id, "err", err)
+			log.Warn("failed to decode node RLP", "id", id, "err", err)
 			continue
 		}
 		return &n

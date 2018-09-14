@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/tinylib/msgp/msgp"
 	"fmt"
-	"strings"
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/crypto/sha3"
@@ -93,14 +92,10 @@ func (t *TxBase) SetHash(hash Hash) {
 	t.Hash = hash
 }
 
-func (t *TxBase) String() string {
-	var hashes []string
-	for _, v := range t.ParentsHash {
-		hashes = append(hashes, v.Hex()[0:10])
-	}
-
-	return fmt.Sprintf("%s %s Parent [%s]", t.Type.String(), t.Hash.Hex()[:10], strings.Join(hashes, ","))
+func (t *TxBase) String() string{
+	return fmt.Sprintf("%d-[%.10s]", t.Height,t.GetTxHash().Hex() )
 }
+
 
 func (t *TxBase) CalcTxHash() (hash Hash) {
 	var buf bytes.Buffer

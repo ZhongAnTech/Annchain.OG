@@ -38,11 +38,10 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int){
 	c.currentID ++
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(1), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
 	if ok := c.TxCreator.SealTx(tx); !ok {
-		logrus.Warn("ClientAutoTx Failed to seal tx")
+		logrus.Warn("clientAutoTx failed to seal tx")
 		return
 	}
-	logrus.Infof("Tx generated: %s", tx.GetTxHash().Hex())
-	logrus.Infof("%+v", tx)
+	logrus.WithField("tx", tx).Infof("tx generated")
 	c.SampleAccounts[from].Nonce ++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(tx)
@@ -64,7 +63,7 @@ func (c *ClientAutoTx) Start() {
 	for i := 0; i < c.InstanceCount; i++ {
 		a, b := rand.Intn(len(c.SampleAccounts)), rand.Intn(len(c.SampleAccounts))
 		go c.loop(a, b)
-		logrus.Infof("Start auto Tx maker from %d to %d", a, b)
+		logrus.Infof("start auto tx maker from %d to %d", a, b)
 	}
 
 }

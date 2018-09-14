@@ -33,9 +33,9 @@ func TestTxCreator(t *testing.T) {
 	assert.NoError(t, err)
 	time1 := time.Now()
 	txSigned := txc.NewSignedTx(tx.From, tx.To, tx.Value, tx.AccountNonce, priv)
-	logrus.Infof("Total time for Signing: %d ns", time.Since(time1).Nanoseconds())
+	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned)
-	logrus.Infof("Result: %t %v", ok, txSigned)
+	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
 func TestSequencerCreator(t *testing.T) {
@@ -49,9 +49,9 @@ func TestSequencerCreator(t *testing.T) {
 	randomSeq := types.RandomSequencer()
 
 	txSigned := txc.NewSignedSequencer(randomSeq.Id, randomSeq.ContractHashOrder, randomSeq.AccountNonce, priv)
-	logrus.Infof("Total time for Signing: %d ns", time.Since(time1).Nanoseconds())
+	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned)
-	logrus.Infof("Result: %t %v", ok, txSigned)
+	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
 func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {

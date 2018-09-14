@@ -87,12 +87,12 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	hash := tx.CalcTxHash()
 	if hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
-		logrus.Debugf("Connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
-		logrus.Debugf("Parents: %s", types.HashesToString(tx.Parents()))
+		logrus.WithField("hash", hash).Debug("new tx connected")
+		logrus.Debugf("parents: %s", types.HashesToString(tx.Parents()))
 		// yes
 		txRet = tx
 		ok = m.validateGraphStructure(parents)
-		logrus.Debugf("Validate graph structure [%t] for tx %s", ok, hash.Hex())
+		logrus.Debugf("validate graph structure [%t] for tx %s", ok, hash)
 		return txRet, ok
 	} else {
 		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
@@ -127,7 +127,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
 				if len(txs) == 0 {
 					// Impossible. At least genesis is there
-					logrus.Warn("At least genesis is there. Wait for loading")
+					logrus.Warn("at least genesis is there. Wait for loading")
 					time.Sleep(time.Second * 2)
 				}
 
@@ -140,7 +140,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			return false
 		}
 	}
-	logrus.Debugf("Total time for Mining: %d ns, %d (%d) Mined, %d Connection tries",
+	logrus.Debugf("total time for Mining: %d ns, %d (%d) Mined, %d Connection tries",
 		time.Since(timeStart).Nanoseconds(), minedNonce, mineCount, connectionTries)
 	return true
 }

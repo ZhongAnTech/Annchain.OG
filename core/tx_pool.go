@@ -253,7 +253,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 	case pool.queue <- te:
 		pool.txLookup.Add(te.txEnv)
 	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.GetTxHash().Hex())
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
 	}
 
 	// waiting for callback
@@ -264,15 +264,15 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		}
 		// notify all subscribers of newTxEvent
 		for _, subscriber := range pool.OnNewTxReceived {
-			log.Debug("Notify subscriber")
+			log.Debug("notify subscriber")
 			subscriber <- tx
 		}
 		// case <-timer.C:
 		// 	// close(te.callbackChan)
-		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
+		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.String())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
+	log.Debugf("successfully add tx: %s", tx.String())
 	return nil
 }
 
@@ -280,13 +280,13 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in txpending.
 func (pool *TxPool) commit(tx *types.Tx) error {
-	log.Debugf("`: %s", tx.GetTxHash().String())
+	log.Debugf("`: %s", tx.String())
 
 	if pool.tips.Count() >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
 	}
 	if pool.isBadTx(tx) {
-		log.Debugf("bad tx: %s", tx.GetTxHash().String())
+		log.Debugf("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
@@ -295,12 +295,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {
-			log.WithField("hash", pHash.Hex()).Info("Parent is not a tip")
+			log.WithField("hash", pHash).Info("parent is not a tip")
 			break
 		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
-			log.WithField("hash", pHash.Hex()).Info("Parent not in tips")
+			log.WithField("hash", pHash).Info("parent not in tips")
 			break
 		}
 		// remove sequencer from tips
@@ -317,7 +317,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.Debugf("finish commit tx: %s", tx.GetTxHash().String())
+	log.Debugf("finish commit tx: %s", tx.String())
 	return nil
 }
 
@@ -353,7 +353,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	log.Debugf("start confirm seq: %s", seq.GetTxHash().String())
+	log.Debugf("start confirm seq: %s", seq.String())
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -384,7 +384,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.Debugf("finish confirm seq: %s", seq.GetTxHash().String())
+	log.Debugf("finish confirm seq: %s", seq.String())
 	return nil
 }
 
@@ -617,7 +617,7 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}
-	log.Warnf("Hash not found %s", h.Hex())
+	log.WithField("hash", h).Warnf("hash not found in txlookup")
 	// for k := range t.txs {
 	// 	log.Warnf("Available: %s", k.Hex())
 	// }
@@ -629,7 +629,7 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	defer t.mu.Unlock()
 
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
-	log.Infof("Hash added: %s", txEnv.tx.GetTxHash().Hex())
+	log.Infof("tx added to txlookup: %s", txEnv.tx)
 }
 func (t *txLookUp) Remove(h types.Hash) {
 	t.mu.Lock()

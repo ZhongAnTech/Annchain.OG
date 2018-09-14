@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
-	"fmt"
 	"math/rand"
 )
 
@@ -83,9 +82,6 @@ func (t *Tx) Compare(tx Txi) bool {
 	default:
 		return false
 	}
-}
-func (t *Tx) String() string {
-	return fmt.Sprintf("[%s] %s From %s to %s", t.TxBase.String(), t.Value, t.From.Hex()[:10], t.To.Hex()[:10])
 }
 
 func (t *Tx) GetBase() *TxBase {

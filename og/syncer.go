@@ -60,12 +60,12 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 	}
 	bytes, err := req.MarshalMsg(nil)
 	if err != nil {
-		logrus.WithError(err).Warnf("Failed to marshal request: %+v", req)
+		logrus.WithError(err).Warnf("failed to marshal request: %+v", req)
 		return
 	}
 	logrus.WithField("type", MessageTypeFetchByHash).
 		WithField("length", len(req.Hashes)).
-		Debugf("Sending message MessageTypeFetchByHash")
+		Debugf("sending message MessageTypeFetchByHash")
 
 	m.hub.SendMessage(MessageTypeFetchByHash, bytes)
 }
@@ -77,7 +77,7 @@ func (m *Syncer) loopSync() {
 	for {
 		select {
 		case <-m.quit:
-			logrus.Info("Syncer received quit message. Quitting...")
+			logrus.Info("syncer received quit message. Quitting...")
 			return
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
@@ -102,7 +102,7 @@ func (m *Syncer) loopSwipe() {
 
 func (m *Syncer) Enqueue(hash types.Hash) {
 	if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
-		logrus.Debugf("Duplicate sync task: %s", hash.Hex())
+		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})

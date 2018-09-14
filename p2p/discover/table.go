@@ -321,9 +321,9 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	if err != nil || len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
-		log.Debug("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
+		log.Debug("findnode failed", "id", n.ID, "failcount", fails, "err", err)
 		if fails >= maxFindnodeFailures {
-			log.Debug("Too many findnode failures, dropping", "id", n.ID, "failcount", fails)
+			log.Debug("too many findnode failures, dropping", "id", n.ID, "failcount", fails)
 			tab.delete(n)
 		}
 	} else if fails > 0 {
@@ -442,7 +442,7 @@ func (tab *Table) loadSeedNodes() {
 	for i := range seeds {
 		seed := seeds[i]
 		age := time.Since(tab.db.lastPongReceived(seed.ID))
-		log.Debug("Found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age)
+		log.Debug("found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age)
 		tab.add(seed)
 	}
 }
@@ -466,16 +466,16 @@ func (tab *Table) doRevalidate(done chan<- struct{}) {
 	b := tab.buckets[bi]
 	if err == nil {
 		// The node responded, move it to the front.
-		log.Debug("Revalidated node", "b", bi, "id", last.ID)
+		log.Debug("revalidated node", "b", bi, "id", last.ID)
 		b.bump(last)
 		return
 	}
 	// No reply received, pick a replacement or delete the node if there aren't
 	// any replacements.
 	if r := tab.replace(b, last); r != nil {
-		log.Debug("Replaced dead node", "b", bi, "id", last.ID, "ip", last.IP, "r", r.ID, "rip", r.IP)
+		log.Debug("replaced dead node", "b", bi, "id", last.ID, "ip", last.IP, "r", r.ID, "rip", r.IP)
 	} else {
-		log.Debug("Removed dead node", "b", bi, "id", last.ID, "ip", last.IP)
+		log.Debug("removed dead node", "b", bi, "id", last.ID, "ip", last.IP)
 	}
 }
 
@@ -607,11 +607,11 @@ func (tab *Table) addIP(b *bucket, ip net.IP) bool {
 		return true
 	}
 	if !tab.ips.Add(ip) {
-		log.Debug("IP exceeds table limit", "ip", ip)
+		log.Debug("ip exceeds table limit", "ip", ip)
 		return false
 	}
 	if !b.ips.Add(ip) {
-		log.Debug("IP exceeds bucket limit", "ip", ip)
+		log.Debug("ip exceeds bucket limit", "ip", ip)
 		tab.ips.Remove(ip)
 		return false
 	}

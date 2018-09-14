@@ -228,7 +228,7 @@ func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
 		p2pMsg.calculateHash()
 	}
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
-	log.WithField("type", messageType).Info("Sending message")
+	log.WithField("type", messageType).Info("sending message")
 	h.outgoing <- msgOut
 }
 

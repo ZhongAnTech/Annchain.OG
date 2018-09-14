@@ -156,7 +156,12 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 
 	// select n random hashes
 	values := pool.tips.GetAllValues()
+	//log.WithField("parent", types.TxsToString(values)).Debug("current tips")
 	indices := generateRandomIndices(n, len(values))
+	//log.WithFields(log.Fields{
+	//	"require":   n,
+	//	"totalTips": len(values),
+	//}).Info("getting random tips")
 
 	for i := range indices {
 		v = append(v, values[i])
@@ -221,6 +226,11 @@ func (pool *TxPool) loop() {
 		case txEvent := <-pool.queue:
 			var err error
 			tx := txEvent.txEnv.tx
+			if pool.Get(tx.GetTxHash()) != nil{
+				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+				continue
+			}
+			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
 				err = pool.commit(tx)
@@ -249,12 +259,16 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-	select {
-	case pool.queue <- te:
-		pool.txLookup.Add(te.txEnv)
-	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
-	}
+
+	pool.queue <- te
+
+	//select {
+	//case pool.queue <- te:
+		// race condition
+		//pool.txLookup.Add(te.txEnv)
+	//case <-timer.C:
+	//	return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
+	//}
 
 	// waiting for callback
 	select {
@@ -272,7 +286,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.String())
 	}
 
-	log.Debugf("successfully add tx: %s", tx.String())
+	log.WithField("tx", tx).Debug("successfully added tx to txPool")
 	return nil
 }
 
@@ -295,12 +309,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {
-			log.WithField("hash", pHash).Info("parent is not a tip")
+			log.WithField("parent", pHash).WithField("tx", tx).Info("parent is not a tip")
 			break
 		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
-			log.WithField("hash", pHash).Info("parent not in tips")
+			log.WithField("parent", pHash).WithField("tx", tx).Info("parent not in tips")
 			break
 		}
 		// remove sequencer from tips
@@ -317,7 +331,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.Debugf("finish commit tx: %s", tx.String())
+	log.WithField("tx", tx).Debugf("finished commit tx")
 	return nil
 }
 
@@ -384,7 +398,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.Debugf("finish confirm seq: %s", seq.String())
+	log.WithField("seq", seq).Debugf("finished confirm seq")
 	return nil
 }
 
@@ -617,7 +631,7 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}
-	log.WithField("hash", h).Warnf("hash not found in txlookup")
+	log.WithField("hash", h).Debug("hash not found in txlookup")
 	// for k := range t.txs {
 	// 	log.Warnf("Available: %s", k.Hex())
 	// }
@@ -629,7 +643,7 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	defer t.mu.Unlock()
 
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
-	log.Infof("tx added to txlookup: %s", txEnv.tx)
+	log.WithField("tx", txEnv.tx).Infof("tx added to txlookup")
 }
 func (t *txLookUp) Remove(h types.Hash) {
 	t.mu.Lock()

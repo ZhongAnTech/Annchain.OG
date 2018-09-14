@@ -252,7 +252,7 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		log.Warnf("Received a message type: %d", msg.MessageType)
+		log.Warnf("Received a message type: %s", msg.MessageType.String())
 		v(msg)
 	} else {
 		log.Warnf("Received an unknown message type: %d", msg.MessageType)

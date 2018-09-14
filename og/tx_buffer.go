@@ -196,9 +196,8 @@ func (b *TxBuffer) resolve(tx types.Txi) {
 		logrus.WithField("tx", tx).Debugf("tx already resolved before")
 		return
 	}
-
-	b.dependencyCache.Remove(tx.GetTxHash())
 	b.txPool.AddRemoteTx(tx)
+	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
@@ -254,11 +253,11 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
 		if !b.isKnownHash(parentHash) {
-			logrus.WithField("hash", parentHash).Infof("hash not known by buffer tx")
+			logrus.WithField("hash", parentHash).Infof("parent not known by buffer tx")
 			allFetched = false
 
 			b.updateDependencyMap(parentHash, tx)
-			logrus.Infof("enqueue tx to syncer: %s", parentHash)
+			logrus.Infof("enqueue parent to syncer: %s", parentHash)
 			b.syncer.Enqueue(parentHash)
 		}
 	}

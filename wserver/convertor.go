@@ -3,7 +3,6 @@ package wserver
 import (
 	"encoding/json"
 	"github.com/annchain/OG/types"
-	"fmt"
 )
 
 //type Tx struct {
@@ -47,8 +46,8 @@ func tx2UIData(tx types.Txi) string {
 	uiData := UIData{}
 	uiData.Nodes = make([]Node, 1)
 	nodeData := NodeData{
-		Unit:   tx.GetTxHash().String(),
-		Unit_s: fmt.Sprintf("%d-%s", tx.GetBase().Height, tx),
+		Unit:   tx.GetTxHash().Hex(),
+		Unit_s: tx.String(),
 	}
 	node := Node{
 		Data: nodeData,
@@ -67,8 +66,8 @@ func tx2UIData(tx types.Txi) string {
 	for _, parent := range tx.Parents() {
 		edge := Edge{
 			Id:     tx.String() + "_" + parent.String(),
-			Source: tx.String(),
-			Target: parent.String(),
+			Source: tx.GetTxHash().Hex(),
+			Target: parent.Hex(),
 		}
 		uiData.Edges = append(uiData.Edges, edge)
 	}

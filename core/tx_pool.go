@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	TxStatusNotExist int = iota
+	TxStatusNotExist TxStatus = iota
 	TxStatusQueue
 	TxStatusTip
 	TxStatusBadTx
@@ -74,7 +74,7 @@ type txEvent struct {
 type txEnvelope struct {
 	tx     types.Txi
 	txType int
-	status int
+	status TxStatus
 }
 
 // Start begin the txpool sevices
@@ -123,7 +123,7 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 }
 
 // GetStatus gets the current status of a tx
-func (pool *TxPool) GetStatus(hash types.Hash) int {
+func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
@@ -652,7 +652,7 @@ func (t *txLookUp) Stats() (int, int) {
 	}
 	return queue, tips
 }
-func (t *txLookUp) Status(h types.Hash) int {
+func (t *txLookUp) Status(h types.Hash) TxStatus {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -661,11 +661,30 @@ func (t *txLookUp) Status(h types.Hash) int {
 	}
 	return TxStatusNotExist
 }
-func (t *txLookUp) SwitchStatus(h types.Hash, status int) {
+func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
+	}
+}
+
+type TxStatus int
+
+func (ts *TxStatus) String() string {
+	switch *ts {
+	case TxStatusBadTx:
+		return "BadTx"
+	case TxStatusNotExist:
+		return "NotExist"
+	case TxStatusPending:
+		return "Pending"
+	case TxStatusQueue:
+		return "Queueing"
+	case TxStatusTip:
+		return "Tip"
+	default:
+		return "UnknownStatus"
 	}
 }

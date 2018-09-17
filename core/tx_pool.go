@@ -378,16 +378,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.dag.Push(batch)
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
- 	var txHashs types.Hashs
-		for hash, _:= range elders {
-			txHashs = append(txHashs, hash)
-		}
-		if len(txHashs) >0 {
-			pool.dag.seqIndex.WritetxsHashs(seq.Id, txHashs)
-		} else {
-		log.Warn("no transaction to confirm for seq  %d ",seq.Id)
-	}
-	pool.dag.seqIndex.WriteSequncerHash(seq)
 
 	log.Debugf("finish confirm seq: %s", seq.GetTxHash().String())
 	return nil
@@ -654,7 +644,7 @@ func (t *txLookUp) Stats() (int, int) {
 
 	queue, tips := 0, 0
 	for _, v := range t.txs {
-		if v.txType == TxStatusQueue {
+		if v.status == TxStatusQueue {
 			queue += 1
 		} else {
 			tips += 1

@@ -34,14 +34,14 @@ func newTestLDB() (*ogdb.LevelDB, func()) {
 	}
 }
 
-func newTestTx() *types.Tx {
+func newTestUnsealTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPk)
 	addr := types.HexToAddress(testAddr)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), 0, pk)
+	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*types.Tx)
@@ -73,7 +73,7 @@ func TestTransactionStorage(t *testing.T) {
 	acc := core.NewAccessor(db)
 
 	// test tx read write
-	tx := newTestTx()
+	tx := newTestUnsealTx(0)
 	err = acc.WriteTransaction(tx)
 	if err != nil {
 		t.Fatalf("write tx %s failed: %v", tx.GetTxHash().String(), err)

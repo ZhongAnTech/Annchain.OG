@@ -91,7 +91,10 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		// yes
 		txRet = tx
 		ok = m.validateGraphStructure(parents)
-		logrus.Debugf("validate graph structure [%t] for tx %s", ok, hash)
+		logrus.WithFields(logrus.Fields{
+			"tx": tx,
+			"ok": ok,
+		}).Debugf("validate graph structure")
 		return txRet, ok
 	} else {
 		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())

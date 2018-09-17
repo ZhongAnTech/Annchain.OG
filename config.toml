@@ -36,7 +36,7 @@ enabled = false
 
 [auto_tx]
 enabled = false
-count = 1
+count = 4
 
 [debug]
 node_id = 1

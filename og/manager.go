@@ -124,17 +124,17 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 		return
 	}
 	for _, v := range syncResponse.Txs {
-		logrus.WithField("tx", v).Infof("received incoming Tx")
+		logrus.WithField("tx", v).WithField("peer", msg.SourceID).Infof("received sync response Tx")
 		m.TxBuffer.AddTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.WithField("seq", v).Infof("received incoming seq")
+		logrus.WithField("seq", v).WithField("peer", msg.SourceID).Infof("received sync response seq")
 		m.TxBuffer.AddTx(v)
 	}
 }
 
 func (m *Manager) HandleNewTx(msg *P2PMessage) {
-	logrus.Debug("received MessageNewTx")
+
 	newTx := types.MessageNewTx{}
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
@@ -145,6 +145,7 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 		logrus.Debug("empty MessageNewTx")
 		return
 	}
+	logrus.WithField("tx", newTx.Tx).Debug("received incoming new tx")
 	m.TxBuffer.AddTx(newTx.Tx)
 }
 

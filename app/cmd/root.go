@@ -68,8 +68,8 @@ func init() {
 	viper.SetDefault("hub.incoming_buffer_size", 10)
 	viper.SetDefault("crypto.algorithm", "secp256k1")
 
-	viper.SetDefault("max_tx_hash", "0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-	viper.SetDefault("max_mined_hash", "0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	viper.SetDefault("max_tx_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	viper.SetDefault("max_mined_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 
 	viper.SetDefault("debug.node_id", 0)
 }

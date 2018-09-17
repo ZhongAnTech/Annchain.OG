@@ -55,6 +55,7 @@ type P2PMessage struct {
 	Message         []byte
 	hash            types.Hash //inner use to avoid resend a message to the same peer
 	needCheckRepeat bool
+	SourceID		string		// the source that this messeage coming from
 }
 
 func (m *P2PMessage) calculateHash() {

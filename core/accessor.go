@@ -17,6 +17,8 @@ var (
 	prefixTransaction    = []byte("tx")
 	prefixSequencer      = []byte("sq")
 
+	prefixTxIndexKey	 = []byte("ti")
+
 	prefixAddressBalanceKey = []byte("ba")
 	// prefixContractState = []byte("con")
 )
@@ -37,9 +39,9 @@ func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
-// func contractStateKey(addr, contractAddr types.Address) []byte {
-// 	return append(prefixContractState, append(addr.ToBytes(), contractAddr.ToBytes()...)...)
-// }
+func txIndexKey(seqid uint64) []byte {
+	return append(prefixTxIndexKey, []byte(fmt.Sprintf("%d", seqid))...)
+}
 
 type Accessor struct {
 	db ogdb.Database
@@ -210,4 +212,29 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	}
 	newBalanceValue := balance.Value.Sub(balance.Value, amount.Value)
 	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
+}
+
+// ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that 
+// holds the id 'seqid'.
+func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
+	data, _ := da.db.Get(txIndexKey(seqid))
+	if len(data) == 0 {
+		return nil, fmt.Errorf("tx hashs with seq id %d not found", seqid)
+	}
+	var hashs types.Hashs
+	_, err := hashs.UnmarshalMsg(data)
+	if err != nil {
+		return nil, err
+	}
+	return &hashs, nil
+}
+
+// WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
+// confirmed by sequencer that holds the id 'seqid'.
+func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error {
+	data, err := hashs.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(txIndexKey(seqid), data)
 }

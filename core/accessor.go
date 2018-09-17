@@ -17,6 +17,7 @@ var (
 	prefixTransaction    = []byte("tx")
 	prefixSequencer      = []byte("sq")
 
+	prefixSeqIdKey		 = []byte("si")
 	prefixTxIndexKey	 = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
@@ -37,6 +38,10 @@ func transactionKey(hash types.Hash) []byte {
 
 func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
+}
+
+func seqIdKey(seqid uint64) []byte {
+	return append(prefixSeqIdKey, []byte(fmt.Sprintf("%d", seqid))...)
 }
 
 func txIndexKey(seqid uint64) []byte {
@@ -212,6 +217,29 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	}
 	newBalanceValue := balance.Value.Sub(balance.Value, amount.Value)
 	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
+}
+
+// ReadSequencerById get sequencer from db by sequencer id.
+func (da *Accessor) ReadSequencerById(seqid uint64) (*types.Sequencer, error) {
+	data, _ := da.db.Get(seqIdKey(seqid))
+	if len(data) == 0 {
+		return nil, fmt.Errorf("sequencer with seqid %d not found", seqid)
+	}
+	var seq types.Sequencer
+	_, err := seq.UnmarshalMsg(data)
+	if err != nil {
+		return nil, err
+	}
+	return &seq, nil
+}
+
+// WriteSequencerById stores the sequencer into db and indexed by its id.
+func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
+	data, err := seq.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(seqIdKey(seq.Id), data)
 }
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that 

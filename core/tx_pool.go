@@ -631,7 +631,7 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}
-	log.WithField("hash", h).Debug("hash not found in txlookup")
+	//log.WithField("hash", h).Debug("hash not found in txlookup")
 	// for k := range t.txs {
 	// 	log.Warnf("Available: %s", k.Hex())
 	// }

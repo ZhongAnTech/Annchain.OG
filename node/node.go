@@ -84,7 +84,7 @@ func NewNode() *Node {
 		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   1000,
+		NewTxQueueSize:                   1,
 	})
 	txBuffer.Hub = hub
 	n.Components = append(n.Components, txBuffer)
@@ -144,7 +144,7 @@ func NewNode() *Node {
 		TxCreator:         txCreator,
 		TxBuffer:          m.TxBuffer,
 		PrivateKey:        privateKey,
-		TxIntervalSeconds: 3,
+		TxIntervalSeconds: 15,
 		Dag:               org.Dag,
 		InstanceCount:     viper.GetInt("auto_tx.count"),
 	}

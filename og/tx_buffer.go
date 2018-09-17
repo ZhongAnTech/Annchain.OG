@@ -85,20 +85,26 @@ func (b *TxBuffer) Name() string {
 }
 
 func (b *TxBuffer) loop() {
+	logrus.Debug("Consume")
 	for {
 		select {
 		case <-b.quit:
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
 		case v := <-b.newTxChan:
-			b.handleTx(v)
+			logrus.WithField("chan size", len(b.newTxChan)).Debug("inside handle")
+			go b.handleTx(v)
+			logrus.WithField("chan size", len(b.newTxChan)).Debug("outside handle")
 		}
 	}
+	logrus.Debug("Consume over")
 }
 
 // AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
+	logrus.Debug("Produce")
 	b.newTxChan <- tx
+	logrus.Debug("Produce over")
 }
 
 func (b *TxBuffer) handleTx(tx types.Txi) {
@@ -135,6 +141,14 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 
 }
 
+func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
+	a, err := b.dependencyCache.GetIFPresent(hash)
+	if err == nil {
+		return a.(map[types.Hash]types.Txi)[hash]
+	}
+	return nil
+}
+
 func (b *TxBuffer) InBuffer(tx types.Txi) bool {
 	_, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	if err == nil {
@@ -165,26 +179,25 @@ func (b *TxBuffer) sendMessage(txi types.Txi) {
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
-	if self == nil{
-		logrus.Infof("updating dependency map: %s <- nil", parentHash.String())
-	}else{
-		logrus.Infof("updating dependency map: %s <- %s", parentHash.String(), self.String())
+	if self == nil {
+		logrus.WithFields(logrus.Fields{
+			"parent": parentHash.String(),
+			"child":  nil,
+		}).Infof("updating dependency map")
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"parent": parentHash.String(),
+			"child":  self.String(),
+		}).Infof("updating dependency map")
 	}
 
-	v, err := b.dependencyCache.GetIFPresent(parentHash)
+	b.affmu.Lock()
+	_, err := b.dependencyCache.GetIFPresent(parentHash)
 	if err != nil {
-		// key not present, need to build a inner map
-		if self == nil{
-			b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{})
-		}else{
-			b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
-		}
-	} else {
-		if self != nil{
-			v.(map[types.Hash]types.Txi)[self.GetBase().Hash] = self
-		}
-		// if self is nil, that means we received two duplicated update requests
+		// key not present, need to build an inner map
+		b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
 	}
+	b.affmu.Unlock()
 }
 
 // resolve is called when all ancestors of the tx is got.
@@ -201,6 +214,10 @@ func (b *TxBuffer) resolve(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
+		if v.GetTxHash() == tx.GetTxHash(){
+			// self already resolved
+			continue
+		}
 		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
 		b.tryResolve(v)
 	}
@@ -220,11 +237,14 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 }
 
 func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
-	logrus.WithField("Txpool", b.txPool.Get(hash)).
-		WithField("DAG", b.dag.GetTx(hash)).
-		WithField("Hash", hash).
-		Info("transaction location")
-	return b.txPool.Get(hash) != nil || b.dag.GetTx(hash) != nil
+	logrus.WithFields(logrus.Fields{
+		"Txpool": b.txPool.Get(hash),
+		"DAG":    b.dag.GetTx(hash),
+		"Hash":   hash,
+		"Buffer": b.GetFromBuffer(hash),
+	}).Info("transaction location")
+
+	return b.txPool.Get(hash) != nil || b.dag.GetTx(hash) != nil || b.GetFromBuffer(hash) != nil
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
@@ -253,7 +273,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
 		if !b.isKnownHash(parentHash) {
-			logrus.WithField("hash", parentHash).Infof("parent not known by buffer tx")
+			logrus.WithField("hash", parentHash).Infof("parent not known by pool or dag tx")
 			allFetched = false
 
 			b.updateDependencyMap(parentHash, tx)
@@ -261,9 +281,9 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			b.syncer.Enqueue(parentHash)
 		}
 	}
-	if !allFetched{
+	if !allFetched {
 		// add myself to the dependency map
-		b.updateDependencyMap(tx.GetTxHash(), nil)
+		b.updateDependencyMap(tx.GetTxHash(), tx)
 	}
 	return allFetched
 }

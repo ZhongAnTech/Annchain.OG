@@ -150,7 +150,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 	}
 	data,err :=  msg.GetPayLoad()
-	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data}
+	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data,SourceID:p.id}
 	p2pMsg.init()
 	if p2pMsg.needCheckRepeat {
 		p.MarkMessage(p2pMsg.hash)

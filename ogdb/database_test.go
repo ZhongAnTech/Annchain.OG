@@ -29,7 +29,7 @@ import (
 )
 
 func newTestLDB() (*ogdb.LevelDB, func()) {
-	dirname, err := ioutil.TempDir(os.TempDir(), "ethdb_test_")
+	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}

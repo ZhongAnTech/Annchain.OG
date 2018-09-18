@@ -160,7 +160,7 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 		return math.NewBigInt(0)
 	}
 	var bigint math.BigInt
-	_, err := bigint.MarshalMsg(data)
+	_, err := bigint.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}

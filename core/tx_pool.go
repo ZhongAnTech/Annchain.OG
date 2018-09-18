@@ -401,13 +401,11 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.Get(pHash)
 		if parent == nil {
+			// parent should be in dag
 			continue
 		}
 		if parent.GetType() == types.TxBaseTypeSequencer {
-			// check if parent is a seq and is in dag db
-			if pool.dag.GetTx(parent.GetTxHash()) != nil {
-				continue
-			}
+			continue
 		}
 		if batch[parent.GetTxHash()] == nil {
 			batch[parent.GetTxHash()] = parent

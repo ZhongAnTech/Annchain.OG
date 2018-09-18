@@ -165,6 +165,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	defer dag.wg.Done()
 
 	// store the tx and update the state
+	var txHashs types.Hashs
 	var err error 
 	for _, batchDetail := range batch.batch {
 		for _, txi := range batchDetail.txList {
@@ -176,6 +177,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			case *types.Sequencer:
 				break
 			case *types.Tx:
+				txHashs = append(txHashs, tx.GetTxHash())
 				// TODO handle the db error
 				dag.accessor.SubBalance(tx.From, tx.Value)
 				dag.accessor.AddBalance(tx.To, tx.Value)
@@ -183,7 +185,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			}
 		}
 	}
-	
+	// store the hashs of the txs confirmed by this sequencer.
+	if len(txHashs) > 0 {
+		dag.accessor.WriteIndexedTxHashs(batch.seq.Id, &txHashs)
+	}
+
 	// save latest sequencer into db
 	err = dag.accessor.WriteTransaction(batch.seq)
 	if err != nil {

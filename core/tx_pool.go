@@ -252,6 +252,10 @@ func (pool *TxPool) loop() {
 				err = pool.confirm(tx)
 			}
 			txEvent.callbackChan <- err
+			_, tipsCount := pool.PoolStatus()
+			if tipsCount == 0 {
+				log.Errorf("tips count is zero after tx: %s", tx.GetTxHash())
+			}
 
 			// TODO case reset?
 		case <-resetTimer.C:

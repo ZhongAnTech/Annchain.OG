@@ -70,6 +70,9 @@ func (bi *BigInt) Sign() int {
 // "0X" selects base 16; the "0" prefix selects base 8, and a "0b" or "0B" prefix
 // selects base 2. Otherwise the selected base is 10.
 func (bi *BigInt) SetString(x string, base int) {
+	if bi.Value == nil{
+		bi.Value = big.NewInt(0)
+	}
 	bi.Value.SetString(x, base)
 }
 

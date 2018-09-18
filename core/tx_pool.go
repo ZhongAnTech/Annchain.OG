@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	TxTypeGenesis int = iota
+	TxTypeGenesis TxType = iota
 	TxTypeLocal
 	TxTypeRemote
 )
+type TxType int
 
 const (
 	TxStatusNotExist TxStatus = iota
@@ -26,6 +27,24 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 )
+type TxStatus int
+
+func (ts *TxStatus) String() string {
+	switch *ts {
+	case TxStatusBadTx:
+		return "BadTx"
+	case TxStatusNotExist:
+		return "NotExist"
+	case TxStatusPending:
+		return "Pending"
+	case TxStatusQueue:
+		return "Queueing"
+	case TxStatusTip:
+		return "Tip"
+	default:
+		return "UnknownStatus"
+	}
+}
 
 type TxPool struct {
 	conf TxPoolConfig
@@ -73,15 +92,13 @@ type txEvent struct {
 }
 type txEnvelope struct {
 	tx     types.Txi
-	txType int
+	txType TxType
 	status TxStatus
 }
 
 // Start begin the txpool sevices
 func (pool *TxPool) Start() {
 	log.Infof("TxPool Start")
-	// TODO
-
 	go pool.loop()
 }
 
@@ -234,7 +251,7 @@ func (pool *TxPool) loop() {
 }
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
-func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
+func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
 	defer timer.Stop()
 
@@ -264,9 +281,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType int) error {
 			log.Info("Notify subscriber")
 			subscriber <- tx
 		}
-		// case <-timer.C:
-		// 	// close(te.callbackChan)
-		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.GetTxHash().Hex())
 	}
 
 	log.Debugf("successfully add tx: %s", tx.GetTxHash().Hex())
@@ -415,34 +429,34 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchFrom := batch[tx.From]
 			if batchFrom == nil {
 				batchFrom = &BatchDetail{}
-				batchFrom.txList = make(map[types.Hash]types.Txi)
-				batchFrom.neg = math.NewBigInt(0)
-				batchFrom.pos = math.NewBigInt(0)
+				batchFrom.TxList = make(map[types.Hash]types.Txi)
+				batchFrom.Neg = math.NewBigInt(0)
+				batchFrom.Pos = math.NewBigInt(0)
 			}
-			batchFrom.txList[tx.GetTxHash()] = tx
-			batchFrom.neg.Value.Add(batchFrom.neg.Value, tx.Value.Value)
+			batchFrom.TxList[tx.GetTxHash()] = tx
+			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
 
 			batchTo := batch[tx.To]
 			if batchTo == nil {
 				batchTo = &BatchDetail{}
-				batchTo.txList = make(map[types.Hash]types.Txi)
-				batchTo.neg = math.NewBigInt(0)
-				batchTo.pos = math.NewBigInt(0)
+				batchTo.TxList = make(map[types.Hash]types.Txi)
+				batchTo.Neg = math.NewBigInt(0)
+				batchTo.Pos = math.NewBigInt(0)
 			}
-			batchTo.pos.Value.Add(batchTo.pos.Value, tx.Value.Value)
+			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}
 	}
 	for addr, batchDetail := range batch {
 		confirmedBalance := pool.dag.GetBalance(addr)
 		// if balance of addr < outcome value of addr, then verify failed
-		if confirmedBalance.Value.Cmp(batchDetail.neg.Value) < 0 {
+		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 		}
 	}
 
 	cb := &ConfirmBatch{}
-	cb.seq = seq
-	cb.batch = batch
+	cb.Seq = seq
+	cb.Batch = batch
 	return cb, nil
 }
 
@@ -667,24 +681,5 @@ func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
 
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
-	}
-}
-
-type TxStatus int
-
-func (ts *TxStatus) String() string {
-	switch *ts {
-	case TxStatusBadTx:
-		return "BadTx"
-	case TxStatusNotExist:
-		return "NotExist"
-	case TxStatusPending:
-		return "Pending"
-	case TxStatusQueue:
-		return "Queueing"
-	case TxStatusTip:
-		return "Tip"
-	default:
-		return "UnknownStatus"
 	}
 }

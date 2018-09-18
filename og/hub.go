@@ -9,11 +9,13 @@ import (
 	"sync"
 	"math/big"
 	"github.com/annchain/OG/core"
+	"github.com/bluele/gcache"
+	"time"
 )
 
 // Hub is the middle layer between p2p and business layer
 // When there is a general request coming from the upper layer, Hub will find the appropriate peer to handle.
-// Hub will also prevent duplicate requests.
+// Hub will also prevent duplicate requests/responses.
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 type Hub struct {
 	outgoing         chan *P2PMessage
@@ -24,32 +26,35 @@ type Hub struct {
 	SubProtocols     []p2p.Protocol
 	newPeerCh        chan *peer
 	maxPeers         int
-	quitSync        chan struct{}
-	// wait group is used for graceful shutdowns during downloading
-	// and processing
-	wg        sync.WaitGroup
-	networkID uint64
-	Dag         * core.Dag
+	quitSync         chan struct{}
+	wg               sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
+	networkID        uint64
+	Dag              *core.Dag
+	messageCache     gcache.Cache // cache for duplicate responses/msg to prevent storm
 }
 
 type HubConfig struct {
-	OutgoingBufferSize int
-	IncomingBufferSize int
+	OutgoingBufferSize            int
+	IncomingBufferSize            int
+	MessageCacheMaxSize           int
+	MessageCacheExpirationSeconds int
 }
 
-func (h *Hub) Init(config *HubConfig ,maxPeer int ) {
+func (h *Hub) Init(config *HubConfig, maxPeer int) {
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.quit = make(chan bool)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.maxPeers = maxPeer
+	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
+		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 }
 
-func NewHub(config *HubConfig,maxPeer int ) *Hub {
+func NewHub(config *HubConfig, maxPeer int) *Hub {
 	h := &Hub{}
-	h.Init(config,maxPeer)
+	h.Init(config, maxPeer)
 	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		// Skip protocol version if incompatible with the mode of operation
@@ -66,11 +71,11 @@ func NewHub(config *HubConfig,maxPeer int ) *Hub {
 				peer := newPeer(int(version), p, rw)
 				//select {
 				//case h.newPeerCh <- peer:
-					//h.wg.Add(1)
+				//h.wg.Add(1)
 				//	defer h.wg.Done()
-					return h.handle(peer)
+				return h.handle(peer)
 				//case <-h.quitSync:
-					//return p2p.DiscQuitting
+				//return p2p.DiscQuitting
 				//}
 			},
 			NodeInfo: func() interface{} {
@@ -98,13 +103,13 @@ func (h *Hub) handle(p *peer) error {
 	// Execute the og handshake
 	var (
 		genesis = h.Dag.Genesis()
-		lastSeq    = h.Dag.LatestSequencer()
-		head  = types.Hash{}
+		lastSeq = h.Dag.LatestSequencer()
+		head    = types.Hash{}
 	)
 	if lastSeq == nil {
 		log.Warn("Last sequencer is nil")
-	}else {
-		head =  lastSeq.Hash
+	} else {
+		head = lastSeq.Hash
 	}
 	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
 		log.WithError(err).Debug("OG handshake failed")
@@ -149,8 +154,8 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 	}
-	data,err :=  msg.GetPayLoad()
-	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data,SourceID:p.id}
+	data, err := msg.GetPayLoad()
+	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data, SourceID: p.id}
 	p2pMsg.init()
 	if p2pMsg.needCheckRepeat {
 		p.MarkMessage(p2pMsg.hash)
@@ -212,6 +217,14 @@ func (h *Hub) loopReceive() {
 	for {
 		select {
 		case m := <-h.incoming:
+			// check duplicates
+			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
+				// already there
+				log.WithField("hash", m.hash).WithField("type", m.MessageType.String()).
+					Warn("we have a duplicate message. Discard")
+				continue
+			}
+			h.messageCache.Set(m.hash, nil)
 			// start a new routine in order not to block other communications
 			go h.receiveMessage(m)
 		case <-h.quit:
@@ -252,17 +265,16 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		log.Warnf("Received a message type: %s", msg.MessageType.String())
+		log.WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)
 	} else {
-		log.Warnf("Received an unknown message type: %d", msg.MessageType)
+		log.WithField("type", msg.MessageType).Debug("Received an Unknown message")
 	}
 }
 
-
 // NodeInfo retrieves some protocol metadata about the running host node.
 func (h *Hub) PeersInfo() []*PeerInfo {
-     peers:= h.peers.Peers()
+	peers := h.peers.Peers()
 	// Gather all the generic and sub-protocol specific infos
 	infos := make([]*PeerInfo, 0, len(peers))
 	for _, peer := range peers {
@@ -273,21 +285,20 @@ func (h *Hub) PeersInfo() []*PeerInfo {
 	return infos
 }
 
-
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    types.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Head       types.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+	Network    uint64     `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
+	Genesis    types.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
+	Head       types.Hash `json:"head"`       // SHA3 hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
 func (h *Hub) NodeInfo() *NodeInfo {
 	return &NodeInfo{
-		Network:    h.networkID,
-		Genesis:    types.Hash{},
-		Head:       types.Hash{},
+		Network: h.networkID,
+		Genesis: types.Hash{},
+		Head:    types.Hash{},
 	}
 }

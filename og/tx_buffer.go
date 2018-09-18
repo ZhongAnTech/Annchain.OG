@@ -119,7 +119,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		return
 	}
 	// not in tx buffer , a new tx , shoud brodcast
-	if ! b.InBuffer(tx) {
+	if ! b.isKnownHash(tx.GetTxHash()) {
 		shoudBrodcast = true
 	}
 
@@ -130,7 +130,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		// Check if the tx is valid based on graph structure rules
 		// Only txs that are obeying rules will be added to the graph.
 		if b.VerifyGraphStructure(tx) {
-			b.txPool.AddRemoteTx(tx)
+			go b.txPool.AddRemoteTx(tx)
 		}
 		b.resolve(tx)
 	}

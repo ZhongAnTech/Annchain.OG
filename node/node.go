@@ -39,6 +39,8 @@ func NewNode() *Node {
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize: viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
+		MessageCacheExpirationSeconds:viper.GetInt("hub.message_cache_expiration_seconds"),
+		MessageCacheMaxSize:viper.GetInt("hub.message_cache_max_size"),
 	}, maxPerr)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{

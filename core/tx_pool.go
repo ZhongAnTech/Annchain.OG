@@ -403,8 +403,8 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 		if parent == nil {
 			continue
 		}
-		if parent.GetType() != types.TxBaseTypeSequencer {
-			// check if parent is not a seq and is in dag db
+		if parent.GetType() == types.TxBaseTypeSequencer {
+			// check if parent is a seq and is in dag db
 			if pool.dag.GetTx(parent.GetTxHash()) != nil {
 				continue
 			}

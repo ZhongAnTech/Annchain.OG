@@ -13,15 +13,12 @@ import (
 	"math/rand"
 )
 
-type TxType int
-
 const (
 	TxTypeGenesis TxType = iota
 	TxTypeLocal
 	TxTypeRemote
 )
-
-type TxStatus int
+type TxType int
 
 const (
 	TxStatusNotExist TxStatus = iota
@@ -30,6 +27,7 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 )
+type TxStatus int
 
 func (ts *TxStatus) String() string {
 	switch *ts {
@@ -101,8 +99,6 @@ type txEnvelope struct {
 // Start begin the txpool sevices
 func (pool *TxPool) Start() {
 	log.Infof("TxPool Start")
-	// TODO
-
 	go pool.loop()
 }
 
@@ -299,9 +295,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			log.Debug("notify subscriber")
 			subscriber <- tx
 		}
-		// case <-timer.C:
-		// 	// close(te.callbackChan)
-		// 	return fmt.Errorf("addTx timeout, tx takes too much time, tx hash: %s", tx.String())
 	}
 
 	log.WithField("tx", tx).Debug("successfully added tx to txPool")
@@ -424,13 +417,11 @@ func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi)
 	for _, pHash := range baseTx.Parents() {
 		parent := pool.Get(pHash)
 		if parent == nil {
+			// parent should be in dag
 			continue
 		}
-		if parent.GetType() != types.TxBaseTypeSequencer {
-			// check if parent is not a seq and is in dag db
-			if pool.dag.GetTx(parent.GetTxHash()) != nil {
-				continue
-			}
+		if parent.GetType() == types.TxBaseTypeSequencer {
+			continue
 		}
 		if batch[parent.GetTxHash()] == nil {
 			batch[parent.GetTxHash()] = parent
@@ -452,34 +443,34 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchFrom := batch[tx.From]
 			if batchFrom == nil {
 				batchFrom = &BatchDetail{}
-				batchFrom.txList = make(map[types.Hash]types.Txi)
-				batchFrom.neg = math.NewBigInt(0)
-				batchFrom.pos = math.NewBigInt(0)
+				batchFrom.TxList = make(map[types.Hash]types.Txi)
+				batchFrom.Neg = math.NewBigInt(0)
+				batchFrom.Pos = math.NewBigInt(0)
 			}
-			batchFrom.txList[tx.GetTxHash()] = tx
-			batchFrom.neg.Value.Add(batchFrom.neg.Value, tx.Value.Value)
+			batchFrom.TxList[tx.GetTxHash()] = tx
+			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
 
 			batchTo := batch[tx.To]
 			if batchTo == nil {
 				batchTo = &BatchDetail{}
-				batchTo.txList = make(map[types.Hash]types.Txi)
-				batchTo.neg = math.NewBigInt(0)
-				batchTo.pos = math.NewBigInt(0)
+				batchTo.TxList = make(map[types.Hash]types.Txi)
+				batchTo.Neg = math.NewBigInt(0)
+				batchTo.Pos = math.NewBigInt(0)
 			}
-			batchTo.pos.Value.Add(batchTo.pos.Value, tx.Value.Value)
+			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}
 	}
 	for addr, batchDetail := range batch {
 		confirmedBalance := pool.dag.GetBalance(addr)
 		// if balance of addr < outcome value of addr, then verify failed
-		if confirmedBalance.Value.Cmp(batchDetail.neg.Value) < 0 {
+		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 		}
 	}
 
 	cb := &ConfirmBatch{}
-	cb.seq = seq
-	cb.batch = batch
+	cb.Seq = seq
+	cb.Batch = batch
 	return cb, nil
 }
 

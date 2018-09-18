@@ -39,8 +39,8 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 }
 
 type ConfirmBatch struct { 
-	seq		*types.Sequencer
-	batch	map[types.Address]*BatchDetail
+	Seq		*types.Sequencer
+	Batch	map[types.Address]*BatchDetail
 }
 // BatchDetail describes all the details of a specific address within a 
 // sequencer confirmation term. 
@@ -48,9 +48,9 @@ type ConfirmBatch struct {
 // - neg - means the amount this address should spent out. 
 // - pos - means the amount this address get paid.
 type BatchDetail struct {
-	txList	map[types.Hash]types.Txi
-	neg		*math.BigInt
-	pos		*math.BigInt
+	TxList	map[types.Hash]types.Txi
+	Neg		*math.BigInt
+	Pos		*math.BigInt
 }
 
 func (dag *Dag) Start() {
@@ -135,7 +135,10 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	return dag.latestSeqencer
 }
 
-// func (dag *Dag) Status() 
+// Accessor returns the db accessor of dag
+func (dag *Dag) Accessor() *Accessor {
+	return dag.accessor
+}
 
 // Push trys to move a tx from tx pool to dag db.
 func (dag *Dag) Push(batch *ConfirmBatch) error {
@@ -167,8 +170,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// store the tx and update the state
 	var txHashs types.Hashs
 	var err error 
-	for _, batchDetail := range batch.batch {
-		for _, txi := range batchDetail.txList {
+	for _, batchDetail := range batch.Batch {
+		for _, txi := range batchDetail.TxList {
 			err = dag.accessor.WriteTransaction(txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
@@ -187,24 +190,24 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	// store the hashs of the txs confirmed by this sequencer.
 	if len(txHashs) > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.seq.Id, &txHashs)
+		dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, &txHashs)
 	}
 
 	// save latest sequencer into db
-	err = dag.accessor.WriteTransaction(batch.seq)
+	err = dag.accessor.WriteTransaction(batch.Seq)
 	if err != nil {
 		return err
 	}
-	log.Debugf("successfully store seq: %s", batch.seq.String())
+	log.Debugf("successfully store seq: %s", batch.Seq.GetTxHash().String())
 
 	// set latest sequencer
-	err = dag.accessor.WriteLatestSequencer(batch.seq)
+	err = dag.accessor.WriteLatestSequencer(batch.Seq)
 	if err != nil {
 		return err
 	}
-	dag.latestSeqencer = batch.seq
-	log.Debugf("successfully update latest seq: %s", batch.seq.String())
-	
+	dag.latestSeqencer = batch.Seq
+	log.Debugf("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
+
 	return nil
 }
 

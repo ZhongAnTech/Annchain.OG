@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"github.com/annchain/OG/common/math"
@@ -17,6 +16,9 @@ var (
 	prefixTransactionKey = []byte("tk")
 	prefixTransaction    = []byte("tx")
 	prefixSequencer      = []byte("sq")
+
+	prefixSeqIdKey		 = []byte("si")
+	prefixTxIndexKey	 = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
 	// prefixContractState = []byte("con")
@@ -38,9 +40,13 @@ func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
-// func contractStateKey(addr, contractAddr types.Address) []byte {
-// 	return append(prefixContractState, append(addr.ToBytes(), contractAddr.ToBytes()...)...)
-// }
+func seqIdKey(seqid uint64) []byte {
+	return append(prefixSeqIdKey, []byte(fmt.Sprintf("%d", seqid))...)
+}
+
+func txIndexKey(seqid uint64) []byte {
+	return append(prefixTxIndexKey, []byte(fmt.Sprintf("%d", seqid))...)
+}
 
 type Accessor struct {
 	db ogdb.Database
@@ -57,9 +63,8 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	// TODO use other decode function
 	var seq types.Sequencer
-	err := json.Unmarshal(data, &seq)
+	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
@@ -68,7 +73,7 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 
 // WriteGenesis writes geneis into db.
 func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
-	data, err := json.Marshal(genesis)
+	data, err := genesis.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
@@ -82,9 +87,8 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	// TODO use other decode function
 	var seq types.Sequencer
-	err := json.Unmarshal(data, &seq)
+	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
@@ -93,7 +97,7 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 
 // WriteGenesis writes latest sequencer into db.
 func (da *Accessor) WriteLatestSequencer(seq *types.Sequencer) error {
-	data, err := json.Marshal(seq)
+	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
@@ -126,15 +130,19 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 // if it already exist in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
+	var err error
 	switch tx := tx.(type) {
 	case *types.Tx:
 		prefix = prefixTransaction
-		data, _ = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg(nil)
 	case *types.Sequencer:
 		prefix = prefixSequencer
-		data, _ = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
+	}
+	if err != nil {
+		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
 	}
 	data = append(prefix, data...)
 	return da.db.Put(transactionKey(tx.GetTxHash()), data)
@@ -151,13 +159,12 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 	if len(data) == 0 {
 		return math.NewBigInt(0)
 	}
-	bigint := math.NewBigInt(0)
-	// TODO use other encode function
-	err := json.Unmarshal(data, &bigint)
+	var bigint math.BigInt
+	_, err := bigint.MarshalMsg(data)
 	if err != nil {
 		return nil
 	}
-	return bigint
+	return &bigint
 }
 
 // SetBalance write the balance of an address into ogdb.
@@ -166,8 +173,7 @@ func (da *Accessor) SetBalance(addr types.Address, value *math.BigInt) error {
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
-	// TODO use other encode function
-	data, err := json.Marshal(value)
+	data, err := value.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
@@ -211,4 +217,52 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	}
 	newBalanceValue := balance.Value.Sub(balance.Value, amount.Value)
 	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
+}
+
+// ReadSequencerById get sequencer from db by sequencer id.
+func (da *Accessor) ReadSequencerById(seqid uint64) (*types.Sequencer, error) {
+	data, _ := da.db.Get(seqIdKey(seqid))
+	if len(data) == 0 {
+		return nil, fmt.Errorf("sequencer with seqid %d not found", seqid)
+	}
+	var seq types.Sequencer
+	_, err := seq.UnmarshalMsg(data)
+	if err != nil {
+		return nil, err
+	}
+	return &seq, nil
+}
+
+// WriteSequencerById stores the sequencer into db and indexed by its id.
+func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
+	data, err := seq.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(seqIdKey(seq.Id), data)
+}
+
+// ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that 
+// holds the id 'seqid'.
+func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
+	data, _ := da.db.Get(txIndexKey(seqid))
+	if len(data) == 0 {
+		return nil, fmt.Errorf("tx hashs with seq id %d not found", seqid)
+	}
+	var hashs types.Hashs
+	_, err := hashs.UnmarshalMsg(data)
+	if err != nil {
+		return nil, err
+	}
+	return &hashs, nil
+}
+
+// WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
+// confirmed by sequencer that holds the id 'seqid'.
+func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error {
+	data, err := hashs.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(txIndexKey(seqid), data)
 }

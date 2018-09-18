@@ -65,6 +65,11 @@ func (t *Sequencer) Parents() []Hash {
 	return t.ParentsHash
 }
 
+
+func (t *Sequencer) Number() uint64 {
+	return t.Id
+}
+
 func (t *Sequencer) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:

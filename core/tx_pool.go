@@ -14,13 +14,14 @@ import (
 )
 
 type TxType int
-type TxStatus int
 
 const (
 	TxTypeGenesis TxType = iota
 	TxTypeLocal
 	TxTypeRemote
 )
+
+type TxStatus int
 
 const (
 	TxStatusNotExist TxStatus = iota
@@ -29,6 +30,23 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 )
+
+func (ts *TxStatus) String() string {
+	switch *ts {
+	case TxStatusBadTx:
+		return "BadTx"
+	case TxStatusNotExist:
+		return "NotExist"
+	case TxStatusPending:
+		return "Pending"
+	case TxStatusQueue:
+		return "Queueing"
+	case TxStatusTip:
+		return "Tip"
+	default:
+		return "UnknownStatus"
+	}
+}
 
 type TxPool struct {
 	conf TxPoolConfig
@@ -226,7 +244,7 @@ func (pool *TxPool) loop() {
 		case txEvent := <-pool.queue:
 			var err error
 			tx := txEvent.txEnv.tx
-			if pool.Get(tx.GetTxHash()) != nil{
+			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 				continue
 			}
@@ -264,8 +282,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 
 	//select {
 	//case pool.queue <- te:
-		// race condition
-		//pool.txLookup.Add(te.txEnv)
+	// race condition
+	//pool.txLookup.Add(te.txEnv)
 	//case <-timer.C:
 	//	return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
 	//}
@@ -376,7 +394,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	elders := make(map[types.Hash]types.Txi)
 	pool.seekElders(elders, seq)
 	// verify the elders
-	batch, err := pool.verifyConfirmBatch(seq, elders);
+	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return err
 	}

@@ -32,8 +32,8 @@ func newTestDagTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk)
-	addr := types.HexToAddress(testAddr)
+	pk, _ := crypto.PrivateKeyFromString(testPk0)
+	addr := types.HexToAddress(testAddr0)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())

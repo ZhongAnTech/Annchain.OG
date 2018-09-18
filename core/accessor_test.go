@@ -14,8 +14,14 @@ import (
 )
 
 var (
-	testPk = "6f6720697320746865206265737420636861696e000000000000000000000000"
-	testAddr = "c621b18aa1263ee747b1af41a4eb27647dc8662c"
+	testPk0 = "0000000000000000000000000000000000000000000000000000000000000000"
+	testAddr0 = "188A3EB3BFD8DA1274C935946CB5765B4225503E"
+
+	testPk1 = "1111111111111111111111111111111111111111111111111111111111111111"
+	testAddr1 = "E97BB1E3813CA30F8CFC6A0E8B50047063E893B7"
+
+	testPk2 = "2222222222222222222222222222222222222222222222222222222222222222"
+	testAddr2 = "2EC79FEA2B6F64FAD50CD20CF5CC2281E141441E"
 )
 
 func newTestLDB() (*ogdb.LevelDB, func()) {
@@ -38,8 +44,8 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk)
-	addr := types.HexToAddress(testAddr)
+	pk, _ := crypto.PrivateKeyFromString(testPk0)
+	addr := types.HexToAddress(testAddr0)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -51,7 +57,7 @@ func newTestSeq() *types.Sequencer {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk)
+	pk, _ := crypto.PrivateKeyFromString(testPk0)
 
 	seq := txCreator.NewSignedSequencer(0, []types.Hash{}, 0, pk)
 	seq.SetHash(seq.CalcTxHash())
@@ -155,6 +161,20 @@ func TestLatestSeqStorage(t *testing.T) {
 		t.Fatalf("latest sequencer initialized is not the same as latest sequencer stored")
 	}
 }
+
+// func TestBalanceStorage(t *testing.T) {
+// 	t.Parallel()
+
+// 	db, remove := newTestLDB()
+// 	defer remove()
+
+// 	var err error 
+// 	acc := core.NewAccessor(db)
+
+// 	addr
+
+
+// }
 
 // TODO test balance
 

@@ -17,6 +17,7 @@ const (
 	TxTypeLocal
 	TxTypeRemote
 )
+
 type TxType int
 
 const (
@@ -26,6 +27,7 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 )
+
 type TxStatus int
 
 func (ts *TxStatus) String() string {

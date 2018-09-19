@@ -55,7 +55,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "hash format error",
 		})
 		return
@@ -65,7 +65,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 		txi = r.Og.Txpool.Get(hash)
 	}
 	if txi == nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"message": "not found",
 		})
 		return
@@ -104,7 +104,7 @@ func (r *RpcControler) Transactions(c *gin.Context) {
 		c.JSON(http.StatusOK, txsREsponse)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusNotFound, gin.H{
 		"message": "not found",
 	})
 
@@ -115,7 +115,7 @@ func (r *RpcControler) Genesis(c *gin.Context) {
 	if sq != nil {
 		c.JSON(http.StatusOK, sq)
 	} else {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": "not found",
 		})
 	}
@@ -130,7 +130,7 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 		if sq != nil {
 			c.JSON(http.StatusOK, sq)
 		} else {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"error": "not found",
 			})
 		}
@@ -138,7 +138,7 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 	} else {
 		hash, err := types.HexStringToHash(hashtr)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "hash format error",
 			})
 			return
@@ -148,7 +148,7 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 			txi = r.Og.Txpool.Get(hash)
 		}
 		if txi == nil {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"message": "not found",
 			})
 			return
@@ -159,7 +159,7 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusNotFound, gin.H{
 		"error": "not found",
 	})
 }

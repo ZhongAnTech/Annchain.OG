@@ -36,7 +36,7 @@ func (c *ClientAutoTx) Init(){
 
 func (c *ClientAutoTx) GenerateRequest(from int, to int){
 	c.currentID ++
-	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(1), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
+	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(0), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
 	if ok := c.TxCreator.SealTx(tx); !ok {
 		logrus.Warn("clientAutoTx failed to seal tx")
 		return

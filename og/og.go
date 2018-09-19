@@ -10,9 +10,9 @@ import (
 )
 
 type Og struct {
-	Dag            *core.Dag
-	Txpool         *core.TxPool
-	Manager        *Manager
+	Dag     *core.Dag
+	Txpool  *core.TxPool
+	Manager *Manager
 }
 
 func NewOg() (*Og, error) {

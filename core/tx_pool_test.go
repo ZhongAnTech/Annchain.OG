@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/annchain/OG/core"
@@ -188,7 +189,7 @@ func TestPoolConfirm(t *testing.T) {
 	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
 	pool.AddLocalTx(tx2)
 
-	seq := newTestSeq()
+	seq := newTestSeq(0)
 	seq.ParentsHash = []types.Hash{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -210,12 +211,13 @@ func TestPoolConfirm(t *testing.T) {
 		t.Fatalf("tx2 is not removed from pool")
 	}
 
+	fmt.Println("start bad tx parent confirm")
 	// sequencer's parent is bad tx
 	badtx := newTestPoolBadTx()
 	badtx.ParentsHash = []types.Hash{genesis.GetTxHash()}
 	pool.AddLocalTx(badtx)
 
-	badtxseq := newTestSeq()
+	badtxseq := newTestSeq(1)
 	badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
 	badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
 	err = pool.AddLocalTx(badtxseq)

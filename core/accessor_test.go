@@ -53,13 +53,13 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	return tx.(*types.Tx)
 }
 
-func newTestSeq() *types.Sequencer {
+func newTestSeq(nonce uint64) *types.Sequencer {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPk0)
 
-	seq := txCreator.NewSignedSequencer(0, []types.Hash{}, 0, pk)
+	seq := txCreator.NewSignedSequencer(0, []types.Hash{}, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*types.Sequencer)
@@ -102,7 +102,7 @@ func TestTransactionStorage(t *testing.T) {
 	}
 
 	// test sequencer read write
-	seq := newTestSeq()
+	seq := newTestSeq(0)
 	err = acc.WriteTransaction(seq)
 	if err != nil {
 		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)
@@ -125,7 +125,7 @@ func TestGenesisStorage(t *testing.T) {
 	var err error
 	acc := core.NewAccessor(db)
 
-	genesis := newTestSeq()
+	genesis := newTestSeq(0)
 	err = acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("write genesis error: %v", err)
@@ -148,7 +148,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	var err error
 	acc := core.NewAccessor(db)
 
-	latestSeq := newTestSeq()
+	latestSeq := newTestSeq(0)
 	err = acc.WriteLatestSequencer(latestSeq)
 	if err != nil {
 		t.Fatalf("write latest sequencer error: %v", err)

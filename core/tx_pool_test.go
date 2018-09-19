@@ -1,7 +1,6 @@
 package core_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/annchain/OG/core"
@@ -175,7 +174,7 @@ func TestPoolCommit(t *testing.T) {
 func TestPoolConfirm(t *testing.T) {
 	t.Parallel()
 
-	pool, _, genesis, finish := newTestTxPool(t)
+	pool, dag, genesis, finish := newTestTxPool(t)
 	defer finish()
 
 	var err error
@@ -210,29 +209,50 @@ func TestPoolConfirm(t *testing.T) {
 	if pool.Get(tx2.GetTxHash()) != nil {
 		t.Fatalf("tx2 is not removed from pool")
 	}
+	if dag.GetTx(tx1.GetTxHash()) == nil {
+		t.Fatalf("tx1 is not stored in dag")
+	}
+	if dag.GetTx(tx2.GetTxHash()) == nil {
+		t.Fatalf("tx2 is not stored in dag")
+	}
+	if dag.GetTx(seq.GetTxHash()) == nil {
+		t.Fatalf("seq is not stored in dag")
+	}
+	if dag.LatestSequencer().GetTxHash().Cmp(seq.GetTxHash()) != 0 {
+		t.Fatalf("latest seq in dag is not the seq we want")
+	}
 
-	fmt.Println("start bad tx parent confirm")
-	// sequencer's parent is bad tx
-	badtx := newTestPoolBadTx()
-	badtx.ParentsHash = []types.Hash{genesis.GetTxHash()}
-	pool.AddLocalTx(badtx)
+	// // sequencer's parent is bad tx
+	// badtx := newTestPoolBadTx()
+	// badtx.ParentsHash = []types.Hash{seq.GetTxHash()}
+	// pool.AddLocalTx(badtx)
 
-	badtxseq := newTestSeq(1)
-	badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
-	badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
-	err = pool.AddLocalTx(badtxseq)
-	if err != nil {
-		t.Fatalf("add badtxseq to pool failed: %v", err)
-	}
-	if pool.Get(badtxseq.GetTxHash()) == nil {
-		t.Fatalf("badtxseq is not added into pool")
-	}
-	if status := pool.GetStatus(badtxseq.GetTxHash()); status != core.TxStatusTip {
-		t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
-	}
-	if pool.Get(badtx.GetTxHash()) != nil {
-		t.Fatalf("badtx is not removed from pool")
-	}
+	// badtxseq := newTestSeq(1)
+	// badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
+	// badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
+	// err = pool.AddLocalTx(badtxseq)
+	// if err != nil {
+	// 	t.Fatalf("add badtxseq to pool failed: %v", err)
+	// }
+	// if pool.Get(badtxseq.GetTxHash()) == nil {
+	// 	t.Fatalf("badtxseq is not added into pool")
+	// }
+	// if status := pool.GetStatus(badtxseq.GetTxHash()); status != core.TxStatusTip {
+	// 	t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
+	// }
+	// if pool.Get(badtx.GetTxHash()) != nil {
+	// 	t.Fatalf("badtx is not removed from pool")
+	// }
+	// if dag.GetTx(badtx.GetTxHash()) == nil {
+	// 	t.Fatalf("badtx is not stored in dag")
+	// }
+	// if dag.GetTx(badtxseq.GetTxHash()) == nil {
+	// 	t.Fatalf("battxseq is not stored in dag")
+	// }
+	// if dag.LatestSequencer().GetTxHash().Cmp(badtxseq.GetTxHash()) != 0 {
+	// 	t.Fatalf("latest seq in dag is not the battxseq we want")
+	// }
+
 
 }
 

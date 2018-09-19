@@ -139,11 +139,11 @@ func NewNode() *Node {
 	}
 
 	autoSequencer := &ClientAutoSequencer{
-		TxCreator:        txCreator,
-		TxBuffer:         m.TxBuffer,
-		PrivateKey:       privateKey,
-		BlockTimeSeconds: 10,
-		Dag:              org.Dag,
+		TxCreator:             txCreator,
+		TxBuffer:              m.TxBuffer,
+		PrivateKey:            privateKey,
+		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
+		Dag:                   org.Dag,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -151,12 +151,12 @@ func NewNode() *Node {
 	}
 
 	autoTx := &ClientAutoTx{
-		TxCreator:         txCreator,
-		TxBuffer:          m.TxBuffer,
-		PrivateKey:        privateKey,
-		TxIntervalSeconds: 15,
-		Dag:               org.Dag,
-		InstanceCount:     viper.GetInt("auto_tx.count"),
+		TxCreator:              txCreator,
+		TxBuffer:               m.TxBuffer,
+		PrivateKey:             privateKey,
+		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
+		Dag:                    org.Dag,
+		InstanceCount:          viper.GetInt("auto_tx.count"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {

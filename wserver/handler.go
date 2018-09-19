@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 // websocketHandler defines to handle websocket upgrade request.
@@ -47,6 +48,7 @@ func (wh *websocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var rm RegisterMessage
 		decoder := json.NewDecoder(r)
 		if err := decoder.Decode(&rm); err != nil {
+			logrus.WithError(err).Debug("Failed to serve request")
 			return
 		}
 

@@ -131,6 +131,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 					// Impossible. At least genesis is there
 					logrus.Warn("at least genesis is there. Wait for loading")
 					time.Sleep(time.Second * 2)
+					continue
 				}
 
 				if _, ok := m.tryConnect(tx, txs); ok {

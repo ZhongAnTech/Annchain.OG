@@ -25,6 +25,9 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var cfgFile string
@@ -157,4 +160,10 @@ func initLogger() {
 	}
 
 	logrus.Debug("Logger initialized.")
+}
+
+func startPerformanceMonitor(){
+	go func() {
+		log.Println(http.ListenAndServe("localhost:" + viper.GetString("profiling.port"), nil))
+	}()
 }

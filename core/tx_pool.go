@@ -418,14 +418,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 	batch := make(map[types.Hash]types.Txi)
 	
-	alreadySearched := map[types.Hash]int{}
+	inSeekingPool := map[types.Hash]int{}
 	seekingPool := list.New()
 	for _, parentHash := range baseTx.Parents() {
 		seekingPool.PushBack(parentHash)
 	}
 	for seekingPool.Len() > 0 {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
-		alreadySearched[elderHash] = 0
+		if _, in := inSeekingPool[elderHash]; in {
+			continue
+		}
 
 		elder := pool.Get(elderHash)
 		if elder == nil {
@@ -438,8 +440,9 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 			batch[elder.GetTxHash()] = elder
 		}
 		for _, elderParentHash := range elder.Parents() {
-			if _, searched := alreadySearched[elderParentHash]; !searched {
+			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
+				inSeekingPool[elderHash] = 0
 			}
 		}
 	}

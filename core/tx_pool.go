@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	// "github.com/spf13/viper"
-	log "github.com/sirupsen/logrus"
+	"container/list"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
-	// "github.com/annchain/OG/common"
 	"math/rand"
 )
 
@@ -420,10 +419,12 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 	batch := make(map[types.Hash]types.Txi)
 	
 	alreadySearched := map[types.Hash]int{}
-	seekingPool := baseTx.Parents()
-	for len(seekingPool) > 0 {
-		elderHash := seekingPool[0]
-		seekingPool = seekingPool[1:]
+	seekingPool := list.New()
+	for _, parentHash := range baseTx.Parents() {
+		seekingPool.PushBack(parentHash)
+	}
+	for seekingPool.Len() > 0 {
+		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 		alreadySearched[elderHash] = 0
 
 		elder := pool.Get(elderHash)
@@ -438,7 +439,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, searched := alreadySearched[elderParentHash]; !searched {
-				seekingPool = append(seekingPool, elderParentHash)
+				seekingPool.PushBack(elderParentHash)
 			}
 		}
 	}
@@ -454,22 +455,24 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		case *types.Sequencer:
 			break
 		case *types.Tx:
-			batchFrom := batch[tx.From]
-			if batchFrom == nil {
+			batchFrom, okFrom := batch[tx.From]
+			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = make(map[types.Hash]types.Txi)
 				batchFrom.Neg = math.NewBigInt(0)
 				batchFrom.Pos = math.NewBigInt(0)
+				batch[tx.From] = batchFrom
 			}
 			batchFrom.TxList[tx.GetTxHash()] = tx
 			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
 
-			batchTo := batch[tx.To]
-			if batchTo == nil {
+			batchTo, okTo := batch[tx.To]
+			if !okTo {
 				batchTo = &BatchDetail{}
 				batchTo.TxList = make(map[types.Hash]types.Txi)
 				batchTo.Neg = math.NewBigInt(0)
 				batchTo.Pos = math.NewBigInt(0)
+				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}

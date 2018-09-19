@@ -254,7 +254,7 @@ func (pool *TxPool) loop() {
 			txEvent.callbackChan <- err
 			_, tipsCount := pool.PoolStatus()
 			if tipsCount == 0 {
-				log.Errorf("tips count is zero after tx: %s", tx.GetTxHash())
+				log.Fatalf("tips count is zero after tx: %s", tx.GetTxHash())
 			}
 
 			// TODO case reset?
@@ -651,6 +651,7 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
+	log.WithField("count", len(t.txs)).Debug("lookup size")
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}

@@ -85,28 +85,23 @@ func (b *TxBuffer) Name() string {
 }
 
 func (b *TxBuffer) loop() {
-	logrus.Debug("Consume")
 	for {
 		select {
 		case <-b.quit:
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
 		case v := <-b.newTxChan:
-			logrus.WithField("chan size", len(b.newTxChan)).Debug("inside handle")
 			go b.handleTx(v)
-			logrus.WithField("chan size", len(b.newTxChan)).Debug("outside handle")
 		}
 	}
-	logrus.Debug("Consume over")
 }
 
 // AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
-	logrus.Debug("Produce")
 	b.newTxChan <- tx
-	logrus.Debug("Produce over")
 }
 
+// in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
 	var shoudBrodcast bool
@@ -214,7 +209,7 @@ func (b *TxBuffer) resolve(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
-		if v.GetTxHash() == tx.GetTxHash(){
+		if v.GetTxHash() == tx.GetTxHash() {
 			// self already resolved
 			continue
 		}
@@ -244,8 +239,17 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 		"Buffer": b.GetFromBuffer(hash),
 	}).Info("transaction location")
 
-	return b.txPool.Get(hash) != nil || b.dag.GetTx(hash) != nil || b.GetFromBuffer(hash) != nil
-}
+	if b.txPool.Get(hash) != nil{
+		return true
+	}
+	if b.dag.GetTx(hash) != nil{
+		return true
+	}
+	if b.GetFromBuffer(hash) != nil{
+		return true
+	}
+	return false
+ }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
 // It will check if the given hash has no more dependencies in the cache.

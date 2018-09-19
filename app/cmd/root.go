@@ -42,6 +42,11 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.WithField("obj", r).Fatalf("Fatal error occurred. Program will exit")
+		}
+	}()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -57,7 +62,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config", "c", "config.toml", "Path for configuration file")
 	rootCmd.PersistentFlags().StringP("log_dir", "l", "", "Path for configuration file. Not enabled by default")
 	rootCmd.PersistentFlags().BoolP("log_stdout", "s", false, "Whether the log will be printed to stdout")
-	rootCmd.PersistentFlags().StringP("log_verbosity", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
+	rootCmd.PersistentFlags().StringP("log_level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "log_line_number")
 
 	viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
@@ -65,7 +70,7 @@ func init() {
 	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
 	viper.BindPFlag("log_line_number", rootCmd.PersistentFlags().Lookup("log_line_number"))
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
-	viper.BindPFlag("log_verbosity", rootCmd.PersistentFlags().Lookup("log_verbosity"))
+	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log_level"))
 
 	viper.SetDefault("hub.outgoing_buffer_size", 10)
 	viper.SetDefault("hub.incoming_buffer_size", 10)
@@ -123,7 +128,7 @@ func initLogger() {
 	logrus.SetOutput(writer)
 
 	// Only log the warning severity or above.
-	switch viper.GetString("log_verbosity") {
+	switch viper.GetString("log.level") {
 	case "panic":
 		logrus.SetLevel(logrus.PanicLevel)
 	case "fatal":
@@ -137,7 +142,7 @@ func initLogger() {
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 	default:
-		fmt.Println("Unknown level", viper.GetString("log_verbosity"), "Set to INFO")
+		fmt.Println("Unknown level", viper.GetString("log.level"), "Set to INFO")
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
@@ -162,8 +167,9 @@ func initLogger() {
 	logrus.Debug("Logger initialized.")
 }
 
-func startPerformanceMonitor(){
+func startPerformanceMonitor() {
 	go func() {
-		log.Println(http.ListenAndServe("localhost:" + viper.GetString("profiling.port"), nil))
+		logrus.WithField("port", viper.GetString("profiling.port")).Info("Performance monitor started")
+		log.Println(http.ListenAndServe("localhost:"+viper.GetString("profiling.port"), nil))
 	}()
 }

@@ -658,7 +658,6 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	log.WithField("count", len(t.txs)).Debug("lookup size")
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}

@@ -16,6 +16,9 @@ static_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838
 enabled = true
 port = 8002
 
+[profiling]
+port = 8003
+
 [db]
 name = "leveldb"
 
@@ -33,10 +36,12 @@ tx_valid_time = 100
 
 [auto_sequencer]
 enabled = false
+interval_ms = 15000
 
 [auto_tx]
 enabled = false
 count = 4
+interval_ms = 1000
 
 [debug]
 node_id = 1

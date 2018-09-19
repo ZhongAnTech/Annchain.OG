@@ -125,7 +125,7 @@ func TestDagPush(t *testing.T) {
 	batch := map[types.Address]*core.BatchDetail{}
 	batch[tx1.From] = bd
 
-	seq := newTestSeq()
+	seq := newTestSeq(0)
 	seq.ParentsHash = []types.Hash{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),

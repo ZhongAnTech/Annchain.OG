@@ -2,8 +2,8 @@ package og
 
 import (
 	"github.com/annchain/OG/types"
-	"math/rand"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 )
 
 type dummyTxPoolRandomTx struct {
@@ -21,7 +21,7 @@ type DummyTxPoolMiniTx struct {
 	tipsMap map[types.Hash]types.Txi
 }
 
-func (d *DummyTxPoolMiniTx) Init(){
+func (d *DummyTxPoolMiniTx) Init() {
 	d.poolMap = make(map[types.Hash]types.Txi)
 	d.tipsMap = make(map[types.Hash]types.Txi)
 }

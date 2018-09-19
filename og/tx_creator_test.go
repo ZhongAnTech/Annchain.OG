@@ -1,17 +1,15 @@
 package og
 
 import (
-	"testing"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/og/miner"
-	"github.com/stretchr/testify/assert"
-	"github.com/sirupsen/logrus"
-	"time"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
-
-
 
 func Init() *TxCreator {
 	txc := TxCreator{
@@ -68,7 +66,6 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 	return tx
 }
 
-
 func TestBuildDag(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	pool := &DummyTxPoolMiniTx{}
@@ -95,8 +92,8 @@ func TestBuildDag(t *testing.T) {
 
 	txs[0].GetBase().Hash = txs[0].CalcTxHash()
 	pool.Add(txs[0])
-	for i := 1 ; i< len(txs) ; i++{
-		if ok := txc.SealTx(txs[i]); ok{
+	for i := 1; i < len(txs); i++ {
+		if ok := txc.SealTx(txs[i]); ok {
 			pool.Add(txs[i])
 		}
 	}

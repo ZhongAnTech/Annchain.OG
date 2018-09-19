@@ -33,10 +33,10 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startPerformanceMonitor()
 		// init logs and other facilities before the node starts
-		initLogger()
 		readConfig()
+		initLogger()
+		startPerformanceMonitor()
 		//fmt.Println(viper.GetString("title"))
 		//fmt.Println(viper.GetStringSlice("database.ports"))
 		//fmt.Println(viper.Get("clients.data"))

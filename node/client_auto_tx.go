@@ -12,17 +12,17 @@ import (
 )
 
 type ClientAutoTx struct {
-	TxCreator         *og.TxCreator
-	TxBuffer          *og.TxBuffer
-	TxIntervalSeconds int
-	PrivateKey        crypto.PrivateKey
-	stop              bool
-	currentNonce      uint64
-	currentID         uint64
-	manualChan        chan bool
-	Dag               *core.Dag
-	SampleAccounts    []account.SampleAccount
-	InstanceCount     int
+	TxCreator              *og.TxCreator
+	TxBuffer               *og.TxBuffer
+	TxIntervalMilliSeconds int
+	PrivateKey             crypto.PrivateKey
+	stop                   bool
+	currentNonce           uint64
+	currentID              uint64
+	manualChan             chan bool
+	Dag                    *core.Dag
+	SampleAccounts         []account.SampleAccount
+	InstanceCount          int
 }
 
 func (c *ClientAutoTx) Init(){
@@ -48,8 +48,8 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int){
 }
 
 func (c *ClientAutoTx) loop(from int, to int) {
-	ticker := time.NewTicker(time.Millisecond * time.Duration(rand.Intn(c.TxIntervalSeconds * 1000)))
-	//ticker := time.NewTicker(time.Millisecond * time.Duration(c.TxIntervalSeconds * 1000)):
+	ticker := time.NewTicker(time.Millisecond * time.Duration(rand.Intn(c.TxIntervalMilliSeconds)))
+	//ticker := time.NewTicker(time.Millisecond * time.Duration(c.TxIntervalMilliSeconds))
 	for !c.stop {
 		select {
 		case <-c.manualChan:

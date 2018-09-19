@@ -10,15 +10,15 @@ import (
 )
 
 type ClientAutoSequencer struct {
-	TxCreator        *og.TxCreator
-	TxBuffer         *og.TxBuffer
-	BlockTimeSeconds int
-	PrivateKey       crypto.PrivateKey
-	stop             bool
-	currentNonce     uint64
-	currentID        uint64
-	manualChan       chan bool
-	Dag *core.Dag
+	TxCreator             *og.TxCreator
+	TxBuffer              *og.TxBuffer
+	BlockTimeMilliSeconds int
+	PrivateKey            crypto.PrivateKey
+	stop                  bool
+	currentNonce          uint64
+	currentID             uint64
+	manualChan            chan bool
+	Dag                   *core.Dag
 }
 
 func (c *ClientAutoSequencer) Init(){
@@ -46,7 +46,7 @@ func (c *ClientAutoSequencer) loop() {
 	for !c.stop {
 		select {
 		case <-c.manualChan:
-		case <-time.NewTimer(time.Second * time.Duration(c.BlockTimeSeconds)).C:
+		case <-time.NewTimer(time.Millisecond * time.Duration(c.BlockTimeMilliSeconds)).C:
 		}
 		c.GenerateRequest()
 	}

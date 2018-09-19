@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	// "github.com/spf13/viper"
-	log "github.com/sirupsen/logrus"
+	"container/list"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
-	// "github.com/annchain/OG/common"
 	"math/rand"
 )
 
@@ -388,10 +387,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	defer pool.mu.Unlock()
 
 	// get sequencer's unconfirmed elders
-	elders := make(map[types.Hash]types.Txi)
-	log.WithField("seq", seq).Debugf("seek elders start")
-	pool.seekElders(elders, seq)
-	log.WithField("seq", seq).Debugf("seek elders end")
+	elders := pool.seekElders(seq)
 	// verify the elders
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
@@ -419,22 +415,38 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) seekElders(batch map[types.Hash]types.Txi, baseTx types.Txi) {
-	for _, pHash := range baseTx.Parents() {
-		parent := pool.Get(pHash)
-		if parent == nil {
-			// parent should be in dag
-			continue
-		}
-		if parent.GetType() == types.TxBaseTypeSequencer {
-			continue
-		}
-		if batch[parent.GetTxHash()] == nil {
-			batch[parent.GetTxHash()] = parent
-		}
-		pool.seekElders(batch, parent)
+func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
+	batch := make(map[types.Hash]types.Txi)
+	
+	inSeekingPool := map[types.Hash]int{}
+	seekingPool := list.New()
+	for _, parentHash := range baseTx.Parents() {
+		seekingPool.PushBack(parentHash)
 	}
-	return
+	for seekingPool.Len() > 0 {
+		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+		if _, in := inSeekingPool[elderHash]; in {
+			continue
+		}
+
+		elder := pool.Get(elderHash)
+		if elder == nil {
+			continue
+		}
+		if elder.GetType() == types.TxBaseTypeSequencer {
+			continue
+		}
+		if batch[elder.GetTxHash()] == nil {
+			batch[elder.GetTxHash()] = elder
+		}
+		for _, elderParentHash := range elder.Parents() {
+			if _, in := inSeekingPool[elderParentHash]; !in {
+				seekingPool.PushBack(elderParentHash)
+				inSeekingPool[elderHash] = 0
+			}
+		}
+	}
+	return batch
 }
 
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
@@ -446,22 +458,24 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		case *types.Sequencer:
 			break
 		case *types.Tx:
-			batchFrom := batch[tx.From]
-			if batchFrom == nil {
+			batchFrom, okFrom := batch[tx.From]
+			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = make(map[types.Hash]types.Txi)
 				batchFrom.Neg = math.NewBigInt(0)
 				batchFrom.Pos = math.NewBigInt(0)
+				batch[tx.From] = batchFrom
 			}
 			batchFrom.TxList[tx.GetTxHash()] = tx
 			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
 
-			batchTo := batch[tx.To]
-			if batchTo == nil {
+			batchTo, okTo := batch[tx.To]
+			if !okTo {
 				batchTo = &BatchDetail{}
 				batchTo.TxList = make(map[types.Hash]types.Txi)
 				batchTo.Neg = math.NewBigInt(0)
 				batchTo.Pos = math.NewBigInt(0)
+				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}
@@ -663,7 +677,6 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	defer t.mu.Unlock()
 
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
-	log.WithField("tx", txEnv.tx).Infof("tx added to txlookup")
 }
 func (t *txLookUp) Remove(h types.Hash) {
 	t.mu.Lock()

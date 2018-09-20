@@ -33,6 +33,14 @@ type Hub struct {
 	messageCache     gcache.Cache // cache for duplicate responses/msg to prevent storm
 }
 
+func (h *Hub) GetChannelSizes() map[string]int {
+	return map[string]int{
+		"outgoing": len(h.outgoing),
+		"incoming": len(h.incoming),
+		"newPeerCh": len(h.newPeerCh),
+	}
+}
+
 type HubConfig struct {
 	OutgoingBufferSize            int
 	IncomingBufferSize            int

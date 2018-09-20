@@ -14,7 +14,7 @@ type Manager struct {
 	Verifier *Verifier
 	Config   *ManagerConfig
 	TxBuffer *TxBuffer
-	Dag        *core.Dag
+	Dag      *core.Dag
 }
 
 type ManagerConfig struct {
@@ -78,10 +78,9 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 	var txs []*types.Tx
 	var seqs []*types.Sequencer
 
-
 	for _, hash := range syncRequest.Hashes {
 		txi := m.TxPool.Get(hash)
-		if txi ==nil  {
+		if txi == nil {
 			txi = m.Dag.GetTx(hash)
 		}
 		switch tx := txi.(type) {
@@ -90,7 +89,7 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		case *types.Tx:
 			txs = append(txs, tx)
 		}
-		
+
 	}
 	syncResponse := types.MessageSyncResponse{
 		Txs:        txs,
@@ -163,5 +162,3 @@ func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 	}
 	m.TxBuffer.AddTx(newSq.Sequencer)
 }
-
-

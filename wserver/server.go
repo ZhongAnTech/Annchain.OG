@@ -59,6 +59,12 @@ type Server struct {
 	quit   chan bool
 }
 
+func (s *Server) GetChannelSizes() map[string]int {
+	return map[string]int{
+		"newtx": len(s.NewTxReceivedChan),
+	}
+}
+
 // ListenAndServe listens on the TCP network address and handle websocket
 // request.
 func (s *Server) Serve() {

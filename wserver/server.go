@@ -62,6 +62,27 @@ type Server struct {
 // ListenAndServe listens on the TCP network address and handle websocket
 // request.
 func (s *Server) Serve() {
+	if err := s.server.ListenAndServe(); err != nil {
+		// cannot panic, because this probably is an intentional close
+		logrus.WithError(err).Info("websocket server")
+	}
+}
+
+// Push filters connections by userID and event, then write message
+func (s *Server) Push(event, message string) (int, error) {
+	return s.ph.push(event, message)
+}
+
+// NewServer creates a new Server.
+func NewServer(addr string) *Server {
+	s := &Server{
+		Addr:              addr,
+		WSPath:            serverDefaultWSPath,
+		PushPath:          serverDefaultPushPath,
+		NewTxReceivedChan: make(chan types.Txi),
+		quit:              make(chan bool),
+	}
+
 	e2c := NewEvent2Cons()
 
 	// websocket request handler
@@ -91,27 +112,7 @@ func (s *Server) Serve() {
 		Addr:    s.Addr,
 		Handler: engine,
 	}
-
-	if err := s.server.ListenAndServe(); err != nil {
-		// cannot panic, because this probably is an intentional close
-		logrus.WithError(err).Info("websocket server")
-	}
-}
-
-// Push filters connections by userID and event, then write message
-func (s *Server) Push(event, message string) (int, error) {
-	return s.ph.push(event, message)
-}
-
-// NewServer creates a new Server.
-func NewServer(addr string) *Server {
-	return &Server{
-		Addr:              addr,
-		WSPath:            serverDefaultWSPath,
-		PushPath:          serverDefaultPushPath,
-		NewTxReceivedChan: make(chan types.Txi),
-		quit:              make(chan bool),
-	}
+	return s
 }
 
 func (s *Server) Start() {

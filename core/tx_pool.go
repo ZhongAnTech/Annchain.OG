@@ -599,7 +599,6 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 }
 
 func (tm *TxMap) GetAllKeys() []types.Hash {
-
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 

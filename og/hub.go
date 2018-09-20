@@ -301,7 +301,7 @@ func (h *Hub) handleMsg(p *peer) error {
 					origin = h.Dag.GetSequencer(query.Origin.Hash, query.Origin.Number)
 				}
 			} else {
-				origin = h.Dag.GetSequencerByNum(query.Origin.Number)
+				origin = h.Dag.GetSequencerById(query.Origin.Number)
 			}
 			if origin == nil {
 				break
@@ -317,7 +317,7 @@ func (h *Hub) handleMsg(p *peer) error {
 				if ancestor == 0 {
 					unknown = true
 				} else {
-					seq := h.Dag.GetSequencerByNum(query.Origin.Number - ancestor)
+					seq := h.Dag.GetSequencerById(query.Origin.Number - ancestor)
 					query.Origin.Hash, query.Origin.Number = seq.GetTxHash(), seq.Number()
 					unknown = (query.Origin.Hash.Empty())
 				}
@@ -332,9 +332,9 @@ func (h *Hub) handleMsg(p *peer) error {
 					log.Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
 					unknown = true
 				} else {
-					if header := h.Dag.GetSequencerByNum(next); header != nil {
+					if header := h.Dag.GetSequencerById(next); header != nil {
 						nextHash := header.GetTxHash()
-						oldSeq := h.Dag.GetSequencerByNum(next - (query.Skip + 1))
+						oldSeq := h.Dag.GetSequencerById(next - (query.Skip + 1))
 						expOldHash := oldSeq.GetTxHash()
 						if expOldHash == query.Origin.Hash {
 							query.Origin.Hash, query.Origin.Number = nextHash, next
@@ -403,7 +403,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		if msgReq.SeqHash != nil && msgReq.Id != 0 {
 			seq = h.Dag.GetSequencer(*msgReq.SeqHash, msgReq.Id)
 		} else {
-			seq = h.Dag.GetSequencerByNum(msgReq.Id)
+			seq = h.Dag.GetSequencerById(msgReq.Id)
 		}
 		if seq == nil {
 			return nil

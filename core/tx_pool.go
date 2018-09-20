@@ -253,10 +253,6 @@ func (pool *TxPool) loop() {
 				err = pool.confirm(tx)
 			}
 			txEvent.callbackChan <- err
-			_, tipsCount := pool.PoolStatus()
-			if tipsCount == 0 {
-				log.Fatalf("tips count is zero after tx: %s", tx.GetTxHash())
-			}
 
 		// TODO case reset?
 		case <-resetTimer.C:
@@ -441,6 +437,12 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
+				log.WithField("len", seekingPool.Len()).
+					WithField("tx", baseTx).
+					WithField("as", len(inSeekingPool)).
+					WithField("elder", elder).
+					WithField("elderParentHash", elderParentHash).
+					Warn("seekingpool")
 			}
 		}
 	}

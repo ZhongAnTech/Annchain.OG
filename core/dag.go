@@ -187,8 +187,8 @@ func ( dag *Dag) getSequencerById(id uint64) *types.Sequencer {
 	return seq
 }
 
-func (dag *Dag) GetSequenceHashById(id uint64) *types.Hash {
-	return dag.getSequenceHashById(id)
+func (dag *Dag) GetSequencerHashById(id uint64) *types.Hash {
+	return dag.getSequencerHashById(id)
 }
 
 func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64 ) *types.Sequencer {
@@ -279,7 +279,7 @@ func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
 	return dag.getTxsHashesByNumber(id)
 }
 
-func (dag *Dag) getSeqHashById(id uint64) *types.Hash {
+func (dag *Dag) getSequencerHashById(id uint64) *types.Hash {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 	dag.wg.Add(1)

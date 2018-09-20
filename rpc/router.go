@@ -58,7 +58,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"validators":    "",
 		"sequencer":     "",
 		"og_peers_info": "",
-		"genesis":"",
+		"genesis":       "",
 		// broadcast API
 		"new_transaction": "tx",
 
@@ -69,9 +69,9 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
-		"query_receipt": "hash",
-		"transaction":      "hash",
-		"transactions":      "seq_id",
+		"query_receipt":  "hash",
+		"transaction":    "hash",
+		"transactions":   "seq_id",
 		"query_contract": "tx",
 	}
 	noArgNames := []string{}

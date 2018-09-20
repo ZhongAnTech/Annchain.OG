@@ -17,6 +17,12 @@ type Syncer struct {
 	quit                chan bool
 }
 
+func (m *Syncer) GetChannelSizes() map[string]int {
+	return map[string]int{
+		"acquireTxQueue": len(m.acquireTxQueue),
+	}
+}
+
 type SyncerConfig struct {
 	AcquireTxQueueSize                   uint
 	MaxBatchSize                         int

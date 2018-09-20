@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 	"io/ioutil"
+	"math/rand"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -24,8 +25,8 @@ var (
 	testAddr2 = "2EC79FEA2B6F64FAD50CD20CF5CC2281E141441E"
 )
 
-func newTestLDB() (*ogdb.LevelDB, func()) {
-	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_")
+func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
+	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_" + dirPrefix + "_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
@@ -72,7 +73,7 @@ func compareTxi(tx1, tx2 types.Txi) bool {
 func TestTransactionStorage(t *testing.T) {
 	t.Parallel()
 
-	db, remove := newTestLDB()
+	db, remove := newTestLDB("TestTransactionStorage")
 	defer remove()
 
 	var err error
@@ -119,7 +120,7 @@ func TestTransactionStorage(t *testing.T) {
 func TestGenesisStorage(t *testing.T) {
 	t.Parallel()
 
-	db, remove := newTestLDB()
+	db, remove := newTestLDB("TestGenesisStorage")
 	defer remove()
 
 	var err error
@@ -142,7 +143,7 @@ func TestGenesisStorage(t *testing.T) {
 func TestLatestSeqStorage(t *testing.T) {
 	t.Parallel()
 
-	db, remove := newTestLDB()
+	db, remove := newTestLDB("TestLatestSeqStorage")
 	defer remove()
 
 	var err error
@@ -162,22 +163,64 @@ func TestLatestSeqStorage(t *testing.T) {
 	}
 }
 
-// func TestBalanceStorage(t *testing.T) {
-// 	t.Parallel()
+func TestBalanceStorage(t *testing.T) {
+	t.Parallel()
 
-// 	db, remove := newTestLDB()
-// 	defer remove()
+	db, remove := newTestLDB("TestBalanceStorage")
+	defer remove()
 
-// 	var err error 
-// 	acc := core.NewAccessor(db)
+	var err error 
+	acc := core.NewAccessor(db)
+	addr := types.HexToAddress(testAddr0)
 
-// 	addr
+	balance := acc.ReadBalance(addr) 
+	if balance == nil {
+		t.Fatalf("read balance failed")
+	}
+	if balance.Value.Cmp(math.NewBigInt(0).Value) != 0 {
+		t.Fatalf("the balance of addr %s is not 0", addr.String())
+	}
 
+	newBalance := math.NewBigInt(int64(rand.Intn(10000) + 10000))
+	err = acc.SetBalance(addr, newBalance)
+	if err != nil {
+		t.Fatalf("set new balance failed: %v", err)
+	}
+	bFromDb := acc.ReadBalance(addr)
+	if bFromDb == nil {
+		t.Fatalf("read balance after seting failed")
+	}
+	if bFromDb.Value.Cmp(newBalance.Value) != 0 {
+		t.Fatalf("the balance in db is not equal the balance we set")
+	}
 
-// }
+	addAmount := math.NewBigInt(int64(rand.Intn(10000)))
+	err = acc.AddBalance(addr, addAmount)
+	if err != nil {
+		t.Fatalf("add balance failed")
+	}
+	bFromDb = acc.ReadBalance(addr)
+	if bFromDb == nil {
+		t.Fatalf("read balance after adding failed")
+	}
+	if newBalance.Value.Add(newBalance.Value, addAmount.Value).Cmp(bFromDb.Value) != 0 {
+		t.Fatalf("the balance after add is not as expected")
+	}
+	
+	subAmount := math.NewBigInt(int64(rand.Intn(10000)))
+	err = acc.SubBalance(addr, subAmount)
+	if err != nil {
+		t.Fatalf("sub balance failed")
+	}
+	bFromDb = acc.ReadBalance(addr)
+	if bFromDb == nil {
+		t.Fatalf("read balance after sub failed")
+	}
+	if newBalance.Value.Sub(newBalance.Value, subAmount.Value).Cmp(bFromDb.Value) != 0 {
+		t.Fatalf("the balance after sub is not as expected")
+	}
 
-// TODO test balance
-
+}
 
 
 

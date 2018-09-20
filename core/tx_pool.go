@@ -442,7 +442,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
-				inSeekingPool[elderHash] = 0
+				inSeekingPool[elderParentHash] = 0
 			}
 		}
 	}

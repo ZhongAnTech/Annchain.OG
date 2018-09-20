@@ -60,7 +60,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPk0)
 
-	seq := txCreator.NewSignedSequencer(0, []types.Hash{}, nonce, pk)
+	seq := txCreator.NewSignedSequencer(nonce, []types.Hash{}, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*types.Sequencer)
@@ -103,7 +103,7 @@ func TestTransactionStorage(t *testing.T) {
 	}
 
 	// test sequencer read write
-	seq := newTestSeq(0)
+	seq := newTestSeq(1)
 	err = acc.WriteTransaction(seq)
 	if err != nil {
 		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)

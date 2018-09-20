@@ -188,7 +188,7 @@ func TestPoolConfirm(t *testing.T) {
 	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
 	pool.AddLocalTx(tx2)
 
-	seq := newTestSeq(0)
+	seq := newTestSeq(1)
 	seq.ParentsHash = []types.Hash{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -230,7 +230,7 @@ func TestPoolConfirm(t *testing.T) {
 	addr := types.HexToAddress(testAddr0)
 	dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
 
-	badtxseq := newTestSeq(1)
+	badtxseq := newTestSeq(2)
 	badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
 	badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
 	err = pool.AddLocalTx(badtxseq)

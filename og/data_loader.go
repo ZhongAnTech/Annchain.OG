@@ -1,9 +1,9 @@
 package og
 
 import (
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
 )
 

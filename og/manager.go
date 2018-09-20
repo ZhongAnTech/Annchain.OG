@@ -14,7 +14,7 @@ type Manager struct {
 	Verifier *Verifier
 	Config   *ManagerConfig
 	TxBuffer *TxBuffer
-	Dag        *core.Dag
+	Dag      *core.Dag
 }
 
 type ManagerConfig struct {
@@ -78,10 +78,9 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 	var txs []*types.Tx
 	var seqs []*types.Sequencer
 
-
 	for _, hash := range syncRequest.Hashes {
 		txi := m.TxPool.Get(hash)
-		if txi ==nil  {
+		if txi == nil {
 			txi = m.Dag.GetTx(hash)
 		}
 		switch tx := txi.(type) {
@@ -90,7 +89,7 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		case *types.Tx:
 			txs = append(txs, tx)
 		}
-		
+
 	}
 	syncResponse := types.MessageSyncResponse{
 		Txs:        txs,
@@ -136,6 +135,7 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 func (m *Manager) HandleNewTx(msg *P2PMessage) {
 
 	newTx := types.MessageNewTx{}
+
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
 		logrus.WithError(err).Debug("invalid MessageNewTx format")
@@ -147,8 +147,29 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 	}
 	logrus.WithField("tx", newTx.Tx).Debug("received incoming new tx")
 	m.TxBuffer.AddTx(newTx.Tx)
+
 }
 
+func (m *Manager) HandleNewTxs(msg *P2PMessage) {
+	logrus.Debug("Received MessageNewTxs")
+
+	//maybe received more transactions
+	var err error
+	newTxs := types.MessageNewTxs{}
+	_, err = newTxs.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.WithError(err).Debug("invalid MessageNewTxs format")
+		return
+	}
+	if newTxs.Txs == nil {
+		logrus.Debug("Empty MessageNewTx")
+		return
+	}
+	for _, tx := range newTxs.Txs {
+
+		m.TxBuffer.AddTx(tx)
+	}
+}
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 	logrus.Debug("received NewSequence")
 	newSq := types.MessageNewSequence{}
@@ -163,5 +184,3 @@ func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 	}
 	m.TxBuffer.AddTx(newSq.Sequencer)
 }
-
-

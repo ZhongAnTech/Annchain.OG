@@ -38,10 +38,9 @@ func TestSerializer(t *testing.T) {
 		Seq: Sequencer{Id: 99,
 			TxBase: TxBase{
 				Height:       12,
-				ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+				ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 				Type:         1,
 				AccountNonce: 234,
-
 			},
 			ContractHashOrder: []Hash{
 				HexToHash("0x00667788"),
@@ -52,10 +51,9 @@ func TestSerializer(t *testing.T) {
 		TxInner: Tx{TxBase: TxBase{
 
 			Height:       12,
-			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 			Type:         1,
 			AccountNonce: 234,
-
 		},
 			From:  HexToAddress("0x99"),
 			To:    HexToAddress("0x88"),

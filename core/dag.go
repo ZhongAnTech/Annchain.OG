@@ -81,6 +81,11 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	if err != nil {
 		return err
 	}
+
+	err = dag.accessor.WriteSequencerById(genesis)
+	if err != nil {
+		return err
+	}
 	// store genesis as first tx
 	err = dag.accessor.WriteTransaction(genesis)
 	if err != nil {
@@ -151,6 +156,56 @@ func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
 }
 
+
+func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+	tx :=  dag.getTx(hash)
+	switch tx:= tx.(type) {
+	  case *types.Sequencer :
+	  	return tx
+	default:
+		return nil
+	}
+}
+func (dag *Dag) GetSequencerByNum(id  uint64) *types.Sequencer {
+	return dag.getSequencerByNum(id)
+}
+
+func ( dag *Dag)getSequencerByNum (id  uint64) *types.Sequencer {
+	if id== 0 {
+		return dag.genesis
+	}
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
+	seq,err:=  dag.accessor.ReadSequencerById(id)
+	if err!=nil || seq==nil {
+		log.WithField("id",id).WithError(err).Warn("head not found")
+		return nil
+	}
+	return seq
+}
+
+func (dag *Dag)GetSequenceHashByNum( id uint64) *types.Hash {
+
+	return dag.getSequenceHashByNum(id)
+}
+
+
+func (dag *Dag) GetSequencer(hash types.Hash,seqId uint64 ) *types.Sequencer {
+	tx :=  dag.getTx(hash)
+	switch tx:= tx.(type) {
+	case *types.Sequencer :
+		if tx.Id != seqId {
+			log.Warn(" seq id mimatch ")
+			return  nil
+		}
+		return tx
+	default:
+		return nil
+	}
+}
 // GetBalance read the confirmed balance of an address from ogdb.
 func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 	return dag.accessor.ReadBalance(addr)
@@ -167,6 +222,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.wg.Add(1)
 	defer dag.wg.Done()
 
+
+	if dag.latestSeqencer.Id +1 !=batch.Seq.Id  {
+ 		log.Fatalf("last sequencer id mismatch old %d,new %d",dag.latestSeqencer.Id,batch.Seq.Id)
+ 		return  fmt.Errorf("last sequencer id mismatch old %d,new %d",dag.latestSeqencer.Id,batch.Seq.Id)
+	}
 	// store the tx and update the state
 	var txHashs types.Hashs
 	var err error 
@@ -205,10 +265,49 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
+	err = dag.accessor.WriteSequencerById(batch.Seq)
+	if err != nil {
+		return err
+	}
 	dag.latestSeqencer = batch.Seq
 	log.Debugf("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
+    log.WithField("height",batch.Seq.Id).Info("new height")
 
 	return nil
+}
+
+
+
+func (dag *Dag)GetTxsHashesByNumber(id uint64) *types.Hashs {
+	return dag.getTxsHashesByNumber(id)
+}
+
+func (dag *Dag)getSequenceHashByNum( id uint64) *types.Hash {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
+	seq,err:=  dag.accessor.ReadSequencerById(id)
+	if err!=nil || seq==nil {
+		log.WithField("id",id).Warn("head not found")
+		return nil
+	}
+	 hash:=  seq.GetTxHash()
+	 return &hash
+}
+
+func (dag *Dag)getTxsHashesByNumber( id uint64) *types.Hashs {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
+	hashs,err:=  dag.accessor.ReadIndexedTxHashs(id)
+	if err!=nil   {
+		log.Warn("head not found")
+	}
+	return hashs
 }
 
 func (dag *Dag) getTx(hash types.Hash) types.Txi {
@@ -220,6 +319,35 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
+
+func (dag *Dag)GetTxsByNumber (id uint64)[]*types.Tx{
+	hashs:= dag.GetTxsHashesByNumber(id)
+	if hashs==nil {
+		return nil
+	}
+	return dag.GetTxs(*hashs)
+}
+
+
+func (dag *Dag)GetTxs(hashs []types.Hash) []*types.Tx {
+    return dag.getTxs(hashs)
+}
+
+func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+   var txs []*types.Tx
+	for _,hash := range hashs{
+	tx:= 	dag.accessor.ReadTransaction(hash)
+		switch tx:= tx.(type) {
+		case *types.Tx:
+			txs= append(txs,tx)
+		}
+	}
+	return txs
+}
 
 // func (dag *Dag) loop() {
 

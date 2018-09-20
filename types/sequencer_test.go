@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 
 	"testing"
-
 )
 
 func TestSequencer(t *testing.T) {
@@ -18,11 +17,11 @@ func TestSequencer(t *testing.T) {
 		Value: math.NewBigInt(0),
 	}
 
-	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.MinedHash(), seq2.MinedHash()}}}
+	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.CalcMinedHash(), seq2.CalcMinedHash()}}}
 
-	fmt.Println(seq1.MinedHash().String())
-	fmt.Println(seq2.MinedHash().String())
-	fmt.Println(seq3.MinedHash().String())
+	fmt.Println(seq1.CalcMinedHash().String())
+	fmt.Println(seq2.CalcMinedHash().String())
+	fmt.Println(seq3.CalcMinedHash().String())
 
 }
 
@@ -31,11 +30,11 @@ func TestSequencerSize(t *testing.T) {
 	n := 100
 
 	// make 1000 hashes
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		seq.ContractHashOrder = append(seq.ContractHashOrder, HexToHash("0xAABB000000000000000000000000EEFF"))
 	}
 
-	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)
+	fmt.Println("Length", seq.Msgsize(), seq.Msgsize()/n)
 	bts, err := seq.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -49,13 +48,13 @@ func TestSequencerRawSize(t *testing.T) {
 	n := 100
 
 	// make 1000 hashes
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		//seq.Hashes = append(seq.Hashes, HexToHash("0xAABB000000000000000000000000CCDDCCDD000000000000000000000000EEFF").Bytes)
 	}
 
-	fmt.Println("Length", seq.Msgsize(), seq.Msgsize() / n)
+	fmt.Println("Length", seq.Msgsize(), seq.Msgsize()/n)
 	bts, err := seq.MarshalMsg(nil)
-	fmt.Println("ActualLength", len(bts), len(bts) / n)
+	fmt.Println("ActualLength", len(bts), len(bts)/n)
 
 	if err != nil {
 		t.Fatal(err)

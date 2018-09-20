@@ -1,11 +1,11 @@
 package og
 
 import (
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
 )
 
 func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
@@ -30,7 +30,7 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	return seq.(*types.Sequencer), balance
 }
 
-func GetSampleAccounts() []account.SampleAccount{
+func GetSampleAccounts() []account.SampleAccount {
 	//for test
 	return []account.SampleAccount{
 		// insert 0x00 at the beginning to indicate private key type

@@ -94,7 +94,7 @@ func (s *Server) Serve() {
 
 	if err := s.server.ListenAndServe(); err != nil {
 		// cannot panic, because this probably is an intentional close
-		logrus.WithError(err).Errorf("websocket server error")
+		logrus.WithError(err).Info("websocket server")
 	}
 }
 
@@ -124,7 +124,7 @@ func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Fatal("server Shutdown")
+		logrus.WithError(err).Info("server Shutdown")
 	}
 	logrus.Info("server exiting")
 }

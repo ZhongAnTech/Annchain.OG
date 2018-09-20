@@ -48,7 +48,7 @@ func Execute() {
 		}
 	}()
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logrus.WithError(err).Fatalf("Fatal error occurred. Program will exit")
 		os.Exit(1)
 	}
 }

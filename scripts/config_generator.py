@@ -2,7 +2,7 @@ import sys
 
 import toml
 
-parallel_tx = 2
+parallel_tx = 1
 static_node = 'a4d8435e9923d6cc950ff47df5f8fef469b1acfa255cf9b5daab53abdca3d76403bda33ebedd1336d526ffc510c9420c7df0731ee37ea6b28780ca6011fe741e'
 
 
@@ -15,8 +15,11 @@ def generate_config(id, seq_enabled):
     d['rpc']['port'] = port_add + 0
     d['p2p']['port'] = port_add + 1
     d['websocket']['port'] = port_add + 2
+    d['profiling']['port'] = port_add + 3
     d['leveldb']['path'] = 'datadir_%02d' % (id)
-    d['auto_tx']['count'] = parallel_tx
+
+    d['auto_tx']['enabled'] = True
+    # d['auto_tx']['count'] = parallel_tx
     d['auto_sequencer']['enabled'] = seq_enabled
     d['debug']['node_id'] = id
 

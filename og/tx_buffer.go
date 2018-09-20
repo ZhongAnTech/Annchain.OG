@@ -101,6 +101,19 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
 }
 
+// niceTx
+func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
+	// Check if the tx is valid based on graph structure rules
+	// Only txs that are obeying rules will be added to the graph.
+	logrus.WithField("tx", tx).Info("nice tx")
+	if !b.VerifyGraphStructure(tx) {
+		logrus.WithField("tx", tx).Info("bad graph tx")
+		return
+	}
+	// resolve other dependencies
+	b.resolve(tx, firstTime)
+}
+
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
@@ -108,26 +121,21 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	// already in the dag or tx_pool.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
-	}
-	if err := b.verifyTxFormat(tx); err != nil {
-		logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
-		return
-	}
-	// not in tx buffer , a new tx , shoud brodcast
-	if ! b.isKnownHash(tx.GetTxHash()) {
+	} else {
+		// not in tx buffer , a new tx , shoud brodcast
 		shoudBrodcast = true
 	}
+	// TODO: Temporarily comment it out to test performance.
+	//if err := b.verifyTxFormat(tx); err != nil {
+	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
+	//	return
+	//}
 
 	if b.buildDependencies(tx) {
-		// already fulfilled, insert into txpool
+		// directly fulfilled, insert into txpool
 		// needs to resolve itself first
-		logrus.WithField("tx", tx).Debugf("new tx fulfilled in buffer")
-		// Check if the tx is valid based on graph structure rules
-		// Only txs that are obeying rules will be added to the graph.
-		if b.VerifyGraphStructure(tx) {
-			go b.txPool.AddRemoteTx(tx)
-		}
-		b.resolve(tx)
+		logrus.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
+		b.niceTx(tx, true)
 	}
 
 	if shoudBrodcast {
@@ -197,16 +205,21 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
-func (b *TxBuffer) resolve(tx types.Txi) {
+func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	if err != nil {
-		// key not present, already resolved.
-		logrus.WithField("tx", tx).Debugf("tx already resolved before")
-		return
-	}
 	b.txPool.AddRemoteTx(tx)
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
+
+	if err != nil {
+		// key not present, already resolved.
+		if firstTime {
+			logrus.WithField("tx", tx).Debug("new local tx")
+		} else {
+			logrus.WithField("tx", tx).Warn("already been resolved before")
+		}
+		return
+	}
 	// try resolve the remainings
 	for _, v := range vs.(map[types.Hash]types.Txi) {
 		if v.GetTxHash() == tx.GetTxHash() {
@@ -239,34 +252,33 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 		"Buffer": b.GetFromBuffer(hash),
 	}).Info("transaction location")
 
-	if b.txPool.Get(hash) != nil{
+	if b.txPool.Get(hash) != nil {
 		return true
 	}
-	if b.dag.GetTx(hash) != nil{
+	if b.dag.GetTx(hash) != nil {
 		return true
 	}
-	if b.GetFromBuffer(hash) != nil{
+	if b.GetFromBuffer(hash) != nil {
 		return true
 	}
 	return false
- }
+}
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
 // It will check if the given hash has no more dependencies in the cache.
 // If so, resolve this hash and try resolve its children
-func (b *TxBuffer) tryResolve(tx types.Txi) bool {
+func (b *TxBuffer) tryResolve(tx types.Txi) {
 	logrus.Debugf("try to resolve %s", tx.String())
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		if err == nil {
 			// dependency presents.
 			logrus.WithField("parent", parent).WithField("tx", tx).Debugf("cascade resolving is still ongoing")
-			return false
+			return
 		}
 	}
-	// no more dependencies
-	b.resolve(tx)
-	return true
+	// no more dependencies, further check graph structure
+	b.niceTx(tx, false)
 }
 
 // buildDependencies examines if all ancestors are in our local cache.

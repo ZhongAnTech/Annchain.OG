@@ -57,7 +57,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"validators":    "",
 		"sequencer":     "",
 		"og_peers_info": "",
-		"genesis":"",
+		"genesis":       "",
 		// broadcast API
 		"new_transaction": "tx",
 
@@ -69,7 +69,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"contract_payload": "payload, abistr",
 
 		"query_receipt": "hash",
-		"transaction":      "hash",
+		"transaction":   "hash",
 
 		"query_contract": "tx",
 	}

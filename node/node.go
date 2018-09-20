@@ -24,8 +24,10 @@ func NewNode() *Node {
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
+	pm := &PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
+
 
 	maxPerr := viper.GetInt("p2p.max_peers")
 	if maxPerr == 0 {
@@ -86,7 +88,7 @@ func NewNode() *Node {
 		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   1,
+		NewTxQueueSize:                   10000,
 	})
 	txBuffer.Hub = hub
 	n.Components = append(n.Components, txBuffer)
@@ -185,7 +187,14 @@ func NewNode() *Node {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
 		org.Txpool.OnNewTxReceived = append(org.Txpool.OnNewTxReceived, wsServer.NewTxReceivedChan)
+		pm.Register(wsServer)
 	}
+
+	pm.Register(org.Txpool)
+	pm.Register(syncer)
+	pm.Register(txBuffer)
+	pm.Register(hub)
+	n.Components = append(n.Components, pm)
 
 	return n
 }

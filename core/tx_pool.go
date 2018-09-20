@@ -65,6 +65,13 @@ type TxPool struct {
 	OnNewTxReceived []chan types.Txi // for notifications of new txs.
 }
 
+func (pool *TxPool) GetChannelSizes() map[string]int {
+	return map[string]int{
+		"queue": len(pool.queue),
+		"event": len(pool.OnNewTxReceived),
+	}
+}
+
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
 		conf:            conf,
@@ -178,7 +185,7 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	//	"totalTips": len(values),
 	//}).Info("getting random tips")
 
-	for i := range indices {
+	for _, i := range indices {
 		v = append(v, values[i])
 	}
 	return v

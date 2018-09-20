@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -60,6 +61,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 		})
 		return
 	}
+	defer logrus.WithField("hash", hash.String()).Warn("Query done")
 	txi := r.Og.Dag.GetTx(hash)
 	if txi == nil {
 		txi = r.Og.Txpool.Get(hash)

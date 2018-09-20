@@ -32,10 +32,15 @@ func main() {
 	agg := make(chan pm, 1000)
 	count := 0
 
+	maxPort := PORT_START
+
 	for port := PORT_START; port <= PORT_START+NODES*PORT_GAP; port += PORT_GAP {
 		err := startListen(agg, port)
 		if err != nil {
 			continue
+		}
+		if port > maxPort {
+			maxPort = port
 		}
 		count += 1
 	}
@@ -45,37 +50,19 @@ func main() {
 
 	ticker := time.NewTicker(time.Second * REPORT_INTERVAL_SECONDS)
 
+	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
+
+	lastCheck := time.Now()
+
 	for {
 		select {
-		case m := <-agg:
-			uidata := &wserver.UIData{}
-			err := json.Unmarshal([]byte(m.message), uidata)
-			if err != nil {
-				logrus.WithField("port", m.port).WithError(err).Error("unmarshal")
-				return
-			}
-			key := uidata.Nodes[0].Data.Unit_s
-			logrus.WithFields(logrus.Fields{
-				"port": m.port,
-				"len":  len(uidata.Nodes),
-				"tx":   key,
-			}).Debug("new tx")
-
-			if _, ok := mapcount[key]; !ok {
-				mapcount[key] = make(map[int]struct{})
-			}
-			mapcount[key][m.port] = struct{}{}
-			if len(mapcount[key]) == count {
-				logrus.WithField("key", key).Debug("fully announced")
-				delete(mapcount, key)
-				deleted += 1
-			}
 		case <-ticker.C:
+			logrus.Warn("Ticker")
 			toDelete := []string{}
 			for k := range mapcount {
 				changed := false
 				// manual query to double confirm
-				for missingPort := PORT_START; missingPort <= PORT_START+NODES*PORT_GAP; missingPort += PORT_GAP {
+				for missingPort := PORT_START; missingPort <= maxPort; missingPort += PORT_GAP {
 					if _, ok := mapcount[k][missingPort]; !ok {
 						if manualQuery(missingPort, k) {
 							mapcount[k][missingPort] = struct{}{}
@@ -98,15 +85,43 @@ func main() {
 				delete(mapcount, k)
 				deleted += 1
 			}
-			logrus.WithField("v", float64(deleted)/REPORT_INTERVAL_SECONDS).Info("tps")
+			logrus.WithField("count", deleted).
+				WithField("v", float64(deleted)/(time.Since(lastCheck).Seconds())).
+				Info("tps")
+			lastCheck = time.Now()
 			deleted = 0
-		}
+		case m := <-agg:
+			uidata := &wserver.UIData{}
+			err := json.Unmarshal([]byte(m.message), uidata)
+			if err != nil {
+				logrus.WithField("port", m.port).WithError(err).Error("unmarshal")
+				return
+			}
+			key := uidata.Nodes[0].Data.Unit
+			//logrus.WithFields(logrus.Fields{
+			//	"port": m.port,
+			//	"len":  len(uidata.Nodes),
+			//	"tx":   key,
+			//}).Debug("new tx")
 
+			if _, ok := mapcount[key]; !ok {
+				mapcount[key] = make(map[int]struct{})
+			}
+			mapcount[key][m.port] = struct{}{}
+			if len(mapcount[key]) == count {
+				logrus.WithField("key", key).Debug("fully announced")
+				delete(mapcount, key)
+				deleted += 1
+			}
+
+		}
 	}
 }
 func manualQuery(port int, hash string) bool {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/transaction?hash=%s", port+PORT_OFFSET_RPC, hash))
+
 	if err != nil {
+		logrus.WithField("port", port).WithError(err).Warn("Request query error")
 		return false
 	}
 	defer resp.Body.Close()

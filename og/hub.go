@@ -550,7 +550,7 @@ func (h *Hub) loopReceive() {
 			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
 				// already there
 				log.WithField("hash", m.hash).WithField("type", m.MessageType.String()).
-					Warn("we have a duplicate message. Discard")
+					Debug("we have a duplicate message. Discard")
 				continue
 			}
 			h.messageCache.Set(m.hash, nil)

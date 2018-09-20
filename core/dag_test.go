@@ -10,9 +10,9 @@ import (
 	"github.com/annchain/OG/common/math"
 )
 
-func newTestDag(t *testing.T) (*core.Dag, *types.Sequencer, func()) {
+func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
 	conf := core.DagConfig{}
-	db, remove := newTestLDB()
+	db, remove := newTestLDB(dbDirPrefix)
 	dag := core.NewDag(conf, db)
 
 	genesis, balance := og.DefaultGenesis()
@@ -44,7 +44,7 @@ func newTestDagTx(nonce uint64) *types.Tx {
 func TestDagInit(t *testing.T) {
 	t.Parallel()
 
-	dag, genesis, finish := newTestDag(t)
+	dag, genesis, finish := newTestDag(t, "TestDagInit")
 	defer finish()
 
 	if dag.GetTx(genesis.GetTxHash()) == nil {
@@ -72,7 +72,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	var err error
 
 	conf := core.DagConfig{}
-	db, remove := newTestLDB()
+	db, remove := newTestLDB("TestDagLoadGenesis")
 	defer remove()
 	dag := core.NewDag(conf, db)
 
@@ -106,7 +106,7 @@ func TestDagLoadGenesis(t *testing.T) {
 func TestDagPush(t *testing.T) {
 	t.Parallel()
 
-	dag, genesis, finish := newTestDag(t)
+	dag, genesis, finish := newTestDag(t, "TestDagPush")
 	defer finish()
 
 	var err error

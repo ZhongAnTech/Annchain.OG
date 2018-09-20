@@ -583,19 +583,23 @@ func NewTxMap() *TxMap {
 	}
 	return tm
 }
+
 func (tm *TxMap) Count() int {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
 	return len(tm.txs)
 }
+
 func (tm *TxMap) Get(hash types.Hash) types.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
 	return tm.txs[hash]
 }
+
 func (tm *TxMap) GetAllKeys() []types.Hash {
+
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 

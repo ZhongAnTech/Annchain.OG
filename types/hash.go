@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"reflect"
 
+	"bytes"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"strings"
@@ -48,6 +49,11 @@ type Hashs []Hash
 
 type HashBytes [HashLength]byte
 
+func (h *Hash) Empty() bool {
+	var hs Hash
+	return bytes.Equal(h.Bytes[:], hs.Bytes[:])
+}
+
 // BytesToHash sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToHash(b []byte) Hash {
@@ -64,16 +70,15 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 // If b is larger than len(h), b will be cropped from the left.
 func HexToHash(s string) Hash { return BytesToHash(common.FromHex(s)) }
 
-
-func HexStringToHash( s string) (Hash ,error) {
+func HexStringToHash(s string) (Hash, error) {
 	var h Hash
-	err :=  h.SetBytes(common.FromHex(s))
-	return h ,err
+	err := h.SetBytes(common.FromHex(s))
+	return h, err
 }
 
-func HashesToString(hashes []Hash) string{
+func HashesToString(hashes []Hash) string {
 	var strs []string
-	for _, v := range hashes{
+	for _, v := range hashes {
 		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
@@ -152,9 +157,9 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 // Cmp compares two hashes. Returns -1 if the self hash is less than parameter hash
 func (h Hash) Cmp(another Hash) int {
 	for i := 0; i < HashLength; i++ {
-		if h.Bytes[i] < another.Bytes[i]{
+		if h.Bytes[i] < another.Bytes[i] {
 			return -1
-		}else if h.Bytes[i] > another.Bytes[i]{
+		} else if h.Bytes[i] > another.Bytes[i] {
 			return 1
 		}
 	}

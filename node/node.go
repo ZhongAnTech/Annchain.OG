@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/annchain/OG/wserver"
 	"fmt"
+	"github.com/annchain/OG/og/downloader"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -35,13 +36,19 @@ func NewNode() *Node {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
 		n.Components = append(n.Components, rpcServer)
 	}
+	org, err := og.NewOg()
+	if err != nil {
+		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
+		panic("Error occurred while initializing OG")
+	}
 
+	networkId := viper.GetInt64("network_id")
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize: viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
 		MessageCacheExpirationSeconds:viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:viper.GetInt("hub.message_cache_max_size"),
-	}, maxPerr)
+	}, maxPerr,downloader.FullSync, uint64(networkId),org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
 		BatchTimeoutMilliSecond:              1000,
@@ -51,17 +58,14 @@ func NewNode() *Node {
 		AcquireTxDedupCacheExpirationSeconds: 60,
 	}, hub)
 
-	org, err := og.NewOg()
-	if err != nil {
-		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
-		panic("Error occurred while initializing OG")
-	}
+
 
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
 
-	hub.Dag = org.Dag
+
+
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -88,9 +92,13 @@ func NewNode() *Node {
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
 	})
-	txBuffer.Hub = hub
-	n.Components = append(n.Components, txBuffer)
 
+	txBuffer.Hub = hub
+	hub.TxBuffer =  txBuffer
+	n.Components = append(n.Components, txBuffer)
+   	syncBuffer := og.NewSyncBuffer(txBuffer)
+   	hub.SyncBuffer = syncBuffer
+	n.Components = append(n.Components, syncBuffer)
 	m := &og.Manager{
 		TxPool:   org.Txpool,
 		TxBuffer: txBuffer,
@@ -217,4 +225,5 @@ func SetupCallbacks(m *og.Manager, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
 	hub.CallbackRegistry[og.MessageTypeNewTx] = m.HandleNewTx
 	hub.CallbackRegistry[og.MessageTypeNewSequence] = m.HandleNewSequence
+	hub.CallbackRegistry[og.MessageTypeNewTxs] =m.HandleNewTxs
 }

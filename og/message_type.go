@@ -17,10 +17,10 @@ const (
 var ProtocolName = "og"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
-var ProtocolVersions = []uint{OG31, OG32}
+var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 8}
+var ProtocolLengths = []uint64{17, 12}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -36,8 +36,20 @@ const (
 	MessageTypeFetchByHashResponse
 	MessageTypeNewTx
 	MessageTypeNewSequence
+	MessageTypeNewTxs
+
+	//GetBlockHeadersMsg
+	//BlockHeadersMsg
+	//GetBlockBodiesMsg
+	//BlockBodiesMsg
+
+	MessageTypeTxsRequest
+	MessageTypeGetTxs
+	MessageTypeHeaderRequest
+	MessageTypeGetHeader
 
 	// Protocol messages belonging to OG/32
+
 	GetNodeDataMsg
 	NodeDataMsg
 	GetReceiptsMsg
@@ -46,7 +58,9 @@ const (
 func (mt MessageType) String() string {
 	return []string{
 		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
-		"MessageTypeNewTx", "MessageTypeNewSequence", "GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
+		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs","MessageTypeTxsRequest",
+		"MessageTypeGetTxs",  "MessageTypeHeaderRequest", "MessageTypeGetHeader",
+		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
 	}[int(mt)]
 }
 

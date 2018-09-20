@@ -2,6 +2,9 @@
 
 title = "TOML Example"
 
+[log]
+level = "debug"
+
 [rpc]
 enabled = true
 port = 8000
@@ -15,6 +18,9 @@ static_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838
 [websocket]
 enabled = true
 port = 8002
+
+[profiling]
+port = 8003
 
 [db]
 name = "leveldb"
@@ -33,10 +39,12 @@ tx_valid_time = 100
 
 [auto_sequencer]
 enabled = true
+interval_ms = 15000
 
 [auto_tx]
 enabled = true
-count = 2
+count = 1
+interval_ms = 1000
 
 [debug]
 node_id = 1

@@ -4,12 +4,12 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
 	"github.com/sirupsen/logrus"
-	"time"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/math"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 type ClientAutoTx struct {
@@ -57,17 +57,11 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 }
 
 func (c *ClientAutoTx) loop(from int, to int) {
-	ticker := time.NewTicker(time.Millisecond * (time.Duration(c.TxIntervalMilliSeconds)))
-
 	for !c.stop {
-	//for i := 0; i < 0; i ++ {
 		select {
 		case <-c.manualChan:
-			//case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
-			//case <-time.NewTimer(time.Millisecond * 5).C:
-		case <-ticker.C:
+		case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
 		}
-
 		c.GenerateRequest(from, to)
 	}
 }

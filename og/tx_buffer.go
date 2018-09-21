@@ -49,7 +49,7 @@ type TxBuffer struct {
 	Hub             *Hub
 }
 
-func (b *TxBuffer) GetChannelSizes() map[string]int {
+func (b *TxBuffer) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"newTxChan": len(b.newTxChan),
 	}

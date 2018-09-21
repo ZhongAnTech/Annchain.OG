@@ -186,7 +186,13 @@ func (h *Hub) AddTxs(txs  types.Txs, seq *types.Sequencer) error {
 		t := *tx
 		txis = append(txis,&t)
 	}
-	go h.SyncBuffer.AddTxs(txis,seq)
+	if seq ==nil {
+		err := fmt.Errorf("seq is nil")
+		log.WithError(err)
+		return err
+	}
+	se := *seq
+	go h.SyncBuffer.AddTxs(txis,&se)
 	return nil
 }
 
@@ -439,7 +445,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 		if len(transactions) > 0 || !filter {
 			log.WithField("len",len(transactions[0])).Debug("deliver bodies ")
-			err := h.downloader.DeliverBodies(p.id, transactions, nil)
+			err := h.downloader.DeliverBodies(p.id, transactions, nil, request.Sequencer)
 			if err != nil {
 				log.Debug("Failed to deliver bodies", "err", err)
 			}

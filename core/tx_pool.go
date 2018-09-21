@@ -69,6 +69,10 @@ func (pool *TxPool) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"queue": len(pool.queue),
 		"event": len(pool.OnNewTxReceived),
+		"txlookup": len(pool.txLookup.txs),
+		"tips": len(pool.tips.txs),
+		"badtxs": len(pool.badtxs.txs),
+		"latest_seq": int(pool.dag.latestSeqencer.Id),
 	}
 }
 
@@ -173,8 +177,8 @@ func generateRandomIndices(count int, upper int) []int {
 
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 
 	// select n random hashes
 	values := pool.tips.GetAllValues()
@@ -313,7 +317,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in txpending.
 func (pool *TxPool) commit(tx *types.Tx) error {
-	log.Debugf("`: %s", tx.String())
+	log.WithField("tx", tx).Debugf("start commit tx")
+
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
 	if pool.tips.Count() >= pool.conf.TipsSize {
 		return fmt.Errorf("tips pool reaches max size")
@@ -386,7 +393,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	log.Debugf("start confirm seq: %s", seq.String())
+	log.WithField("seq", seq).Warn("start confirm seq")
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -394,6 +401,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// get sequencer's unconfirmed elders
 	elders := pool.seekElders(seq)
 	// verify the elders
+	log.WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return err
@@ -443,13 +451,13 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
-				inSeekingPool[elderParentHash] = 0
+				inSeekingPool[elderHash] = 0
 				log.WithField("len", seekingPool.Len()).
 					WithField("tx", baseTx).
 					WithField("as", len(inSeekingPool)).
 					WithField("elder", elder).
 					WithField("elderParentHash", elderParentHash).
-					Warn("seekingpool")
+					Debug("seekingpool")
 			}
 		}
 	}

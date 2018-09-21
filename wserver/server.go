@@ -59,7 +59,7 @@ type Server struct {
 	quit   chan bool
 }
 
-func (s *Server) GetChannelSizes() map[string]int {
+func (s *Server) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"newtx": len(s.NewTxReceivedChan),
 	}

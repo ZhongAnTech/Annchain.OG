@@ -97,23 +97,24 @@ func main() {
 				logrus.WithField("port", m.port).WithError(err).Error("unmarshal")
 				return
 			}
-			key := uidata.Nodes[0].Data.Unit
-			//logrus.WithFields(logrus.Fields{
-			//	"port": m.port,
-			//	"len":  len(uidata.Nodes),
-			//	"tx":   key,
-			//}).Debug("new tx")
+			for _, node := range uidata.Nodes {
+				key := node.Data.Unit
+				//logrus.WithFields(logrus.Fields{
+				//	"port": m.port,
+				//	"len":  len(uidata.Nodes),
+				//	"tx":   key,
+				//}).Debug("new tx")
 
-			if _, ok := mapcount[key]; !ok {
-				mapcount[key] = make(map[int]struct{})
+				if _, ok := mapcount[key]; !ok {
+					mapcount[key] = make(map[int]struct{})
+				}
+				mapcount[key][m.port] = struct{}{}
+				if len(mapcount[key]) == count {
+					logrus.WithField("key", key).Debug("fully announced")
+					delete(mapcount, key)
+					deleted += 1
+				}
 			}
-			mapcount[key][m.port] = struct{}{}
-			if len(mapcount[key]) == count {
-				logrus.WithField("key", key).Debug("fully announced")
-				delete(mapcount, key)
-				deleted += 1
-			}
-
 		}
 	}
 }

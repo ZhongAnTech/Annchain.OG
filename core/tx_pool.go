@@ -65,7 +65,7 @@ type TxPool struct {
 	OnNewTxReceived []chan types.Txi // for notifications of new txs.
 }
 
-func (pool *TxPool) GetChannelSizes() map[string]int {
+func (pool *TxPool) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"queue": len(pool.queue),
 		"event": len(pool.OnNewTxReceived),
@@ -152,7 +152,7 @@ func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
-// generate [count] unique random number within range [0, upper)
+// generate [count] unique random numbers within range [0, upper)
 // if count > upper, use all available indices
 func generateRandomIndices(count int, upper int) []int {
 	if count > upper {

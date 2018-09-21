@@ -33,7 +33,7 @@ type Hub struct {
 	messageCache     gcache.Cache // cache for duplicate responses/msg to prevent storm
 }
 
-func (h *Hub) GetChannelSizes() map[string]int {
+func (h *Hub) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"outgoing": len(h.outgoing),
 		"incoming": len(h.incoming),

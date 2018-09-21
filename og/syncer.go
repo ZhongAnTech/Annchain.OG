@@ -17,7 +17,7 @@ type Syncer struct {
 	quit                chan bool
 }
 
-func (m *Syncer) GetChannelSizes() map[string]int {
+func (m *Syncer) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"acquireTxQueue": len(m.acquireTxQueue),
 	}

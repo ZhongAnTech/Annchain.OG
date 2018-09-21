@@ -78,7 +78,7 @@ type Downloader struct {
 
 	dag *core.Dag
 
-    insetTxs  func(txs types.Txs,seq *types.Sequencer) error
+    insertTxs  insertTxsFn
 	// Callbacks
 	dropPeer peerDropFn // Drops a peer for misbehaving
 
@@ -115,7 +115,7 @@ type Downloader struct {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, dag *core.Dag, dropPeer peerDropFn) *Downloader {
+func New(mode SyncMode, dag *core.Dag, dropPeer peerDropFn, insertTxs insertTxsFn ) *Downloader {
 
 	dl := &Downloader{
 		mode:          mode,
@@ -125,6 +125,7 @@ func New(mode SyncMode, dag *core.Dag, dropPeer peerDropFn) *Downloader {
 		rttConfidence: uint64(1000000),
 		dag:           dag,
 		dropPeer:      dropPeer,
+		insertTxs:       insertTxs,
 		headerCh:      make(chan dataPack, 1),
 		bodyCh:        make(chan dataPack, 1),
 		receiptCh:     make(chan dataPack, 1),
@@ -1094,12 +1095,13 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	first, last := results[0].Header, results[len(results)-1].Header
 
 	log.WithField( "items", len(results)).WithField("firstnum", first.SequencerId()).WithField(
-		"firsthash", first.Hash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.Hash()).Debug(
-			"Inserting downloaded chain")
+		"firsthash", first.Hash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.Hash()).WithField(
+			"len txs",len(results[0].Transactions)).Debug(
+			"Inserting downloaded txs")
 
 	for _, result := range results {
 		//todo  fix this
-		err := d.insetTxs(result.Transactions, result.Sequencer)
+		err := d.insertTxs(result.Transactions, result.Sequencer)
 		if err!=nil {
 			return err
 		}

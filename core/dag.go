@@ -270,7 +270,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.latestSeqencer = batch.Seq
 
 	log.Debugf("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
-    log.WithField("height",batch.Seq.Id).Info("new height")
+    log.WithField("height",batch.Seq.Id).WithField("txs number ",len(txHashs)).Info("new height")
 
 	return nil
 }
@@ -321,6 +321,7 @@ func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx{
 	if hashs==nil {
 		return nil
 	}
+	log.WithField("len tx ",len(*hashs)).WithField("id",id).Info("get txs")
 	return dag.GetTxs(*hashs)
 }
 

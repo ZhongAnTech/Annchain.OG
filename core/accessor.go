@@ -41,11 +41,13 @@ func addressBalanceKey(addr types.Address) []byte {
 }
 
 func seqIdKey(seqid uint64) []byte {
-	return append(prefixSeqIdKey, []byte(fmt.Sprintf("%d", seqid))...)
+	suffix := prefixSeqIdKey
+	return append(prefixSeqIdKey, append([]byte(fmt.Sprintf("%d", seqid)), suffix...)...)
 }
 
 func txIndexKey(seqid uint64) []byte {
-	return append(prefixTxIndexKey, []byte(fmt.Sprintf("%d", seqid))...)
+	suffix := prefixTxIndexKey
+	return append(prefixTxIndexKey, append([]byte(fmt.Sprintf("%d", seqid)), suffix...)...)
 }
 
 type Accessor struct {

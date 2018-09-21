@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type RpcControler struct {
@@ -69,18 +70,39 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 		})
 		return
 	}
-	if txi.GetType() == types.TxBaseTypeNormal {
-		tx := txi.(*types.Tx)
-		if tx != nil {
-			c.JSON(http.StatusOK, tx)
-			return
-		}
-	} else if txi.GetType() == types.TxBaseTypeSequencer {
-		sq := txi.(*types.Sequencer)
-		if sq != nil {
-			c.JSON(http.StatusOK, sq)
-			return
-		}
+	switch tx := txi.(type) {
+	case *types.Tx:
+		c.JSON(http.StatusOK, tx)
+		return
+	case *types.Sequencer:
+		c.JSON(http.StatusOK, tx)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "not found",
+	})
+
+}
+
+func (r *RpcControler) Transactions(c *gin.Context) {
+	seqId := c.Query("seq_id")
+	id ,err:= strconv.Atoi(seqId)
+	if err!=nil || id <0 {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "seq_id format error",
+		})
+		return
+	}
+	txs:=  r.Og.Dag.GetTxsByNumber(uint64(id))
+	var txsREsponse struct {
+		Total   int        `json:"total"`
+		Txs []*types.Tx `json:"txs"`
+	}
+	if len(txs)!=0 {
+		txsREsponse.Total = len(txs)
+		txsREsponse.Txs = txs
+		c.JSON(http.StatusOK, txsREsponse)
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "not found",

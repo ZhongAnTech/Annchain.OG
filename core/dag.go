@@ -170,7 +170,7 @@ func (dag *Dag) GetSequencerById(id uint64) *types.Sequencer {
 	return dag.getSequencerById(id)
 }
 
-func ( dag *Dag) getSequencerById(id uint64) *types.Sequencer {
+func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
 	if id== 0 {
 		return dag.genesis
 	}
@@ -179,7 +179,7 @@ func ( dag *Dag) getSequencerById(id uint64) *types.Sequencer {
 	dag.wg.Add(1)
 	defer dag.wg.Done()
 
-	seq, err:=  dag.accessor.ReadSequencerById(id)
+	seq, err := dag.accessor.ReadSequencerById(id)
 	if err != nil || seq == nil {
 		log.WithField("id",id).WithError(err).Warn("head not found")
 		return nil

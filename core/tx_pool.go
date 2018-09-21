@@ -256,7 +256,7 @@ func (pool *TxPool) loop() {
 				log.Fatalf("tips count is zero after tx: %s", tx.GetTxHash())
 			}
 
-			// TODO case reset?
+		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}

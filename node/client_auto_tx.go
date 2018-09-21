@@ -48,13 +48,14 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int){
 }
 
 func (c *ClientAutoTx) loop(from int, to int) {
-	ticker := time.NewTicker(time.Millisecond * time.Duration(rand.Intn(c.TxIntervalMilliSeconds)))
-	//ticker := time.NewTicker(time.Millisecond * time.Duration(c.TxIntervalMilliSeconds))
+	//ticker := time.NewTicker(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1)))
 	for !c.stop {
 		select {
 		case <-c.manualChan:
-		case <-ticker.C:
+		case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
+		//case <- ticker.C:
 		}
+
 		c.GenerateRequest(from, to)
 	}
 }

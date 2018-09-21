@@ -1,7 +1,6 @@
 package wserver
 
 import (
-	"encoding/json"
 	"github.com/annchain/OG/types"
 )
 
@@ -42,9 +41,9 @@ type UIData struct {
 	Edges []Edge `json:"edges"`
 }
 
-func tx2UIData(tx types.Txi) string {
-	uiData := UIData{}
-	uiData.Nodes = make([]Node, 1)
+
+
+func (u *UIData) AddToBatch(tx types.Txi) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
@@ -62,19 +61,13 @@ func tx2UIData(tx types.Txi) string {
 		node.Type = "Unknown"
 	}
 
-	uiData.Nodes[0] = node
+	u.Nodes = append(u.Nodes, node)
 	for _, parent := range tx.Parents() {
 		edge := Edge{
 			Id:     tx.String() + "_" + parent.String(),
 			Source: tx.GetTxHash().Hex(),
 			Target: parent.Hex(),
 		}
-		uiData.Edges = append(uiData.Edges, edge)
+		u.Edges = append(u.Edges, edge)
 	}
-
-	bs, err := json.Marshal(&uiData)
-	if err != nil {
-		return ""
-	}
-	return string(bs)
 }

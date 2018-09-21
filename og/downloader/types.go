@@ -31,6 +31,11 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Tx
+	sequencer        *types.Sequencer
+}
+
+func (p *bodyPack)Sequencer()*types.Sequencer {
+	return  p.sequencer
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }

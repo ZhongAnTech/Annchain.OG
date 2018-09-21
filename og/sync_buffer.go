@@ -11,6 +11,7 @@ import (
 
 type SyncBuffer struct {
 	Txs       map[types.Hash]types.Txi
+	Seq        *types.Sequencer
 	mu        sync.RWMutex
 	txBuffer  *TxBuffer
 	acceptTxs uint32
@@ -30,6 +31,12 @@ func (s *SyncBuffer) Stop() {
 func (s *SyncBuffer) addTxs(txs []types.Txi,seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if seq ==nil {
+		err :=  fmt.Errorf("nil sequencer")
+		log.WithError(err).Debug("add txs error")
+		return err
+	}
+	s.Seq = seq
 	for _, tx := range txs {
 		if len(s.Txs) > MaxBufferSiza {
 			return fmt.Errorf("too much txs")
@@ -38,17 +45,11 @@ func (s *SyncBuffer) addTxs(txs []types.Txi,seq *types.Sequencer) error {
 			log.Debug("nil tx")
 			continue
 		}
-		log.Debug("add tx",tx)
 		if _, ok := s.Txs[tx.GetTxHash()]; !ok {
 			s.Txs[tx.GetTxHash()] = tx
 		}
 	}
-	if seq!=nil {
-		if _, ok := s.Txs[seq.GetTxHash()]; !ok {
-			s.Txs[seq.GetTxHash()] = seq
-		}
 
-	}
 	return nil
 
 }
@@ -157,19 +158,22 @@ func (s *SyncBuffer) Handle() {
 
 	txHashs := s.GetAllKeys()
 	for _, txHash := range txHashs {
-		s.HandelOne(txHash)
+		s.HandelOne(txHash,types.TxBaseTypeNormal)
 	}
+	s.HandelOne(s.Seq.GetTxHash(),types.TxBaseTypeSequencer)
 	if s.Count() == 0 {
 		log.Info("finished processing txs")
 	}
 	return
 }
 
-func (s *SyncBuffer) HandelOne(hash types.Hash) (added bool, err error) {
+func (s *SyncBuffer) HandelOne(hash types.Hash, txType types.TxBaseType ) (added bool, err error) {
 	b := s.txBuffer
 	tx := s.Get(hash)
+	if txType == types.TxBaseTypeSequencer {
+           tx = s.Seq
+	}
 	if tx == nil {
-		//s.Remove(tx.GetTxHash())
 		return false, nil
 	}
 	// already in the dag or tx_pool.
@@ -193,7 +197,7 @@ func (s *SyncBuffer) HandelOne(hash types.Hash) (added bool, err error) {
 				s.Remove(tx.GetTxHash())
 				return false, fmt.Errorf("parent not found")
 			} else {
-				if result, _ := s.HandelOne(parent.GetTxHash()); result {
+				if result, _ := s.HandelOne(parent.GetTxHash(),parent.GetType()); result {
 					unkown = false
 				}
 			}
@@ -207,6 +211,7 @@ func (s *SyncBuffer) HandelOne(hash types.Hash) (added bool, err error) {
 		}
 		s.Remove(tx.GetTxHash())
 		s.txBuffer.txPool.AddRemoteTx(tx)
+		log.Debug("hande done sync tx ", tx.GetTxHash())
 		return true, nil
 	}
 

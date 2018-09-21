@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "debug"
+level = "warn"
 
 [rpc]
 enabled = true
@@ -43,7 +43,7 @@ interval_ms = 15000
 
 [auto_tx]
 enabled = true
-count = 1
+count = 5
 interval_ms = 1000
 
 [debug]

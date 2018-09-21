@@ -263,6 +263,10 @@ func (pool *TxPool) loop() {
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 			}
+			if err != nil{
+				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
+			}
+
 			txEvent.callbackChan <- err
 
 		// TODO case reset?
@@ -322,9 +326,10 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	if pool.tips.Count() >= pool.conf.TipsSize {
-		return fmt.Errorf("tips pool reaches max size")
-	}
+	//if pool.tips.Count() >= pool.conf.TipsSize {
+	//	log.Warnf("tips pool reaches max size: %d", pool.conf.TipsSize)
+	//	return fmt.Errorf("tips pool reaches max size")
+	//}
 	if pool.isBadTx(tx) {
 		log.Debugf("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
@@ -393,7 +398,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	log.WithField("seq", seq).Warn("start confirm seq")
+	log.WithField("seq", seq).Debug("start confirm seq")
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -424,7 +429,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq", seq).Debugf("finished confirm seq")
+	log.WithField("seq", seq).Debug("finished confirm seq")
 	return nil
 }
 
@@ -442,16 +447,13 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 		if elder == nil {
 			continue
 		}
-		if elder.GetType() == types.TxBaseTypeSequencer {
-			continue
-		}
 		if batch[elder.GetTxHash()] == nil {
 			batch[elder.GetTxHash()] = elder
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
-				inSeekingPool[elderHash] = 0
+				inSeekingPool[elderParentHash] = 0
 				log.WithField("len", seekingPool.Len()).
 					WithField("tx", baseTx).
 					WithField("as", len(inSeekingPool)).

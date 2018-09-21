@@ -6,11 +6,9 @@ import (
 )
 
 type PoWMiner struct {
-	quit bool
 }
 
 func (m *PoWMiner) StartMine(tx types.Txi, targetMax types.Hash, start uint64, responseChan chan uint64) {
-	m.quit = false
 	// do brute force
 	var i uint64
 	base := tx.GetBase()
@@ -26,5 +24,4 @@ func (m *PoWMiner) StartMine(tx types.Txi, targetMax types.Hash, start uint64, r
 
 }
 func (m *PoWMiner) Stop() {
-	m.quit = true
 }

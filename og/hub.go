@@ -14,7 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/big"
 
-
 	"github.com/bluele/gcache"
 	"sync"
 	"sync/atomic"
@@ -188,11 +187,9 @@ func (h *Hub) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	switch tx := txi.(type) {
 	case *types.Sequencer:
 		return tx
-		break
 	default:
 		return nil
 	}
-	return nil
 }
 
 // handle is the callback invoked to manage the life cycle of an eth peer. When

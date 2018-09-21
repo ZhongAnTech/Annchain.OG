@@ -27,35 +27,46 @@ func (s *SyncBuffer) Stop() {
 	s.quit <- true
 }
 
-func (s *SyncBuffer) addTxs(txs []types.Txi) error {
+func (s *SyncBuffer) addTxs(txs []types.Txi,seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, tx := range txs {
 		if len(s.Txs) > MaxBufferSiza {
 			return fmt.Errorf("too much txs")
 		}
+		if tx==nil{
+			log.Debug("nil tx")
+			continue
+		}
+		log.Debug("add tx",tx)
 		if _, ok := s.Txs[tx.GetTxHash()]; !ok {
 			s.Txs[tx.GetTxHash()] = tx
 		}
+	}
+	if seq!=nil {
+		if _, ok := s.Txs[seq.GetTxHash()]; !ok {
+			s.Txs[seq.GetTxHash()] = seq
+		}
+
 	}
 	return nil
 
 }
 
-func (s *SyncBuffer) AddTxs(txs []types.Txi) error {
+func (s *SyncBuffer) AddTxs(txs []types.Txi ,seq *types.Sequencer) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
-		s.addTxs(txs)
+		s.addTxs(txs,seq)
 		s.start <- true
 	} else {
 		for {
 			select {
 			case <-s.done:
-				s.addTxs(txs)
+				s.addTxs(txs,seq)
 				s.start <- true
 				return nil
 			case <-time.After(time.Millisecond * 100):
 				if atomic.LoadUint32(&s.acceptTxs) == 0 {
-					s.addTxs(txs)
+					s.addTxs(txs,seq)
 					s.start <- true
 					return nil
 				}
@@ -78,6 +89,7 @@ func (s *SyncBuffer) loop() {
 		case <-s.start:
 			atomic.StoreUint32(&s.acceptTxs, 1)
 			s.Handle()
+		    s.clean()
 			atomic.StoreUint32(&s.acceptTxs, 0)
 			s.done <- true
 		}
@@ -124,28 +136,6 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	return keys
 }
 
-func (s *SyncBuffer) GetAllValues() []types.Txi {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var values []types.Txi
-	// slice of keys
-	for _, v := range s.Txs {
-		values = append(values, v)
-	}
-	return values
-}
-
-func (s *SyncBuffer) Exists(tx types.Txi) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if _, ok := s.Txs[tx.GetTxHash()]; !ok {
-		return false
-	}
-	return true
-}
-
 func (s *SyncBuffer) Remove(hash types.Hash) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,17 +143,15 @@ func (s *SyncBuffer) Remove(hash types.Hash) {
 	delete(s.Txs, hash)
 }
 
-func (s *SyncBuffer) Add(tx types.Txi) error {
+
+func (s *SyncBuffer)clean(){
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if len(s.Txs) > MaxBufferSiza {
-		return fmt.Errorf("too much txs")
+	for k,_:=  range s.Txs {
+		delete(s.Txs,k)
 	}
-	if _, ok := s.Txs[tx.GetTxHash()]; !ok {
-		s.Txs[tx.GetTxHash()] = tx
-	}
-	return nil
 }
+
 
 func (s *SyncBuffer) Handle() {
 
@@ -181,7 +169,7 @@ func (s *SyncBuffer) HandelOne(hash types.Hash) (added bool, err error) {
 	b := s.txBuffer
 	tx := s.Get(hash)
 	if tx == nil {
-		s.Remove(tx.GetTxHash())
+		//s.Remove(tx.GetTxHash())
 		return false, nil
 	}
 	// already in the dag or tx_pool.

@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"fmt"
 )
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
@@ -168,6 +169,8 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("indexed hashs are not the list of tx1 and tx2's hash")
 	}
 
+   txs:=  dag.GetTxsByNumber(seq.Id)
+   fmt.Println("txs",types.Txs(txs))
 
 	// TODO check addr balance
 

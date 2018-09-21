@@ -153,7 +153,7 @@ func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID 
 	}
 	// Construct the different synchronisation mechanisms
 
-	h.downloader = downloader.New(mode, h.Dag, h.removePeer)
+	h.downloader = downloader.New(mode, h.Dag, h.removePeer,h.AddTxs)
 	heighter := func() uint64 {
 		return h.Dag.LatestSequencer().Id
 	}
@@ -172,13 +172,13 @@ func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID 
 	return h
 }
 
-func (h *Hub) AddTxs(txs types.Txs, seq *types.Sequencer) error {
+func (h *Hub) AddTxs(txs  types.Txs, seq *types.Sequencer) error {
 	var txis []types.Txi
-	for _, tx := range txs {
-		txis = append(txis, tx)
+	for _,tx:= range txs {
+		t := *tx
+		txis = append(txis,&t)
 	}
-	txis = append(txis, seq)
-	go h.SyncBuffer.AddTxs(txis)
+	go h.SyncBuffer.AddTxs(txis,seq)
 	return nil
 }
 
@@ -259,7 +259,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
 	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data}
-	log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
+	//log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
 	switch {
 	case p2pMsg.MessageType == StatusMsg:
 		// Handle the message depending on its contentsms
@@ -408,7 +408,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		msgRes.Sequencer = seq
 		msgRes.Txs = h.Dag.GetTxsByNumber(msgReq.Id)
 		data, _ := msgRes.MarshalMsg(nil)
-		log.Debug("send MessageTypeGetTxs")
+		log.WithField("txs num ",len(msgRes.Txs)).Debug("send MessageTypeGetTxs, ")
 		return p.sendRawMessage(uint64(MessageTypeGetTxs), data)
 
 	case p2pMsg.MessageType == MessageTypeGetTxs:
@@ -416,18 +416,21 @@ func (h *Hub) handleMsg(p *peer) error {
 		// A batch of block bodies arrived to one of our previous requests
 		var request types.MessageNewSyncTxsResponse
 		if _, err := request.UnmarshalMsg(p2pMsg.Message); err != nil {
+			log.Error("msg %v: %v", msg, err)
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver them all to the downloader for queuing
 		transactions := make([][]*types.Tx, 1)
 		transactions[0] = request.Txs
 
+		log.WithField("len",len(transactions[0])).WithField("seq id",request.Sequencer.Id).Debug("got bodies txs ")
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
 		filter := len(transactions) > 0
 		if filter {
 			transactions = h.fetcher.FilterBodies(p.id, transactions, request.Sequencer, time.Now())
 		}
 		if len(transactions) > 0 || !filter {
+			log.WithField("len",len(transactions[0])).Debug("deliver bodies ")
 			err := h.downloader.DeliverBodies(p.id, transactions, nil)
 			if err != nil {
 				log.Debug("Failed to deliver bodies", "err", err)

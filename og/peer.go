@@ -234,7 +234,7 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 }
 
 func (p *peer) RequestTxs(hashs []types.Hash) error {
-	msg := types.MessageSyncRequest{
+	msg := types.MessageTxsRequest{
 		Hashes: hashs,
 	}
 	b, _ := msg.MarshalMsg(nil)

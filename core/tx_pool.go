@@ -425,10 +425,6 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 	}
 	for seekingPool.Len() > 0 {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
-		if _, in := inSeekingPool[elderHash]; in {
-			continue
-		}
-
 		elder := pool.Get(elderHash)
 		if elder == nil {
 			continue

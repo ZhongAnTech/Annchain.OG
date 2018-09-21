@@ -145,8 +145,9 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	hashes := make([]types.Hash, 0, len(request.Headers))
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.Hash())
+		 p.peer.RequestTxsByHash(header.Hash(),header.SequencerId())
 	}
-	go p.peer.RequestTxs(hashes)
+	//go p.peer.RequestTxs(hashes)
 
 	return nil
 }

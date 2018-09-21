@@ -71,7 +71,7 @@ type Hub struct {
 
 }
 
-func (h *Hub) GetChannelSizes() map[string]int {
+func (h *Hub) GetBenchmarks() map[string]int {
 	return map[string]int{
 		"outgoing": len(h.outgoing),
 		"incoming": len(h.incoming),

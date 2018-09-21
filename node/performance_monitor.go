@@ -5,20 +5,18 @@ import (
 	"time"
 )
 
-type ChannelHolder interface {
+type PerformanceReporter interface {
 	Name() string
-	GetChannelSizes() map[string]int
+	GetBenchmarks() map[string]int
 }
 
 type PerformanceMonitor struct {
-	channelHolders []ChannelHolder
-	quit bool
+	reporters []PerformanceReporter
+	quit      bool
 }
 
-var per PerformanceMonitor
-
-func (p *PerformanceMonitor) Register(holder ChannelHolder){
-	p.channelHolders = append(p.channelHolders, holder)
+func (p *PerformanceMonitor) Register(holder PerformanceReporter) {
+	p.reporters = append(p.reporters, holder)
 }
 
 func (p *PerformanceMonitor) Start() {
@@ -26,8 +24,8 @@ func (p *PerformanceMonitor) Start() {
 		p.quit = false
 		for !p.quit {
 			fields := logrus.Fields{}
-			for _, ch := range p.channelHolders{
-				fields[ch.Name()] = ch.GetChannelSizes()
+			for _, ch := range p.reporters {
+				fields[ch.Name()] = ch.GetBenchmarks()
 			}
 			logrus.WithFields(fields).Warn("Performance")
 			time.Sleep(time.Second * 5)

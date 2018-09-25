@@ -1,4 +1,5 @@
-package og_test
+package og
+
 
 import (
 	"testing"
@@ -6,7 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-// TODO
+
 func TestName(t *testing.T) {
 	a := types.HexToHash("0x00")
 	logrus.Info(a)

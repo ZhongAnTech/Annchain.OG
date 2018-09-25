@@ -21,7 +21,7 @@ func SampleSequencer() *Sequencer {
 	return &Sequencer{Id: 99,
 		TxBase: TxBase{
 			Height:       12,
-			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF"),},
+			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
@@ -42,8 +42,8 @@ func RandomSequencer() *Sequencer {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 	},
-		Id: rand.Uint64(),
-		Issuer: randomAddress(),
+		Id:                rand.Uint64(),
+		Issuer:            randomAddress(),
 		ContractHashOrder: []Hash{randomHash(), randomHash(), randomHash()},
 	}
 }
@@ -64,7 +64,6 @@ func (t *Sequencer) SignatureTargets() []byte {
 func (t *Sequencer) Parents() []Hash {
 	return t.ParentsHash
 }
-
 
 func (t *Sequencer) Number() uint64 {
 	return t.Id

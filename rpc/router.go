@@ -23,6 +23,7 @@ func (rpc *RpcControler) Newrouter() *gin.Engine {
 	router.GET("peers_info", rpc.PeersInfo)
 	router.GET("og_peers_info", rpc.OgPeersInfo)
 	router.GET("transaction", rpc.Transaction)
+	router.GET("transactions", rpc.Transactions)
 	router.GET("validators", rpc.Validator)
 	router.GET("sequencer", rpc.Sequencer)
 	router.GET("genesis", rpc.Genesis)
@@ -68,9 +69,9 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
-		"query_receipt": "hash",
-		"transaction":   "hash",
-
+		"query_receipt":  "hash",
+		"transaction":    "hash",
+		"transactions":   "seq_id",
 		"query_contract": "tx",
 	}
 	noArgNames := []string{}

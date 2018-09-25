@@ -43,6 +43,7 @@ type Address struct {
 	Bytes [AddressLength]byte `msgp:"bytes"`
 }
 
+
 // BytesToAddress sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToAddress(b []byte) Address {

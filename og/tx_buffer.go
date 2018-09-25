@@ -13,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -198,6 +198,7 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 			"parent": parentHash.String(),
 			"child":  self.String(),
 		}).Infof("updating dependency map")
+
 	}
 
 	b.affmu.Lock()
@@ -205,6 +206,7 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	if err != nil {
 		// key not present, need to build an inner map
 		b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
+
 	}
 	b.affmu.Unlock()
 }

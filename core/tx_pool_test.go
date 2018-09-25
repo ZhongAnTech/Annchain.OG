@@ -188,7 +188,7 @@ func TestPoolConfirm(t *testing.T) {
 	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
 	pool.AddLocalTx(tx2)
 
-	seq := newTestSeq(0)
+	seq := newTestSeq(1)
 	seq.ParentsHash = []types.Hash{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -222,36 +222,39 @@ func TestPoolConfirm(t *testing.T) {
 		t.Fatalf("latest seq in dag is not the seq we want")
 	}
 
-	// // sequencer's parent is bad tx
-	// badtx := newTestPoolBadTx()
-	// badtx.ParentsHash = []types.Hash{seq.GetTxHash()}
-	// pool.AddLocalTx(badtx)
+	// sequencer's parent is bad tx
+	badtx := newTestPoolBadTx()
+	badtx.ParentsHash = []types.Hash{seq.GetTxHash()}
+	pool.AddLocalTx(badtx)
 
-	// badtxseq := newTestSeq(1)
-	// badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
-	// badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
-	// err = pool.AddLocalTx(badtxseq)
-	// if err != nil {
-	// 	t.Fatalf("add badtxseq to pool failed: %v", err)
-	// }
-	// if pool.Get(badtxseq.GetTxHash()) == nil {
-	// 	t.Fatalf("badtxseq is not added into pool")
-	// }
-	// if status := pool.GetStatus(badtxseq.GetTxHash()); status != core.TxStatusTip {
-	// 	t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
-	// }
-	// if pool.Get(badtx.GetTxHash()) != nil {
-	// 	t.Fatalf("badtx is not removed from pool")
-	// }
-	// if dag.GetTx(badtx.GetTxHash()) == nil {
-	// 	t.Fatalf("badtx is not stored in dag")
-	// }
-	// if dag.GetTx(badtxseq.GetTxHash()) == nil {
-	// 	t.Fatalf("battxseq is not stored in dag")
-	// }
-	// if dag.LatestSequencer().GetTxHash().Cmp(badtxseq.GetTxHash()) != 0 {
-	// 	t.Fatalf("latest seq in dag is not the battxseq we want")
-	// }
+	addr := types.HexToAddress(testAddr0)
+	dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
+
+	badtxseq := newTestSeq(2)
+	badtxseq.ParentsHash = []types.Hash{badtx.GetTxHash()}
+	badtxseq.ContractHashOrder = []types.Hash{badtx.GetTxHash()}
+	err = pool.AddLocalTx(badtxseq)
+	if err != nil {
+		t.Fatalf("add badtxseq to pool failed: %v", err)
+	}
+	if pool.Get(badtxseq.GetTxHash()) == nil {
+		t.Fatalf("badtxseq is not added into pool")
+	}
+	if status := pool.GetStatus(badtxseq.GetTxHash()); status != core.TxStatusTip {
+		t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
+	}
+	if pool.Get(badtx.GetTxHash()) != nil {
+		t.Fatalf("badtx is not removed from pool")
+	}
+	if dag.GetTx(badtx.GetTxHash()) == nil {
+		t.Fatalf("badtx is not stored in dag")
+	}
+	if dag.GetTx(badtxseq.GetTxHash()) == nil {
+		t.Fatalf("battxseq is not stored in dag")
+	}
+	if dag.LatestSequencer().GetTxHash().Cmp(badtxseq.GetTxHash()) != 0 {
+		t.Fatalf("latest seq in dag is not the battxseq we want")
+	}
 
 
 }

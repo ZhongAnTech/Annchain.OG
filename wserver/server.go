@@ -10,6 +10,7 @@ import (
 	"time"
 	"context"
 	"github.com/annchain/OG/types"
+	"encoding/json"
 )
 
 const (
@@ -140,12 +141,30 @@ func (s *Server) Name() string {
 	return fmt.Sprintf("websocket Server at %s", s.Addr)
 }
 func (s *Server) WatchNewTxs() {
+	ticker := time.NewTicker(time.Millisecond * 300)
+	var uidata *UIData
 	for {
 		select {
 		case tx := <-s.NewTxReceivedChan:
-			msg := tx2UIData(tx)
-			logrus.WithField("msg", msg).Info("push to ws")
-			s.Push("new_unit", msg)
+			if uidata == nil {
+				uidata = &UIData{
+					//Nodes: []Node{},
+					//Edges: []Edge{},
+				}
+			}
+			uidata.AddToBatch(tx)
+		case <-ticker.C:
+			if uidata == nil {
+				continue
+			}
+			logrus.WithField("nodeCount", len(uidata.Nodes)).Debug("push to ws")
+			bs, err := json.Marshal(uidata)
+			uidata = nil
+			if err != nil {
+				logrus.WithError(err).Error("Failed to marshal ws message")
+				continue
+			}
+			s.Push("new_unit", string(bs))
 		case <-s.quit:
 			break
 		}

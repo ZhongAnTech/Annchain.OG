@@ -135,6 +135,7 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 func (m *Manager) HandleNewTx(msg *P2PMessage) {
 
 	newTx := types.MessageNewTx{}
+
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
 		logrus.WithError(err).Debug("invalid MessageNewTx format")
@@ -146,8 +147,29 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 	}
 	logrus.WithField("tx", newTx.Tx).Debug("received incoming new tx")
 	m.TxBuffer.AddTx(newTx.Tx)
+
 }
 
+func (m *Manager) HandleNewTxs(msg *P2PMessage) {
+	logrus.Debug("Received MessageNewTxs")
+
+	//maybe received more transactions
+	var err error
+	newTxs := types.MessageNewTxs{}
+	_, err = newTxs.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.WithError(err).Debug("invalid MessageNewTxs format")
+		return
+	}
+	if newTxs.Txs == nil {
+		logrus.Debug("Empty MessageNewTx")
+		return
+	}
+	for _, tx := range newTxs.Txs {
+
+		m.TxBuffer.AddTx(tx)
+	}
+}
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 	logrus.Debug("received NewSequence")
 	newSq := types.MessageNewSequence{}

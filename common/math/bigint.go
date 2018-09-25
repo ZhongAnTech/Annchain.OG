@@ -83,7 +83,7 @@ func (bi *BigInt) GetString(base int) string {
 
 func (bi *BigInt) MarshalJSON() ([]byte, error) {
 	res := fmt.Sprintf("%d", bi.Value)
-	fmt.Println("Marshaling into ", res)
+	//fmt.Println("Marshaling into ", res)
 	return json.Marshal(res)
 }
 

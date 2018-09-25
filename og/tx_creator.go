@@ -1,12 +1,12 @@
 package og
 
 import (
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
-	"time"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type TipGenerator interface {
@@ -115,7 +115,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 	defer close(respChan)
 	done := false
 	for !done {
-		mineCount ++
+		mineCount++
 		go m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
 		select {
 		case minedNonce = <-respChan:
@@ -123,7 +123,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
-				connectionTries ++
+				connectionTries++
 				txs := m.TipGenerator.GetRandomTips(2)
 
 				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))

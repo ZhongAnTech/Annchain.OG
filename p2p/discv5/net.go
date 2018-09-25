@@ -495,7 +495,7 @@ loop:
 
 		case <-topicRegisterLookupTick.C:
 			log.Debug("<-topicRegisterLookupTick")
-			if (topicRegisterLookupTarget.target == types.Hash{}) {
+			if topicRegisterLookupTarget.target.Empty() {
 				target, delay := net.ticketStore.nextRegisterLookup()
 				topicRegisterLookupTarget = target
 				topicRegisterLookupTick.Reset(delay)

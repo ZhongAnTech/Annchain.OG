@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/deckarep/golang-set"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 	"sync"
 	"time"
 )
@@ -49,7 +48,7 @@ type peer struct {
 	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
 	head      types.Hash
-	td        *big.Int
+	seqId     uint64
 	lock      sync.RWMutex
 	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
 	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
@@ -57,9 +56,9 @@ type peer struct {
 }
 
 type PeerInfo struct {
-	Version    int      `json:"version"`    // Ethereum protocol version negotiated
-	Difficulty *big.Int `json:"difficulty"` // Total difficulty of the peer's blockchain
-	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
+	Version     int    `json:"version"`      // Ethereum protocol version negotiated
+	SequencerId uint64 `json:"sequencer_id"` // Total difficulty of the peer's blockchain
+	Head        string `json:"head"`         // SHA3 hash of the peer's best owned block
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -99,31 +98,32 @@ func (p *peer) close() {
 
 // Info gathers and returns a collection of metadata known about a peer.
 func (p *peer) Info() *PeerInfo {
-	hash := p.Head()
+	hash, seqId := p.Head()
 
 	return &PeerInfo{
-		Version: p.version,
-		Head:    hash.Hex(),
+		Version:     p.version,
+		Head:        hash.Hex(),
+		SequencerId: seqId,
 	}
 }
 
 // Head retrieves a copy of the current head hash and total difficulty of the
 // peer.
-func (p *peer) Head() (hash types.Hash) {
+func (p *peer) Head() (hash types.Hash, seqId uint64) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	copy(hash.Bytes[:], p.head.Bytes[:])
-	return hash
+	return hash, p.seqId
 }
 
 // SetHead updates the head hash and total difficulty of the peer.
-func (p *peer) SetHead(hash types.Hash, td *big.Int) {
+func (p *peer) SetHead(hash types.Hash, seqId uint64) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	copy(p.head.Bytes[:], hash.Bytes[:])
-	p.td.Set(td)
+	p.seqId = seqId
 }
 
 // MarkMessage marks a message as known for the peer, ensuring that it
@@ -149,6 +149,26 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 		msgBytes = append(msgBytes, msg.Message...)
 	}
 	return p2p.Send(p.rw, msgType, msgBytes)
+}
+
+func (p *peer) sendRawMessage(msgType uint64, msgBytes []byte) error {
+	return p2p.Send(p.rw, msgType, msgBytes)
+}
+
+func (p *peer) SendTransactions(txs types.Txs) error {
+
+	if len(txs) == 0 {
+		return fmt.Errorf("nil txs")
+	}
+	data, _ := txs.MarshalMsg(nil)
+	msg := &P2PMessage{
+		MessageType: MessageTypeNewTxs,
+		Message:     data,
+	}
+	var msgs []*P2PMessage
+	msgs = append(msgs, msg)
+	return p.SendMessages(msgs)
+
 }
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
@@ -187,9 +207,10 @@ func (p *peer) SendNodeData(data []byte) error {
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
-func (p *peer) RequestNodeData(hashes types.Hashs) error {
+func (p *peer) RequestNodeData(hashes []types.Hash) error {
 	log.WithField("count", len(hashes)).Debug("Fetching batch of state data")
-	b, _ := hashes.MarshalMsg(nil)
+	hashsStruct := types.Hashs(hashes)
+	b, _ := hashsStruct.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(GetNodeDataMsg), b)
 }
 
@@ -200,10 +221,77 @@ func (p *peer) RequestReceipts(hashes types.Hashs) error {
 	return p2p.Send(p.rw, uint64(GetReceiptsMsg), b)
 }
 
+// RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
+// specified header query, based on the hash of an origin block.
+func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
+	hash := seqHash
+	msg := types.MessageTxsRequest{
+		SeqHash: &hash,
+		Id:      seqId,
+	}
+	b, _ := msg.MarshalMsg(nil)
+	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+}
+
+func (p *peer) RequestTxs(hashs []types.Hash) error {
+	msg := types.MessageTxsRequest{
+		Hashes: hashs,
+	}
+	b, _ := msg.MarshalMsg(nil)
+	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+}
+
+func (p *peer) RequestOneHeader(hash types.Hash) error {
+	log.Debug("Fetching single header", "hash", hash)
+	req := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(1), Skip: uint64(0), Reverse: false}
+	data,err := req.MarshalMsg(nil)
+	if err!=nil {
+		log.WithError(err).Warn("encode error")
+		return err
+	}
+	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), data)
+	if err!= nil {
+		log.WithError(err).Warn("send message failed")
+	}
+	return err
+}
+
+// RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
+// specified header query, based on the number of an origin block.
+func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
+	log.WithField("count", amount).WithField("origin",origin).Debug("Fetching batch of state data")
+	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Number: origin}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
+	b, err := msg.MarshalMsg(nil)
+	if err!=nil {
+		log.WithError(err).Warn("encode error")
+		return err
+	}
+	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
+	if err!= nil {
+		log.WithError(err).Warn("send message failed")
+	}
+	return err
+}
+
+func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
+	log.WithField("count", amount).WithField("hash",hash).Debug("Fetching batch of state data")
+	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
+	b, err := msg.MarshalMsg(nil)
+	if err!=nil {
+		log.WithError(err).Warn("encode error")
+		return err
+	}
+	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
+	if err!= nil {
+		log.WithError(err).Warn("send message failed")
+	}
+	return err
+}
+
 // String implements fmt.Stringer.
 func (p *peer) String() string {
 	return fmt.Sprintf("Peer %s [%s]", p.id,
-		fmt.Sprintf("eth/%2d", p.version),
+		fmt.Sprintf("og/%2d", p.version),
 	)
 }
 
@@ -303,11 +391,14 @@ func (ps *peerSet) BestPeer() *peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	var bestPeer *peer
-
+	var (
+		bestPeer *peer
+		bestId   uint64
+	)
 	for _, p := range ps.peers {
-		//todo
-		bestPeer = p
+		if _, seqId := p.Head(); bestPeer == nil || seqId > bestId {
+			bestPeer, bestId = p, seqId
+		}
 	}
 	return bestPeer
 }

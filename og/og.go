@@ -10,31 +10,27 @@ import (
 )
 
 type Og struct {
-	Dag            *core.Dag
-	Txpool         *core.TxPool
-	Manager        *Manager
+	Dag     *core.Dag
+	Txpool  *core.TxPool
+	Manager *Manager
 }
 
 func NewOg() (*Og, error) {
 	og := &Og{}
 
-	var (
-		dagconfig    core.DagConfig
-		txpoolconfig core.TxPoolConfig
-	)
-
 	db, derr := CreateDB()
 	if derr != nil {
 		return nil, derr
 	}
-	if err := viper.UnmarshalKey("dag", &dagconfig); err != nil {
-		return nil, err
+	dagconfig := core.DagConfig{}
+	txpoolconfig := core.TxPoolConfig{
+		QueueSize:     viper.GetInt("txpool.queue_size"),
+		TipsSize:      viper.GetInt("txpool.tips_size"),
+		ResetDuration: viper.GetInt("txpool.reset_duration"),
+		TxVerifyTime:  viper.GetInt("txpool.tx_verify_time"),
+		TxValidTime:   viper.GetInt("txpool.tx_valid_time"),
 	}
 	og.Dag = core.NewDag(dagconfig, db)
-
-	if err := viper.UnmarshalKey("txpool", &txpoolconfig); err != nil {
-		return nil, err
-	}
 	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
 
 	if !og.Dag.LoadGenesis() {

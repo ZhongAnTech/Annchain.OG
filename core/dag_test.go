@@ -8,11 +8,12 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"fmt"
 )
 
-func newTestDag(t *testing.T) (*core.Dag, *types.Sequencer, func()) {
+func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
 	conf := core.DagConfig{}
-	db, remove := newTestLDB()
+	db, remove := newTestLDB(dbDirPrefix)
 	dag := core.NewDag(conf, db)
 
 	genesis, balance := og.DefaultGenesis()
@@ -44,7 +45,7 @@ func newTestDagTx(nonce uint64) *types.Tx {
 func TestDagInit(t *testing.T) {
 	t.Parallel()
 
-	dag, genesis, finish := newTestDag(t)
+	dag, genesis, finish := newTestDag(t, "TestDagInit")
 	defer finish()
 
 	if dag.GetTx(genesis.GetTxHash()) == nil {
@@ -72,7 +73,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	var err error
 
 	conf := core.DagConfig{}
-	db, remove := newTestLDB()
+	db, remove := newTestLDB("TestDagLoadGenesis")
 	defer remove()
 	dag := core.NewDag(conf, db)
 
@@ -106,7 +107,7 @@ func TestDagLoadGenesis(t *testing.T) {
 func TestDagPush(t *testing.T) {
 	t.Parallel()
 
-	dag, genesis, finish := newTestDag(t)
+	dag, genesis, finish := newTestDag(t, "TestDagPush")
 	defer finish()
 
 	var err error
@@ -125,7 +126,7 @@ func TestDagPush(t *testing.T) {
 	batch := map[types.Address]*core.BatchDetail{}
 	batch[tx1.From] = bd
 
-	seq := newTestSeq(0)
+	seq := newTestSeq(1)
 	seq.ParentsHash = []types.Hash{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -168,6 +169,8 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("indexed hashs are not the list of tx1 and tx2's hash")
 	}
 
+   txs:=  dag.GetTxsByNumber(seq.Id)
+   fmt.Println("txs",types.Txs(txs))
 
 	// TODO check addr balance
 

@@ -107,7 +107,7 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
 }
 
-// niceTx
+// niceTx is the logic triggered when tx's ancestors are all fetched to local
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
@@ -311,6 +311,17 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	}
 	return allFetched
 }
+
+// VerifyGraphStructure verifies if the tx meets the graph standards:
+// A1: [My job] Randomly choose 2 tips.
+// A2: [My job] Node's parent cannot be its grandparents or ancestors.
+// A3: [My job] Nodes produced by same source must be sequential (tx nonce ++).
+// A4: [My job] Double spending once A3 is not followed, whatever there is actual double spending.
+// A5: [Pool's job] If A3 is followed but there is still double spending (tx nonce collision), keep the forked tx with smaller hash
+// A6: [My job] Node cannot reference two un-ordered nodes as its parents
+// B1: [My job] Nodes that are confirmed by at least N (=2) sequencers cannot be referenced.
+// B2: [My job] Two layer hash validation
+
 func (b *TxBuffer) VerifyGraphStructure(txi types.Txi) bool {
 	return true
 }

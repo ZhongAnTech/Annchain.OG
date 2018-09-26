@@ -166,6 +166,7 @@ func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID 
 			return nil
 		}
 		atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done on any fetcher import
+		log.Warn("maybe some proble here")
 		h.TxBuffer.AddTx(tx)
 		return nil
 	}
@@ -467,6 +468,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		if atomic.LoadUint32(&h.acceptTxs) == 0 {
 			return nil
 		}
+		log.Debug("got  message type ", p2pMsg.MessageType)
 		p2pMsg.init()
 		if p2pMsg.needCheckRepeat {
 			p.MarkMessage(p2pMsg.hash)

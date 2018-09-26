@@ -79,14 +79,6 @@ func (h *Hub) GetBenchmarks() map[string]int {
 	}
 }
 
-func (h *Hub) GetBenchmarks() map[string]int {
-	return map[string]int{
-		"outgoing": len(h.outgoing),
-		"incoming": len(h.incoming),
-		"newPeerCh": len(h.newPeerCh),
-	}
-}
-
 type HubConfig struct {
 	OutgoingBufferSize            int
 	IncomingBufferSize            int

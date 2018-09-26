@@ -1,32 +1,32 @@
 package core_test
 
 import (
-	"os"
-	"testing"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/types"
 )
 
 var (
-	testPk0 = "0000000000000000000000000000000000000000000000000000000000000000"
+	testPk0   = "0000000000000000000000000000000000000000000000000000000000000000"
 	testAddr0 = "188A3EB3BFD8DA1274C935946CB5765B4225503E"
 
-	testPk1 = "1111111111111111111111111111111111111111111111111111111111111111"
+	testPk1   = "1111111111111111111111111111111111111111111111111111111111111111"
 	testAddr1 = "E97BB1E3813CA30F8CFC6A0E8B50047063E893B7"
 
-	testPk2 = "2222222222222222222222222222222222222222222222222222222222222222"
+	testPk2   = "2222222222222222222222222222222222222222222222222222222222222222"
 	testAddr2 = "2EC79FEA2B6F64FAD50CD20CF5CC2281E141441E"
 )
 
 func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
-	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_" + dirPrefix + "_")
+	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_"+dirPrefix+"_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
@@ -169,11 +169,11 @@ func TestBalanceStorage(t *testing.T) {
 	db, remove := newTestLDB("TestBalanceStorage")
 	defer remove()
 
-	var err error 
+	var err error
 	acc := core.NewAccessor(db)
 	addr := types.HexToAddress(testAddr0)
 
-	balance := acc.ReadBalance(addr) 
+	balance := acc.ReadBalance(addr)
 	if balance == nil {
 		t.Fatalf("read balance failed")
 	}
@@ -206,7 +206,7 @@ func TestBalanceStorage(t *testing.T) {
 	if newBalance.Value.Add(newBalance.Value, addAmount.Value).Cmp(bFromDb.Value) != 0 {
 		t.Fatalf("the balance after add is not as expected")
 	}
-	
+
 	subAmount := math.NewBigInt(int64(rand.Intn(10000)))
 	err = acc.SubBalance(addr, subAmount)
 	if err != nil {
@@ -221,6 +221,3 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 }
-
-
-

@@ -1,14 +1,14 @@
 package core
 
 import (
+	"container/list"
 	"fmt"
 	"sync"
 	"time"
-	"container/list"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 	"math/rand"
 )
 
@@ -67,11 +67,11 @@ type TxPool struct {
 
 func (pool *TxPool) GetBenchmarks() map[string]int {
 	return map[string]int{
-		"queue": len(pool.queue),
-		"event": len(pool.OnNewTxReceived),
-		"txlookup": len(pool.txLookup.txs),
-		"tips": len(pool.tips.txs),
-		"badtxs": len(pool.badtxs.txs),
+		"queue":      len(pool.queue),
+		"event":      len(pool.OnNewTxReceived),
+		"txlookup":   len(pool.txLookup.txs),
+		"tips":       len(pool.tips.txs),
+		"badtxs":     len(pool.badtxs.txs),
 		"latest_seq": int(pool.dag.latestSeqencer.Id),
 	}
 }
@@ -254,8 +254,11 @@ func (pool *TxPool) loop() {
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+				err = fmt.Errorf("Duplicate tx found in txlookup")
+				txEvent.callbackChan <- err
 				continue
 			}
+
 			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
@@ -263,7 +266,7 @@ func (pool *TxPool) loop() {
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 			}
-			if err != nil{
+			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
 
@@ -435,7 +438,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 
 func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 	batch := make(map[types.Hash]types.Txi)
-	
+
 	inSeekingPool := map[types.Hash]int{}
 	seekingPool := list.New()
 	for _, parentHash := range baseTx.Parents() {
@@ -469,6 +472,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation term.
 	// sums up the related address's income and outcome values
+	var txhashes types.Hashs
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
 		switch tx := txi.(type) {
@@ -495,6 +499,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
+			txhashes = append(txhashes, tx.GetTxHash())
 		}
 	}
 	for addr, batchDetail := range batch {
@@ -508,6 +513,12 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	cb := &ConfirmBatch{}
 	cb.Seq = seq
 	cb.Batch = batch
+	//reverse the txhashes to keeep partial order , accelerate processing speed
+	n := len(txhashes)
+	for i := 0; i < n/2; i++ {
+		txhashes[i], txhashes[n-1-i] = txhashes[n-i-1], txhashes[i]
+	}
+	cb.TxHashes = &txhashes
 	return cb, nil
 }
 

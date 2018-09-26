@@ -1,12 +1,12 @@
 package node
 
 import (
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/math"
 	"math/rand"
 	"sync"
 	"time"
@@ -48,8 +48,8 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	logrus.WithField("tx", tx).Infof("tx generated")
 
 	c.mu.Lock()
-	c.currentID ++
-	c.SampleAccounts[from].Nonce ++
+	c.currentID++
+	c.SampleAccounts[from].Nonce++
 	c.mu.Unlock()
 
 	// TODO: announce tx

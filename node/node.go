@@ -7,13 +7,15 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 
+	"fmt"
+	"github.com/annchain/OG/og/downloader"
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
-	"github.com/spf13/viper"
 	"github.com/annchain/OG/wserver"
-	"fmt"
-	"github.com/annchain/OG/og/downloader"
+	"github.com/spf13/viper"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -28,7 +30,6 @@ func NewNode() *Node {
 	pm := &PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
-
 
 	maxPerr := viper.GetInt("p2p.max_peers")
 	if maxPerr == 0 {
@@ -46,11 +47,11 @@ func NewNode() *Node {
 
 	networkId := viper.GetInt64("network_id")
 	hub := og.NewHub(&og.HubConfig{
-		OutgoingBufferSize: viper.GetInt("hub.outgoing_buffer_size"),
-		IncomingBufferSize: viper.GetInt("hub.incoming_buffer_size"),
-		MessageCacheExpirationSeconds:viper.GetInt("hub.message_cache_expiration_seconds"),
-		MessageCacheMaxSize:viper.GetInt("hub.message_cache_max_size"),
-	}, maxPerr,downloader.FullSync, uint64(networkId),org.Dag)
+		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
+		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
+		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
+		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
+	}, maxPerr, downloader.FullSync, uint64(networkId), org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
 		BatchTimeoutMilliSecond:              1000,
@@ -60,14 +61,9 @@ func NewNode() *Node {
 		AcquireTxDedupCacheExpirationSeconds: 60,
 	}, hub)
 
-
-
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
-
-
-
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -86,20 +82,20 @@ func NewNode() *Node {
 	)
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
 
 	txBuffer.Hub = hub
-	hub.TxBuffer =  txBuffer
+	hub.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
-   	syncBuffer := og.NewSyncBuffer(txBuffer)
-   	hub.SyncBuffer = syncBuffer
+	syncBuffer := og.NewSyncBuffer(txBuffer)
+	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
 	m := &og.Manager{
 		TxPool:   org.Txpool,
@@ -145,7 +141,7 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:                   org.Dag,
+		Dag: org.Dag,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -157,8 +153,8 @@ func NewNode() *Node {
 		TxBuffer:               m.TxBuffer,
 		PrivateKey:             privateKey,
 		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
-		Dag:                    org.Dag,
-		InstanceCount:          viper.GetInt("auto_tx.count"),
+		Dag:           org.Dag,
+		InstanceCount: viper.GetInt("auto_tx.count"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {
@@ -208,6 +204,9 @@ func NewNode() *Node {
 }
 
 func (n *Node) Start() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	for _, component := range n.Components {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()
@@ -234,5 +233,5 @@ func SetupCallbacks(m *og.Manager, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
 	hub.CallbackRegistry[og.MessageTypeNewTx] = m.HandleNewTx
 	hub.CallbackRegistry[og.MessageTypeNewSequence] = m.HandleNewSequence
-	hub.CallbackRegistry[og.MessageTypeNewTxs] =m.HandleNewTxs
+	hub.CallbackRegistry[og.MessageTypeNewTxs] = m.HandleNewTxs
 }

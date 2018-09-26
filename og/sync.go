@@ -140,6 +140,7 @@ func (h *Hub) syncer() {
 			go h.synchronise(h.peers.BestPeer())
 
 		case <-h.noMorePeers:
+			log.Info("got quit message ,quit hub syncer")
 			return
 		}
 	}
@@ -174,10 +175,11 @@ func (h *Hub) synchronise(peer *peer) {
 		//atomic.StoreUint32(&h.fastSync, 1)
 		//mode = downloader.FastSync
 	}
-	log.Debug("sync with best peer   ", pHead, )
-	log.WithField("our id",seqId).WithField(" peer id ",pSeqid).Debug("sync with")
+	log.Debug("sync with best peer   ", pHead)
+	log.WithField("our id", seqId).WithField(" peer id ", pSeqid).Debug("sync with")
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := h.downloader.Synchronise(peer.id, pHead, pSeqid, mode); err != nil {
+		log.WithError(err).Warn("sync failed")
 		return
 	}
 	if atomic.LoadUint32(&h.fastSync) == 1 {

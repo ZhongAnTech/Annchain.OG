@@ -2,11 +2,11 @@ package node
 
 import (
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
-	"github.com/annchain/OG/core"
 )
 
 type ClientAutoSequencer struct {
@@ -21,23 +21,23 @@ type ClientAutoSequencer struct {
 	Dag                   *core.Dag
 }
 
-func (c *ClientAutoSequencer) Init(){
+func (c *ClientAutoSequencer) Init() {
 	c.stop = false
 	lseq := c.Dag.LatestSequencer()
-	if lseq!=nil {
+	if lseq != nil {
 		c.currentID = lseq.Id
 	}
 }
 
-func (c *ClientAutoSequencer) GenerateRequest(){
-	c.currentID ++
+func (c *ClientAutoSequencer) GenerateRequest() {
+	c.currentID++
 	seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
 	if ok := c.TxCreator.SealTx(seq); !ok {
 		logrus.Warn("clientAutoSequencer Failed to seal tx")
 		return
 	}
 	logrus.WithField("seq", seq).Infof("sequencer generated")
-	c.currentNonce ++
+	c.currentNonce++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(seq)
 }

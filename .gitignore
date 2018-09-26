@@ -16,5 +16,6 @@ client/client
 .vscode/
 /datadir/
 /client/main
+client/client.exe
 config_*.toml
 datadir_*

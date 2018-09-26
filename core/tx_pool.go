@@ -457,12 +457,13 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
-				log.WithField("len", seekingPool.Len()).
+				/*log.WithField("len", seekingPool.Len()).
 					WithField("tx", baseTx).
 					WithField("as", len(inSeekingPool)).
 					WithField("elder", elder).
 					WithField("elderParentHash", elderParentHash).
 					Debug("seekingpool")
+				*/
 			}
 		}
 	}

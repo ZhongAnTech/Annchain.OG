@@ -226,8 +226,9 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	defer dag.wg.Done()
 
 	if dag.latestSeqencer.Id+1 != batch.Seq.Id {
-		log.Fatalf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
-		return fmt.Errorf("last sequencer id mismatch old %d,new %d", dag.latestSeqencer.Id, batch.Seq.Id)
+		err := fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
+		log.Error(err)
+		panic(err)
 	}
 	// store the tx and update the state
 	var err error

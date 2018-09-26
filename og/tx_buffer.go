@@ -253,9 +253,9 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 	return nil
 }
 
-// isKnownHash tests if the tx is already known by buffer.
+// isLocalHash tests if the tx is already known by buffer.
 // tx that has already known by buffer should not be broadcasted more.
-func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
+func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 	logrus.WithFields(logrus.Fields{
 		"Txpool": b.txPool.Get(hash),
 		"DAG":    b.dag.GetTx(hash),
@@ -272,9 +272,9 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 	return false
 }
 
-// isLocalHash tests if the tx is already copied in local
-func (b *TxBuffer) isLocalHash(hash types.Hash) bool{
-	return b.isKnownHash(hash) || b.GetFromBuffer(hash) != nil
+// isKnownHash tests if the tx is already copied in local
+func (b *TxBuffer) isKnownHash(hash types.Hash) bool{
+	return b.isLocalHash(hash) || b.GetFromBuffer(hash) != nil
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx

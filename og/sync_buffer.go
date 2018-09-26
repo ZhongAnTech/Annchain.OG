@@ -181,7 +181,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 		elder := s.Get(elderHash)
 		if elder == nil {
-			if s.txBuffer.isKnownHash(elderHash) {
+			if s.txBuffer.isLocalHash(elderHash) {
 				continue
 			}
 			err := fmt.Errorf("parent not found ")

@@ -83,6 +83,7 @@ func (b *TxBuffer) Start() {
 }
 
 func (b *TxBuffer) Stop() {
+	logrus.Info("tx bu will stop.")
 	b.quit <- true
 }
 

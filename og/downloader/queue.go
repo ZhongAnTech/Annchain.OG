@@ -621,6 +621,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	for id := range expiries {
 		delete(pendPool, id)
 	}
+	log.WithField("ids",expiries).Debug("expire")
 	return expiries
 }
 
@@ -638,6 +639,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 	// Short circuit if the data was never requested
 	request := q.headerPendPool[id]
 	if request == nil {
+		log.WithError(errNoFetchesPending).Warn("headers")
 		return 0, errNoFetchesPending
 	}
 	headerReqTimer.UpdateSince(request.Time)
@@ -715,6 +717,9 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Tx, seq *types.Seque
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.SequencerHeader, index int, result *fetchResult) error {
+		if   header.SequencerId() != seq.Id {
+			return fmt.Errorf("header and seq mismatch  header %d  seq %d",header.SequencerId(),seq.Id)
+		}
 		result.Transactions = txLists[index]
 		result.Sequencer = seq
 		return nil
@@ -734,6 +739,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 	// Short circuit if the data was never requested
 	request := pendPool[id]
 	if request == nil {
+		log.WithError(errNoFetchesPending).Warn("delevier")
 		return 0, errNoFetchesPending
 	}
 	reqTimer.UpdateSince(request.Time)

@@ -5,13 +5,13 @@ import (
 	// "fmt"
 	"sync"
 
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/common/math"
 )
 
-type DagConfig struct {}
+type DagConfig struct{}
 
 type Dag struct {
 	conf DagConfig
@@ -38,19 +38,21 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	return dag
 }
 
-type ConfirmBatch struct { 
-	Seq		*types.Sequencer
-	Batch	map[types.Address]*BatchDetail
+type ConfirmBatch struct {
+	Seq      *types.Sequencer
+	Batch    map[types.Address]*BatchDetail
+	TxHashes *types.Hashs
 }
-// BatchDetail describes all the details of a specific address within a 
-// sequencer confirmation term. 
+
+// BatchDetail describes all the details of a specific address within a
+// sequencer confirmation term.
 // - txList - represents the txs sent by this addrs.
-// - neg - means the amount this address should spent out. 
+// - neg - means the amount this address should spent out.
 // - pos - means the amount this address get paid.
 type BatchDetail struct {
-	TxList	map[types.Hash]types.Txi
-	Neg		*math.BigInt
-	Pos		*math.BigInt
+	TxList map[types.Hash]types.Txi
+	Neg    *math.BigInt
+	Pos    *math.BigInt
 }
 
 func (dag *Dag) Start() {
@@ -97,7 +99,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	for addr, value := range genesisBalance {
 		err = dag.accessor.SetBalance(addr, value)
 		if err != nil {
-			log.Errorf("init genesis balance error, addr: %s, balance: %s, error: %v", 
+			log.Errorf("init genesis balance error, addr: %s, balance: %s, error: %v",
 				addr.String(), value.String(), err)
 		}
 	}
@@ -109,7 +111,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadGenesis load genesis data from ogdb. return false if there 
+// LoadGenesis load genesis data from ogdb. return false if there
 // is no genesis stored in the db.
 func (dag *Dag) LoadGenesis() bool {
 	dag.mu.Lock()
@@ -157,10 +159,10 @@ func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 }
 
 func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
-	tx :=  dag.getTx(hash)
-	switch tx:= tx.(type) {
-	case *types.Sequencer :
-	  	return tx
+	tx := dag.getTx(hash)
+	switch tx := tx.(type) {
+	case *types.Sequencer:
+		return tx
 	default:
 		return nil
 	}
@@ -171,17 +173,19 @@ func (dag *Dag) GetSequencerById(id uint64) *types.Sequencer {
 }
 
 func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
-	if id== 0 {
+	if id == 0 {
 		return dag.genesis
 	}
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 	dag.wg.Add(1)
 	defer dag.wg.Done()
-
+	if id > dag.latestSeqencer.Id {
+		return nil
+	}
 	seq, err := dag.accessor.ReadSequencerById(id)
 	if err != nil || seq == nil {
-		log.WithField("id",id).WithError(err).Warn("head not found")
+		log.WithField("id", id).WithError(err).Warn("head not found")
 		return nil
 	}
 	return seq
@@ -191,13 +195,13 @@ func (dag *Dag) GetSequencerHashById(id uint64) *types.Hash {
 	return dag.getSequencerHashById(id)
 }
 
-func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64 ) *types.Sequencer {
-	tx :=  dag.getTx(hash)
-	switch tx:= tx.(type) {
-	case *types.Sequencer :
+func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
+	tx := dag.getTx(hash)
+	switch tx := tx.(type) {
+	case *types.Sequencer:
 		if tx.Id != seqId {
 			log.Warn("seq id mismatch ")
-			return  nil
+			return nil
 		}
 		return tx
 	default:
@@ -222,12 +226,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	defer dag.wg.Done()
 
 	if dag.latestSeqencer.Id+1 != batch.Seq.Id {
- 		log.Fatalf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
- 		return fmt.Errorf("last sequencer id mismatch old %d,new %d", dag.latestSeqencer.Id, batch.Seq.Id)
+		log.Fatalf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
+		return fmt.Errorf("last sequencer id mismatch old %d,new %d", dag.latestSeqencer.Id, batch.Seq.Id)
 	}
 	// store the tx and update the state
-	var txHashs types.Hashs
-	var err error 
+	var err error
 	for _, batchDetail := range batch.Batch {
 		for _, txi := range batchDetail.TxList {
 			err = dag.accessor.WriteTransaction(txi)
@@ -238,7 +241,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			case *types.Sequencer:
 				break
 			case *types.Tx:
-				txHashs = append(txHashs, tx.GetTxHash())
 				// TODO handle the db error
 				dag.accessor.SubBalance(tx.From, tx.Value)
 				dag.accessor.AddBalance(tx.To, tx.Value)
@@ -247,8 +249,12 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		}
 	}
 	// store the hashs of the txs confirmed by this sequencer.
-	if len(txHashs) > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, &txHashs)
+	txHashNum := 0
+	if batch.TxHashes != nil {
+		txHashNum = len(*batch.TxHashes)
+	}
+	if txHashNum > 0 {
+		dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, batch.TxHashes)
 	}
 
 	// save latest sequencer into db
@@ -270,7 +276,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.latestSeqencer = batch.Seq
 
 	log.Debugf("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
-    log.WithField("height",batch.Seq.Id).WithField("txs number ",len(txHashs)).Info("new height")
+	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil
 }
@@ -285,9 +291,9 @@ func (dag *Dag) getSequencerHashById(id uint64) *types.Hash {
 	dag.wg.Add(1)
 	defer dag.wg.Done()
 
-	seq,err := dag.accessor.ReadSequencerById(id)
-	if err!=nil || seq==nil {
-		log.WithField("id",id).Warn("head not found")
+	seq, err := dag.accessor.ReadSequencerById(id)
+	if err != nil || seq == nil {
+		log.WithField("id", id).Warn("head not found")
 		return nil
 	}
 	hash := seq.GetTxHash()
@@ -299,9 +305,11 @@ func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
 	defer dag.mu.Unlock()
 	dag.wg.Add(1)
 	defer dag.wg.Done()
-
-	hashs,err := dag.accessor.ReadIndexedTxHashs(id)
-	if err!=nil   {
+	if id > dag.latestSeqencer.Number() {
+		return nil
+	}
+	hashs, err := dag.accessor.ReadIndexedTxHashs(id)
+	if err != nil {
 		log.Warn("head not found")
 	}
 	return hashs
@@ -316,17 +324,20 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
-func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx{
-	hashs:= dag.GetTxsHashesByNumber(id)
-	if hashs==nil {
+func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
+	hashs := dag.GetTxsHashesByNumber(id)
+	if hashs == nil {
 		return nil
 	}
-	log.WithField("len tx ",len(*hashs)).WithField("id",id).Info("get txs")
+	if len(*hashs) == 0 {
+		return nil
+	}
+	log.WithField("len tx ", len(*hashs)).WithField("id", id).Info("get txs")
 	return dag.GetTxs(*hashs)
 }
 
 func (dag *Dag) GetTxs(hashs []types.Hash) []*types.Tx {
-    return dag.getTxs(hashs)
+	return dag.getTxs(hashs)
 }
 
 func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
@@ -335,11 +346,11 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 	dag.wg.Add(1)
 	defer dag.wg.Done()
 	var txs []*types.Tx
-	for _,hash := range hashs{
+	for _, hash := range hashs {
 		tx := dag.accessor.ReadTransaction(hash)
 		switch tx := tx.(type) {
 		case *types.Tx:
-			txs= append(txs,tx)
+			txs = append(txs, tx)
 		}
 	}
 	return txs

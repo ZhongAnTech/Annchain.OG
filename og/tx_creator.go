@@ -144,9 +144,9 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 		}
 	}
 	logrus.WithFields(logrus.Fields{
-		"elapsedns": time.Since(timeStart).Nanoseconds(),
-		"re-mine": mineCount,
-		"nonce": minedNonce,
+		"elapsedns":  time.Since(timeStart).Nanoseconds(),
+		"re-mine":    mineCount,
+		"nonce":      minedNonce,
 		"re-connect": connectionTries,
 	}).Debugf("total time for mining")
 	return true

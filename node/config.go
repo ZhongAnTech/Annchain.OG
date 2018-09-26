@@ -6,13 +6,13 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discover"
+	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/annchain/OG/p2p/discv5"
 )
 
 const (

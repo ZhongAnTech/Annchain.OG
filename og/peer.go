@@ -244,13 +244,13 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 func (p *peer) RequestOneHeader(hash types.Hash) error {
 	log.Debug("Fetching single header", "hash", hash)
 	req := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(1), Skip: uint64(0), Reverse: false}
-	data,err := req.MarshalMsg(nil)
-	if err!=nil {
+	data, err := req.MarshalMsg(nil)
+	if err != nil {
 		log.WithError(err).Warn("encode error")
 		return err
 	}
-	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), data)
-	if err!= nil {
+	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), data)
+	if err != nil {
 		log.WithError(err).Warn("send message failed")
 	}
 	return err
@@ -259,30 +259,30 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
 func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
-	log.WithField("count", amount).WithField("origin",origin).Debug("Fetching batch of state data")
+	log.WithField("count", amount).WithField("origin", origin).Debug("Fetching batch of state data")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Number: origin}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
-	if err!=nil {
+	if err != nil {
 		log.WithError(err).Warn("encode error")
 		return err
 	}
-	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
-	if err!= nil {
+	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
+	if err != nil {
 		log.WithError(err).Warn("send message failed")
 	}
 	return err
 }
 
 func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
-	log.WithField("count", amount).WithField("hash",hash).Debug("Fetching batch of state data")
+	log.WithField("count", amount).WithField("hash", hash).Debug("Fetching batch of state data")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
-	if err!=nil {
+	if err != nil {
 		log.WithError(err).Warn("encode error")
 		return err
 	}
-	err =  p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
-	if err!= nil {
+	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
+	if err != nil {
 		log.WithError(err).Warn("send message failed")
 	}
 	return err

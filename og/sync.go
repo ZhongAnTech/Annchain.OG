@@ -155,7 +155,6 @@ func (h *Hub) synchronise(peer *peer) {
 	// Make sure the peer's TD is higher than our own
 	currentBlock := h.Dag.LatestSequencer()
 	seqId := currentBlock.Number()
-
 	pHead, pSeqid := peer.Head()
 	if seqId >= pSeqid {
 		return

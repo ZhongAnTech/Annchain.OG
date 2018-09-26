@@ -467,6 +467,13 @@ func (h *Hub) handleMsg(p *peer) error {
 		if atomic.LoadUint32(&h.acceptTxs) == 0 {
 			return nil
 		}
+		p2pMsg.init()
+		if p2pMsg.needCheckRepeat {
+			p.MarkMessage(p2pMsg.hash)
+		}
+		h.incoming <- &p2pMsg
+		return nil
+
 	case p2pMsg.MessageType == MessageTypeNewTx && atomic.LoadUint32(&h.acceptTxs) == 0:
 		// no receive until sync finish
 		return nil

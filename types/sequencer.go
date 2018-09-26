@@ -39,7 +39,7 @@ func RandomSequencer() *Sequencer {
 		Hash:         randomHash(),
 		Height:       rand.Uint64(),
 		ParentsHash:  []Hash{randomHash(), randomHash()},
-		Type:         TxBaseTypeNormal,
+		Type:         TxBaseTypeSequencer,
 		AccountNonce: uint64(rand.Int63n(50000)),
 	},
 		Id:                rand.Uint64(),

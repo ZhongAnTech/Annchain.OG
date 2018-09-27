@@ -12,6 +12,7 @@ vendor/
 *.lock
 /.project
 app/app
+app/app.exe
 client/client
 .vscode/
 /datadir/

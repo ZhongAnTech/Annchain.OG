@@ -18,6 +18,7 @@ import (
 const (
 	datadirPrivateKey = "nodekey" // Path within the datadir to the node's private key
 	defaultMaxPeers   = 50
+	defaultNetworkId  = 1
 )
 
 func getNodePrivKey() *ecdsa.PrivateKey {

@@ -379,6 +379,9 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 		}
 	}
 
+	// check if the nonce is correct
+	// TODO
+
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom, okFrom := pool.poolPending.state[tx.From]
 	if !okFrom {
@@ -680,10 +683,6 @@ func (t *txLookUp) Get(h types.Hash) types.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}
-	//log.WithField("hash", h).Debug("hash not found in txlookup")
-	// for k := range t.txs {
-	// 	log.Warnf("Available: %s", k.Hex())
-	// }
 
 	return nil
 }
@@ -736,3 +735,7 @@ func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
 		txEnv.status = status
 	}
 }
+
+
+
+

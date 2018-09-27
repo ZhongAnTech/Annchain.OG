@@ -1,4 +1,3 @@
-
 // Copyright 2017 Baptist-Publication Information Technology Services Co.,Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +15,12 @@
 package crypto
 
 import (
-"crypto/aes"
-"crypto/cipher"
-crand "crypto/rand"
-"encoding/hex"
-"io"
-"sync"
+	"crypto/aes"
+	"crypto/cipher"
+	crand "crypto/rand"
+	"encoding/hex"
+	"io"
+	"sync"
 )
 
 var gRandInfo *randInfo

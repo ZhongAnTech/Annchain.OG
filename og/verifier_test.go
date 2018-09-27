@@ -1,10 +1,10 @@
 package og
 
 import (
-	"testing"
 	"github.com/annchain/OG/types"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
+	"testing"
 )
 
 func buildTx(from types.Address, accountNonce uint64) *types.Tx {

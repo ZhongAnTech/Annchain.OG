@@ -409,7 +409,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// get sequencer's unconfirmed elders
 	elders := pool.seekElders(seq)
 	// verify the elders
-	log.WithField("seq id",seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return err
@@ -432,7 +432,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq id",seq.Id).WithField("seq", seq).Debug("finished confirm seq")
+	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
 	return nil
 }
 
@@ -458,11 +458,11 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 				seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
 				/*log.WithField("len", seekingPool.Len()).
-					WithField("tx", baseTx).
-					WithField("as", len(inSeekingPool)).
-					WithField("elder", elder).
-					WithField("elderParentHash", elderParentHash).
-					Debug("seekingpool")
+				WithField("tx", baseTx).
+				WithField("as", len(inSeekingPool)).
+				WithField("elder", elder).
+				WithField("elderParentHash", elderParentHash).
+				Debug("seekingpool")
 				*/
 			}
 		}

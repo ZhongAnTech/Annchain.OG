@@ -6,7 +6,7 @@ import (
 	"math"
 	"regexp"
 	"time"
-	
+
 	"github.com/annchain/OG/metrics"
 )
 

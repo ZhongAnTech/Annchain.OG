@@ -68,7 +68,6 @@ func (dag *Dag) Stop() {
 	log.Infof("TxPool Stopped")
 }
 
-
 // Init inits genesis sequencer and genesis state of the network.
 func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]*math.BigInt) error {
 	if genesis.Id != 0 {
@@ -127,7 +126,7 @@ func (dag *Dag) LoadLastState() bool {
 	seq := dag.accessor.ReadLatestSequencer()
 	if seq == nil {
 		dag.latestSeqencer = genesis
-	}else {
+	} else {
 		dag.latestSeqencer = seq
 	}
 

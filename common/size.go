@@ -1,10 +1,7 @@
 package common
 
-
-
-
 import (
-"fmt"
+	"fmt"
 )
 
 // StorageSize is a wrapper around a float value that supports user friendly

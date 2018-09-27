@@ -52,9 +52,9 @@ func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey Priva
 	copy(privKeyBytes[:], CRandBytes(32))
 	priv, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
 	copy(privKeyBytes[:], priv.Serialize())
-	copy (pubKeyBytes[:], pub.SerializeUncompressed()[1:])
+	copy(pubKeyBytes[:], pub.SerializeUncompressed()[1:])
 	privateKey = PrivateKeyFromBytes(CryptoTypeSecp256k1, privKeyBytes[:])
-	publicKey= PublicKeyFromBytes(CryptoTypeSecp256k1,pubKeyBytes[:])
+	publicKey = PublicKeyFromBytes(CryptoTypeSecp256k1, pubKeyBytes[:])
 	return
 }
 

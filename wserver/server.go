@@ -2,15 +2,15 @@
 package wserver
 
 import (
-	"net/http"
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/annchain/OG/types"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
-	"fmt"
-	"github.com/gin-gonic/gin"
+	"net/http"
 	"time"
-	"context"
-	"github.com/annchain/OG/types"
-	"encoding/json"
 )
 
 const (

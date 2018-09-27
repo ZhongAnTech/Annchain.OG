@@ -274,7 +274,7 @@ func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 }
 
 // isKnownHash tests if the tx is already copied in local
-func (b *TxBuffer) isKnownHash(hash types.Hash) bool{
+func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 	return b.isLocalHash(hash) || b.GetFromBuffer(hash) != nil
 }
 

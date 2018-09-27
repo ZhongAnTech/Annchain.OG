@@ -28,6 +28,13 @@ func setParents(tx types.Txi, parents []types.Txi) {
 	}
 }
 
+func judge(t *testing.T, actual interface{}, want interface{}, id int) {
+	assert.Equal(t, actual, want)
+	if actual != want {
+		logrus.Warnf("Assert %d, expected %t, actual %t.", id, want, actual)
+	}
+}
+
 // A3: Nodes produced by same source must be sequential (tx nonce ++).
 func TestA3(t *testing.T) {
 	pool := &dummyTxPoolParents{}
@@ -84,14 +91,60 @@ func TestA3(t *testing.T) {
 		1, 1}
 
 	for i, tx := range txs {
-		judge(t, verifier.VerifyGraphStructure(tx), truth[i] == 1, i)
+		judge(t, verifier.verifyA3(tx), truth[i] == 1, i)
 	}
 
 }
 
-func judge(t *testing.T, actual interface{}, want interface{}, id int) {
-	assert.Equal(t, actual, want)
-	if actual != want {
-		logrus.Warnf("Assert %d, expected %t, actual %t.", id, want, actual)
+// A6: [My job] Node cannot reference two un-ordered nodes as its parents
+func TestA6(t *testing.T) {
+	pool := &dummyTxPoolParents{}
+	pool.Init()
+
+	addr1 := types.HexToAddress("0x0001")
+	addr2 := types.HexToAddress("0x0002")
+	addr3 := types.HexToAddress("0x0003")
+
+	txs := []types.Txi{
+		buildSeq(addr1, 1),
+		buildTx(addr1, 2),
+		buildTx(addr1, 0),
+		buildTx(addr2, 3),
+		buildTx(addr3, 1),
+
+		buildTx(addr2, 2),
+		buildTx(addr1, 4),
+		buildTx(addr3, 3),
+		buildTx(addr2, 2),
 	}
+
+	setParents(txs[0], []types.Txi{})
+	setParents(txs[1], []types.Txi{txs[0]})
+	setParents(txs[2], []types.Txi{txs[1], txs[6]})
+	setParents(txs[3], []types.Txi{txs[2], txs[7]})
+	setParents(txs[4], []types.Txi{txs[3], txs[8]})
+
+	setParents(txs[5], []types.Txi{txs[4]})
+	setParents(txs[6], []types.Txi{txs[0]})
+	setParents(txs[7], []types.Txi{txs[2]})
+	setParents(txs[8], []types.Txi{txs[7]})
+
+	for _, tx := range txs {
+		pool.AddRemoteTx(tx)
+	}
+
+	// tx2 is bad, others are good
+	verifier := Verifier{
+		dag:    nil,
+		txPool: pool,
+	}
+
+	truth := []int{
+		1, 1, 0, 1, 0,
+		1, 1, 1, 1}
+
+	for i, tx := range txs {
+		judge(t, verifier.verifyA6(tx), truth[i] == 1, i)
+	}
+
 }

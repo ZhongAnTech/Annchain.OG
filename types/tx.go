@@ -72,6 +72,10 @@ func (t *Tx) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
+func (t *Tx) Sender() Address {
+	return t.From
+}
+
 func (t *Tx) Parents() []Hash {
 	return t.ParentsHash
 }

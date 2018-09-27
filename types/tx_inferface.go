@@ -56,6 +56,8 @@ type Txi interface {
 	GetHeight() uint64
 	GetBase() *TxBase
 	GetTxHash() Hash
+	GetNonce() uint64
+	Sender() Address
 	SetHash(h Hash)
 	String() string
 
@@ -88,6 +90,10 @@ func (t *TxBase) GetHeight() uint64 {
 
 func (t *TxBase) GetTxHash() Hash {
 	return t.Hash
+}
+
+func (t *TxBase) GetNonce() uint64 {
+	return t.AccountNonce
 }
 
 func (t *TxBase) Parents() []Hash {

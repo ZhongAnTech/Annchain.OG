@@ -149,16 +149,66 @@ func (dag *Dag) Accessor() *Accessor {
 
 // Push trys to move a tx from tx pool to dag db.
 func (dag *Dag) Push(batch *ConfirmBatch) error {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	dag.wg.Add(1)
+	defer dag.wg.Done()
+
 	return dag.push(batch)
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
 // ogdb only.
 func (dag *Dag) GetTx(hash types.Hash) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
 	return dag.getTx(hash)
 }
 
+// GetTxByNonce gets tx from dag by sender's address and tx nonce
+func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxByNonce(addr, nonce)
+}
+
+// GetTxs get a bundle of txs according to a hash list.
+func (dag *Dag) GetTxs(hashs []types.Hash) []*types.Tx {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxs(hashs)
+}
+
+// GetTxConfirmId returns the id of the sequencer that confirm this tx.
+func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxConfirmId(hash)
+}
+
+func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	hashs := dag.getTxsHashesByNumber(id)
+	if hashs == nil {
+		return nil
+	}
+	if len(*hashs) == 0 {
+		return nil
+	}
+	log.WithField("len tx ", len(*hashs)).WithField("id", id).Info("get txs")
+	return dag.GetTxs(*hashs)
+}
+
 func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
 	case *types.Sequencer:
@@ -169,33 +219,23 @@ func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 }
 
 func (dag *Dag) GetSequencerById(id uint64) *types.Sequencer {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
 	return dag.getSequencerById(id)
 }
 
-func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
-	if id == 0 {
-		return dag.genesis
-	}
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
-	if id > dag.latestSeqencer.Id {
-		return nil
-	}
-	seq, err := dag.accessor.ReadSequencerById(id)
-	if err != nil || seq == nil {
-		log.WithField("id", id).WithError(err).Warn("head not found")
-		return nil
-	}
-	return seq
-}
-
 func (dag *Dag) GetSequencerHashById(id uint64) *types.Hash {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
 	return dag.getSequencerHashById(id)
 }
 
 func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
 	case *types.Sequencer:
@@ -209,6 +249,13 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
+func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxsHashesByNumber(id)
+}
+
 // GetBalance read the confirmed balance of an address from ogdb.
 func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 	return dag.accessor.ReadBalance(addr)
@@ -220,23 +267,22 @@ func (dag *Dag) RollBack() {
 }
 
 func (dag *Dag) push(batch *ConfirmBatch) error {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
-
 	if dag.latestSeqencer.Id+1 != batch.Seq.Id {
-		err := fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
-		log.Error(err)
-		panic(err)
+		return fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
 	}
-	// store the tx and update the state
+
 	var err error
+
+	// store the tx and update the state
 	for _, batchDetail := range batch.Batch {
 		for _, txi := range batchDetail.TxList {
 			err = dag.accessor.WriteTransaction(txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
+			}
+			err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
+			if err != nil {
+				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
 			}
 			switch tx := txi.(type) {
 			case *types.Sequencer:
@@ -282,16 +328,22 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	return nil
 }
 
-func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
-	return dag.getTxsHashesByNumber(id)
+func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
+	if id == 0 {
+		return dag.genesis
+	}
+	if id > dag.latestSeqencer.Id {
+		return nil
+	}
+	seq, err := dag.accessor.ReadSequencerById(id)
+	if err != nil || seq == nil {
+		log.WithField("id", id).WithError(err).Warn("head not found")
+		return nil
+	}
+	return seq
 }
 
 func (dag *Dag) getSequencerHashById(id uint64) *types.Hash {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
-
 	seq, err := dag.accessor.ReadSequencerById(id)
 	if err != nil || seq == nil {
 		log.WithField("id", id).Warn("head not found")
@@ -302,10 +354,6 @@ func (dag *Dag) getSequencerHashById(id uint64) *types.Hash {
 }
 
 func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
 	if id > dag.latestSeqencer.Number() {
 		return nil
 	}
@@ -317,38 +365,17 @@ func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
 }
 
 func (dag *Dag) getTx(hash types.Hash) types.Txi {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
-
 	return dag.accessor.ReadTransaction(hash)
 }
 
-func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
-	hashs := dag.GetTxsHashesByNumber(id)
-	if hashs == nil {
-		return nil
-	}
-	if len(*hashs) == 0 {
-		return nil
-	}
-	log.WithField("len tx ", len(*hashs)).WithField("id", id).Info("get txs")
-	return dag.GetTxs(*hashs)
-}
-
-func (dag *Dag) GetTxs(hashs []types.Hash) []*types.Tx {
-	return dag.getTxs(hashs)
+func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	return dag.accessor.ReadTxByNonce(addr, nonce)
 }
 
 func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
 	var txs []*types.Tx
 	for _, hash := range hashs {
-		tx := dag.accessor.ReadTransaction(hash)
+		tx := dag.getTx(hash)
 		switch tx := tx.(type) {
 		case *types.Tx:
 			txs = append(txs, tx)
@@ -356,6 +383,11 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 	}
 	return txs
 }
+
+func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
+	return dag.accessor.ReadTxSeqRelation(hash)
+}
+
 
 // func (dag *Dag) loop() {
 

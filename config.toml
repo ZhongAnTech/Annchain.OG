@@ -48,6 +48,7 @@ interval_ms = 1000
 
 [debug]
 node_id = 1
+pprof = true
 
 [dag]
 

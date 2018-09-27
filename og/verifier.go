@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"container/list"
+	"github.com/sirupsen/logrus"
 )
 
 // Verifier verifies if the tx meets the hash and graph standards.
@@ -177,6 +178,9 @@ func (v *Verifier) VerifyGraphStructure(txi types.Txi) (ok bool) {
 	if ok = v.verifyA3(txi); !ok {
 		return
 	}
+	if ok = v.verifyA6(txi); !ok {
+		return
+	}
 	return true
 }
 
@@ -187,7 +191,7 @@ func (v *Verifier) verifyA2(txi types.Txi) bool {
 func (v *Verifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 0
-	if txi.GetBase().AccountNonce == 0{
+	if txi.GetBase().AccountNonce == 0 {
 		return true
 	}
 	switch txi.GetType() {
@@ -203,4 +207,25 @@ func (v *Verifier) verifyA3(txi types.Txi) bool {
 		return ok
 	}
 	return false
+}
+func (v *Verifier) verifyA6(txi types.Txi) bool {
+	parents := v.getTxsFromLocal(txi.Parents())
+	// parents cannot be issued by same person
+	addresses := map[types.Address]bool{}
+	for _, parent := range parents {
+		var source types.Address
+		switch parent.GetType() {
+		case types.TxBaseTypeNormal:
+			source = parent.(*types.Tx).From
+		case types.TxBaseTypeSequencer:
+			source = parent.(*types.Sequencer).Issuer
+		}
+
+		if _, ok := addresses[source]; ok {
+			logrus.WithField("tx", txi).Debug("Tx referenced two unordered parents")
+			return false
+		}
+		addresses[source] = true
+	}
+	return true
 }

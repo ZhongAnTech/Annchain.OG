@@ -82,15 +82,16 @@ func (v *Verifier) getTxsFromLocal(hashes []types.Hash) (txs []types.Txi) {
 }
 
 // get the nearest previous sequencer from txpool
-func (v *Verifier) getPreviousSequencer(currentSeq types.Txi) (previousSeq *types.Sequencer, ok bool) {
+func (v *Verifier) getPreviousSequencer(currentTx types.Txi) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
-	seekingHashes.PushBack(currentSeq.GetTxHash())
+	seekingHashes.PushBack(currentTx.GetTxHash())
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
 		txi := v.txPool.Get(head)
 		if txi == nil {
 			// not found, maybe in the dag
+			// TODO: fetch from dag
 			continue
 		}
 		switch txi.GetType() {
@@ -99,7 +100,7 @@ func (v *Verifier) getPreviousSequencer(currentSeq types.Txi) (previousSeq *type
 		case types.TxBaseTypeSequencer:
 			// found seq, check nonce
 			// verify if the nonce is larger
-			if txi.GetBase().AccountNonce == currentSeq.GetBase().AccountNonce-1 {
+			if txi.GetBase().AccountNonce == currentTx.GetBase().AccountNonce-1 {
 				// good
 				previousSeq = txi.(*types.Sequencer)
 				ok = true
@@ -181,6 +182,9 @@ func (v *Verifier) VerifyGraphStructure(txi types.Txi) (ok bool) {
 	if ok = v.verifyA6(txi); !ok {
 		return
 	}
+	if ok = v.verifyB1(txi); !ok {
+		return
+	}
 	return true
 }
 
@@ -228,4 +232,7 @@ func (v *Verifier) verifyA6(txi types.Txi) bool {
 		addresses[source] = true
 	}
 	return true
+}
+func (v *Verifier) verifyB1(txi types.Txi) bool {
+	// compare the sequencer id
 }

@@ -77,6 +77,10 @@ func (d *dummySyncer) Enqueue(hash types.Hash) {
 
 type dummyVerifier struct{}
 
+func (d *dummyVerifier) VerifyGraphStructure(t types.Txi) bool {
+	return true
+}
+
 func (d *dummyVerifier) VerifyHash(t types.Txi) bool {
 	return true
 }

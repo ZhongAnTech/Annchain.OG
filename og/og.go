@@ -33,7 +33,7 @@ func NewOg() (*Og, error) {
 	og.Dag = core.NewDag(dagconfig, db)
 	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
 
-	if !og.Dag.LoadGenesis() {
+	if !og.Dag.LoadLastState() {
 		// TODO use config to load the genesis
 		seq, balance := DefaultGenesis()
 		if err := og.Dag.Init(seq, balance); err != nil {

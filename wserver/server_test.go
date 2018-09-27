@@ -1,9 +1,9 @@
 package wserver
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 )
 
 func TestServer(t *testing.T) {

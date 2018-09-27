@@ -41,8 +41,6 @@ type UIData struct {
 	Edges []Edge `json:"edges"`
 }
 
-
-
 func (u *UIData) AddToBatch(tx types.Txi) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),

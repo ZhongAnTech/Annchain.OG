@@ -30,8 +30,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
+	"github.com/annchain/OG/metrics"
 	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/metrics"	
 )
 
 const (
@@ -58,9 +58,9 @@ type LevelDB struct {
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 }
 type LevelDBConfig struct {
-	Path	string
-	Cache	int
-	Handles	int
+	Path    string
+	Cache   int
+	Handles int
 }
 
 // NewLevelDB returns a LevelDB wrapped object.
@@ -89,8 +89,8 @@ func NewLevelDB(file string, cache int, handles int) (*LevelDB, error) {
 		return nil, err
 	}
 	return &LevelDB{
-		fn:  file,
-		db:  db,
+		fn: file,
+		db: db,
 	}, nil
 }
 

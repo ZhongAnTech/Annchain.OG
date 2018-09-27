@@ -1,9 +1,9 @@
 package wserver
 
 import (
-	"testing"
-	"github.com/gorilla/websocket"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"testing"
 )
 
 func TestEvent2Conns(t *testing.T) {

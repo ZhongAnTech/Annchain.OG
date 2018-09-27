@@ -19,8 +19,8 @@ type Tx struct {
 	Value *math.BigInt
 }
 
-func ( t *Tx)String()string {
-    return 	t.TxBase.String()
+func (t *Tx) String() string {
+	return t.TxBase.String()
 }
 
 func SampleTx() *Tx {

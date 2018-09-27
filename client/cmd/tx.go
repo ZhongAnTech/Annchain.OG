@@ -46,9 +46,9 @@ func newTx(cmd *cobra.Command, args []string) {
 	key := crypto.PrivateKey{
 		Bytes: data,
 	}
-	if algorithm =="secp256k1" || algorithm =="s" {
+	if algorithm == "secp256k1" || algorithm == "s" {
 		key.Type = crypto.CryptoTypeSecp256k1
-	}else {
+	} else {
 		key.Type = crypto.CryptoTypeSecp256k1
 	}
 
@@ -57,9 +57,9 @@ func newTx(cmd *cobra.Command, args []string) {
 	// do sign work
 	var signer crypto.Signer
 
-	if algorithm =="secp256k1" || algorithm =="s" {
+	if algorithm == "secp256k1" || algorithm == "s" {
 		signer = &crypto.SignerSecp256k1{}
-	}else {
+	} else {
 		signer = &crypto.SignerEd25519{}
 	}
 	pub := signer.PubKey(key)

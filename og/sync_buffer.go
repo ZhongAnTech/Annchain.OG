@@ -140,10 +140,10 @@ func (s *SyncBuffer) Handle() error {
 		// temporary commit for testing
 		//todo
 		/*
-		     	err =  s.txBuffer.verifyTxFormat(tx)
-		     	if err!=nil {
-					break
-				}
+			     	err =  s.txBuffer.verifyTxFormat(tx)
+			     	if err!=nil {
+						break
+					}
 		*/
 		err = s.txBuffer.txPool.AddRemoteTx(tx)
 		if err != nil {

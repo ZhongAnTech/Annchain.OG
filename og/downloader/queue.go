@@ -40,7 +40,7 @@ type fetchResult struct {
 	Header       *types.SequencerHeader
 	Uncles       []*types.SequencerHeader
 	Transactions types.Txs
-	Sequencer   *types.Sequencer
+	Sequencer    *types.Sequencer
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -621,7 +621,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	for id := range expiries {
 		delete(pendPool, id)
 	}
-	log.WithField("ids",expiries).Debug("expire")
+	log.WithField("ids", expiries).Debug("expire")
 	return expiries
 }
 
@@ -717,8 +717,8 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Tx, seq *types.Seque
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.SequencerHeader, index int, result *fetchResult) error {
-		if   header.SequencerId() != seq.Id {
-			return fmt.Errorf("header and seq mismatch  header %d  seq %d",header.SequencerId(),seq.Id)
+		if header.SequencerId() != seq.Id {
+			return fmt.Errorf("header and seq mismatch  header %d  seq %d", header.SequencerId(), seq.Id)
 		}
 		result.Transactions = txLists[index]
 		result.Sequencer = seq

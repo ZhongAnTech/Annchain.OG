@@ -74,11 +74,11 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 		v.String(), len(p.tipsMap), len(p.poolMap))
 }
 
-
-type dummyTxPoolParents struct{
+type dummyTxPoolParents struct {
 	poolMap map[types.Hash]types.Txi
 }
-func (p *dummyTxPoolParents) Init(){
+
+func (p *dummyTxPoolParents) Init() {
 	p.poolMap = make(map[types.Hash]types.Txi)
 }
 

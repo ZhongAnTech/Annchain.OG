@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/websocket"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +28,7 @@ type RegisterMessage struct {
 	Event string `json:"event"`
 }
 
-func (wh *websocketHandler) Handle(ctx *gin.Context){
+func (wh *websocketHandler) Handle(ctx *gin.Context) {
 	wh.ServeHTTP(ctx.Writer, ctx.Request)
 }
 
@@ -74,7 +74,7 @@ type pushHandler struct {
 	event2Cons *event2Cons
 }
 
-func (s *pushHandler) Handle(ctx *gin.Context){
+func (s *pushHandler) Handle(ctx *gin.Context) {
 	s.ServeHTTP(ctx.Writer, ctx.Request)
 }
 

@@ -19,7 +19,7 @@ func (z *BigInt) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	sign, err := dc.ReadBool()
-	if err != nil{
+	if err != nil {
 		return
 	}
 
@@ -28,7 +28,7 @@ func (z *BigInt) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	z.Value = big.NewInt(0).SetBytes(bytes)
-	if !sign{
+	if !sign {
 		z.Value = z.Value.Neg(z.Value)
 	}
 	return
@@ -71,7 +71,7 @@ func (z *BigInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	sign, bts, err := msgp.ReadBoolBytes(bts)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	bytes, bts, err := msgp.ReadBytesBytes(bts, []byte{})
@@ -79,7 +79,7 @@ func (z *BigInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	z.Value = big.NewInt(0).SetBytes(bytes)
-	if !sign{
+	if !sign {
 		z.Value = z.Value.Neg(z.Value)
 	}
 	o = bts

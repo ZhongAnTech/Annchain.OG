@@ -1,9 +1,9 @@
 package og
 
 import (
+	"container/list"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
-	"container/list"
 	"github.com/sirupsen/logrus"
 )
 
@@ -227,5 +227,5 @@ func (v *Verifier) verifyA6(txi types.Txi) bool {
 
 func (v *Verifier) verifyB1(txi types.Txi) bool {
 	// compare the sequencer id
-	return true 
+	return true
 }

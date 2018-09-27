@@ -81,8 +81,8 @@ func TestA3(t *testing.T) {
 
 	// tx2 is bad, others are good
 	verifier := Verifier{
-		dag:    nil,
-		txPool: pool,
+		Dag:    nil,
+		TxPool: pool,
 	}
 
 	truth := []int{
@@ -135,8 +135,8 @@ func TestA6(t *testing.T) {
 
 	// tx2 is bad, others are good
 	verifier := Verifier{
-		dag:    nil,
-		txPool: pool,
+		Dag:    nil,
+		TxPool: pool,
 	}
 
 	truth := []int{

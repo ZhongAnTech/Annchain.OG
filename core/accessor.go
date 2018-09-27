@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	prefixGenesisKey	 = []byte("genesis")
-	prefixLatestSeqKey	 = []byte("latestseq")
+	prefixGenesisKey   = []byte("genesis")
+	prefixLatestSeqKey = []byte("latestseq")
 
 	prefixTransactionKey = []byte("tk")
 	prefixTransaction    = []byte("tx")
 	prefixSequencer      = []byte("sq")
 
-	prefixSeqIdKey		 = []byte("si")
-	prefixTxIndexKey	 = []byte("ti")
+	prefixSeqIdKey   = []byte("si")
+	prefixTxIndexKey = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
 	// prefixContractState = []byte("con")
@@ -58,7 +58,7 @@ func NewAccessor(db ogdb.Database) *Accessor {
 	return &Accessor{db: db}
 }
 
-// ReadGenesis get genesis sequencer from db. 
+// ReadGenesis get genesis sequencer from db.
 // return nil if there is no genesis.
 func (da *Accessor) ReadGenesis() *types.Sequencer {
 	data, _ := da.db.Get(genesisKey())
@@ -82,7 +82,7 @@ func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
 	return da.db.Put(genesisKey(), data)
 }
 
-// ReadLatestSequencer get latest sequencer from db. 
+// ReadLatestSequencer get latest sequencer from db.
 // return nil if there is no sequencer.
 func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	data, _ := da.db.Get(latestSequencerKey())
@@ -244,7 +244,7 @@ func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
 	return da.db.Put(seqIdKey(seq.Id), data)
 }
 
-// ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that 
+// ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
 // holds the id 'seqid'.
 func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
 	data, _ := da.db.Get(txIndexKey(seqid))

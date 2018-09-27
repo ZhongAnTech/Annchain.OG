@@ -3,12 +3,12 @@ package core_test
 import (
 	"testing"
 
+	"fmt"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/math"
-	"fmt"
 )
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
@@ -23,7 +23,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 	}
 	dag.Start()
 
-	return dag, genesis, func(){
+	return dag, genesis, func() {
 		dag.Stop()
 		remove()
 	}
@@ -86,7 +86,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	if ok := dag.LoadGenesis(); !ok {
 		t.Fatalf("can't load genesis from db")
 	}
-	
+
 	ge := dag.Genesis()
 	if ge == nil {
 		t.Fatalf("genesis is not set in dag")
@@ -164,16 +164,14 @@ func TestDagPush(t *testing.T) {
 	if len(hashs) != 2 {
 		t.Fatalf("hashs length not match")
 	}
-	if !( (hashs[0] == tx1.GetTxHash() && hashs[1] == tx2.GetTxHash()) || 
-			(hashs[1] == tx1.GetTxHash() && hashs[0] == tx2.GetTxHash()) ) {
+	if !((hashs[0] == tx1.GetTxHash() && hashs[1] == tx2.GetTxHash()) ||
+		(hashs[1] == tx1.GetTxHash() && hashs[0] == tx2.GetTxHash())) {
 		t.Fatalf("indexed hashs are not the list of tx1 and tx2's hash")
 	}
 
-   txs:=  dag.GetTxsByNumber(seq.Id)
-   fmt.Println("txs",types.Txs(txs))
+	txs := dag.GetTxsByNumber(seq.Id)
+	fmt.Println("txs", types.Txs(txs))
 
 	// TODO check addr balance
 
 }
-
-

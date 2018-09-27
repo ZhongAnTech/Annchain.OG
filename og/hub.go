@@ -27,7 +27,6 @@ const (
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
-
 )
 
 var errIncompatibleConfig = errors.New("incompatible configuration")
@@ -44,12 +43,10 @@ type Hub struct {
 	peers            *peerSet
 	SubProtocols     []p2p.Protocol
 
+	wg sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
 
-	wg               sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
-
-	Dag              *core.Dag
-	messageCache     gcache.Cache // cache for duplicate responses/msg to prevent storm
-
+	Dag          *core.Dag
+	messageCache gcache.Cache // cache for duplicate responses/msg to prevent storm
 
 	maxPeers    int
 	fastSync    uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
@@ -64,17 +61,15 @@ type Hub struct {
 	downloader *downloader.Downloader
 	fetcher    *fetcher.Fetcher
 
-
 	networkID  uint64
 	TxBuffer   *TxBuffer
 	SyncBuffer *SyncBuffer
-
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
 	return map[string]int{
-		"outgoing": len(h.outgoing),
-		"incoming": len(h.incoming),
+		"outgoing":  len(h.outgoing),
+		"incoming":  len(h.incoming),
 		"newPeerCh": len(h.newPeerCh),
 	}
 }
@@ -86,12 +81,11 @@ type HubConfig struct {
 	MessageCacheExpirationSeconds int
 }
 
-func (h*Hub)Set(dag *core.Dag) {
+func (h *Hub) Set(dag *core.Dag) {
 	h.downloader.Cancel()
 }
 
-
-func (h *Hub) Init(config *HubConfig, maxPeer int,networkId uint64,dag *core.Dag) {
+func (h *Hub) Init(config *HubConfig, maxPeer int, networkId uint64, dag *core.Dag) {
 
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
@@ -99,11 +93,11 @@ func (h *Hub) Init(config *HubConfig, maxPeer int,networkId uint64,dag *core.Dag
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
-	h.txsyncCh=    make(chan *txsync)
-	h.quitSync=    make(chan struct{})
+	h.txsyncCh = make(chan *txsync)
+	h.quitSync = make(chan struct{})
 	h.maxPeers = maxPeer
-    h.networkID = networkId
-    h.Dag = dag
+	h.networkID = networkId
+	h.Dag = dag
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
@@ -111,7 +105,7 @@ func (h *Hub) Init(config *HubConfig, maxPeer int,networkId uint64,dag *core.Dag
 
 func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID uint64, dag *core.Dag) *Hub {
 	h := &Hub{}
-	h.Init(config, maxPeer, networkID,dag )
+	h.Init(config, maxPeer, networkID, dag)
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && h.Dag.LatestSequencer().Id > 0 {
 		log.Warn("Blockchain not empty, fast sync disabled")
@@ -161,17 +155,18 @@ func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID 
 	}
 	// Construct the different synchronisation mechanisms
 
-	h.downloader = downloader.New(mode, h.Dag, h.removePeer,h.AddTxs)
+	h.downloader = downloader.New(mode, h.Dag, h.removePeer, h.AddTxs)
 	heighter := func() uint64 {
 		return h.Dag.LatestSequencer().Id
 	}
 	inserter := func(tx types.Txi) error {
 		// If fast sync is running, deny importing weird blocks
 		if atomic.LoadUint32(&h.fastSync) == 1 {
-			log.WithField("number", tx.GetHeight()).WithField( "hash", tx.GetTxHash()).Warn("Discarded bad propagated sequencer")
+			log.WithField("number", tx.GetHeight()).WithField("hash", tx.GetTxHash()).Warn("Discarded bad propagated sequencer")
 			return nil
 		}
 		atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done on any fetcher import
+		log.Warn("maybe some proble here")
 		h.TxBuffer.AddTx(tx)
 		return nil
 	}
@@ -180,20 +175,24 @@ func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID 
 	return h
 }
 
-func (h *Hub) AddTxs(txs  types.Txs, seq *types.Sequencer) error {
+func (h *Hub) AddTxs(txs types.Txs, seq *types.Sequencer) error {
 	var txis []types.Txi
-	for _,tx:= range txs {
+	for _, tx := range txs {
 		t := *tx
-		txis = append(txis,&t)
+		txis = append(txis, &t)
 	}
-	if seq ==nil {
+	if seq == nil {
 		err := fmt.Errorf("seq is nil")
 		log.WithError(err)
 		return err
 	}
+	if seq.Id != h.Dag.LatestSequencer().Id+1 {
+		log.WithField("latests seq id ", h.Dag.LatestSequencer().Id).WithField("seq id", seq.Id).Warn("id mismatch")
+		return nil
+	}
 	se := *seq
-	go h.SyncBuffer.AddTxs(txis,&se)
-	return nil
+
+	return h.SyncBuffer.AddTxs(txis, &se)
 }
 
 func (h *Hub) GetSequencerByHash(hash types.Hash) *types.Sequencer {
@@ -226,7 +225,7 @@ func (h *Hub) handle(p *peer) error {
 		head = lastSeq.Hash
 	}
 	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
-		log.WithError(err).WithField("peer ",p.id).Debug("OG handshake failed")
+		log.WithError(err).WithField("peer ", p.id).Debug("OG handshake failed")
 		return err
 	}
 	// Register the peer locally
@@ -290,8 +289,8 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 		hashMode := !query.Origin.Hash.Empty()
 		first := true
-        log.WithField("hash",query.Origin.Hash).WithField("number",query.Origin.Number).WithField(
-        	"hashmode",hashMode).WithField("amount",query.Amount).WithField("skip",query.Skip).Debug("requests")
+		log.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
+			"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Debug("requests")
 		// Gather headers until the fetch or network limits is reached
 		var (
 			bytes   common.StorageSize
@@ -416,13 +415,12 @@ func (h *Hub) handleMsg(p *peer) error {
 		} else {
 			seq = h.Dag.GetSequencerById(msgReq.Id)
 		}
-		if seq == nil {
-			return nil
-		}
 		msgRes.Sequencer = seq
-		msgRes.Txs = h.Dag.GetTxsByNumber(msgReq.Id)
+		if seq != nil {
+			msgRes.Txs = h.Dag.GetTxsByNumber(seq.Id)
+		}
 		data, _ := msgRes.MarshalMsg(nil)
-		log.WithField("txs num ",len(msgRes.Txs)).Debug("send MessageTypeGetTxs, ")
+		log.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
 		return p.sendRawMessage(uint64(MessageTypeGetTxs), data)
 
 	case p2pMsg.MessageType == MessageTypeGetTxs:
@@ -436,15 +434,20 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Deliver them all to the downloader for queuing
 		transactions := make([][]*types.Tx, 1)
 		transactions[0] = request.Txs
+		if request.Sequencer != nil {
+			log.WithField("len", len(transactions[0])).WithField("seq id", request.Sequencer.Id).Debug("got bodies txs ")
+		} else {
+			log.Warn("got nil sequencer")
+			return nil
+		}
 
-		log.WithField("len",len(transactions[0])).WithField("seq id",request.Sequencer.Id).Debug("got bodies txs ")
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0
+		filter := len(transactions[0]) > 0
 		if filter {
 			transactions = h.fetcher.FilterBodies(p.id, transactions, request.Sequencer, time.Now())
 		}
-		if len(transactions) > 0 || !filter {
-			log.WithField("len",len(transactions[0])).Debug("deliver bodies ")
+		if len(transactions[0]) > 0 || !filter {
+			log.WithField("len", len(transactions[0])).Debug("deliver bodies ")
 			err := h.downloader.DeliverBodies(p.id, transactions, nil, request.Sequencer)
 			if err != nil {
 				log.Debug("Failed to deliver bodies", "err", err)
@@ -465,6 +468,14 @@ func (h *Hub) handleMsg(p *peer) error {
 		if atomic.LoadUint32(&h.acceptTxs) == 0 {
 			return nil
 		}
+		log.Debug("got  message type ", p2pMsg.MessageType)
+		p2pMsg.init()
+		if p2pMsg.needCheckRepeat {
+			p.MarkMessage(p2pMsg.hash)
+		}
+		h.incoming <- &p2pMsg
+		return nil
+
 	case p2pMsg.MessageType == MessageTypeNewTx && atomic.LoadUint32(&h.acceptTxs) == 0:
 		// no receive until sync finish
 		return nil
@@ -474,7 +485,6 @@ func (h *Hub) handleMsg(p *peer) error {
 		//p.SendNodeData(nil)
 		log.Debug("need send node data")
 
-
 	case p.version >= OG32 && p2pMsg.MessageType == NodeDataMsg:
 		// Deliver all to the downloader
 		if err := h.downloader.DeliverNodeData(p.id, nil); err != nil {
@@ -482,7 +492,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 
 	default:
-		log.Debug("got default message type ",p2pMsg.MessageType)
+		log.Debug("got default message type ", p2pMsg.MessageType)
 		p2pMsg.init()
 		if p2pMsg.needCheckRepeat {
 			p.MarkMessage(p2pMsg.hash)

@@ -1,38 +1,38 @@
 package og
 
 import (
+	"container/list"
 	"fmt"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 type SyncBuffer struct {
-	Txs       map[types.Hash]types.Txi
+	Txs        map[types.Hash]types.Txi
 	Seq        *types.Sequencer
-	mu        sync.RWMutex
-	txBuffer  *TxBuffer
-	acceptTxs uint32
-	quit      chan bool
-	start     chan bool
-	done      chan bool
+	mu         sync.RWMutex
+	txBuffer   *TxBuffer
+	acceptTxs  uint32
+	quitHandel bool
 }
 
 func (s *SyncBuffer) Start() {
-	go s.loop()
+	log.Info("syncbuffer started")
 }
 
 func (s *SyncBuffer) Stop() {
-	s.quit <- true
+	log.Info("syncbuffer will stop")
+	s.quitHandel = true
 }
 
-func (s *SyncBuffer) addTxs(txs []types.Txi,seq *types.Sequencer) error {
+// range map is random value ,so store hashs using slice
+func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if seq ==nil {
-		err :=  fmt.Errorf("nil sequencer")
+	if seq == nil {
+		err := fmt.Errorf("nil sequencer")
 		log.WithError(err).Debug("add txs error")
 		return err
 	}
@@ -41,71 +41,46 @@ func (s *SyncBuffer) addTxs(txs []types.Txi,seq *types.Sequencer) error {
 		if len(s.Txs) > MaxBufferSiza {
 			return fmt.Errorf("too much txs")
 		}
-		if tx==nil{
+		if tx == nil {
 			log.Debug("nil tx")
 			continue
 		}
 		if _, ok := s.Txs[tx.GetTxHash()]; !ok {
+
 			s.Txs[tx.GetTxHash()] = tx
 		}
 	}
-
 	return nil
 
 }
 
-func (s *SyncBuffer) AddTxs(txs []types.Txi ,seq *types.Sequencer) error {
+func (s *SyncBuffer) AddTxs(txs []types.Txi, seq *types.Sequencer) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
-		s.addTxs(txs,seq)
-		s.start <- true
-	} else {
-		for {
-			select {
-			case <-s.done:
-				s.addTxs(txs,seq)
-				s.start <- true
-				return nil
-			case <-time.After(time.Millisecond * 100):
-				if atomic.LoadUint32(&s.acceptTxs) == 0 {
-					s.addTxs(txs,seq)
-					s.start <- true
-					return nil
-				}
-			}
+		atomic.StoreUint32(&s.acceptTxs, 1)
+		defer atomic.StoreUint32(&s.acceptTxs, 0)
+		s.clean()
+		err := s.addTxs(txs, seq)
+		if err != nil {
+			return err
 		}
+		s.Handle()
+
+	} else {
+		err := fmt.Errorf("addtx busy")
+		return err
 	}
 	return nil
 }
 
 func (s *SyncBuffer) Name() string {
-	return "TxBuffer"
-}
-
-func (s *SyncBuffer) loop() {
-	for {
-		select {
-		case <-s.quit:
-			log.Info("TxBuffer received quit message. Quitting...")
-			return
-		case <-s.start:
-			atomic.StoreUint32(&s.acceptTxs, 1)
-			s.Handle()
-		    s.clean()
-			atomic.StoreUint32(&s.acceptTxs, 0)
-			s.done <- true
-		}
-	}
+	return "SyncBuffer"
 }
 
 var MaxBufferSiza = 4096 * 4
 
 func NewSyncBuffer(buffer *TxBuffer) *SyncBuffer {
-
 	s := &SyncBuffer{
-		Txs:   make(map[types.Hash]types.Txi),
-		quit:  make(chan bool),
-		start: make(chan bool),
-		done:  make(chan bool),
+		Txs: make(map[types.Hash]types.Txi),
 	}
 	s.txBuffer = buffer
 	return s
@@ -121,17 +96,15 @@ func (s *SyncBuffer) Count() int {
 func (s *SyncBuffer) Get(hash types.Hash) types.Txi {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-
 	return s.Txs[hash]
+
 }
 
 func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-
 	var keys []types.Hash
-	// slice of keys
-	for k := range s.Txs {
+	for k, _ := range s.Txs {
 		keys = append(keys, k)
 	}
 	return keys
@@ -140,40 +113,108 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 func (s *SyncBuffer) Remove(hash types.Hash) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	delete(s.Txs, hash)
 }
 
-
-func (s *SyncBuffer)clean(){
+func (s *SyncBuffer) clean() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for k,_:=  range s.Txs {
-		delete(s.Txs,k)
+	for k, _ := range s.Txs {
+		delete(s.Txs, k)
 	}
 }
 
-
-func (s *SyncBuffer) Handle() {
-
-	txHashs := s.GetAllKeys()
-	for _, txHash := range txHashs {
-		s.HandelOne(txHash,types.TxBaseTypeNormal)
+func (s *SyncBuffer) Handle() error {
+	if s.quitHandel {
+		return nil
 	}
-	s.HandelOne(s.Seq.GetTxHash(),types.TxBaseTypeSequencer)
-	if s.Count() == 0 {
-		log.Info("finished processing txs")
+	count := s.Count()
+	log.WithField("txs len", count).WithField("seq id ", s.Seq.Number()).Debug("handle txs start")
+	err := s.verifyElders(s.Seq)
+	if err != nil {
+		log.WithField("seq ", s.Seq.Number()).WithError(err).Warn("handel fail")
+		return err
 	}
-	return
+
+	for _, tx := range s.Txs {
+		// temporary commit for testing
+		//todo
+		/*
+		     	err =  s.txBuffer.verifyTxFormat(tx)
+		     	if err!=nil {
+					break
+				}
+		*/
+		err = s.txBuffer.txPool.AddRemoteTx(tx)
+		if err != nil {
+			break
+		}
+	}
+	if err == nil {
+		log.WithField("id", s.Seq.Number()).Debug("before add seq")
+		err = s.txBuffer.txPool.AddRemoteTx(s.Seq)
+		log.WithField("id", s.Seq.Number()).Debug("after add seq")
+	}
+	if err != nil {
+		log.WithField("seq ", s.Seq.Number()).WithError(err).Warn("handel fail")
+	} else {
+		log.WithField("txs len", count).WithField("seq id ", s.Seq.Number()).Debug("handle txs done")
+
+	}
+	return err
 }
 
-func (s *SyncBuffer) HandelOne(hash types.Hash, txType types.TxBaseType ) (added bool, err error) {
+func (s *SyncBuffer) verifyElders(seq types.Txi) error {
+
+	allKeys := s.GetAllKeys()
+	keysMap := make(map[types.Hash]int)
+	for _, k := range allKeys {
+		keysMap[k] = 1
+	}
+
+	inSeekingPool := map[types.Hash]int{}
+	seekingPool := list.New()
+	for _, parentHash := range seq.Parents() {
+		seekingPool.PushBack(parentHash)
+	}
+	for seekingPool.Len() > 0 {
+		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+		elder := s.Get(elderHash)
+		if elder == nil {
+			if s.txBuffer.isLocalHash(elderHash) {
+				continue
+			}
+			err := fmt.Errorf("parent not found ")
+			log.WithField("hash", elderHash.String()).Warn("elser not found")
+			return err
+		}
+		delete(keysMap, elderHash)
+		for _, elderParentHash := range elder.Parents() {
+			if _, in := inSeekingPool[elderParentHash]; !in {
+				seekingPool.PushBack(elderParentHash)
+				inSeekingPool[elderParentHash] = 0
+			}
+		}
+	}
+	if len(keysMap) != 0 {
+		err := fmt.Errorf("txs number mismatch,redundent txs  %d", len(allKeys))
+		return err
+	}
+	return nil
+}
+
+/*
+func (s *SyncBuffer)handelOneRecursive (hash types.Hash, txType types.TxBaseType ) (added bool, err error) {
+	if s.quitHandel {
+		return
+	}
 	b := s.txBuffer
 	tx := s.Get(hash)
 	if txType == types.TxBaseTypeSequencer {
-           tx = s.Seq
+		tx = s.Seq
 	}
 	if tx == nil {
+		s.Remove(hash)
 		return false, nil
 	}
 	// already in the dag or tx_pool.
@@ -181,7 +222,6 @@ func (s *SyncBuffer) HandelOne(hash types.Hash, txType types.TxBaseType ) (added
 		s.Remove(tx.GetTxHash())
 		return true, nil
 	}
-	log.Debug("hande sync tx ", tx.GetTxHash())
 
 	//if parent is in dag or pool , verify and add tx to pool
 	//else if parent is in sync_buffer ,process parent first
@@ -197,7 +237,8 @@ func (s *SyncBuffer) HandelOne(hash types.Hash, txType types.TxBaseType ) (added
 				s.Remove(tx.GetTxHash())
 				return false, fmt.Errorf("parent not found")
 			} else {
-				if result, _ := s.HandelOne(parent.GetTxHash(),parent.GetType()); result {
+				log.WithField("parent ",parent.GetTxHash()).Debug("hande sync tx's parents ", tx.GetTxHash())
+				if result, _ := s.handelOneRecursive(parent.GetTxHash(),parent.GetType()); result {
 					unkown = false
 				}
 			}
@@ -217,3 +258,5 @@ func (s *SyncBuffer) HandelOne(hash types.Hash, txType types.TxBaseType ) (added
 
 	return false, nil
 }
+
+*/

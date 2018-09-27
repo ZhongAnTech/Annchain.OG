@@ -157,6 +157,11 @@ func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
 	return pool.txLookup.GetByNonce(addr, nonce)
 }
 
+// GetLatestNonce get the latest nonce of an address
+func (pool *TxPool) GetLatestNonce(addr types.Address) (uint64, error) {
+	return pool.txLookup.GetLatestNonce(addr)
+}
+
 // GetStatus gets the current status of a tx
 func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)

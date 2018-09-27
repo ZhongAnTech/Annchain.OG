@@ -19,7 +19,9 @@ var (
 	contentPrefixTransaction    = []byte("cptx")
 	contentPrefixSequencer      = []byte("cpsq")
 
-	prefixTxSeqRelationKey	= []byte("tsr")
+	prefixTxSeqRelationKey		= []byte("tsr")
+	
+	prefixAddrLatestNonceKey 	= []byte("aln")
 
 	prefixSeqIdKey   = []byte("si")
 	prefixTxIndexKey = []byte("ti")
@@ -47,6 +49,10 @@ func txHashFlowKey(addr types.Address, nonce uint64) []byte {
 
 func txSeqRelationKey(hash types.Hash) []byte {
 	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
+}
+
+func addrLatestNonceKey(addr types.Address) []byte {
+	return append(prefixAddrLatestNonceKey, addr.ToBytes()...)
 }
 
 func addressBalanceKey(addr types.Address) []byte {
@@ -151,18 +157,36 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return da.ReadTransaction(hash)
 }
 
+// ReadAddrLatestNonce get latest nonce of an address
+func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
+	data, err := da.db.Get(addrLatestNonceKey(addr))
+	if len(data) == 0 {
+		return 0, err
+	}
+	nonce, parseErr := strconv.ParseUint(data, 10, 64)
+	if parseErr != nil {
+		return 0, fmt.Errorf("parse nonce from bytes to uint64 error: %v", parseErr)
+	}
+	return nonce, nil
+}
+
 // WriteTransaction write the tx or sequencer into ogdb, also write 
 // the ([address, nonce] -> hash) relation into ogdb. Data will be 
 // overwritten if it already exists in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
 	var err error
-	
+
+	// write tx latest nonce
+	// TODO
+
+	// write tx hash nonce
 	err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), tx.GetTxHash().ToBytes())
 	if err != nil {
 		return fmt.Errorf("write tx hash flow to db err: %v", err)
 	}
 
+	// write tx
 	switch tx := tx.(type) {
 	case *types.Tx:
 		prefix = contentPrefixTransaction

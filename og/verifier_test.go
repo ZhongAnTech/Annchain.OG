@@ -7,6 +7,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func buildTx(from types.Address, accountNonce uint64) *types.Tx {
+	tx := types.RandomTx()
+	tx.AccountNonce = accountNonce
+	tx.From = from
+	return tx
+}
+
+func buildSeq(from types.Address, accountNonce uint64) *types.Sequencer {
+	tx := types.RandomSequencer()
+	tx.AccountNonce = accountNonce
+	tx.Issuer = from
+	return tx
+}
+
+func setParents(tx types.Txi, parents []types.Txi) {
+	tx.GetBase().ParentsHash = []types.Hash{}
+	for _, parent := range parents {
+		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetTxHash())
+	}
+}
+
 // A3: Nodes produced by same source must be sequential (tx nonce ++).
 func TestA3(t *testing.T) {
 	pool := &dummyTxPoolParents{}
@@ -15,79 +36,41 @@ func TestA3(t *testing.T) {
 	addr1 := types.HexToAddress("0x0001")
 	addr2 := types.HexToAddress("0x0002")
 
-	root := types.RandomSequencer()
-	root.ParentsHash = []types.Hash{}
-	root.AccountNonce = 1
-	pool.AddRemoteTx(root)
+	txs := []types.Txi{
+		buildSeq(addr1, 1),
+		buildTx(addr1, 2),
+		buildTx(addr2, 0),
+		buildTx(addr1, 3),
+		buildTx(addr2, 1),
 
-	tx1 := types.RandomTx()
-	tx2 := types.RandomTx()
-	tx3 := types.RandomTx()
-	tx4 := types.RandomTx()
-	tx5 := types.RandomTx()
-	tx6 := types.RandomTx()
-	tx7 := types.RandomTx()
-	tx8 := types.RandomTx()
-	tx9 := types.RandomTx()
-	tx10 := types.RandomTx()
-	tx11 := types.RandomTx()
+		buildTx(addr2, 2),
+		buildTx(addr1, 4),
+		buildTx(addr2, 3),
+		buildTx(addr1, 2),
+		buildTx(addr1, 4),
 
-	tx1.ParentsHash = []types.Hash{root.Hash}
-	tx1.AccountNonce = 2
-	tx1.From = addr1
+		buildTx(addr2, 4),
+		buildTx(addr1, 3),
+	}
 
-	tx2.ParentsHash = []types.Hash{tx1.Hash, tx7.Hash}
-	tx2.AccountNonce = 0
-	tx2.From = addr2
+	setParents(txs[0], []types.Txi{})
+	setParents(txs[1], []types.Txi{txs[0]})
+	setParents(txs[2], []types.Txi{txs[1], txs[7]})
+	setParents(txs[3], []types.Txi{txs[2], txs[8]})
+	setParents(txs[4], []types.Txi{txs[3], txs[9]})
 
-	tx3.ParentsHash = []types.Hash{tx2.Hash, tx8.Hash}
-	tx3.AccountNonce = 3
-	tx3.From = addr1
+	setParents(txs[5], []types.Txi{txs[4], txs[10]})
+	setParents(txs[6], []types.Txi{txs[5]})
+	setParents(txs[7], []types.Txi{txs[0]})
+	setParents(txs[8], []types.Txi{txs[7]})
+	setParents(txs[9], []types.Txi{txs[8]})
 
-	tx4.ParentsHash = []types.Hash{tx3.Hash, tx9.Hash}
-	tx4.AccountNonce = 1
-	tx4.From = addr2
+	setParents(txs[10], []types.Txi{txs[9]})
+	setParents(txs[11], []types.Txi{txs[10]})
 
-	tx5.ParentsHash = []types.Hash{tx4.Hash, tx10.Hash}
-	tx5.AccountNonce = 2
-	tx5.From = addr2
-
-	tx6.ParentsHash = []types.Hash{tx5.Hash}
-	tx6.AccountNonce = 4
-	tx6.From = addr1
-
-	tx7.ParentsHash = []types.Hash{root.Hash}
-	tx7.AccountNonce = 3
-	tx7.From = addr2
-
-	tx8.ParentsHash = []types.Hash{tx7.Hash}
-	tx8.AccountNonce = 2
-	tx8.From = addr1
-
-	tx9.ParentsHash = []types.Hash{tx8.Hash}
-	tx9.AccountNonce = 4
-	tx9.From = addr1
-
-	tx10.ParentsHash = []types.Hash{tx9.Hash}
-	tx10.AccountNonce = 4
-	tx10.From = addr2
-
-	tx11.ParentsHash = []types.Hash{tx10.Hash}
-	tx11.AccountNonce = 3
-	tx11.From = addr1
-
-	pool.AddRemoteTx(root)
-	pool.AddRemoteTx(tx1)
-	pool.AddRemoteTx(tx2)
-	pool.AddRemoteTx(tx3)
-	pool.AddRemoteTx(tx4)
-	pool.AddRemoteTx(tx5)
-	pool.AddRemoteTx(tx6)
-	pool.AddRemoteTx(tx7)
-	pool.AddRemoteTx(tx8)
-	pool.AddRemoteTx(tx9)
-	pool.AddRemoteTx(tx10)
-	pool.AddRemoteTx(tx11)
+	for _, tx := range txs {
+		pool.AddRemoteTx(tx)
+	}
 
 	// tx2 is bad, others are good
 	verifier := Verifier{
@@ -95,18 +78,14 @@ func TestA3(t *testing.T) {
 		txPool: pool,
 	}
 
-	judge(t, verifier.VerifyGraphStructure(root), false, 0) // have not checked genesis
-	judge(t, verifier.VerifyGraphStructure(tx1), false, 1)
-	judge(t, verifier.VerifyGraphStructure(tx2), true, 2)
-	judge(t, verifier.VerifyGraphStructure(tx3), true, 3)
-	judge(t, verifier.VerifyGraphStructure(tx4), true, 4)
-	judge(t, verifier.VerifyGraphStructure(tx5), true, 5)
-	judge(t, verifier.VerifyGraphStructure(tx6), true, 6)
-	judge(t, verifier.VerifyGraphStructure(tx7), false, 7)
-	judge(t, verifier.VerifyGraphStructure(tx8), false, 8)
-	judge(t, verifier.VerifyGraphStructure(tx9), false, 9)
-	judge(t, verifier.VerifyGraphStructure(tx10), true, 10)
-	judge(t, verifier.VerifyGraphStructure(tx11), true, 11)
+	truth := []int{
+		0, 0, 1, 1, 1,
+		1, 1, 0, 0, 0,
+		1, 1}
+
+	for i, tx := range txs {
+		judge(t, verifier.VerifyGraphStructure(tx), truth[i] == 1, i)
+	}
 
 }
 

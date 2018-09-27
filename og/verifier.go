@@ -224,6 +224,8 @@ func (v *Verifier) verifyA6(txi types.Txi) bool {
 	}
 	return true
 }
+
 func (v *Verifier) verifyB1(txi types.Txi) bool {
 	// compare the sequencer id
+	return true 
 }

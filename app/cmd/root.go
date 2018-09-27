@@ -23,11 +23,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io"
-	"path"
-	"path/filepath"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"path"
+	"path/filepath"
 )
 
 var cfgFile string

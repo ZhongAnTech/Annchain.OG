@@ -8,7 +8,7 @@ import (
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
 
-type  insertTxsFn  func(txs types.Txs,seq *types.Sequencer) error
+type insertTxsFn func(txs types.Txs, seq *types.Sequencer) error
 
 // dataPack is a data message returned by a peer for some query.
 type dataPack interface {
@@ -31,11 +31,11 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Tx
-	sequencer        *types.Sequencer
+	sequencer    *types.Sequencer
 }
 
-func (p *bodyPack)Sequencer()*types.Sequencer {
-	return  p.sequencer
+func (p *bodyPack) Sequencer() *types.Sequencer {
+	return p.sequencer
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }

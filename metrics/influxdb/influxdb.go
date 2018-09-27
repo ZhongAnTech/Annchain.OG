@@ -5,7 +5,7 @@ import (
 	"log"
 	uurl "net/url"
 	"time"
-	
+
 	"github.com/annchain/OG/metrics"
 	"github.com/influxdata/influxdb/client"
 )

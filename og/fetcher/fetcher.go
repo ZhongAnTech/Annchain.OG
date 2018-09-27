@@ -54,7 +54,7 @@ type bodyRequesterFn func([]types.Hash) error
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(tx types.Txi) ( error)
+type chainInsertFn func(tx types.Txi) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -85,8 +85,8 @@ type headerFilterTask struct {
 type bodyFilterTask struct {
 	peer         string        // The source peer of sequencer bodies
 	transactions [][]*types.Tx // Collection of transactions per sequencer bodies
-	seqeuencer  *types.Sequencer
-	time         time.Time     // Arrival time of the sequencers' contents
+	seqeuencer   *types.Sequencer
+	time         time.Time // Arrival time of the sequencers' contents
 }
 
 // inject represents a schedules import operation.
@@ -209,7 +209,7 @@ func (f *Fetcher) Enqueue(peer string, sequencer *types.Sequencer) error {
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
 func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, time time.Time) []*types.SequencerHeader {
-	log.WithField("peer",peer).WithField("headers",len(headers)).Debug( "Filtering headers")
+	log.WithField("peer", peer).WithField("headers", len(headers)).Debug("Filtering headers")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *headerFilterTask)
@@ -249,7 +249,7 @@ func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, seq *typ
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, seqeuencer:seq, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, seqeuencer: seq, time: time}:
 	case <-f.quit:
 		return nil
 	}
@@ -312,7 +312,7 @@ func (f *Fetcher) loop() {
 
 			count := f.announces[notification.origin] + 1
 			if count > hashLimit {
-				log.WithField( "peer", notification.origin).WithField(
+				log.WithField("peer", notification.origin).WithField(
 					"limit", hashLimit).Debug("Peer exceeded outstanding announces")
 				propAnnounceDOSMeter.Mark(1)
 				break
@@ -320,7 +320,7 @@ func (f *Fetcher) loop() {
 			// If we have a valid sequencer number, check that it's potentially useful
 			if notification.number > 0 {
 				if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
-					log.WithField( "peer", notification.origin).WithField("number", notification.number).WithField(
+					log.WithField("peer", notification.origin).WithField("number", notification.number).WithField(
 						"hash", notification.hash).WithField("distance", dist).Debug("Peer discarded announcement")
 					propAnnounceDropMeter.Mark(1)
 					break
@@ -553,7 +553,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 	// Ensure the peer isn't DOSing us
 	count := f.queues[peer] + 1
 	if count > sequencerLimit {
-		log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(  "hash", hash).WithField(
+		log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField("hash", hash).WithField(
 			"limit", sequencerLimit).Debug("Discarded propagated sequencer, exceeded allowance")
 		propBroadcastDOSMeter.Mark(1)
 		f.forgetHash(hash)
@@ -561,7 +561,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 	}
 	// Discard any past or too distant sequencers
 	if dist := int64(sequencer.Number()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
-		log.WithField("peer", peer).WithField( "number", sequencer.Number()).WithField("hash", hash).WithField("distance", dist)
+		log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField("hash", hash).WithField("distance", dist)
 		propBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
 		return
@@ -596,7 +596,7 @@ func (f *Fetcher) insert(peer string, sequencer *types.Sequencer) {
 		defer func() { f.done <- hash }()
 
 		// Run the actual import and log any issues
-		if  err := f.insertChain(sequencer); err != nil {
+		if err := f.insertChain(sequencer); err != nil {
 			log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(
 				"hash", hash).WithError(err).Debug("Propagated sequencer import failed")
 			return

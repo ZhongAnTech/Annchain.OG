@@ -73,3 +73,20 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 	logrus.Infof("added tx %s to tip. current pool size: tips: %d pool: %d",
 		v.String(), len(p.tipsMap), len(p.poolMap))
 }
+
+type dummyTxPoolParents struct {
+	poolMap map[types.Hash]types.Txi
+}
+
+func (p *dummyTxPoolParents) Init() {
+	p.poolMap = make(map[types.Hash]types.Txi)
+}
+
+func (p *dummyTxPoolParents) Get(hash types.Hash) types.Txi {
+	return p.poolMap[hash]
+}
+
+func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi) error {
+	p.poolMap[tx.GetTxHash()] = tx
+	return nil
+}

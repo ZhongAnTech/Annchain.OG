@@ -45,4 +45,4 @@ type Batch interface {
 	Reset()
 }
 
-type StateDB interface {}
+type StateDB interface{}

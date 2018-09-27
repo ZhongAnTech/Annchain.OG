@@ -35,6 +35,7 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 		accessor: NewAccessor(db),
 		close:    make(chan struct{}),
 	}
+
 	return dag
 }
 
@@ -111,9 +112,9 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadGenesis load genesis data from ogdb. return false if there
+// LoadLastState load genesis and latestsequencer  data from ogdb. return false if there
 // is no genesis stored in the db.
-func (dag *Dag) LoadGenesis() bool {
+func (dag *Dag) LoadLastState() bool {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
@@ -122,7 +123,13 @@ func (dag *Dag) LoadGenesis() bool {
 		return false
 	}
 	dag.genesis = genesis
-	dag.latestSeqencer = genesis
+	seq := dag.accessor.ReadLatestSequencer()
+	if seq == nil {
+		dag.latestSeqencer = genesis
+	} else {
+		dag.latestSeqencer = seq
+	}
+
 	return true
 }
 

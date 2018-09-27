@@ -1,10 +1,10 @@
 package miner
 
 import (
-	"testing"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 	"github.com/magiconair/properties/assert"
+	"github.com/sirupsen/logrus"
+	"testing"
 	"time"
 )
 

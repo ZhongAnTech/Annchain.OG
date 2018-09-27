@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"fmt"
 )
 
 // Conn wraps websocket.Conn with Conn. It defines to listen and read

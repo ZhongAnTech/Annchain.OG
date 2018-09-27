@@ -14,8 +14,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -45,7 +43,10 @@ func NewNode() *Node {
 		panic("Error occurred while initializing OG")
 	}
 
-	networkId := viper.GetInt64("network_id")
+	networkId := viper.GetInt64("p2p.network_id")
+	if networkId == 0 {
+		networkId = defaultNetworkId
+	}
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
@@ -208,11 +209,6 @@ func NewNode() *Node {
 }
 
 func (n *Node) Start() {
-	if viper.GetBool("debug.pprof") {
-		go func() {
-			http.ListenAndServe(":6060", nil)
-		}()
-	}
 	for _, component := range n.Components {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()

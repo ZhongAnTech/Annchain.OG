@@ -189,7 +189,7 @@ func (d *Downloader) Synchronise(id string, head types.Hash, seqId uint64, mode 
 	switch err {
 	case nil:
 	case errBusy:
-
+		log.WithError(err).Debug("Synchronisation is busy, retrying")
 	case errTimeout, errBadPeer, errStallingPeer,
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
 		errInvalidAncestor, errInvalidChain:
@@ -202,7 +202,7 @@ func (d *Downloader) Synchronise(id string, head types.Hash, seqId uint64, mode 
 			d.dropPeer(id)
 		}
 	default:
-		log.Warn("Synchronisation failed, retrying", "err", err)
+		log.WithError(err).Warn("Synchronisation failed, retrying")
 	}
 	return err
 }
@@ -384,11 +384,14 @@ func (d *Downloader) Cancel() {
 // Terminate interrupts the downloader, canceling all pending operations.
 // The downloader cannot be reused after calling Terminate.
 func (d *Downloader) Terminate() {
+	log.Info("downloader terminate")
 	// Close the termination channel (make sure double close is allowed)
 	d.quitLock.Lock()
 	select {
 	case <-d.quitCh:
+		log.Debug("got d.quitCh")
 	default:
+		log.Debug("close d.quitCh")
 		close(d.quitCh)
 	}
 	d.quitLock.Unlock()
@@ -1000,6 +1003,8 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 // queue until the stream ends or a failure occurs.
 func (d *Downloader) processHeaders(origin uint64, pivot uint64, seqId uint64) error {
 	// Keep a count of uncertain headers to roll back
+	// Wait for batches of headers to process
+	gotHeaders := false
 	for {
 		select {
 		case <-d.cancelCh:
@@ -1009,15 +1014,36 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, seqId uint64) e
 			// Terminate header processing if we synced up
 			if len(headers) == 0 {
 				// Notify everyone that headers are fully processed
-				for _, ch := range []chan bool{d.bodyWakeCh, d.receiptWakeCh} {
+				for _, ch := range []chan bool{d.bodyWakeCh} {
 					select {
 					case ch <- false:
 					case <-d.cancelCh:
 					}
 				}
+
+				// If no headers were retrieved at all, the peer violated its TD promise that it had a
+				// better chain compared to ours. The only exception is if its promised blocks were
+				// already imported by other means (e.g. fecher):
+				//
+				// R <remote peer>, L <local node>: Both at block 10
+				// R: Mine block 11, and propagate it to L
+				// L: Queue block 11 for import
+				// L: Notice that R's head and TD increased compared to ours, start sync
+				// L: Import of block 11 finishes
+				// L: Sync begins, and finds common ancestor at 11
+				// L: Request new headers up from 11 (R's TD was higher, it must have something)
+				// R: Nothing to give
+				if d.mode != LightSync {
+					head := d.dag.LatestSequencer()
+					if !gotHeaders && head.Number() > seqId  {
+						return errStallingPeer
+					}
+				}
+				// Disable any rollback and return
+				return nil
 			}
 			// Otherwise split the chunk of headers into batches and process them
-			//gotHeaders = true
+			gotHeaders = true
 
 			for len(headers) > 0 {
 				// Terminate if something failed in between processing chunks
@@ -1088,6 +1114,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	}
 	select {
 	case <-d.quitCh:
+		log.Debug("got d.quitch")
 		return errCancelContentProcessing
 	default:
 	}
@@ -1222,6 +1249,7 @@ func (d *Downloader) qosTuner() {
 		log.Debug("Recalculated downloader QoS values", "rtt", rtt, "confidence", float64(conf)/1000000.0, "ttl", d.requestTTL())
 		select {
 		case <-d.quitCh:
+			log.Debug("got d.quitch")
 			return
 		case <-time.After(rtt):
 		}

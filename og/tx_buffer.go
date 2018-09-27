@@ -83,6 +83,7 @@ func (b *TxBuffer) Start() {
 }
 
 func (b *TxBuffer) Stop() {
+	logrus.Info("tx bu will stop.")
 	b.quit <- true
 }
 
@@ -124,11 +125,11 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
 	var shoudBrodcast bool
-	// already in the dag or tx_pool.
+	// already in the dag or tx_pool or buffer itself.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	} else {
-		// not in tx buffer , a new tx , shoud brodcast
+		// not in tx buffer , a new tx , shoud broadcast
 		shoudBrodcast = true
 	}
 	// TODO: Temporarily comment it out to test performance.
@@ -252,12 +253,14 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 	return nil
 }
 
-func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
+// isLocalHash tests if the tx is already known by buffer.
+// tx that has already known by buffer should not be broadcasted more.
+func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 	logrus.WithFields(logrus.Fields{
 		"Txpool": b.txPool.Get(hash),
 		"DAG":    b.dag.GetTx(hash),
 		"Hash":   hash,
-		"Buffer": b.GetFromBuffer(hash),
+		//"Buffer": b.GetFromBuffer(hash),
 	}).Info("transaction location")
 
 	if b.txPool.Get(hash) != nil {
@@ -266,10 +269,12 @@ func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
 	if b.dag.GetTx(hash) != nil {
 		return true
 	}
-	if b.GetFromBuffer(hash) != nil {
-		return true
-	}
 	return false
+}
+
+// isKnownHash tests if the tx is already copied in local
+func (b *TxBuffer) isKnownHash(hash types.Hash) bool{
+	return b.isLocalHash(hash) || b.GetFromBuffer(hash) != nil
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
@@ -296,7 +301,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
-		if !b.isKnownHash(parentHash) {
+		if !b.isLocalHash(parentHash) {
 			logrus.WithField("hash", parentHash).Infof("parent not known by pool or dag tx")
 			allFetched = false
 

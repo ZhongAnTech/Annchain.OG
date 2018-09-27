@@ -190,7 +190,7 @@ type peerDrop struct {
 type connFlag int32
 
 const (
-	dynDialedConn    connFlag = 1 << iota
+	dynDialedConn connFlag = 1 << iota
 	staticDialedConn
 	inboundConn
 	trustedConn
@@ -199,7 +199,7 @@ const (
 // conn wraps a network connection with information gathered
 // during the two handshakes.
 type conn struct {
-	fd    net.Conn
+	fd net.Conn
 	transport
 	flags connFlag
 	cont  chan error      // The run loop uses cont to signal errors to SetupConn.
@@ -256,16 +256,6 @@ func (c *conn) is(f connFlag) bool {
 	return flags&f != 0
 }
 
-/*
-func (srv *P2PServer) Name() string {
-	return fmt.Sprintf("P2PServer at port %s", srv.port)
-}
-
-func (srv *P2PServer) Close() {
-	for _, peer := range srv.peers {
-		peer.Close()
-}
-*/
 func (c *conn) set(f connFlag, val bool) {
 	for {
 		oldFlags := connFlag(atomic.LoadInt32((*int32)(&c.flags)))
@@ -429,7 +419,7 @@ func (s *sharedUDPConn) Close() error {
 }
 
 func (srv *Server) Name() string {
-	return srv.NodeName
+	return fmt.Sprintf("P2PServer address %s ,nodeName %s", srv.ListenAddr, srv.NodeName)
 }
 
 func (srv *Server) Start() {
@@ -652,13 +642,13 @@ running:
 			// This channel is used by AddPeer to add to the
 			// ephemeral static peer list. Add it to the dialer,
 			// it will keep the node connected.
-			log.WithField("node",n).Debug("Adding static node")
+			log.WithField("node", n).Debug("Adding static node")
 			dialstate.addStatic(n)
 		case n := <-srv.removestatic:
 			// This channel is used by RemovePeer to send a
 			// disconnect request to a peer and begin the
 			// stop keeping the node connected.
-			log.WithField("node",n).Debug("Removing static node")
+			log.WithField("node", n).Debug("Removing static node")
 			dialstate.removeStatic(n)
 			if p, ok := peers[n.ID]; ok {
 				p.Disconnect(DiscRequested)
@@ -666,7 +656,7 @@ running:
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
-			log.WithField("node",n).Debug("Adding trusted node")
+			log.WithField("node", n).Debug("Adding trusted node")
 			trusted[n.ID] = true
 			// Mark any already-connected peer as trusted
 			if p, ok := peers[n.ID]; ok {
@@ -675,7 +665,7 @@ running:
 		case n := <-srv.removetrusted:
 			// This channel is used by RemoveTrustedPeer to remove an enode
 			// from the trusted node set.
-			log.WithField("node",n).Debug("Removing trusted node")
+			log.WithField("node", n).Debug("Removing trusted node")
 			if _, ok := trusted[n.ID]; ok {
 				delete(trusted, n.ID)
 			}
@@ -720,7 +710,7 @@ running:
 					//p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				log.WithFields(log.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers)+1}).
+				log.WithFields(log.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers) + 1}).
 					Debug("Adding p2p peer")
 				go srv.runPeer(p)
 				peers[c.id] = p
@@ -739,7 +729,7 @@ running:
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
 			d := common.PrettyDuration(mclock.Now() - pd.created)
-			log.WithFields(log.Fields{"duration": d, "peers": len(peers)-1, "req": pd.requested}).
+			log.WithFields(log.Fields{"duration": d, "peers": len(peers) - 1, "req": pd.requested}).
 				WithError(pd.err).
 				Debug("Removing p2p peer")
 			delete(peers, pd.ID())
@@ -784,7 +774,7 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	switch {
-	case !c.is(trustedConn | staticDialedConn) && len(peers) >= srv.MaxPeers:
+	case !c.is(trustedConn|staticDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
 	case !c.is(trustedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
 		return DiscTooManyPeers

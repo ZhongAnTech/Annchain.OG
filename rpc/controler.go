@@ -86,19 +86,19 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 
 func (r *RpcControler) Transactions(c *gin.Context) {
 	seqId := c.Query("seq_id")
-	id ,err:= strconv.Atoi(seqId)
-	if err!=nil || id <0 {
+	id, err := strconv.Atoi(seqId)
+	if err != nil || id < 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "seq_id format error",
 		})
 		return
 	}
-	txs:=  r.Og.Dag.GetTxsByNumber(uint64(id))
+	txs := r.Og.Dag.GetTxsByNumber(uint64(id))
 	var txsREsponse struct {
-		Total   int        `json:"total"`
-		Txs []*types.Tx `json:"txs"`
+		Total int         `json:"total"`
+		Txs   []*types.Tx `json:"txs"`
 	}
-	if len(txs)!=0 {
+	if len(txs) != 0 {
 		txsREsponse.Total = len(txs)
 		txsREsponse.Txs = txs
 		c.JSON(http.StatusOK, txsREsponse)
@@ -125,6 +125,28 @@ func (r *RpcControler) Genesis(c *gin.Context) {
 func (r *RpcControler) Sequencer(c *gin.Context) {
 	var sq *types.Sequencer
 	hashtr := c.Query("hash")
+	seqId := c.Query("seq_id")
+	if seqId == "" {
+		seqId = c.Query("id")
+	}
+	if seqId != "" {
+		id, err := strconv.Atoi(seqId)
+		if err != nil || id < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "id format error",
+			})
+			return
+		}
+		sq = r.Og.Dag.GetSequencerById(uint64(id))
+		if sq != nil {
+			c.JSON(http.StatusOK, sq)
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "not found",
+			})
+		}
+		return
+	}
 	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
 		if sq != nil {

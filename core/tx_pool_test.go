@@ -3,21 +3,21 @@ package core_test
 import (
 	"testing"
 
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/ogdb"
+	"github.com/annchain/OG/types"
 )
 
 func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, func()) {
 	txpoolconfig := core.TxPoolConfig{
-		QueueSize: 100,
-		TipsSize: 100,
+		QueueSize:     100,
+		TipsSize:      100,
 		ResetDuration: 5,
-		TxVerifyTime: 2,
-		TxValidTime: 7,
+		TxVerifyTime:  2,
+		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
 	dag := core.NewDag(core.DagConfig{}, db)
@@ -33,7 +33,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 	pool.Start()
 	dag.Start()
 
-	return pool, dag, genesis, func(){
+	return pool, dag, genesis, func() {
 		pool.Stop()
 		dag.Stop()
 	}
@@ -86,7 +86,7 @@ func TestPoolInit(t *testing.T) {
 	if ge == nil {
 		t.Fatalf("cant get genesis from pool.txLookUp")
 	}
-	
+
 	// check genesis's status
 	status := pool.GetStatus(genesis.GetTxHash())
 	if status != core.TxStatusTip {
@@ -256,11 +256,4 @@ func TestPoolConfirm(t *testing.T) {
 		t.Fatalf("latest seq in dag is not the battxseq we want")
 	}
 
-
 }
-
-
-
-
-
-

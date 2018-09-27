@@ -9,21 +9,12 @@ import (
 
 // Verifier verifies if the tx meets the hash and graph standards.
 type Verifier struct {
-	signer       crypto.Signer
-	cryptoType   crypto.CryptoType
-	dag          IDag
-	txPool       ITxPool
+	Signer       crypto.Signer
+	CryptoType   crypto.CryptoType
+	Dag          IDag
+	TxPool       ITxPool
 	MaxTxHash    types.Hash // The difficultiy of TxHash
 	MaxMinedHash types.Hash // The difficultiy of MinedHash
-}
-
-func NewVerifier(signer crypto.Signer, maxTxHash types.Hash, maxMineHash types.Hash) *Verifier {
-	return &Verifier{
-		signer:       signer,
-		cryptoType:   signer.GetCryptoType(),
-		MaxTxHash:    maxTxHash,
-		MaxMinedHash: maxMineHash,
-	}
 }
 
 func (v *Verifier) VerifyHash(t types.Txi) bool {
@@ -35,18 +26,18 @@ func (v *Verifier) VerifyHash(t types.Txi) bool {
 
 func (v *Verifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
-	return v.signer.Verify(
-		crypto.PublicKey{Type: v.cryptoType, Bytes: base.PublicKey},
-		crypto.Signature{Type: v.cryptoType, Bytes: base.Signature},
+	return v.Signer.Verify(
+		crypto.PublicKey{Type: v.CryptoType, Bytes: base.PublicKey},
+		crypto.Signature{Type: v.CryptoType, Bytes: base.Signature},
 		t.SignatureTargets())
 }
 
 func (v *Verifier) VerifySourceAddress(t types.Txi) bool {
 	switch t.(type) {
 	case *types.Tx:
-		return t.(*types.Tx).From.Bytes == v.signer.Address(crypto.PublicKeyFromBytes(v.cryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.Tx).From.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
 	case *types.Sequencer:
-		return t.(*types.Sequencer).Issuer.Bytes == v.signer.Address(crypto.PublicKeyFromBytes(v.cryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.Sequencer).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
 	default:
 		return true
 	}
@@ -55,15 +46,15 @@ func (v *Verifier) VerifySourceAddress(t types.Txi) bool {
 // getTxFromLocal tries to get tx from anywhere in local.
 // return nil if not found in either txpool or dag
 func (v *Verifier) getTxFromLocal(hash types.Hash) (txi types.Txi) {
-	if v.txPool != nil {
-		txi = v.txPool.Get(hash)
+	if v.TxPool != nil {
+		txi = v.TxPool.Get(hash)
 		if txi != nil {
 			return
 		}
 	}
 
-	if v.dag != nil {
-		txi = v.dag.GetTx(hash)
+	if v.Dag != nil {
+		txi = v.Dag.GetTx(hash)
 		if txi != nil {
 			return
 		}
@@ -88,7 +79,7 @@ func (v *Verifier) getPreviousSequencer(currentTx types.Txi) (previousSeq *types
 	seekingHashes.PushBack(currentTx.GetTxHash())
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		txi := v.txPool.Get(head)
+		txi := v.TxPool.Get(head)
 		if txi == nil {
 			// not found, maybe in the dag
 			// TODO: fetch from dag
@@ -127,7 +118,7 @@ func (v *Verifier) getMyPreviousTxInPool(currentTx *types.Tx) (previousTx types.
 	seekingHashes.PushBack(currentTx.GetTxHash())
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		txi := v.txPool.Get(head)
+		txi := v.TxPool.Get(head)
 		if txi == nil {
 			// not found, maybe in the dag
 			continue

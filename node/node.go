@@ -76,16 +76,20 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	verifier := og.NewVerifier(signer,
-		types.HexToHash(viper.GetString("max_tx_hash")),
-		types.HexToHash(viper.GetString("max_mined_hash")),
-	)
+	verifier := &og.Verifier{
+		Signer:       signer,
+		CryptoType:   signer.GetCryptoType(),
+		Dag:          org.Dag,
+		TxPool:       org.Txpool,
+		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
+		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
+	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifier:                         verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -141,7 +145,7 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag: org.Dag,
+		Dag:                   org.Dag,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -153,8 +157,8 @@ func NewNode() *Node {
 		TxBuffer:               m.TxBuffer,
 		PrivateKey:             privateKey,
 		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
-		Dag:           org.Dag,
-		InstanceCount: viper.GetInt("auto_tx.count"),
+		Dag:                    org.Dag,
+		InstanceCount:          viper.GetInt("auto_tx.count"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {

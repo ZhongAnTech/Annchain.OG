@@ -1,6 +1,8 @@
 package core
 
 import (
+	"sort"
+	"fmt"
 	"container/heap"
 	"sync"
 
@@ -71,6 +73,7 @@ type txLookUp struct {
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
 		txs: make(map[types.Hash]*txEnvelope),
+		hashflow: make(map[types.Address]*txList),
 	}
 }
 
@@ -105,6 +108,27 @@ func (t *txLookUp) getByNonce(addr types.Address, nonce uint64) types.Txi {
 		return nil
 	}
 	return t.get(hash)
+}
+
+// GetLastestNonce returns the latest nonce of an address
+func (t *txLookUp) GetLatestNonce(addr types.Address) (uint64, error) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.getLatestNonce(addr)
+}
+func (t *txLookUp) getLatestNonce(addr types.Address) (uint64, error) {
+	txlist := t.hashflow[addr]
+	if txlist == nil {
+		return 0, fmt.Errorf("no related tx in txlookup")
+	}
+	if !(txlist.keys.Len() > 0) {
+		return 0, fmt.Errorf("txlist not long enough")
+	}
+
+	sort.Sort(txlist.keys)
+	keys := *txlist.keys
+	return keys.Pop().(uint64), nil
 }
 
 // Add tx into txLookUp

@@ -204,9 +204,11 @@ func NewNode() *Node {
 }
 
 func (n *Node) Start() {
-	go func() {
-		http.ListenAndServe("localhost:6060", nil)
-	}()
+	if viper.GetBool("debug.pprof") {
+		go func() {
+			http.ListenAndServe(":6060", nil)
+		}()
+	}
 	for _, component := range n.Components {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()

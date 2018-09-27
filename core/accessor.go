@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
@@ -13,9 +14,12 @@ var (
 	prefixGenesisKey   = []byte("genesis")
 	prefixLatestSeqKey = []byte("latestseq")
 
-	prefixTransactionKey = []byte("tk")
-	prefixTransaction    = []byte("tx")
-	prefixSequencer      = []byte("sq")
+	prefixTransactionKey		= []byte("tx")
+	prefixTxHashFlowKey			= []byte("fl")
+	contentPrefixTransaction    = []byte("cptx")
+	contentPrefixSequencer      = []byte("cpsq")
+
+	prefixTxSeqRelationKey	= []byte("tsr")
 
 	prefixSeqIdKey   = []byte("si")
 	prefixTxIndexKey = []byte("ti")
@@ -36,18 +40,27 @@ func transactionKey(hash types.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
 }
 
+func txHashFlowKey(addr types.Address, nonce uint64) []byte {
+	keybody := append(addr.ToBytes(), []byte(strconv.FormatUint(nonce, 10))...)
+	return append(prefixTxHashFlowKey, keybody...)
+}
+
+func txSeqRelationKey(hash types.Hash) []byte {
+	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
+}
+
 func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
 func seqIdKey(seqid uint64) []byte {
 	suffix := prefixSeqIdKey
-	return append(prefixSeqIdKey, append([]byte(fmt.Sprintf("%d", seqid)), suffix...)...)
+	return append(prefixSeqIdKey, append([]byte(strconv.FormatUint(seqid, 10)), suffix...)...)
 }
 
 func txIndexKey(seqid uint64) []byte {
 	suffix := prefixTxIndexKey
-	return append(prefixTxIndexKey, append([]byte(fmt.Sprintf("%d", seqid)), suffix...)...)
+	return append(prefixTxIndexKey, append([]byte(strconv.FormatUint(seqid, 10)), suffix...)...)
 }
 
 type Accessor struct {
@@ -112,15 +125,15 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	if len(data) == 0 {
 		return nil
 	}
-	prefixLen := len(prefixTransaction)
+	prefixLen := len(contentPrefixTransaction)
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
-	if bytes.Equal(prefix, prefixTransaction) {
+	if bytes.Equal(prefix, contentPrefixTransaction) {
 		var tx types.Tx
 		tx.UnmarshalMsg(data)
 		return &tx
 	}
-	if bytes.Equal(prefix, prefixSequencer) {
+	if bytes.Equal(prefix, contentPrefixSequencer) {
 		var sq types.Sequencer
 		sq.UnmarshalMsg(data)
 		return &sq
@@ -128,17 +141,34 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	return nil
 }
 
-// WriteTransaction write the tx or sequencer into ogdb, data will be overwritten
-// if it already exist in db.
+// ReadTxByNonce get tx from db by sender's address and nonce.
+func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	data, _ := da.db.Get(txHashFlowKey(addr, nonce))
+	if len(data) == 0 {
+		return nil
+	}
+	hash := types.BytesToHash(data)
+	return da.ReadTransaction(hash)
+}
+
+// WriteTransaction write the tx or sequencer into ogdb, also write 
+// the ([address, nonce] -> hash) relation into ogdb. Data will be 
+// overwritten if it already exists in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
 	var err error
+	
+	err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), tx.GetTxHash().ToBytes())
+	if err != nil {
+		return fmt.Errorf("write tx hash flow to db err: %v", err)
+	}
+
 	switch tx := tx.(type) {
 	case *types.Tx:
-		prefix = prefixTransaction
+		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
 	case *types.Sequencer:
-		prefix = prefixSequencer
+		prefix = contentPrefixSequencer
 		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
@@ -147,7 +177,31 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
 	}
 	data = append(prefix, data...)
-	return da.db.Put(transactionKey(tx.GetTxHash()), data)
+	err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+	if err != nil {
+		return fmt.Errorf("write tx to db err: %v", err)
+	}
+
+	return nil
+}
+
+// ReadTxSeqRelation get the bound seq id of a tx
+func (da *Accessor) ReadTxSeqRelation(hash types.Hash) (uint64, error) {
+	data, err := da.db.Get(txSeqRelationKey(hash))
+	if err != nil {
+		return 0, err
+	}
+	seqid, errToUint := strconv.ParseUint(string(data), 10, 64)
+	if errToUint != nil {
+		return 0, errToUint
+	}
+	return seqid, nil
+}
+
+// WriteTxSeqRelation bind the seq id to a tx hash
+func (da *Accessor) WriteTxSeqRelation(hash types.Hash, seqid uint64) error {
+	data := []byte(strconv.FormatUint(seqid, 10))
+	return da.db.Put(txSeqRelationKey(hash), data)
 }
 
 // DeleteTransaction delete the tx or sequencer.

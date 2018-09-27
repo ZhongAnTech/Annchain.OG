@@ -61,6 +61,10 @@ func (t *Sequencer) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
+func (t *Sequencer) Sender() Address {
+	return t.Issuer
+}
+
 func (t *Sequencer) Parents() []Hash {
 	return t.ParentsHash
 }

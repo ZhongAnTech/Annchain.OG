@@ -140,8 +140,9 @@ func (pool *TxPool) Name() string {
 	return "TxPool"
 }
 
-// PoolStatus returns the current status of txpool.
-func (pool *TxPool) PoolStatus() (int, int) {
+// PoolStatus returns the current number of 
+// tips, bad txs and pending txs stored in pool.
+func (pool *TxPool) PoolStatus() (int, int, int) {
 	return pool.txLookup.Stats()
 }
 
@@ -149,6 +150,11 @@ func (pool *TxPool) PoolStatus() (int, int) {
 // if tx not exists return nil
 func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
+}
+
+// GetByNonce get a tx or sequencer from pool by sender's address and tx's nonce.
+func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
+	return pool.txLookup.GetByNonce(addr, nonce)
 }
 
 // GetStatus gets the current status of a tx
@@ -329,10 +335,6 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	//if pool.tips.Count() >= pool.conf.TipsSize {
-	//	log.Warnf("tips pool reaches max size: %d", pool.conf.TipsSize)
-	//	return fmt.Errorf("tips pool reaches max size")
-	//}
 	if pool.isBadTx(tx) {
 		log.Debugf("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
@@ -383,7 +385,10 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	}
 
 	// check if the nonce is correct
-	// TODO
+	txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
+	if txinpool != nil {
+		return bad
+	}
 
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom, okFrom := pool.poolPending.state[tx.From]
@@ -677,77 +682,6 @@ func (tm *TxMap) Add(tx types.Txi) {
 		tm.txs[tx.GetTxHash()] = tx
 	}
 }
-
-type txLookUp struct {
-	txs map[types.Hash]*txEnvelope
-	mu  sync.RWMutex
-}
-
-func newTxLookUp() *txLookUp {
-	return &txLookUp{
-		txs: make(map[types.Hash]*txEnvelope),
-	}
-}
-func (t *txLookUp) Get(h types.Hash) types.Txi {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	if txEnv := t.txs[h]; txEnv != nil {
-		return txEnv.tx
-	}
-
-	return nil
-}
-func (t *txLookUp) Add(txEnv *txEnvelope) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	t.txs[txEnv.tx.GetTxHash()] = txEnv
-}
-func (t *txLookUp) Remove(h types.Hash) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	delete(t.txs, h)
-}
-func (t *txLookUp) Count() int {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	return len(t.txs)
-}
-func (t *txLookUp) Stats() (int, int) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	queue, tips := 0, 0
-	for _, v := range t.txs {
-		if v.status == TxStatusQueue {
-			queue += 1
-		} else if v.status == TxStatusTip {
-			tips += 1
-		}
-	}
-	return queue, tips
-}
-func (t *txLookUp) Status(h types.Hash) TxStatus {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	if txEnv := t.txs[h]; txEnv != nil {
-		return txEnv.status
-	}
-	return TxStatusNotExist
-}
-func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if txEnv := t.txs[h]; txEnv != nil {
-		txEnv.status = status
-	}
-}
-
 
 
 

@@ -201,6 +201,10 @@ func generateRandomIndices(count int, upper int) []int {
 	return arr
 }
 
+func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi){
+	pool.OnNewTxReceived = append(pool.OnNewTxReceived, c)
+}
+
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	pool.mu.RLock()

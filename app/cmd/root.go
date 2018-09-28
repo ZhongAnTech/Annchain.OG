@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
@@ -44,7 +45,8 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.WithField("obj", r).Fatalf("Fatal error occurred. Program will exit")
+			logrus.WithField("obj", r).Error("Fatal error occurred. Program will exit")
+			debug.PrintStack()
 		}
 	}()
 	if err := rootCmd.Execute(); err != nil {

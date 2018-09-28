@@ -7,10 +7,19 @@ import (
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+	"fmt"
 )
 
 type dummyDag struct {
 	dmap map[types.Hash]types.Txi
+}
+
+func (d *dummyDag) GetSequencerById(id uint64) *types.Sequencer {
+	return nil
+}
+
+func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	return nil
 }
 
 func (d *dummyDag) init() {
@@ -28,6 +37,14 @@ func (d *dummyDag) GetTx(hash types.Hash) types.Txi {
 
 type dummyTxPool struct {
 	dmap map[types.Hash]types.Txi
+}
+
+func (d *dummyTxPool) GetLatestNonce(addr types.Address) (uint64, error) {
+	return 0, fmt.Errorf("not supported")
+}
+
+func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi) {
+	return
 }
 
 func (d *dummyTxPool) init() {

@@ -230,6 +230,8 @@ func TestLatestNonce(t *testing.T) {
 	var err error
 	acc := core.NewAccessor(db)
 	
+	var nonce uint64
+
 	tx0 := newTestUnsealTx(0)
 	err = acc.WriteTransaction(tx0)
 	if err != nil {
@@ -245,7 +247,6 @@ func TestLatestNonce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("write tx1 %s failed: %v", tx1.GetTxHash().String(), err)
 	}
-	var nonce uint64
 	nonce, err = acc.ReadAddrLatestNonce(tx1.Sender())
 	if err != nil {
 		t.Fatalf("read tx1 nonce failed: %v", err)
@@ -253,6 +254,31 @@ func TestLatestNonce(t *testing.T) {
 	if nonce != uint64(1) {
 		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
 	}
+		
+	tx2 := newTestUnsealTx(2)
+	err = acc.WriteTransaction(tx2)
+	if err != nil {
+		t.Fatalf("write tx2 %s failed: %v", tx2.GetTxHash().String(), err)
+	}
+	nonce, err = acc.ReadAddrLatestNonce(tx2.Sender())
+	if err != nil {
+		t.Fatalf("read tx2 nonce failed: %v", err)
+	}
+	if nonce != uint64(2) {
+		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 2, nonce)
+	}
 
+	badtx := newTestUnsealTx(1)
+	err = acc.WriteTransaction(badtx)
+	if err != nil {
+		t.Fatalf("write badtx %s failed: %v", badtx.GetTxHash().String(), err)
+	}
+	nonce, err = acc.ReadAddrLatestNonce(badtx.Sender())
+	if err != nil {
+		t.Fatalf("read badtx nonce failed: %v", err)
+	}
+	if nonce != uint64(2) {
+		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
+	}
 
 }

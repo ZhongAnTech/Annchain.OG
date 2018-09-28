@@ -1,6 +1,7 @@
 package core
 
 import (
+	"sort"
 	"fmt"
 	// "fmt"
 	"sync"
@@ -46,11 +47,11 @@ type ConfirmBatch struct {
 
 // BatchDetail describes all the details of a specific address within a
 // sequencer confirmation term.
-// - txList - represents the txs sent by this addrs.
-// - neg - means the amount this address should spent out.
-// - pos - means the amount this address get paid.
+// - TxList - represents the txs sent by this addrs, ordered by nonce.
+// - Neg - means the amount this address should spent out.
+// - Pos - means the amount this address get paid.
 type BatchDetail struct {
-	TxList map[types.Hash]types.Txi
+	TxList *TxList
 	Neg    *math.BigInt
 	Pos    *math.BigInt
 }
@@ -292,7 +293,16 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// store the tx and update the state
 	for _, batchDetail := range batch.Batch {
-		for _, txi := range batchDetail.TxList {
+		txlist := batchDetail.TxList
+		if txlist == nil {
+			return fmt.Errorf("batch detail does't have txlist")
+		}
+		sort.Sort(txlist.keys)
+		for _, nonce := range *txlist.keys { 
+			txi := txlist.get(nonce)
+			if txi == nil {
+				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
+			}
 			err = dag.accessor.WriteTransaction(txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)

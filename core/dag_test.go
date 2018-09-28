@@ -83,8 +83,8 @@ func TestDagLoadGenesis(t *testing.T) {
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
 	}
-	if ok := dag.LoadGenesis(); !ok {
-		t.Fatalf("can't load genesis from db")
+	if ok := dag.LoadLastState(); !ok {
+		t.Fatalf("can't load last state from db")
 	}
 
 	ge := dag.Genesis()

@@ -125,8 +125,9 @@ func (t *txLookUp) getLatestNonce(addr types.Address) (uint64, error) {
 	if !(txlist.keys.Len() > 0) {
 		return 0, fmt.Errorf("txlist not long enough")
 	}
-
 	sort.Sort(txlist.keys)
+	// WARN: keys stored in txlookup should not be changed!
+	// TODO: need unit test here.
 	keys := *txlist.keys
 	return keys.Pop().(uint64), nil
 }

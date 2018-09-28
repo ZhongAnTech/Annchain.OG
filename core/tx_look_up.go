@@ -26,32 +26,40 @@ func (n *nonceHeap) Pop() interface{} {
 	return last
 }
 
-type txList struct {
+type TxList struct {
 	keys	*nonceHeap
-	hashes	map[uint64]types.Hash
+	txflow	map[uint64]types.Txi
 }
-func newTxList() *txList {
-	return &txList{
+func NewTxList() *TxList {
+	return &TxList{
 		keys: new(nonceHeap),
-		hashes: make(map[uint64]types.Hash),
+		txflow: make(map[uint64]types.Txi),
 	}
 }
 
-func (t *txList) get(nonce uint64) (hash types.Hash, ok bool) {
-	hash, ok = t.hashes[nonce]
-	return
+func (t *TxList) Get(nonce uint64) types.Txi {
+	return t.get(nonce)
+}
+func (t *TxList) get(nonce uint64) types.Txi {
+	return t.txflow[nonce]
 }
 
-func (t *txList) put(txi types.Txi) {
+func (t *TxList) Put(txi types.Txi) {
+	t.put(txi)
+}
+func (t *TxList) put(txi types.Txi) {
 	nonce := txi.GetNonce()
-	if _, ok := t.hashes[nonce]; !ok {
+	if _, ok := t.txflow[nonce]; !ok {
 		heap.Push(t.keys, nonce)
 	}
-	t.hashes[nonce] = txi.GetTxHash()
+	t.txflow[nonce] = txi
 }
 
-func (t *txList) remove(nonce uint64) bool {
-	_, ok := t.hashes[nonce]
+func (t *TxList) Remove(nonce uint64) bool {
+	return t.remove(nonce)
+}
+func (t *TxList) remove(nonce uint64) bool {
+	_, ok := t.txflow[nonce]
 	if !ok {
 		return false
 	}
@@ -61,19 +69,19 @@ func (t *txList) remove(nonce uint64) bool {
 			break
 		}
 	}
-	delete(t.hashes, nonce)
+	delete(t.txflow, nonce)
 	return true
 }
 
 type txLookUp struct {
 	txs 		map[types.Hash]*txEnvelope
-	hashflow	map[types.Address]*txList
+	txflow		map[types.Address]*TxList
 	mu  		sync.RWMutex
 }
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
 		txs: make(map[types.Hash]*txEnvelope),
-		hashflow: make(map[types.Address]*txList),
+		txflow: make(map[types.Address]*TxList),
 	}
 }
 
@@ -99,15 +107,11 @@ func (t *txLookUp) GetByNonce(addr types.Address, nonce uint64) types.Txi {
 	return t.getByNonce(addr, nonce)
 }
 func (t *txLookUp) getByNonce(addr types.Address, nonce uint64) types.Txi {
-	txlist := t.hashflow[addr]
+	txlist := t.txflow[addr]
 	if txlist == nil {
 		return nil
 	}
-	hash, ok := txlist.get(nonce)
-	if !ok {
-		return nil
-	}
-	return t.get(hash)
+	return txlist.get(nonce)
 }
 
 // GetLastestNonce returns the latest nonce of an address
@@ -118,7 +122,7 @@ func (t *txLookUp) GetLatestNonce(addr types.Address) (uint64, error) {
 	return t.getLatestNonce(addr)
 }
 func (t *txLookUp) getLatestNonce(addr types.Address) (uint64, error) {
-	txlist := t.hashflow[addr]
+	txlist := t.txflow[addr]
 	if txlist == nil {
 		return 0, fmt.Errorf("no related tx in txlookup")
 	}
@@ -142,10 +146,10 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 func (t *txLookUp) add(txEnv *txEnvelope) {
 	tx := txEnv.tx
 
-	txlist := t.hashflow[tx.Sender()]
+	txlist := t.txflow[tx.Sender()]
 	if txlist == nil {
-		txlist = newTxList()
-		t.hashflow[tx.Sender()] = txlist
+		txlist = NewTxList()
+		t.txflow[tx.Sender()] = txlist
 	}
 	txlist.put(tx)
 
@@ -164,7 +168,7 @@ func (t *txLookUp) remove(h types.Hash) {
 	if tx == nil {
 		return
 	}
-	txlist := t.hashflow[tx.Sender()]
+	txlist := t.txflow[tx.Sender()]
 	if txlist != nil {
 		txlist.remove(tx.GetNonce())
 	}

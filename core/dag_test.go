@@ -117,9 +117,9 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: make(map[types.Hash]types.Txi)}
-	bd.TxList[tx1.GetTxHash()] = tx1
-	bd.TxList[tx2.GetTxHash()] = tx2
+	bd := &core.BatchDetail{TxList: core.NewTxList()}
+	bd.TxList.Put(tx1)
+	bd.TxList.Put(tx2)
 	bd.Pos = math.NewBigInt(0)
 	bd.Neg = math.NewBigInt(0)
 
@@ -132,9 +132,12 @@ func TestDagPush(t *testing.T) {
 		tx2.GetTxHash(),
 	}
 
+	hashes := &types.Hashs{tx1.GetTxHash(), tx2.GetTxHash()}
+
 	cb := &core.ConfirmBatch{}
 	cb.Seq = seq
 	cb.Batch = batch
+	cb.TxHashes = hashes
 
 	err = dag.Push(cb)
 	if err != nil {

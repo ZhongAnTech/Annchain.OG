@@ -1,6 +1,7 @@
 package core
 
 import (
+	"sort"
 	"container/list"
 	"fmt"
 	"sync"
@@ -381,20 +382,17 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 		okay = false
 		bad  = true
 	)
-
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
 		if pool.badtxs.Get(parentHash) != nil {
 			return bad
 		}
 	}
-
 	// check if the nonce is correct
 	txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
 		return bad
 	}
-
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom, okFrom := pool.poolPending.state[tx.From]
 	if !okFrom {
@@ -496,18 +494,18 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchFrom, okFrom := batch[tx.From]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = make(map[types.Hash]types.Txi)
+				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = math.NewBigInt(0)
 				batchFrom.Pos = math.NewBigInt(0)
 				batch[tx.From] = batchFrom
 			}
-			batchFrom.TxList[tx.GetTxHash()] = tx
+			batchFrom.TxList.put(tx)
 			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
 
 			batchTo, okTo := batch[tx.To]
 			if !okTo {
 				batchTo = &BatchDetail{}
-				batchTo.TxList = make(map[types.Hash]types.Txi)
+				batchTo.TxList = NewTxList()
 				batchTo.Neg = math.NewBigInt(0)
 				batchTo.Pos = math.NewBigInt(0)
 				batch[tx.To] = batchTo
@@ -517,10 +515,29 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		}
 	}
 	for addr, batchDetail := range batch {
-		confirmedBalance := pool.dag.GetBalance(addr)
+		// check balance
 		// if balance of addr < outcome value of addr, then verify failed
+		confirmedBalance := pool.dag.GetBalance(addr)
 		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
+		}
+		// check nonce order
+		nonces := *batchDetail.TxList.keys
+		if !(nonces.Len() > 0) {
+			continue
+		}
+		sort.Sort(&nonces)
+		latestNonce, nErr := pool.dag.GetLatestNonce(addr)
+		if nErr != nil {
+			return nil, fmt.Errorf("get latest nonce err: %v", nErr)
+		}
+		if nonces[0] != latestNonce + 1 {
+			return nil, fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
+		}
+		for i := 1; i < nonces.Len(); i++ {
+			if nonces[i] != nonces[i-1] + 1 {
+				return nil, fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
+			}
 		}
 	}
 	//reverse the txhashes to keeep partial order , accelerate processing speed

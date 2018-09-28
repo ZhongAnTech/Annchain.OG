@@ -163,7 +163,7 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 	if len(data) == 0 {
 		return 0, err
 	}
-	nonce, parseErr := strconv.ParseUint(data, 10, 64)
+	nonce, parseErr := strconv.ParseUint(string(data), 10, 64)
 	if parseErr != nil {
 		return 0, fmt.Errorf("parse nonce from bytes to uint64 error: %v", parseErr)
 	}

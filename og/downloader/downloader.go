@@ -3,7 +3,6 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -76,7 +75,7 @@ type Downloader struct {
 	rttEstimate   uint64 // Round trip time to target for download requests
 	rttConfidence uint64 // Confidence in the estimated RTT (unit: millionths to allow atomic ops)
 
-	dag *core.Dag
+	dag  IDag
 
 	insertTxs insertTxsFn
 	// Callbacks
@@ -114,8 +113,14 @@ type Downloader struct {
 	chainInsertHook func([]*fetchResult)           // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 }
 
+
+type IDag interface {
+	LatestSequencer()*types.Sequencer
+	GetSequencer( hash types.Hash, id uint64) *types.Sequencer
+}
+
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, dag *core.Dag, dropPeer peerDropFn, insertTxs insertTxsFn) *Downloader {
+func New(mode SyncMode, dag IDag, dropPeer peerDropFn, insertTxs insertTxsFn) *Downloader {
 
 	dl := &Downloader{
 		mode:          mode,

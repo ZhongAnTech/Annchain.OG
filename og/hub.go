@@ -62,8 +62,8 @@ type Hub struct {
 	fetcher    *fetcher.Fetcher
 
 	networkID  uint64
-	TxBuffer   *TxBuffer
-	SyncBuffer *SyncBuffer
+	TxBuffer   ITxBuffer
+	SyncBuffer ISyncBuffer
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -74,18 +74,29 @@ func (h *Hub) GetBenchmarks() map[string]int {
 	}
 }
 
+type ISyncBuffer interface {
+	AddTxs(txs []types.Txi, seq *types.Sequencer) error
+}
+
+type ITxBuffer interface {
+	AddTx(tx types.Txi)
+	isLocalHash(hash types.Hash) bool
+}
+
 type HubConfig struct {
 	OutgoingBufferSize            int
 	IncomingBufferSize            int
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
+	MaxPeers                      int
+	NetworkId                     uint64
 }
 
 func (h *Hub) Set(dag *core.Dag) {
 	h.downloader.Cancel()
 }
 
-func (h *Hub) Init(config *HubConfig, maxPeer int, networkId uint64, dag *core.Dag) {
+func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
 
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
@@ -95,17 +106,17 @@ func (h *Hub) Init(config *HubConfig, maxPeer int, networkId uint64, dag *core.D
 	h.noMorePeers = make(chan struct{})
 	h.txsyncCh = make(chan *txsync)
 	h.quitSync = make(chan struct{})
-	h.maxPeers = maxPeer
-	h.networkID = networkId
+	h.maxPeers = config.MaxPeers
+	h.networkID = config.NetworkId
 	h.Dag = dag
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 }
 
-func NewHub(config *HubConfig, maxPeer int, mode downloader.SyncMode, networkID uint64, dag *core.Dag) *Hub {
+func NewHub(config *HubConfig,  mode downloader.SyncMode, dag *core.Dag) *Hub {
 	h := &Hub{}
-	h.Init(config, maxPeer, networkID, dag)
+	h.Init(config, dag)
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && h.Dag.LatestSequencer().Id > 0 {
 		log.Warn("Blockchain not empty, fast sync disabled")

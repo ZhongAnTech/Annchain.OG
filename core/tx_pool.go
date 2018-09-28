@@ -523,15 +523,15 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 		}
 	}
-
-	cb := &ConfirmBatch{}
-	cb.Seq = seq
-	cb.Batch = batch
 	//reverse the txhashes to keeep partial order , accelerate processing speed
 	n := len(txhashes)
 	for i := 0; i < n/2; i++ {
 		txhashes[i], txhashes[n-1-i] = txhashes[n-i-1], txhashes[i]
 	}
+
+	cb := &ConfirmBatch{}
+	cb.Seq = seq
+	cb.Batch = batch
 	cb.TxHashes = &txhashes
 	return cb, nil
 }

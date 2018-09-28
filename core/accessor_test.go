@@ -219,5 +219,40 @@ func TestBalanceStorage(t *testing.T) {
 	if newBalance.Value.Sub(newBalance.Value, subAmount.Value).Cmp(bFromDb.Value) != 0 {
 		t.Fatalf("the balance after sub is not as expected")
 	}
+}
+
+func TestLatestNonce(t *testing.T) {
+	t.Parallel()
+
+	db, remove := newTestLDB("TestLatestNonce")
+	defer remove()
+
+	var err error
+	acc := core.NewAccessor(db)
+	
+	tx0 := newTestUnsealTx(0)
+	err = acc.WriteTransaction(tx0)
+	if err != nil {
+		t.Fatalf("write tx0 %s failed: %v", tx0.GetTxHash().String(), err)
+	}
+	_, err = acc.ReadAddrLatestNonce(tx0.Sender())
+	if err.Error() != "not exists" {
+		t.Fatalf("first tx0 nonce is not empty")
+	}
+	
+	tx1 := newTestUnsealTx(1)
+	err = acc.WriteTransaction(tx1)
+	if err != nil {
+		t.Fatalf("write tx1 %s failed: %v", tx1.GetTxHash().String(), err)
+	}
+	var nonce uint64
+	nonce, err = acc.ReadAddrLatestNonce(tx1.Sender())
+	if err != nil {
+		t.Fatalf("read tx1 nonce failed: %v", err)
+	}
+	if nonce != uint64(1) {
+		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
+	}
+
 
 }

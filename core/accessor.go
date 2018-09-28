@@ -159,6 +159,10 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 
 // ReadAddrLatestNonce get latest nonce of an address
 func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
+	has, _ := da.db.Has(addrLatestNonceKey(addr))
+	if !has {
+		return 0, fmt.Errorf("not exists")
+	}
 	data, err := da.db.Get(addrLatestNonceKey(addr))
 	if len(data) == 0 {
 		return 0, err
@@ -179,10 +183,13 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var err error
 
 	// write tx latest nonce
-	var curnonce uint64
-	curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
-	if err != nil {
-		return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
+	var curnonce = uint64(0)
+	has, _ := da.db.Has(addrLatestNonceKey(tx.Sender()))
+	if has {
+		curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
+		if err != nil {
+			return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
+		}
 	}
 	if tx.GetNonce() > curnonce {
 		// write nonce if curnonce is larger then origin one

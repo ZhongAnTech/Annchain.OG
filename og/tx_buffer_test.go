@@ -93,13 +93,15 @@ func (d *dummyVerifier) VerifySourceAddress(t types.Txi) bool {
 
 func setup() *TxBuffer {
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifier:               new(dummyVerifier),
-		DependencyCacheMaxSize: 20,
-		TxPool:                 new(dummyTxPool),
-		Dag:                    new(dummyDag),
-		Syncer:                 new(dummySyncer),
+		Verifier:                         new(dummyVerifier),
+		DependencyCacheMaxSize:           20,
+		TxPool:                           new(dummyTxPool),
+		Dag:                              new(dummyDag),
+		Syncer:                           new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
+		KnownCacheMaxSize:                10000,
+		KnownCacheExpirationSeconds:      30,
 	})
 
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)

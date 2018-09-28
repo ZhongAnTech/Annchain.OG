@@ -80,8 +80,8 @@ func (v *Verifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archived b
 
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool (then it maybe in dag)
-func (v *Verifier) getMyPreviousTx(currentTx *types.Tx) (previousTx types.Txi, ok bool) {
-	if currentTx.AccountNonce == 0 {
+func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
+	if currentTx.GetNonce() == 0 {
 		ok = true
 		return
 	}
@@ -94,18 +94,18 @@ func (v *Verifier) getMyPreviousTx(currentTx *types.Tx) (previousTx types.Txi, o
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
 			// found. verify nonce
+			if txi.Sender() == currentTx.Sender() {
+				// verify if the nonce is larger
+				if txi.GetNonce() == currentTx.GetNonce()-1 {
+					// good
+					previousTx = txi
+					ok = true
+					return
+				}
+			}
+
 			switch txi.GetType() {
 			case types.TxBaseTypeNormal:
-				// verify from
-				if txi.(*types.Tx).From == currentTx.From {
-					// verify if the nonce is larger
-					if txi.GetBase().AccountNonce == currentTx.AccountNonce-1 {
-						// good
-						previousTx = txi
-						ok = true
-						return
-					}
-				}
 				// may be somewhere else
 				// enqueue header more if we are still in the temp area
 				if archived {
@@ -127,7 +127,7 @@ func (v *Verifier) getMyPreviousTx(currentTx *types.Tx) (previousTx types.Txi, o
 	}
 	// Here, the ancestor of the same From address must be in the dag.
 	// Once found, this tx must be the previous tx of currentTx because everyone behind sequencer is confirmed by sequencer
-	if ptx := v.Dag.GetTxByNonce(currentTx.From, currentTx.AccountNonce-1); ptx != nil {
+	if ptx := v.Dag.GetTxByNonce(currentTx.Sender(), currentTx.GetNonce()-1); ptx != nil {
 		previousTx = ptx
 		ok = true
 		return
@@ -136,40 +136,49 @@ func (v *Verifier) getMyPreviousTx(currentTx *types.Tx) (previousTx types.Txi, o
 }
 
 // get the nearest previous sequencer from txpool
-func (v *Verifier) getPreviousSequencer(currentTx types.Txi) (previousSeq *types.Sequencer, ok bool) {
+func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
-	seekingHashes.PushBack(currentTx.GetTxHash())
+	seekingHashes.PushBack(currentSeq.GetTxHash())
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		txi := v.TxPool.Get(head)
-		if txi == nil {
-			// not found, maybe in the dag
-			// TODO: fetch from dag
-			continue
-		}
-		switch txi.GetType() {
-		case types.TxBaseTypeNormal:
-			break
-		case types.TxBaseTypeSequencer:
-			// found seq, check nonce
-			// verify if the nonce is larger
-			if txi.GetBase().AccountNonce == currentTx.GetBase().AccountNonce-1 {
-				// good
-				previousSeq = txi.(*types.Sequencer)
-				ok = true
-				return
+		txi, archived := v.getTxFromAnywhere(head)
+
+		if txi != nil {
+			switch txi.GetType() {
+			case types.TxBaseTypeNormal:
+				break
+			case types.TxBaseTypeSequencer:
+				// found seq, check nonce
+				// verify if the nonce is larger
+				if txi.(*types.Sequencer).Id == currentSeq.Id-1 {
+					// good
+					previousSeq = txi.(*types.Sequencer)
+					ok = true
+					return
+				}
 			}
-		}
-		// may be somewhere else
-		// enqueue header more
-		for _, parent := range txi.Parents() {
-			if _, ok := seeked[parent]; !ok {
-				seekingHashes.PushBack(parent)
-				seeked[parent] = true
+			// may be somewhere else
+			// enqueue header more if we are still in the temp area
+			if archived {
+				continue
+			}
+			for _, parent := range txi.Parents() {
+				if _, ok := seeked[parent]; !ok {
+					seekingHashes.PushBack(parent)
+					seeked[parent] = true
+				}
 			}
 		}
 	}
+	// Here, the ancestor of the same From address must be in the dag.
+	// Once found, this tx must be the previous tx of currentTx because everyone behind sequencer is confirmed by sequencer
+	if ptx := v.Dag.GetSequencerById(currentSeq.Id - 1); ptx != nil {
+		previousSeq = ptx
+		ok = true
+		return
+	}
+
 	return
 }
 
@@ -186,13 +195,7 @@ func (v *Verifier) getPreviousSequencer(currentTx types.Txi) (previousSeq *types
 // Basically VerifyGraphOrder checks whether txs are in their nonce order
 func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
 	ok = false
-	if ok = v.verifyA2(txi); !ok {
-		return
-	}
 	if ok = v.verifyA3(txi); !ok {
-		return
-	}
-	if ok = v.verifyA6(txi); !ok {
 		return
 	}
 	if ok = v.verifyB1(txi); !ok {
@@ -201,30 +204,34 @@ func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
 	return true
 }
 
-func (v *Verifier) verifyA2(txi types.Txi) bool {
-	// temporarily disabled since there is no clear reason to enforce the rule.
-	return true
-}
 func (v *Verifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 0
-	if txi.GetBase().AccountNonce == 0 {
-		return true
-	}
-	switch txi.GetType() {
-	case types.TxBaseTypeNormal:
-		// check txpool queue first
 
-		_, ok := v.getMyPreviousTx(txi.(*types.Tx))
-		if ok {
-			return ok
-		}
-	case types.TxBaseTypeSequencer:
-		_, ok := v.getPreviousSequencer(txi.(*types.Sequencer))
-		// previous seq should always be in the pool
+	// zero check
+	if txi.GetNonce() == 0 {
+		// test claim: whether it should be 0
+		_, err := v.TxPool.GetLatestNonce(txi.Sender())
+		// not found is good
+		return err != nil
+	}
+	// check txpool queue first
+	_, ok := v.getMyPreviousTx(txi)
+	if !ok {
+		// fail if not good
 		return ok
 	}
-	return false
+
+	switch txi.GetType() {
+	case types.TxBaseTypeNormal:
+		// no additional check
+	case types.TxBaseTypeSequencer:
+		seq := txi.(*types.Sequencer)
+		// to check if there is a lower seq id in the path behind
+		_, ok := v.getPreviousSequencer(seq)
+		return ok
+	}
+	return true
 }
 
 func (v *Verifier) verifyB1(txi types.Txi) bool {

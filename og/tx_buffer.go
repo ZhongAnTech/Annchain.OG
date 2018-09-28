@@ -25,10 +25,12 @@ type ITxPool interface {
 	Get(hash types.Hash) types.Txi
 	AddRemoteTx(tx types.Txi) error
 	RegisterOnNewTxReceived(c chan types.Txi)
+	GetLatestNonce(addr types.Address) (uint64, error)
 }
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
+	GetSequencerById(id uint64) *types.Sequencer
 }
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool

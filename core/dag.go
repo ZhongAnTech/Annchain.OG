@@ -272,7 +272,7 @@ func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getBalence(addr)
+	return dag.getBalance(addr)
 }
 
 // GetLatestNonce returns the latest tx of an addresss.
@@ -427,7 +427,7 @@ func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
 	return dag.accessor.ReadTxSeqRelation(hash)
 }
 
-func (dag *Dag) getBalence(addr types.Address) *math.BigInt {
+func (dag *Dag) getBalance(addr types.Address) *math.BigInt {
 	return dag.accessor.ReadBalance(addr)
 }
 

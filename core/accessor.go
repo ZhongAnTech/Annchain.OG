@@ -170,18 +170,31 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 	return nonce, nil
 }
 
-// WriteTransaction write the tx or sequencer into ogdb, also write 
-// the ([address, nonce] -> hash) relation into ogdb. Data will be 
+// WriteTransaction write the tx or sequencer into ogdb. It first write 
+// the latest nonce of the tx's sender, then write the ([address, nonce] -> hash) 
+// relation into ogdb, finally write the tx itself into db. Data will be 
 // overwritten if it already exists in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
 	var err error
 
 	// write tx latest nonce
-	// TODO
+	var curnonce uint64
+	curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
+	if err != nil {
+		return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
+	}
+	if tx.GetNonce() > curnonce {
+		// write nonce if curnonce is larger then origin one
+		data = []byte(strconv.FormatUint(tx.GetNonce(), 10))
+		if err = da.db.Put(addrLatestNonceKey(tx.Sender()), data); err != nil {
+			return fmt.Errorf("write latest nonce err: %v", err)
+		}
+	}
 
-	// write tx hash nonce
-	err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), tx.GetTxHash().ToBytes())
+	// write tx hash flow, allow the user query tx hash by its address and nonce.
+	data = tx.GetTxHash().ToBytes()
+	err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), data)
 	if err != nil {
 		return fmt.Errorf("write tx hash flow to db err: %v", err)
 	}

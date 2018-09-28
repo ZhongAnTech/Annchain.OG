@@ -35,7 +35,6 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 		accessor: NewAccessor(db),
 		close:    make(chan struct{}),
 	}
-
 	return dag
 }
 
@@ -265,7 +264,18 @@ func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
 
 // GetBalance read the confirmed balance of an address from ogdb.
 func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
-	return dag.accessor.ReadBalance(addr)
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getBalence(addr)
+}
+
+// GetLatestNonce returns the latest tx of an addresss.
+func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getLatestNonce(addr)
 }
 
 // RollBack rolls back the dag network.
@@ -393,6 +403,14 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 
 func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
 	return dag.accessor.ReadTxSeqRelation(hash)
+}
+
+func (dag *Dag) getBalence(addr types.Address) *math.BigInt {
+	return dag.accessor.ReadBalance(addr)
+}
+
+func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
+	return dag.accessor.ReadAddrLatestNonce(addr)
 }
 
 

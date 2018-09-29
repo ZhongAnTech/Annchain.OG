@@ -48,7 +48,9 @@ func (c *ClientAutoSequencer) loop() {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Millisecond * time.Duration(c.BlockTimeMilliSeconds)).C:
 		}
-		c.GenerateRequest()
+		if c.TxBuffer.Hub.AcceptTx() {
+			c.GenerateRequest()
+		}
 	}
 }
 

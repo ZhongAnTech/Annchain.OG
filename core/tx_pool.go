@@ -289,7 +289,7 @@ func (pool *TxPool) loop() {
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
-			
+
 			txEvent.callbackChan <- err
 
 		// TODO case reset?
@@ -390,7 +390,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 			return bad
 		}
 	}
-	// check if the nonce is correct
+	// check if the nonce is  duplicate
 	txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
 		return bad
@@ -470,13 +470,6 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
-				/*log.WithField("len", seekingPool.Len()).
-				WithField("tx", baseTx).
-				WithField("as", len(inSeekingPool)).
-				WithField("elder", elder).
-				WithField("elderParentHash", elderParentHash).
-				Debug("seekingpool")
-				*/
 			}
 		}
 	}
@@ -485,7 +478,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation term.
-	// sums up the related address's income and outcome values
+	// sums up the related address' income and outcome values
 	var txhashes types.Hashs
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
@@ -518,7 +511,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	}
 	for addr, batchDetail := range batch {
 		// check balance
-		// if balance of addr < outcome value of addr, then verify failed
+		// if balance < outcome, then verify failed
 		confirmedBalance := pool.dag.GetBalance(addr)
 		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
@@ -563,7 +556,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 		if nonces[0] != uint64(0) {
 			return fmt.Errorf("nonce %d is not zero when there is no nonce in db", nonces[0])
 		}
-	}		
+	}
 
 	for i := 1; i < nonces.Len(); i++ {
 		if nonces[i] != nonces[i-1] + 1 {

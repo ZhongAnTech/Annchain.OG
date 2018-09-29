@@ -84,6 +84,7 @@ func init() {
 	viper.SetDefault("max_mined_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 
 	viper.SetDefault("debug.node_id", 0)
+	viper.SetDefault("consensus", "dpos")
 }
 
 func panicIfError(err error, message string) {

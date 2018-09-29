@@ -52,6 +52,8 @@ node_id = 1
 
 [dag]
 
+consensus = "dpos"
+
 # samples below
 
 #[owner]

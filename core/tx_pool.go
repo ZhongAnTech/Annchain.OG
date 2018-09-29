@@ -1,9 +1,9 @@
 package core
 
 import (
-	"sort"
 	"container/list"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -141,7 +141,7 @@ func (pool *TxPool) Name() string {
 	return "TxPool"
 }
 
-// PoolStatus returns the current number of 
+// PoolStatus returns the current number of
 // tips, bad txs and pending txs stored in pool.
 func (pool *TxPool) PoolStatus() (int, int, int) {
 	return pool.txLookup.Stats()
@@ -348,7 +348,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	
+
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
@@ -540,7 +540,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 }
 
 func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
-	has, hErr := pool.dag.HasLatestNonce(addr) 
+	has, hErr := pool.dag.HasLatestNonce(addr)
 	if hErr != nil {
 		return fmt.Errorf("check nonce in db err: %v", hErr)
 	}
@@ -549,7 +549,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 		if nErr != nil {
 			return fmt.Errorf("get latest nonce err: %v", nErr)
 		}
-		if nonces[0] != latestNonce + 1 {
+		if nonces[0] != latestNonce+1 {
 			return fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
 		}
 	} else {
@@ -559,7 +559,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 	}
 
 	for i := 1; i < nonces.Len(); i++ {
-		if nonces[i] != nonces[i-1] + 1 {
+		if nonces[i] != nonces[i-1]+1 {
 			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
 		}
 	}
@@ -718,6 +718,3 @@ func (tm *TxMap) Add(tx types.Txi) {
 		tm.txs[tx.GetTxHash()] = tx
 	}
 }
-
-
-

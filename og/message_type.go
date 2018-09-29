@@ -125,4 +125,5 @@ type StatusData struct {
 	NetworkId       uint64
 	CurrentBlock    types.Hash
 	GenesisBlock    types.Hash
+	CurrentId       uint64
 }

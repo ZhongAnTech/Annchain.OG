@@ -14,14 +14,14 @@ var (
 	prefixGenesisKey   = []byte("genesis")
 	prefixLatestSeqKey = []byte("latestseq")
 
-	prefixTransactionKey		= []byte("tx")
-	prefixTxHashFlowKey			= []byte("fl")
-	contentPrefixTransaction    = []byte("cptx")
-	contentPrefixSequencer      = []byte("cpsq")
+	prefixTransactionKey     = []byte("tx")
+	prefixTxHashFlowKey      = []byte("fl")
+	contentPrefixTransaction = []byte("cptx")
+	contentPrefixSequencer   = []byte("cpsq")
 
-	prefixTxSeqRelationKey		= []byte("tsr")
-	
-	prefixAddrLatestNonceKey 	= []byte("aln")
+	prefixTxSeqRelationKey = []byte("tsr")
+
+	prefixAddrLatestNonceKey = []byte("aln")
 
 	prefixSeqIdKey   = []byte("si")
 	prefixTxIndexKey = []byte("ti")
@@ -179,9 +179,9 @@ func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 
-// WriteTransaction write the tx or sequencer into ogdb. It first write 
-// the latest nonce of the tx's sender, then write the ([address, nonce] -> hash) 
-// relation into ogdb, finally write the tx itself into db. Data will be 
+// WriteTransaction write the tx or sequencer into ogdb. It first write
+// the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
+// relation into ogdb, finally write the tx itself into db. Data will be
 // overwritten if it already exists in db.
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte

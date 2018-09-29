@@ -114,19 +114,19 @@ func (h *Hub) txsyncLoop() {
 	}
 }
 
-
-func (h *Hub)syncInit() {
-	bp:=  h.peers.BestPeer()
-	if bp ==nil  {
-		atomic.StoreUint32(&h.acceptTxs,1)
-	}else  {
-		_,seqId:= bp.Head()
+func (h *Hub) syncInit() {
+	bp := h.peers.BestPeer()
+	if bp == nil {
+		atomic.StoreUint32(&h.acceptTxs, 1)
+	} else {
+		_, seqId := bp.Head()
 		if seqId <= h.Dag.LatestSequencer().Id {
-			atomic.StoreUint32(&h.acceptTxs,1)
+			atomic.StoreUint32(&h.acceptTxs, 1)
 		}
 	}
-	return 
+	return
 }
+
 // syncer is responsible for periodically synchronising with the network, both
 // downloading hashes and blocks as well as handling the announcement handler.
 func (h *Hub) syncer() {
@@ -138,10 +138,11 @@ func (h *Hub) syncer() {
 	// Wait for different events to fire synchronisation operations
 	forceSync := time.NewTicker(forceSyncCycle)
 	defer forceSync.Stop()
- 	h.syncInit()
+	h.syncInit()
 	for {
 		select {
 		case <-h.newPeerCh:
+
 			// Make sure we have peers to select from, then sync
 			if h.peers.Len() < minDesiredPeerCount {
 				break

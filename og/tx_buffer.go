@@ -35,8 +35,7 @@ type IDag interface {
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
 	VerifySignature(t types.Txi) bool
-	VerifySourceAddress(t types.Txi) bool
-	VerifyGraphStructure(t types.Txi) bool
+	VerifyGraphOrder(t types.Txi) bool
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
@@ -141,11 +140,11 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
-	logrus.WithField("tx", tx).Info("nice tx")
-	if !b.verifier.VerifyGraphStructure(tx) {
+	if !b.verifier.VerifyGraphOrder(tx) {
 		logrus.WithField("tx", tx).Info("bad graph tx")
 		return
 	}
+	logrus.WithField("tx", tx).Info("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
 }
@@ -280,7 +279,6 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 	if !b.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
-	// TODO: Nonce
 	return nil
 }
 

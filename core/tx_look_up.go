@@ -1,19 +1,21 @@
 package core
 
 import (
-	"sort"
-	"fmt"
 	"container/heap"
+	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/annchain/OG/types"
 )
 
 type nonceHeap []uint64
+
 // for sort
-func (n nonceHeap) Len() int 			{ return len(n) }
-func (n nonceHeap) Less(i, j int) bool	{ return n[i] < n[j] }
-func (n nonceHeap) Swap(i, j int)		{ n[i], n[j] = n[j], n[i] }
+func (n nonceHeap) Len() int           { return len(n) }
+func (n nonceHeap) Less(i, j int) bool { return n[i] < n[j] }
+func (n nonceHeap) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
+
 // for heap
 func (n *nonceHeap) Push(x interface{}) {
 	*n = append(*n, x.(uint64))
@@ -22,17 +24,18 @@ func (n *nonceHeap) Pop() interface{} {
 	old := *n
 	length := len(old)
 	last := old[length-1]
-	*n = old[0:length-1]
+	*n = old[0 : length-1]
 	return last
 }
 
 type TxList struct {
-	keys	*nonceHeap
-	txflow	map[uint64]types.Txi
+	keys   *nonceHeap
+	txflow map[uint64]types.Txi
 }
+
 func NewTxList() *TxList {
 	return &TxList{
-		keys: new(nonceHeap),
+		keys:   new(nonceHeap),
 		txflow: make(map[uint64]types.Txi),
 	}
 }
@@ -65,7 +68,7 @@ func (t *TxList) remove(nonce uint64) bool {
 	}
 	for i := 0; i < t.keys.Len(); i++ {
 		if (*t.keys)[i] == nonce {
-			heap.Remove(t.keys, i)	
+			heap.Remove(t.keys, i)
 			break
 		}
 	}
@@ -74,13 +77,14 @@ func (t *TxList) remove(nonce uint64) bool {
 }
 
 type txLookUp struct {
-	txs 		map[types.Hash]*txEnvelope
-	txflow		map[types.Address]*TxList
-	mu  		sync.RWMutex
+	txs    map[types.Hash]*txEnvelope
+	txflow map[types.Address]*TxList
+	mu     sync.RWMutex
 }
+
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		txs: make(map[types.Hash]*txEnvelope),
+		txs:    make(map[types.Hash]*txEnvelope),
 		txflow: make(map[types.Address]*TxList),
 	}
 }
@@ -233,5 +237,3 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 		txEnv.status = status
 	}
 }
-
-

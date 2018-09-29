@@ -13,15 +13,15 @@ type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
-	txPool    ITxPool
-	txBuffer  ITxBuffer
+	txPool     ITxPool
+	txBuffer   ITxBuffer
 	acceptTxs  uint32
 	quitHandel bool
 }
 
-type SyncBufferConfig  struct {
-	TxPool                    ITxPool
-	TxBuffer                 ITxBuffer
+type SyncBufferConfig struct {
+	TxPool   ITxPool
+	TxBuffer ITxBuffer
 }
 
 func (s *SyncBuffer) Start() {
@@ -32,7 +32,6 @@ func (s *SyncBuffer) Stop() {
 	log.Info("Syncbuffer will stop")
 	s.quitHandel = true
 }
-
 
 // range map is random value ,so store hashs using slice
 func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
@@ -85,11 +84,11 @@ func (s *SyncBuffer) Name() string {
 
 var MaxBufferSiza = 4096 * 4
 
-func NewSyncBuffer(config  SyncBufferConfig) *SyncBuffer {
+func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs: make(map[types.Hash]types.Txi),
-		txPool:config.TxPool,
-		txBuffer:config.TxBuffer,
+		Txs:      make(map[types.Hash]types.Txi),
+		txPool:   config.TxPool,
+		txBuffer: config.TxBuffer,
 	}
 	return s
 }

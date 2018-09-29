@@ -417,7 +417,7 @@ func (ps *peerSet) Close() {
 
 // Handshake executes the og protocol handshake, negotiating version number,
 // network IDs, head and genesis blocks.
-func (p *peer) Handshake(network uint64, head types.Hash, genesis types.Hash) error {
+func (p *peer) Handshake(network uint64, head types.Hash, seqId uint64, genesis types.Hash) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 	var status StatusData // safe to read after two values have been received from errc
@@ -427,6 +427,7 @@ func (p *peer) Handshake(network uint64, head types.Hash, genesis types.Hash) er
 			ProtocolVersion: uint32(p.version),
 			NetworkId:       network,
 			CurrentBlock:    head,
+			CurrentId:       seqId,
 			GenesisBlock:    genesis,
 		}
 		data, _ := s.MarshalMsg(nil)
@@ -448,6 +449,7 @@ func (p *peer) Handshake(network uint64, head types.Hash, genesis types.Hash) er
 		}
 	}
 	p.head = status.CurrentBlock
+	p.seqId = status.CurrentId
 	return nil
 }
 

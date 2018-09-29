@@ -598,6 +598,13 @@ func (h *Hub) loopReceive() {
 	}
 }
 
+func ( h *Hub)AcceptTx () bool {
+	if atomic.LoadUint32(&h.acceptTxs) ==1{
+		return true
+	}
+	return false
+}
+
 func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
 	p2pMsg := P2PMessage{MessageType: messageType, Message: msg}
 	if messageType != MessageTypePong && messageType != MessageTypePing {

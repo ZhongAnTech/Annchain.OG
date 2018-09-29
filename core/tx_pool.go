@@ -289,7 +289,7 @@ func (pool *TxPool) loop() {
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
-
+			
 			txEvent.callbackChan <- err
 
 		// TODO case reset?
@@ -564,7 +564,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 			return fmt.Errorf("nonce %d is not zero when there is no nonce in db", nonces[0])
 		}
 	}		
-	
+
 	for i := 1; i < nonces.Len(); i++ {
 		if nonces[i] != nonces[i-1] + 1 {
 			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])

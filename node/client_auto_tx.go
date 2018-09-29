@@ -33,7 +33,7 @@ func (c *ClientAutoTx) Init() {
 	if lseq != nil {
 		c.currentID = lseq.Id
 	}
-	c.SampleAccounts = og.GetSampleAccounts()
+	c.SampleAccounts = core.GetSampleAccounts()
 }
 
 func (c *ClientAutoTx) GenerateRequest(from int, to int) {

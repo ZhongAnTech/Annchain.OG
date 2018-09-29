@@ -38,7 +38,8 @@ var (
 	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
-	fsMinFullBlocks        = 64              // Number of blocks to retrieve fully even in fast sync
+	fsMinFullBlocks        = 64
+	MaxForkAncestry =  3 *  uint64( 3000) // Number of blocks to retrieve fully even in fast sync
 )
 
 var (
@@ -449,7 +450,6 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 	}
 }
 
-const MaxForkAncestry = 9000
 
 // findAncestor tries to locate the common ancestor link of the local chain and
 // a remote peers blockchain. In the general case when our node was in sync and

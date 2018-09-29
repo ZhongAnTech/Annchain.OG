@@ -55,7 +55,8 @@ type TxPool struct {
 	queue       chan *txEvent // queue stores txs that need to validate later
 	tips        *TxMap        // tips stores all the tips
 	badtxs      *TxMap
-	poolPending *pending
+	pendings	*TxMap
+
 	txLookup    *txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
@@ -630,21 +631,6 @@ func (p *pending) Confirm(hash types.Hash) {
 	p.txs.Remove(hash)
 }
 
-// type pendingState map[types.Address]pendingAddrState
-type pendingState struct {
-	neg           *math.BigInt
-	pos           *math.BigInt
-	originBalance *math.BigInt
-}
-
-func NewPendingState(addr types.Address, balance *math.BigInt) *pendingState {
-	return &pendingState{
-		neg:           math.NewBigInt(0),
-		pos:           math.NewBigInt(0),
-		originBalance: balance,
-	}
-}
-
 type TxMap struct {
 	txs map[types.Hash]types.Txi
 	mu  sync.RWMutex
@@ -718,6 +704,79 @@ func (tm *TxMap) Add(tx types.Txi) {
 		tm.txs[tx.GetTxHash()] = tx
 	}
 }
+
+// AccountFlow stores the information about an address. It includes the 
+// balance state of the account among the txpool, 
+type AccountFlow struct {
+	balance		*BalanceState
+	txlist		*TxList
+}
+
+// GetTx get a tx from accountflow.
+func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
+	return af.txlist.Get(nonce)
+}
+
+// Add new tx into account flow. This function should 
+// 1. update account's balance state.
+// 2. add tx into nonce sorted txlist.
+func (af *AccountFlow) Add(tx *types.Tx) error {
+	err := af.balance.trySubBalance(tx.Value)
+	if err != nil { 
+		return err 
+	}
+	af.txlist.Put(tx)
+	return nil
+}
+
+// Remove a tx from account flow, find tx by nonce first, then
+// rolls back the balance and remove tx from txlist.
+func (af *AccountFlow) Remove(nonce uint64) error {
+	tx := af.GetTx(nonce)
+	if tx == nil {
+		return
+	}
+	err := af.balance.tryRemoveTx(tx.(*types.Tx))
+	if err != nil {
+		return err
+	}
+
+	af.txlist.Remove(nonce)
+	return nil
+}
+
+
+type BalanceState struct {
+	spent			*math.BigInt
+	originBalance	*math.BigInt
+}
+func NewBalanceState(balance *math.BigInt) *pendingState {
+	return &balanceState{
+		spent:           math.NewBigInt(0),
+		originBalance: balance,
+	}
+}
+
+func (bs *BalanceState) trySubBalance(value *math.BigInt) error {
+	totalspent := math.NewBigInt(0)
+	totalspent.Value.Add(bs.spent.Value, value.Value)
+	// check if (already spent + new spent) > confirmed balance
+	if totalspent.Value.Cmp(bs.originBalance.Value) < 0 {
+		return fmt.Errorf("balance not enough")
+	}
+	bs.spent.Value = totalspent
+	return nil
+}
+
+func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {	
+	// check if (already spent < tx's value)
+	if bs.spent.Value.Cmp(tx.Value.Value) < 0 {
+		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), tx.Value.String())
+	}
+	bs.spent.Value.Sub(bs.spent.Value, tx.Value.Value)
+	return nil
+}
+
 
 
 

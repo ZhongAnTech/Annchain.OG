@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/annchain/OG/consensus/dpos"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/rpc"
 	"github.com/sirupsen/logrus"
@@ -169,6 +170,19 @@ func NewNode() *Node {
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {
 		n.Components = append(n.Components, autoTx)
+	}
+
+	switch  viper.GetString("consensus") {
+	case "dpos":
+		//todo
+		consensus := dpos.NewDpos(org.Dag, &types.Address{})
+		n.Components = append(n.Components, consensus)
+	case "pos":
+		//todo
+	case "pow":
+		//todo
+	default:
+		panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
 	}
 
 	// DataLoader

@@ -94,7 +94,7 @@ func (d *dummySyncer) Enqueue(hash types.Hash) {
 
 type dummyVerifier struct{}
 
-func (d *dummyVerifier) VerifyGraphStructure(t types.Txi) bool {
+func (d *dummyVerifier) VerifyGraphOrder(t types.Txi) bool {
 	return true
 }
 
@@ -102,9 +102,6 @@ func (d *dummyVerifier) VerifyHash(t types.Txi) bool {
 	return true
 }
 func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
-	return true
-}
-func (d *dummyVerifier) VerifySourceAddress(t types.Txi) bool {
 	return true
 }
 

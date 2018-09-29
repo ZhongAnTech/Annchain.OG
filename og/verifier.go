@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Verifier verifies if the tx meets the hash and graph standards.
@@ -196,9 +197,11 @@ func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSe
 func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
 	ok = false
 	if ok = v.verifyA3(txi); !ok {
+		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
 	if ok = v.verifyB1(txi); !ok {
+		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
 	return true

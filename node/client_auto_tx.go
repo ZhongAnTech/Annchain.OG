@@ -38,7 +38,9 @@ func (c *ClientAutoTx) Init() {
 
 func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	c.mu.RLock()
-	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(0), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
+	nonce, _ := c.Dag.GetLatestNonce(c.SampleAccounts[from].Address)
+	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
+		math.NewBigInt(0), nonce, c.SampleAccounts[from].PrivateKey)
 	c.mu.RUnlock()
 
 	if ok := c.TxCreator.SealTx(tx); !ok {

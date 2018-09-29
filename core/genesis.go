@@ -1,18 +1,16 @@
-package og
+package core
 
 import (
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 )
 
 func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
-	txCreator := TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
-	}
-	seq := txCreator.NewUnsignedSequencer(0, []types.Hash{}, 0)
+
+		//crypto.SignerSecp256k1{},
+	seq := newUnsignedSequencer(0, []types.Hash{}, 0)
 	seq.GetBase().Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
 	seq.GetBase().PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
 	hash := seq.CalcTxHash()
@@ -38,4 +36,16 @@ func GetSampleAccounts() []account.SampleAccount {
 		account.NewAccount("0x00F9854883F98B15F30A15166675D5442B567D35860E0CE6FB758CEBC7D41E8427"),
 		account.NewAccount("0x00C2AF5EC3E2C7A4E91CAB88B8814BC34B0A5EE67944019D07719C4667A9D1C202"),
 	}
+}
+
+func  newUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
+	tx := types.Sequencer{
+		Id:                id,
+		ContractHashOrder: contractHashOrder,
+		TxBase: types.TxBase{
+			AccountNonce: accountNonce,
+			Type:         types.TxBaseTypeSequencer,
+		},
+	}
+	return &tx
 }

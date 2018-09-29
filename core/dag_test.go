@@ -7,8 +7,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og"
 )
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
@@ -16,7 +16,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 	db, remove := newTestLDB(dbDirPrefix)
 	dag := core.NewDag(conf, db)
 
-	genesis, balance := og.DefaultGenesis()
+	genesis, balance := core.DefaultGenesis()
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -78,7 +78,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	dag := core.NewDag(conf, db)
 
 	acc := core.NewAccessor(db)
-	genesis, _ := og.DefaultGenesis()
+	genesis, _ := core.DefaultGenesis()
 	err = acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)

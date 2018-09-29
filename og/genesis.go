@@ -31,7 +31,7 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 }
 
 func GetSampleAccounts() []account.SampleAccount {
-	//for test
+	// for test
 	return []account.SampleAccount{
 		// insert 0x00 at the beginning to indicate private key type
 		account.NewAccount("0x0070E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F26"),

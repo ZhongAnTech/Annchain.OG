@@ -56,8 +56,8 @@ func newTestPoolBadTx() *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPk2)
+	addr := types.HexToAddress(testAddr2)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(100), 0, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -96,7 +96,7 @@ func TestPoolInit(t *testing.T) {
 }
 
 func TestPoolCommit(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	pool, _, genesis, finish := newTestTxPool(t)
 	defer finish()
@@ -114,7 +114,7 @@ func TestPoolCommit(t *testing.T) {
 		t.Fatalf("tx0 is not added into pool")
 	}
 	if status := pool.GetStatus(tx0.GetTxHash()); status != core.TxStatusTip {
-		t.Fatalf("tx0's status is not tip but %s after commit", status.String())
+		t.Fatalf("tx0's status is not tip but %s after commit, addr %s", status.String(), tx0.Sender().String())
 	}
 	geInPool := pool.Get(genesis.GetTxHash())
 	if geInPool != nil {
@@ -227,7 +227,7 @@ func TestPoolConfirm(t *testing.T) {
 	badtx.ParentsHash = []types.Hash{seq.GetTxHash()}
 	pool.AddLocalTx(badtx)
 
-	addr := types.HexToAddress(testAddr0)
+	addr := types.HexToAddress(testAddr2)
 	dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
 
 	badtxseq := newTestSeq(2)

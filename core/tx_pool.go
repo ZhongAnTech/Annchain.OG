@@ -271,11 +271,19 @@ func (pool *TxPool) loop() {
 				continue
 			}
 
-			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
-				err = pool.commit(tx)
+				if pool.isBadTx(tx) {
+					log.Debugf("bad tx: %s", tx.String())
+					pool.txLookup.Add(txEvent.txEnv)
+					pool.badtxs.Add(tx)
+					pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
+				} else {
+					pool.txLookup.Add(txEvent.txEnv)
+					err = pool.commit(tx)
+				}
 			case *types.Sequencer:
+				pool.txLookup.Add(txEvent.txEnv)
 				err = pool.confirm(tx)
 			}
 			if err != nil {
@@ -340,13 +348,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-
-	if pool.isBadTx(tx) {
-		log.Debugf("bad tx: %s", tx.String())
-		pool.badtxs.Add(tx)
-		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
-		return nil
-	}
+	
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
@@ -527,17 +529,8 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			continue
 		}
 		sort.Sort(&nonces)
-		latestNonce, nErr := pool.dag.GetLatestNonce(addr)
-		if nErr != nil {
-			return nil, fmt.Errorf("get latest nonce err: %v", nErr)
-		}
-		if nonces[0] != latestNonce + 1 {
-			return nil, fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
-		}
-		for i := 1; i < nonces.Len(); i++ {
-			if nonces[i] != nonces[i-1] + 1 {
-				return nil, fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
-			}
+		if nErr := pool.verifyNonce(addr, nonces); nErr != nil {
+			return nil, nErr
 		}
 	}
 	//reverse the txhashes to keeep partial order , accelerate processing speed
@@ -551,6 +544,34 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	cb.Batch = batch
 	cb.TxHashes = &txhashes
 	return cb, nil
+}
+
+func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
+	has, hErr := pool.dag.HasLatestNonce(addr) 
+	if hErr != nil {
+		return fmt.Errorf("check nonce in db err: %v", hErr)
+	}
+	if has {
+		latestNonce, nErr := pool.dag.GetLatestNonce(addr)
+		if nErr != nil {
+			return fmt.Errorf("get latest nonce err: %v", nErr)
+		}
+		if nonces[0] != latestNonce + 1 {
+			return fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
+		}
+	} else {
+		if nonces[0] != uint64(0) {
+			return fmt.Errorf("nonce %d is not zero when there is no nonce in db", nonces[0])
+		}
+	}		
+	
+	for i := 1; i < nonces.Len(); i++ {
+		if nonces[i] != nonces[i-1] + 1 {
+			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
+		}
+	}
+
+	return nil
 }
 
 // reset clears the tips that haven't been proved for a long time

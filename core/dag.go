@@ -279,6 +279,14 @@ func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
 	return dag.getLatestNonce(addr)
 }
 
+// HasLatestNonce returns true if addr already sent any txs to db.
+func (dag *Dag) HasLatestNonce(addr types.Address) (bool, error) {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.hasLatestNonce(addr)
+}
+
 // RollBack rolls back the dag network.
 func (dag *Dag) RollBack() {
 	// TODO
@@ -421,6 +429,10 @@ func (dag *Dag) getBalence(addr types.Address) *math.BigInt {
 
 func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
 	return dag.accessor.ReadAddrLatestNonce(addr)
+}
+
+func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
+	return dag.accessor.HasAddrLatestNonce(addr)
 }
 
 

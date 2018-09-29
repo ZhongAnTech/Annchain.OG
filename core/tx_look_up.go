@@ -51,8 +51,8 @@ func (t *TxList) put(txi types.Txi) {
 	nonce := txi.GetNonce()
 	if _, ok := t.txflow[nonce]; !ok {
 		heap.Push(t.keys, nonce)
+		t.txflow[nonce] = txi
 	}
-	t.txflow[nonce] = txi
 }
 
 func (t *TxList) Remove(nonce uint64) bool {

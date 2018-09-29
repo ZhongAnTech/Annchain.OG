@@ -29,9 +29,9 @@ func NewNode() *Node {
 
 	var rpcServer *rpc.RpcServer
 
-	maxPerr := viper.GetInt("p2p.max_peers")
-	if maxPerr == 0 {
-		maxPerr = defaultMaxPeers
+	maxPeers := viper.GetInt("p2p.max_peers")
+	if maxPeers == 0 {
+		maxPeers = defaultMaxPeers
 	}
 	if viper.GetBool("rpc.enabled") {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
@@ -52,7 +52,9 @@ func NewNode() *Node {
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
-	}, maxPerr, downloader.FullSync, uint64(networkId), org.Dag)
+		MaxPeers:                      maxPeers,
+		NetworkId:                     uint64(networkId),
+	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
 		BatchTimeoutMilliSecond:              1000,
@@ -99,7 +101,10 @@ func NewNode() *Node {
 	txBuffer.Hub = hub
 	hub.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
-	syncBuffer := og.NewSyncBuffer(txBuffer)
+	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
+		TxBuffer: txBuffer,
+		TxPool:   org.Txpool,
+	})
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
 	m := &og.Manager{

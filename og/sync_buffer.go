@@ -13,19 +13,26 @@ type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
-	txBuffer   *TxBuffer
+	txPool    ITxPool
+	txBuffer  ITxBuffer
 	acceptTxs  uint32
 	quitHandel bool
 }
 
+type SyncBufferConfig  struct {
+	TxPool                    ITxPool
+	TxBuffer                 ITxBuffer
+}
+
 func (s *SyncBuffer) Start() {
-	log.Info("syncbuffer started")
+	log.Info("Syncbuffer started")
 }
 
 func (s *SyncBuffer) Stop() {
-	log.Info("syncbuffer will stop")
+	log.Info("Syncbuffer will stop")
 	s.quitHandel = true
 }
+
 
 // range map is random value ,so store hashs using slice
 func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
@@ -78,11 +85,12 @@ func (s *SyncBuffer) Name() string {
 
 var MaxBufferSiza = 4096 * 4
 
-func NewSyncBuffer(buffer *TxBuffer) *SyncBuffer {
+func NewSyncBuffer(config  SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
 		Txs: make(map[types.Hash]types.Txi),
+		txPool:config.TxPool,
+		txBuffer:config.TxBuffer,
 	}
-	s.txBuffer = buffer
 	return s
 }
 
@@ -145,14 +153,14 @@ func (s *SyncBuffer) Handle() error {
 						break
 					}
 		*/
-		err = s.txBuffer.txPool.AddRemoteTx(tx)
+		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
 			break
 		}
 	}
 	if err == nil {
 		log.WithField("id", s.Seq.Number()).Debug("before add seq")
-		err = s.txBuffer.txPool.AddRemoteTx(s.Seq)
+		err = s.txPool.AddRemoteTx(s.Seq)
 		log.WithField("id", s.Seq.Number()).Debug("after add seq")
 	}
 	if err != nil {
@@ -202,61 +210,3 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 	}
 	return nil
 }
-
-/*
-func (s *SyncBuffer)handelOneRecursive (hash types.Hash, txType types.TxBaseType ) (added bool, err error) {
-	if s.quitHandel {
-		return
-	}
-	b := s.txBuffer
-	tx := s.Get(hash)
-	if txType == types.TxBaseTypeSequencer {
-		tx = s.Seq
-	}
-	if tx == nil {
-		s.Remove(hash)
-		return false, nil
-	}
-	// already in the dag or tx_pool.
-	if b.isKnownHash(tx.GetTxHash()) {
-		s.Remove(tx.GetTxHash())
-		return true, nil
-	}
-
-	//if parent is in dag or pool , verify and add tx to pool
-	//else if parent is in sync_buffer ,process parent first
-	//else if parent not found , got it
-	//
-	var unkown bool
-	for _, pHash := range tx.Parents() {
-		if !b.isKnownHash(pHash) {
-			unkown = true
-			parent := s.Get(pHash)
-			if parent == nil {
-				log.WithField("hash", tx.GetTxHash()).Warn("miss parents,drop this tx")
-				s.Remove(tx.GetTxHash())
-				return false, fmt.Errorf("parent not found")
-			} else {
-				log.WithField("parent ",parent.GetTxHash()).Debug("hande sync tx's parents ", tx.GetTxHash())
-				if result, _ := s.handelOneRecursive(parent.GetTxHash(),parent.GetType()); result {
-					unkown = false
-				}
-			}
-		}
-	}
-	if !unkown {
-		if err := b.verifyTxFormat(tx); err != nil {
-			log.WithError(err).Debugf("Received invalid tx %s", tx.GetTxHash().Hex())
-			s.Remove(tx.GetTxHash())
-			return false, fmt.Errorf("invalid txs")
-		}
-		s.Remove(tx.GetTxHash())
-		s.txBuffer.txPool.AddRemoteTx(tx)
-		log.Debug("hande done sync tx ", tx.GetTxHash())
-		return true, nil
-	}
-
-	return false, nil
-}
-
-*/

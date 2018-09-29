@@ -35,7 +35,7 @@ func NewOg() (*Og, error) {
 
 	if !og.Dag.LoadLastState() {
 		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis()
+		seq, balance := core.DefaultGenesis()
 		if err := og.Dag.Init(seq, balance); err != nil {
 			return nil, err
 		}

@@ -138,7 +138,7 @@ func (h *Hub) syncer() {
 	// Wait for different events to fire synchronisation operations
 	forceSync := time.NewTicker(forceSyncCycle)
 	defer forceSync.Stop()
-	h.syncInit()
+
 	for {
 		select {
 		case <-h.newPeerCh:

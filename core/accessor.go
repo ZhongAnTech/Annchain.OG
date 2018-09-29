@@ -159,7 +159,7 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 
 // ReadAddrLatestNonce get latest nonce of an address
 func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
-	has, _ := da.db.Has(addrLatestNonceKey(addr))
+	has, _ := da.HasAddrLatestNonce(addr)
 	if !has {
 		return 0, fmt.Errorf("not exists")
 	}
@@ -174,6 +174,11 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 	return nonce, nil
 }
 
+// HasAddrLatestNonce returns true if addr already sent some txs.
+func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
+	return da.db.Has(addrLatestNonceKey(addr))
+}
+
 // WriteTransaction write the tx or sequencer into ogdb. It first write 
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash) 
 // relation into ogdb, finally write the tx itself into db. Data will be 
@@ -184,7 +189,7 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 
 	// write tx latest nonce
 	var curnonce = uint64(0)
-	has, _ := da.db.Has(addrLatestNonceKey(tx.Sender()))
+	has, _ := da.HasAddrLatestNonce(tx.Sender())
 	if has {
 		curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
 		if err != nil {

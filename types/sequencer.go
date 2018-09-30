@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"math/rand"
+	"fmt"
 )
 
 //go:generate msgp
@@ -15,6 +16,10 @@ type Sequencer struct {
 	Id                uint64 `msgp:"id"`
 	Issuer            Address
 	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+}
+
+func (t *Sequencer) String() string {
+	return fmt.Sprintf("%s-[%.10s]-%d", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleSequencer() *Sequencer {

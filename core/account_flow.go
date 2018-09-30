@@ -55,8 +55,8 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 	defer a.mu.RUnlock()
 
 	flow := a.afs[addr]
-	if flow == nil { 
-		return nil 
+	if flow == nil {
+		return nil
 	}
 	return flow.GetTx(nonce)
 }
@@ -168,7 +168,7 @@ func (bs *BalanceState) trySubBalance(value *math.BigInt) error {
 	totalspent := math.NewBigInt(0)
 	totalspent.Value.Add(bs.spent.Value, value.Value)
 	// check if (already spent + new spent) > confirmed balance
-	if totalspent.Value.Cmp(bs.originBalance.Value) < 0 {
+	if totalspent.Value.Cmp(bs.originBalance.Value) > 0 {
 		return fmt.Errorf("balance not enough")
 	}
 	bs.spent.Value = totalspent.Value

@@ -2,9 +2,9 @@ package core
 
 import (
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common"
 )
 
 func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
@@ -38,7 +38,7 @@ func GetSampleAccounts() []account.SampleAccount {
 	}
 }
 
-func  newUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
+func newUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
 	tx := types.Sequencer{
 		Id:                id,
 		ContractHashOrder: contractHashOrder,

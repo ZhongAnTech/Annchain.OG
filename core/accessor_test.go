@@ -229,7 +229,7 @@ func TestLatestNonce(t *testing.T) {
 
 	var err error
 	acc := core.NewAccessor(db)
-	
+
 	var nonce uint64
 
 	tx0 := newTestUnsealTx(0)
@@ -241,7 +241,7 @@ func TestLatestNonce(t *testing.T) {
 	if err.Error() != "not exists" {
 		t.Fatalf("first tx0 nonce is not empty")
 	}
-	
+
 	tx1 := newTestUnsealTx(1)
 	err = acc.WriteTransaction(tx1)
 	if err != nil {
@@ -254,7 +254,7 @@ func TestLatestNonce(t *testing.T) {
 	if nonce != uint64(1) {
 		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
 	}
-		
+
 	tx2 := newTestUnsealTx(2)
 	err = acc.WriteTransaction(tx2)
 	if err != nil {

@@ -1,4 +1,5 @@
 package core
+
 import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -10,4 +11,3 @@ func TestName(t *testing.T) {
 	logrus.Info(a)
 	DefaultGenesis()
 }
-

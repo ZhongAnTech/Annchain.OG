@@ -348,7 +348,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 
 // commit commits tx to tips pool. commit() checks if this tx is bad tx and moves
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
-// tip pool, those tips will be removed from tips but stored in txpending.
+// tip pool, those tips will be removed from tips but stored in pending.
 func (pool *TxPool) commit(tx *types.Tx) error {
 	log.WithField("tx", tx).Debugf("start commit tx")
 
@@ -362,7 +362,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		return nil
 	}
 
-	// move parents to txpending
+	// move parents to pending
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {

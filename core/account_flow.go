@@ -54,7 +54,7 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	flow := a.Get(addr)
+	flow := a.afs[addr]
 	if flow == nil { 
 		return nil 
 	}
@@ -65,7 +65,7 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	flow := a.Get(addr)
+	flow := a.afs[addr]
 	if flow == nil {
 		return 0, fmt.Errorf("no related tx in txlookup")
 	}
@@ -89,12 +89,11 @@ func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt)
 func (a *AccountFlows) Confirm(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
 	if tx.GetType() != types.TxBaseTypeNormal {
 		log.Warnf("tx type not normal tx when confirm")
 		return
 	}
-	flow := a.Get(tx.Sender())
+	flow := a.afs[tx.Sender()]
 	if flow == nil {
 		return
 	}

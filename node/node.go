@@ -56,7 +56,7 @@ func NewNode() *Node {
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
-		StartAcceptTxs:singleNode,    //if single node just accept txs ,no sync
+		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
 	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{

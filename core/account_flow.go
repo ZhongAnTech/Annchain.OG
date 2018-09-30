@@ -1,21 +1,21 @@
 package core
 
 import (
-	"sync"
+	"container/heap"
 	"fmt"
 	"sort"
-	"container/heap"
+	"sync"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
-
 type AccountFlows struct {
-	afs map[types.Address]*AccountFlow 
-	mu sync.RWMutex
+	afs map[types.Address]*AccountFlow
+	mu  sync.RWMutex
 }
+
 func NewAccountFlows() *AccountFlows {
 	return &AccountFlows{
 		afs: make(map[types.Address]*AccountFlow),
@@ -55,8 +55,8 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 	defer a.mu.RUnlock()
 
 	flow := a.Get(addr)
-	if flow == nil { 
-		return nil 
+	if flow == nil {
+		return nil
 	}
 	return flow.GetTx(nonce)
 }
@@ -89,7 +89,7 @@ func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt)
 func (a *AccountFlows) Confirm(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	
+
 	if tx.GetType() != types.TxBaseTypeNormal {
 		log.Warnf("tx type not normal tx when confirm")
 		return
@@ -105,17 +105,17 @@ func (a *AccountFlows) Confirm(tx types.Txi) {
 	}
 }
 
-
-// AccountFlow stores the information about an address. It includes the 
-// balance state of the account among the txpool, 
+// AccountFlow stores the information about an address. It includes the
+// balance state of the account among the txpool,
 type AccountFlow struct {
-	balance		*BalanceState
-	txlist		*TxList
+	balance *BalanceState
+	txlist  *TxList
 }
+
 func NewAccountFlow(originBalance *math.BigInt) *AccountFlow {
 	return &AccountFlow{
-		balance: NewBalanceState(originBalance), 
-		txlist: NewTxList(),
+		balance: NewBalanceState(originBalance),
+		txlist:  NewTxList(),
 	}
 }
 
@@ -129,13 +129,13 @@ func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
 	return af.txlist.Get(nonce)
 }
 
-// Add new tx into account flow. This function should 
+// Add new tx into account flow. This function should
 // 1. update account's balance state.
 // 2. add tx into nonce sorted txlist.
 func (af *AccountFlow) Add(tx *types.Tx) error {
 	err := af.balance.trySubBalance(tx.Value)
-	if err != nil { 
-		return err 
+	if err != nil {
+		return err
 	}
 	af.txlist.Put(tx)
 	return nil
@@ -157,12 +157,13 @@ func (af *AccountFlow) Confirm(nonce uint64) error {
 }
 
 type BalanceState struct {
-	spent			*math.BigInt
-	originBalance	*math.BigInt
+	spent         *math.BigInt
+	originBalance *math.BigInt
 }
+
 func NewBalanceState(balance *math.BigInt) *BalanceState {
 	return &BalanceState{
-		spent:           math.NewBigInt(0),
+		spent:         math.NewBigInt(0),
 		originBalance: balance,
 	}
 }
@@ -178,7 +179,7 @@ func (bs *BalanceState) trySubBalance(value *math.BigInt) error {
 	return nil
 }
 
-func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {	
+func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {
 	// check if (already spent < tx's value)
 	if bs.spent.Value.Cmp(tx.Value.Value) < 0 {
 		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), tx.Value.String())
@@ -189,10 +190,12 @@ func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {
 }
 
 type nonceHeap []uint64
+
 // for sort
-func (n nonceHeap) Len() int 			{ return len(n) }
-func (n nonceHeap) Less(i, j int) bool	{ return n[i] < n[j] }
-func (n nonceHeap) Swap(i, j int)		{ n[i], n[j] = n[j], n[i] }
+func (n nonceHeap) Len() int           { return len(n) }
+func (n nonceHeap) Less(i, j int) bool { return n[i] < n[j] }
+func (n nonceHeap) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
+
 // for heap
 func (n *nonceHeap) Push(x interface{}) {
 	*n = append(*n, x.(uint64))
@@ -201,17 +204,18 @@ func (n *nonceHeap) Pop() interface{} {
 	old := *n
 	length := len(old)
 	last := old[length-1]
-	*n = old[0:length-1]
+	*n = old[0 : length-1]
 	return last
 }
 
 type TxList struct {
-	keys	*nonceHeap
-	txflow	map[uint64]types.Txi
+	keys   *nonceHeap
+	txflow map[uint64]types.Txi
 }
+
 func NewTxList() *TxList {
 	return &TxList{
-		keys: new(nonceHeap),
+		keys:   new(nonceHeap),
 		txflow: make(map[uint64]types.Txi),
 	}
 }
@@ -248,7 +252,7 @@ func (t *TxList) remove(nonce uint64) bool {
 	}
 	for i := 0; i < t.keys.Len(); i++ {
 		if (*t.keys)[i] == nonce {
-			heap.Remove(t.keys, i)	
+			heap.Remove(t.keys, i)
 			break
 		}
 	}

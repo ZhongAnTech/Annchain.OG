@@ -99,6 +99,18 @@ type TxPoolConfig struct {
 	TxVerifyTime  int `mapstructure:"tx_verify_time"`
 	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
+
+func DefaultTxPoolCOnfig ()TxPoolConfig {
+	config := TxPoolConfig{
+		QueueSize:100,
+		TipsSize:1000,
+		ResetDuration:10,
+		TxVerifyTime:2,
+		TxValidTime:100,
+	}
+	return config
+}
+
 type txEvent struct {
 	txEnv        *txEnvelope
 	callbackChan chan error

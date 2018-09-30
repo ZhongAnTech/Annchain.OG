@@ -42,6 +42,17 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 	}
 }
 
+func DefaultSyncerConfig() SyncerConfig {
+	config := SyncerConfig{
+		BatchTimeoutMilliSecond:              1000,
+		AcquireTxQueueSize:                   1000,
+		MaxBatchSize:                         100,
+		AcquireTxDedupCacheMaxSize:           10000,
+		AcquireTxDedupCacheExpirationSeconds: 60,
+	}
+	return config
+}
+
 func (m *Syncer) Start() {
 	go m.loopSync()
 }

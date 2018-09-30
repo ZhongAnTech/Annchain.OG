@@ -88,9 +88,13 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 	}
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
-	seekingHashes.PushBack(currentTx.GetTxHash())
+	for _, parent := range currentTx.Parents(){
+		seekingHashes.PushBack(parent)
+	}
+
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
+		logrus.WithField("hash", head).Debug("fetching previous tx")
 
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {

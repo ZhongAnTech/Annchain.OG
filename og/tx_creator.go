@@ -48,10 +48,11 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
+func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
 	tx := types.Sequencer{
 		Id:                id,
 		ContractHashOrder: contractHashOrder,
+		Issuer:            issuer,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,
@@ -61,8 +62,8 @@ func (m *TxCreator) NewUnsignedSequencer(id uint64, contractHashOrder []types.Ha
 	return &tx
 }
 
-func (m *TxCreator) NewSignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
-	tx := m.NewUnsignedSequencer(id, contractHashOrder, accountNonce)
+func (m *TxCreator) NewSignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+	tx := m.NewUnsignedSequencer(issuer, id, contractHashOrder, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes

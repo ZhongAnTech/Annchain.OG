@@ -49,7 +49,7 @@ func (srv *RpcServer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), ShutdownTimeoutSeconds*time.Second)
 	defer cancel()
 	if err := srv.server.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Fatalf("error while shutting down the Http server")
+		logrus.WithError(err).Error("error while shutting down the Http server")
 	}
 	logrus.Infof("http server Stopped")
 }

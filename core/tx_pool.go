@@ -56,7 +56,7 @@ type TxPool struct {
 	tips        *TxMap        // tips stores all the tips
 	badtxs      *TxMap
 	pendings	*TxMap
-
+	flows		*AccountFlows
 	txLookup    *txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
@@ -85,11 +85,12 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		queue:           make(chan *txEvent, conf.QueueSize),
 		tips:            NewTxMap(),
 		badtxs:          NewTxMap(),
+		pendings:        NewTxMap(),
+		flows:           NewAccountFlows(),
 		txLookup:        newTxLookUp(),
 		close:           make(chan struct{}),
 		OnNewTxReceived: []chan types.Txi{},
 	}
-	pool.poolPending = NewPending(pool)
 	return pool
 }
 
@@ -154,14 +155,14 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
 }
 
-// GetByNonce get a tx or sequencer from pool by sender's address and tx's nonce.
+// GetByNonce get a tx or sequencer from account flows by sender's address and tx's nonce.
 func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
-	return pool.txLookup.GetByNonce(addr, nonce)
+	return pool.flows.GetTxByNonce(addr, nonce)
 }
 
 // GetLatestNonce get the latest nonce of an address
 func (pool *TxPool) GetLatestNonce(addr types.Address) (uint64, error) {
-	return pool.txLookup.GetLatestNonce(addr)
+	return pool.flows.GetLatestNonce(addr)
 }
 
 // GetStatus gets the current status of a tx
@@ -272,19 +273,11 @@ func (pool *TxPool) loop() {
 				continue
 			}
 
+			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
-				if pool.isBadTx(tx) {
-					log.Debugf("bad tx: %s", tx.String())
-					pool.txLookup.Add(txEvent.txEnv)
-					pool.badtxs.Add(tx)
-					pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
-				} else {
-					pool.txLookup.Add(txEvent.txEnv)
-					err = pool.commit(tx)
-				}
+				err = pool.commit(tx)
 			case *types.Sequencer:
-				pool.txLookup.Add(txEvent.txEnv)
 				err = pool.confirm(tx)
 			}
 			if err != nil {
@@ -350,19 +343,27 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	
+	if pool.isBadTx(tx) {
+		log.Debugf("bad tx: %s", tx.String())
+		pool.badtxs.Add(tx)
+		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
+		return nil
+	}
+
 	// move parents to txpending
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {
-			log.WithField("parent", pHash).WithField("tx", tx).Info("parent is not a tip")
-			break
+			log.WithField("parent", pHash).WithField("tx", tx).Debugf("parent is not a tip")
+			continue
 		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
-			log.WithField("parent", pHash).WithField("tx", tx).Info("parent not in tips")
-			break
+			log.WithField("parent", pHash).WithField("tx", tx).
+			Warn("parent status is tip but can not find in tips")
+			continue
 		}
-		// remove sequencer from tips
+		// remove sequencer from pool
 		if parent.GetType() == types.TxBaseTypeSequencer {
 			pool.tips.Remove(pHash)
 			pool.txLookup.Remove(pHash)
@@ -370,9 +371,14 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		}
 		// move normal tx to pending
 		pool.tips.Remove(pHash)
-		pool.poolPending.Add(parent)
+		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
+	if pool.flows.Get(tx.Sender()) == nil {
+		originBalance := pool.dag.GetBalance(tx.Sender())
+		pool.flows.ResetFlow(tx.Sender(), originBalance)
+	}
+	pool.flows.Add(tx)
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
@@ -397,15 +403,16 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 		return bad
 	}
 	// check if the tx itself has no conflicts with local ledger
-	stateFrom, okFrom := pool.poolPending.state[tx.From]
-	if !okFrom {
-		stateFrom = NewPendingState(tx.From, pool.dag.GetBalance(tx.From))
+	stateFrom := pool.flows.GetBalanceState(tx.Sender())
+	if stateFrom == nil {
+		originBalance := pool.dag.GetBalance(tx.Sender())
+		stateFrom = NewBalanceState(originBalance)
 	}
 	// if ( the value that 'from' already spent )
 	// 	+ ( the value that 'from' newly spent )
 	// 	> ( balance of 'from' in db )
-	newNeg := math.NewBigInt(0)
-	if newNeg.Value.Add(stateFrom.neg.Value, tx.Value.Value).Cmp(
+	totalspent := math.NewBigInt(0)
+	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
 		return bad
 	}
@@ -438,7 +445,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 			pool.tips.Remove(elder.GetTxHash())
 		}
 		if status == TxStatusPending {
-			pool.poolPending.Confirm(elder.GetTxHash())
+			pool.pendings.Remove(elder.GetTxHash())
+			pool.flows.Confirm(elder)
 		}
 		pool.txLookup.Remove(elder.GetTxHash())
 	}
@@ -573,64 +581,6 @@ func (pool *TxPool) reset() {
 	// TODO
 }
 
-type pending struct {
-	pool *TxPool
-
-	txs   *TxMap
-	state map[types.Address]*pendingState
-}
-
-func NewPending(pool *TxPool) *pending {
-	return &pending{
-		pool:  pool,
-		txs:   NewTxMap(),
-		state: make(map[types.Address]*pendingState),
-	}
-}
-
-func (p *pending) Get(hash types.Hash) types.Txi {
-	return p.txs.Get(hash)
-}
-
-// Add insert a normal tx into pool's pending and update the pending state.
-func (p *pending) Add(tx types.Txi) error {
-	switch tx := tx.(type) {
-	case *types.Tx:
-		// increase neg state of 'from'
-		stateFrom, okFrom := p.state[tx.From]
-		if !okFrom {
-			balance := p.pool.dag.GetBalance(tx.From)
-			stateFrom = NewPendingState(tx.From, balance)
-		}
-		stateFrom.neg.Value.Add(stateFrom.neg.Value, tx.Value.Value)
-		// increase pos state of 'to'
-		stateTo, okTo := p.state[tx.To]
-		if !okTo {
-			balance := p.pool.dag.GetBalance(tx.To)
-			stateTo = NewPendingState(tx.To, balance)
-		}
-		stateTo.pos.Value.Add(stateTo.pos.Value, tx.Value.Value)
-	case *types.Sequencer:
-		break
-	default:
-		return fmt.Errorf("unknown tx type")
-	}
-	p.txs.Add(tx)
-	return nil
-}
-
-func (p *pending) Confirm(hash types.Hash) {
-	tx := p.txs.Get(hash)
-	switch tx := tx.(type) {
-	case *types.Sequencer:
-		break
-	case *types.Tx:
-		delete(p.state, tx.From)
-		delete(p.state, tx.To)
-	}
-	p.txs.Remove(hash)
-}
-
 type TxMap struct {
 	txs map[types.Hash]types.Txi
 	mu  sync.RWMutex
@@ -705,78 +655,109 @@ func (tm *TxMap) Add(tx types.Txi) {
 	}
 }
 
-// AccountFlow stores the information about an address. It includes the 
-// balance state of the account among the txpool, 
-type AccountFlow struct {
-	balance		*BalanceState
-	txlist		*TxList
+type txLookUp struct {
+	txs 		map[types.Hash]*txEnvelope
+	mu  		sync.RWMutex
 }
-
-// GetTx get a tx from accountflow.
-func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
-	return af.txlist.Get(nonce)
-}
-
-// Add new tx into account flow. This function should 
-// 1. update account's balance state.
-// 2. add tx into nonce sorted txlist.
-func (af *AccountFlow) Add(tx *types.Tx) error {
-	err := af.balance.trySubBalance(tx.Value)
-	if err != nil { 
-		return err 
+func newTxLookUp() *txLookUp {
+	return &txLookUp{
+		txs: make(map[types.Hash]*txEnvelope),
 	}
-	af.txlist.Put(tx)
+}
+
+// Get tx from txLookUp by hash
+func (t *txLookUp) Get(h types.Hash) types.Txi {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.get(h)
+}
+func (t *txLookUp) get(h types.Hash) types.Txi {
+	if txEnv := t.txs[h]; txEnv != nil {
+		return txEnv.tx
+	}
 	return nil
 }
 
-// Remove a tx from account flow, find tx by nonce first, then
-// rolls back the balance and remove tx from txlist.
-func (af *AccountFlow) Remove(nonce uint64) error {
-	tx := af.GetTx(nonce)
-	if tx == nil {
-		return
-	}
-	err := af.balance.tryRemoveTx(tx.(*types.Tx))
-	if err != nil {
-		return err
-	}
+// Add tx into txLookUp
+func (t *txLookUp) Add(txEnv *txEnvelope) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	af.txlist.Remove(nonce)
-	return nil
+	t.add(txEnv)
+}
+func (t *txLookUp) add(txEnv *txEnvelope) {
+	t.txs[txEnv.tx.GetTxHash()] = txEnv
 }
 
+// Remove tx from txLookUp
+func (t *txLookUp) Remove(h types.Hash) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-type BalanceState struct {
-	spent			*math.BigInt
-	originBalance	*math.BigInt
+	t.remove(h)
 }
-func NewBalanceState(balance *math.BigInt) *pendingState {
-	return &balanceState{
-		spent:           math.NewBigInt(0),
-		originBalance: balance,
+func (t *txLookUp) remove(h types.Hash) {
+	delete(t.txs, h)
+}
+
+// Count returns the total number of txs in txLookUp
+func (t *txLookUp) Count() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.count()
+}
+func (t *txLookUp) count() int {
+	return len(t.txs)
+}
+
+// Stats returns the count of tips, bad txs, pending txs in txlookup
+func (t *txLookUp) Stats() (int, int, int) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.stats()
+}
+func (t *txLookUp) stats() (int, int, int) {
+	tips, badtx, pending := 0, 0, 0
+	for _, v := range t.txs {
+		if v.status == TxStatusTip {
+			tips += 1
+		} else if v.status == TxStatusBadTx {
+			badtx += 1
+		} else if v.status == TxStatusPending {
+			pending += 1
+		}
+	}
+	return tips, badtx, pending
+}
+
+// Status returns the status of a tx
+func (t *txLookUp) Status(h types.Hash) TxStatus {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.status(h)
+}
+func (t *txLookUp) status(h types.Hash) TxStatus {
+	if txEnv := t.txs[h]; txEnv != nil {
+		return txEnv.status
+	}
+	return TxStatusNotExist
+}
+
+// SwitchStatus switches the tx status
+func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.switchstatus(h, status)
+}
+func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
+	if txEnv := t.txs[h]; txEnv != nil {
+		txEnv.status = status
 	}
 }
-
-func (bs *BalanceState) trySubBalance(value *math.BigInt) error {
-	totalspent := math.NewBigInt(0)
-	totalspent.Value.Add(bs.spent.Value, value.Value)
-	// check if (already spent + new spent) > confirmed balance
-	if totalspent.Value.Cmp(bs.originBalance.Value) < 0 {
-		return fmt.Errorf("balance not enough")
-	}
-	bs.spent.Value = totalspent
-	return nil
-}
-
-func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {	
-	// check if (already spent < tx's value)
-	if bs.spent.Value.Cmp(tx.Value.Value) < 0 {
-		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), tx.Value.String())
-	}
-	bs.spent.Value.Sub(bs.spent.Value, tx.Value.Value)
-	return nil
-}
-
-
 
 

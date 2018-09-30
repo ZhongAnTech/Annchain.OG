@@ -166,7 +166,7 @@ func TestPoolCommit(t *testing.T) {
 		t.Fatalf("badtx is not added into pool")
 	}
 	if status := pool.GetStatus(badtx.GetTxHash()); status != core.TxStatusBadTx {
-		t.Fatalf("badtx's status is not tip but %s after commit", status.String())
+		t.Fatalf("badtx's status is not badtx but %s after commit", status.String())
 	}
 
 }

@@ -11,4 +11,3 @@ type ArrUint []uint
 type ArrByte []byte
 
 type ArrString []string
-

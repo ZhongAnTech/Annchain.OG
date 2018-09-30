@@ -235,7 +235,7 @@ func (p *MsgPipeRW) Close() error {
 // code and encoded RLP content match the provided values.
 // If content is nil, the payload is discarded and not verified.
 
-func ExpectMsg(r MsgReader, code uint64, content  msgp.Marshaler) error {
+func ExpectMsg(r MsgReader, code uint64, content msgp.Marshaler) error {
 	msg, err := r.ReadMsg()
 	if err != nil {
 		return err
@@ -264,21 +264,21 @@ func ExpectMsg(r MsgReader, code uint64, content  msgp.Marshaler) error {
 	return nil
 }
 func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
-	if content ==nil {
+	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
 	return ExpectMsg(r, code, ArrByte(content))
 }
 
 func ExpectMsgArrUint(r MsgReader, code uint64, content []uint) error {
-	if content ==nil {
+	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
 	return ExpectMsg(r, code, ArrUint(content))
 }
 
 func ExpectMsgArrString(r MsgReader, code uint64, content []string) error {
-	if content ==nil {
+	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
 	return ExpectMsg(r, code, ArrString(content))

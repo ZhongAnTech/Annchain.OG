@@ -52,12 +52,12 @@ type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
 
-	queue       chan *txEvent // queue stores txs that need to validate later
-	tips        *TxMap        // tips stores all the tips
-	badtxs      *TxMap
-	pendings	*TxMap
-	flows		*AccountFlows
-	txLookup    *txLookUp // txLookUp stores all the txs for external query
+	queue    chan *txEvent // queue stores txs that need to validate later
+	tips     *TxMap        // tips stores all the tips
+	badtxs   *TxMap
+	pendings *TxMap
+	flows    *AccountFlows
+	txLookup *txLookUp // txLookUp stores all the txs for external query
 
 	close chan struct{}
 
@@ -102,13 +102,13 @@ type TxPoolConfig struct {
 	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
 
-func DefaultTxPoolCOnfig ()TxPoolConfig {
+func DefaultTxPoolCOnfig() TxPoolConfig {
 	config := TxPoolConfig{
-		QueueSize:100,
-		TipsSize:1000,
-		ResetDuration:10,
-		TxVerifyTime:2,
-		TxValidTime:100,
+		QueueSize:     100,
+		TipsSize:      1000,
+		ResetDuration: 10,
+		TxVerifyTime:  2,
+		TxValidTime:   100,
 	}
 	return config
 }
@@ -354,7 +354,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	
+
 	if pool.isBadTx(tx) {
 		log.Debugf("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
@@ -372,7 +372,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
 			log.WithField("parent", pHash).WithField("tx", tx).
-			Warn("parent status is tip but can not find in tips")
+				Warn("parent status is tip but can not find in tips")
 			continue
 		}
 		// remove sequencer from pool
@@ -668,9 +668,10 @@ func (tm *TxMap) Add(tx types.Txi) {
 }
 
 type txLookUp struct {
-	txs 		map[types.Hash]*txEnvelope
-	mu  		sync.RWMutex
+	txs map[types.Hash]*txEnvelope
+	mu  sync.RWMutex
 }
+
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
 		txs: make(map[types.Hash]*txEnvelope),
@@ -771,5 +772,3 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 		txEnv.status = status
 	}
 }
-
-

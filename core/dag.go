@@ -39,7 +39,7 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	return dag
 }
 
-func DefaultDagConfig ()DagConfig{
+func DefaultDagConfig() DagConfig {
 	return DagConfig{}
 }
 

@@ -24,6 +24,14 @@ type SyncBufferConfig struct {
 	TxBuffer ITxBuffer
 }
 
+func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer) SyncBufferConfig {
+	config := SyncBufferConfig{
+		TxPool:   txPool,
+		TxBuffer: txBuffer,
+	}
+	return config
+}
+
 func (s *SyncBuffer) Start() {
 	log.Info("Syncbuffer started")
 }

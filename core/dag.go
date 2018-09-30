@@ -39,6 +39,10 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	return dag
 }
 
+func DefaultDagConfig ()DagConfig{
+	return DagConfig{}
+}
+
 type ConfirmBatch struct {
 	Seq      *types.Sequencer
 	Batch    map[types.Address]*BatchDetail

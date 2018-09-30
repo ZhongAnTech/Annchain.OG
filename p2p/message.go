@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/tinylib/msgp/msgp"
 	"io"
 	"io/ioutil"
 	"sync/atomic"
@@ -234,7 +235,7 @@ func (p *MsgPipeRW) Close() error {
 // code and encoded RLP content match the provided values.
 // If content is nil, the payload is discarded and not verified.
 
-func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
+func ExpectMsg(r MsgReader, code uint64, content  msgp.Marshaler) error {
 	msg, err := r.ReadMsg()
 	if err != nil {
 		return err
@@ -245,8 +246,7 @@ func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
 	if content == nil {
 		return msg.Discard()
 	}
-	a := ArrByte(content)
-	contentEnc, err := a.MarshalMsg(nil)
+	contentEnc, err := content.MarshalMsg(nil)
 	//contentEnc, err := rlp.EncodeToBytes(content)
 	if err != nil {
 		panic("content encode error: " + err.Error())
@@ -262,66 +262,26 @@ func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
 		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
 	}
 	return nil
+}
+func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
+	if content ==nil {
+		return ExpectMsg(r, code, nil)
+	}
+	return ExpectMsg(r, code, ArrByte(content))
 }
 
 func ExpectMsgArrUint(r MsgReader, code uint64, content []uint) error {
-	msg, err := r.ReadMsg()
-	if err != nil {
-		return err
+	if content ==nil {
+		return ExpectMsg(r, code, nil)
 	}
-	if msg.Code != code {
-		return fmt.Errorf("message code mismatch: got %d, expected %d", msg.Code, code)
-	}
-	if content == nil {
-		return msg.Discard()
-	}
-	a := ArrUint(content)
-	contentEnc, err := a.MarshalMsg(nil)
-	//contentEnc, err := rlp.EncodeToBytes(content)
-	if err != nil {
-		panic("content encode error: " + err.Error())
-	}
-	if int(msg.Size) != len(contentEnc) {
-		return fmt.Errorf("message size mismatch: got %d, want %d", msg.Size, len(contentEnc))
-	}
-	actualContent, err := ioutil.ReadAll(msg.Payload)
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(actualContent, contentEnc) {
-		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
-	}
-	return nil
+	return ExpectMsg(r, code, ArrUint(content))
 }
 
 func ExpectMsgArrString(r MsgReader, code uint64, content []string) error {
-	msg, err := r.ReadMsg()
-	if err != nil {
-		return err
+	if content ==nil {
+		return ExpectMsg(r, code, nil)
 	}
-	if msg.Code != code {
-		return fmt.Errorf("message code mismatch: got %d, expected %d", msg.Code, code)
-	}
-	if content == nil {
-		return msg.Discard()
-	}
-	a := ArrString(content)
-	contentEnc, err := a.MarshalMsg(nil)
-	//contentEnc, err := rlp.EncodeToBytes(content)
-	if err != nil {
-		panic("content encode error: " + err.Error())
-	}
-	if int(msg.Size) != len(contentEnc) {
-		return fmt.Errorf("message size mismatch: got %d, want %d", msg.Size, len(contentEnc))
-	}
-	actualContent, err := ioutil.ReadAll(msg.Payload)
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(actualContent, contentEnc) {
-		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
-	}
-	return nil
+	return ExpectMsg(r, code, ArrString(content))
 }
 
 /*

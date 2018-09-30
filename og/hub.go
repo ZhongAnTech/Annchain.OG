@@ -94,8 +94,16 @@ type HubConfig struct {
 	StartAcceptTxs                bool //start accept txs even if no peers
 }
 
-func (h *Hub) Set(dag *core.Dag) {
-	h.downloader.Cancel()
+func DefaultHubConfig() HubConfig {
+	config := HubConfig{
+		OutgoingBufferSize:            10,
+		IncomingBufferSize:            10,
+		MessageCacheMaxSize:           60,
+		MessageCacheExpirationSeconds: 3000,
+		MaxPeers:                      50,
+		NetworkId:                     1,
+	}
+	return config
 }
 
 func (h *Hub) Init(config *HubConfig, dag *core.Dag) {

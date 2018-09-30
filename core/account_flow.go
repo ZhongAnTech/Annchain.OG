@@ -72,11 +72,8 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 	if !(flow.Len() > 0) {
 		return 0, fmt.Errorf("flow not long enough")
 	}
-	sort.Sort(flow.txlist.keys)
-	// WARN: keys stored in txlookup should not be changed!
-	// TODO: need unit test here.
-	keys := *flow.txlist.keys
-	return keys.Pop().(uint64), nil
+	keys := flow.txlist.keys
+	return keys.Tail(), nil
 }
 
 func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt) {
@@ -205,6 +202,10 @@ func (n *nonceHeap) Pop() interface{} {
 	last := old[length-1]
 	*n = old[0 : length-1]
 	return last
+}
+func (n nonceHeap) Tail() uint64 {
+	sort.Sort(n)
+	return n[n.Len()-1]
 }
 
 type TxList struct {

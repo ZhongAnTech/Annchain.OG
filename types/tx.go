@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"github.com/annchain/OG/common/math"
 	"math/rand"
+	"fmt"
 )
 
 //go:generate msgp
@@ -20,7 +21,7 @@ type Tx struct {
 }
 
 func (t *Tx) String() string {
-	return t.TxBase.String()
+	return fmt.Sprintf("%s-[%.10s]-%d", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleTx() *Tx {

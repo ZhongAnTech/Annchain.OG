@@ -40,7 +40,7 @@ func (c *ClientAutoSequencer) GenerateRequest() {
 	if err != nil {
 		nonce, err = c.Dag.GetLatestNonce(addr)
 		if err != nil {
-			logrus.WithField("addr", addr).Warn("New address with no previous nonce found")
+			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
 			nonce = 0
 		} else {
 			nonce ++

@@ -64,6 +64,7 @@ type Hub struct {
 	networkID  uint64
 	TxBuffer   ITxBuffer
 	SyncBuffer ISyncBuffer
+	finishInit bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -90,10 +91,19 @@ type HubConfig struct {
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
 	NetworkId                     uint64
+	StartAcceptTxs                bool //start accept txs even if no peers
 }
 
-func (h *Hub) Set(dag *core.Dag) {
-	h.downloader.Cancel()
+func DefaultHubConfig() HubConfig {
+	config := HubConfig{
+		OutgoingBufferSize:            10,
+		IncomingBufferSize:            10,
+		MessageCacheMaxSize:           60,
+		MessageCacheExpirationSeconds: 3000,
+		MaxPeers:                      50,
+		NetworkId:                     1,
+	}
+	return config
 }
 
 func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
@@ -112,9 +122,12 @@ func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
+	if config.StartAcceptTxs {
+		atomic.StoreUint32(&h.acceptTxs, 1)
+	}
 }
 
-func NewHub(config *HubConfig,  mode downloader.SyncMode, dag *core.Dag) *Hub {
+func NewHub(config *HubConfig, mode downloader.SyncMode, dag *core.Dag) *Hub {
 	h := &Hub{}
 	h.Init(config, dag)
 	// Figure out whether to allow fast sync or not
@@ -138,7 +151,7 @@ func NewHub(config *HubConfig,  mode downloader.SyncMode, dag *core.Dag) *Hub {
 			Version: version,
 			Length:  ProtocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				peer := newPeer(int(version), p, rw)
+				peer := h.newPeer(int(version), p, rw)
 				select {
 				case h.newPeerCh <- peer:
 					h.wg.Add(1)
@@ -186,6 +199,10 @@ func NewHub(config *HubConfig,  mode downloader.SyncMode, dag *core.Dag) *Hub {
 	return h
 }
 
+func (h *Hub) newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
+	return newPeer(version, p, rw)
+}
+
 func (h *Hub) AddTxs(txs types.Txs, seq *types.Sequencer) error {
 	var txis []types.Txi
 	for _, tx := range txs {
@@ -228,14 +245,12 @@ func (h *Hub) handle(p *peer) error {
 	var (
 		genesis = h.Dag.Genesis()
 		lastSeq = h.Dag.LatestSequencer()
-		head    = types.Hash{}
 	)
 	if lastSeq == nil {
 		panic("Last sequencer is nil")
-	} else {
-		head = lastSeq.Hash
 	}
-	if err := p.Handshake(h.networkID, head, genesis.Hash); err != nil {
+
+	if err := p.Handshake(h.networkID, lastSeq.Hash, lastSeq.Id, genesis.Hash); err != nil {
 		log.WithError(err).WithField("peer ", p.id).Debug("OG handshake failed")
 		return err
 	}
@@ -245,6 +260,10 @@ func (h *Hub) handle(p *peer) error {
 		return err
 	}
 	log.Debug("register peer localy")
+	if !h.finishInit {
+		h.finishInit = true
+		h.syncInit()
+	}
 	defer h.removePeer(p.id)
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
@@ -598,8 +617,8 @@ func (h *Hub) loopReceive() {
 	}
 }
 
-func ( h *Hub)AcceptTx () bool {
-	if atomic.LoadUint32(&h.acceptTxs) ==1{
+func (h *Hub) AcceptTxs() bool {
+	if atomic.LoadUint32(&h.acceptTxs) == 1 {
 		return true
 	}
 	return false

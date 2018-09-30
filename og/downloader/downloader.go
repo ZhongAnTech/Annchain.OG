@@ -39,7 +39,7 @@ var (
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
 	fsMinFullBlocks        = 64
-	MaxForkAncestry =  3 *  uint64( 3000) // Number of blocks to retrieve fully even in fast sync
+	MaxForkAncestry        = 3 * uint64(3000) // Number of blocks to retrieve fully even in fast sync
 )
 
 var (
@@ -76,7 +76,7 @@ type Downloader struct {
 	rttEstimate   uint64 // Round trip time to target for download requests
 	rttConfidence uint64 // Confidence in the estimated RTT (unit: millionths to allow atomic ops)
 
-	dag  IDag
+	dag IDag
 
 	insertTxs insertTxsFn
 	// Callbacks
@@ -114,10 +114,9 @@ type Downloader struct {
 	chainInsertHook func([]*fetchResult)           // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 }
 
-
 type IDag interface {
-	LatestSequencer()*types.Sequencer
-	GetSequencer( hash types.Hash, id uint64) *types.Sequencer
+	LatestSequencer() *types.Sequencer
+	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -449,7 +448,6 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 		}
 	}
 }
-
 
 // findAncestor tries to locate the common ancestor link of the local chain and
 // a remote peers blockchain. In the general case when our node was in sync and

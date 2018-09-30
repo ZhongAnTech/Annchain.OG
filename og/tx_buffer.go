@@ -79,6 +79,19 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	}
 }
 
+func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifier IVerifier) TxBufferConfig {
+	config := TxBufferConfig{
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      dag,
+		TxPool:   TxPool,
+		DependencyCacheExpirationSeconds: 10 * 60,
+		DependencyCacheMaxSize:           5000,
+		NewTxQueueSize:                   10000,
+	}
+	return config
+}
+
 func (b *TxBuffer) Start() {
 	go b.loop()
 }

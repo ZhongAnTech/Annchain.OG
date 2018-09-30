@@ -1,8 +1,8 @@
 package core
 
 import (
-	"sort"
 	"fmt"
+	"sort"
 	// "fmt"
 	"sync"
 
@@ -37,6 +37,10 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 		close:    make(chan struct{}),
 	}
 	return dag
+}
+
+func DefaultDagConfig ()DagConfig{
+	return DagConfig{}
 }
 
 type ConfirmBatch struct {
@@ -306,7 +310,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			return fmt.Errorf("batch detail does't have txlist")
 		}
 		sort.Sort(txlist.keys)
-		for _, nonce := range *txlist.keys { 
+		for _, nonce := range *txlist.keys {
 			txi := txlist.get(nonce)
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
@@ -434,7 +438,6 @@ func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
 func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
 	return dag.accessor.HasAddrLatestNonce(addr)
 }
-
 
 // func (dag *Dag) loop() {
 

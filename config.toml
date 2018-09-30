@@ -11,6 +11,7 @@ port = 8000
 
 [p2p]
 enabled = true
+single_node = false
 port = 8001
 max_peers = 50
 network_id = 1
@@ -53,6 +54,7 @@ node_id = 1
 [dag]
 
 consensus = "dpos"
+
 
 # samples below
 

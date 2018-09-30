@@ -1,9 +1,9 @@
 package core
 
 import (
-	"sort"
 	"container/list"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -101,6 +101,18 @@ type TxPoolConfig struct {
 	TxVerifyTime  int `mapstructure:"tx_verify_time"`
 	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
+
+func DefaultTxPoolCOnfig ()TxPoolConfig {
+	config := TxPoolConfig{
+		QueueSize:100,
+		TipsSize:1000,
+		ResetDuration:10,
+		TxVerifyTime:2,
+		TxValidTime:100,
+	}
+	return config
+}
+
 type txEvent struct {
 	txEnv        *txEnvelope
 	callbackChan chan error
@@ -143,7 +155,7 @@ func (pool *TxPool) Name() string {
 	return "TxPool"
 }
 
-// PoolStatus returns the current number of 
+// PoolStatus returns the current number of
 // tips, bad txs and pending txs stored in pool.
 func (pool *TxPool) PoolStatus() (int, int, int) {
 	return pool.txLookup.Stats()
@@ -549,7 +561,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 }
 
 func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
-	has, hErr := pool.dag.HasLatestNonce(addr) 
+	has, hErr := pool.dag.HasLatestNonce(addr)
 	if hErr != nil {
 		return fmt.Errorf("check nonce in db err: %v", hErr)
 	}
@@ -558,7 +570,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 		if nErr != nil {
 			return fmt.Errorf("get latest nonce err: %v", nErr)
 		}
-		if nonces[0] != latestNonce + 1 {
+		if nonces[0] != latestNonce+1 {
 			return fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
 		}
 	} else {
@@ -568,7 +580,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
 	}
 
 	for i := 1; i < nonces.Len(); i++ {
-		if nonces[i] != nonces[i-1] + 1 {
+		if nonces[i] != nonces[i-1]+1 {
 			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
 		}
 	}

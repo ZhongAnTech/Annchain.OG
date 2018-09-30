@@ -62,7 +62,7 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
 		}
-		if c.TxBuffer.Hub.AcceptTx() {
+		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)
 		}
 	}

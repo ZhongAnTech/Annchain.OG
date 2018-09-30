@@ -48,6 +48,7 @@ func NewNode() *Node {
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}
+	singleNode := viper.GetBool("p2p.single_node")
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
@@ -55,6 +56,7 @@ func NewNode() *Node {
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
+		StartAcceptTxs:singleNode,    //if single node just accept txs ,no sync
 	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
@@ -172,7 +174,7 @@ func NewNode() *Node {
 		n.Components = append(n.Components, autoTx)
 	}
 
-	switch  viper.GetString("consensus") {
+	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo
 		consensus := dpos.NewDpos(org.Dag, &types.Address{})

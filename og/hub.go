@@ -151,7 +151,7 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag *core.Dag) *Hub {
 			Version: version,
 			Length:  ProtocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				peer := newPeer(int(version), p, rw)
+				peer := h.newPeer(int(version), p, rw)
 				select {
 				case h.newPeerCh <- peer:
 					h.wg.Add(1)
@@ -197,6 +197,10 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag *core.Dag) *Hub {
 	h.fetcher = fetcher.New(h.GetSequencerByHash, heighter, inserter, h.removePeer)
 
 	return h
+}
+
+func (h *Hub) newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
+	return newPeer(version, p, rw)
 }
 
 func (h *Hub) AddTxs(txs types.Txs, seq *types.Sequencer) error {

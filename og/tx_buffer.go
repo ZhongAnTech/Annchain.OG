@@ -2,6 +2,7 @@ package og
 
 import (
 	"errors"
+	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
@@ -134,6 +135,15 @@ func (b *TxBuffer) loop() {
 // AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
+}
+
+func ( b*TxBuffer)AddLocal(tx types.Txi) error {
+	if b.Hub.AcceptTxs() {
+		b.AddTx(tx)
+	}else {
+		return fmt.Errorf("can't accept tx until sync done")
+	}
+	return nil
 }
 
 // niceTx is the logic triggered when tx's ancestors are all fetched to local

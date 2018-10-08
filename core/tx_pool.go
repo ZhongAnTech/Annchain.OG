@@ -376,7 +376,6 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
 	}
-
 	// move parents to pending
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
@@ -396,11 +395,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 			pool.txLookup.Remove(pHash)
 			continue
 		}
-		// move normal tx to pending
+		// move parent to pending
 		pool.tips.Remove(pHash)
 		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
+	// add tx to pool
 	if pool.flows.Get(tx.Sender()) == nil {
 		originBalance := pool.dag.GetBalance(tx.Sender())
 		pool.flows.ResetFlow(tx.Sender(), originBalance)

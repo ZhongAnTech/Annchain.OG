@@ -199,7 +199,7 @@ func (r *RpcControler) NewTransaction(c *gin.Context) {
 		})
 		return
 	}
-	r.TxBuffer.AddTx(&tx)
+	r.TxBuffer.AddLocal(&tx)
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",

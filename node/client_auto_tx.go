@@ -40,7 +40,7 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	c.mu.RLock()
 	addr := c.SampleAccounts[from].Address
 	nonce, err := c.TxPool.GetLatestNonce(addr)
-	logrus.WithError(err).WithField("addr", addr.String()).Warn("txpool nonce not found")
+	// logrus.WithError(err).WithField("addr", addr.String()).Warn("txpool nonce not found")
 	if err != nil {
 		nonce, err = c.Dag.GetLatestNonce(addr)
 		if err != nil {

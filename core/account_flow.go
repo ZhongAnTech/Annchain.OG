@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"fmt"
 	"sort"
-	"sync"
+	// "sync"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
@@ -13,7 +13,7 @@ import (
 
 type AccountFlows struct {
 	afs map[types.Address]*AccountFlow
-	mu  sync.RWMutex
+	// mu  sync.RWMutex
 }
 
 func NewAccountFlows() *AccountFlows {
@@ -23,8 +23,8 @@ func NewAccountFlows() *AccountFlows {
 }
 
 func (a *AccountFlows) Add(tx *types.Tx) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	// a.mu.Lock()
+	// defer a.mu.Unlock()
 
 	if a.afs[tx.Sender()] == nil {
 		return
@@ -33,15 +33,15 @@ func (a *AccountFlows) Add(tx *types.Tx) {
 }
 
 func (a *AccountFlows) Get(addr types.Address) *AccountFlow {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
+	// a.mu.RLock()
+	// defer a.mu.RUnlock()
 
 	return a.afs[addr]
 }
 
 func (a *AccountFlows) GetBalanceState(addr types.Address) *BalanceState {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
+	// a.mu.RLock()
+	// defer a.mu.RUnlock()
 
 	af := a.Get(addr)
 	if af == nil {
@@ -51,8 +51,8 @@ func (a *AccountFlows) GetBalanceState(addr types.Address) *BalanceState {
 }
 
 func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
+	// a.mu.RLock()
+	// defer a.mu.RUnlock()
 
 	flow := a.afs[addr]
 	if flow == nil {
@@ -62,8 +62,8 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 }
 
 func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
+	// a.mu.RLock()
+	// defer a.mu.RUnlock()
 
 	flow := a.afs[addr]
 	if flow == nil {
@@ -76,15 +76,15 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 }
 
 func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	// a.mu.Lock()
+	// defer a.mu.Unlock()
 
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
 func (a *AccountFlows) Confirm(tx types.Txi) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	// a.mu.Lock()
+	// defer a.mu.Unlock()
 
 	if tx.GetType() != types.TxBaseTypeNormal {
 		log.Warnf("tx type not normal tx when confirm")
@@ -186,8 +186,8 @@ func (bs *BalanceState) OriginBalance() *math.BigInt {
 	return bs.originBalance
 }
 
-// TrySubBalance checks if origin balance is enough for total spent of 
-// txs in pool. It trys to add new spent "value" into total spent and 
+// TrySubBalance checks if origin balance is enough for total spent of
+// txs in pool. It trys to add new spent "value" into total spent and
 // compare total spent with origin balance.
 func (bs *BalanceState) TrySubBalance(value *math.BigInt) error {
 	totalspent := math.NewBigInt(0)
@@ -218,10 +218,12 @@ func (n nonceHeap) Tail() uint64 {
 	sort.Sort(n)
 	return n[n.Len()-1]
 }
+
 // for sort
 func (n nonceHeap) Len() int           { return len(n) }
 func (n nonceHeap) Less(i, j int) bool { return n[i] < n[j] }
 func (n nonceHeap) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
+
 // for heap
 func (n *nonceHeap) Push(x interface{}) {
 	*n = append(*n, x.(uint64))
@@ -279,7 +281,7 @@ func (t *TxList) remove(nonce uint64) bool {
 	for i := 0; i < t.keys.Len(); i++ {
 		if (*t.keys)[i] == nonce {
 			heap.Remove(t.keys, i)
-			break
+			// break
 		}
 	}
 	delete(t.txflow, nonce)

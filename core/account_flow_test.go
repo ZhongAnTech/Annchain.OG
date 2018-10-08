@@ -3,11 +3,11 @@ package core_test
 import (
 	"testing"
 
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
 )
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
@@ -26,7 +26,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 func TestTxList(t *testing.T) {
 	t.Parallel()
 
-	testNonces := []uint64{ 208, 505, 910, 157, 771, 718, 98, 897, 538, 38 }
+	testNonces := []uint64{208, 505, 910, 157, 771, 718, 98, 897, 538, 38}
 
 	tl := core.NewTxList()
 	for _, nonce := range testNonces {
@@ -89,7 +89,7 @@ func TestBalanceState(t *testing.T) {
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value) {
-		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue - tx0value, spent)
+		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value, spent)
 	}
 	err = bs.TryRemoveTx(tx1)
 	if err != nil {
@@ -97,7 +97,7 @@ func TestBalanceState(t *testing.T) {
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value - tx1value) {
-		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue - tx0value - tx1value, spent)
+		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value-tx1value, spent)
 	}
 	err = bs.TryRemoveTx(tx2)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestBalanceState(t *testing.T) {
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value - tx1value - tx2value) {
-		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue - tx0value - tx1value - tx2value, spent)
+		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value-tx1value-tx2value, spent)
 	}
 
 }
@@ -119,5 +119,3 @@ func TestBalanceState(t *testing.T) {
 // 	}
 
 // }
-
-

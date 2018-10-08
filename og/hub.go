@@ -123,6 +123,7 @@ func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 	if config.StartAcceptTxs {
+		log.Debug("init accept txs")
 		atomic.StoreUint32(&h.acceptTxs, 1)
 	}
 }
@@ -132,7 +133,7 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag *core.Dag) *Hub {
 	h.Init(config, dag)
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && h.Dag.LatestSequencer().Id > 0 {
-		log.Warn("Blockchain not empty, fast sync disabled")
+		log.Warn("dag not empty, fast sync disabled")
 		mode = downloader.FullSync
 	}
 	if mode == downloader.FastSync {

@@ -1,13 +1,13 @@
 package node
 
 import (
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
-	"github.com/annchain/OG/account"
 )
 
 type ClientAutoSequencer struct {
@@ -43,10 +43,10 @@ func (c *ClientAutoSequencer) GenerateRequest() {
 			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
 			nonce = 0
 		} else {
-			nonce ++
+			nonce++
 		}
 	} else {
-		nonce ++
+		nonce++
 	}
 
 	seq := c.TxCreator.NewSignedSequencer(addr, c.currentID, []types.Hash{}, nonce, c.PrivateKey)

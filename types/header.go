@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type SequencerHeader struct {
 	hash Hash
 	id   uint64
@@ -15,6 +17,13 @@ func (s *SequencerHeader) Hash() Hash {
 
 func (s *SequencerHeader) Id() uint64 {
 	return s.id
+}
+
+func (s *SequencerHeader)String () string {
+	if s ==nil {
+		return fmt.Sprintf("nil")
+	}
+	return fmt.Sprintf("%d-[%.10s]", s.Id(), s.Hash().Hex())
 }
 
 func NewSequencerHead(hash Hash, id uint64) *SequencerHeader {

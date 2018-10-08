@@ -1,13 +1,13 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
-	"fmt"
 )
 
 type dummyDag struct {
@@ -107,11 +107,11 @@ func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
 
 func setup() *TxBuffer {
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifier:                         new(dummyVerifier),
-		DependencyCacheMaxSize:           20,
-		TxPool:                           new(dummyTxPool),
-		Dag:                              new(dummyDag),
-		Syncer:                           new(dummySyncer),
+		Verifier:               new(dummyVerifier),
+		DependencyCacheMaxSize: 20,
+		TxPool:                 new(dummyTxPool),
+		Dag:                    new(dummyDag),
+		Syncer:                 new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
 		KnownCacheMaxSize:                10000,

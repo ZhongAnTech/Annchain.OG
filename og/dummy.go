@@ -1,10 +1,10 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"math/rand"
-	"fmt"
 )
 
 type dummyTxPoolRandomTx struct {

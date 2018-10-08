@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"math/rand"
+	"fmt"
 )
 
 type dummyTxPoolRandomTx struct {
@@ -76,6 +77,14 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 
 type dummyTxPoolParents struct {
 	poolMap map[types.Hash]types.Txi
+}
+
+func (p *dummyTxPoolParents) GetLatestNonce(addr types.Address) (uint64, error) {
+	return 0, fmt.Errorf("not supported")
+}
+
+func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi) {
+	return
 }
 
 func (p *dummyTxPoolParents) Init() {

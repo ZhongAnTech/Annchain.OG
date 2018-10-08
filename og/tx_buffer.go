@@ -13,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -24,30 +24,35 @@ type ISyncer interface {
 type ITxPool interface {
 	Get(hash types.Hash) types.Txi
 	AddRemoteTx(tx types.Txi) error
+	RegisterOnNewTxReceived(c chan types.Txi)
+	GetLatestNonce(addr types.Address) (uint64, error)
 }
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi
+	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
+	GetSequencerById(id uint64) *types.Sequencer
 }
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
 	VerifySignature(t types.Txi) bool
-	VerifySourceAddress(t types.Txi) bool
-	VerifyGraphStructure(t types.Txi) bool
+	VerifyGraphOrder(t types.Txi) bool
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
-	dag             IDag
-	verifier        IVerifier
-	syncer          ISyncer
-	txPool          ITxPool
-	dependencyCache gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
-	affmu           sync.RWMutex
-	newTxChan       chan types.Txi
-	quit            chan bool
-	Hub             *Hub
+	dag               IDag
+	verifier          IVerifier
+	syncer            ISyncer
+	txPool            ITxPool
+	dependencyCache   gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
+	affmu             sync.RWMutex
+	newTxChan         chan types.Txi
+	quit              chan bool
+	Hub               *Hub
+	knownTxCache      gcache.Cache
+	txAddedToPoolChan chan types.Txi
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]int {
@@ -64,6 +69,8 @@ type TxBufferConfig struct {
 	DependencyCacheMaxSize           int
 	DependencyCacheExpirationSeconds int
 	NewTxQueueSize                   int
+	KnownCacheMaxSize                int
+	KnownCacheExpirationSeconds      int
 }
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
@@ -74,8 +81,11 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		txPool:   config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
-		newTxChan: make(chan types.Txi, config.NewTxQueueSize),
-		quit:      make(chan bool),
+		newTxChan:         make(chan types.Txi, config.NewTxQueueSize),
+		txAddedToPoolChan: make(chan types.Txi, config.NewTxQueueSize),
+		quit:              make(chan bool),
+		knownTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
+			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 	}
 }
 
@@ -93,6 +103,7 @@ func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifier IV
 }
 
 func (b *TxBuffer) Start() {
+	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan)
 	go b.loop()
 }
 
@@ -113,6 +124,9 @@ func (b *TxBuffer) loop() {
 			return
 		case v := <-b.newTxChan:
 			go b.handleTx(v)
+		case v := <-b.txAddedToPoolChan:
+			// tx already received by pool. remove from local cache
+			b.knownTxCache.Remove(v.GetTxHash())
 		}
 	}
 }
@@ -126,11 +140,11 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
-	logrus.WithField("tx", tx).Info("nice tx")
-	if !b.verifier.VerifyGraphStructure(tx) {
+	if !b.verifier.VerifyGraphOrder(tx) {
 		logrus.WithField("tx", tx).Info("bad graph tx")
 		return
 	}
+	logrus.WithField("tx", tx).Info("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
 }
@@ -170,15 +184,11 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 	if err == nil {
 		return a.(map[types.Hash]types.Txi)[hash]
 	}
-	return nil
-}
-
-func (b *TxBuffer) InBuffer(tx types.Txi) bool {
-	_, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+	a, err = b.knownTxCache.GetIFPresent(hash)
 	if err == nil {
-		return true
+		return a.(types.Txi)
 	}
-	return false
+	return nil
 }
 
 //sendMessage  brodcase txi message
@@ -226,11 +236,17 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	b.affmu.Unlock()
 }
 
+func (b *TxBuffer) addToTxPool(tx types.Txi) {
+	// make it avaiable in local cache to prevent temporarily "disappear" of the tx
+	b.knownTxCache.Set(tx.GetTxHash(), tx)
+	b.txPool.AddRemoteTx(tx)
+}
+
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	b.txPool.AddRemoteTx(tx)
+	b.addToTxPool(tx)
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
@@ -263,7 +279,6 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 	if !b.verifier.VerifySignature(tx) {
 		return errors.New("signature is not valid")
 	}
-	// TODO: Nonce
 	return nil
 }
 

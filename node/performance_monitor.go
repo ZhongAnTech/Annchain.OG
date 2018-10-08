@@ -27,7 +27,7 @@ func (p *PerformanceMonitor) Start() {
 			for _, ch := range p.reporters {
 				fields[ch.Name()] = ch.GetBenchmarks()
 			}
-			logrus.WithFields(fields).Warn("Performance")
+			logrus.WithFields(fields).Info("Performance")
 			time.Sleep(time.Second * 5)
 		}
 	}()

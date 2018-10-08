@@ -40,18 +40,18 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	c.mu.RLock()
 	addr := c.SampleAccounts[from].Address
 	nonce, err := c.TxPool.GetLatestNonce(addr)
-	logrus.WithError(err).WithField("addr", addr.String()).Warn("txpool nonce not found")
 	if err != nil {
+		logrus.WithError(err).WithField("addr", addr.String()).Debug("txpool nonce not found")
 		nonce, err = c.Dag.GetLatestNonce(addr)
 		if err != nil {
 			logrus.WithError(err).WithField("addr", addr.String()).Warn("dag nonce not found")
 			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
 			nonce = 0
 		} else {
-			nonce ++
+			nonce++
 		}
 	} else {
-		nonce ++
+		nonce++
 	}
 
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
@@ -81,6 +81,8 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		}
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)
+		} else {
+			//logrus.Debug("can't generate tx when syncing")
 		}
 	}
 }

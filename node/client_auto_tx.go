@@ -48,10 +48,10 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
 			nonce = 0
 		} else {
-			nonce ++
+			nonce++
 		}
 	} else {
-		nonce ++
+		nonce++
 	}
 
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
@@ -81,6 +81,8 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		}
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)
+		} else {
+			//logrus.Debug("can't generate tx when syncing")
 		}
 	}
 }

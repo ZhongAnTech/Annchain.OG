@@ -116,11 +116,11 @@ func (h *Hub) txsyncLoop() {
 
 func (h *Hub) syncInit() {
 	bp := h.peers.BestPeer()
-	if bp == nil {
-		atomic.StoreUint32(&h.acceptTxs, 1)
-	} else {
-		_, seqId := bp.Head()
-		if seqId <= h.Dag.LatestSequencer().Id {
+	if bp != nil {
+		bpHash, bpId := bp.Head()
+		ourId := h.Dag.LatestSequencer().Id
+		if bpId <= ourId {
+			log.WithField("best peer id  ", bpId).WithField("best peer hash", bpHash).WithField("our id", ourId).Debug("can  accept txs")
 			atomic.StoreUint32(&h.acceptTxs, 1)
 		}
 	}

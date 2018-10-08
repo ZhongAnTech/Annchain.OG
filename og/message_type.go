@@ -2,6 +2,7 @@ package og
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"github.com/annchain/OG/types"
 )
 
@@ -126,4 +127,9 @@ type StatusData struct {
 	CurrentBlock    types.Hash
 	GenesisBlock    types.Hash
 	CurrentId       uint64
+}
+
+func (s *StatusData) String() string {
+	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %s",
+		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
 }

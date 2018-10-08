@@ -201,7 +201,7 @@ func generateRandomIndices(count int, upper int) []int {
 	return arr
 }
 
-func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi){
+func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi) {
 	pool.OnNewTxReceived = append(pool.OnNewTxReceived, c)
 }
 

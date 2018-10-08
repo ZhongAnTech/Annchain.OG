@@ -131,7 +131,7 @@ func (p *peer) SetHead(hash types.Hash, seqId uint64) {
 func (p *peer) MarkMessage(hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
-		p.knownMsg.Clear() // TODO: Fix it
+		p.knownMsg.Pop()
 	}
 	p.knownMsg.Add(hash)
 }
@@ -224,6 +224,7 @@ func (p *peer) RequestReceipts(hashes types.Hashs) error {
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the hash of an origin block.
 func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
+	log.WithField("hash ",seqHash).WithField("id ",seqId).Debug("Fetching bodies ( txs) by hash")
 	hash := seqHash
 	msg := types.MessageTxsRequest{
 		SeqHash: &hash,
@@ -234,6 +235,7 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 }
 
 func (p *peer) RequestTxs(hashs []types.Hash) error {
+	log.WithField("count ",len(hashs)).Debug("Fetching bodies ( txs)")
 	msg := types.MessageTxsRequest{
 		Hashes: hashs,
 	}
@@ -259,7 +261,7 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
 func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
-	log.WithField("count", amount).WithField("origin", origin).Debug("Fetching batch of state data")
+	log.WithField("count", amount).WithField("origin", origin).Debug("Fetching batch of headers by num")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Number: origin}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {
@@ -274,7 +276,7 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 }
 
 func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
-	log.WithField("count", amount).WithField("hash", hash).Debug("Fetching batch of state data")
+	log.WithField("count", amount).WithField("hash", hash).Debug("Fetching batch of headers by hash")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {

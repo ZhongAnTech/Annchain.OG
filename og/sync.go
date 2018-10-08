@@ -147,11 +147,15 @@ func (h *Hub) syncer() {
 			if h.peers.Len() < minDesiredPeerCount {
 				break
 			}
-			go h.synchronise(h.peers.BestPeer())
+			if h.enableSync {
+				go h.synchronise(h.peers.BestPeer())
+			}
 
 		case <-forceSync.C:
-			// Force a sync even if not enough peers are present
-			go h.synchronise(h.peers.BestPeer())
+			if h.enableSync {
+				// Force a sync even if not enough peers are present
+				go h.synchronise(h.peers.BestPeer())
+			}
 
 		case <-h.noMorePeers:
 			log.Info("got quit message ,quit hub syncer")

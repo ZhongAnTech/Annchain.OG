@@ -49,6 +49,7 @@ func NewNode() *Node {
 		networkId = defaultNetworkId
 	}
 	singleNode := viper.GetBool("p2p.single_node")
+	enableSync := viper.GetBool("p2p.enable_sync")
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
@@ -57,6 +58,7 @@ func NewNode() *Node {
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
 		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
+		EnableSync:enableSync,
 	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{

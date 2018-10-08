@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "warn"
+level = "info"
 
 [rpc]
 enabled = true
@@ -15,6 +15,7 @@ single_node = true
 port = 8001
 max_peers = 50
 network_id = 1
+enable_sync = true
 static_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@192.168.45.163:8001"
 
 [websocket]

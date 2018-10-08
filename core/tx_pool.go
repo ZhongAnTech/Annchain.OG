@@ -64,7 +64,8 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	OnNewTxReceived []chan types.Txi // for notifications of new txs.
+	OnNewTxReceived  []chan types.Txi                // for notifications of new txs.
+	OnBatchConfirmed []chan map[types.Hash]types.Txi // for notifications of confirmation.
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]int {
@@ -80,16 +81,17 @@ func (pool *TxPool) GetBenchmarks() map[string]int {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:            conf,
-		dag:             d,
-		queue:           make(chan *txEvent, conf.QueueSize),
-		tips:            NewTxMap(),
-		badtxs:          NewTxMap(),
-		pendings:        NewTxMap(),
-		flows:           NewAccountFlows(),
-		txLookup:        newTxLookUp(),
-		close:           make(chan struct{}),
-		OnNewTxReceived: []chan types.Txi{},
+		conf:             conf,
+		dag:              d,
+		queue:            make(chan *txEvent, conf.QueueSize),
+		tips:             NewTxMap(),
+		badtxs:           NewTxMap(),
+		pendings:         NewTxMap(),
+		flows:            NewAccountFlows(),
+		txLookup:         newTxLookUp(),
+		close:            make(chan struct{}),
+		OnNewTxReceived:  []chan types.Txi{},
+		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
 	}
 	return pool
 }
@@ -319,7 +321,7 @@ func (pool *TxPool) loop() {
 
 			txEvent.callbackChan <- err
 
-		// TODO case reset?
+			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -490,11 +492,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 		pool.txLookup.Remove(elder.GetTxHash())
 	}
-
+	
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
+	// notification
+	for _, c := range pool.OnBatchConfirmed {
+		c <- elders
+	}
+
 	return nil
 }
 

@@ -88,13 +88,13 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 	}
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
-	for _, parent := range currentTx.Parents(){
+	for _, parent := range currentTx.Parents() {
 		seekingHashes.PushBack(parent)
 	}
 
 	for seekingHashes.Len() > 0 {
 		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		logrus.WithField("hash", head).Debug("fetching previous tx")
+		logrus.WithField("ancestor", head).WithField("tx", currentTx).Debug("fetching ancestor tx")
 
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
@@ -127,6 +127,8 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 				// nothing to do, since all txs before seq should already be archived
 			}
 		} else {
+			// should not be here
+			logrus.WithField("tx", txi).Fatal("get previous tx: should not be here.")
 			// this ancestor should already be in the dag. do nothing
 		}
 	}

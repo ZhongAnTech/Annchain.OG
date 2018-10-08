@@ -30,20 +30,27 @@ type SequenceRequester interface {
 	GenerateRequest()
 }
 
+func cors(c *gin.Context){
+	c.Header("Access-Control-Allow-Origin", "*")
+}
+
 func (r *RpcControler) Status(c *gin.Context) {
 	var status NodeStatus
 	status.NodeInfo = r.P2pServer.NodeInfo()
 	status.PeersInfo = r.P2pServer.PeersInfo()
+	cors(c)
 	c.JSON(http.StatusOK, status)
 }
 
 func (r *RpcControler) NetInfo(c *gin.Context) {
 	info := r.P2pServer.NodeInfo()
+	cors(c)
 	c.JSON(http.StatusOK, info)
 }
 
 func (r *RpcControler) PeersInfo(c *gin.Context) {
 	peersInfo := r.P2pServer.PeersInfo()
+	cors(c)
 	c.JSON(http.StatusOK, peersInfo)
 }
 func (r *RpcControler) Query(c *gin.Context) {
@@ -54,6 +61,7 @@ func (r *RpcControler) Query(c *gin.Context) {
 func (r *RpcControler) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
+	cors(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "hash format error",
@@ -87,6 +95,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 func (r *RpcControler) Transactions(c *gin.Context) {
 	seqId := c.Query("seq_id")
 	id, err := strconv.Atoi(seqId)
+	cors(c)
 	if err != nil || id < 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "seq_id format error",
@@ -111,6 +120,7 @@ func (r *RpcControler) Transactions(c *gin.Context) {
 }
 
 func (r *RpcControler) Genesis(c *gin.Context) {
+	cors(c)
 	sq := r.Og.Dag.Genesis()
 	if sq != nil {
 		c.JSON(http.StatusOK, sq)
@@ -123,6 +133,7 @@ func (r *RpcControler) Genesis(c *gin.Context) {
 }
 
 func (r *RpcControler) Sequencer(c *gin.Context) {
+	cors(c)
 	var sq *types.Sequencer
 	hashtr := c.Query("hash")
 	seqId := c.Query("seq_id")
@@ -186,6 +197,7 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 	})
 }
 func (r *RpcControler) Validator(c *gin.Context) {
+	cors(c)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "validator",
 	})
@@ -199,7 +211,7 @@ func (r *RpcControler) NewTransaction(c *gin.Context) {
 		})
 		return
 	}
-	r.TxBuffer.AddTx(&tx)
+	r.TxBuffer.AddLocal(&tx)
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",

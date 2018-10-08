@@ -65,6 +65,7 @@ type Hub struct {
 	TxBuffer   ITxBuffer
 	SyncBuffer ISyncBuffer
 	finishInit bool
+	enableSync    bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -92,6 +93,7 @@ type HubConfig struct {
 	MaxPeers                      int
 	NetworkId                     uint64
 	StartAcceptTxs                bool //start accept txs even if no peers
+	EnableSync                    bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -102,6 +104,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
 		NetworkId:                     1,
+		EnableSync:true,
 	}
 	return config
 }
@@ -118,11 +121,13 @@ func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
 	h.quitSync = make(chan struct{})
 	h.maxPeers = config.MaxPeers
 	h.networkID = config.NetworkId
+	h.enableSync = config.EnableSync
 	h.Dag = dag
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
-	if config.StartAcceptTxs {
+	// if disabled sync just accept txs
+	if config.StartAcceptTxs || !h.enableSync {
 		log.Debug("init accept txs")
 		atomic.StoreUint32(&h.acceptTxs, 1)
 	}
@@ -266,14 +271,15 @@ func (h *Hub) handle(p *peer) error {
 		h.syncInit()
 	}
 	defer h.removePeer(p.id)
-
-	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-	if err := h.downloader.RegisterPeer(p.id, p.version, p); err != nil {
-		return err
+    if h.enableSync {
+		// Register the peer in the downloader. If the downloader considers it banned, we disconnect
+		if err := h.downloader.RegisterPeer(p.id, p.version, p); err != nil {
+			return err
+		}
+		// Propagate existing transactions. new transactions appearing
+		// after this will be sent via broadcasts.
+		h.syncTransactions(p)
 	}
-	// Propagate existing transactions. new transactions appearing
-	// after this will be sent via broadcasts.
-	h.syncTransactions(p)
 
 	// main loop. handle incoming messages.
 	for {
@@ -404,7 +410,7 @@ func (h *Hub) handleMsg(p *peer) error {
 			Sequencers: headers,
 		}
 		data, _ := msgRes.MarshalMsg(nil)
-		log.Debug("send MessageTypeGetHeader")
+		log.WithField("len ",len(msgRes.Sequencers)).Debug("send MessageTypeGetHeader")
 		return p.sendRawMessage(uint64(MessageTypeGetHeader), data)
 	case p2pMsg.MessageType == MessageTypeGetHeader:
 		log.Debug("got MessageTypeGetHeader")
@@ -429,7 +435,7 @@ func (h *Hub) handleMsg(p *peer) error {
 				log.Debug("Failed to deliver headers", "err", err)
 			}
 		}
-		log.Debug("heandle  MessageTypeGetHeader")
+		log.WithField("header lens",len(seqHeaders)).Debug("heandle  MessageTypeGetHeader")
 
 	case p2pMsg.MessageType == MessageTypeTxsRequest:
 		// Decode the retrieval message
@@ -449,6 +455,8 @@ func (h *Hub) handleMsg(p *peer) error {
 		msgRes.Sequencer = seq
 		if seq != nil {
 			msgRes.Txs = h.Dag.GetTxsByNumber(seq.Id)
+		}else {
+			log.WithField("id ",msgReq.Id).WithField("hash",msgReq.SeqHash).Warn("seq was not found for request " )
 		}
 		data, _ := msgRes.MarshalMsg(nil)
 		log.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
@@ -642,7 +650,6 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 	if msg.needCheckRepeat {
 		peers = h.peers.PeersWithoutMsg(msg.hash)
 	} else {
-
 		peers = h.peers.Peers()
 	}
 	for _, peer := range peers {

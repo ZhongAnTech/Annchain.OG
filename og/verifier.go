@@ -88,7 +88,7 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 	}
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
-	for _, parent := range currentTx.Parents(){
+	for _, parent := range currentTx.Parents() {
 		seekingHashes.PushBack(parent)
 	}
 

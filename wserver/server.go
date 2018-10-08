@@ -53,6 +53,9 @@ type Server struct {
 	// To receive new tx events
 	NewTxReceivedChan chan types.Txi
 
+	// to receive confirmation events
+	BatchConfirmedChan chan map[types.Hash]types.Txi
+
 	wh     *websocketHandler
 	ph     *pushHandler
 	engine *gin.Engine
@@ -83,11 +86,12 @@ func (s *Server) Push(event, message string) (int, error) {
 // NewServer creates a new Server.
 func NewServer(addr string) *Server {
 	s := &Server{
-		Addr:              addr,
-		WSPath:            serverDefaultWSPath,
-		PushPath:          serverDefaultPushPath,
-		NewTxReceivedChan: make(chan types.Txi),
-		quit:              make(chan bool),
+		Addr:               addr,
+		WSPath:             serverDefaultWSPath,
+		PushPath:           serverDefaultPushPath,
+		NewTxReceivedChan:  make(chan types.Txi),
+		BatchConfirmedChan: make(chan map[types.Hash]types.Txi),
+		quit:               make(chan bool),
 	}
 
 	e2c := NewEvent2Cons()
@@ -153,21 +157,51 @@ func (s *Server) WatchNewTxs() {
 				}
 			}
 			uidata.AddToBatch(tx)
-		case <-ticker.C:
-			if uidata == nil {
-				continue
-			}
-			logrus.WithField("nodeCount", len(uidata.Nodes)).Debug("push to ws")
-			bs, err := json.Marshal(uidata)
+		case batch := <-s.BatchConfirmedChan:
+			// first publish all pending txs
+			s.publishTxs(uidata)
 			uidata = nil
-			if err != nil {
-				logrus.WithError(err).Error("Failed to marshal ws message")
-				continue
-			}
-			s.Push("new_unit", string(bs))
+			// then publish batch
+			s.publishBatch(batch)
+		case <-ticker.C:
+			s.publishTxs(uidata)
+			uidata = nil
 		case <-s.quit:
 			break
 		}
 	}
+}
+
+func (s *Server) publishTxs(uidata *UIData) {
+	if uidata == nil {
+		return
+	}
+	logrus.WithField("nodeCount", len(uidata.Nodes)).Debug("push to ws")
+	bs, err := json.Marshal(uidata)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to marshal ws message")
+		return
+	}
+	s.Push("new_unit", string(bs))
+}
+func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
+	logrus.WithFields(logrus.Fields{
+		"len": len(elders),
+	}).Debug("push confirmation to ws")
+
+	uiData := UIData{
+		Nodes: []Node{},
+	}
+
+	for _, tx := range elders{
+		uiData.AddToBatch(tx)
+	}
+
+	bs, err := json.Marshal(uiData)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to marshal ws message")
+		return
+	}
+	s.Push("confirmed", string(bs))
 
 }

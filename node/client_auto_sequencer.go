@@ -38,6 +38,7 @@ func (c *ClientAutoSequencer) GenerateRequest() {
 	addr := c.SampleAccounts[0].Address
 	nonce, err := c.TxPool.GetLatestNonce(addr)
 	if err != nil {
+		logrus.WithError(err).WithField("addr", addr.String()).Debug("txpool nonce not found")
 		nonce, err = c.Dag.GetLatestNonce(addr)
 		if err != nil {
 			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")

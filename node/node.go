@@ -49,6 +49,7 @@ func NewNode() *Node {
 		networkId = defaultNetworkId
 	}
 	singleNode := viper.GetBool("p2p.single_node")
+	enableSync := viper.GetBool("p2p.enable_sync")
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
@@ -57,6 +58,7 @@ func NewNode() *Node {
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
 		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
+		EnableSync:enableSync,
 	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
@@ -92,10 +94,10 @@ func NewNode() *Node {
 	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -155,8 +157,8 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:                   org.Dag,
-		TxPool:                org.Txpool,
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -168,9 +170,9 @@ func NewNode() *Node {
 		TxBuffer:               m.TxBuffer,
 		PrivateKey:             privateKey,
 		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
-		Dag:                    org.Dag,
-		TxPool:                 org.Txpool,
-		InstanceCount:          viper.GetInt("auto_tx.count"),
+		Dag:           org.Dag,
+		TxPool:        org.Txpool,
+		InstanceCount: viper.GetInt("auto_tx.count"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {

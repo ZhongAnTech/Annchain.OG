@@ -3,8 +3,8 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"math/rand"
 	"fmt"
+	"math/rand"
 )
 
 //go:generate msgp

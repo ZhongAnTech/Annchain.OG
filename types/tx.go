@@ -3,9 +3,9 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/annchain/OG/common/math"
 	"math/rand"
-	"fmt"
 )
 
 //go:generate msgp

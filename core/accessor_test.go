@@ -58,9 +58,10 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
+	pk, _ := crypto.PrivateKeyFromString(testPk1)
+	addr := types.HexToAddress(testAddr1)
 
-	seq := txCreator.NewSignedSequencer(nonce, []types.Hash{}, nonce, pk)
+	seq := txCreator.NewSignedSequencer(addr, nonce, []types.Hash{}, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*types.Sequencer)

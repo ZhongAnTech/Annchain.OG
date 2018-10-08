@@ -55,8 +55,8 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 	defer a.mu.RUnlock()
 
 	flow := a.afs[addr]
-	if flow == nil { 
-		return nil 
+	if flow == nil {
+		return nil
 	}
 	return flow.GetTx(nonce)
 }

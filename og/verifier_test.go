@@ -14,8 +14,9 @@ func buildTx(from types.Address, accountNonce uint64) *types.Tx {
 	return tx
 }
 
-func buildSeq(from types.Address, accountNonce uint64) *types.Sequencer {
+func buildSeq(from types.Address, accountNonce uint64, id uint64) *types.Sequencer {
 	tx := types.RandomSequencer()
+	tx.Id = id
 	tx.AccountNonce = accountNonce
 	tx.Issuer = from
 	return tx
@@ -39,12 +40,14 @@ func judge(t *testing.T, actual interface{}, want interface{}, id int) {
 func TestA3(t *testing.T) {
 	pool := &dummyTxPoolParents{}
 	pool.Init()
+	dag := &dummyDag{}
+	dag.init()
 
 	addr1 := types.HexToAddress("0x0001")
 	addr2 := types.HexToAddress("0x0002")
 
 	txs := []types.Txi{
-		buildSeq(addr1, 1),
+		buildSeq(addr1, 1, 1),
 		buildTx(addr1, 2),
 		buildTx(addr2, 0),
 		buildTx(addr1, 3),
@@ -81,13 +84,13 @@ func TestA3(t *testing.T) {
 
 	// tx2 is bad, others are good
 	verifier := Verifier{
-		Dag:    nil,
+		Dag:    dag,
 		TxPool: pool,
 	}
 
 	truth := []int{
-		0, 0, 1, 1, 1,
-		1, 1, 0, 0, 0,
+		0, 1, 1, 1, 1,
+		1, 1, 0, 1, 0,
 		1, 1}
 
 	for i, tx := range txs {
@@ -100,13 +103,15 @@ func TestA3(t *testing.T) {
 func TestA6(t *testing.T) {
 	pool := &dummyTxPoolParents{}
 	pool.Init()
+	dag := &dummyDag{}
+	dag.init()
 
 	addr1 := types.HexToAddress("0x0001")
 	addr2 := types.HexToAddress("0x0002")
 	addr3 := types.HexToAddress("0x0003")
 
 	txs := []types.Txi{
-		buildSeq(addr1, 1),
+		buildSeq(addr1, 1, 1),
 		buildTx(addr1, 2),
 		buildTx(addr1, 0),
 		buildTx(addr2, 3),
@@ -135,16 +140,16 @@ func TestA6(t *testing.T) {
 
 	// tx2 is bad, others are good
 	verifier := Verifier{
-		Dag:    nil,
+		Dag:    dag,
 		TxPool: pool,
 	}
 
 	truth := []int{
-		1, 1, 0, 1, 0,
+		0, 1, 0, 1, 0,
 		1, 1, 1, 1}
 
 	for i, tx := range txs {
-		judge(t, verifier.verifyA6(tx), truth[i] == 1, i)
+		judge(t, verifier.verifyA3(tx), truth[i] == 1, i)
 	}
 
 }

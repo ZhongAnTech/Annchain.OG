@@ -7,10 +7,19 @@ import (
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
+	"fmt"
 )
 
 type dummyDag struct {
 	dmap map[types.Hash]types.Txi
+}
+
+func (d *dummyDag) GetSequencerById(id uint64) *types.Sequencer {
+	return nil
+}
+
+func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	return nil
 }
 
 func (d *dummyDag) init() {
@@ -28,6 +37,14 @@ func (d *dummyDag) GetTx(hash types.Hash) types.Txi {
 
 type dummyTxPool struct {
 	dmap map[types.Hash]types.Txi
+}
+
+func (d *dummyTxPool) GetLatestNonce(addr types.Address) (uint64, error) {
+	return 0, fmt.Errorf("not supported")
+}
+
+func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi) {
+	return
 }
 
 func (d *dummyTxPool) init() {
@@ -77,7 +94,7 @@ func (d *dummySyncer) Enqueue(hash types.Hash) {
 
 type dummyVerifier struct{}
 
-func (d *dummyVerifier) VerifyGraphStructure(t types.Txi) bool {
+func (d *dummyVerifier) VerifyGraphOrder(t types.Txi) bool {
 	return true
 }
 
@@ -87,19 +104,18 @@ func (d *dummyVerifier) VerifyHash(t types.Txi) bool {
 func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
 	return true
 }
-func (d *dummyVerifier) VerifySourceAddress(t types.Txi) bool {
-	return true
-}
 
 func setup() *TxBuffer {
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifier:               new(dummyVerifier),
-		DependencyCacheMaxSize: 20,
-		TxPool:                 new(dummyTxPool),
-		Dag:                    new(dummyDag),
-		Syncer:                 new(dummySyncer),
+		Verifier:                         new(dummyVerifier),
+		DependencyCacheMaxSize:           20,
+		TxPool:                           new(dummyTxPool),
+		Dag:                              new(dummyDag),
+		Syncer:                           new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
+		KnownCacheMaxSize:                10000,
+		KnownCacheExpirationSeconds:      30,
 	})
 
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)

@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
+	"github.com/annchain/OG/account"
 )
 
 type ClientAutoSequencer struct {
@@ -15,10 +16,11 @@ type ClientAutoSequencer struct {
 	BlockTimeMilliSeconds int
 	PrivateKey            crypto.PrivateKey
 	stop                  bool
-	currentNonce          uint64
 	currentID             uint64
 	manualChan            chan bool
+	TxPool                *core.TxPool
 	Dag                   *core.Dag
+	SampleAccounts        []account.SampleAccount
 }
 
 func (c *ClientAutoSequencer) Init() {
@@ -27,17 +29,32 @@ func (c *ClientAutoSequencer) Init() {
 	if lseq != nil {
 		c.currentID = lseq.Id
 	}
+	c.SampleAccounts = core.GetSampleAccounts()
 }
 
 func (c *ClientAutoSequencer) GenerateRequest() {
 	c.currentID++
-	seq := c.TxCreator.NewSignedSequencer(c.currentID, []types.Hash{}, c.currentNonce, c.PrivateKey)
+
+	addr := c.SampleAccounts[0].Address
+	nonce, err := c.TxPool.GetLatestNonce(addr)
+	if err != nil {
+		nonce, err = c.Dag.GetLatestNonce(addr)
+		if err != nil {
+			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
+			nonce = 0
+		} else {
+			nonce ++
+		}
+	} else {
+		nonce ++
+	}
+
+	seq := c.TxCreator.NewSignedSequencer(addr, c.currentID, []types.Hash{}, nonce, c.PrivateKey)
 	if ok := c.TxCreator.SealTx(seq); !ok {
 		logrus.Warn("clientAutoSequencer Failed to seal tx")
 		return
 	}
 	logrus.WithField("seq", seq).Infof("sequencer generated")
-	c.currentNonce++
 	// TODO: announce tx
 	c.TxBuffer.AddTx(seq)
 }

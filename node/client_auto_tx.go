@@ -18,9 +18,9 @@ type ClientAutoTx struct {
 	TxIntervalMilliSeconds int
 	PrivateKey             crypto.PrivateKey
 	stop                   bool
-	currentNonce           uint64
 	currentID              uint64
 	manualChan             chan bool
+	TxPool                 *core.TxPool
 	Dag                    *core.Dag
 	SampleAccounts         []account.SampleAccount
 	InstanceCount          int
@@ -38,7 +38,24 @@ func (c *ClientAutoTx) Init() {
 
 func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	c.mu.RLock()
-	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address, math.NewBigInt(0), c.SampleAccounts[from].Nonce, c.SampleAccounts[from].PrivateKey)
+	addr := c.SampleAccounts[from].Address
+	nonce, err := c.TxPool.GetLatestNonce(addr)
+	logrus.WithError(err).WithField("addr", addr.String()).Warn("txpool nonce not found")
+	if err != nil {
+		nonce, err = c.Dag.GetLatestNonce(addr)
+		if err != nil {
+			logrus.WithError(err).WithField("addr", addr.String()).Warn("dag nonce not found")
+			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
+			nonce = 0
+		} else {
+			nonce ++
+		}
+	} else {
+		nonce ++
+	}
+
+	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
+		math.NewBigInt(0), nonce, c.SampleAccounts[from].PrivateKey)
 	c.mu.RUnlock()
 
 	if ok := c.TxCreator.SealTx(tx); !ok {

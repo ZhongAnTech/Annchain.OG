@@ -72,8 +72,7 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 	if !(flow.Len() > 0) {
 		return 0, fmt.Errorf("flow not long enough")
 	}
-	keys := flow.txlist.keys
-	return keys.Tail(), nil
+	return flow.LatestNonce()
 }
 
 func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt) {
@@ -86,6 +85,7 @@ func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt)
 func (a *AccountFlows) Confirm(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	if tx.GetType() != types.TxBaseTypeNormal {
 		log.Warnf("tx type not normal tx when confirm")
 		return
@@ -95,7 +95,7 @@ func (a *AccountFlows) Confirm(tx types.Txi) {
 		return
 	}
 	flow.Confirm(tx.GetNonce())
-	// remove the account flow if there is no this address' txs left in pool
+	// remove account flow if there is no txs sent by this address in pool
 	if flow.Len() == 0 {
 		delete(a.afs, tx.Sender())
 	}
@@ -129,7 +129,7 @@ func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
 // 1. update account's balance state.
 // 2. add tx into nonce sorted txlist.
 func (af *AccountFlow) Add(tx *types.Tx) error {
-	err := af.balance.trySubBalance(tx.Value)
+	err := af.balance.TrySubBalance(tx.Value)
 	if err != nil {
 		return err
 	}
@@ -144,12 +144,28 @@ func (af *AccountFlow) Confirm(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	err := af.balance.tryRemoveTx(tx.(*types.Tx))
+	err := af.balance.TryRemoveTx(tx.(*types.Tx))
 	if err != nil {
 		return err
 	}
 	af.txlist.Remove(nonce)
 	return nil
+}
+
+// LatestNonce returns the largest nonce stored in txlist.
+func (af *AccountFlow) LatestNonce() (uint64, error) {
+	tl := af.txlist
+	if tl == nil {
+		return 0, fmt.Errorf("txlist is nil")
+	}
+	if !(tl.Len() > 0) {
+		return 0, fmt.Errorf("txlist is empty")
+	}
+	keys := tl.keys
+	if keys == nil {
+		return 0, fmt.Errorf("txlist's keys field is nil")
+	}
+	return keys.Tail(), nil
 }
 
 type BalanceState struct {
@@ -163,19 +179,30 @@ func NewBalanceState(balance *math.BigInt) *BalanceState {
 		originBalance: balance,
 	}
 }
+func (bs *BalanceState) Spent() *math.BigInt {
+	return bs.spent
+}
+func (bs *BalanceState) OriginBalance() *math.BigInt {
+	return bs.originBalance
+}
 
-func (bs *BalanceState) trySubBalance(value *math.BigInt) error {
+// TrySubBalance checks if origin balance is enough for total spent of 
+// txs in pool. It trys to add new spent "value" into total spent and 
+// compare total spent with origin balance.
+func (bs *BalanceState) TrySubBalance(value *math.BigInt) error {
 	totalspent := math.NewBigInt(0)
 	totalspent.Value.Add(bs.spent.Value, value.Value)
 	// check if (already spent + new spent) > confirmed balance
-	if totalspent.Value.Cmp(bs.originBalance.Value) < 0 {
+	if totalspent.Value.Cmp(bs.originBalance.Value) > 0 {
 		return fmt.Errorf("balance not enough")
 	}
 	bs.spent.Value = totalspent.Value
 	return nil
 }
 
-func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {
+// TryRemoveTx is called when remove a tx from pool. It reduce the total spent
+// by the value of removed tx.
+func (bs *BalanceState) TryRemoveTx(tx *types.Tx) error {
 	// check if (already spent < tx's value)
 	if bs.spent.Value.Cmp(tx.Value.Value) < 0 {
 		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), tx.Value.String())
@@ -187,11 +214,14 @@ func (bs *BalanceState) tryRemoveTx(tx *types.Tx) error {
 
 type nonceHeap []uint64
 
+func (n nonceHeap) Tail() uint64 {
+	sort.Sort(n)
+	return n[n.Len()-1]
+}
 // for sort
 func (n nonceHeap) Len() int           { return len(n) }
 func (n nonceHeap) Less(i, j int) bool { return n[i] < n[j] }
 func (n nonceHeap) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
-
 // for heap
 func (n *nonceHeap) Push(x interface{}) {
 	*n = append(*n, x.(uint64))
@@ -202,10 +232,6 @@ func (n *nonceHeap) Pop() interface{} {
 	last := old[length-1]
 	*n = old[0 : length-1]
 	return last
-}
-func (n nonceHeap) Tail() uint64 {
-	sort.Sort(n)
-	return n[n.Len()-1]
 }
 
 type TxList struct {

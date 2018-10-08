@@ -201,6 +201,21 @@ func generateRandomIndices(count int, upper int) []int {
 	return arr
 }
 
+// func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
+// 	pool.mu.RLock()
+// 	defer pool.mu.RUnlock()
+
+// 	tips := pool.tips.GetAllValues()
+// 	pendings := pool.pendings.GetAllValues()
+// 	alltxs := append(tips, pendings...)
+
+// 	indices := generateRandomIndices(n, len(alltxs))
+// 	for _, i := range indices {
+// 		v = append(v, alltxs[i])
+// 	}
+// 	return v
+// }
+
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	pool.mu.RLock()
@@ -208,12 +223,7 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 
 	// select n random hashes
 	values := pool.tips.GetAllValues()
-	//log.WithField("parent", types.TxsToString(values)).Debug("current tips")
 	indices := generateRandomIndices(n, len(values))
-	//log.WithFields(log.Fields{
-	//	"require":   n,
-	//	"totalTips": len(values),
-	//}).Info("getting random tips")
 
 	for _, i := range indices {
 		v = append(v, values[i])

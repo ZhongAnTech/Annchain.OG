@@ -68,6 +68,8 @@ func (c *ClientAutoSequencer) loop() {
 		}
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest()
+		} else {
+			logrus.Debug("can't generate sequencer when syncing")
 		}
 	}
 }

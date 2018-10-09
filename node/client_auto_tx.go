@@ -82,7 +82,7 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)
 		} else {
-			//logrus.Debug("can't generate tx when syncing")
+			logrus.Debug("can't generate tx when syncing")
 		}
 	}
 }

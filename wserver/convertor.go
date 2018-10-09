@@ -37,6 +37,7 @@ type Edge struct {
 }
 
 type UIData struct {
+	Type  string `json:"type"`
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
 }

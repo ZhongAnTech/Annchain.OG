@@ -340,7 +340,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		txHashNum = len(*batch.TxHashes)
 	}
 	if txHashNum > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, batch.TxHashes)
+		err = dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, batch.TxHashes)
+		if err != nil {
+			log.Warnf("WriteIndexedTxHashs err: %v", err)
+		}
 	}
 
 	// save latest sequencer into db
@@ -398,7 +401,7 @@ func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(id)
 	if err != nil {
-		log.Warn("head not found")
+		log.Warnf("head not found, err: %v", err)
 	}
 	return hashs
 }

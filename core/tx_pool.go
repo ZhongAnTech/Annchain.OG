@@ -217,17 +217,29 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 
 	latestSeq := pool.dag.LatestSequencer()
 	if latestSeq != nil {
-		latestId = latestSeq.Id
+		latestId = latestSeq.Number()
 	}
 	if latestId > 0 {
 		id = latestId - 1
 	}
-	hashs := pool.dag.GetTxsHashesByNumber(id)
-	for i := 0; i <= n; i++ { 
-		index := rand.Intn(len(*hashs))
-		hash := (*hashs)[index]
-		tx := pool.dag.GetTx(hash)
-		v = append(v, tx)
+	hashsP := pool.dag.GetTxsHashesByNumber(id)
+	if hashsP != nil {
+		hashs := *hashsP
+		for i := 0; i <= n; i++ { 
+			index := rand.Intn(len(hashs))
+			hash := hashs[index]
+			tx := pool.dag.GetTx(hash)
+			v = append(v, tx)
+		}
+	} else {
+		tips := pool.tips.GetAllValues()
+		pendings := pool.pendings.GetAllValues()
+		alltxs := append(tips, pendings...)
+
+		indices := generateRandomIndices(n, len(alltxs))
+		for _, i := range indices {
+			v = append(v, alltxs[i])
+		}
 	}
 	return v
 }

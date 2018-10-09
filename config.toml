@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "debug"
+level = "warn"
 
 [rpc]
 enabled = true
@@ -11,7 +11,7 @@ port = 8000
 
 [p2p]
 enabled = true
-single_node = false
+single_node = true
 port = 8001
 max_peers = 50
 network_id = 1
@@ -41,11 +41,11 @@ tx_verify_time = 2
 tx_valid_time = 100
 
 [auto_sequencer]
-enabled = false
+enabled = true
 interval_ms = 15000
 
 [auto_tx]
-enabled = false
+enabled = true
 count = 4
 interval_ms = 1000
 

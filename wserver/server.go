@@ -160,7 +160,7 @@ func (s *Server) WatchNewTxs() {
 					//Edges: []Edge{},
 				}
 			}
-			uidata.AddToBatch(tx)
+			uidata.AddToBatch(tx, true)
 		case batch := <-s.BatchConfirmedChan:
 			// first publish all pending txs
 			s.publishTxs(uidata)
@@ -199,7 +199,7 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 	}
 
 	for _, tx := range elders {
-		uiData.AddToBatch(tx)
+		uiData.AddToBatch(tx, false)
 	}
 
 	bs, err := json.Marshal(uiData)

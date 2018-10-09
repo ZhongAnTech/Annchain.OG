@@ -439,14 +439,4 @@ func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
 	return dag.accessor.HasAddrLatestNonce(addr)
 }
 
-// func (dag *Dag) loop() {
 
-// 	for {
-// 		select {
-// 		// TODO
-
-// 		default:
-// 			break
-// 		}
-// 	}
-// }

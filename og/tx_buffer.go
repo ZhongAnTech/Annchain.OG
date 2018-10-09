@@ -162,13 +162,13 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
-	var shoudBrodcast bool
+	var shouldBrodcast bool
 	// already in the dag or tx_pool or buffer itself.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	} else {
 		// not in tx buffer , a new tx , shoud broadcast
-		shoudBrodcast = true
+		shouldBrodcast = true
 	}
 	// TODO: Temporarily comment it out to test performance.
 	//if err := b.verifyTxFormat(tx); err != nil {
@@ -183,7 +183,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		b.niceTx(tx, true)
 	}
 
-	if shoudBrodcast {
+	if shouldBrodcast {
 		b.sendMessage(tx)
 	}
 

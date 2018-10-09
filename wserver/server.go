@@ -16,6 +16,9 @@ import (
 const (
 	serverDefaultWSPath   = "/ws"
 	serverDefaultPushPath = "/push"
+
+	messageTypeNewUnit   = "new_unit"
+	messageTypeConfirmed = "confirmed"
 )
 
 var defaultUpgrader = &websocket.Upgrader{
@@ -152,6 +155,7 @@ func (s *Server) WatchNewTxs() {
 		case tx := <-s.NewTxReceivedChan:
 			if uidata == nil {
 				uidata = &UIData{
+					Type: messageTypeNewUnit,
 					//Nodes: []Node{},
 					//Edges: []Edge{},
 				}
@@ -182,7 +186,7 @@ func (s *Server) publishTxs(uidata *UIData) {
 		logrus.WithError(err).Error("Failed to marshal ws message")
 		return
 	}
-	s.Push("new_unit", string(bs))
+	s.Push(messageTypeNewUnit, string(bs))
 }
 func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 	logrus.WithFields(logrus.Fields{
@@ -190,10 +194,11 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 	}).Debug("push confirmation to ws")
 
 	uiData := UIData{
+		Type:  messageTypeConfirmed,
 		Nodes: []Node{},
 	}
 
-	for _, tx := range elders{
+	for _, tx := range elders {
 		uiData.AddToBatch(tx)
 	}
 
@@ -202,6 +207,6 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 		logrus.WithError(err).Error("Failed to marshal ws message")
 		return
 	}
-	s.Push("confirmed", string(bs))
+	s.Push(messageTypeConfirmed, string(bs))
 
 }

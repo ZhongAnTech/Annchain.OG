@@ -37,6 +37,7 @@ type Edge struct {
 }
 
 type UIData struct {
+	Type  string `json:"type"`
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
 }
@@ -69,4 +70,3 @@ func (u *UIData) AddToBatch(tx types.Txi) {
 		u.Edges = append(u.Edges, edge)
 	}
 }
-

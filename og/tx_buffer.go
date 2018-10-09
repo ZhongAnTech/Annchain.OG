@@ -246,17 +246,20 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	b.affmu.Unlock()
 }
 
-func (b *TxBuffer) addToTxPool(tx types.Txi) {
+func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 	// make it avaiable in local cache to prevent temporarily "disappear" of the tx
 	b.knownTxCache.Set(tx.GetTxHash(), tx)
-	b.txPool.AddRemoteTx(tx)
+  return 	b.txPool.AddRemoteTx(tx)
 }
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	b.addToTxPool(tx)
+	addErr := b.addToTxPool(tx)
+	if addErr !=nil {
+		logrus.WithField("txi",tx).WithError(err).Warn("add tx err")
+	}
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 

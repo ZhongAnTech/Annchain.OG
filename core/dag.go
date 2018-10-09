@@ -213,7 +213,7 @@ func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
 		return nil
 	}
 	log.WithField("len tx ", len(*hashs)).WithField("id", id).Info("get txs")
-	return dag.GetTxs(*hashs)
+	return dag.getTxs(*hashs)
 }
 
 func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {

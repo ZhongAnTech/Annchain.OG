@@ -212,13 +212,22 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
-	tips := pool.tips.GetAllValues()
-	pendings := pool.pendings.GetAllValues()
-	alltxs := append(tips, pendings...)
+	latestId := uint64(0)
+	id := uint64(0)
 
-	indices := generateRandomIndices(n, len(alltxs))
-	for _, i := range indices {
-		v = append(v, alltxs[i])
+	latestSeq := pool.dag.LatestSequencer()
+	if latestSeq != nil {
+		latestId = latestSeq.Id
+	}
+	if latestId > 0 {
+		id = latestId - 1
+	}
+	hashs := pool.dag.GetTxsHashesByNumber(id)
+	for i := 0; i <= n; i++ { 
+		index := rand.Intn(len(*hashs))
+		hash := (*hashs)[index]
+		tx := pool.dag.GetTx(hash)
+		v = append(v, tx)
 	}
 	return v
 }

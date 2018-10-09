@@ -163,7 +163,13 @@ func TestAccountFlow(t *testing.T) {
 	}
 
 	// test confirm
+	// spent := af.BalanceState().Spent()
 
+	// err = af.Confirm(tx0.GetNonce())
+	// if err != nil {
+	// 	t.Fatalf("confirm tx0 err: %v", err)
+	// }
+	// spent
 
 
 

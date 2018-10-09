@@ -276,7 +276,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			continue
 		}
 		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
-		b.tryResolve(v)
+		b.tryResolve(v) 
 	}
 
 }

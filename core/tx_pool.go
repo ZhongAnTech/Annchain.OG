@@ -438,6 +438,10 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	if txinpool != nil {
 		return bad
 	}
+	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
+	if txindag != nil {
+		return bad
+	}
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
 	if stateFrom == nil {

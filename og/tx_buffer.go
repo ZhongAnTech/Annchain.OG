@@ -137,10 +137,10 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
 }
 
-func ( b*TxBuffer)AddLocal(tx types.Txi) error {
+func (b *TxBuffer) AddLocal(tx types.Txi) error {
 	if b.Hub.AcceptTxs() {
 		b.AddTx(tx)
-	}else {
+	} else {
 		return fmt.Errorf("can't accept tx until sync done")
 	}
 	return nil
@@ -249,7 +249,7 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 	// make it avaiable in local cache to prevent temporarily "disappear" of the tx
 	b.knownTxCache.Set(tx.GetTxHash(), tx)
-  return 	b.txPool.AddRemoteTx(tx)
+	return b.txPool.AddRemoteTx(tx)
 }
 
 // resolve is called when all ancestors of the tx is got.
@@ -257,8 +257,8 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
-	if addErr !=nil {
-		logrus.WithField("txi",tx).WithError(addErr).Warn("add tx to  txpool err")
+	if addErr != nil {
+		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to  txpool err")
 	}
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
@@ -279,7 +279,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			continue
 		}
 		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
-		b.tryResolve(v) 
+		b.tryResolve(v)
 	}
 
 }

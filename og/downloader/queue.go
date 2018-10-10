@@ -38,7 +38,6 @@ type fetchResult struct {
 	Hash    types.Hash // Hash of the header to prevent recalculating
 
 	Header       *types.SequencerHeader
-	Uncles       []*types.SequencerHeader
 	Transactions types.Txs
 	Sequencer    *types.Sequencer
 }
@@ -712,16 +711,19 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Tx, seq *types.Sequencer) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Tx, sequencers []*types.Sequencer) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.SequencerHeader, index int, result *fetchResult) error {
-		if header.SequencerId() != seq.Id {
-			return fmt.Errorf("header and seq mismatch  header %d  seq %d", header.SequencerId(), seq.Id)
+		seqHeader := sequencers[index].GetHead()
+		if !header.Equal(seqHeader) {
+			log.WithField(" requested header", header.StringFull()).WithField("response seq", seqHeader.StringFull()).Warn(
+				" request header and response seq mismatch")
+			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
-		result.Sequencer = seq
+		result.Sequencer = sequencers[index]
 		return nil
 	}
 	return q.deliver(id, q.blockTaskPool, q.blockTaskQueue, q.blockPendPool, q.blockDonePool, bodyReqTimer, len(txLists), reconstruct)
@@ -739,7 +741,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 	// Short circuit if the data was never requested
 	request := pendPool[id]
 	if request == nil {
-		log.WithError(errNoFetchesPending).Warn("deliver")
+		log.WithField("reuqest id ", id).WithError(errNoFetchesPending).Warn("deliver")
 		return 0, errNoFetchesPending
 	}
 	reqTimer.UpdateSince(request.Time)

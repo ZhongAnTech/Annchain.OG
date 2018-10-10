@@ -171,8 +171,6 @@ func TestAccountFlow(t *testing.T) {
 	// }
 	// spent
 
-
-
 }
 
 // func TestNonceHeap(t *testing.T) {

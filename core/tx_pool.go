@@ -496,8 +496,9 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		pool.flows.Confirm(elder)
 		pool.txLookup.Remove(elder.GetTxHash())
 	}
-	
+
 	pool.flows.Add(seq)
+
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 

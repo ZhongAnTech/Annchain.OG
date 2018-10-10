@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 	"math/big"
 	"sync"
+	"testing"
 	"time"
 )
 
@@ -65,4 +66,22 @@ func newTester() *downloadTester {
 	tester.downloader = New(FullSync, nil, nil, nil)
 
 	return tester
+}
+
+func TestHeaderEuqual(t *testing.T) {
+	testHash, _ := types.HexStringToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
+	head := types.NewSequencerHead(testHash, 1447)
+	seq := &types.Sequencer{
+		Id: 1447,
+	}
+	seq.Hash = testHash
+	seq.Issuer = types.Address{}
+	seqHead := seq.GetHead()
+	if head == seqHead {
+		t.Fatal("head", head.StringFull(), " seqHead", seqHead.StringFull(), "struct  shoud not be  equal")
+	}
+	if !head.Equal(seqHead) {
+		t.Fatal("head", head.StringFull(), " seqHead", seqHead.StringFull(), "content  shoud  be  equal")
+	}
+	t.Log("head", head, " seqHead", seqHead, "equal")
 }

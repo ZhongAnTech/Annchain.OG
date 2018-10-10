@@ -48,7 +48,7 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	if errDag != nil {
 		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
 	}
-	
+
 	nonce := noncePool
 	if noncePool < nonceDag {
 		nonce = nonceDag

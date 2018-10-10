@@ -127,3 +127,11 @@ func (p *testPeer) handshake(t *testing.T, seqId uint64, head types.Hash, genesi
 func (p *testPeer) close() {
 	p.app.Close()
 }
+
+func TestDatasize(t *testing.T) {
+	var r types.Hash
+	data, _ := r.MarshalMsg(nil)
+	if len(data) == r.Msgsize() {
+		t.Fatal("msg size not equal", "len data", len(data), "msgSize", r.Msgsize())
+	}
+}

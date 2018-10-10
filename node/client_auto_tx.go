@@ -39,20 +39,21 @@ func (c *ClientAutoTx) Init() {
 func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	c.mu.RLock()
 	addr := c.SampleAccounts[from].Address
-	nonce, err := c.TxPool.GetLatestNonce(addr)
-	if err != nil {
-		logrus.WithError(err).WithField("addr", addr.String()).Debug("txpool nonce not found")
-		nonce, err = c.Dag.GetLatestNonce(addr)
-		if err != nil {
-			logrus.WithError(err).WithField("addr", addr.String()).Warn("dag nonce not found")
-			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
-			nonce = 0
-		} else {
-			nonce++
-		}
-	} else {
-		nonce++
+
+	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
+	if errPool != nil {
+		logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
 	}
+	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
+	if errDag != nil {
+		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
+	}
+	
+	nonce := noncePool
+	if noncePool < nonceDag {
+		nonce = nonceDag
+	}
+	nonce++
 
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
 		math.NewBigInt(0), nonce, c.SampleAccounts[from].PrivateKey)
@@ -82,7 +83,7 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)
 		} else {
-			//logrus.Debug("can't generate tx when syncing")
+			logrus.Debug("can't generate tx when syncing")
 		}
 	}
 }

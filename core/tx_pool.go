@@ -171,36 +171,23 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 
 // GetByNonce get a tx or sequencer from account flows by sender's address and tx's nonce.
 func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
 	return pool.flows.GetTxByNonce(addr, nonce)
 }
 
 // GetLatestNonce get the latest nonce of an address
 func (pool *TxPool) GetLatestNonce(addr types.Address) (uint64, error) {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
 	return pool.flows.GetLatestNonce(addr)
 }
 
 // GetStatus gets the current status of a tx
 func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
-}
-
-// generate [count] unique random numbers within range [0, upper)
-// if count > upper, use all available indices
-func generateRandomIndices(count int, upper int) []int {
-	if count > upper {
-		count = upper
-	}
-	// avoid dup
-	generated := make(map[int]struct{})
-	for count > len(generated) {
-		i := rand.Intn(upper)
-		generated[i] = struct{}{}
-	}
-	arr := make([]int, 0, len(generated))
-	for k := range generated {
-		arr = append(arr, k)
-	}
-	return arr
 }
 
 func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi) {
@@ -242,6 +229,25 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 		}
 	}
 	return v
+}
+
+// generate [count] unique random numbers within range [0, upper)
+// if count > upper, use all available indices
+func generateRandomIndices(count int, upper int) []int {
+	if count > upper {
+		count = upper
+	}
+	// avoid dup
+	generated := make(map[int]struct{})
+	for count > len(generated) {
+		i := rand.Intn(upper)
+		generated[i] = struct{}{}
+	}
+	arr := make([]int, 0, len(generated))
+	for k := range generated {
+		arr = append(arr, k)
+	}
+	return arr
 }
 
 // // GetRandomTips returns n tips randomly.
@@ -447,9 +453,13 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 			return bad
 		}
 	}
-	// check if the nonce is  duplicate
-	txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
+	// check if the nonce is duplicate
+	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
+		return bad
+	}
+	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
+	if txindag != nil {
 		return bad
 	}
 	// check if the tx itself has no conflicts with local ledger
@@ -483,9 +493,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
+		log.WithField("error", err).Warnf("verifyConfirmBatch error: %v", err)
 		return err
 	}
-	// move elders to dag
+	// push batch to dag
+	if err := pool.dag.Push(batch); err != nil {
+		log.WithField("error", err).Warnf("dag Push error: %v", err)
+		return err
+	}
+	// remove elders from pool
 	for _, elder := range elders {
 		status := pool.GetStatus(elder.GetTxHash())
 		if status == TxStatusBadTx {
@@ -493,6 +509,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 		if status == TxStatusTip {
 			pool.tips.Remove(elder.GetTxHash())
+			pool.flows.Confirm(elder)
 		}
 		if status == TxStatusPending {
 			pool.pendings.Remove(elder.GetTxHash())
@@ -500,10 +517,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 		pool.txLookup.Remove(elder.GetTxHash())
 	}
-	err = pool.dag.Push(batch)
-	if err != nil {
-		log.WithError(err).WithField("seq", batch.Seq.Id).Error("pushing batch to dag")
-	}
+	
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
@@ -588,8 +602,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		if !(nonces.Len() > 0) {
 			continue
 		}
-		sort.Sort(&nonces)
-		if nErr := pool.verifyNonce(addr, nonces); nErr != nil {
+		if nErr := pool.verifyNonce(addr, &nonces); nErr != nil {
 			return nil, nErr
 		}
 	}
@@ -606,7 +619,10 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-func (pool *TxPool) verifyNonce(addr types.Address, nonces nonceHeap) error {
+func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
+	sort.Sort(noncesP)
+	nonces := *noncesP
+
 	has, hErr := pool.dag.HasLatestNonce(addr)
 	if hErr != nil {
 		return fmt.Errorf("check nonce in db err: %v", hErr)

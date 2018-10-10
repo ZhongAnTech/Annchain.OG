@@ -114,6 +114,12 @@ func NewAccountFlow(originBalance *math.BigInt) *AccountFlow {
 		txlist:  NewTxList(),
 	}
 }
+func (af *AccountFlow) BalanceState() *BalanceState {
+	return af.balance
+}
+func (af *AccountFlow) TxList() *TxList {
+	return af.txlist
+}
 
 // return the count of txs sent by this account.
 func (af *AccountFlow) Len() int {
@@ -140,7 +146,7 @@ func (af *AccountFlow) Add(tx *types.Tx) error {
 // Confirm a tx from account flow, find tx by nonce first, then
 // rolls back the balance and remove tx from txlist.
 func (af *AccountFlow) Confirm(nonce uint64) error {
-	tx := af.GetTx(nonce)
+	tx := af.txlist.Get(nonce)
 	if tx == nil {
 		return nil
 	}
@@ -186,8 +192,8 @@ func (bs *BalanceState) OriginBalance() *math.BigInt {
 	return bs.originBalance
 }
 
-// TrySubBalance checks if origin balance is enough for total spent of 
-// txs in pool. It trys to add new spent "value" into total spent and 
+// TrySubBalance checks if origin balance is enough for total spent of
+// txs in pool. It trys to add new spent "value" into total spent and
 // compare total spent with origin balance.
 func (bs *BalanceState) TrySubBalance(value *math.BigInt) error {
 	totalspent := math.NewBigInt(0)
@@ -218,10 +224,12 @@ func (n nonceHeap) Tail() uint64 {
 	sort.Sort(n)
 	return n[n.Len()-1]
 }
+
 // for sort
 func (n nonceHeap) Len() int           { return len(n) }
 func (n nonceHeap) Less(i, j int) bool { return n[i] < n[j] }
 func (n nonceHeap) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
+
 // for heap
 func (n *nonceHeap) Push(x interface{}) {
 	*n = append(*n, x.(uint64))

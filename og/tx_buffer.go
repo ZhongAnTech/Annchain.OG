@@ -258,7 +258,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
 	if addErr !=nil {
-		logrus.WithField("txi",tx).WithError(err).Warn("add tx err")
+		logrus.WithField("txi",tx).WithError(addErr).Warn("add tx to  txpool err")
 	}
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")

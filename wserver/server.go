@@ -193,7 +193,7 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 		Nodes: []Node{},
 	}
 
-	for _, tx := range elders{
+	for _, tx := range elders {
 		uiData.AddToBatch(tx)
 	}
 

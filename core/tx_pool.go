@@ -497,7 +497,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 		pool.txLookup.Remove(elder.GetTxHash())
 	}
-	
+
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 

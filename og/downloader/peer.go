@@ -78,8 +78,9 @@ type Peer interface {
 	RequestHeadersByNumber(uint64, int, int, bool) error
 	//RequestSequencerByHash(types.Hash, int, int, bool) error
 	//RequestSequencerByNumber(uint64, int, int, bool) error
-	RequestTxs([]types.Hash) error
-	RequestTxsByHash(hash types.Hash, id uint64) error
+	//RequestTxs([]types.Hash) error
+	RequestBodies(seqHashs []types.Hash) error
+	//RequestTxsByHash(hash types.Hash, id uint64) error
 	RequestNodeData([]types.Hash) error
 }
 
@@ -145,9 +146,8 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	hashes := make([]types.Hash, 0, len(request.Headers))
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.Hash())
-		p.peer.RequestTxsByHash(header.Hash(), header.SequencerId())
 	}
-	//go p.peer.RequestTxs(hashes)
+	go p.peer.RequestBodies(hashes)
 
 	return nil
 }

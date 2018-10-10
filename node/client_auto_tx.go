@@ -48,12 +48,16 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	if errDag != nil {
 		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
 	}
-	
-	nonce := noncePool
-	if noncePool < nonceDag {
-		nonce = nonceDag
+	var nonce uint64
+	if errPool != nil && errDag != nil {
+		nonce = 0
+	} else {
+		nonce = noncePool
+		if noncePool < nonceDag {
+			nonce = nonceDag
+		}
+		nonce++
 	}
-	nonce++
 
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
 		math.NewBigInt(0), nonce, c.SampleAccounts[from].PrivateKey)

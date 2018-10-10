@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
+	"math/rand"
 )
 
 type TipGenerator interface {
@@ -129,9 +130,12 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 
 				var txs []types.Txi
 				if tx.GetType() == types.TxBaseTypeNormal {
-					txfromPool := m.TipGenerator.GetRandomTipsFromDag(1)
-					txfromDag := m.TipGenerator.GetRandomTipsFromPool(1)
-					txs = append(txfromPool, txfromDag...)
+					tx1 := m.TipGenerator.GetRandomTipsFromDag(1)
+					tx2 := m.TipGenerator.GetRandomTipsFromPool(1)
+					if rand.Intn(2) == 0 {
+						tx2 = m.TipGenerator.GetRandomTipsFromDag(1)
+					}
+					txs = append(tx1, tx2...)
 				} else {
 					txs = m.TipGenerator.GetRandomTipsFromPool(2)
 				}

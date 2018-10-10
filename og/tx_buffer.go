@@ -27,6 +27,7 @@ type ITxPool interface {
 	AddRemoteTx(tx types.Txi) error
 	RegisterOnNewTxReceived(c chan types.Txi)
 	GetLatestNonce(addr types.Address) (uint64, error)
+	IsDupicateErr(err error) bool
 }
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi

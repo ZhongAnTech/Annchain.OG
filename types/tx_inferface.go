@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/common/crypto/sha3"
+	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
 	"strings"
 )
@@ -57,6 +58,7 @@ type Txi interface {
 	GetBase() *TxBase
 	GetTxHash() Hash
 	GetNonce() uint64
+	GetValue() *math.BigInt
 	Sender() Address
 	SetHash(h Hash)
 	String() string

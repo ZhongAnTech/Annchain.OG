@@ -8,7 +8,7 @@ import (
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
+	// log "github.com/sirupsen/logrus"
 )
 
 type AccountFlows struct {
@@ -22,7 +22,7 @@ func NewAccountFlows() *AccountFlows {
 	}
 }
 
-func (a *AccountFlows) Add(tx *types.Tx) {
+func (a *AccountFlows) Add(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -86,10 +86,6 @@ func (a *AccountFlows) Confirm(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if tx.GetType() != types.TxBaseTypeNormal {
-		log.Warnf("tx type not normal tx when confirm")
-		return
-	}
 	flow := a.afs[tx.Sender()]
 	if flow == nil {
 		return
@@ -134,8 +130,8 @@ func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
 // Add new tx into account flow. This function should
 // 1. update account's balance state.
 // 2. add tx into nonce sorted txlist.
-func (af *AccountFlow) Add(tx *types.Tx) error {
-	err := af.balance.TrySubBalance(tx.Value)
+func (af *AccountFlow) Add(tx types.Txi) error {
+	err := af.balance.TrySubBalance(tx.GetValue())
 	if err != nil {
 		return err
 	}
@@ -150,7 +146,7 @@ func (af *AccountFlow) Confirm(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	err := af.balance.TryRemoveTx(tx.(*types.Tx))
+	err := af.balance.TryRemoveValue(tx.GetValue())
 	if err != nil {
 		return err
 	}
@@ -206,15 +202,15 @@ func (bs *BalanceState) TrySubBalance(value *math.BigInt) error {
 	return nil
 }
 
-// TryRemoveTx is called when remove a tx from pool. It reduce the total spent
+// TryRemoveValue is called when remove a tx from pool. It reduce the total spent
 // by the value of removed tx.
-func (bs *BalanceState) TryRemoveTx(tx *types.Tx) error {
+func (bs *BalanceState) TryRemoveValue(txValue *math.BigInt) error {
 	// check if (already spent < tx's value)
-	if bs.spent.Value.Cmp(tx.Value.Value) < 0 {
-		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), tx.Value.String())
+	if bs.spent.Value.Cmp(txValue.Value) < 0 {
+		return fmt.Errorf("tx's value is too much to remove, spent: %s, tx value: %s", bs.spent.String(), txValue.String())
 	}
-	bs.spent.Value.Sub(bs.spent.Value, tx.Value.Value)
-	bs.originBalance.Value.Sub(bs.originBalance.Value, tx.Value.Value)
+	bs.spent.Value.Sub(bs.spent.Value, txValue.Value)
+	bs.originBalance.Value.Sub(bs.originBalance.Value, txValue.Value)
 	return nil
 }
 

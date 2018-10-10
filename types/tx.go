@@ -77,6 +77,10 @@ func (t *Tx) Sender() Address {
 	return t.From
 }
 
+func (t *Tx) GetValue() *math.BigInt {
+	return t.Value
+}
+
 func (t *Tx) Parents() []Hash {
 	return t.ParentsHash
 }

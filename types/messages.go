@@ -28,19 +28,21 @@ type MessageNewTxs struct {
 	Txs []*Tx
 }
 
+//msgp:tuple MessageTxsRequest
 type MessageTxsRequest struct {
 	Hashes  []Hash
 	SeqHash *Hash
 	Id      uint64
 }
 
-//msgp:tuple MessageNewSyncTxsResponse
-type MessageNewSyncTxsResponse struct {
+//msgp:tuple MessageTxsResponse
+type MessageTxsResponse struct {
 	Txs       []*Tx
 	Sequencer *Sequencer
 }
 
 // getBlockHeadersData represents a block header query.
+//msgp:tuple MessageHeaderRequest
 type MessageHeaderRequest struct {
 	Origin  HashOrNumber // Block from which to retrieve headers
 	Amount  uint64       // Maximum number of headers to retrieve
@@ -49,16 +51,31 @@ type MessageHeaderRequest struct {
 }
 
 // hashOrNumber is a combined field for specifying an origin block.
+//msgp:tuple HashOrNumber
 type HashOrNumber struct {
 	Hash   Hash   // Block hash from which to retrieve headers (excludes Number)
 	Number uint64 // Block hash from which to retrieve headers (excludes Hash)
 }
 
+//msgp:tuple MessageHeader
 type MessageHeader struct {
 	Hash   Hash
 	Number uint64
 }
 
+//msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
 	Sequencers []*Sequencer
 }
+
+//msgp:tuple MessageBodiesRequest
+type MessageBodiesRequest struct {
+	SeqHashes []Hash
+}
+
+//msgp:tuple MessageBodiesResponse
+type MessageBodiesResponse struct {
+	Bodies []RawData
+}
+
+type RawData []byte

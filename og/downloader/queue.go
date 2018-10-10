@@ -739,7 +739,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 	// Short circuit if the data was never requested
 	request := pendPool[id]
 	if request == nil {
-		log.WithError(errNoFetchesPending).Warn("delevier")
+		log.WithError(errNoFetchesPending).Warn("deliver")
 		return 0, errNoFetchesPending
 	}
 	reqTimer.UpdateSince(request.Time)

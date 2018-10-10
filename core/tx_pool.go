@@ -195,7 +195,7 @@ func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi) {
 }
 
 // for OG visualizer
-func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
+func (pool *TxPool) GetRandomTipsFromDag(n int) (v []types.Txi) {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
@@ -212,6 +212,7 @@ func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	hashsP := pool.dag.GetTxsHashesByNumber(id)
 	if hashsP != nil {
 		hashs := *hashsP
+		hashs = append(hashs, latestSeq.GetTxHash())
 		for i := 0; i <= n; i++ { 
 			index := rand.Intn(len(hashs))
 			hash := hashs[index]
@@ -250,20 +251,20 @@ func generateRandomIndices(count int, upper int) []int {
 	return arr
 }
 
-// // GetRandomTips returns n tips randomly.
-// func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
-// 	pool.mu.RLock()
-// 	defer pool.mu.RUnlock()
+// GetRandomTips returns n tips randomly.
+func (pool *TxPool) GetRandomTipsFromPool(n int) (v []types.Txi) {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 
-// 	// select n random hashes
-// 	values := pool.tips.GetAllValues()
-// 	indices := generateRandomIndices(n, len(values))
+	// select n random hashes
+	values := pool.tips.GetAllValues()
+	indices := generateRandomIndices(n, len(values))
 
-// 	for _, i := range indices {
-// 		v = append(v, values[i])
-// 	}
-// 	return v
-// }
+	for _, i := range indices {
+		v = append(v, values[i])
+	}
+	return v
+}
 
 // GetAllTips returns all the tips in TxPool.
 func (pool *TxPool) GetAllTips() map[types.Hash]types.Txi {

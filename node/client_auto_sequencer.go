@@ -36,20 +36,26 @@ func (c *ClientAutoSequencer) GenerateRequest() {
 	c.currentID++
 
 	addr := c.SampleAccounts[0].Address
-	nonce, err := c.TxPool.GetLatestNonce(addr)
-	if err != nil {
-		logrus.WithError(err).WithField("addr", addr.String()).Debug("txpool nonce not found")
-		nonce, err = c.Dag.GetLatestNonce(addr)
-		if err != nil {
-			logrus.WithField("addr", addr.String()).Warn("New address with no previous nonce found")
-			nonce = 0
-		} else {
-			nonce++
-		}
+
+	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
+	if errPool != nil {
+		logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
+	}
+	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
+	if errDag != nil {
+		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
+	}
+	var nonce uint64
+	if errPool != nil && errDag != nil {
+		nonce = 0
 	} else {
+		nonce = noncePool
+		if noncePool < nonceDag {
+			nonce = nonceDag
+		}
 		nonce++
 	}
-
+	
 	seq := c.TxCreator.NewSignedSequencer(addr, c.currentID, []types.Hash{}, nonce, c.PrivateKey)
 	if ok := c.TxCreator.SealTx(seq); !ok {
 		logrus.Warn("clientAutoSequencer Failed to seal tx")

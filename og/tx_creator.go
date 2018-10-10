@@ -10,7 +10,8 @@ import (
 )
 
 type TipGenerator interface {
-	GetRandomTips(n int) (v []types.Txi)
+	GetRandomTipsFromPool(n int) (v []types.Txi)
+	GetRandomTipsFromDag(n int) (v []types.Txi)
 }
 
 // TxCreator creates tx and do the signing and mining
@@ -125,7 +126,15 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
 				connectionTries++
-				txs := m.TipGenerator.GetRandomTips(2)
+
+				var txs []types.Txi
+				if tx.GetType() == types.TxBaseTypeNormal {
+					txfromPool := m.TipGenerator.GetRandomTipsFromDag(1)
+					txfromDag := m.TipGenerator.GetRandomTipsFromPool(1)
+					txs = append(txfromPool, txfromDag...)
+				} else {
+					txs = m.TipGenerator.GetRandomTipsFromPool(2)
+				}
 
 				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
 				if len(txs) == 0 {

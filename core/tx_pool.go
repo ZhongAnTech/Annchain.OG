@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	ErrDupilcate = errors.New("Duplicate tx found in txlookup")
+	ErrDuplicate = errors.New("Duplicate tx found in txlookup")
 )
 
 type TxStatus int
@@ -308,7 +308,7 @@ func (pool *TxPool) loop() {
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				err = ErrDupilcate
+				err = ErrDuplicate
 				txEvent.callbackChan <- err
 				continue
 			}
@@ -503,7 +503,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 
 	pool.flows.Add(seq)
-
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
@@ -592,7 +591,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			return nil, nErr
 		}
 	}
-	//reverse the txhashes to keeep partial order , accelerate processing speed
+	//reverse the txhashes to keep partial order , accelerate processing speed
 	n := len(txhashes)
 	for i := 0; i < n/2; i++ {
 		txhashes[i], txhashes[n-1-i] = txhashes[n-i-1], txhashes[i]
@@ -819,9 +818,4 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
 	}
-}
-
-
-func ( pool *TxPool)IsDupicateErr(err error) bool {
-	return err == ErrDupilcate
 }

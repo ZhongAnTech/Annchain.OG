@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
@@ -45,7 +44,7 @@ type Hub struct {
 
 	wg sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
 
-	Dag          *core.Dag
+	Dag          IDag
 	messageCache gcache.Cache // cache for duplicate responses/msg to prevent storm
 
 	maxPeers    int
@@ -109,7 +108,7 @@ func DefaultHubConfig() HubConfig {
 	return config
 }
 
-func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
+func (h *Hub) Init(config *HubConfig, dag IDag) {
 
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
@@ -133,7 +132,7 @@ func (h *Hub) Init(config *HubConfig, dag *core.Dag) {
 	}
 }
 
-func NewHub(config *HubConfig, mode downloader.SyncMode, dag *core.Dag) *Hub {
+func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
 	h := &Hub{}
 	h.Init(config, dag)
 	// Figure out whether to allow fast sync or not
@@ -719,7 +718,7 @@ func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
 		p2pMsg.calculateHash()
 	}
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
-	log.WithField("type", messageType).Info("sending message")
+	log.WithField("type", messageType).Debug("sending message")
 	h.outgoing <- msgOut
 }
 

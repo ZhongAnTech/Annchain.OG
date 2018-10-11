@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/rifflock/lfshook"
 	"os"
 	"runtime/debug"
 
@@ -66,11 +67,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("log_stdout", "s", false, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().StringP("log_level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "log_line_number")
+	rootCmd.PersistentFlags().BoolP("multifile_by_level", "m", false, "multifile_by_level")
 
 	viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
 	viper.BindPFlag("log_line_number", rootCmd.PersistentFlags().Lookup("log_line_number"))
+	viper.BindPFlag("multifile_by_level", rootCmd.PersistentFlags().Lookup("multifile_by_level"))
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log_level"))
 
@@ -165,6 +168,28 @@ func initLogger() {
 		filenameHook := filename.NewHook()
 		filenameHook.Field = "line"
 		logrus.AddHook(filenameHook)
+	}
+	multifile := viper.GetBool("multifile_by_level")
+
+	if multifile && logdir != "" {
+		panicLog, _ := filepath.Abs(path.Join(logdir, "panic.log"))
+		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal.log"))
+		warnLog, _ := filepath.Abs(path.Join(logdir, "warn.log"))
+		errorLog, _ := filepath.Abs(path.Join(logdir, "error.log"))
+		infoLog, _ := filepath.Abs(path.Join(logdir, "info.log"))
+		debugLog, _ := filepath.Abs(path.Join(logdir, "debug.log"))
+		pathMap := lfshook.PathMap{
+			logrus.PanicLevel: panicLog,
+			logrus.FatalLevel: fatalLog,
+			logrus.WarnLevel:  warnLog,
+			logrus.ErrorLevel: errorLog,
+			logrus.InfoLevel:  infoLog,
+			logrus.DebugLevel: debugLog,
+		}
+		logrus.AddHook(lfshook.NewHook(
+			pathMap,
+			Formatter,
+		))
 	}
 
 	logrus.Debug("Logger initialized.")

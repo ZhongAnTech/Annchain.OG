@@ -77,7 +77,7 @@ func TestBalanceState(t *testing.T) {
 		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue, spent)
 	}
 
-	// test TryRemoveTx
+	// test TryRemoveValue
 	tx0value := int64(1000)
 	tx1value := int64(2000)
 	tx2value := int64(3000)
@@ -85,25 +85,25 @@ func TestBalanceState(t *testing.T) {
 	tx1 := newTestAccountFlowTx(1, math.NewBigInt(tx1value))
 	tx2 := newTestAccountFlowTx(2, math.NewBigInt(tx2value))
 
-	err = bs.TryRemoveTx(tx0)
+	err = bs.TryRemoveValue(tx0.GetValue())
 	if err != nil {
-		t.Fatalf("TryRemoveTx tx0 error: %v", err)
+		t.Fatalf("TryRemoveValue tx0 error: %v", err)
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value) {
 		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value, spent)
 	}
-	err = bs.TryRemoveTx(tx1)
+	err = bs.TryRemoveValue(tx1.GetValue())
 	if err != nil {
-		t.Fatalf("TryRemoveTx tx1 error: %v", err)
+		t.Fatalf("TryRemoveValue tx1 error: %v", err)
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value - tx1value) {
 		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value-tx1value, spent)
 	}
-	err = bs.TryRemoveTx(tx2)
+	err = bs.TryRemoveValue(tx2.GetValue())
 	if err != nil {
-		t.Fatalf("TryRemoveTx tx2 error: %v", err)
+		t.Fatalf("TryRemoveValue tx2 error: %v", err)
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != (fstValue - tx0value - tx1value - tx2value) {
@@ -117,7 +117,8 @@ func TestAccountFlow(t *testing.T) {
 
 	var err error
 
-	originBalance := math.NewBigInt(100000)
+	balancevalue := int64(100000)
+	originBalance := math.NewBigInt(balancevalue)
 	af := core.NewAccountFlow(originBalance)
 
 	tx0value := int64(1000)
@@ -169,7 +170,9 @@ func TestAccountFlow(t *testing.T) {
 	// if err != nil {
 	// 	t.Fatalf("confirm tx0 err: %v", err)
 	// }
-	// spent
+	// spent = af.BalanceState().Spent()
+	// if spent.Value.Cmp()
+
 
 
 

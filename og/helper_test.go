@@ -38,6 +38,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	hubConf := DefaultHubConfig()
 	hubConf.NetworkId = testNetworkId //for test
 	hub := NewHub(&hubConf, mode, dag)
+	/*
 	syncConf := DefaultSyncerConfig()
 	syncer := NewSyncer(&syncConf, hub)
 	verfier := &Verifier{
@@ -49,18 +50,36 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 		MaxMinedHash: types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 	}
 
-	bufConf := DefaultTxBufferConfig(syncer, txPool, dag, verfier)
-	txBuffer := NewTxBuffer(bufConf)
-	txBuffer.Hub = hub
+	//bufConf := DefaultTxBufferConfig(syncer, txPool, dag, verfier)
+	//txBuffer := NewTxBuffer(bufConf)
+	//txBuffer.Hub = hub
 	//hub.TxBuffer = txBuffer
 
-	dag.Start()
-	txPool.Start()
-	syncer.Start()
+	//dag.Start()
+	//txPool.Start()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	//syncer.Start()
 	txBuffer.Start()
-	hub.Start()
+	*/
+	if hub!=nil {
+		hub.Start()
+	}
 	return hub, db, nil
 }
+
 
 // testPeer is a simulated peer to allow testing direct network calls.
 type testPeer struct {

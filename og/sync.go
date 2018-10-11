@@ -177,6 +177,17 @@ func (h *Hub) synchronise(peer *peer) {
 	if seqId >= pSeqid {
 		return
 	}
+	//in a case that if our height will catch up very soon ,don't sync ,just wait
+	//maybe we received a sequencer and did't finish process
+	if seqId == pSeqid -1 {
+		time.Sleep(time.Millisecond*200)
+		currentBlock = h.Dag.LatestSequencer()
+		seqId = currentBlock.Number()
+		pHead, pSeqid = peer.Head()
+		if seqId >= pSeqid {
+			return
+		}
+	}
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
 	if atomic.LoadUint32(&h.fastSync) == 1 {

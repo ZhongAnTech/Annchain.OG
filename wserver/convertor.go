@@ -37,11 +37,12 @@ type Edge struct {
 }
 
 type UIData struct {
+	Type  string `json:"type"`
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
 }
 
-func (u *UIData) AddToBatch(tx types.Txi) {
+func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
@@ -60,12 +61,16 @@ func (u *UIData) AddToBatch(tx types.Txi) {
 	}
 
 	u.Nodes = append(u.Nodes, node)
-	for _, parent := range tx.Parents() {
-		edge := Edge{
-			Id:     tx.String() + "_" + parent.String(),
-			Source: tx.GetTxHash().Hex(),
-			Target: parent.Hex(),
+
+	if includingEdge {
+		for _, parent := range tx.Parents() {
+			edge := Edge{
+				Id:     tx.String() + "_" + parent.String(),
+				Source: tx.GetTxHash().Hex(),
+				Target: parent.Hex(),
+			}
+			u.Edges = append(u.Edges, edge)
 		}
-		u.Edges = append(u.Edges, edge)
 	}
+
 }

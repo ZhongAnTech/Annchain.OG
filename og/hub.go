@@ -195,7 +195,7 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
 			return nil
 		}
 		atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done on any fetcher import
-		log.Warn("maybe some proble here")
+		log.Warn("maybe some problems here")
 		h.TxBuffer.AddTx(tx)
 		return nil
 	}
@@ -735,7 +735,7 @@ func (h *Hub) sendMessage(msg *P2PMessage) {
 	}
 	return
 	// DUMMY: Send to me
-	//h.incoming <- msg
+	// h.incoming <- msg
 }
 
 func (h *Hub) receiveMessage(msg *P2PMessage) {

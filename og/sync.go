@@ -142,7 +142,6 @@ func (h *Hub) syncer() {
 	for {
 		select {
 		case <-h.newPeerCh:
-
 			// Make sure we have peers to select from, then sync
 			if h.peers.Len() < minDesiredPeerCount {
 				break

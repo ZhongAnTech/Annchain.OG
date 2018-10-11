@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 )
 
+var MaxBufferSiza = 4096 * 16
+
 type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
 	Seq        *types.Sequencer
@@ -17,19 +19,35 @@ type SyncBuffer struct {
 	txBuffer   ITxBuffer
 	acceptTxs  uint32
 	quitHandel bool
+	verifier   IVerifier
 }
 
 type SyncBufferConfig struct {
 	TxPool   ITxPool
 	TxBuffer ITxBuffer
+	Verifier IVerifier
 }
 
-func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer, verifier IVerifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:   txPool,
 		TxBuffer: txBuffer,
+		Verifier: verifier,
 	}
 	return config
+}
+func (s *SyncBuffer) Name() string {
+	return "SyncBuffer"
+}
+
+func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
+	s := &SyncBuffer{
+		Txs:      make(map[types.Hash]types.Txi),
+		txPool:   config.TxPool,
+		txBuffer: config.TxBuffer,
+		verifier: config.Verifier,
+	}
+	return s
 }
 
 func (s *SyncBuffer) Start() {
@@ -86,21 +104,6 @@ func (s *SyncBuffer) AddTxs(txs []types.Txi, seq *types.Sequencer) error {
 	return nil
 }
 
-func (s *SyncBuffer) Name() string {
-	return "SyncBuffer"
-}
-
-var MaxBufferSiza = 4096 * 4
-
-func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
-	s := &SyncBuffer{
-		Txs:      make(map[types.Hash]types.Txi),
-		txPool:   config.TxPool,
-		txBuffer: config.TxBuffer,
-	}
-	return s
-}
-
 func (s *SyncBuffer) Count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -153,18 +156,30 @@ func (s *SyncBuffer) Handle() error {
 
 	for _, tx := range s.Txs {
 		// temporary commit for testing
-		//todo
+		// TODO: Temporarily comment it out to test performance.
 		/*
-			     	err =  s.txBuffer.verifyTxFormat(tx)
-			     	if err!=nil {
-						break
-					}
+		if !s.verifier.VerifyHash(tx) {
+			err = errors.New("hash is not valid")
+			break
+		}
+		if !s.verifier.VerifySignature(tx) {
+			err = errors.New("signature is not valid")
+			break
+		}
+		*/
+		//todo uncommit later , need sort tx for verify graph order
+		/*
+		if !s.verifier.VerifyGraphOrder(tx) {
+			log.WithField("tx", tx).Warn("bad graph tx")
+			err = errors.New("bad graph tx")
+			break
+		}
 		*/
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
-			//already got
-			if  s.txPool.IsDupicateErr(err) {
-			 	continue
+			//this trasaction received by brodcast ,so don't return err
+			if err == types.ErrDuplicateTx {
+				continue
 			} else {
 				break
 			}

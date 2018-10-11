@@ -2,7 +2,6 @@ package core
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -30,9 +29,6 @@ const (
 	TxStatusPending
 )
 
-var (
-	ErrDupilcate = errors.New("Duplicate tx found in txlookup")
-)
 
 type TxStatus int
 
@@ -308,7 +304,7 @@ func (pool *TxPool) loop() {
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				err = ErrDupilcate
+				err = types.ErrDuplicateTx
 				txEvent.callbackChan <- err
 				continue
 			}
@@ -819,9 +815,4 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
 	}
-}
-
-
-func ( pool *TxPool)IsDupicateErr(err error) bool {
-	return err == ErrDupilcate
 }

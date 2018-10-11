@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"github.com/annchain/OG/common/math"
+	"math/rand"
 )
 
 //go:generate msgp

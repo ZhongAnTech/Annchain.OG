@@ -158,27 +158,28 @@ func (s *SyncBuffer) Handle() error {
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
 		/*
-		if !s.verifier.VerifyHash(tx) {
-			err = errors.New("hash is not valid")
-			break
-		}
-		if !s.verifier.VerifySignature(tx) {
-			err = errors.New("signature is not valid")
-			break
-		}
+			if !s.verifier.VerifyHash(tx) {
+				err = errors.New("hash is not valid")
+				break
+			}
+			if !s.verifier.VerifySignature(tx) {
+				err = errors.New("signature is not valid")
+				break
+			}
 		*/
 		//todo uncommit later , need sort tx for verify graph order
 		/*
-		if !s.verifier.VerifyGraphOrder(tx) {
-			log.WithField("tx", tx).Warn("bad graph tx")
-			err = errors.New("bad graph tx")
-			break
-		}
+			if !s.verifier.VerifyGraphOrder(tx) {
+				log.WithField("tx", tx).Warn("bad graph tx")
+				err = errors.New("bad graph tx")
+				break
+			}
 		*/
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
 			//this trasaction received by brodcast ,so don't return err
 			if err == types.ErrDuplicateTx {
+				err = nil
 				continue
 			} else {
 				break

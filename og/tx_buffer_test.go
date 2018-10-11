@@ -18,7 +18,27 @@ func (d *dummyDag) GetSequencerById(id uint64) *types.Sequencer {
 	return nil
 }
 
+func (d *dummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+	return nil
+}
+
 func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	return nil
+}
+
+func (d *dummyDag) GetTxsByNumber(id uint64) []*types.Tx {
+	return nil
+}
+
+func (d *dummyDag) LatestSequencer() *types.Sequencer {
+	return nil
+}
+
+func (d *dummyDag) GetSequencer(hash types.Hash, id uint64) *types.Sequencer {
+	return nil
+}
+
+func (d *dummyDag) Genesis() *types.Sequencer {
 	return nil
 }
 
@@ -117,7 +137,8 @@ func setup() *TxBuffer {
 		KnownCacheMaxSize:                10000,
 		KnownCacheExpirationSeconds:      30,
 	})
-
+	hubCOnfig := DefaultHubConfig()
+	buffer.Hub = NewHub(&hubCOnfig, 0, buffer.dag)
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
 	buffer.syncer.(*dummySyncer).buffer = buffer
 	buffer.syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
@@ -222,4 +243,19 @@ func TestBufferCache(t *testing.T) {
 	}
 	buffer.Stop()
 	assert.Equal(t, success, true)
+}
+
+func TestLocalHash(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	buffer := setup()
+	tx2 := sampleTx("0x02", []string{"0x00"})
+	tx3 := sampleTx("0x03", []string{"0x00"})
+	buffer.txPool.AddRemoteTx(tx2)
+	if !buffer.isLocalHash(tx2.GetTxHash()) {
+		t.Fatal("is localhash")
+	}
+	if buffer.isLocalHash(tx3.GetTxHash()) {
+		t.Fatal("is not localhash")
+	}
 }

@@ -169,6 +169,12 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
 }
 
+// GetHashOrder returns a hash list of txs in pool, ordered by the
+// time that txs added into pool.
+func (pool *TxPool) GetHashOrder() []types.Hash {
+	return pool.txLookup.GetOrder()
+}
+
 // GetByNonce get a tx or sequencer from account flows by sender's address and tx's nonce.
 func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
 	pool.mu.RLock()
@@ -541,7 +547,6 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation term.
 	// sums up the related address' income and outcome values
-	var txhashes types.Hashs
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
 		switch tx := txi.(type) {
@@ -568,9 +573,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
-			txhashes = append(txhashes, tx.GetTxHash())
 		}
 	}
+	// verify balance and nonce
 	for addr, batchDetail := range batch {
 		// check balance
 		// if balance < outcome, then verify failed
@@ -587,10 +592,17 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			return nil, nErr
 		}
 	}
-	//reverse the txhashes to keep partial order , accelerate processing speed
-	n := len(txhashes)
-	for i := 0; i < n/2; i++ {
-		txhashes[i], txhashes[n-1-i] = txhashes[n-i-1], txhashes[i]
+
+	// construct tx hashes
+	var txhashes types.Hashs
+	for _, hash := range pool.GetHashOrder() {
+		elder, in := elders[hash]
+		if !in {
+			continue
+		}
+		if elder.GetType() == types.TxBaseTypeNormal {
+			txhashes = append(txhashes, hash)
+		}
 	}
 
 	cb := &ConfirmBatch{}
@@ -711,13 +723,15 @@ func (tm *TxMap) Add(tx types.Txi) {
 }
 
 type txLookUp struct {
-	txs map[types.Hash]*txEnvelope
-	mu  sync.RWMutex
+	order	[]types.Hash
+	txs		map[types.Hash]*txEnvelope
+	mu		sync.RWMutex
 }
 
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		txs: make(map[types.Hash]*txEnvelope),
+		order:	[]types.Hash{},
+		txs: 	make(map[types.Hash]*txEnvelope),
 	}
 }
 
@@ -743,6 +757,7 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.add(txEnv)
 }
 func (t *txLookUp) add(txEnv *txEnvelope) {
+	t.order = append(t.order, txEnv.tx.GetTxHash())
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
 }
 
@@ -754,7 +769,24 @@ func (t *txLookUp) Remove(h types.Hash) {
 	t.remove(h)
 }
 func (t *txLookUp) remove(h types.Hash) {
+	for i, hash := range t.order {
+		if hash.Cmp(h) == 0 {
+			t.order = append(t.order[:i], t.order[i+1:]...)
+		}
+	}
 	delete(t.txs, h)
+}
+
+// Order returns hash list of txs in pool, ordered by the time 
+// it added into pool. 
+func (t *txLookUp) GetOrder() []types.Hash {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.getorder()
+}
+func (t *txLookUp) getorder() []types.Hash {
+	return t.order
 }
 
 // Count returns the total number of txs in txLookUp

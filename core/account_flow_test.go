@@ -171,8 +171,8 @@ func TestAccountFlow(t *testing.T) {
 		t.Fatalf("confirm tx0 err: %v", err)
 	}
 	spent = af.BalanceState().Spent()
-	if spent.Value.Cmp(math.NewBigInt(tx1value + tx2value).Value) != 0 {
-		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value + tx2value, spent.GetInt64())
+	if spent.Value.Cmp(math.NewBigInt(tx1value+tx2value).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value+tx2value, spent.GetInt64())
 	}
 
 	err = af.Confirm(tx1.GetNonce())

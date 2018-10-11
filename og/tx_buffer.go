@@ -32,6 +32,11 @@ type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
 	GetSequencerById(id uint64) *types.Sequencer
+	GetTxsByNumber(id uint64) []*types.Tx
+	LatestSequencer() *types.Sequencer
+	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
+	Genesis() *types.Sequencer
+	GetSequencerByHash(hash types.Hash) *types.Sequencer
 }
 type IVerifier interface {
 	VerifyHash(t types.Txi) bool
@@ -296,22 +301,23 @@ func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
 }
 
 // isLocalHash tests if the tx is already known by buffer.
-// tx that has already known by buffer should not be broadcasted more.
+// tx that has already known by buffer should not be broadcasted  more.
 func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
+	//just get once
+	var poolTx, dagTx types.Txi
+	ok := false
+	if poolTx = b.txPool.Get(hash); poolTx != nil {
+		ok = true
+	} else if dagTx = b.dag.GetTx(hash); dagTx != nil {
+		ok = true
+	}
 	logrus.WithFields(logrus.Fields{
-		"Txpool": b.txPool.Get(hash),
-		"DAG":    b.dag.GetTx(hash),
+		"Txpool": poolTx,
+		"DAG":    dagTx,
 		"Hash":   hash,
 		//"Buffer": b.GetFromBuffer(hash),
-	}).Info("transaction location")
-
-	if b.txPool.Get(hash) != nil {
-		return true
-	}
-	if b.dag.GetTx(hash) != nil {
-		return true
-	}
-	return false
+	}).Debug("transaction location")
+	return ok
 }
 
 // isKnownHash tests if the tx is already copied in local

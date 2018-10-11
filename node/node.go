@@ -58,7 +58,7 @@ func NewNode() *Node {
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
 		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
-		EnableSync:enableSync,
+		EnableSync:                    enableSync,
 	}, downloader.FullSync, org.Dag)
 
 	syncer := og.NewSyncer(&og.SyncerConfig{

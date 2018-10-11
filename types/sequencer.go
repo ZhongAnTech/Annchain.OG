@@ -98,3 +98,7 @@ func (t *Sequencer) Compare(tx Txi) bool {
 func (t *Sequencer) GetBase() *TxBase {
 	return &t.TxBase
 }
+
+func (t *Sequencer) GetHead() *SequencerHeader {
+	return NewSequencerHead(t.GetTxHash(), t.Id)
+}

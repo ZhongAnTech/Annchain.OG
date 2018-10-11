@@ -224,7 +224,7 @@ func (p *peer) RequestReceipts(hashes types.Hashs) error {
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the hash of an origin block.
 func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
-	log.WithField("hash ",seqHash).WithField("id ",seqId).Debug("Fetching bodies ( txs) by hash")
+	log.WithField("hash ", seqHash).WithField("id ", seqId).Debug("Fetching bodies ( txs) by hash")
 	hash := seqHash
 	msg := types.MessageTxsRequest{
 		SeqHash: &hash,
@@ -235,12 +235,21 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 }
 
 func (p *peer) RequestTxs(hashs []types.Hash) error {
-	log.WithField("count ",len(hashs)).Debug("Fetching bodies ( txs)")
+	log.WithField("count ", len(hashs)).Debug("Fetching txs ( txs)")
 	msg := types.MessageTxsRequest{
 		Hashes: hashs,
 	}
 	b, _ := msg.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+}
+
+func (p *peer) RequestBodies(seqHashs []types.Hash) error {
+	log.WithField(" seq count ", len(seqHashs)).Debug("Fetching bodies ( txs)")
+	msg := types.MessageBodiesRequest{
+		SeqHashes: seqHashs,
+	}
+	b, _ := msg.MarshalMsg(nil)
+	return p2p.Send(p.rw, uint64(MessageTypeBodiesRequest), b)
 }
 
 func (p *peer) RequestOneHeader(hash types.Hash) error {

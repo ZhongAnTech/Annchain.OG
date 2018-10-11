@@ -174,8 +174,6 @@ func TestAccountFlow(t *testing.T) {
 	// if spent.Value.Cmp()
 
 
-
-
 }
 
 // func TestNonceHeap(t *testing.T) {

@@ -110,6 +110,7 @@ func NewNode() *Node {
 	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
 		TxBuffer: txBuffer,
 		TxPool:   org.Txpool,
+		Verifier:verifier,
 	})
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)

@@ -795,8 +795,9 @@ func (d *Downloader) fetchBodies(from uint64) error {
 
 	var (
 		deliver = func(packet dataPack) (int, error) {
+
 			pack := packet.(*bodyPack)
-			return d.queue.DeliverBodies(pack.peerID, pack.transactions, pack.sequencer)
+			return d.queue.DeliverBodies(pack.peerID, pack.transactions, pack.sequencers)
 		}
 		expire   = func() map[string]int { return d.queue.ExpireBodies(d.requestTTL()) }
 		fetch    = func(p *peerConnection, req *fetchRequest) error { return p.FetchBodies(req) }
@@ -1125,11 +1126,11 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	first, last := results[0].Header, results[len(results)-1].Header
 
 	log.WithField("items", len(results)).WithField("firstnum", first.SequencerId()).WithField(
-		"firsthash", first.Hash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.Hash()).WithField(
-		"len txs", len(results[0].Transactions)).WithField("seq", results[0].Sequencer).Debug(
+		"firsthash", first.Hash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.Hash()).Debug(
 		"Inserting downloaded txs")
 
 	for _, result := range results {
+		log.WithField("len txs", len(results[0].Transactions)).WithField("seq", results[0].Sequencer).Debug("Inserting downloaded txs")
 		//todo  fix this
 		err := d.insertTxs(result.Transactions, result.Sequencer)
 		if err != nil {
@@ -1202,8 +1203,8 @@ func (d *Downloader) DeliverHeaders(id string, headers []*types.SequencerHeader)
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Tx, uncles [][]*types.SequencerHeader, seq *types.Sequencer) (err error) {
-	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, seq}, bodyInMeter, bodyDropMeter)
+func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Tx, sequencers []*types.Sequencer) (err error) {
+	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, sequencers}, bodyInMeter, bodyDropMeter)
 }
 
 // DeliverNodeData injects a new batch of node state data received from a remote node.

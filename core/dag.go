@@ -438,5 +438,3 @@ func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
 func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
 	return dag.accessor.HasAddrLatestNonce(addr)
 }
-
-

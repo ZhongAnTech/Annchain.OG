@@ -30,7 +30,7 @@ type SequenceRequester interface {
 	GenerateRequest()
 }
 
-func cors(c *gin.Context){
+func cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 }
 

@@ -69,4 +69,3 @@ func (u *UIData) AddToBatch(tx types.Txi) {
 		u.Edges = append(u.Edges, edge)
 	}
 }
-

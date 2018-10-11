@@ -21,7 +21,7 @@ var ProtocolName = "og"
 var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 12}
+var ProtocolLengths = []uint64{17, 14}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -39,15 +39,13 @@ const (
 	MessageTypeNewSequence
 	MessageTypeNewTxs
 
-	//GetBlockHeadersMsg
-	//BlockHeadersMsg
-	//GetBlockBodiesMsg
-	//BlockBodiesMsg
+	MessageTypeBodiesRequest
+	MessageTypeBodiesResponse
 
 	MessageTypeTxsRequest
-	MessageTypeGetTxs
+	MessageTypeTxsResponse
 	MessageTypeHeaderRequest
-	MessageTypeGetHeader
+	MessageTypeHeaderResponse
 
 	// Protocol messages belonging to OG/32
 
@@ -59,8 +57,9 @@ const (
 func (mt MessageType) String() string {
 	return []string{
 		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
-		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs", "MessageTypeTxsRequest",
-		"MessageTypeGetTxs", "MessageTypeHeaderRequest", "MessageTypeGetHeader",
+		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs",
+		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
+		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
 		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
 	}[int(mt)]
 }
@@ -130,6 +129,6 @@ type StatusData struct {
 }
 
 func (s *StatusData) String() string {
-	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %s",
+	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %d",
 		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
 }

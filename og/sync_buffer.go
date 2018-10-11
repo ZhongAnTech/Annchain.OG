@@ -162,7 +162,12 @@ func (s *SyncBuffer) Handle() error {
 		*/
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
-			break
+			//already got
+			if  s.txPool.IsDupicateErr(err) {
+			 	continue
+			} else {
+				break
+			}
 		}
 	}
 	if err == nil {

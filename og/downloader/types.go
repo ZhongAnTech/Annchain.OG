@@ -28,14 +28,22 @@ func (p *headerPack) Items() int     { return len(p.headers) }
 func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) }
 
 // bodyPack is a batch of block bodies returned by a peer.
+//sequencer[i] includes txs transactions[i]
 type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Tx
-	sequencer    *types.Sequencer
+	//sequencer    *types.Sequencer
+	sequencers []*types.Sequencer
 }
 
+/*
 func (p *bodyPack) Sequencer() *types.Sequencer {
 	return p.sequencer
+}
+*/
+
+func (p *bodyPack) Sequencers() []*types.Sequencer {
+	return p.sequencers
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }

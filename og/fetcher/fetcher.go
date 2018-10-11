@@ -85,7 +85,7 @@ type headerFilterTask struct {
 type bodyFilterTask struct {
 	peer         string        // The source peer of sequencer bodies
 	transactions [][]*types.Tx // Collection of transactions per sequencer bodies
-	seqeuencer   *types.Sequencer
+	sequencers   []*types.Sequencer
 	time         time.Time // Arrival time of the sequencers' contents
 }
 
@@ -236,8 +236,8 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, t
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, seq *types.Sequencer, time time.Time) [][]*types.Tx {
-	log.WithField("txs", len(transactions)).WithField("peer", peer).Debug("Filtering bodies")
+func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers []*types.Sequencer, time time.Time) [][]*types.Tx {
+	log.WithField("txs", len(transactions)).WithField("sequencers ", len(sequencers)).WithField("peer", peer).Debug("Filtering bodies")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
@@ -249,7 +249,7 @@ func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, seq *typ
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, seqeuencer: seq, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, sequencers: sequencers, time: time}:
 	case <-f.quit:
 		return nil
 	}

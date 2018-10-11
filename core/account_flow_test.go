@@ -142,15 +142,15 @@ func TestAccountFlow(t *testing.T) {
 		t.Fatalf("can't add tx2 into account flow, err: %v", err)
 	}
 	tx0inAccountFlow := af.GetTx(tx0.GetNonce())
-	if tx0inAccountFlow != nil {
+	if tx0inAccountFlow == nil {
 		t.Fatalf("can't get tx0 from account flow after add")
 	}
 	tx1inAccountFlow := af.GetTx(tx1.GetNonce())
-	if tx1inAccountFlow != nil {
+	if tx1inAccountFlow == nil {
 		t.Fatalf("can't get tx1 from account flow after add")
 	}
 	tx2inAccountFlow := af.GetTx(tx2.GetNonce())
-	if tx2inAccountFlow != nil {
+	if tx2inAccountFlow == nil {
 		t.Fatalf("can't get tx2 from account flow after add")
 	}
 
@@ -164,15 +164,34 @@ func TestAccountFlow(t *testing.T) {
 	}
 
 	// test confirm
-	// spent := af.BalanceState().Spent()
+	spent := af.BalanceState().Spent()
 
-	// err = af.Confirm(tx0.GetNonce())
-	// if err != nil {
-	// 	t.Fatalf("confirm tx0 err: %v", err)
-	// }
-	// spent = af.BalanceState().Spent()
-	// if spent.Value.Cmp()
+	err = af.Confirm(tx0.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx0 err: %v", err)
+	}
+	spent = af.BalanceState().Spent()
+	if spent.Value.Cmp(math.NewBigInt(tx1value + tx2value).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value + tx2value, spent.GetInt64())
+	}
 
+	err = af.Confirm(tx1.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx1 err: %v", err)
+	}
+	spent = af.BalanceState().Spent()
+	if spent.Value.Cmp(math.NewBigInt(tx2value).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx1, expect: %d, get %d", tx2value, spent.GetInt64())
+	}
+
+	err = af.Confirm(tx2.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx2 err: %v", err)
+	}
+	spent = af.BalanceState().Spent()
+	if spent.Value.Cmp(math.NewBigInt(0).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx2, expect: %d, get %d", 0, spent.GetInt64())
+	}
 
 }
 

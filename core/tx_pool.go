@@ -730,7 +730,8 @@ type txLookUp struct {
 
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		txs: make(map[types.Hash]*txEnvelope),
+		order:	[]types.Hash{},
+		txs: 	make(map[types.Hash]*txEnvelope),
 	}
 }
 

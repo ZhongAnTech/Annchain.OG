@@ -2,7 +2,6 @@ package core
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -28,10 +27,6 @@ const (
 	TxStatusTip
 	TxStatusBadTx
 	TxStatusPending
-)
-
-var (
-	ErrDuplicate = errors.New("Duplicate tx found in txlookup")
 )
 
 type TxStatus int
@@ -308,7 +303,7 @@ func (pool *TxPool) loop() {
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				err = ErrDuplicate
+				err = types.ErrDuplicateTx
 				txEvent.callbackChan <- err
 				continue
 			}
@@ -394,7 +389,8 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	for _, pHash := range tx.Parents() {
 		status := pool.GetStatus(pHash)
 		if status != TxStatusTip {
-			log.WithField("parent", pHash).WithField("tx", tx).Debugf("parent is not a tip")
+			log.WithField("parent", pHash).WithField("tx", tx).
+				Debugf("parent is not a tip")
 			continue
 		}
 		parent := pool.tips.Get(pHash)

@@ -31,7 +31,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)
 	}
-	txConf := core.DefaultTxPoolCOnfig()
+	txConf := core.DefaultTxPoolConfig()
 	txPool := core.NewTxPool(txConf, dag)
 	txPool.Init(genesis)
 

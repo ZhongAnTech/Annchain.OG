@@ -196,7 +196,7 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 			return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
 		}
 	}
-	if tx.GetNonce() > curnonce {
+	if (tx.GetNonce() > curnonce) || ((tx.GetNonce()==uint64(0)) && !has) {
 		// write nonce if curnonce is larger then origin one
 		data = []byte(strconv.FormatUint(tx.GetNonce(), 10))
 		if err = da.db.Put(addrLatestNonceKey(tx.Sender()), data); err != nil {

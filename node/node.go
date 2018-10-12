@@ -15,6 +15,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
+	"strconv"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -94,10 +95,10 @@ func NewNode() *Node {
 	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifier:                         verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -158,8 +159,8 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:    org.Dag,
-		TxPool: org.Txpool,
+		Dag:                   org.Dag,
+		TxPool:                org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -171,9 +172,10 @@ func NewNode() *Node {
 		TxBuffer:               m.TxBuffer,
 		PrivateKey:             privateKey,
 		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
-		Dag:           org.Dag,
-		TxPool:        org.Txpool,
-		InstanceCount: viper.GetInt("auto_tx.count"),
+		AccountIds:             StringArrayToIntArray(viper.GetStringSlice("auto_tx.account_ids")),
+		Dag:                    org.Dag,
+		TxPool:                 org.Txpool,
+		InstanceCount:          viper.GetInt("auto_tx.count"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {
@@ -234,6 +236,18 @@ func NewNode() *Node {
 	n.Components = append(n.Components, pm)
 
 	return n
+}
+
+func StringArrayToIntArray(arr []string) []int {
+	var a = make([]int, len(arr))
+	var err error
+	for i := 0; i < len(arr); i ++ {
+		a[i], err = strconv.Atoi(arr[i])
+		if err != nil{
+			logrus.WithError(err).Fatal("bad config on string array")
+		}
+	}
+	return a
 }
 
 func (n *Node) Start() {

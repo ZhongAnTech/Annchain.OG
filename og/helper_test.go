@@ -2,6 +2,7 @@ package og
 
 import (
 	"crypto/rand"
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
@@ -38,27 +39,34 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	hubConf := DefaultHubConfig()
 	hubConf.NetworkId = testNetworkId //for test
 	hub := NewHub(&hubConf, mode, dag)
-	syncConf := DefaultSyncerConfig()
-	syncer := NewSyncer(&syncConf, hub)
-	verfier := &Verifier{
-		Signer:       &crypto.SignerSecp256k1{},
-		CryptoType:   crypto.CryptoTypeSecp256k1,
-		Dag:          dag,
-		TxPool:       txPool,
-		MaxTxHash:    types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash: types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+	/*
+		syncConf := DefaultSyncerConfig()
+		syncer := NewSyncer(&syncConf, hub)
+		verfier := &Verifier{
+			Signer:       &crypto.SignerSecp256k1{},
+			CryptoType:   crypto.CryptoTypeSecp256k1,
+			Dag:          dag,
+			TxPool:       txPool,
+			MaxTxHash:    types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+			MaxMinedHash: types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		}
+
+		//bufConf := DefaultTxBufferConfig(syncer, txPool, dag, verfier)
+		//txBuffer := NewTxBuffer(bufConf)
+		//txBuffer.Hub = hub
+		//hub.TxBuffer = txBuffer
+
+		//dag.Start()
+		//txPool.Start()
+
+		//syncer.Start()
+		txBuffer.Start()
+	*/
+	if hub == nil {
+		return nil, nil, fmt.Errorf("hub init error")
 	}
-
-	bufConf := DefaultTxBufferConfig(syncer, txPool, dag, verfier)
-	txBuffer := NewTxBuffer(bufConf)
-	txBuffer.Hub = hub
-	//hub.TxBuffer = txBuffer
-
-	dag.Start()
-	txPool.Start()
-	syncer.Start()
-	txBuffer.Start()
 	hub.Start()
+
 	return hub, db, nil
 }
 

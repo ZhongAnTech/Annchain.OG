@@ -46,7 +46,8 @@ interval_ms = 7000
 
 [auto_tx]
 enabled = true
-count = 4
+count = 2
+account_ids = [0,1]
 interval_ms = 1000
 
 [debug]

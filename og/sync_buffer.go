@@ -7,12 +7,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
+	"errors"
 )
 
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
+	TxsList     []types.Hash
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
 	txPool     ITxPool
@@ -81,6 +83,7 @@ func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
 
 			s.Txs[tx.GetTxHash()] = tx
 		}
+		s.TxsList = append(s.TxsList,tx.GetTxHash())
 	}
 	return nil
 
@@ -128,11 +131,6 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	return keys
 }
 
-func (s *SyncBuffer) Remove(hash types.Hash) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.Txs, hash)
-}
 
 func (s *SyncBuffer) clean() {
 	s.mu.Lock()
@@ -140,6 +138,7 @@ func (s *SyncBuffer) clean() {
 	for k, _ := range s.Txs {
 		delete(s.Txs, k)
 	}
+	s.TxsList = nil
 }
 
 func (s *SyncBuffer) Handle() error {
@@ -154,7 +153,11 @@ func (s *SyncBuffer) Handle() error {
 		return err
 	}
 
-	for _, tx := range s.Txs {
+	for _, hash  := range s.TxsList {
+		tx :=  s.Get(hash)
+		if tx ==nil {
+			panic("never come here")
+		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
 		/*
@@ -168,13 +171,12 @@ func (s *SyncBuffer) Handle() error {
 			}
 		*/
 		//todo uncommit later , need sort tx for verify graph order
-		/*
 			if !s.verifier.VerifyGraphOrder(tx) {
 				log.WithField("tx", tx).Warn("bad graph tx")
 				err = errors.New("bad graph tx")
 				break
 			}
-		*/
+
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
 			//this trasaction received by brodcast ,so don't return err

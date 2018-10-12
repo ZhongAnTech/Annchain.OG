@@ -25,6 +25,9 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	balance[accounts[0].Address] = math.NewBigInt(8888888)
 	balance[accounts[1].Address] = math.NewBigInt(7777777)
 	balance[accounts[2].Address] = math.NewBigInt(6666666)
+	balance[accounts[3].Address] = math.NewBigInt(6666666)
+	balance[accounts[4].Address] = math.NewBigInt(6666666)
+	balance[accounts[5].Address] = math.NewBigInt(6666666)
 	return seq.(*types.Sequencer), balance
 }
 
@@ -35,6 +38,9 @@ func GetSampleAccounts() []account.SampleAccount {
 		account.NewAccount("0x0070E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F26"),
 		account.NewAccount("0x00F9854883F98B15F30A15166675D5442B567D35860E0CE6FB758CEBC7D41E8427"),
 		account.NewAccount("0x00C2AF5EC3E2C7A4E91CAB88B8814BC34B0A5EE67944019D07719C4667A9D1C202"),
+		account.NewAccount("0x00C2AF5EC3E2C7A4E91CAB88B8814BC34B0A5EE67944019D07719C4667A9D1C203"),
+		account.NewAccount("0x00C2AF5EC3E2C7A4E91CAB88B8814BC34B0A5EE67944019D07719C4667A9D1C204"),
+		account.NewAccount("0x00C2AF5EC3E2C7A4E91CAB88B8814BC34B0A5EE67944019D07719C4667A9D1C205"),
 	}
 }
 

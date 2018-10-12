@@ -163,10 +163,10 @@ func TestAccountFlow(t *testing.T) {
 		t.Fatalf("latest nonce not correct, expect %d, get %d", 2, latestnonce)
 	}
 
-	// test confirm
+	// test remove
 	spent := af.BalanceState().Spent()
 
-	err = af.Confirm(tx0.GetNonce())
+	err = af.Remove(tx0.GetNonce())
 	if err != nil {
 		t.Fatalf("confirm tx0 err: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestAccountFlow(t *testing.T) {
 		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value+tx2value, spent.GetInt64())
 	}
 
-	err = af.Confirm(tx1.GetNonce())
+	err = af.Remove(tx1.GetNonce())
 	if err != nil {
 		t.Fatalf("confirm tx1 err: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestAccountFlow(t *testing.T) {
 		t.Fatalf("spent not correct after confirm tx1, expect: %d, get %d", tx2value, spent.GetInt64())
 	}
 
-	err = af.Confirm(tx2.GetNonce())
+	err = af.Remove(tx2.GetNonce())
 	if err != nil {
 		t.Fatalf("confirm tx2 err: %v", err)
 	}

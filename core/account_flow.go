@@ -82,7 +82,7 @@ func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt)
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
-func (a *AccountFlows) Confirm(tx types.Txi) {
+func (a *AccountFlows) Remove(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -90,7 +90,7 @@ func (a *AccountFlows) Confirm(tx types.Txi) {
 	if flow == nil {
 		return
 	}
-	flow.Confirm(tx.GetNonce())
+	flow.Remove(tx.GetNonce())
 	// remove account flow if there is no txs sent by this address in pool
 	if flow.Len() == 0 {
 		delete(a.afs, tx.Sender())
@@ -139,9 +139,9 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 	return nil
 }
 
-// Confirm a tx from account flow, find tx by nonce first, then
+// Remove a tx from account flow, find tx by nonce first, then
 // rolls back the balance and remove tx from txlist.
-func (af *AccountFlow) Confirm(nonce uint64) error {
+func (af *AccountFlow) Remove(nonce uint64) error {
 	tx := af.txlist.Get(nonce)
 	if tx == nil {
 		return nil

@@ -104,7 +104,7 @@ type TxPoolConfig struct {
 	TxValidTime   int `mapstructure:"tx_valid_time"`
 }
 
-func DefaultTxPoolCOnfig() TxPoolConfig {
+func DefaultTxPoolConfig() TxPoolConfig {
 	config := TxPoolConfig{
 		QueueSize:     100,
 		TipsSize:      1000,
@@ -291,6 +291,30 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
+// Remove totally removes a tx from pool, it checks badtxs, tips, 
+// pendings and txlookup.
+func (pool *TxPool) Remove(tx types.Txi) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pool.remove(tx)
+}
+
+func (pool *TxPool) remove(tx types.Txi) {
+	status := pool.GetStatus(tx.GetTxHash())
+	if status == TxStatusBadTx {
+		pool.badtxs.Remove(tx.GetTxHash())
+	}
+	if status == TxStatusTip {
+		pool.tips.Remove(tx.GetTxHash())
+	}
+	if status == TxStatusPending {
+		pool.pendings.Remove(tx.GetTxHash())
+	}
+	pool.flows.Remove(tx)
+	pool.txLookup.Remove(tx.GetTxHash())
+}
+
 func (pool *TxPool) loop() {
 	defer log.Debugf("TxPool.loop() terminates")
 
@@ -327,7 +351,7 @@ func (pool *TxPool) loop() {
 
 			txEvent.callbackChan <- err
 
-			// TODO case reset?
+		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -440,6 +464,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 			return bad
 		}
 	}
+
 	// check if the nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
@@ -475,7 +500,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	defer pool.mu.Unlock()
 
 	// get sequencer's unconfirmed elders
-	elders := pool.seekElders(seq)
+	elders, errElders := pool.seekElders(seq)
+	if errElders != nil {
+		return errElders
+	}
 	// verify the elders
 	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
@@ -490,18 +518,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	// remove elders from pool
 	for _, elder := range elders {
-		status := pool.GetStatus(elder.GetTxHash())
-		if status == TxStatusBadTx {
-			pool.badtxs.Remove(elder.GetTxHash())
-		}
-		if status == TxStatusTip {
-			pool.tips.Remove(elder.GetTxHash())
-		}
-		if status == TxStatusPending {
-			pool.pendings.Remove(elder.GetTxHash())
-		}
-		pool.flows.Confirm(elder)
-		pool.txLookup.Remove(elder.GetTxHash())
+		pool.remove(elder)
 	}
 
 	pool.flows.Add(seq)
@@ -517,7 +534,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
+// seekElders finds all the unconfirmed elders of baseTx.
+func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, error) {
 	batch := make(map[types.Hash]types.Txi)
 
 	inSeekingPool := map[types.Hash]int{}
@@ -529,6 +547,10 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 		elder := pool.Get(elderHash)
 		if elder == nil {
+			elder = pool.dag.GetTx(elderHash)
+			if elder == nil {
+				return nil, fmt.Errorf("can't find elder %s", elderHash.String())
+			}
 			continue
 		}
 		if batch[elder.GetTxHash()] == nil {
@@ -541,9 +563,11 @@ func (pool *TxPool) seekElders(baseTx types.Txi) map[types.Hash]types.Txi {
 			}
 		}
 	}
-	return batch
+	return batch, nil
 }
 
+// verifyConfirmBatch verifies if the elders are correct. 
+// If passes all verifications, it returns a batch for pushing to dag.
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation term.
 	// sums up the related address' income and outcome values
@@ -612,6 +636,8 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
+// func (pool *TxPool) solve
+
 func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
@@ -643,7 +669,7 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
 	return nil
 }
 
-// reset clears the tips that haven't been proved for a long time
+// reset clears the txs that conflicts with sequencer
 func (pool *TxPool) reset() {
 	// TODO
 }

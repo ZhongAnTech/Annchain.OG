@@ -28,7 +28,7 @@ func TestProtocolCompatibility(t *testing.T) {
 			defer h.Stop()
 		}
 		if (err == nil && !tt.compatible) || (err != nil && tt.compatible) {
-			t.Errorf("test %d: compatibility mismatch: have error %v, want compatibility %v", i, err, tt.compatible)
+			t.Errorf("test %d: compatibility mismatch: have error %v, want compatibility %v tt %v", i, err, tt.compatible, tt)
 		}
 	}
 }

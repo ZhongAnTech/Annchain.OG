@@ -239,7 +239,7 @@ func TestLatestNonce(t *testing.T) {
 		t.Fatalf("write tx0 %s failed: %v", tx0.GetTxHash().String(), err)
 	}
 	_, err = acc.ReadAddrLatestNonce(tx0.Sender())
-	if err.Error() != "not exists" {
+	if (err != nil) && (err.Error() != "not exists") {
 		t.Fatalf("first tx0 nonce is not empty")
 	}
 

@@ -2,19 +2,19 @@ package og
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
-	"errors"
 )
 
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
-	TxsList     []types.Hash
+	TxsList    []types.Hash
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
 	txPool     ITxPool
@@ -83,7 +83,7 @@ func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
 
 			s.Txs[tx.GetTxHash()] = tx
 		}
-		s.TxsList = append(s.TxsList,tx.GetTxHash())
+		s.TxsList = append(s.TxsList, tx.GetTxHash())
 	}
 	return nil
 
@@ -131,7 +131,6 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	return keys
 }
 
-
 func (s *SyncBuffer) clean() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,9 +152,9 @@ func (s *SyncBuffer) Handle() error {
 		return err
 	}
 
-	for _, hash  := range s.TxsList {
-		tx :=  s.Get(hash)
-		if tx ==nil {
+	for _, hash := range s.TxsList {
+		tx := s.Get(hash)
+		if tx == nil {
 			panic("never come here")
 		}
 		// temporary commit for testing
@@ -171,11 +170,11 @@ func (s *SyncBuffer) Handle() error {
 			}
 		*/
 		//todo uncommit later , need sort tx for verify graph order
-			if !s.verifier.VerifyGraphOrder(tx) {
-				log.WithField("tx", tx).Warn("bad graph tx")
-				err = errors.New("bad graph tx")
-				break
-			}
+		if !s.verifier.VerifyGraphOrder(tx) {
+			log.WithField("tx", tx).Warn("bad graph tx")
+			err = errors.New("bad graph tx")
+			break
+		}
 
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {

@@ -61,6 +61,7 @@ func NewNode() *Node {
 		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
 		EnableSync:                    enableSync,
 	}, downloader.FullSync, org.Dag)
+	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
 		BatchTimeoutMilliSecond:              1000,
@@ -95,10 +96,10 @@ func NewNode() *Node {
 	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -159,8 +160,8 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:                   org.Dag,
-		TxPool:                org.Txpool,
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -241,9 +242,9 @@ func NewNode() *Node {
 func StringArrayToIntArray(arr []string) []int {
 	var a = make([]int, len(arr))
 	var err error
-	for i := 0; i < len(arr); i ++ {
+	for i := 0; i < len(arr); i++ {
 		a[i], err = strconv.Atoi(arr[i])
-		if err != nil{
+		if err != nil {
 			logrus.WithError(err).Fatal("bad config on string array")
 		}
 	}

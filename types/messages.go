@@ -57,9 +57,9 @@ type HashOrNumber struct {
 	Number uint64 // Block hash from which to retrieve headers (excludes Hash)
 }
 
-//msgp:tuple MessageHeader
-type MessageHeader struct {
-	Hash   Hash
+//msgp:tuple MessageSequencerHeader
+type MessageSequencerHeader struct {
+	Hash   *Hash
 	Number uint64
 }
 

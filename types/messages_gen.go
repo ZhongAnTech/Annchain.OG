@@ -304,88 +304,6 @@ func (z *MessageBodiesResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *MessageHeader) DecodeMsg(dc *msgp.Reader) (err error) {
-	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
-		return
-	}
-	err = z.Hash.DecodeMsg(dc)
-	if err != nil {
-		return
-	}
-	z.Number, err = dc.ReadUint64()
-	if err != nil {
-		return
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *MessageHeader) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
-	if err != nil {
-		return
-	}
-	err = z.Hash.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint64(z.Number)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *MessageHeader) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
-	o, err = z.Hash.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o = msgp.AppendUint64(o, z.Number)
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *MessageHeader) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
-		return
-	}
-	bts, err = z.Hash.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	z.Number, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *MessageHeader) Msgsize() (s int) {
-	s = 1 + z.Hash.Msgsize() + msgp.Uint64Size
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
 func (z *MessageHeaderRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
@@ -1021,6 +939,127 @@ func (z *MessageNewTxs) Msgsize() (s int) {
 			s += z.Txs[za0001].Msgsize()
 		}
 	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *MessageSequencerHeader) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Hash = nil
+	} else {
+		if z.Hash == nil {
+			z.Hash = new(Hash)
+		}
+		err = z.Hash.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	z.Number, err = dc.ReadUint64()
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageSequencerHeader) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 2
+	err = en.Append(0x92)
+	if err != nil {
+		return
+	}
+	if z.Hash == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Hash.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	err = en.WriteUint64(z.Number)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageSequencerHeader) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 2
+	o = append(o, 0x92)
+	if z.Hash == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Hash.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	o = msgp.AppendUint64(o, z.Number)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageSequencerHeader) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Hash = nil
+	} else {
+		if z.Hash == nil {
+			z.Hash = new(Hash)
+		}
+		bts, err = z.Hash.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	z.Number, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageSequencerHeader) Msgsize() (s int) {
+	s = 1
+	if z.Hash == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Hash.Msgsize()
+	}
+	s += msgp.Uint64Size
 	return
 }
 

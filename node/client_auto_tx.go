@@ -25,6 +25,7 @@ type ClientAutoTx struct {
 	SampleAccounts         []account.SampleAccount
 	InstanceCount          int
 	mu                     sync.RWMutex
+	AccountIds             []int
 }
 
 func (c *ClientAutoTx) Init() {
@@ -94,7 +95,8 @@ func (c *ClientAutoTx) loop(from int, to int) {
 
 func (c *ClientAutoTx) Start() {
 	for i := 0; i < c.InstanceCount; i++ {
-		a, b := rand.Intn(len(c.SampleAccounts)), rand.Intn(len(c.SampleAccounts))
+		//a, b := rand.Intn(len(c.SampleAccounts)), rand.Intn(len(c.SampleAccounts))
+		a, b := c.AccountIds[i], rand.Intn(len(c.SampleAccounts))
 		go c.loop(a, b)
 		logrus.Infof("start auto tx maker from %d to %d", a, b)
 	}

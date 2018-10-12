@@ -461,6 +461,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
 		if pool.badtxs.Get(parentHash) != nil {
+			log.WithField("tx", tx).Debug("tx is bad: in badtxs")
 			return bad
 		}
 	}
@@ -468,10 +469,12 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	// check if the nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
+		log.WithField("tx", tx).Debug("tx is bad: nonce duplicated in flow")
 		return bad
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
+		log.WithField("tx", tx).Debug("tx is bad: nonce duplicated in dag")
 		return bad
 	}
 	// check if the tx itself has no conflicts with local ledger
@@ -486,6 +489,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	totalspent := math.NewBigInt(0)
 	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
+		log.WithField("tx", tx).Debug("tx is bad: balance not positive")
 		return bad
 	}
 
@@ -505,7 +509,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Warnf("verifyConfirmBatch error: %v", err)

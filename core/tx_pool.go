@@ -64,8 +64,9 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	OnNewTxReceived  []chan types.Txi                // for notifications of new txs.
-	OnBatchConfirmed []chan map[types.Hash]types.Txi // for notifications of confirmation.
+	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
+	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
+	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]int {
@@ -81,17 +82,18 @@ func (pool *TxPool) GetBenchmarks() map[string]int {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:             conf,
-		dag:              d,
-		queue:            make(chan *txEvent, conf.QueueSize),
-		tips:             NewTxMap(),
-		badtxs:           NewTxMap(),
-		pendings:         NewTxMap(),
-		flows:            NewAccountFlows(),
-		txLookup:         newTxLookUp(),
-		close:            make(chan struct{}),
-		OnNewTxReceived:  []chan types.Txi{},
-		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
+		conf:                 conf,
+		dag:                  d,
+		queue:                make(chan *txEvent, conf.QueueSize),
+		tips:                 NewTxMap(),
+		badtxs:               NewTxMap(),
+		pendings:             NewTxMap(),
+		flows:                NewAccountFlows(),
+		txLookup:             newTxLookUp(),
+		close:                make(chan struct{}),
+		OnNewTxReceived:      []chan types.Txi{},
+		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
+		OnNewLatestSequencer: make(chan bool),
 	}
 	return pool
 }
@@ -291,7 +293,7 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 	return result
 }
 
-// Remove totally removes a tx from pool, it checks badtxs, tips, 
+// Remove totally removes a tx from pool, it checks badtxs, tips,
 // pendings and txlookup.
 func (pool *TxPool) Remove(tx types.Txi) {
 	pool.mu.Lock()
@@ -534,6 +536,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	for _, c := range pool.OnBatchConfirmed {
 		c <- elders
 	}
+	pool.OnNewLatestSequencer <- true
 
 	return nil
 }
@@ -570,7 +573,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	return batch, nil
 }
 
-// verifyConfirmBatch verifies if the elders are correct. 
+// verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation term.
@@ -753,15 +756,15 @@ func (tm *TxMap) Add(tx types.Txi) {
 }
 
 type txLookUp struct {
-	order	[]types.Hash
-	txs		map[types.Hash]*txEnvelope
-	mu		sync.RWMutex
+	order []types.Hash
+	txs   map[types.Hash]*txEnvelope
+	mu    sync.RWMutex
 }
 
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		order:	[]types.Hash{},
-		txs: 	make(map[types.Hash]*txEnvelope),
+		order: []types.Hash{},
+		txs:   make(map[types.Hash]*txEnvelope),
 	}
 }
 
@@ -807,8 +810,8 @@ func (t *txLookUp) remove(h types.Hash) {
 	delete(t.txs, h)
 }
 
-// Order returns hash list of txs in pool, ordered by the time 
-// it added into pool. 
+// Order returns hash list of txs in pool, ordered by the time
+// it added into pool.
 func (t *txLookUp) GetOrder() []types.Hash {
 	t.mu.RLock()
 	defer t.mu.RUnlock()

@@ -154,7 +154,7 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(h)
 }
 
-// Cmp compares two hashes. 
+// Cmp compares two hashes.
 // Returns  0 if two hashes are same.
 // Returns -1 if the self hash is less than parameter hash.
 // Returns  1 if the self hash is larger than parameter hash.

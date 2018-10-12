@@ -13,14 +13,15 @@ import (
 	"math/rand"
 )
 
+type TxType int
 const (
 	TxTypeGenesis TxType = iota
 	TxTypeLocal
 	TxTypeRemote
+	TxTypeRejudge
 )
 
-type TxType int
-
+type TxStatus int
 const (
 	TxStatusNotExist TxStatus = iota
 	TxStatusQueue
@@ -28,8 +29,6 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 )
-
-type TxStatus int
 
 func (ts *TxStatus) String() string {
 	switch *ts {
@@ -47,6 +46,13 @@ func (ts *TxStatus) String() string {
 		return "UnknownStatus"
 	}
 }
+
+type TxQuality int
+const (
+	TxQualityIsBad TxQuality = iota
+	TxQualityIsGood
+	TxQualityIsFatal
+)
 
 type TxPool struct {
 	conf TxPoolConfig
@@ -329,6 +335,7 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
+			pool.mu.Lock()
 			var err error
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
@@ -348,9 +355,9 @@ func (pool *TxPool) loop() {
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
-
 			txEvent.callbackChan <- err
-
+			
+			pool.mu.Unlock()
 		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
@@ -405,10 +412,12 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 func (pool *TxPool) commit(tx *types.Tx) error {
 	log.WithField("tx", tx).Debugf("start commit tx")
 
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	if pool.isBadTx(tx) {
+	// check tx's quality.
+	txquality := pool.isBadTx(tx)
+	if txquality == TxQualityIsFatal {
+		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
+	}
+	if txquality == TxQualityIsBad {
 		log.Debugf("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
@@ -453,35 +462,34 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	return nil
 }
 
-func (pool *TxPool) isBadTx(tx *types.Tx) bool {
-	var (
-		okay = false
-		bad  = true
-	)
+func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
+
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
 		if pool.badtxs.Get(parentHash) != nil {
-			log.WithField("tx", tx).Debug("tx is bad: in badtxs")
-			return bad
+			return TxQualityIsBad
 		}
 	}
 
 	// check if the nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
-		log.WithField("tx", tx).Debug("tx is bad: nonce duplicated in flow")
-		return bad
+		return TxQualityIsBad
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
-		log.WithField("tx", tx).Debug("tx is bad: nonce duplicated in dag")
-		return bad
+		return TxQualityIsBad
 	}
+
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
 	if stateFrom == nil {
 		originBalance := pool.dag.GetBalance(tx.Sender())
 		stateFrom = NewBalanceState(originBalance)
+	}
+	// if tx's value is larger than its balance, return fatal.
+	if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
+		return TxQualityIsFatal
 	}
 	// if ( the value that 'from' already spent )
 	// 	+ ( the value that 'from' newly spent )
@@ -489,27 +497,23 @@ func (pool *TxPool) isBadTx(tx *types.Tx) bool {
 	totalspent := math.NewBigInt(0)
 	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
-		log.WithField("tx", tx).Debug("tx is bad: balance not positive")
-		return bad
+		return TxQualityIsBad
 	}
 
-	return okay
+	return TxQualityIsGood
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Debug("start confirm seq")
-
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
+	
 	// get sequencer's unconfirmed elders
 	elders, errElders := pool.seekElders(seq)
 	if errElders != nil {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Warnf("verifyConfirmBatch error: %v", err)
@@ -524,6 +528,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	for _, elder := range elders {
 		pool.remove(elder)
 	}
+	// solve conflicts of txs in pool
+	pool.solveConflicts()
 
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
@@ -640,7 +646,27 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-// func (pool *TxPool) solve
+// solveConflicts reproduce all the txs in pool to make sure 
+// all the txs are correct after seq confirmation.
+func (pool *TxPool) solveConflicts() {
+	for _, hash := range pool.txLookup.getorder() {
+		tx := pool.Get(hash)
+		if tx == nil {
+			continue
+		}
+		if tx.GetType() == types.TxBaseTypeSequencer {
+			continue
+		}
+		pool.remove(tx)
+		txEnv := &txEnvelope{
+			tx:     tx,
+			txType: TxTypeRejudge,
+			status: TxStatusQueue,
+		}
+		pool.txLookup.Add(txEnv)
+		pool.commit(tx.(*types.Tx))
+	}
+}
 
 func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
 	sort.Sort(noncesP)
@@ -805,6 +831,22 @@ func (t *txLookUp) remove(h types.Hash) {
 		}
 	}
 	delete(t.txs, h)
+}
+
+// RemoveByIndex removes a tx by its order index
+func (t *txLookUp) RemoveByIndex(i int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.removeByIndex(i)
+}
+func (t *txLookUp) removeByIndex(i int) {
+	if (i < 0) || (i >= len(t.order)) {
+		return
+	}
+	hash := t.order[i]
+	t.order = append(t.order[:i], t.order[i+1:]...)
+	delete(t.txs, hash)
 }
 
 // Order returns hash list of txs in pool, ordered by the time 

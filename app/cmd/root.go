@@ -15,10 +15,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/rifflock/lfshook"
+	"io/ioutil"
 	"os"
 	"runtime/debug"
+	"time"
 
 	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
@@ -44,15 +47,26 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	defer func() {
-		if r := recover(); r != nil {
-			logrus.WithField("obj", r).Error("Fatal error occurred. Program will exit")
-			debug.PrintStack()
-		}
-	}()
+	defer DumpStack()
 	if err := rootCmd.Execute(); err != nil {
 		logrus.WithError(err).Fatalf("Fatal error occurred. Program will exit")
 		os.Exit(1)
+	}
+}
+
+func DumpStack() {
+	if err := recover(); err != nil {
+		logrus.WithField("obj", err).Error("Fatal error occurred. Program will exit")
+		var buf bytes.Buffer
+		stack := debug.Stack()
+		buf.WriteString(fmt.Sprintf("Panic: %s\n", err))
+		buf.Write(stack)
+		dumpName := "dump_" + time.Now().Format("20060102-150405")
+		nerr := ioutil.WriteFile(dumpName, buf.Bytes(), 0644)
+		if nerr != nil {
+			fmt.Println("write dump file error", nerr)
+			fmt.Println(buf.Bytes())
+		}
 	}
 }
 

@@ -65,6 +65,8 @@ type Hub struct {
 	SyncBuffer ISyncBuffer
 	finishInit bool
 	enableSync bool
+
+	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -573,27 +575,18 @@ func (h *Hub) handleMsg(p *peer) error {
 		log.Debug("handle MessageTypeBodiesResponse")
 		return nil
 
-	case p2pMsg.MessageType == MessageTypeNewSequence:
-
-		var msgseq types.MessageNewSequence
-		_, e := msgseq.UnmarshalMsg(p2pMsg.Message)
-		if e == nil && msgseq.Sequencer != nil {
+	case p2pMsg.MessageType == MessageTypeSequencerHeader:
+		var msgHeader types.MessageSequencerHeader
+		_, e := msgHeader.UnmarshalMsg(p2pMsg.Message)
+		if e == nil && msgHeader.Hash != nil {
+			//no need to broadcast again ,just all our peers need know this ,not all network
 			//set peer's head
-			p.SetHead(msgseq.Sequencer.GetTxHash(), msgseq.Sequencer.Id)
+			p.SetHead(*msgHeader.Hash, msgHeader.Number)
 		}
-		//dont accept new seq until we catch up
-		if atomic.LoadUint32(&h.acceptTxs) == 0 {
-			return nil
-		}
-		log.Debug("got  message type ", p2pMsg.MessageType)
-		p2pMsg.init()
-		if p2pMsg.needCheckRepeat {
-			p.MarkMessage(p2pMsg.hash)
-		}
-		h.incoming <- &p2pMsg
 		return nil
 
-	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs) && atomic.LoadUint32(&h.acceptTxs) == 0:
+	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewTxs) &&
+		!h.AcceptTxs():
 		// no receive until sync finish
 		return nil
 	case p.version >= OG32 && p2pMsg.MessageType == GetNodeDataMsg:
@@ -647,6 +640,7 @@ func (h *Hub) Start() {
 	go h.loopSend()
 	go h.loopReceive()
 
+	go h.BrodcastLatestSequencer()
 	// start sync handlers
 	go h.syncer()
 	go h.txsyncLoop()
@@ -699,6 +693,23 @@ func (h *Hub) loopReceive() {
 			go h.receiveMessage(m)
 		case <-h.quit:
 			log.Info("HubReceive received quit message. Quitting...")
+			return
+		}
+	}
+}
+
+func (h *Hub) BrodcastLatestSequencer() {
+	for {
+		select {
+		case <-h.NewLatestSequencerCh:
+			seq := h.Dag.LatestSequencer()
+			hash := seq.GetTxHash()
+			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
+			data, _ := msgTx.MarshalMsg(nil)
+			// latest sequencer updated , broadcast it
+			go h.SendMessage(MessageTypeSequencerHeader, data)
+		case <-h.quit:
+			log.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
 			return
 		}
 	}

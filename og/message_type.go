@@ -21,7 +21,7 @@ var ProtocolName = "og"
 var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 14}
+var ProtocolLengths = []uint64{18, 15}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -38,6 +38,7 @@ const (
 	MessageTypeNewTx
 	MessageTypeNewSequence
 	MessageTypeNewTxs
+	MessageTypeSequencerHeader
 
 	MessageTypeBodiesRequest
 	MessageTypeBodiesResponse
@@ -57,7 +58,7 @@ const (
 func (mt MessageType) String() string {
 	return []string{
 		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
-		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs",
+		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
 		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",

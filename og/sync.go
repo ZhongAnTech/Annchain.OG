@@ -177,18 +177,18 @@ func (h *Hub) synchronise(peer *peer) {
 		return
 	}
 	/*
-	//in a case that if our height will catch up very soon ,don't sync ,just wait
-	//maybe we received a sequencer and did't finish process
-	//todo  have problem in this code blow
-	if seqId == pSeqid -1 {
-		time.Sleep(time.Millisecond*200)
-		currentBlock = h.Dag.LatestSequencer()
-		seqId = currentBlock.Number()
-		pHead, pSeqid = peer.Head()
-		if seqId >= pSeqid {
-			return
+		//in a case that if our height will catch up very soon ,don't sync ,just wait
+		//maybe we received a sequencer and did't finish process
+		//todo  have problem in this code blow
+		if seqId == pSeqid -1 {
+			time.Sleep(time.Millisecond*200)
+			currentBlock = h.Dag.LatestSequencer()
+			seqId = currentBlock.Number()
+			pHead, pSeqid = peer.Head()
+			if seqId >= pSeqid {
+				return
+			}
 		}
-	}
 	*/
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
@@ -225,7 +225,9 @@ func (h *Hub) synchronise(peer *peer) {
 		// degenerate connectivity, but it should be healthy for the mainnet too to
 		// more reliably update peers or the local TD state.
 		//go h.BroadcastBlock(head, false)
-		data, _ := head.MarshalMsg(nil)
-		h.SendMessage(MessageTypeNewSequence, data)
+		hash := head.GetTxHash()
+		msg := types.MessageSequencerHeader{Hash: &hash, Number: head.Number()}
+		data, _ := msg.MarshalMsg(nil)
+		h.SendMessage(MessageTypeSequencerHeader, data)
 	}
 }

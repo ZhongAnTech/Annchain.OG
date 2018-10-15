@@ -96,10 +96,10 @@ func NewNode() *Node {
 	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifier:                         verifier,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -160,8 +160,8 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:    org.Dag,
-		TxPool: org.Txpool,
+		Dag:                   org.Dag,
+		TxPool:                org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
@@ -178,6 +178,7 @@ func NewNode() *Node {
 		TxPool:                 org.Txpool,
 		InstanceCount:          viper.GetInt("auto_tx.count"),
 		IntervalMode:           viper.GetString("auto_tx.interval_mode"),
+		NonceSelfDiscipline:    viper.GetBool("auto_tx.nonce_self_discipline"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {

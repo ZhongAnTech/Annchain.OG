@@ -177,7 +177,7 @@ func NewNode() *Node {
 		Dag:                    org.Dag,
 		TxPool:                 org.Txpool,
 		InstanceCount:          viper.GetInt("auto_tx.count"),
-		IntervalMode:			viper.GetString("auto_tx.interval_mode"),
+		IntervalMode:           viper.GetString("auto_tx.interval_mode"),
 	}
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -10,6 +11,11 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+)
+
+const (
+	IntervalModeConstantInterval = "constant"
+	IntervalModeRandom           = "random"
 )
 
 type ClientAutoTx struct {
@@ -26,6 +32,7 @@ type ClientAutoTx struct {
 	InstanceCount          int
 	mu                     sync.RWMutex
 	AccountIds             []int
+	IntervalMode           string
 }
 
 func (c *ClientAutoTx) Init() {
@@ -81,9 +88,19 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 
 func (c *ClientAutoTx) loop(from int, to int) {
 	for !c.stop {
+		var sleepDuration time.Duration
+		switch c.IntervalMode {
+		case IntervalModeConstantInterval:
+			sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMilliSeconds)
+		case IntervalModeRandom:
+			sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds-1) + 1))
+		default:
+			panic(fmt.Sprintf("unkown IntervalMode : %s  ",c.IntervalMode))
+		}
+
 		select {
 		case <-c.manualChan:
-		case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
+		case <-time.After(sleepDuration):
 		}
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)

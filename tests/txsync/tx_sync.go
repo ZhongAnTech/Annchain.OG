@@ -49,6 +49,7 @@ func main() {
 	deleted := 0
 
 	ticker := time.NewTicker(time.Second * REPORT_INTERVAL_SECONDS)
+	defer ticker.Stop()
 
 	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
 

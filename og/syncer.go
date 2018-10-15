@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Syncer fetches tx from other peers.
+// Syncer fetches tx from other peers. (incremental)
 // Syncer will not fire duplicate requests in a period of time.
 type Syncer struct {
 	config              *SyncerConfig
@@ -15,6 +15,8 @@ type Syncer struct {
 	acquireTxQueue      chan types.Hash
 	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
 	quit                chan bool
+	pause               chan bool
+	paused              bool
 }
 
 func (m *Syncer) GetBenchmarks() map[string]int {
@@ -38,7 +40,9 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		quit: make(chan bool),
+		quit:   make(chan bool),
+		pause:  make(chan bool),
+		paused: false,
 	}
 }
 
@@ -59,6 +63,10 @@ func (m *Syncer) Start() {
 
 func (m *Syncer) Stop() {
 	m.quit <- true
+}
+
+func (m *Syncer) Pause() {
+	m.pause <- true
 }
 
 func (m *Syncer) Name() string {
@@ -92,7 +100,14 @@ func (m *Syncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
 	for {
+		if m.paused {
+			time.Sleep(time.Second * 5)
+			continue
+		}
 		select {
+		case v := <-m.pause:
+			m.paused = v
+			logrus.WithField("value", v).Debug("syncer received pause/resume message.")
 		case <-m.quit:
 			logrus.Info("syncer received quit message. Quitting...")
 			return
@@ -112,16 +127,23 @@ func (m *Syncer) loopSync() {
 	}
 }
 
-// LoopSwipe maintains all sync requests. Handle if there is timeout.
-func (m *Syncer) loopSwipe() {
-
-}
-
 func (m *Syncer) Enqueue(hash types.Hash) {
+	if m.paused {
+		logrus.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
+		return
+	}
 	if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
 		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
 	m.acquireTxQueue <- hash
+}
+
+func (m *Syncer) ClearQueue() {
+	// clear all pending tasks
+	for len(m.acquireTxQueue) > 0 {
+		<-m.acquireTxQueue
+	}
+	m.acquireTxDedupCache.Purge()
 }

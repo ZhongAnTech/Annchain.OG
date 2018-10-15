@@ -21,7 +21,7 @@ type Tx struct {
 }
 
 func (t *Tx) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleTx() *Tx {

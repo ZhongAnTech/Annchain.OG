@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -93,6 +94,8 @@ func (c *ClientAutoTx) loop(from int, to int) {
 			sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMilliSeconds)
 		case IntervalModeRandom:
 			sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds-1) + 1))
+		default:
+			panic(fmt.Sprintf("unkown IntervalMode : %s  ",c.IntervalMode))
 		}
 
 		select {

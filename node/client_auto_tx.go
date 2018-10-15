@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+const (
+	IntervalModeConstantInterval = "constant"
+	IntervalModeRandom           = "random"
+)
+
 type ClientAutoTx struct {
 	TxCreator              *og.TxCreator
 	TxBuffer               *og.TxBuffer
@@ -26,6 +31,7 @@ type ClientAutoTx struct {
 	InstanceCount          int
 	mu                     sync.RWMutex
 	AccountIds             []int
+	IntervalMode           string
 }
 
 func (c *ClientAutoTx) Init() {
@@ -81,9 +87,17 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 
 func (c *ClientAutoTx) loop(from int, to int) {
 	for !c.stop {
+		var sleepDuration time.Duration
+		switch c.IntervalMode {
+		case IntervalModeConstantInterval:
+			sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMilliSeconds)
+		case IntervalModeRandom:
+			sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds-1) + 1))
+		}
+
 		select {
 		case <-c.manualChan:
-		case <-time.NewTimer(time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds) + 1))).C:
+		case <-time.After(sleepDuration):
 		}
 		if c.TxBuffer.Hub.AcceptTxs() {
 			c.GenerateRequest(from, to)

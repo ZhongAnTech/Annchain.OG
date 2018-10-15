@@ -69,6 +69,10 @@ func (m *Syncer) Pause() {
 	m.pause <- true
 }
 
+func (m *Syncer) Resume() {
+	m.pause <- false
+}
+
 func (m *Syncer) Name() string {
 	return "Syncer"
 }

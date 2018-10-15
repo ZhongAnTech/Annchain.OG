@@ -14,6 +14,7 @@ import (
 )
 
 type TxType int
+
 const (
 	TxTypeGenesis TxType = iota
 	TxTypeLocal
@@ -22,6 +23,7 @@ const (
 )
 
 type TxStatus int
+
 const (
 	TxStatusNotExist TxStatus = iota
 	TxStatusQueue
@@ -48,6 +50,7 @@ func (ts *TxStatus) String() string {
 }
 
 type TxQuality int
+
 const (
 	TxQualityIsBad TxQuality = iota
 	TxQualityIsGood
@@ -337,7 +340,7 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
-			pool.mu.Lock()
+
 			var err error
 			tx := txEvent.txEnv.tx
 			if pool.Get(tx.GetTxHash()) != nil {
@@ -348,18 +351,19 @@ func (pool *TxPool) loop() {
 			}
 
 			pool.txLookup.Add(txEvent.txEnv)
+			pool.mu.Lock()
 			switch tx := tx.(type) {
 			case *types.Tx:
 				err = pool.commit(tx)
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 			}
+			pool.mu.Unlock()
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
 			txEvent.callbackChan <- err
-			
-			pool.mu.Unlock()
+
 		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
@@ -508,7 +512,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Debug("start confirm seq")
-	
+
 	// get sequencer's unconfirmed elders
 	elders, errElders := pool.seekElders(seq)
 	if errElders != nil {
@@ -649,7 +653,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-// solveConflicts reproduce all the txs in pool to make sure 
+// solveConflicts reproduce all the txs in pool to make sure
 // all the txs are correct after seq confirmation.
 func (pool *TxPool) solveConflicts() {
 	for _, hash := range pool.txLookup.getorder() {
@@ -852,8 +856,8 @@ func (t *txLookUp) removeByIndex(i int) {
 	delete(t.txs, hash)
 }
 
-// Order returns hash list of txs in pool, ordered by the time 
-// it added into pool. 
+// Order returns hash list of txs in pool, ordered by the time
+// it added into pool.
 func (t *txLookUp) GetOrder() []types.Hash {
 	t.mu.RLock()
 	defer t.mu.RUnlock()

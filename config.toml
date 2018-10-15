@@ -11,7 +11,7 @@ port = 8000
 
 [p2p]
 enabled = true
-single_node = true
+bootstrap_node = true
 port = 8001
 max_peers = 50
 network_id = 1

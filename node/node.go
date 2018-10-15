@@ -49,7 +49,7 @@ func NewNode() *Node {
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}
-	singleNode := viper.GetBool("p2p.single_node")
+	bootNode := viper.GetBool("p2p.bootstrap_node")
 	enableSync := viper.GetBool("p2p.enable_sync")
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -58,7 +58,7 @@ func NewNode() *Node {
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
-		StartAcceptTxs:                singleNode, //if single node just accept txs ,no sync
+		StartAcceptTxs:                bootNode, //if bootstrap node just accept txs in starting ,no sync
 		EnableSync:                    enableSync,
 	}, downloader.FullSync, org.Dag)
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer

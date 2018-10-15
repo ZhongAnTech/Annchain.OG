@@ -305,7 +305,7 @@ func (pool *TxPool) Remove(tx types.Txi) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.remove(tx)
+	pool.remove(tx) 
 }
 
 func (pool *TxPool) remove(tx types.Txi) {
@@ -337,29 +337,46 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
-			pool.mu.Lock()
 			var err error
 			tx := txEvent.txEnv.tx
+			// check if tx is duplicate
 			if pool.Get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				err = types.ErrDuplicateTx
-				txEvent.callbackChan <- err
+				txEvent.callbackChan <- types.ErrDuplicateTx
+				continue
+			}
+			// check if the nonce is duplicate
+			isDuplicate := false
+			txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
+			if txinpool != nil {
+				isDuplicate = true
+			}
+			txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
+			if txindag != nil {
+				isDuplicate = true
+			}
+			if isDuplicate {
+				log.WithField("tx", tx).Warn("Duplicate tx nonce")
+				txEvent.callbackChan <- types.ErrDuplicateNonce
 				continue
 			}
 
 			pool.txLookup.Add(txEvent.txEnv)
+
+			pool.mu.Lock()
 			switch tx := tx.(type) {
 			case *types.Tx:
 				err = pool.commit(tx)
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 			}
+			pool.mu.Unlock()
+			
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
 			txEvent.callbackChan <- err
 			
-			pool.mu.Unlock()
 		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()

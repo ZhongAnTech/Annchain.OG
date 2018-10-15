@@ -20,7 +20,7 @@ type Sequencer struct {
 }
 
 func (t *Sequencer) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleSequencer() *Sequencer {

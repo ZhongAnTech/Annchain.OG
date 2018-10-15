@@ -211,22 +211,6 @@ func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi) {
 	pool.OnNewTxReceived = append(pool.OnNewTxReceived, c)
 }
 
-// // for OG visualizer
-// func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
-// 	pool.mu.RLock()
-// 	defer pool.mu.RUnlock()
-
-// 	tips := pool.tips.GetAllValues()
-// 	pendings := pool.pendings.GetAllValues()
-// 	alltxs := append(tips, pendings...)
-
-// 	indices := generateRandomIndices(n, len(alltxs))
-// 	for _, i := range indices {
-// 		v = append(v, alltxs[i])
-// 	}
-// 	return v
-// }
-
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
 	pool.mu.RLock()
@@ -484,24 +468,12 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 }
 
 func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
-
 	// check if the tx's parents are bad txs
 	for _, parentHash := range tx.Parents() {
 		if pool.badtxs.Get(parentHash) != nil {
 			return TxQualityIsBad
 		}
 	}
-
-	// check if the nonce is duplicate
-	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
-	if txinpool != nil {
-		return TxQualityIsBad
-	}
-	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
-	if txindag != nil {
-		return TxQualityIsBad
-	}
-
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
 	if stateFrom == nil {

@@ -149,6 +149,7 @@ func (s *Server) Name() string {
 }
 func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
+	defer ticker.Stop()
 	var uidata *UIData
 	for {
 		select {

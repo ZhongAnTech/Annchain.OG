@@ -50,6 +50,9 @@ count = 2
 account_ids = [0,1]
 interval_mode = "random"
 interval_ms = 1000
+# whether auto_tx will maintain its own nonce records.
+# false to query latest nonce every time.
+nonce_self_discipline = true
 
 [debug]
 node_id = 1

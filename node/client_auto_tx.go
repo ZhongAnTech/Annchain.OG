@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+	"github.com/annchain/OG/types"
 )
 
 const (
@@ -19,20 +20,21 @@ const (
 )
 
 type ClientAutoTx struct {
-	TxCreator              *og.TxCreator
-	TxBuffer               *og.TxBuffer
-	TxIntervalMilliSeconds int
-	PrivateKey             crypto.PrivateKey
-	stop                   bool
-	currentID              uint64
-	manualChan             chan bool
-	TxPool                 *core.TxPool
-	Dag                    *core.Dag
-	SampleAccounts         []account.SampleAccount
-	InstanceCount          int
-	mu                     sync.RWMutex
-	AccountIds             []int
-	IntervalMode           string
+	TxCreator                  *og.TxCreator
+	TxBuffer                   *og.TxBuffer
+	TxIntervalMilliSeconds     int
+	PrivateKey                 crypto.PrivateKey
+	stop                       bool
+	currentID                  uint64
+	manualChan                 chan bool
+	TxPool                     *core.TxPool
+	Dag                        *core.Dag
+	SampleAccounts             []account.SampleAccount
+	InstanceCount              int
+	mu                         sync.RWMutex
+	AccountIds                 []int
+	IntervalMode               string
+	NonceSelfDiscipline        bool
 }
 
 func (c *ClientAutoTx) Init() {
@@ -44,10 +46,7 @@ func (c *ClientAutoTx) Init() {
 	c.SampleAccounts = core.GetSampleAccounts()
 }
 
-func (c *ClientAutoTx) GenerateRequest(from int, to int) {
-	c.mu.RLock()
-	addr := c.SampleAccounts[from].Address
-
+func (c *ClientAutoTx) queryNextNonce(addr types.Address) (nonce uint64) {
 	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
 	if errPool != nil {
 		logrus.WithError(errPool).WithField("addr", addr.String()).Warn("txpool nonce not found")
@@ -56,7 +55,7 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	if errDag != nil {
 		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
 	}
-	var nonce uint64
+
 	if errPool != nil && errDag != nil {
 		nonce = 0
 	} else {
@@ -66,9 +65,28 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 		}
 		nonce++
 	}
+	return nonce
+}
+
+func (c *ClientAutoTx) GenerateRequest(from int, to int) {
+	c.mu.RLock()
+	addr := c.SampleAccounts[from].Address
+
+	var nextNonce uint64
+
+	if c.NonceSelfDiscipline {
+		if c.SampleAccounts[from].GetNonce() == 0{
+			c.SampleAccounts[from].SetNonce(c.queryNextNonce(addr))
+			nextNonce = c.SampleAccounts[from].GetNonce()
+		}else{
+			nextNonce = c.SampleAccounts[from].ConsumeNonce()
+		}
+	} else {
+		nextNonce = c.queryNextNonce(addr)
+	}
 
 	tx := c.TxCreator.NewSignedTx(c.SampleAccounts[from].Address, c.SampleAccounts[to].Address,
-		math.NewBigInt(0), nonce, c.SampleAccounts[from].PrivateKey)
+		math.NewBigInt(0), nextNonce, c.SampleAccounts[from].PrivateKey)
 	c.mu.RUnlock()
 
 	if ok := c.TxCreator.SealTx(tx); !ok {
@@ -76,11 +94,6 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 		return
 	}
 	logrus.WithField("tx", tx).Infof("tx generated")
-
-	c.mu.Lock()
-	c.currentID++
-	c.SampleAccounts[from].Nonce++
-	c.mu.Unlock()
 
 	// TODO: announce tx
 	c.TxBuffer.AddTx(tx)

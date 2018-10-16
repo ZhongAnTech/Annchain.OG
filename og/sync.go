@@ -169,6 +169,13 @@ func (h *Hub) synchronise(peer *peer) {
 	if peer == nil {
 		return
 	}
+	if h.isSyncing() {
+		log.Info("is syncing")
+		return
+	}
+	h.setSyncFlag()
+	defer h.unsetSyncFlag()
+
 	var synced bool
 	//if peer's id is n , after we finish sync ,peer's id maybe n+3 ,so do again
 	for {

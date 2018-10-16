@@ -826,6 +826,7 @@ func (t *txLookUp) remove(h types.Hash) {
 	for i, hash := range t.order {
 		if hash.Cmp(h) == 0 {
 			t.order = append(t.order[:i], t.order[i+1:]...)
+			break
 		}
 	}
 	delete(t.txs, h)

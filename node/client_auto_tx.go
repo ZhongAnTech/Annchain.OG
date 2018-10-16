@@ -124,7 +124,7 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		if c.enable {
 			c.GenerateRequest(from, to)
 		} else {
-			logrus.Debug("can't generate tx when disabling")
+			//logrus.Debug("can't generate tx when disabling")
 		}
 	}
 }

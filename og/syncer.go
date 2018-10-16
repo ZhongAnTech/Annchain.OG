@@ -44,7 +44,7 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		quit:        make(chan bool),
 		pause:       make(chan bool),
 		EnableEvent: make(chan bool),
-		paused:      false,
+		paused:      true,
 	}
 }
 

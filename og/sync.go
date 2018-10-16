@@ -232,6 +232,9 @@ func (h *Hub) synchronise(peer *peer) {
 		}
 	}
 	if !synced {
+		if !h.AcceptTxs() {
+			h.enableAccexptTx()
+		}
 		return
 	}
 

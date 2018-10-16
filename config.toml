@@ -57,6 +57,9 @@ nonce_self_discipline = true
 [debug]
 node_id = 1
 
+[hub]
+sync_cycle_ms = 10000
+
 [dag]
 
 consensus = "dpos"

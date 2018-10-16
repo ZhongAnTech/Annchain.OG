@@ -55,11 +55,11 @@ func (c *ClientAutoTx) Init() {
 func (c *ClientAutoTx) queryNextNonce(addr types.Address) (nonce uint64) {
 	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
 	if errPool != nil {
-		logrus.WithError(errPool).WithField("addr", addr.String()).Warn("txpool nonce not found")
+		logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
 	}
 	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
 	if errDag != nil {
-		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
+		logrus.WithError(errDag).WithField("addr", addr.String()).Debug("dag nonce not found")
 	}
 
 	if errPool != nil && errDag != nil {

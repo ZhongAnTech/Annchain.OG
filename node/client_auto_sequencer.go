@@ -43,11 +43,11 @@ func (c *ClientAutoSequencer) GenerateRequest() {
 	addr := c.SampleAccounts[0].Address
 	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
 	if errPool != nil {
-		logrus.WithError(errPool).WithField("addr", addr.String()).Warn("txpool nonce not found")
+		logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
 	}
 	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
 	if errDag != nil {
-		logrus.WithError(errDag).WithField("addr", addr.String()).Warn("dag nonce not found")
+		logrus.WithError(errDag).WithField("addr", addr.String()).Debug("dag nonce not found")
 	}
 	var nonce uint64
 	if errPool != nil && errDag != nil {

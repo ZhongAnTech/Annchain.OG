@@ -506,7 +506,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Warnf("verifyConfirmBatch error: %v", err)

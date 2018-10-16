@@ -179,7 +179,7 @@ func (h *Hub) synchronise(peer *peer) {
 		//if seqId >= pSeqid {
 		log.WithField("peer id ", pSeqid).WithField("our id", seqId).Debug("sync")
 		//never use uint(0)-1
-		if seqId+1 >= pSeqid {
+		if seqId+30 >= pSeqid {
 			break
 		}
 		if !synced {

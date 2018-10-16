@@ -203,11 +203,11 @@ func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSe
 func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
 	ok = false
 	if ok = v.verifyA3(txi); !ok {
-		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
+		logrus.WithField("tx", txi).Warn("tx failed on graph A3")
 		return
 	}
 	if ok = v.verifyB1(txi); !ok {
-		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
+		logrus.WithField("tx", txi).Warn("tx failed on graph B1")
 		return
 	}
 	return true

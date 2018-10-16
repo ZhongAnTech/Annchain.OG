@@ -14,10 +14,10 @@ type Syncer struct {
 	hub                 *Hub
 	acquireTxQueue      chan types.Hash
 	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
-	quit                chan bool
-	pause               chan bool
+	quitLoopSync        chan bool
+	quitLoopEvent       chan bool
 	EnableEvent         chan bool
-	paused              bool
+	enabled             bool
 }
 
 func (m *Syncer) GetBenchmarks() map[string]int {
@@ -41,10 +41,10 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		quit:        make(chan bool),
-		pause:       make(chan bool),
-		EnableEvent: make(chan bool),
-		paused:      true,
+		quitLoopSync:  make(chan bool),
+		quitLoopEvent: make(chan bool),
+		EnableEvent:   make(chan bool),
+		enabled:       false,
 	}
 }
 
@@ -65,16 +65,9 @@ func (m *Syncer) Start() {
 }
 
 func (m *Syncer) Stop() {
-	m.quit <- true
-}
-
-func (m *Syncer) Pause() {
-	m.pause <- true
-}
-
-func (m *Syncer) Resume() {
-	m.pause <- false
-	m.paused = false
+	m.enabled = false
+	m.quitLoopEvent <- true
+	m.quitLoopSync <- true
 }
 
 func (m *Syncer) Name() string {
@@ -107,24 +100,16 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 func (m *Syncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
+	pauseCheckDuration := time.Duration(time.Second)
 
 	for {
 		//if paused wait until resume
-		if m.paused {
-			select {
-			case v := <-m.pause:
-				m.paused = v
-				logrus.WithField("value", v).Debug("syncer received pause/resume message.")
-			case <-m.quit:
-				logrus.Info("syncer received quit message. Quitting...")
-				return
-			}
+		if !m.enabled {
+			time.Sleep(pauseCheckDuration)
+			continue
 		}
 		select {
-		case v := <-m.pause:
-			m.paused = v
-			logrus.WithField("value", v).Debug("syncer received pause/resume message.")
-		case <-m.quit:
+		case <-m.quitLoopSync:
 			logrus.Info("syncer received quit message. Quitting...")
 			return
 		case hash := <-m.acquireTxQueue:
@@ -144,7 +129,7 @@ func (m *Syncer) loopSync() {
 }
 
 func (m *Syncer) Enqueue(hash types.Hash) {
-	if m.paused {
+	if !m.enabled {
 		logrus.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
 		return
 	}
@@ -168,13 +153,9 @@ func (m *Syncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
-			logrus.WithField("enable: ", v).Info("got enable event ")
-			if v {
-				m.Resume()
-			} else {
-				m.Pause()
-			}
-		case <-m.quit:
+			logrus.WithField("enable", v).Info("syncer got enable event ")
+			m.enabled = v
+		case <-m.quitLoopEvent:
 			logrus.Info("syncer eventLoop received quit message. Quitting...")
 			return
 		}

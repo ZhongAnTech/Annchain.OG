@@ -71,6 +71,7 @@ type Hub struct {
 	OnEnableTxsEvent     []chan bool
 
 	bootstrapNode bool
+	syncFlag  uint32 //1 for is syncing
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -759,6 +760,21 @@ func (h *Hub) fastSyncMode() bool {
 		return true
 	}
 	return false
+}
+
+func (h *Hub) isSyncing() bool {
+	if atomic.LoadUint32(&h.syncFlag) == 1 {
+		return true
+	}
+	return false
+}
+
+func (h *Hub) setSyncFlag()  {
+	atomic.StoreUint32(&h.syncFlag,1)
+}
+
+func (h *Hub) unsetSyncFlag()  {
+	atomic.StoreUint32(&h.syncFlag,0)
 }
 
 func (h *Hub) disableFastSync() {

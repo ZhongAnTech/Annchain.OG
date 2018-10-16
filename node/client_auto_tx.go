@@ -7,11 +7,11 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
 	"time"
-	"github.com/annchain/OG/types"
 )
 
 const (
@@ -20,21 +20,24 @@ const (
 )
 
 type ClientAutoTx struct {
-	TxCreator                  *og.TxCreator
-	TxBuffer                   *og.TxBuffer
-	TxIntervalMilliSeconds     int
-	PrivateKey                 crypto.PrivateKey
-	stop                       bool
-	currentID                  uint64
-	manualChan                 chan bool
-	TxPool                     *core.TxPool
-	Dag                        *core.Dag
-	SampleAccounts             []account.SampleAccount
-	InstanceCount              int
-	mu                         sync.RWMutex
-	AccountIds                 []int
-	IntervalMode               string
-	NonceSelfDiscipline        bool
+	TxCreator              *og.TxCreator
+	TxBuffer               *og.TxBuffer
+	TxIntervalMilliSeconds int
+	PrivateKey             crypto.PrivateKey
+	stop                   bool
+	currentID              uint64
+	manualChan             chan bool
+	TxPool                 *core.TxPool
+	Dag                    *core.Dag
+	SampleAccounts         []account.SampleAccount
+	InstanceCount          int
+	mu                     sync.RWMutex
+	AccountIds             []int
+	IntervalMode           string
+	NonceSelfDiscipline    bool
+	enable                 bool
+	EnableEvent            chan bool
+	quit                   chan bool
 }
 
 func (c *ClientAutoTx) Init() {
@@ -44,6 +47,9 @@ func (c *ClientAutoTx) Init() {
 		c.currentID = lseq.Id
 	}
 	c.SampleAccounts = core.GetSampleAccounts()
+	c.enable = false
+	c.EnableEvent = make(chan bool)
+	c.quit = make(chan bool)
 }
 
 func (c *ClientAutoTx) queryNextNonce(addr types.Address) (nonce uint64) {
@@ -75,10 +81,10 @@ func (c *ClientAutoTx) GenerateRequest(from int, to int) {
 	var nextNonce uint64
 
 	if c.NonceSelfDiscipline {
-		if c.SampleAccounts[from].GetNonce() == 0{
+		if c.SampleAccounts[from].GetNonce() == 0 {
 			c.SampleAccounts[from].SetNonce(c.queryNextNonce(addr))
 			nextNonce = c.SampleAccounts[from].GetNonce()
-		}else{
+		} else {
 			nextNonce = c.SampleAccounts[from].ConsumeNonce()
 		}
 	} else {
@@ -108,22 +114,23 @@ func (c *ClientAutoTx) loop(from int, to int) {
 		case IntervalModeRandom:
 			sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMilliSeconds-1) + 1))
 		default:
-			panic(fmt.Sprintf("unkown IntervalMode : %s  ",c.IntervalMode))
+			panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 		}
 
 		select {
 		case <-c.manualChan:
 		case <-time.After(sleepDuration):
 		}
-		if c.TxBuffer.Hub.AcceptTxs() {
+		if c.enable {
 			c.GenerateRequest(from, to)
 		} else {
-			logrus.Debug("can't generate tx when syncing")
+			logrus.Debug("can't generate tx when disabling")
 		}
 	}
 }
 
 func (c *ClientAutoTx) Start() {
+	go c.evevtLoop()
 	for i := 0; i < c.InstanceCount; i++ {
 		//a, b := rand.Intn(len(c.SampleAccounts)), rand.Intn(len(c.SampleAccounts))
 		a, b := c.AccountIds[i], rand.Intn(len(c.SampleAccounts))
@@ -143,4 +150,17 @@ func (c *ClientAutoTx) ManualSequence() {
 
 func (c *ClientAutoTx) Name() string {
 	return "ClientAutoTx"
+}
+
+func (c *ClientAutoTx) evevtLoop() {
+	for !c.stop {
+		select {
+		case v := <-c.EnableEvent:
+			logrus.WithField("enable: ", v).Info("got enable event ")
+			c.enable = v
+		case <-c.quit:
+			logrus.Infof("ClientAutoTx received quit signal ,quiting...")
+			return
+		}
+	}
 }

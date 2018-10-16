@@ -29,20 +29,20 @@ func NewAccount(privateKeyHex string) SampleAccount {
 	return s
 }
 
-func (s *SampleAccount) ConsumeNonce() uint64{
+func (s *SampleAccount) ConsumeNonce() uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nonce ++
+	s.nonce++
 	return s.nonce
 }
 
-func (s *SampleAccount) GetNonce() uint64{
+func (s *SampleAccount) GetNonce() uint64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.nonce
 }
 
-func (s *SampleAccount) SetNonce(value uint64){
+func (s *SampleAccount) SetNonce(value uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.nonce = value

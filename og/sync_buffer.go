@@ -98,7 +98,7 @@ func (s *SyncBuffer) AddTxs(txs []types.Txi, seq *types.Sequencer) error {
 		if err != nil {
 			return err
 		}
-		s.Handle()
+		return s.Handle()
 
 	} else {
 		err := fmt.Errorf("addtx busy")
@@ -145,10 +145,10 @@ func (s *SyncBuffer) Handle() error {
 		return nil
 	}
 	count := s.Count()
-	log.WithField("txs len", count).WithField("seq id ", s.Seq.Number()).Debug("handle txs start")
+	log.WithField("txs len", count).WithField("seq", s.Seq).Debug("handle txs start")
 	err := s.verifyElders(s.Seq)
 	if err != nil {
-		log.WithField("seq ", s.Seq.Number()).WithError(err).Warn("handel fail")
+		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
 		return err
 	}
 
@@ -178,7 +178,7 @@ func (s *SyncBuffer) Handle() error {
 
 		err = s.txPool.AddRemoteTx(tx)
 		if err != nil {
-			//this trasaction received by brodcast ,so don't return err
+			//this transaction received by broadcast ,so don't return err
 			if err == types.ErrDuplicateTx {
 				err = nil
 				continue
@@ -188,12 +188,12 @@ func (s *SyncBuffer) Handle() error {
 		}
 	}
 	if err == nil {
-		log.WithField("id", s.Seq.Number()).Debug("before add seq")
+		log.WithField("id", s.Seq).Debug("before add seq")
 		err = s.txPool.AddRemoteTx(s.Seq)
-		log.WithField("id", s.Seq.Number()).Debug("after add seq")
+		log.WithField("id", s.Seq).Debug("after add seq")
 	}
 	if err != nil {
-		log.WithField("seq ", s.Seq.Number()).WithError(err).Warn("handel fail")
+		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
 	} else {
 		log.WithField("txs len", count).WithField("seq id ", s.Seq.Number()).Debug("handle txs done")
 

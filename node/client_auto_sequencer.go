@@ -21,6 +21,9 @@ type ClientAutoSequencer struct {
 	TxPool                *core.TxPool
 	Dag                   *core.Dag
 	SampleAccounts        []account.SampleAccount
+	enable                bool
+	EnableEvent           chan bool
+	quit                  chan bool
 }
 
 func (c *ClientAutoSequencer) Init() {
@@ -30,6 +33,9 @@ func (c *ClientAutoSequencer) Init() {
 		c.currentID = lseq.Id
 	}
 	c.SampleAccounts = core.GetSampleAccounts()
+	c.enable = false
+	c.EnableEvent = make(chan bool)
+	c.quit = make(chan bool)
 }
 
 func (c *ClientAutoSequencer) GenerateRequest() {
@@ -72,15 +78,16 @@ func (c *ClientAutoSequencer) loop() {
 		case <-c.manualChan:
 		case <-time.NewTimer(time.Millisecond * time.Duration(c.BlockTimeMilliSeconds)).C:
 		}
-		if c.TxBuffer.Hub.AcceptTxs() {
+		if c.enable {
 			c.GenerateRequest()
 		} else {
-			logrus.Debug("can't generate sequencer when syncing")
+			logrus.Debug("can't generate sequencer when disabling")
 		}
 	}
 }
 
 func (c *ClientAutoSequencer) Start() {
+	go c.evevtLoop()
 	go c.loop()
 }
 
@@ -94,4 +101,17 @@ func (c *ClientAutoSequencer) ManualSequence() {
 
 func (ClientAutoSequencer) Name() string {
 	return "ClientAutoSequencer"
+}
+
+func (c *ClientAutoSequencer) evevtLoop() {
+	for !c.stop {
+		select {
+		case v := <-c.EnableEvent:
+			c.enable = v
+			logrus.WithField("enable: ", v).Info("got enable event ")
+		case <-c.quit:
+			logrus.Infof("ClientAutoSequencer received quit signal ,quiting...")
+			return
+		}
+	}
 }

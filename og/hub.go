@@ -60,13 +60,17 @@ type Hub struct {
 	downloader *downloader.Downloader
 	fetcher    *fetcher.Fetcher
 
-	networkID  uint64
-	TxBuffer   ITxBuffer
-	SyncBuffer ISyncBuffer
-	finishInit bool
-	enableSync bool
+	networkID      uint64
+	TxBuffer       ITxBuffer
+	SyncBuffer     ISyncBuffer
+	finishInit     bool
+	enableSync     bool
+	forceSyncCycle uint
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
+	OnEnableTxsEvent     []chan bool
+
+	bootstrapNode bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]int {
@@ -93,8 +97,9 @@ type HubConfig struct {
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
 	NetworkId                     uint64
-	StartAcceptTxs                bool //start accept txs even if no peers
+	BootstrapNode                 bool //start accept txs even if no peers
 	EnableSync                    bool
+	ForceSyncCycle                uint //millisecends
 }
 
 func DefaultHubConfig() HubConfig {
@@ -106,12 +111,13 @@ func DefaultHubConfig() HubConfig {
 		MaxPeers:                      50,
 		NetworkId:                     1,
 		EnableSync:                    true,
+		ForceSyncCycle:                10000,
+		BootstrapNode:                 false,
 	}
 	return config
 }
 
 func (h *Hub) Init(config *HubConfig, dag IDag) {
-
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.quit = make(chan bool)
@@ -123,15 +129,16 @@ func (h *Hub) Init(config *HubConfig, dag IDag) {
 	h.maxPeers = config.MaxPeers
 	h.networkID = config.NetworkId
 	h.enableSync = config.EnableSync
+	h.forceSyncCycle = config.ForceSyncCycle
+	h.bootstrapNode = config.BootstrapNode
+	if h.forceSyncCycle == 0 {
+		h.forceSyncCycle = 10000
+	}
 	h.Dag = dag
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
-	// if disabled sync just accept txs
-	if config.StartAcceptTxs || !h.enableSync {
-		log.Debug("init accept txs")
-		atomic.StoreUint32(&h.acceptTxs, 1)
-	}
+
 }
 
 func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
@@ -192,11 +199,13 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
 	}
 	inserter := func(tx types.Txi) error {
 		// If fast sync is running, deny importing weird blocks
-		if atomic.LoadUint32(&h.fastSync) == 1 {
+		if h.fastSyncMode() {
 			log.WithField("number", tx.GetHeight()).WithField("hash", tx.GetTxHash()).Warn("Discarded bad propagated sequencer")
 			return nil
 		}
-		atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done on any fetcher import
+		// Mark initial sync done on any fetcher import
+		h.enableAccexptTx()
+		//todo fetch will done later
 		log.Warn("maybe some problems here")
 		h.TxBuffer.AddTx(tx)
 		return nil
@@ -636,7 +645,14 @@ func (h *Hub) removePeer(id string) {
 }
 
 func (h *Hub) Start() {
-	//h.downloader.Start()
+	go func() {
+		// if disabled sync just accept txs
+		if h.bootstrapNode || !h.enableSync {
+			h.enableAccexptTx()
+		} else {
+			h.disableAcceptTx()
+		}
+	}()
 	go h.loopSend()
 	go h.loopReceive()
 
@@ -720,6 +736,33 @@ func (h *Hub) AcceptTxs() bool {
 		return true
 	}
 	return false
+}
+
+func (h *Hub) enableAccexptTx() {
+	atomic.StoreUint32(&h.acceptTxs, 1)
+	for _, c := range h.OnEnableTxsEvent {
+		c <- true
+	}
+	log.Warn("enable accept txs")
+}
+
+func (h *Hub) disableAcceptTx() {
+	atomic.StoreUint32(&h.acceptTxs, 0)
+	for _, c := range h.OnEnableTxsEvent {
+		c <- false
+	}
+	log.Warn("disable accept txs")
+}
+
+func (h *Hub) fastSyncMode() bool {
+	if atomic.LoadUint32(&h.fastSync) == 1 {
+		return true
+	}
+	return false
+}
+
+func (h *Hub) disableFastSync() {
+	atomic.StoreUint32(&h.fastSync, 0)
 }
 
 func (h *Hub) SendMessage(messageType MessageType, msg []byte) {

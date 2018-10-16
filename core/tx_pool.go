@@ -292,7 +292,7 @@ func (pool *TxPool) Remove(tx types.Txi) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.remove(tx) 
+	pool.remove(tx)
 }
 
 func (pool *TxPool) remove(tx types.Txi) {
@@ -357,12 +357,12 @@ func (pool *TxPool) loop() {
 				err = pool.confirm(tx)
 			}
 			pool.mu.Unlock()
-			
+
 			if err != nil {
 				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
 			}
 			txEvent.callbackChan <- err
-			
+
 		// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()

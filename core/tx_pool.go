@@ -866,6 +866,7 @@ func (t *txLookUp) Count() int {
 
 	return t.count()
 }
+
 func (t *txLookUp) count() int {
 	return len(t.txs)
 }

@@ -60,7 +60,7 @@ func NewNode() *Node {
 		NetworkId:                     uint64(networkId),
 		BootstrapNode:                 bootNode, //if bootstrap node just accept txs in starting ,no sync
 		EnableSync:                    enableSync,
-		ForceSyncCycle:                uint(viper.GetInt("auto_sequencer.interval_ms")),
+		ForceSyncCycle:                uint(viper.GetInt("hub.sync_cycle_ms")),
 	}, downloader.FullSync, org.Dag)
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 

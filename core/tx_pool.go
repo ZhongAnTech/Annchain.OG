@@ -807,6 +807,10 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.add(txEnv)
 }
 func (t *txLookUp) add(txEnv *txEnvelope) {
+	if _, ok := t.txs[txEnv.tx.GetTxHash()]; ok {
+		return
+	}
+
 	t.order = append(t.order, txEnv.tx.GetTxHash())
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
 }

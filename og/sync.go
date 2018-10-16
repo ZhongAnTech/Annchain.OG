@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	forceSyncCycle      = 10 * time.Second // Time interval to force syncs, even if few peers are available
-	minDesiredPeerCount = 5                // Amount of peers desired to start syncing
+	//forceSyncCycle      = 10 * time.Second // Time interval to force syncs, even if few peers are available
+	minDesiredPeerCount = 5 // Amount of peers desired to start syncing
 
 	// This is the target size for the packs of transactions sent by txsyncLoop.
 	// A pack can get larger than this if a single transactions exceeds this size.
@@ -121,7 +121,7 @@ func (h *Hub) syncInit() {
 		ourId := h.Dag.LatestSequencer().Id
 		if bpId <= ourId {
 			log.WithField("best peer id  ", bpId).WithField("best peer hash", bpHash).WithField("our id", ourId).Debug("can  accept txs")
-			atomic.StoreUint32(&h.acceptTxs, 1)
+			h.enableAccexptTx()
 		}
 	}
 	return
@@ -136,7 +136,7 @@ func (h *Hub) syncer() {
 	defer h.downloader.Terminate()
 
 	// Wait for different events to fire synchronisation operations
-	forceSync := time.NewTicker(forceSyncCycle)
+	forceSync := time.NewTicker(time.Duration(h.forceSyncCycle) * time.Millisecond)
 	defer forceSync.Stop()
 
 	for {
@@ -169,54 +169,74 @@ func (h *Hub) synchronise(peer *peer) {
 	if peer == nil {
 		return
 	}
-	// Make sure the peer's TD is higher than our own
-	currentBlock := h.Dag.LatestSequencer()
-	seqId := currentBlock.Number()
-	pHead, pSeqid := peer.Head()
-	if seqId >= pSeqid {
-		return
-	}
-	/*
-		//in a case that if our height will catch up very soon ,don't sync ,just wait
-		//maybe we received a sequencer and did't finish process
-		//todo  have problem in this code blow
-		if seqId == pSeqid -1 {
-			time.Sleep(time.Millisecond*200)
-			currentBlock = h.Dag.LatestSequencer()
-			seqId = currentBlock.Number()
-			pHead, pSeqid = peer.Head()
-			if seqId >= pSeqid {
-				return
-			}
+	var synced bool
+	//if peer's id is n , after we finish sync ,peer's id maybe n+3 ,so do again
+	for {
+		currentBlock := h.Dag.LatestSequencer()
+		seqId := currentBlock.Number()
+		pHead, pSeqid := peer.Head()
+		// Make sure the peer's Id is higher than our own
+		//if seqId >= pSeqid {
+		log.WithField("peer id ", pSeqid).WithField("our id", seqId).Debug("sync")
+		//never use uint(0)-1
+		if seqId+1 >= pSeqid {
+			break
 		}
-	*/
-	// Otherwise try to sync with the downloader
-	mode := downloader.FullSync
-	if atomic.LoadUint32(&h.fastSync) == 1 {
-		// Fast sync was explicitly requested, and explicitly granted
-		mode = downloader.FastSync
-	} else if currentBlock.Number() == 0 {
-		// The database seems empty as the current block is the genesis. Yet the fast
-		// block is ahead, so fast sync was enabled for this node at a certain point.
-		// The only scenario where this can happen is if the user manually (or via a
-		// bad block) rolled back a fast sync node below the sync point. In this case
-		// however it's safe to reenable fast sync.
-		//todo
-		//atomic.StoreUint32(&h.fastSync, 1)
-		//mode = downloader.FastSync
+		if !synced {
+			synced = true
+			h.disableAcceptTx()
+		}
+
+		/*
+			//in a case that if our height will catch up very soon ,don't sync ,just wait
+			//maybe we received a sequencer and did't finish process
+			//todo  have problem in this code blow
+			if seqId == pSeqid -1 {
+				time.Sleep(time.Millisecond*200)
+				currentBlock = h.Dag.LatestSequencer()
+				seqId = currentBlock.Number()
+				pHead, pSeqid = peer.Head()
+				if seqId >= pSeqid {
+					return
+				}
+			}
+		*/
+		// Otherwise try to sync with the downloader
+		mode := downloader.FullSync
+		if atomic.LoadUint32(&h.fastSync) == 1 {
+			// Fast sync was explicitly requested, and explicitly granted
+			mode = downloader.FastSync
+		} else if currentBlock.Number() == 0 {
+			// The database seems empty as the current block is the genesis. Yet the fast
+			// block is ahead, so fast sync was enabled for this node at a certain point.
+			// The only scenario where this can happen is if the user manually (or via a
+			// bad block) rolled back a fast sync node below the sync point. In this case
+			// however it's safe to reenable fast sync.
+			//todo
+			//atomic.StoreUint32(&h.fastSync, 1)
+			//mode = downloader.FastSync
+		}
+		log.Debug("sync with best peer   ", pHead)
+		log.WithField("our id", seqId).WithField(" peer id ", pSeqid).Debug("sync with")
+		// Run the sync cycle, and disable fast sync if we've went past the pivot block
+		if err := h.downloader.Synchronise(peer.id, pHead, pSeqid, mode); err != nil {
+			log.WithError(err).Warn("sync failed")
+			return
+		}
 	}
-	log.Debug("sync with best peer   ", pHead)
-	log.WithField("our id", seqId).WithField(" peer id ", pSeqid).Debug("sync with")
-	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := h.downloader.Synchronise(peer.id, pHead, pSeqid, mode); err != nil {
-		log.WithError(err).Warn("sync failed")
+	if !synced {
 		return
 	}
-	if atomic.LoadUint32(&h.fastSync) == 1 {
+
+	log.Info("sync finish")
+	if h.fastSyncMode() {
 		log.Info("Fast sync complete, auto disabling")
-		atomic.StoreUint32(&h.fastSync, 0)
+		h.disableFastSync()
+
 	}
-	atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done
+	// Mark initial sync done
+	h.enableAccexptTx()
+
 	if head := h.Dag.LatestSequencer(); head.Number() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify

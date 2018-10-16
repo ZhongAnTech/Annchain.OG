@@ -58,8 +58,9 @@ func NewNode() *Node {
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
 		NetworkId:                     uint64(networkId),
-		StartAcceptTxs:                bootNode, //if bootstrap node just accept txs in starting ,no sync
+		BootstrapNode:                 bootNode, //if bootstrap node just accept txs in starting ,no sync
 		EnableSync:                    enableSync,
+		ForceSyncCycle:                uint(viper.GetInt("auto_sequencer.interval_ms")),
 	}, downloader.FullSync, org.Dag)
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 
@@ -70,7 +71,7 @@ func NewNode() *Node {
 		AcquireTxDedupCacheMaxSize:           10000,
 		AcquireTxDedupCacheExpirationSeconds: 60,
 	}, hub)
-
+	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, syncer.EnableEvent)
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 	n.Components = append(n.Components, syncer)
@@ -96,10 +97,10 @@ func NewNode() *Node {
 	}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifier:                         verifier,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:   syncer,
+		Verifier: verifier,
+		Dag:      org.Dag,
+		TxPool:   org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -160,12 +161,13 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:                   org.Dag,
-		TxPool:                org.Txpool,
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {
 		n.Components = append(n.Components, autoSequencer)
+		hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoSequencer.EnableEvent)
 	}
 
 	autoTx := &ClientAutoTx{
@@ -183,8 +185,8 @@ func NewNode() *Node {
 	autoTx.Init()
 	if viper.GetBool("auto_tx.enabled") {
 		n.Components = append(n.Components, autoTx)
+		hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoTx.EnableEvent)
 	}
-
 	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo

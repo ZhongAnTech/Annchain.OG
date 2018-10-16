@@ -16,6 +16,7 @@ type Syncer struct {
 	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
 	quit                chan bool
 	pause               chan bool
+	EnableEvent         chan bool
 	paused              bool
 }
 
@@ -40,9 +41,10 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		quit:   make(chan bool),
-		pause:  make(chan bool),
-		paused: false,
+		quit:        make(chan bool),
+		pause:       make(chan bool),
+		EnableEvent: make(chan bool),
+		paused:      false,
 	}
 }
 
@@ -58,6 +60,7 @@ func DefaultSyncerConfig() SyncerConfig {
 }
 
 func (m *Syncer) Start() {
+	go m.eventLoop()
 	go m.loopSync()
 }
 
@@ -71,6 +74,7 @@ func (m *Syncer) Pause() {
 
 func (m *Syncer) Resume() {
 	m.pause <- false
+	m.paused = false
 }
 
 func (m *Syncer) Name() string {
@@ -103,10 +107,18 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 func (m *Syncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
+
 	for {
+		//if paused wait until resume
 		if m.paused {
-			time.Sleep(time.Second * 5)
-			continue
+			select {
+			case v := <-m.pause:
+				m.paused = v
+				logrus.WithField("value", v).Debug("syncer received pause/resume message.")
+			case <-m.quit:
+				logrus.Info("syncer received quit message. Quitting...")
+				return
+			}
 		}
 		select {
 		case v := <-m.pause:
@@ -150,4 +162,21 @@ func (m *Syncer) ClearQueue() {
 		<-m.acquireTxQueue
 	}
 	m.acquireTxDedupCache.Purge()
+}
+
+func (m *Syncer) eventLoop() {
+	for {
+		select {
+		case v := <-m.EnableEvent:
+			logrus.WithField("enable: ", v).Info("got enable event ")
+			if v {
+				m.Resume()
+			} else {
+				m.Pause()
+			}
+		case <-m.quit:
+			logrus.Info("syncer eventLoop received quit message. Quitting...")
+			return
+		}
+	}
 }

@@ -116,10 +116,10 @@ func NewNode() *Node {
 	hub.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
 	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
-		TxBuffer: txBuffer,
-		TxPool:   org.Txpool,
+		TxBuffer:       txBuffer,
+		TxPool:         org.Txpool,
 		FormatVerifier: txFormatVerifier,
-		GraphVerifier: graphVerifier,
+		GraphVerifier:  graphVerifier,
 	})
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
@@ -144,7 +144,7 @@ func NewNode() *Node {
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
 		DebugNodeId:        viper.GetInt("debug.node_id"),
-		Verifiers:          verifiers,
+		GraphVerifier:      graphVerifier,
 	}
 
 	var privateKey crypto.PrivateKey

@@ -11,6 +11,16 @@ import (
 	"time"
 )
 
+type AllOkVerifier struct{}
+
+func (AllOkVerifier) Verify(t types.Txi) bool {
+	return true
+}
+
+func (AllOkVerifier) Name() string {
+	panic("AllOkVerifier")
+}
+
 func Init() *TxCreator {
 	txc := TxCreator{
 		Signer:             &crypto.SignerEd25519{},
@@ -19,6 +29,7 @@ func Init() *TxCreator {
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		MaxMinedHash:       types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		GraphVerifier:      &AllOkVerifier{},
 	}
 	return &txc
 }
@@ -77,6 +88,7 @@ func TestBuildDag(t *testing.T) {
 		MaxConnectingTries: 10,
 		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		MaxMinedHash:       types.HexToHash("0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		GraphVerifier:      &AllOkVerifier{},
 	}
 
 	_, privateKey, _ := txc.Signer.RandomKeyPair()

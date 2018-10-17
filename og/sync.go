@@ -19,6 +19,10 @@ const (
 	// This is the target size for the packs of transactions sent by txsyncLoop.
 	// A pack can get larger than this if a single transactions exceeds this size.
 	txsyncPackSize = 100 * 1024
+
+	minAllowbehindHeight = 30       //todo this value will be  set  to optimal value in the future,
+	                                // if generating sequencer is very fast with few transactions, it should be bigger,
+                                    //otherwise it should be smaller
 )
 
 type txsync struct {
@@ -119,7 +123,7 @@ func (h *Hub) syncInit() {
 	if bp != nil {
 		bpHash, bpId := bp.Head()
 		ourId := h.Dag.LatestSequencer().Id
-		if bpId <= ourId {
+		if bpId <= ourId+minAllowbehindHeight {
 			log.WithField("best peer id  ", bpId).WithField("best peer hash", bpHash).WithField("our id", ourId).Debug("can  accept txs")
 			h.enableAccexptTx()
 		}
@@ -186,7 +190,7 @@ func (h *Hub) synchronise(peer *peer) {
 		//if seqId >= pSeqid {
 		log.WithField("peer id ", pSeqid).WithField("our id", seqId).Debug("sync")
 		//never use uint(0)-1
-		if seqId+30 >= pSeqid {
+		if seqId+minAllowbehindHeight >= pSeqid {
 			break
 		}
 		if !synced {

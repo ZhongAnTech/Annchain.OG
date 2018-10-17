@@ -87,25 +87,30 @@ func NewNode() *Node {
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 
-	verifier := &og.Verifier{
+	graphVerifier := &og.GraphVerifier{
+		Dag:    org.Dag,
+		TxPool: org.Txpool,
+		//Buffer: txBuffer,
+	}
+
+	txFormatVerifier := &og.TxFormatVerifier{
 		Signer:       signer,
 		CryptoType:   signer.GetCryptoType(),
-		Dag:          org.Dag,
-		TxPool:       org.Txpool,
 		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
 
+	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
+
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      org.Dag,
-		TxPool:   org.Txpool,
+		Syncer:                           syncer,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
-	verifier.Buffer = txBuffer
 
 	txBuffer.Hub = hub
 	hub.TxBuffer = txBuffer
@@ -113,14 +118,14 @@ func NewNode() *Node {
 	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
 		TxBuffer: txBuffer,
 		TxPool:   org.Txpool,
-		Verifier: verifier,
+		FormatVerifier: txFormatVerifier,
+		GraphVerifier: graphVerifier,
 	})
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
 	m := &og.Manager{
 		TxPool:   org.Txpool,
 		TxBuffer: txBuffer,
-		Verifier: verifier,
 		Syncer:   syncer,
 		Hub:      hub,
 		Dag:      org.Dag,
@@ -139,6 +144,7 @@ func NewNode() *Node {
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
 		DebugNodeId:        viper.GetInt("debug.node_id"),
+		Verifiers:          verifiers,
 	}
 
 	var privateKey crypto.PrivateKey
@@ -161,8 +167,8 @@ func NewNode() *Node {
 		TxBuffer:              m.TxBuffer,
 		PrivateKey:            privateKey,
 		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:    org.Dag,
-		TxPool: org.Txpool,
+		Dag:                   org.Dag,
+		TxPool:                org.Txpool,
 	}
 	autoSequencer.Init()
 	if viper.GetBool("auto_sequencer.enabled") {

@@ -29,7 +29,7 @@ port = 8003
 name = "leveldb"
 
 [leveldb]
-path = "datadir1"
+path = "datadir_1"
 cache = 16
 handles = 16
 

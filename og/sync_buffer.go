@@ -13,28 +13,31 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs        map[types.Hash]types.Txi
-	TxsList    []types.Hash
-	Seq        *types.Sequencer
-	mu         sync.RWMutex
-	txPool     ITxPool
-	txBuffer   ITxBuffer
-	acceptTxs  uint32
-	quitHandel bool
-	verifier   IVerifier
+	Txs            map[types.Hash]types.Txi
+	TxsList        []types.Hash
+	Seq            *types.Sequencer
+	mu             sync.RWMutex
+	txPool         ITxPool
+	txBuffer       ITxBuffer
+	acceptTxs      uint32
+	quitHandel     bool
+	formatVerifier Verifier
+	graphVerifier  Verifier
 }
 
 type SyncBufferConfig struct {
-	TxPool   ITxPool
-	TxBuffer ITxBuffer
-	Verifier IVerifier
+	TxPool         ITxPool
+	TxBuffer       ITxBuffer
+	FormatVerifier Verifier
+	GraphVerifier  Verifier
 }
 
-func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer, verifier IVerifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer, formatVerifier Verifier, graphVerifier Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
-		TxPool:   txPool,
-		TxBuffer: txBuffer,
-		Verifier: verifier,
+		TxPool:         txPool,
+		TxBuffer:       txBuffer,
+		FormatVerifier: formatVerifier,
+		GraphVerifier:  graphVerifier,
 	}
 	return config
 }
@@ -44,10 +47,11 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:      make(map[types.Hash]types.Txi),
-		txPool:   config.TxPool,
-		txBuffer: config.TxBuffer,
-		verifier: config.Verifier,
+		Txs:            make(map[types.Hash]types.Txi),
+		txPool:         config.TxPool,
+		txBuffer:       config.TxBuffer,
+		formatVerifier: config.FormatVerifier,
+		graphVerifier:  config.GraphVerifier,
 	}
 	return s
 }
@@ -163,18 +167,14 @@ func (s *SyncBuffer) Handle() error {
 		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
-		/*
-			if !s.verifier.VerifyHash(tx) {
-				err = errors.New("hash is not valid")
-				break
-			}
-			if !s.verifier.VerifySignature(tx) {
-				err = errors.New("signature is not valid")
-				break
-			}
-		*/
-		if !s.verifier.VerifyGraphOrder(tx) {
-			log.WithField("tx", tx).Warn("bad graph tx")
+		//if !s.formatVerifier.Verify(tx) {
+		//	log.WithField("tx", tx).Warn("bad tx format")
+		//	err = errors.New("bad tx format")
+		//	break
+		//}
+
+		if !s.graphVerifier.Verify(tx) {
+			log.WithField("tx", tx).Warn("bad tx graph")
 			err = errors.New("bad graph tx")
 			break
 		}

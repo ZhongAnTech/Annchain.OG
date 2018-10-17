@@ -157,6 +157,10 @@ func (s *SyncBuffer) Handle() error {
 		if tx == nil {
 			panic("never come here")
 		}
+		//if tx is already in txbool ,no need to verify again
+		if s.txBuffer.isLocalHash(hash) {
+			continue
+		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
 		/*
@@ -169,7 +173,6 @@ func (s *SyncBuffer) Handle() error {
 				break
 			}
 		*/
-		//todo uncommit later , need sort tx for verify graph order
 		if !s.verifier.VerifyGraphOrder(tx) {
 			log.WithField("tx", tx).Warn("bad graph tx")
 			err = errors.New("bad graph tx")
@@ -195,7 +198,7 @@ func (s *SyncBuffer) Handle() error {
 	if err != nil {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
 	} else {
-		log.WithField("txs len", count).WithField("seq id ", s.Seq.Number()).Debug("handle txs done")
+		log.WithField("txs len", count).WithField("seq ", s.Seq).Debug("handle txs done")
 
 	}
 	return err

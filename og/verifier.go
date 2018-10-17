@@ -7,25 +7,35 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Verifier verifies if the tx meets the hash and graph standards.
-type Verifier struct {
+// GraphVerifier verifies if the tx meets the standards
+type Verifier interface {
+	Verify(t types.Txi) bool
+	Name() string
+}
+
+type TxFormatVerifier struct {
 	Signer       crypto.Signer
 	CryptoType   crypto.CryptoType
-	Dag          IDag
-	TxPool       ITxPool
-	Buffer       *TxBuffer
 	MaxTxHash    types.Hash // The difficultiy of TxHash
 	MaxMinedHash types.Hash // The difficultiy of MinedHash
 }
 
-func (v *Verifier) VerifyHash(t types.Txi) bool {
+func (v *TxFormatVerifier) Name() string {
+	return "TxFormatVerifier"
+}
+
+func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+	return v.VerifyHash(t) && v.VerifySignature(t) && v.VerifySourceAddress(t)
+}
+
+func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 	return (t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) &&
 		t.CalcTxHash() == t.GetTxHash() &&
 		(t.GetTxHash().Cmp(v.MaxTxHash) < 0)
 
 }
 
-func (v *Verifier) VerifySignature(t types.Txi) bool {
+func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
 	return v.Signer.Verify(
 		crypto.PublicKey{Type: v.CryptoType, Bytes: base.PublicKey},
@@ -33,7 +43,7 @@ func (v *Verifier) VerifySignature(t types.Txi) bool {
 		t.SignatureTargets())
 }
 
-func (v *Verifier) VerifySourceAddress(t types.Txi) bool {
+func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 	switch t.(type) {
 	case *types.Tx:
 		return t.(*types.Tx).From.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
@@ -44,15 +54,28 @@ func (v *Verifier) VerifySourceAddress(t types.Txi) bool {
 	}
 }
 
+// GraphVerifier verifies if the tx meets the OG hash and graph standards.
+type GraphVerifier struct {
+	Dag    IDag
+	TxPool ITxPool
+	//Buffer *TxBuffer
+}
+
+func (v *GraphVerifier) Name() string {
+	return "GraphVerifier"
+}
+
 // getTxFromTempSource tries to get tx from anywhere but dag itself.
 // return nil if not found in either txpool or buffer
-func (v *Verifier) getTxFromTempSource(hash types.Hash) (txi types.Txi) {
-	if v.Buffer != nil {
-		txi = v.Buffer.GetFromBuffer(hash)
-		if txi != nil {
-			return
-		}
-	}
+func (v *GraphVerifier) getTxFromTempSource(hash types.Hash) (txi types.Txi) {
+	// Re-think. Do we really need to check buffer?
+
+	//if v.Buffer != nil {
+	//	txi = v.Buffer.GetFromBuffer(hash)
+	//	if txi != nil {
+	//		return
+	//	}
+	//}
 
 	if v.TxPool != nil {
 		txi = v.TxPool.Get(hash)
@@ -63,7 +86,7 @@ func (v *Verifier) getTxFromTempSource(hash types.Hash) (txi types.Txi) {
 	return
 }
 
-func (v *Verifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archived bool) {
+func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archived bool) {
 	txi = v.getTxFromTempSource(hash)
 	if txi != nil {
 		archived = false
@@ -81,7 +104,7 @@ func (v *Verifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archived b
 
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool (then it maybe in dag)
-func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
+func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
 	if currentTx.GetNonce() == 0 {
 		ok = true
 		return
@@ -143,7 +166,7 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 }
 
 // get the nearest previous sequencer from txpool
-func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
+func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
 	seekingHashes := list.New()
 	seekingHashes.PushBack(currentSeq.GetTxHash())
@@ -189,7 +212,7 @@ func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSe
 	return
 }
 
-// VerifyGraphOrder do the graph validation according to the following rules that are marked as [My job].
+// Verify do the graph validation according to the following rules that are marked as [My job].
 // Graph standards:
 // A1: [My job] Randomly choose 2 tips.
 // A2: [Not used] Node's parent cannot be its grandparents or ancestors.
@@ -199,8 +222,8 @@ func (v *Verifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSe
 // A6: [My job] Node cannot reference two un-ordered nodes as its parents
 // B1: [My job] Nodes that are confirmed by at least N (=2) sequencers cannot be referenced.
 // B2: [My job] Two layer hash validation
-// Basically VerifyGraphOrder checks whether txs are in their nonce order
-func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
+// Basically Verify checks whether txs are in their nonce order
+func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Warn("tx failed on graph A3")
@@ -213,7 +236,7 @@ func (v *Verifier) VerifyGraphOrder(txi types.Txi) (ok bool) {
 	return true
 }
 
-func (v *Verifier) verifyA3(txi types.Txi) bool {
+func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 0
 
@@ -246,7 +269,7 @@ func (v *Verifier) verifyA3(txi types.Txi) bool {
 	return true
 }
 
-func (v *Verifier) verifyB1(txi types.Txi) bool {
+func (v *GraphVerifier) verifyB1(txi types.Txi) bool {
 	// compare the sequencer id
 	return true
 }

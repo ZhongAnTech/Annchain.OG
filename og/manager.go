@@ -11,7 +11,6 @@ type Manager struct {
 	TxPool   *core.TxPool
 	Hub      *Hub
 	Syncer   *Syncer
-	Verifier *Verifier
 	Config   *ManagerConfig
 	TxBuffer *TxBuffer
 	Dag      *core.Dag

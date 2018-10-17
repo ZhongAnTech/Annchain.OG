@@ -42,7 +42,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	/*
 		syncConf := DefaultSyncerConfig()
 		syncer := NewSyncer(&syncConf, hub)
-		verfier := &Verifier{
+		verfier := &GraphVerifier{
 			Signer:       &crypto.SignerSecp256k1{},
 			CryptoType:   crypto.CryptoTypeSecp256k1,
 			Dag:          dag,

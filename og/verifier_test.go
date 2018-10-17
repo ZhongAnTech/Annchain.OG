@@ -83,7 +83,7 @@ func TestA3(t *testing.T) {
 	}
 
 	// tx2 is bad, others are good
-	verifier := Verifier{
+	verifier := GraphVerifier{
 		Dag:    dag,
 		TxPool: pool,
 	}
@@ -139,7 +139,7 @@ func TestA6(t *testing.T) {
 	}
 
 	// tx2 is bad, others are good
-	verifier := Verifier{
+	verifier := GraphVerifier{
 		Dag:    dag,
 		TxPool: pool,
 	}

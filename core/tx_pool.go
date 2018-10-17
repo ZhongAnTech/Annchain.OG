@@ -332,21 +332,6 @@ func (pool *TxPool) loop() {
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
 			}
-			// check if the nonce is duplicate
-			isDuplicate := false
-			txinpool := pool.GetByNonce(tx.Sender(), tx.GetNonce())
-			if txinpool != nil {
-				isDuplicate = true
-			}
-			txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
-			if txindag != nil {
-				isDuplicate = true
-			}
-			if isDuplicate {
-				log.WithField("tx", tx).Warn("Duplicate tx nonce")
-				txEvent.callbackChan <- types.ErrDuplicateNonce
-				continue
-			}
 
 			pool.txLookup.Add(txEvent.txEnv)
 			pool.mu.Lock()
@@ -474,6 +459,17 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 			return TxQualityIsBad
 		}
 	}
+
+	// check if the nonce is duplicate
+	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
+	if txinpool != nil {
+		return TxQualityIsBad
+	}
+	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
+	if txindag != nil {
+		return TxQualityIsBad
+	}
+
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
 	if stateFrom == nil {
@@ -500,13 +496,18 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Debug("start confirm seq")
 
+	// check if sequencer is correct
+	checkErr := pool.isBadSeq(seq)
+	if checkErr != nil {
+		return checkErr
+	}
 	// get sequencer's unconfirmed elders
 	elders, errElders := pool.seekElders(seq)
 	if errElders != nil {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Warnf("verifyConfirmBatch error: %v", err)
@@ -535,6 +536,20 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	pool.OnNewLatestSequencer <- true
 
+	return nil
+}
+
+// isBadSeq
+func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
+	// check if the nonce is duplicate
+	seqinpool := pool.flows.GetTxByNonce(seq.Sender(), seq.GetNonce())
+	if seqinpool != nil {
+		return fmt.Errorf("duplicate nonce %d found in pool", seq.GetNonce())
+	}
+	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
+	if seqindag != nil {
+		return fmt.Errorf("duplicate nonce %d found in dag", seq.GetNonce())
+	}
 	return nil
 }
 
@@ -826,14 +841,13 @@ func (t *txLookUp) remove(h types.Hash) {
 	for i, hash := range t.order {
 		if hash.Cmp(h) == 0 {
 			t.order = append(t.order[:i], t.order[i+1:]...)
-			break
 		}
 	}
 	delete(t.txs, h)
 }
 
 // RemoveByIndex removes a tx by its order index
-func (t *txLookUp) RemoveByIndex(i int) {
+func (t *txLookUp) RemoveByIndex(i int) { 
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

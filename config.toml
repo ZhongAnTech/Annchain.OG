@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "warn"
+level = "debug"
 
 [rpc]
 enabled = true
@@ -42,17 +42,17 @@ tx_valid_time = 100
 
 [auto_sequencer]
 enabled = true
-interval_ms = 7000
+interval_ms = 5000
 
 [auto_tx]
 enabled = true
 count = 2
 account_ids = [0,1]
 interval_mode = "random"
-interval_ms = 1000
+interval_ms = 200
 # whether auto_tx will maintain its own nonce records.
 # false to query latest nonce every time.
-nonce_self_discipline = true
+nonce_self_discipline = false
 
 [debug]
 node_id = 1

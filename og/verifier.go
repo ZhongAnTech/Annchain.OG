@@ -128,7 +128,7 @@ func (v *Verifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, o
 			}
 		} else {
 			// should not be here
-			logrus.WithField("cuernt tx ", currentTx).WithField("tx", txi).Warn("get previous tx: should not be here.")
+			logrus.WithField("cuernt tx ", currentTx).WithField("ancestor", head).Warn("ancestor not found: should not be here.")
 			// this ancestor should already be in the dag. do nothing
 		}
 	}
@@ -221,6 +221,9 @@ func (v *Verifier) verifyA3(txi types.Txi) bool {
 	if txi.GetNonce() == 0 {
 		// test claim: whether it should be 0
 		_, err := v.TxPool.GetLatestNonce(txi.Sender())
+		if err == nil {
+			logrus.Warn("nonce shoud not be 0")
+		}
 		// not found is good
 		return err != nil
 	}

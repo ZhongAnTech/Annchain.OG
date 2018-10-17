@@ -71,7 +71,7 @@ func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
 
 		"query_receipt":  "hash",
 		"transaction":    "hash",
-		"transactions":   "seq_id",
+		"transactions":   "seq_id,address",
 		"query_contract": "tx",
 	}
 	noArgNames := []string{}

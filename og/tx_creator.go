@@ -17,11 +17,12 @@ type TipGenerator interface {
 type TxCreator struct {
 	Signer             crypto.Signer
 	Miner              miner.Miner
-	TipGenerator       TipGenerator // usually tx_pool
-	MaxTxHash          types.Hash   // The difficultiy of TxHash
-	MaxMinedHash       types.Hash   // The difficultiy of MinedHash
-	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
-	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
+	TipGenerator       TipGenerator  // usually tx_pool
+	MaxTxHash          types.Hash    // The difficultiy of TxHash
+	MaxMinedHash       types.Hash    // The difficultiy of MinedHash
+	MaxConnectingTries int           // Max number of times to find a pair of parents. If exceeded, try another nonce.
+	DebugNodeId        int           // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
+	Verifiers          []Verifier // To verify the graph structure
 }
 
 func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64) types.Txi {

@@ -48,9 +48,37 @@ func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
 	return
 }
 
+func PublicKeyFromString(value string) (pub PublicKey, err error) {
+	bytes, err := hexutil.Decode(value)
+	if err != nil {
+		return
+	}
+	pub = PublicKey{
+		Type:  CryptoType(bytes[0]),
+		Bytes: bytes[1:],
+	}
+	return
+}
+
 func (k *PrivateKey) PrivateKeyToString() string {
 	var bytes []byte
 	bytes = append(bytes, byte(k.Type))
 	bytes = append(bytes, k.Bytes...)
 	return hexutil.Encode(bytes)
+}
+
+func (p *PublicKey) PublicKeyToString() string {
+	var bytes []byte
+	bytes = append(bytes, byte(p.Type))
+	bytes = append(bytes, p.Bytes...)
+	return hexutil.Encode(bytes)
+}
+
+func NewSigner (cryptoType CryptoType)Signer{
+	if cryptoType == CryptoTypeEd25519 {
+		return &SignerEd25519{}
+	}else if cryptoType == CryptoTypeSecp256k1 {
+		return  &SignerSecp256k1{}
+	}
+	return nil
 }

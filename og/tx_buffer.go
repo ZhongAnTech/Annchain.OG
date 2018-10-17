@@ -1,7 +1,6 @@
 package og
 
 import (
-	"errors"
 	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
@@ -14,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -38,18 +37,13 @@ type IDag interface {
 	Genesis() *types.Sequencer
 	GetSequencerByHash(hash types.Hash) *types.Sequencer
 }
-type IVerifier interface {
-	VerifyHash(t types.Txi) bool
-	VerifySignature(t types.Txi) bool
-	VerifyGraphOrder(t types.Txi) bool
-}
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
 	dag               IDag
-	verifier          IVerifier
+	verifiers         []Verifier
 	syncer            ISyncer
 	txPool            ITxPool
 	dependencyCache   gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
@@ -69,7 +63,7 @@ func (b *TxBuffer) GetBenchmarks() map[string]int {
 
 type TxBufferConfig struct {
 	Dag                              IDag
-	Verifier                         IVerifier
+	Verifiers                        []Verifier
 	Syncer                           ISyncer
 	TxPool                           ITxPool
 	DependencyCacheMaxSize           int
@@ -81,10 +75,10 @@ type TxBufferConfig struct {
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	return &TxBuffer{
-		dag:      config.Dag,
-		verifier: config.Verifier,
-		syncer:   config.Syncer,
-		txPool:   config.TxPool,
+		dag:       config.Dag,
+		verifiers: config.Verifiers,
+		syncer:    config.Syncer,
+		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
 		newTxChan:         make(chan types.Txi, config.NewTxQueueSize),
@@ -95,12 +89,12 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	}
 }
 
-func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifier IVerifier) TxBufferConfig {
+func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		Syncer:   syncer,
-		Verifier: verifier,
-		Dag:      dag,
-		TxPool:   TxPool,
+		Syncer:                           syncer,
+		Verifiers:                        verifiers,
+		Dag:                              dag,
+		TxPool:                           TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -155,10 +149,13 @@ func (b *TxBuffer) AddLocal(tx types.Txi) error {
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
-	if !b.verifier.VerifyGraphOrder(tx) {
-		logrus.WithField("tx", tx).Info("bad graph tx")
-		return
+	for _, verifier := range b.verifiers {
+		if !verifier.Verify(tx) {
+			logrus.WithField("tx", tx).WithField("verifier", verifier.Name()).Warn("bad tx")
+			return
+		}
 	}
+
 	logrus.WithField("tx", tx).Info("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
@@ -287,17 +284,6 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		b.tryResolve(v)
 	}
 
-}
-
-// verifyTxFormat checks if the signatures and hashes are correct in tx
-func (b *TxBuffer) verifyTxFormat(tx types.Txi) error {
-	if !b.verifier.VerifyHash(tx) {
-		return errors.New("hash is not valid")
-	}
-	if !b.verifier.VerifySignature(tx) {
-		return errors.New("signature is not valid")
-	}
-	return nil
 }
 
 // isLocalHash tests if the tx is already known by buffer.

@@ -105,8 +105,13 @@ func (m *Syncer) loopSync() {
 	for {
 		//if paused wait until resume
 		if !m.enabled {
-			time.Sleep(pauseCheckDuration)
-			continue
+			select {
+			case <-m.quitLoopSync:
+				logrus.Info("syncer received quit message. Quitting...")
+				return
+			case <-time.After(pauseCheckDuration):
+				continue
+			}
 		}
 		select {
 		case <-m.quitLoopSync:

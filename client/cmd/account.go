@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/spf13/cobra"
@@ -41,16 +40,16 @@ func accountGen(cmd *cobra.Command, args []string) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("%X\n", priv.Bytes[:])
-		fmt.Printf("%X\n", pub.Bytes[:])
+		fmt.Printf(priv.PrivateKeyToString())
+		fmt.Printf(pub.PublicKeyToString())
 	} else {
 		signer := &crypto.SignerEd25519{}
 		pub, priv, err := signer.RandomKeyPair()
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("%X\n", priv.Bytes[:])
-		fmt.Printf("%X\n", pub.Bytes[:])
+		fmt.Printf(priv.PrivateKeyToString())
+		fmt.Printf(pub.PublicKeyToString())
 	}
 
 }
@@ -61,29 +60,14 @@ func accountCal(cmd *cobra.Command, args []string) {
 		fmt.Println("need private key ")
 		return
 	}
-
-	data, err := hex.DecodeString(priv_key)
+	privKey , err := crypto.PrivateKeyFromString(priv_key)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	if algorithm == "secp256k1" || algorithm == "s" {
-		priv := crypto.PrivateKey{
-			Type:  crypto.CryptoTypeSecp256k1,
-			Bytes: data,
-		}
-		signer := &crypto.SignerSecp256k1{}
-		pub := signer.PubKey(priv)
+	signer:=  crypto.NewSigner(privKey.Type)
+		pub := signer.PubKey(privKey)
 		addr := signer.Address(pub)
-		fmt.Printf("%X\n", addr.Bytes[:])
-	} else {
-		priv := crypto.PrivateKey{
-			Type:  crypto.CryptoTypeEd25519,
-			Bytes: data,
-		}
-		signer := &crypto.SignerEd25519{}
-		pub := signer.PubKey(priv)
-		addr := signer.Address(pub)
-		fmt.Printf("%X\n", addr.Bytes[:])
-	}
+		fmt.Println(pub.PublicKeyToString())
+		fmt.Println(addr.String())
 }

@@ -1,12 +1,13 @@
 package rpc
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"strconv"
 )
 
 type RpcControler struct {
@@ -17,15 +18,18 @@ type RpcControler struct {
 	AutoTx        TxRequester
 }
 
+//NodeStatus
 type NodeStatus struct {
 	NodeInfo  *p2p.NodeInfo   `json:"node_info"`
 	PeersInfo []*p2p.PeerInfo `json:"peers_info"`
 }
 
+//TxRequester
 type TxRequester interface {
 	GenerateRequest(from int, to int)
 }
 
+//SequenceRequester
 type SequenceRequester interface {
 	GenerateRequest()
 }
@@ -34,6 +38,7 @@ func cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 }
 
+//Status node status
 func (r *RpcControler) Status(c *gin.Context) {
 	var status NodeStatus
 	status.NodeInfo = r.P2pServer.NodeInfo()
@@ -42,22 +47,28 @@ func (r *RpcControler) Status(c *gin.Context) {
 	c.JSON(http.StatusOK, status)
 }
 
+//PeersInfo network information
 func (r *RpcControler) NetInfo(c *gin.Context) {
 	info := r.P2pServer.NodeInfo()
 	cors(c)
 	c.JSON(http.StatusOK, info)
 }
 
+//PeersInfo  peers information
 func (r *RpcControler) PeersInfo(c *gin.Context) {
 	peersInfo := r.P2pServer.PeersInfo()
 	cors(c)
 	c.JSON(http.StatusOK, peersInfo)
 }
+
+//Query query
 func (r *RpcControler) Query(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
+
+//Transaction  get  transaction
 func (r *RpcControler) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
@@ -92,30 +103,56 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 
 }
 
+//Transactions query Transactions
 func (r *RpcControler) Transactions(c *gin.Context) {
 	seqId := c.Query("seq_id")
-	id, err := strconv.Atoi(seqId)
+	address := c.Query("address")
 	cors(c)
-	if err != nil || id < 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "seq_id format error",
+	if address == "" {
+		id, err := strconv.Atoi(seqId)
+		if err != nil || id < 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "seq_id format error",
+			})
+			return
+		}
+		txs := r.Og.Dag.GetTxsByNumber(uint64(id))
+		var txsREsponse struct {
+			Total int         `json:"total"`
+			Txs   []*types.Tx `json:"txs"`
+		}
+		if len(txs) != 0 {
+			txsREsponse.Total = len(txs)
+			txsREsponse.Txs = txs
+			c.JSON(http.StatusOK, txsREsponse)
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "not found",
 		})
-		return
+	} else {
+		addr, err := types.StringToAddress(address)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "address format error",
+			})
+			return
+		}
+		txs := r.Og.Dag.GetTxsByAddress(addr)
+		var txsREsponse struct {
+			Total int         `json:"total"`
+			Txs   []types.Txi `json:"txs"`
+		}
+		if len(txs) != 0 {
+			txsREsponse.Total = len(txs)
+			txsREsponse.Txs = txs
+			c.JSON(http.StatusOK, txsREsponse)
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "not found",
+		})
 	}
-	txs := r.Og.Dag.GetTxsByNumber(uint64(id))
-	var txsREsponse struct {
-		Total int         `json:"total"`
-		Txs   []*types.Tx `json:"txs"`
-	}
-	if len(txs) != 0 {
-		txsREsponse.Total = len(txs)
-		txsREsponse.Txs = txs
-		c.JSON(http.StatusOK, txsREsponse)
-		return
-	}
-	c.JSON(http.StatusNotFound, gin.H{
-		"message": "not found",
-	})
 
 }
 
@@ -218,14 +255,44 @@ func (r *RpcControler) NewTransaction(c *gin.Context) {
 	})
 }
 func (r *RpcControler) QueryNonce(c *gin.Context) {
+	address := c.Query("address")
+	addr, err := types.StringToAddress(address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "address format err",
+		})
+		return
+	}
+	noncePool, errPool := r.Og.Txpool.GetLatestNonce(addr)
+	nonceDag, errDag := r.Og.Dag.GetLatestNonce(addr)
+	var nonce int64
+	if errPool != nil && errDag != nil {
+		nonce = -1
+	} else {
+		nonce = int64(noncePool)
+		if noncePool < nonceDag {
+			nonce = int64(nonceDag)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
+		"nonce": nonce,
 	})
 }
 func (r *RpcControler) QueryBalance(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
+	address := c.Query("address")
+	addr, err := types.StringToAddress(address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "address format err",
+		})
+		return
+	}
+	b := r.Og.Dag.GetBalance(addr)
+	c.JSON(http.StatusBadRequest, gin.H{
+		"balance": b,
 	})
+	return
 }
 
 func (r *RpcControler) QueryShare(c *gin.Context) {

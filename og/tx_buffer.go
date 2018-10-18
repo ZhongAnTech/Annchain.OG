@@ -55,8 +55,8 @@ type TxBuffer struct {
 	txAddedToPoolChan chan types.Txi
 }
 
-func (b *TxBuffer) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"newTxChan": len(b.newTxChan),
 	}
 }

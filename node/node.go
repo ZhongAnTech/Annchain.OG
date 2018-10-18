@@ -66,7 +66,7 @@ func NewNode() *Node {
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond:              1000,
+		BatchTimeoutMilliSecond:              100,
 		AcquireTxQueueSize:                   1000,
 		MaxBatchSize:                         100,
 		AcquireTxDedupCacheMaxSize:           10000,

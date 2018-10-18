@@ -302,11 +302,12 @@ func (pool *TxPool) remove(tx types.Txi) {
 	}
 	if status == TxStatusTip {
 		pool.tips.Remove(tx.GetTxHash())
+		pool.flows.Remove(tx)
 	}
 	if status == TxStatusPending {
 		pool.pendings.Remove(tx.GetTxHash())
+		pool.flows.Remove(tx)
 	}
-	pool.flows.Remove(tx)
 	pool.txLookup.Remove(tx.GetTxHash())
 }
 
@@ -369,15 +370,13 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		},
 	}
 
-	pool.queue <- te
+	// pool.queue <- te
 
-	//select {
-	//case pool.queue <- te:
-	// race condition
-	//pool.txLookup.Add(te.txEnv)
-	//case <-timer.C:
-	//	return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
-	//}
+	select {
+	case pool.queue <- te:
+	case <-timer.C:
+		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
+	}
 
 	// waiting for callback
 	select {
@@ -531,6 +530,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// solve conflicts of txs in pool
 	pool.solveConflicts()
 
+	if pool.flows.Get(seq.Sender()) == nil {
+		originBalance := pool.dag.GetBalance(seq.Sender())
+		pool.flows.ResetFlow(seq.Sender(), originBalance)
+	}
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
@@ -545,7 +548,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	return nil
 }
 
-// isBadSeq
+// isBadSeq checks if a sequencer is correct.
 func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	// check if the nonce is duplicate
 	seqinpool := pool.flows.GetTxByNonce(seq.Sender(), seq.GetNonce())

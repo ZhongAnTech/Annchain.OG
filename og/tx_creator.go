@@ -77,6 +77,9 @@ func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 	ok = true
 	for _, parent := range parents{
 		ok = ok && m.GraphVerifier.Verify(parent)
+		if !ok{
+			return
+		}
 	}
 	return
 }
@@ -95,11 +98,15 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Debug("new tx connected")
 		// yes
 		txRet = tx
-		ok = m.validateGraphStructure(parents)
+		//ok = m.validateGraphStructure(parents)
+		ok = m.GraphVerifier.Verify(tx)
+		if ! ok{
+			logrus.Warn("NOT OK")
+		}
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,
-		}).Debugf("validate graph structure")
+		}).Debugf("validate graph structure for tx being connected")
 		return txRet, ok
 	} else {
 		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())

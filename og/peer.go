@@ -243,6 +243,15 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
 }
 
+func (p *peer) RequestTxsById(seqId uint64) error {
+	log.WithField("id  ", seqId).Debug("Fetching txs ( txs) by id ")
+	msg := types.MessageTxsRequest{
+		Id:      seqId,
+	}
+	b, _ := msg.MarshalMsg(nil)
+	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+}
+
 func (p *peer) RequestBodies(seqHashs []types.Hash) error {
 	log.WithField(" seq count ", len(seqHashs)).Debug("Fetching bodies ( txs)")
 	msg := types.MessageBodiesRequest{

@@ -33,9 +33,14 @@ type AutoClient struct {
 	quit       chan bool
 
 	pause   bool
-	stopped sync.Cond
+
+	wg sync.WaitGroup
 
 	nonceLock sync.RWMutex
+}
+
+func (c *AutoClient) Init(){
+	c.quit = make(chan bool)
 }
 
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
@@ -55,7 +60,8 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 
 func (c *AutoClient) loop() {
 	c.pause = false
-	defer c.stopped.Signal()
+	c.wg.Add(1)
+	defer c.wg.Done()
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Millisecond * time.Duration(c.SequencerIntervalMs))
@@ -98,7 +104,7 @@ func (c *AutoClient) Start() {
 
 func (c *AutoClient) Stop() {
 	c.quit <- true
-	c.stopped.Wait()
+	c.wg.Wait()
 }
 
 func (c *AutoClient) Pause() {

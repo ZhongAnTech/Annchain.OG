@@ -55,8 +55,8 @@ type TxBuffer struct {
 	txAddedToPoolChan chan types.Txi
 }
 
-func (b *TxBuffer) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"newTxChan": len(b.newTxChan),
 	}
 }
@@ -134,6 +134,14 @@ func (b *TxBuffer) loop() {
 // AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
+}
+
+func (b *TxBuffer) AddTxs(seq  *types.Sequencer,txs types.Txs) {
+	for _,tx := range txs {
+		b.newTxChan <-tx
+	}
+	b.newTxChan <-seq
+	return
 }
 
 func (b *TxBuffer) AddLocal(tx types.Txi) error {

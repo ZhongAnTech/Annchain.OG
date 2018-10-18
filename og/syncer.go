@@ -20,8 +20,8 @@ type Syncer struct {
 	enabled             bool
 }
 
-func (m *Syncer) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (m *Syncer) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"acquireTxQueue": len(m.acquireTxQueue),
 	}
 }

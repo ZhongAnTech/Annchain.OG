@@ -591,7 +591,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		lseq := h.Dag.LatestSequencer()
 		for i := lseq.Number(); i < msgHeader.Number; i++ {
 			go func(i uint64) {
-				p.RequestTxsById(i + 1)
+				//p.RequestTxsById(i + 1)
 			}(i)
 		}
 		return nil

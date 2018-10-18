@@ -20,9 +20,11 @@ const (
 	// A pack can get larger than this if a single transactions exceeds this size.
 	txsyncPackSize = 100 * 1024
 
-	minAllowbehindHeight = 30       //todo this value will be  set  to optimal value in the future,
+	maxBehindHeight = 20       //todo this value will be  set  to optimal value in the future,
 	                                // if generating sequencer is very fast with few transactions, it should be bigger,
-                                    //otherwise it should be smaller
+																	//otherwise it should be smaller
+	minBehindHeight = 5
+									 
 )
 
 type txsync struct {
@@ -190,12 +192,17 @@ func (h *Hub) synchronise(peer *peer) {
 		//if seqId >= pSeqid {
 		log.WithField("peer id ", pSeqid).WithField("our id", seqId).Debug("sync")
 		//never use uint(0)-1
-		if seqId+minAllowbehindHeight >= pSeqid {
+
+		//if  beheind more than 30, disable txs and sync , if beheind 5~30,enable txs and sync ,otherwise don,t sync
+		if seqId+minBehindHeight >= pSeqid {
 			break
 		}
 		if !synced {
 			synced = true
-			h.disableAcceptTx()
+			if seqId+maxBehindHeight >=pSeqid{
+				h.disableAcceptTx()
+			}
+			
 		}
 
 		/*

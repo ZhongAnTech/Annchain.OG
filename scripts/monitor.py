@@ -7,7 +7,7 @@ import traceback
 import pandas as pd
 import requests
 
-i = 2
+total = 10
 
 s = requests.Session()
 s.trust_env = False
@@ -27,14 +27,16 @@ def doone(host):
 def doround(hosts):
     d = {}
     for host in hosts:
-        d[host] = doone(host)
+        d[host[10:]] = doone(host)
 
-    return pd.DataFrame.from_dict(d, orient='index')
+    # return pd.DataFrame.from_dict(d, orient='index')
+    return pd.DataFrame.from_dict(d)
 
 
 if __name__ == '__main__':
+    hosts = ['127.0.0.1:%d' % (8000 + i*100) for i in range(total)]
     while True:
-        df = doround(['127.0.0.1:8000', '127.0.0.1:8100', ])
-        print (datetime.datetime.now())
+        df = doround(hosts)
+        print(datetime.datetime.now())
         print(df)
         time.sleep(1)

@@ -8,7 +8,7 @@ import (
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	// log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type AccountFlows struct {
@@ -27,6 +27,7 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	defer a.mu.Unlock()
 
 	if a.afs[tx.Sender()] == nil {
+		log.WithField("tx", tx).Warnf("add to accountflows failed")
 		return
 	}
 	a.afs[tx.Sender()].Add(tx)
@@ -88,6 +89,7 @@ func (a *AccountFlows) Remove(tx types.Txi) {
 
 	flow := a.afs[tx.Sender()]
 	if flow == nil {
+		log.WithField("tx", tx).Warnf("remove tx from accountflows failed")
 		return
 	}
 	flow.Remove(tx.GetNonce())
@@ -131,6 +133,10 @@ func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
 // 1. update account's balance state.
 // 2. add tx into nonce sorted txlist.
 func (af *AccountFlow) Add(tx types.Txi) error {
+	if af.txlist.get(tx.GetNonce()) != nil {
+		log.WithField("tx", tx).Errorf("add tx that has same nonce")
+		return fmt.Errorf("already exists")
+	}
 	err := af.balance.TrySubBalance(tx.GetValue())
 	if err != nil {
 		return err
@@ -283,7 +289,6 @@ func (t *TxList) remove(nonce uint64) bool {
 	for i := 0; i < t.keys.Len(); i++ {
 		if (*t.keys)[i] == nonce {
 			heap.Remove(t.keys, i)
-			break
 		}
 	}
 	delete(t.txflow, nonce)

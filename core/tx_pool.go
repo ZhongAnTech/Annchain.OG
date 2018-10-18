@@ -78,8 +78,8 @@ type TxPool struct {
 	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
 }
 
-func (pool *TxPool) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (pool *TxPool) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"queue":      len(pool.queue),
 		"event":      len(pool.OnNewTxReceived),
 		"txlookup":   len(pool.txLookup.txs),

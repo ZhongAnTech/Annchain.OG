@@ -74,8 +74,8 @@ type Hub struct {
 	syncFlag  uint32 //1 for is syncing
 }
 
-func (h *Hub) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (h *Hub) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"outgoing":  len(h.outgoing),
 		"incoming":  len(h.incoming),
 		"newPeerCh": len(h.newPeerCh),

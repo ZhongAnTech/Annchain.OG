@@ -125,7 +125,7 @@ func (h *Hub) syncInit() {
 	if bp != nil {
 		bpHash, bpId := bp.Head()
 		ourId := h.Dag.LatestSequencer().Id
-		if bpId <= ourId+minAllowbehindHeight {
+		if bpId <= ourId+maxBehindHeight {
 			log.WithField("best peer id  ", bpId).WithField("best peer hash", bpHash).WithField("our id", ourId).Debug("can  accept txs")
 			h.enableAccexptTx()
 		}

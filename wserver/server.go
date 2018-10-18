@@ -66,8 +66,8 @@ type Server struct {
 	quit   chan bool
 }
 
-func (s *Server) GetBenchmarks() map[string]int {
-	return map[string]int{
+func (s *Server) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
 		"newtx": len(s.NewTxReceivedChan),
 	}
 }

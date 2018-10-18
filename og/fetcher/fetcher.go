@@ -54,7 +54,7 @@ type bodyRequesterFn func([]types.Hash) error
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(tx types.Txi) error
+type chainInsertFn func(seq  * types.Sequencer, txs types.Txs) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -298,7 +298,8 @@ func (f *Fetcher) loop() {
 				f.forgetsequencer(hash)
 				continue
 			}
-			f.insert(op.origin, op.sequencer)
+			//todo
+			f.insert(op.origin, op.sequencer,nil )
 		}
 		// Wait for an outside event to occur
 		select {
@@ -586,7 +587,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 // insert spawns a new goroutine to run a sequencer insertion into the chain. If the
 // sequencer's number is at the same height as the current import phase, it updates
 // the phase states accordingly.
-func (f *Fetcher) insert(peer string, sequencer *types.Sequencer) {
+func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs []*types.Tx) {
 	hash := sequencer.GetTxHash()
 
 	// Run the import on a new thread
@@ -596,7 +597,7 @@ func (f *Fetcher) insert(peer string, sequencer *types.Sequencer) {
 		defer func() { f.done <- hash }()
 
 		// Run the actual import and log any issues
-		if err := f.insertChain(sequencer); err != nil {
+		if err := f.insertChain(sequencer,txs); err != nil {
 			log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(
 				"hash", hash).WithError(err).Debug("Propagated sequencer import failed")
 			return

@@ -13,7 +13,7 @@ type AutoClientManager struct {
 	SampleAccounts []account.SampleAccount
 	EnableEvent    chan bool
 	stop           bool
-	stopped        sync.Cond
+	wg             sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
@@ -36,6 +36,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0,
 		}
+		client.Init()
 		m.Clients = append(m.Clients, client)
 		sequencers --
 	}
@@ -43,23 +44,24 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 
 func (m *AutoClientManager) Start() {
 	for _, client := range m.Clients {
+		m.wg.Add(1)
 		client.Start()
 	}
-
-	go m.evevtLoop()
+	m.wg.Add(1)
+	go m.eventLoop()
 }
 
 func (m *AutoClientManager) Stop() {
 	m.stop = true
-	m.stopped.Wait()
+	m.wg.Wait()
 }
 
 func (m *AutoClientManager) Name() string {
 	return "AutoClientManager"
 }
 
-func (c *AutoClientManager) evevtLoop() {
-	defer c.stopped.Signal()
+func (c *AutoClientManager) eventLoop() {
+	defer c.wg.Done()
 	for !c.stop {
 		select {
 		case v := <-c.EnableEvent:
@@ -77,5 +79,6 @@ func (c *AutoClientManager) evevtLoop() {
 	// wait for all clients to stop
 	for _, client := range c.Clients {
 		client.Stop()
+		c.wg.Done()
 	}
 }

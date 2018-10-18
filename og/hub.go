@@ -71,7 +71,11 @@ type Hub struct {
 	OnEnableTxsEvent     []chan bool
 
 	bootstrapNode bool
-	syncFlag      uint32 //1 for is syncing
+	syncFlag  uint32 //1 for is syncing
+
+
+	// timeouts for channel writing
+	timeoutSyncTx *time.Timer
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -141,6 +145,7 @@ func (h *Hub) Init(config *HubConfig, dag IDag) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 
+	h.timeoutSyncTx = time.NewTimer(time.Second * 10)
 }
 
 func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {

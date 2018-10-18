@@ -53,6 +53,7 @@ type TxBuffer struct {
 	Hub               *Hub
 	knownTxCache      gcache.Cache
 	txAddedToPoolChan chan types.Txi
+	timeoutAddTx      *time.Timer // timeouts for channel
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
@@ -86,6 +87,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		quit:              make(chan bool),
 		knownTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
+		timeoutAddTx: time.NewTimer(time.Second * 10),
 	}
 }
 
@@ -133,7 +135,20 @@ func (b *TxBuffer) loop() {
 
 // AddTx is called once there are new tx coming in.
 func (b *TxBuffer) AddTx(tx types.Txi) {
-	b.newTxChan <- tx
+loop:
+	for {
+		if !b.timeoutAddTx.Stop(){
+			<- b.timeoutAddTx.C
+		}
+		b.timeoutAddTx.Reset(time.Second * 10)
+		select {
+		case <-b.timeoutAddTx.C:
+			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx")
+		case b.newTxChan <- tx:
+			break loop
+		}
+	}
+
 }
 
 func (b *TxBuffer) AddTxs(seq  *types.Sequencer,txs types.Txs) {

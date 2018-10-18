@@ -18,6 +18,7 @@ type Syncer struct {
 	quitLoopEvent       chan bool
 	EnableEvent         chan bool
 	enabled             bool
+	timeoutAcquireTx    *time.Timer
 }
 
 func (m *Syncer) GetBenchmarks() map[string]interface{} {
@@ -41,10 +42,11 @@ func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		quitLoopSync:  make(chan bool),
-		quitLoopEvent: make(chan bool),
-		EnableEvent:   make(chan bool),
-		enabled:       false,
+		quitLoopSync:     make(chan bool),
+		quitLoopEvent:    make(chan bool),
+		EnableEvent:      make(chan bool),
+		enabled:          false,
+		timeoutAcquireTx: time.NewTimer(time.Second * 10),
 	}
 }
 
@@ -143,7 +145,21 @@ func (m *Syncer) Enqueue(hash types.Hash) {
 		return
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
-	m.acquireTxQueue <- hash
+
+loop:
+	for {
+		if !m.timeoutAcquireTx.Stop(){
+			<- m.timeoutAcquireTx.C
+		}
+		m.timeoutAcquireTx.Reset(time.Second * 10)
+		select {
+		case <-m.timeoutAcquireTx.C:
+			logrus.WithField("hash", hash.String()).Warn("timeout on channel writing: acquire tx")
+		case m.acquireTxQueue <- hash:
+			break loop
+		}
+	}
+
 }
 
 func (m *Syncer) ClearQueue() {

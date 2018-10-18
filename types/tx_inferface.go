@@ -136,7 +136,23 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	return
 }
 
-func TxsToString(txs []Txi) string {
+func TxisToString(txs []Txi) string {
+	var strs []string
+	for _, v := range txs {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func TxsToString(txs []*Tx) string {
+	var strs []string
+	for _, v := range txs {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func SeqsToString(txs []*Sequencer) string {
 	var strs []string
 	for _, v := range txs {
 		strs = append(strs, v.String())

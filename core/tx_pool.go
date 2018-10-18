@@ -52,7 +52,7 @@ func (ts *TxStatus) String() string {
 type TxQuality int
 
 const (
-	TxQualityIsBad TxQuality = iota
+	TxQualityIsBad   TxQuality = iota
 	TxQualityIsGood
 	TxQualityIsFatal
 )
@@ -76,6 +76,12 @@ type TxPool struct {
 	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
+
+	// timeout detections on queues
+	timeoutPoolQueue       *time.Timer
+	timeoutSubscriber      *time.Timer
+	timeoutConfirmation    *time.Timer
+	timeoutLatestSequencer *time.Timer
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -91,18 +97,22 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:                 conf,
-		dag:                  d,
-		queue:                make(chan *txEvent, conf.QueueSize),
-		tips:                 NewTxMap(),
-		badtxs:               NewTxMap(),
-		pendings:             NewTxMap(),
-		flows:                NewAccountFlows(),
-		txLookup:             newTxLookUp(),
-		close:                make(chan struct{}),
-		OnNewTxReceived:      []chan types.Txi{},
-		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
-		OnNewLatestSequencer: make(chan bool),
+		conf:                   conf,
+		dag:                    d,
+		queue:                  make(chan *txEvent, conf.QueueSize),
+		tips:                   NewTxMap(),
+		badtxs:                 NewTxMap(),
+		pendings:               NewTxMap(),
+		flows:                  NewAccountFlows(),
+		txLookup:               newTxLookUp(),
+		close:                  make(chan struct{}),
+		OnNewTxReceived:        []chan types.Txi{},
+		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
+		OnNewLatestSequencer:   make(chan bool),
+		timeoutPoolQueue:       time.NewTimer(time.Second * 10),
+		timeoutSubscriber:      time.NewTimer(time.Second * 10),
+		timeoutConfirmation:    time.NewTimer(time.Second * 10),
+		timeoutLatestSequencer: time.NewTimer(time.Second * 10),
 	}
 	return pool
 }
@@ -349,7 +359,7 @@ func (pool *TxPool) loop() {
 			}
 			txEvent.callbackChan <- err
 
-		// TODO case reset?
+			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -358,9 +368,6 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
-	timer := time.NewTimer(time.Duration(pool.conf.TxVerifyTime) * time.Second)
-	defer timer.Stop()
-
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
@@ -369,14 +376,20 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-
-	// pool.queue <- te
-
-	select {
-	case pool.queue <- te:
-	case <-timer.C:
-		return fmt.Errorf("addTx timeout, cannot add tx to queue, tx hash: %s", tx.String())
+loop3:
+	for {
+		if !pool.timeoutPoolQueue.Stop(){
+			<- pool.timeoutPoolQueue.C
+		}
+		pool.timeoutPoolQueue.Reset(time.Second * 10)
+		select {
+		case <-pool.timeoutPoolQueue.C:
+			log.WithField("tx", te.txEnv.tx).Warn("timeout on channel writing: addTx")
+		case pool.queue <- te:
+			break loop3
+		}
 	}
+
 
 	// waiting for callback
 	select {
@@ -387,7 +400,20 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		// notify all subscribers of newTxEvent
 		for _, subscriber := range pool.OnNewTxReceived {
 			log.Debug("notify subscriber")
-			subscriber <- tx
+		loop:
+			for {
+				if !pool.timeoutSubscriber.Stop(){
+					<- pool.timeoutSubscriber.C
+				}
+				pool.timeoutSubscriber.Reset(time.Second * 10)
+				select {
+				case <-pool.timeoutSubscriber.C:
+					log.WithField("tx", tx).Warn("timeout on channel writing: subscriber")
+				case subscriber <- tx:
+					break loop
+				}
+			}
+
 		}
 	}
 
@@ -464,12 +490,18 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	// check if the nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
-		log.WithField("tx", tx).Debugf("bad tx, duplicate nonce found in pool")
+		if txinpool.GetTxHash() == tx.GetTxHash(){
+			log.WithField("tx", tx).Fatal("duplicated tx in pool. Why received many times")
+		}
+		log.WithField("tx", tx).WithField("existing", txinpool).Debug("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
-		log.WithField("tx", tx).Debugf("bad tx, duplicate nonce found in dag")
+		if txindag.GetTxHash() == tx.GetTxHash(){
+			log.WithField("tx", tx).Fatal("duplicated tx in dag. Why received many times")
+		}
+		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
 		return TxQualityIsBad
 	}
 
@@ -512,7 +544,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Warn("tx being confirmed by seq")
+	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Errorf("verifyConfirmBatch error: %v", err)
@@ -541,9 +573,34 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-		c <- elders
+	loop:
+		for {
+			if !pool.timeoutConfirmation.Stop(){
+				<- pool.timeoutConfirmation.C
+			}
+			pool.timeoutConfirmation.Reset(time.Second * 10)
+			select {
+			case <-pool.timeoutConfirmation.C:
+				log.WithField("seq", seq).Warn("timeout on channel writing: batch confirmed")
+			case c <- elders:
+				break loop
+			}
+		}
+
 	}
-	pool.OnNewLatestSequencer <- true
+loop2:
+	for {
+		if !pool.timeoutLatestSequencer.Stop(){
+			<- pool.timeoutLatestSequencer.C
+		}
+		pool.timeoutLatestSequencer.Reset(time.Second * 10)
+		select {
+		case <-pool.timeoutLatestSequencer.C:
+			log.WithField("seq",seq).Warn("timeout on channel writing: on new latest sequencer")
+		case pool.OnNewLatestSequencer <- true:
+			break loop2
+		}
+	}
 
 	return nil
 }
@@ -861,7 +918,7 @@ func (t *txLookUp) remove(h types.Hash) {
 }
 
 // RemoveByIndex removes a tx by its order index
-func (t *txLookUp) RemoveByIndex(i int) { 
+func (t *txLookUp) RemoveByIndex(i int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

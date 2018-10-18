@@ -4,8 +4,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"time"
 	"runtime"
-	"runtime/pprof"
-	"os"
 )
 
 type PerformanceReporter interface {
@@ -25,6 +23,8 @@ func (p *PerformanceMonitor) Register(holder PerformanceReporter) {
 func (p *PerformanceMonitor) Start() {
 	go func() {
 		p.quit = false
+		//runtime.SetBlockProfileRate(1)
+
 		for !p.quit {
 			fields := logrus.Fields{}
 			for _, ch := range p.reporters {
@@ -34,9 +34,9 @@ func (p *PerformanceMonitor) Start() {
 			fields["goroutines"] = runtime.NumGoroutine()
 
 			logrus.WithFields(fields).Info("Performance")
-			pprof.Lookup("block").WriteTo(os.Stdout, 1)
+			//pprof.Lookup("block").WriteTo(os.Stdout, 1)
 
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 15)
 		}
 	}()
 }

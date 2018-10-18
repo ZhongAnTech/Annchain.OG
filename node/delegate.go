@@ -78,7 +78,5 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer{
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	logrus.WithField("tx", txi).Info("announce")
-	defer logrus.WithField("tx", txi).Info("announce over")
 	c.TxBuffer.AddTx(txi)
 }

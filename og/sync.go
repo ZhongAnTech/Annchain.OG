@@ -20,16 +20,26 @@ const (
 	// A pack can get larger than this if a single transactions exceeds this size.
 	txsyncPackSize = 100 * 1024
 
-	maxBehindHeight = 20       //todo this value will be  set  to optimal value in the future,
-	                                // if generating sequencer is very fast with few transactions, it should be bigger,
-																	//otherwise it should be smaller
+	// TODO: this value will be set to optimal value in the future.
+	// If generating sequencer is very fast with few transactions, it should be bigger,
+	// otherwise it should be smaller
+	maxBehindHeight = 20
 	minBehindHeight = 5
-									 
 )
 
 type txsync struct {
 	p   *peer
 	txs []*types.Tx
+
+	timeoutTxSync *time.Timer
+}
+
+func newTxSync(p *peer, txs []*types.Tx) *txsync {
+	return &txsync{
+		p:             p,
+		txs:           txs,
+		timeoutTxSync: time.NewTimer(time.Second * 10),
+	}
 }
 
 func (h *Hub) GetPendingTxs() types.Txs {
@@ -43,10 +53,24 @@ func (h *Hub) syncTransactions(p *peer) {
 	if len(txs) == 0 {
 		return
 	}
-	select {
-	case h.txsyncCh <- &txsync{p, txs}:
-	case <-h.quitSync:
+
+loop:
+	for {
+		if !h.timeoutSyncTx.Stop() {
+			<-h.timeoutSyncTx.C
+		}
+		h.timeoutSyncTx.Reset(time.Second * 10)
+		select {
+		case h.txsyncCh <- newTxSync(p, txs):
+			break loop
+		case <-h.quitSync:
+			break loop
+		case <-h.timeoutSyncTx.C:
+			log.WithField("txs", len(txs)).WithField("peer", p).Warn("timeout on channel writing: sync tx")
+
+		}
 	}
+
 }
 
 // txsyncLoop takes care of the initial transaction sync for each new
@@ -59,6 +83,8 @@ func (h *Hub) txsyncLoop() {
 		sending = false               // whether a send is active
 		pack    = new(txsync)         // the pack that is being sent
 		done    = make(chan error, 1) // result of the send
+		// timeouts for channel writing
+		timeoutDone = *time.NewTimer(time.Second * 10)
 	)
 
 	// send starts a sending a pack of transactions from the sync.
@@ -79,7 +105,21 @@ func (h *Hub) txsyncLoop() {
 		// Send the pack in the background.
 		log.Debug("Sending batch of transactions", "count", len(pack.txs), "bytes", size)
 		sending = true
-		go func() { done <- pack.p.SendTransactions(pack.txs) }()
+		go func() {
+		loop:
+			for {
+				if !timeoutDone.Stop() {
+					<-timeoutDone.C
+				}
+				timeoutDone.Reset(time.Second * 10)
+				select {
+				case <-timeoutDone.C:
+					log.WithField("txs", len(pack.txs)).Warn("timeout on channel writing: done")
+				case done <- pack.p.SendTransactions(pack.txs):
+					break loop
+				}
+			}
+		}()
 	}
 
 	// pick chooses the next pending sync.
@@ -199,10 +239,10 @@ func (h *Hub) synchronise(peer *peer) {
 		}
 		if !synced {
 			synced = true
-			if seqId+maxBehindHeight >=pSeqid{
+			if seqId+maxBehindHeight >= pSeqid {
 				h.disableAcceptTx()
 			}
-			
+
 		}
 
 		/*

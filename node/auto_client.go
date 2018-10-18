@@ -54,12 +54,11 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	default:
 		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 	}
-	logrus.WithField("duration", sleepDuration).Info("next sleep")
 	return sleepDuration
 }
 
 func (c *AutoClient) loop() {
-	c.pause = false
+	c.pause = true
 	c.wg.Add(1)
 	defer c.wg.Done()
 

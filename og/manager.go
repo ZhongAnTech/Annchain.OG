@@ -62,7 +62,6 @@ func (m *Manager) HandlePong(*P2PMessage) {
 }
 
 func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
-	logrus.Debug("received MessageSyncRequest")
 	syncRequest := types.MessageSyncRequest{}
 	_, err := syncRequest.UnmarshalMsg(msg.Message)
 	if err != nil {
@@ -76,6 +75,8 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 
 	var txs []*types.Tx
 	var seqs []*types.Sequencer
+
+	logrus.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
 
 	for _, hash := range syncRequest.Hashes {
 		txi := m.TxPool.Get(hash)
@@ -100,11 +101,12 @@ func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
 		return
 	}
 
+	logrus.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
+
 	m.Hub.SendMessage(MessageTypeFetchByHashResponse, data)
 }
 
 func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
-	logrus.Debug("received MessageSyncResponse")
 	syncResponse := types.MessageSyncResponse{}
 	//bytebufferd := bytes.NewBuffer(nil)
 	//bytebuffers := bytes.NewBuffer(msg.Message)
@@ -121,6 +123,8 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 		logrus.Debug("empty MessageSyncResponse")
 		return
 	}
+	logrus.WithField("q", syncResponse.String()).Debug("received MessageSyncResponse")
+
 	for _, v := range syncResponse.Txs {
 		logrus.WithField("tx", v).WithField("peer", msg.SourceID).Infof("received sync response Tx")
 		m.TxBuffer.AddTx(v)
@@ -132,7 +136,6 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 }
 
 func (m *Manager) HandleNewTx(msg *P2PMessage) {
-
 	newTx := types.MessageNewTx{}
 
 	_, err := newTx.UnmarshalMsg(msg.Message)
@@ -144,14 +147,12 @@ func (m *Manager) HandleNewTx(msg *P2PMessage) {
 		logrus.Debug("empty MessageNewTx")
 		return
 	}
-	logrus.WithField("tx", newTx.Tx).Debug("received incoming new tx")
+	logrus.WithField("q", newTx).Debug("received MessageNewTx")
 	m.TxBuffer.AddTx(newTx.Tx)
 
 }
 
 func (m *Manager) HandleNewTxs(msg *P2PMessage) {
-	logrus.Debug("Received MessageNewTxs")
-
 	//maybe received more transactions
 	var err error
 	newTxs := types.MessageNewTxs{}
@@ -164,13 +165,14 @@ func (m *Manager) HandleNewTxs(msg *P2PMessage) {
 		logrus.Debug("Empty MessageNewTx")
 		return
 	}
-	for _, tx := range newTxs.Txs {
 
+	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
+
+	for _, tx := range newTxs.Txs {
 		m.TxBuffer.AddTx(tx)
 	}
 }
 func (m *Manager) HandleNewSequence(msg *P2PMessage) {
-	logrus.Debug("received NewSequence")
 	newSq := types.MessageNewSequence{}
 	_, err := newSq.UnmarshalMsg(msg.Message)
 	if err != nil {
@@ -181,5 +183,7 @@ func (m *Manager) HandleNewSequence(msg *P2PMessage) {
 		logrus.Debug("empty NewSequence")
 		return
 	}
+	logrus.WithField("q", newSq).Debug("received NewSequence")
+
 	m.TxBuffer.AddTx(newSq.Sequencer)
 }

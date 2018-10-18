@@ -1,10 +1,16 @@
 package types
 
+import "fmt"
+
 //go:generate msgp
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
 	Hashes []Hash
+}
+
+func (m *MessageSyncRequest) String() string{
+	return HashesToString(m.Hashes)
 }
 
 //msgp:tuple MessageSyncResponse
@@ -13,9 +19,17 @@ type MessageSyncResponse struct {
 	Sequencers []*Sequencer
 }
 
+func (m *MessageSyncResponse) String() string{
+	return fmt.Sprintf("txs: [%s], seqs: [%s]", TxsToString(m.Txs), SeqsToString(m.Sequencers))
+}
+
 //msgp:tuple MessageNewTx
 type MessageNewTx struct {
 	Tx *Tx
+}
+
+func (m *MessageNewTx) String() string{
+	return m.Tx.String()
 }
 
 //msgp:tuple MessageNewSequence
@@ -23,9 +37,17 @@ type MessageNewSequence struct {
 	Sequencer *Sequencer
 }
 
+func (m *MessageNewSequence) String() string{
+	return m.Sequencer.String()
+}
+
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {
 	Txs []*Tx
+}
+
+func (m *MessageNewTxs) String() string{
+	return TxsToString(m.Txs)
 }
 
 //msgp:tuple MessageTxsRequest

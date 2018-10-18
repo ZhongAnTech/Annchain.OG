@@ -16,6 +16,7 @@ import (
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
+	"github.com/annchain/OG/core"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -147,52 +148,39 @@ func NewNode() *Node {
 		GraphVerifier:      graphVerifier,
 	}
 
-	var privateKey crypto.PrivateKey
-	if viper.IsSet("account.private_key") {
-		privateKey, err = crypto.PrivateKeyFromString(viper.GetString("account.private_key"))
-		logrus.Info("Loaded private key from configuration")
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		_, privateKey, err = signer.RandomKeyPair()
-		logrus.Warnf("Generated public/private key pair")
-		if err != nil {
-			panic(err)
-		}
+	// TODO: move to (embeded) client. It is not part of OG
+	//var privateKey crypto.PrivateKey
+	//if viper.IsSet("account.private_key") {
+	//	privateKey, err = crypto.PrivateKeyFromString(viper.GetString("account.private_key"))
+	//	logrus.Info("Loaded private key from configuration")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//} else {
+	//	_, privateKey, err = signer.RandomKeyPair()
+	//	logrus.Warnf("Generated public/private key pair")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}
+
+	delegate := &Delegate{
+		TxPool:    org.Txpool,
+		TxBuffer:  txBuffer,
+		Dag:       org.Dag,
+		TxCreator: txCreator,
 	}
 
-	autoSequencer := &ClientAutoSequencer{
-		TxCreator:             txCreator,
-		TxBuffer:              m.TxBuffer,
-		PrivateKey:            privateKey,
-		BlockTimeMilliSeconds: viper.GetInt("auto_sequencer.interval_ms"),
-		Dag:                   org.Dag,
-		TxPool:                org.Txpool,
+	autoClientManager := &AutoClientManager{
+		SampleAccounts: core.GetSampleAccounts(),
 	}
-	autoSequencer.Init()
-	if viper.GetBool("auto_sequencer.enabled") {
-		n.Components = append(n.Components, autoSequencer)
-		hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoSequencer.EnableEvent)
-	}
+	autoClientManager.Init(
+		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),
+		delegate,
+	)
+	n.Components = append(n.Components, autoClientManager)
+	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoClientManager.EnableEvent)
 
-	autoTx := &ClientAutoTx{
-		TxCreator:              txCreator,
-		TxBuffer:               m.TxBuffer,
-		PrivateKey:             privateKey,
-		TxIntervalMilliSeconds: viper.GetInt("auto_tx.interval_ms"),
-		AccountIds:             StringArrayToIntArray(viper.GetStringSlice("auto_tx.account_ids")),
-		Dag:                    org.Dag,
-		TxPool:                 org.Txpool,
-		InstanceCount:          viper.GetInt("auto_tx.count"),
-		IntervalMode:           viper.GetString("auto_tx.interval_mode"),
-		NonceSelfDiscipline:    viper.GetBool("auto_tx.nonce_self_discipline"),
-	}
-	autoTx.Init()
-	if viper.GetBool("auto_tx.enabled") {
-		n.Components = append(n.Components, autoTx)
-		hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoTx.EnableEvent)
-	}
 	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo
@@ -229,8 +217,8 @@ func NewNode() *Node {
 	if rpcServer != nil {
 		rpcServer.C.P2pServer = p2pServer
 		rpcServer.C.Og = org
-		rpcServer.C.AutoSequencer = autoSequencer
-		rpcServer.C.AutoTx = autoTx
+		// just for debugging, ignoring index OOR
+		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (rpc *RpcControler) Newrouter() *gin.Engine {
+func (rpc *RpcController) Newrouter() *gin.Engine {
 	router := gin.Default()
 	router.GET("/", rpc.writeListOfEndpoints)
 	// init paths here
@@ -48,7 +48,7 @@ func (rpc *RpcControler) Newrouter() *gin.Engine {
 }
 
 // writes a list of available rpc endpoints as an html page
-func (rpc *RpcControler) writeListOfEndpoints(c *gin.Context) {
+func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 
 	routerMap := map[string]string{
 		// info API

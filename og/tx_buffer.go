@@ -258,16 +258,18 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 			"parent": parentHash.String(),
 			"child":  self.String(),
 		}).Infof("updating dependency map")
-
 	}
 
 	b.affmu.Lock()
-	_, err := b.dependencyCache.GetIFPresent(parentHash)
+	v, err := b.dependencyCache.GetIFPresent(parentHash)
+
 	if err != nil {
 		// key not present, need to build an inner map
-		b.dependencyCache.Set(parentHash, map[types.Hash]types.Txi{self.GetBase().Hash: self})
-
+		v = map[types.Hash]types.Txi{self.GetBase().Hash: self}
 	}
+	v.(map[types.Hash]types.Txi)[self.GetBase().Hash] = self
+	b.dependencyCache.Set(parentHash, v)
+
 	b.affmu.Unlock()
 }
 

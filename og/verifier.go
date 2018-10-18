@@ -25,14 +25,35 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	return v.VerifyHash(t) && v.VerifySignature(t) && v.VerifySourceAddress(t)
+	if !v.VerifyHash(t) {
+		logrus.WithField("tx", t).Debug("Hash not valid")
+		return false
+	}
+	if !v.VerifySignature(t) {
+		logrus.WithField("tx", t).Debug("Signature not valid")
+		return false
+	}
+	if !v.VerifySourceAddress(t) {
+		logrus.WithField("tx", t).Debug("Source address not valid")
+		return false
+	}
+	return true
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	return (t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) &&
-		t.CalcTxHash() == t.GetTxHash() &&
-		(t.GetTxHash().Cmp(v.MaxTxHash) < 0)
-
+	if !(t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) {
+		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("MinedHash is not less than MaxMinedHash")
+		return false
+	}
+	if t.CalcTxHash() != t.GetTxHash() {
+		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not aligned with content")
+		return false
+	}
+	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0){
+		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not less than MaxTxHash")
+		return false
+	}
+	return true
 }
 
 func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
@@ -103,7 +124,7 @@ func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archi
 }
 
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
-// return true if found, or false if not found in txpool (then it maybe in dag)
+// return true if found, or false if not found in txpool or in dag
 func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
 	if currentTx.GetNonce() == 0 {
 		ok = true
@@ -226,11 +247,11 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
 	if ok = v.verifyA3(txi); !ok {
-		logrus.WithField("tx", txi).Warn("tx failed on graph A3")
+		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
 	if ok = v.verifyB1(txi); !ok {
-		logrus.WithField("tx", txi).Warn("tx failed on graph B1")
+		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
 	return true
@@ -243,9 +264,9 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// zero check
 	if txi.GetNonce() == 0 {
 		// test claim: whether it should be 0
-		_, err := v.TxPool.GetLatestNonce(txi.Sender())
+		v, err := v.TxPool.GetLatestNonce(txi.Sender())
 		if err == nil {
-			logrus.Warn("nonce shoud not be 0")
+			logrus.Debugf("nonce shoud not be 0. Latest nonce is %d and you should be larger than it", v)
 		}
 		// not found is good
 		return err != nil
@@ -253,6 +274,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// check txpool queue first
 	_, ok := v.getMyPreviousTx(txi)
 	if !ok {
+		logrus.WithField("tx", txi).Debug("previous tx not found")
 		// fail if not good
 		return ok
 	}

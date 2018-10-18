@@ -15,11 +15,11 @@ type RpcServer struct {
 	router *gin.Engine
 	server *http.Server
 	port   string
-	C      *RpcControler
+	C      *RpcController
 }
 
 func NewRpcServer(port string) *RpcServer {
-	c := RpcControler{}
+	c := RpcController{}
 	router := c.Newrouter()
 	server := &http.Server{
 		Addr:    ":" + port,

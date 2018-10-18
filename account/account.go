@@ -4,15 +4,17 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"sync"
+	"fmt"
 )
 
 type SampleAccount struct {
-	Id         int
-	PrivateKey crypto.PrivateKey
-	PublicKey  crypto.PublicKey
-	Address    types.Address
-	nonce      uint64
-	mu         sync.RWMutex
+	Id          int
+	PrivateKey  crypto.PrivateKey
+	PublicKey   crypto.PublicKey
+	Address     types.Address
+	nonce       uint64
+	nonceInited bool
+	mu          sync.RWMutex
 }
 
 func NewAccount(privateKeyHex string) SampleAccount {
@@ -29,21 +31,29 @@ func NewAccount(privateKeyHex string) SampleAccount {
 	return s
 }
 
-func (s *SampleAccount) ConsumeNonce() uint64 {
+func (s *SampleAccount) ConsumeNonce() (uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if !s.nonceInited{
+		return 0, fmt.Errorf("nonce is not initialized. Query first")
+	}
 	s.nonce++
-	return s.nonce
+	return s.nonce, nil
 }
 
-func (s *SampleAccount) GetNonce() uint64 {
+func (s *SampleAccount) GetNonce() (uint64, error){
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.nonce
+	if !s.nonceInited{
+		return 0, fmt.Errorf("nonce is not initialized. Query first")
+	}
+	return s.nonce, nil
 }
 
-func (s *SampleAccount) SetNonce(value uint64) {
+func (s *SampleAccount) SetNonce(lastUsedNonce uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nonce = value
+	s.nonce = lastUsedNonce
+	s.nonceInited = true
 }

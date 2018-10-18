@@ -10,12 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RpcControler struct {
-	P2pServer     *p2p.Server
-	Og            *og.Og
-	TxBuffer      *og.TxBuffer
-	AutoSequencer SequenceRequester
-	AutoTx        TxRequester
+type RpcController struct {
+	P2pServer      *p2p.Server
+	Og             *og.Og
+	TxBuffer       *og.TxBuffer
+	NewRequestChan chan types.TxBaseType
 }
 
 //NodeStatus
@@ -39,7 +38,7 @@ func cors(c *gin.Context) {
 }
 
 //Status node status
-func (r *RpcControler) Status(c *gin.Context) {
+func (r *RpcController) Status(c *gin.Context) {
 	var status NodeStatus
 	status.NodeInfo = r.P2pServer.NodeInfo()
 	status.PeersInfo = r.P2pServer.PeersInfo()
@@ -48,28 +47,28 @@ func (r *RpcControler) Status(c *gin.Context) {
 }
 
 //PeersInfo network information
-func (r *RpcControler) NetInfo(c *gin.Context) {
+func (r *RpcController) NetInfo(c *gin.Context) {
 	info := r.P2pServer.NodeInfo()
 	cors(c)
 	c.JSON(http.StatusOK, info)
 }
 
 //PeersInfo  peers information
-func (r *RpcControler) PeersInfo(c *gin.Context) {
+func (r *RpcController) PeersInfo(c *gin.Context) {
 	peersInfo := r.P2pServer.PeersInfo()
 	cors(c)
 	c.JSON(http.StatusOK, peersInfo)
 }
 
 //Query query
-func (r *RpcControler) Query(c *gin.Context) {
+func (r *RpcController) Query(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
 
 //Transaction  get  transaction
-func (r *RpcControler) Transaction(c *gin.Context) {
+func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
 	cors(c)
@@ -104,7 +103,7 @@ func (r *RpcControler) Transaction(c *gin.Context) {
 }
 
 //Transactions query Transactions
-func (r *RpcControler) Transactions(c *gin.Context) {
+func (r *RpcController) Transactions(c *gin.Context) {
 	seqId := c.Query("seq_id")
 	address := c.Query("address")
 	cors(c)
@@ -156,7 +155,7 @@ func (r *RpcControler) Transactions(c *gin.Context) {
 
 }
 
-func (r *RpcControler) Genesis(c *gin.Context) {
+func (r *RpcController) Genesis(c *gin.Context) {
 	cors(c)
 	sq := r.Og.Dag.Genesis()
 	if sq != nil {
@@ -169,7 +168,7 @@ func (r *RpcControler) Genesis(c *gin.Context) {
 	return
 }
 
-func (r *RpcControler) Sequencer(c *gin.Context) {
+func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
 	var sq *types.Sequencer
 	hashtr := c.Query("hash")
@@ -233,13 +232,13 @@ func (r *RpcControler) Sequencer(c *gin.Context) {
 		"error": "not found",
 	})
 }
-func (r *RpcControler) Validator(c *gin.Context) {
+func (r *RpcController) Validator(c *gin.Context) {
 	cors(c)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "validator",
 	})
 }
-func (r *RpcControler) NewTransaction(c *gin.Context) {
+func (r *RpcController) NewTransaction(c *gin.Context) {
 	var tx types.Tx
 	err := c.ShouldBindJSON(&tx)
 	if err != nil {
@@ -254,7 +253,7 @@ func (r *RpcControler) NewTransaction(c *gin.Context) {
 		"message": "ok",
 	})
 }
-func (r *RpcControler) QueryNonce(c *gin.Context) {
+func (r *RpcController) QueryNonce(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)
 	if err != nil {
@@ -279,7 +278,7 @@ func (r *RpcControler) QueryNonce(c *gin.Context) {
 		"nonce": nonce,
 	})
 }
-func (r *RpcControler) QueryBalance(c *gin.Context) {
+func (r *RpcController) QueryBalance(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)
 	if err != nil {
@@ -295,41 +294,40 @@ func (r *RpcControler) QueryBalance(c *gin.Context) {
 	return
 }
 
-func (r *RpcControler) QueryShare(c *gin.Context) {
+func (r *RpcController) QueryShare(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
 
-func (r *RpcControler) ConstructPayload(c *gin.Context) {
+func (r *RpcController) ConstructPayload(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
 
-func (r *RpcControler) QueryReceipt(c *gin.Context) {
+func (r *RpcController) QueryReceipt(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
-func (r *RpcControler) QueryContract(c *gin.Context) {
+func (r *RpcController) QueryContract(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})
 }
 
-func (r *RpcControler) OgPeersInfo(c *gin.Context) {
+func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
 }
 
-func (r *RpcControler) Debug(c *gin.Context) {
+func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		r.AutoTx.GenerateRequest(0, 1)
+		r.NewRequestChan <- types.TxBaseTypeNormal
 	case "2":
-		r.AutoSequencer.GenerateRequest()
-
+		r.NewRequestChan <- types.TxBaseTypeSequencer
 	}
 }

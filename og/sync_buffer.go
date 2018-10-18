@@ -4,10 +4,11 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
+
+	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var MaxBufferSiza = 4096 * 16
@@ -225,7 +226,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 				continue
 			}
 			err := fmt.Errorf("parent not found ")
-			log.WithField("hash", elderHash.String()).Warn("elser not found")
+			log.WithField("hash", elderHash.String()).Warn("parent not found")
 			return err
 		}
 		delete(keysMap, elderHash)

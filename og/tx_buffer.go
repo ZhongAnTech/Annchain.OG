@@ -136,6 +136,14 @@ func (b *TxBuffer) AddTx(tx types.Txi) {
 	b.newTxChan <- tx
 }
 
+func (b *TxBuffer) AddTxs(seq  *types.Sequencer,txs types.Txs) {
+	for _,tx := range txs {
+		b.newTxChan <-tx
+	}
+	b.newTxChan <-seq
+	return
+}
+
 func (b *TxBuffer) AddLocal(tx types.Txi) error {
 	if b.Hub.AcceptTxs() {
 		b.AddTx(tx)

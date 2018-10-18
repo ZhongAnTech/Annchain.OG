@@ -71,7 +71,7 @@ type Hub struct {
 	OnEnableTxsEvent     []chan bool
 
 	bootstrapNode bool
-	syncFlag  uint32 //1 for is syncing
+	syncFlag      uint32 //1 for is syncing
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -88,6 +88,7 @@ type ISyncBuffer interface {
 
 type ITxBuffer interface {
 	AddTx(tx types.Txi)
+	AddTxs(seq *types.Sequencer, txs types.Txs)
 	isLocalHash(hash types.Hash) bool
 }
 
@@ -198,17 +199,17 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
 	heighter := func() uint64 {
 		return h.Dag.LatestSequencer().Id
 	}
-	inserter := func(tx types.Txi) error {
+	inserter := func(seq *types.Sequencer, txs types.Txs) error {
 		// If fast sync is running, deny importing weird blocks
 		if h.fastSyncMode() {
-			log.WithField("number", tx.GetHeight()).WithField("hash", tx.GetTxHash()).Warn("Discarded bad propagated sequencer")
+			log.WithField("number", seq.Number()).WithField("hash", seq.GetTxHash()).Warn("Discarded bad propagated sequencer")
 			return nil
 		}
 		// Mark initial sync done on any fetcher import
 		h.enableAccexptTx()
 		//todo fetch will done later
-		log.Warn("maybe some problems here")
-		h.TxBuffer.AddTx(tx)
+		//log.Warn("maybe some problems here")
+		h.TxBuffer.AddTxs(seq, txs)
 		return nil
 	}
 	h.fetcher = fetcher.New(h.GetSequencerByHash, heighter, inserter, h.removePeer)
@@ -446,67 +447,55 @@ func (h *Hub) handleMsg(p *peer) error {
 				log.Debug("Failed to deliver headers", "err", err)
 			}
 		}
-		log.WithField("header lens", len(seqHeaders)).Debug("heandle  MessageTypeGetHeader")
+		log.WithField("header lens", len(seqHeaders)).Debug("heandle  MessageTypeHeaderResponse")
+	case p2pMsg.MessageType == MessageTypeTxsRequest:
+		// Decode the retrieval message
+		log.Debug("got MessageTypeTxsRequest")
+		var msgReq types.MessageTxsRequest
+		if _, err := msgReq.UnmarshalMsg(p2pMsg.Message); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		var msgRes types.MessageTxsResponse
 
-		/*
-			case p2pMsg.MessageType == MessageTypeTxsRequest:
-				// Decode the retrieval message
-				log.Debug("got MessageTypeTxsRequest")
-				var msgReq types.MessageTxsRequest
-				if _, err := msgReq.UnmarshalMsg(p2pMsg.Message); err != nil {
-					return errResp(ErrDecode, "msg %v: %v", msg, err)
-				}
-				var msgRes types.MessageNewSyncTxsResponse
+		var seq *types.Sequencer
+		if msgReq.SeqHash != nil && msgReq.Id != 0 {
+			seq = h.Dag.GetSequencer(*msgReq.SeqHash, msgReq.Id)
+		} else {
+			seq = h.Dag.GetSequencerById(msgReq.Id)
+		}
+		msgRes.Sequencer = seq
+		if seq != nil {
+			msgRes.Txs = h.Dag.GetTxsByNumber(seq.Id)
+		} else {
+			log.WithField("id ", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
+		}
+		data, _ := msgRes.MarshalMsg(nil)
+		log.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
+		return p.sendRawMessage(uint64(MessageTypeTxsResponse), data)
 
-				var seq *types.Sequencer
-				if msgReq.SeqHash != nil && msgReq.Id != 0 {
-					seq = h.Dag.GetSequencer(*msgReq.SeqHash, msgReq.Id)
-				} else {
-					seq = h.Dag.GetSequencerById(msgReq.Id)
-				}
-				msgRes.Sequencer = seq
-				if seq != nil {
-					msgRes.Txs = h.Dag.GetTxsByNumber(seq.Id)
-				}else {
-					log.WithField("id ",msgReq.Id).WithField("hash",msgReq.SeqHash).Warn("seq was not found for request " )
-				}
-				data, _ := msgRes.MarshalMsg(nil)
-				log.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
-				return p.sendRawMessage(uint64(MessageTypeTxsResponse), data)
+	case p2pMsg.MessageType == MessageTypeTxsResponse:
+		log.Debug("got MessageTypeGetTxs")
+		// A batch of block bodies arrived to one of our previous requests
+		var request types.MessageTxsResponse
+		if _, err := request.UnmarshalMsg(p2pMsg.Message); err != nil {
+			log.Error("msg %v: %v", msg, err)
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		if request.Sequencer != nil {
+			log.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
+		} else {
+			log.Warn("got nil sequencer")
+			return nil
+		}
 
-			case p2pMsg.MessageType == MessageTypeTxsResponse:
-				log.Debug("got MessageTypeGetTxs")
-				// A batch of block bodies arrived to one of our previous requests
-				var request types.MessageNewSyncTxsResponse
-				if _, err := request.UnmarshalMsg(p2pMsg.Message); err != nil {
-					log.Error("msg %v: %v", msg, err)
-					return errResp(ErrDecode, "msg %v: %v", msg, err)
-				}
-				// Deliver them all to the downloader for queuing
-				transactions := make([][]*types.Tx, 1)
-				transactions[0] = request.Txs
-				if request.Sequencer != nil {
-					log.WithField("len", len(transactions[0])).WithField("seq id", request.Sequencer.Id).Debug("got bodies txs ")
-				} else {
-					log.Warn("got nil sequencer")
-					return nil
-				}
+		log.Debug("handle MessageTypeTxsResponse")
+		lseq := h.Dag.LatestSequencer()
+		//todo need more condition
+		if lseq.Number() < request.Sequencer.Number() {
+			h.TxBuffer.AddTxs(request.Sequencer, request.Txs)
+		}
+		return nil
 
-				// Filter out any explicitly requested bodies, deliver the rest to the downloader
-				filter := len(transactions[0]) > 0
-				if filter {
-					transactions = h.fetcher.FilterBodies(p.id, transactions, request.Sequencer, time.Now())
-				}
-				if len(transactions[0]) > 0 || !filter {
-					log.WithField("len", len(transactions[0])).Debug("deliver bodies ")
-					err := h.downloader.DeliverBodies(p.id, transactions, nil, request.Sequencer)
-					if err != nil {
-						log.Debug("Failed to deliver bodies", "err", err)
-					}
-				}
-				log.Debug("handle MessageTypeGetTxs")
-				return nil
-		*/
 	case p2pMsg.MessageType == MessageTypeBodiesRequest:
 		// Decode the retrieval message
 		log.Debug("got MessageTypeBodiesRequest")
@@ -592,10 +581,22 @@ func (h *Hub) handleMsg(p *peer) error {
 			//no need to broadcast again ,just all our peers need know this ,not all network
 			//set peer's head
 			p.SetHead(*msgHeader.Hash, msgHeader.Number)
+		} else {
+			log.Warn("MessageTypeSequencerHeader msg err")
+			return nil
+		}
+		if !h.AcceptTxs() {
+			return nil
+		}
+		lseq := h.Dag.LatestSequencer()
+		for i := lseq.Number(); i < msgHeader.Number; i++ {
+			go func(i uint64) {
+				p.RequestTxsById(i + 1)
+			}(i)
 		}
 		return nil
 
-	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewTxs) &&
+	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewSequence) &&
 		!h.AcceptTxs():
 		// no receive until sync finish
 		return nil
@@ -769,12 +770,12 @@ func (h *Hub) isSyncing() bool {
 	return false
 }
 
-func (h *Hub) setSyncFlag()  {
-	atomic.StoreUint32(&h.syncFlag,1)
+func (h *Hub) setSyncFlag() {
+	atomic.StoreUint32(&h.syncFlag, 1)
 }
 
-func (h *Hub) unsetSyncFlag()  {
-	atomic.StoreUint32(&h.syncFlag,0)
+func (h *Hub) unsetSyncFlag() {
+	atomic.StoreUint32(&h.syncFlag, 0)
 }
 
 func (h *Hub) disableFastSync() {

@@ -2,7 +2,7 @@ import sys
 
 import toml
 
-static_node = 'a4d8435e9923d6cc950ff47df5f8fef469b1acfa255cf9b5daab53abdca3d76403bda33ebedd1336d526ffc510c9420c7df0731ee37ea6b28780ca6011fe741e'
+boot_node = 'a4d8435e9923d6cc950ff47df5f8fef469b1acfa255cf9b5daab53abdca3d76403bda33ebedd1336d526ffc510c9420c7df0731ee37ea6b28780ca6011fe741e'
 
 
 def generate_config(id, seq_enabled):
@@ -14,7 +14,7 @@ def generate_config(id, seq_enabled):
     d['rpc']['port'] = port_add + 0
     d['p2p']['port'] = port_add + 1
     d['p2p']['bootstrap_node'] = id == 0
-    d['p2p']['static_nodes'] = "enode://%s@127.0.0.1:%d" % (static_node, 8001)
+    d['p2p']['bootstrap_nodes'] = "enode://%s@127.0.0.1:%d" % (boot_node, 8001)
 
     d['websocket']['port'] = port_add + 2
     d['profiling']['port'] = port_add + 3

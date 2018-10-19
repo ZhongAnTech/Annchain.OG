@@ -51,8 +51,8 @@ interval_ms = 5000
 
 [auto_client.tx]
 enabled = true
-interval_ms = 200
-account_ids = [0,1,3]
+interval_ms = 500
+account_ids = [0,1]
 interval_mode = "random"
 
 [debug]

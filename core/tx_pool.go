@@ -502,7 +502,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 			log.WithField("tx", tx).Fatal("duplicated tx in dag. Why received many times")
 		}
 		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
-		return TxQualityIsBad
+		return TxQualityIsFatal
 	}
 
 	// check if the tx itself has no conflicts with local ledger
@@ -588,7 +588,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 
 	}
-loop2:
+	loop2:
 	for {
 		if !pool.timeoutLatestSequencer.Stop(){
 			<- pool.timeoutLatestSequencer.C
@@ -608,10 +608,10 @@ loop2:
 // isBadSeq checks if a sequencer is correct.
 func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	// check if the nonce is duplicate
-	seqinpool := pool.flows.GetTxByNonce(seq.Sender(), seq.GetNonce())
-	if seqinpool != nil {
-		return fmt.Errorf("duplicate nonce %d found in pool", seq.GetNonce())
-	}
+	// seqinpool := pool.flows.GetTxByNonce(seq.Sender(), seq.GetNonce())
+	// if seqinpool != nil {
+	// 	return fmt.Errorf("duplicate nonce %d found in pool", seq.GetNonce())
+	// }
 	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
 	if seqindag != nil {
 		return fmt.Errorf("duplicate nonce %d found in dag", seq.GetNonce())
@@ -658,6 +658,11 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	// sums up the related address' income and outcome values
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
+		// return error if a sequencer confirm a tx that has same nonce as itself.
+		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
+			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s", 
+				seq.GetNonce(), txi.GetTxHash().String())
+		}
 		switch tx := txi.(type) {
 		case *types.Sequencer:
 			break

@@ -82,14 +82,19 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	p2pConfig.StaticNodes = parserNodes(staticNodes)
 	trustNode := viper.GetString("p2p.trust_nodes")
 	p2pConfig.TrustedNodes = parserNodes(trustNode)
-	p2pConfig.NodeName = viper.GetString("p2p.node_name")
+	nodeName := viper.GetString("p2p.node_name")
+	if nodeName =="" {
+		nodeName ="og"
+	}
+	p2pConfig.NodeName = nodeName
 	p2pConfig.NodeDatabase = viper.GetString("p2p.node_db")
 	bootNodes := viper.GetString("p2p.bootstrap_nodes")
-	p2pConfig.BootstrapNodesV5 = parserV5Nodes(bootNodes)
+	bootNodesV5 := viper.GetString("p2p.bootstrap_nodes_v5")
+	p2pConfig.BootstrapNodes = parserNodes(bootNodes)
+	p2pConfig.BootstrapNodesV5 = parserV5Nodes(bootNodesV5)
 	//p2pConfig.NoDiscovery = true
 	//p2pConfig.DiscoveryV5 = true
 	//p2pConfig.BootstrapNodesV5: config.BootstrapNodes.nodes,
-	//ListenAddr:       ":0",
 	p2pConfig.NAT = nat.Any()
 
 	return &p2p.Server{Config: p2pConfig}

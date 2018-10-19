@@ -181,18 +181,36 @@ func (pool *TxPool) Name() string {
 // PoolStatus returns the current number of
 // tips, bad txs and pending txs stored in pool.
 func (pool *TxPool) PoolStatus() (int, int, int) {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.poolStatus()
+}
+func (pool *TxPool) poolStatus() (int, int, int) {
 	return pool.txLookup.Stats()
 }
 
 // Get get a transaction or sequencer according to input hash,
 // if tx not exists return nil
 func (pool *TxPool) Get(hash types.Hash) types.Txi {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.get(hash)
+}
+func (pool *TxPool) get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
 }
 
 // GetHashOrder returns a hash list of txs in pool, ordered by the
 // time that txs added into pool.
 func (pool *TxPool) GetHashOrder() []types.Hash {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.getHashOrder()
+}
+func (pool *TxPool) getHashOrder() []types.Hash {
 	return pool.txLookup.GetOrder()
 }
 
@@ -201,6 +219,9 @@ func (pool *TxPool) GetByNonce(addr types.Address, nonce uint64) types.Txi {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
+	return pool.getByNonce(addr, nonce)
+}
+func (pool *TxPool) getByNonce(addr types.Address, nonce uint64) types.Txi {
 	return pool.flows.GetTxByNonce(addr, nonce)
 }
 
@@ -214,6 +235,12 @@ func (pool *TxPool) GetLatestNonce(addr types.Address) (uint64, error) {
 
 // GetStatus gets the current status of a tx
 func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.getStatus(hash)
+}
+func (pool *TxPool) getStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
@@ -306,7 +333,7 @@ func (pool *TxPool) Remove(tx types.Txi) {
 }
 
 func (pool *TxPool) remove(tx types.Txi) {
-	status := pool.GetStatus(tx.GetTxHash())
+	status := pool.getStatus(tx.GetTxHash())
 	if status == TxStatusBadTx {
 		pool.badtxs.Remove(tx.GetTxHash())
 	}
@@ -338,7 +365,7 @@ func (pool *TxPool) loop() {
 			var err error
 			tx := txEvent.txEnv.tx
 			// check if tx is duplicate
-			if pool.Get(tx.GetTxHash()) != nil {
+			if pool.get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
@@ -442,7 +469,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 
 	// move parents to pending
 	for _, pHash := range tx.Parents() {
-		status := pool.GetStatus(pHash)
+		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
 			log.WithField("parent", pHash).WithField("tx", tx).
 				Debugf("parent is not a tip")
@@ -479,11 +506,20 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 }
 
 func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
-	// check if the tx's parents are bad txs
+	// check if the tx's parents exists and if is badtx
 	for _, parentHash := range tx.Parents() {
-		if pool.badtxs.Get(parentHash) != nil {
-			log.WithField("tx", tx).Debugf("bad tx, parent %s is bad tx", parentHash.String())
-			return TxQualityIsBad
+		// check if tx in pool
+		if pool.get(parentHash) != nil {
+			if pool.getStatus(parentHash) == TxStatusBadTx {
+				log.WithField("tx", tx).Debugf("bad tx, parent %s is bad tx", parentHash.String())
+				return TxQualityIsBad
+			}
+			continue
+		}
+		// check if tx in dag
+		if pool.dag.GetTx(parentHash) == nil {
+			log.WithField("tx", tx).Debugf("fatal tx, parent %s is not exist", parentHash.String())
+			return TxQualityIsFatal
 		}
 	}
 
@@ -630,7 +666,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	}
 	for seekingPool.Len() > 0 {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
-		elder := pool.Get(elderHash)
+		elder := pool.get(elderHash)
 		if elder == nil {
 			elder = pool.dag.GetTx(elderHash)
 			if elder == nil {
@@ -709,7 +745,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 
 	// construct tx hashes
 	var txhashes types.Hashs
-	for _, hash := range pool.GetHashOrder() {
+	for _, hash := range pool.getHashOrder() {
 		elder, in := elders[hash]
 		if !in {
 			continue
@@ -731,7 +767,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 func (pool *TxPool) solveConflicts() {
 	txsInPool := []types.Txi{}
 	for _, hash := range pool.txLookup.getorder() {
-		tx := pool.Get(hash)
+		tx := pool.get(hash)
 		if tx == nil {
 			continue
 		}

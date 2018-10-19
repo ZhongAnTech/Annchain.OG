@@ -33,7 +33,7 @@ func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
 		err = fmt.Errorf("delegate failed to seal tx")
 		return
 	}
-	logrus.WithField("tx", tx).Infof("tx generated")
+	logrus.WithField("tx", tx).Debugf("tx generated")
 	return
 }
 

@@ -212,7 +212,7 @@ func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
 	if len(*hashs) == 0 {
 		return nil
 	}
-	log.WithField("len tx ", len(*hashs)).WithField("id", id).Info("get txs")
+	log.WithField("len tx ", len(*hashs)).WithField("id", id).Debug("get txs")
 	return dag.getTxs(*hashs)
 }
 

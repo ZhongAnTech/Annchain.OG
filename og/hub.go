@@ -515,7 +515,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		for i := 0; i < len(msgReq.SeqHashes); i++ {
 			seq := h.Dag.GetSequencerByHash(msgReq.SeqHashes[i])
 			if seq == nil {
-				log.Warn("seq is n")
+				log.Warn("seq is nil")
 				break
 			}
 			if bytes >= softResponseLimit {

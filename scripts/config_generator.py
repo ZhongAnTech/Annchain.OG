@@ -40,4 +40,3 @@ if __name__ == '__main__':
 
     for i in range(total):
         generate_config(i, i == 0 and enable_sequencer)
-

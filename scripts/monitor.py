@@ -7,10 +7,28 @@ import traceback
 import pandas as pd
 import requests
 
+pd.set_option('display.height', 1000)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
+
+
 total = 10
 
 s = requests.Session()
 s.trust_env = False
+
+id_host_map = {}
+host_id_map = {}
+
+
+def myid(host):
+    try:
+        resp = s.get('http://%s/net_info' % host, timeout=3)
+        j = json.loads(resp.text)
+        return j['id']
+    except Exception as e:
+        return None
 
 
 def doone(host):
@@ -21,11 +39,29 @@ def doone(host):
         d['seq'] = j['Id']
     except Exception as e:
         d['seq'] = -1
+
+    try:
+        peers = []
+        resp = s.get('http://%s/peers_info' % host, timeout=3)
+        j = json.loads(resp.text)
+        for peer in j:
+            if peer['id'] in id_host_map:
+                peers.append(id_host_map[peer['id']][-4:])
+        d['peers'] = peers
+    except Exception as e:
+        d['peers'] = []
     return d
 
 
 def doround(hosts):
     d = {}
+    for host in hosts:
+        if host not in host_id_map:
+            id = myid(host)
+            if id is not None:
+                host_id_map[host] = id
+                id_host_map[id] = host
+
     for host in hosts:
         d[host[10:]] = doone(host)
 

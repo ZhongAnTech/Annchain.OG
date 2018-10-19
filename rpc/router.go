@@ -10,7 +10,7 @@ import (
 )
 
 func (rpc *RpcController) Newrouter() *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
 	router.GET("/", rpc.writeListOfEndpoints)
 	// init paths here
 	router.GET("/ping", func(c *gin.Context) {

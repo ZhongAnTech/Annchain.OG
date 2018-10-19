@@ -179,7 +179,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 		}
 	}
 
-	logrus.WithField("tx", tx).Info("nice tx")
+	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
 }
@@ -252,12 +252,12 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 		logrus.WithFields(logrus.Fields{
 			"parent": parentHash.String(),
 			"child":  nil,
-		}).Infof("updating dependency map")
+		}).Debugf("updating dependency map")
 	} else {
 		logrus.WithFields(logrus.Fields{
 			"parent": parentHash.String(),
 			"child":  self.String(),
-		}).Infof("updating dependency map")
+		}).Debugf("updating dependency map")
 	}
 
 	b.affmu.Lock()
@@ -361,11 +361,11 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
 		if !b.isLocalHash(parentHash) {
-			logrus.WithField("hash", parentHash).Infof("parent not known by pool or dag tx")
+			logrus.WithField("hash", parentHash).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 
 			b.updateDependencyMap(parentHash, tx)
-			logrus.Infof("enqueue parent to syncer: %s", parentHash)
+			logrus.Debugf("enqueue parent to syncer: %s", parentHash)
 			b.syncer.Enqueue(parentHash)
 		}
 	}

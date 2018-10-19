@@ -126,11 +126,11 @@ func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {
 	logrus.WithField("q", syncResponse.String()).Debug("received MessageSyncResponse")
 
 	for _, v := range syncResponse.Txs {
-		logrus.WithField("tx", v).WithField("peer", msg.SourceID).Infof("received sync response Tx")
+		logrus.WithField("tx", v).WithField("peer", msg.SourceID).Debugf("received sync response Tx")
 		m.TxBuffer.AddTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.WithField("seq", v).WithField("peer", msg.SourceID).Infof("received sync response seq")
+		logrus.WithField("seq", v).WithField("peer", msg.SourceID).Debugf("received sync response seq")
 		m.TxBuffer.AddTx(v)
 	}
 }

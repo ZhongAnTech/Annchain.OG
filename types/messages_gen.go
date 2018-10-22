@@ -587,7 +587,7 @@ func (z *MessageHeaderResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *MessageNewSequence) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *MessageNewSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -616,7 +616,7 @@ func (z *MessageNewSequence) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *MessageNewSequence) EncodeMsg(en *msgp.Writer) (err error) {
+func (z *MessageNewSequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 1
 	err = en.Append(0x91)
 	if err != nil {
@@ -637,7 +637,7 @@ func (z *MessageNewSequence) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *MessageNewSequence) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *MessageNewSequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 1
 	o = append(o, 0x91)
@@ -653,7 +653,7 @@ func (z *MessageNewSequence) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *MessageNewSequence) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *MessageNewSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -683,7 +683,7 @@ func (z *MessageNewSequence) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *MessageNewSequence) Msgsize() (s int) {
+func (z *MessageNewSequencer) Msgsize() (s int) {
 	s = 1
 	if z.Sequencer == nil {
 		s += msgp.NilSize

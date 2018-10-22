@@ -12,7 +12,7 @@ import (
 type Og struct {
 	Dag     *core.Dag
 	Txpool  *core.TxPool
-	Manager *Manager
+	Manager *MessageRouter
 }
 
 func NewOg() (*Og, error) {

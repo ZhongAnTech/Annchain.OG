@@ -65,17 +65,8 @@ func NewNode() *Node {
 	}, downloader.FullSync, org.Dag, org.Txpool)
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 
-	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond:              100,
-		AcquireTxQueueSize:                   1000,
-		MaxBatchSize:                         100,
-		AcquireTxDedupCacheMaxSize:           10000,
-		AcquireTxDedupCacheExpirationSeconds: 60,
-	}, hub)
-	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, syncer.EnableEvent)
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
-	n.Components = append(n.Components, syncer)
 
 	// Setup crypto algorithm
 	var signer crypto.Signer
@@ -104,16 +95,14 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:    syncer,
-		Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.Txpool,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
 
-	txBuffer.Hub = hub
 	hub.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
 	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
@@ -124,16 +113,29 @@ func NewNode() *Node {
 	})
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
-	m := &og.Manager{
-		TxPool:   org.Txpool,
-		TxBuffer: txBuffer,
-		Syncer:   syncer,
+
+	messageHandler := &og.IncomingMessageHandler{
 		Hub:      hub,
-		Dag:      org.Dag,
-		Config:   &og.ManagerConfig{AcquireTxQueueSize: 10, BatchAcquireSize: 10},
+		TxBuffer: txBuffer,
+	}
+
+	m := &og.MessageRouter{
+		NewSequencerHandler: messageHandler,
+		Hub:                 hub,
 	}
 	// Setup Hub
 	SetupCallbacks(m, hub)
+
+	syncer := og.NewSyncer(&og.SyncerConfig{
+		BatchTimeoutMilliSecond:              100,
+		AcquireTxQueueSize:                   1000,
+		MaxBatchSize:                         100,
+		AcquireTxDedupCacheMaxSize:           10000,
+		AcquireTxDedupCacheExpirationSeconds: 60,
+	}, m)
+	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, syncer.EnableEvent)
+	n.Components = append(n.Components, syncer)
+
 
 	miner := &miner2.PoWMiner{}
 
@@ -269,12 +271,12 @@ func (n *Node) Stop() {
 }
 
 // SetupCallbacks Regist callbacks to handle different messages
-func SetupCallbacks(m *og.Manager, hub *og.Hub) {
-	hub.CallbackRegistry[og.MessageTypePing] = m.HandlePing
-	hub.CallbackRegistry[og.MessageTypePong] = m.HandlePong
+func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
+	hub.CallbackRegistry[og.MessageTypePing] = m.RoutePing
+	hub.CallbackRegistry[og.MessageTypePong] = m.RoutePong
 	//hub.CallbackRegistry[og.MessageTypeFetchByHash] = m.HandleFetchByHash
-	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
-	hub.CallbackRegistry[og.MessageTypeNewTx] = m.HandleNewTx
-	hub.CallbackRegistry[og.MessageTypeNewSequence] = m.HandleNewSequence
-	hub.CallbackRegistry[og.MessageTypeNewTxs] = m.HandleNewTxs
+	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.RouteFetchByHashResponse
+	hub.CallbackRegistry[og.MessageTypeNewTx] = m.RouteNewTx
+	hub.CallbackRegistry[og.MessageTypeNewSequencer] = m.RouteNewSequencer
+	hub.CallbackRegistry[og.MessageTypeNewTxs] = m.RouteNewTxs
 }

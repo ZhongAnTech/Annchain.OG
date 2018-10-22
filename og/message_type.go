@@ -36,7 +36,7 @@ const (
 	MessageTypeFetchByHash
 	MessageTypeFetchByHashResponse
 	MessageTypeNewTx
-	MessageTypeNewSequence
+	MessageTypeNewSequencer
 	MessageTypeNewTxs
 	MessageTypeSequencerHeader
 
@@ -58,7 +58,7 @@ const (
 func (mt MessageType) String() string {
 	return []string{
 		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
-		"MessageTypeNewTx", "MessageTypeNewSequence", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
+		"MessageTypeNewTx", "MessageTypeNewSequencer", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
 		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",

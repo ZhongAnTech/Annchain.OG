@@ -651,10 +651,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 // isBadSeq checks if a sequencer is correct.
 func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	// check if the nonce is duplicate
-	// seqinpool := pool.flows.GetTxByNonce(seq.Sender(), seq.GetNonce())
-	// if seqinpool != nil {
-	// 	return fmt.Errorf("duplicate nonce %d found in pool", seq.GetNonce())
-	// }
 	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
 	if seqindag != nil {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag", seq.GetNonce())
@@ -745,7 +741,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		if !(nonces.Len() > 0) {
 			continue
 		}
-		if nErr := pool.verifyNonce(addr, &nonces); nErr != nil {
+		if nErr := pool.verifyNonce(addr, &nonces, seq); nErr != nil {
 			return nil, nErr
 		}
 	}
@@ -758,7 +754,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			continue
 		}
 		if elder.GetType() == types.TxBaseTypeNormal {
-			txhashes = append(txhashes, hash)
+			txhashes = append(txhashes, hash) 
 		}
 	}
 
@@ -796,7 +792,7 @@ func (pool *TxPool) solveConflicts() {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
+func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *types.Sequencer) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
@@ -821,6 +817,12 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap) error {
 	for i := 1; i < nonces.Len(); i++ {
 		if nonces[i] != nonces[i-1]+1 {
 			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
+		}
+	}
+
+	if seq.Sender().Hex() == addr.Hex() {
+		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
+			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
 		}
 	}
 

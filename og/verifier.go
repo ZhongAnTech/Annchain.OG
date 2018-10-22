@@ -49,7 +49,7 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not aligned with content")
 		return false
 	}
-	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0){
+	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
 		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}

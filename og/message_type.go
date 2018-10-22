@@ -66,11 +66,12 @@ func (mt MessageType) String() string {
 }
 
 type P2PMessage struct {
-	MessageType     MessageType
-	Message         []byte
-	hash            types.Hash //inner use to avoid resend a message to the same peer
-	needCheckRepeat bool
-	SourceID        string // the source that this messeage coming from
+	MessageType       MessageType
+	Message           []byte
+	hash              types.Hash //inner use to avoid resend a message to the same peer
+	needCheckRepeat   bool
+	SourceID          string // the source that this messeage coming from
+	BroadCastToRandom bool   //just brodcast to random peer
 }
 
 func (m *P2PMessage) calculateHash() {

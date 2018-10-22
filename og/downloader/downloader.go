@@ -1251,9 +1251,9 @@ func (d *Downloader) qosTuner() {
 
 		// Log the new QoS values and sleep until the next RTT
 		log.WithFields(log.Fields{
-			"rtt": rtt,
-			"confidence": float64(conf)/1000000.0,
-			"ttl": d.requestTTL(),
+			"rtt":        rtt,
+			"confidence": float64(conf) / 1000000.0,
+			"ttl":        d.requestTTL(),
 		}).Debug("Recalculated downloader QoS values")
 		select {
 		case <-d.quitCh:
@@ -1290,9 +1290,9 @@ func (d *Downloader) qosReduceConfidence() {
 
 	rtt := time.Duration(atomic.LoadUint64(&d.rttEstimate))
 	log.WithFields(log.Fields{
-		"rtt": rtt,
-		"confidence": float64(conf)/1000000.0,
-		"ttl": d.requestTTL(),
+		"rtt":        rtt,
+		"confidence": float64(conf) / 1000000.0,
+		"ttl":        d.requestTTL(),
 	}).Debug("Relaxed downloader QoS values")
 }
 

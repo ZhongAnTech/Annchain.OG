@@ -1,11 +1,11 @@
 package core
 
 import (
+	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"fmt"
 )
 
 const MaxAccountCount = 20

@@ -1,14 +1,14 @@
 package node
 
 import (
-	"github.com/annchain/OG/account"
-	"time"
-	"github.com/annchain/OG/types"
-	"sync"
-	"math/rand"
 	"fmt"
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"math/rand"
+	"sync"
+	"time"
 )
 
 const (
@@ -32,14 +32,14 @@ type AutoClient struct {
 	ManualChan chan types.TxBaseType
 	quit       chan bool
 
-	pause   bool
+	pause bool
 
 	wg sync.WaitGroup
 
 	nonceLock sync.RWMutex
 }
 
-func (c *AutoClient) Init(){
+func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
 }
 
@@ -120,7 +120,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 
 	var n uint64
 	me := c.SampleAccounts[c.MyAccountIndex]
-	if c.NonceSelfDiscipline{
+	if c.NonceSelfDiscipline {
 		n, err := me.ConsumeNonce()
 		if err == nil {
 			return n

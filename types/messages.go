@@ -9,7 +9,7 @@ type MessageSyncRequest struct {
 	Hashes []Hash
 }
 
-func (m *MessageSyncRequest) String() string{
+func (m *MessageSyncRequest) String() string {
 	return HashesToString(m.Hashes)
 }
 
@@ -19,7 +19,7 @@ type MessageSyncResponse struct {
 	Sequencers []*Sequencer
 }
 
-func (m *MessageSyncResponse) String() string{
+func (m *MessageSyncResponse) String() string {
 	return fmt.Sprintf("txs: [%s], seqs: [%s]", TxsToString(m.Txs), SeqsToString(m.Sequencers))
 }
 
@@ -28,7 +28,7 @@ type MessageNewTx struct {
 	Tx *Tx
 }
 
-func (m *MessageNewTx) String() string{
+func (m *MessageNewTx) String() string {
 	return m.Tx.String()
 }
 
@@ -37,7 +37,7 @@ type MessageNewSequence struct {
 	Sequencer *Sequencer
 }
 
-func (m *MessageNewSequence) String() string{
+func (m *MessageNewSequence) String() string {
 	return m.Sequencer.String()
 }
 
@@ -46,7 +46,7 @@ type MessageNewTxs struct {
 	Txs []*Tx
 }
 
-func (m *MessageNewTxs) String() string{
+func (m *MessageNewTxs) String() string {
 	return TxsToString(m.Txs)
 }
 

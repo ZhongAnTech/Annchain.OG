@@ -309,6 +309,6 @@ func (h *Hub) synchronise(peer *peer) {
 		hash := head.GetTxHash()
 		msg := types.MessageSequencerHeader{Hash: &hash, Number: head.Number()}
 		data, _ := msg.MarshalMsg(nil)
-		h.SendMessage(MessageTypeSequencerHeader, data)
+		h.BroadcastMessage(MessageTypeSequencerHeader, data)
 	}
 }

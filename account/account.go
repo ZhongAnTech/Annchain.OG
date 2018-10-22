@@ -1,10 +1,10 @@
 package account
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"sync"
-	"fmt"
 )
 
 type SampleAccount struct {
@@ -35,17 +35,17 @@ func (s *SampleAccount) ConsumeNonce() (uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if !s.nonceInited{
+	if !s.nonceInited {
 		return 0, fmt.Errorf("nonce is not initialized. Query first")
 	}
 	s.nonce++
 	return s.nonce, nil
 }
 
-func (s *SampleAccount) GetNonce() (uint64, error){
+func (s *SampleAccount) GetNonce() (uint64, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if !s.nonceInited{
+	if !s.nonceInited {
 		return 0, fmt.Errorf("nonce is not initialized. Query first")
 	}
 	return s.nonce, nil

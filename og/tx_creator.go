@@ -17,12 +17,12 @@ type TipGenerator interface {
 type TxCreator struct {
 	Signer             crypto.Signer
 	Miner              miner.Miner
-	TipGenerator       TipGenerator  // usually tx_pool
-	MaxTxHash          types.Hash    // The difficultiy of TxHash
-	MaxMinedHash       types.Hash    // The difficultiy of MinedHash
-	MaxConnectingTries int           // Max number of times to find a pair of parents. If exceeded, try another nonce.
-	DebugNodeId        int           // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
-	GraphVerifier      Verifier // To verify the graph structure
+	TipGenerator       TipGenerator // usually tx_pool
+	MaxTxHash          types.Hash   // The difficultiy of TxHash
+	MaxMinedHash       types.Hash   // The difficultiy of MinedHash
+	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
+	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
+	GraphVerifier      Verifier     // To verify the graph structure
 }
 
 func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64) types.Txi {
@@ -75,9 +75,9 @@ func (m *TxCreator) NewSignedSequencer(issuer types.Address, id uint64, contract
 // validateGraphStructure validates if parents are not conflicted, not double spending or other misbehaviors
 func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 	ok = true
-	for _, parent := range parents{
+	for _, parent := range parents {
 		ok = ok && m.GraphVerifier.Verify(parent)
-		if !ok{
+		if !ok {
 			return
 		}
 	}
@@ -100,7 +100,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)
 		ok = m.GraphVerifier.Verify(tx)
-		if ! ok{
+		if !ok {
 			logrus.Warn("NOT OK")
 		}
 		logrus.WithFields(logrus.Fields{

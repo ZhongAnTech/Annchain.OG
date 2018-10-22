@@ -291,7 +291,7 @@ func (dag *Dag) HasLatestNonce(addr types.Address) (bool, error) {
 	return dag.hasLatestNonce(addr)
 }
 
-//GetTxsByAddress  get all txs from this address 
+//GetTxsByAddress  get all txs from this address
 func (dag *Dag) GetTxsByAddress(addr types.Address) []types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -447,25 +447,25 @@ func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
 	return dag.accessor.HasAddrLatestNonce(addr)
 }
 
-func ( dag *Dag)getTxsByAddress(addr types.Address) []types.Txi {
-	if ok,_:= dag.hasLatestNonce(addr);!ok  {
+func (dag *Dag) getTxsByAddress(addr types.Address) []types.Txi {
+	if ok, _ := dag.hasLatestNonce(addr); !ok {
 		return nil
 	}
-       nonce,err :=  dag.getLatestNonce(addr)
-       if err!=nil {
-             return nil
-	   }
-       var i int64
-       var txs []types.Txi
-       for i = int64( nonce) ; i >=0  ;i--{
-		  tx :=  dag.getTxByNonce(addr,uint64(i))
-		  if tx!=nil {
-			  txs = append(txs,tx)
-		  }
-	   }
-       if len(txs) == 0 {
-		   return nil 
-	   }
-	   return txs 
+	nonce, err := dag.getLatestNonce(addr)
+	if err != nil {
+		return nil
+	}
+	var i int64
+	var txs []types.Txi
+	for i = int64(nonce); i >= 0; i-- {
+		tx := dag.getTxByNonce(addr, uint64(i))
+		if tx != nil {
+			txs = append(txs, tx)
+		}
+	}
+	if len(txs) == 0 {
+		return nil
+	}
+	return txs
 
 }

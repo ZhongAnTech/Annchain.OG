@@ -83,8 +83,8 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	trustNode := viper.GetString("p2p.trust_nodes")
 	p2pConfig.TrustedNodes = parserNodes(trustNode)
 	nodeName := viper.GetString("p2p.node_name")
-	if nodeName =="" {
-		nodeName ="og"
+	if nodeName == "" {
+		nodeName = "og"
 	}
 	p2pConfig.NodeName = nodeName
 	p2pConfig.NodeDatabase = viper.GetString("p2p.node_db")

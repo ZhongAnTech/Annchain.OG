@@ -95,7 +95,7 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		WithField("length", len(req.Hashes)).
 		Debugf("sending message MessageTypeFetchByHash")
 
-	m.hub.SendMessage(MessageTypeFetchByHash, bytes)
+	m.hub.BroadcastMessageToRandom(MessageTypeFetchByHash, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.
@@ -148,8 +148,8 @@ func (m *Syncer) Enqueue(hash types.Hash) {
 
 loop:
 	for {
-		if !m.timeoutAcquireTx.Stop(){
-			<- m.timeoutAcquireTx.C
+		if !m.timeoutAcquireTx.Stop() {
+			<-m.timeoutAcquireTx.C
 		}
 		m.timeoutAcquireTx.Reset(time.Second * 10)
 		select {

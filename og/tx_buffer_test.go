@@ -138,7 +138,7 @@ func setup() *TxBuffer {
 		KnownCacheExpirationSeconds:      30,
 	})
 	hubCOnfig := DefaultHubConfig()
-	buffer.Hub = NewHub(&hubCOnfig, 0, buffer.dag)
+	buffer.Hub = NewHub(&hubCOnfig, 0, buffer.dag, buffer.txPool)
 	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
 	buffer.syncer.(*dummySyncer).buffer = buffer
 	buffer.syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().

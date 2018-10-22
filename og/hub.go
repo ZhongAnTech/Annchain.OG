@@ -45,6 +45,7 @@ type Hub struct {
 	wg sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
 
 	Dag          IDag
+	TxPool       ITxPool
 	messageCache gcache.Cache // cache for duplicate responses/msg to prevent storm
 
 	maxPeers    int
@@ -71,8 +72,7 @@ type Hub struct {
 	OnEnableTxsEvent     []chan bool
 
 	bootstrapNode bool
-	syncFlag  uint32 //1 for is syncing
-
+	syncFlag      uint32 //1 for is syncing
 
 	// timeouts for channel writing
 	timeoutSyncTx *time.Timer
@@ -123,7 +123,7 @@ func DefaultHubConfig() HubConfig {
 	return config
 }
 
-func (h *Hub) Init(config *HubConfig, dag IDag) {
+func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.quit = make(chan bool)
@@ -141,6 +141,7 @@ func (h *Hub) Init(config *HubConfig, dag IDag) {
 		h.forceSyncCycle = 10000
 	}
 	h.Dag = dag
+	h.TxPool = txPool
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
@@ -148,9 +149,9 @@ func (h *Hub) Init(config *HubConfig, dag IDag) {
 	h.timeoutSyncTx = time.NewTimer(time.Second * 10)
 }
 
-func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag) *Hub {
+func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag, txPool ITxPool) *Hub {
 	h := &Hub{}
-	h.Init(config, dag)
+	h.Init(config, dag, txPool)
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && h.Dag.LatestSequencer().Id > 0 {
 		log.Warn("dag not empty, fast sync disabled")
@@ -616,6 +617,48 @@ func (h *Hub) handleMsg(p *peer) error {
 		if err := h.downloader.DeliverNodeData(p.id, nil); err != nil {
 			log.Debug("Failed to deliver node state data", "err", err)
 		}
+		return nil
+	case p2pMsg.MessageType == MessageTypeFetchByHash:
+		syncRequest := types.MessageSyncRequest{}
+		_, err := syncRequest.UnmarshalMsg(p2pMsg.Message)
+		if err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		if len(syncRequest.Hashes) == 0 {
+			log.Debug("empty MessageSyncRequest")
+			return fmt.Errorf("empty MessageSyncRequest")
+		}
+
+		var txs []*types.Tx
+		var seqs []*types.Sequencer
+
+		log.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
+
+		for _, hash := range syncRequest.Hashes {
+			txi := h.TxPool.Get(hash)
+			if txi == nil {
+				txi = h.Dag.GetTx(hash)
+			}
+			switch tx := txi.(type) {
+			case *types.Sequencer:
+				seqs = append(seqs, tx)
+			case *types.Tx:
+				txs = append(txs, tx)
+			}
+
+		}
+		syncResponse := types.MessageSyncResponse{
+			Txs:        txs,
+			Sequencers: seqs,
+		}
+		data, err := syncResponse.MarshalMsg(nil)
+		if err != nil {
+			log.Error("failed to marshall MessageSyncResponse message")
+			return nil
+		}
+
+		log.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
+		return p.sendRawMessage(uint64(MessageTypeFetchByHashResponse), data)
 
 	default:
 		log.Debug("got default message type ", p2pMsg.MessageType)
@@ -692,7 +735,11 @@ func (h *Hub) loopSend() {
 		select {
 		case m := <-h.outgoing:
 			// start a new routine in order not to block other communications
-			go h.sendMessage(m)
+			if m.BroadCastToRandom {
+				go h.broadcastMessageToRandom(m)
+			} else {
+				go h.broadcastMessage(m)
+			}
 		case <-h.quit:
 			log.Info("HubSend reeived quit message. Quitting...")
 			return
@@ -730,7 +777,7 @@ func (h *Hub) BrodcastLatestSequencer() {
 			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
 			data, _ := msgTx.MarshalMsg(nil)
 			// latest sequencer updated , broadcast it
-			go h.SendMessage(MessageTypeSequencerHeader, data)
+			go h.BroadcastMessage(MessageTypeSequencerHeader, data)
 		case <-h.quit:
 			log.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
 			return
@@ -787,25 +834,39 @@ func (h *Hub) disableFastSync() {
 	atomic.StoreUint32(&h.fastSync, 0)
 }
 
-func (h *Hub) SendMessage(messageType MessageType, msg []byte) {
-	p2pMsg := P2PMessage{MessageType: messageType, Message: msg}
-	if messageType != MessageTypePong && messageType != MessageTypePing {
-		p2pMsg.needCheckRepeat = true
-		p2pMsg.calculateHash()
-	}
+func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
+	msgOut.init()
 	log.WithField("type", messageType).Debug("sending message")
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) sendMessage(msg *P2PMessage) {
+func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
+	msgOut.init()
+	msgOut.BroadCastToRandom = true
+	log.WithField("type", messageType).Debug("sending message")
+	h.outgoing <- msgOut
+}
+
+func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	var peers []*peer
-	// choose a peer and then send.
+	// choose all  peer and then send.
 	if msg.needCheckRepeat {
 		peers = h.peers.PeersWithoutMsg(msg.hash)
 	} else {
 		peers = h.peers.Peers()
 	}
+	for _, peer := range peers {
+		peer.AsyncSendMessage(msg)
+	}
+	return
+	// DUMMY: Send to me
+	// h.incoming <- msg
+}
+func (h *Hub) broadcastMessageToRandom(msg *P2PMessage) {
+	peers := h.peers.GetRandomPeers(2)
+	// choose random peer and then send.
 	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)
 	}

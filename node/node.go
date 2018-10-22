@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 
 	"fmt"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/p2p"
@@ -16,7 +17,6 @@ import (
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
-	"github.com/annchain/OG/core"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -62,7 +62,7 @@ func NewNode() *Node {
 		BootstrapNode:                 bootNode, //if bootstrap node just accept txs in starting ,no sync
 		EnableSync:                    enableSync,
 		ForceSyncCycle:                uint(viper.GetInt("hub.sync_cycle_ms")),
-	}, downloader.FullSync, org.Dag)
+	}, downloader.FullSync, org.Dag, org.Txpool)
 	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
 
 	syncer := og.NewSyncer(&og.SyncerConfig{
@@ -104,10 +104,10 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Syncer:                           syncer,
-		Verifiers:                        verifiers,
-		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		Syncer:    syncer,
+		Verifiers: verifiers,
+		Dag:       org.Dag,
+		TxPool:    org.Txpool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -272,7 +272,7 @@ func (n *Node) Stop() {
 func SetupCallbacks(m *og.Manager, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypePing] = m.HandlePing
 	hub.CallbackRegistry[og.MessageTypePong] = m.HandlePong
-	hub.CallbackRegistry[og.MessageTypeFetchByHash] = m.HandleFetchByHash
+	//hub.CallbackRegistry[og.MessageTypeFetchByHash] = m.HandleFetchByHash
 	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.HandleFetchByHashResponse
 	hub.CallbackRegistry[og.MessageTypeNewTx] = m.HandleNewTx
 	hub.CallbackRegistry[og.MessageTypeNewSequence] = m.HandleNewSequence

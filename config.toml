@@ -39,6 +39,10 @@ tips_size = 1000
 reset_duration = 10
 tx_verify_time = 2
 tx_valid_time = 100
+timeout_pool_queue_ms = 10000
+timeout_subscriber_ms = 10000
+timeout_confirmation_ms = 10000
+timeout_latest_seq_ms = 10000
 
 [auto_client]
 # whether auto_tx will maintain its own nonce records.

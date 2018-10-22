@@ -51,7 +51,7 @@ type TxBuffer struct {
 	newTxChan         chan types.Txi
 	quit              chan bool
 	Hub               *Hub
-	knownTxCache      gcache.Cache
+	releasedTxCache   gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan chan types.Txi
 	timeoutAddTx      *time.Timer // timeouts for channel
 }
@@ -85,7 +85,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		newTxChan:         make(chan types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan: make(chan types.Txi, config.NewTxQueueSize),
 		quit:              make(chan bool),
-		knownTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
+		releasedTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 		timeoutAddTx: time.NewTimer(time.Second * 10),
 	}
@@ -128,7 +128,7 @@ func (b *TxBuffer) loop() {
 			go b.handleTx(v)
 		case v := <-b.txAddedToPoolChan:
 			// tx already received by pool. remove from local cache
-			b.knownTxCache.Remove(v.GetTxHash())
+			b.releasedTxCache.Remove(v.GetTxHash())
 		}
 	}
 }
@@ -219,7 +219,8 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 	if err == nil {
 		return a.(map[types.Hash]types.Txi)[hash]
 	}
-	a, err = b.knownTxCache.GetIFPresent(hash)
+
+	a, err = b.releasedTxCache.GetIFPresent(hash)
 	if err == nil {
 		return a.(types.Txi)
 	}
@@ -275,7 +276,7 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 
 func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 	// make it avaiable in local cache to prevent temporarily "disappear" of the tx
-	b.knownTxCache.Set(tx.GetTxHash(), tx)
+	b.releasedTxCache.Set(tx.GetTxHash(), tx)
 	return b.txPool.AddRemoteTx(tx)
 }
 
@@ -311,8 +312,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 
 }
 
-// isLocalHash tests if the tx is already known by buffer.
-// tx that has already known by buffer should not be broadcasted  more.
+// isLocalHash tests if the tx has already been in the txpool or dag.
 func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 	//just get once
 	var poolTx, dagTx types.Txi
@@ -331,9 +331,15 @@ func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 	return ok
 }
 
-// isKnownHash tests if the tx is already copied in local
+// isKnownHash tests if the tx is ever heard of, either in local or in buffer.
+// if tx is known, do not broadcast anymore
 func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
-	return b.isLocalHash(hash) || b.GetFromBuffer(hash) != nil
+	return b.isLocalHash(hash) || b.isCachedHash(hash)
+}
+
+// isCachedHash tests if the tx is in the buffer
+func (b *TxBuffer) isCachedHash(hash types.Hash) bool {
+	return b.GetFromBuffer(hash) != nil
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
@@ -364,9 +370,15 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			logrus.WithField("hash", parentHash).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 
-			b.updateDependencyMap(parentHash, tx)
-			logrus.Debugf("enqueue parent to syncer: %s", parentHash)
-			b.syncer.Enqueue(parentHash)
+			if !b.isCachedHash(parentHash){
+				// not in cache, never synced before.
+				// sync.
+				logrus.WithField("hash", parentHash).Debugf("enqueue parent to syncer")
+				b.syncer.Enqueue(parentHash)
+				b.updateDependencyMap(parentHash, tx)
+			}else{
+				logrus.WithField("hash", parentHash).Debugf("cached by someone before.")
+			}
 		}
 	}
 	if !allFetched {

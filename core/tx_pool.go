@@ -535,7 +535,8 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
 		if txinpool.GetTxHash() == tx.GetTxHash(){
-			log.WithField("tx", tx).Fatal("duplicated tx in pool. Why received many times")
+			log.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
+			return TxQualityIsFatal
 		}
 		log.WithField("tx", tx).WithField("existing", txinpool).Debug("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
@@ -543,7 +544,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
 		if txindag.GetTxHash() == tx.GetTxHash(){
-			log.WithField("tx", tx).Fatal("duplicated tx in dag. Why received many times")
+			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
 		}
 		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
 		return TxQualityIsFatal

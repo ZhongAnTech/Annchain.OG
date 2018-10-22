@@ -32,12 +32,12 @@ func (m *MessageNewTx) String() string {
 	return m.Tx.String()
 }
 
-//msgp:tuple MessageNewSequence
-type MessageNewSequence struct {
+//msgp:tuple MessageNewSequencer
+type MessageNewSequencer struct {
 	Sequencer *Sequencer
 }
 
-func (m *MessageNewSequence) String() string {
+func (m *MessageNewSequencer) String() string {
 	return m.Sequencer.String()
 }
 

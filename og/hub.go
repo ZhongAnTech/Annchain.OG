@@ -30,10 +30,11 @@ const (
 
 var errIncompatibleConfig = errors.New("incompatible configuration")
 
-// Hub is the middle layer between p2p and business layer
+// Hub is the middle layer between p2p and business layer (MessageRouter)
 // When there is a general request coming from the upper layer, Hub will find the appropriate peer to handle.
 // Hub will also prevent duplicate requests/responses.
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
+// DO NOT involve any business logic here.
 type Hub struct {
 	outgoing         chan *P2PMessage
 	incoming         chan *P2PMessage
@@ -602,7 +603,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 		return nil
 
-	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewSequence) &&
+	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewSequencer) &&
 		!h.AcceptTxs():
 		// no receive until sync finish
 		return nil

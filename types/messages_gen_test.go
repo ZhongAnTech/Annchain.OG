@@ -575,7 +575,7 @@ func BenchmarkDecodeMessageHeaderResponse(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessageNewSequence(t *testing.T) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -598,7 +598,7 @@ func TestMarshalUnmarshalMessageNewSequence(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessageNewSequence(b *testing.B) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -607,7 +607,7 @@ func BenchmarkMarshalMsgMessageNewSequence(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessageNewSequence(b *testing.B) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -619,7 +619,7 @@ func BenchmarkAppendMsgMessageNewSequence(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessageNewSequence(b *testing.B) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -633,7 +633,7 @@ func BenchmarkUnmarshalMessageNewSequence(b *testing.B) {
 }
 
 func TestEncodeDecodeMessageNewSequence(t *testing.T) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -642,7 +642,7 @@ func TestEncodeDecodeMessageNewSequence(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := MessageNewSequence{}
+	vn := MessageNewSequencer{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -657,7 +657,7 @@ func TestEncodeDecodeMessageNewSequence(t *testing.T) {
 }
 
 func BenchmarkEncodeMessageNewSequence(b *testing.B) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -671,7 +671,7 @@ func BenchmarkEncodeMessageNewSequence(b *testing.B) {
 }
 
 func BenchmarkDecodeMessageNewSequence(b *testing.B) {
-	v := MessageNewSequence{}
+	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

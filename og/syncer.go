@@ -7,11 +7,16 @@ import (
 	"time"
 )
 
-// Syncer fetches tx from other peers. (incremental)
+type MessageSender interface {
+	BroadcastMessage(messageType MessageType, message []byte)
+	UnicastMessageRandomly(messageType MessageType, message []byte)
+}
+
+// Syncer fetches tx from other  peers. (incremental)
 // Syncer will not fire duplicate requests in a period of time.
 type Syncer struct {
 	config              *SyncerConfig
-	hub                 *Hub
+	messageSender       MessageSender
 	acquireTxQueue      chan types.Hash
 	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
 	quitLoopSync        chan bool
@@ -35,10 +40,10 @@ type SyncerConfig struct {
 	AcquireTxDedupCacheExpirationSeconds int
 }
 
-func NewSyncer(config *SyncerConfig, hub *Hub) *Syncer {
+func NewSyncer(config *SyncerConfig, messageSender MessageSender) *Syncer {
 	return &Syncer{
 		config:         config,
-		hub:            hub,
+		messageSender:  messageSender,
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
@@ -95,7 +100,7 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		WithField("length", len(req.Hashes)).
 		Debugf("sending message MessageTypeFetchByHash")
 
-	m.hub.BroadcastMessageToRandom(MessageTypeFetchByHash, bytes)
+	m.messageSender.UnicastMessageRandomly(MessageTypeFetchByHash, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.
@@ -182,3 +187,22 @@ func (m *Syncer) eventLoop() {
 		}
 	}
 }
+
+//BroadcastNewTx brodcast newly created txi message
+func (m *Syncer) BroadcastNewTx(txi types.Txi) {
+	txType := txi.GetType()
+	if txType == types.TxBaseTypeNormal {
+		tx := txi.(*types.Tx)
+		msgTx := types.MessageNewTx{Tx: tx}
+		data, _ := msgTx.MarshalMsg(nil)
+		m.messageSender.BroadcastMessage(MessageTypeNewTx, data)
+	} else if txType == types.TxBaseTypeSequencer {
+		seq := txi.(*types.Sequencer)
+		msgTx := types.MessageNewSequencer{seq}
+		data, _ := msgTx.MarshalMsg(nil)
+		m.messageSender.BroadcastMessage(MessageTypeNewSequencer, data)
+	} else {
+		logrus.Warn("never come here ,unkown tx type", txType)
+	}
+}
+

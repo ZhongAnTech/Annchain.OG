@@ -1,7 +1,6 @@
 package og
 
 import (
-	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
@@ -20,6 +19,8 @@ const (
 
 type ISyncer interface {
 	Enqueue(hash types.Hash)
+	ClearQueue()
+	BroadcastNewTx(txi types.Txi)
 }
 type ITxPool interface {
 	Get(hash types.Hash) types.Txi
@@ -50,7 +51,6 @@ type TxBuffer struct {
 	affmu             sync.RWMutex
 	newTxChan         chan types.Txi
 	quit              chan bool
-	Hub               *Hub
 	releasedTxCache   gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan chan types.Txi
 	timeoutAddTx      *time.Timer // timeouts for channel
@@ -160,11 +160,12 @@ func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) {
 }
 
 func (b *TxBuffer) AddLocal(tx types.Txi) error {
-	if b.Hub.AcceptTxs() {
+	// TODO: recover here
+	//if b.Hub.AcceptTxs() {
 		b.AddTx(tx)
-	} else {
-		return fmt.Errorf("can't accept tx until sync done")
-	}
+	//} else {
+	//	return fmt.Errorf("can't accept tx until sync done")
+	//}
 	return nil
 }
 
@@ -209,7 +210,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 
 	if shouldBrodcast {
-		b.broadcastMessage(tx)
+		b.syncer.BroadcastNewTx(tx)
 	}
 
 }
@@ -225,25 +226,6 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 		return a.(types.Txi)
 	}
 	return nil
-}
-
-//sendMessage  brodcase txi message
-func (b *TxBuffer) broadcastMessage(txi types.Txi) {
-	txType := txi.GetType()
-	if txType == types.TxBaseTypeNormal {
-		tx := txi.(*types.Tx)
-		msgTx := types.MessageNewTx{Tx: tx}
-		data, _ := msgTx.MarshalMsg(nil)
-		b.Hub.BroadcastMessage(MessageTypeNewTx, data)
-	} else if txType == types.TxBaseTypeSequencer {
-		seq := txi.(*types.Sequencer)
-		msgTx := types.MessageNewSequence{seq}
-		data, _ := msgTx.MarshalMsg(nil)
-		b.Hub.BroadcastMessage(MessageTypeNewSequence, data)
-	} else {
-		logrus.Warn("never come here ,unkown tx type", txType)
-	}
-
 }
 
 // updateDependencyMap will update dependency relationship currently known.

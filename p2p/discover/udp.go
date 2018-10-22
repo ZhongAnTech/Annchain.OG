@@ -621,7 +621,7 @@ func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 		return err
 	}
 	err = packet.handle(t, from, fromID, hash)
-	log.WithError(err).WithField("addr", from).Debug("<< handel  " + packet.name())
+	log.WithError(err).WithField("addr", from).Debug("<< handle  " + packet.name())
 	return err
 }
 

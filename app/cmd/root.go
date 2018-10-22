@@ -33,6 +33,7 @@ import (
 	_ "net/http/pprof"
 	"path"
 	"path/filepath"
+	"github.com/annchain/OG/mylog"
 )
 
 var cfgFile string
@@ -205,8 +206,9 @@ func initLogger() {
 			Formatter,
 		))
 	}
-
 	logrus.Debug("Logger initialized.")
+	mylog.InitLoggers()
+
 }
 
 func startPerformanceMonitor() {

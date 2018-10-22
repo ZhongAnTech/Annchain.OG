@@ -172,7 +172,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 			}
 		} else {
 			// should not be here
-			logrus.WithField("cuernt tx ", currentTx).WithField("ancestor", head).Warn("ancestor not found: should not be here.")
+			logrus.WithField("current tx ", currentTx).WithField("ancestor", head).Warn("ancestor not found: should not be here.")
 			// this ancestor should already be in the dag. do nothing
 		}
 	}

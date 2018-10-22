@@ -54,7 +54,7 @@ type bodyRequesterFn func([]types.Hash) error
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(seq  * types.Sequencer, txs types.Txs) error
+type chainInsertFn func(seq *types.Sequencer, txs types.Txs) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -299,7 +299,7 @@ func (f *Fetcher) loop() {
 				continue
 			}
 			//todo
-			f.insert(op.origin, op.sequencer,nil )
+			f.insert(op.origin, op.sequencer, nil)
 		}
 		// Wait for an outside event to occur
 		select {
@@ -597,7 +597,7 @@ func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs []*types.T
 		defer func() { f.done <- hash }()
 
 		// Run the actual import and log any issues
-		if err := f.insertChain(sequencer,txs); err != nil {
+		if err := f.insertChain(sequencer, txs); err != nil {
 			log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(
 				"hash", hash).WithError(err).Debug("Propagated sequencer import failed")
 			return

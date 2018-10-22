@@ -24,15 +24,15 @@ func NewOg() (*Og, error) {
 	}
 	dagconfig := core.DagConfig{}
 	txpoolconfig := core.TxPoolConfig{
-		QueueSize:				viper.GetInt("txpool.queue_size"),
-		TipsSize:				viper.GetInt("txpool.tips_size"),
-		ResetDuration:			viper.GetInt("txpool.reset_duration"),
-		TxVerifyTime:			viper.GetInt("txpool.tx_verify_time"),
-		TxValidTime:			viper.GetInt("txpool.tx_valid_time"),
-		TimeOutPoolQueue:		viper.GetInt("txpool.timeout_pool_queue_ms"),
-		TimeoutSubscriber:		viper.GetInt("txpool.timeout_subscriber_ms"),
-		TimeoutConfirmation:	viper.GetInt("txpool.timeout_confirmation_ms"),
-		TimeoutLatestSequencer:	viper.GetInt("txpool.timeout_latest_seq_ms"),
+		QueueSize:              viper.GetInt("txpool.queue_size"),
+		TipsSize:               viper.GetInt("txpool.tips_size"),
+		ResetDuration:          viper.GetInt("txpool.reset_duration"),
+		TxVerifyTime:           viper.GetInt("txpool.tx_verify_time"),
+		TxValidTime:            viper.GetInt("txpool.tx_valid_time"),
+		TimeOutPoolQueue:       viper.GetInt("txpool.timeout_pool_queue_ms"),
+		TimeoutSubscriber:      viper.GetInt("txpool.timeout_subscriber_ms"),
+		TimeoutConfirmation:    viper.GetInt("txpool.timeout_confirmation_ms"),
+		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
 	og.Dag = core.NewDag(dagconfig, db)
 	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)

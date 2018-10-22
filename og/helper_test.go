@@ -38,7 +38,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 
 	hubConf := DefaultHubConfig()
 	hubConf.NetworkId = testNetworkId //for test
-	hub := NewHub(&hubConf, mode, dag)
+	hub := NewHub(&hubConf, mode, dag, txPool)
 	/*
 		syncConf := DefaultSyncerConfig()
 		syncer := NewSyncer(&syncConf, hub)

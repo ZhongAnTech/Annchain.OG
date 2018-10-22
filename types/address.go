@@ -51,10 +51,10 @@ func BytesToAddress(b []byte) Address {
 	return h
 }
 
-func StringToAddress(s string) (add Address, err error){
+func StringToAddress(s string) (add Address, err error) {
 	var h Address
-	err = h.SetBytes (common.FromHex(s))
-	return h ,err
+	err = h.SetBytes(common.FromHex(s))
+	return h, err
 }
 
 // BigToAddress sets byte representation of b to Address.
@@ -117,9 +117,9 @@ func (h *Address) MustSetBytes(b []byte) {
 	copy(h.Bytes[:], b)
 }
 
-func (h *Address) SetBytes(b []byte)error {
+func (h *Address) SetBytes(b []byte) error {
 	if len(b) > AddressLength {
-		return  fmt.Errorf("byte to set is longer than expected length: %d > %d", len(b), AddressLength)
+		return fmt.Errorf("byte to set is longer than expected length: %d > %d", len(b), AddressLength)
 	}
 	h.Bytes = [AddressLength]byte{}
 	copy(h.Bytes[:], b)

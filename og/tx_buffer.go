@@ -13,9 +13,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 type ISyncer interface {
@@ -93,10 +93,10 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 
 func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		Syncer:                           syncer,
-		Verifiers:                        verifiers,
-		Dag:                              dag,
-		TxPool:                           TxPool,
+		Syncer:    syncer,
+		Verifiers: verifiers,
+		Dag:       dag,
+		TxPool:    TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -137,8 +137,8 @@ func (b *TxBuffer) loop() {
 func (b *TxBuffer) AddTx(tx types.Txi) {
 loop:
 	for {
-		if !b.timeoutAddTx.Stop(){
-			<- b.timeoutAddTx.C
+		if !b.timeoutAddTx.Stop() {
+			<-b.timeoutAddTx.C
 		}
 		b.timeoutAddTx.Reset(time.Second * 10)
 		select {
@@ -151,11 +151,11 @@ loop:
 
 }
 
-func (b *TxBuffer) AddTxs(seq  *types.Sequencer,txs types.Txs) {
-	for _,tx := range txs {
-		b.newTxChan <-tx
+func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) {
+	for _, tx := range txs {
+		b.newTxChan <- tx
 	}
-	b.newTxChan <-seq
+	b.newTxChan <- seq
 	return
 }
 
@@ -209,7 +209,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 
 	if shouldBrodcast {
-		b.sendMessage(tx)
+		b.broadcastMessage(tx)
 	}
 
 }
@@ -227,18 +227,18 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 }
 
 //sendMessage  brodcase txi message
-func (b *TxBuffer) sendMessage(txi types.Txi) {
+func (b *TxBuffer) broadcastMessage(txi types.Txi) {
 	txType := txi.GetType()
 	if txType == types.TxBaseTypeNormal {
 		tx := txi.(*types.Tx)
 		msgTx := types.MessageNewTx{Tx: tx}
 		data, _ := msgTx.MarshalMsg(nil)
-		b.Hub.SendMessage(MessageTypeNewTx, data)
+		b.Hub.BroadcastMessage(MessageTypeNewTx, data)
 	} else if txType == types.TxBaseTypeSequencer {
 		seq := txi.(*types.Sequencer)
 		msgTx := types.MessageNewSequence{seq}
 		data, _ := msgTx.MarshalMsg(nil)
-		b.Hub.SendMessage(MessageTypeNewSequence, data)
+		b.Hub.BroadcastMessage(MessageTypeNewSequence, data)
 	} else {
 		logrus.Warn("never come here ,unkown tx type", txType)
 	}

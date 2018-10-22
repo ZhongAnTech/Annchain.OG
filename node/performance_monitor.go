@@ -2,8 +2,8 @@ package node
 
 import (
 	"github.com/sirupsen/logrus"
-	"time"
 	"runtime"
+	"time"
 )
 
 type PerformanceReporter interface {

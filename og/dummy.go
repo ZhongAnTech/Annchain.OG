@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"math/rand"
 )
 
 type dummyTxPoolRandomTx struct {
@@ -25,28 +24,6 @@ type DummyTxPoolMiniTx struct {
 func (d *DummyTxPoolMiniTx) Init() {
 	d.poolMap = make(map[types.Hash]types.Txi)
 	d.tipsMap = make(map[types.Hash]types.Txi)
-}
-
-// generate [count] unique random number within range [0, upper)
-// if count > upper, use all available indices
-func generateRandomIndices(count int, upper int) []int {
-	if count > upper {
-		count = upper
-	}
-	// avoid dup
-	generated := make(map[int]struct{})
-	for count > len(generated) {
-		i := rand.Intn(upper)
-		if _, ok := generated[i]; ok {
-			continue
-		}
-		generated[i] = struct{}{}
-	}
-	arr := make([]int, 0, len(generated))
-	for k := range generated {
-		arr = append(arr, k)
-	}
-	return arr
 }
 
 func (p *DummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {

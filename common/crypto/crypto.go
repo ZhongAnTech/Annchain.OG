@@ -74,11 +74,11 @@ func (p *PublicKey) PublicKeyToString() string {
 	return hexutil.Encode(bytes)
 }
 
-func NewSigner (cryptoType CryptoType)Signer{
+func NewSigner(cryptoType CryptoType) Signer {
 	if cryptoType == CryptoTypeEd25519 {
 		return &SignerEd25519{}
-	}else if cryptoType == CryptoTypeSecp256k1 {
-		return  &SignerSecp256k1{}
+	} else if cryptoType == CryptoTypeSecp256k1 {
+		return &SignerSecp256k1{}
 	}
 	return nil
 }

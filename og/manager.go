@@ -41,7 +41,7 @@ func (m *Manager) FinalizePrevious(tips []types.Hash) {
 }
 
 func (m *Manager) Start() {
-	m.Hub.SendMessage(MessageTypePing, []byte{})
+	m.Hub.BroadcastMessage(MessageTypePing, []byte{})
 }
 
 func (m *Manager) Stop() {
@@ -54,56 +54,11 @@ func (m *Manager) Name() string {
 
 func (m *Manager) HandlePing(*P2PMessage) {
 	logrus.Debug("received your ping. Respond you a pong")
-	m.Hub.SendMessage(MessageTypePong, []byte{1})
+	m.Hub.BroadcastMessage(MessageTypePong, []byte{1})
 }
 
 func (m *Manager) HandlePong(*P2PMessage) {
 	logrus.Debug("received your pong.")
-}
-
-func (m *Manager) HandleFetchByHash(msg *P2PMessage) {
-	syncRequest := types.MessageSyncRequest{}
-	_, err := syncRequest.UnmarshalMsg(msg.Message)
-	if err != nil {
-		logrus.Debug("invalid MessageSyncRequest format")
-		return
-	}
-	if len(syncRequest.Hashes) == 0 {
-		logrus.Debug("empty MessageSyncRequest")
-		return
-	}
-
-	var txs []*types.Tx
-	var seqs []*types.Sequencer
-
-	logrus.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
-
-	for _, hash := range syncRequest.Hashes {
-		txi := m.TxPool.Get(hash)
-		if txi == nil {
-			txi = m.Dag.GetTx(hash)
-		}
-		switch tx := txi.(type) {
-		case *types.Sequencer:
-			seqs = append(seqs, tx)
-		case *types.Tx:
-			txs = append(txs, tx)
-		}
-
-	}
-	syncResponse := types.MessageSyncResponse{
-		Txs:        txs,
-		Sequencers: seqs,
-	}
-	data, err := syncResponse.MarshalMsg(nil)
-	if err != nil {
-		logrus.Warn("failed to marshall MessageSyncResponse message")
-		return
-	}
-
-	logrus.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
-
-	m.Hub.SendMessage(MessageTypeFetchByHashResponse, data)
 }
 
 func (m *Manager) HandleFetchByHashResponse(msg *P2PMessage) {

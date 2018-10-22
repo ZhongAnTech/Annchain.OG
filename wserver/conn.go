@@ -122,7 +122,7 @@ type event2Cons struct {
 func (e *event2Cons) getFromMap(key string) (v map[string]*Conn, ok bool) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	v, ok  = e.conns[key]
+	v, ok = e.conns[key]
 	return
 }
 

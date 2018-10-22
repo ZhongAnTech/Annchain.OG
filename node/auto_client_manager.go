@@ -2,10 +2,10 @@ package node
 
 import (
 	"github.com/annchain/OG/account"
-	"time"
-	"sync"
-	"github.com/spf13/viper"
 	"github.com/annchain/OG/core"
+	"github.com/spf13/viper"
+	"sync"
+	"time"
 )
 
 type AutoClientManager struct {
@@ -38,7 +38,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
-		sequencers --
+		sequencers--
 	}
 }
 

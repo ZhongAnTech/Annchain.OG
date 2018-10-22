@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/deckarep/golang-set"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -246,7 +247,7 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 func (p *peer) RequestTxsById(seqId uint64) error {
 	log.WithField("id  ", seqId).Debug("Fetching txs ( txs) by id ")
 	msg := types.MessageTxsRequest{
-		Id:      seqId,
+		Id: seqId,
 	}
 	b, _ := msg.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
@@ -389,6 +390,41 @@ func (ps *peerSet) Peers() []*peer {
 		list = append(list, p)
 	}
 	return list
+}
+
+func (ps *peerSet) GetRandomPeers(n int) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	all := make([]*peer, 0, len(ps.peers))
+	list := make([]*peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		all = append(list, p)
+	}
+	indices := generateRandomIndices(n, len(all))
+
+	for _, i := range indices {
+		list = append(list, all[i])
+	}
+	return list
+}
+
+// generate [count] unique random numbers within range [0, upper)
+// if count > upper, use all available indices
+func generateRandomIndices(count int, upper int) []int {
+	if count > upper {
+		count = upper
+	}
+	// avoid dup
+	generated := make(map[int]struct{})
+	for count > len(generated) {
+		i := rand.Intn(upper)
+		generated[i] = struct{}{}
+	}
+	arr := make([]int, 0, len(generated))
+	for k := range generated {
+		arr = append(arr, k)
+	}
+	return arr
 }
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction

@@ -60,14 +60,14 @@ func accountCal(cmd *cobra.Command, args []string) {
 		fmt.Println("need private key ")
 		return
 	}
-	privKey , err := crypto.PrivateKeyFromString(priv_key)
+	privKey, err := crypto.PrivateKeyFromString(priv_key)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	signer:=  crypto.NewSigner(privKey.Type)
-		pub := signer.PubKey(privKey)
-		addr := signer.Address(pub)
-		fmt.Println(pub.PublicKeyToString())
-		fmt.Println(addr.String())
+	signer := crypto.NewSigner(privKey.Type)
+	pub := signer.PubKey(privKey)
+	addr := signer.Address(pub)
+	fmt.Println(pub.PublicKeyToString())
+	fmt.Println(addr.String())
 }

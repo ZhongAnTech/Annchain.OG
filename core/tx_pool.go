@@ -52,7 +52,7 @@ func (ts *TxStatus) String() string {
 type TxQuality int
 
 const (
-	TxQualityIsBad   TxQuality = iota
+	TxQualityIsBad TxQuality = iota
 	TxQualityIsGood
 	TxQualityIsFatal
 )
@@ -118,28 +118,28 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 }
 
 type TxPoolConfig struct {
-	QueueSize				int `mapstructure:"queue_size"`
-	TipsSize				int `mapstructure:"tips_size"`
-	ResetDuration			int `mapstructure:"reset_duration"`
-	TxVerifyTime			int `mapstructure:"tx_verify_time"`
-	TxValidTime				int `mapstructure:"tx_valid_time"`
-	TimeOutPoolQueue		int `mapstructure:"timeout_pool_queue_ms"`
-	TimeoutSubscriber		int `mapstructure:"timeout_subscriber_ms"`
-	TimeoutConfirmation		int `mapstructure:"timeout_confirmation_ms"`
-	TimeoutLatestSequencer	int `mapstructure:"timeout_latest_seq_ms"`
+	QueueSize              int `mapstructure:"queue_size"`
+	TipsSize               int `mapstructure:"tips_size"`
+	ResetDuration          int `mapstructure:"reset_duration"`
+	TxVerifyTime           int `mapstructure:"tx_verify_time"`
+	TxValidTime            int `mapstructure:"tx_valid_time"`
+	TimeOutPoolQueue       int `mapstructure:"timeout_pool_queue_ms"`
+	TimeoutSubscriber      int `mapstructure:"timeout_subscriber_ms"`
+	TimeoutConfirmation    int `mapstructure:"timeout_confirmation_ms"`
+	TimeoutLatestSequencer int `mapstructure:"timeout_latest_seq_ms"`
 }
 
 func DefaultTxPoolConfig() TxPoolConfig {
 	config := TxPoolConfig{
-		QueueSize:				100,
-		TipsSize:				1000,
-		ResetDuration:			10,
-		TxVerifyTime:			2,
-		TxValidTime:			100,
-		TimeOutPoolQueue:		10000,
-		TimeoutSubscriber:		10000,
-		TimeoutConfirmation:	10000,
-		TimeoutLatestSequencer:	10000,
+		QueueSize:              100,
+		TipsSize:               1000,
+		ResetDuration:          10,
+		TxVerifyTime:           2,
+		TxValidTime:            100,
+		TimeOutPoolQueue:       10000,
+		TimeoutSubscriber:      10000,
+		TimeoutConfirmation:    10000,
+		TimeoutLatestSequencer: 10000,
 	}
 	return config
 }
@@ -413,8 +413,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 	}
 loop3:
 	for {
-		if !pool.timeoutPoolQueue.Stop(){
-			<- pool.timeoutPoolQueue.C
+		if !pool.timeoutPoolQueue.Stop() {
+			<-pool.timeoutPoolQueue.C
 		}
 		pool.timeoutPoolQueue.Reset(time.Second * 10)
 		select {
@@ -424,7 +424,6 @@ loop3:
 			break loop3
 		}
 	}
-
 
 	// waiting for callback
 	select {
@@ -437,8 +436,8 @@ loop3:
 			log.Debug("notify subscriber")
 		loop:
 			for {
-				if !pool.timeoutSubscriber.Stop(){
-					<- pool.timeoutSubscriber.C
+				if !pool.timeoutSubscriber.Stop() {
+					<-pool.timeoutSubscriber.C
 				}
 				pool.timeoutSubscriber.Reset(time.Second * 10)
 				select {
@@ -534,7 +533,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	// check if the nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
-		if txinpool.GetTxHash() == tx.GetTxHash(){
+		if txinpool.GetTxHash() == tx.GetTxHash() {
 			log.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
 			return TxQualityIsFatal
 		}
@@ -543,7 +542,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
-		if txindag.GetTxHash() == tx.GetTxHash(){
+		if txindag.GetTxHash() == tx.GetTxHash() {
 			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
 		}
 		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
@@ -620,8 +619,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	for _, c := range pool.OnBatchConfirmed {
 	loop:
 		for {
-			if !pool.timeoutConfirmation.Stop(){
-				<- pool.timeoutConfirmation.C
+			if !pool.timeoutConfirmation.Stop() {
+				<-pool.timeoutConfirmation.C
 			}
 			pool.timeoutConfirmation.Reset(time.Second * 10)
 			select {
@@ -632,15 +631,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 			}
 		}
 	}
-	loop2:
+loop2:
 	for {
-		if !pool.timeoutLatestSequencer.Stop(){
-			<- pool.timeoutLatestSequencer.C
+		if !pool.timeoutLatestSequencer.Stop() {
+			<-pool.timeoutLatestSequencer.C
 		}
 		pool.timeoutLatestSequencer.Reset(time.Second * 10)
 		select {
 		case <-pool.timeoutLatestSequencer.C:
-			log.WithField("seq",seq).Warn("timeout on channel writing: on new latest sequencer")
+			log.WithField("seq", seq).Warn("timeout on channel writing: on new latest sequencer")
 		case pool.OnNewLatestSequencer <- true:
 			break loop2
 		}
@@ -700,7 +699,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	for _, txi := range elders {
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
-			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s", 
+			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
 				seq.GetNonce(), txi.GetTxHash().String())
 		}
 		switch tx := txi.(type) {
@@ -755,7 +754,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			continue
 		}
 		if elder.GetType() == types.TxBaseTypeNormal {
-			txhashes = append(txhashes, hash) 
+			txhashes = append(txhashes, hash)
 		}
 	}
 

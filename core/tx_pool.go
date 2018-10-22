@@ -109,29 +109,37 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		OnNewTxReceived:        []chan types.Txi{},
 		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
 		OnNewLatestSequencer:   make(chan bool),
-		timeoutPoolQueue:       time.NewTimer(time.Second * 10),
-		timeoutSubscriber:      time.NewTimer(time.Second * 10),
-		timeoutConfirmation:    time.NewTimer(time.Second * 10),
-		timeoutLatestSequencer: time.NewTimer(time.Second * 10),
+		timeoutPoolQueue:       time.NewTimer(time.Millisecond * time.Duration(conf.TimeOutPoolQueue)),
+		timeoutSubscriber:      time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutSubscriber)),
+		timeoutConfirmation:    time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutConfirmation)),
+		timeoutLatestSequencer: time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutLatestSequencer)),
 	}
 	return pool
 }
 
 type TxPoolConfig struct {
-	QueueSize     int `mapstructure:"queue_size"`
-	TipsSize      int `mapstructure:"tips_size"`
-	ResetDuration int `mapstructure:"reset_duration"`
-	TxVerifyTime  int `mapstructure:"tx_verify_time"`
-	TxValidTime   int `mapstructure:"tx_valid_time"`
+	QueueSize				int `mapstructure:"queue_size"`
+	TipsSize				int `mapstructure:"tips_size"`
+	ResetDuration			int `mapstructure:"reset_duration"`
+	TxVerifyTime			int `mapstructure:"tx_verify_time"`
+	TxValidTime				int `mapstructure:"tx_valid_time"`
+	TimeOutPoolQueue		int `mapstructure:"timeout_pool_queue_ms"`
+	TimeoutSubscriber		int `mapstructure:"timeout_subscriber_ms"`
+	TimeoutConfirmation		int `mapstructure:"timeout_confirmation_ms"`
+	TimeoutLatestSequencer	int `mapstructure:"timeout_latest_seq_ms"`
 }
 
 func DefaultTxPoolConfig() TxPoolConfig {
 	config := TxPoolConfig{
-		QueueSize:     100,
-		TipsSize:      1000,
-		ResetDuration: 10,
-		TxVerifyTime:  2,
-		TxValidTime:   100,
+		QueueSize:				100,
+		TipsSize:				1000,
+		ResetDuration:			10,
+		TxVerifyTime:			2,
+		TxValidTime:			100,
+		TimeOutPoolQueue:		10000,
+		TimeoutSubscriber:		10000,
+		TimeoutConfirmation:	10000,
+		TimeoutLatestSequencer:	10000,
 	}
 	return config
 }
@@ -622,7 +630,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 				break loop
 			}
 		}
-
 	}
 	loop2:
 	for {

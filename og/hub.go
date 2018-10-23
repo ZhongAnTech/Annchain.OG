@@ -30,11 +30,12 @@ const (
 
 var errIncompatibleConfig = errors.New("incompatible configuration")
 
-// Hub is the middle layer between p2p and business layer (MessageRouter)
+// Hub is the middle layer between p2p and business layer
 // When there is a general request coming from the upper layer, Hub will find the appropriate peer to handle.
+// When there is a message coming from p2p, Hub will unmarshall this message and give it to message router.
 // Hub will also prevent duplicate requests/responses.
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
-// DO NOT involve any business logic here.
+// DO NOT INVOLVE ANY BUSINESS LOGICS HERE.
 type Hub struct {
 	outgoing         chan *P2PMessage
 	incoming         chan *P2PMessage

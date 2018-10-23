@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
 	"github.com/annchain/OG/common/crypto"
@@ -37,31 +36,15 @@ func newTx(cmd *cobra.Command, args []string) {
 		cmd.HelpFunc()
 	}
 	toAddr := types.HexToAddress(to)
-	// fromAddr := types.HexToAddress(from)
-	data, err := hex.DecodeString(priv_key)
+	key,err:= crypto.PrivateKeyFromString(priv_key)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	key := crypto.PrivateKey{
-		Bytes: data,
-	}
-	if algorithm == "secp256k1" || algorithm == "s" {
-		key.Type = crypto.CryptoTypeSecp256k1
-	} else {
-		key.Type = crypto.CryptoTypeEd25519
-	}
-
 	//todo smart contracts
 	//data := common.Hex2Bytes(payload)
 	// do sign work
-	var signer crypto.Signer
-
-	if algorithm == "secp256k1" || algorithm == "s" {
-		signer = &crypto.SignerSecp256k1{}
-	} else {
-		signer = &crypto.SignerEd25519{}
-	}
+	signer:= crypto.NewSigner(key.Type)
 	pub := signer.PubKey(key)
 	from := signer.Address(pub)
 	tx := types.Tx{

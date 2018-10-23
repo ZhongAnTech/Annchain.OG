@@ -142,3 +142,7 @@ func (m *MessageRouter) BroadcastMessage(messageType MessageType, message []byte
 func (m *MessageRouter) UnicastMessageRandomly(messageType MessageType, message []byte) {
 	m.Hub.BroadcastMessageToRandom(messageType, message)
 }
+
+func (m*MessageRouter)AcceptTxs ()bool  {
+   return 	m.Hub.AcceptTxs()
+}

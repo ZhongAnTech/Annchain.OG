@@ -160,12 +160,7 @@ func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) {
 }
 
 func (b *TxBuffer) AddLocal(tx types.Txi) error {
-	// TODO: recover here
-	//if b.Hub.AcceptTxs() {
-		b.AddTx(tx)
-	//} else {
-	//	return fmt.Errorf("can't accept tx until sync done")
-	//}
+	 b.AddTx(tx)
 	return nil
 }
 

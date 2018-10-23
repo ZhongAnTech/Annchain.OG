@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 
@@ -14,6 +16,7 @@ type RpcController struct {
 	P2pServer      *p2p.Server
 	Og             *og.Og
 	TxBuffer       *og.TxBuffer
+	TxCreator      *og.TxCreator
 	NewRequestChan chan types.TxBaseType
 }
 
@@ -247,10 +250,24 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		})
 		return
 	}
+	if ok := r.TxCreator.SealTx(&tx); !ok {
+		logrus.Warn("delegate failed to seal tx")
+		err = fmt.Errorf("delegate failed to seal tx")
+		c.JSON(http.StatusOK, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+	if !r.Og.Manager.AcceptTxs() {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "tx is disabled when syncing",
+		})
+		return
+	}
 	r.TxBuffer.AddLocal(&tx)
-	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
-		"message": "ok",
+		"hash": tx.GetTxHash().Hex(),
 	})
 }
 func (r *RpcController) QueryNonce(c *gin.Context) {

@@ -1,4 +1,4 @@
-package og
+package syncer
 
 import (
 	"math/rand"
@@ -42,12 +42,12 @@ func newTxSync(p *peer, txs []*types.Tx) *txsync {
 	}
 }
 
-func (h *Hub) GetPendingTxs() types.Txs {
+func (h *Og) GetPendingTxs() types.Txs {
 	return nil
 }
 
 // syncTransactions starts sending all currently pending transactions to the given peer.
-func (h *Hub) syncTransactions(p *peer) {
+func (h *Og) syncTransactions(p *peer) {
 	var txs types.Txs
 	txs = h.GetPendingTxs()
 	if len(txs) == 0 {
@@ -77,7 +77,7 @@ loop:
 // connection. When a new peer appears, we relay all currently pending
 // transactions. In order to minimise egress bandwidth usage, we send
 // the transactions in small packs to one peer at a time.
-func (h *Hub) txsyncLoop() {
+func (h *Og) txsyncLoop() {
 	var (
 		pending = make(map[discover.NodeID]*txsync)
 		sending = false               // whether a send is active
@@ -160,14 +160,14 @@ func (h *Hub) txsyncLoop() {
 	}
 }
 
-func (h *Hub) syncInit() {
-	bp := h.peers.BestPeer()
+func (h *Og) syncInit() {
+	bp := h.Manager.Hub.peers.BestPeer()
 	if bp != nil {
 		bpHash, bpId := bp.Head()
 		ourId := h.Dag.LatestSequencer().Id
 		if bpId <= ourId+maxBehindHeight {
 			log.WithField("best peer id  ", bpId).WithField("best peer hash", bpHash).WithField("our id", ourId).Debug("can  accept txs")
-			h.enableAccexptTx()
+			h.enableAcceptTx()
 		}
 	}
 	return
@@ -175,7 +175,7 @@ func (h *Hub) syncInit() {
 
 // syncer is responsible for periodically synchronising with the network, both
 // downloading hashes and blocks as well as handling the announcement handler.
-func (h *Hub) syncer() {
+func (h *Og) syncer() {
 	// Start and ensure cleanup of sync mechanisms
 	h.fetcher.Start()
 	defer h.fetcher.Stop()
@@ -187,22 +187,22 @@ func (h *Hub) syncer() {
 
 	for {
 		select {
-		case <-h.newPeerCh:
+		case <-h.Manager.Hub.newPeerCh:
 			// Make sure we have peers to select from, then sync
-			if h.peers.Len() < minDesiredPeerCount {
+			if h.Manager.Hub.peers.Len() < minDesiredPeerCount {
 				break
 			}
 			if h.enableSync {
-				go h.synchronise(h.peers.BestPeer())
+				go h.synchronise(h.Manager.Hub.peers.BestPeer())
 			}
 
 		case <-forceSync.C:
 			if h.enableSync {
 				// Force a sync even if not enough peers are present
-				go h.synchronise(h.peers.BestPeer())
+				go h.synchronise(h.Manager.Hub.peers.BestPeer())
 			}
 
-		case <-h.noMorePeers:
+		case <-h.Manager.Hub.noMorePeers:
 			log.Info("got quit message ,quit hub syncer")
 			return
 		}
@@ -210,7 +210,7 @@ func (h *Hub) syncer() {
 }
 
 // synchronise tries to sync up our local block chain with a remote peer.
-func (h *Hub) synchronise(peer *peer) {
+func (h *Og) synchronise(peer *peer) {
 	// Short circuit if no peers are available
 	if peer == nil {
 		return
@@ -284,7 +284,7 @@ func (h *Hub) synchronise(peer *peer) {
 	}
 	if !synced {
 		if !h.AcceptTxs() {
-			h.enableAccexptTx()
+			h.enableAcceptTx()
 		}
 		return
 	}
@@ -296,7 +296,7 @@ func (h *Hub) synchronise(peer *peer) {
 
 	}
 	// Mark initial sync done
-	h.enableAccexptTx()
+	h.enableAcceptTx()
 
 	if head := h.Dag.LatestSequencer(); head.Number() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
@@ -309,6 +309,6 @@ func (h *Hub) synchronise(peer *peer) {
 		hash := head.GetTxHash()
 		msg := types.MessageSequencerHeader{Hash: &hash, Number: head.Number()}
 		data, _ := msg.MarshalMsg(nil)
-		h.BroadcastMessage(MessageTypeSequencerHeader, data)
+		h.Manager.Hub.BroadcastMessage(MessageTypeSequencerHeader, data)
 	}
 }

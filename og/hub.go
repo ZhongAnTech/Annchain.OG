@@ -1,10 +1,8 @@
 package og
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
@@ -15,7 +13,6 @@ import (
 
 	"github.com/bluele/gcache"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -37,47 +34,26 @@ var errIncompatibleConfig = errors.New("incompatible configuration")
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 // DO NOT INVOLVE ANY BUSINESS LOGICS HERE.
 type Hub struct {
-	outgoing         chan *P2PMessage
-	incoming         chan *P2PMessage
-	quit             chan bool
-	CallbackRegistry map[MessageType]func(*P2PMessage) // All callbacks
-	peers            *peerSet
-	SubProtocols     []p2p.Protocol
+	outgoing             chan *P2PMessage
+	incoming             chan *P2PMessage
+	quit                 chan bool
+	CallbackRegistry     map[MessageType]func(*P2PMessage) // All callbacks
+	CallbackRegistryOG32 map[MessageType]func(*P2PMessage) // All callbacks of OG32
+	StatusDataProvider   NodeStatusDataProvider
+	peers                *peerSet
+	SubProtocols         []p2p.Protocol
 
 	wg sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
 
-	Dag          IDag
-	TxPool       ITxPool
 	messageCache gcache.Cache // cache for duplicate responses/msg to prevent storm
 
 	maxPeers    int
-	fastSync    uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
-	acceptTxs   uint32 // Flag whether we're considered synchronised (enables transaction processing)
-	quitSync    chan struct{}
+	newPeerCh   chan *peer
 	noMorePeers chan struct{}
 
-	// channels for fetcher, syncer, txsyncLoop
-	newPeerCh chan *peer
-	txsyncCh  chan *txsync
+	// new peer event
+	OnNewPeerConnected []chan
 
-	downloader *downloader.Downloader
-	fetcher    *fetcher.Fetcher
-
-	networkID      uint64
-	TxBuffer       ITxBuffer
-	SyncBuffer     ISyncBuffer
-	finishInit     bool
-	enableSync     bool
-	forceSyncCycle uint
-
-	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
-	OnEnableTxsEvent     []chan bool
-
-	bootstrapNode bool
-	syncFlag      uint32 //1 for is syncing
-
-	// timeouts for channel writing
-	timeoutSyncTx *time.Timer
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -98,16 +74,16 @@ type ITxBuffer interface {
 	isLocalHash(hash types.Hash) bool
 }
 
+type NodeStatusDataProvider interface{
+	GetCurrentNodeStatus() StatusData
+}
+
 type HubConfig struct {
 	OutgoingBufferSize            int
 	IncomingBufferSize            int
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
-	NetworkId                     uint64
-	BootstrapNode                 bool //start accept txs even if no peers
-	EnableSync                    bool
-	ForceSyncCycle                uint //millisecends
 }
 
 func DefaultHubConfig() HubConfig {
@@ -117,10 +93,6 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
-		NetworkId:                     1,
-		EnableSync:                    true,
-		ForceSyncCycle:                10000,
-		BootstrapNode:                 false,
 	}
 	return config
 }
@@ -132,36 +104,16 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
-	h.txsyncCh = make(chan *txsync)
-	h.quitSync = make(chan struct{})
 	h.maxPeers = config.MaxPeers
-	h.networkID = config.NetworkId
-	h.enableSync = config.EnableSync
-	h.forceSyncCycle = config.ForceSyncCycle
-	h.bootstrapNode = config.BootstrapNode
-	if h.forceSyncCycle == 0 {
-		h.forceSyncCycle = 10000
-	}
-	h.Dag = dag
-	h.TxPool = txPool
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
-
-	h.timeoutSyncTx = time.NewTimer(time.Second * 10)
 }
 
-func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag, txPool ITxPool) *Hub {
+func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
 	h := &Hub{}
 	h.Init(config, dag, txPool)
-	// Figure out whether to allow fast sync or not
-	if mode == downloader.FastSync && h.Dag.LatestSequencer().Id > 0 {
-		log.Warn("dag not empty, fast sync disabled")
-		mode = downloader.FullSync
-	}
-	if mode == downloader.FastSync {
-		h.fastSync = uint32(1)
-	}
+
 	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		// Skip protocol version if incompatible with the mode of operation
@@ -201,62 +153,12 @@ func NewHub(config *HubConfig, mode downloader.SyncMode, dag IDag, txPool ITxPoo
 		log.Error(errIncompatibleConfig)
 		return nil
 	}
-	// Construct the different synchronisation mechanisms
-
-	h.downloader = downloader.New(mode, h.Dag, h.removePeer, h.AddTxs)
-	heighter := func() uint64 {
-		return h.Dag.LatestSequencer().Id
-	}
-	inserter := func(seq *types.Sequencer, txs types.Txs) error {
-		// If fast sync is running, deny importing weird blocks
-		if h.fastSyncMode() {
-			log.WithField("number", seq.Number()).WithField("hash", seq.GetTxHash()).Warn("Discarded bad propagated sequencer")
-			return nil
-		}
-		// Mark initial sync done on any fetcher import
-		h.enableAccexptTx()
-		//todo fetch will done later
-		//log.Warn("maybe some problems here")
-		h.TxBuffer.AddTxs(seq, txs)
-		return nil
-	}
-	h.fetcher = fetcher.New(h.GetSequencerByHash, heighter, inserter, h.removePeer)
 
 	return h
 }
 
 func (h *Hub) newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return newPeer(version, p, rw)
-}
-
-func (h *Hub) AddTxs(txs types.Txs, seq *types.Sequencer) error {
-	var txis []types.Txi
-	for _, tx := range txs {
-		t := *tx
-		txis = append(txis, &t)
-	}
-	if seq == nil {
-		err := fmt.Errorf("seq is nil")
-		log.WithError(err)
-		return err
-	}
-	if seq.Id != h.Dag.LatestSequencer().Id+1 {
-		log.WithField("latests seq id ", h.Dag.LatestSequencer().Id).WithField("seq id", seq.Id).Warn("id mismatch")
-		return nil
-	}
-	se := *seq
-
-	return h.SyncBuffer.AddTxs(txis, &se)
-}
-
-func (h *Hub) GetSequencerByHash(hash types.Hash) *types.Sequencer {
-	txi := h.Dag.GetTx(hash)
-	switch tx := txi.(type) {
-	case *types.Sequencer:
-		return tx
-	default:
-		return nil
-	}
 }
 
 // handle is the callback invoked to manage the life cycle of an eth peer. When
@@ -276,7 +178,10 @@ func (h *Hub) handle(p *peer) error {
 		panic("Last sequencer is nil")
 	}
 
-	if err := p.Handshake(h.networkID, lastSeq.Hash, lastSeq.Id, genesis.Hash); err != nil {
+	statusData := h.StatusDataProvider.GetCurrentNodeStatus()
+
+	if err := p.Handshake(statusData.NetworkId, statusData.CurrentBlock,
+		statusData.CurrentId, statusData.GenesisBlock); err != nil {
 		log.WithError(err).WithField("peer ", p.id).Debug("OG handshake failed")
 		return err
 	}
@@ -328,7 +233,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	defer msg.Discard()
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
-	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data,SourceID:p.id}
+	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data, SourceID: p.id, Version: p.version}
 	//log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
 	switch {
 	case p2pMsg.MessageType == StatusMsg:
@@ -337,331 +242,6 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
-	case p2pMsg.MessageType == MessageTypeHeaderRequest:
-		log.Debug("got MessageTypeHeaderRequest")
-		// Decode the complex header query
-		var query types.MessageHeaderRequest
-		if _, err := query.UnmarshalMsg(p2pMsg.Message); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		hashMode := !query.Origin.Hash.Empty()
-		first := true
-		log.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
-			"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Debug("requests")
-		// Gather headers until the fetch or network limits is reached
-		var (
-			bytes   common.StorageSize
-			headers []*types.Sequencer
-			unknown bool
-		)
-		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
-			// Retrieve the next header satisfying the query
-			var origin *types.Sequencer
-			if hashMode {
-				if first {
-					first = false
-					origin = h.Dag.GetSequencerByHash(query.Origin.Hash)
-					if origin != nil {
-						query.Origin.Number = origin.Number()
-					}
-				} else {
-					origin = h.Dag.GetSequencer(query.Origin.Hash, query.Origin.Number)
-				}
-			} else {
-				origin = h.Dag.GetSequencerById(query.Origin.Number)
-			}
-			if origin == nil {
-				break
-			}
-			headers = append(headers, origin)
-			bytes += estHeaderRlpSize
-
-			// Advance to the next header of the query
-			switch {
-			case hashMode && query.Reverse:
-				// Hash based traversal towards the genesis block
-				ancestor := query.Skip + 1
-				if ancestor == 0 {
-					unknown = true
-				} else {
-					seq := h.Dag.GetSequencerById(query.Origin.Number - ancestor)
-					query.Origin.Hash, query.Origin.Number = seq.GetTxHash(), seq.Number()
-					unknown = (query.Origin.Hash.Empty())
-				}
-			case hashMode && !query.Reverse:
-				// Hash based traversal towards the leaf block
-				var (
-					current = origin.Number()
-					next    = current + query.Skip + 1
-				)
-				if next <= current {
-					infos, _ := json.MarshalIndent(p.Peer.Info(), "", "  ")
-					log.Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
-					unknown = true
-				} else {
-					if header := h.Dag.GetSequencerById(next); header != nil {
-						nextHash := header.GetTxHash()
-						oldSeq := h.Dag.GetSequencerById(next - (query.Skip + 1))
-						expOldHash := oldSeq.GetTxHash()
-						if expOldHash == query.Origin.Hash {
-							query.Origin.Hash, query.Origin.Number = nextHash, next
-						} else {
-							unknown = true
-						}
-					} else {
-						unknown = true
-					}
-				}
-			case query.Reverse:
-				// Number based traversal towards the genesis block
-				if query.Origin.Number >= query.Skip+1 {
-					query.Origin.Number -= query.Skip + 1
-				} else {
-					unknown = true
-				}
-
-			case !query.Reverse:
-				// Number based traversal towards the leaf block
-				query.Origin.Number += query.Skip + 1
-			}
-		}
-
-		msgRes := types.MessageHeaderResponse{
-			Sequencers: headers,
-		}
-		data, _ := msgRes.MarshalMsg(nil)
-		log.WithField("len ", len(msgRes.Sequencers)).Debug("send MessageTypeGetHeader")
-		return p.sendRawMessage(uint64(MessageTypeHeaderResponse), data)
-	case p2pMsg.MessageType == MessageTypeHeaderResponse:
-		log.Debug("got MessageTypeHeaderResponse")
-		// A batch of headers arrived to one of our previous requests
-		var headerMsg types.MessageHeaderResponse
-		if _, err := headerMsg.UnmarshalMsg(p2pMsg.Message); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		headers := headerMsg.Sequencers
-		// Filter out any explicitly requested headers, deliver the rest to the downloader
-		seqHeaders := types.SeqsToHeaders(headers)
-		filter := len(seqHeaders) == 1
-
-		if filter {
-			// Irrelevant of the fork checks, send the header to the fetcher just in case
-
-			seqHeaders = h.fetcher.FilterHeaders(p.id, seqHeaders, time.Now())
-		}
-		if len(seqHeaders) > 0 || !filter {
-			err := h.downloader.DeliverHeaders(p.id, seqHeaders)
-			if err != nil {
-				log.Debug("Failed to deliver headers", "err", err)
-			}
-		}
-		log.WithField("header lens", len(seqHeaders)).Debug("heandle  MessageTypeHeaderResponse")
-	case p2pMsg.MessageType == MessageTypeTxsRequest:
-		// Decode the retrieval message
-		log.Debug("got MessageTypeTxsRequest")
-		var msgReq types.MessageTxsRequest
-		if _, err := msgReq.UnmarshalMsg(p2pMsg.Message); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		var msgRes types.MessageTxsResponse
-
-		var seq *types.Sequencer
-		if msgReq.SeqHash != nil && msgReq.Id != 0 {
-			seq = h.Dag.GetSequencer(*msgReq.SeqHash, msgReq.Id)
-		} else {
-			seq = h.Dag.GetSequencerById(msgReq.Id)
-		}
-		msgRes.Sequencer = seq
-		if seq != nil {
-			msgRes.Txs = h.Dag.GetTxsByNumber(seq.Id)
-		} else {
-			log.WithField("id ", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
-		}
-		data, _ := msgRes.MarshalMsg(nil)
-		log.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
-		return p.sendRawMessage(uint64(MessageTypeTxsResponse), data)
-
-	case p2pMsg.MessageType == MessageTypeTxsResponse:
-		log.Debug("got MessageTypeGetTxs")
-		// A batch of block bodies arrived to one of our previous requests
-		var request types.MessageTxsResponse
-		if _, err := request.UnmarshalMsg(p2pMsg.Message); err != nil {
-			log.Error("msg %v: %v", msg, err)
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		if request.Sequencer != nil {
-			log.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
-		} else {
-			log.Warn("got nil sequencer")
-			return nil
-		}
-
-		log.Debug("handle MessageTypeTxsResponse")
-		lseq := h.Dag.LatestSequencer()
-		//todo need more condition
-		if lseq.Number() < request.Sequencer.Number() {
-			h.TxBuffer.AddTxs(request.Sequencer, request.Txs)
-		}
-		return nil
-
-	case p2pMsg.MessageType == MessageTypeBodiesRequest:
-		// Decode the retrieval message
-		log.Debug("got MessageTypeBodiesRequest")
-		var (
-			msgReq types.MessageBodiesRequest
-			msgRes types.MessageBodiesResponse
-			bytes  int
-		)
-		if _, err := msgReq.UnmarshalMsg(p2pMsg.Message); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		for i := 0; i < len(msgReq.SeqHashes); i++ {
-			seq := h.Dag.GetSequencerByHash(msgReq.SeqHashes[i])
-			if seq == nil {
-				log.Warn("seq is nil")
-				break
-			}
-			if bytes >= softResponseLimit {
-				log.Debug("reached softResponseLimit ")
-				break
-			}
-			if len(msgRes.Bodies) >= downloader.MaxBlockFetch {
-				log.Debug("reached MaxBlockFetch 128 ")
-				break
-			}
-			var body types.MessageTxsResponse
-			body.Sequencer = seq
-			body.Txs = h.Dag.GetTxsByNumber(seq.Id)
-			bodyData, _ := body.MarshalMsg(nil)
-			bytes += len(data)
-			msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))
-		}
-		data, _ := msgRes.MarshalMsg(nil)
-		log.WithField("bodies num ", len(msgRes.Bodies)).Debug("send MessageTypeBodiesResponse")
-		return p.sendRawMessage(uint64(MessageTypeBodiesResponse), data)
-
-	case p2pMsg.MessageType == MessageTypeBodiesResponse:
-		log.Debug("got MessageTypeBodiesResponse")
-		// A batch of block bodies arrived to one of our previous requests
-		var request types.MessageBodiesResponse
-		if _, err := request.UnmarshalMsg(p2pMsg.Message); err != nil {
-			log.Error("msg %v: %v", msg, err)
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Deliver them all to the downloader for queuing
-		transactions := make([][]*types.Tx, len(request.Bodies))
-		sequencers := make([]*types.Sequencer, len(request.Bodies))
-		for i, bodyData := range request.Bodies {
-			var body types.MessageTxsResponse
-			_, err := body.UnmarshalMsg(bodyData)
-			if err != nil {
-				log.WithError(err).Warn("decode error")
-				break
-			}
-			if body.Sequencer == nil {
-				log.Warn(" body.Sequencer is nil")
-				break
-			}
-			transactions[i] = body.Txs
-			sequencers[i] = body.Sequencer
-		}
-		log.WithField("bodies len", len(request.Bodies)).Debug("got bodies")
-
-		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0 || len(sequencers) > 0
-		if filter {
-			transactions = h.fetcher.FilterBodies(p.id, transactions, sequencers, time.Now())
-		}
-		if len(transactions) > 0 || len(sequencers) > 0 || !filter {
-			log.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
-			err := h.downloader.DeliverBodies(p.id, transactions, sequencers)
-			if err != nil {
-				log.Debug("Failed to deliver bodies", "err", err)
-			}
-		}
-		log.Debug("handle MessageTypeBodiesResponse")
-		return nil
-
-	case p2pMsg.MessageType == MessageTypeSequencerHeader:
-		var msgHeader types.MessageSequencerHeader
-		_, e := msgHeader.UnmarshalMsg(p2pMsg.Message)
-		if e == nil && msgHeader.Hash != nil {
-			//no need to broadcast again ,just all our peers need know this ,not all network
-			//set peer's head
-			p.SetHead(*msgHeader.Hash, msgHeader.Number)
-		} else {
-			log.Warn("MessageTypeSequencerHeader msg err")
-			return nil
-		}
-		if !h.AcceptTxs() {
-			return nil
-		}
-		lseq := h.Dag.LatestSequencer()
-		for i := lseq.Number(); i < msgHeader.Number; i++ {
-			go func(i uint64) {
-				//p.RequestTxsById(i + 1)
-			}(i)
-		}
-		return nil
-
-	case (p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewTxs || p2pMsg.MessageType == MessageTypeNewSequencer) &&
-		!h.AcceptTxs():
-		// no receive until sync finish
-		return nil
-	case p.version >= OG32 && p2pMsg.MessageType == GetNodeDataMsg:
-		log.Warn("got GetNodeDataMsg ")
-		//todo
-		//p.SendNodeData(nil)
-		log.Debug("need send node data")
-
-	case p.version >= OG32 && p2pMsg.MessageType == NodeDataMsg:
-		// Deliver all to the downloader
-		if err := h.downloader.DeliverNodeData(p.id, nil); err != nil {
-			log.Debug("Failed to deliver node state data", "err", err)
-		}
-		return nil
-	case p2pMsg.MessageType == MessageTypeFetchByHash:
-		syncRequest := types.MessageSyncRequest{}
-		_, err := syncRequest.UnmarshalMsg(p2pMsg.Message)
-		if err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		if len(syncRequest.Hashes) == 0 {
-			log.Debug("empty MessageSyncRequest")
-			return fmt.Errorf("empty MessageSyncRequest")
-		}
-
-		var txs []*types.Tx
-		var seqs []*types.Sequencer
-
-		log.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
-
-		for _, hash := range syncRequest.Hashes {
-			txi := h.TxPool.Get(hash)
-			if txi == nil {
-				txi = h.Dag.GetTx(hash)
-			}
-			switch tx := txi.(type) {
-			case *types.Sequencer:
-				seqs = append(seqs, tx)
-			case *types.Tx:
-				txs = append(txs, tx)
-			}
-
-		}
-		syncResponse := types.MessageSyncResponse{
-			Txs:        txs,
-			Sequencers: seqs,
-		}
-		data, err := syncResponse.MarshalMsg(nil)
-		if err != nil {
-			log.Error("failed to marshall MessageSyncResponse message")
-			return nil
-		}
-
-		log.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
-		return p.sendRawMessage(uint64(MessageTypeFetchByHashResponse), data)
-
 	default:
 		log.Debug("got default message type ", p2pMsg.MessageType)
 		p2pMsg.init()
@@ -675,7 +255,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	return nil
 }
 
-func (h *Hub) removePeer(id string) {
+func (h *Hub) RemovePeer(id string) {
 	// Short circuit if the peer was already removed
 	peer := h.peers.Peer(id)
 	if peer == nil {
@@ -684,8 +264,7 @@ func (h *Hub) removePeer(id string) {
 	}
 	log.WithField("peer", id).Debug("Removing og peer")
 
-	// Unregister the peer from the downloader and OG peer set
-	h.downloader.UnregisterPeer(id)
+	// Unregister the peer from the downloader (should already done) and OG peer set
 	if err := h.peers.Unregister(id); err != nil {
 		log.WithField("peer", "id").WithError(err).
 			Error("Peer removal failed")
@@ -697,21 +276,8 @@ func (h *Hub) removePeer(id string) {
 }
 
 func (h *Hub) Start() {
-	go func() {
-		// if disabled sync just accept txs
-		if h.bootstrapNode || !h.enableSync {
-			h.enableAccexptTx()
-		} else {
-			h.disableAcceptTx()
-		}
-	}()
 	go h.loopSend()
 	go h.loopReceive()
-
-	go h.BrodcastLatestSequencer()
-	// start sync handlers
-	go h.syncer()
-	go h.txsyncLoop()
 }
 
 func (h *Hub) Stop() {
@@ -719,9 +285,6 @@ func (h *Hub) Stop() {
 	// Quit the sync loop.
 	// After this send has completed, no new peers will be accepted.
 	h.noMorePeers <- struct{}{}
-	// Quit fetcher, txsyncLoop.
-	close(h.quitSync)
-	h.quit <- true
 	h.peers.Close()
 	h.wg.Wait()
 
@@ -770,72 +333,6 @@ func (h *Hub) loopReceive() {
 	}
 }
 
-func (h *Hub) BrodcastLatestSequencer() {
-	for {
-		select {
-		case <-h.NewLatestSequencerCh:
-			seq := h.Dag.LatestSequencer()
-			hash := seq.GetTxHash()
-			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
-			data, _ := msgTx.MarshalMsg(nil)
-			// latest sequencer updated , broadcast it
-			go h.BroadcastMessage(MessageTypeSequencerHeader, data)
-		case <-h.quit:
-			log.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
-			return
-		}
-	}
-}
-
-func (h *Hub) AcceptTxs() bool {
-	if atomic.LoadUint32(&h.acceptTxs) == 1 {
-		return true
-	}
-	return false
-}
-
-func (h *Hub) enableAccexptTx() {
-	atomic.StoreUint32(&h.acceptTxs, 1)
-	for _, c := range h.OnEnableTxsEvent {
-		c <- true
-	}
-	log.Warn("enable accept txs")
-}
-
-func (h *Hub) disableAcceptTx() {
-	atomic.StoreUint32(&h.acceptTxs, 0)
-	for _, c := range h.OnEnableTxsEvent {
-		c <- false
-	}
-	log.Warn("disable accept txs")
-}
-
-func (h *Hub) fastSyncMode() bool {
-	if atomic.LoadUint32(&h.fastSync) == 1 {
-		return true
-	}
-	return false
-}
-
-func (h *Hub) isSyncing() bool {
-	if atomic.LoadUint32(&h.syncFlag) == 1 {
-		return true
-	}
-	return false
-}
-
-func (h *Hub) setSyncFlag() {
-	atomic.StoreUint32(&h.syncFlag, 1)
-}
-
-func (h *Hub) unsetSyncFlag() {
-	atomic.StoreUint32(&h.syncFlag, 0)
-}
-
-func (h *Hub) disableFastSync() {
-	atomic.StoreUint32(&h.fastSync, 0)
-}
-
 func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
@@ -851,12 +348,24 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	h.outgoing <- msgOut
 }
 
-func  (h*Hub)SendToPeer(peerId string ,messageType MessageType, msg []byte) error {
-	p :=  h.peers.Peer(peerId)
-	if p==nil {
+func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg []byte) error {
+	p := h.peers.Peer(peerId)
+	if p == nil {
 		return fmt.Errorf("peer not found")
 	}
-	return  p.sendRawMessage(uint64(messageType),msg)
+	return p.sendRawMessage(uint64(messageType), msg)
+}
+
+// SetPeerHead is just a hack to set the latest seq number known of the peer
+// This value ought not to be stored in peer, but an outside map.
+// This has nothing related to p2p.
+func (h *Hub) SetPeerHead(peerId string, hash types.Hash, number uint64) error {
+	p := h.peers.Peer(peerId)
+	if p == nil {
+		return fmt.Errorf("peer not found")
+	}
+	p.SetHead(hash, number)
+	return nil
 }
 
 func (h *Hub) broadcastMessage(msg *P2PMessage) {
@@ -887,6 +396,13 @@ func (h *Hub) broadcastMessageToRandom(msg *P2PMessage) {
 
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
+	if msg.Version >= OG32{
+		if v, ok := h.CallbackRegistryOG32[msg.MessageType]; ok {
+			log.WithField("type", msg.MessageType.String()).Debug("Received a message")
+			v(msg)
+			return
+		}
+	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
 		log.WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)

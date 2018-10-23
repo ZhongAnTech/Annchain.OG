@@ -30,10 +30,10 @@ type MessageType uint64
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
-	StatusMsg MessageType = iota
+	StatusMsg                      MessageType = iota
 	MessageTypePing
 	MessageTypePong
-	MessageTypeFetchByHash
+	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
 	MessageTypeNewTx
 	MessageTypeNewSequencer
@@ -57,7 +57,7 @@ const (
 
 func (mt MessageType) String() string {
 	return []string{
-		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
+		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHashRequest", "MessageTypeFetchByHashResponse",
 		"MessageTypeNewTx", "MessageTypeNewSequencer", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
@@ -72,6 +72,7 @@ type P2PMessage struct {
 	needCheckRepeat   bool
 	SourceID          string // the source that this messeage coming from
 	BroadCastToRandom bool   //just brodcast to random peer
+	Version           int    // peer version.
 }
 
 func (m *P2PMessage) calculateHash() {
@@ -93,7 +94,7 @@ func (m *P2PMessage) init() {
 type errCode int
 
 const (
-	ErrMsgTooLarge = iota
+	ErrMsgTooLarge             = iota
 	ErrDecode
 	ErrInvalidMsgCode
 	ErrProtocolVersionMismatch

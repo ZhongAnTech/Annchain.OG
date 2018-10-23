@@ -305,7 +305,7 @@ func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 		ok = true
 	}
 	logrus.WithFields(logrus.Fields{
-		"Txpool": poolTx,
+		"TxPool": poolTx,
 		"DAG":    dagTx,
 		"Hash":   hash,
 		//"Buffer": b.GetFromBuffer(hash),

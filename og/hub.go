@@ -328,7 +328,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	defer msg.Discard()
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
-	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data}
+	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data,SourceID:p.id}
 	//log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
 	switch {
 	case p2pMsg.MessageType == StatusMsg:
@@ -849,6 +849,14 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	msgOut.BroadCastToRandom = true
 	log.WithField("type", messageType).Debug("sending message")
 	h.outgoing <- msgOut
+}
+
+func  (h*Hub)SendToPeer(peerId string ,messageType MessageType, msg []byte) error {
+	p :=  h.peers.Peer(peerId)
+	if p==nil {
+		return fmt.Errorf("peer not found")
+	}
+	return  p.sendRawMessage(uint64(messageType),msg)
 }
 
 func (h *Hub) broadcastMessage(msg *P2PMessage) {

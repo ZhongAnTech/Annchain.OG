@@ -49,7 +49,7 @@ func newTx(cmd *cobra.Command, args []string) {
 	if algorithm == "secp256k1" || algorithm == "s" {
 		key.Type = crypto.CryptoTypeSecp256k1
 	} else {
-		key.Type = crypto.CryptoTypeSecp256k1
+		key.Type = crypto.CryptoTypeEd25519
 	}
 
 	//todo smart contracts

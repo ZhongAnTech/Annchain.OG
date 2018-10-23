@@ -94,6 +94,28 @@ func NewNode() *Node {
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
+	messageHandler := &og.IncomingMessageHandler{
+		Hub: hub,
+	}
+
+	m := &og.MessageRouter{
+		NewSequencerHandler:        messageHandler,
+		Hub:                        hub,
+		PingHandler:                messageHandler,
+		PongHandler:                messageHandler,
+		FetchByHashResponseHandler: messageHandler,
+		NewTxHandler:               messageHandler,
+		NewTxsHandler:              messageHandler,
+	}
+
+	syncer := og.NewSyncer(&og.SyncerConfig{
+		BatchTimeoutMilliSecond:              100,
+		AcquireTxQueueSize:                   1000,
+		MaxBatchSize:                         100,
+		AcquireTxDedupCacheMaxSize:           10000,
+		AcquireTxDedupCacheExpirationSeconds: 60,
+	}, m)
+
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
@@ -101,7 +123,12 @@ func NewNode() *Node {
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
+		KnownCacheMaxSize:                10000,
+		KnownCacheExpirationSeconds:      30,
+		Syncer:                           syncer,
 	})
+
+	messageHandler.TxBuffer = txBuffer
 
 	hub.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
@@ -114,28 +141,11 @@ func NewNode() *Node {
 	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
 
-	messageHandler := &og.IncomingMessageHandler{
-		Hub:      hub,
-		TxBuffer: txBuffer,
-	}
-
-	m := &og.MessageRouter{
-		NewSequencerHandler: messageHandler,
-		Hub:                 hub,
-	}
 	// Setup Hub
 	SetupCallbacks(m, hub)
 
-	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond:              100,
-		AcquireTxQueueSize:                   1000,
-		MaxBatchSize:                         100,
-		AcquireTxDedupCacheMaxSize:           10000,
-		AcquireTxDedupCacheExpirationSeconds: 60,
-	}, m)
 	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, syncer.EnableEvent)
 	n.Components = append(n.Components, syncer)
-
 
 	miner := &miner2.PoWMiner{}
 

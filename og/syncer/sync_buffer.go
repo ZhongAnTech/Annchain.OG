@@ -1,4 +1,4 @@
-package og
+package syncer
 
 import (
 	"container/list"

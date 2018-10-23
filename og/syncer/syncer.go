@@ -1,4 +1,4 @@
-package og
+package syncer
 
 import (
 	"github.com/annchain/OG/types"
@@ -96,11 +96,11 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		logrus.WithError(err).Warnf("failed to marshal request: %+v", req)
 		return
 	}
-	logrus.WithField("type", MessageTypeFetchByHash).
+	logrus.WithField("type", MessageTypeFetchByHashRequest).
 		WithField("length", len(req.Hashes)).
-		Debugf("sending message MessageTypeFetchByHash")
+		Debugf("sending message MessageTypeFetchByHashRequest")
 
-	m.messageSender.UnicastMessageRandomly(MessageTypeFetchByHash, bytes)
+	m.messageSender.UnicastMessageRandomly(MessageTypeFetchByHashRequest, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.

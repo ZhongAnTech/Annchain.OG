@@ -204,6 +204,7 @@ func (d *Downloader) Synchronise(id string, head types.Hash, seqId uint64, mode 
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 			log.WithField("peer", id).Warn("Downloader wants to drop peer, but peerdrop-function is not set")
 		} else {
+			d.UnregisterPeer(id)
 			d.dropPeer(id)
 		}
 	default:
@@ -723,6 +724,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			getHeaders(from)
 
 		case <-timeout.C:
+
 			if d.dropPeer == nil {
 				// The dropPeer method is nil when `--copydb` is used for a local copy.
 				// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
@@ -732,6 +734,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			// Header retrieval timed out, consider the peer bad and drop
 			log.WithField("elapsed", ttl).Debug("Header request timed out")
 			headerTimeoutMeter.Mark(1)
+			d.UnregisterPeer(p.id)
 			d.dropPeer(p.id)
 
 			// Finish the sync gracefully instead of dumping the gathered data though
@@ -929,6 +932,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 							// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 							log.WithField("peer", pid).Warn("Downloader wants to drop peer, but peerdrop-function is not set")
 						} else {
+							d.UnregisterPeer(id)
 							d.dropPeer(pid)
 						}
 					}

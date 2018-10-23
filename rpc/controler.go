@@ -80,7 +80,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	}
 	txi := r.Og.Dag.GetTx(hash)
 	if txi == nil {
-		txi = r.Og.Txpool.Get(hash)
+		txi = r.Og.TxPool.Get(hash)
 	}
 	if txi == nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -214,7 +214,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 		}
 		txi := r.Og.Dag.GetTx(hash)
 		if txi == nil {
-			txi = r.Og.Txpool.Get(hash)
+			txi = r.Og.TxPool.Get(hash)
 		}
 		if txi == nil {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -262,7 +262,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 		})
 		return
 	}
-	noncePool, errPool := r.Og.Txpool.GetLatestNonce(addr)
+	noncePool, errPool := r.Og.TxPool.GetLatestNonce(addr)
 	nonceDag, errDag := r.Og.Dag.GetLatestNonce(addr)
 	var nonce int64
 	if errPool != nil && errDag != nil {

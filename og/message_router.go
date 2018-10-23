@@ -3,17 +3,27 @@ package og
 import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"fmt"
 )
 
 // MessageRouter is a bridge between hub and components
 type MessageRouter struct {
-	Hub    *Hub
+	Hub                        *Hub
 	PingHandler                PingHandler
 	PongHandler                PongHandler
+	FetchByHashRequestHandler  FetchByHashHandlerRequest
 	FetchByHashResponseHandler FetchByHashResponseHandler
 	NewTxHandler               NewTxHandler
 	NewTxsHandler              NewTxsHandler
 	NewSequencerHandler        NewSequencerHandler
+
+	SequencerHeaderHandler SequencerHeaderHandler
+	BodiesRequestHandler   BodiesRequestHandler
+	BodiesResponseHandler  BodiesResponseHandler
+	TxsRequestHandler      TxsRequestHandler
+	TxsResponseHandler     TxsResponseHandler
+	HeaderRequestHandler   HeaderRequestHandler
+	HeaderResponseHandler  HeaderResponseHandler
 }
 
 type ManagerConfig struct {
@@ -22,10 +32,14 @@ type ManagerConfig struct {
 }
 
 type PingHandler interface {
-	HandlePing()
+	HandlePing(peerId string)
 }
 type PongHandler interface {
 	HandlePong()
+}
+
+type FetchByHashHandlerRequest interface {
+	HandleFetchByHashRequest(req types.MessageSyncRequest, sourceID string)
 }
 
 type FetchByHashResponseHandler interface {
@@ -44,6 +58,33 @@ type NewSequencerHandler interface {
 	HandleNewSequencer(types.MessageNewSequencer)
 }
 
+type SequencerHeaderHandler interface {
+	HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string)
+}
+
+type BodiesRequestHandler interface {
+	HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerID string)
+}
+
+type BodiesResponseHandler interface {
+	HandleBodiesResponse(request types.MessageBodiesResponse, peerId string)
+}
+
+type TxsRequestHandler interface {
+	HandleTxsRequest(msgReq types.MessageTxsRequest, peerID string)
+}
+
+type TxsResponseHandler interface {
+	HandleTxsResponse(request types.MessageTxsResponse)
+}
+
+type HeaderRequestHandler interface {
+	HandleHeaderRequest(request types.MessageHeaderRequest, peerID string)
+}
+
+type HeaderResponseHandler interface {
+	HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerID string)
+}
 
 func (m *MessageRouter) Start() {
 	m.Hub.BroadcastMessage(MessageTypePing, []byte{})
@@ -57,12 +98,22 @@ func (m *MessageRouter) Name() string {
 	return "MessageRouter"
 }
 
-func (m *MessageRouter) RoutePing(*P2PMessage) {
-	m.PingHandler.HandlePing()
+func (m *MessageRouter) RoutePing(msg *P2PMessage) {
+	m.PingHandler.HandlePing(msg.SourceID)
 }
 
 func (m *MessageRouter) RoutePong(*P2PMessage) {
 	m.PongHandler.HandlePong()
+}
+func (m *MessageRouter) RouteFetchByHashRequest(msg *P2PMessage) {
+	syncRequest := types.MessageSyncRequest{}
+	_, err := syncRequest.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.Debug("invalid MessageSyncRequest format")
+		return
+	}
+
+	m.FetchByHashRequestHandler.HandleFetchByHashRequest(syncRequest, msg.SourceID)
 }
 
 func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
@@ -77,11 +128,6 @@ func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
 		logrus.Debug("invalid MessageSyncResponse format")
 		return
 	}
-	if (syncResponse.Txs == nil || len(syncResponse.Txs) == 0) &&
-		(syncResponse.Sequencers == nil || len(syncResponse.Sequencers) == 0) {
-		logrus.Debug("empty MessageSyncResponse")
-		return
-	}
 
 	m.FetchByHashResponseHandler.HandleFetchByHashResponse(syncResponse, msg.SourceID)
 }
@@ -92,10 +138,6 @@ func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
 		logrus.WithError(err).Debug("invalid MessageNewTx format")
-		return
-	}
-	if newTx.Tx == nil {
-		logrus.Debug("empty MessageNewTx")
 		return
 	}
 
@@ -111,10 +153,6 @@ func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
 		logrus.WithError(err).Debug("invalid MessageNewTxs format")
 		return
 	}
-	if newTxs.Txs == nil {
-		logrus.Debug("Empty MessageNewTx")
-		return
-	}
 
 	m.NewTxsHandler.HandleNewTxs(newTxs)
 }
@@ -125,12 +163,81 @@ func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
 		logrus.WithError(err).Debug("invalid NewSequence format")
 		return
 	}
-	if newSq.Sequencer == nil {
-		logrus.Debug("empty NewSequence")
+
+	m.NewSequencerHandler.HandleNewSequencer(newSq)
+}
+
+func (m *MessageRouter) RouteSequencerHeader(msg *P2PMessage) {
+	msgHeader := types.MessageSequencerHeader{}
+	_, err := msgHeader.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.WithError(err).Debug("invalid MessageSequencerHeader format")
 		return
 	}
 
-	m.NewSequencerHandler.HandleNewSequencer(newSq)
+	m.SequencerHeaderHandler.HandleSequencerHeader(msgHeader, msg.SourceID)
+}
+func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
+
+	msgReq := types.MessageBodiesRequest{}
+	_, err := msgReq.UnmarshalMsg(msg.Message)
+	if err != nil {
+		logrus.WithError(err).Debug("invalid MessageBodiesRequest format")
+		return
+	}
+
+	m.BodiesRequestHandler.HandleBodiesRequest(msgReq, msg.SourceID)
+}
+func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
+	// A batch of block bodies arrived to one of our previous requests
+	var request types.MessageBodiesResponse
+	if _, err := request.UnmarshalMsg(msg.Message); err != nil {
+		logrus.WithError(err).Debug("invalid MessageBodiesResponse format")
+		return
+	}
+
+	m.BodiesResponseHandler.HandleBodiesResponse(request, msg.SourceID)
+}
+func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
+	// Decode the retrieval message
+	var msgReq types.MessageTxsRequest
+	if _, err := msgReq.UnmarshalMsg(msg.Message); err != nil {
+		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		return
+	}
+
+	m.TxsRequestHandler.HandleTxsRequest(msgReq, msg.SourceID)
+
+}
+func (m *MessageRouter) RouteTxsResponse(msg *P2PMessage) {
+	// A batch of block bodies arrived to one of our previous requests
+	var request types.MessageTxsResponse
+	if _, err := request.UnmarshalMsg(msg.Message); err != nil {
+		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		return
+	}
+	m.TxsResponseHandler.HandleTxsResponse(request)
+
+}
+func (m *MessageRouter) RouteHeaderRequest(msg *P2PMessage) {
+	// Decode the complex header query
+	var query types.MessageHeaderRequest
+	if _, err := query.UnmarshalMsg(msg.Message); err != nil {
+		//return errResp(ErrDecode, "%v: %v", msg, err)
+		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		return
+	}
+
+	m.HeaderRequestHandler.HandleHeaderRequest(query, msg.SourceID)
+}
+func (m *MessageRouter) RouteHeaderResponse(msg *P2PMessage) {
+	// A batch of headers arrived to one of our previous requests
+	var headerMsg types.MessageHeaderResponse
+	if _, err := headerMsg.UnmarshalMsg(msg.Message); err != nil {
+		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		return
+	}
+	m.HeaderResponseHandler.HandleHeaderResponse(headerMsg, msg.SourceID)
 }
 
 // BroadcastMessage send message to all peers

@@ -5,13 +5,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/downloader"
-	"time"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
-	Og  *Og
-	Hub *Hub
+	Og          *Og
+	Hub         *Hub
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
@@ -59,12 +58,13 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	seqHeaders := types.SeqsToHeaders(headers)
 	filter := len(seqHeaders) == 1
 
-	if filter {
-		// Irrelevant of the fork checks, send the header to the fetcher just in case
-		seqHeaders = h.Og.fetcher.FilterHeaders(peerId, seqHeaders, time.Now())
-	}
+	// TODO: verify fetcher
+	//if filter {
+	//	// Irrelevant of the fork checks, send the header to the fetcher just in case
+	//	seqHeaders = h.Og.fetcher.FilterHeaders(peerId, seqHeaders, time.Now())
+	//}
 	if len(seqHeaders) > 0 || !filter {
-		err := h.Og.downloader.DeliverHeaders(peerId, seqHeaders)
+		err := h.Hub.Downloader.DeliverHeaders(peerId, seqHeaders)
 		if err != nil {
 			logrus.Debug("Failed to deliver headers", "err", err)
 		}
@@ -228,12 +228,13 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 
 	// Filter out any explicitly requested bodies, deliver the rest to the downloader
 	filter := len(transactions) > 0 || len(sequencers) > 0
-	if filter {
-		transactions = h.Og.fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
-	}
+	// TODO: verify fetcher
+	//if filter {
+	//	transactions = h.Og.fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
+	//}
 	if len(transactions) > 0 || len(sequencers) > 0 || !filter {
 		logrus.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
-		err := h.Og.downloader.DeliverBodies(peerId, transactions, sequencers)
+		err := h.Hub.Downloader.DeliverBodies(peerId, transactions, sequencers)
 		if err != nil {
 			logrus.Debug("Failed to deliver bodies", "err", err)
 		}
@@ -282,9 +283,9 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSe
 	//set peer's head
 	h.Hub.SetPeerHead(peerId, *msgHeader.Hash, msgHeader.Number)
 
-	if !h.Og.AcceptTxs() {
-		return
-	}
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
 	lseq := h.Og.Dag.LatestSequencer()
 	for i := lseq.Number(); i < msgHeader.Number; i++ {
 		go func(i uint64) {
@@ -323,10 +324,9 @@ func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.Me
 
 func (h *IncomingMessageHandler) HandleNewTx(newTx types.MessageNewTx) {
 	logrus.WithField("q", newTx).Debug("received MessageNewTx")
-	if !h.Og.AcceptTxs(){
-		// no receive until sync finish
-		return
-	}
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
 	if newTx.Tx == nil {
 		logrus.Debug("empty MessageNewTx")
 		return
@@ -337,10 +337,9 @@ func (h *IncomingMessageHandler) HandleNewTx(newTx types.MessageNewTx) {
 
 func (h *IncomingMessageHandler) HandleNewTxs(newTxs types.MessageNewTxs) {
 	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
-	if !h.Og.AcceptTxs(){
-		// no receive until sync finish
-		return
-	}
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
 	if newTxs.Txs == nil {
 		logrus.Debug("Empty MessageNewTx")
 		return
@@ -353,10 +352,9 @@ func (h *IncomingMessageHandler) HandleNewTxs(newTxs types.MessageNewTxs) {
 
 func (h *IncomingMessageHandler) HandleNewSequencer(newSeq types.MessageNewSequencer) {
 	logrus.WithField("q", newSeq).Debug("received NewSequence")
-	if !h.Og.AcceptTxs(){
-		// no receive until sync finish
-		return
-	}
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
 	if newSeq.Sequencer == nil {
 		logrus.Debug("empty NewSequence")
 		return

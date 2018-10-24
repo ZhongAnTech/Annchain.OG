@@ -6,8 +6,8 @@ import (
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandlerOG32 struct {
-	Og  *Og
-	Hub *Hub
+	Og          *Og
+	Hub         *Hub
 }
 
 func (h *IncomingMessageHandlerOG32) HandleGetNodeDataMsg(peerId string) {
@@ -19,7 +19,7 @@ func (h *IncomingMessageHandlerOG32) HandleGetNodeDataMsg(peerId string) {
 
 func (h *IncomingMessageHandlerOG32) HandleNodeDataMsg(peerId string) {
 	// Deliver all to the downloader
-	if err := h.Og.downloader.DeliverNodeData(peerId, nil); err != nil {
+	if err := h.Hub.Downloader.DeliverNodeData(peerId, nil); err != nil {
 		logrus.Debug("Failed to deliver node state data", "err", err)
 	}
 }

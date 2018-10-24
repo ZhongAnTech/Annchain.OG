@@ -9,6 +9,7 @@ import (
 
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
+	"github.com/annchain/OG/og"
 )
 
 var MaxBufferSiza = 4096 * 16
@@ -18,22 +19,22 @@ type SyncBuffer struct {
 	TxsList        []types.Hash
 	Seq            *types.Sequencer
 	mu             sync.RWMutex
-	txPool         ITxPool
-	txBuffer       ITxBuffer
+	txPool         og.ITxPool
+	txBuffer       og.ITxBuffer
 	acceptTxs      uint32
 	quitHandel     bool
-	formatVerifier Verifier
-	graphVerifier  Verifier
+	formatVerifier og.Verifier
+	graphVerifier  og.Verifier
 }
 
 type SyncBufferConfig struct {
-	TxPool         ITxPool
-	TxBuffer       ITxBuffer
-	FormatVerifier Verifier
-	GraphVerifier  Verifier
+	TxPool         og.ITxPool
+	TxBuffer       og.ITxBuffer
+	FormatVerifier og.Verifier
+	GraphVerifier  og.Verifier
 }
 
-func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer, formatVerifier Verifier, graphVerifier Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, txBuffer og.ITxBuffer, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:         txPool,
 		TxBuffer:       txBuffer,
@@ -163,9 +164,10 @@ func (s *SyncBuffer) Handle() error {
 			panic("never come here")
 		}
 		//if tx is already in txbool ,no need to verify again
-		if s.txBuffer.isLocalHash(hash) {
-			continue
-		}
+		// TODO: recover it if we need sync buffer again
+		//if s.txBuffer.IsLocalHash(hash) {
+		//	continue
+		//}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
 		//if !s.formatVerifier.Verify(tx) {
@@ -222,9 +224,10 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 		elder := s.Get(elderHash)
 		if elder == nil {
-			if s.txBuffer.isLocalHash(elderHash) {
-				continue
-			}
+			// TODO: recover it if we need sync buffer again
+			//if s.txBuffer.isLocalHash(elderHash) {
+			//	continue
+			//}
 			err := fmt.Errorf("parent not found ")
 			log.WithField("hash", elderHash.String()).Warn("parent not found")
 			return err

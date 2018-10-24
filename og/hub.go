@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -52,8 +50,8 @@ type Hub struct {
 	noMorePeers chan struct{}
 
 	// new peer event
-	OnNewPeerConnected []chan
-
+	OnNewPeerConnected []chan string
+	Downloader         *downloader.Downloader
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -71,11 +69,13 @@ type ISyncBuffer interface {
 type ITxBuffer interface {
 	AddTx(tx types.Txi)
 	AddTxs(seq *types.Sequencer, txs types.Txs)
-	isLocalHash(hash types.Hash) bool
 }
 
-type NodeStatusDataProvider interface{
+type NodeStatusDataProvider interface {
 	GetCurrentNodeStatus() StatusData
+}
+type BestPeerProvider interface {
+	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
 }
 
 type HubConfig struct {
@@ -108,51 +108,52 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
+	h.CallbackRegistryOG32 = make(map[MessageType]func(*P2PMessage))
 }
 
 func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
 	h := &Hub{}
 	h.Init(config, dag, txPool)
 
-	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
-	for i, version := range ProtocolVersions {
-		// Skip protocol version if incompatible with the mode of operation
-		if mode == downloader.FastSync && version < OG32 {
-			continue
-		}
-		// Compatible; initialise the sub-protocol
-		version := version // Closure for the run
-		h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
-			Name:    ProtocolName,
-			Version: version,
-			Length:  ProtocolLengths[i],
-			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				peer := h.newPeer(int(version), p, rw)
-				select {
-				case h.newPeerCh <- peer:
-					h.wg.Add(1)
-					defer h.wg.Done()
-					return h.handle(peer)
-				case <-h.quitSync:
-					return p2p.DiscQuitting
-				}
-			},
-			NodeInfo: func() interface{} {
-				return h.NodeInfo()
-			},
-			PeerInfo: func(id discover.NodeID) interface{} {
-				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
-					return p.Info()
-				}
-				return nil
-			},
-		})
-	}
+	//h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
+	//for i, version := range ProtocolVersions {
+	// Skip protocol version if incompatible with the mode of operation
+	//if mode == downloader.FastSync && version < OG32 {
+	//	continue
+	//}
+	// Compatible; initialise the sub-protocol
+	//version := version // Closure for the run
+	//h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
+	//	Name:    ProtocolName,
+	//	Version: version,
+	//	Length:  ProtocolLengths[i],
+	//	Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
+	//		peer := h.newPeer(int(version), p, rw)
+	//		select {
+	//		case h.newPeerCh <- peer:
+	//			h.wg.Add(1)
+	//			defer h.wg.Done()
+	//			return h.handle(peer)
+	//		case <-h.quitSync:
+	//			return p2p.DiscQuitting
+	//		}
+	//	},
+	//	NodeInfo: func() interface{} {
+	//		return h.NodeInfo()
+	//	},
+	//	PeerInfo: func(id discover.NodeID) interface{} {
+	//		if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+	//			return p.Info()
+	//		}
+	//		return nil
+	//	},
+	//})
+	//}
 
-	if len(h.SubProtocols) == 0 {
-		log.Error(errIncompatibleConfig)
-		return nil
-	}
+	//if len(h.SubProtocols) == 0 {
+	//	log.Error(errIncompatibleConfig)
+	//	return nil
+	//}
 
 	return h
 }
@@ -170,15 +171,10 @@ func (h *Hub) handle(p *peer) error {
 	}
 	log.WithField("name", p.Name()).WithField("id", p.id).Info("OG peer connected")
 	// Execute the og handshake
-	var (
-		genesis = h.Dag.Genesis()
-		lastSeq = h.Dag.LatestSequencer()
-	)
-	if lastSeq == nil {
-		panic("Last sequencer is nil")
-	}
-
 	statusData := h.StatusDataProvider.GetCurrentNodeStatus()
+	//if statusData.CurrentBlock == nil{
+	//	panic("Last sequencer is nil")
+	//}
 
 	if err := p.Handshake(statusData.NetworkId, statusData.CurrentBlock,
 		statusData.CurrentId, statusData.GenesisBlock); err != nil {
@@ -190,20 +186,17 @@ func (h *Hub) handle(p *peer) error {
 		log.WithError(err).Error("og peer registration failed")
 		return err
 	}
+
 	log.Debug("register peer localy")
-	if !h.finishInit {
-		h.finishInit = true
-		h.syncInit()
+
+	for _, listener := range h.OnNewPeerConnected {
+		listener <- p.id
 	}
-	defer h.removePeer(p.id)
-	if h.enableSync {
-		// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-		if err := h.downloader.RegisterPeer(p.id, p.version, p); err != nil {
-			return err
-		}
-		// Propagate existing transactions. new transactions appearing
-		// after this will be sent via broadcasts.
-		h.syncTransactions(p)
+
+	defer h.Downloader.UnregisterPeer(p.id)
+	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
+	if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
+		return err
 	}
 
 	// main loop. handle incoming messages.
@@ -368,6 +361,27 @@ func (h *Hub) SetPeerHead(peerId string, hash types.Hash, number uint64) error {
 	return nil
 }
 
+func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error) {
+	p := h.peers.BestPeer()
+	if p != nil {
+		peerId = p.id
+		hash, seqId = p.Head()
+		return
+	}
+	err = fmt.Errorf("no best peer")
+	return
+}
+
+func (h *Hub) BestPeerId() (peerId string, err error) {
+	p := h.peers.BestPeer()
+	if p != nil {
+		peerId = p.id
+		return
+	}
+	err = fmt.Errorf("no best peer")
+	return
+}
+
 func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
@@ -396,7 +410,7 @@ func (h *Hub) broadcastMessageToRandom(msg *P2PMessage) {
 
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
-	if msg.Version >= OG32{
+	if msg.Version >= OG32 {
 		if v, ok := h.CallbackRegistryOG32[msg.MessageType]; ok {
 			log.WithField("type", msg.MessageType.String()).Debug("Received a message")
 			v(msg)
@@ -431,13 +445,4 @@ type NodeInfo struct {
 	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    types.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
 	Head       types.Hash `json:"head"`       // SHA3 hash of the host's best owned block
-}
-
-// NodeInfo retrieves some protocol metadata about the running host node.
-func (h *Hub) NodeInfo() *NodeInfo {
-	return &NodeInfo{
-		Network: h.networkID,
-		Genesis: types.Hash{},
-		Head:    types.Hash{},
-	}
 }

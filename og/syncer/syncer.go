@@ -5,16 +5,17 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"time"
+	"github.com/annchain/OG/og"
 )
 
 type MessageSender interface {
-	BroadcastMessage(messageType MessageType, message []byte)
-	UnicastMessageRandomly(messageType MessageType, message []byte)
+	BroadcastMessage(messageType og.MessageType, message []byte)
+	UnicastMessageRandomly(messageType og.MessageType, message []byte)
 }
 
-// Syncer fetches tx from other  peers. (incremental)
-// Syncer will not fire duplicate requests in a period of time.
-type Syncer struct {
+// IncrementalSyncer fetches tx from other  peers. (incremental)
+// IncrementalSyncer will not fire duplicate requests in a period of time.
+type IncrementalSyncer struct {
 	config              *SyncerConfig
 	messageSender       MessageSender
 	acquireTxQueue      chan types.Hash
@@ -26,7 +27,7 @@ type Syncer struct {
 	timeoutAcquireTx    *time.Timer
 }
 
-func (m *Syncer) GetBenchmarks() map[string]interface{} {
+func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"acquireTxQueue": len(m.acquireTxQueue),
 	}
@@ -40,8 +41,8 @@ type SyncerConfig struct {
 	AcquireTxDedupCacheExpirationSeconds int
 }
 
-func NewSyncer(config *SyncerConfig, messageSender MessageSender) *Syncer {
-	return &Syncer{
+func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *IncrementalSyncer {
+	return &IncrementalSyncer{
 		config:         config,
 		messageSender:  messageSender,
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
@@ -66,22 +67,22 @@ func DefaultSyncerConfig() SyncerConfig {
 	return config
 }
 
-func (m *Syncer) Start() {
+func (m *IncrementalSyncer) Start() {
 	go m.eventLoop()
 	go m.loopSync()
 }
 
-func (m *Syncer) Stop() {
+func (m *IncrementalSyncer) Stop() {
 	m.enabled = false
 	m.quitLoopEvent <- true
 	m.quitLoopSync <- true
 }
 
-func (m *Syncer) Name() string {
-	return "Syncer"
+func (m *IncrementalSyncer) Name() string {
+	return "IncrementalSyncer"
 }
 
-func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
+func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	if len(buffer) == 0 {
 		return
 	}
@@ -96,15 +97,15 @@ func (m *Syncer) fireRequest(buffer map[types.Hash]struct{}) {
 		logrus.WithError(err).Warnf("failed to marshal request: %+v", req)
 		return
 	}
-	logrus.WithField("type", MessageTypeFetchByHashRequest).
+	logrus.WithField("type", og.MessageTypeFetchByHashRequest).
 		WithField("length", len(req.Hashes)).
 		Debugf("sending message MessageTypeFetchByHashRequest")
 
-	m.messageSender.UnicastMessageRandomly(MessageTypeFetchByHashRequest, bytes)
+	m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.
-func (m *Syncer) loopSync() {
+func (m *IncrementalSyncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
 	pauseCheckDuration := time.Duration(time.Second)
@@ -140,7 +141,7 @@ func (m *Syncer) loopSync() {
 	}
 }
 
-func (m *Syncer) Enqueue(hash types.Hash) {
+func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 	if !m.enabled {
 		logrus.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
 		return
@@ -167,7 +168,7 @@ loop:
 
 }
 
-func (m *Syncer) ClearQueue() {
+func (m *IncrementalSyncer) ClearQueue() {
 	// clear all pending tasks
 	for len(m.acquireTxQueue) > 0 {
 		<-m.acquireTxQueue
@@ -175,7 +176,7 @@ func (m *Syncer) ClearQueue() {
 	m.acquireTxDedupCache.Purge()
 }
 
-func (m *Syncer) eventLoop() {
+func (m *IncrementalSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
@@ -188,21 +189,4 @@ func (m *Syncer) eventLoop() {
 	}
 }
 
-//BroadcastNewTx brodcast newly created txi message
-func (m *Syncer) BroadcastNewTx(txi types.Txi) {
-	txType := txi.GetType()
-	if txType == types.TxBaseTypeNormal {
-		tx := txi.(*types.Tx)
-		msgTx := types.MessageNewTx{Tx: tx}
-		data, _ := msgTx.MarshalMsg(nil)
-		m.messageSender.BroadcastMessage(MessageTypeNewTx, data)
-	} else if txType == types.TxBaseTypeSequencer {
-		seq := txi.(*types.Sequencer)
-		msgTx := types.MessageNewSequencer{seq}
-		data, _ := msgTx.MarshalMsg(nil)
-		m.messageSender.BroadcastMessage(MessageTypeNewSequencer, data)
-	} else {
-		logrus.Warn("never come here ,unkown tx type", txType)
-	}
-}
 

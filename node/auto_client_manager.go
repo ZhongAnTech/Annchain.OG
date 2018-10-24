@@ -9,16 +9,16 @@ import (
 )
 
 type AutoClientManager struct {
-	Clients        []*AutoClient
-	SampleAccounts []account.SampleAccount
-	EnableEvent    chan bool
-	stop           bool
-	wg             sync.WaitGroup
+	Clients               []*AutoClient
+	SampleAccounts        []account.SampleAccount
+	EnableTxsEventHandler chan bool
+	stop                  bool
+	wg                    sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
-	m.EnableEvent = make(chan bool)
+	m.EnableTxsEventHandler = make(chan bool)
 	m.SampleAccounts = core.GetSampleAccounts()
 
 	// to make sure we have only one sequencer
@@ -64,7 +64,7 @@ func (c *AutoClientManager) eventLoop() {
 	defer c.wg.Done()
 	for !c.stop {
 		select {
-		case v := <-c.EnableEvent:
+		case v := <-c.EnableTxsEventHandler:
 			for _, client := range c.Clients {
 				if !v {
 					client.Pause()

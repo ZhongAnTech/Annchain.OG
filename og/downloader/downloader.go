@@ -932,7 +932,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 							// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 							log.WithField("peer", pid).Warn("Downloader wants to drop peer, but peerdrop-function is not set")
 						} else {
-							d.UnregisterPeer(id)
+							d.UnregisterPeer(pid)
 							d.dropPeer(pid)
 						}
 					}
@@ -1136,7 +1136,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	for _, result := range results {
 		log.WithField("len txs", len(results[0].Transactions)).WithField("seq", results[0].Sequencer).Debug("Inserting downloaded txs")
 		//todo  fix this
-		err := d.insertTxs(result.Transactions, result.Sequencer)
+		err := d.insertTxs(result.Sequencer, result.Transactions)
 		if err != nil {
 			return err
 		}

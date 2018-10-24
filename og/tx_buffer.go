@@ -151,17 +151,17 @@ loop:
 
 }
 
-func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) {
+func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error{
 	for _, tx := range txs {
 		b.newTxChan <- tx
 	}
 	b.newTxChan <- seq
-	return
+	return nil
 }
 
 func (b *TxBuffer) AddLocal(tx types.Txi) error {
 	// TODO: recover here
-	//if b.Hub.AcceptTxs() {
+	//if b.Hub.IsAcceptTxs() {
 		b.AddTx(tx)
 	//} else {
 	//	return fmt.Errorf("can't accept tx until sync done")

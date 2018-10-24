@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
+	"github.com/annchain/OG/og/syncer"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -50,11 +51,8 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			BootstrapNode:  bootNode, //if bootstrap node just accept txs in starting ,no sync
-			EnableSync:     enableSync,
-			ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
-			Mode:           downloader.FullSync,
-			NetworkId:                     uint64(networkId),
+			BootstrapNode: bootNode, //if bootstrap node just accept txs in starting ,no sync
+			NetworkId:     uint64(networkId),
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -63,6 +61,8 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic("Error occurred while initializing OG")
 	}
+
+
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -114,18 +114,28 @@ func NewNode() *Node {
 
 	org.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
-	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
-		TxBuffer:       txBuffer,
-		TxPool:         org.TxPool,
-		FormatVerifier: txFormatVerifier,
-		GraphVerifier:  graphVerifier,
-	})
-	org.SyncBuffer = syncBuffer
-	n.Components = append(n.Components, syncBuffer)
+
+	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
+		Mode:           downloader.FullSync,
+		EnableSync:     enableSync,
+		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
+	}, hub, org)
+
+	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, txBuffer.AddTxs)
+
+	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
+		BestPeerProvider:       hub,
+		NodeStatusDataProvider: org,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
+	}
+	syncManager.CatchupSyncer.Init()
+	hub.Downloader = downloaderInstance
 
 	messageHandler := &og.IncomingMessageHandler{
-		Hub: hub,
-		Og:  org,
+		Hub:         hub,
+		Og:          org,
 	}
 
 	m := &og.MessageRouter{
@@ -146,9 +156,21 @@ func NewNode() *Node {
 		Hub:                        hub,
 	}
 
+	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
+		&syncer.SyncerConfig{
+			BatchTimeoutMilliSecond:              100,
+			AcquireTxQueueSize:                   1000,
+			MaxBatchSize:                         100,
+			AcquireTxDedupCacheMaxSize:           10000,
+			AcquireTxDedupCacheExpirationSeconds: 60,
+		}, m)
+	//syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, syncer.EnableTxsEventHandler)
+	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventHandler)
+	n.Components = append(n.Components, syncManager)
+
 	messageHandler32 := &og.IncomingMessageHandlerOG32{
-		Hub: hub,
-		Og:  org,
+		Hub:         hub,
+		Og:          org,
 	}
 
 	mr32 := &og.MessageRouterOG32{
@@ -159,16 +181,6 @@ func NewNode() *Node {
 	// Setup Hub
 	SetupCallbacks(m, hub)
 	SetupCallbacksOG32(mr32, hub)
-
-	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond:              100,
-		AcquireTxQueueSize:                   1000,
-		MaxBatchSize:                         100,
-		AcquireTxDedupCacheMaxSize:           10000,
-		AcquireTxDedupCacheExpirationSeconds: 60,
-	}, m)
-	org.OnEnableTxsEvent = append(org.OnEnableTxsEvent, syncer.EnableEvent)
-	n.Components = append(n.Components, syncer)
 
 	miner := &miner2.PoWMiner{}
 
@@ -214,7 +226,7 @@ func NewNode() *Node {
 		delegate,
 	)
 	n.Components = append(n.Components, autoClientManager)
-	org.OnEnableTxsEvent = append(org.OnEnableTxsEvent, autoClientManager.EnableEvent)
+	syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, autoClientManager.EnableTxsEventHandler)
 
 	switch viper.GetString("consensus") {
 	case "dpos":
@@ -264,7 +276,7 @@ func NewNode() *Node {
 	}
 
 	pm.Register(org.TxPool)
-	pm.Register(syncer)
+	pm.Register(syncManager)
 	pm.Register(txBuffer)
 	pm.Register(hub)
 	n.Components = append(n.Components, pm)

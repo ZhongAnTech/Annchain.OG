@@ -12,14 +12,16 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
-type ISyncer interface {
+type Syncer interface {
 	Enqueue(hash types.Hash)
 	ClearQueue()
+}
+type Announcer interface {
 	BroadcastNewTx(txi types.Txi)
 }
 type ITxPool interface {
@@ -45,7 +47,8 @@ type IDag interface {
 type TxBuffer struct {
 	dag               IDag
 	verifiers         []Verifier
-	syncer            ISyncer
+	Syncer            Syncer
+	Announcer         Announcer
 	txPool            ITxPool
 	dependencyCache   gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
 	affmu             sync.RWMutex
@@ -65,7 +68,8 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 type TxBufferConfig struct {
 	Dag                              IDag
 	Verifiers                        []Verifier
-	Syncer                           ISyncer
+	Syncer                           Syncer
+	TxAnnouncer                      Announcer
 	TxPool                           ITxPool
 	DependencyCacheMaxSize           int
 	DependencyCacheExpirationSeconds int
@@ -78,7 +82,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	return &TxBuffer{
 		dag:       config.Dag,
 		verifiers: config.Verifiers,
-		syncer:    config.Syncer,
+		Syncer:    config.Syncer,
+		Announcer: config.TxAnnouncer,
 		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
@@ -91,12 +96,13 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	}
 }
 
-func DefaultTxBufferConfig(syncer ISyncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
+func DefaultTxBufferConfig(TxBroadcaster Syncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		Syncer:    syncer,
-		Verifiers: verifiers,
-		Dag:       dag,
-		TxPool:    TxPool,
+		TxAnnouncer:                      nil, // TODO
+		Syncer:                           TxBroadcaster,
+		Verifiers:                        verifiers,
+		Dag:                              dag,
+		TxPool:                           TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -151,7 +157,7 @@ loop:
 
 }
 
-func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error{
+func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
 	for _, tx := range txs {
 		b.newTxChan <- tx
 	}
@@ -162,7 +168,7 @@ func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error{
 func (b *TxBuffer) AddLocal(tx types.Txi) error {
 	// TODO: recover here
 	//if b.Hub.IsAcceptTxs() {
-		b.AddTx(tx)
+	b.AddTx(tx)
 	//} else {
 	//	return fmt.Errorf("can't accept tx until sync done")
 	//}
@@ -210,7 +216,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 
 	if shouldBrodcast {
-		b.syncer.BroadcastNewTx(tx)
+		b.Announcer.BroadcastNewTx(tx)
 	}
 
 }
@@ -352,13 +358,13 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			logrus.WithField("hash", parentHash).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 
-			if !b.isCachedHash(parentHash){
+			if !b.isCachedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
 				logrus.WithField("hash", parentHash).Debugf("enqueue parent to syncer")
-				b.syncer.Enqueue(parentHash)
+				b.Syncer.Enqueue(parentHash)
 				b.updateDependencyMap(parentHash, tx)
-			}else{
+			} else {
 				logrus.WithField("hash", parentHash).Debugf("cached by someone before.")
 			}
 		}

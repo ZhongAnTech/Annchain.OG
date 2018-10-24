@@ -62,8 +62,6 @@ func NewNode() *Node {
 		panic("Error occurred while initializing OG")
 	}
 
-
-
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
@@ -103,6 +101,7 @@ func NewNode() *Node {
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
+
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
@@ -134,8 +133,8 @@ func NewNode() *Node {
 	hub.Downloader = downloaderInstance
 
 	messageHandler := &og.IncomingMessageHandler{
-		Hub:         hub,
-		Og:          org,
+		Hub: hub,
+		Og:  org,
 	}
 
 	m := &og.MessageRouter{
@@ -166,11 +165,16 @@ func NewNode() *Node {
 		}, m)
 	//syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, syncer.EnableTxsEventHandler)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventHandler)
+
+	txBuffer.Syncer = syncManager.IncrementalSyncer
+	announcer := syncer.NewAnnouncer(m)
+	txBuffer.Announcer = announcer
+
 	n.Components = append(n.Components, syncManager)
 
 	messageHandler32 := &og.IncomingMessageHandlerOG32{
-		Hub:         hub,
-		Og:          org,
+		Hub: hub,
+		Og:  org,
 	}
 
 	mr32 := &og.MessageRouterOG32{
@@ -227,6 +231,12 @@ func NewNode() *Node {
 	)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, autoClientManager.EnableTxsEventHandler)
+
+	if org.BootstrapNode {
+		go func() {
+			autoClientManager.EnableTxsEventHandler <- true
+		}()
+	}
 
 	switch viper.GetString("consensus") {
 	case "dpos":

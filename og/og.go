@@ -18,8 +18,8 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
-	bootstrapNode bool
-	NetworkId uint64
+	BootstrapNode bool
+	NetworkId     uint64
 }
 
 func (h *Og) GetCurrentNodeStatus() StatusData {
@@ -49,7 +49,7 @@ func NewOg(config OGConfig) (*Og, error) {
 	og := &Og{}
 
 
-	og.bootstrapNode = config.BootstrapNode
+	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
 	db, derr := CreateDB()
 	if derr != nil {
@@ -111,7 +111,7 @@ func (og *Og) Start() {
 	og.TxPool.Start()
 	//go func() {
 	//	// if disabled sync just accept txs
-	//	if og.bootstrapNode || !og.enableSync {
+	//	if og.BootstrapNode || !og.enableSync {
 	//		og.enableAcceptTx()
 	//	} else {
 	//		og.disableAcceptTx()

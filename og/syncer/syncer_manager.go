@@ -39,6 +39,8 @@ type SyncManager struct {
 	CatchupSyncerWorkingStateChanged chan bool
 	quitFlag                         bool
 	Status                           SyncStatus
+
+	//OnNewTxiReceived []chan types.Txi	// for both incremental tx and catchup tx
 }
 
 func (h *SyncManager) GetBenchmarks() map[string]interface{} {
@@ -50,9 +52,13 @@ func (h *SyncManager) Start() {
 
 	// start incremental sync listener
 	// start tx announcement
+	// short cut. make it formal later
+	//h.CatchupSyncer.OnNewTxiReceived = h.OnNewTxiReceived
+	//h.IncrementalSyncer.OnNewTxiReceived = h.OnNewTxiReceived
+	h.CatchupSyncer.OnWorkingStateChanged = append(h.CatchupSyncer.OnWorkingStateChanged, h.CatchupSyncerWorkingStateChanged)
+
 	h.CatchupSyncer.Start()
 	h.IncrementalSyncer.Start()
-	h.CatchupSyncer.OnWorkingStateChanged = append(h.CatchupSyncer.OnWorkingStateChanged, h.CatchupSyncerWorkingStateChanged)
 	go h.loopSync()
 }
 

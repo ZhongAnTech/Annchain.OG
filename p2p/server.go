@@ -629,10 +629,13 @@ func (srv *Server) run(dialstate dialer) {
 			queuedTasks = append(queuedTasks, startTasks(nt)...)
 		}
 	}
-
+	triggerTasks := true
 running:
 	for {
-		scheduleTasks()
+		if triggerTasks {
+			scheduleTasks()
+		}
+		triggerTasks = true
 
 		select {
 		case <-srv.quit:
@@ -677,6 +680,7 @@ running:
 			// This channel is used by Peers and PeerCount.
 			op(peers)
 			srv.peerOpDone <- struct{}{}
+			triggerTasks = false
 		case t := <-taskdone:
 			// A task got done. Tell dialstate about it so it
 			// can update its state and remove it from the active
@@ -700,6 +704,7 @@ running:
 		case c := <-srv.addpeer:
 			// At this point the connection is past the protocol handshake.
 			// Its capabilities are known and the remote identity is verified.
+			log.Info("Add peer=========")
 			err := srv.protoHandshakeChecks(peers, inboundCount, c)
 			if err == nil {
 				// The handshakes are done and it passed all checks.
@@ -714,6 +719,7 @@ running:
 					Debug("Adding p2p peer")
 				go srv.runPeer(p)
 				peers[c.id] = p
+				log.WithField("peer", c.id).Info("Add peer=========OK")
 				if p.Inbound() {
 					inboundCount++
 				}
@@ -948,6 +954,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	}
 	// Run the encryption handshake.
 	var err error
+	log.WithField("c", c.id).Info("setupConn")
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
 		log.WithError(err).WithFields(log.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
 		return err

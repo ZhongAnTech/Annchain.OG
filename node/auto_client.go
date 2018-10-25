@@ -89,7 +89,7 @@ func (c *AutoClient) loop() {
 			}
 		case <-timerTx.C:
 			c.doSampleTx()
-			timerTx = time.NewTimer(c.nextSleepDuraiton())
+			timerTx.Reset(c.nextSleepDuraiton())
 		case <-tickerSeq.C:
 			c.doSampleSequencer()
 		}

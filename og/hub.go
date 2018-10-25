@@ -12,6 +12,7 @@ import (
 	"github.com/bluele/gcache"
 	"sync"
 	"time"
+	"github.com/annchain/OG/p2p/discover"
 )
 
 const (
@@ -48,6 +49,7 @@ type Hub struct {
 	maxPeers    int
 	newPeerCh   chan *peer
 	noMorePeers chan struct{}
+	quitSync    chan bool
 
 	// new peer event
 	OnNewPeerConnected []chan string
@@ -100,10 +102,10 @@ func DefaultHubConfig() HubConfig {
 func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
-	h.quit = make(chan bool)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
+	h.quit = make(chan bool)
 	h.maxPeers = config.MaxPeers
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
@@ -115,45 +117,46 @@ func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
 	h := &Hub{}
 	h.Init(config, dag, txPool)
 
-	//h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
-	//for i, version := range ProtocolVersions {
-	// Skip protocol version if incompatible with the mode of operation
-	//if mode == downloader.FastSync && version < OG32 {
-	//	continue
-	//}
-	// Compatible; initialise the sub-protocol
-	//version := version // Closure for the run
-	//h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
-	//	Name:    ProtocolName,
-	//	Version: version,
-	//	Length:  ProtocolLengths[i],
-	//	Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-	//		peer := h.newPeer(int(version), p, rw)
-	//		select {
-	//		case h.newPeerCh <- peer:
-	//			h.wg.Add(1)
-	//			defer h.wg.Done()
-	//			return h.handle(peer)
-	//		case <-h.quitSync:
-	//			return p2p.DiscQuitting
-	//		}
-	//	},
-	//	NodeInfo: func() interface{} {
-	//		return h.NodeInfo()
-	//	},
-	//	PeerInfo: func(id discover.NodeID) interface{} {
-	//		if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
-	//			return p.Info()
-	//		}
-	//		return nil
-	//	},
-	//})
-	//}
+	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
+	for i, version := range ProtocolVersions {
+		// Skip protocol version if incompatible with the mode of operation
+		// h.mode == downloader.FastSync &&
+		//if version < OG32 {
+		//	continue
+		//}
+		//Compatible; initialise the sub-protocol
+		version := version // Closure for the run
+		h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
+			Name:    ProtocolName,
+			Version: version,
+			Length:  ProtocolLengths[i],
+			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
+				peer := h.newPeer(int(version), p, rw)
+				select {
+				case h.newPeerCh <- peer:
+					h.wg.Add(1)
+					defer h.wg.Done()
+					return h.handle(peer)
+				case <-h.quitSync:
+					return p2p.DiscQuitting
+				}
+			},
+			NodeInfo: func() interface{} {
+				return h.NodeInfo()
+			},
+			PeerInfo: func(id discover.NodeID) interface{} {
+				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+					return p.Info()
+				}
+				return nil
+			},
+		})
+	}
 
-	//if len(h.SubProtocols) == 0 {
-	//	log.Error(errIncompatibleConfig)
-	//	return nil
-	//}
+	if len(h.SubProtocols) == 0 {
+		log.Error(errIncompatibleConfig)
+		return nil
+	}
 
 	return h
 }
@@ -188,10 +191,6 @@ func (h *Hub) handle(p *peer) error {
 	}
 
 	log.Debug("register peer localy")
-
-	for _, listener := range h.OnNewPeerConnected {
-		listener <- p.id
-	}
 
 	defer h.Downloader.UnregisterPeer(p.id)
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
@@ -271,13 +270,14 @@ func (h *Hub) RemovePeer(id string) {
 func (h *Hub) Start() {
 	go h.loopSend()
 	go h.loopReceive()
+	go h.loopNotify()
 }
 
 func (h *Hub) Stop() {
-
 	// Quit the sync loop.
 	// After this send has completed, no new peers will be accepted.
 	h.noMorePeers <- struct{}{}
+	close(h.quitSync)
 	h.peers.Close()
 	h.wg.Wait()
 
@@ -287,6 +287,21 @@ func (h *Hub) Stop() {
 func (h *Hub) Name() string {
 	return "Hub"
 }
+
+func (h *Hub) loopNotify(){
+	for{
+		select{
+		case p := <- h.newPeerCh:
+			for _, listener := range h.OnNewPeerConnected {
+				listener <- p.id
+			}
+		case <-h.quit:
+			log.Info("Hub-loopNotify received quit message. Quitting...")
+			return
+		}
+	}
+}
+
 
 func (h *Hub) loopSend() {
 	for {
@@ -299,7 +314,7 @@ func (h *Hub) loopSend() {
 				go h.broadcastMessage(m)
 			}
 		case <-h.quit:
-			log.Info("HubSend reeived quit message. Quitting...")
+			log.Info("Hub-loopSend received quit message. Quitting...")
 			return
 		}
 	}
@@ -320,7 +335,7 @@ func (h *Hub) loopReceive() {
 			// start a new routine in order not to block other communications
 			go h.receiveMessage(m)
 		case <-h.quit:
-			log.Info("HubReceive received quit message. Quitting...")
+			log.Info("Hub-loopReceive received quit message. Quitting...")
 			return
 		}
 	}
@@ -445,4 +460,14 @@ type NodeInfo struct {
 	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    types.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
 	Head       types.Hash `json:"head"`       // SHA3 hash of the host's best owned block
+}
+
+// NodeInfo retrieves some protocol metadata about the running host node.
+func (h *Hub) NodeInfo() *NodeInfo {
+	statusData := h.StatusDataProvider.GetCurrentNodeStatus()
+	return &NodeInfo{
+		Network: statusData.NetworkId,
+		Genesis: statusData.GenesisBlock,
+		Head:    statusData.CurrentBlock,
+	}
 }

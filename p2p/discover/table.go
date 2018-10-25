@@ -321,7 +321,7 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	if err != nil || len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
-		log.WithError(err).WithFields(log.Fields{"id": n.ID, "failcount": fails}).Debug("findnode failed")
+		//log.WithError(err).WithFields(log.Fields{"id": n.ID, "failcount": fails}).Debug("findnode failed")
 		if fails >= maxFindnodeFailures {
 			log.WithError(err).WithFields(log.Fields{"id": n.ID, "failcount": fails}).Debug("too many findnode failures, dropping")
 			tab.delete(n)

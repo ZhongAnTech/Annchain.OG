@@ -101,7 +101,6 @@ func NewNode() *Node {
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
-
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
@@ -120,7 +119,7 @@ func NewNode() *Node {
 		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
 	}, hub, org)
 
-	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, txBuffer.AddTxs)
+	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, txBuffer.AddRemoteTxs)
 
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		BestPeerProvider:       hub,
@@ -138,9 +137,6 @@ func NewNode() *Node {
 	}
 
 	m := &og.MessageRouter{
-		NewSequencerHandler:        messageHandler,
-		NewTxsHandler:              messageHandler,
-		NewTxHandler:               messageHandler,
 		FetchByHashResponseHandler: messageHandler,
 		PongHandler:                messageHandler,
 		PingHandler:                messageHandler,
@@ -163,8 +159,15 @@ func NewNode() *Node {
 			AcquireTxDedupCacheMaxSize:           10000,
 			AcquireTxDedupCacheExpirationSeconds: 60,
 		}, m)
+
+	m.NewSequencerHandler = syncManager.IncrementalSyncer
+	m.NewTxsHandler = syncManager.IncrementalSyncer
+	m.NewTxHandler = syncManager.IncrementalSyncer
+
 	//syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, syncer.EnableTxsEventHandler)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventHandler)
+
+	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
 
 	txBuffer.Syncer = syncManager.IncrementalSyncer
 	announcer := syncer.NewAnnouncer(m)
@@ -231,6 +234,7 @@ func NewNode() *Node {
 	)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, autoClientManager.EnableTxsEventHandler)
+	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.NewPeerConnectedEventListener)
 
 	if org.BootstrapNode {
 		go func() {

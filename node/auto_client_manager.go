@@ -23,7 +23,6 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 
 	// to make sure we have only one sequencer
 	sequencers := 1
-
 	for _, accountIndex := range accountIndices {
 		client := &AutoClient{
 			Delegate:             delegate,
@@ -34,11 +33,30 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
 			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
 			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
-			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0,
+			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
-		sequencers--
+		if client.AutoSequencerEnabled {
+			sequencers--
+		}
+
+	}
+	if sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
+		// add pure sequencer
+		client := &AutoClient{
+			Delegate:             delegate,
+			SampleAccounts:       m.SampleAccounts,
+			MyAccountIndex:       0,
+			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
+			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
+			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
+			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
+			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
+			AutoSequencerEnabled: true,
+		}
+		client.Init()
+		m.Clients = append(m.Clients, client)
 	}
 }
 

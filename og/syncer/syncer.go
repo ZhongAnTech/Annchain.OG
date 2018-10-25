@@ -25,6 +25,7 @@ type IncrementalSyncer struct {
 	EnableEvent         chan bool
 	enabled             bool
 	timeoutAcquireTx    *time.Timer
+	OnNewTxiReceived    []chan types.Txi
 }
 
 func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
@@ -189,4 +190,58 @@ func (m *IncrementalSyncer) eventLoop() {
 	}
 }
 
+func (h *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
+	if h.enabled {
+		logrus.Debug("received tx but sync disabled")
+		return
+	}
 
+	logrus.WithField("q", newTx).Debug("received MessageNewTx")
+	if newTx.Tx == nil {
+		logrus.Debug("empty MessageNewTx")
+		return
+	}
+
+	h.notifyNewTxi(newTx.Tx)
+}
+
+func (h *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
+	if h.enabled {
+		logrus.Debug("received txs but sync disabled")
+		return
+	}
+	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
+	if newTxs.Txs == nil {
+		logrus.Debug("Empty MessageNewTx")
+		return
+	}
+
+	for _, tx := range newTxs.Txs {
+		h.notifyNewTxi(tx)
+	}
+}
+
+func (h *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
+	if h.enabled {
+		logrus.Debug("received seq but sync disabled")
+		return
+	}
+	logrus.WithField("q", newSeq).Debug("received NewSequence")
+	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//	return
+	//}
+	if newSeq.Sequencer == nil {
+		logrus.Debug("empty NewSequence")
+		return
+	}
+	h.notifyNewTxi(newSeq.Sequencer)
+}
+
+func (h *IncrementalSyncer) notifyNewTxi(txi types.Txi){
+	for _, c := range h.OnNewTxiReceived{
+		c <- txi
+	}
+}

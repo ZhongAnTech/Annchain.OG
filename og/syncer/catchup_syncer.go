@@ -40,6 +40,7 @@ type CatchupSyncer struct {
 	quit          bool
 
 	OnWorkingStateChanged []chan bool
+	OnNewTxiReceived      []chan types.Txi
 }
 
 func (c *CatchupSyncer) Init() {
@@ -80,8 +81,8 @@ func (c *CatchupSyncer) isUpToDate() bool {
 func (c *CatchupSyncer) loopSync() {
 	didSync := false
 	for !c.quit {
-		if !c.enabled{
-			time.Sleep(time.Second * 5)
+		if !c.enabled {
+			time.Sleep(time.Second * 15)
 			continue
 		}
 
@@ -91,7 +92,7 @@ func (c *CatchupSyncer) loopSync() {
 				didSync = false
 			}
 
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 15)
 			continue
 		}
 
@@ -99,7 +100,7 @@ func (c *CatchupSyncer) loopSync() {
 		if err == nil {
 			didSync = true
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 15)
 	}
 }
 func (c *CatchupSyncer) syncToLatest() error {

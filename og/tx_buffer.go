@@ -45,23 +45,26 @@ type IDag interface {
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
-	dag               IDag
-	verifiers         []Verifier
-	Syncer            Syncer
-	Announcer         Announcer
-	txPool            ITxPool
-	dependencyCache   gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
-	affmu             sync.RWMutex
-	newTxChan         chan types.Txi
-	quit              chan bool
-	releasedTxCache   gcache.Cache // txs that are already fulfilled and pushed to txpool
-	txAddedToPoolChan chan types.Txi
-	timeoutAddTx      *time.Timer // timeouts for channel
+	dag                    IDag
+	verifiers              []Verifier
+	Syncer                 Syncer
+	Announcer              Announcer
+	txPool                 ITxPool
+	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
+	affmu                  sync.RWMutex
+	selfGeneratedNewTxChan chan types.Txi
+	ReceivedNewTxChan      chan types.Txi
+	quit                   chan bool
+	releasedTxCache        gcache.Cache // txs that are already fulfilled and pushed to txpool
+	txAddedToPoolChan      chan types.Txi
+	timeoutAddLocalTx      *time.Timer // timeouts for channel
+	timeoutAddRemoteTx     *time.Timer // timeouts for channel
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
-		"newTxChan": len(b.newTxChan),
+		"selfGeneratedNewTxChan": len(b.selfGeneratedNewTxChan),
+		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
 	}
 }
 
@@ -87,12 +90,14 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
-		newTxChan:         make(chan types.Txi, config.NewTxQueueSize),
-		txAddedToPoolChan: make(chan types.Txi, config.NewTxQueueSize),
-		quit:              make(chan bool),
+		selfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
+		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
+		txAddedToPoolChan:      make(chan types.Txi, config.NewTxQueueSize),
+		quit:                   make(chan bool),
 		releasedTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
-		timeoutAddTx: time.NewTimer(time.Second * 10),
+		timeoutAddLocalTx: time.NewTimer(time.Second * 10),
+		timeoutAddRemoteTx: time.NewTimer(time.Second * 10),
 	}
 }
 
@@ -130,7 +135,7 @@ func (b *TxBuffer) loop() {
 		case <-b.quit:
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
-		case v := <-b.newTxChan:
+		case v := <-b.selfGeneratedNewTxChan:
 			go b.handleTx(v)
 		case v := <-b.txAddedToPoolChan:
 			// tx already received by pool. remove from local cache
@@ -139,39 +144,53 @@ func (b *TxBuffer) loop() {
 	}
 }
 
-// AddTx is called once there are new tx coming in.
-func (b *TxBuffer) AddTx(tx types.Txi) {
+// AddLocalTx is called once there are new tx generated.
+func (b *TxBuffer) AddLocalTx(tx types.Txi) {
 loop:
 	for {
-		if !b.timeoutAddTx.Stop() {
-			<-b.timeoutAddTx.C
+		if !b.timeoutAddLocalTx.Stop() {
+			<-b.timeoutAddLocalTx.C
 		}
-		b.timeoutAddTx.Reset(time.Second * 10)
+		b.timeoutAddLocalTx.Reset(time.Second * 10)
 		select {
-		case <-b.timeoutAddTx.C:
-			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx")
-		case b.newTxChan <- tx:
+		case <-b.timeoutAddLocalTx.C:
+			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx local")
+		case b.selfGeneratedNewTxChan <- tx:
 			break loop
 		}
 	}
-
 }
 
-func (b *TxBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
-	for _, tx := range txs {
-		b.newTxChan <- tx
+// AddRemoteTx is called once there are new tx synced.
+func (b *TxBuffer) AddRemoteTx(tx types.Txi) {
+loop:
+	for {
+		if !b.timeoutAddLocalTx.Stop() {
+			<-b.timeoutAddLocalTx.C
+		}
+		b.timeoutAddLocalTx.Reset(time.Second * 10)
+		select {
+		case <-b.timeoutAddLocalTx.C:
+			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx remote")
+		case b.selfGeneratedNewTxChan <- tx:
+			break loop
+		}
 	}
-	b.newTxChan <- seq
+}
+
+func (b *TxBuffer) AddLocalTxs(seq *types.Sequencer, txs types.Txs) error {
+	for _, tx := range txs {
+		b.AddLocalTx(tx)
+	}
+	b.AddLocalTx(seq)
 	return nil
 }
 
-func (b *TxBuffer) AddLocal(tx types.Txi) error {
-	// TODO: recover here
-	//if b.Hub.IsAcceptTxs() {
-	b.AddTx(tx)
-	//} else {
-	//	return fmt.Errorf("can't accept tx until sync done")
-	//}
+func (b *TxBuffer) AddRemoteTxs(seq *types.Sequencer, txs types.Txs) error {
+	for _, tx := range txs {
+		b.AddRemoteTx(tx)
+	}
+	b.AddRemoteTx(seq)
 	return nil
 }
 

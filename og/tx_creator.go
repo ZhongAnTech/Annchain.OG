@@ -1,6 +1,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
@@ -37,6 +38,32 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 		},
 	}
 	return &tx
+}
+
+
+func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt,
+	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	tx = &types.Tx{
+		From:  from,
+		To:    to,
+		Value: value,
+		TxBase: types.TxBase{
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+			Height:       uint64(m.DebugNodeId),
+		},
+	}
+	tx.GetBase().Signature = sig.Bytes
+	tx.GetBase().PublicKey = pubkey.Bytes
+
+	if ok := m.SealTx(tx); !ok {
+		logrus.Warn("failed to seal tx")
+		err = fmt.Errorf("failed to seal tx")
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
 }
 
 func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,

@@ -229,6 +229,8 @@ func NewNode() *Node {
 	if rpcServer != nil {
 		rpcServer.C.P2pServer = p2pServer
 		rpcServer.C.Og = org
+		rpcServer.C.TxBuffer = txBuffer
+		rpcServer.C.TxCreator = txCreator
 		// just for debugging, ignoring index OOR
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 	}

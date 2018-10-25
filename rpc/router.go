@@ -30,6 +30,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
+	router.POST("new_account", rpc.NewAccount)
 
 	// query API
 	router.GET("query", rpc.Query)

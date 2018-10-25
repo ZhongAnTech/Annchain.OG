@@ -80,5 +80,5 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 
 func (c *Delegate) Announce(txi types.Txi) {
 	mylog.TxLogger.WithField("tx", txi).Info("new tx announced by me")
-	c.TxBuffer.AddTx(txi)
+	c.TxBuffer.AddLocalTx(txi)
 }

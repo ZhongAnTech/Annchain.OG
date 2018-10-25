@@ -177,7 +177,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsRespo
 	lseq := h.Og.Dag.LatestSequencer()
 	//todo need more condition
 	if lseq.Number() < request.Sequencer.Number() {
-		h.Og.TxBuffer.AddTxs(request.Sequencer, request.Txs)
+		h.Og.TxBuffer.AddRemoteTxs(request.Sequencer, request.Txs)
 	}
 	return
 }
@@ -314,51 +314,11 @@ func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.Me
 
 	for _, v := range syncResponse.Txs {
 		logrus.WithField("tx", v).WithField("peer", sourceId).Debugf("received sync response Tx")
-		h.Og.TxBuffer.AddTx(v)
+		h.Og.TxBuffer.AddRemoteTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
 		logrus.WithField("seq", v).WithField("peer", sourceId).Debugf("received sync response seq")
-		h.Og.TxBuffer.AddTx(v)
+		h.Og.TxBuffer.AddRemoteTx(v)
 	}
 }
 
-func (h *IncomingMessageHandler) HandleNewTx(newTx types.MessageNewTx) {
-	logrus.WithField("q", newTx).Debug("received MessageNewTx")
-	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
-	//	return
-	//}
-	if newTx.Tx == nil {
-		logrus.Debug("empty MessageNewTx")
-		return
-	}
-
-	h.Og.TxBuffer.AddTx(newTx.Tx)
-}
-
-func (h *IncomingMessageHandler) HandleNewTxs(newTxs types.MessageNewTxs) {
-	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
-	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
-	//	return
-	//}
-	if newTxs.Txs == nil {
-		logrus.Debug("Empty MessageNewTx")
-		return
-	}
-
-	for _, tx := range newTxs.Txs {
-		h.Og.TxBuffer.AddTx(tx)
-	}
-}
-
-func (h *IncomingMessageHandler) HandleNewSequencer(newSeq types.MessageNewSequencer) {
-	logrus.WithField("q", newSeq).Debug("received NewSequence")
-	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
-	//	return
-	//}
-	if newSeq.Sequencer == nil {
-		logrus.Debug("empty NewSequence")
-		return
-	}
-
-	h.Og.TxBuffer.AddTx(newSeq.Sequencer)
-}

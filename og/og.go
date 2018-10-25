@@ -11,15 +11,17 @@ import (
 )
 
 type Og struct {
-	Dag        *core.Dag
-	TxPool     *core.TxPool
-	Manager    *MessageRouter
-	TxBuffer   *TxBuffer
+	Dag      *core.Dag
+	TxPool   *core.TxPool
+	Manager  *MessageRouter
+	TxBuffer *TxBuffer
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
 	BootstrapNode bool
 	NetworkId     uint64
+
+	quit chan bool
 }
 
 func (h *Og) GetCurrentNodeStatus() StatusData {
@@ -33,21 +35,22 @@ func (h *Og) GetCurrentNodeStatus() StatusData {
 }
 
 type OGConfig struct {
-	BootstrapNode  bool //start accept txs even if no peers
-	NetworkId      uint64
+	BootstrapNode bool //start accept txs even if no peers
+	NetworkId     uint64
 }
 
 func DefaultOGConfig() OGConfig {
 	config := OGConfig{
-		BootstrapNode:  false,
-		NetworkId:      1,
+		BootstrapNode: false,
+		NetworkId:     1,
 	}
 	return config
 }
 
 func NewOg(config OGConfig) (*Og, error) {
-	og := &Og{}
-
+	og := &Og{
+		quit: make(chan bool),
+	}
 
 	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
@@ -120,13 +123,13 @@ func (og *Og) Start() {
 	//// start sync handlers
 	//go og.syncer()
 	//go og.txsyncLoop()
-	//go og.BrodcastLatestSequencer()
+	go og.BrodcastLatestSequencer()
 
 	logrus.Info("OG Started")
 }
 func (og *Og) Stop() {
 	// Quit fetcher, txsyncLoop.
-	//close(h.quitSync)
+	close(og.quit)
 	//h.quit <- true
 
 	og.Dag.Stop()
@@ -151,8 +154,6 @@ func CreateDB() (ogdb.Database, error) {
 	}
 }
 
-
-
 func (h *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	txi := h.Dag.GetTx(hash)
 	switch tx := txi.(type) {
@@ -164,19 +165,19 @@ func (h *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 }
 
 // TODO: why this?
-//func (h *Og) BrodcastLatestSequencer() {
-//	for {
-//		select {
-//		case <-h.NewLatestSequencerCh:
-//			seq := h.Dag.LatestSequencer()
-//			hash := seq.GetTxHash()
-//			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
-//			data, _ := msgTx.MarshalMsg(nil)
-//			// latest sequencer updated , broadcast it
-//			go h.Manager.BroadcastMessage(MessageTypeSequencerHeader, data)
-//		case <-h.quit:
-//			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
-//			return
-//		}
-//	}
-//}
+func (h *Og) BrodcastLatestSequencer() {
+	for {
+		select {
+		case <-h.NewLatestSequencerCh:
+			seq := h.Dag.LatestSequencer()
+			hash := seq.GetTxHash()
+			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
+			data, _ := msgTx.MarshalMsg(nil)
+			// latest sequencer updated , broadcast it
+			go h.Manager.BroadcastMessage(MessageTypeSequencerHeader, data)
+		case <-h.quit:
+			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
+			return
+		}
+	}
+}

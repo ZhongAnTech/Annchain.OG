@@ -116,7 +116,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadLastState load genesis and latestsequencer  data from ogdb. return false if there
+// LoadLastState load genesis and latestsequencer data from ogdb. return false if there
 // is no genesis stored in the db.
 func (dag *Dag) LoadLastState() bool {
 	dag.mu.Lock()

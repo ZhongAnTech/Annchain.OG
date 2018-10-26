@@ -37,7 +37,7 @@ type CatchupSyncer struct {
 	enabled     bool
 
 	quitLoopEvent chan bool
-	quit          bool
+	quit      chan bool
 
 	OnWorkingStateChanged []chan bool
 	OnNewTxiReceived      []chan types.Txi
@@ -46,6 +46,7 @@ type CatchupSyncer struct {
 func (c *CatchupSyncer) Init() {
 	c.EnableEvent = make(chan bool)
 	c.quitLoopEvent = make(chan bool)
+	c.quit = make(chan bool)
 }
 
 func (c *CatchupSyncer) Start() {
@@ -54,7 +55,7 @@ func (c *CatchupSyncer) Start() {
 }
 
 func (c *CatchupSyncer) Stop() {
-	c.quit = true
+	c.quit <- true
 	c.quitLoopEvent <- true
 }
 
@@ -81,48 +82,68 @@ func (c *CatchupSyncer) isUpToDate() bool {
 func (c *CatchupSyncer) loopSync() {
 	didSync := false
 	startUp := true
-	for !c.quit {
-		if !c.enabled {
-			time.Sleep(time.Second * 15)
-			continue
-		}
-
-		if c.isUpToDate() {
-			//if uptodate when start up ,we need change state
-			if didSync  || startUp {
-				c.WorkingStateChanged(true)
-				didSync = false
+	for {
+		select {
+		case <-c.quit:
+			logrus.Info("CatchupSyncer loopSync received quit message. Quitting...")
+			return
+		case <-time.After(time.Second * 2):
+			if !c.enabled {
+				continue
 			}
-			startUp  = false
-			time.Sleep(time.Second * 15)
-			continue
+			if startUp &&  c.isUpToDate() {
+				//if uptodate when start up ,we need change state
+				c.WorkingStateChanged(true)
+				startUp = false
+			}
+		case <-time.After(time.Second * 15):
+			if !c.enabled {
+				continue
+			}
+			if c.isUpToDate() {
+				if didSync  {
+					c.WorkingStateChanged(true)
+					didSync = false
+				}
+				continue
+			}
+			if !didSync {
+				c.WorkingStateChanged(false)
+			}
+			err := c.syncToLatest()
+			if err != nil {
+			 	logrus.WithError(err).Warn("sync fail")
+			}
+			didSync = true
+			startUp = false
 		}
-		if !didSync {
-			c.WorkingStateChanged(false)
-		}
-		err := c.syncToLatest()
-		if err != nil {
-			time.Sleep(time.Second * 15)
-		}
-		didSync = true
-		startUp  = false
 	}
 }
+
 func (c *CatchupSyncer) syncToLatest() error {
-	bpId, bpHash, seqId, err := c.BestPeerProvider.BestPeerInfo()
+	var ourId  ,seqId uint64
+	for {
+		var err error
+		var bpHash types.Hash
+		var bpId string
+		bpId, bpHash, seqId, err = c.BestPeerProvider.BestPeerInfo()
 
-	if err != nil {
-		logrus.WithError(err).Warn("picking up best peer")
-		return err
-	}
+		if err != nil {
+			logrus.WithError(err).Warn("picking up best peer")
+			return err
+		}
+		ourId = c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
+		if seqId < ourId+minBehindHeight {
+			break
+		}
+		logrus.WithField("peerId", bpId).WithField("seq", seqId).
+			Debug("sync with best peer")
 
-	logrus.WithField("peerId", bpId).WithField("seq", seqId).
-		Debug("sync with best peer")
-
-	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
-		logrus.WithError(err).Warn("sync failed")
-		return err
+		// Run the sync cycle, and disable fast sync if we've went past the pivot block
+		if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
+			logrus.WithError(err).Warn("sync failed")
+			return err
+		}
 	}
 	return nil
 }

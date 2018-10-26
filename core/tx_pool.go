@@ -75,7 +75,7 @@ type TxPool struct {
 
 	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
+	OnNewLatestSequencer chan bool                       // for broadcasting new latest sequencer to record height
 
 	// timeout detections on queues
 	timeoutPoolQueue       *time.Timer
@@ -530,7 +530,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		}
 	}
 
-	// check if the nonce is duplicate
+	// check if nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
 		if txinpool.GetTxHash() == tx.GetTxHash() {

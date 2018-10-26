@@ -109,6 +109,13 @@ func NewNode() *Node {
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
+	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
+		TxPool:org.TxPool,
+		FormatVerifier:txFormatVerifier,
+		GraphVerifier:graphVerifier,
+
+	})
+	n.Components = append(n.Components, syncBuffer)
 
 	org.TxBuffer = txBuffer
 	n.Components = append(n.Components, txBuffer)
@@ -119,7 +126,7 @@ func NewNode() *Node {
 		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
 	}, hub, org)
 
-	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, txBuffer.AddRemoteTxs)
+	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
 
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		BestPeerProvider:       hub,

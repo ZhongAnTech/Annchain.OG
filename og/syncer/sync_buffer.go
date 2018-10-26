@@ -20,7 +20,6 @@ type SyncBuffer struct {
 	Seq            *types.Sequencer
 	mu             sync.RWMutex
 	txPool         og.ITxPool
-	txBuffer       og.ITxBuffer
 	acceptTxs      uint32
 	quitHandel     bool
 	formatVerifier og.Verifier
@@ -29,15 +28,13 @@ type SyncBuffer struct {
 
 type SyncBufferConfig struct {
 	TxPool         og.ITxPool
-	TxBuffer       og.ITxBuffer
 	FormatVerifier og.Verifier
 	GraphVerifier  og.Verifier
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool, txBuffer og.ITxBuffer, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool , formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:         txPool,
-		TxBuffer:       txBuffer,
 		FormatVerifier: formatVerifier,
 		GraphVerifier:  graphVerifier,
 	}
@@ -51,7 +48,6 @@ func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
 		Txs:            make(map[types.Hash]types.Txi),
 		txPool:         config.TxPool,
-		txBuffer:       config.TxBuffer,
 		formatVerifier: config.FormatVerifier,
 		graphVerifier:  config.GraphVerifier,
 	}
@@ -68,7 +64,7 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if seq == nil {
@@ -95,7 +91,7 @@ func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(txs []types.Txi, seq *types.Sequencer) error {
+func (s *SyncBuffer) AddTxs(seq *types.Sequencer,txs types.Txs) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
@@ -165,9 +161,9 @@ func (s *SyncBuffer) Handle() error {
 		}
 		//if tx is already in txbool ,no need to verify again
 		// TODO: recover it if we need sync buffer again
-		//if s.txBuffer.IsLocalHash(hash) {
-		//	continue
-		//}
+		if s.txPool.IsLocalHash(hash) {
+			continue
+		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
 		//if !s.formatVerifier.Verify(tx) {
@@ -225,9 +221,9 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 		elder := s.Get(elderHash)
 		if elder == nil {
 			// TODO: recover it if we need sync buffer again
-			//if s.txBuffer.isLocalHash(elderHash) {
-			//	continue
-			//}
+			if s.txPool.IsLocalHash(elderHash) {
+				continue
+			}
 			err := fmt.Errorf("parent not found ")
 			log.WithField("hash", elderHash.String()).Warn("parent not found")
 			return err

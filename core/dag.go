@@ -177,6 +177,10 @@ func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
 }
 
+func (dag *Dag)Has(hash types.Hash) bool {
+	return  dag.GetTx(hash)!=nil
+}
+
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
 func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()

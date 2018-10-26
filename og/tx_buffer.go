@@ -29,6 +29,7 @@ type ITxPool interface {
 	AddRemoteTx(tx types.Txi) error
 	RegisterOnNewTxReceived(c chan types.Txi)
 	GetLatestNonce(addr types.Address) (uint64, error)
+	IsLocalHash(hash types.Hash) bool
 }
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi

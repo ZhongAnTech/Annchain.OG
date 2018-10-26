@@ -206,8 +206,23 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 
 	return pool.get(hash)
 }
+
 func (pool *TxPool) get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
+}
+
+func (pool *TxPool)Has(hash types.Hash) bool {
+	return  pool.Get(hash)!=nil
+}
+
+func (pool *TxPool)IsLocalHash(hash types.Hash) bool  {
+	if pool.Has(hash) {
+		return true
+	}
+	if pool.dag.Has(hash) {
+		return true
+	}
+	return false
 }
 
 // GetHashOrder returns a hash list of txs in pool, ordered by the

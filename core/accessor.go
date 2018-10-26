@@ -371,3 +371,14 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error 
 	}
 	return da.db.Put(txIndexKey(seqid), data)
 }
+
+// LoadState load get state from database
+func (da *Accessor) LoadState(addr types.Address) *AccountState {
+
+	return nil
+}
+
+// SaveState store the state data into db. Overwrite the data if it already exists. 
+func (da *Accessor) SaveState(addr types.Address, state *AccountState) {
+	// TODO
+}

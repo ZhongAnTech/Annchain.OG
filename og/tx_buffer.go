@@ -12,9 +12,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {
@@ -97,18 +97,18 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		quit:                   make(chan bool),
 		releasedTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
-		timeoutAddLocalTx: time.NewTimer(time.Second * 10),
+		timeoutAddLocalTx:  time.NewTimer(time.Second * 10),
 		timeoutAddRemoteTx: time.NewTimer(time.Second * 10),
 	}
 }
 
 func DefaultTxBufferConfig(TxBroadcaster Syncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		TxAnnouncer:                      nil, // TODO
-		Syncer:                           TxBroadcaster,
-		Verifiers:                        verifiers,
-		Dag:                              dag,
-		TxPool:                           TxPool,
+		TxAnnouncer: nil, // TODO
+		Syncer:      TxBroadcaster,
+		Verifiers:   verifiers,
+		Dag:         dag,
+		TxPool:      TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,

@@ -1,11 +1,11 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"time"
-	"github.com/annchain/OG/og"
 )
 
 type MessageSender interface {
@@ -105,7 +105,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
 }
 
-// LoopSync checks if there is new hash to fetch. Dedup.
+// LoopSync checks if there is new hash to fetcs. Dedup.
 func (m *IncrementalSyncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
@@ -190,8 +190,8 @@ func (m *IncrementalSyncer) eventLoop() {
 	}
 }
 
-func (h *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
-	if h.enabled {
+func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
+	if !s.enabled {
 		logrus.Debug("received tx but sync disabled")
 		return
 	}
@@ -202,16 +202,16 @@ func (h *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 		return
 	}
 
-	h.notifyNewTxi(newTx.Tx)
+	s.notifyNewTxi(newTx.Tx)
 }
 
-func (h *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
-	if h.enabled {
+func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
+	if !s.enabled {
 		logrus.Debug("received txs but sync disabled")
 		return
 	}
 	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
-	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
 	if newTxs.Txs == nil {
@@ -220,28 +220,28 @@ func (h *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 	}
 
 	for _, tx := range newTxs.Txs {
-		h.notifyNewTxi(tx)
+		s.notifyNewTxi(tx)
 	}
 }
 
-func (h *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
-	if h.enabled {
+func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
+	if !s.enabled {
 		logrus.Debug("received seq but sync disabled")
 		return
 	}
 	logrus.WithField("q", newSeq).Debug("received NewSequence")
-	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
+	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
 	if newSeq.Sequencer == nil {
 		logrus.Debug("empty NewSequence")
 		return
 	}
-	h.notifyNewTxi(newSeq.Sequencer)
+	s.notifyNewTxi(newSeq.Sequencer)
 }
 
-func (h *IncrementalSyncer) notifyNewTxi(txi types.Txi){
-	for _, c := range h.OnNewTxiReceived{
+func (s *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
+	for _, c := range s.OnNewTxiReceived {
 		c <- txi
 	}
 }

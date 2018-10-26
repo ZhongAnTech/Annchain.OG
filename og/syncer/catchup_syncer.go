@@ -3,10 +3,10 @@ package syncer
 import (
 	"time"
 
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/og"
 )
 
 const (
@@ -80,6 +80,7 @@ func (c *CatchupSyncer) isUpToDate() bool {
 
 func (c *CatchupSyncer) loopSync() {
 	didSync := false
+	startUp := true
 	for !c.quit {
 		if !c.enabled {
 			time.Sleep(time.Second * 15)
@@ -87,20 +88,24 @@ func (c *CatchupSyncer) loopSync() {
 		}
 
 		if c.isUpToDate() {
-			if didSync {
-				c.notifyProgress()
+			//if uptodate when start up ,we need change state
+			if didSync  || startUp {
+				c.WorkingStateChanged(true)
 				didSync = false
 			}
-
+			startUp  = false
 			time.Sleep(time.Second * 15)
 			continue
 		}
-
-		err := c.syncToLatest()
-		if err == nil {
-			didSync = true
+		if !didSync {
+			c.WorkingStateChanged(false)
 		}
-		time.Sleep(time.Second * 15)
+		err := c.syncToLatest()
+		if err != nil {
+			time.Sleep(time.Second * 15)
+		}
+		didSync = true
+		startUp  = false
 	}
 }
 func (c *CatchupSyncer) syncToLatest() error {
@@ -121,6 +126,9 @@ func (c *CatchupSyncer) syncToLatest() error {
 	}
 	return nil
 }
+
+//we don't need to broadcast this ,because we broadcast all of our latest sequencer head when it change
+/*
 func (c *CatchupSyncer) notifyProgress() {
 	nodeStatus := c.NodeStatusDataProvider.GetCurrentNodeStatus()
 	if nodeStatus.CurrentId > 0 {
@@ -138,6 +146,7 @@ func (c *CatchupSyncer) notifyProgress() {
 	}
 }
 
+*/
 func (c *CatchupSyncer) eventLoop() {
 	for {
 		select {
@@ -148,5 +157,12 @@ func (c *CatchupSyncer) eventLoop() {
 			logrus.Info("syncer eventLoop received quit message. Quitting...")
 			return
 		}
+	}
+}
+
+//WorkingStateChanged if starts status is true ,stops status is  false
+func (c *CatchupSyncer) WorkingStateChanged(status bool) {
+	for _, ch := range c.OnWorkingStateChanged {
+		ch <- status
 	}
 }

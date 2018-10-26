@@ -1,16 +1,16 @@
 package og
 
 import (
-	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
-	Og          *Og
-	Hub         *Hub
+	Og  *Og
+	Hub *Hub
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
@@ -321,4 +321,3 @@ func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.Me
 		h.Og.TxBuffer.AddRemoteTx(v)
 	}
 }
-

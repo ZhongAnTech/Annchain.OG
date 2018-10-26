@@ -1,16 +1,16 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/og"
 )
 
 type Announcer struct {
 	messageSender MessageSender
 }
 
-func NewAnnouncer(messageSender MessageSender) *Announcer{
+func NewAnnouncer(messageSender MessageSender) *Announcer {
 	return &Announcer{
 		messageSender: messageSender,
 	}

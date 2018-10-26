@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/big"
 
+	"github.com/annchain/OG/p2p/discover"
 	"github.com/bluele/gcache"
 	"sync"
 	"time"
-	"github.com/annchain/OG/p2p/discover"
 )
 
 const (
@@ -288,10 +288,10 @@ func (h *Hub) Name() string {
 	return "Hub"
 }
 
-func (h *Hub) loopNotify(){
-	for{
-		select{
-		case p := <- h.newPeerCh:
+func (h *Hub) loopNotify() {
+	for {
+		select {
+		case p := <-h.newPeerCh:
 			for _, listener := range h.OnNewPeerConnected {
 				listener <- p.id
 			}
@@ -301,7 +301,6 @@ func (h *Hub) loopNotify(){
 		}
 	}
 }
-
 
 func (h *Hub) loopSend() {
 	for {

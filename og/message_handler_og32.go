@@ -6,8 +6,8 @@ import (
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandlerOG32 struct {
-	Og          *Og
-	Hub         *Hub
+	Og  *Og
+	Hub *Hub
 }
 
 func (h *IncomingMessageHandlerOG32) HandleGetNodeDataMsg(peerId string) {

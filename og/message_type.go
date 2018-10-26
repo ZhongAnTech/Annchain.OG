@@ -30,7 +30,7 @@ type MessageType uint64
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
-	StatusMsg                      MessageType = iota
+	StatusMsg MessageType = iota
 	MessageTypePing
 	MessageTypePong
 	MessageTypeFetchByHashRequest
@@ -94,7 +94,7 @@ func (m *P2PMessage) init() {
 type errCode int
 
 const (
-	ErrMsgTooLarge             = iota
+	ErrMsgTooLarge = iota
 	ErrDecode
 	ErrInvalidMsgCode
 	ErrProtocolVersionMismatch

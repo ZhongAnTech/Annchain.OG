@@ -211,11 +211,11 @@ func (pool *TxPool) get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
 }
 
-func (pool *TxPool)Has(hash types.Hash) bool {
-	return  pool.Get(hash)!=nil
+func (pool *TxPool) Has(hash types.Hash) bool {
+	return pool.Get(hash) != nil
 }
 
-func (pool *TxPool)IsLocalHash(hash types.Hash) bool  {
+func (pool *TxPool) IsLocalHash(hash types.Hash) bool {
 	if pool.Has(hash) {
 		return true
 	}

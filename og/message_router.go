@@ -1,9 +1,9 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"fmt"
 )
 
 // MessageRouter is a bridge between hub and components

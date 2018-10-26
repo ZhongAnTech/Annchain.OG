@@ -7,9 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/annchain/OG/og"
 )
 
 var MaxBufferSiza = 4096 * 16
@@ -32,7 +32,7 @@ type SyncBufferConfig struct {
 	GraphVerifier  og.Verifier
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool , formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:         txPool,
 		FormatVerifier: formatVerifier,
@@ -91,7 +91,7 @@ func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(seq *types.Sequencer,txs types.Txs) error {
+func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)

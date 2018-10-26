@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/filename"
+	"github.com/annchain/OG/mylog"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -33,7 +34,6 @@ import (
 	_ "net/http/pprof"
 	"path"
 	"path/filepath"
-	"github.com/annchain/OG/mylog"
 )
 
 var cfgFile string

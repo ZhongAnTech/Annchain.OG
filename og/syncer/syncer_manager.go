@@ -1,14 +1,14 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/og"
 )
 
 type SyncManagerConfig struct {
 	Mode           downloader.SyncMode
-	EnableSync     bool
+	BootstrapNode  bool
 	ForceSyncCycle uint //millisecends
 }
 
@@ -31,10 +31,9 @@ type SyncManager struct {
 	//fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
 	//acceptTxs uint32 // Flag whether we're considered synchronised (enables transaction processing)
 
-	enableSync bool
 	//forceSyncCycle uint
 	//syncFlag       uint32 //1 for is syncing
-
+	BootstrapNode                    bool //if bootstrap node just accept txs in starting ,no sync
 	NewPeerConnectedEventListener    chan string
 	CatchupSyncerWorkingStateChanged chan bool
 	quitFlag                         bool
@@ -43,39 +42,48 @@ type SyncManager struct {
 	//OnNewTxiReceived []chan types.Txi	// for both incremental tx and catchup tx
 }
 
-func (h *SyncManager) GetBenchmarks() map[string]interface{} {
+func (s *SyncManager) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-func (h *SyncManager) Start() {
+func (s *SyncManager) Start() {
 	// start full sync listener
 
 	// start incremental sync listener
 	// start tx announcement
 	// short cut. make it formal later
-	//h.CatchupSyncer.OnNewTxiReceived = h.OnNewTxiReceived
-	//h.IncrementalSyncer.OnNewTxiReceived = h.OnNewTxiReceived
-	h.CatchupSyncer.OnWorkingStateChanged = append(h.CatchupSyncer.OnWorkingStateChanged, h.CatchupSyncerWorkingStateChanged)
+	//s.CatchupSyncer.OnNewTxiReceived = s.OnNewTxiReceived
+	//s.IncrementalSyncer.OnNewTxiReceived = s.OnNewTxiReceived
+	s.CatchupSyncer.OnWorkingStateChanged = append(s.CatchupSyncer.OnWorkingStateChanged, s.CatchupSyncerWorkingStateChanged)
 
-	h.CatchupSyncer.Start()
-	h.IncrementalSyncer.Start()
-	go h.loopSync()
+	s.CatchupSyncer.Start()
+	s.IncrementalSyncer.Start()
+	go s.loopSync()
+	go func() {
+		// if BootstrapNode  just accept txs
+		if s.BootstrapNode {
+			s.setEnableTxs(true)
+		} else {
+			s.setEnableTxs(false)
+		}
+	}()
 }
 
-func (h *SyncManager) Stop() {
-	h.quitFlag = true
+func (s *SyncManager) Stop() {
+	s.quitFlag = true
 }
 
-func (h *SyncManager) Name() string {
+func (s *SyncManager) Name() string {
 	return "SyncManager"
 }
 
 func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvider og.NodeStatusDataProvider) *SyncManager {
 	sm := &SyncManager{
-		Hub:                              hub,
+		Hub: hub,
 		NodeStatusDataProvider:           NodeStatusDataProvider,
 		NewPeerConnectedEventListener:    make(chan string),
 		CatchupSyncerWorkingStateChanged: make(chan bool),
+		BootstrapNode:                    config.BootstrapNode,
 	}
 
 	// Figure out whether to allow fast sync or not
@@ -86,34 +94,36 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 	if config.Mode == downloader.FastSync {
 		//sm.fastSync = uint32(1)
 	}
-
-	sm.enableSync = config.EnableSync
 	//sm.forceSyncCycle = config.ForceSyncCycle
 	return sm
 }
 
 // loopSync constantly check if there is new peer connected
-func (h *SyncManager) loopSync() {
-	h.CatchupSyncer.EnableEvent <- true
-	h.IncrementalSyncer.EnableEvent <- false
-	h.Status = SyncStatusFull
+func (s *SyncManager) loopSync() {
+	s.CatchupSyncer.EnableEvent <- true
+	s.IncrementalSyncer.EnableEvent <- false
+	s.Status = SyncStatusFull
 
-	for !h.quitFlag {
+	for !s.quitFlag {
 		// listen to either full sync or incremental sync to get something new.
 		select {
-		case peer := <-h.NewPeerConnectedEventListener:
+		case peer := <-s.NewPeerConnectedEventListener:
 			logrus.WithField("peer", peer).Info("new peer connected")
-		case status := <-h.CatchupSyncerWorkingStateChanged:
+		case status := <-s.CatchupSyncerWorkingStateChanged:
 			logrus.WithField("v", status).Info("catchup syncer working state changed")
-			h.IncrementalSyncer.EnableEvent <- status
+			s.IncrementalSyncer.EnableEvent <- status
 			if status {
-				h.Status = SyncStatusIncremental
+				s.Status = SyncStatusIncremental
 			} else {
-				h.Status = SyncStatusFull
+				s.Status = SyncStatusFull
 			}
-			for _, c := range h.OnEnableTxs {
-				c <- status
-			}
+			s.setEnableTxs(status)
 		}
+	}
+}
+
+func (s *SyncManager) setEnableTxs(status bool) {
+	for _, c := range s.OnEnableTxs {
+		c <- status
 	}
 }

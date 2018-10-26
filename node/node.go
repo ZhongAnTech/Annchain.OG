@@ -12,12 +12,12 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	miner2 "github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
-	"github.com/annchain/OG/og/syncer"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -42,7 +42,6 @@ func NewNode() *Node {
 		n.Components = append(n.Components, rpcServer)
 	}
 	bootNode := viper.GetBool("p2p.bootstrap_node")
-	enableSync := viper.GetBool("p2p.enable_sync")
 
 	networkId := viper.GetInt64("p2p.network_id")
 	if networkId == 0 {
@@ -51,8 +50,7 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			BootstrapNode: bootNode, //if bootstrap node just accept txs in starting ,no sync
-			NetworkId:     uint64(networkId),
+			NetworkId: uint64(networkId),
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -102,18 +100,17 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers:                        verifiers,
-		Dag:                              org.Dag,
-		TxPool:                           org.TxPool,
+		Verifiers: verifiers,
+		Dag:       org.Dag,
+		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
-		TxPool:org.TxPool,
-		FormatVerifier:txFormatVerifier,
-		GraphVerifier:graphVerifier,
-
+		TxPool:         org.TxPool,
+		FormatVerifier: txFormatVerifier,
+		GraphVerifier:  graphVerifier,
 	})
 	n.Components = append(n.Components, syncBuffer)
 
@@ -122,8 +119,8 @@ func NewNode() *Node {
 
 	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
 		Mode:           downloader.FullSync,
-		EnableSync:     enableSync,
 		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
+		BootstrapNode:  bootNode,
 	}, hub, org)
 
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
@@ -131,9 +128,9 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		BestPeerProvider:       hub,
 		NodeStatusDataProvider: org,
-		Hub:                    hub,
-		Downloader:             downloaderInstance,
-		SyncMode:               downloader.FullSync,
+		Hub:        hub,
+		Downloader: downloaderInstance,
+		SyncMode:   downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -155,7 +152,7 @@ func NewNode() *Node {
 		TxsResponseHandler:         messageHandler,
 		HeaderResponseHandler:      messageHandler,
 		FetchByHashRequestHandler:  messageHandler,
-		Hub:                        hub,
+		Hub: hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(

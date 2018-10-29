@@ -107,6 +107,7 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.noMorePeers = make(chan struct{})
 	h.quit = make(chan bool)
 	h.maxPeers = config.MaxPeers
+	h.quitSync = make (chan bool)
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
@@ -276,7 +277,7 @@ func (h *Hub) Start() {
 func (h *Hub) Stop() {
 	// Quit the sync loop.
 	// After this send has completed, no new peers will be accepted.
-	h.noMorePeers <- struct{}{}
+	//h.noMorePeers <- struct{}{}
 	close(h.quitSync)
 	h.peers.Close()
 	h.wg.Wait()

@@ -136,6 +136,8 @@ func (b *TxBuffer) loop() {
 		case <-b.quit:
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
+		case v:= <-b.ReceivedNewTxChan:
+			go b.handleTx(v)
 		case v := <-b.selfGeneratedNewTxChan:
 			go b.handleTx(v)
 		case v := <-b.txAddedToPoolChan:

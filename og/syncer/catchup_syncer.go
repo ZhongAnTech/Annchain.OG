@@ -82,6 +82,7 @@ func (c *CatchupSyncer) isUpToDate() bool {
 func (c *CatchupSyncer) loopSync() {
 	didSync := false
 	startUp := true
+	defer c.Downloader.Terminate()
 	for {
 		select {
 		case <-c.quit:

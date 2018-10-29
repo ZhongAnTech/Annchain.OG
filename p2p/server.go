@@ -857,7 +857,7 @@ func (srv *Server) listenLoop() {
 			}
 		}
 
-		//fd = newMeteredConn(fd, true)
+		fd = newMeteredConn(fd, true)
 		log.WithField("addr", fd.RemoteAddr()).Debug("Accepted connection")
 		go func() {
 			srv.SetupConn(fd, inboundConn, nil)
@@ -954,7 +954,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	}
 	// Run the encryption handshake.
 	var err error
-	log.WithField("c", c.id).Info("setupConn")
+	log.WithField("c", c.fd.RemoteAddr()).Info("setupConn")
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
 		log.WithError(err).WithFields(log.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
 		return err

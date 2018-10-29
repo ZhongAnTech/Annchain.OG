@@ -37,15 +37,17 @@ type CatchupSyncer struct {
 	enabled     bool
 
 	quitLoopEvent chan bool
-	quit      chan bool
+	quit          chan bool
 
-	OnWorkingStateChanged []chan bool
-	OnNewTxiReceived      []chan types.Txi
+	OnWorkingStateChanged         []chan bool
+	OnNewTxiReceived              []chan types.Txi
+	NewPeerConnectedEventListener chan string
 }
 
 func (c *CatchupSyncer) Init() {
 	c.EnableEvent = make(chan bool)
 	c.quitLoopEvent = make(chan bool)
+	c.NewPeerConnectedEventListener = make(chan string)
 	c.quit = make(chan bool)
 }
 
@@ -88,41 +90,44 @@ func (c *CatchupSyncer) loopSync() {
 		case <-c.quit:
 			logrus.Info("CatchupSyncer loopSync received quit message. Quitting...")
 			return
-		case <-time.After(time.Second * 2):
+		case peer := <-c.NewPeerConnectedEventListener:
+			logrus.WithField("peer", peer).Info("new peer connected")
 			if !c.enabled {
 				continue
 			}
-			if startUp &&  c.isUpToDate() {
+			if startUp && c.isUpToDate() {
 				//if uptodate when start up ,we need change state
 				c.WorkingStateChanged(true)
 				startUp = false
+				continue
 			}
 		case <-time.After(time.Second * 15):
 			if !c.enabled {
 				continue
 			}
-			if c.isUpToDate() {
-				if didSync  {
-					c.WorkingStateChanged(true)
-					didSync = false
-				}
-				continue
-			}
-			if !didSync {
-				c.WorkingStateChanged(false)
-			}
-			err := c.syncToLatest()
-			if err != nil {
-			 	logrus.WithError(err).Warn("sync fail")
-			}
-			didSync = true
-			startUp = false
 		}
+		if c.isUpToDate() {
+			if didSync {
+				c.WorkingStateChanged(true)
+				didSync = false
+			}
+			continue
+		}
+		if !didSync {
+			c.WorkingStateChanged(false)
+		}
+		err := c.syncToLatest()
+		if err != nil {
+			logrus.WithError(err).Warn("sync fail")
+		}
+		didSync = true
+		startUp = false
+
 	}
 }
 
 func (c *CatchupSyncer) syncToLatest() error {
-	var ourId  ,seqId uint64
+	var ourId, seqId uint64
 	for {
 		var err error
 		var bpHash types.Hash

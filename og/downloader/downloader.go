@@ -552,7 +552,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 				"allowance", floor).Warn("Ancestor below allowance")
 			return 0, errInvalidAncestor
 		}
-		log.Debug("Found common ancestor", "number", number, "hash", hash)
+		log.WithField("number ",number).WithField("hash",hash).Debug("Found common ancestor")
 		return number, nil
 	}
 	// Ancestor not found, we need to binary search over our chain

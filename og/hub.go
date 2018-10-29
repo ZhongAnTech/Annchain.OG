@@ -107,7 +107,7 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.noMorePeers = make(chan struct{})
 	h.quit = make(chan bool)
 	h.maxPeers = config.MaxPeers
-	h.quitSync = make (chan bool)
+	h.quitSync = make(chan bool)
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
@@ -134,12 +134,12 @@ func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				peer := h.newPeer(int(version), p, rw)
 				select {
-				case h.newPeerCh <- peer:
+				case <-h.quitSync:
+					return p2p.DiscQuitting
+				default:
 					h.wg.Add(1)
 					defer h.wg.Done()
 					return h.handle(peer)
-				case <-h.quitSync:
-					return p2p.DiscQuitting
 				}
 			},
 			NodeInfo: func() interface{} {
@@ -193,12 +193,13 @@ func (h *Hub) handle(p *peer) error {
 
 	log.Debug("register peer localy")
 
-	defer h.Downloader.UnregisterPeer(p.id)
+	defer h.RemovePeer(p.id)
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
 		return err
 	}
-
+	//announce new peer
+	h.newPeerCh <- p
 	// main loop. handle incoming messages.
 	for {
 		if err := h.handleMsg(p); err != nil {
@@ -258,6 +259,7 @@ func (h *Hub) RemovePeer(id string) {
 	log.WithField("peer", id).Debug("Removing og peer")
 
 	// Unregister the peer from the downloader (should already done) and OG peer set
+	h.Downloader.UnregisterPeer(id)
 	if err := h.peers.Unregister(id); err != nil {
 		log.WithField("peer", "id").WithError(err).
 			Error("Peer removal failed")

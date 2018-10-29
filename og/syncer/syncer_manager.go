@@ -34,7 +34,6 @@ type SyncManager struct {
 	//forceSyncCycle uint
 	//syncFlag       uint32 //1 for is syncing
 	BootstrapNode                    bool //if bootstrap node just accept txs in starting ,no sync
-	NewPeerConnectedEventListener    chan string
 	CatchupSyncerWorkingStateChanged chan bool
 	quitFlag                         bool
 	Status                           SyncStatus
@@ -81,7 +80,6 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 	sm := &SyncManager{
 		Hub: hub,
 		NodeStatusDataProvider:           NodeStatusDataProvider,
-		NewPeerConnectedEventListener:    make(chan string),
 		CatchupSyncerWorkingStateChanged: make(chan bool),
 		BootstrapNode:                    config.BootstrapNode,
 	}
@@ -107,8 +105,6 @@ func (s *SyncManager) loopSync() {
 	for !s.quitFlag {
 		// listen to either full sync or incremental sync to get something new.
 		select {
-		case peer := <-s.NewPeerConnectedEventListener:
-			logrus.WithField("peer", peer).Info("new peer connected")
 		case status := <-s.CatchupSyncerWorkingStateChanged:
 			logrus.WithField("v", status).Info("catchup syncer working state changed")
 			s.IncrementalSyncer.EnableEvent <- status

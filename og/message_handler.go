@@ -205,7 +205,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 }
 
 func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodiesResponse, peerId string) {
-	logrus.WithField("q", request).Debug("received MessageBodiesResponse")
+	logrus.WithField("q", request.String()).Debug("received MessageBodiesResponse")
 
 	// Deliver them all to the downloader for queuing
 	transactions := make([][]*types.Tx, len(request.Bodies))
@@ -244,7 +244,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 }
 
 func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerId string) {
-	logrus.WithField("q", msgReq).Debug("received MessageBodiesRequest")
+	logrus.WithField("len ", len(msgReq.SeqHashes)).Debug("received MessageBodiesRequest")
 	var msgRes types.MessageBodiesResponse
 	var bytes int
 
@@ -275,6 +275,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 }
 
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
+	logrus.WithField("q", msgHeader.String()).Debug("received MessageBodiesRequest")
 	if msgHeader.Hash == nil {
 		return
 	}

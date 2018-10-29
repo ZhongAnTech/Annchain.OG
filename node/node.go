@@ -238,7 +238,7 @@ func NewNode() *Node {
 	)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, autoClientManager.EnableTxsEventHandler)
-	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.NewPeerConnectedEventListener)
+	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
 	if org.BootstrapNode {
 		go func() {

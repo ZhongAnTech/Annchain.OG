@@ -374,6 +374,7 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error 
 
 // LoadState load get state from database
 func (da *Accessor) LoadState(addr types.Address) *State {
+	// TODO
 
 	return nil
 }

@@ -9,7 +9,20 @@ import (
 	"github.com/annchain/OG/common/math"
 )
 
+type StateDBConfig struct {
+	FlushTimer	time.Duration
+	PurgeTimer	time.Duration
+}
+func DefaultStateDBConfig() StateDBConfig {
+	return StateDBConfig{
+		FlushTimer: time.Duration(5000),
+		PurgeTimer: time.Duration(10000),
+	}
+}
+
 type StateDB struct {
+	conf		StateDBConfig
+
 	db			ogdb.Database
 	accessor	*Accessor
 
@@ -17,17 +30,27 @@ type StateDB struct {
 	dirtyset	map[types.Address]struct{}
 	beats		map[types.Address]time.Time
 
+	close		chan struct{}
+
 	mu 			sync.RWMutex
 }
-func NewStateDB(db ogdb.Database, acc *Accessor) *StateDB {
+func NewStateDB(conf StateDBConfig, db ogdb.Database, acc *Accessor) *StateDB {
 	sd := &StateDB{
+		conf:		conf,
 		db:			db,
 		accessor:	acc,
 		states:		make(map[types.Address]*State),
 		dirtyset:	make(map[types.Address]struct{}),
 		beats:		make(map[types.Address]time.Time),
+		close:		make(chan struct{}),
 	}
+
+	go sd.loop()
 	return sd
+}
+
+func (sd *StateDB) Stop() {
+	close(sd.close)
 }
 
 // CreateNewState will create a new state for input address and 
@@ -162,22 +185,54 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.updateState(addr, state)
 }
 
-// Load get data from db.
+// Load data from db.
 func (sd *StateDB) loadState(addr types.Address) *State {
 	return sd.accessor.LoadState(addr)
 }
 
-// Confirm
-func (sd *StateDB) Confirm() {
+// flush tries to save those dirty data to disk db.
+func (sd *StateDB) flush() {
 	// TODO
+
 }
 
+// purge tries to remove all the state that haven't sent any beat 
+// for a long time. 
+// 
+// Note that dirty states will not be removed.
+func (sd *StateDB) purge() {
+	// TODO
+
+}
+
+// refreshbeat update the beat time of an address.
 func (sd *StateDB) refreshbeat(addr types.Address) {
 	state := sd.states[addr]
 	if state == nil {
 		return
 	}
 	sd.beats[addr] = time.Now()
+}
+
+func (sd *StateDB) loop() {
+	flushTimer := time.NewTicker(sd.conf.FlushTimer)
+	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
+
+	for {
+		select {
+		case <-sd.close:
+			flushTimer.Stop()
+			purgeTimer.Stop()
+			return
+
+		case <-flushTimer.C:
+			sd.flush()
+
+		case <-purgeTimer.C:
+			sd.purge()
+
+		}
+	}
 }
 
 type State struct {

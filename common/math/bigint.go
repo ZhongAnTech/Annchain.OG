@@ -64,6 +64,22 @@ func (bi *BigInt) Sign() int {
 	return bi.Value.Sign()
 }
 
+// Set sets bi to x and returns bi.
+func (bi *BigInt) Set(x *BigInt) *BigInt {
+	bi.Value.Set(x.Value)
+	return bi
+}
+
+// Add sets bi to the sum (bi + increment) and returns bi.
+func (bi *BigInt) Add(increment *BigInt) *BigInt {
+	return NewBigIntFromBigInt(new(big.Int).Add(bi.Value, increment.Value))
+}
+
+// Sub sets bi to the difference (bi - decrement) and returns bi.
+func (bi *BigInt) Sub(decrement *BigInt) *BigInt {
+	return NewBigIntFromBigInt(new(big.Int).Sub(bi.Value, decrement.Value))
+}
+
 // SetString sets the big int to x.
 //
 // The string prefix determines the actual conversion base. A prefix of "0x" or

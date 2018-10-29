@@ -373,12 +373,12 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error 
 }
 
 // LoadState load get state from database
-func (da *Accessor) LoadState(addr types.Address) *AccountState {
+func (da *Accessor) LoadState(addr types.Address) *State {
 
 	return nil
 }
 
 // SaveState store the state data into db. Overwrite the data if it already exists. 
-func (da *Accessor) SaveState(addr types.Address, state *AccountState) {
+func (da *Accessor) SaveState(addr types.Address, state *State) {
 	// TODO
 }

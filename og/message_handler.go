@@ -275,7 +275,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 }
 
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
-	logrus.WithField("q", msgHeader.String()).Debug("received MessageBodiesRequest")
+	logrus.WithField("q", msgHeader.String()).Debug("received HandleSequencerHeader")
 	if msgHeader.Hash == nil {
 		return
 	}

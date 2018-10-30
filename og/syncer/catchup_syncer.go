@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"sync"
 	"time"
 
 	"github.com/annchain/OG/og"
@@ -42,6 +43,9 @@ type CatchupSyncer struct {
 	OnWorkingStateChanged         []chan bool
 	OnNewTxiReceived              []chan types.Txi
 	NewPeerConnectedEventListener chan string
+	syncFlag bool
+	workState  bool
+	mu sync.RWMutex
 }
 
 func (c *CatchupSyncer) Init() {
@@ -82,7 +86,6 @@ func (c *CatchupSyncer) isUpToDate() bool {
 }
 
 func (c *CatchupSyncer) loopSync() {
-	didSync := false
 	startUp := true
 	defer c.Downloader.Terminate()
 	for {
@@ -93,40 +96,60 @@ func (c *CatchupSyncer) loopSync() {
 		case peer := <-c.NewPeerConnectedEventListener:
 			logrus.WithField("peer", peer).Info("new peer connected")
 			if !c.enabled {
+				logrus.Info("catchupSyncer not enabled")
 				continue
 			}
-			if startUp && c.isUpToDate() {
-				//if uptodate when start up ,we need change state
-				c.WorkingStateChanged(true)
-				startUp = false
-				continue
-			}
+		   if startUp {
+                 if c.isUpToDate() {
+                       c.WorkingStateChanged(true )
+					 startUp = false
+					 continue
+				 }
+		   }
+			go c.syncToLatest()
 		case <-time.After(time.Second * 15):
 			if !c.enabled {
+				logrus.Info("catchupSyncer not enabled")
 				continue
 			}
+			go c.syncToLatest()
 		}
-		if c.isUpToDate() {
-			if didSync {
-				c.WorkingStateChanged(true)
-				didSync = false
-			}
-			continue
-		}
-		if !didSync {
-			c.WorkingStateChanged(false)
-		}
-		err := c.syncToLatest()
-		if err != nil {
-			logrus.WithError(err).Warn("sync fail")
-		}
-		didSync = true
-		startUp = false
 
 	}
 }
 
+
+func ( c*CatchupSyncer)isSyncing ()bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.syncFlag
+}
+//getWorkState
+func ( c*CatchupSyncer)getWorkState ()bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.workState
+}
+
+func ( c*CatchupSyncer)setSyncFlag() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	 c.syncFlag = true
+}
+
+func ( c*CatchupSyncer)unsetSyncFlag() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.syncFlag = false
+}
+
 func (c *CatchupSyncer) syncToLatest() error {
+	if c.isSyncing() {
+		return nil
+	}
+	c.setSyncFlag()
+	defer c.unsetSyncFlag()
+	didSync := false
 	var ourId, seqId uint64
 	for {
 		var err error
@@ -142,6 +165,13 @@ func (c *CatchupSyncer) syncToLatest() error {
 		if seqId < ourId+minBehindHeight {
 			break
 		}
+		if !didSync {
+			didSync = true
+			if seqId < ourId+maxBehindHeight {
+				break
+			}
+			c.WorkingStateChanged(false )
+		}
 		logrus.WithField("peerId", bpId).WithField("seq", seqId).
 			Debug("sync with best peer")
 
@@ -150,6 +180,9 @@ func (c *CatchupSyncer) syncToLatest() error {
 			logrus.WithError(err).Warn("sync failed")
 			return err
 		}
+	}
+	if !c.getWorkState() {
+		c.WorkingStateChanged(true)
 	}
 	return nil
 }
@@ -192,4 +225,7 @@ func (c *CatchupSyncer) WorkingStateChanged(status bool) {
 	for _, ch := range c.OnWorkingStateChanged {
 		ch <- status
 	}
+	c.mu.Lock()
+	defer  c.mu.Unlock()
+	c.workState = status
 }

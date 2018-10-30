@@ -225,7 +225,7 @@ func (p *peer) RequestReceipts(hashes types.Hashs) error {
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the hash of an origin block.
 func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
-	msgLog.WithField("hash ", seqHash).WithField("id ", seqId).Debug("Fetching bodies ( txs) by hash")
+	msgLog.WithField("hash ", seqHash).WithField("id ", seqId).Debug("send MessageTypeTxsRequest by hash")
 	hash := seqHash
 	msg := types.MessageTxsRequest{
 		SeqHash: &hash,
@@ -236,7 +236,7 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 }
 
 func (p *peer) RequestTxs(hashs []types.Hash) error {
-	msgLog.WithField("count ", len(hashs)).Debug("Fetching txs ( txs)")
+	msgLog.WithField("count ", len(hashs)).Debug("send MessageTypeTxsRequest")
 	msg := types.MessageTxsRequest{
 		Hashes: hashs,
 	}
@@ -245,7 +245,7 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 }
 
 func (p *peer) RequestTxsById(seqId uint64) error {
-	msgLog.WithField("id  ", seqId).Debug("Fetching txs ( txs) by id ")
+	msgLog.WithField("id  ", seqId).Debug("send MessageTypeTxsRequest by id ")
 	msg := types.MessageTxsRequest{
 		Id: seqId,
 	}
@@ -254,7 +254,7 @@ func (p *peer) RequestTxsById(seqId uint64) error {
 }
 
 func (p *peer) RequestBodies(seqHashs []types.Hash) error {
-	msgLog.WithField(" seq count ", len(seqHashs)).Debug("Fetching bodies ( txs)")
+	msgLog.WithField("to ",p.id).WithField(" seq count ", len(seqHashs)).Debug("send MessageTypeBodiesRequest")
 	msg := types.MessageBodiesRequest{
 		SeqHashes: seqHashs,
 	}
@@ -263,7 +263,7 @@ func (p *peer) RequestBodies(seqHashs []types.Hash) error {
 }
 
 func (p *peer) RequestOneHeader(hash types.Hash) error {
-	msgLog.Debug("Fetching single header", "hash", hash)
+	msgLog.WithField("to ",p.id).Debug("Fetching single header", "hash", hash)
 	req := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(1), Skip: uint64(0), Reverse: false}
 	data, err := req.MarshalMsg(nil)
 	if err != nil {
@@ -280,7 +280,7 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
 func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
-	msgLog.WithField("count", amount).WithField("origin", origin).Debug("Fetching batch of headers by num")
+	msgLog.WithField("to ",p.id).WithField("count", amount).WithField("origin", origin).Debug("send MessageTypeHeaderRequest by num")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Number: origin}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {
@@ -295,7 +295,7 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 }
 
 func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
-	msgLog.WithField("count", amount).WithField("hash", hash).Debug("Fetching batch of headers by hash")
+	msgLog.WithField("to ",p.id).WithField("count", amount).WithField("hash", hash).Debug("send MessageTypeHeaderRequest by hash")
 	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {

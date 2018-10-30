@@ -87,7 +87,7 @@ func (m *P2PMessage) calculateHash() {
 	}
 
 	h := sha256.New()
-	h.Write(m.Message)
+	h.Write(data)
 	sum := h.Sum(nil)
 	m.hash.MustSetBytes(sum)
 	return

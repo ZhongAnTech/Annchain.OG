@@ -102,7 +102,10 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 		WithField("length", len(req.Hashes)).
 		Debugf("sending message MessageTypeFetchByHashRequest")
 
-	m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
+	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
+	//if the random peer dose't have this txs ,we will get nil response ,so brodacst it
+	//todo optimize later
+	m.messageSender.BroadcastMessage(og.MessageTypeFetchByHashRequest, bytes)
 }
 
 // LoopSync checks if there is new hash to fetcs. Dedup.

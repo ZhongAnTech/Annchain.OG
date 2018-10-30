@@ -75,18 +75,15 @@ func (sd *StateDB) CreateNewState(addr types.Address) (*State, error) {
 	return state, nil
 }
 
-func (sd *StateDB) GetBalance(addr types.Address) (*math.BigInt, error) {
+func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
 	return sd.getBalance(addr)
 }
-func (sd *StateDB) getBalance(addr types.Address) (*math.BigInt, error) {
-	state := sd.GetState(addr)
-	if state == nil {
-		return math.NewBigInt(0), nil
-	}
-	return state.Balance, nil
+func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
+	state := sd.getOrCreateState(addr)
+	return state.Balance
 }
 
 func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
@@ -96,8 +93,8 @@ func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
 	return sd.getNonce(addr)
 }
 func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
-	state := sd.GetState(addr)
-	if state == nil {
+	state, err := sd.getState(addr)
+	if err != nil {
 		return 0, types.ErrNonceNotExist
 	}
 	return state.Nonce, nil
@@ -105,18 +102,38 @@ func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
 
 // GetState get a state from statedb. If state not exist, 
 // load it from db. 
-func (sd *StateDB) GetState(addr types.Address) *State {
+func (sd *StateDB) GetState(addr types.Address) (*State, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	return sd.getState(addr)
 }
-func (sd *StateDB) getState(addr types.Address) *State {
+func (sd *StateDB) getState(addr types.Address) (*State, error) {
 	state, exist := sd.states[addr]
 	if !exist {
-		state = sd.loadState(addr)
+		var err error
+		state, err = sd.loadState(addr)
+		if err != nil {
+			return nil, err
+		}
 		sd.updateState(addr, state)
 	}
+	return state, nil
+}
+
+// GetOrCreateState
+func (sd *StateDB) GetOrCreateState(addr types.Address) *State {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	return sd.getOrCreateState(addr)
+}
+func (sd *StateDB) getOrCreateState(addr types.Address) *State {
+	state, _ := sd.getState(addr)
+	if state == nil {
+		state = NewState(addr)
+	}
+	sd.updateState(addr, state)
 	return state
 }
 
@@ -157,10 +174,7 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 	
-	state := sd.GetState(addr)
-	if state == nil {
-		state = NewState(addr)
-	}
+	state := sd.getOrCreateState(addr)
 	state.AddBalance(increment)
 	
 	sd.updateState(addr, state)
@@ -170,10 +184,7 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 	
-	state := sd.GetState(addr)
-	if state == nil {
-		state = NewState(addr)
-	}
+	state := sd.getOrCreateState(addr)
 	state.SubBalance(decrement)
 	
 	sd.updateState(addr, state)
@@ -183,10 +194,7 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 	
-	state := sd.GetState(addr)
-	if state == nil {
-		state = NewState(addr)
-	}
+	state := sd.getOrCreateState(addr)
 	state.SetBalance(balance)
 	
 	sd.updateState(addr, state)
@@ -196,17 +204,14 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 	
-	state := sd.GetState(addr)
-	if state == nil {
-		state = NewState(addr)
-	}
+	state := sd.getOrCreateState(addr)
 	state.SetNonce(nonce)
 	
 	sd.updateState(addr, state)
 }
 
 // Load data from db.
-func (sd *StateDB) loadState(addr types.Address) *State {
+func (sd *StateDB) loadState(addr types.Address) (*State, error) {
 	return sd.accessor.LoadState(addr)
 }
 
@@ -272,41 +277,3 @@ func (sd *StateDB) loop() {
 		}
 	}
 }
-
-type State struct {
-	Address 	types.Address
-	Balance		*math.BigInt
-	Nonce		uint64
-}
-func NewState(addr types.Address) *State {
-	s := &State{}
-	s.Address = addr
-	s.Balance = math.NewBigInt(0)
-	s.Nonce = 0
-	return s
-}
-
-func (s *State) AddBalance(increment *math.BigInt) {
-	// check if increment is zero
-	if increment.Sign() == 0 {
-		return
-	}
-	s.SetBalance(s.Balance.Add(increment))
-}
-
-func (s *State) SubBalance(decrement *math.BigInt) {
-	// check if decrement is zero
-	if decrement.Sign() == 0 {
-		return
-	}
-	s.SetBalance(s.Balance.Sub(decrement))
-}
-
-func (s *State) SetBalance(balance *math.BigInt) {
-	s.Balance = balance
-}
-
-func (s *State) SetNonce(nonce uint64) {
-	s.Nonce = nonce
-}
-

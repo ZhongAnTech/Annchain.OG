@@ -27,6 +27,8 @@ var (
 	prefixTxIndexKey = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
+
+	prefixStateKey = []byte("st")
 	// prefixContractState = []byte("con")
 )
 
@@ -67,6 +69,10 @@ func seqIdKey(seqid uint64) []byte {
 func txIndexKey(seqid uint64) []byte {
 	suffix := prefixTxIndexKey
 	return append(prefixTxIndexKey, append([]byte(strconv.FormatUint(seqid, 10)), suffix...)...)
+}
+
+func stateKey(addr types.Address) []byte {
+	return append(prefixStateKey, addr.ToBytes()...)
 }
 
 type Accessor struct {
@@ -373,13 +379,24 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error 
 }
 
 // LoadState load get state from database
-func (da *Accessor) LoadState(addr types.Address) *State {
-	// TODO
-
-	return nil
+func (da *Accessor) LoadState(addr types.Address) (*State, error) {
+	data, dbErr := da.db.Get(stateKey(addr))
+	if dbErr != nil {
+		return nil, fmt.Errorf("can't get state from db, err: %v", dbErr)
+	}
+	var state State
+	_, err := state.UnmarshalMsg(data)
+	if err != nil {
+		return nil, err
+	}
+	return &state, nil
 }
 
 // SaveState store the state data into db. Overwrite the data if it already exists. 
-func (da *Accessor) SaveState(addr types.Address, state *State) {
-	// TODO
+func (da *Accessor) SaveState(addr types.Address, state *State) error {
+	data, err := state.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	return da.db.Put(stateKey(addr), data)
 }

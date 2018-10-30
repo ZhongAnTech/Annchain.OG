@@ -27,7 +27,7 @@ const (
 
 type CatchupSyncer struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
-	BestPeerProvider       og.BestPeerProvider
+	PeerProvider       og.PeerProvider
 	Hub                    *og.Hub
 
 	Downloader *downloader.Downloader
@@ -70,7 +70,7 @@ func (CatchupSyncer) Name() string {
 }
 
 func (c *CatchupSyncer) isUpToDate() bool {
-	_, bpHash, seqId, err := c.BestPeerProvider.BestPeerInfo()
+	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
 		return false
 	}
@@ -145,23 +145,21 @@ func ( c*CatchupSyncer)unsetSyncFlag() {
 
 func (c *CatchupSyncer) syncToLatest() error {
 	if c.isSyncing() {
+		logrus.Info("syncing task is busy")
 		return nil
 	}
 	c.setSyncFlag()
 	defer c.unsetSyncFlag()
 	didSync := false
-	var ourId, seqId uint64
+	//get best peer ,and sync with this peer until we catchup
+	bpId, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
+	if err!=nil {
+		logrus.WithError(err).Warn("picking up best peer")
+		return  err
+	}
 	for {
-		var err error
-		var bpHash types.Hash
-		var bpId string
-		bpId, bpHash, seqId, err = c.BestPeerProvider.BestPeerInfo()
+		ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
 
-		if err != nil {
-			logrus.WithError(err).Warn("picking up best peer")
-			return err
-		}
-		ourId = c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
 		if seqId < ourId+minBehindHeight {
 			break
 		}
@@ -177,6 +175,11 @@ func (c *CatchupSyncer) syncToLatest() error {
 
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
 		if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
+			logrus.WithError(err).Warn("sync failed")
+			return err
+		}
+		bpHash, seqId, err = c.PeerProvider.GetPeerHead(bpId)
+		if err!=nil {
 			logrus.WithError(err).Warn("sync failed")
 			return err
 		}

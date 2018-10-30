@@ -109,6 +109,7 @@ func NewNode() *Node {
 	})
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
+		Dag:org.Dag,
 		FormatVerifier: txFormatVerifier,
 		GraphVerifier:  graphVerifier,
 	})
@@ -126,7 +127,7 @@ func NewNode() *Node {
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
 
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
-		BestPeerProvider:       hub,
+		PeerProvider:       hub,
 		NodeStatusDataProvider: org,
 		Hub:        hub,
 		Downloader: downloaderInstance,

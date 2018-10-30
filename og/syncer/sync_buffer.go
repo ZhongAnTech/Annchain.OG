@@ -20,6 +20,7 @@ type SyncBuffer struct {
 	Seq            *types.Sequencer
 	mu             sync.RWMutex
 	txPool         og.ITxPool
+	dag            og.IDag
 	acceptTxs      uint32
 	quitHandel     bool
 	formatVerifier og.Verifier
@@ -30,11 +31,13 @@ type SyncBufferConfig struct {
 	TxPool         og.ITxPool
 	FormatVerifier og.Verifier
 	GraphVerifier  og.Verifier
+	Dag            og.IDag
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:         txPool,
+		Dag:            dag,
 		FormatVerifier: formatVerifier,
 		GraphVerifier:  graphVerifier,
 	}
@@ -48,6 +51,7 @@ func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
 		Txs:            make(map[types.Hash]types.Txi),
 		txPool:         config.TxPool,
+		dag:            config.Dag,
 		formatVerifier: config.FormatVerifier,
 		graphVerifier:  config.GraphVerifier,
 	}
@@ -67,11 +71,6 @@ func (s *SyncBuffer) Stop() {
 func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if seq == nil {
-		err := fmt.Errorf("nil sequencer")
-		log.WithError(err).Debug("add txs error")
-		return err
-	}
 	s.Seq = seq
 	for _, tx := range txs {
 		if len(s.Txs) > MaxBufferSiza {
@@ -96,8 +95,18 @@ func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
 		s.clean()
+		if seq == nil {
+			err := fmt.Errorf("nil sequencer")
+			log.WithError(err).Debug("add txs error")
+			return err
+		}
+		if seq.Id != s.dag.LatestSequencer().Id+1 {
+			log.WithField("latests seq id ", s.dag.LatestSequencer().Id).WithField("seq id", seq.Id).Warn("id mismatch")
+			return nil
+		}
 		err := s.addTxs(txs, seq)
 		if err != nil {
+			log.WithError(err).Debug("add txs error")
 			return err
 		}
 		return s.Handle()

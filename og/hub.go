@@ -64,20 +64,13 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 	}
 }
 
-type ISyncBuffer interface {
-	AddTxs(txs []types.Txi, seq *types.Sequencer) error
-}
-
-type ITxBuffer interface {
-	AddTx(tx types.Txi)
-	AddTxs(seq *types.Sequencer, txs types.Txs)
-}
-
 type NodeStatusDataProvider interface {
 	GetCurrentNodeStatus() StatusData
 }
-type BestPeerProvider interface {
+
+type PeerProvider interface {
 	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
+	GetPeerHead (peerId string )(hash types.Hash, seqId uint64, err error)
 }
 
 type HubConfig struct {
@@ -386,6 +379,16 @@ func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err 
 		return
 	}
 	err = fmt.Errorf("no best peer")
+	return
+}
+
+func ( h*Hub)GetPeerHead(peerId string )( hash types.Hash, seqId uint64, err error) {
+     p:= h.peers.Peer(peerId)
+     if p!=nil {
+		 hash, seqId = p.Head()
+		 return
+	 }
+	err = fmt.Errorf("no such peer")
 	return
 }
 

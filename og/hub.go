@@ -322,7 +322,7 @@ func (h *Hub) loopReceive() {
 			// check duplicates
 			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
 				// already there
-				log.WithField("hash", m.hash).WithField("type", m.MessageType.String()).
+				msgLog.WithField("from ",m.SourceID).WithField("hash", m.hash).WithField("type", m.MessageType.String()).
 					Debug("we have a duplicate message. Discard")
 				continue
 			}
@@ -339,7 +339,7 @@ func (h *Hub) loopReceive() {
 func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
-	log.WithField("type", messageType).Debug("sending message")
+	msgLog.WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
 
@@ -347,7 +347,7 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
 	msgOut.BroadCastToRandom = true
-	log.WithField("type", messageType).Debug("sending message")
+	msgLog.WithField("type", messageType).Debug("unicast message")
 	h.outgoing <- msgOut
 }
 
@@ -438,10 +438,10 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 		}
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		log.WithField("type", msg.MessageType.String()).Debug("Received a message")
+		msgLog.WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)
 	} else {
-		log.WithField("type", msg.MessageType).Debug("Received an Unknown message")
+		msgLog.WithField("type", msg.MessageType).Debug("Received an Unknown message")
 	}
 }
 

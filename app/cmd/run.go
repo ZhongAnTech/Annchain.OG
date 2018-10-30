@@ -40,6 +40,7 @@ var runCmd = &cobra.Command{
 		//fmt.Println(viper.GetString("title"))
 		//fmt.Println(viper.GetStringSlice("database.ports"))
 		//fmt.Println(viper.Get("clients.data"))
+		node.InitLoggers(log.StandardLogger(),viper.GetString("log_dir"))
 		log.Info("Node Starting")
 		node := node.NewNode()
 		node.Start()

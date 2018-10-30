@@ -77,6 +77,15 @@ type P2PMessage struct {
 
 func (m *P2PMessage) calculateHash() {
 	// TODO: implement hash for message
+	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
+	//for request ,if source id is different they were diffferent msg ,don't drop it
+	data := m.Message
+	if m.MessageType == MessageTypeBodiesRequest ||m.MessageType == MessageTypeFetchByHashRequest ||
+		m.MessageType ==MessageTypeTxsRequest || m.MessageType ==MessageTypeHeaderRequest ||
+		m.MessageType ==MessageTypeSequencerHeader {
+			data = append(data,[]byte(m.SourceID+"hi")...)
+	}
+
 	h := sha256.New()
 	h.Write(m.Message)
 	sum := h.Sum(nil)

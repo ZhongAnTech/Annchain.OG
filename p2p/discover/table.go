@@ -26,6 +26,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	mrand "math/rand"
 	"net"
 	"sort"
@@ -35,7 +36,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -323,7 +323,7 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 		tab.db.updateFindFails(n.ID, fails)
 		//log.WithError(err).WithFields(log.Fields{"id": n.ID, "failcount": fails}).Debug("findnode failed")
 		if fails >= maxFindnodeFailures {
-			log.WithError(err).WithFields(log.Fields{"id": n.ID, "failcount": fails}).Debug("too many findnode failures, dropping")
+			log.WithError(err).WithFields(logrus.Fields{"id": n.ID, "failcount": fails}).Debug("too many findnode failures, dropping")
 			tab.delete(n)
 		}
 	} else if fails > 0 {
@@ -442,7 +442,7 @@ func (tab *Table) loadSeedNodes() {
 	for i := range seeds {
 		seed := seeds[i]
 		age := time.Since(tab.db.lastPongReceived(seed.ID))
-		log.WithFields(log.Fields{"id": seed.ID, "addr": seed.addr(), "age": age}).Debug("found seed node in database")
+		log.WithFields(logrus.Fields{"id": seed.ID, "addr": seed.addr(), "age": age}).Debug("found seed node in database")
 		tab.add(seed)
 	}
 }
@@ -466,16 +466,16 @@ func (tab *Table) doRevalidate(done chan<- struct{}) {
 	b := tab.buckets[bi]
 	if err == nil {
 		// The node responded, move it to the front.
-		log.WithFields(log.Fields{"b": bi, "id": last.ID}).Debug("revalidated node")
+		log.WithFields(logrus.Fields{"b": bi, "id": last.ID}).Debug("revalidated node")
 		b.bump(last)
 		return
 	}
 	// No reply received, pick a replacement or delete the node if there aren't
 	// any replacements.
 	if r := tab.replace(b, last); r != nil {
-		log.WithFields(log.Fields{"b": bi, "id": last.ID, "ip": last.IP, "r": r.ID, "rip": r.IP}).Debug("replaced dead node")
+		log.WithFields(logrus.Fields{"b": bi, "id": last.ID, "ip": last.IP, "r": r.ID, "rip": r.IP}).Debug("replaced dead node")
 	} else {
-		log.WithFields(log.Fields{"b": bi, "id": last.ID, "ip": last.IP}).Debug("removed dead node")
+		log.WithFields(logrus.Fields{"b": bi, "id": last.ID, "ip": last.IP}).Debug("removed dead node")
 	}
 }
 

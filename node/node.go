@@ -25,6 +25,12 @@ type Node struct {
 	Components []Component
 }
 
+func InitLoggers(logger * logrus.Logger ,logdir string ) {
+	downloader.InitLoggers(logger,logdir)
+	p2p.InitLoggers(logger,logdir)
+	og.InitLoggers(logger,logdir)
+}
+
 func NewNode() *Node {
 	n := new(Node)
 	// Order matters.

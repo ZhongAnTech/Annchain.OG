@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -155,7 +155,7 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 
 	log.Debug("Registering sync peer")
 	if err := d.peers.Register(newPeerConnection(id, version, peer)); err != nil {
-		log.WithError(err).Error("Failed to register sync peer")
+		log.WithField("id ", id ).WithError(err).Error("Failed to register sync peer")
 		return err
 	}
 	d.qosReduceConfidence()
@@ -169,9 +169,9 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 func (d *Downloader) UnregisterPeer(id string) error {
 	// Unregister the peer from the active peer set and revoke any fetch tasks
 
-	log.Debug("Unregistering sync peer")
+	log.WithField("id ",id).Debug("Unregistering sync peer")
 	if err := d.peers.Unregister(id); err != nil {
-		log.WithError(err).Error("Failed to unregister sync peer")
+		log.WithField("id ",id).WithError(err).Error("Failed to unregister sync peer")
 		return err
 	}
 	d.queue.Revoke(id)
@@ -204,7 +204,6 @@ func (d *Downloader) Synchronise(id string, head types.Hash, seqId uint64, mode 
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 			log.WithField("peer", id).Warn("Downloader wants to drop peer, but peerdrop-function is not set")
 		} else {
-			d.UnregisterPeer(id)
 			d.dropPeer(id)
 		}
 	default:
@@ -734,7 +733,6 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			// Header retrieval timed out, consider the peer bad and drop
 			log.WithField("elapsed", ttl).Debug("Header request timed out")
 			headerTimeoutMeter.Mark(1)
-			d.UnregisterPeer(p.id)
 			d.dropPeer(p.id)
 
 			// Finish the sync gracefully instead of dumping the gathered data though
@@ -932,7 +930,6 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 							// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
 							log.WithField("peer", pid).Warn("Downloader wants to drop peer, but peerdrop-function is not set")
 						} else {
-							d.UnregisterPeer(pid)
 							d.dropPeer(pid)
 						}
 					}
@@ -1134,7 +1131,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 		"Inserting downloaded txs")
 
 	for _, result := range results {
-		log.WithField("len txs", len(results[0].Transactions)).WithField("seq", results[0].Sequencer).Debug("Inserting downloaded txs")
+		log.WithField("len txs", len(result.Transactions)).WithField("seq", result.Sequencer).Debug("Inserting downloaded txs")
 		//todo  fix this
 		err := d.insertTxs(result.Sequencer, result.Transactions)
 		if err != nil {
@@ -1254,7 +1251,7 @@ func (d *Downloader) qosTuner() {
 		atomic.StoreUint64(&d.rttConfidence, conf)
 
 		// Log the new QoS values and sleep until the next RTT
-		log.WithFields(log.Fields{
+		log.WithFields(logrus.Fields{
 			"rtt":        rtt,
 			"confidence": float64(conf) / 1000000.0,
 			"ttl":        d.requestTTL(),
@@ -1293,7 +1290,7 @@ func (d *Downloader) qosReduceConfidence() {
 	atomic.StoreUint64(&d.rttConfidence, conf)
 
 	rtt := time.Duration(atomic.LoadUint64(&d.rttEstimate))
-	log.WithFields(log.Fields{
+	log.WithFields(logrus.Fields{
 		"rtt":        rtt,
 		"confidence": float64(conf) / 1000000.0,
 		"ttl":        d.requestTTL(),

@@ -28,7 +28,6 @@ import (
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 var (

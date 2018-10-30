@@ -4,8 +4,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 )
+
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
@@ -14,10 +14,10 @@ type IncomingMessageHandler struct {
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
-	logrus.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
+	msgLog.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
 
 	if len(syncRequest.Hashes) == 0 {
-		logrus.Debug("empty MessageSyncRequest")
+		msgLog.Debug("empty MessageSyncRequest")
 		return
 	}
 
@@ -43,16 +43,16 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.Mess
 	}
 	data, err := syncResponse.MarshalMsg(nil)
 	if err != nil {
-		logrus.Error("failed to marshall MessageSyncResponse message")
+		msgLog.Error("failed to marshall MessageSyncResponse message")
 		return
 	}
 
-	logrus.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
+	msgLog.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
 	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, data)
 }
 
 func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerId string) {
-	logrus.WithField("q", headerMsg).Debug("received MessageHeaderResponse")
+	msgLog.WithField("q", headerMsg).Debug("received MessageHeaderResponse")
 	headers := headerMsg.Sequencers
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
 	seqHeaders := types.SeqsToHeaders(headers)
@@ -66,18 +66,18 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	if len(seqHeaders) > 0 || !filter {
 		err := h.Hub.Downloader.DeliverHeaders(peerId, seqHeaders)
 		if err != nil {
-			logrus.Debug("Failed to deliver headers", "err", err)
+			msgLog.Debug("Failed to deliver headers", "err", err)
 		}
 	}
-	logrus.WithField("header lens", len(seqHeaders)).Debug("heandle MessageTypeHeaderResponse")
+	msgLog.WithField("header lens", len(seqHeaders)).Debug("heandle MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {
-	logrus.WithField("q", query).Debug("received MessageHeaderRequest")
+	msgLog.WithField("from",peerId).WithField("q", query).Debug("received MessageHeaderRequest")
 
 	hashMode := !query.Origin.Hash.Empty()
 	first := true
-	logrus.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
+	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
 		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Debug("requests")
 	// Gather headers until the fetch or network limits is reached
 	var (
@@ -126,7 +126,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 				next    = current + query.Skip + 1
 			)
 			if next <= current {
-				logrus.Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", peerId)
+				msgLog.Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", peerId)
 				unknown = true
 			} else {
 				if header := h.Og.Dag.GetSequencerById(next); header != nil {
@@ -160,17 +160,17 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 		Sequencers: headers,
 	}
 	data, _ := msgRes.MarshalMsg(nil)
-	logrus.WithField("len ", len(msgRes.Sequencers)).Debug("send MessageTypeGetHeader")
+	msgLog.WithField("to ", peerId).WithField("len ", len(msgRes.Sequencers)).Debug("send MessageTypeGetHeader")
 
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, data)
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
-	logrus.Debug("received MessageTxsResponse")
+	msgLog.Debug("received MessageTxsResponse")
 	if request.Sequencer != nil {
-		logrus.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
+		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
 	} else {
-		logrus.Warn("got nil sequencer")
+		msgLog.Warn("got nil sequencer")
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsRespo
 }
 
 func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest, peerId string) {
-	logrus.WithField("q", msgReq).Debug("received MessageTxsRequest")
+	msgLog.WithField("from ",peerId).WithField("q", msgReq).Debug("received MessageTxsRequest")
 
 	var msgRes types.MessageTxsResponse
 
@@ -197,15 +197,15 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 	if seq != nil {
 		msgRes.Txs = h.Og.Dag.GetTxsByNumber(seq.Id)
 	} else {
-		logrus.WithField("id ", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
+		msgLog.WithField("id ", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
 	data, _ := msgRes.MarshalMsg(nil)
-	logrus.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
+	msgLog.WithField("txs num ", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
 	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, data)
 }
 
 func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodiesResponse, peerId string) {
-	logrus.WithField("q", request.String()).Debug("received MessageBodiesResponse")
+	msgLog.WithField("from ",peerId).WithField("q", request.String()).Debug("received MessageBodiesResponse")
 
 	// Deliver them all to the downloader for queuing
 	transactions := make([][]*types.Tx, len(request.Bodies))
@@ -214,17 +214,17 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 		var body types.MessageTxsResponse
 		_, err := body.UnmarshalMsg(bodyData)
 		if err != nil {
-			logrus.WithError(err).Warn("decode error")
+			msgLog.WithError(err).Warn("decode error")
 			break
 		}
 		if body.Sequencer == nil {
-			logrus.Warn(" body.Sequencer is nil")
+			msgLog.Warn(" body.Sequencer is nil")
 			break
 		}
 		transactions[i] = body.Txs
 		sequencers[i] = body.Sequencer
 	}
-	logrus.WithField("bodies len", len(request.Bodies)).Debug("got bodies")
+	msgLog.WithField("bodies len", len(request.Bodies)).Debug("got bodies")
 
 	// Filter out any explicitly requested bodies, deliver the rest to the downloader
 	filter := len(transactions) > 0 || len(sequencers) > 0
@@ -233,33 +233,33 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 	//	transactions = h.Og.fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
 	//}
 	if len(transactions) > 0 || len(sequencers) > 0 || !filter {
-		logrus.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
+		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
 		err := h.Hub.Downloader.DeliverBodies(peerId, transactions, sequencers)
 		if err != nil {
-			logrus.Debug("Failed to deliver bodies", "err", err)
+			msgLog.Debug("Failed to deliver bodies", "err", err)
 		}
 	}
-	logrus.Debug("handle MessageTypeBodiesResponse")
+	msgLog.Debug("handle MessageTypeBodiesResponse")
 	return
 }
 
 func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerId string) {
-	logrus.WithField("len ", len(msgReq.SeqHashes)).Debug("received MessageBodiesRequest")
+	msgLog.WithField("from ",peerId ).WithField("len ", len(msgReq.SeqHashes)).Debug("received MessageBodiesRequest")
 	var msgRes types.MessageBodiesResponse
 	var bytes int
 
 	for i := 0; i < len(msgReq.SeqHashes); i++ {
 		seq := h.Og.Dag.GetSequencerByHash(msgReq.SeqHashes[i])
 		if seq == nil {
-			logrus.Warn("seq is nil")
+			msgLog.Warn("seq is nil")
 			break
 		}
 		if bytes >= softResponseLimit {
-			logrus.Debug("reached softResponseLimit ")
+			msgLog.Debug("reached softResponseLimit ")
 			break
 		}
 		if len(msgRes.Bodies) >= downloader.MaxBlockFetch {
-			logrus.Debug("reached MaxBlockFetch 128 ")
+			msgLog.Debug("reached MaxBlockFetch 128 ")
 			break
 		}
 		var body types.MessageTxsResponse
@@ -270,12 +270,12 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))
 	}
 	data, _ := msgRes.MarshalMsg(nil)
-	logrus.WithField("bodies num ", len(msgRes.Bodies)).Debug("send MessageTypeBodiesResponse")
+	msgLog.WithField("to ",peerId).WithField("bodies num ", len(msgRes.Bodies)).Debug("send MessageTypeBodiesResponse")
 	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, data)
 }
 
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
-	logrus.WithField("q", msgHeader.String()).Debug("received MessageSequencerHeader")
+	msgLog.WithField("from ", peerId).WithField("q", msgHeader.String()).Debug("received MessageSequencerHeader")
 	if msgHeader.Hash == nil {
 		return
 	}
@@ -297,28 +297,28 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSe
 }
 
 func (h *IncomingMessageHandler) HandlePing(peerId string) {
-	logrus.Debug("received your ping. Respond you a pong")
+	msgLog.Debug("received your ping. Respond you a pong")
 	h.Hub.SendToPeer(peerId, MessageTypePong, []byte{1})
 }
 
 func (h *IncomingMessageHandler) HandlePong() {
-	logrus.Debug("received your pong.")
+	msgLog.Debug("received your pong.")
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.MessageSyncResponse, sourceId string) {
-	logrus.WithField("q", syncResponse.String()).Debug("received MessageSyncResponse")
+	msgLog.WithField("from ", sourceId).WithField("q", syncResponse.String()).Debug("received MessageSyncResponse")
 	if (syncResponse.Txs == nil || len(syncResponse.Txs) == 0) &&
 		(syncResponse.Sequencers == nil || len(syncResponse.Sequencers) == 0) {
-		logrus.Debug("empty MessageSyncResponse")
+		msgLog.Debug("empty MessageSyncResponse")
 		return
 	}
 
 	for _, v := range syncResponse.Txs {
-		logrus.WithField("tx", v).WithField("peer", sourceId).Debugf("received sync response Tx")
+		msgLog.WithField("tx", v).WithField("peer", sourceId).Debugf("received sync response Tx")
 		h.Og.TxBuffer.AddRemoteTx(v)
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.WithField("seq", v).WithField("peer", sourceId).Debugf("received sync response seq")
+		msgLog.WithField("seq", v).WithField("peer", sourceId).Debugf("received sync response seq")
 		h.Og.TxBuffer.AddRemoteTx(v)
 	}
 }

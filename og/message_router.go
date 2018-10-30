@@ -3,7 +3,6 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 )
 
 // MessageRouter is a bridge between hub and components
@@ -109,7 +108,7 @@ func (m *MessageRouter) RouteFetchByHashRequest(msg *P2PMessage) {
 	syncRequest := types.MessageSyncRequest{}
 	_, err := syncRequest.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("invalid MessageSyncRequest format")
+		msgLog.Debug("invalid MessageSyncRequest format")
 		return
 	}
 
@@ -125,7 +124,7 @@ func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
 
 	_, err := syncResponse.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.Debug("invalid MessageSyncResponse format")
+		msgLog.Debug("invalid MessageSyncResponse format")
 		return
 	}
 
@@ -137,7 +136,7 @@ func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
 
 	_, err := newTx.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.WithError(err).Debug("invalid MessageNewTx format")
+		msgLog.WithError(err).Debug("invalid MessageNewTx format")
 		return
 	}
 
@@ -150,7 +149,7 @@ func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
 	newTxs := types.MessageNewTxs{}
 	_, err = newTxs.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.WithError(err).Debug("invalid MessageNewTxs format")
+		msgLog.WithError(err).Debug("invalid MessageNewTxs format")
 		return
 	}
 
@@ -160,7 +159,7 @@ func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
 	newSq := types.MessageNewSequencer{}
 	_, err := newSq.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.WithError(err).Debug("invalid NewSequence format")
+		msgLog.WithError(err).Debug("invalid NewSequence format")
 		return
 	}
 
@@ -171,7 +170,7 @@ func (m *MessageRouter) RouteSequencerHeader(msg *P2PMessage) {
 	msgHeader := types.MessageSequencerHeader{}
 	_, err := msgHeader.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.WithError(err).Debug("invalid MessageSequencerHeader format")
+		msgLog.WithError(err).Debug("invalid MessageSequencerHeader format")
 		return
 	}
 
@@ -182,7 +181,7 @@ func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
 	msgReq := types.MessageBodiesRequest{}
 	_, err := msgReq.UnmarshalMsg(msg.Message)
 	if err != nil {
-		logrus.WithError(err).Debug("invalid MessageBodiesRequest format")
+		msgLog.WithError(err).Debug("invalid MessageBodiesRequest format")
 		return
 	}
 
@@ -192,7 +191,7 @@ func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
 	// A batch of block bodies arrived to one of our previous requests
 	var request types.MessageBodiesResponse
 	if _, err := request.UnmarshalMsg(msg.Message); err != nil {
-		logrus.WithError(err).Debug("invalid MessageBodiesResponse format")
+		msgLog.WithError(err).Debug("invalid MessageBodiesResponse format")
 		return
 	}
 
@@ -202,7 +201,7 @@ func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
 	// Decode the retrieval message
 	var msgReq types.MessageTxsRequest
 	if _, err := msgReq.UnmarshalMsg(msg.Message); err != nil {
-		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
 
@@ -213,7 +212,7 @@ func (m *MessageRouter) RouteTxsResponse(msg *P2PMessage) {
 	// A batch of block bodies arrived to one of our previous requests
 	var request types.MessageTxsResponse
 	if _, err := request.UnmarshalMsg(msg.Message); err != nil {
-		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
 	m.TxsResponseHandler.HandleTxsResponse(request)
@@ -224,7 +223,7 @@ func (m *MessageRouter) RouteHeaderRequest(msg *P2PMessage) {
 	var query types.MessageHeaderRequest
 	if _, err := query.UnmarshalMsg(msg.Message); err != nil {
 		//return errResp(ErrDecode, "%v: %v", msg, err)
-		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
 
@@ -234,7 +233,7 @@ func (m *MessageRouter) RouteHeaderResponse(msg *P2PMessage) {
 	// A batch of headers arrived to one of our previous requests
 	var headerMsg types.MessageHeaderResponse
 	if _, err := headerMsg.UnmarshalMsg(msg.Message); err != nil {
-		logrus.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
+		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
 	m.HeaderResponseHandler.HandleHeaderResponse(headerMsg, msg.SourceID)

@@ -175,8 +175,8 @@ func NewNode() *Node {
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
 
-	//syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, syncer.EnableTxsEventHandler)
-	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventHandler)
+	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.EnableTxsEventListener)
+	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventListener)
 
 	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
 
@@ -244,12 +244,12 @@ func NewNode() *Node {
 		delegate,
 	)
 	n.Components = append(n.Components, autoClientManager)
-	syncManager.OnEnableTxs = append(syncManager.OnEnableTxs, autoClientManager.EnableTxsEventHandler)
+	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.EnableTxsEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
 	if org.BootstrapNode {
 		go func() {
-			autoClientManager.EnableTxsEventHandler <- true
+			autoClientManager.EnableTxsEventListener <- true
 		}()
 	}
 
@@ -291,6 +291,7 @@ func NewNode() *Node {
 		rpcServer.C.Og = org
 		// just for debugging, ignoring index OOR
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
+		rpcServer.C.SyncerManager = syncManager
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))

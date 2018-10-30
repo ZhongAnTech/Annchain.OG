@@ -19,13 +19,24 @@ const (
 	SyncStatusFull
 )
 
+func (m SyncStatus) String() string {
+	switch m {
+	case SyncStatusIncremental:
+		return "SyncStatusIncremental"
+	case SyncStatusFull:
+		return "SyncStatusFull"
+	default:
+		return "Default"
+	}
+}
+
 type SyncManager struct {
 	Hub                    *og.Hub
 	CatchupSyncer          *CatchupSyncer
 	IncrementalSyncer      *IncrementalSyncer
 	NodeStatusDataProvider og.NodeStatusDataProvider
 
-	OnEnableTxs []chan bool // listeners registered for enabling/disabling generating and receiving txs (fully synced or not)
+	OnUpToDate []chan bool // listeners registered for enabling/disabling generating and receiving txs (fully synced or not)
 
 	// moved from hub to here.
 	//fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
@@ -34,7 +45,7 @@ type SyncManager struct {
 	//forceSyncCycle uint
 	//syncFlag       uint32 //1 for is syncing
 	BootstrapNode                    bool //if bootstrap node just accept txs in starting ,no sync
-	CatchupSyncerWorkingStateChanged chan bool
+	CatchupSyncerWorkingStateChanged chan CatchupSyncerStatus
 	quitFlag                         bool
 	Status                           SyncStatus
 
@@ -61,9 +72,9 @@ func (s *SyncManager) Start() {
 	go func() {
 		// if BootstrapNode  just accept txs
 		if s.BootstrapNode {
-			s.setEnableTxs(true)
+			s.NotifyUpToDateEvent(true)
 		} else {
-			s.setEnableTxs(false)
+			s.NotifyUpToDateEvent(false)
 		}
 	}()
 }
@@ -78,9 +89,9 @@ func (s *SyncManager) Name() string {
 
 func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvider og.NodeStatusDataProvider) *SyncManager {
 	sm := &SyncManager{
-		Hub: hub,
+		Hub:                              hub,
 		NodeStatusDataProvider:           NodeStatusDataProvider,
-		CatchupSyncerWorkingStateChanged: make(chan bool),
+		CatchupSyncerWorkingStateChanged: make(chan CatchupSyncerStatus),
 		BootstrapNode:                    config.BootstrapNode,
 	}
 
@@ -98,28 +109,31 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 
 // loopSync constantly check if there is new peer connected
 func (s *SyncManager) loopSync() {
-	s.CatchupSyncer.EnableEvent <- true
 	s.IncrementalSyncer.EnableEvent <- false
+	s.CatchupSyncer.EnableEvent <- true
 	s.Status = SyncStatusFull
 
 	for !s.quitFlag {
 		// listen to either full sync or incremental sync to get something new.
 		select {
 		case status := <-s.CatchupSyncerWorkingStateChanged:
-			logrus.WithField("v", status).Info("catchup syncer working state changed")
-			s.IncrementalSyncer.EnableEvent <- status
-			if status {
+			logrus.WithField("v", status.String()).Info("catchup syncer working state changed")
+			switch status {
+			case Started:
 				s.Status = SyncStatusIncremental
-			} else {
+				s.IncrementalSyncer.EnableEvent <- true
+				s.NotifyUpToDateEvent(false)
+			case Stopped:
 				s.Status = SyncStatusFull
+				s.IncrementalSyncer.EnableEvent <- false
+				s.NotifyUpToDateEvent(true)
 			}
-			s.setEnableTxs(status)
 		}
 	}
 }
 
-func (s *SyncManager) setEnableTxs(status bool) {
-	for _, c := range s.OnEnableTxs {
-		c <- status
+func (s *SyncManager) NotifyUpToDateEvent(isUpToDate bool) {
+	for _, c := range s.OnUpToDate {
+		c <- isUpToDate
 	}
 }

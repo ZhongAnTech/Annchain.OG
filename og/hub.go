@@ -70,7 +70,7 @@ type NodeStatusDataProvider interface {
 
 type PeerProvider interface {
 	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
-	GetPeerHead (peerId string )(hash types.Hash, seqId uint64, err error)
+	GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error)
 }
 
 type HubConfig struct {
@@ -273,9 +273,13 @@ func (h *Hub) Stop() {
 	// Quit the sync loop.
 	// After this send has completed, no new peers will be accepted.
 	//h.noMorePeers <- struct{}{}
+	log.Info("quit notifying")
 	close(h.quitSync)
+	log.Info("quit notified")
 	h.peers.Close()
+	log.Info("peers closing")
 	h.wg.Wait()
+	log.Info("peers closed")
 
 	log.Info("hub stopped")
 }
@@ -382,12 +386,12 @@ func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err 
 	return
 }
 
-func ( h*Hub)GetPeerHead(peerId string )( hash types.Hash, seqId uint64, err error) {
-     p:= h.peers.Peer(peerId)
-     if p!=nil {
-		 hash, seqId = p.Head()
-		 return
-	 }
+func (h *Hub) GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error) {
+	p := h.peers.Peer(peerId)
+	if p != nil {
+		hash, seqId = p.Head()
+		return
+	}
 	err = fmt.Errorf("no such peer")
 	return
 }

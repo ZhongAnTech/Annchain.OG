@@ -8,12 +8,14 @@ import (
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
+	"github.com/annchain/OG/og/syncer"
 )
 
 type RpcController struct {
 	P2pServer      *p2p.Server
 	Og             *og.Og
 	TxBuffer       *og.TxBuffer
+	SyncerManager  *syncer.SyncManager
 	NewRequestChan chan types.TxBaseType
 }
 

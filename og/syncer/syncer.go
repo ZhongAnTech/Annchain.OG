@@ -23,7 +23,7 @@ type IncrementalSyncer struct {
 	quitLoopSync        chan bool
 	quitLoopEvent       chan bool
 	EnableEvent         chan bool
-	enabled             bool
+	Enabled             bool
 	timeoutAcquireTx    *time.Timer
 	OnNewTxiReceived    []chan types.Txi
 }
@@ -52,7 +52,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *In
 		quitLoopSync:     make(chan bool),
 		quitLoopEvent:    make(chan bool),
 		EnableEvent:      make(chan bool),
-		enabled:          false,
+		Enabled:          false,
 		timeoutAcquireTx: time.NewTimer(time.Second * 10),
 	}
 }
@@ -74,7 +74,7 @@ func (m *IncrementalSyncer) Start() {
 }
 
 func (m *IncrementalSyncer) Stop() {
-	m.enabled = false
+	m.Enabled = false
 	m.quitLoopEvent <- true
 	m.quitLoopSync <- true
 }
@@ -116,7 +116,7 @@ func (m *IncrementalSyncer) loopSync() {
 
 	for {
 		//if paused wait until resume
-		if !m.enabled {
+		if !m.Enabled {
 			select {
 			case <-m.quitLoopSync:
 				logrus.Info("syncer received quit message. Quitting...")
@@ -146,7 +146,7 @@ func (m *IncrementalSyncer) loopSync() {
 }
 
 func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
-	if !m.enabled {
+	if !m.Enabled {
 		logrus.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
 		return
 	}
@@ -185,7 +185,7 @@ func (m *IncrementalSyncer) eventLoop() {
 		select {
 		case v := <-m.EnableEvent:
 			logrus.WithField("enable", v).Info("syncer got enable event ")
-			m.enabled = v
+			m.Enabled = v
 		case <-m.quitLoopEvent:
 			logrus.Info("syncer eventLoop received quit message. Quitting...")
 			return
@@ -194,7 +194,7 @@ func (m *IncrementalSyncer) eventLoop() {
 }
 
 func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
-	if !s.enabled {
+	if !s.Enabled {
 		logrus.Debug("received tx but sync disabled")
 		return
 	}
@@ -209,7 +209,7 @@ func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 }
 
 func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
-	if !s.enabled {
+	if !s.Enabled {
 		logrus.Debug("received txs but sync disabled")
 		return
 	}
@@ -228,7 +228,7 @@ func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 }
 
 func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
-	if !s.enabled {
+	if !s.Enabled {
 		logrus.Debug("received seq but sync disabled")
 		return
 	}

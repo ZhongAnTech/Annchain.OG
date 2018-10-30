@@ -50,6 +50,16 @@ def doone(host):
         d['peers'] = peers
     except Exception as e:
         d['peers'] = []
+
+    try:
+        resp = s.get('http://%s/sync_status' % host, timeout=3)
+        j = json.loads(resp.text)
+        d.update(j)
+        d['syncMode'] = d['syncMode'][10:]
+        d['catchupSyncerStatus'] = d['catchupSyncerStatus'][3:]
+    except Exception as e:
+        pass
+
     return d
 
 

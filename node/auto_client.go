@@ -67,6 +67,7 @@ func (c *AutoClient) loop() {
 
 	for {
 		if c.pause {
+			logrus.Debug("client paused")
 			select {
 			case <-time.After(time.Second):
 				continue
@@ -75,6 +76,7 @@ func (c *AutoClient) loop() {
 			}
 		}
 
+		logrus.Debug("client is working")
 		select {
 		case <-c.quit:
 			return

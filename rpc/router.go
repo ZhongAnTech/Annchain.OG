@@ -43,6 +43,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
+	router.GET("sync_status", rpc.SyncStatus)
 	return router
 
 }
@@ -59,6 +60,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"sequencer":     "",
 		"og_peers_info": "",
 		"genesis":       "",
+		"sync_status":   "",
 		// broadcast API
 		"new_transaction": "tx",
 

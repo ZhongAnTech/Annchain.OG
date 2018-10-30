@@ -25,9 +25,24 @@ const (
 	minBehindHeight = 5
 )
 
+type CatchupSyncerStatus int
+
+func (m CatchupSyncerStatus) String() string{
+	switch m {
+	case Started: return "CSSStarted"
+	case Stopped: return "CSSStopped"
+	default: return "Unknown"
+	}
+}
+
+const (
+	Started CatchupSyncerStatus = iota
+	Stopped
+)
+
 type CatchupSyncer struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
-	PeerProvider       og.PeerProvider
+	PeerProvider           og.PeerProvider
 	Hub                    *og.Hub
 
 	Downloader *downloader.Downloader
@@ -35,17 +50,17 @@ type CatchupSyncer struct {
 
 	// should be enabled until quit
 	EnableEvent chan bool
-	enabled     bool
+	Enabled     bool
 
 	quitLoopEvent chan bool
 	quit          chan bool
 
-	OnWorkingStateChanged         []chan bool
+	OnWorkingStateChanged         []chan CatchupSyncerStatus
 	OnNewTxiReceived              []chan types.Txi
 	NewPeerConnectedEventListener chan string
-	syncFlag bool
-	workState  bool
-	mu sync.RWMutex
+	syncFlag                      bool
+	WorkState                     CatchupSyncerStatus
+	mu                            sync.RWMutex
 }
 
 func (c *CatchupSyncer) Init() {
@@ -95,20 +110,20 @@ func (c *CatchupSyncer) loopSync() {
 			return
 		case peer := <-c.NewPeerConnectedEventListener:
 			logrus.WithField("peer", peer).Info("new peer connected")
-			if !c.enabled {
+			if !c.Enabled {
 				logrus.Info("catchupSyncer not enabled")
 				continue
 			}
-		   if startUp {
-                 if c.isUpToDate() {
-                       c.WorkingStateChanged(true )
-					 startUp = false
-					 continue
-				 }
-		   }
+			if startUp {
+				if c.isUpToDate() {
+					c.NotifyWorkingStateChanged(Stopped)
+					startUp = false
+					continue
+				}
+			}
 			go c.syncToLatest()
 		case <-time.After(time.Second * 15):
-			if !c.enabled {
+			if !c.Enabled {
 				logrus.Info("catchupSyncer not enabled")
 				continue
 			}
@@ -118,26 +133,26 @@ func (c *CatchupSyncer) loopSync() {
 	}
 }
 
-
-func ( c*CatchupSyncer)isSyncing ()bool {
+func (c *CatchupSyncer) isSyncing() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.syncFlag
 }
+
 //getWorkState
-func ( c*CatchupSyncer)getWorkState ()bool {
+func (c *CatchupSyncer) getWorkState() CatchupSyncerStatus {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.workState
+	return c.WorkState
 }
 
-func ( c*CatchupSyncer)setSyncFlag() {
+func (c *CatchupSyncer) setSyncFlag() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	 c.syncFlag = true
+	c.syncFlag = true
 }
 
-func ( c*CatchupSyncer)unsetSyncFlag() {
+func (c *CatchupSyncer) unsetSyncFlag() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.syncFlag = false
@@ -153,9 +168,9 @@ func (c *CatchupSyncer) syncToLatest() error {
 	didSync := false
 	//get best peer ,and sync with this peer until we catchup
 	bpId, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
-	if err!=nil {
+	if err != nil {
 		logrus.WithError(err).Warn("picking up best peer")
-		return  err
+		return err
 	}
 	for {
 		ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
@@ -168,7 +183,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 			if seqId < ourId+maxBehindHeight {
 				break
 			}
-			c.WorkingStateChanged(false )
+			c.NotifyWorkingStateChanged(Started)
 		}
 		logrus.WithField("peerId", bpId).WithField("seq", seqId).
 			Debug("sync with best peer")
@@ -179,13 +194,13 @@ func (c *CatchupSyncer) syncToLatest() error {
 			return err
 		}
 		bpHash, seqId, err = c.PeerProvider.GetPeerHead(bpId)
-		if err!=nil {
+		if err != nil {
 			logrus.WithError(err).Warn("sync failed")
 			return err
 		}
 	}
-	if !c.getWorkState() {
-		c.WorkingStateChanged(true)
+	if c.getWorkState() == Started {
+		c.NotifyWorkingStateChanged(Stopped)
 	}
 	return nil
 }
@@ -215,7 +230,7 @@ func (c *CatchupSyncer) eventLoop() {
 		select {
 		case v := <-c.EnableEvent:
 			logrus.WithField("enable", v).Info("syncer got enable event ")
-			c.enabled = v
+			c.Enabled = v
 		case <-c.quitLoopEvent:
 			logrus.Info("syncer eventLoop received quit message. Quitting...")
 			return
@@ -223,12 +238,12 @@ func (c *CatchupSyncer) eventLoop() {
 	}
 }
 
-//WorkingStateChanged if starts status is true ,stops status is  false
-func (c *CatchupSyncer) WorkingStateChanged(status bool) {
+//NotifyWorkingStateChanged if starts status is true ,stops status is  false
+func (c *CatchupSyncer) NotifyWorkingStateChanged(status CatchupSyncerStatus) {
 	for _, ch := range c.OnWorkingStateChanged {
 		ch <- status
 	}
 	c.mu.Lock()
-	defer  c.mu.Unlock()
-	c.workState = status
+	defer c.mu.Unlock()
+	c.WorkState = status
 }

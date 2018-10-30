@@ -6,19 +6,20 @@ import (
 	"github.com/spf13/viper"
 	"sync"
 	"time"
+	"github.com/sirupsen/logrus"
 )
 
 type AutoClientManager struct {
-	Clients               []*AutoClient
-	SampleAccounts        []account.SampleAccount
-	EnableTxsEventHandler chan bool
-	stop                  bool
-	wg                    sync.WaitGroup
+	Clients                []*AutoClient
+	SampleAccounts         []account.SampleAccount
+	EnableTxsEventListener chan bool
+	stop                   bool
+	wg                     sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
-	m.EnableTxsEventHandler = make(chan bool)
+	m.EnableTxsEventListener = make(chan bool)
 	m.SampleAccounts = core.GetSampleAccounts()
 
 	// to make sure we have only one sequencer
@@ -82,11 +83,13 @@ func (c *AutoClientManager) eventLoop() {
 	defer c.wg.Done()
 	for !c.stop {
 		select {
-		case v := <-c.EnableTxsEventHandler:
+		case v := <-c.EnableTxsEventListener:
 			for _, client := range c.Clients {
 				if !v {
+					logrus.Info("pausing client")
 					client.Pause()
 				} else {
+					logrus.Info("resuming client")
 					client.Resume()
 				}
 			}

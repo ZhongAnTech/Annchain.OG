@@ -207,7 +207,7 @@ func initLogger() {
 		))
 	}
 	logrus.Debug("Logger initialized.")
-	mylog.InitLoggers()
+	mylog.InitLoggers(logrus.StandardLogger())
 
 }
 

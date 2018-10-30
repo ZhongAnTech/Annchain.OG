@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 	"sync"
 	"time"

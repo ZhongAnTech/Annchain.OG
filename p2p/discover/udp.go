@@ -22,13 +22,13 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
-	log "github.com/sirupsen/logrus"
 )
 
 // Errors
@@ -324,7 +324,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 			nreceived++
 			n, err := t.nodeFromRPC(toaddr, rn)
 			if err != nil {
-				log.WithFields(log.Fields{"ip": rn.IP, "addr": toaddr, "udp": rn.UDP}).
+				log.WithFields(logrus.Fields{"ip": rn.IP, "addr": toaddr, "udp": rn.UDP}).
 					WithError(err).
 					Debug("Invalid neighbor node received")
 				continue

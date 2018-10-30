@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/mclock"
@@ -28,13 +29,14 @@ import (
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
-	log "github.com/sirupsen/logrus"
 
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 )
+
+
 
 const (
 	defaultDialTimeout = 15 * time.Second
@@ -140,8 +142,7 @@ type Config struct {
 	// whenever a message is sent to or received from a peer
 	EnableMsgEvents bool
 
-	// Logger is a custom logger to use with the p2p.Server.
-	Logger log.Logger `toml:",omitempty"`
+
 }
 
 // Server manages all peer connections.
@@ -715,7 +716,7 @@ running:
 					//p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				log.WithFields(log.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers) + 1}).
+				log.WithFields(logrus.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers) + 1}).
 					Debug("Adding p2p peer")
 				go srv.runPeer(p)
 				peers[c.id] = p
@@ -735,7 +736,7 @@ running:
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
 			d := common.PrettyDuration(mclock.Now() - pd.created)
-			log.WithFields(log.Fields{"duration": d, "peers": len(peers) - 1, "req": pd.requested}).
+			log.WithFields(logrus.Fields{"duration": d, "peers": len(peers) - 1, "req": pd.requested}).
 				WithError(pd.err).
 				Debug("Removing p2p peer")
 			delete(peers, pd.ID())
@@ -956,10 +957,10 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	var err error
 	log.WithField("c", c.fd.RemoteAddr()).Info("setupConn")
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
-		log.WithError(err).WithFields(log.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
+		log.WithError(err).WithFields(logrus.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
 		return err
 	}
-	clog := log.Fields{"id": c.id, "addr": c.fd.RemoteAddr(), "conn": c.flags}
+	clog := logrus.Fields{"id": c.id, "addr": c.fd.RemoteAddr(), "conn": c.flags}
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
 		log.WithField("want", dialDest.ID).WithField("actual", c).Debug("Dialed identity mismatch")

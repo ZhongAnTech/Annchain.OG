@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"sort"
 	"sync"

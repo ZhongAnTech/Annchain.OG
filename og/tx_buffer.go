@@ -175,7 +175,7 @@ loop:
 		select {
 		case <-b.timeoutAddLocalTx.C:
 			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx remote")
-		case b.selfGeneratedNewTxChan <- tx:
+		case b.ReceivedNewTxChan <- tx:
 			break loop
 		}
 	}

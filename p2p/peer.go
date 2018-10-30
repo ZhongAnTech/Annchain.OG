@@ -27,7 +27,6 @@ import (
 
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
-	log "github.com/sirupsen/logrus"
 )
 
 var (

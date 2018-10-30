@@ -2,7 +2,6 @@ package mylog
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
@@ -21,7 +20,7 @@ func panicIfError(err error, message string) {
 	}
 }
 
-func initLogger(logdir string, outputFile string, stdout bool, level logrus.Level) *logrus.Logger {
+func InitLogger(logger *logrus.Logger , logdir string, outputFile string) *logrus.Logger {
 	var writer io.Writer
 
 	if logdir != "" {
@@ -44,31 +43,17 @@ func initLogger(logdir string, outputFile string, stdout bool, level logrus.Leve
 		fmt.Println("Will be logged to stdout")
 		writer = io.MultiWriter(os.Stdout, logrus.StandardLogger().Writer())
 	}
-
-	Formatter := new(logrus.TextFormatter)
-	Formatter.ForceColors = stdout
-	//Formatter.DisableColors = true
-	Formatter.TimestampFormat = "2006-01-02 15:04:05.000000"
-	Formatter.FullTimestamp = true
-
-	logger := &logrus.Logger{
-		Level:     level,
-		Formatter: Formatter,
+	 return  &logrus.Logger{
+		Level:     logger.Level,
+		Formatter: logger.Formatter,
 		Out:       writer,
+		Hooks:logger.Hooks,
 	}
-
-	lineNum := viper.GetBool("log_line_number")
-	if lineNum {
-		filenameHook := filename.NewHook()
-		filenameHook.Field = "line"
-		logrus.AddHook(filenameHook)
-	}
-	return logger
 }
 
-func InitLoggers() {
+func InitLoggers( logger *logrus.Logger) {
 	logdir := viper.GetString("datadir")
-	TxLogger = initLogger(logdir, "tx.log", true, logrus.DebugLevel)
-
+	TxLogger = InitLogger(logger,logdir, "tx.log",)
 	logrus.Debug("Additional logger initialized.")
 }
+

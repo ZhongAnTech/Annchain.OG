@@ -7,16 +7,19 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/common/math"
+	log "github.com/sirupsen/logrus"
 )
 
 type StateDBConfig struct {
-	FlushTimer	time.Duration
-	PurgeTimer	time.Duration
+	FlushTimer		time.Duration
+	PurgeTimer		time.Duration
+	BeatExpireTime	time.Duration
 }
 func DefaultStateDBConfig() StateDBConfig {
 	return StateDBConfig{
 		FlushTimer: time.Duration(5000),
 		PurgeTimer: time.Duration(10000),
+		BeatExpireTime: time.Duration(10 * time.Minute),
 	}
 }
 
@@ -103,18 +106,35 @@ func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
 // GetState get a state from statedb. If state not exist, 
 // load it from db. 
 func (sd *StateDB) GetState(addr types.Address) *State {
-	sd.mu.RLock()
-	defer sd.mu.RUnlock()
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
 
 	return sd.getState(addr)
 }
 func (sd *StateDB) getState(addr types.Address) *State {
-	state := sd.states[addr]
-	if state == nil {
+	state, exist := sd.states[addr]
+	if !exist {
 		state = sd.loadState(addr)
 		sd.updateState(addr, state)
 	}
 	return state
+}
+
+// DeleteState remove a state from StateDB. Return error 
+// if it fails.
+func (sd *StateDB) DeleteState(addr types.Address) error {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	return sd.deleteState(addr)
+}
+func (sd *StateDB) deleteState(addr types.Address) error {
+	_, exist := sd.states[addr]
+	if !exist {
+		return nil
+	}
+	delete(sd.states, addr)
+	return nil
 }
 
 // UpdateState set addr's state in StateDB. 
@@ -192,8 +212,15 @@ func (sd *StateDB) loadState(addr types.Address) *State {
 
 // flush tries to save those dirty data to disk db.
 func (sd *StateDB) flush() {
-	// TODO
-
+	for addr, _ := range sd.dirtyset {
+		state, exist := sd.states[addr]
+		if !exist {
+			log.Warnf("can't find dirty state in StateDB, addr: %s", addr.String())
+			continue
+		}
+		sd.accessor.SaveState(addr, state)
+	}
+	sd.dirtyset = make(map[types.Address]struct{})
 }
 
 // purge tries to remove all the state that haven't sent any beat 
@@ -201,8 +228,15 @@ func (sd *StateDB) flush() {
 // 
 // Note that dirty states will not be removed.
 func (sd *StateDB) purge() {
-	// TODO
-
+	for addr, lastbeat := range sd.beats {
+		// skip dirty states
+		if _, in := sd.dirtyset[addr]; in {
+			continue
+		}
+		if time.Since(lastbeat) > sd.conf.BeatExpireTime {
+			sd.deleteState(addr)
+		}
+	}
 }
 
 // refreshbeat update the beat time of an address.
@@ -226,10 +260,14 @@ func (sd *StateDB) loop() {
 			return
 
 		case <-flushTimer.C:
+			sd.mu.Lock()
 			sd.flush()
+			sd.mu.Unlock()
 
 		case <-purgeTimer.C:
+			sd.mu.Lock()
 			sd.purge()
+			sd.mu.Unlock()
 
 		}
 	}

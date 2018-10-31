@@ -388,6 +388,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			logrus.WithField("hash", parentHash).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 
+			// TODO: identify if this tx is already synced
 			if !b.isCachedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.

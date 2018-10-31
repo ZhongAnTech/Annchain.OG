@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/ffchan"
 )
 
 type SyncManagerConfig struct {
@@ -109,8 +110,11 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 
 // loopSync constantly check if there is new peer connected
 func (s *SyncManager) loopSync() {
-	s.IncrementalSyncer.EnableEvent <- false
-	s.CatchupSyncer.EnableEvent <- true
+	<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "timeoutAcquireTx", 1000).C
+	<-ffchan.NewTimeoutSender(s.CatchupSyncer.EnableEvent, true, "timeoutAcquireTx", 1000).C
+
+	//s.IncrementalSyncer.EnableEvent <- false
+	//s.CatchupSyncer.EnableEvent <- true
 	s.Status = SyncStatusFull
 
 	for !s.quitFlag {
@@ -136,6 +140,7 @@ func (s *SyncManager) loopSync() {
 
 func (s *SyncManager) NotifyUpToDateEvent(isUpToDate bool) {
 	for _, c := range s.OnUpToDate {
+
 		c <- isUpToDate
 	}
 }

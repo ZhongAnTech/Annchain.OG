@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/ffchan"
 )
 
 const (
@@ -27,11 +28,14 @@ const (
 
 type CatchupSyncerStatus int
 
-func (m CatchupSyncerStatus) String() string{
+func (m CatchupSyncerStatus) String() string {
 	switch m {
-	case Started: return "CSSStarted"
-	case Stopped: return "CSSStopped"
-	default: return "Unknown"
+	case Started:
+		return "CSSStarted"
+	case Stopped:
+		return "CSSStopped"
+	default:
+		return "Unknown"
 	}
 }
 
@@ -76,8 +80,10 @@ func (c *CatchupSyncer) Start() {
 }
 
 func (c *CatchupSyncer) Stop() {
-	c.quit <- true
-	c.quitLoopEvent <- true
+	<-ffchan.NewTimeoutSender(c.quit, true, "catchupSyncerQuit", 1000).C
+	<-ffchan.NewTimeoutSender(c.quitLoopEvent, true, "catchupSyncerQuitLoopEvent", 1000).C
+	//c.quit <- true
+	//c.quitLoopEvent <- true
 }
 
 func (CatchupSyncer) Name() string {
@@ -185,7 +191,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 			}
 			c.NotifyWorkingStateChanged(Started)
 		}
-		logrus.WithField("peerId", bpId).WithField("seq", seqId).
+		logrus.WithField("peerId", bpId).WithField("seq", seqId).WithField("ourId", ourId).
 			Debug("sync with best peer")
 
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
@@ -240,10 +246,11 @@ func (c *CatchupSyncer) eventLoop() {
 
 //NotifyWorkingStateChanged if starts status is true ,stops status is  false
 func (c *CatchupSyncer) NotifyWorkingStateChanged(status CatchupSyncerStatus) {
+	c.WorkState = status
 	for _, ch := range c.OnWorkingStateChanged {
-		ch <- status
+		<-ffchan.NewTimeoutSender(ch, status, "NotifyWorkingStateChanged", 1000).C
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.WorkState = status
+
 }

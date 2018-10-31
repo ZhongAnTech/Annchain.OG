@@ -14,6 +14,7 @@ type SyncStatus struct {
 	Height                   uint64 `json:"height"`
 	LatestHeight             uint64 `json:"latestHeight"`
 	BestPeer                 string `json:"bestPeer"`
+	Error                    string `json:"error"`
 }
 
 //Status node status
@@ -26,13 +27,16 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 		CatchupSyncerStatus:      r.SyncerManager.CatchupSyncer.WorkState.String(),
 		CatchupSyncerEnabled:     r.SyncerManager.CatchupSyncer.Enabled,
 		IncrementalSyncerEnabled: r.SyncerManager.IncrementalSyncer.Enabled,
-		Height: r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
+		Height:                  r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
 	}
 
 	peerId, _, seqId, err := r.SyncerManager.Hub.BestPeerInfo()
-	if err == nil {
+	if err != nil {
+		status.Error = err.Error()
+	} else {
 		status.LatestHeight = seqId
 		status.BestPeer = peerId
+
 	}
 
 	cors(c)

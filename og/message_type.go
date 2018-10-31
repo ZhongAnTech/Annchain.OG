@@ -17,7 +17,7 @@ const (
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 var ProtocolName = "og"
 
-// ProtocolVersions are the upported versions of the og protocol (first is primary).
+// ProtocolVersions are the supported versions of the og protocol (first is primary).
 var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
@@ -70,19 +70,21 @@ type P2PMessage struct {
 	Message           []byte
 	hash              types.Hash //inner use to avoid resend a message to the same peer
 	needCheckRepeat   bool
-	SourceID          string // the source that this messeage coming from
-	BroadCastToRandom bool   //just brodcast to random peer
+	SourceID          string // the source that this message  coming from
+	BroadCastToRandom bool   //just broadcast to random peer
 	Version           int    // peer version.
 }
 
 func (m *P2PMessage) calculateHash() {
 	// TODO: implement hash for message
 	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
-	//for request ,if source id is different they were diffferent msg ,don't drop it
+	//for request ,if source id is different they were different  msg ,don't drop it
+	//if we dropped header response because of duplicate , header request will time out
 	data := m.Message
 	if m.MessageType == MessageTypeBodiesRequest ||m.MessageType == MessageTypeFetchByHashRequest ||
 		m.MessageType ==MessageTypeTxsRequest || m.MessageType ==MessageTypeHeaderRequest ||
-		m.MessageType ==MessageTypeSequencerHeader {
+		m.MessageType ==MessageTypeSequencerHeader || m.MessageType ==MessageTypeHeaderResponse ||
+		m.MessageType ==MessageTypeBodiesResponse {
 			data = append(data,[]byte(m.SourceID+"hi")...)
 	}
 

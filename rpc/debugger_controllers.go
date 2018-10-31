@@ -28,7 +28,7 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 	}
 
 	peerId, _, seqId, err := r.SyncerManager.Hub.BestPeerInfo()
-	if err != nil {
+	if err == nil {
 		status.LatestHeight = seqId
 		status.BestPeer = peerId
 	}

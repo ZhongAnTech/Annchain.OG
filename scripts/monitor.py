@@ -56,6 +56,8 @@ def doone(host):
         resp = s.get('http://%s/sync_status' % host, timeout=3)
         j = json.loads(resp.text)
         d.update(j)
+        d['bestPeer'] = id_host_map[d['bestPeer']][-4:]
+        d['error'] = d['error']
         d['syncMode'] = d['syncMode'][10:]
         d['catchupSyncerStatus'] = d['catchupSyncerStatus'][3:]
     except Exception as e:

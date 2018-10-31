@@ -5,10 +5,11 @@ import (
 	"strconv"
 
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
+	"github.com/annchain/OG/og/syncer"
+	"github.com/annchain/OG/ffchan"
 )
 
 type RpcController struct {
@@ -360,8 +361,10 @@ func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		r.NewRequestChan <- types.TxBaseTypeNormal
+		<- ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeNormal
 	case "2":
-		r.NewRequestChan <- types.TxBaseTypeSequencer
+		<- ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeSequencer
 	}
 }

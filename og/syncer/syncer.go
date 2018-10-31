@@ -6,6 +6,7 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"time"
+	"github.com/annchain/OG/ffchan"
 )
 
 type MessageSender interface {
@@ -75,8 +76,10 @@ func (m *IncrementalSyncer) Start() {
 
 func (m *IncrementalSyncer) Stop() {
 	m.Enabled = false
-	m.quitLoopEvent <- true
-	m.quitLoopSync <- true
+	<-ffchan.NewTimeoutSender(m.quitLoopEvent, true, "increSyncerQuitLoopEvent", 1000).C
+	<-ffchan.NewTimeoutSender(m.quitLoopSync, true, "increSyncerQuitLoopSync", 1000).C
+	//m.quitLoopEvent <- true
+	//m.quitLoopSync <- true
 }
 
 func (m *IncrementalSyncer) Name() string {
@@ -156,20 +159,7 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
 
-loop:
-	for {
-		if !m.timeoutAcquireTx.Stop() {
-			<-m.timeoutAcquireTx.C
-		}
-		m.timeoutAcquireTx.Reset(time.Second * 10)
-		select {
-		case <-m.timeoutAcquireTx.C:
-			logrus.WithField("hash", hash.String()).Warn("timeout on channel writing: acquire tx")
-		case m.acquireTxQueue <- hash:
-			break loop
-		}
-	}
-
+	<-ffchan.NewTimeoutSender(m.timeoutAcquireTx, hash, "timeoutAcquireTx", 1000).C
 }
 
 func (m *IncrementalSyncer) ClearQueue() {
@@ -184,10 +174,10 @@ func (m *IncrementalSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
-			logrus.WithField("enable", v).Info("syncer got enable event ")
+			logrus.WithField("enable", v).Info("incremental syncer got enable event ")
 			m.Enabled = v
 		case <-m.quitLoopEvent:
-			logrus.Info("syncer eventLoop received quit message. Quitting...")
+			logrus.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}
@@ -195,11 +185,11 @@ func (m *IncrementalSyncer) eventLoop() {
 
 func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 	if !s.Enabled {
-		logrus.Debug("received tx but sync disabled")
+		logrus.Debug("incremental received tx but sync disabled")
 		return
 	}
 
-	logrus.WithField("q", newTx).Debug("received MessageNewTx")
+	logrus.WithField("q", newTx).Debug("incremental received MessageNewTx")
 	if newTx.Tx == nil {
 		logrus.Debug("empty MessageNewTx")
 		return
@@ -210,10 +200,10 @@ func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 
 func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 	if !s.Enabled {
-		logrus.Debug("received txs but sync disabled")
+		logrus.Debug("incremental received txs but sync disabled")
 		return
 	}
-	logrus.WithField("q", newTxs).Debug("received MessageNewTxs")
+	logrus.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
@@ -229,10 +219,10 @@ func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 
 func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
 	if !s.Enabled {
-		logrus.Debug("received seq but sync disabled")
+		logrus.Debug("incremental received seq but sync disabled")
 		return
 	}
-	logrus.WithField("q", newSeq).Debug("received NewSequence")
+	logrus.WithField("q", newSeq).Debug("incremental received NewSequence")
 	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}

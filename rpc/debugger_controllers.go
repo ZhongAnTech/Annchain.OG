@@ -6,6 +6,7 @@ import (
 )
 
 type SyncStatus struct {
+	Id                     string  `json:"id"`
 	SyncMode                 string `json:"syncMode"`
 	CatchupSyncerStatus      string `json:"catchupSyncerStatus"`
 	CatchupSyncerEnabled     bool   `json:"catchupSyncerEnabled"`
@@ -20,6 +21,7 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 	var status SyncStatus
 
 	status = SyncStatus{
+		Id:  r.P2pServer.Self().ID.TerminalString(),
 		SyncMode:                r.SyncerManager.Status.String(),
 		CatchupSyncerStatus:     r.SyncerManager.CatchupSyncer.WorkState.String(),
 		CatchupSyncerEnabled:    r.SyncerManager.CatchupSyncer.Enabled,

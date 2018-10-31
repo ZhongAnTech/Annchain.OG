@@ -23,12 +23,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -218,9 +218,9 @@ func (p *peerConnection) setIdle(started time.Time, delivered int, throughput *f
 	*throughput = (1-measurementImpact)*(*throughput) + measurementImpact*measured
 	p.rtt = time.Duration((1-measurementImpact)*float64(p.rtt) + measurementImpact*float64(elapsed))
 
-	logrus.WithFields(logrus.Fields{
-		"hps":  p.headerThroughput, "bps": p.blockThroughput,
-		"rps":  p.receiptThroughput, "sps": p.stateThroughput,
+	log.WithFields(logrus.Fields{
+		"hps": p.headerThroughput, "bps": p.blockThroughput,
+		"rps": p.receiptThroughput, "sps": p.stateThroughput,
 		"miss": len(p.lacking), "rtt": p.rtt,
 	}).Debug("Peer throughput measurements updated")
 }

@@ -25,7 +25,6 @@ type IncrementalSyncer struct {
 	quitLoopEvent       chan bool
 	EnableEvent         chan bool
 	Enabled             bool
-	timeoutAcquireTx    *time.Timer
 	OnNewTxiReceived    []chan types.Txi
 }
 
@@ -54,7 +53,6 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *In
 		quitLoopEvent:    make(chan bool),
 		EnableEvent:      make(chan bool),
 		Enabled:          false,
-		timeoutAcquireTx: time.NewTimer(time.Second * 10),
 	}
 }
 
@@ -159,7 +157,7 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
 
-	<-ffchan.NewTimeoutSender(m.timeoutAcquireTx, hash, "timeoutAcquireTx", 1000).C
+	<-ffchan.NewTimeoutSender(m.acquireTxQueue, hash, "timeoutAcquireTx", 1000).C
 }
 
 func (m *IncrementalSyncer) ClearQueue() {

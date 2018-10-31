@@ -436,16 +436,16 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG32 {
 		if v, ok := h.CallbackRegistryOG32[msg.MessageType]; ok {
-			log.WithField("type", msg.MessageType.String()).Debug("Received a message")
+			log.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
 			v(msg)
 			return
 		}
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		msgLog.WithField("type", msg.MessageType.String()).Debug("Received a message")
+		msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)
 	} else {
-		msgLog.WithField("type", msg.MessageType).Debug("Received an Unknown message")
+		msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")
 	}
 }
 

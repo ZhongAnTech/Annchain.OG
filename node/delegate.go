@@ -8,7 +8,7 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/mylog"
+	// "github.com/annchain/OG/mylog"
 )
 
 type TxRequest struct {
@@ -79,6 +79,6 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	mylog.TxLogger.WithField("tx", txi).Info("new tx announced by me")
+	// mylog.TxLogger.WithField("tx", txi).Debug("new tx announced by me")
 	c.TxBuffer.AddTx(txi)
 }

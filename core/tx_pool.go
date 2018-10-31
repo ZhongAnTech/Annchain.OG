@@ -728,6 +728,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}
 	}
+	
 	// verify balance and nonce
 	for addr, batchDetail := range batch {
 		// check balance
@@ -736,6 +737,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 		}
+		
 		// check nonce order
 		nonces := *batchDetail.TxList.keys
 		if !(nonces.Len() > 0) {
@@ -796,21 +798,22 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
-	has, hErr := pool.dag.HasLatestNonce(addr)
-	if hErr != nil {
-		return fmt.Errorf("check nonce in db err: %v", hErr)
+	// has, hErr := pool.dag.HasLatestNonce(addr)
+	// if hErr != nil {
+	// 	return fmt.Errorf("check nonce in db err: %v", hErr)
+	// }
+	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
+	if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
+		return fmt.Errorf("get latest nonce err: %v", nErr)
 	}
-	if has {
-		latestNonce, nErr := pool.dag.GetLatestNonce(addr)
-		if nErr != nil {
-			return fmt.Errorf("get latest nonce err: %v", nErr)
-		}
-		if nonces[0] != latestNonce+1 {
-			return fmt.Errorf("nonce %d is not the next one of latest nonce %d", nonces[0], latestNonce)
+	if nErr == types.ErrNonceNotExist {
+		if nonces[0] != uint64(0) {
+			return fmt.Errorf("nonce %d is not zero when there is no nonce in db, addr: %s", nonces[0], addr.String())
 		}
 	} else {
-		if nonces[0] != uint64(0) {
-			return fmt.Errorf("nonce %d is not zero when there is no nonce in db", nonces[0])
+		log.Debugf("in verifyNonce with nErr: %v", nErr)
+		if nonces[0] != latestNonce+1 {
+			return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
 		}
 	}
 

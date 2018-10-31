@@ -290,7 +290,7 @@ func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, rever
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
 
-func (p *peer) sendRequest(msgType MessageType, request types.MessageRequest) error {
+func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
 	clog := msgLog.WithField("msgType", msgType.String()).WithField("request ", request.String()).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {

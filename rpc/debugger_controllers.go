@@ -6,7 +6,7 @@ import (
 )
 
 type SyncStatus struct {
-	Id                     string  `json:"id"`
+	Id                       string `json:"id"`
 	SyncMode                 string `json:"syncMode"`
 	CatchupSyncerStatus      string `json:"catchupSyncerStatus"`
 	CatchupSyncerEnabled     bool   `json:"catchupSyncerEnabled"`
@@ -21,12 +21,12 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 	var status SyncStatus
 
 	status = SyncStatus{
-		Id:  r.P2pServer.Self().ID.TerminalString(),
-		SyncMode:                r.SyncerManager.Status.String(),
-		CatchupSyncerStatus:     r.SyncerManager.CatchupSyncer.WorkState.String(),
-		CatchupSyncerEnabled:    r.SyncerManager.CatchupSyncer.Enabled,
+		Id:                       r.P2pServer.Self().ID.TerminalString(),
+		SyncMode:                 r.SyncerManager.Status.String(),
+		CatchupSyncerStatus:      r.SyncerManager.CatchupSyncer.WorkState.String(),
+		CatchupSyncerEnabled:     r.SyncerManager.CatchupSyncer.Enabled,
 		IncrementalSyncerEnabled: r.SyncerManager.IncrementalSyncer.Enabled,
-		Height:                  r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
+		Height: r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
 	}
 
 	peerId, _, seqId, err := r.SyncerManager.Hub.BestPeerInfo()

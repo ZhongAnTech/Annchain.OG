@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
-	"github.com/annchain/OG/og/syncer"
 )
 
 type RpcController struct {
@@ -101,6 +101,38 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"message": "not found",
 	})
+
+}
+
+//Transaction  get  transaction
+func (r *RpcController) Confirm(c *gin.Context) {
+	hashtr := c.Query("hash")
+	hash, err := types.HexStringToHash(hashtr)
+	cors(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "hash format error",
+		})
+		return
+	}
+	txiDag := r.Og.Dag.GetTx(hash)
+	txiTxpool := r.Og.TxPool.Get(hash)
+
+	if txiDag == nil && txiTxpool == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "not found",
+		})
+		return
+	}
+	if txiTxpool != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": false,
+		})
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": true,
+		})
+	}
 
 }
 

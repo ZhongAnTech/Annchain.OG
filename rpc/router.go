@@ -23,7 +23,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("peers_info", rpc.PeersInfo)
 	router.GET("og_peers_info", rpc.OgPeersInfo)
 	router.GET("transaction", rpc.Transaction)
-	router.GET("confirm", rpc.Transaction)
+	router.GET("confirm", rpc.Confirm)
 	router.GET("transactions", rpc.Transactions)
 	router.GET("validators", rpc.Validator)
 	router.GET("sequencer", rpc.Sequencer)

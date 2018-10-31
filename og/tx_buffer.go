@@ -141,7 +141,15 @@ func (b *TxBuffer) loop() {
 		case v := <-b.selfGeneratedNewTxChan:
 			go b.handleTx(v)
 		case v := <-b.txAddedToPoolChan:
+		 a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
+		 if err!=nil {
+		 	// the tx added not by tx buffer , clean dependency
+		 	tx := a.(types.Txi)
+		 	tx.String()
+		 	//todo  resolve the tx remove dependency 
+		 }
 			// tx already received by pool. remove from local cache
+
 			b.releasedTxCache.Remove(v.GetTxHash())
 		}
 	}

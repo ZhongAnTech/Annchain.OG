@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/deckarep/golang-set"
-	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
 	"time"
@@ -84,7 +83,7 @@ func (p *peer) broadcast() {
 			if err := p.SendMessages(msg); err != nil {
 				return
 			}
-			log.WithField("count", len(msg)).Debug("Broadcast transactions")
+			msgLog.WithField("count", len(msg)).Debug("Broadcast transactions")
 
 		case <-p.term:
 			return

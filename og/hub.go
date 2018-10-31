@@ -230,7 +230,6 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
 	default:
-		//log.Debug("got default message type ", p2pMsg.MessageType)
 		p2pMsg.init()
 		if p2pMsg.needCheckRepeat {
 			p.MarkMessage(p2pMsg.hash)
@@ -355,7 +354,14 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg []byte) error {
+func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg types.Message) error {
+	p := h.peers.Peer(peerId)
+	if p == nil {
+		return fmt.Errorf("peer not found")
+	}
+	return p.sendRequest(messageType, msg)
+}
+func (h *Hub) SendBytesToPeer(peerId string, messageType MessageType, msg []byte) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -436,13 +442,13 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG32 {
 		if v, ok := h.CallbackRegistryOG32[msg.MessageType]; ok {
-			log.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
+			//log.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
 			v(msg)
 			return
 		}
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
+		//msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)
 	} else {
 		msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")

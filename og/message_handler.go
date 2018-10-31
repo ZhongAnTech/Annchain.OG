@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
 	Og  *Og
@@ -14,8 +13,6 @@ type IncomingMessageHandler struct {
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
-	msgLog.WithField("q", syncRequest.String()).Debug("received MessageSyncRequest")
-
 	if len(syncRequest.Hashes) == 0 {
 		msgLog.Debug("empty MessageSyncRequest")
 		return
@@ -41,18 +38,11 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.Mess
 		Txs:        txs,
 		Sequencers: seqs,
 	}
-	data, err := syncResponse.MarshalMsg(nil)
-	if err != nil {
-		msgLog.Error("failed to marshall MessageSyncResponse message")
-		return
-	}
-
-	msgLog.WithField("p", syncResponse.String()).Debug("sending MessageSyncResponse")
-	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, data)
+	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
 }
 
 func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerId string) {
-	msgLog.WithField("from", peerId).WithField("q", headerMsg).Debug("received MessageHeaderResponse")
+
 	headers := headerMsg.Sequencers
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
 	seqHeaders := types.SeqsToHeaders(headers)
@@ -73,8 +63,6 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {
-	msgLog.WithField("from",peerId).WithField("q", query).Debug("received MessageHeaderRequest")
-
 	hashMode := !query.Origin.Hash.Empty()
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
@@ -159,14 +147,10 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 	msgRes := types.MessageHeaderResponse{
 		Sequencers: headers,
 	}
-	data, _ := msgRes.MarshalMsg(nil)
-	msgLog.WithField("to", peerId).WithField("len", len(msgRes.Sequencers)).Debug("send MessageTypeGetHeader")
-
-	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, data)
+	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
-	msgLog.Debug("received MessageTxsResponse")
 	if request.Sequencer != nil {
 		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
 	} else {
@@ -183,8 +167,6 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsRespo
 }
 
 func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest, peerId string) {
-	msgLog.WithField("from",peerId).WithField("q", msgReq).Debug("received MessageTxsRequest")
-
 	var msgRes types.MessageTxsResponse
 
 	var seq *types.Sequencer
@@ -199,14 +181,10 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 	} else {
 		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
-	data, _ := msgRes.MarshalMsg(nil)
-	msgLog.WithField("txs num", len(msgRes.Txs)).Debug("send MessageTypeGetTxs")
-	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, data)
+	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodiesResponse, peerId string) {
-	msgLog.WithField("from",peerId).WithField("q", request.String()).Debug("received MessageBodiesResponse")
-
 	// Deliver them all to the downloader for queuing
 	transactions := make([][]*types.Tx, len(request.Bodies))
 	sequencers := make([]*types.Sequencer, len(request.Bodies))
@@ -244,7 +222,6 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 }
 
 func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerId string) {
-	msgLog.WithField("from",peerId ).WithField("len ", len(msgReq.SeqHashes)).Debug("received MessageBodiesRequest")
 	var msgRes types.MessageBodiesResponse
 	var bytes int
 
@@ -269,13 +246,10 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 		bytes += len(bodyData)
 		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))
 	}
-	data, _ := msgRes.MarshalMsg(nil)
-	msgLog.WithField("to",peerId).WithField("bodies num", len(msgRes.Bodies)).Debug("send MessageTypeBodiesResponse")
-	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, data)
+	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
-	msgLog.WithField("from", peerId).WithField("q", msgHeader.String()).Debug("received MessageSequencerHeader")
 	if msgHeader.Hash == nil {
 		return
 	}
@@ -298,7 +272,7 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSe
 
 func (h *IncomingMessageHandler) HandlePing(peerId string) {
 	msgLog.Debug("received your ping. Respond you a pong")
-	h.Hub.SendToPeer(peerId, MessageTypePong, []byte{1})
+	h.Hub.SendBytesToPeer(peerId, MessageTypePong, []byte{1})
 }
 
 func (h *IncomingMessageHandler) HandlePong() {
@@ -306,7 +280,6 @@ func (h *IncomingMessageHandler) HandlePong() {
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.MessageSyncResponse, sourceId string) {
-	msgLog.WithField("from", sourceId).WithField("q", syncResponse.String()).Debug("received MessageSyncResponse")
 	if (syncResponse.Txs == nil || len(syncResponse.Txs) == 0) &&
 		(syncResponse.Sequencers == nil || len(syncResponse.Sequencers) == 0) {
 		msgLog.Debug("empty MessageSyncResponse")

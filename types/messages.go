@@ -6,9 +6,10 @@ import (
 
 //go:generate msgp
 
-type MessageRequest interface {
+type Message interface {
 	MarshalMsg([]byte) ([]byte, error)
-	String()string
+	String()string      //string is for logging ,
+	UnmarshalMsg([]byte) ([]byte, error)
 }
 
 //msgp:tuple MessageSyncRequest

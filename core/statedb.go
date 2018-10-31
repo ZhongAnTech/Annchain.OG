@@ -82,7 +82,10 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	return sd.getBalance(addr)
 }
 func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
-	state := sd.getOrCreateState(addr)
+	state, err := sd.getState(addr)
+	if err != nil {
+		return math.NewBigInt(0)
+	}
 	return state.Balance
 }
 
@@ -262,6 +265,9 @@ func (sd *StateDB) loop() {
 		case <-sd.close:
 			flushTimer.Stop()
 			purgeTimer.Stop()
+			sd.mu.Lock()
+			sd.flush()
+			sd.mu.Unlock()
 			return
 
 		case <-flushTimer.C:

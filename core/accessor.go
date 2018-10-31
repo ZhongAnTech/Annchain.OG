@@ -163,6 +163,16 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return da.ReadTransaction(hash)
 }
 
+// WriteTxHashByNonce writes tx hash into db and construct key with address and nonce.
+func (da *Accessor) WriteTxHashByNonce(addr types.Address, nonce uint64, hash types.Hash) error {
+	data := hash.ToBytes()
+	err := da.db.Put(txHashFlowKey(addr, nonce), data)
+	if err != nil {
+		return fmt.Errorf("write tx hash flow to db err: %v", err)
+	}
+	return nil
+}
+
 // ReadAddrLatestNonce get latest nonce of an address
 func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 	has, _ := da.HasAddrLatestNonce(addr)
@@ -185,37 +195,34 @@ func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 
-// WriteTransaction write the tx or sequencer into ogdb. It first write
-// the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
-// relation into ogdb, finally write the tx itself into db. Data will be
-// overwritten if it already exists in db.
+// WriteTransaction write the tx or sequencer into ogdb. 
 func (da *Accessor) WriteTransaction(tx types.Txi) error {
 	var prefix, data []byte
 	var err error
 
-	// write tx latest nonce
-	var curnonce = uint64(0)
-	has, _ := da.HasAddrLatestNonce(tx.Sender())
-	if has {
-		curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
-		if err != nil {
-			return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
-		}
-	}
-	if (tx.GetNonce() > curnonce) || ((tx.GetNonce() == uint64(0)) && !has) {
-		// write nonce if curnonce is larger then origin one
-		data = []byte(strconv.FormatUint(tx.GetNonce(), 10))
-		if err = da.db.Put(addrLatestNonceKey(tx.Sender()), data); err != nil {
-			return fmt.Errorf("write latest nonce err: %v", err)
-		}
-	}
+	// // write tx latest nonce
+	// var curnonce = uint64(0)
+	// has, _ := da.HasAddrLatestNonce(tx.Sender())
+	// if has {
+	// 	curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
+	// 	if err != nil {
+	// 		return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
+	// 	}
+	// }
+	// if (tx.GetNonce() > curnonce) || ((tx.GetNonce() == uint64(0)) && !has) {
+	// 	// write nonce if curnonce is larger then origin one
+	// 	data = []byte(strconv.FormatUint(tx.GetNonce(), 10))
+	// 	if err = da.db.Put(addrLatestNonceKey(tx.Sender()), data); err != nil {
+	// 		return fmt.Errorf("write latest nonce err: %v", err)
+	// 	}
+	// }
 
-	// write tx hash flow, allow the user query tx hash by its address and nonce.
-	data = tx.GetTxHash().ToBytes()
-	err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), data)
-	if err != nil {
-		return fmt.Errorf("write tx hash flow to db err: %v", err)
-	}
+	// // write tx hash flow, allow the user query tx hash by its address and nonce.
+	// data = tx.GetTxHash().ToBytes()
+	// err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), data)
+	// if err != nil {
+	// 	return fmt.Errorf("write tx hash flow to db err: %v", err)
+	// }
 
 	// write tx
 	switch tx := tx.(type) {

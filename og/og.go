@@ -23,6 +23,8 @@ func NewOg() (*Og, error) {
 		return nil, derr
 	}
 	dagconfig := core.DagConfig{}
+	og.Dag = core.NewDag(dagconfig, db)
+
 	txpoolconfig := core.TxPoolConfig{
 		QueueSize:              viper.GetInt("txpool.queue_size"),
 		TipsSize:               viper.GetInt("txpool.tips_size"),
@@ -34,9 +36,9 @@ func NewOg() (*Og, error) {
 		TimeoutConfirmation:    viper.GetInt("txpool.timeout_confirmation_ms"),
 		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
-	og.Dag = core.NewDag(dagconfig, db)
 	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
 
+	// initialize
 	if !og.Dag.LoadLastState() {
 		// TODO use config to load the genesis
 		seq, balance := core.DefaultGenesis()

@@ -25,10 +25,10 @@ type Node struct {
 	Components []Component
 }
 
-func InitLoggers(logger * logrus.Logger ,logdir string ) {
-	downloader.InitLoggers(logger,logdir)
-	p2p.InitLoggers(logger,logdir)
-	og.InitLoggers(logger,logdir)
+func InitLoggers(logger *logrus.Logger, logdir string) {
+	downloader.InitLoggers(logger, logdir)
+	p2p.InitLoggers(logger, logdir)
+	og.InitLoggers(logger, logdir)
 }
 
 func NewNode() *Node {
@@ -56,7 +56,8 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			NetworkId: uint64(networkId),
+			BootstrapNode: bootNode,
+			NetworkId:     uint64(networkId),
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -106,16 +107,16 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.TxPool,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
 	})
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
-		Dag:org.Dag,
+		Dag:            org.Dag,
 		FormatVerifier: txFormatVerifier,
 		GraphVerifier:  graphVerifier,
 	})
@@ -133,11 +134,11 @@ func NewNode() *Node {
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
 
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
-		PeerProvider:       hub,
+		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:        hub,
-		Downloader: downloaderInstance,
-		SyncMode:   downloader.FullSync,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -159,7 +160,7 @@ func NewNode() *Node {
 		TxsResponseHandler:         messageHandler,
 		HeaderResponseHandler:      messageHandler,
 		FetchByHashRequestHandler:  messageHandler,
-		Hub: hub,
+		Hub:                        hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
@@ -175,8 +176,8 @@ func NewNode() *Node {
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
 
-	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.EnableTxsEventListener)
-	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.EnableTxsEventListener)
+	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
+	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
 	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
 
@@ -244,12 +245,12 @@ func NewNode() *Node {
 		delegate,
 	)
 	n.Components = append(n.Components, autoClientManager)
-	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.EnableTxsEventListener)
+	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
 	if org.BootstrapNode {
 		go func() {
-			autoClientManager.EnableTxsEventListener <- true
+			autoClientManager.UpToDateEventListener <- true
 		}()
 	}
 

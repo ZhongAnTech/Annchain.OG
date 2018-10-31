@@ -230,7 +230,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
 	default:
-		log.Debug("got default message type ", p2pMsg.MessageType)
+		//log.Debug("got default message type ", p2pMsg.MessageType)
 		p2pMsg.init()
 		if p2pMsg.needCheckRepeat {
 			p.MarkMessage(p2pMsg.hash)

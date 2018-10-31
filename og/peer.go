@@ -259,14 +259,13 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
 			Hash: hash,
-	},
-		Amount: uint64(1),
-		Skip: uint64(0),
+		},
+		Amount:  uint64(1),
+		Skip:    uint64(0),
 		Reverse: false,
 	}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
-
 
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
@@ -274,8 +273,8 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
 			Number: origin,
-	}, Amount: uint64(amount),
-		Skip: uint64(skip),
+		}, Amount: uint64(amount),
+		Skip:    uint64(skip),
 		Reverse: reverse}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
@@ -284,16 +283,15 @@ func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, rever
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
 			Hash: hash,
-	}, Amount: uint64(amount),
-		Skip: uint64(skip),
+		}, Amount: uint64(amount),
+		Skip:    uint64(skip),
 		Reverse: reverse,
 	}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
 
-
-func (p*peer)sendRequest( msgType MessageType, request types.MessageRequest ) error {
-	clog := msgLog.WithField("msgType",msgType.String()).WithField("request ",request.String()).WithField("to ",p.id)
+func (p *peer) sendRequest(msgType MessageType, request types.MessageRequest) error {
+	clog := msgLog.WithField("msgType", msgType.String()).WithField("request ", request.String()).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
 		clog.WithError(err).Warn("encode request error")

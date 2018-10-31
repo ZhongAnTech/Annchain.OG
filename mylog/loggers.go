@@ -41,7 +41,7 @@ func InitLogger(logger *logrus.Logger , logdir string, outputFile string) *logru
 	} else {
 		// stdout only
 		fmt.Println("Will be logged to stdout")
-		writer = io.MultiWriter(os.Stdout, logrus.StandardLogger().Writer())
+		writer = io.MultiWriter(logrus.StandardLogger().Writer())
 	}
 	 return  &logrus.Logger{
 		Level:     logger.Level,

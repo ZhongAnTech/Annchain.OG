@@ -10,16 +10,16 @@ import (
 )
 
 type AutoClientManager struct {
-	Clients                []*AutoClient
-	SampleAccounts         []account.SampleAccount
-	EnableTxsEventListener chan bool
-	stop                   bool
-	wg                     sync.WaitGroup
+	Clients               []*AutoClient
+	SampleAccounts        []account.SampleAccount
+	UpToDateEventListener chan bool
+	stop                  bool
+	wg                    sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
-	m.EnableTxsEventListener = make(chan bool)
+	m.UpToDateEventListener = make(chan bool)
 	m.SampleAccounts = core.GetSampleAccounts()
 
 	// to make sure we have only one sequencer
@@ -83,7 +83,7 @@ func (c *AutoClientManager) eventLoop() {
 	defer c.wg.Done()
 	for !c.stop {
 		select {
-		case v := <-c.EnableTxsEventListener:
+		case v := <-c.UpToDateEventListener:
 			for _, client := range c.Clients {
 				if !v {
 					logrus.Info("pausing client")

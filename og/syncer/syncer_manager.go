@@ -120,12 +120,14 @@ func (s *SyncManager) loopSync() {
 			logrus.WithField("v", status.String()).Info("catchup syncer working state changed")
 			switch status {
 			case Started:
-				s.Status = SyncStatusIncremental
-				s.IncrementalSyncer.EnableEvent <- true
-				s.NotifyUpToDateEvent(false)
-			case Stopped:
+				// catch up started. pause incremental
 				s.Status = SyncStatusFull
 				s.IncrementalSyncer.EnableEvent <- false
+				s.NotifyUpToDateEvent(false)
+			case Stopped:
+				// catch up already done. now it is up to date. start incremental
+				s.Status = SyncStatusIncremental
+				s.IncrementalSyncer.EnableEvent <- true
 				s.NotifyUpToDateEvent(true)
 			}
 		}

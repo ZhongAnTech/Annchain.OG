@@ -424,13 +424,13 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 		case packet := <-d.headerCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
-				log.WithField("peer", packet.PeerId()).Debug("Received headers from incorrect peer")
+				log.WithField("peer", packet.PeerId()).Info("Received headers from incorrect peer")
 				break
 			}
 			// Make sure the peer actually gave something valid
 			headers := packet.(*headerPack).headers
 			if len(headers) != 1 {
-				log.WithField("headers", len(headers)).Debug("Multiple headers for single request")
+				log.WithField("headers", len(headers)).Info("Multiple headers for single request")
 				return nil, errBadPeer
 			}
 			head := headers[0]
@@ -439,7 +439,7 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 			return head, nil
 
 		case <-timeout:
-			log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			log.WithField("peer ",p.id).Info("Waiting for head header timed out", "elapsed", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -536,7 +536,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			}
 
 		case <-timeout:
-			log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			log.WithField("peer ",p.id).Debug("Waiting for head header timed out", "elapsed", ttl)
 			return 0, errTimeout
 
 		case <-d.bodyCh:
@@ -577,13 +577,13 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			case packer := <-d.headerCh:
 				// Discard anything not from the origin peer
 				if packer.PeerId() != p.id {
-					log.WithField("peer", packer.PeerId()).Debug("Received headers from incorrect peer")
+					log.WithField("peer", packer.PeerId()).Info("Received headers from incorrect peer")
 					break
 				}
 				// Make sure the peer actually gave something valid
 				headers := packer.(*headerPack).headers
 				if len(headers) != 1 {
-					log.WithField("headers", len(headers)).Debug("Multiple headers for single request")
+					log.WithField("headers", len(headers)).Info("Multiple headers for single request")
 					return 0, errBadPeer
 				}
 				arrived = true
@@ -597,7 +597,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 				start = check
 
 			case <-timeout:
-				log.WithField("elapsed", ttl).Debug("Waiting for search header timed out")
+				log.WithField("peer ",p.id).WithField("elapsed", ttl).Info("Waiting for search header timed out")
 				return 0, errTimeout
 
 			case <-d.bodyCh:
@@ -731,7 +731,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 				break
 			}
 			// Header retrieval timed out, consider the peer bad and drop
-			log.WithField("elapsed", ttl).Debug("Header request timed out")
+			log.WithField("peer ",p.id).WithField("elapsed", ttl).Debug("Header request timed out")
 			headerTimeoutMeter.Mark(1)
 			d.dropPeer(p.id)
 

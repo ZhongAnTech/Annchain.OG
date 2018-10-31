@@ -1,8 +1,15 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 //go:generate msgp
+
+type MessageRequest interface {
+	MarshalMsg([]byte) ([]byte, error)
+	String()string
+}
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {

@@ -225,86 +225,84 @@ func (p *peer) RequestReceipts(hashes types.Hashs) error {
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the hash of an origin block.
 func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
-	msgLog.WithField("hash ", seqHash).WithField("id ", seqId).Debug("send MessageTypeTxsRequest by hash")
 	hash := seqHash
-	msg := types.MessageTxsRequest{
+	msg := &types.MessageTxsRequest{
 		SeqHash: &hash,
 		Id:      seqId,
 	}
-	b, _ := msg.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestTxs(hashs []types.Hash) error {
-	msgLog.WithField("count ", len(hashs)).Debug("send MessageTypeTxsRequest")
-	msg := types.MessageTxsRequest{
+	msg := &types.MessageTxsRequest{
 		Hashes: hashs,
 	}
-	b, _ := msg.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+
+	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestTxsById(seqId uint64) error {
-	msgLog.WithField("id  ", seqId).Debug("send MessageTypeTxsRequest by id ")
-	msg := types.MessageTxsRequest{
+	msg := &types.MessageTxsRequest{
 		Id: seqId,
 	}
-	b, _ := msg.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(MessageTypeTxsRequest), b)
+	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestBodies(seqHashs []types.Hash) error {
-	msgLog.WithField("to ",p.id).WithField(" seq count ", len(seqHashs)).Debug("send MessageTypeBodiesRequest")
-	msg := types.MessageBodiesRequest{
+	msg := &types.MessageBodiesRequest{
 		SeqHashes: seqHashs,
 	}
-	b, _ := msg.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(MessageTypeBodiesRequest), b)
+	return p.sendRequest(MessageTypeBodiesRequest, msg)
 }
 
 func (p *peer) RequestOneHeader(hash types.Hash) error {
-	msgLog.WithField("to ",p.id).Debug("Fetching single header", "hash", hash)
-	req := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(1), Skip: uint64(0), Reverse: false}
-	data, err := req.MarshalMsg(nil)
-	if err != nil {
-		log.WithError(err).Warn("encode error")
-		return err
+	msg := &types.MessageHeaderRequest{
+		Origin: types.HashOrNumber{
+			Hash: hash,
+	},
+		Amount: uint64(1),
+		Skip: uint64(0),
+		Reverse: false,
 	}
-	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), data)
-	if err != nil {
-		msgLog.WithError(err).Warn("send message failed")
-	}
-	return err
+	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
+
 
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
 func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
-	msgLog.WithField("to ",p.id).WithField("count", amount).WithField("origin", origin).Debug("send MessageTypeHeaderRequest by num")
-	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Number: origin}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
-	b, err := msg.MarshalMsg(nil)
-	if err != nil {
-		log.WithError(err).Warn("encode error")
-		return err
-	}
-	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
-	if err != nil {
-		msgLog.WithError(err).Warn("send message failed")
-	}
-	return err
+	msg := &types.MessageHeaderRequest{
+		Origin: types.HashOrNumber{
+			Number: origin,
+	}, Amount: uint64(amount),
+		Skip: uint64(skip),
+		Reverse: reverse}
+	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
 
 func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
-	msgLog.WithField("to ",p.id).WithField("count", amount).WithField("hash", hash).Debug("send MessageTypeHeaderRequest by hash")
-	msg := types.MessageHeaderRequest{Origin: types.HashOrNumber{Hash: hash}, Amount: uint64(amount), Skip: uint64(skip), Reverse: reverse}
-	b, err := msg.MarshalMsg(nil)
+	msg := &types.MessageHeaderRequest{
+		Origin: types.HashOrNumber{
+			Hash: hash,
+	}, Amount: uint64(amount),
+		Skip: uint64(skip),
+		Reverse: reverse,
+	}
+	return p.sendRequest(MessageTypeHeaderRequest, msg)
+}
+
+
+func (p*peer)sendRequest( msgType MessageType, request types.MessageRequest ) error {
+	clog := msgLog.WithField("msgType",msgType.String()).WithField("request ",request.String()).WithField("to ",p.id)
+	data, err := request.MarshalMsg(nil)
 	if err != nil {
-		msgLog.WithError(err).Warn("encode error")
+		clog.WithError(err).Warn("encode request error")
 		return err
 	}
-	err = p2p.Send(p.rw, uint64(MessageTypeHeaderRequest), b)
+	clog.Debug("send")
+	err = p2p.Send(p.rw, uint64(msgType), data)
 	if err != nil {
-		msgLog.WithError(err).Warn("send message failed")
+		clog.WithError(err).Warn("send failed")
 	}
 	return err
 }

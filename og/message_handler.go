@@ -76,7 +76,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	if len(seqHeaders) > 0 || !filter {
 		err := h.Hub.Downloader.DeliverHeaders(peerId, seqHeaders)
 		if err != nil {
-			msgLog.Debug("Failed to deliver headers", "err", err)
+			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
 	msgLog.WithField("header lens", len(seqHeaders)).Debug("heandle MessageTypeHeaderResponse")

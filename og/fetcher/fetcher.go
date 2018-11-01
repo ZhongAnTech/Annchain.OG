@@ -405,7 +405,7 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer body requests
 			for peer, hashes := range request {
-				log.Debug("Fetching scheduled bodies", "peer", peer, "list", hashes)
+				log.WithField("peer", peer).WithField("list", hashes).Debug("Fetching scheduled bodies")
 
 				// Create a closure of the fetch and schedule in on a new thread
 				if f.completingHook != nil {

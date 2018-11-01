@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
-	"github.com/annchain/OG/ffchan"
 )
 
 type TxType int
@@ -92,18 +92,18 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:                   conf,
-		dag:                    d,
-		queue:                  make(chan *txEvent, conf.QueueSize),
-		tips:                   NewTxMap(),
-		badtxs:                 NewTxMap(),
-		pendings:               NewTxMap(),
-		flows:                  NewAccountFlows(),
-		txLookup:               newTxLookUp(),
-		close:                  make(chan struct{}),
-		OnNewTxReceived:        []chan types.Txi{},
-		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
-		OnNewLatestSequencer:   make(chan bool),
+		conf:                 conf,
+		dag:                  d,
+		queue:                make(chan *txEvent, conf.QueueSize),
+		tips:                 NewTxMap(),
+		badtxs:               NewTxMap(),
+		pendings:             NewTxMap(),
+		flows:                NewAccountFlows(),
+		txLookup:             newTxLookUp(),
+		close:                make(chan struct{}),
+		OnNewTxReceived:      []chan types.Txi{},
+		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
+		OnNewLatestSequencer: make(chan bool),
 	}
 	return pool
 }
@@ -417,7 +417,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-	<-ffchan.NewTimeoutSenderShort(pool.queue , te, "poolAddTx").C
+	<-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
 
 	// waiting for callback
 	select {

@@ -254,6 +254,22 @@ func (p *peer) RequestBodies(seqHashs []types.Hash) error {
 	return p.sendRequest(MessageTypeBodiesRequest, msg)
 }
 
+func (h *Hub) RequestOneHeader(peerId string, hash types.Hash) error {
+	p := h.peers.Peer(peerId)
+	if p == nil {
+		return fmt.Errorf("peer not found")
+	}
+	return p.RequestOneHeader(hash)
+}
+
+func (h *Hub) RequestBodies(peerId string, hashs []types.Hash) error {
+	p := h.peers.Peer(peerId)
+	if p == nil {
+		return fmt.Errorf("peer not found")
+	}
+	return p.RequestBodies(hashs)
+}
+
 func (p *peer) RequestOneHeader(hash types.Hash) error {
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{

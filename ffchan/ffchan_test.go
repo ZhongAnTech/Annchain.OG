@@ -1,8 +1,8 @@
 package ffchan
 
 import (
-	"testing"
 	"github.com/sirupsen/logrus"
+	"testing"
 	"time"
 )
 

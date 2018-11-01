@@ -3,11 +3,11 @@ package node
 import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/og"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
 	"time"
-	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/og"
 )
 
 type AutoClientManager struct {

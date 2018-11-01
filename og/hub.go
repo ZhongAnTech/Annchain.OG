@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -54,6 +55,7 @@ type Hub struct {
 	// new peer event
 	OnNewPeerConnected []chan string
 	Downloader         *downloader.Downloader
+	Fetcher            *fetcher.Fetcher
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -263,6 +265,7 @@ func (h *Hub) RemovePeer(id string) {
 }
 
 func (h *Hub) Start() {
+	h.Fetcher.Start()
 	go h.loopSend()
 	go h.loopReceive()
 	go h.loopNotify()
@@ -279,7 +282,8 @@ func (h *Hub) Stop() {
 	log.Info("peers closing")
 	h.wg.Wait()
 	log.Info("peers closed")
-
+	h.Fetcher.Stop()
+	log.Info("fetcher stopped")
 	log.Info("hub stopped")
 }
 
@@ -325,7 +329,7 @@ func (h *Hub) loopReceive() {
 			// check duplicates
 			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
 				// already there
-				msgLog.WithField("from ",m.SourceID).WithField("hash", m.hash).WithField("type", m.MessageType.String()).
+				msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("type", m.MessageType.String()).
 					Debug("we have a duplicate message. Discard")
 				continue
 			}
@@ -451,7 +455,7 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 		//msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
 		v(msg)
 	} else {
-		msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")
+		msgLog.WithField("from", msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")
 	}
 }
 

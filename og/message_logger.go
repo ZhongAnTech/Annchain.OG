@@ -5,9 +5,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var msgLog   *logrus.Logger
+var msgLog *logrus.Logger
 
-func InitLoggers( logger *logrus.Logger,logdir string ) {
-	msgLog =  mylog.InitLogger(logger,logdir, "msg.log",)
+func InitLoggers(logger *logrus.Logger, logdir string) {
+	msgLog = mylog.InitLogger(logger, logdir, "og_msg.log")
 	logrus.Debug("message logger initialized.")
 }

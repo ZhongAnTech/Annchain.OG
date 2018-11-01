@@ -400,8 +400,8 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 // peer. Sub-protocol independent fields are contained and initialized here, with
 // protocol specifics delegated to all connected sub-protocols.
 type PeerInfo struct {
-	ID      string   `json:"id"`   // Unique node identifier (also the encryption key)
-	ShortId string     `json:"short_id"`
+	ID      string   `json:"id"` // Unique node identifier (also the encryption key)
+	ShortId string   `json:"short_id"`
 	Name    string   `json:"name"` // Name of the node, including client type, version, OS, custom data
 	Caps    []string `json:"caps"` // Sum-protocols advertised by this particular peer
 	Network struct {

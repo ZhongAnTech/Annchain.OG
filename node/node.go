@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/fetcher"
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
@@ -27,8 +28,10 @@ type Node struct {
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
 	downloader.InitLoggers(logger, logdir)
+	fetcher.InitLoggers(logger, logdir)
 	p2p.InitLoggers(logger, logdir)
 	og.InitLoggers(logger, logdir)
+	syncer.InitLoggers(logger, logdir)
 }
 
 func NewNode() *Node {
@@ -107,9 +110,9 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers:                        verifiers,
-		Dag:                              org.Dag,
-		TxPool:                           org.TxPool,
+		Verifiers: verifiers,
+		Dag:       org.Dag,
+		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -132,21 +135,20 @@ func NewNode() *Node {
 	}, hub, org)
 
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
-
+	heighter := func() uint64 {
+		return org.Dag.LatestSequencer().Id
+	}
+	hub.Fetcher = fetcher.New(org.Dag.GetSequencerByHash, heighter, syncBuffer.AddTxs, hub.RemovePeer)
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:                    hub,
-		Downloader:             downloaderInstance,
-		SyncMode:               downloader.FullSync,
+		Hub:        hub,
+		Downloader: downloaderInstance,
+		SyncMode:   downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
-
-	messageHandler := &og.IncomingMessageHandler{
-		Hub: hub,
-		Og:  org,
-	}
+	messageHandler := og.NewIncomingMessageHandler(org, hub)
 
 	m := &og.MessageRouter{
 		FetchByHashResponseHandler: messageHandler,
@@ -160,7 +162,7 @@ func NewNode() *Node {
 		TxsResponseHandler:         messageHandler,
 		HeaderResponseHandler:      messageHandler,
 		FetchByHashRequestHandler:  messageHandler,
-		Hub:                        hub,
+		Hub: hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
@@ -240,7 +242,6 @@ func NewNode() *Node {
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(),
 		NodeStatusDataProvider: org,
-
 	}
 	autoClientManager.Init(
 		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),

@@ -7,10 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var log   *logrus.Logger
+var log *logrus.Logger
 
-func InitLoggers( logger *logrus.Logger,logdir string ) {
-	log =  mylog.InitLogger(logger,logdir, "p2p.log",)
+func InitLoggers(logger *logrus.Logger, logdir string) {
+	log = mylog.InitLogger(logger, logdir, "og_p2p.log")
 	logrus.Debug("p2p logger initialized.")
 	discover.SetLogger(log)
 	discv5.SetLogger(log)

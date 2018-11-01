@@ -9,7 +9,6 @@ import (
 
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 var MaxBufferSiza = 4096 * 16

@@ -4,12 +4,32 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
+	"sync"
+	"time"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
-	Og  *Og
-	Hub *Hub
+	Og           *Og
+	Hub          *Hub
+	requestCache *Cache
+}
+
+//msg request cache ,don't send duplicate message
+type Cache struct {
+	cache map[uint64]bool
+	mu    sync.RWMutex
+}
+
+//NewIncomingMessageHandler
+func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
+	return &IncomingMessageHandler{
+		Og:  og,
+		Hub: hub,
+		requestCache: &Cache{
+			cache: make(map[uint64]bool),
+		},
+	}
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
@@ -49,10 +69,10 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	filter := len(seqHeaders) == 1
 
 	// TODO: verify fetcher
-	//if filter {
-	//	// Irrelevant of the fork checks, send the header to the fetcher just in case
-	//	seqHeaders = h.Og.fetcher.FilterHeaders(peerId, seqHeaders, time.Now())
-	//}
+	if filter {
+		// Irrelevant of the fork checks, send the header to the fetcher just in case
+		seqHeaders = h.Hub.Fetcher.FilterHeaders(peerId, seqHeaders, time.Now())
+	}
 	if len(seqHeaders) > 0 || !filter {
 		err := h.Hub.Downloader.DeliverHeaders(peerId, seqHeaders)
 		if err != nil {
@@ -207,9 +227,9 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 	// Filter out any explicitly requested bodies, deliver the rest to the downloader
 	filter := len(transactions) > 0 || len(sequencers) > 0
 	// TODO: verify fetcher
-	//if filter {
-	//	transactions = h.Og.fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
-	//}
+	if filter {
+		transactions = h.Hub.Fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
+	}
 	if len(transactions) > 0 || len(sequencers) > 0 || !filter {
 		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
 		err := h.Hub.Downloader.DeliverBodies(peerId, transactions, sequencers)
@@ -262,12 +282,51 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSe
 	//	return
 	//}
 	lseq := h.Og.Dag.LatestSequencer()
-	for i := lseq.Number(); i < msgHeader.Number; i++ {
-		go func(i uint64) {
-			//p.RequestTxsById(i + 1)
-		}(i)
+	if msgHeader.Number > lseq.Number() {
+		if !h.requestCache.get(msgHeader.Number) {
+			h.Hub.Fetcher.Notify(peerId, *msgHeader.Hash, msgHeader.Number, time.Now(), h.Hub.RequestOneHeader, h.Hub.RequestBodies)
+			h.requestCache.add(msgHeader.Number)
+			msgLog.WithField("header ", msgHeader.String()).Info("notify to header to fetcher")
+		}
+		h.requestCache.clean(lseq.Number())
 	}
+
 	return
+}
+
+func (c *Cache) add(id uint64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cache[id] = true
+}
+
+func (c *Cache) get(id uint64) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.cache[id]
+}
+
+func (c *Cache) remove(id uint64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.cache, id)
+}
+
+func (c *Cache) removeItems(id uint64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.cache, id)
+}
+
+func (c *Cache) clean(lseqId uint64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for k, _ := range c.cache {
+		if k <= lseqId {
+			delete(c.cache, k)
+		}
+	}
+
 }
 
 func (h *IncomingMessageHandler) HandlePing(peerId string) {

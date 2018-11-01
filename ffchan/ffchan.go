@@ -14,6 +14,10 @@ type TimeoutSender struct {
 	C         chan bool
 }
 
+func NewTimeoutSenderShort(channel interface{}, val interface{}, groupName string) *TimeoutSender{
+	return NewTimeoutSender(channel, val, groupName, 5000)
+}
+
 func NewTimeoutSender(channel interface{}, val interface{}, groupName string, timeoutMs int) *TimeoutSender {
 	t := &TimeoutSender{
 		groupName: groupName,

@@ -238,7 +238,9 @@ func NewNode() *Node {
 	}
 
 	autoClientManager := &AutoClientManager{
-		SampleAccounts: core.GetSampleAccounts(),
+		SampleAccounts:         core.GetSampleAccounts(),
+		NodeStatusDataProvider: org,
+
 	}
 	autoClientManager.Init(
 		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),

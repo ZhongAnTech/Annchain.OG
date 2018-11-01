@@ -41,6 +41,7 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
+	c.ManualChan = make(chan types.TxBaseType)
 }
 
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
@@ -57,6 +58,17 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
+func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool){
+	switch txType {
+	case types.TxBaseTypeNormal:
+		c.doSampleTx(force)
+	case types.TxBaseTypeSequencer:
+		c.doSampleSequencer(force)
+	default:
+		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
+	}
+}
+
 func (c *AutoClient) loop() {
 	c.pause = true
 	c.wg.Add(1)
@@ -64,6 +76,13 @@ func (c *AutoClient) loop() {
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Millisecond * time.Duration(c.SequencerIntervalMs))
+
+	if !c.AutoTxEnabled {
+		timerTx.Stop()
+	}
+	if !c.AutoSequencerEnabled {
+		tickerSeq.Stop()
+	}
 
 	for {
 		if c.pause {
@@ -73,6 +92,8 @@ func (c *AutoClient) loop() {
 				continue
 			case <-c.quit:
 				return
+			case txType := <-c.ManualChan:
+				c.fireManualTx(txType, true)
 			}
 		}
 
@@ -81,19 +102,14 @@ func (c *AutoClient) loop() {
 		case <-c.quit:
 			return
 		case txType := <-c.ManualChan:
-			switch txType {
-			case types.TxBaseTypeNormal:
-				c.doSampleTx()
-			case types.TxBaseTypeSequencer:
-				c.doSampleSequencer()
-			default:
-				logrus.WithField("type", txType).Warn("Unknown TxBaseType")
-			}
+			c.fireManualTx(txType, true)
 		case <-timerTx.C:
-			c.doSampleTx()
+			logrus.Debug("timer sample tx")
+			c.doSampleTx(false)
 			timerTx.Reset(c.nextSleepDuraiton())
 		case <-tickerSeq.C:
-			c.doSampleSequencer()
+			logrus.Debug("timer sample seq")
+			c.doSampleSequencer(false)
 		}
 
 	}
@@ -141,9 +157,9 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
-func (c *AutoClient) doSampleTx() {
-	if !c.AutoTxEnabled {
-		return
+func (c *AutoClient) doSampleTx(force bool) bool {
+	if !force && !c.AutoTxEnabled {
+		return false
 	}
 
 	me := c.SampleAccounts[c.MyAccountIndex]
@@ -157,12 +173,14 @@ func (c *AutoClient) doSampleTx() {
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")
+		return false
 	}
 	c.Delegate.Announce(tx)
+	return true
 }
-func (c *AutoClient) doSampleSequencer() {
-	if !c.AutoSequencerEnabled {
-		return
+func (c *AutoClient) doSampleSequencer(force bool) bool {
+	if !force && !c.AutoSequencerEnabled {
+		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
 
@@ -175,7 +193,8 @@ func (c *AutoClient) doSampleSequencer() {
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate seq")
-		return
+		return false
 	}
 	c.Delegate.Announce(seq)
+	return true
 }

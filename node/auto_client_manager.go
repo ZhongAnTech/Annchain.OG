@@ -7,14 +7,16 @@ import (
 	"sync"
 	"time"
 	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/og"
 )
 
 type AutoClientManager struct {
-	Clients               []*AutoClient
-	SampleAccounts        []account.SampleAccount
-	UpToDateEventListener chan bool
-	stop                  bool
-	wg                    sync.WaitGroup
+	Clients                []*AutoClient
+	SampleAccounts         []account.SampleAccount
+	UpToDateEventListener  chan bool
+	NodeStatusDataProvider og.NodeStatusDataProvider
+	stop                   bool
+	wg                     sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
@@ -93,7 +95,7 @@ func (c *AutoClientManager) eventLoop() {
 					client.Resume()
 				}
 			}
-		case <-time.After(time.Second):
+		case <-time.After(time.Second * 20):
 			continue
 		}
 	}

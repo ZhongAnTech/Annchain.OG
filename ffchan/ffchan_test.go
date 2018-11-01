@@ -17,8 +17,8 @@ func TestChan(t *testing.T) {
 	}()
 
 	logrus.Info("Sending 1st")
-	<-NewTimeoutSender(c, true, "test1", 1000).C
+	<-NewTimeoutSender(c, true).C
 	logrus.Info("Sending 2st")
-	<-NewTimeoutSender(c, true, "test2", 1000).C
+	<-NewTimeoutSender(c, true).C
 
 }

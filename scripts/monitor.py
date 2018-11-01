@@ -94,6 +94,7 @@ if __name__ == '__main__':
     while True:
         df = doround(hosts)
         if df is not None:
+            print("=" * 20)
             print(datetime.datetime.now())
             print(df)
         time.sleep(1)

@@ -11,6 +11,7 @@ import (
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
+	"github.com/annchain/OG/ffchan"
 )
 
 type TxType int
@@ -76,12 +77,6 @@ type TxPool struct {
 	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
-
-	// timeout detections on queues
-	timeoutPoolQueue       *time.Timer
-	timeoutSubscriber      *time.Timer
-	timeoutConfirmation    *time.Timer
-	timeoutLatestSequencer *time.Timer
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -109,10 +104,6 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		OnNewTxReceived:        []chan types.Txi{},
 		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
 		OnNewLatestSequencer:   make(chan bool),
-		timeoutPoolQueue:       time.NewTimer(time.Millisecond * time.Duration(conf.TimeOutPoolQueue)),
-		timeoutSubscriber:      time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutSubscriber)),
-		timeoutConfirmation:    time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutConfirmation)),
-		timeoutLatestSequencer: time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutLatestSequencer)),
 	}
 	return pool
 }
@@ -426,19 +417,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-loop3:
-	for {
-		if !pool.timeoutPoolQueue.Stop() {
-			<-pool.timeoutPoolQueue.C
-		}
-		pool.timeoutPoolQueue.Reset(time.Second * 10)
-		select {
-		case <-pool.timeoutPoolQueue.C:
-			log.WithField("tx", te.txEnv.tx).Warn("timeout on channel writing: addTx")
-		case pool.queue <- te:
-			break loop3
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(pool.queue , te, "poolAddTx").C
 
 	// waiting for callback
 	select {
@@ -449,20 +428,7 @@ loop3:
 		// notify all subscribers of newTxEvent
 		for _, subscriber := range pool.OnNewTxReceived {
 			log.Debug("notify subscriber")
-		loop:
-			for {
-				if !pool.timeoutSubscriber.Stop() {
-					<-pool.timeoutSubscriber.C
-				}
-				pool.timeoutSubscriber.Reset(time.Second * 10)
-				select {
-				case <-pool.timeoutSubscriber.C:
-					log.WithField("tx", tx).Warn("timeout on channel writing: subscriber")
-				case subscriber <- tx:
-					break loop
-				}
-			}
-
+			<-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 		}
 	}
 
@@ -632,33 +598,9 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-	loop:
-		for {
-			if !pool.timeoutConfirmation.Stop() {
-				<-pool.timeoutConfirmation.C
-			}
-			pool.timeoutConfirmation.Reset(time.Second * 10)
-			select {
-			case <-pool.timeoutConfirmation.C:
-				log.WithField("seq", seq).Warn("timeout on channel writing: batch confirmed")
-			case c <- elders:
-				break loop
-			}
-		}
+		<-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-loop2:
-	for {
-		if !pool.timeoutLatestSequencer.Stop() {
-			<-pool.timeoutLatestSequencer.C
-		}
-		pool.timeoutLatestSequencer.Reset(time.Second * 10)
-		select {
-		case <-pool.timeoutLatestSequencer.C:
-			log.WithField("seq", seq).Warn("timeout on channel writing: on new latest sequencer")
-		case pool.OnNewLatestSequencer <- true:
-			break loop2
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
 
 	return nil
 }

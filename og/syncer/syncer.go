@@ -16,29 +16,35 @@ type MessageSender interface {
 // IncrementalSyncer fetches tx from other  peers. (incremental)
 // IncrementalSyncer will not fire duplicate requests in a period of time.
 type IncrementalSyncer struct {
-	config              *SyncerConfig
-	messageSender       MessageSender
-	acquireTxQueue      chan types.Hash
-	acquireTxDedupCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
-	quitLoopSync        chan bool
-	quitLoopEvent       chan bool
-	EnableEvent         chan bool
-	Enabled             bool
-	OnNewTxiReceived    []chan types.Txi
+	config                         *SyncerConfig
+	messageSender                  MessageSender
+	acquireTxQueue                 chan types.Hash
+	acquireTxDedupCache            gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
+	bufferedIncomingTxCache        gcache.Cache // cache of incoming txs that are not fired during full sync.
+	bufferedIncomingTxCacheEnabled bool
+	quitLoopSync                   chan bool
+	quitLoopEvent                  chan bool
+	EnableEvent                    chan bool
+	Enabled                        bool
+	OnNewTxiReceived               []chan types.Txi
 }
 
 func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"acquireTxQueue": len(m.acquireTxQueue),
+		"bufferedIncomingTxCache": m.bufferedIncomingTxCache.Len(),
 	}
 }
 
 type SyncerConfig struct {
-	AcquireTxQueueSize                   uint
-	MaxBatchSize                         int
-	BatchTimeoutMilliSecond              uint
-	AcquireTxDedupCacheMaxSize           int
-	AcquireTxDedupCacheExpirationSeconds int
+	AcquireTxQueueSize                       uint
+	MaxBatchSize                             int
+	BatchTimeoutMilliSecond                  uint
+	AcquireTxDedupCacheMaxSize               int
+	AcquireTxDedupCacheExpirationSeconds     int
+	BufferedIncomingTxCacheEnabled           bool
+	BufferedIncomingTxCacheMaxSize           int
+	BufferedIncomingTxCacheExpirationSeconds int
 }
 
 func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *IncrementalSyncer {
@@ -48,22 +54,14 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *In
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
+		bufferedIncomingTxCache: gcache.New(config.BufferedIncomingTxCacheMaxSize).Simple().
+			Expiration(time.Second * time.Duration(config.BufferedIncomingTxCacheExpirationSeconds)).Build(),
+		bufferedIncomingTxCacheEnabled: config.BufferedIncomingTxCacheEnabled,
 		quitLoopSync:  make(chan bool),
 		quitLoopEvent: make(chan bool),
 		EnableEvent:   make(chan bool),
 		Enabled:       false,
 	}
-}
-
-func DefaultSyncerConfig() SyncerConfig {
-	config := SyncerConfig{
-		BatchTimeoutMilliSecond:              1000,
-		AcquireTxQueueSize:                   1000,
-		MaxBatchSize:                         100,
-		AcquireTxDedupCacheMaxSize:           10000,
-		AcquireTxDedupCacheExpirationSeconds: 60,
-	}
-	return config
 }
 
 func (m *IncrementalSyncer) Start() {
@@ -171,8 +169,14 @@ func (m *IncrementalSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
-			log.WithField("enable", v).Info("incremental syncer got enable event ")
+			logrus.WithField("enable", v).Info("incremental syncer got enable event ")
+			old := m.Enabled
 			m.Enabled = v
+			if !old && v{
+				// changed from disable to enable.
+				m.notifyAllCachedTxs()
+			}
+
 		case <-m.quitLoopEvent:
 			log.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
@@ -181,33 +185,43 @@ func (m *IncrementalSyncer) eventLoop() {
 }
 
 func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
-	if !s.Enabled {
-		log.Debug("incremental received tx but sync disabled")
-		return
-	}
-
-	log.WithField("q", newTx).Debug("incremental received MessageNewTx")
 	if newTx.Tx == nil {
-		log.Debug("empty MessageNewTx")
+		logrus.Debug("empty MessageNewTx")
 		return
 	}
 
+	if !s.Enabled {
+		if !s.bufferedIncomingTxCacheEnabled{
+			logrus.Debug("incremental received tx but sync disabled")
+			return
+		}
+		logrus.WithField("tx", newTx.Tx).Debug("cache tx for future.")
+		s.bufferedIncomingTxCache.Set(newTx.Tx.Hash, newTx.Tx)
+		return
+	}
+
+	logrus.WithField("q", newTx).Debug("incremental received MessageNewTx")
 	s.notifyNewTxi(newTx.Tx)
 }
 
 func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
-	if !s.Enabled {
-		log.Debug("incremental received txs but sync disabled")
-		return
-	}
-	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
-	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
-	//	return
-	//}
 	if newTxs.Txs == nil {
-		log.Debug("Empty MessageNewTx")
+		logrus.Debug("Empty MessageNewTx")
 		return
 	}
+
+	if !s.Enabled {
+		if !s.bufferedIncomingTxCacheEnabled{
+			logrus.Debug("incremental received txs but sync disabled")
+			return
+		}
+		for _, tx := range newTxs.Txs{
+			logrus.WithField("tx", tx).Debug("cache tx for future.")
+			s.bufferedIncomingTxCache.Set(tx.Hash, tx)
+		}
+		return
+	}
+	logrus.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 
 	for _, tx := range newTxs.Txs {
 		s.notifyNewTxi(tx)
@@ -215,18 +229,20 @@ func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 }
 
 func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
-	if !s.Enabled {
-		log.Debug("incremental received seq but sync disabled")
-		return
-	}
-	log.WithField("q", newSeq).Debug("incremental received NewSequence")
-	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
-	//	return
-	//}
 	if newSeq.Sequencer == nil {
-		log.Debug("empty NewSequence")
+		logrus.Debug("empty NewSequence")
 		return
 	}
+	if !s.Enabled {
+		if !s.bufferedIncomingTxCacheEnabled{
+			logrus.Debug("incremental received seq but sync disabled")
+			return
+		}
+		logrus.WithField("seq", newSeq.Sequencer).Debug("cache seq for future.")
+		s.bufferedIncomingTxCache.Set(newSeq.Sequencer.Hash, newSeq.Sequencer)
+		return
+	}
+	logrus.WithField("q", newSeq).Debug("incremental received NewSequence")
 	s.notifyNewTxi(newSeq.Sequencer)
 }
 
@@ -234,4 +250,15 @@ func (s *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
 	for _, c := range s.OnNewTxiReceived {
 		c <- txi
 	}
+}
+
+func (s *IncrementalSyncer) notifyAllCachedTxs(){
+	logrus.WithField("size", s.bufferedIncomingTxCache.Len()).Debug("incoming cache is being dumped")
+	kvMap := s.bufferedIncomingTxCache.GetALL()
+	for k,v := range kvMap{
+		// annouce and then remove
+		s.notifyNewTxi(v.(types.Txi))
+		s.bufferedIncomingTxCache.Remove(k)
+	}
+	logrus.WithField("size", s.bufferedIncomingTxCache.Len()).Debug("incoming cache dumped")
 }

@@ -95,15 +95,26 @@ func (CatchupSyncer) Name() string {
 func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
+		logrus.WithError(err).Error("get best peer")
 		return false
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
+	logrus.WithField("bestPeer SeqId", seqId).
+		WithField("bestPeerHash", bpHash).
+		WithField("our SeqId", ourId).
+		Debug("checking uptodate")
+
 	if seqId <= ourId+maxDiff {
 		log.WithField("bestPeer SeqId", seqId).
 			WithField("bestPeerHash", bpHash).
 			WithField("our SeqId", ourId).
 			Debug("we are now up to date")
 		return true
+	}else{
+		logrus.WithField("bestPeer SeqId", seqId).
+			WithField("bestPeerHash", bpHash).
+			WithField("our SeqId", ourId).
+			Debug("we are yet up to date")
 	}
 	return false
 }
@@ -188,6 +199,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 			log.WithError(err).Warn("catchup sync failed")
 			return err
 		}
+		logrus.WithField("seqId", seqId).Debug("finished downloader synchronize")
 		//bpHash, seqId, err = c.PeerProvider.GetPeerHead(bpId)
 		//if err != nil {
 		//	logrus.WithError(err).Warn("sync failed")

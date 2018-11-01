@@ -68,6 +68,7 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"selfGeneratedNewTxChan": len(b.selfGeneratedNewTxChan),
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
+		"dependencyCache":        b.dependencyCache.Len(),
 	}
 }
 

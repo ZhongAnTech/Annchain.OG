@@ -22,7 +22,10 @@ const (
 	// TODO: this value will be set to optimal value in the future.
 	// If generating sequencer is very fast with few transactions, it should be bigger,
 	// otherwise it should be smaller
+
+	// when to stop sync once started
 	stopSyncHeightDiffThreashold  uint64 = 0
+	// when to start sync
 	startSyncHeightDiffThreashold uint64 = 2
 )
 

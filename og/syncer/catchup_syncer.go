@@ -22,8 +22,8 @@ const (
 	// TODO: this value will be set to optimal value in the future.
 	// If generating sequencer is very fast with few transactions, it should be bigger,
 	// otherwise it should be smaller
-	maxBehindHeight = 20
-	minBehindHeight = 5
+	stopSyncHeightDiffThreashold  uint64 = 0
+	startSyncHeightDiffThreashold uint64 = 2
 )
 
 type CatchupSyncerStatus int
@@ -90,13 +90,13 @@ func (CatchupSyncer) Name() string {
 	return "CatchupSyncer"
 }
 
-func (c *CatchupSyncer) isUpToDate() bool {
+func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
 		return false
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
-	if seqId <= ourId+startSyncHeightDiffThreashold {
+	if seqId <= ourId+maxDiff {
 		logrus.WithField("bestPeer SeqId", seqId).
 			WithField("bestPeerHash", bpHash).
 			WithField("our SeqId", ourId).
@@ -164,8 +164,10 @@ func (c *CatchupSyncer) syncToLatest() error {
 	c.setSyncFlag()
 	defer c.unsetSyncFlag()
 	//get best peer ,and sync with this peer until we catchup
-	for !c.isUpToDate(){
+	diff := startSyncHeightDiffThreashold
+	for !c.isUpToDate(diff) {
 		c.NotifyWorkingStateChanged(Started)
+		diff = stopSyncHeightDiffThreashold
 
 		bpId, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 		if err != nil {

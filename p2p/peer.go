@@ -401,6 +401,7 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 // protocol specifics delegated to all connected sub-protocols.
 type PeerInfo struct {
 	ID      string   `json:"id"`   // Unique node identifier (also the encryption key)
+	ShortId string     `json:"short_id"`
 	Name    string   `json:"name"` // Name of the node, including client type, version, OS, custom data
 	Caps    []string `json:"caps"` // Sum-protocols advertised by this particular peer
 	Network struct {
@@ -423,6 +424,7 @@ func (p *Peer) Info() *PeerInfo {
 	// Assemble the generic peer metadata
 	info := &PeerInfo{
 		ID:        p.ID().String(),
+		ShortId:   p.ID().TerminalString(),
 		Name:      p.Name(),
 		Caps:      caps,
 		Protocols: make(map[string]interface{}),

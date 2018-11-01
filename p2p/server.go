@@ -1050,6 +1050,7 @@ func (srv *Server) runPeer(p *Peer) {
 // NodeInfo represents a short summary of the information known about the host.
 type NodeInfo struct {
 	ID    string `json:"id"`    // Unique node identifier (also the encryption key)
+	ShortId string `json:"short_id"`
 	Name  string `json:"name"`  // Name of the node, including client type, version, OS, custom data
 	Enode string `json:"enode"` // Enode URL for adding this peer from remote peers
 	IP    string `json:"ip"`    // IP address of the node
@@ -1070,6 +1071,7 @@ func (srv *Server) NodeInfo() *NodeInfo {
 		Name:       srv.NodeName,
 		Enode:      node.String(),
 		ID:         node.ID.String(),
+		ShortId:    node.ID.TerminalString(),
 		IP:         net.IP(node.IP).String(),
 		ListenAddr: srv.ListenAddr,
 		Protocols:  make(map[string]interface{}),

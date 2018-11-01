@@ -115,7 +115,7 @@ func NewNode() *Node {
 		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   10000,
+		NewTxQueueSize:                   1,
 	})
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
@@ -167,11 +167,14 @@ func NewNode() *Node {
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
 		&syncer.SyncerConfig{
-			BatchTimeoutMilliSecond:              100,
-			AcquireTxQueueSize:                   1000,
-			MaxBatchSize:                         100,
-			AcquireTxDedupCacheMaxSize:           10000,
-			AcquireTxDedupCacheExpirationSeconds: 60,
+			BatchTimeoutMilliSecond:                  100,
+			AcquireTxQueueSize:                       1000,
+			MaxBatchSize:                             100,
+			AcquireTxDedupCacheMaxSize:               10000,
+			AcquireTxDedupCacheExpirationSeconds:     60,
+			BufferedIncomingTxCacheEnabled:           true,
+			BufferedIncomingTxCacheExpirationSeconds: 600,
+			BufferedIncomingTxCacheMaxSize:           10000,
 		}, m)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
@@ -307,6 +310,7 @@ func NewNode() *Node {
 
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
+	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
 	pm.Register(hub)
 	n.Components = append(n.Components, pm)

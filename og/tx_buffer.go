@@ -267,7 +267,11 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
-		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to  txpool err")
+		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
+	}else{
+		logrus.WithField("tx", tx).Debugf("broacasting tx")
+		b.Announcer.BroadcastNewTx(tx)
+		logrus.WithField("tx", tx).Debugf("broacasted tx")
 	}
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
@@ -290,9 +294,6 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
 		b.tryResolve(v)
 	}
-	//nice tx announce it
-	b.Announcer.BroadcastNewTx(tx)
-
 }
 
 // isLocalHash tests if the tx has already been in the txpool or dag.

@@ -37,11 +37,9 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 		logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
 		//write  a message to just one  files
-		writer = io.MultiWriter(logFile)
+		writer = io.MultiWriter(logger.Out, logFile)
 	} else {
-		// stdout only
-		fmt.Println("Will be logged to stdout")
-		writer = io.MultiWriter(os.Stdout)
+		writer = logger.Out
 	}
 	return &logrus.Logger{
 		Level:     logger.Level,

@@ -281,6 +281,8 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSe
 	//if h.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
+	return
+	// TODO:
 	lseq := h.Og.Dag.LatestSequencer()
 	if msgHeader.Number > lseq.Number() {
 		if !h.requestCache.get(msgHeader.Number) {

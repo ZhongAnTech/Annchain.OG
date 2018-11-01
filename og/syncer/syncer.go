@@ -1,12 +1,11 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
-	"github.com/sirupsen/logrus"
 	"time"
-	"github.com/annchain/OG/ffchan"
 )
 
 type MessageSender interface {
@@ -49,10 +48,10 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *In
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		quitLoopSync:     make(chan bool),
-		quitLoopEvent:    make(chan bool),
-		EnableEvent:      make(chan bool),
-		Enabled:          false,
+		quitLoopSync:  make(chan bool),
+		quitLoopEvent: make(chan bool),
+		EnableEvent:   make(chan bool),
+		Enabled:       false,
 	}
 }
 
@@ -96,10 +95,10 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	}
 	bytes, err := req.MarshalMsg(nil)
 	if err != nil {
-		logrus.WithError(err).Warnf("failed to marshal request: %+v", req)
+		log.WithError(err).Warnf("failed to marshal request: %+v", req)
 		return
 	}
-	logrus.WithField("type", og.MessageTypeFetchByHashRequest).
+	log.WithField("type", og.MessageTypeFetchByHashRequest).
 		WithField("length", len(req.Hashes)).
 		Debugf("sending message MessageTypeFetchByHashRequest")
 
@@ -120,7 +119,7 @@ func (m *IncrementalSyncer) loopSync() {
 		if !m.Enabled {
 			select {
 			case <-m.quitLoopSync:
-				logrus.Info("syncer received quit message. Quitting...")
+				log.Info("syncer received quit message. Quitting...")
 				return
 			case <-time.After(pauseCheckDuration):
 				continue
@@ -128,7 +127,7 @@ func (m *IncrementalSyncer) loopSync() {
 		}
 		select {
 		case <-m.quitLoopSync:
-			logrus.Info("syncer received quit message. Quitting...")
+			log.Info("syncer received quit message. Quitting...")
 			return
 		case hash := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
@@ -148,11 +147,11 @@ func (m *IncrementalSyncer) loopSync() {
 
 func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 	if !m.Enabled {
-		logrus.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
+		log.WithField("hash", hash).Info("sync task is ignored since syncer is paused")
 		return
 	}
 	if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
-		logrus.WithField("hash", hash).Debugf("duplicate sync task")
+		log.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
@@ -172,10 +171,10 @@ func (m *IncrementalSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
-			logrus.WithField("enable", v).Info("incremental syncer got enable event ")
+			log.WithField("enable", v).Info("incremental syncer got enable event ")
 			m.Enabled = v
 		case <-m.quitLoopEvent:
-			logrus.Info("incremental syncer eventLoop received quit message. Quitting...")
+			log.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}
@@ -183,13 +182,13 @@ func (m *IncrementalSyncer) eventLoop() {
 
 func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 	if !s.Enabled {
-		logrus.Debug("incremental received tx but sync disabled")
+		log.Debug("incremental received tx but sync disabled")
 		return
 	}
 
-	logrus.WithField("q", newTx).Debug("incremental received MessageNewTx")
+	log.WithField("q", newTx).Debug("incremental received MessageNewTx")
 	if newTx.Tx == nil {
-		logrus.Debug("empty MessageNewTx")
+		log.Debug("empty MessageNewTx")
 		return
 	}
 
@@ -198,15 +197,15 @@ func (s *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 
 func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 	if !s.Enabled {
-		logrus.Debug("incremental received txs but sync disabled")
+		log.Debug("incremental received txs but sync disabled")
 		return
 	}
-	logrus.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
+	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
 	if newTxs.Txs == nil {
-		logrus.Debug("Empty MessageNewTx")
+		log.Debug("Empty MessageNewTx")
 		return
 	}
 
@@ -217,15 +216,15 @@ func (s *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 
 func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
 	if !s.Enabled {
-		logrus.Debug("incremental received seq but sync disabled")
+		log.Debug("incremental received seq but sync disabled")
 		return
 	}
-	logrus.WithField("q", newSeq).Debug("incremental received NewSequence")
+	log.WithField("q", newSeq).Debug("incremental received NewSequence")
 	//if s.SyncManager.Status != syncer.SyncStatusIncremental{
 	//	return
 	//}
 	if newSeq.Sequencer == nil {
-		logrus.Debug("empty NewSequence")
+		log.Debug("empty NewSequence")
 		return
 	}
 	s.notifyNewTxi(newSeq.Sequencer)

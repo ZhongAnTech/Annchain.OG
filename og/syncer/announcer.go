@@ -3,7 +3,6 @@ package syncer
 import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 )
 
 type Announcer struct {
@@ -30,6 +29,6 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 		data, _ := msgTx.MarshalMsg(nil)
 		m.messageSender.BroadcastMessage(og.MessageTypeNewSequencer, data)
 	} else {
-		logrus.Warn("never come here ,unkown tx type", txType)
+		log.Warn("never come here ,unkown tx type", txType)
 	}
 }

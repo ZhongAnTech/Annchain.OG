@@ -1,22 +1,22 @@
 package og
 
 import (
+	"container/list"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
-	"container/list"
-	"github.com/annchain/OG/ffchan"
 )
 
 type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {
@@ -106,11 +106,11 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 
 func DefaultTxBufferConfig(TxBroadcaster Syncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		TxAnnouncer:                      nil, // TODO
-		Syncer:                           TxBroadcaster,
-		Verifiers:                        verifiers,
-		Dag:                              dag,
-		TxPool:                           TxPool,
+		TxAnnouncer: nil, // TODO
+		Syncer:      TxBroadcaster,
+		Verifiers:   verifiers,
+		Dag:         dag,
+		TxPool:      TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,

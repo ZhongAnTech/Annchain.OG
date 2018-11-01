@@ -20,7 +20,7 @@ func panicIfError(err error, message string) {
 	}
 }
 
-func InitLogger(logger *logrus.Logger , logdir string, outputFile string) *logrus.Logger {
+func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus.Logger {
 	var writer io.Writer
 
 	if logdir != "" {
@@ -36,24 +36,23 @@ func InitLogger(logger *logrus.Logger , logdir string, outputFile string) *logru
 		logrus.WithField("path", abspath).Info("Additional logger")
 		logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
-       //write  a message to just one  files
+		//write  a message to just one  files
 		writer = io.MultiWriter(logFile)
 	} else {
 		// stdout only
 		fmt.Println("Will be logged to stdout")
 		writer = io.MultiWriter(os.Stdout)
 	}
-	 return  &logrus.Logger{
+	return &logrus.Logger{
 		Level:     logger.Level,
 		Formatter: logger.Formatter,
 		Out:       writer,
-		Hooks:logger.Hooks,
+		Hooks:     logger.Hooks,
 	}
 }
 
-func InitLoggers( logger *logrus.Logger) {
+func InitLoggers(logger *logrus.Logger) {
 	logdir := viper.GetString("datadir")
-	TxLogger = InitLogger(logger,logdir, "tx.log",)
+	TxLogger = InitLogger(logger, logdir, "og_tx.log")
 	logrus.Debug("Additional logger initialized.")
 }
-

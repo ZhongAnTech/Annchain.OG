@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type SequencerHeader struct {
 	hash Hash
@@ -57,4 +60,15 @@ func (s *SequencerHeader) Equal(h *SequencerHeader) bool {
 		return false
 	}
 	return s.id == h.id && s.hash == h.hash
+}
+
+func HeadersToString(headers []*SequencerHeader) string {
+	var strs []string
+	for _, v := range headers {
+		if v == nil {
+			continue
+		}
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
 }

@@ -4,11 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/ffchan"
 )
 
 const (
@@ -24,7 +23,7 @@ const (
 	// otherwise it should be smaller
 
 	// when to stop sync once started
-	stopSyncHeightDiffThreashold  uint64 = 0
+	stopSyncHeightDiffThreashold uint64 = 0
 	// when to start sync
 	startSyncHeightDiffThreashold uint64 = 2
 )
@@ -100,7 +99,7 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
 	if seqId <= ourId+maxDiff {
-		logrus.WithField("bestPeer SeqId", seqId).
+		log.WithField("bestPeer SeqId", seqId).
 			WithField("bestPeerHash", bpHash).
 			WithField("our SeqId", ourId).
 			Debug("we are now up to date")
@@ -114,18 +113,19 @@ func (c *CatchupSyncer) loopSync() {
 	for {
 		select {
 		case <-c.quit:
-			logrus.Info("catchup syncer loopSync received quit message. Quitting...")
+			log.Info("CatchupSyncer loopSync received quit message. Quitting...")
 			return
 		case peer := <-c.NewPeerConnectedEventListener:
-			logrus.WithField("peer", peer).Info("new peer connected")
+			log.WithField("peer", peer).Info("new peer connected")
 			if !c.Enabled {
-				logrus.Info("catchup syncer not enabled")
+
+				log.Info("catchupSyncer not enabled")
 				continue
 			}
 			go c.syncToLatest()
 		case <-time.After(time.Second * 15):
 			if !c.Enabled {
-				logrus.Info("catchup syncer not enabled")
+				log.Info("catchup syncer not enabled")
 				continue
 			}
 			go c.syncToLatest()
@@ -161,12 +161,13 @@ func (c *CatchupSyncer) unsetSyncFlag() {
 
 func (c *CatchupSyncer) syncToLatest() error {
 	if c.isSyncing() {
-		logrus.Info("catchup syncing task is busy")
+		log.Info("catchup syncing task is busy")
 		return nil
 	}
 	c.setSyncFlag()
 	defer c.unsetSyncFlag()
 	//get best peer ,and sync with this peer until we catchup
+
 	diff := startSyncHeightDiffThreashold
 	for !c.isUpToDate(diff) {
 		c.NotifyWorkingStateChanged(Started)
@@ -174,18 +175,17 @@ func (c *CatchupSyncer) syncToLatest() error {
 
 		bpId, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 		if err != nil {
-			logrus.WithError(err).Warn("picking up best peer")
+			log.WithError(err).Warn("picking up best peer")
 			return err
 		}
-
 		ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
 
-		logrus.WithField("peerId", bpId).WithField("seq", seqId).WithField("ourId", ourId).
+		log.WithField("peerId", bpId).WithField("seq", seqId).WithField("ourId", ourId).
 			Debug("catchup sync with best peer")
 
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
 		if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
-			logrus.WithError(err).Warn("catchup sync failed")
+			log.WithError(err).Warn("catchup sync failed")
 			return err
 		}
 		//bpHash, seqId, err = c.PeerProvider.GetPeerHead(bpId)
@@ -222,10 +222,10 @@ func (c *CatchupSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-c.EnableEvent:
-			logrus.WithField("enable", v).Info("catchup syncer got enable event ")
+			log.WithField("enable", v).Info("catchup syncer got enable event ")
 			c.Enabled = v
 		case <-c.quitLoopEvent:
-			logrus.Info("catchup syncer eventLoop received quit message. Quitting...")
+			log.Info("catchup syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}

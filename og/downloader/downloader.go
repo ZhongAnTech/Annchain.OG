@@ -153,9 +153,9 @@ func (d *Downloader) Synchronising() bool {
 // used for fetching hashes and blocks from.
 func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 
-	log.WithField("id ", id ).Debug("Registering sync peer")
+	log.WithField("id ", id).Debug("Registering sync peer")
 	if err := d.peers.Register(newPeerConnection(id, version, peer)); err != nil {
-		log.WithField("id ", id ).WithError(err).Error("Failed to register sync peer")
+		log.WithField("id ", id).WithError(err).Error("Failed to register sync peer")
 		return err
 	}
 	d.qosReduceConfidence()
@@ -169,9 +169,9 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 func (d *Downloader) UnregisterPeer(id string) error {
 	// Unregister the peer from the active peer set and revoke any fetch tasks
 
-	log.WithField("id ",id).Debug("Unregistering sync peer")
+	log.WithField("id ", id).Debug("Unregistering sync peer")
 	if err := d.peers.Unregister(id); err != nil {
-		log.WithField("id ",id).WithError(err).Error("Failed to unregister sync peer")
+		log.WithField("id ", id).WithError(err).Error("Failed to unregister sync peer")
 		return err
 	}
 	d.queue.Revoke(id)
@@ -439,7 +439,7 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 			return head, nil
 
 		case <-timeout:
-			log.WithField("peer ",p.id).Info("Waiting for head header timed out", "elapsed", ttl)
+			log.WithField("peer ", p.id).Info("Waiting for head header timed out", "elapsed", ttl)
 			return nil, errTimeout
 
 		case <-d.bodyCh:
@@ -536,7 +536,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			}
 
 		case <-timeout:
-			log.WithField("peer ",p.id).Debug("Waiting for head header timed out", "elapsed", ttl)
+			log.WithField("peer ", p.id).Debug("Waiting for head header timed out", "elapsed", ttl)
 			return 0, errTimeout
 
 		case <-d.bodyCh:
@@ -597,7 +597,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 				start = check
 
 			case <-timeout:
-				log.WithField("peer ",p.id).WithField("elapsed", ttl).Info("Waiting for search header timed out")
+				log.WithField("peer ", p.id).WithField("elapsed", ttl).Info("Waiting for search header timed out")
 				return 0, errTimeout
 
 			case <-d.bodyCh:
@@ -731,7 +731,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 				break
 			}
 			// Header retrieval timed out, consider the peer bad and drop
-			log.WithField("peer ",p.id).WithField("elapsed", ttl).Debug("Header request timed out")
+			log.WithField("peer ", p.id).WithField("elapsed", ttl).Debug("Header request timed out")
 			headerTimeoutMeter.Mark(1)
 			d.dropPeer(p.id)
 

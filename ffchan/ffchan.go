@@ -1,9 +1,9 @@
 package ffchan
 
 import (
-	"time"
 	"github.com/sirupsen/logrus"
 	"reflect"
+	"time"
 )
 
 type TimeoutSender struct {
@@ -14,7 +14,7 @@ type TimeoutSender struct {
 	C         chan bool
 }
 
-func NewTimeoutSenderShort(channel interface{}, val interface{}, groupName string) *TimeoutSender{
+func NewTimeoutSenderShort(channel interface{}, val interface{}, groupName string) *TimeoutSender {
 	return NewTimeoutSender(channel, val, groupName, 5000)
 }
 

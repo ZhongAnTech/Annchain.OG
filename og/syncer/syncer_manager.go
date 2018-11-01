@@ -1,10 +1,9 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/ffchan"
 )
 
 type SyncManagerConfig struct {
@@ -90,7 +89,7 @@ func (s *SyncManager) Name() string {
 
 func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvider og.NodeStatusDataProvider) *SyncManager {
 	sm := &SyncManager{
-		Hub:                              hub,
+		Hub: hub,
 		NodeStatusDataProvider:           NodeStatusDataProvider,
 		CatchupSyncerWorkingStateChanged: make(chan CatchupSyncerStatus),
 		BootstrapNode:                    config.BootstrapNode,
@@ -98,7 +97,7 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 
 	// Figure out whether to allow fast sync or not
 	if config.Mode == downloader.FastSync && sm.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId > 0 {
-		logrus.Warn("dag not empty, fast sync disabled")
+		log.Warn("dag not empty, fast sync disabled")
 		config.Mode = downloader.FullSync
 	}
 	if config.Mode == downloader.FastSync {
@@ -121,17 +120,17 @@ func (s *SyncManager) loopSync() {
 		// listen to either full sync or incremental sync to get something new.
 		select {
 		case status := <-s.CatchupSyncerWorkingStateChanged:
-			logrus.WithField("v", status.String()).Info("catchup syncer working state changed")
+			log.WithField("v", status.String()).Info("catchup syncer working state changed")
 			switch status {
 			case Started:
 				// catch up started. pause incremental
 				s.Status = SyncStatusFull
-				<- ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "IncrementalSyncerEnable", 1000).C
+				<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "IncrementalSyncerEnable", 1000).C
 				s.NotifyUpToDateEvent(false)
 			case Stopped:
 				// catch up already done. now it is up to date. start incremental
 				s.Status = SyncStatusIncremental
-				<- ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, true, "IncrementalSyncerEnable", 1000).C
+				<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, true, "IncrementalSyncerEnable", 1000).C
 				s.NotifyUpToDateEvent(true)
 			}
 		}

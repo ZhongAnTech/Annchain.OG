@@ -1,6 +1,5 @@
 package og
 
-
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandlerOG32 struct {
 	Og  *Og

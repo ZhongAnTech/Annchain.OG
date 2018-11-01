@@ -619,7 +619,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	for id := range expiries {
 		delete(pendPool, id)
 	}
-	if len(expiries) != 0{
+	if len(expiries) != 0 {
 		log.WithField("ids", expiries).Debug("expire")
 	}
 

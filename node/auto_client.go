@@ -58,7 +58,7 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
-func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool){
+func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool) {
 	switch txType {
 	case types.TxBaseTypeNormal:
 		c.doSampleTx(force)

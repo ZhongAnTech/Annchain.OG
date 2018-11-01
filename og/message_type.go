@@ -81,11 +81,11 @@ func (m *P2PMessage) calculateHash() {
 	//for request ,if source id is different they were different  msg ,don't drop it
 	//if we dropped header response because of duplicate , header request will time out
 	data := m.Message
-	if m.MessageType == MessageTypeBodiesRequest ||m.MessageType == MessageTypeFetchByHashRequest ||
-		m.MessageType ==MessageTypeTxsRequest || m.MessageType ==MessageTypeHeaderRequest ||
-		m.MessageType ==MessageTypeSequencerHeader || m.MessageType ==MessageTypeHeaderResponse ||
-		m.MessageType ==MessageTypeBodiesResponse {
-			data = append(data,[]byte(m.SourceID+"hi")...)
+	if m.MessageType == MessageTypeBodiesRequest || m.MessageType == MessageTypeFetchByHashRequest ||
+		m.MessageType == MessageTypeTxsRequest || m.MessageType == MessageTypeHeaderRequest ||
+		m.MessageType == MessageTypeSequencerHeader || m.MessageType == MessageTypeHeaderResponse ||
+		m.MessageType == MessageTypeBodiesResponse {
+		data = append(data, []byte(m.SourceID+"hi")...)
 	}
 
 	h := sha256.New()

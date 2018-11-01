@@ -111,7 +111,7 @@ func (m *MessageRouter) RouteFetchByHashRequest(msg *P2PMessage) {
 		msgLog.Debug("invalid MessageSyncRequest format")
 		return
 	}
-	m.debugLog(msg,&syncRequest)
+	m.debugLog(msg, &syncRequest)
 	m.FetchByHashRequestHandler.HandleFetchByHashRequest(syncRequest, msg.SourceID)
 }
 
@@ -122,7 +122,7 @@ func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
 		msgLog.Debug("invalid MessageSyncResponse format")
 		return
 	}
-	m.debugLog(msg,&syncResponse)
+	m.debugLog(msg, &syncResponse)
 	m.FetchByHashResponseHandler.HandleFetchByHashResponse(syncResponse, msg.SourceID)
 }
 
@@ -134,7 +134,7 @@ func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid MessageNewTx format")
 		return
 	}
-	m.debugLog(msg,&newTx)
+	m.debugLog(msg, &newTx)
 	m.NewTxHandler.HandleNewTx(newTx)
 }
 
@@ -147,7 +147,7 @@ func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid MessageNewTxs format")
 		return
 	}
-	m.debugLog(msg,&newTxs)
+	m.debugLog(msg, &newTxs)
 	m.NewTxsHandler.HandleNewTxs(newTxs)
 }
 func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
@@ -157,7 +157,7 @@ func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid NewSequence format")
 		return
 	}
-	m.debugLog(msg,&newSq)
+	m.debugLog(msg, &newSq)
 	m.NewSequencerHandler.HandleNewSequencer(newSq)
 }
 
@@ -168,7 +168,7 @@ func (m *MessageRouter) RouteSequencerHeader(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid MessageSequencerHeader format")
 		return
 	}
-	m.debugLog(msg,&msgHeader)
+	m.debugLog(msg, &msgHeader)
 	m.SequencerHeaderHandler.HandleSequencerHeader(msgHeader, msg.SourceID)
 }
 func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
@@ -179,7 +179,7 @@ func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid MessageBodiesRequest format")
 		return
 	}
-	m.debugLog(msg,&msgReq)
+	m.debugLog(msg, &msgReq)
 	m.BodiesRequestHandler.HandleBodiesRequest(msgReq, msg.SourceID)
 }
 func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
@@ -189,7 +189,7 @@ func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
 		msgLog.WithError(err).Debug("invalid MessageBodiesResponse format")
 		return
 	}
-	m.debugLog(msg,&request)
+	m.debugLog(msg, &request)
 	m.BodiesResponseHandler.HandleBodiesResponse(request, msg.SourceID)
 }
 func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
@@ -199,7 +199,7 @@ func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
 		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
-	m.debugLog(msg,&msgReq)
+	m.debugLog(msg, &msgReq)
 	m.TxsRequestHandler.HandleTxsRequest(msgReq, msg.SourceID)
 
 }
@@ -210,7 +210,7 @@ func (m *MessageRouter) RouteTxsResponse(msg *P2PMessage) {
 		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
-	m.debugLog(msg,&request)
+	m.debugLog(msg, &request)
 	m.TxsResponseHandler.HandleTxsResponse(request)
 
 }
@@ -222,7 +222,7 @@ func (m *MessageRouter) RouteHeaderRequest(msg *P2PMessage) {
 		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
-	m.debugLog(msg,&query)
+	m.debugLog(msg, &query)
 	m.HeaderRequestHandler.HandleHeaderRequest(query, msg.SourceID)
 }
 
@@ -233,15 +233,14 @@ func (m *MessageRouter) RouteHeaderResponse(msg *P2PMessage) {
 		msgLog.WithError(err).WithField("msg", fmt.Sprintf("%v", msg)).Debug("unmarshal message")
 		return
 	}
-	m.debugLog(msg,&headerMsg)
+	m.debugLog(msg, &headerMsg)
 	m.HeaderResponseHandler.HandleHeaderResponse(headerMsg, msg.SourceID)
 }
 
-func (m*MessageRouter)debugLog(msg *P2PMessage , message types.Message) (){
-	msgLog.WithField("type",msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
+func (m *MessageRouter) debugLog(msg *P2PMessage, message types.Message) {
+	msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
 		"q", message.String()).Debug("received a message")
 }
-
 
 // BroadcastMessage send message to all peers
 func (m *MessageRouter) BroadcastMessage(messageType MessageType, message []byte) {

@@ -36,8 +36,6 @@ import (
 	"time"
 )
 
-
-
 const (
 	defaultDialTimeout = 15 * time.Second
 
@@ -141,8 +139,6 @@ type Config struct {
 	// If EnableMsgEvents is set then the server will emit PeerEvents
 	// whenever a message is sent to or received from a peer
 	EnableMsgEvents bool
-
-
 }
 
 // Server manages all peer connections.
@@ -1049,12 +1045,12 @@ func (srv *Server) runPeer(p *Peer) {
 
 // NodeInfo represents a short summary of the information known about the host.
 type NodeInfo struct {
-	ID    string `json:"id"`    // Unique node identifier (also the encryption key)
+	ID      string `json:"id"` // Unique node identifier (also the encryption key)
 	ShortId string `json:"short_id"`
-	Name  string `json:"name"`  // Name of the node, including client type, version, OS, custom data
-	Enode string `json:"enode"` // Enode URL for adding this peer from remote peers
-	IP    string `json:"ip"`    // IP address of the node
-	Ports struct {
+	Name    string `json:"name"`  // Name of the node, including client type, version, OS, custom data
+	Enode   string `json:"enode"` // Enode URL for adding this peer from remote peers
+	IP      string `json:"ip"`    // IP address of the node
+	Ports   struct {
 		Discovery int `json:"discovery"` // UDP listening port for discovery protocol
 		Listener  int `json:"listener"`  // TCP listening port for RLPx
 	} `json:"ports"`

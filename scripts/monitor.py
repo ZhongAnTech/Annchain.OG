@@ -26,7 +26,7 @@ def myid(host):
     try:
         resp = s.get('http://%s/net_info' % host, timeout=3)
         j = json.loads(resp.text)
-        return j['id']
+        return j['short_id']
     except Exception as e:
         return None
 
@@ -46,8 +46,8 @@ def doone(host):
         resp = s.get('http://%s/peers_info' % host, timeout=3)
         j = json.loads(resp.text)
         for peer in j:
-            if peer['id'] in id_host_map:
-                peers.append(id_host_map[peer['id']][-4:])
+            if peer['short_id'] in id_host_map:
+                peers.append(id_host_map[peer['short_id']][-4:])
         d['peers'] = peers
     except Exception as e:
         d['peers'] = []

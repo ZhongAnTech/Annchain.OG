@@ -196,20 +196,20 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 
 	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
-	b.resolve(tx, firstTime)
+    b.resolve(tx, firstTime)
 }
 
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer is handling tx")
-	var shouldBrodcast bool
+
 	// already in the dag or tx_pool or buffer itself.
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
-	} else {
-		// not in tx buffer , a new tx , shoud broadcast
-		shouldBrodcast = true
 	}
+	// not in tx buffer , a new tx , shoud broadcast
+
+
 	// TODO: Temporarily comment it out to test performance.
 	//if err := b.verifyTxFormat(tx); err != nil {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
@@ -222,11 +222,6 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		logrus.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
 		b.niceTx(tx, true)
 	}
-
-	if shouldBrodcast {
-		b.Announcer.BroadcastNewTx(tx)
-	}
-
 }
 
 func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
@@ -296,7 +291,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
-func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+func (b *TxBuffer) resolve(tx types.Txi, firstTime bool){
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
@@ -323,6 +318,8 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
 		b.tryResolve(v)
 	}
+	//nice tx announce it
+	b.Announcer.BroadcastNewTx(tx)
 
 }
 

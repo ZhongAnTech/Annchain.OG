@@ -410,9 +410,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			//	//todo  resolve the tx remove dependency
 			//}
 			// tx already received by pool. remove from local cache
-			logrus.Info("F1")
 			b.releasedTxCache.Remove(v.GetTxHash())
-			logrus.Info("F2")
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

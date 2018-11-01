@@ -47,7 +47,7 @@ timeout_latest_seq_ms = 10000
 [auto_client]
 # whether auto_tx will maintain its own nonce records.
 # false to query latest nonce every time.
-nonce_self_discipline = true
+nonce_self_discipline = false
 
 [auto_client.sequencer]
 enabled = true

@@ -6,15 +6,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+	"container/list"
+	"github.com/annchain/OG/ffchan"
 )
 
 type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {
@@ -104,11 +106,11 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 
 func DefaultTxBufferConfig(TxBroadcaster Syncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
 	config := TxBufferConfig{
-		TxAnnouncer: nil, // TODO
-		Syncer:      TxBroadcaster,
-		Verifiers:   verifiers,
-		Dag:         dag,
-		TxPool:      TxPool,
+		TxAnnouncer:                      nil, // TODO
+		Syncer:                           TxBroadcaster,
+		Verifiers:                        verifiers,
+		Dag:                              dag,
+		TxPool:                           TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   10000,
@@ -136,18 +138,18 @@ func (b *TxBuffer) loop() {
 		case <-b.quit:
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
-		case v:= <-b.ReceivedNewTxChan:
+		case v := <-b.ReceivedNewTxChan:
 			go b.handleTx(v)
 		case v := <-b.selfGeneratedNewTxChan:
 			go b.handleTx(v)
 		case v := <-b.txAddedToPoolChan:
-		 //a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
-		 //if err!=nil {
-		 //	// the tx added not by tx buffer , clean dependency
-		 //	tx := a.(types.Txi)
-		 //	tx.String()
-		 //	//todo  resolve the tx remove dependency
-		 //}
+			//a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
+			//if err!=nil {
+			//	// the tx added not by tx buffer , clean dependency
+			//	tx := a.(types.Txi)
+			//	tx.String()
+			//	//todo  resolve the tx remove dependency
+			//}
 			// tx already received by pool. remove from local cache
 
 			b.releasedTxCache.Remove(v.GetTxHash())
@@ -157,36 +159,12 @@ func (b *TxBuffer) loop() {
 
 // AddLocalTx is called once there are new tx generated.
 func (b *TxBuffer) AddLocalTx(tx types.Txi) {
-loop:
-	for {
-		if !b.timeoutAddLocalTx.Stop() {
-			<-b.timeoutAddLocalTx.C
-		}
-		b.timeoutAddLocalTx.Reset(time.Second * 10)
-		select {
-		case <-b.timeoutAddLocalTx.C:
-			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx local")
-		case b.selfGeneratedNewTxChan <- tx:
-			break loop
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(b.selfGeneratedNewTxChan, tx, "addLocalTx").C
 }
 
 // AddRemoteTx is called once there are new tx synced.
 func (b *TxBuffer) AddRemoteTx(tx types.Txi) {
-loop:
-	for {
-		if !b.timeoutAddLocalTx.Stop() {
-			<-b.timeoutAddLocalTx.C
-		}
-		b.timeoutAddLocalTx.Reset(time.Second * 10)
-		select {
-		case <-b.timeoutAddLocalTx.C:
-			logrus.WithField("tx", tx).Warn("timeout on channel writing: add tx remote")
-		case b.ReceivedNewTxChan <- tx:
-			break loop
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(b.ReceivedNewTxChan, tx, "addRemoteTx").C
 }
 
 func (b *TxBuffer) AddLocalTxs(seq *types.Sequencer, txs types.Txs) error {
@@ -223,7 +201,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
-	logrus.WithField("tx", tx).Debugf("buffer is handling tx")
+	logrus.WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer is handling tx")
 	var shouldBrodcast bool
 	// already in the dag or tx_pool or buffer itself.
 	if b.isKnownHash(tx.GetTxHash()) {
@@ -260,6 +238,24 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 	a, err = b.releasedTxCache.GetIFPresent(hash)
 	if err == nil {
 		return a.(types.Txi)
+	}
+	return nil
+}
+
+func (b *TxBuffer) GetFromAllKnownSource(hash types.Hash) types.Txi {
+	if tx := b.GetFromBuffer(hash); tx != nil {
+		return tx
+	} else if tx := b.GetFromProviders(hash); tx != nil {
+		return tx
+	}
+	return nil
+}
+
+func (b *TxBuffer) GetFromProviders(hash types.Hash) types.Txi {
+	if poolTx := b.txPool.Get(hash); poolTx != nil {
+		return poolTx
+	} else if dagTx := b.dag.GetTx(hash); dagTx != nil {
+		return dagTx
 	}
 	return nil
 }
@@ -385,24 +381,51 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	for _, parentHash := range tx.Parents() {
 		if !b.isLocalHash(parentHash) {
-			logrus.WithField("hash", parentHash).Debugf("parent not known by pool or dag tx")
+			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 
 			// TODO: identify if this tx is already synced
 			if !b.isCachedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
-				logrus.WithField("hash", parentHash).Debugf("enqueue parent to syncer")
+				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				b.Syncer.Enqueue(parentHash)
 				b.updateDependencyMap(parentHash, tx)
 			} else {
-				logrus.WithField("hash", parentHash).Debugf("cached by someone before.")
+				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
 			}
 		}
 	}
 	if !allFetched {
+		missingHashes := b.getMissingHashes(tx)
+		logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
+
 		// add myself to the dependency map
 		b.updateDependencyMap(tx.GetTxHash(), tx)
 	}
 	return allFetched
+}
+func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
+	l := list.New()
+	s := map[types.Hash]struct{}{}
+	// find out who is missing
+	for _, v := range txi.Parents() {
+		l.PushBack(v)
+	}
+
+	for l.Len() != 0 {
+		hash := l.Remove(l.Front()).(types.Hash)
+		if parentTx := b.GetFromAllKnownSource(hash); parentTx != nil {
+			for _, v := range parentTx.Parents() {
+				l.PushBack(v)
+			}
+		} else {
+			s[hash] = struct{}{}
+		}
+	}
+	var missingHashes []types.Hash
+	for k := range s {
+		missingHashes = append(missingHashes, k)
+	}
+	return missingHashes
 }

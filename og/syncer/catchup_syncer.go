@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 )
 
 const (

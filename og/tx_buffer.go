@@ -14,9 +14,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {
@@ -60,8 +60,6 @@ type TxBuffer struct {
 	quit                   chan bool
 	releasedTxCache        gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
-	timeoutAddLocalTx      *time.Timer // timeouts for channel
-	timeoutAddRemoteTx     *time.Timer // timeouts for channel
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
@@ -100,33 +98,18 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		quit:                   make(chan bool),
 		releasedTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
-		timeoutAddLocalTx:  time.NewTimer(time.Second * 10),
-		timeoutAddRemoteTx: time.NewTimer(time.Second * 10),
 	}
-}
-
-func DefaultTxBufferConfig(TxBroadcaster Syncer, TxPool ITxPool, dag IDag, verifiers []Verifier) TxBufferConfig {
-	config := TxBufferConfig{
-		TxAnnouncer: nil, // TODO
-		Syncer:      TxBroadcaster,
-		Verifiers:   verifiers,
-		Dag:         dag,
-		TxPool:      TxPool,
-		DependencyCacheExpirationSeconds: 10 * 60,
-		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   10000,
-	}
-	return config
 }
 
 func (b *TxBuffer) Start() {
 	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan)
 	go b.loop()
+	go b.releasedTxCacheLoop()
 }
 
 func (b *TxBuffer) Stop() {
 	logrus.Info("tx bu will stop.")
-	b.quit <- true
+	close(b.quit)
 }
 
 func (b *TxBuffer) Name() string {
@@ -143,17 +126,6 @@ func (b *TxBuffer) loop() {
 			b.handleTx(v)
 		case v := <-b.selfGeneratedNewTxChan:
 			b.handleTx(v)
-		case v := <-b.txAddedToPoolChan:
-			//a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
-			//if err!=nil {
-			//	// the tx added not by tx buffer , clean dependency
-			//	tx := a.(types.Txi)
-			//	tx.String()
-			//	//todo  resolve the tx remove dependency
-			//}
-			// tx already received by pool. remove from local cache
-
-			b.releasedTxCache.Remove(v.GetTxHash())
 		}
 	}
 }
@@ -197,7 +169,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 
 	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
-    b.resolve(tx, firstTime)
+	b.resolve(tx, firstTime)
 }
 
 // in parallel
@@ -209,7 +181,6 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		return
 	}
 	// not in tx buffer , a new tx , shoud broadcast
-
 
 	// TODO: Temporarily comment it out to test performance.
 	//if err := b.verifyTxFormat(tx); err != nil {
@@ -292,7 +263,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
-func (b *TxBuffer) resolve(tx types.Txi, firstTime bool){
+func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
@@ -426,4 +397,25 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 		missingHashes = append(missingHashes, k)
 	}
 	return missingHashes
+}
+func (b *TxBuffer) releasedTxCacheLoop() {
+	for {
+		select {
+		case v := <-b.txAddedToPoolChan:
+			//a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
+			//if err!=nil {
+			//	// the tx added not by tx buffer , clean dependency
+			//	tx := a.(types.Txi)
+			//	tx.String()
+			//	//todo  resolve the tx remove dependency
+			//}
+			// tx already received by pool. remove from local cache
+			logrus.Info("F1")
+			b.releasedTxCache.Remove(v.GetTxHash())
+			logrus.Info("F2")
+		case <-b.quit:
+			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
+			return
+		}
+	}
 }

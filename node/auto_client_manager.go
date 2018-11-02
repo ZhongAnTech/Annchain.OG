@@ -15,13 +15,14 @@ type AutoClientManager struct {
 	SampleAccounts         []account.SampleAccount
 	UpToDateEventListener  chan bool
 	NodeStatusDataProvider og.NodeStatusDataProvider
-	stop                   bool
+	quit                   chan bool
 	wg                     sync.WaitGroup
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
+	m.quit = make(chan bool)
 	m.SampleAccounts = core.GetSampleAccounts()
 
 	// to make sure we have only one sequencer
@@ -73,7 +74,7 @@ func (m *AutoClientManager) Start() {
 }
 
 func (m *AutoClientManager) Stop() {
-	m.stop = true
+	m.quit <- true
 	m.wg.Wait()
 }
 
@@ -83,7 +84,7 @@ func (m *AutoClientManager) Name() string {
 
 func (c *AutoClientManager) eventLoop() {
 	defer c.wg.Done()
-	for !c.stop {
+	for  {
 		select {
 		case v := <-c.UpToDateEventListener:
 			for _, client := range c.Clients {
@@ -97,11 +98,16 @@ func (c *AutoClientManager) eventLoop() {
 			}
 		case <-time.After(time.Second * 20):
 			continue
+		case <-c.quit:
+			logrus.Info("got quit signal")
+			// wait for all clients to stop
+			for _, client := range c.Clients {
+				client.Stop()
+				c.wg.Done()
+			}
+			return
 		}
+
 	}
-	// wait for all clients to stop
-	for _, client := range c.Clients {
-		client.Stop()
-		c.wg.Done()
-	}
+
 }

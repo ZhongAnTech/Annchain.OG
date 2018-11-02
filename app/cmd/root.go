@@ -17,6 +17,11 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/fetcher"
+	"github.com/annchain/OG/og/syncer"
+	"github.com/annchain/OG/p2p"
 	"github.com/rifflock/lfshook"
 	"io/ioutil"
 	"os"
@@ -83,12 +88,14 @@ func init() {
 	rootCmd.PersistentFlags().StringP("log_level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "log_line_number")
 	rootCmd.PersistentFlags().BoolP("multifile_by_level", "m", false, "multifile_by_level")
+	rootCmd.PersistentFlags().BoolP("multifile_by_module", "M", false, "multifile_by_module")
 
 	viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
 	viper.BindPFlag("log_line_number", rootCmd.PersistentFlags().Lookup("log_line_number"))
 	viper.BindPFlag("multifile_by_level", rootCmd.PersistentFlags().Lookup("multifile_by_level"))
+	viper.BindPFlag("multifile_by_module", rootCmd.PersistentFlags().Lookup("multifile_by_module"))
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log_level"))
 
@@ -184,9 +191,8 @@ func initLogger() {
 		filenameHook.Field = "line"
 		logrus.AddHook(filenameHook)
 	}
-	multifile := viper.GetBool("multifile_by_level")
-
-	if multifile && logdir != "" {
+	byLevel := viper.GetBool("multifile_by_level")
+	if byLevel && logdir != "" {
 		panicLog, _ := filepath.Abs(path.Join(logdir, "panic.log"))
 		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal.log"))
 		warnLog, _ := filepath.Abs(path.Join(logdir, "warn.log"))
@@ -206,8 +212,18 @@ func initLogger() {
 			Formatter,
 		))
 	}
+	logger := logrus.StandardLogger()
 	logrus.Debug("Logger initialized.")
-	mylog.InitLoggers(logrus.StandardLogger())
+	byModule := viper.GetBool("multifile_by_module")
+	if !byModule {
+		logdir = ""
+	}
+	mylog.InitLoggers(logger, logdir)
+	downloader.InitLoggers(logger, logdir)
+	fetcher.InitLoggers(logger, logdir)
+	p2p.InitLoggers(logger, logdir)
+	og.InitLoggers(logger, logdir)
+	syncer.InitLoggers(logger, logdir)
 
 }
 

@@ -91,6 +91,7 @@ func (c *AutoClient) loop() {
 			case <-time.After(time.Second):
 				continue
 			case <-c.quit:
+				logrus.Debug("got quit signal")
 				return
 			case txType := <-c.ManualChan:
 				c.fireManualTx(txType, true)
@@ -100,6 +101,7 @@ func (c *AutoClient) loop() {
 		logrus.Debug("client is working")
 		select {
 		case <-c.quit:
+			logrus.Debug("got quit signal")
 			return
 		case txType := <-c.ManualChan:
 			c.fireManualTx(txType, true)

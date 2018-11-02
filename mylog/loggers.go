@@ -3,7 +3,6 @@ package mylog
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"os"
 	"path"
@@ -22,7 +21,6 @@ func panicIfError(err error, message string) {
 
 func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus.Logger {
 	var writer io.Writer
-
 	if logdir != "" {
 		folderPath, err := filepath.Abs(logdir)
 		panicIfError(err, fmt.Sprintf("Error on parsing log path: %s", logdir))
@@ -49,8 +47,7 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 	}
 }
 
-func InitLoggers(logger *logrus.Logger) {
-	logdir := viper.GetString("datadir")
+func InitLoggers(logger *logrus.Logger, logdir string ) {
 	TxLogger = InitLogger(logger, logdir, "og_tx.log")
 	logrus.Debug("Additional logger initialized.")
 }

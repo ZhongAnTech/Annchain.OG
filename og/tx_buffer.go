@@ -123,13 +123,9 @@ func (b *TxBuffer) loop() {
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
 		case v := <-b.ReceivedNewTxChan:
-			logrus.WithField("v", v).Info("Handle1S")
 			b.handleTx(v)
-			logrus.WithField("v", v).Info("Handle1E")
 		case v := <-b.selfGeneratedNewTxChan:
-			logrus.WithField("v", v).Info("Handle2S")
 			b.handleTx(v)
-			logrus.WithField("v", v).Info("Handle2E")
 		}
 	}
 }
@@ -371,7 +367,6 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		}
 	}
 	if !allFetched {
-
 		missingHashes := b.getMissingHashes(tx)
 		logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 

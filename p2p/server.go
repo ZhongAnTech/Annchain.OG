@@ -611,7 +611,7 @@ func (srv *Server) run(dialstate dialer) {
 		i := 0
 		for ; len(runningTasks) < maxActiveDialTasks && i < len(ts); i++ {
 			t := ts[i]
-			//log.WithField("task", t).Debug("New dial task")
+			log.WithField("task", t).Trace("New dial task")
 			go func() { t.Do(srv); taskdone <- t }()
 			runningTasks = append(runningTasks, t)
 		}
@@ -642,13 +642,13 @@ running:
 			// This channel is used by AddPeer to add to the
 			// ephemeral static peer list. Add it to the dialer,
 			// it will keep the node connected.
-			log.WithField("node", n).Debug("Adding static node")
+			log.WithField("node", n).Trace("Adding static node")
 			dialstate.addStatic(n)
 		case n := <-srv.removestatic:
 			// This channel is used by RemovePeer to send a
 			// disconnect request to a peer and begin the
 			// stop keeping the node connected.
-			log.WithField("node", n).Debug("Removing static node")
+			log.WithField("node", n).Trace("Removing static node")
 			dialstate.removeStatic(n)
 			if p, ok := peers[n.ID]; ok {
 				p.Disconnect(DiscRequested)
@@ -656,7 +656,7 @@ running:
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
-			log.WithField("node", n).Debug("Adding trusted node")
+			log.WithField("node", n).Trace("Adding trusted node")
 			trusted[n.ID] = true
 			// Mark any already-connected peer as trusted
 			if p, ok := peers[n.ID]; ok {
@@ -665,7 +665,7 @@ running:
 		case n := <-srv.removetrusted:
 			// This channel is used by RemoveTrustedPeer to remove an enode
 			// from the trusted node set.
-			log.WithField("node", n).Debug("Removing trusted node")
+			log.WithField("node", n).Trace("Removing trusted node")
 			if _, ok := trusted[n.ID]; ok {
 				delete(trusted, n.ID)
 			}
@@ -682,7 +682,7 @@ running:
 			// A task got done. Tell dialstate about it so it
 			// can update its state and remove it from the active
 			// tasks list.
-			//log.WithField("task", t).Debug("Dial task done")
+			log.WithField("task", t).Trace("Dial task done")
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
 		case c := <-srv.posthandshake:
@@ -758,7 +758,7 @@ running:
 	// is closed.
 	for len(peers) > 0 {
 		p := <-srv.delpeer
-		log.WithField("remainingTasks", len(runningTasks)).Debug("<-delpeer (spindown)")
+		log.WithField("remainingTasks", len(runningTasks)).Trace("<-delpeer (spindown)")
 		delete(peers, p.ID())
 	}
 }
@@ -853,73 +853,14 @@ func (srv *Server) listenLoop() {
 		}
 
 		fd = newMeteredConn(fd, true)
-		log.WithField("addr", fd.RemoteAddr()).Debug("Accepted connection")
+		log.WithField("addr", fd.RemoteAddr()).Trace("Accepted connection")
 		go func() {
 			srv.SetupConn(fd, inboundConn, nil)
 			slots <- struct{}{}
 		}()
 	}
 
-	/*
-		log.Infof("Received[from %s]: %s.\n", peer, msg)
-		err = json.Unmarshal(msg, v)
-		errFatal("invalid p2p msg", err)
-	*/
-	//switch v.Type {
-	// case queryBlock:
-	// 	var queryData QueryBlockMsg
-	// 	err = json.Unmarshal([]byte(v.Data), &queryData)
-	// 	if err != nil {
-	// 		log.Println("Can't unmarshal QueryBlockMsg from ", peer, err.Error())
-	// 		continue
-	// 	}
-	// 	block := srv.blockchain.GetBlock(queryData.Index)
-	// 	if block == nil {
-	// 		log.Println("GetBlock with wrong index")
-	// 		continue
-	// 	}
-	// 	v.Type = respQueryBlock
-	// 	v.Data = block.Bytes()
-	// 	bs, _ := json.Marshal(v)
-	// 	log.Printf("responseLatestMsg: %s\n", bs)
-	// 	ws.Write(bs)
-
-	// case queryAll:
-	// 	// TODO query all
-	// 	v.Type = respQueryChain
-	// 	v.Data = srv.blockchain.Bytes()
-	// 	bs, _ := json.Marshal(v)
-	// 	log.Printf("responseChainMsg: %s\n", bs)
-	// 	ws.Write(bs)
-
-	// case respQueryBlock:
-	// 	// handleBlockchainResponse([]byte(v.Data))
-	// 	var block types.Block
-	// 	err = json.Unmarshal(v.Data, &block)
-	// 	if err != nil {
-	// 		log.Println("Can't unmarshal msg.Data to Block")
-	// 		continue
-	// 	}
-	// 	srv.blockchain.TryAppendBlock(&block)
-
-	// case respQueryChain:
-	// 	// TODO
-	//}
-
 }
-
-/*
-func (srv *P2PServer) Stop() {
-	log.Info("P2P Stopped")
-}
-
-// ----------
-
-func errFatal(msg string, err error) {
-
-
-}
-*/
 
 // SetupConn runs the handshakes and attempts to add the connection
 // as a peer. It returns when the connection has been added as a peer
@@ -934,7 +875,7 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 
 	if err != nil {
 		c.close(err)
-		log.WithField("id", c.id).WithError(err).Debug("Setting up connection failed")
+		log.WithField("id", c.id).WithError(err).Trace("Setting up connection failed")
 	}
 	return err
 }
@@ -951,7 +892,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	var err error
 	log.WithField("c", c.fd.RemoteAddr()).Info("setupConn")
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
-		log.WithError(err).WithFields(logrus.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Debug("Failed RLPx handshake")
+		log.WithError(err).WithFields(logrus.Fields{"conn": c.flags, "addr": c.fd.RemoteAddr()}).Trace("Failed RLPx handshake")
 		return err
 	}
 	clog := logrus.Fields{"id": c.id, "addr": c.fd.RemoteAddr(), "conn": c.flags}
@@ -962,28 +903,28 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
-		log.WithFields(clog).WithError(err).Debug("Rejected peer before protocol handshake")
+		log.WithFields(clog).WithError(err).Trace("Rejected peer before protocol handshake")
 		return err
 	}
 	// Run the protocol handshake
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
-		log.WithFields(clog).WithError(err).Debug("Failed proto handshake")
+		log.WithFields(clog).WithError(err).Trace("Failed proto handshake")
 		return err
 	}
 	if phs.ID != c.id {
-		log.WithFields(clog).WithField("phs.ID", phs.ID).Debug("Wrong devp2p handshake identity")
+		log.WithFields(clog).WithField("phs.ID", phs.ID).Trace("Wrong devp2p handshake identity")
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
-		log.WithFields(clog).WithError(err).Debug("Rejected peer")
+		log.WithFields(clog).WithError(err).Trace("Rejected peer")
 		return err
 	}
 	// If the checks completed successfully, runPeer has now been
 	// launched by run.
-	log.WithFields(clog).WithField("inbound", dialDest == nil).Debug("connection set up")
+	log.WithFields(clog).WithField("inbound", dialDest == nil).Trace("connection set up")
 	return nil
 }
 

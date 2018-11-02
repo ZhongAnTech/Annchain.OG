@@ -169,6 +169,8 @@ func initLogger() {
 		logrus.SetLevel(logrus.InfoLevel)
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
+	case "trace":
+		logrus.SetLevel(logrus.TraceLevel)
 	default:
 		fmt.Println("Unknown level", viper.GetString("log.level"), "Set to INFO")
 		logrus.SetLevel(logrus.InfoLevel)
@@ -199,6 +201,7 @@ func initLogger() {
 		errorLog, _ := filepath.Abs(path.Join(logdir, "error.log"))
 		infoLog, _ := filepath.Abs(path.Join(logdir, "info.log"))
 		debugLog, _ := filepath.Abs(path.Join(logdir, "debug.log"))
+		traceLog, _ := filepath.Abs(path.Join(logdir, "trace.log"))
 		pathMap := lfshook.PathMap{
 			logrus.PanicLevel: panicLog,
 			logrus.FatalLevel: fatalLog,
@@ -206,6 +209,7 @@ func initLogger() {
 			logrus.ErrorLevel: errorLog,
 			logrus.InfoLevel:  infoLog,
 			logrus.DebugLevel: debugLog,
+			logrus.TraceLevel:traceLog,
 		}
 		logrus.AddHook(lfshook.NewHook(
 			pathMap,

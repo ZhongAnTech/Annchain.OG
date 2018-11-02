@@ -326,7 +326,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 			if err != nil {
 				log.WithFields(logrus.Fields{"ip": rn.IP, "addr": toaddr, "udp": rn.UDP}).
 					WithError(err).
-					Debug("Invalid neighbor node received")
+					Trace("Invalid neighbor node received")
 				continue
 			}
 			nodes = append(nodes, n)
@@ -504,7 +504,7 @@ func (t *udp) send(toaddr *net.UDPAddr, ptype byte, data []byte, name string) ([
 
 func (t *udp) write(toaddr *net.UDPAddr, what string, packet []byte) error {
 	_, err := t.conn.WriteToUDP(packet, toaddr)
-	//log.WithField("addr", toaddr).WithError(err).Debug(">>write  " + what)
+	log.WithField("addr", toaddr).WithError(err).Trace(">>write  " + what)
 	return err
 }
 
@@ -621,7 +621,7 @@ func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 		return err
 	}
 	err = packet.handle(t, from, fromID, hash)
-	//log.WithError(err).WithField("addr", from).Debug("<< handle  " + packet.name())
+	log.WithError(err).WithField("addr", from).Trace("<< handle  " + packet.name())
 	return err
 }
 

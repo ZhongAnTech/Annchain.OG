@@ -167,9 +167,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	var newtasks []task
 	addDial := func(flag connFlag, n *discover.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
-			//log.WithFields(log.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
-			//	WithError(err).
-			//	Debug("Skipping dial candidate")
+			log.WithFields(logrus.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
+				WithError(err).
+				Trace("Skipping dial candidate")
 			return false
 		}
 		s.dialing[n.ID] = flag
@@ -300,7 +300,7 @@ func (t *dialTask) Do(srv *Server) {
 	}
 	err := t.dial(srv, t.dest)
 	if err != nil {
-		//log.WithField("task", t).WithError(err).Debug("Dial error")
+		log.WithField("task", t).WithError(err).Trace("Dial error")
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {

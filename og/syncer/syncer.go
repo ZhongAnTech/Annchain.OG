@@ -153,6 +153,10 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 		log.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
+	if _, err := m.bufferedIncomingTxCache.GetIFPresent(hash); err == nil{
+		log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
+		return
+	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
 
 	<-ffchan.NewTimeoutSender(m.acquireTxQueue, hash, "timeoutAcquireTx", 1000).C
@@ -249,7 +253,7 @@ func (s *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer)
 
 func (s *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
 	for _, c := range s.OnNewTxiReceived {
-		c <- txi
+		<- ffchan.NewTimeoutSenderShort(c, txi, "syncerNotifyNewTxi").C
 	}
 }
 

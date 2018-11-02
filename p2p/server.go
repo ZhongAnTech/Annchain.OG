@@ -701,7 +701,6 @@ running:
 		case c := <-srv.addpeer:
 			// At this point the connection is past the protocol handshake.
 			// Its capabilities are known and the remote identity is verified.
-			log.Info("Add peer=========")
 			err := srv.protoHandshakeChecks(peers, inboundCount, c)
 			if err == nil {
 				// The handshakes are done and it passed all checks.
@@ -716,7 +715,6 @@ running:
 					Debug("Adding p2p peer")
 				go srv.runPeer(p)
 				peers[c.id] = p
-				log.WithField("peer", c.id).Info("Add peer=========OK")
 				if p.Inbound() {
 					inboundCount++
 				}

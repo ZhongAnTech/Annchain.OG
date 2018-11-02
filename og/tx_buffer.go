@@ -123,9 +123,13 @@ func (b *TxBuffer) loop() {
 			logrus.Info("tx buffer received quit message. Quitting...")
 			return
 		case v := <-b.ReceivedNewTxChan:
+			logrus.WithField("v", v).Info("Handle1S")
 			b.handleTx(v)
+			logrus.WithField("v", v).Info("Handle1E")
 		case v := <-b.selfGeneratedNewTxChan:
+			logrus.WithField("v", v).Info("Handle2S")
 			b.handleTx(v)
+			logrus.WithField("v", v).Info("Handle2E")
 		}
 	}
 }
@@ -268,7 +272,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
 		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
-	}else{
+	} else {
 		logrus.WithField("tx", tx).Debugf("broacasting tx")
 		b.Announcer.BroadcastNewTx(tx)
 		logrus.WithField("tx", tx).Debugf("broacasted tx")
@@ -367,6 +371,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		}
 	}
 	if !allFetched {
+
 		missingHashes := b.getMissingHashes(tx)
 		logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
@@ -376,7 +381,13 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	return allFetched
 }
 func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
+	start := time.Now()
+	logrus.WithField("tx", txi).Info("missing hashes start")
+	defer func() {
+		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Info("missing hashes done")
+	}()
 	l := list.New()
+	lDedup := map[types.Hash]int{}
 	s := map[types.Hash]struct{}{}
 	// find out who is missing
 	for _, v := range txi.Parents() {
@@ -387,7 +398,16 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 		hash := l.Remove(l.Front()).(types.Hash)
 		if parentTx := b.GetFromAllKnownSource(hash); parentTx != nil {
 			for _, v := range parentTx.Parents() {
-				l.PushBack(v)
+				if _, ok := lDedup[v]; !ok {
+					l.PushBack(v)
+					lDedup[v] = 1
+				}else{
+					lDedup[v] = lDedup[v] + 1
+					if lDedup[v] % 10 == 0{
+						logrus.WithField("tx", txi).WithField("parent", hash.String()).WithField("pp", v.String()).WithField("times", lDedup[v]).Debug("pushback")
+					}
+				}
+
 			}
 		} else {
 			s[hash] = struct{}{}

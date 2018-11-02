@@ -119,7 +119,7 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 				return
 			}
 		case <-refresh.C:
-			log.WithFields(fields).Debug("Refreshing port mapping")
+			log.WithFields(fields).Trace("Refreshing port mapping")
 			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
 				log.WithFields(fields).WithError(err).Debug("Couldn't add port mapping")
 			}

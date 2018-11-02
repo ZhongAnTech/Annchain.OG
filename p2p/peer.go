@@ -331,11 +331,11 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 				rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
 			}
 		*/
-		log.Debug(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
 		go func() {
 			err := proto.Run(p, rw)
 			if err == nil {
-				log.Debug(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
 			} else if err != io.EOF {
 				log.Debug(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)

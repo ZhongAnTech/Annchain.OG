@@ -102,9 +102,9 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.TxPool,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
@@ -134,27 +134,26 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:        hub,
-		Downloader: downloaderInstance,
-		SyncMode:   downloader.FullSync,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
 	messageHandler := og.NewIncomingMessageHandler(org, hub)
 
 	m := &og.MessageRouter{
-		FetchByHashResponseHandler: messageHandler,
-		PongHandler:                messageHandler,
-		PingHandler:                messageHandler,
-		BodiesRequestHandler:       messageHandler,
-		BodiesResponseHandler:      messageHandler,
-		HeaderRequestHandler:       messageHandler,
-		SequencerHeaderHandler:     messageHandler,
-		TxsRequestHandler:          messageHandler,
-		TxsResponseHandler:         messageHandler,
-		HeaderResponseHandler:      messageHandler,
-		FetchByHashRequestHandler:  messageHandler,
-		Hub: hub,
+		PongHandler:               messageHandler,
+		PingHandler:               messageHandler,
+		BodiesRequestHandler:      messageHandler,
+		BodiesResponseHandler:     messageHandler,
+		HeaderRequestHandler:      messageHandler,
+		SequencerHeaderHandler:    messageHandler,
+		TxsRequestHandler:         messageHandler,
+		TxsResponseHandler:        messageHandler,
+		HeaderResponseHandler:     messageHandler,
+		FetchByHashRequestHandler: messageHandler,
+		Hub:                       hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
@@ -167,11 +166,14 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheEnabled:           true,
 			BufferedIncomingTxCacheExpirationSeconds: 600,
 			BufferedIncomingTxCacheMaxSize:           10000,
+			FiredTxCacheExpirationSeconds:            600,
+			FiredTxCacheMaxSize:                      10000,
 		}, m)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
+	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
 
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)

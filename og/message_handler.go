@@ -341,20 +341,3 @@ func (h *IncomingMessageHandler) HandlePing(peerId string) {
 func (h *IncomingMessageHandler) HandlePong() {
 	msgLog.Debug("received your pong.")
 }
-
-func (h *IncomingMessageHandler) HandleFetchByHashResponse(syncResponse types.MessageSyncResponse, sourceId string) {
-	if (syncResponse.Txs == nil || len(syncResponse.Txs) == 0) &&
-		(syncResponse.Sequencers == nil || len(syncResponse.Sequencers) == 0) {
-		msgLog.Debug("empty MessageSyncResponse")
-		return
-	}
-
-	for _, v := range syncResponse.Txs {
-		msgLog.WithField("tx", v).WithField("peer", sourceId).Debugf("received sync response Tx")
-		h.Og.TxBuffer.AddRemoteTx(v)
-	}
-	for _, v := range syncResponse.Sequencers {
-		msgLog.WithField("seq", v).WithField("peer", sourceId).Debugf("received sync response seq")
-		h.Og.TxBuffer.AddRemoteTx(v)
-	}
-}

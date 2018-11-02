@@ -121,7 +121,7 @@ func (q *queue) Reset() {
 	q.resultOffset = 0
 }
 
-// Close marks the end of the sync, unblocking WaitResults.
+// Close marks the end of the sync, unblocking Results.
 // It may be called even if the queue is already closed.
 func (q *queue) Close() {
 	q.lock.Lock()
@@ -503,7 +503,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[types.
 		taskQueue.Push(header, -float32(header.SequencerId()))
 	}
 	if progress {
-		// Wake WaitResults, resultCache was modified
+		// Wake Results, resultCache was modified
 		q.active.Signal()
 	}
 	// Assemble and return the block download request
@@ -799,7 +799,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 			taskQueue.Push(header, -float32(header.SequencerId()))
 		}
 	}
-	// Wake up WaitResults
+	// Wake up Results
 	if accepted > 0 {
 		q.active.Signal()
 	}

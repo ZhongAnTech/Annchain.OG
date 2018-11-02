@@ -198,7 +198,7 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.WithFields(logrus.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+			log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
 				WithError(err).
 				Debug("Removing static dial candidate")
 			delete(s.static, t.dest.ID)
@@ -335,13 +335,13 @@ func (t *dialTask) resolve(srv *Server) bool {
 		if t.resolveDelay > maxResolveDelay {
 			t.resolveDelay = maxResolveDelay
 		}
-		log.WithFields(logrus.Fields{"id": t.dest.ID, "newdelay": t.resolveDelay}).Debug("Resolving node failed")
+		log.WithFields(logrus.Fields{"id": t.dest.ID, "newdelay": t.resolveDelay}).Warn("Resolving node failed")
 		return false
 	}
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.WithFields(logrus.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+	log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
 		Debug("Resolved node")
 	return true
 }

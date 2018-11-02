@@ -29,6 +29,6 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 		data, _ := msgTx.MarshalMsg(nil)
 		m.messageSender.BroadcastMessage(og.MessageTypeNewSequencer, data)
 	} else {
-		log.Warn("never come here ,unkown tx type", txType)
+		log.Warn("never come here ,unknown tx type", txType)
 	}
 }

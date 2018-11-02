@@ -180,7 +180,8 @@ func (c *CatchupSyncer) syncToLatest() error {
 	defer c.unsetSyncFlag()
 	//get best peer ,and sync with this peer until we catchup
 
-	diff := startSyncHeightDiffThreashold
+	// must sync to latest at the beginning
+	var diff uint64 = 0
 	for !c.isUpToDate(diff) {
 		c.NotifyWorkingStateChanged(Started)
 		diff = stopSyncHeightDiffThreashold
@@ -208,6 +209,8 @@ func (c *CatchupSyncer) syncToLatest() error {
 		//}
 	}
 	c.NotifyWorkingStateChanged(Stopped)
+	// allow a maximum of startSyncHeightDiffThreashold behind
+	diff = startSyncHeightDiffThreashold
 	return nil
 }
 

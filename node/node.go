@@ -251,7 +251,8 @@ func NewNode() *Node {
 			autoClientManager.UpToDateEventListener <- true
 		}()
 	}
-
+	//init msg requst id
+     og.MsgCountInit()
 	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo

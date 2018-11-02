@@ -88,6 +88,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	}
 	req := types.MessageSyncRequest{
 		Hashes: []types.Hash{},
+		RequestId:og.MsgCounter.Get(),
 	}
 	for key := range buffer {
 		req.Hashes = append(req.Hashes, key)

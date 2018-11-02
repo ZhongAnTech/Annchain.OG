@@ -228,6 +228,7 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 	msg := &types.MessageTxsRequest{
 		SeqHash: &hash,
 		Id:      seqId,
+		RequestId:MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
@@ -235,6 +236,7 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 func (p *peer) RequestTxs(hashs []types.Hash) error {
 	msg := &types.MessageTxsRequest{
 		Hashes: hashs,
+		RequestId:MsgCounter.Get(),
 	}
 
 	return p.sendRequest(MessageTypeTxsRequest, msg)
@@ -243,6 +245,7 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 func (p *peer) RequestTxsById(seqId uint64) error {
 	msg := &types.MessageTxsRequest{
 		Id: seqId,
+		RequestId:MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
@@ -250,6 +253,7 @@ func (p *peer) RequestTxsById(seqId uint64) error {
 func (p *peer) RequestBodies(seqHashs []types.Hash) error {
 	msg := &types.MessageBodiesRequest{
 		SeqHashes: seqHashs,
+		RequestId:MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeBodiesRequest, msg)
 }
@@ -278,6 +282,7 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 		Amount:  uint64(1),
 		Skip:    uint64(0),
 		Reverse: false,
+		RequestId:MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
@@ -288,9 +293,12 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
 			Number: origin,
-		}, Amount: uint64(amount),
+		},
+		Amount: uint64(amount),
 		Skip:    uint64(skip),
-		Reverse: reverse}
+		Reverse: reverse,
+		RequestId:MsgCounter.Get(),
+	}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }
 
@@ -298,9 +306,11 @@ func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, rever
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
 			Hash: hash,
-		}, Amount: uint64(amount),
+		},
+		Amount: uint64(amount),
 		Skip:    uint64(skip),
 		Reverse: reverse,
+		RequestId:MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeHeaderRequest, msg)
 }

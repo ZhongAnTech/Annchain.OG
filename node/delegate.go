@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/mylog"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -79,6 +78,5 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	mylog.TxLogger.WithField("tx", txi).Info("new tx announced by me")
 	c.TxBuffer.AddLocalTx(txi)
 }

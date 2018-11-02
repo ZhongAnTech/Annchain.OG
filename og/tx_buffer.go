@@ -58,7 +58,7 @@ type TxBuffer struct {
 	selfGeneratedNewTxChan chan types.Txi
 	ReceivedNewTxChan      chan types.Txi
 	quit                   chan bool
-	releasedTxCache        gcache.Cache // txs that are already fulfilled and pushed to txpool
+	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
 }
 
@@ -67,6 +67,7 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 		"selfGeneratedNewTxChan": len(b.selfGeneratedNewTxChan),
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
 		"dependencyCache":        b.dependencyCache.Len(),
+		"knownCache":             b.knownCache.Len(),
 	}
 }
 
@@ -96,7 +97,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan:      make(chan types.Txi, config.NewTxQueueSize),
 		quit:                   make(chan bool),
-		releasedTxCache: gcache.New(config.KnownCacheMaxSize).Simple().
+		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 	}
 }
@@ -188,6 +189,8 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	//	return
 	//}
 
+	b.knownCache.Set(tx.GetTxHash(), tx)
+
 	if b.buildDependencies(tx) {
 		// directly fulfilled, insert into txpool
 		// needs to resolve itself first
@@ -197,12 +200,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 }
 
 func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
-	a, err := b.dependencyCache.GetIFPresent(hash)
-	if err == nil {
-		return a.(map[types.Hash]types.Txi)[hash]
-	}
-
-	a, err = b.releasedTxCache.GetIFPresent(hash)
+	a, err := b.knownCache.GetIFPresent(hash)
 	if err == nil {
 		return a.(types.Txi)
 	}
@@ -256,8 +254,6 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 }
 
 func (b *TxBuffer) addToTxPool(tx types.Txi) error {
-	// make it avaiable in local cache to prevent temporarily "disappear" of the tx
-	b.releasedTxCache.Set(tx.GetTxHash(), tx)
 	return b.txPool.AddRemoteTx(tx)
 }
 
@@ -396,13 +392,12 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 				if _, ok := lDedup[v]; !ok {
 					l.PushBack(v)
 					lDedup[v] = 1
-				}else{
+				} else {
 					lDedup[v] = lDedup[v] + 1
-					if lDedup[v] % 10 == 0{
+					if lDedup[v]%100 == 0 {
 						logrus.WithField("tx", txi).WithField("parent", hash.String()).WithField("pp", v.String()).WithField("times", lDedup[v]).Debug("pushback")
 					}
 				}
-
 			}
 		} else {
 			s[hash] = struct{}{}
@@ -426,7 +421,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			//	//todo  resolve the tx remove dependency
 			//}
 			// tx already received by pool. remove from local cache
-			b.releasedTxCache.Remove(v.GetTxHash())
+			b.knownCache.Remove(v.GetTxHash())
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

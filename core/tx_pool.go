@@ -363,7 +363,7 @@ func (pool *TxPool) remove(tx types.Txi) {
 }
 
 func (pool *TxPool) loop() {
-	defer log.Debugf("TxPool.loop() terminates")
+	defer log.Tracef("TxPool.loop() terminates")
 
 	pool.wg.Add(1)
 	defer pool.wg.Done()
@@ -427,12 +427,12 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		}
 		// notify all subscribers of newTxEvent
 		for _, subscriber := range pool.OnNewTxReceived {
-			log.Debug("notify subscriber")
+			log.Trace("notify subscriber")
 			<-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 		}
 	}
 
-	log.WithField("tx", tx).Debug("successfully added tx to txPool")
+	log.WithField("tx", tx).Trace("successfully added tx to txPool")
 	return nil
 }
 
@@ -440,7 +440,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in pending.
 func (pool *TxPool) commit(tx *types.Tx) error {
-	log.WithField("tx", tx).Debugf("start commit tx")
+	log.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
 	txquality := pool.isBadTx(tx)
@@ -449,7 +449,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
-		log.Debugf("bad tx: %s", tx.String())
+		log.Tracef("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
@@ -460,7 +460,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
 			log.WithField("parent", pHash).WithField("tx", tx).
-				Debugf("parent is not a tip")
+			Tracef("parent is not a tip")
 			continue
 		}
 		parent := pool.tips.Get(pHash)
@@ -489,7 +489,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.WithField("tx", tx).Debugf("finished commit tx")
+	log.WithField("tx", tx).Tracef("finished commit tx")
 	return nil
 }
 
@@ -499,14 +499,14 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		// check if tx in pool
 		if pool.get(parentHash) != nil {
 			if pool.getStatus(parentHash) == TxStatusBadTx {
-				log.WithField("tx", tx).Debugf("bad tx, parent %s is bad tx", parentHash.String())
+				log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash.String())
 				return TxQualityIsBad
 			}
 			continue
 		}
 		// check if tx in dag
 		if pool.dag.GetTx(parentHash) == nil {
-			log.WithField("tx", tx).Debugf("fatal tx, parent %s is not exist", parentHash.String())
+			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash.String())
 			return TxQualityIsFatal
 		}
 	}
@@ -518,7 +518,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 			log.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
 			return TxQualityIsFatal
 		}
-		log.WithField("tx", tx).WithField("existing", txinpool).Debug("bad tx, duplicate nonce found in pool")
+		log.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
@@ -526,7 +526,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		if txindag.GetTxHash() == tx.GetTxHash() {
 			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
 		}
-		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
+		log.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in dag")
 		return TxQualityIsFatal
 	}
 
@@ -538,7 +538,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	}
 	// if tx's value is larger than its balance, return fatal.
 	if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
-		log.WithField("tx", tx).Debugf("fatal tx, tx's value larger than balance")
+		log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 		return TxQualityIsFatal
 	}
 	// if ( the value that 'from' already spent )
@@ -547,7 +547,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	totalspent := math.NewBigInt(0)
 	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
-		log.WithField("tx", tx).Debugf("bad tx, total spent larget than balance")
+		log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 		return TxQualityIsBad
 	}
 
@@ -556,7 +556,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	log.WithField("seq", seq).Debug("start confirm seq")
+	log.WithField("seq", seq).Trace("start confirm seq")
 
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
@@ -595,7 +595,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
+	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
 		<-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
@@ -737,7 +737,7 @@ func (pool *TxPool) solveConflicts() {
 		txsInPool = append(txsInPool, tx)
 	}
 	for _, tx := range txsInPool {
-		log.WithField("tx", tx).Debugf("start rejudge")
+		log.WithField("tx", tx).Tracef("start rejudge")
 		pool.remove(tx)
 		txEnv := &txEnvelope{
 			tx:     tx,

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/annchain/OG/types"
+	"sync/atomic"
 )
 
 //go:generate msgp
@@ -27,6 +28,8 @@ const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a prot
 
 type MessageType uint64
 
+//global msg counter , generate global msg request id
+var  MsgCounter *MessageCounter
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
@@ -146,3 +149,22 @@ func (s *StatusData) String() string {
 	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %d",
 		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
 }
+
+type MessageCounter struct {
+	requestId      uint32
+}
+
+//get current request id
+func (m*MessageCounter)Get ()uint32 {
+	if m.requestId >  uint32( 1<<30) {
+		atomic.StoreUint32(&m.requestId,10)
+	}
+	return  atomic.AddUint32(&m.requestId,1)
+}
+
+func MsgCountInit () {
+	MsgCounter = &MessageCounter{
+		requestId :1,
+	}
+}
+

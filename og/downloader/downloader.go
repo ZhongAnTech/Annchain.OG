@@ -704,7 +704,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			if skeleton {
 				filled, proced, err := d.fillHeaderSkeleton(from, headers)
 				if err != nil {
-					log.Debug("Skeleton chain invalid", "err", err)
+					log.WithError(err).Warn("Skeleton chain invalid")
 					return errInvalidChain
 				}
 				headers = filled[proced:]
@@ -781,8 +781,11 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Sequencer
 	err := d.fetchParts(errCancelHeaderFetch, d.headerCh, deliver, d.queue.headerContCh, expire,
 		d.queue.PendingHeaders, d.queue.InFlightHeaders, throttle, reserve,
 		nil, fetch, d.queue.CancelHeaders, capacity, d.peers.HeaderIdlePeers, setIdle, "headers")
-
-	log.Debug("Skeleton fill terminated", "err", err)
+    if err !=nil {
+		log.WithError(err).Warn("Skeleton fill terminated")
+	}else {
+		log.Debug("Skeleton fill terminated")
+	}
 
 	filled, proced := d.queue.RetrieveHeaders()
 	return filled, proced, err
@@ -809,7 +812,11 @@ func (d *Downloader) fetchBodies(from uint64) error {
 		d.queue.PendingBlocks, d.queue.InFlightBlocks, d.queue.ShouldThrottleBlocks, d.queue.ReserveBodies,
 		d.bodyFetchHook, fetch, d.queue.CancelBodies, capacity, d.peers.BodyIdlePeers, setIdle, "bodies")
 
-	log.WithError(err).Debug("Block body download terminated")
+	if err!=nil {
+		log.WithError(err).Warn("Block body download terminated")
+	}else {
+		log.Debug("Block body download terminated")
+	}
 	return err
 }
 
@@ -874,11 +881,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				// Issue a log to the user to see what's going on
 				switch {
 				case err == nil && packet.Items() == 0:
-					log.WithField("type", kind).Debug("Requested data not delivered")
+					log.WithField("type", kind).Warn("Requested data not delivered")
 				case err == nil:
 					log.WithField("type", kind).WithField("count", packet.Stats()).Debug("Delivered new batch of data")
 				default:
-					log.WithField("type", kind).WithField("err", err).Debug("Failed to deliver retrieved data")
+					log.WithField("type", kind).WithError( err).Warn("Failed to deliver retrieved data")
 				}
 			}
 			// Blocks assembled, try to update the progress

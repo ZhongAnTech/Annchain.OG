@@ -21,7 +21,7 @@ type Dag struct {
 
 	db			ogdb.Database
 	accessor	*Accessor
-	statedb		*StateDB
+	cachedb		*CacheDB
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
@@ -35,16 +35,16 @@ type Dag struct {
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{}
 
-	stateDBConfig := StateDBConfig{
-		FlushTimer:		time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		PurgeTimer:		time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		BeatExpireTime:	time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	cacheDBConfig := CacheDBConfig{
+		FlushTimer:		time.Duration(viper.GetInt("cachedb.flush_timer_s")),
+		PurgeTimer:		time.Duration(viper.GetInt("cachedb.purge_timer_s")),
+		BeatExpireTime:	time.Second * time.Duration(viper.GetInt("cachedb.beat_expire_time_s")),
 	}
 
 	dag.conf = conf
 	dag.db = db
 	dag.accessor = NewAccessor(db)
-	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
+	dag.cachedb = NewCacheDB(cacheDBConfig, db, dag.accessor)
 	dag.close = make(chan struct{})
 
 	return dag
@@ -80,7 +80,7 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 	dag.wg.Wait()
-	dag.statedb.Stop()
+	dag.cachedb.Stop()
 	log.Infof("Dag Stopped")
 }
 
@@ -336,7 +336,6 @@ func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
 }
 
 // GetBalance read the confirmed balance of an address from ogdb.
-// TODO use StateDB
 func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -345,7 +344,7 @@ func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 }
 
 func (dag *Dag) getBalance(addr types.Address) *math.BigInt {
-	return dag.statedb.GetBalance(addr)
+	return dag.cachedb.GetBalance(addr)
 }
 
 // GetLatestNonce returns the latest tx of an addresss.
@@ -357,7 +356,7 @@ func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
 }
 
 func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
-	return dag.statedb.GetNonce(addr)
+	return dag.cachedb.GetNonce(addr)
 }
 
 // // HasLatestNonce returns true if addr already sent any txs to db.
@@ -491,7 +490,7 @@ func (dag *Dag) WriteTransaction(tx types.Txi) error {
 	// update the nonce if current nonce is larger than previous, or 
 	// there is no nonce stored in db.
 	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
-		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
+		dag.cachedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
 	// Write tx hash. This is aimed to allow users to query tx hash

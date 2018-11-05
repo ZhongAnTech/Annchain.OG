@@ -33,7 +33,7 @@ path = "datadir_1"
 cache = 16
 handles = 16
 
-[statedb]
+[cachedb]
 flush_timer_s = 5
 purge_timer_s = 10
 beat_expire_time_s = 300

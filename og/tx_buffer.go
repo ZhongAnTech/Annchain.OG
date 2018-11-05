@@ -265,9 +265,9 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	if addErr != nil {
 		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
 	} else {
-		logrus.WithField("tx", tx).Debugf("broacasting tx")
+		logrus.WithField("tx", tx).Trace("broacasting tx")
 		b.Announcer.BroadcastNewTx(tx)
-		logrus.WithField("tx", tx).Debugf("broacasted tx")
+		logrus.WithField("tx", tx).Trace("broacasted tx")
 	}
 	b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")

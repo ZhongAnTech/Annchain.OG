@@ -47,7 +47,7 @@ def doone(host):
         j = json.loads(resp.text)
         for peer in j:
             if peer['short_id'] in id_host_map:
-                peers.append(id_host_map[peer['short_id']][-4:])
+                peers.append(id_host_map[peer['short_id']][-4:-2])
         d['peers'] = peers
     except Exception as e:
         d['peers'] = []

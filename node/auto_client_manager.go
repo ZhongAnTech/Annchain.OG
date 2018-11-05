@@ -2,7 +2,6 @@ package node
 
 import (
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -12,7 +11,7 @@ import (
 
 type AutoClientManager struct {
 	Clients                []*AutoClient
-	SampleAccounts         []account.SampleAccount
+	SampleAccounts         []*account.SampleAccount
 	UpToDateEventListener  chan bool
 	NodeStatusDataProvider og.NodeStatusDataProvider
 	quit                   chan bool
@@ -23,7 +22,6 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)
-	m.SampleAccounts = core.GetSampleAccounts()
 
 	// to make sure we have only one sequencer
 	sequencers := 1
@@ -56,7 +54,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
 			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
-			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
+			AutoTxEnabled:        false,	// always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: true,
 		}
 		client.Init()

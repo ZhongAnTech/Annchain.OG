@@ -96,7 +96,7 @@ func (CatchupSyncer) Name() string {
 func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
-		logrus.WithError(err).Error("get best peer")
+		logrus.WithError(err).Debug("get best peer")
 		return false
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId

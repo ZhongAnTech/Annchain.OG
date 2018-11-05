@@ -237,7 +237,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 			logrus.Debug("incremental received tx but sync disabled")
 			return
 		}
-		logrus.WithField("tx", newTx.Tx).Debug("cache tx for future.")
+		logrus.WithField("tx", newTx.Tx).Trace("cache tx for future.")
 		m.bufferedIncomingTxCache.Set(newTx.Tx.Hash, newTx.Tx)
 		return
 	}
@@ -262,7 +262,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 			return
 		}
 		for _, tx := range newTxs.Txs {
-			logrus.WithField("tx", tx).Debug("cache tx for future.")
+			logrus.WithField("tx", tx).Trace("cache tx for future.")
 			m.bufferedIncomingTxCache.Set(tx.Hash, tx)
 		}
 		return
@@ -286,7 +286,7 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer)
 			logrus.Debug("incremental received seq but sync disabled")
 			return
 		}
-		logrus.WithField("seq", newSeq.Sequencer).Debug("cache seq for future.")
+		logrus.WithField("seq", newSeq.Sequencer).Trace("cache seq for future.")
 		m.bufferedIncomingTxCache.Set(newSeq.Sequencer.Hash, newSeq.Sequencer)
 		return
 	}
@@ -301,14 +301,14 @@ func (m *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
 }
 
 func (m *IncrementalSyncer) notifyAllCachedTxs() {
-	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache is being dumped")
+	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Trace("incoming cache is being dumped")
 	kvMap := m.bufferedIncomingTxCache.GetALL()
 	for k, v := range kvMap {
 		// annouce and then remove
 		m.notifyNewTxi(v.(types.Txi))
 		m.bufferedIncomingTxCache.Remove(k)
 	}
-	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache dumped")
+	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Trace("incoming cache dumped")
 }
 
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse types.MessageSyncResponse, sourceId string) {
@@ -319,12 +319,12 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse types.Message
 	}
 
 	for _, v := range syncResponse.Txs {
-		logrus.WithField("tx", v).WithField("peer", sourceId).Debugf("received sync response Tx")
+		logrus.WithField("tx", v).WithField("peer", sourceId).Debug("received sync response Tx")
 		m.firedTxCache.Remove(v.Hash)
 		m.notifyNewTxi(v)
 	}
 	for _, v := range syncResponse.Sequencers {
-		logrus.WithField("seq", v).WithField("peer", sourceId).Debugf("received sync response seq")
+		logrus.WithField("seq", v).WithField("peer", sourceId).Debug("received sync response seq")
 		m.firedTxCache.Remove(v.Hash)
 		m.notifyNewTxi(v)
 	}

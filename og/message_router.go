@@ -239,7 +239,7 @@ func (m *MessageRouter) RouteHeaderResponse(msg *P2PMessage) {
 
 func (m *MessageRouter) debugLog(msg *P2PMessage, message types.Message) {
 	msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
-		"q", message.String()).Debug("received a message")
+		"q", message.String()).Trace("received a message")
 }
 
 // BroadcastMessage send message to all peers

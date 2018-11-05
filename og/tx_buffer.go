@@ -307,7 +307,7 @@ func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 		"DAG":    dagTx,
 		"Hash":   hash,
 		//"Buffer": b.GetFromBuffer(hash),
-	}).Debug("transaction location")
+	}).Trace("transaction location")
 	return ok
 }
 
@@ -373,9 +373,9 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 }
 func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 	start := time.Now()
-	logrus.WithField("tx", txi).Info("missing hashes start")
+	logrus.WithField("tx", txi).Trace("missing hashes start")
 	defer func() {
-		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Info("missing hashes done")
+		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Trace("missing hashes done")
 	}()
 	l := list.New()
 	lDedup := map[types.Hash]int{}
@@ -395,7 +395,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 				} else {
 					lDedup[v] = lDedup[v] + 1
 					if lDedup[v]%100 == 0 {
-						logrus.WithField("tx", txi).WithField("parent", hash.String()).WithField("pp", v.String()).WithField("times", lDedup[v]).Debug("pushback")
+						logrus.WithField("tx", txi).WithField("parent", hash.String()).WithField("pp", v.String()).WithField("times", lDedup[v]).Trace("pushback")
 					}
 				}
 			}

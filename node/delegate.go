@@ -61,13 +61,13 @@ func (c *Delegate) GetLatestAccountNonce(addr types.Address) (uint64, error) {
 	if errPool == nil {
 		return noncePool, errPool
 	}
-	logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
+	logrus.WithError(errPool).WithField("addr", addr.String()).Trace("txpool nonce not found")
 
 	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
 	if errDag == nil {
 		return nonceDag, errDag
 	}
-	logrus.WithError(errDag).WithField("addr", addr.String()).Debug("dag nonce not found")
+	logrus.WithError(errDag).WithField("addr", addr.String()).Trace("dag nonce not found")
 
 	return 0, fmt.Errorf("nonce for address not found")
 }

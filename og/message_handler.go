@@ -79,14 +79,14 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
-	msgLog.WithField("header lens", len(seqHeaders)).Trace("heandle MessageTypeHeaderResponse")
+	msgLog.WithField("header lens", len(seqHeaders)).Trace("handle MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {
 	hashMode := !query.Origin.Hash.Empty()
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
-		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Debug("requests")
+		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Trace("requests")
 	// Gather headers until the fetch or network limits is reached
 	var (
 		bytes   common.StorageSize
@@ -173,7 +173,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
 	if request.Sequencer != nil {
-		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Debug("got response txs ")
+		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Trace("got response txs ")
 	} else {
 		msgLog.Warn("got nil sequencer")
 		return
@@ -223,7 +223,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 		transactions[i] = body.Txs
 		sequencers[i] = body.Sequencer
 	}
-	msgLog.WithField("bodies len", len(request.Bodies)).Debug("got bodies")
+	msgLog.WithField("bodies len", len(request.Bodies)).Trace("got bodies")
 
 	// Filter out any explicitly requested bodies, deliver the rest to the downloader
 	filter := len(transactions) > 0 || len(sequencers) > 0
@@ -232,7 +232,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 		transactions = h.Hub.Fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
 	}
 	if len(transactions) > 0 || len(sequencers) > 0 || !filter {
-		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Debug("deliver bodies ")
+		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Trace("deliver bodies ")
 		err := h.Hub.Downloader.DeliverBodies(peerId, transactions, sequencers)
 		if err != nil {
 			msgLog.Debug("Failed to deliver bodies", "err", err)

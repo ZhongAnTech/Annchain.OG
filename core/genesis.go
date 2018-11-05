@@ -30,10 +30,12 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	return seq.(*types.Sequencer), balance
 }
 
-func GetSampleAccounts() []account.SampleAccount {
-	var accounts []account.SampleAccount
+func GetSampleAccounts() []*account.SampleAccount {
+	var accounts []*account.SampleAccount
 	for i := 0; i < MaxAccountCount; i++ {
-		accounts = append(accounts, account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i)))
+		acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i))
+		acc.Id = i
+		accounts = append(accounts, acc)
 	}
 	return accounts
 }

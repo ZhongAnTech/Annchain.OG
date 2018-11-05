@@ -101,7 +101,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		//ok = m.validateGraphStructure(parents)
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.Warn("NOT OK")
+			logrus.Debug("NOT OK")
 		}
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,

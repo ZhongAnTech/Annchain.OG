@@ -19,10 +19,10 @@ type SampleAccount struct {
 	mu          sync.RWMutex
 }
 
-func NewAccount(privateKeyHex string) SampleAccount {
+func NewAccount(privateKeyHex string) *SampleAccount {
 	signer := &crypto.SignerSecp256k1{}
 
-	s := SampleAccount{}
+	s := &SampleAccount{}
 	pv, err := crypto.PrivateKeyFromString(privateKeyHex)
 	if err != nil {
 		panic(err)

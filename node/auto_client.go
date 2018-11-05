@@ -17,7 +17,7 @@ const (
 )
 
 type AutoClient struct {
-	SampleAccounts []account.SampleAccount
+	SampleAccounts []*account.SampleAccount
 	MyAccountIndex int
 
 	SequencerIntervalMs  int
@@ -148,7 +148,6 @@ func (c *AutoClient) judgeNonce() uint64 {
 
 	// fetch from db every time
 	n, err := c.Delegate.GetLatestAccountNonce(me.Address)
-	logrus.WithField("nonce", n).WithField("id", c.MyAccountIndex).Trace("latest nonce")
 	me.SetNonce(n)
 	if err != nil {
 		// not exists, set to 0
@@ -177,6 +176,8 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		logrus.WithError(err).Error("failed to auto generate tx")
 		return false
 	}
+	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
+		WithField("id", c.MyAccountIndex).Info("Generated tx")
 	c.Delegate.Announce(tx)
 	return true
 }

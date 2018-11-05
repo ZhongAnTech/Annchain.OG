@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "debug"
+level = "warn"
 
 [rpc]
 enabled = true
@@ -47,11 +47,11 @@ nonce_self_discipline = true
 
 [auto_client.sequencer]
 enabled = true
-interval_ms = 10000
+interval_ms = 2000
 
 [auto_client.tx]
 enabled = true
-interval_ms = 20000
+interval_ms = 1000
 account_ids = [0,1,3]
 interval_mode = "random"
 

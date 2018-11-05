@@ -79,7 +79,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
-	msgLog.WithField("header lens", len(seqHeaders)).Debug("heandle MessageTypeHeaderResponse")
+	msgLog.WithField("header lens", len(seqHeaders)).Trace("heandle MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {

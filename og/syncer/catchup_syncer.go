@@ -103,7 +103,7 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	logrus.WithField("bestPeer SeqId", seqId).
 		WithField("bestPeerHash", bpHash).
 		WithField("our SeqId", ourId).
-		Debug("checking uptodate")
+		Trace("checking uptodate")
 
 	if seqId <= ourId+maxDiff {
 		log.WithField("bestPeer SeqId", seqId).
@@ -131,13 +131,13 @@ func (c *CatchupSyncer) loopSync() {
 			log.WithField("peer", peer).Info("new peer connected")
 			if !c.Enabled {
 
-				log.Info("catchupSyncer not enabled")
+				log.Debug("catchupSyncer not enabled")
 				continue
 			}
 			go c.syncToLatest()
 		case <-time.After(time.Second * 15):
 			if !c.Enabled {
-				log.Info("catchup syncer not enabled")
+				log.Debug("catchup syncer not enabled")
 				continue
 			}
 			go c.syncToLatest()
@@ -173,7 +173,7 @@ func (c *CatchupSyncer) unsetSyncFlag() {
 
 func (c *CatchupSyncer) syncToLatest() error {
 	if c.isSyncing() {
-		log.Info("catchup syncing task is busy")
+		log.Trace("catchup syncing task is busy")
 		return nil
 	}
 	c.setSyncFlag()
@@ -241,7 +241,7 @@ func (c *CatchupSyncer) eventLoop() {
 			log.WithField("enable", v).Info("catchup syncer got enable event ")
 			c.Enabled = v
 		case <-c.quitLoopEvent:
-			log.Info("catchup syncer eventLoop received quit message. Quitting...")
+			log.Debug("catchup syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}

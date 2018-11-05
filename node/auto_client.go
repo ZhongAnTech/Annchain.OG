@@ -148,7 +148,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 
 	// fetch from db every time
 	n, err := c.Delegate.GetLatestAccountNonce(me.Address)
-	logrus.WithField("nonce", n).WithField("id", c.MyAccountIndex).Debug("latest nonce")
+	logrus.WithField("nonce", n).WithField("id", c.MyAccountIndex).Trace("latest nonce")
 	me.SetNonce(n)
 	if err != nil {
 		// not exists, set to 0

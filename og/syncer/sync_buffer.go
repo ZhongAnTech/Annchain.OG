@@ -155,10 +155,10 @@ func (s *SyncBuffer) Handle() error {
 		return nil
 	}
 	count := s.Count()
-	log.WithField("txs len", count).WithField("seq", s.Seq).Debug("handle txs start")
+	log.WithField("txs len", count).WithField("seq", s.Seq).Trace("handle txs start")
 	err := s.verifyElders(s.Seq)
 	if err != nil {
-		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
+		log.WithField("seq ", s.Seq).WithError(err).Warn("handle fail")
 		return err
 	}
 
@@ -198,9 +198,9 @@ func (s *SyncBuffer) Handle() error {
 		}
 	}
 	if err == nil {
-		log.WithField("id", s.Seq).Debug("before add seq")
+		log.WithField("id", s.Seq).Trace("before add seq")
 		err = s.txPool.AddRemoteTx(s.Seq)
-		log.WithField("id", s.Seq).Debug("after add seq")
+		log.WithField("id", s.Seq).Trace("after add seq")
 	}
 	if err != nil {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")

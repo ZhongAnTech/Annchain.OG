@@ -181,7 +181,7 @@ func (s *Server) publishTxs(uidata *UIData) {
 	if uidata == nil {
 		return
 	}
-	logrus.WithField("nodeCount", len(uidata.Nodes)).Debug("push to ws")
+	logrus.WithField("nodeCount", len(uidata.Nodes)).Trace("push to ws")
 	bs, err := json.Marshal(uidata)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to marshal ws message")
@@ -192,7 +192,7 @@ func (s *Server) publishTxs(uidata *UIData) {
 func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 	logrus.WithFields(logrus.Fields{
 		"len": len(elders),
-	}).Debug("push confirmation to ws")
+	}).Trace("push confirmation to ws")
 
 	uiData := UIData{
 		Type:  messageTypeConfirmed,

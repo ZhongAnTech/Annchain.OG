@@ -10,25 +10,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type StateDBConfig struct {
+type CacheDBConfig struct {
 	FlushTimer		time.Duration
 	PurgeTimer		time.Duration
 	BeatExpireTime	time.Duration
 }
-func DefaultStateDBConfig() StateDBConfig {
-	return StateDBConfig{
+func DefaultCacheDBConfig() CacheDBConfig {
+	return CacheDBConfig{
 		FlushTimer: time.Duration(5000),
 		PurgeTimer: time.Duration(10000),
 		BeatExpireTime: time.Duration(10 * time.Minute),
 	}
 }
 
-type StateDB struct {
-	conf		StateDBConfig
+type CacheDB struct {
+	conf		CacheDBConfig
 
 	db			ogdb.Database
 	accessor	*Accessor
 
+	txs			*CacheTxs
 	states		map[types.Address]*State
 	dirtyset	map[types.Address]struct{}
 	beats		map[types.Address]time.Time
@@ -37,249 +38,348 @@ type StateDB struct {
 
 	mu 			sync.RWMutex
 }
-func NewStateDB(conf StateDBConfig, db ogdb.Database, acc *Accessor) *StateDB {
-	sd := &StateDB{
+func NewCacheDB(conf CacheDBConfig, db ogdb.Database, acc *Accessor) *CacheDB {
+	cd := &CacheDB{
 		conf:		conf,
 		db:			db,
 		accessor:	acc,
+		txs:		NewCacheTxs(),
 		states:		make(map[types.Address]*State),
 		dirtyset:	make(map[types.Address]struct{}),
 		beats:		make(map[types.Address]time.Time),
 		close:		make(chan struct{}),
 	}
 
-	go sd.loop()
-	return sd
+	go cd.loop()
+	return cd
 }
 
-func (sd *StateDB) Stop() {
-	close(sd.close)
+func (cd *CacheDB) Stop() {
+	close(cd.close)
 }
 
 // CreateNewState will create a new state for input address and 
-// return the state. If input address already exists in StateDB 
+// return the state. If input address already exists in CacheDB 
 // it returns an error.
-func (sd *StateDB) CreateNewState(addr types.Address) (*State, error) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) CreateNewState(addr types.Address) (*State, error) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 
-	state := sd.states[addr]
+	state := cd.states[addr]
 	if state != nil {
 		return nil, fmt.Errorf("state already exists, addr: %s", addr.String())
 	}
 	
 	state = NewState(addr)
-	sd.states[addr] = state
-	sd.beats[addr] = time.Now()
+	cd.states[addr] = state
+	cd.beats[addr] = time.Now()
 
 	return state, nil
 }
 
-func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
-	sd.mu.RLock()
-	defer sd.mu.RUnlock()
+func (cd *CacheDB) GetBalance(addr types.Address) *math.BigInt {
+	cd.mu.RLock()
+	defer cd.mu.RUnlock()
 
-	return sd.getBalance(addr)
+	return cd.getBalance(addr)
 }
-func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
-	state, err := sd.getState(addr)
+func (cd *CacheDB) getBalance(addr types.Address) *math.BigInt {
+	state, err := cd.getState(addr)
 	if err != nil {
 		return math.NewBigInt(0)
 	}
 	return state.Balance
 }
 
-func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
-	sd.mu.RLock()
-	defer sd.mu.RUnlock()
+func (cd *CacheDB) GetNonce(addr types.Address) (uint64, error) {
+	cd.mu.RLock()
+	defer cd.mu.RUnlock()
 
-	return sd.getNonce(addr)
+	return cd.getNonce(addr)
 }
-func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
-	state, err := sd.getState(addr)
+func (cd *CacheDB) getNonce(addr types.Address) (uint64, error) {
+	state, err := cd.getState(addr)
 	if err != nil {
 		return 0, types.ErrNonceNotExist
 	}
 	return state.Nonce, nil
 }
 
-// GetState get a state from statedb. If state not exist, 
+// GetState get a state from CacheDB. If state not exist, 
 // load it from db. 
-func (sd *StateDB) GetState(addr types.Address) (*State, error) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) GetState(addr types.Address) (*State, error) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 
-	return sd.getState(addr)
+	return cd.getState(addr)
 }
-func (sd *StateDB) getState(addr types.Address) (*State, error) {
-	state, exist := sd.states[addr]
+func (cd *CacheDB) getState(addr types.Address) (*State, error) {
+	state, exist := cd.states[addr]
 	if !exist {
 		var err error
-		state, err = sd.loadState(addr)
+		state, err = cd.loadState(addr)
 		if err != nil {
 			return nil, err
 		}
-		sd.updateState(addr, state)
+		cd.updateState(addr, state)
 	}
 	return state, nil
 }
 
 // GetOrCreateState
-func (sd *StateDB) GetOrCreateState(addr types.Address) *State {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) GetOrCreateState(addr types.Address) *State {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 
-	return sd.getOrCreateState(addr)
+	return cd.getOrCreateState(addr)
 }
-func (sd *StateDB) getOrCreateState(addr types.Address) *State {
-	state, _ := sd.getState(addr)
+func (cd *CacheDB) getOrCreateState(addr types.Address) *State {
+	state, _ := cd.getState(addr)
 	if state == nil {
 		state = NewState(addr)
 	}
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 	return state
 }
 
-// DeleteState remove a state from StateDB. Return error 
+// DeleteState remove a state from CacheDB. Return error 
 // if it fails.
-func (sd *StateDB) DeleteState(addr types.Address) error {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) DeleteState(addr types.Address) error {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 
-	return sd.deleteState(addr)
+	return cd.deleteState(addr)
 }
-func (sd *StateDB) deleteState(addr types.Address) error {
-	_, exist := sd.states[addr]
+func (cd *CacheDB) deleteState(addr types.Address) error {
+	_, exist := cd.states[addr]
 	if !exist {
 		return nil
 	}
-	delete(sd.states, addr)
+	delete(cd.states, addr)
 	return nil
 }
 
-// UpdateState set addr's state in StateDB. 
+// UpdateState set addr's state in CacheDB. 
 // 
-// Note that this setting will force updating the StateDB without 
+// Note that this setting will force updating the CacheDB without 
 // any verification. Call this UpdateState carefully.
-func (sd *StateDB) UpdateState(addr types.Address, state *State) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) UpdateState(addr types.Address, state *State) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 }
-func (sd *StateDB) updateState(addr types.Address, state *State) {
-	sd.states[addr] = state
-	sd.dirtyset[addr] = struct{}{}
-	sd.refreshbeat(addr)
+func (cd *CacheDB) updateState(addr types.Address, state *State) {
+	cd.states[addr] = state
+	cd.dirtyset[addr] = struct{}{}
+	cd.refreshbeat(addr)
 }
 
-func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) AddBalance(addr types.Address, increment *math.BigInt) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 	
-	state := sd.getOrCreateState(addr)
+	state := cd.getOrCreateState(addr)
 	state.AddBalance(increment)
 	
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 }
 
-func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) SubBalance(addr types.Address, decrement *math.BigInt) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 	
-	state := sd.getOrCreateState(addr)
+	state := cd.getOrCreateState(addr)
 	state.SubBalance(decrement)
 	
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 }
 
-func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) SetBalance(addr types.Address, balance *math.BigInt) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 	
-	state := sd.getOrCreateState(addr)
+	state := cd.getOrCreateState(addr)
 	state.SetBalance(balance)
 	
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 }
 
-func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+func (cd *CacheDB) SetNonce(addr types.Address, nonce uint64) {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
 	
-	state := sd.getOrCreateState(addr)
+	state := cd.getOrCreateState(addr)
 	state.SetNonce(nonce)
 	
-	sd.updateState(addr, state)
+	cd.updateState(addr, state)
 }
 
 // Load data from db.
-func (sd *StateDB) loadState(addr types.Address) (*State, error) {
-	return sd.accessor.LoadState(addr)
+func (cd *CacheDB) loadState(addr types.Address) (*State, error) {
+	return cd.accessor.LoadState(addr)
+}
+
+func (cd *CacheDB) GetTxByHash(hash types.Hash) types.Txi {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
+
+	tx := cd.txs.GetTxByHash(hash)
+	if tx == nil {
+		// TODO load data from db
+	}
+
+	return tx
+}
+
+func (cd *CacheDB) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	cd.mu.Lock()
+	defer cd.mu.Unlock()
+
+	return cd.txs.GetTxByNonce(addr, nonce)
+}
+
+func (cd *CacheDB) WriteTransaction(tx types.Txi) error {
+
+	return nil
+}
+
+func (cd *CacheDB) RemoveTxByHash(hash types.Hash) error {
+
+	return nil
+}
+
+func (cd *CacheDB) RemoveTxByNonce(addr types.Address, nonce uint64) types.Txi {
+
+	return nil
 }
 
 // flush tries to save those dirty data to disk db.
-func (sd *StateDB) flush() {
-	for addr, _ := range sd.dirtyset {
-		state, exist := sd.states[addr]
+func (cd *CacheDB) flush() {
+	for addr, _ := range cd.dirtyset {
+		state, exist := cd.states[addr]
 		if !exist {
-			log.Warnf("can't find dirty state in StateDB, addr: %s", addr.String())
+			log.Warnf("can't find dirty state in CacheDB, addr: %s", addr.String())
 			continue
 		}
-		sd.accessor.SaveState(addr, state)
+		cd.accessor.SaveState(addr, state)
 	}
-	sd.dirtyset = make(map[types.Address]struct{})
+	cd.dirtyset = make(map[types.Address]struct{})
 }
 
 // purge tries to remove all the state that haven't sent any beat 
 // for a long time. 
 // 
 // Note that dirty states will not be removed.
-func (sd *StateDB) purge() {
-	for addr, lastbeat := range sd.beats {
+func (cd *CacheDB) purge() {
+	for addr, lastbeat := range cd.beats {
 		// skip dirty states
-		if _, in := sd.dirtyset[addr]; in {
+		if _, in := cd.dirtyset[addr]; in {
 			continue
 		}
-		if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-			sd.deleteState(addr)
+		if time.Since(lastbeat) > cd.conf.BeatExpireTime {
+			cd.deleteState(addr)
 		}
 	}
 }
 
 // refreshbeat update the beat time of an address.
-func (sd *StateDB) refreshbeat(addr types.Address) {
-	state := sd.states[addr]
+func (cd *CacheDB) refreshbeat(addr types.Address) {
+	state := cd.states[addr]
 	if state == nil {
 		return
 	}
-	sd.beats[addr] = time.Now()
+	cd.beats[addr] = time.Now()
 }
 
-func (sd *StateDB) loop() {
-	flushTimer := time.NewTicker(sd.conf.FlushTimer)
-	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
+func (cd *CacheDB) loop() {
+	flushTimer := time.NewTicker(cd.conf.FlushTimer)
+	purgeTimer := time.NewTicker(cd.conf.PurgeTimer)
 
 	for {
 		select {
-		case <-sd.close:
+		case <-cd.close:
 			flushTimer.Stop()
 			purgeTimer.Stop()
-			sd.mu.Lock()
-			sd.flush()
-			sd.mu.Unlock()
+			cd.mu.Lock()
+			cd.flush()
+			cd.mu.Unlock()
 			return
 
 		case <-flushTimer.C:
-			sd.mu.Lock()
-			sd.flush()
-			sd.mu.Unlock()
+			cd.mu.Lock()
+			cd.flush()
+			cd.mu.Unlock()
 
 		case <-purgeTimer.C:
-			sd.mu.Lock()
-			sd.purge()
-			sd.mu.Unlock()
+			cd.mu.Lock()
+			cd.purge()
+			cd.mu.Unlock()
 
 		}
 	}
+}
+
+
+type CacheTxs struct {
+	txmap *TxMap
+	txlist	map[types.Address]*TxList
+}
+func NewCacheTxs() *CacheTxs {
+	return &CacheTxs{
+		txmap: NewTxMap(),
+		txlist: make(map[types.Address]*TxList),
+	}
+}
+
+func (ctxs *CacheTxs) GetTxByHash(hash types.Hash) types.Txi {
+	return ctxs.txmap.Get(hash)
+}
+
+func (ctxs *CacheTxs) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+	txlist, ok := ctxs.txlist[addr]
+	if !ok {
+		return nil
+	}
+	return txlist.Get(nonce)
+}
+
+func (ctxs *CacheTxs) AddTx(tx types.Txi) {
+	txlist, ok := ctxs.txlist[tx.Sender()]
+	if !ok {
+		txlist = NewTxList()
+		ctxs.txlist[tx.Sender()] = txlist
+	}
+	txlist.Put(tx)
+	ctxs.txmap.Add(tx)
+}
+
+func (ctxs *CacheTxs) RemoveTxByHash(hash types.Hash) error {
+	tx := ctxs.txmap.Get(hash)
+	if tx == nil {
+		return nil
+	}
+	ctxs.txmap.Remove(hash)
+
+	txlist, ok := ctxs.txlist[tx.Sender()]
+	if !ok {
+		return fmt.Errorf("tx not exist in txlist.")
+	}
+	txlist.Remove(tx.GetNonce())
+	
+	return nil
+}
+
+func (ctxs *CacheTxs) RemoveTxByNonce(addr types.Address, nonce uint64) error {
+	txlist, ok := ctxs.txlist[addr]
+	if !ok {
+		return nil
+	}
+	tx := txlist.Get(nonce)
+	if tx == nil {
+		return nil
+	}
+	ctxs.txmap.Remove(tx.GetTxHash())
+	txlist.Remove(nonce)
+	return nil
 }

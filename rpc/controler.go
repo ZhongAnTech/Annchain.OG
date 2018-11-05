@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -319,7 +319,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	value, ok := math.NewBigIntFromString(txReq.Value, 10)
 	if !ok {
-		err = fmt.Errorf("New Big Int error")
+		err = fmt.Errorf("new Big Int error")
 	}
 	if !checkError(err, c, http.StatusBadRequest, "value format error") {
 		return
@@ -335,13 +335,18 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	pub ,err = crypto.PublicKeyFromString(txReq.Pubkey)
-	if !checkError(err,c,http.StatusBadRequest,"pubkey format error"){
+	pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
+	if !checkError(err, c, http.StatusBadRequest, "pubkey format error") {
 		return
 	}
 
-	sig = crypto.SignatureFromBytes(pub.Type,signature)
-
+	sig = crypto.SignatureFromBytes(pub.Type, signature)
+	if sig.Type != r.TxCreator.Signer.GetCryptoType() || pub.Type != r.TxCreator.Signer.GetCryptoType() {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "crypto algorithm mismatch",
+		})
+		return
+	}
 	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, nonce, pub, sig)
 	if !checkError(err, c, http.StatusInternalServerError, "new tx failed") {
 		return
@@ -382,8 +387,8 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"pubkey":  pub.PublicKeyToString(),
-		"privkey": priv.PrivateKeyToString(),
+		"pubkey":  pub.String(),
+		"privkey": priv.String(),
 	})
 }
 func (r *RpcController) QueryNonce(c *gin.Context) {
@@ -470,7 +475,7 @@ func (r *RpcController) Debug(c *gin.Context) {
 func checkError(err error, c *gin.Context, status int, message string) bool {
 	if err != nil {
 		c.JSON(status, gin.H{
-			"error": fmt.Sprintf("%s:%s",err.Error() , message),
+			"error": fmt.Sprintf("%s:%s", err.Error(), message),
 		})
 		return false
 	}

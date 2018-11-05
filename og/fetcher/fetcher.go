@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
@@ -45,10 +44,10 @@ var (
 type sequencerRetrievalFn func(types.Hash) *types.Sequencer
 
 // headerRequesterFn is a callback type for sending a header retrieval request.
-type headerRequesterFn func(types.Hash) error
+type headerRequesterFn func(peerId string, hash types.Hash) error
 
 // bodyRequesterFn is a callback type for sending a body retrieval request.
-type bodyRequesterFn func([]types.Hash) error
+type bodyRequesterFn func(peerId string, hashs []types.Hash) error
 
 // chainHeightFn is a callback type to retrieve the current chain height.
 type chainHeightFn func() uint64
@@ -209,7 +208,8 @@ func (f *Fetcher) Enqueue(peer string, sequencer *types.Sequencer) error {
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
 func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, time time.Time) []*types.SequencerHeader {
-	log.WithField("peer", peer).WithField("headers", len(headers)).Debug("Filtering headers")
+	log.WithField("peer", peer).WithField("headers", types.HeadersToString(headers)).Trace(
+		"Filtering headers")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *headerFilterTask)
@@ -237,7 +237,8 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, t
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
 func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers []*types.Sequencer, time time.Time) [][]*types.Tx {
-	log.WithField("txs", len(transactions)).WithField("sequencers ", len(sequencers)).WithField("peer", peer).Debug("Filtering bodies")
+	log.WithField("txs", len(transactions)).WithField("sequencers ", types.SeqsToString(sequencers)).WithField(
+		"peer", peer).Trace("Filtering bodies")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
@@ -372,7 +373,8 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer header requests
 			for peer, hashes := range request {
-				log.Debug("Fetching scheduled headers", "peer", peer, "list", hashes)
+				log.WithField("peer", peer).WithField("list", types.HashesToString(hashes)).Trace(
+					"Fetching scheduled headers")
 
 				// Create a closure of the fetch and schedule in on a new thread
 				fetchHeader, hashes := f.fetching[hashes[0]].fetchHeader, hashes
@@ -382,7 +384,7 @@ func (f *Fetcher) loop() {
 					}
 					for _, hash := range hashes {
 						headerFetchMeter.Mark(1)
-						fetchHeader(hash) // Suboptimal, but protocol doesn't allow batch header retrievals
+						fetchHeader(peer, hash) // Suboptimal, but protocol doesn't allow batch header retrievals
 					}
 				}()
 			}
@@ -406,14 +408,15 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer body requests
 			for peer, hashes := range request {
-				log.Debug("Fetching scheduled bodies", "peer", peer, "list", hashes)
+				log.WithField("peer", peer).WithField("list", hashes).Trace(
+					"Fetching scheduled bodies")
 
 				// Create a closure of the fetch and schedule in on a new thread
 				if f.completingHook != nil {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
-				go f.completing[hashes[0]].fetchBodies(hashes)
+				go f.completing[hashes[0]].fetchBodies(peer, hashes)
 			}
 			// Schedule the next fetch if sequencers are still pending
 			f.rescheduleComplete(completeTimer)

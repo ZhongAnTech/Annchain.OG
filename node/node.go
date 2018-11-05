@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/fetcher"
 	miner2 "github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
@@ -40,30 +42,35 @@ func NewNode() *Node {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
 		n.Components = append(n.Components, rpcServer)
 	}
-	org, err := og.NewOg()
-	if err != nil {
-		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
-		panic("Error occurred while initializing OG")
-	}
+	bootNode := viper.GetBool("p2p.bootstrap_node")
 
 	networkId := viper.GetInt64("p2p.network_id")
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}
-	bootNode := viper.GetBool("p2p.bootstrap_node")
-	enableSync := viper.GetBool("p2p.enable_sync")
+
+	org, err := og.NewOg(
+		og.OGConfig{
+			BootstrapNode: bootNode,
+			NetworkId:     uint64(networkId),
+		},
+	)
+	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
+
+	if err != nil {
+		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
+		panic("Error occurred while initializing OG")
+	}
+
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
-		NetworkId:                     uint64(networkId),
-		BootstrapNode:                 bootNode, //if bootstrap node just accept txs in starting ,no sync
-		EnableSync:                    enableSync,
-		ForceSyncCycle:                uint(viper.GetInt("hub.sync_cycle_ms")),
-	}, downloader.FullSync, org.Dag, org.Txpool)
-	hub.NewLatestSequencerCh = org.Txpool.OnNewLatestSequencer
+	}, org.Dag, org.TxPool)
+
+	hub.StatusDataProvider = org
 
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
@@ -81,7 +88,7 @@ func NewNode() *Node {
 
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
-		TxPool: org.Txpool,
+		TxPool: org.TxPool,
 		//Buffer: txBuffer,
 	}
 
@@ -94,65 +101,112 @@ func NewNode() *Node {
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
-	messageHandler := &og.IncomingMessageHandler{
-		Hub: hub,
-	}
-
-	m := &og.MessageRouter{
-		NewSequencerHandler:        messageHandler,
-		Hub:                        hub,
-		PingHandler:                messageHandler,
-		PongHandler:                messageHandler,
-		FetchByHashResponseHandler: messageHandler,
-		NewTxHandler:               messageHandler,
-		NewTxsHandler:              messageHandler,
-	}
-
-	syncer := og.NewSyncer(&og.SyncerConfig{
-		BatchTimeoutMilliSecond:              100,
-		AcquireTxQueueSize:                   1000,
-		MaxBatchSize:                         100,
-		AcquireTxDedupCacheMaxSize:           10000,
-		AcquireTxDedupCacheExpirationSeconds: 60,
-	}, m)
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
-		TxPool:                           org.Txpool,
+		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   10000,
-		KnownCacheMaxSize:                10000,
-		KnownCacheExpirationSeconds:      30,
-		Syncer:                           syncer,
+		NewTxQueueSize:                   1,
 	})
-
-	messageHandler.TxBuffer = txBuffer
-
-	hub.TxBuffer = txBuffer
-	n.Components = append(n.Components, txBuffer)
-	syncBuffer := og.NewSyncBuffer(og.SyncBufferConfig{
-		TxBuffer:       txBuffer,
-		TxPool:         org.Txpool,
+	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
+		TxPool:         org.TxPool,
+		Dag:            org.Dag,
 		FormatVerifier: txFormatVerifier,
 		GraphVerifier:  graphVerifier,
 	})
-	hub.SyncBuffer = syncBuffer
 	n.Components = append(n.Components, syncBuffer)
 
+	org.TxBuffer = txBuffer
+	n.Components = append(n.Components, txBuffer)
+
+	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
+		Mode:           downloader.FullSync,
+		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
+		BootstrapNode:  bootNode,
+	}, hub, org)
+
+	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
+	heighter := func() uint64 {
+		return org.Dag.LatestSequencer().Id
+	}
+	hub.Fetcher = fetcher.New(org.Dag.GetSequencerByHash, heighter, syncBuffer.AddTxs, hub.RemovePeer)
+	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
+		PeerProvider:           hub,
+		NodeStatusDataProvider: org,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
+	}
+	syncManager.CatchupSyncer.Init()
+	hub.Downloader = downloaderInstance
+	messageHandler := og.NewIncomingMessageHandler(org, hub)
+
+	m := &og.MessageRouter{
+		PongHandler:               messageHandler,
+		PingHandler:               messageHandler,
+		BodiesRequestHandler:      messageHandler,
+		BodiesResponseHandler:     messageHandler,
+		HeaderRequestHandler:      messageHandler,
+		SequencerHeaderHandler:    messageHandler,
+		TxsRequestHandler:         messageHandler,
+		TxsResponseHandler:        messageHandler,
+		HeaderResponseHandler:     messageHandler,
+		FetchByHashRequestHandler: messageHandler,
+		Hub:                       hub,
+	}
+
+	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
+		&syncer.SyncerConfig{
+			BatchTimeoutMilliSecond:                  100,
+			AcquireTxQueueSize:                       1000,
+			MaxBatchSize:                             100,
+			AcquireTxDedupCacheMaxSize:               10000,
+			AcquireTxDedupCacheExpirationSeconds:     60,
+			BufferedIncomingTxCacheEnabled:           true,
+			BufferedIncomingTxCacheExpirationSeconds: 600,
+			BufferedIncomingTxCacheMaxSize:           10000,
+			FiredTxCacheExpirationSeconds:            600,
+			FiredTxCacheMaxSize:                      10000,
+		}, m)
+
+	m.NewSequencerHandler = syncManager.IncrementalSyncer
+	m.NewTxsHandler = syncManager.IncrementalSyncer
+	m.NewTxHandler = syncManager.IncrementalSyncer
+	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
+
+	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
+	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
+
+	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
+
+	txBuffer.Syncer = syncManager.IncrementalSyncer
+	announcer := syncer.NewAnnouncer(m)
+	txBuffer.Announcer = announcer
+
+	n.Components = append(n.Components, syncManager)
+
+	messageHandler32 := &og.IncomingMessageHandlerOG32{
+		Hub: hub,
+		Og:  org,
+	}
+
+	mr32 := &og.MessageRouterOG32{
+		GetNodeDataMsgHandler: messageHandler32,
+		GetReceiptsMsgHandler: messageHandler32,
+		NodeDataMsgHandler:    messageHandler32,
+	}
 	// Setup Hub
 	SetupCallbacks(m, hub)
-
-	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, syncer.EnableEvent)
-	n.Components = append(n.Components, syncer)
+	SetupCallbacksOG32(mr32, hub)
 
 	miner := &miner2.PoWMiner{}
 
 	txCreator := &og.TxCreator{
 		Signer:             signer,
 		Miner:              miner,
-		TipGenerator:       org.Txpool,
+		TipGenerator:       org.TxPool,
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
@@ -177,22 +231,31 @@ func NewNode() *Node {
 	//}
 
 	delegate := &Delegate{
-		TxPool:    org.Txpool,
+		TxPool:    org.TxPool,
 		TxBuffer:  txBuffer,
 		Dag:       org.Dag,
 		TxCreator: txCreator,
 	}
 
 	autoClientManager := &AutoClientManager{
-		SampleAccounts: core.GetSampleAccounts(),
+		SampleAccounts:         core.GetSampleAccounts(),
+		NodeStatusDataProvider: org,
 	}
 	autoClientManager.Init(
 		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),
 		delegate,
 	)
 	n.Components = append(n.Components, autoClientManager)
-	hub.OnEnableTxsEvent = append(hub.OnEnableTxsEvent, autoClientManager.EnableEvent)
+	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
+	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
+	if org.BootstrapNode {
+		go func() {
+			autoClientManager.UpToDateEventListener <- true
+		}()
+	}
+	//init msg requst id
+     og.MsgCountInit()
 	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo
@@ -209,7 +272,7 @@ func NewNode() *Node {
 	// DataLoader
 	dataLoader := &og.DataLoader{
 		Dag:    org.Dag,
-		TxPool: org.Txpool,
+		TxPool: org.TxPool,
 	}
 	n.Components = append(n.Components, dataLoader)
 
@@ -233,17 +296,19 @@ func NewNode() *Node {
 		rpcServer.C.TxCreator = txCreator
 		// just for debugging, ignoring index OOR
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
+		rpcServer.C.SyncerManager = syncManager
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
-		org.Txpool.OnNewTxReceived = append(org.Txpool.OnNewTxReceived, wsServer.NewTxReceivedChan)
-		org.Txpool.OnBatchConfirmed = append(org.Txpool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
+		org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, wsServer.NewTxReceivedChan)
+		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
 
-	pm.Register(org.Txpool)
-	pm.Register(syncer)
+	pm.Register(org.TxPool)
+	pm.Register(syncManager)
+	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
 	pm.Register(hub)
 	n.Components = append(n.Components, pm)
@@ -286,9 +351,23 @@ func (n *Node) Stop() {
 func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypePing] = m.RoutePing
 	hub.CallbackRegistry[og.MessageTypePong] = m.RoutePong
-	//hub.CallbackRegistry[og.MessageTypeFetchByHash] = m.HandleFetchByHash
+	hub.CallbackRegistry[og.MessageTypeFetchByHashRequest] = m.RouteFetchByHashRequest
 	hub.CallbackRegistry[og.MessageTypeFetchByHashResponse] = m.RouteFetchByHashResponse
 	hub.CallbackRegistry[og.MessageTypeNewTx] = m.RouteNewTx
-	hub.CallbackRegistry[og.MessageTypeNewSequencer] = m.RouteNewSequencer
 	hub.CallbackRegistry[og.MessageTypeNewTxs] = m.RouteNewTxs
+	hub.CallbackRegistry[og.MessageTypeNewSequencer] = m.RouteNewSequencer
+
+	hub.CallbackRegistry[og.MessageTypeSequencerHeader] = m.RouteSequencerHeader
+	hub.CallbackRegistry[og.MessageTypeBodiesRequest] = m.RouteBodiesRequest
+	hub.CallbackRegistry[og.MessageTypeBodiesResponse] = m.RouteBodiesResponse
+	hub.CallbackRegistry[og.MessageTypeTxsRequest] = m.RouteTxsRequest
+	hub.CallbackRegistry[og.MessageTypeTxsResponse] = m.RouteTxsResponse
+	hub.CallbackRegistry[og.MessageTypeHeaderRequest] = m.RouteHeaderRequest
+	hub.CallbackRegistry[og.MessageTypeHeaderResponse] = m.RouteHeaderResponse
+}
+
+func SetupCallbacksOG32(m *og.MessageRouterOG32, hub *og.Hub) {
+	hub.CallbackRegistryOG32[og.GetNodeDataMsg] = m.RouteGetNodeDataMsg
+	hub.CallbackRegistryOG32[og.NodeDataMsg] = m.RouteNodeDataMsg
+	hub.CallbackRegistryOG32[og.GetReceiptsMsg] = m.RouteGetReceiptsMsg
 }

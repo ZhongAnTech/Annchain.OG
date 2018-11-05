@@ -21,12 +21,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net"
 	"time"
 
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/netutil"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -167,9 +167,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	var newtasks []task
 	addDial := func(flag connFlag, n *discover.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
-			log.WithFields(log.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
+			log.WithFields(logrus.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
 				WithError(err).
-				Debug("Skipping dial candidate")
+				Trace("Skipping dial candidate")
 			return false
 		}
 		s.dialing[n.ID] = flag
@@ -198,7 +198,7 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.WithFields(log.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+			log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
 				WithError(err).
 				Debug("Removing static dial candidate")
 			delete(s.static, t.dest.ID)
@@ -300,7 +300,7 @@ func (t *dialTask) Do(srv *Server) {
 	}
 	err := t.dial(srv, t.dest)
 	if err != nil {
-		//log.WithField("task", t).WithError(err).Debug("Dial error")
+		log.WithField("task", t).WithError(err).Trace("Dial error")
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {
@@ -318,7 +318,7 @@ func (t *dialTask) Do(srv *Server) {
 // The backoff delay resets when the node is found.
 func (t *dialTask) resolve(srv *Server) bool {
 	if srv.ntab == nil {
-		log.WithFields(log.Fields{"id": t.dest.ID}).
+		log.WithFields(logrus.Fields{"id": t.dest.ID}).
 			Debug("Can't resolve node: discovery is disabled")
 		return false
 	}
@@ -335,13 +335,13 @@ func (t *dialTask) resolve(srv *Server) bool {
 		if t.resolveDelay > maxResolveDelay {
 			t.resolveDelay = maxResolveDelay
 		}
-		log.WithFields(log.Fields{"id": t.dest.ID, "newdelay": t.resolveDelay}).Debug("Resolving node failed")
+		log.WithFields(logrus.Fields{"id": t.dest.ID, "newdelay": t.resolveDelay}).Warn("Resolving node failed")
 		return false
 	}
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.WithFields(log.Fields{"id": t.dest.ID, "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+	log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
 		Debug("Resolved node")
 	return true
 }
@@ -356,8 +356,8 @@ func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
 	if err != nil {
 		return &dialError{err}
 	}
-	//mfd := newMeteredConn(fd, false)
-	return srv.SetupConn(fd, t.flags, dest)
+	mfd := newMeteredConn(fd, false)
+	return srv.SetupConn(mfd, t.flags, dest)
 }
 
 func (t *dialTask) String() string {

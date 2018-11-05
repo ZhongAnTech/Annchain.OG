@@ -25,8 +25,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (

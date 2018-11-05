@@ -574,7 +574,7 @@ func BenchmarkDecodeMessageHeaderResponse(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageNewSequence(t *testing.T) {
+func TestMarshalUnmarshalMessageNewSequencer(t *testing.T) {
 	v := MessageNewSequencer{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
@@ -597,7 +597,7 @@ func TestMarshalUnmarshalMessageNewSequence(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageNewSequence(b *testing.B) {
+func BenchmarkMarshalMsgMessageNewSequencer(b *testing.B) {
 	v := MessageNewSequencer{}
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -606,7 +606,7 @@ func BenchmarkMarshalMsgMessageNewSequence(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageNewSequence(b *testing.B) {
+func BenchmarkAppendMsgMessageNewSequencer(b *testing.B) {
 	v := MessageNewSequencer{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
@@ -618,7 +618,7 @@ func BenchmarkAppendMsgMessageNewSequence(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageNewSequence(b *testing.B) {
+func BenchmarkUnmarshalMessageNewSequencer(b *testing.B) {
 	v := MessageNewSequencer{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
@@ -632,7 +632,7 @@ func BenchmarkUnmarshalMessageNewSequence(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageNewSequence(t *testing.T) {
+func TestEncodeDecodeMessageNewSequencer(t *testing.T) {
 	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
@@ -656,7 +656,7 @@ func TestEncodeDecodeMessageNewSequence(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageNewSequence(b *testing.B) {
+func BenchmarkEncodeMessageNewSequencer(b *testing.B) {
 	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
@@ -670,7 +670,7 @@ func BenchmarkEncodeMessageNewSequence(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageNewSequence(b *testing.B) {
+func BenchmarkDecodeMessageNewSequencer(b *testing.B) {
 	v := MessageNewSequencer{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)

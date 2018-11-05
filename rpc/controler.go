@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
@@ -21,6 +23,7 @@ type RpcController struct {
 	Og             *og.Og
 	TxBuffer       *og.TxBuffer
 	TxCreator      *og.TxCreator
+	SyncerManager  *syncer.SyncManager
 	NewRequestChan chan types.TxBaseType
 }
 
@@ -102,7 +105,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	}
 	txi := r.Og.Dag.GetTx(hash)
 	if txi == nil {
-		txi = r.Og.Txpool.Get(hash)
+		txi = r.Og.TxPool.Get(hash)
 	}
 	if txi == nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -121,6 +124,38 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"message": "not found",
 	})
+
+}
+
+//Transaction  get  transaction
+func (r *RpcController) Confirm(c *gin.Context) {
+	hashtr := c.Query("hash")
+	hash, err := types.HexStringToHash(hashtr)
+	cors(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "hash format error",
+		})
+		return
+	}
+	txiDag := r.Og.Dag.GetTx(hash)
+	txiTxpool := r.Og.TxPool.Get(hash)
+
+	if txiDag == nil && txiTxpool == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "not found",
+		})
+		return
+	}
+	if txiTxpool != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": false,
+		})
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": true,
+		})
+	}
 
 }
 
@@ -236,7 +271,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 		}
 		txi := r.Og.Dag.GetTx(hash)
 		if txi == nil {
-			txi = r.Og.Txpool.Get(hash)
+			txi = r.Og.TxPool.Get(hash)
 		}
 		if txi == nil {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -312,13 +347,15 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
-	if !r.Og.Manager.AcceptTxs() {
+	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		c.JSON(http.StatusOK, gin.H{
 			"error": "tx is disabled when syncing",
 		})
 		return
 	}
-	r.TxBuffer.AddLocal(tx)
+
+	r.TxBuffer.AddLocalTx(tx)
+	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"hash": tx.GetTxHash().Hex(),
 	})
@@ -358,7 +395,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 		})
 		return
 	}
-	noncePool, errPool := r.Og.Txpool.GetLatestNonce(addr)
+	noncePool, errPool := r.Og.TxPool.GetLatestNonce(addr)
 	nonceDag, errDag := r.Og.Dag.GetLatestNonce(addr)
 	var nonce int64
 	if errPool != nil && errDag != nil {
@@ -422,9 +459,11 @@ func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		r.NewRequestChan <- types.TxBaseTypeNormal
+		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeNormal
 	case "2":
-		r.NewRequestChan <- types.TxBaseTypeSequencer
+		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeSequencer
 	}
 }
 

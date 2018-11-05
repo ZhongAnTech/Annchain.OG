@@ -7,17 +7,53 @@ import (
 
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogdb"
+	"github.com/annchain/OG/types"
 )
 
 type Og struct {
-	Dag     *core.Dag
-	Txpool  *core.TxPool
-	Manager *MessageRouter
+	Dag      *core.Dag
+	TxPool   *core.TxPool
+	Manager  *MessageRouter
+	TxBuffer *TxBuffer
+
+	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
+
+	BootstrapNode bool
+	NetworkId     uint64
+
+	quit chan bool
 }
 
-func NewOg() (*Og, error) {
-	og := &Og{}
+func (og *Og) GetCurrentNodeStatus() StatusData {
+	return StatusData{
+		CurrentBlock:    og.Dag.LatestSequencer().Hash,
+		CurrentId:       og.Dag.LatestSequencer().Id,
+		GenesisBlock:    og.Dag.Genesis().Hash,
+		NetworkId:       og.NetworkId,
+		ProtocolVersion: 999, // this field should not be used
+	}
+}
 
+type OGConfig struct {
+	BootstrapNode bool //start accept txs even if no peers
+	NetworkId     uint64
+}
+
+func DefaultOGConfig() OGConfig {
+	config := OGConfig{
+		BootstrapNode: false,
+		NetworkId:     1,
+	}
+	return config
+}
+
+func NewOg(config OGConfig) (*Og, error) {
+	og := &Og{
+		quit: make(chan bool),
+	}
+
+	og.BootstrapNode = config.BootstrapNode
+	og.NetworkId = config.NetworkId
 	db, derr := CreateDB()
 	if derr != nil {
 		return nil, derr
@@ -35,7 +71,7 @@ func NewOg() (*Og, error) {
 		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
 	og.Dag = core.NewDag(dagconfig, db)
-	og.Txpool = core.NewTxPool(txpoolconfig, og.Dag)
+	og.TxPool = core.NewTxPool(txpoolconfig, og.Dag)
 
 	if !og.Dag.LoadLastState() {
 		// TODO use config to load the genesis
@@ -48,7 +84,24 @@ func NewOg() (*Og, error) {
 	if seq == nil {
 		return nil, fmt.Errorf("dag's latest sequencer is not initialized.")
 	}
-	og.Txpool.Init(seq)
+	og.TxPool.Init(seq)
+
+	// Construct the different synchronisation mechanisms
+
+	//heighter := func() uint64 {
+	//	return og.Dag.LatestSequencer().Id
+	//}
+	//inserter := func(seq *types.Sequencer, txs types.Txs) error {
+	//	// If fast sync is running, deny importing weird blocks
+	//	//if og.fastSyncMode() {
+	//	//	logrus.WithField("number", seq.Number()).WithField("hash", seq.GetTxHash()).Warn("Discarded bad propagated sequencer")
+	//	//	return nil
+	//	//}
+	//	// Mark initial sync done on any fetcher import
+	//	og.TxBuffer.AddTxs(seq, txs)
+	//	return nil
+	//}
+	//og.fetcher = fetcher.New(og.GetSequencerByHash, heighter, inserter, og.Manager.Hub.RemovePeer)
 
 	// TODO
 	// account manager and protocol manager
@@ -58,13 +111,21 @@ func NewOg() (*Og, error) {
 
 func (og *Og) Start() {
 	og.Dag.Start()
-	og.Txpool.Start()
+	og.TxPool.Start()
+	//// start sync handlers
+	//go og.syncer()
+	//go og.txsyncLoop()
+	go og.BrodcastLatestSequencer()
 
 	logrus.Info("OG Started")
 }
 func (og *Og) Stop() {
+	// Quit fetcher, txsyncLoop.
+	close(og.quit)
+	//og.quit <- true
+
 	og.Dag.Stop()
-	og.Txpool.Stop()
+	og.TxPool.Stop()
 
 	logrus.Info("OG Stopped")
 }
@@ -82,5 +143,33 @@ func CreateDB() (ogdb.Database, error) {
 		return ogdb.NewLevelDB(path, cache, handles)
 	default:
 		return ogdb.NewMemDatabase(), nil
+	}
+}
+
+func (og *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+	txi := og.Dag.GetTx(hash)
+	switch tx := txi.(type) {
+	case *types.Sequencer:
+		return tx
+	default:
+		return nil
+	}
+}
+
+// TODO: why this?
+func (og *Og) BrodcastLatestSequencer() {
+	for {
+		select {
+		case <-og.NewLatestSequencerCh:
+			seq := og.Dag.LatestSequencer()
+			hash := seq.GetTxHash()
+			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
+			data, _ := msgTx.MarshalMsg(nil)
+			// latest sequencer updated , broadcast it
+			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, data)
+		case <-og.quit:
+			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
+			return
+		}
 	}
 }

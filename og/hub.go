@@ -330,7 +330,7 @@ func (h *Hub) loopReceive() {
 			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
 				// already there
 				msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("type", m.MessageType.String()).
-					Debug("we have a duplicate message. Discard")
+					Trace("we have a duplicate message. Discard")
 				continue
 			}
 			h.messageCache.Set(m.hash, nil)
@@ -346,7 +346,7 @@ func (h *Hub) loopReceive() {
 func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
-	msgLog.WithField("type", messageType).Debug("broadcast message")
+	msgLog.WithField("type", messageType).Trace("broadcast message")
 	h.outgoing <- msgOut
 }
 
@@ -354,7 +354,7 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
 	msgOut.BroadCastToRandom = true
-	msgLog.WithField("type", messageType).Debug("unicast message")
+	msgLog.WithField("type", messageType).Trace("unicast message")
 	h.outgoing <- msgOut
 }
 

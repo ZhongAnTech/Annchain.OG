@@ -153,7 +153,7 @@ func (d *Downloader) Synchronising() bool {
 // used for fetching hashes and blocks from.
 func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 
-	log.WithField("id ", id).Debug("Registering sync peer")
+	log.WithField("id ", id).Trace("Registering sync peer")
 	if err := d.peers.Register(newPeerConnection(id, version, peer)); err != nil {
 		log.WithField("id ", id).WithError(err).Error("Failed to register sync peer")
 		return err
@@ -169,7 +169,7 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 func (d *Downloader) UnregisterPeer(id string) error {
 	// Unregister the peer from the active peer set and revoke any fetch tasks
 
-	log.WithField("id ", id).Debug("Unregistering sync peer")
+	log.WithField("id ", id).Trace("Unregistering sync peer")
 	if err := d.peers.Unregister(id); err != nil {
 		log.WithField("id ", id).WithError(err).Error("Failed to unregister sync peer")
 		return err
@@ -645,10 +645,10 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 		timeout.Reset(ttl)
 
 		if skeleton {
-			log.WithField("count", MaxHeaderFetch).WithField("from", from).Debug("Fetching skeleton headers")
+			log.WithField("count", MaxHeaderFetch).WithField("from", from).Trace("Fetching skeleton headers")
 			go p.peer.RequestHeadersByNumber(from+uint64(MaxHeaderFetch)-1, MaxSkeletonSize, MaxHeaderFetch-1, false)
 		} else {
-			log.WithField("count", MaxHeaderFetch).WithField("from", from).Debug("Fetching full headers")
+			log.WithField("count", MaxHeaderFetch).WithField("from", from).Trace("Fetching full headers")
 			go p.peer.RequestHeadersByNumber(from, MaxHeaderFetch, 0, false)
 		}
 
@@ -712,7 +712,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			}
 			// Insert all the new headers and fetch the next batch
 			if len(headers) > 0 {
-				log.WithField("from", from).WithField("count", len(headers)).Debug("Scheduling new headers")
+				log.WithField("from", from).WithField("count", len(headers)).Trace("Scheduling new headers")
 				select {
 				case d.headerProcCh <- headers:
 				case <-d.cancelCh:
@@ -883,7 +883,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				case err == nil && packet.Items() == 0:
 					log.WithField("type", kind).Warn("Requested data not delivered")
 				case err == nil:
-					log.WithField("type", kind).WithField("count", packet.Stats()).Debug("Delivered new batch of data")
+					log.WithField("type", kind).WithField("count", packet.Stats()).Trace("Delivered new batch of data")
 				default:
 					log.WithField("type", kind).WithError( err).Warn("Failed to deliver retrieved data")
 				}
@@ -978,11 +978,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 					continue
 				}
 				if request.From > 0 {
-					log.WithField("type", kind).WithField("from", request.From).Debug(
+					log.WithField("type", kind).WithField("from", request.From).Trace(
 						"Requesting new batch of data")
 				} else {
 					log.WithField("from", request.Headers[0].SequencerId()).WithField(
-						"type", kind).WithField("count", len(request.Headers)).Debug(
+						"type", kind).WithField("count", len(request.Headers)).Trace(
 						"Requesting new batch of data")
 				}
 				// Fetch the chunk and make sure any errors return the hashes to the queue

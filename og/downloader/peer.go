@@ -222,7 +222,7 @@ func (p *peerConnection) setIdle(started time.Time, delivered int, throughput *f
 		"hps": p.headerThroughput, "bps": p.blockThroughput,
 		"rps": p.receiptThroughput, "sps": p.stateThroughput,
 		"miss": len(p.lacking), "rtt": p.rtt,
-	}).Debug("Peer throughput measurements updated")
+	}).Trace("Peer throughput measurements updated")
 }
 
 // HeaderCapacity retrieves the peers header download allowance based on its

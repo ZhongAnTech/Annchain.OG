@@ -208,7 +208,8 @@ func (f *Fetcher) Enqueue(peer string, sequencer *types.Sequencer) error {
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
 func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, time time.Time) []*types.SequencerHeader {
-	log.WithField("peer", peer).WithField("headers", types.HeadersToString(headers)).Debug("Filtering headers")
+	log.WithField("peer", peer).WithField("headers", types.HeadersToString(headers)).Trace(
+		"Filtering headers")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *headerFilterTask)
@@ -236,7 +237,8 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, t
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
 func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers []*types.Sequencer, time time.Time) [][]*types.Tx {
-	log.WithField("txs", len(transactions)).WithField("sequencers ", types.SeqsToString(sequencers)).WithField("peer", peer).Debug("Filtering bodies")
+	log.WithField("txs", len(transactions)).WithField("sequencers ", types.SeqsToString(sequencers)).WithField(
+		"peer", peer).Trace("Filtering bodies")
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
@@ -371,7 +373,8 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer header requests
 			for peer, hashes := range request {
-				log.WithField("peer", peer).WithField("list", types.HashesToString(hashes)).Debug("Fetching scheduled headers")
+				log.WithField("peer", peer).WithField("list", types.HashesToString(hashes)).Trace(
+					"Fetching scheduled headers")
 
 				// Create a closure of the fetch and schedule in on a new thread
 				fetchHeader, hashes := f.fetching[hashes[0]].fetchHeader, hashes
@@ -405,7 +408,8 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer body requests
 			for peer, hashes := range request {
-				log.WithField("peer", peer).WithField("list", hashes).Debug("Fetching scheduled bodies")
+				log.WithField("peer", peer).WithField("list", hashes).Trace(
+					"Fetching scheduled bodies")
 
 				// Create a closure of the fetch and schedule in on a new thread
 				if f.completingHook != nil {

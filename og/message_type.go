@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/annchain/OG/types"
+	"sync/atomic"
 )
 
 //go:generate msgp
@@ -17,7 +18,7 @@ const (
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 var ProtocolName = "og"
 
-// ProtocolVersions are the upported versions of the og protocol (first is primary).
+// ProtocolVersions are the supported versions of the og protocol (first is primary).
 var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
@@ -27,13 +28,15 @@ const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a prot
 
 type MessageType uint64
 
+//global msg counter , generate global msg request id
+var  MsgCounter *MessageCounter
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
 	StatusMsg MessageType = iota
 	MessageTypePing
 	MessageTypePong
-	MessageTypeFetchByHash
+	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
 	MessageTypeNewTx
 	MessageTypeNewSequencer
@@ -57,7 +60,7 @@ const (
 
 func (mt MessageType) String() string {
 	return []string{
-		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHash", "MessageTypeFetchByHashResponse",
+		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHashRequest", "MessageTypeFetchByHashResponse",
 		"MessageTypeNewTx", "MessageTypeNewSequencer", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
@@ -70,14 +73,26 @@ type P2PMessage struct {
 	Message           []byte
 	hash              types.Hash //inner use to avoid resend a message to the same peer
 	needCheckRepeat   bool
-	SourceID          string // the source that this messeage coming from
-	BroadCastToRandom bool   //just brodcast to random peer
+	SourceID          string // the source that this message  coming from
+	BroadCastToRandom bool   //just broadcast to random peer
+	Version           int    // peer version.
 }
 
 func (m *P2PMessage) calculateHash() {
 	// TODO: implement hash for message
+	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
+	//for request ,if source id is different they were different  msg ,don't drop it
+	//if we dropped header response because of duplicate , header request will time out
+	data := m.Message
+	if m.MessageType == MessageTypeBodiesRequest || m.MessageType == MessageTypeFetchByHashRequest ||
+		m.MessageType == MessageTypeTxsRequest || m.MessageType == MessageTypeHeaderRequest ||
+		m.MessageType == MessageTypeSequencerHeader || m.MessageType == MessageTypeHeaderResponse ||
+		m.MessageType == MessageTypeBodiesResponse {
+		data = append(data, []byte(m.SourceID+"hi")...)
+	}
+
 	h := sha256.New()
-	h.Write(m.Message)
+	h.Write(data)
 	sum := h.Sum(nil)
 	m.hash.MustSetBytes(sum)
 	return
@@ -134,3 +149,22 @@ func (s *StatusData) String() string {
 	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %d",
 		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
 }
+
+type MessageCounter struct {
+	requestId      uint32
+}
+
+//get current request id
+func (m*MessageCounter)Get ()uint32 {
+	if m.requestId >  uint32( 1<<30) {
+		atomic.StoreUint32(&m.requestId,10)
+	}
+	return  atomic.AddUint32(&m.requestId,1)
+}
+
+func MsgCountInit () {
+	MsgCounter = &MessageCounter{
+		requestId :1,
+	}
+}
+

@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"

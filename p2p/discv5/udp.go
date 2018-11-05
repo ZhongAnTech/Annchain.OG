@@ -28,7 +28,6 @@ import (
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 const Version = 4
@@ -361,9 +360,9 @@ func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, data []by
 		//fmt.Println(err)
 		return hash, err
 	}
-	log.Debugf(">>> %v to %x@%v", nodeEvent(ptype), toid[:8], toaddr)
+	log.Trace(">>> %v to %x@%v", nodeEvent(ptype), toid[:8], toaddr)
 	if _, err := t.conn.WriteToUDP(packet, toaddr); err != nil {
-		log.WithError(err).Debug("UDP send failed")
+		log.WithError(err).Trace("UDP send failed")
 	} else {
 		//egressTrafficMeter.Mark(int64(nbytes))
 	}

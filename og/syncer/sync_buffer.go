@@ -1,4 +1,4 @@
-package og
+package syncer
 
 import (
 	"container/list"
@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 var MaxBufferSiza = 4096 * 16
@@ -18,25 +18,25 @@ type SyncBuffer struct {
 	TxsList        []types.Hash
 	Seq            *types.Sequencer
 	mu             sync.RWMutex
-	txPool         ITxPool
-	txBuffer       ITxBuffer
+	txPool         og.ITxPool
+	dag            og.IDag
 	acceptTxs      uint32
 	quitHandel     bool
-	formatVerifier Verifier
-	graphVerifier  Verifier
+	formatVerifier og.Verifier
+	graphVerifier  og.Verifier
 }
 
 type SyncBufferConfig struct {
-	TxPool         ITxPool
-	TxBuffer       ITxBuffer
-	FormatVerifier Verifier
-	GraphVerifier  Verifier
+	TxPool         og.ITxPool
+	FormatVerifier og.Verifier
+	GraphVerifier  og.Verifier
+	Dag            og.IDag
 }
 
-func DefaultSyncBufferConfig(txPool ITxPool, txBuffer ITxBuffer, formatVerifier Verifier, graphVerifier Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:         txPool,
-		TxBuffer:       txBuffer,
+		Dag:            dag,
 		FormatVerifier: formatVerifier,
 		GraphVerifier:  graphVerifier,
 	}
@@ -50,7 +50,7 @@ func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
 		Txs:            make(map[types.Hash]types.Txi),
 		txPool:         config.TxPool,
-		txBuffer:       config.TxBuffer,
+		dag:            config.Dag,
 		formatVerifier: config.FormatVerifier,
 		graphVerifier:  config.GraphVerifier,
 	}
@@ -67,14 +67,9 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if seq == nil {
-		err := fmt.Errorf("nil sequencer")
-		log.WithError(err).Debug("add txs error")
-		return err
-	}
 	s.Seq = seq
 	for _, tx := range txs {
 		if len(s.Txs) > MaxBufferSiza {
@@ -94,13 +89,23 @@ func (s *SyncBuffer) addTxs(txs []types.Txi, seq *types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(txs []types.Txi, seq *types.Sequencer) error {
+func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
 		s.clean()
+		if seq == nil {
+			err := fmt.Errorf("nil sequencer")
+			log.WithError(err).Debug("add txs error")
+			return err
+		}
+		if seq.Id != s.dag.LatestSequencer().Id+1 {
+			log.WithField("latests seq id ", s.dag.LatestSequencer().Id).WithField("seq id", seq.Id).Warn("id mismatch")
+			return nil
+		}
 		err := s.addTxs(txs, seq)
 		if err != nil {
+			log.WithError(err).Debug("add txs error")
 			return err
 		}
 		return s.Handle()
@@ -150,10 +155,10 @@ func (s *SyncBuffer) Handle() error {
 		return nil
 	}
 	count := s.Count()
-	log.WithField("txs len", count).WithField("seq", s.Seq).Debug("handle txs start")
+	log.WithField("txs len", count).WithField("seq", s.Seq).Trace("handle txs start")
 	err := s.verifyElders(s.Seq)
 	if err != nil {
-		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
+		log.WithField("seq ", s.Seq).WithError(err).Warn("handle fail")
 		return err
 	}
 
@@ -163,7 +168,8 @@ func (s *SyncBuffer) Handle() error {
 			panic("never come here")
 		}
 		//if tx is already in txbool ,no need to verify again
-		if s.txBuffer.isLocalHash(hash) {
+		// TODO: recover it if we need sync buffer again
+		if s.txPool.IsLocalHash(hash) {
 			continue
 		}
 		// temporary commit for testing
@@ -192,9 +198,9 @@ func (s *SyncBuffer) Handle() error {
 		}
 	}
 	if err == nil {
-		log.WithField("id", s.Seq).Debug("before add seq")
+		log.WithField("id", s.Seq).Trace("before add seq")
 		err = s.txPool.AddRemoteTx(s.Seq)
-		log.WithField("id", s.Seq).Debug("after add seq")
+		log.WithField("id", s.Seq).Trace("after add seq")
 	}
 	if err != nil {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
@@ -222,7 +228,8 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 		elder := s.Get(elderHash)
 		if elder == nil {
-			if s.txBuffer.isLocalHash(elderHash) {
+			// TODO: recover it if we need sync buffer again
+			if s.txPool.IsLocalHash(elderHash) {
 				continue
 			}
 			err := fmt.Errorf("parent not found ")

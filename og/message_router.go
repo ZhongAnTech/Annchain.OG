@@ -182,6 +182,7 @@ func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
 	m.debugLog(msg, &msgReq)
 	m.BodiesRequestHandler.HandleBodiesRequest(msgReq, msg.SourceID)
 }
+
 func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
 	// A batch of block bodies arrived to one of our previous requests
 	var request types.MessageBodiesResponse
@@ -192,6 +193,7 @@ func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
 	m.debugLog(msg, &request)
 	m.BodiesResponseHandler.HandleBodiesResponse(request, msg.SourceID)
 }
+
 func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
 	// Decode the retrieval message
 	var msgReq types.MessageTxsRequest

@@ -45,8 +45,10 @@ func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
 
 	}else {
 		for i := 0; i < MaxAccountCount; i++ {
-			acc := account.NewAccount(fmt.Sprintf(
-				"0x009d9d0fe5e9ef0bb3bb4934db878688500fd0fd8e026c1ff1249b7e268c8a363aa7d45d13a5accb299dc7fe0f3b5fb0e9526b67008f7ead02c51c7b1f5a1d7b%02d", i))
+			if i >= len(sampleEd25519PrivKeys) {
+				break
+			}
+			acc := account.NewAccount(sampleEd25519PrivKeys[i])
 			acc.Id = i
 			accounts = append(accounts, acc)
 		}
@@ -66,3 +68,4 @@ func newUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonc
 	}
 	return &tx
 }
+

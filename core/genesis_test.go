@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/annchain/OG/types"
+	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -9,5 +10,5 @@ import (
 func TestName(t *testing.T) {
 	a := types.HexToHash("0x00")
 	logrus.Info(a)
-	DefaultGenesis()
+	DefaultGenesis(crypto.Secp256k1)
 }

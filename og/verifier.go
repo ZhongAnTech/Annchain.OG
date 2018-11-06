@@ -30,7 +30,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		return false
 	}
 	if !v.VerifySignature(t) {
-		logrus.WithField("tx", t).Debug("Signature not valid")
+		logrus.WithField("tx dump: " ,t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
 	if !v.VerifySourceAddress(t) {

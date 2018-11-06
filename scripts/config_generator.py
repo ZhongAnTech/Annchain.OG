@@ -2,7 +2,7 @@ import sys
 
 import toml
 
-boot_node = 'a4d8435e9923d6cc950ff47df5f8fef469b1acfa255cf9b5daab53abdca3d76403bda33ebedd1336d526ffc510c9420c7df0731ee37ea6b28780ca6011fe741e'
+boot_node = '74e0c7205870b89fda4ed9c10113cd5ac2d274575916a2cdaf7832073e94f7a1dbae433a91bef514c7a0b7653170843eb40cd6ce5c64a373007ce398c9932a81'
 
 
 def generate_config(id, seq_enabled):
@@ -18,7 +18,7 @@ def generate_config(id, seq_enabled):
 
     d['websocket']['port'] = port_add + 2
     d['profiling']['port'] = port_add + 3
-    d['leveldb']['path'] = 'datadir_%02d' % (id)
+    d['leveldb']['path'] = 'data/datadir_%02d' % (id)
 
     d['auto_client']['sequencer']['enabled'] = seq_enabled
     d['auto_client']['tx']['enabled'] = True
@@ -26,7 +26,7 @@ def generate_config(id, seq_enabled):
 
     d['debug']['node_id'] = id
 
-    with open('config_%02d.toml' % (id), 'w') as f:
+    with open('configs/config_%02d.toml' % (id), 'w') as f:
         toml.dump(d, f)
 
     return d

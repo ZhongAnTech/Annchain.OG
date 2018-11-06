@@ -13,7 +13,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 
-total = 10
+total = 20
 
 s = requests.Session()
 s.trust_env = False
@@ -58,11 +58,12 @@ def doone(host):
         d.update(j)
         d['bestPeer'] = id_host_map[d['bestPeer']][-4:]
         d['error'] = d['error']
-        d['syncMode'] = d['syncMode'][10:]
+        d['syncMode'] = d['syncMode'][10:][0:4]
         d['catchupSyncerStatus'] = d['catchupSyncerStatus'][3:]
     except Exception as e:
         pass
 
+    d['id'] = d['id'][0:4]
     return d
 
 

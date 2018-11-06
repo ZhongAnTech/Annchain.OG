@@ -82,3 +82,12 @@ func NewSigner(cryptoType CryptoType) Signer {
 	}
 	return nil
 }
+
+func (c CryptoType)String()string {
+	if c == CryptoTypeEd25519 {
+		return "ed25519"
+	}else if c==CryptoTypeSecp256k1 {
+		return "secp256k1"
+	}
+	return "unknown"
+}

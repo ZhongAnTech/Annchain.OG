@@ -198,6 +198,8 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		logrus.WithError(err).Error("failed to auto generate seq")
 		return false
 	}
+	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
+		WithField("id", c.MyAccountIndex).WithField("dump ",seq.Dump()).Info("Generated tx")
 	c.Delegate.Announce(seq)
 	return true
 }

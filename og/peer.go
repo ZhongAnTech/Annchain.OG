@@ -83,7 +83,7 @@ func (p *peer) broadcast() {
 			if err := p.SendMessages(msg); err != nil {
 				return
 			}
-			msgLog.WithField("count", len(msg)).Debug("Broadcast transactions")
+			msgLog.WithField("count", len(msg)).Trace("Broadcast transactions")
 
 		case <-p.term:
 			return

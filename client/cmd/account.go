@@ -29,29 +29,27 @@ var (
 
 func accountInit() {
 	accountCmd.AddCommand(accountGenCmd, accountCalCmd)
-	accountCmd.PersistentFlags().StringVarP(&algorithm, "algorithm", "a", "ed25519", "algorithm e (ed25519) ; algorithm s (secp256k1")
+	accountCmd.PersistentFlags().StringVarP(&algorithm, "algorithm", "a", "secp256k1", "algorithm e (ed25519) ; algorithm s (secp256k1")
 	accountCalCmd.PersistentFlags().StringVarP(&priv_key, "priv_key", "k", "", "priv_key ***")
 }
 
 func accountGen(cmd *cobra.Command, args []string) {
+	var signer crypto.Signer
 	if algorithm == "secp256k1" || algorithm == "s" {
-		signer := &crypto.SignerSecp256k1{}
-		pub, priv, err := signer.RandomKeyPair()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf(priv.PrivateKeyToString())
-		fmt.Printf(pub.PublicKeyToString())
-	} else {
-		signer := &crypto.SignerEd25519{}
-		pub, priv, err := signer.RandomKeyPair()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf(priv.PrivateKeyToString())
-		fmt.Printf(pub.PublicKeyToString())
+		signer = &crypto.SignerSecp256k1{}
+	} else if algorithm == "ed25519" || algorithm == "e"  {
+		signer = &crypto.SignerEd25519{}
+	}else {
+		fmt.Println("unknown crypto algorithm" ,algorithm )
+		return
 	}
-
+	pub, priv, err := signer.RandomKeyPair()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(priv.String())
+	fmt.Println(pub.String())
+	fmt.Println(signer.Address(pub).Hex())
 }
 
 func accountCal(cmd *cobra.Command, args []string) {
@@ -68,6 +66,6 @@ func accountCal(cmd *cobra.Command, args []string) {
 	signer := crypto.NewSigner(privKey.Type)
 	pub := signer.PubKey(privKey)
 	addr := signer.Address(pub)
-	fmt.Println(pub.PublicKeyToString())
+	fmt.Println(pub.String())
 	fmt.Println(addr.String())
 }

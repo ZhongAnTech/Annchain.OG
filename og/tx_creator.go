@@ -68,6 +68,9 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 
 func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,
 	privateKey crypto.PrivateKey) types.Txi {
+	if privateKey.Type != m.Signer.GetCryptoType() {
+		panic("crypto type mismatch")
+	}
 	tx := m.NewUnsignedTx(from, to, value, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
@@ -91,6 +94,9 @@ func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, id uint64, contra
 }
 
 func (m *TxCreator) NewSignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+	if privateKey.Type != m.Signer.GetCryptoType() {
+		panic("crypto type mismatch")
+	}
 	tx := m.NewUnsignedSequencer(issuer, id, contractHashOrder, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())

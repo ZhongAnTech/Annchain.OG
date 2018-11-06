@@ -2,6 +2,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -37,6 +38,7 @@ func (og *Og) GetCurrentNodeStatus() StatusData {
 type OGConfig struct {
 	BootstrapNode bool //start accept txs even if no peers
 	NetworkId     uint64
+	CryptoType     crypto.CryptoType
 }
 
 func DefaultOGConfig() OGConfig {
@@ -75,7 +77,7 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	if !og.Dag.LoadLastState() {
 		// TODO use config to load the genesis
-		seq, balance := core.DefaultGenesis()
+		seq, balance := core.DefaultGenesis(config.CryptoType)
 		if err := og.Dag.Init(seq, balance); err != nil {
 			return nil, err
 		}

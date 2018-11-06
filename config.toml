@@ -65,6 +65,9 @@ node_id = 1
 [hub]
 sync_cycle_ms = 10000
 
+[crypto]
+algorithm = "secp256k1"
+
 [dag]
 
 consensus = "dpos"

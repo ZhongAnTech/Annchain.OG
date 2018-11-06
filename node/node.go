@@ -33,6 +33,15 @@ func NewNode() *Node {
 	pm := &PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
+	var cryptoType  crypto.CryptoType
+	switch viper.GetString("crypto.algorithm") {
+	case "ed25519":
+		cryptoType = crypto.CryptoTypeEd25519
+	case "secp256k1":
+		cryptoType = crypto.CryptoTypeSecp256k1
+	default:
+		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
+	}
 
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
@@ -76,15 +85,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, hub)
 
 	// Setup crypto algorithm
-	var signer crypto.Signer
-	switch viper.GetString("crypto.algorithm") {
-	case "ed25519":
-		signer = &crypto.SignerEd25519{}
-	case "secp256k1":
-		signer = &crypto.SignerSecp256k1{}
-	default:
-		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
-	}
+	signer := crypto.NewSigner(cryptoType)
 
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
@@ -238,7 +239,7 @@ func NewNode() *Node {
 	}
 
 	autoClientManager := &AutoClientManager{
-		SampleAccounts:         core.GetSampleAccounts(),
+		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
 	autoClientManager.Init(

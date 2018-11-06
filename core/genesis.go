@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 )
 
 const MaxAccountCount = 20
 
-func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
+func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, []types.Hash{}, 0)
@@ -23,19 +24,33 @@ func DefaultGenesis() (*types.Sequencer, map[types.Address]*math.BigInt) {
 	balance := map[types.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
 
-	accounts := GetSampleAccounts()
+	accounts := GetSampleAccounts(cryptoType)
 	for i := 0; i < MaxAccountCount; i++ {
 		balance[accounts[i].Address] = math.NewBigInt(8888888)
 	}
 	return seq.(*types.Sequencer), balance
 }
 
-func GetSampleAccounts() []*account.SampleAccount {
-	var accounts []*account.SampleAccount
-	for i := 0; i < MaxAccountCount; i++ {
-		acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i))
-		acc.Id = i
-		accounts = append(accounts, acc)
+
+
+
+func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
+		var accounts []*account.SampleAccount
+	if cryptoType == crypto.CryptoTypeSecp256k1 {
+		for i := 0; i < MaxAccountCount; i++ {
+			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i))
+			acc.Id = i
+			accounts = append(accounts, acc)
+		}
+
+	}else {
+		for i := 0; i < MaxAccountCount; i++ {
+			acc := account.NewAccount(fmt.Sprintf(
+				"0x009d9d0fe5e9ef0bb3bb4934db878688500fd0fd8e026c1ff1249b7e268c8a363aa7d45d13a5accb299dc7fe0f3b5fb0e9526b67008f7ead02c51c7b1f5a1d7b%02d", i))
+			acc.Id = i
+			accounts = append(accounts, acc)
+		}
+
 	}
 	return accounts
 }

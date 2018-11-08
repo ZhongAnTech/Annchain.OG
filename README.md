@@ -12,7 +12,7 @@ OG  is dag based decentralized ledger and Dapp platform
     running og by loading config file from remote http server :
     ./og -c http://127.0.0.1:8532/og_config?node_id=3  run
 
-###help commands
+### help commands
   ./og --help
    OG to da moon
 
@@ -24,7 +24,8 @@ OG  is dag based decentralized ledger and Dapp platform
     run         Start a full node
 
   Flags:
-    -c, --config string         Path for configuration file or url of config server (default "config.toml")
+  
+    -c, --config string       Path for configuration file or url of config server (default "config.toml")
     -d, --datadir string        Runtime directory for storage and configurations (default "data")
     -h, --help                  help for OG
     -l, --log_dir string        Path for configuration file. Not enabled by default

@@ -17,6 +17,7 @@ max_peers = 3
 network_id = 1
 enable_sync = true
 bootstrap_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@192.168.45.163:8001"
+#node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
 
 [websocket]
 enabled = true

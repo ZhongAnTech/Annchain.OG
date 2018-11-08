@@ -31,11 +31,8 @@ func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.A
 	return seq.(*types.Sequencer), balance
 }
 
-
-
-
 func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
-		var accounts []*account.SampleAccount
+	var accounts []*account.SampleAccount
 	if cryptoType == crypto.CryptoTypeSecp256k1 {
 		for i := 0; i < MaxAccountCount; i++ {
 			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i))
@@ -43,7 +40,7 @@ func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
 			accounts = append(accounts, acc)
 		}
 
-	}else {
+	} else {
 		for i := 0; i < MaxAccountCount; i++ {
 			if i >= len(sampleEd25519PrivKeys) {
 				break
@@ -68,4 +65,3 @@ func newUnsignedSequencer(id uint64, contractHashOrder []types.Hash, accountNonc
 	}
 	return &tx
 }
-

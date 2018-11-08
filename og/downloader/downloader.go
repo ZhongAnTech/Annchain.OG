@@ -781,9 +781,9 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Sequencer
 	err := d.fetchParts(errCancelHeaderFetch, d.headerCh, deliver, d.queue.headerContCh, expire,
 		d.queue.PendingHeaders, d.queue.InFlightHeaders, throttle, reserve,
 		nil, fetch, d.queue.CancelHeaders, capacity, d.peers.HeaderIdlePeers, setIdle, "headers")
-    if err !=nil {
+	if err != nil {
 		log.WithError(err).Warn("Skeleton fill terminated")
-	}else {
+	} else {
 		log.Debug("Skeleton fill terminated")
 	}
 
@@ -812,9 +812,9 @@ func (d *Downloader) fetchBodies(from uint64) error {
 		d.queue.PendingBlocks, d.queue.InFlightBlocks, d.queue.ShouldThrottleBlocks, d.queue.ReserveBodies,
 		d.bodyFetchHook, fetch, d.queue.CancelBodies, capacity, d.peers.BodyIdlePeers, setIdle, "bodies")
 
-	if err!=nil {
+	if err != nil {
 		log.WithError(err).Warn("Block body download terminated")
-	}else {
+	} else {
 		log.Debug("Block body download terminated")
 	}
 	return err
@@ -885,7 +885,7 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				case err == nil:
 					log.WithField("type", kind).WithField("count", packet.Stats()).Trace("Delivered new batch of data")
 				default:
-					log.WithField("type", kind).WithError( err).Warn("Failed to deliver retrieved data")
+					log.WithField("type", kind).WithError(err).Warn("Failed to deliver retrieved data")
 				}
 			}
 			// Blocks assembled, try to update the progress

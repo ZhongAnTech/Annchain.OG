@@ -165,8 +165,8 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 	}
 
 	msgRes := types.MessageHeaderResponse{
-		Sequencers: headers,
-		RequestedId:query.RequestId,
+		Sequencers:  headers,
+		RequestedId: query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
@@ -249,7 +249,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 	for i := 0; i < len(msgReq.SeqHashes); i++ {
 		seq := h.Og.Dag.GetSequencerByHash(msgReq.SeqHashes[i])
 		if seq == nil {
-			msgLog.WithField("hash",msgReq.SeqHashes[i]).Warn("seq is nil")
+			msgLog.WithField("hash", msgReq.SeqHashes[i]).Warn("seq is nil")
 			break
 		}
 		if bytes >= softResponseLimit {

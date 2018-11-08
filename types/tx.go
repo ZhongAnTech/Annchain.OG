@@ -103,13 +103,12 @@ func (t *Tx) GetBase() *TxBase {
 	return &t.TxBase
 }
 
-
-func (t*Tx)Dump()string {
+func (t *Tx) Dump() string {
 	var phashes []string
-	for _,p:= range t.ParentsHash {
-		phashes =   append(phashes,p.Hex())
+	for _, p := range t.ParentsHash {
+		phashes = append(phashes, p.Hex())
 	}
-	return  fmt.Sprintf("pHash:[%s], from : %s , to :0x%x ,value : %s , nonce : %d , signatute : %s, pubkey %s",
-		strings.Join(phashes," ," ),t.From.Hex(),t.To.Hex(),t.Value.String(),
-		t.AccountNonce,hexutil.Encode(t.Signature),hexutil.Encode( t.PublicKey))
+	return fmt.Sprintf("pHash:[%s], from : %s , to :0x%x ,value : %s , nonce : %d , signatute : %s, pubkey %s",
+		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }

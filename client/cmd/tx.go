@@ -30,6 +30,7 @@ func txInit() {
 	txCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
 	txCmd.PersistentFlags().Uint64VarP(&nonce, "nonce", "n", 0, "nonce 1")
 }
+
 //NewTxrequest for RPC request
 type NewTxRequest struct {
 	Nonce     string `json:"nonce"`
@@ -41,11 +42,11 @@ type NewTxRequest struct {
 }
 
 func newTx(cmd *cobra.Command, args []string) {
-	if to == "" || value < 1 || priv_key == ""  {
+	if to == "" || value < 1 || priv_key == "" {
 		cmd.HelpFunc()
 	}
 	toAddr := types.HexToAddress(to)
-	key,err:= crypto.PrivateKeyFromString(priv_key)
+	key, err := crypto.PrivateKeyFromString(priv_key)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -53,10 +54,10 @@ func newTx(cmd *cobra.Command, args []string) {
 	//todo smart contracts
 	//data := common.Hex2Bytes(payload)
 	// do sign work
-	signer:= crypto.NewSigner(key.Type)
+	signer := crypto.NewSigner(key.Type)
 	pub := signer.PubKey(key)
 	from := signer.Address(pub)
-	if nonce <=0 {
+	if nonce <= 0 {
 		nonce = getNonce(from)
 	}
 	tx := types.Tx{
@@ -70,13 +71,13 @@ func newTx(cmd *cobra.Command, args []string) {
 	}
 	signature := signer.Sign(key, tx.SignatureTargets())
 	pubKey := signer.PubKey(key)
-	txReq:= &NewTxRequest{
-		Nonce:fmt.Sprintf("%d",tx.AccountNonce),
-		From:tx.From.Hex(),
-		To:to,
-		Value:tx.Value.String(),
-		Signature:hexutil.Encode(signature.Bytes),
-		Pubkey:pubKey.String(),
+	txReq := &NewTxRequest{
+		Nonce:     fmt.Sprintf("%d", tx.AccountNonce),
+		From:      tx.From.Hex(),
+		To:        to,
+		Value:     tx.Value.String(),
+		Signature: hexutil.Encode(signature.Bytes),
+		Pubkey:    pubKey.String(),
 	}
 	req := httplib.Post(Host + "/new_transaction")
 	_, err = req.JSONBody(&txReq)
@@ -91,10 +92,10 @@ func newTx(cmd *cobra.Command, args []string) {
 	fmt.Println(str)
 }
 
-func getNonce(addr types.Address) (nonce uint64){
-	uri:= fmt.Sprintf("query_nonce?address=%s",addr.Hex())
-	req := httplib.Get(Host + "/"+uri)
-	var nonceResp struct{
+func getNonce(addr types.Address) (nonce uint64) {
+	uri := fmt.Sprintf("query_nonce?address=%s", addr.Hex())
+	req := httplib.Get(Host + "/" + uri)
+	var nonceResp struct {
 		Nonce uint64 `json:"nonce"`
 	}
 	_, err := req.JSONBody(&nonceResp)

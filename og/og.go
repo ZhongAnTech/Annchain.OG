@@ -38,7 +38,7 @@ func (og *Og) GetCurrentNodeStatus() StatusData {
 type OGConfig struct {
 	BootstrapNode bool //start accept txs even if no peers
 	NetworkId     uint64
-	CryptoType     crypto.CryptoType
+	CryptoType    crypto.CryptoType
 }
 
 func DefaultOGConfig() OGConfig {

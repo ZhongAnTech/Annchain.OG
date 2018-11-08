@@ -111,7 +111,7 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 			WithField("our SeqId", ourId).
 			Debug("we are now up to date")
 		return true
-	}else{
+	} else {
 		logrus.WithField("bestPeer SeqId", seqId).
 			WithField("bestPeerHash", bpHash).
 			WithField("our SeqId", ourId).

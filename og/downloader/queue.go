@@ -648,12 +648,12 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 
 	// Ensure headers can be mapped onto the skeleton chain
 	target := q.headerTaskPool[request.From].Hash()
-    clog:= log.WithField("peer",id).WithField("from",request.From)
+	clog := log.WithField("peer", id).WithField("from", request.From)
 	accepted := len(headers) == MaxHeaderFetch
 	if accepted {
 		if headers[0].SequencerId() != request.From {
 			clog.WithField("number", headers[0].SequencerId()).WithField(
-				"hash", headers[0].Hash()).Trace("First header broke chain ordering" )
+				"hash", headers[0].Hash()).Trace("First header broke chain ordering")
 			accepted = false
 		} else if headers[len(headers)-1].Hash() != target {
 			clog.WithField("number", headers[len(headers)-1].SequencerId()).WithField(
@@ -668,7 +668,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 			if want := request.From + 1 + uint64(i); header.SequencerId() != want {
 				clog.WithField("number", header.SequencerId()).WithField(
 					"hash", hash).WithField("expected", want).Warn(
-					"Header broke chain ordering" )
+					"Header broke chain ordering")
 				accepted = false
 				break
 			}
@@ -704,7 +704,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 		select {
 		case headerProcCh <- process:
 			log.WithField("peer", id).WithField("count", len(process)).WithField(
-				"from", process[0].SequencerId()).Trace("Pre-scheduled new headers" )
+				"from", process[0].SequencerId()).Trace("Pre-scheduled new headers")
 			q.headerProced += len(process)
 		default:
 		}

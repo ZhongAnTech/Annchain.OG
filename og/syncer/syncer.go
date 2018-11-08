@@ -5,8 +5,8 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
-	"time"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type MessageSender interface {
@@ -98,8 +98,8 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 		return
 	}
 	req := types.MessageSyncRequest{
-		Hashes: []types.Hash{},
-		RequestId:og.MsgCounter.Get(),
+		Hashes:    []types.Hash{},
+		RequestId: og.MsgCounter.Get(),
 	}
 	for key := range buffer {
 		// add it to the missing queue in case no one responds us.
@@ -112,7 +112,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 			})
 		} else {
 			h := history.(FireHistory)
-			h.FiredTimes ++
+			h.FiredTimes++
 			h.LastTime = time.Now()
 			m.firedTxCache.Set(key, h)
 		}
@@ -335,7 +335,7 @@ func (m *IncrementalSyncer) repickHashes() []types.Hash {
 	var result []types.Hash
 	for ik, iv := range maps {
 		v := iv.(FireHistory)
-		if time.Now().Sub(v.LastTime) > duration{
+		if time.Now().Sub(v.LastTime) > duration {
 			// haven't got response after 10 seconds
 			result = append(result, ik.(types.Hash))
 		}

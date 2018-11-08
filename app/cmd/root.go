@@ -82,7 +82,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringP("datadir", "d", "data", fmt.Sprintf("Runtime directory for storage and configurations"))
-	rootCmd.PersistentFlags().StringP("config", "c", "config.toml", "Path for configuration file")
+	rootCmd.PersistentFlags().StringP("config", "c", "config.toml", "Path for configuration file or url of config server")
 	rootCmd.PersistentFlags().StringP("log_dir", "l", "", "Path for configuration file. Not enabled by default")
 	rootCmd.PersistentFlags().BoolP("log_stdout", "s", false, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().StringP("log_level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
@@ -92,7 +92,7 @@ func init() {
 
 	viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
-	viper.BindPFlag("log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
+	viper.BindPFlag("log.log_dir", rootCmd.PersistentFlags().Lookup("log_dir"))
 	viper.BindPFlag("log_line_number", rootCmd.PersistentFlags().Lookup("log_line_number"))
 	viper.BindPFlag("multifile_by_level", rootCmd.PersistentFlags().Lookup("multifile_by_level"))
 	viper.BindPFlag("multifile_by_module", rootCmd.PersistentFlags().Lookup("multifile_by_module"))
@@ -122,7 +122,7 @@ func panicIfError(err error, message string) {
 
 // initLogger uses viper to get the log path and level. It should be called by all other commands
 func initLogger() {
-	logdir := viper.GetString("log_dir")
+	logdir := viper.GetString("log.log_dir")
 	stdout := viper.GetBool("log_stdout")
 
 	var writer io.Writer
@@ -209,7 +209,7 @@ func initLogger() {
 			logrus.ErrorLevel: errorLog,
 			logrus.InfoLevel:  infoLog,
 			logrus.DebugLevel: debugLog,
-			logrus.TraceLevel:traceLog,
+			logrus.TraceLevel: traceLog,
 		}
 		logrus.AddHook(lfshook.NewHook(
 			pathMap,

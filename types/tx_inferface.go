@@ -62,7 +62,7 @@ type Txi interface {
 	Sender() Address
 	SetHash(h Hash)
 	String() string
-	Dump()string
+	Dump() string
 
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)

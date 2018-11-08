@@ -40,7 +40,6 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 	return &tx
 }
 
-
 func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.Tx{

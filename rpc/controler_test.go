@@ -27,9 +27,9 @@ func TestNewAccount(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	} else {
-		fmt.Println("prikey: ",pri)
-		fmt.Println("pubkey: ",pub)
-		fmt.Println("address:",addr)
+		fmt.Println("prikey: ", pri)
+		fmt.Println("pubkey: ", pub)
+		fmt.Println("address:", addr)
 	}
 }
 

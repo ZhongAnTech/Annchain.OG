@@ -33,7 +33,7 @@ func NewNode() *Node {
 	pm := &PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
-	var cryptoType  crypto.CryptoType
+	var cryptoType crypto.CryptoType
 	switch viper.GetString("crypto.algorithm") {
 	case "ed25519":
 		cryptoType = crypto.CryptoTypeEd25519
@@ -102,11 +102,10 @@ func NewNode() *Node {
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
-
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers:                        verifiers,
-		Dag:                              org.Dag,
-		TxPool:                           org.TxPool,
+		Verifiers: verifiers,
+		Dag:       org.Dag,
+		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
@@ -136,9 +135,9 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:                    hub,
-		Downloader:             downloaderInstance,
-		SyncMode:               downloader.FullSync,
+		Hub:        hub,
+		Downloader: downloaderInstance,
+		SyncMode:   downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -155,7 +154,7 @@ func NewNode() *Node {
 		TxsResponseHandler:        messageHandler,
 		HeaderResponseHandler:     messageHandler,
 		FetchByHashRequestHandler: messageHandler,
-		Hub:                       hub,
+		Hub: hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
@@ -256,7 +255,7 @@ func NewNode() *Node {
 		}()
 	}
 	//init msg requst id
-     og.MsgCountInit()
+	og.MsgCountInit()
 	switch viper.GetString("consensus") {
 	case "dpos":
 		//todo

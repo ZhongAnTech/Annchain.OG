@@ -29,7 +29,8 @@ const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a prot
 type MessageType uint64
 
 //global msg counter , generate global msg request id
-var  MsgCounter *MessageCounter
+var MsgCounter *MessageCounter
+
 // og protocol message codes
 const (
 	// Protocol messages belonging to OG/31
@@ -151,20 +152,19 @@ func (s *StatusData) String() string {
 }
 
 type MessageCounter struct {
-	requestId      uint32
+	requestId uint32
 }
 
 //get current request id
-func (m*MessageCounter)Get ()uint32 {
-	if m.requestId >  uint32( 1<<30) {
-		atomic.StoreUint32(&m.requestId,10)
+func (m *MessageCounter) Get() uint32 {
+	if m.requestId > uint32(1<<30) {
+		atomic.StoreUint32(&m.requestId, 10)
 	}
-	return  atomic.AddUint32(&m.requestId,1)
+	return atomic.AddUint32(&m.requestId, 1)
 }
 
-func MsgCountInit () {
+func MsgCountInit() {
 	MsgCounter = &MessageCounter{
-		requestId :1,
+		requestId: 1,
 	}
 }
-

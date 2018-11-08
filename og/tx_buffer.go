@@ -14,9 +14,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched     // all previous ancestors got
-	txStatusValidated   // ancestors are valid
-	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
+	txStatusFetched             // all previous ancestors got
+	txStatusValidated           // ancestors are valid
+	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {

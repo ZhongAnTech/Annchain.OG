@@ -460,7 +460,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
 			log.WithField("parent", pHash).WithField("tx", tx).
-			Tracef("parent is not a tip")
+				Tracef("parent is not a tip")
 			continue
 		}
 		parent := pool.tips.Get(pHash)

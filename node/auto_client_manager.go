@@ -54,7 +54,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
 			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
-			AutoTxEnabled:        false,	// always false. If a sequencer is also a tx maker, it will be already added above
+			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: true,
 		}
 		client.Init()
@@ -82,7 +82,7 @@ func (m *AutoClientManager) Name() string {
 
 func (c *AutoClientManager) eventLoop() {
 	defer c.wg.Done()
-	for  {
+	for {
 		select {
 		case v := <-c.UpToDateEventListener:
 			for _, client := range c.Clients {

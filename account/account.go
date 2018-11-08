@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
-	"sync"
-	"go.uber.org/atomic"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/atomic"
+	"sync"
 )
 
 type SampleAccount struct {
@@ -18,7 +18,6 @@ type SampleAccount struct {
 	nonceInited bool
 	mu          sync.RWMutex
 }
-
 
 func NewAccount(privateKeyHex string) *SampleAccount {
 	s := &SampleAccount{}

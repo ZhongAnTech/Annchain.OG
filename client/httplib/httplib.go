@@ -414,6 +414,8 @@ func (b *BeegoHTTPRequest) buildURL(paramBody string) {
 			b.Header("Content-Type", "application/x-www-form-urlencoded")
 			b.Body(paramBody)
 		}
+	}else {
+		panic(fmt.Sprintf("unsupported method %s", b.req.Method))
 	}
 }
 

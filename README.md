@@ -10,7 +10,7 @@ OG  is dag based decentralized ledger and Dapp platform
     running og by loading config file from local filesystem :
     ./og -c  config.toml  run
     running og by loading config file from remote http server :
-    ./og -c http://127.0.0.1:8532/og_config?node_id=3  run
+    ./og -c http://127.0.0.1:8532/og_config run
 
 ### help commands
   ./og --help

@@ -297,6 +297,7 @@ func NewNode() *Node {
 		// just for debugging, ignoring index OOR
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 		rpcServer.C.SyncerManager = syncManager
+		rpcServer.C.AutoTxCli = autoClientManager
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))

@@ -62,6 +62,15 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	}
 }
 
+func (m*AutoClientManager)SetTxIntervalMs(interval  int ) {
+	for i:=0;i<len(m.Clients);i++ {
+		if m.Clients[i]!=nil {
+			m.Clients[i].SetTxIntervalMs(interval)
+		}
+
+	}
+}
+
 func (m *AutoClientManager) Start() {
 	for _, client := range m.Clients {
 		m.wg.Add(1)

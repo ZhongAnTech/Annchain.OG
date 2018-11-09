@@ -18,6 +18,8 @@ type RpcServer struct {
 	C      *RpcController
 }
 
+
+
 func NewRpcServer(port string) *RpcServer {
 	c := RpcController{}
 	router := c.Newrouter()

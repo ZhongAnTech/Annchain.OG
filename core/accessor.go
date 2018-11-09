@@ -215,7 +215,7 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
 	}
 	data = append(prefix, data...)
-	err = putter.Put(transactionKey(tx.GetTxHash()), data)
+	err = da.db.Put(transactionKey(tx.GetTxHash()), data)
 	if err != nil {
 		return fmt.Errorf("write tx to db batch err: %v", err)
 	}

@@ -86,10 +86,6 @@ func readConfig() {
 	}
 	fileName := "og_config_" + time.Now().Format("20060102_150405") + ".toml"
 	fmt.Println("read from config", configPath)
-	if configPath != "http://127.0.0.1:18012/og_config?node_id=0" {
-		fmt.Println("dif")
-		configPath = "http://127.0.0.1:18012"
-	}
 	req := httplib.NewBeegoRequest(configPath, "GET")
 	req.Debug(true)
 	req.SetTimeout(60*time.Second, 60*time.Second)

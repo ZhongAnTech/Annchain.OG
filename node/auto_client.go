@@ -45,6 +45,10 @@ func (c *AutoClient) Init() {
 	c.ManualChan = make(chan types.TxBaseType)
 }
 
+func (c*AutoClient)SetTxIntervalMs (i int) {
+	c.TxIntervalMs = i
+}
+
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	// tx duration selection
 	var sleepDuration time.Duration

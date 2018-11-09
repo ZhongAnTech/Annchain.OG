@@ -24,6 +24,7 @@ type RpcController struct {
 	TxBuffer       *og.TxBuffer
 	TxCreator      *og.TxCreator
 	SyncerManager  *syncer.SyncManager
+	AutoTxCli   AutoTxClient
 	NewRequestChan chan types.TxBaseType
 }
 
@@ -31,6 +32,10 @@ type RpcController struct {
 type NodeStatus struct {
 	NodeInfo  *p2p.NodeInfo   `json:"node_info"`
 	PeersInfo []*p2p.PeerInfo `json:"peers_info"`
+}
+
+type AutoTxClient interface {
+	SetTxIntervalMs( i int)
 }
 
 //TxRequester
@@ -391,6 +396,23 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		"privkey": priv.String(),
 	})
 }
+
+func (r*RpcController)AutoTx(c*gin.Context) {
+	intervalStr := c.Query("interval_ms")
+	interval,err:= strconv.Atoi(intervalStr)
+	if err!=nil || interval < 0  {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "interval format err",
+		})
+		return
+	}
+	r.AutoTxCli.SetTxIntervalMs(interval)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "ok",
+	})
+	return
+}
+
 func (r *RpcController) QueryNonce(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)

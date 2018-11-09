@@ -2,12 +2,13 @@ package og
 
 import (
 	"container/list"
+	"sync"
+	"time"
+
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 type txStatus int
@@ -363,8 +364,8 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		}
 	}
 	if !allFetched {
-		missingHashes := b.getMissingHashes(tx)
-		logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
+		// missingHashes := b.getMissingHashes(tx)
+		// logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
 		b.updateDependencyMap(tx.GetTxHash(), tx)

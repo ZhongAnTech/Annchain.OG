@@ -44,7 +44,7 @@ type Protocol struct {
 	// encountered.
 	Run func(peer *Peer, rw MsgReadWriter) error
 
-	// NodeInfo is andddddddddddd optional helper method to retrieve protocol specific metadata
+	// NodeInfo is an optional helper method to retrieve protocol specific metadata
 	// about the host node.
 	NodeInfo func() interface{}
 

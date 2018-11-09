@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 	"sync"
 	"time"
@@ -122,7 +121,7 @@ func (q *queue) Reset() {
 	q.resultOffset = 0
 }
 
-// Close marks the end of the sync, unblocking WaitResults.
+// Close marks the end of the sync, unblocking Results.
 // It may be called even if the queue is already closed.
 func (q *queue) Close() {
 	q.lock.Lock()
@@ -504,7 +503,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[types.
 		taskQueue.Push(header, -float32(header.SequencerId()))
 	}
 	if progress {
-		// Wake WaitResults, resultCache was modified
+		// Wake Results, resultCache was modified
 		q.active.Signal()
 	}
 	// Assemble and return the block download request
@@ -620,7 +619,10 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	for id := range expiries {
 		delete(pendPool, id)
 	}
-	log.WithField("ids", expiries).Debug("expire")
+	if len(expiries) != 0 {
+		log.WithField("ids", expiries).Debug("expire")
+	}
+
 	return expiries
 }
 
@@ -646,14 +648,17 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 
 	// Ensure headers can be mapped onto the skeleton chain
 	target := q.headerTaskPool[request.From].Hash()
-
+	clog := log.WithField("peer", id).WithField("from", request.From)
 	accepted := len(headers) == MaxHeaderFetch
 	if accepted {
 		if headers[0].SequencerId() != request.From {
-			log.Debug("First header broke chain ordering", "peer", id, "number", headers[0].SequencerId(), "hash", headers[0].Hash(), request.From)
+			clog.WithField("number", headers[0].SequencerId()).WithField(
+				"hash", headers[0].Hash()).Trace("First header broke chain ordering")
 			accepted = false
 		} else if headers[len(headers)-1].Hash() != target {
-			log.Debug("Last header broke skeleton structure ", "peer", id, "number", headers[len(headers)-1].SequencerId(), "hash", headers[len(headers)-1].Hash(), "expected", target)
+			clog.WithField("number", headers[len(headers)-1].SequencerId()).WithField(
+				"hash", headers[len(headers)-1].Hash()).WithField("expected", target).Trace(
+				"Last header broke skeleton structure ")
 			accepted = false
 		}
 	}
@@ -661,7 +666,9 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 		for i, header := range headers[1:] {
 			hash := header.Hash()
 			if want := request.From + 1 + uint64(i); header.SequencerId() != want {
-				log.Warn("Header broke chain ordering", "peer", id, "number", header.SequencerId(), "hash", hash, "expected", want)
+				clog.WithField("number", header.SequencerId()).WithField(
+					"hash", hash).WithField("expected", want).Warn(
+					"Header broke chain ordering")
 				accepted = false
 				break
 			}
@@ -669,7 +676,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 	}
 	// If the batch of headers wasn't accepted, mark as unavailable
 	if !accepted {
-		log.Debug("Skeleton filling not accepted", "peer", id, "from", request.From)
+		clog.Trace("Skeleton filling not accepted")
 
 		miss := q.headerPeerMiss[id]
 		if miss == nil {
@@ -696,7 +703,8 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 
 		select {
 		case headerProcCh <- process:
-			log.Debug("Pre-scheduled new headers", "peer", id, "count", len(process), "from", process[0].SequencerId())
+			log.WithField("peer", id).WithField("count", len(process)).WithField(
+				"from", process[0].SequencerId()).Trace("Pre-scheduled new headers")
 			q.headerProced += len(process)
 		default:
 		}
@@ -791,7 +799,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 			taskQueue.Push(header, -float32(header.SequencerId()))
 		}
 	}
-	// Wake up WaitResults
+	// Wake up Results
 	if accepted > 0 {
 		q.active.Signal()
 	}

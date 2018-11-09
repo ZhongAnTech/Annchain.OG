@@ -2,13 +2,13 @@ package node
 
 import (
 	"fmt"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	// "github.com/annchain/OG/mylog"
 )
 
 type TxRequest struct {
@@ -62,13 +62,13 @@ func (c *Delegate) GetLatestAccountNonce(addr types.Address) (uint64, error) {
 	if errPool == nil {
 		return noncePool, errPool
 	}
-	logrus.WithError(errPool).WithField("addr", addr.String()).Debug("txpool nonce not found")
+	logrus.WithError(errPool).WithField("addr", addr.String()).Trace("txpool nonce not found")
 
 	nonceDag, errDag := c.Dag.GetLatestNonce(addr)
 	if errDag == nil {
 		return nonceDag, errDag
 	}
-	logrus.WithError(errDag).WithField("addr", addr.String()).Debug("dag nonce not found")
+	logrus.WithError(errDag).WithField("addr", addr.String()).Trace("dag nonce not found")
 
 	return 0, fmt.Errorf("nonce for address not found")
 }
@@ -79,6 +79,5 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	// mylog.TxLogger.WithField("tx", txi).Debug("new tx announced by me")
-	c.TxBuffer.AddTx(txi)
+	c.TxBuffer.AddLocalTx(txi)
 }

@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
 	"sync"
@@ -218,10 +218,11 @@ func (p *peerConnection) setIdle(started time.Time, delivered int, throughput *f
 	*throughput = (1-measurementImpact)*(*throughput) + measurementImpact*measured
 	p.rtt = time.Duration((1-measurementImpact)*float64(p.rtt) + measurementImpact*float64(elapsed))
 
-	log.Debug("Peer throughput measurements updated",
-		"hps", p.headerThroughput, "bps", p.blockThroughput,
-		"rps", p.receiptThroughput, "sps", p.stateThroughput,
-		"miss", len(p.lacking), "rtt", p.rtt)
+	log.WithFields(logrus.Fields{
+		"hps": p.headerThroughput, "bps": p.blockThroughput,
+		"rps": p.receiptThroughput, "sps": p.stateThroughput,
+		"miss": len(p.lacking), "rtt": p.rtt,
+	}).Trace("Peer throughput measurements updated")
 }
 
 // HeaderCapacity retrieves the peers header download allowance based on its

@@ -1,6 +1,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
@@ -39,8 +40,36 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 	return &tx
 }
 
+func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt,
+	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	tx = &types.Tx{
+		From:  from,
+		To:    to,
+		Value: value,
+		TxBase: types.TxBase{
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+			Height:       uint64(m.DebugNodeId),
+		},
+	}
+	tx.GetBase().Signature = sig.Bytes
+	tx.GetBase().PublicKey = pubkey.Bytes
+
+	if ok := m.SealTx(tx); !ok {
+		logrus.Warn("failed to seal tx")
+		err = fmt.Errorf("failed to seal tx")
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
+}
+
 func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,
 	privateKey crypto.PrivateKey) types.Txi {
+	if privateKey.Type != m.Signer.GetCryptoType() {
+		panic("crypto type mismatch")
+	}
 	tx := m.NewUnsignedTx(from, to, value, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
@@ -64,6 +93,9 @@ func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, id uint64, contra
 }
 
 func (m *TxCreator) NewSignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+	if privateKey.Type != m.Signer.GetCryptoType() {
+		panic("crypto type mismatch")
+	}
 	tx := m.NewUnsignedSequencer(issuer, id, contractHashOrder, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
@@ -95,18 +127,18 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	hash := tx.CalcTxHash()
 	if hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
-		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Debug("new tx connected")
+		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Trace("new tx connected")
 		// yes
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.Warn("NOT OK")
+			logrus.Debug("NOT OK")
 		}
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,
-		}).Debugf("validate graph structure for tx being connected")
+		}).Trace("validate graph structure for tx being connected")
 		return txRet, ok
 	} else {
 		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())

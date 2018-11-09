@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"math/rand"
+	"strings"
 )
 
 //go:generate msgp
@@ -101,4 +103,14 @@ func (t *Sequencer) GetBase() *TxBase {
 
 func (t *Sequencer) GetHead() *SequencerHeader {
 	return NewSequencerHead(t.GetTxHash(), t.Id)
+}
+
+func (t *Sequencer) Dump() string {
+	var phashes []string
+	for _, p := range t.ParentsHash {
+		phashes = append(phashes, p.Hex())
+	}
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , id :%d , nonce : %d , signatute : %s, pubkey %s",
+		strings.Join(phashes, " ,"), t.Issuer.Hex(), t.Id,
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }

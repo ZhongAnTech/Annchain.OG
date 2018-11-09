@@ -2,13 +2,14 @@ package node
 
 import (
 	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"math/rand"
-	"sync"
-	"time"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 )
 
 type AutoClient struct {
-	SampleAccounts []account.SampleAccount
+	SampleAccounts []*account.SampleAccount
 	MyAccountIndex int
 
 	SequencerIntervalMs  int
@@ -41,6 +42,7 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
+	c.ManualChan = make(chan types.TxBaseType)
 }
 
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
@@ -57,6 +59,17 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
+func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool) {
+	switch txType {
+	case types.TxBaseTypeNormal:
+		c.doSampleTx(force)
+	case types.TxBaseTypeSequencer:
+		c.doSampleSequencer(force)
+	default:
+		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
+	}
+}
+
 func (c *AutoClient) loop() {
 	c.pause = true
 	c.wg.Add(1)
@@ -65,33 +78,40 @@ func (c *AutoClient) loop() {
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Millisecond * time.Duration(c.SequencerIntervalMs))
 
+	if !c.AutoTxEnabled {
+		timerTx.Stop()
+	}
+	if !c.AutoSequencerEnabled {
+		tickerSeq.Stop()
+	}
+
 	for {
 		if c.pause {
+			logrus.Trace("client paused")
 			select {
 			case <-time.After(time.Second):
 				continue
 			case <-c.quit:
+				logrus.Debug("got quit signal")
 				return
+			case txType := <-c.ManualChan:
+				c.fireManualTx(txType, true)
 			}
 		}
-
+		logrus.Trace("client is working")
 		select {
 		case <-c.quit:
+			logrus.Debug("got quit signal")
 			return
 		case txType := <-c.ManualChan:
-			switch txType {
-			case types.TxBaseTypeNormal:
-				c.doSampleTx()
-			case types.TxBaseTypeSequencer:
-				c.doSampleSequencer()
-			default:
-				logrus.WithField("type", txType).Warn("Unknown TxBaseType")
-			}
+			c.fireManualTx(txType, true)
 		case <-timerTx.C:
-			c.doSampleTx()
-			timerTx = time.NewTimer(c.nextSleepDuraiton())
+			logrus.Debug("timer sample tx")
+			c.doSampleTx(false)
+			timerTx.Reset(c.nextSleepDuraiton())
 		case <-tickerSeq.C:
-			c.doSampleSequencer()
+			logrus.Debug("timer sample seq")
+			c.doSampleSequencer(false)
 		}
 
 	}
@@ -139,9 +159,9 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
-func (c *AutoClient) doSampleTx() {
-	if !c.AutoTxEnabled {
-		return
+func (c *AutoClient) doSampleTx(force bool) bool {
+	if !force && !c.AutoTxEnabled {
+		return false
 	}
 
 	me := c.SampleAccounts[c.MyAccountIndex]
@@ -155,12 +175,16 @@ func (c *AutoClient) doSampleTx() {
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")
+		return false
 	}
+	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
+		WithField("id", c.MyAccountIndex).Debugf("Generated tx")
 	c.Delegate.Announce(tx)
+	return true
 }
-func (c *AutoClient) doSampleSequencer() {
-	if !c.AutoSequencerEnabled {
-		return
+func (c *AutoClient) doSampleSequencer(force bool) bool {
+	if !force && !c.AutoSequencerEnabled {
+		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
 
@@ -173,7 +197,10 @@ func (c *AutoClient) doSampleSequencer() {
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate seq")
-		return
+		return false
 	}
+	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
+		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Debugf("Generated tx")
 	c.Delegate.Announce(seq)
+	return true
 }

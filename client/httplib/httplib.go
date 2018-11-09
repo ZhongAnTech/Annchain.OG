@@ -37,6 +37,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -87,7 +88,7 @@ func NewBeegoRequest(rawurl, method string) *BeegoHTTPRequest {
 	}
 	req := http.Request{
 		URL:        u,
-		Method:     method,
+		Method:     strings.ToUpper(method),
 		Header:     make(http.Header),
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
@@ -567,6 +568,9 @@ func (b *BeegoHTTPRequest) ToFile(filename string) error {
 	resp, err := b.getResponse()
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode!=http.StatusOK {
+		return fmt.Errorf("got status code %d",resp.StatusCode)
 	}
 	if resp.Body == nil {
 		return nil

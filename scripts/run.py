@@ -1,4 +1,3 @@
-import io
 import os
 import select
 import subprocess
@@ -9,7 +8,7 @@ from typing import List, Any
 import config_generator
 
 binary = '../build/og'
-params = '-c config_XX.toml -d datadir_XX -l datadir_XX -n run'
+params = '-c configs/config_XX.toml -d data/d_XX -l data/datadir_XX -n run'
 
 current_node_id = 0
 pids: List[subprocess.Popen] = []
@@ -59,7 +58,7 @@ def del_node():
 
 
 if __name__ == '__main__':
-    for i in range(10):
+    for i in range(4):
         add_node()
 
     try:

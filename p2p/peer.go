@@ -27,7 +27,6 @@ import (
 
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -332,11 +331,11 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 				rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
 			}
 		*/
-		log.Debug(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
 		go func() {
 			err := proto.Run(p, rw)
 			if err == nil {
-				log.Debug(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
 			} else if err != io.EOF {
 				log.Debug(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
@@ -401,7 +400,8 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 // peer. Sub-protocol independent fields are contained and initialized here, with
 // protocol specifics delegated to all connected sub-protocols.
 type PeerInfo struct {
-	ID      string   `json:"id"`   // Unique node identifier (also the encryption key)
+	ID      string   `json:"id"` // Unique node identifier (also the encryption key)
+	ShortId string   `json:"short_id"`
 	Name    string   `json:"name"` // Name of the node, including client type, version, OS, custom data
 	Caps    []string `json:"caps"` // Sum-protocols advertised by this particular peer
 	Network struct {
@@ -424,6 +424,7 @@ func (p *Peer) Info() *PeerInfo {
 	// Assemble the generic peer metadata
 	info := &PeerInfo{
 		ID:        p.ID().String(),
+		ShortId:   p.ID().TerminalString(),
 		Name:      p.Name(),
 		Caps:      caps,
 		Protocols: make(map[string]interface{}),

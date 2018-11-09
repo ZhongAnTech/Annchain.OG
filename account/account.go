@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
+	"go.uber.org/atomic"
 	"sync"
 )
 
@@ -12,22 +14,22 @@ type SampleAccount struct {
 	PrivateKey  crypto.PrivateKey
 	PublicKey   crypto.PublicKey
 	Address     types.Address
-	nonce       uint64
+	nonce       atomic.Uint64
 	nonceInited bool
 	mu          sync.RWMutex
 }
 
-func NewAccount(privateKeyHex string) SampleAccount {
-	signer := &crypto.SignerSecp256k1{}
-
-	s := SampleAccount{}
+func NewAccount(privateKeyHex string) *SampleAccount {
+	s := &SampleAccount{}
 	pv, err := crypto.PrivateKeyFromString(privateKeyHex)
 	if err != nil {
 		panic(err)
 	}
+	signer := crypto.NewSigner(pv.Type)
 	s.PrivateKey = pv
 	s.PublicKey = signer.PubKey(pv)
 	s.Address = signer.Address(s.PublicKey)
+	logrus.WithField("add", s.Address.String()).WithField("priv", privateKeyHex).Info("Sample Account")
 	return s
 }
 
@@ -38,8 +40,8 @@ func (s *SampleAccount) ConsumeNonce() (uint64, error) {
 	if !s.nonceInited {
 		return 0, fmt.Errorf("nonce is not initialized. Query first")
 	}
-	s.nonce++
-	return s.nonce, nil
+	s.nonce.Inc()
+	return s.nonce.Load(), nil
 }
 
 func (s *SampleAccount) GetNonce() (uint64, error) {
@@ -48,12 +50,12 @@ func (s *SampleAccount) GetNonce() (uint64, error) {
 	if !s.nonceInited {
 		return 0, fmt.Errorf("nonce is not initialized. Query first")
 	}
-	return s.nonce, nil
+	return s.nonce.Load(), nil
 }
 
 func (s *SampleAccount) SetNonce(lastUsedNonce uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nonce = lastUsedNonce
+	s.nonce.Store(lastUsedNonce)
 	s.nonceInited = true
 }

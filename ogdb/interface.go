@@ -44,5 +44,3 @@ type Batch interface {
 	// Reset resets the batch for reuse
 	Reset()
 }
-
-type StateDB interface{}

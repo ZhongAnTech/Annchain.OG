@@ -15,9 +15,9 @@ type txStatus int
 
 const (
 	txStatusNone       txStatus = iota
-	txStatusFetched             // all previous ancestors got
-	txStatusValidated           // ancestors are valid
-	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
+	txStatusFetched     // all previous ancestors got
+	txStatusValidated   // ancestors are valid
+	txStatusConflicted  // ancestors are conflicted, or itself is conflicted
 )
 
 type Syncer interface {
@@ -177,6 +177,10 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer is handling tx")
+	start := time.Now()
+	defer func() {
+		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer handled tx")
+	}()
 
 	// already in the dag or tx_pool or buffer itself.
 	if b.isKnownHash(tx.GetTxHash()) {
@@ -364,8 +368,8 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		}
 	}
 	if !allFetched {
-		// missingHashes := b.getMissingHashes(tx)
-		// logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
+		//missingHashes := b.getMissingHashes(tx)
+		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
 		b.updateDependencyMap(tx.GetTxHash(), tx)
@@ -381,6 +385,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 	l := list.New()
 	lDedup := map[types.Hash]int{}
 	s := map[types.Hash]struct{}{}
+	visited := map[types.Hash]struct{}{}
 	// find out who is missing
 	for _, v := range txi.Parents() {
 		l.PushBack(v)
@@ -388,6 +393,11 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 
 	for l.Len() != 0 {
 		hash := l.Remove(l.Front()).(types.Hash)
+		if _, ok := visited[hash]; ok {
+			// already there, continue
+			continue
+		}
+		visited[hash] = struct{}{}
 		if parentTx := b.GetFromAllKnownSource(hash); parentTx != nil {
 			for _, v := range parentTx.Parents() {
 				if _, ok := lDedup[v]; !ok {

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"sort"
+
 	// "fmt"
 	"sync"
 	"time"
@@ -10,8 +11,8 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
-	"github.com/spf13/viper"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type DagConfig struct{}
@@ -19,9 +20,9 @@ type DagConfig struct{}
 type Dag struct {
 	conf DagConfig
 
-	db			ogdb.Database
-	accessor	*Accessor
-	cachedb		*CacheDB
+	db       ogdb.Database
+	accessor *Accessor
+	statedb  *StateDB
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
@@ -35,16 +36,16 @@ type Dag struct {
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{}
 
-	cacheDBConfig := CacheDBConfig{
-		FlushTimer:		time.Duration(viper.GetInt("cachedb.flush_timer_s")),
-		PurgeTimer:		time.Duration(viper.GetInt("cachedb.purge_timer_s")),
-		BeatExpireTime:	time.Second * time.Duration(viper.GetInt("cachedb.beat_expire_time_s")),
+	stateDBConfig := StateDBConfig{
+		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
+		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
+		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
 
 	dag.conf = conf
 	dag.db = db
 	dag.accessor = NewAccessor(db)
-	dag.cachedb = NewCacheDB(cacheDBConfig, db, dag.accessor)
+	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
 	dag.close = make(chan struct{})
 
 	return dag
@@ -80,7 +81,7 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 	dag.wg.Wait()
-	dag.cachedb.Stop()
+	dag.statedb.Stop()
 	log.Infof("Dag Stopped")
 }
 
@@ -90,6 +91,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return fmt.Errorf("invalid genesis: id is not zero")
 	}
 	var err error
+	dbBatch := dag.db.NewBatch()
+
 	// init genesis
 	err = dag.accessor.WriteGenesis(genesis)
 	if err != nil {
@@ -106,7 +109,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 	// store genesis as first tx
-	err = dag.WriteTransaction(genesis)
+	err = dag.WriteTransaction(dbBatch, genesis)
 	if err != nil {
 		return err
 	}
@@ -344,7 +347,7 @@ func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
 }
 
 func (dag *Dag) getBalance(addr types.Address) *math.BigInt {
-	return dag.cachedb.GetBalance(addr)
+	return dag.statedb.GetBalance(addr)
 }
 
 // GetLatestNonce returns the latest tx of an addresss.
@@ -356,7 +359,7 @@ func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
 }
 
 func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
-	return dag.cachedb.GetNonce(addr)
+	return dag.statedb.GetNonce(addr)
 }
 
 // // HasLatestNonce returns true if addr already sent any txs to db.
@@ -409,6 +412,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	var err error
+	dbBatch := dag.db.NewBatch()
 
 	// store the tx and update the state
 	for _, batchDetail := range batch.Batch {
@@ -422,8 +426,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
-			
-			err = dag.WriteTransaction(txi)
+
+			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
@@ -432,19 +436,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if err != nil {
 				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
 			}
-			switch tx := txi.(type) {
-			case *types.Sequencer:
-				break
-			case *types.Tx:
-				// TODO handle the db error
-				dag.accessor.SubBalance(tx.From, tx.Value)
-				dag.accessor.AddBalance(tx.To, tx.Value)
-				break
-			}
 		}
 	}
-	
-	log.WithField("seq", batch.Seq).Debugf("in push 5")
+	go dag.statedb.Flush()
+
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
 	if batch.TxHashes != nil {
@@ -455,7 +450,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// save latest sequencer into db
-	err = dag.WriteTransaction(batch.Seq)
+	err = dag.WriteTransaction(dbBatch, batch.Seq)
 	if err != nil {
 		return err
 	}
@@ -480,17 +475,12 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
-// relation into db, finally write the tx itself. Data will be overwritten 
+// relation into db, finally write the tx itself. Data will be overwritten
 // if it already exists in db.
-func (dag *Dag) WriteTransaction(tx types.Txi) error {
+func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	curNonce, err := dag.getLatestNonce(tx.Sender())
 	if (err != nil) && (err != types.ErrNonceNotExist) {
 		return fmt.Errorf("get latest nonce err: %v", err)
-	}
-	// update the nonce if current nonce is larger than previous, or 
-	// there is no nonce stored in db.
-	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
-		dag.cachedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
 	// Write tx hash. This is aimed to allow users to query tx hash
@@ -501,9 +491,20 @@ func (dag *Dag) WriteTransaction(tx types.Txi) error {
 	}
 
 	// Write tx itself
-	return dag.accessor.WriteTransaction(tx)
+	err = dag.accessor.WriteTransaction(putter, tx)
+	if err != nil {
+		return err
+	}
+	if tx.GetType() == types.TxBaseTypeNormal {
+		txNormal := tx.(*types.Tx)
+		dag.statedb.SubBalance(txNormal.From, txNormal.Value)
+		dag.statedb.AddBalance(txNormal.To, txNormal.Value)
+	}
+	// update the nonce if current nonce is larger than previous, or
+	// there is no nonce stored in db.
+	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
+		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
+	}
+
+	return nil
 }
-
-
-
-

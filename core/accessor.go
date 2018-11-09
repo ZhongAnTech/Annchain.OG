@@ -195,34 +195,10 @@ func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 
-// WriteTransaction write the tx or sequencer into ogdb. 
-func (da *Accessor) WriteTransaction(tx types.Txi) error {
+// WriteTransaction write the tx or sequencer into ogdb.
+func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	var prefix, data []byte
 	var err error
-
-	// // write tx latest nonce
-	// var curnonce = uint64(0)
-	// has, _ := da.HasAddrLatestNonce(tx.Sender())
-	// if has {
-	// 	curnonce, err = da.ReadAddrLatestNonce(tx.Sender())
-	// 	if err != nil {
-	// 		return fmt.Errorf("can't read current latest nonce of addr %s, err: %v", tx.Sender().String(), err)
-	// 	}
-	// }
-	// if (tx.GetNonce() > curnonce) || ((tx.GetNonce() == uint64(0)) && !has) {
-	// 	// write nonce if curnonce is larger then origin one
-	// 	data = []byte(strconv.FormatUint(tx.GetNonce(), 10))
-	// 	if err = da.db.Put(addrLatestNonceKey(tx.Sender()), data); err != nil {
-	// 		return fmt.Errorf("write latest nonce err: %v", err)
-	// 	}
-	// }
-
-	// // write tx hash flow, allow the user query tx hash by its address and nonce.
-	// data = tx.GetTxHash().ToBytes()
-	// err = da.db.Put(txHashFlowKey(tx.Sender(), tx.GetNonce()), data)
-	// if err != nil {
-	// 	return fmt.Errorf("write tx hash flow to db err: %v", err)
-	// }
 
 	// write tx
 	switch tx := tx.(type) {
@@ -239,9 +215,9 @@ func (da *Accessor) WriteTransaction(tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
 	}
 	data = append(prefix, data...)
-	err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+	err = putter.Put(transactionKey(tx.GetTxHash()), data)
 	if err != nil {
-		return fmt.Errorf("write tx to db err: %v", err)
+		return fmt.Errorf("write tx to db batch err: %v", err)
 	}
 
 	return nil
@@ -399,7 +375,7 @@ func (da *Accessor) LoadState(addr types.Address) (*State, error) {
 	return &state, nil
 }
 
-// SaveState store the state data into db. Overwrite the data if it already exists. 
+// SaveState store the state data into db. Overwrite the data if it already exists.
 func (da *Accessor) SaveState(addr types.Address, state *State) error {
 	data, err := state.MarshalMsg(nil)
 	if err != nil {
@@ -407,3 +383,5 @@ func (da *Accessor) SaveState(addr types.Address, state *State) error {
 	}
 	return da.db.Put(stateKey(addr), data)
 }
+
+// Save

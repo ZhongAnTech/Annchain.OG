@@ -2,6 +2,7 @@ package node
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
@@ -22,6 +23,18 @@ const (
 )
 
 func getNodePrivKey() *ecdsa.PrivateKey {
+	nodeKey := viper.GetString("p2p.node_key")
+	if nodeKey != "" {
+		keyByte, err := hex.DecodeString(nodeKey)
+		if err != nil {
+			panic(fmt.Sprintf("get nodekey error %v ", err))
+		}
+		key, err := crypto.ToECDSA(keyByte)
+		if err != nil {
+			panic(fmt.Sprintf("get nodekey error %v ", err))
+		}
+		return key
+	}
 	datadir := viper.GetString("datadir")
 	// Use any specifically configured key.
 

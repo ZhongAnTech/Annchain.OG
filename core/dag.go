@@ -113,7 +113,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	if err != nil {
 		return err
 	}
-	log.Debugf("successfully store genesis: %s", genesis.String())
+	log.Tracef("successfully store genesis: %s", genesis.String())
 
 	// init genesis balance
 	for addr, value := range genesisBalance {
@@ -195,6 +195,10 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
+func (dag *Dag) Has(hash types.Hash) bool {
+	return dag.GetTx(hash) != nil
+}
+
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
 func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
@@ -247,7 +251,7 @@ func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
 	if len(*hashs) == 0 {
 		return nil
 	}
-	log.WithField("len tx ", len(*hashs)).WithField("id", id).Debug("get txs")
+	log.WithField("len tx ", len(*hashs)).WithField("id", id).Trace("get txs")
 	return dag.getTxs(*hashs)
 }
 
@@ -458,7 +462,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("successfully store seq: %s", batch.Seq.GetTxHash().String())
+	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(batch.Seq)
@@ -467,7 +471,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.latestSeqencer = batch.Seq
 
-	log.Debugf("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
+	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil

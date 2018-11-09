@@ -7,10 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"math/rand"
+
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
 )
 
 type TxType int
@@ -75,13 +77,7 @@ type TxPool struct {
 
 	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer chan bool                       // for broadcasting new latest sequencer to record height
-
-	// timeout detections on queues
-	timeoutPoolQueue       *time.Timer
-	timeoutSubscriber      *time.Timer
-	timeoutConfirmation    *time.Timer
-	timeoutLatestSequencer *time.Timer
+	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -97,22 +93,18 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:                   conf,
-		dag:                    d,
-		queue:                  make(chan *txEvent, conf.QueueSize),
-		tips:                   NewTxMap(),
-		badtxs:                 NewTxMap(),
-		pendings:               NewTxMap(),
-		flows:                  NewAccountFlows(),
-		txLookup:               newTxLookUp(),
-		close:                  make(chan struct{}),
-		OnNewTxReceived:        []chan types.Txi{},
-		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
-		OnNewLatestSequencer:   make(chan bool),
-		timeoutPoolQueue:       time.NewTimer(time.Millisecond * time.Duration(conf.TimeOutPoolQueue)),
-		timeoutSubscriber:      time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutSubscriber)),
-		timeoutConfirmation:    time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutConfirmation)),
-		timeoutLatestSequencer: time.NewTimer(time.Millisecond * time.Duration(conf.TimeoutLatestSequencer)),
+		conf:                 conf,
+		dag:                  d,
+		queue:                make(chan *txEvent, conf.QueueSize),
+		tips:                 NewTxMap(),
+		badtxs:               NewTxMap(),
+		pendings:             NewTxMap(),
+		flows:                NewAccountFlows(),
+		txLookup:             newTxLookUp(),
+		close:                make(chan struct{}),
+		OnNewTxReceived:      []chan types.Txi{},
+		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
+		OnNewLatestSequencer: make(chan bool),
 	}
 	return pool
 }
@@ -206,8 +198,23 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 
 	return pool.get(hash)
 }
+
 func (pool *TxPool) get(hash types.Hash) types.Txi {
 	return pool.txLookup.Get(hash)
+}
+
+func (pool *TxPool) Has(hash types.Hash) bool {
+	return pool.Get(hash) != nil
+}
+
+func (pool *TxPool) IsLocalHash(hash types.Hash) bool {
+	if pool.Has(hash) {
+		return true
+	}
+	if pool.dag.Has(hash) {
+		return true
+	}
+	return false
 }
 
 // GetHashOrder returns a hash list of txs in pool, ordered by the
@@ -357,7 +364,7 @@ func (pool *TxPool) remove(tx types.Txi) {
 }
 
 func (pool *TxPool) loop() {
-	defer log.Debugf("TxPool.loop() terminates")
+	defer log.Tracef("TxPool.loop() terminates")
 
 	pool.wg.Add(1)
 	defer pool.wg.Done()
@@ -411,19 +418,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-loop3:
-	for {
-		if !pool.timeoutPoolQueue.Stop() {
-			<-pool.timeoutPoolQueue.C
-		}
-		pool.timeoutPoolQueue.Reset(time.Second * 10)
-		select {
-		case <-pool.timeoutPoolQueue.C:
-			log.WithField("tx", te.txEnv.tx).Warn("timeout on channel writing: addTx")
-		case pool.queue <- te:
-			break loop3
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
 
 	// waiting for callback
 	select {
@@ -433,25 +428,12 @@ loop3:
 		}
 		// notify all subscribers of newTxEvent
 		for _, subscriber := range pool.OnNewTxReceived {
-			log.Debug("notify subscriber")
-		loop:
-			for {
-				if !pool.timeoutSubscriber.Stop() {
-					<-pool.timeoutSubscriber.C
-				}
-				pool.timeoutSubscriber.Reset(time.Second * 10)
-				select {
-				case <-pool.timeoutSubscriber.C:
-					log.WithField("tx", tx).Warn("timeout on channel writing: subscriber")
-				case subscriber <- tx:
-					break loop
-				}
-			}
-
+			log.Trace("notify subscriber")
+			<-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 		}
 	}
 
-	log.WithField("tx", tx).Debug("successfully added tx to txPool")
+	log.WithField("tx", tx).Trace("successfully added tx to txPool")
 	return nil
 }
 
@@ -459,7 +441,7 @@ loop3:
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in pending.
 func (pool *TxPool) commit(tx *types.Tx) error {
-	log.WithField("tx", tx).Debugf("start commit tx")
+	log.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
 	txquality := pool.isBadTx(tx)
@@ -468,7 +450,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
-		log.Debugf("bad tx: %s", tx.String())
+		log.Tracef("bad tx: %s", tx.String())
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
@@ -479,7 +461,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
 			log.WithField("parent", pHash).WithField("tx", tx).
-				Debugf("parent is not a tip")
+				Tracef("parent is not a tip")
 			continue
 		}
 		parent := pool.tips.Get(pHash)
@@ -508,7 +490,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.WithField("tx", tx).Debugf("finished commit tx")
+	log.WithField("tx", tx).Tracef("finished commit tx")
 	return nil
 }
 
@@ -518,14 +500,14 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		// check if tx in pool
 		if pool.get(parentHash) != nil {
 			if pool.getStatus(parentHash) == TxStatusBadTx {
-				log.WithField("tx", tx).Debugf("bad tx, parent %s is bad tx", parentHash.String())
+				log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash.String())
 				return TxQualityIsBad
 			}
 			continue
 		}
 		// check if tx in dag
 		if pool.dag.GetTx(parentHash) == nil {
-			log.WithField("tx", tx).Debugf("fatal tx, parent %s is not exist", parentHash.String())
+			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash.String())
 			return TxQualityIsFatal
 		}
 	}
@@ -537,7 +519,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 			log.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
 			return TxQualityIsFatal
 		}
-		log.WithField("tx", tx).WithField("existing", txinpool).Debug("bad tx, duplicate nonce found in pool")
+		log.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
@@ -545,7 +527,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		if txindag.GetTxHash() == tx.GetTxHash() {
 			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
 		}
-		log.WithField("tx", tx).WithField("existing", txindag).Debug("bad tx, duplicate nonce found in dag")
+		log.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in dag")
 		return TxQualityIsFatal
 	}
 
@@ -557,7 +539,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	}
 	// if tx's value is larger than its balance, return fatal.
 	if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
-		log.WithField("tx", tx).Debugf("fatal tx, tx's value larger than balance")
+		log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 		return TxQualityIsFatal
 	}
 	// if ( the value that 'from' already spent )
@@ -566,7 +548,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 	totalspent := math.NewBigInt(0)
 	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
-		log.WithField("tx", tx).Debugf("bad tx, total spent larget than balance")
+		log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 		return TxQualityIsBad
 	}
 
@@ -575,7 +557,7 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	log.WithField("seq", seq).Debug("start confirm seq")
+	log.WithField("seq", seq).Trace("start confirm seq")
 
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
@@ -614,36 +596,12 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq id", seq.Id).WithField("seq", seq).Debug("finished confirm seq")
+	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-	loop:
-		for {
-			if !pool.timeoutConfirmation.Stop() {
-				<-pool.timeoutConfirmation.C
-			}
-			pool.timeoutConfirmation.Reset(time.Second * 10)
-			select {
-			case <-pool.timeoutConfirmation.C:
-				log.WithField("seq", seq).Warn("timeout on channel writing: batch confirmed")
-			case c <- elders:
-				break loop
-			}
-		}
+		<-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-loop2:
-	for {
-		if !pool.timeoutLatestSequencer.Stop() {
-			<-pool.timeoutLatestSequencer.C
-		}
-		pool.timeoutLatestSequencer.Reset(time.Second * 10)
-		select {
-		case <-pool.timeoutLatestSequencer.C:
-			log.WithField("seq", seq).Warn("timeout on channel writing: on new latest sequencer")
-		case pool.OnNewLatestSequencer <- true:
-			break loop2
-		}
-	}
+	<-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
 
 	return nil
 }
@@ -728,7 +686,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 		}
 	}
-	
+
 	// verify balance and nonce
 	for addr, batchDetail := range batch {
 		// check balance
@@ -737,7 +695,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
 			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 		}
-		
+
 		// check nonce order
 		nonces := *batchDetail.TxList.keys
 		if !(nonces.Len() > 0) {
@@ -782,7 +740,7 @@ func (pool *TxPool) solveConflicts() {
 		txsInPool = append(txsInPool, tx)
 	}
 	for _, tx := range txsInPool {
-		log.WithField("tx", tx).Debugf("start rejudge")
+		log.WithField("tx", tx).Tracef("start rejudge")
 		pool.remove(tx)
 		txEnv := &txEnvelope{
 			tx:     tx,

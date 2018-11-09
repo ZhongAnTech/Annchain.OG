@@ -23,6 +23,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("peers_info", rpc.PeersInfo)
 	router.GET("og_peers_info", rpc.OgPeersInfo)
 	router.GET("transaction", rpc.Transaction)
+	router.GET("confirm", rpc.Confirm)
 	router.GET("transactions", rpc.Transactions)
 	router.GET("validators", rpc.Validator)
 	router.GET("sequencer", rpc.Sequencer)
@@ -30,6 +31,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
+	router.POST("new_account", rpc.NewAccount)
 
 	// query API
 	router.GET("query", rpc.Query)
@@ -43,6 +45,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
+	router.GET("sync_status", rpc.SyncStatus)
 	return router
 
 }
@@ -59,6 +62,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"sequencer":     "",
 		"og_peers_info": "",
 		"genesis":       "",
+		"sync_status":   "",
 		// broadcast API
 		"new_transaction": "tx",
 
@@ -72,6 +76,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query_receipt":  "hash",
 		"transaction":    "hash",
 		"transactions":   "seq_id,address",
+		"confirm":        "hash",
 		"query_contract": "tx",
 	}
 	noArgNames := []string{}

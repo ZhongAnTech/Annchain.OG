@@ -2,11 +2,17 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
@@ -17,6 +23,7 @@ type RpcController struct {
 	Og             *og.Og
 	TxBuffer       *og.TxBuffer
 	TxCreator      *og.TxCreator
+	SyncerManager  *syncer.SyncManager
 	NewRequestChan chan types.TxBaseType
 }
 
@@ -34,6 +41,21 @@ type TxRequester interface {
 //SequenceRequester
 type SequenceRequester interface {
 	GenerateRequest()
+}
+
+//NewTxrequest for RPC request
+type NewTxRequest struct {
+	Nonce     string `json:"nonce"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Value     string `json:"value"`
+	Signature string `json:"signature"`
+	Pubkey    string `json:"pubkey"`
+}
+
+//NewAccountRequest for RPC request
+type NewAccountRequest struct {
+	Algorithm string `json:"algorithm"`
 }
 
 func cors(c *gin.Context) {
@@ -83,7 +105,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	}
 	txi := r.Og.Dag.GetTx(hash)
 	if txi == nil {
-		txi = r.Og.Txpool.Get(hash)
+		txi = r.Og.TxPool.Get(hash)
 	}
 	if txi == nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -102,6 +124,38 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"message": "not found",
 	})
+
+}
+
+//Transaction  get  transaction
+func (r *RpcController) Confirm(c *gin.Context) {
+	hashtr := c.Query("hash")
+	hash, err := types.HexStringToHash(hashtr)
+	cors(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "hash format error",
+		})
+		return
+	}
+	txiDag := r.Og.Dag.GetTx(hash)
+	txiTxpool := r.Og.TxPool.Get(hash)
+
+	if txiDag == nil && txiTxpool == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "not found",
+		})
+		return
+	}
+	if txiTxpool != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": false,
+		})
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{
+			"confirm": true,
+		})
+	}
 
 }
 
@@ -217,7 +271,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 		}
 		txi := r.Og.Dag.GetTx(hash)
 		if txi == nil {
-			txi = r.Og.Txpool.Get(hash)
+			txi = r.Og.TxPool.Get(hash)
 		}
 		if txi == nil {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -242,32 +296,99 @@ func (r *RpcController) Validator(c *gin.Context) {
 	})
 }
 func (r *RpcController) NewTransaction(c *gin.Context) {
-	var tx types.Tx
-	err := c.ShouldBindJSON(&tx)
-	if err != nil {
+	var (
+		tx    types.Txi
+		txReq NewTxRequest
+		sig   crypto.Signature
+		pub   crypto.PublicKey
+	)
+
+	err := c.ShouldBindJSON(&txReq)
+	if !checkError(err, c, http.StatusBadRequest, "request format error") {
+		return
+	}
+	from, err := types.StringToAddress(txReq.From)
+	if !checkError(err, c, http.StatusBadRequest, "address format error") {
+		return
+	}
+
+	to, err := types.StringToAddress(txReq.To)
+	if !checkError(err, c, http.StatusBadRequest, "address format error") {
+		return
+	}
+
+	value, ok := math.NewBigIntFromString(txReq.Value, 10)
+	if !ok {
+		err = fmt.Errorf("new Big Int error")
+	}
+	if !checkError(err, c, http.StatusBadRequest, "value format error") {
+		return
+	}
+
+	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
+	if !checkError(err, c, http.StatusBadRequest, "nonce format error") {
+		return
+	}
+
+	signature, err := hexutil.Decode(txReq.Signature)
+	if !checkError(err, c, http.StatusBadRequest, "signature format error") {
+		return
+	}
+
+	pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
+	if !checkError(err, c, http.StatusBadRequest, "pubkey format error") {
+		return
+	}
+
+	sig = crypto.SignatureFromBytes(pub.Type, signature)
+	if sig.Type != r.TxCreator.Signer.GetCryptoType() || pub.Type != r.TxCreator.Signer.GetCryptoType() {
 		c.JSON(http.StatusOK, gin.H{
-			"error": err.Error(),
+			"error": "crypto algorithm mismatch",
 		})
 		return
 	}
-	if ok := r.TxCreator.SealTx(&tx); !ok {
-		logrus.Warn("delegate failed to seal tx")
-		err = fmt.Errorf("delegate failed to seal tx")
-		c.JSON(http.StatusOK, gin.H{
-			"error": err.Error(),
-		})
+	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, nonce, pub, sig)
+	if !checkError(err, c, http.StatusInternalServerError, "new tx failed") {
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
-	if !r.Og.Manager.AcceptTxs() {
+	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		c.JSON(http.StatusOK, gin.H{
 			"error": "tx is disabled when syncing",
 		})
 		return
 	}
-	r.TxBuffer.AddLocal(&tx)
+
+	r.TxBuffer.AddLocalTx(tx)
+	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"hash": tx.GetTxHash().Hex(),
+	})
+}
+func (r *RpcController) NewAccount(c *gin.Context) {
+	var (
+		txReq  NewAccountRequest
+		signer crypto.Signer
+		err    error
+	)
+	err = c.ShouldBindJSON(&txReq)
+	if !checkError(err, c, http.StatusBadRequest, "request format error") {
+		return
+	}
+	algorithm := strings.ToLower(txReq.Algorithm)
+	switch algorithm {
+	case "ed25519":
+		signer = &crypto.SignerEd25519{}
+	case "secp256k1":
+		signer = &crypto.SignerSecp256k1{}
+	}
+	pub, priv, err := signer.RandomKeyPair()
+	if !checkError(err, c, http.StatusInternalServerError, "Generate account error.") {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"pubkey":  pub.String(),
+		"privkey": priv.String(),
 	})
 }
 func (r *RpcController) QueryNonce(c *gin.Context) {
@@ -279,7 +400,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 		})
 		return
 	}
-	noncePool, errPool := r.Og.Txpool.GetLatestNonce(addr)
+	noncePool, errPool := r.Og.TxPool.GetLatestNonce(addr)
 	nonceDag, errDag := r.Og.Dag.GetLatestNonce(addr)
 	var nonce int64
 	if errPool != nil && errDag != nil {
@@ -343,8 +464,20 @@ func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		r.NewRequestChan <- types.TxBaseTypeNormal
+		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeNormal
 	case "2":
-		r.NewRequestChan <- types.TxBaseTypeSequencer
+		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
+		//r.NewRequestChan <- types.TxBaseTypeSequencer
 	}
+}
+
+func checkError(err error, c *gin.Context, status int, message string) bool {
+	if err != nil {
+		c.JSON(status, gin.H{
+			"error": fmt.Sprintf("%s:%s", err.Error(), message),
+		})
+		return false
+	}
+	return true
 }

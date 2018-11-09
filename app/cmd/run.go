@@ -16,15 +16,18 @@ package cmd
 
 import (
 	"fmt"
-
+	"github.com/annchain/OG/client/httplib"
 	"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 )
 
 // runCmd represents the run command
@@ -63,16 +66,46 @@ var runCmd = &cobra.Command{
 }
 
 func readConfig() {
-	absPath, err := filepath.Abs(viper.GetString("config"))
-	panicIfError(err, fmt.Sprintf("Error on parsing config file path: %s", absPath))
+	configPath := viper.GetString("config")
+	if strings.HasSuffix(configPath, ".toml") {
+		absPath, err := filepath.Abs(configPath)
+		panicIfError(err, fmt.Sprintf("Error on parsing config file path: %s", absPath))
 
-	file, err := os.Open(absPath)
-	panicIfError(err, fmt.Sprintf("Error on opening config file: %s", absPath))
+		file, err := os.Open(absPath)
+		panicIfError(err, fmt.Sprintf("Error on opening config file: %s", absPath))
+		defer file.Close()
+
+		viper.SetConfigType("toml")
+		err = viper.MergeConfig(file)
+		panicIfError(err, fmt.Sprintf("Error on reading config file: %s", absPath))
+		return
+	}
+	_, err := url.Parse(configPath)
+	if err != nil {
+		panicIfError(err, "config is should  be valid server url or toml file has suffix .toml")
+	}
+	fileName := "og_config_" + time.Now().Format("20060102_150405") + ".toml"
+	fmt.Println("read from config", configPath)
+	req := httplib.NewBeegoRequest(configPath, "GET")
+	req.Debug(true)
+	req.SetTimeout(60*time.Second, 60*time.Second)
+	err = req.ToFile(fileName)
+	if err != nil {
+		os.Remove(fileName)
+		fmt.Println(req.String())
+	}
+	panicIfError(err, "get config from server error")
+	file, err := os.Open(fileName)
+	if err != nil {
+		os.Remove(fileName)
+	}
+	panicIfError(err, fmt.Sprintf("Error on opening config file: %s", fileName))
 	defer file.Close()
 
 	viper.SetConfigType("toml")
 	err = viper.MergeConfig(file)
-	panicIfError(err, fmt.Sprintf("Error on reading config file: %s", absPath))
+	os.Remove(fileName)
+	panicIfError(err, fmt.Sprintf("Error on reading config file: %s", fileName))
 }
 
 func init() {

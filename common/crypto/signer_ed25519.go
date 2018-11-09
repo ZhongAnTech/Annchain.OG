@@ -2,9 +2,12 @@ package crypto
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
+	"strconv"
 )
 
 type SignerEd25519 struct {
@@ -25,6 +28,12 @@ func (s *SignerEd25519) PubKey(privKey PrivateKey) PublicKey {
 }
 
 func (s *SignerEd25519) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
+	//validate to prevent panic
+	if l := len(pubKey.Bytes); l != ed25519.PublicKeySize {
+		err := fmt.Errorf("ed25519: bad public key length: " + strconv.Itoa(l))
+		logrus.WithError(err).Warn("verify fail")
+		return false
+	}
 	return ed25519.Verify(pubKey.Bytes, msg, signature.Bytes)
 }
 

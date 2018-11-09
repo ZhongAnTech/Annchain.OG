@@ -21,3 +21,5 @@ client/client.exe
 config_*.toml
 datadir_*
 /dump_*
+db_*/
+scripts/data/

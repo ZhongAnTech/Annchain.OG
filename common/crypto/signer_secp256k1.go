@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"github.com/annchain/OG/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -35,12 +36,16 @@ func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []by
 	pub65Bytes := append([]byte{0x04}, pubKey.Bytes...)
 	pub__, err := secp256k1.ParsePubKey(pub65Bytes, secp256k1.S256())
 	if err != nil {
-		panic(err)
+		//no panic ,prevent attack
+		//panic(err)
+		log.WithError(err).Warn("verify signature fail")
 		return false
 	}
 	sig__, err := secp256k1.ParseDERSignature(signature.Bytes, secp256k1.S256())
 	if err != nil {
-		panic(err)
+		//no panic ,prevent attack
+		//panic(err)
+		log.WithError(err).Warn("verify signature fail")
 		return false
 	}
 	return sig__.Verify(Sha256(msg), pub__)

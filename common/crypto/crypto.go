@@ -60,14 +60,14 @@ func PublicKeyFromString(value string) (pub PublicKey, err error) {
 	return
 }
 
-func (k *PrivateKey) PrivateKeyToString() string {
+func (k *PrivateKey) String() string {
 	var bytes []byte
 	bytes = append(bytes, byte(k.Type))
 	bytes = append(bytes, k.Bytes...)
 	return hexutil.Encode(bytes)
 }
 
-func (p *PublicKey) PublicKeyToString() string {
+func (p *PublicKey) String() string {
 	var bytes []byte
 	bytes = append(bytes, byte(p.Type))
 	bytes = append(bytes, p.Bytes...)
@@ -81,4 +81,13 @@ func NewSigner(cryptoType CryptoType) Signer {
 		return &SignerSecp256k1{}
 	}
 	return nil
+}
+
+func (c CryptoType) String() string {
+	if c == CryptoTypeEd25519 {
+		return "ed25519"
+	} else if c == CryptoTypeSecp256k1 {
+		return "secp256k1"
+	}
+	return "unknown"
 }

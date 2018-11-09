@@ -26,10 +26,13 @@ pnuke --user admin --par 20 --hosts data/hosts gofd
 ./sync/og -c http://47.101.139.203:30030/og_config -n run
 
 # batch start og
-pssh --user admin --par 20 --hosts data/hosts "chmod +x sync/og && rm -rf data/log && nohup ./sync/og -c http://172.28.152.31:30030/og_config -l data/log -n run >og.log 2>&1 </dev/null &"
+pssh --user admin --par 20 --hosts data/hosts "chmod +x sync/og && rm -rf data/log && (nohup ./sync/og -c http://172.28.152.31:30030/og_config -l data/log -n run >og.log 2>&1 </dev/null &)"
 
 # batch stop og
 pnuke --user admin --par 20 --hosts data/hosts og
 
 # check alive
 pssh --user admin --par 20 -i --hosts data/hosts "ps aux | grep sync/og | wc -l "
+
+
+pssh --user admin --par 20 --hosts data/hosts "chmod +x sync/og && rm -rf data/log && nohup sleep 50 >og.log 2>&1 </dev/null &"

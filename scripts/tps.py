@@ -55,7 +55,7 @@ if __name__ == "__main__":
     websocket.enableTrace(True)
     host_ips = hosts('hosts')
 
-    ws = websocket.WebSocketApp("ws://%s:30002/ws" % (host_ips[0]),
+    ws = websocket.WebSocketApp("ws://%s:30002/ws" % (host_ips[1]),
                                 on_message=on_message,
                                 on_error=on_error,
                                 on_close=on_close)

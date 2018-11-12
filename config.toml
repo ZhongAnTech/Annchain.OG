@@ -75,7 +75,6 @@ sync_cycle_ms = 10000
 algorithm = "secp256k1"
 
 [dag]
-
 consensus = "dpos"
 
 

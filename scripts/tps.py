@@ -26,6 +26,7 @@ def on_message(ws, message):
         seconds = (datetime.datetime.now() - last_count_time).total_seconds()
         if seconds < 1:
             sum_tocount += len(j['nodes'])
+            print(len(j['nodes']))
         else:
             sum_counted += sum_tocount
             tps = float(sum_tocount) / seconds
@@ -54,8 +55,9 @@ def on_open(ws):
 if __name__ == "__main__":
     websocket.enableTrace(True)
     host_ips = hosts('hosts')
+    # host_ips = ['127.0.0.1']
 
-    ws = websocket.WebSocketApp("ws://%s:30002/ws" % (host_ips[1]),
+    ws = websocket.WebSocketApp("ws://%s:30002/ws" % (host_ips[4]),
                                 on_message=on_message,
                                 on_error=on_error,
                                 on_close=on_close)

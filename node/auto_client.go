@@ -182,7 +182,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		return false
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
-		WithField("id", c.MyAccountIndex).Debugf("Generated tx")
+		WithField("id", c.MyAccountIndex).Info("Generated tx")
 	c.Delegate.Announce(tx)
 	return true
 }
@@ -204,7 +204,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
-		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Debugf("Generated tx")
+		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Info("Generated seq")
 	c.Delegate.Announce(seq)
 	return true
 }

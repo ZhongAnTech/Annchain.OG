@@ -69,6 +69,7 @@ type Server struct {
 func (s *Server) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"newtx": len(s.NewTxReceivedChan),
+		"batchtx": len(s.BatchConfirmedChan),
 	}
 }
 
@@ -92,8 +93,8 @@ func NewServer(addr string) *Server {
 		Addr:               addr,
 		WSPath:             serverDefaultWSPath,
 		PushPath:           serverDefaultPushPath,
-		NewTxReceivedChan:  make(chan types.Txi),
-		BatchConfirmedChan: make(chan map[types.Hash]types.Txi),
+		NewTxReceivedChan:  make(chan types.Txi, 10000),
+		BatchConfirmedChan: make(chan map[types.Hash]types.Txi, 1000),
 		quit:               make(chan bool),
 	}
 

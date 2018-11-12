@@ -7,9 +7,10 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 )
 
-const MaxAccountCount = 20
+const MaxAccountCount = 200
 
 func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.Address]*math.BigInt) {
 
@@ -34,13 +35,15 @@ func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.A
 func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
 	var accounts []*account.SampleAccount
 	if cryptoType == crypto.CryptoTypeSecp256k1 {
+		logrus.WithField("len", MaxAccountCount).Debug("Generating secp256k1 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {
-			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", i))
+			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
 			acc.Id = i
 			accounts = append(accounts, acc)
 		}
 
 	} else {
+		logrus.WithField("len", math.MinInt(len(sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {
 			if i >= len(sampleEd25519PrivKeys) {
 				break

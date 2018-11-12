@@ -7,6 +7,7 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"time"
+	"fmt"
 )
 
 type MessageSender interface {
@@ -295,8 +296,8 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer)
 }
 
 func (m *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
-	for _, c := range m.OnNewTxiReceived {
-		<-ffchan.NewTimeoutSenderShort(c, txi, "syncerNotifyNewTxi").C
+	for i, c := range m.OnNewTxiReceived {
+		<-ffchan.NewTimeoutSenderShort(c, txi, fmt.Sprintf("syncerNotifyNewTxi_%d", i)).C
 	}
 }
 

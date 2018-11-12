@@ -234,6 +234,6 @@ func initLogger() {
 func startPerformanceMonitor() {
 	go func() {
 		logrus.WithField("port", viper.GetString("profiling.port")).Info("Performance monitor started")
-		log.Println(http.ListenAndServe("localhost:"+viper.GetString("profiling.port"), nil))
+		log.Println(http.ListenAndServe("0.0.0.0:"+viper.GetString("profiling.port"), nil))
 	}()
 }

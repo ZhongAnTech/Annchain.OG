@@ -37,7 +37,7 @@ def myid(host):
         j = json.loads(resp.text)
         return j['short_id']
     except Exception as e:
-        raise e
+        return None
 
 
 def doone(host):
@@ -48,6 +48,7 @@ def doone(host):
             j = json.loads(resp.text)
             d['seq'] = j['Id']
         except Exception as e:
+            print(e)
             return None
             # d['seq'] = -1
 
@@ -59,6 +60,7 @@ def doone(host):
                 peers.append(peer['short_id'])
                 d['peers'] = peers
         except Exception as e:
+            print(e)
             return None
 
         try:
@@ -69,6 +71,7 @@ def doone(host):
             d['syncMode'] = d['syncMode'].strip()[10:][0:4]
             d['catchupSyncerStatus'] = d['catchupSyncerStatus'].strip()[3:]
         except Exception as e:
+            print(e)
             return None
 
         return host, d
@@ -82,10 +85,12 @@ def doround(hosts, pool):
     ever = False
     for host in hosts:
         if host not in host_id_map:
+            print('Resolving', host)
             id = myid(host)
             if id is not None:
                 host_id_map[host] = id
                 id_host_map[id] = host
+    print('Collecting')
 
     for c in pool.imap(doone, hosts):
         if c is None:
@@ -131,7 +136,8 @@ if __name__ == '__main__':
                 time.sleep(1)
             except KeyboardInterrupt as e:
                 raise e
-            except:
+            except Exception as e:
+                print(e)
                 pass
             finally:
                 time.sleep(1)

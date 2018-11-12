@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/types"
 	"sync"
 	"time"
+	"github.com/annchain/OG/ffchan"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
@@ -182,7 +183,11 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsRespo
 	lseq := h.Og.Dag.LatestSequencer()
 	//todo need more condition
 	if lseq.Number() < request.Sequencer.Number() {
-		h.Og.TxBuffer.AddRemoteTxs(request.Sequencer, request.Txs)
+		<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, request.Sequencer, "HandleTxsResponse").C
+
+		for tx := range request.Txs{
+			<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
+		}
 	}
 	return
 }

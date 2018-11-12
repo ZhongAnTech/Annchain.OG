@@ -1,4 +1,4 @@
-package node
+package performance
 
 import (
 	"github.com/sirupsen/logrus"
@@ -26,13 +26,7 @@ func (p *PerformanceMonitor) Start() {
 		//runtime.SetBlockProfileRate(1)
 
 		for !p.quit {
-			fields := logrus.Fields{}
-			for _, ch := range p.reporters {
-				fields[ch.Name()] = ch.GetBenchmarks()
-			}
-			// add additional fields
-			fields["goroutines"] = runtime.NumGoroutine()
-
+			fields := logrus.Fields(p.CollectData())
 			logrus.WithFields(fields).Info("Performance")
 			//pprof.Lookup("block").WriteTo(os.Stdout, 1)
 
@@ -47,4 +41,16 @@ func (p *PerformanceMonitor) Stop() {
 
 func (PerformanceMonitor) Name() string {
 	return "PerformanceMonitor"
+}
+
+
+func (p *PerformanceMonitor) CollectData() map[string]interface{}{
+	data := make(map[string]interface{})
+	for _, ch := range p.reporters {
+		data[ch.Name()] = ch.GetBenchmarks()
+	}
+	// add additional fields
+	data["goroutines"] = runtime.NumGoroutine()
+
+	return data
 }

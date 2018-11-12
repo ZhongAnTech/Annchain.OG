@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
@@ -56,7 +55,7 @@ type TxBuffer struct {
 	txPool                 ITxPool
 	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
 	affmu                  sync.RWMutex
-	selfGeneratedNewTxChan chan types.Txi
+	SelfGeneratedNewTxChan chan types.Txi
 	ReceivedNewTxChan      chan types.Txi
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
@@ -65,7 +64,7 @@ type TxBuffer struct {
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
-		"selfGeneratedNewTxChan": len(b.selfGeneratedNewTxChan),
+		"selfGeneratedNewTxChan": len(b.SelfGeneratedNewTxChan),
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
 		"dependencyCache":        b.dependencyCache.Len(),
 		"knownCache":             b.knownCache.Len(),
@@ -94,7 +93,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
-		selfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
+		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
 		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan:      make(chan types.Txi, config.NewTxQueueSize),
 		quit:                   make(chan bool),
@@ -126,36 +125,10 @@ func (b *TxBuffer) loop() {
 			return
 		case v := <-b.ReceivedNewTxChan:
 			b.handleTx(v)
-		case v := <-b.selfGeneratedNewTxChan:
+		case v := <-b.SelfGeneratedNewTxChan:
 			b.handleTx(v)
 		}
 	}
-}
-
-// AddLocalTx is called once there are new tx generated.
-func (b *TxBuffer) AddLocalTx(tx types.Txi) {
-	<-ffchan.NewTimeoutSenderShort(b.selfGeneratedNewTxChan, tx, "addLocalTx").C
-}
-
-// AddRemoteTx is called once there are new tx synced.
-func (b *TxBuffer) AddRemoteTx(tx types.Txi) {
-	<-ffchan.NewTimeoutSenderShort(b.ReceivedNewTxChan, tx, "addRemoteTx").C
-}
-
-func (b *TxBuffer) AddLocalTxs(seq *types.Sequencer, txs types.Txs) error {
-	for _, tx := range txs {
-		b.AddLocalTx(tx)
-	}
-	b.AddLocalTx(seq)
-	return nil
-}
-
-func (b *TxBuffer) AddRemoteTxs(seq *types.Sequencer, txs types.Txs) error {
-	for _, tx := range txs {
-		b.AddRemoteTx(tx)
-	}
-	b.AddRemoteTx(seq)
-	return nil
 }
 
 // niceTx is the logic triggered when tx's ancestors are all fetched to local

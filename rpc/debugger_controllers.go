@@ -17,6 +17,7 @@ type SyncStatus struct {
 	Error                    string `json:"error"`
 }
 
+
 //Status node status
 func (r *RpcController) SyncStatus(c *gin.Context) {
 	var status SyncStatus
@@ -41,4 +42,11 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 
 	cors(c)
 	c.JSON(http.StatusOK, status)
+}
+
+
+func (r *RpcController) Performance(c *gin.Context) {
+	cd := r.PerformanceMonitor.CollectData()
+	cors(c)
+	c.JSON(http.StatusOK, cd)
 }

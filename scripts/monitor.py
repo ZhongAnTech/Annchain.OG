@@ -2,6 +2,7 @@ import datetime
 import json
 import multiprocessing
 import time
+import traceback
 
 import pandas as pd
 import requests
@@ -16,9 +17,10 @@ total = 20
 s = requests.Session()
 s.trust_env = False
 
-
 id_host_map = {}
 host_id_map = {}
+
+tps = {}  # host ->{}
 
 
 def host_to_show(ip):
@@ -74,11 +76,20 @@ def doone(host):
             print(e)
             return None
 
+        try:
+            resp = s.get('http://%s/performance' % host, timeout=5)
+            j = json.loads(resp.text)
+            d.update(j['TxCounter'])
+        except Exception as e:
+            traceback.print_exc()
+            return None
+
         return host, d
     except KeyboardInterrupt as e:
         return
     except Exception as e:
         return None
+
 
 def doround(hosts, pool):
     r = {}
@@ -90,7 +101,7 @@ def doround(hosts, pool):
             if id is not None:
                 host_id_map[host] = id
                 id_host_map[id] = host
-    print('Collecting')
+    # print('Collecting')
 
     for c in pool.imap(doone, hosts):
         if c is None:
@@ -104,6 +115,23 @@ def doround(hosts, pool):
             d['peers'] = ippeers
             d['peers'] = len(ippeers)
             d['id'] = d['id'][0:4]
+
+            if host in tps:
+                # there is results
+                v = tps[host]
+
+                d['tpsReceived'] = (d['txReceived'] + d['sequencerReceived'] - v['v_rcv']) / (time.time() - v['t'])
+                d['tpsGenerated'] = (d['txGenerated'] + d['sequencerGenerated'] - v['v_gen']) / (time.time() - v['t'])
+                d['tpsConfirmed'] = (d['txConfirmed'] + d['sequencerConfirmed'] - v['v_cfm']) / (time.time() - v['t'])
+
+                d['tpsReceivedFB'] = (d['txReceived'] + d['sequencerReceived']) / (time.time() - d['startupTime'])
+                d['tpsGeneratedFB'] = (d['txGenerated'] + d['sequencerGenerated']) / (time.time() - d['startupTime'])
+                d['tpsConfirmedFB'] = (d['txConfirmed'] + d['sequencerConfirmed']) / (time.time() - d['startupTime'])
+
+            tps[host] = {'t': time.time(),
+                         'v_rcv': d['txReceived'] + d['sequencerReceived'],
+                         'v_gen': d['txGenerated'] + d['sequencerGenerated'],
+                         'v_cfm': d['txConfirmed'] + d['sequencerConfirmed']}
 
             r[host_to_show(host)] = d
             ever = True

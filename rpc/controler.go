@@ -16,16 +16,18 @@ import (
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
+	"github.com/annchain/OG/performance"
 )
 
 type RpcController struct {
-	P2pServer      *p2p.Server
-	Og             *og.Og
-	TxBuffer       *og.TxBuffer
-	TxCreator      *og.TxCreator
-	SyncerManager  *syncer.SyncManager
-	AutoTxCli   AutoTxClient
-	NewRequestChan chan types.TxBaseType
+	P2pServer          *p2p.Server
+	Og                 *og.Og
+	TxBuffer           *og.TxBuffer
+	TxCreator          *og.TxCreator
+	SyncerManager      *syncer.SyncManager
+	PerformanceMonitor *performance.PerformanceMonitor
+	AutoTxCli          AutoTxClient
+	NewRequestChan     chan types.TxBaseType
 }
 
 //NodeStatus
@@ -35,7 +37,7 @@ type NodeStatus struct {
 }
 
 type AutoTxClient interface {
-	SetTxIntervalMs( i int)
+	SetTxIntervalMs(i int)
 }
 
 //TxRequester
@@ -364,7 +366,8 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	r.TxBuffer.AddLocalTx(tx)
+	<- ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
+
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"hash": tx.GetTxHash().Hex(),
@@ -397,10 +400,10 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 	})
 }
 
-func (r*RpcController)AutoTx(c*gin.Context) {
+func (r *RpcController) AutoTx(c *gin.Context) {
 	intervalStr := c.Query("interval_ms")
-	interval,err:= strconv.Atoi(intervalStr)
-	if err!=nil || interval < 0  {
+	interval, err := strconv.Atoi(intervalStr)
+	if err != nil || interval < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "interval format err",
 		})

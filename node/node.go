@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
+	"github.com/annchain/OG/performance"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -30,7 +31,7 @@ func NewNode() *Node {
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
-	pm := &PerformanceMonitor{}
+	pm := &performance.PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
 	var cryptoType crypto.CryptoType
@@ -238,6 +239,8 @@ func NewNode() *Node {
 		TxCreator: txCreator,
 	}
 
+	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
@@ -299,6 +302,7 @@ func NewNode() *Node {
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 		rpcServer.C.SyncerManager = syncManager
 		rpcServer.C.AutoTxCli = autoClientManager
+		rpcServer.C.PerformanceMonitor = pm
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
@@ -308,11 +312,20 @@ func NewNode() *Node {
 		pm.Register(wsServer)
 	}
 
+	// txMetrics
+	txCounter := performance.NewTxCounter()
+
+	org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, txCounter.NewTxReceivedChan)
+	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
+	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
+	n.Components = append(n.Components, txCounter)
+
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
 	pm.Register(hub)
+	pm.Register(txCounter)
 	n.Components = append(n.Components, pm)
 
 	return n

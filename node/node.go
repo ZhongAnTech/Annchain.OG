@@ -62,6 +62,7 @@ func NewNode() *Node {
 		og.OGConfig{
 			BootstrapNode: bootNode,
 			NetworkId:     uint64(networkId),
+			CryptoType:    cryptoType,
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -103,9 +104,9 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.TxPool,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
@@ -135,9 +136,9 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:        hub,
-		Downloader: downloaderInstance,
-		SyncMode:   downloader.FullSync,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -154,7 +155,7 @@ func NewNode() *Node {
 		TxsResponseHandler:        messageHandler,
 		HeaderResponseHandler:     messageHandler,
 		FetchByHashRequestHandler: messageHandler,
-		Hub: hub,
+		Hub:                       hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(

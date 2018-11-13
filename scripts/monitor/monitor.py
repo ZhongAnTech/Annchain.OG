@@ -149,7 +149,7 @@ def hosts(fname):
 
 if __name__ == '__main__':
     # hosts = ['127.0.0.1:%d' % (8000 + i*100) for i in range(total)]
-    host_ips = hosts('hosts')
+    host_ips = hosts('data/hosts')
     host_ipports = ['%s:30000' % (x) for x in host_ips]
     pool = multiprocessing.Pool(processes=20)
 

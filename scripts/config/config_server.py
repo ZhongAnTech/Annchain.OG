@@ -1,6 +1,8 @@
 import toml
 from flask import Flask, request
 
+from common.hosts import hosts
+
 app = Flask(__name__)
 
 # ./og -c http://127.0.0.1:18012/og_config -n run
@@ -32,14 +34,9 @@ def generate_config_multi_server(id):
     return s
 
 
-def hosts(fname):
-    with open(fname) as f:
-        return [line.strip() for line in f]
-
-
 host_ip_id_map = {}
 
-host_ips = hosts('hosts')
+host_ips = hosts('data/hosts')
 i = 0
 for host_ip in host_ips:
     host_ip_id_map[host_ip] = i

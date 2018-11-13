@@ -3,9 +3,9 @@ import select
 import subprocess
 import sys
 from threading import Thread
-from typing import List, Any
+from typing import List
 
-import config_generator
+from config import config_generator
 
 binary = '../build/og'
 params = '-c configs/config_XX.toml -d data/d_XX -l data/datadir_XX -n run'
@@ -30,7 +30,7 @@ def add_node():
     global pids
 
     i = current_node_id
-    config_generator.generate_config(i, i == 0)
+    config_generator.generate_config_local_server(i, i == 0)
 
     p = params.replace('XX', '%02d' % (i))
     print(binary + " " + p)
@@ -42,7 +42,7 @@ def add_node():
     print('Started %d' % current_node_id)
     current_node_id += 1
 
-    t = Thread(target=keep_read, args=[pid, i],daemon=True)
+    t = Thread(target=keep_read, args=[pid, i], daemon=True)
     t.start()
 
 
@@ -58,6 +58,7 @@ def del_node():
 
 
 if __name__ == '__main__':
+
     for i in range(4):
         add_node()
 

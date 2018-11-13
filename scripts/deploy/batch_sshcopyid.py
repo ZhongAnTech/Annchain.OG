@@ -1,6 +1,6 @@
 import subprocess
 
-import hosts
+from common import hosts
 
 SSH_PASSWORD_FILE = 'data/passwd'
 SSH_HOSTS_FILE = 'data/hosts'

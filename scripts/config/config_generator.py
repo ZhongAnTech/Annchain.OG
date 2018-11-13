@@ -2,7 +2,14 @@ import sys
 
 import toml
 
+
 def generate_config_local_server(id, seq_enabled):
+    '''
+    Generate batch of configurations so that you may start multiple OGs in local computer
+    :param id:
+    :param seq_enabled: whether this node id supports sequencer auto generation. Should be True for node 0
+    :return:
+    '''
     with open('sample.toml') as f:
         d = toml.load(f)
 
@@ -36,4 +43,4 @@ if __name__ == '__main__':
     print('Total nodes: %d. Sequencer: %s' % (total, enable_sequencer))
 
     for i in range(total):
-        generate_config(i, i == 0 and enable_sequencer)
+        generate_config_local_server(i, i == 0 and enable_sequencer)

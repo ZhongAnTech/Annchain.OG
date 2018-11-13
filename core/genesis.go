@@ -26,7 +26,7 @@ func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.A
 	balance[addr] = math.NewBigInt(99999999)
 
 	accounts := GetSampleAccounts(cryptoType)
-	for i := 0; i < MaxAccountCount; i++ {
+	for i := 0; i < len(accounts); i++ {
 		balance[accounts[i].Address] = math.NewBigInt(8888888)
 	}
 	return seq.(*types.Sequencer), balance

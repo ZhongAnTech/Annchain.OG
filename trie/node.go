@@ -21,8 +21,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/annchain/OG/types"
+	// "github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/rlp"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
@@ -33,6 +34,9 @@ type node interface {
 	canUnload(cachegen, cachelimit uint16) bool
 }
 
+//go:generate msgp
+
+//msgp:tuple State
 type (
 	fullNode struct {
 		Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
@@ -48,9 +52,9 @@ type (
 )
 
 // EncodeRLP encodes a full node into the consensus RLP format.
-func (n *fullNode) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, n.Children)
-}
+// func (n *fullNode) EncodeRLP(w io.Writer) error {
+// 	return rlp.Encode(w, n.Children)
+// }
 
 func (n *fullNode) copy() *fullNode   { copy := *n; return &copy }
 func (n *shortNode) copy() *shortNode { copy := *n; return &copy }
@@ -174,7 +178,7 @@ func decodeFull(hash, elems []byte, cachegen uint16) (*fullNode, error) {
 	return n, nil
 }
 
-const hashLen = len(common.Hash{})
+const hashLen = len(types.Hash{})
 
 func decodeRef(buf []byte, cachegen uint16) (node, []byte, error) {
 	kind, val, rest, err := rlp.Split(buf)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
+	"github.com/annchain/OG/trie"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +32,6 @@ type StateDB struct {
 	db       ogdb.Database
 	accessor *Accessor
 
-	// txs      *CacheTxs
 	states   map[types.Address]*State
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time
@@ -283,6 +283,25 @@ func (sd *StateDB) purge() {
 // refreshbeat update the beat time of an address.
 func (sd *StateDB) refreshbeat(addr types.Address) {
 	sd.beats[addr] = time.Now()
+}
+
+// Commit tries to save dirty data to memory trie db.
+func (sd *StateDB) Commit() {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	sd.commit()
+}
+
+// commit tries to save dirty data to memory trie db.
+//
+// Note that commit doesn't hold any StateDB locks.
+func (sd *StateDB) commit() {
+
+	// TODO 
+	// use journal to set some state to dirty.
+
+
 }
 
 func (sd *StateDB) loop() {

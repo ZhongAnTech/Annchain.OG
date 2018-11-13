@@ -110,8 +110,9 @@ def doround(hosts, pool):
         if d is not None:
             d['bestPeer'] = id_to_show(d['bestPeer'])
             ippeers = []
-            for peer in d['peers']:
-                ippeers.append(id_to_show(peer))
+            if 'peers' in peer:
+                for peer in d['peers']:
+                    ippeers.append(id_to_show(peer))
             d['peers'] = ippeers
             d['peers'] = len(ippeers)
             d['id'] = d['id'][0:4]

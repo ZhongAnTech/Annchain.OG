@@ -165,7 +165,7 @@ func (db *Database) Node(hash types.Hash) ([]byte, error) {
 		return node.blob, nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(hash[:])
+	return db.diskdb.Get(hash.ToBytes())
 }
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
@@ -180,7 +180,7 @@ func (db *Database) preimage(hash types.Hash) ([]byte, error) {
 		return preimage, nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(db.secureKey(hash[:]))
+	return db.diskdb.Get(db.secureKey(hash.ToBytes()))
 }
 
 // secureKey returns the database key for the preimage of key, as an ephemeral
@@ -280,7 +280,7 @@ func (db *Database) dereference(child types.Hash, parent types.Hash) {
 			db.dereference(hash, child)
 		}
 		delete(db.nodes, child)
-		db.nodesSize -= common.StorageSize(common.HashLength + len(node.blob))
+		db.nodesSize -= common.StorageSize(types.HashLength + len(node.blob))
 	}
 }
 
@@ -299,14 +299,14 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted. For every useful node, we track 2 extra hashes as the flushlist.
-	size := db.nodesSize + common.StorageSize((len(db.nodes)-1)*2*common.HashLength)
+	size := db.nodesSize + common.StorageSize((len(db.nodes)-1)*2*types.HashLength)
 
 	// If the preimage cache got large enough, push to disk. If it's still small
 	// leave for later to deduplicate writes.
 	flushPreimages := db.preimagesSize > 4*1024*1024
 	if flushPreimages {
 		for hash, preimage := range db.preimages {
-			if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
+			if err := batch.Put(db.secureKey(hash.ToBytes()), preimage); err != nil {
 				log.Error("Failed to commit preimage from trie database", "err", err)
 				db.lock.RUnlock()
 				return err
@@ -322,10 +322,10 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	}
 	// Keep committing nodes from the flush-list until we're below allowance
 	oldest := db.oldest
-	for size > limit && oldest != (common.Hash{}) {
+	for size > limit && oldest != (types.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.nodes[oldest]
-		if err := batch.Put(oldest[:], node.blob); err != nil {
+		if err := batch.Put(oldest.ToBytes(), node.blob); err != nil {
 			db.lock.RUnlock()
 			return err
 		}
@@ -342,7 +342,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		// is the total size, including both the useful cached data (hash -> blob), as
 		// well as the flushlist metadata (2*hash). When flushing items from the cache,
 		// we need to reduce both.
-		size -= common.StorageSize(3*common.HashLength + len(node.blob))
+		size -= common.StorageSize(3*types.HashLength + len(node.blob))
 		oldest = node.flushNext
 	}
 	// Flush out any remainder data from the last batch
@@ -358,7 +358,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	defer db.lock.Unlock()
 
 	if flushPreimages {
-		db.preimages = make(map[common.Hash][]byte)
+		db.preimages = make(map[types.Hash][]byte)
 		db.preimagesSize = 0
 	}
 	for db.oldest != oldest {
@@ -366,10 +366,10 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		delete(db.nodes, db.oldest)
 		db.oldest = node.flushNext
 
-		db.nodesSize -= common.StorageSize(common.HashLength + len(node.blob))
+		db.nodesSize -= common.StorageSize(types.HashLength + len(node.blob))
 	}
-	if db.oldest != (common.Hash{}) {
-		db.nodes[db.oldest].flushPrev = common.Hash{}
+	if db.oldest != (types.Hash{}) {
+		db.nodes[db.oldest].flushPrev = types.Hash{}
 	}
 	db.flushnodes += uint64(nodes - len(db.nodes))
 	db.flushsize += storage - db.nodesSize
@@ -401,7 +401,7 @@ func (db *Database) Commit(node types.Hash, report bool) error {
 
 	// Move all of the accumulated preimages into a write batch
 	for hash, preimage := range db.preimages {
-		if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
+		if err := batch.Put(db.secureKey(hash.ToBytes()), preimage); err != nil {
 			log.Error("Failed to commit preimage from trie database", "err", err)
 			db.lock.RUnlock()
 			return err
@@ -432,7 +432,7 @@ func (db *Database) Commit(node types.Hash, report bool) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	db.preimages = make(map[common.Hash][]byte)
+	db.preimages = make(map[types.Hash][]byte)
 	db.preimagesSize = 0
 
 	db.uncache(node)
@@ -467,7 +467,7 @@ func (db *Database) commit(hash types.Hash, batch ogdb.Batch) error {
 			return err
 		}
 	}
-	if err := batch.Put(hash[:], node.blob); err != nil {
+	if err := batch.Put(hash.ToBytes(), node.blob); err != nil {
 		return err
 	}
 	// If we've reached an optimal batch size, commit and start over

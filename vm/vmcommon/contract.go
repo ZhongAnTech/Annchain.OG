@@ -95,7 +95,7 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 	return c
 }
 
-func (c *Contract) validJumpdest(dest *big.Int) bool {
+func (c *Contract) ValidJumpdest(dest *big.Int) bool {
 	udest := dest.Uint64()
 	// PC cannot go beyond len(code) and certainly can't be bigger than 63bits.
 	// Don't bother checking for JUMPDEST in that case.

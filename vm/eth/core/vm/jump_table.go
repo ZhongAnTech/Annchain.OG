@@ -53,52 +53,9 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet       = newFrontierInstructionSet()
-	homesteadInstructionSet      = newHomesteadInstructionSet()
 	byzantiumInstructionSet      = newByzantiumInstructionSet()
-	constantinopleInstructionSet = newConstantinopleInstructionSet()
 )
 
-// NewConstantinopleInstructionSet returns the frontier, homestead
-// byzantium and contantinople instructions.
-func newConstantinopleInstructionSet() [256]operation {
-	// instructions that can be executed during the byzantium phase.
-	instructionSet := newByzantiumInstructionSet()
-	instructionSet[instruction.SHL] = operation{
-		execute:       opSHL,
-		gasCost:       constGasFunc(GasFastestStep),
-		validateStack: makeStackFunc(2, 1),
-		valid:         true,
-	}
-	instructionSet[instruction.SHR] = operation{
-		execute:       opSHR,
-		gasCost:       constGasFunc(GasFastestStep),
-		validateStack: makeStackFunc(2, 1),
-		valid:         true,
-	}
-	instructionSet[instruction.SAR] = operation{
-		execute:       opSAR,
-		gasCost:       constGasFunc(GasFastestStep),
-		validateStack: makeStackFunc(2, 1),
-		valid:         true,
-	}
-	instructionSet[instruction.EXTCODEHASH] = operation{
-		execute:       opExtCodeHash,
-		gasCost:       gasExtCodeHash,
-		validateStack: makeStackFunc(1, 1),
-		valid:         true,
-	}
-	instructionSet[instruction.CREATE2] = operation{
-		execute:       opCreate2,
-		gasCost:       gasCreate2,
-		validateStack: makeStackFunc(4, 1),
-		memorySize:    memoryCreate2,
-		valid:         true,
-		writes:        true,
-		returns:       true,
-	}
-	return instructionSet
-}
 
 // NewByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.

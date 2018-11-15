@@ -120,7 +120,7 @@ func (r *Receipt) setStatus(postStateOrStatus []byte) error {
 		r.Status = ReceiptStatusSuccessful
 	case bytes.Equal(postStateOrStatus, receiptStatusFailedRLP):
 		r.Status = ReceiptStatusFailed
-	case len(postStateOrStatus) == len(types.Hash{}):
+	case len(postStateOrStatus) == len(types.Hash{}.Bytes):
 		r.PostState = postStateOrStatus
 	default:
 		return fmt.Errorf("invalid receipt status %x", postStateOrStatus)

@@ -210,7 +210,7 @@ func TestSLT(t *testing.T) {
 	testTwoOperandOp(t, tests, opSlt)
 }
 
-func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
+func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()

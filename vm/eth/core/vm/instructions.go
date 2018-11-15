@@ -645,7 +645,7 @@ func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contra
 
 func opJump(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos := stack.pop()
-	if !contract.validJumpdest(pos) {
+	if !contract.ValidJumpdest(pos) {
 		nop := contract.GetOp(pos.Uint64())
 		return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
 	}
@@ -658,7 +658,7 @@ func opJump(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contract
 func opJumpi(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	pos, cond := stack.pop(), stack.pop()
 	if cond.Sign() != 0 {
-		if !contract.validJumpdest(pos) {
+		if !contract.ValidJumpdest(pos) {
 			nop := contract.GetOp(pos.Uint64())
 			return nil, fmt.Errorf("invalid jump destination (%v) %v", nop, pos)
 		}
@@ -697,9 +697,9 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contra
 		input        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
-	if interpreter.evm.ChainConfig().IsEIP150(interpreter.evm.BlockNumber) {
-		gas -= gas / 64
-	}
+	//if interpreter.evm.ChainConfig().IsEIP150(interpreter.evm.BlockNumber) {
+	gas -= gas / 64
+	//}
 
 	contract.UseGas(gas)
 	res, addr, returnGas, suberr := interpreter.evm.Create(contract, input, gas, value)
@@ -707,7 +707,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contra
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
 	// ignore this error and pretend the operation was successful.
-	if interpreter.evm.ChainConfig().IsHomestead(interpreter.evm.BlockNumber) && suberr == ErrCodeStoreOutOfGas {
+	if suberr == ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())
 	} else if suberr != nil && suberr != ErrCodeStoreOutOfGas {
 		stack.push(interpreter.intPool.getZero())

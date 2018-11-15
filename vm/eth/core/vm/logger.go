@@ -138,7 +138,7 @@ func (l *StructLogger) CaptureStart(from types.Address, to types.Address, create
 // CaptureState logs a new structured log message and pushes it out to the environment
 //
 // CaptureState also tracks SSTORE ops to track dirty values.
-func (l *StructLogger) CaptureState(env *EVM, pc uint64, op vmcommon.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
+func (l *StructLogger) CaptureState(env *EVM, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
 		return ErrTraceLimitReached
@@ -187,7 +187,7 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op vmcommon.OpCode, gas
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op vmcommon.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
+func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
 	return nil
 }
 

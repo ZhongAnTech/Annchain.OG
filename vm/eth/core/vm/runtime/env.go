@@ -17,22 +17,22 @@
 package runtime
 
 import (
-	"github.com/annchain/OG/vm/eth/core"
+	//"github.com/annchain/OG/vm/eth/core"
 	"github.com/annchain/OG/vm/eth/core/vm"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {
 	context := vm.Context{
-		CanTransfer: core.CanTransfer,
-		Transfer:    core.Transfer,
-		GetHash:     func(uint64) types.Hash { return types.Hash{} },
+		CanTransfer: vmcommon.CanTransfer,
+		Transfer:    vmcommon.Transfer,
+		//GetHash:     func(uint64) types.Hash { return types.Hash{} },
 
 		Origin:      cfg.Origin,
 		Coinbase:    cfg.Coinbase,
-		BlockNumber: cfg.BlockNumber,
-		Time:        cfg.Time,
-		Difficulty:  cfg.Difficulty,
+		//BlockNumber: cfg.BlockNumber,
+		//Time:        cfg.Time,
+		//Difficulty:  cfg.Difficulty,
 		GasLimit:    cfg.GasLimit,
 		GasPrice:    cfg.GasPrice,
 	}

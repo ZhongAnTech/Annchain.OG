@@ -74,7 +74,7 @@ type Context struct {
 	// Transfer transfers ether from one account to the other
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
-	GetHash GetHashFunc
+	//GetHash GetHashFunc
 
 	// Message information
 	Origin   types.Address // Provides information for ORIGIN
@@ -83,9 +83,9 @@ type Context struct {
 	// Block information
 	Coinbase    types.Address // Provides information for COINBASE
 	GasLimit    uint64        // Provides information for GASLIMIT
-	BlockNumber *big.Int      // Provides information for NUMBER
-	Time        *big.Int      // Provides information for TIME
-	Difficulty  *big.Int      // Provides information for DIFFICULTY
+	//BlockNumber *math.BigInt      // Provides information for NUMBER
+	//Time        *math.BigInt      // Provides information for TIME
+	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -108,7 +108,7 @@ type EVM struct {
 	// chainConfig contains information about the current chain
 	chainConfig *params.ChainConfig
 	// chain rules contains the chain rules for the current epoch
-	chainRules params.Rules
+	//chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
 	vmConfig Config
@@ -133,7 +133,7 @@ func NewEVM(ctx Context, statedb vmcommon.StateDB, chainConfig *params.ChainConf
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
-		chainRules:   chainConfig.Rules(ctx.BlockNumber),
+		//chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]vmcommon.Interpreter, 0, 1),
 	}
 

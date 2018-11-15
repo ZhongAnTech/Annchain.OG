@@ -899,7 +899,7 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())
-		interpreter.evm.StateDB.AddLog(&types.Log{
+		interpreter.evm.StateDB.AddLog(&vmcommon.Log{
 			Address: contract.Address(),
 			Topics:  topics,
 			Data:    d,

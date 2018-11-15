@@ -44,7 +44,7 @@ type Config struct {
 	Value       *big.Int
 	Debug       bool
 	EVMConfig   vm.Config
-	State       vm.StateDB
+	State       vmcommon.StateDB
 	GetHashFn   func(n uint64) types.Hash
 }
 
@@ -86,7 +86,7 @@ func setDefaults(cfg *Config) {
 //
 // Executes sets up a in memory, temporarily, environment for the execution of
 // the given code. It makes sure that it's restored to it's original state afterwards.
-func Execute(code, input []byte, cfg *Config) ([]byte, vm.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, vmcommon.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}

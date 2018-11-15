@@ -94,14 +94,15 @@ const (
 )
 
 // 0x40 range - block operations.
-const (
-	BLOCKHASH OpCode = 0x40 + iota
-	COINBASE
-	TIMESTAMP
-	NUMBER
-	DIFFICULTY
-	GASLIMIT
-)
+// NOT SUPPORTED in the current implementation since it tightly relies on structure of chain.
+//const (
+//	BLOCKHASH OpCode = 0x40 + iota
+//	COINBASE
+//	TIMESTAMP
+//	NUMBER
+//	DIFFICULTY
+//	GASLIMIT
+//)
 
 // 0x50 range - 'storage' and execution.
 const (

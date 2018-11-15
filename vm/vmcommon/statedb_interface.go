@@ -42,7 +42,7 @@ type StateDB interface {
 	RevertToSnapshot(int)
 	Snapshot() int
 
-	AddLog(*types.Log)
+	AddLog(*Log)
 	AddPreimage(types.Hash, []byte)
 
 	ForEachStorage(types.Address, func(types.Hash, types.Hash) bool)

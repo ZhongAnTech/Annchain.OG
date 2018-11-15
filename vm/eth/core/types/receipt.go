@@ -25,6 +25,7 @@ import (
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/rlp"
+	"github.com/annchain/OG/types"
 )
 
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
@@ -52,8 +53,8 @@ type Receipt struct {
 	Logs              []*Log `json:"logs"              gencodec:"required"`
 
 	// Implementation fields (don't reorder!)
-	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
-	ContractAddress common.Address `json:"contractAddress"`
+	TxHash          types.Hash    `json:"transactionHash" gencodec:"required"`
+	ContractAddress types.Address `json:"contractAddress"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
 }
 
@@ -76,8 +77,8 @@ type receiptStorageRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
 	Bloom             Bloom
-	TxHash            common.Hash
-	ContractAddress   common.Address
+	TxHash            types.Hash
+	ContractAddress   types.Address
 	Logs              []*LogForStorage
 	GasUsed           uint64
 }
@@ -119,7 +120,7 @@ func (r *Receipt) setStatus(postStateOrStatus []byte) error {
 		r.Status = ReceiptStatusSuccessful
 	case bytes.Equal(postStateOrStatus, receiptStatusFailedRLP):
 		r.Status = ReceiptStatusFailed
-	case len(postStateOrStatus) == len(common.Hash{}):
+	case len(postStateOrStatus) == len(types.Hash{}):
 		r.PostState = postStateOrStatus
 	default:
 		return fmt.Errorf("invalid receipt status %x", postStateOrStatus)
@@ -144,7 +145,7 @@ func (r *Receipt) Size() common.StorageSize {
 
 	size += common.StorageSize(len(r.Logs)) * common.StorageSize(unsafe.Sizeof(Log{}))
 	for _, log := range r.Logs {
-		size += common.StorageSize(len(log.Topics)*common.HashLength + len(log.Data))
+		size += common.StorageSize(len(log.Topics)*types.HashLength + len(log.Data))
 	}
 	return size
 }

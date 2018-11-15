@@ -21,6 +21,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
 	"github.com/annchain/OG/vm/eth/common"
 )
 
@@ -337,9 +339,9 @@ var bn256PairingTests = []precompiledTest{
 }
 
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
-	p := PrecompiledContractsByzantium[common.HexToAddress(addr)]
+	p := PrecompiledContractsByzantium[types.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.input)
-	contract := NewContract(AccountRef(common.HexToAddress("1337")),
+	contract := vmcommon.NewContract(vmcommon.AccountRef(types.HexToAddress("1337")),
 		nil, new(big.Int), p.RequiredGas(in))
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.name, contract.Gas), func(t *testing.T) {
 		if res, err := RunPrecompiledContract(p, in, contract); err != nil {
@@ -354,10 +356,10 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 	if test.noBenchmark {
 		return
 	}
-	p := PrecompiledContractsByzantium[common.HexToAddress(addr)]
+	p := PrecompiledContractsByzantium[types.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.input)
 	reqGas := p.RequiredGas(in)
-	contract := NewContract(AccountRef(common.HexToAddress("1337")),
+	contract := vmcommon.NewContract(vmcommon.AccountRef(types.HexToAddress("1337")),
 		nil, new(big.Int), reqGas)
 
 	var (

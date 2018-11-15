@@ -21,12 +21,14 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/crypto/bn256"
 	"github.com/annchain/OG/vm/eth/params"
 	"golang.org/x/crypto/ripemd160"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/eth/common"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -37,30 +39,21 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-// PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
-// contracts used in the Frontier and Homestead releases.
-var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-}
-
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
-	common.BytesToAddress([]byte{2}): &sha256hash{},
-	common.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common.BytesToAddress([]byte{4}): &dataCopy{},
-	common.BytesToAddress([]byte{5}): &bigModExp{},
-	common.BytesToAddress([]byte{6}): &bn256Add{},
-	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common.BytesToAddress([]byte{8}): &bn256Pairing{},
+var PrecompiledContractsByzantium = map[types.Address]PrecompiledContract{
+	types.BytesToAddress([]byte{1}): &ecrecover{},
+	types.BytesToAddress([]byte{2}): &sha256hash{},
+	types.BytesToAddress([]byte{3}): &ripemd160hash{},
+	types.BytesToAddress([]byte{4}): &dataCopy{},
+	types.BytesToAddress([]byte{5}): &bigModExp{},
+	types.BytesToAddress([]byte{6}): &bn256Add{},
+	types.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+	types.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
-func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
+func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *vmcommon.Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
 		return p.Run(input)

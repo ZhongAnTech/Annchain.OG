@@ -20,11 +20,10 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/core/state"
-	"github.com/annchain/OG/vm/eth/core/types"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/vm/eth/rpc"
+	"github.com/annchain/OG/types"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -37,16 +36,16 @@ type ChainReader interface {
 	CurrentHeader() *types.Header
 
 	// GetHeader retrieves a block header from the database by hash and number.
-	GetHeader(hash common.Hash, number uint64) *types.Header
+	GetHeader(hash types.Hash, number uint64) *types.Header
 
 	// GetHeaderByNumber retrieves a block header from the database by number.
 	GetHeaderByNumber(number uint64) *types.Header
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash common.Hash) *types.Header
+	GetHeaderByHash(hash types.Hash) *types.Header
 
 	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash common.Hash, number uint64) *types.Block
+	GetBlock(hash types.Hash, number uint64) *types.Block
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -54,7 +53,7 @@ type Engine interface {
 	// Author retrieves the Ethereum address of the account that minted the given
 	// block, which may be different from the header's coinbase if a consensus
 	// engine is based on signatures.
-	Author(header *types.Header) (common.Address, error)
+	Author(header *types.Header) (types.Address, error)
 
 	// VerifyHeader checks whether a header conforms to the consensus rules of a
 	// given engine. Verifying the seal may be done optionally here, or explicitly
@@ -94,7 +93,7 @@ type Engine interface {
 	Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
 
 	// SealHash returns the hash of a block prior to it being sealed.
-	SealHash(header *types.Header) common.Hash
+	SealHash(header *types.Header) types.Hash
 
 	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
 	// that a new block should have.

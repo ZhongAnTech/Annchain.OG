@@ -21,12 +21,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/core/state"
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/ethdb"
 	"github.com/annchain/OG/vm/eth/params"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
 )
 
 // Config is a basic type specifying certain configuration flags for running
@@ -34,8 +35,8 @@ import (
 type Config struct {
 	ChainConfig *params.ChainConfig
 	Difficulty  *big.Int
-	Origin      common.Address
-	Coinbase    common.Address
+	Origin      types.Address
+	Coinbase    types.Address
 	BlockNumber *big.Int
 	Time        *big.Int
 	GasLimit    uint64
@@ -44,7 +45,7 @@ type Config struct {
 	Debug       bool
 	EVMConfig   vm.Config
 	State       vm.StateDB
-	GetHashFn   func(n uint64) common.Hash
+	GetHashFn   func(n uint64) types.Hash
 }
 
 // sets defaults on the config
@@ -52,12 +53,6 @@ func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
 			ChainID:        big.NewInt(1),
-			HomesteadBlock: new(big.Int),
-			DAOForkBlock:   new(big.Int),
-			DAOForkSupport: false,
-			EIP150Block:    new(big.Int),
-			EIP155Block:    new(big.Int),
-			EIP158Block:    new(big.Int),
 		}
 	}
 
@@ -80,8 +75,8 @@ func setDefaults(cfg *Config) {
 		cfg.BlockNumber = new(big.Int)
 	}
 	if cfg.GetHashFn == nil {
-		cfg.GetHashFn = func(n uint64) common.Hash {
-			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
+		cfg.GetHashFn = func(n uint64) types.Hash {
+			return types.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
 		}
 	}
 }
@@ -98,12 +93,12 @@ func Execute(code, input []byte, cfg *Config) ([]byte, vm.StateDB, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(types.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
-		address = common.BytesToAddress([]byte("contract"))
+		address = types.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
-		sender  = vm.AccountRef(cfg.Origin)
+		sender  = vmcommon.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
@@ -111,7 +106,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, vm.StateDB, error) {
 	// Call the code with the given configuration.
 	ret, _, err := vmenv.Call(
 		sender,
-		common.BytesToAddress([]byte("contract")),
+		types.BytesToAddress([]byte("contract")),
 		input,
 		cfg.GasLimit,
 		cfg.Value,
@@ -121,18 +116,18 @@ func Execute(code, input []byte, cfg *Config) ([]byte, vm.StateDB, error) {
 }
 
 // Create executes the code using the EVM create method
-func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
+func Create(input []byte, cfg *Config) ([]byte, types.Address, uint64, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		cfg.State, _ = state.New(types.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	}
 	var (
 		vmenv  = NewEnv(cfg)
-		sender = vm.AccountRef(cfg.Origin)
+		sender = vmcommon.AccountRef(cfg.Origin)
 	)
 
 	// Call the code with the given configuration.
@@ -150,7 +145,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 //
 // Call, unlike Execute, requires a config and also requires the State field to
 // be set.
-func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, error) {
+func Call(address types.Address, input []byte, cfg *Config) ([]byte, uint64, error) {
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)

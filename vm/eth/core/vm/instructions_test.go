@@ -24,6 +24,8 @@ import (
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/params"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
 )
 
 type twoOperandTest struct {
@@ -32,7 +34,7 @@ type twoOperandTest struct {
 	expected string
 }
 
-func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory *Memory, stack *Stack) ([]byte, error)) {
+func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *vmcommon.Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
 		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
@@ -566,11 +568,11 @@ func TestCreate2Addreses(t *testing.T) {
 		},
 	} {
 
-		origin := common.BytesToAddress(common.FromHex(tt.origin))
-		salt := common.BytesToHash(common.FromHex(tt.salt))
+		origin := types.BytesToAddress(common.FromHex(tt.origin))
+		salt := types.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
 		codeHash := crypto.Keccak256(code)
-		address := crypto.CreateAddress2(origin, salt, codeHash)
+		address := crypto.CreateAddress2(origin, salt.Bytes, codeHash)
 		/*
 			stack          := newstack()
 			// salt, but we don't need that for this test
@@ -580,8 +582,8 @@ func TestCreate2Addreses(t *testing.T) {
 			gas, _ := gasCreate2(params.GasTable{}, nil, nil, stack, nil, 0)
 			fmt.Printf("Example %d\n* address `0x%x`\n* salt `0x%x`\n* init_code `0x%x`\n* gas (assuming no mem expansion): `%v`\n* result: `%s`\n\n", i,origin, salt, code, gas, address.String())
 		*/
-		expected := common.BytesToAddress(common.FromHex(tt.expected))
-		if !bytes.Equal(expected.Bytes(), address.Bytes()) {
+		expected := types.BytesToAddress(common.FromHex(tt.expected))
+		if !bytes.Equal(expected.Bytes[:], address.Bytes[:]) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
 		}
 

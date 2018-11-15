@@ -20,9 +20,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/core/state"
 	"github.com/annchain/OG/vm/eth/params"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/instruction"
 )
 
 type dummyContractRef struct {
@@ -30,10 +32,10 @@ type dummyContractRef struct {
 }
 
 func (dummyContractRef) ReturnGas(*big.Int)          {}
-func (dummyContractRef) Address() common.Address     { return common.Address{} }
+func (dummyContractRef) Address() types.Address     { return types.Address{} }
 func (dummyContractRef) Value() *big.Int             { return new(big.Int) }
-func (dummyContractRef) SetCode(common.Hash, []byte) {}
-func (d *dummyContractRef) ForEachStorage(callback func(key, value common.Hash) bool) {
+func (dummyContractRef) SetCode(types.Hash, []byte) {}
+func (d *dummyContractRef) ForEachStorage(callback func(key, value types.Hash) bool) {
 	d.calledForEach = true
 }
 func (d *dummyContractRef) SubBalance(amount *big.Int) {}
@@ -54,16 +56,16 @@ func TestStoreCapture(t *testing.T) {
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()
-		contract = NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
+		contract = vmcommon.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
 	)
 	stack.push(big.NewInt(1))
 	stack.push(big.NewInt(0))
-	var index common.Hash
-	logger.CaptureState(env, 0, SSTORE, 0, 0, mem, stack, contract, 0, nil)
+	var index types.Hash
+	logger.CaptureState(env, 0, instruction.SSTORE, 0, 0, mem, stack, contract, 0, nil)
 	if len(logger.changedValues[contract.Address()]) == 0 {
 		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(), len(logger.changedValues[contract.Address()]))
 	}
-	exp := common.BigToHash(big.NewInt(1))
+	exp := types.BigToHash(big.NewInt(1))
 	if logger.changedValues[contract.Address()][index] != exp {
 		t.Errorf("expected %x, got %x", exp, logger.changedValues[contract.Address()][index])
 	}

@@ -2,11 +2,11 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
 	"sync"
 	"time"
-	"github.com/annchain/OG/ffchan"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
@@ -39,8 +39,8 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.Mess
 		return
 	}
 
-	var txs []*types.Tx
-	var seqs []*types.Sequencer
+	var txs []*types.RawTx
+	var seqs []*types.RawSequencer
 
 	for _, hash := range syncRequest.Hashes {
 		txi := h.Og.TxPool.Get(hash)
@@ -49,22 +49,22 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.Mess
 		}
 		switch tx := txi.(type) {
 		case *types.Sequencer:
-			seqs = append(seqs, tx)
+			seqs = append(seqs, tx.RawSequencer())
 		case *types.Tx:
-			txs = append(txs, tx)
+			txs = append(txs, tx.RawTx())
 		}
 
 	}
 	syncResponse := types.MessageSyncResponse{
-		Txs:        txs,
-		Sequencers: seqs,
+		RawTxs:        txs,
+		RawSequencers: seqs,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
 }
 
 func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerId string) {
 
-	headers := headerMsg.Sequencers
+	headers := types.RawSequencerToSeqSequencers(headerMsg.RawSequencers)
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
 	seqHeaders := types.SeqsToHeaders(headers)
 	filter := len(seqHeaders) == 1
@@ -166,27 +166,28 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 	}
 
 	msgRes := types.MessageHeaderResponse{
-		Sequencers:  headers,
-		RequestedId: query.RequestId,
+		RawSequencers: types.SequencersToRawSequencers(headers),
+		RequestedId:   query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
-	if request.Sequencer != nil {
-		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Trace("got response txs ")
+	if request.RawSequencer != nil {
+		msgLog.WithField("len", len(request.RawTxs)).WithField("seq id", request.RawSequencer.Id).Trace("got response txs ")
 	} else {
 		msgLog.Warn("got nil sequencer")
 		return
 	}
-
+	seq := request.RawSequencer.Sequencer()
 	lseq := h.Og.Dag.LatestSequencer()
 	//todo need more condition
-	if lseq.Number() < request.Sequencer.Number() {
-		<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, request.Sequencer, "HandleTxsResponse").C
+	if lseq.Number() < seq.Number() {
+		<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, seq, "HandleTxsResponse").C
 
-		for tx := range request.Txs{
-			<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
+		for _, rawtx := range request.RawTxs {
+			tx := rawtx.Tx()
+			<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
 		}
 	}
 	return
@@ -201,9 +202,10 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 	} else {
 		seq = h.Og.Dag.GetSequencerById(msgReq.Id)
 	}
-	msgRes.Sequencer = seq
+	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
-		msgRes.Txs = h.Og.Dag.GetTxsByNumber(seq.Id)
+		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
+		msgRes.RawTxs = types.TxsToRawTxs(txs)
 	} else {
 		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
@@ -221,12 +223,12 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 			msgLog.WithError(err).Warn("decode error")
 			break
 		}
-		if body.Sequencer == nil {
+		if body.RawSequencer == nil {
 			msgLog.Warn(" body.Sequencer is nil")
 			break
 		}
-		transactions[i] = body.Txs
-		sequencers[i] = body.Sequencer
+		transactions[i] = types.RawTxsToTxs(body.RawTxs)
+		sequencers[i] = body.RawSequencer.Sequencer()
 	}
 	msgLog.WithField("bodies len", len(request.Bodies)).Trace("got bodies")
 
@@ -266,8 +268,9 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 			break
 		}
 		var body types.MessageTxsResponse
-		body.Sequencer = seq
-		body.Txs = h.Og.Dag.GetTxsByNumber(seq.Id)
+		body.RawSequencer = seq.RawSequencer()
+		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
+		body.RawTxs = types.TxsToRawTxs(txs)
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
 		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))

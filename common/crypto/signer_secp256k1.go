@@ -32,6 +32,10 @@ func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
+func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
+	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1,pubKey))
+}
+
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	pub65Bytes := append([]byte{0x04}, pubKey.Bytes...)
 	pub__, err := secp256k1.ParsePubKey(pub65Bytes, secp256k1.S256())

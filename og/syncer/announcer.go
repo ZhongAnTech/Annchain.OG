@@ -20,12 +20,12 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 	txType := txi.GetType()
 	if txType == types.TxBaseTypeNormal {
 		tx := txi.(*types.Tx)
-		msgTx := types.MessageNewTx{Tx: tx}
+		msgTx := types.MessageNewTx{RawTx :tx.RawTx()}
 		data, _ := msgTx.MarshalMsg(nil)
 		m.messageSender.BroadcastMessage(og.MessageTypeNewTx, data)
 	} else if txType == types.TxBaseTypeSequencer {
 		seq := txi.(*types.Sequencer)
-		msgTx := types.MessageNewSequencer{seq}
+		msgTx := types.MessageNewSequencer{RawSequencer:seq.RawSequencer()}
 		data, _ := msgTx.MarshalMsg(nil)
 		m.messageSender.BroadcastMessage(og.MessageTypeNewSequencer, data)
 	} else {

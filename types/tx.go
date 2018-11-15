@@ -112,3 +112,14 @@ func (t *Tx) Dump() string {
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }
+func (t *Tx) RawTx() *RawTx {
+	if t == nil {
+		return nil
+	}
+	rawTx := &RawTx{
+		TxBase: t.TxBase,
+		To:     t.To,
+		Value:  t.Value,
+	}
+	return rawTx
+}

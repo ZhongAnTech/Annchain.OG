@@ -2,7 +2,15 @@ package types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/math"
+	"strings"
 )
+
+var Signer ISigner
+
+type ISigner interface {
+	AddressFromPubKeyBytes(pubKey []byte) Address
+}
 
 //go:generate msgp
 
@@ -24,40 +32,40 @@ func (m *MessageSyncRequest) String() string {
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	Txs         []*Tx
-	Sequencers  []*Sequencer
-	RequestedId uint32 //avoid msg drop
+	RawTxs        []*RawTx
+	RawSequencers []*RawSequencer
+	RequestedId   uint32 //avoid msg drop
 }
 
 func (m *MessageSyncResponse) String() string {
-	return fmt.Sprintf("txs: [%s], seqs: [%s] ,requestedId :%d", TxsToString(m.Txs), SeqsToString(m.Sequencers), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], seqs: [%s] ,requestedId :%d", RawTxsToString(m.RawTxs), RawSeqsToString(m.RawSequencers), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
 type MessageNewTx struct {
-	Tx *Tx
+	RawTx *RawTx
 }
 
 func (m *MessageNewTx) String() string {
-	return m.Tx.String()
+	return m.RawTx.String()
 }
 
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
-	Sequencer *Sequencer
+	RawSequencer *RawSequencer
 }
 
 func (m *MessageNewSequencer) String() string {
-	return m.Sequencer.String()
+	return m.RawSequencer.String()
 }
 
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {
-	Txs []*Tx
+	RawTxs []*RawTx
 }
 
 func (m *MessageNewTxs) String() string {
-	return TxsToString(m.Txs)
+	return RawTxsToString(m.RawTxs)
 }
 
 //msgp:tuple MessageTxsRequest
@@ -74,13 +82,13 @@ func (m *MessageTxsRequest) String() string {
 
 //msgp:tuple MessageTxsResponse
 type MessageTxsResponse struct {
-	Txs         []*Tx
-	Sequencer   *Sequencer
-	RequestedId uint32 //avoid msg drop
+	RawTxs       []*RawTx
+	RawSequencer *RawSequencer
+	RequestedId  uint32 //avoid msg drop
 }
 
 func (m *MessageTxsResponse) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", TxsToString(m.Txs), m.Sequencer.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", RawTxsToString(m.RawTxs), m.RawSequencer.String(), m.RequestedId)
 }
 
 // getBlockHeadersData represents a block header query.
@@ -120,12 +128,12 @@ func (m *MessageSequencerHeader) String() string {
 
 //msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
-	Sequencers  []*Sequencer
-	RequestedId uint32 //avoid msg drop
+	RawSequencers []*RawSequencer
+	RequestedId   uint32 //avoid msg drop
 }
 
 func (m *MessageHeaderResponse) String() string {
-	return fmt.Sprintf("seqs: [%s] reuqestedId :%d", SeqsToString(m.Sequencers), m.RequestedId)
+	return fmt.Sprintf("seqs: [%s] reuqestedId :%d", RawSeqsToString(m.RawSequencers), m.RequestedId)
 }
 
 //msgp:tuple MessageBodiesRequest
@@ -149,3 +157,115 @@ func (m *MessageBodiesResponse) String() string {
 }
 
 type RawData []byte
+
+// compress data ,for p2p  , small size
+type RawTx struct {
+	TxBase
+	To    Address
+	Value *math.BigInt
+}
+
+type RawSequencer struct {
+	TxBase
+	Id                uint64 `msgp:"id"`
+	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+}
+
+func (t *RawTx) Tx() *Tx {
+	if t == nil {
+		return nil
+	}
+	tx := &Tx{
+		TxBase: t.TxBase,
+		To:     t.To,
+		Value:  t.Value,
+	}
+	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
+	return tx
+}
+
+func (t *RawSequencer) Sequencer() *Sequencer {
+	if t == nil {
+		return nil
+	}
+	tx := &Sequencer{
+		TxBase:            t.TxBase,
+		Id:                t.Id,
+		ContractHashOrder: t.ContractHashOrder,
+	}
+	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
+	return tx
+}
+
+func (t *RawTx) String() string {
+	return fmt.Sprintf("%s-%d-RawTx", t.TxBase.String(), t.AccountNonce)
+}
+
+func (t *RawSequencer) String() string {
+	return fmt.Sprintf("%s-%d-id_%d-Seq", t.TxBase.String(), t.AccountNonce, t.Id)
+}
+
+func RawTxsToTxs(rawTxs []*RawTx) []*Tx {
+	if len(rawTxs) == 0 {
+		return nil
+	}
+	var txs []*Tx
+	for _, v := range rawTxs {
+		tx := v.Tx()
+		txs = append(txs, tx)
+	}
+	return txs
+}
+func RawSequencerToSeqSequencers(rawSeqs []*RawSequencer) []*Sequencer {
+	if len(rawSeqs) == 0 {
+		return nil
+	}
+	var seqs []*Sequencer
+	for _, v := range rawSeqs {
+		seq := v.Sequencer()
+		seqs = append(seqs, seq)
+	}
+	return seqs
+}
+
+func TxsToRawTxs(txs []*Tx) []*RawTx {
+	if len(txs) == 0 {
+		return nil
+	}
+	var rawTxs []*RawTx
+	for _, v := range txs {
+		rasTx := v.RawTx()
+		rawTxs = append(rawTxs, rasTx)
+	}
+	return rawTxs
+}
+
+func SequencersToRawSequencers(seqs []*Sequencer) []*RawSequencer {
+	if len(seqs) == 0 {
+		return nil
+	}
+	var rawSeqs []*RawSequencer
+	for _, v := range seqs {
+		rasSeq := v.RawSequencer()
+		rawSeqs = append(rawSeqs, rasSeq)
+	}
+	return rawSeqs
+}
+
+func RawTxsToString(txs []*RawTx) string {
+	var strs []string
+	for _, v := range txs {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func RawSeqsToString(seqs []*RawSequencer) string {
+	var strs []string
+	for _, v := range seqs {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+

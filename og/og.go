@@ -2,8 +2,8 @@ package og
 
 import (
 	"fmt"
-
 	"github.com/annchain/OG/common/crypto"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -22,7 +22,7 @@ type Og struct {
 
 	BootstrapNode bool
 	NetworkId     uint64
-
+	CryptoType    crypto.CryptoType
 	quit chan bool
 }
 
@@ -57,6 +57,7 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
+	og.CryptoType = config.CryptoType
 	db, derr := CreateDB()
 	if derr != nil {
 		return nil, derr

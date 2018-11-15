@@ -43,7 +43,6 @@ func NewNode() *Node {
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
-
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
 		maxPeers = defaultMaxPeers
@@ -63,7 +62,7 @@ func NewNode() *Node {
 		og.OGConfig{
 			BootstrapNode: bootNode,
 			NetworkId:     uint64(networkId),
-			CryptoType:    cryptoType,
+            CryptoType: cryptoType,
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -88,7 +87,7 @@ func NewNode() *Node {
 
 	// Setup crypto algorithm
 	signer := crypto.NewSigner(cryptoType)
-
+    types.Signer = signer
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,

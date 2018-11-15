@@ -7,6 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	GlobalCryptoType crypto.CryptoType
+)
+
 // GraphVerifier verifies if the tx meets the standards
 type Verifier interface {
 	Verify(t types.Txi) bool

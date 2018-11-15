@@ -24,9 +24,10 @@ import (
 	"github.com/annchain/OG/vm/eth/accounts/abi"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/core/state"
-	"github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/eth/ethdb"
 	"github.com/annchain/OG/vm/eth/params"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/instruction"
 )
 
 func TestDefaults(t *testing.T) {
@@ -65,24 +66,24 @@ func TestEVM(t *testing.T) {
 	}()
 
 	Execute([]byte{
-		byte(vm.DIFFICULTY),
-		byte(vm.TIMESTAMP),
-		byte(vm.GASLIMIT),
-		byte(vm.PUSH1),
-		byte(vm.ORIGIN),
-		byte(vm.BLOCKHASH),
-		byte(vm.COINBASE),
+		byte(instruction.DIFFICULTY),
+		byte(instruction.TIMESTAMP),
+		byte(instruction.GASLIMIT),
+		byte(instruction.PUSH1),
+		byte(instruction.ORIGIN),
+		byte(instruction.BLOCKHASH),
+		byte(instruction.COINBASE),
 	}, nil, nil)
 }
 
 func TestExecute(t *testing.T) {
 	ret, _, err := Execute([]byte{
-		byte(vm.PUSH1), 10,
-		byte(vm.PUSH1), 0,
-		byte(vm.MSTORE),
-		byte(vm.PUSH1), 32,
-		byte(vm.PUSH1), 0,
-		byte(vm.RETURN),
+		byte(instruction.PUSH1), 10,
+		byte(instruction.PUSH1), 0,
+		byte(instruction.MSTORE),
+		byte(instruction.PUSH1), 32,
+		byte(instruction.PUSH1), 0,
+		byte(instruction.RETURN),
 	}, nil, nil)
 	if err != nil {
 		t.Fatal("didn't expect error", err)
@@ -95,15 +96,15 @@ func TestExecute(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
-	address := common.HexToAddress("0x0a")
+	state, _ := state.New(types.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+	address := types.HexToAddress("0x0a")
 	state.SetCode(address, []byte{
-		byte(vm.PUSH1), 10,
-		byte(vm.PUSH1), 0,
-		byte(vm.MSTORE),
-		byte(vm.PUSH1), 32,
-		byte(vm.PUSH1), 0,
-		byte(vm.RETURN),
+		byte(instruction.PUSH1), 10,
+		byte(instruction.PUSH1), 0,
+		byte(instruction.MSTORE),
+		byte(instruction.PUSH1), 32,
+		byte(instruction.PUSH1), 0,
+		byte(instruction.RETURN),
 	})
 
 	ret, _, err := Call(address, nil, &Config{State: state})
@@ -151,9 +152,9 @@ func BenchmarkCall(b *testing.B) {
 }
 func benchmarkEVM_Create(bench *testing.B, code string) {
 	var (
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
-		sender     = common.BytesToAddress([]byte("sender"))
-		receiver   = common.BytesToAddress([]byte("receiver"))
+		statedb, _ = state.New(types.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		sender     = types.BytesToAddress([]byte("sender"))
+		receiver   = types.BytesToAddress([]byte("receiver"))
 	)
 
 	statedb.CreateAccount(sender)
@@ -164,20 +165,12 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		GasLimit:    10000000,
 		Difficulty:  big.NewInt(0x200000),
 		Time:        new(big.Int).SetUint64(0),
-		Coinbase:    common.Address{},
+		Coinbase:    types.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
 		ChainConfig: &params.ChainConfig{
 			ChainID:             big.NewInt(1),
-			HomesteadBlock:      new(big.Int),
-			ByzantiumBlock:      new(big.Int),
-			ConstantinopleBlock: new(big.Int),
-			DAOForkBlock:        new(big.Int),
-			DAOForkSupport:      false,
-			EIP150Block:         new(big.Int),
-			EIP155Block:         new(big.Int),
-			EIP158Block:         new(big.Int),
 		},
-		EVMConfig: vm.Config{},
+		EVMConfig: instruction.Config{},
 	}
 	// Warm up the intpools and stuff
 	bench.ResetTimer()

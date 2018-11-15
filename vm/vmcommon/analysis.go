@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package vmcommon
+
+import "github.com/annchain/OG/vm/instruction"
 
 // bitvec is a bit vector which maps bytes in a program.
 // An unset bit means the byte is an opcode, a set bit means
@@ -41,10 +43,10 @@ func codeBitmap(code []byte) bitvec {
 	// bitvector outside the bounds of the actual code.
 	bits := make(bitvec, len(code)/8+1+4)
 	for pc := uint64(0); pc < uint64(len(code)); {
-		op := OpCode(code[pc])
+		op := instruction.OpCode(code[pc])
 
-		if op >= PUSH1 && op <= PUSH32 {
-			numbits := op - PUSH1 + 1
+		if op >= instruction.PUSH1 && op <= instruction.PUSH32 {
+			numbits := op - instruction.PUSH1 + 1
 			pc++
 			for ; numbits >= 8; numbits -= 8 {
 				bits.set8(pc) // 8

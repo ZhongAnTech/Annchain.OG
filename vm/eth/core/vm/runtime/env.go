@@ -17,16 +17,16 @@
 package runtime
 
 import (
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/core"
 	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/types"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
-		GetHash:     func(uint64) common.Hash { return common.Hash{} },
+		GetHash:     func(uint64) types.Hash { return types.Hash{} },
 
 		Origin:      cfg.Origin,
 		Coinbase:    cfg.Coinbase,

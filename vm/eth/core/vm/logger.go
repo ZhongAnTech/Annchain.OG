@@ -23,14 +23,15 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/vm/eth/core/types"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/instruction"
 )
 
 // Storage represents a contract's storage.
-type Storage map[common.Hash]common.Hash
+type Storage map[types.Hash]types.Hash
 
 // Copy duplicates the current storage.
 func (s Storage) Copy() Storage {
@@ -56,17 +57,17 @@ type LogConfig struct {
 // StructLog is emitted to the EVM each cycle and lists information about the current internal state
 // prior to the execution of the statement.
 type StructLog struct {
-	Pc            uint64                      `json:"pc"`
-	Op            OpCode                      `json:"op"`
-	Gas           uint64                      `json:"gas"`
-	GasCost       uint64                      `json:"gasCost"`
-	Memory        []byte                      `json:"memory"`
-	MemorySize    int                         `json:"memSize"`
-	Stack         []*big.Int                  `json:"stack"`
-	Storage       map[common.Hash]common.Hash `json:"-"`
-	Depth         int                         `json:"depth"`
-	RefundCounter uint64                      `json:"refund"`
-	Err           error                       `json:"-"`
+	Pc            uint64                    `json:"pc"`
+	Op            instruction.OpCode        `json:"op"`
+	Gas           uint64                    `json:"gas"`
+	GasCost       uint64                    `json:"gasCost"`
+	Memory        []byte                    `json:"memory"`
+	MemorySize    int                       `json:"memSize"`
+	Stack         []*big.Int                `json:"stack"`
+	Storage       map[types.Hash]types.Hash `json:"-"`
+	Depth         int                       `json:"depth"`
+	RefundCounter uint64                    `json:"refund"`
+	Err           error                     `json:"-"`
 }
 
 // overrides for gencodec
@@ -98,9 +99,9 @@ func (s *StructLog) ErrorString() string {
 // Note that reference types are actual VM data structures; make copies
 // if you need to retain them beyond the current call.
 type Tracer interface {
-	CaptureStart(from common.Address, to common.Address, call bool, input []byte, gas uint64, value *big.Int) error
-	CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error
-	CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error
+	CaptureStart(from types.Address, to types.Address, call bool, input []byte, gas uint64, value *big.Int) error
+	CaptureState(env *EVM, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error
+	CaptureFault(env *EVM, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error
 	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
 }
 
@@ -113,7 +114,7 @@ type StructLogger struct {
 	cfg LogConfig
 
 	logs          []StructLog
-	changedValues map[common.Address]Storage
+	changedValues map[types.Address]Storage
 	output        []byte
 	err           error
 }
@@ -121,7 +122,7 @@ type StructLogger struct {
 // NewStructLogger returns a new logger
 func NewStructLogger(cfg *LogConfig) *StructLogger {
 	logger := &StructLogger{
-		changedValues: make(map[common.Address]Storage),
+		changedValues: make(map[types.Address]Storage),
 	}
 	if cfg != nil {
 		logger.cfg = *cfg
@@ -130,14 +131,14 @@ func NewStructLogger(cfg *LogConfig) *StructLogger {
 }
 
 // CaptureStart implements the Tracer interface to initialize the tracing operation.
-func (l *StructLogger) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) error {
+func (l *StructLogger) CaptureStart(from types.Address, to types.Address, create bool, input []byte, gas uint64, value *big.Int) error {
 	return nil
 }
 
 // CaptureState logs a new structured log message and pushes it out to the environment
 //
 // CaptureState also tracks SSTORE ops to track dirty values.
-func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error {
+func (l *StructLogger) CaptureState(env *EVM, pc uint64, op vmcommon.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
 		return ErrTraceLimitReached
@@ -151,10 +152,10 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 
 	// capture SSTORE opcodes and determine the changed value and store
 	// it in the local storage container.
-	if op == SSTORE && stack.len() >= 2 {
+	if op == instruction.SSTORE && stack.len() >= 2 {
 		var (
-			value   = common.BigToHash(stack.data[stack.len()-2])
-			address = common.BigToHash(stack.data[stack.len()-1])
+			value   = types.BigToHash(stack.data[stack.len()-2])
+			address = types.BigToHash(stack.data[stack.len()-1])
 		)
 		l.changedValues[contract.Address()][address] = value
 	}
@@ -186,7 +187,7 @@ func (l *StructLogger) CaptureState(env *EVM, pc uint64, op OpCode, gas, cost ui
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *Contract, depth int, err error) error {
+func (l *StructLogger) CaptureFault(env *EVM, pc uint64, op vmcommon.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmcommon.Contract, depth int, err error) error {
 	return nil
 }
 

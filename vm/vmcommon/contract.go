@@ -14,17 +14,31 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package vmcommon
 
 import (
 	"math/big"
-
-	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/vm/instruction"
 )
+
+type CodeAndHash struct {
+	Code []byte
+	CodeHash types.Hash
+}
+
+func (c *CodeAndHash) Hash() types.Hash {
+	if c.CodeHash == (types.Hash{}) {
+		c.CodeHash = crypto.Keccak256Hash(c.Code)
+	}
+	return c.CodeHash
+}
+
 
 // ContractRef is a reference to the contract's backing object
 type ContractRef interface {
-	Address() common.Address
+	Address() types.Address
 }
 
 // AccountRef implements ContractRef.
@@ -34,27 +48,27 @@ type ContractRef interface {
 // proves difficult because of the cached jump destinations which
 // are fetched from the parent contract (i.e. the caller), which
 // is a ContractRef.
-type AccountRef common.Address
+type AccountRef types.Address
 
 // Address casts AccountRef to a Address
-func (ar AccountRef) Address() common.Address { return (common.Address)(ar) }
+func (ar AccountRef) Address() types.Address { return (types.Address)(ar) }
 
 // Contract represents an ethereum contract in the state database. It contains
 // the contract code, calling arguments. Contract implements ContractRef
 type Contract struct {
 	// CallerAddress is the result of the caller which initialised this
-	// contract. However when the "call method" is delegated this value
+	// contract. However when the "call method" is delegated this Value
 	// needs to be initialised to that of the caller's caller.
-	CallerAddress common.Address
+	CallerAddress types.Address
 	caller        ContractRef
 	self          ContractRef
 
-	jumpdests map[common.Hash]bitvec // Aggregated result of JUMPDEST analysis.
+	jumpdests map[types.Hash]bitvec // Aggregated result of JUMPDEST analysis.
 	analysis  bitvec                 // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
-	CodeHash common.Hash
-	CodeAddr *common.Address
+	CodeHash types.Hash
+	CodeAddr *types.Address
 	Input    []byte
 
 	Gas   uint64
@@ -69,13 +83,13 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 		// Reuse JUMPDEST analysis from parent context if available.
 		c.jumpdests = parent.jumpdests
 	} else {
-		c.jumpdests = make(map[common.Hash]bitvec)
+		c.jumpdests = make(map[types.Hash]bitvec)
 	}
 
 	// Gas should be a pointer so it can safely be reduced through the run
 	// This pointer will be off the state transition
 	c.Gas = gas
-	// ensures a value is set
+	// ensures a Value is set
 	c.value = value
 
 	return c
@@ -89,11 +103,11 @@ func (c *Contract) validJumpdest(dest *big.Int) bool {
 		return false
 	}
 	// Only JUMPDESTs allowed for destinations
-	if OpCode(c.Code[udest]) != JUMPDEST {
+	if instruction.OpCode(c.Code[udest]) != instruction.JUMPDEST {
 		return false
 	}
 	// Do we have a contract hash already?
-	if c.CodeHash != (common.Hash{}) {
+	if c.CodeHash != (types.Hash{}) {
 		// Does parent context have the analysis?
 		analysis, exist := c.jumpdests[c.CodeHash]
 		if !exist {
@@ -127,8 +141,8 @@ func (c *Contract) AsDelegate() *Contract {
 }
 
 // GetOp returns the n'th element in the contract's byte array
-func (c *Contract) GetOp(n uint64) OpCode {
-	return OpCode(c.GetByte(n))
+func (c *Contract) GetOp(n uint64) instruction.OpCode {
+	return instruction.OpCode(c.GetByte(n))
 }
 
 // GetByte returns the n'th byte in the contract's byte array
@@ -144,7 +158,7 @@ func (c *Contract) GetByte(n uint64) byte {
 //
 // Caller will recursively call caller when the contract is a delegate
 // call, including that of caller's caller.
-func (c *Contract) Caller() common.Address {
+func (c *Contract) Caller() types.Address {
 	return c.CallerAddress
 }
 
@@ -158,18 +172,18 @@ func (c *Contract) UseGas(gas uint64) (ok bool) {
 }
 
 // Address returns the contracts address
-func (c *Contract) Address() common.Address {
+func (c *Contract) Address() types.Address {
 	return c.self.Address()
 }
 
-// Value returns the contracts value (sent to it from it's caller)
+// Value returns the contracts Value (sent to it from it's caller)
 func (c *Contract) Value() *big.Int {
 	return c.value
 }
 
 // SetCallCode sets the code of the contract and address of the backing data
 // object
-func (c *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []byte) {
+func (c *Contract) SetCallCode(addr *types.Address, hash types.Hash, code []byte) {
 	c.Code = code
 	c.CodeHash = hash
 	c.CodeAddr = addr
@@ -177,8 +191,8 @@ func (c *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []by
 
 // SetCodeOptionalHash can be used to provide code, but it's optional to provide hash.
 // In case hash is not provided, the jumpdest analysis will not be saved to the parent context
-func (c *Contract) SetCodeOptionalHash(addr *common.Address, codeAndHash *codeAndHash) {
-	c.Code = codeAndHash.code
-	c.CodeHash = codeAndHash.hash
+func (c *Contract) SetCodeOptionalHash(addr *types.Address, codeAndHash *CodeAndHash) {
+	c.Code = codeAndHash.Code
+	c.CodeHash = codeAndHash.CodeHash
 	c.CodeAddr = addr
 }

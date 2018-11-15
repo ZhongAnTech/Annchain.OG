@@ -121,22 +121,19 @@ func gasSStore(gt params.GasTable, evm *EVM, contract *vmcommon.Contract, stack 
 		y, x    = stack.Back(1), stack.Back(0)
 		current = evm.StateDB.GetState(contract.Address(), types.BigToHash(x))
 	)
-	// The legacy gas metering only takes into consideration the current state
-	if !evm.chainRules.IsConstantinople {
-		// This checks for 3 scenario's and calculates gas accordingly:
-		//
-		// 1. From a zero-value address to a non-zero value         (NEW VALUE)
-		// 2. From a non-zero value address to a zero-value address (DELETE)
-		// 3. From a non-zero to a non-zero                         (CHANGE)
-		switch {
-		case current == (types.Hash{}) && y.Sign() != 0: // 0 => non 0
-			return params.SstoreSetGas, nil
-		case current != (types.Hash{}) && y.Sign() == 0: // non 0 => 0
-			evm.StateDB.AddRefund(params.SstoreRefundGas)
-			return params.SstoreClearGas, nil
-		default: // non 0 => non 0 (or 0 => 0)
-			return params.SstoreResetGas, nil
-		}
+	// This checks for 3 scenario's and calculates gas accordingly:
+	//
+	// 1. From a zero-value address to a non-zero value         (NEW VALUE)
+	// 2. From a non-zero value address to a zero-value address (DELETE)
+	// 3. From a non-zero to a non-zero                         (CHANGE)
+	switch {
+	case current == (types.Hash{}) && y.Sign() != 0: // 0 => non 0
+		return params.SstoreSetGas, nil
+	case current != (types.Hash{}) && y.Sign() == 0: // non 0 => 0
+		evm.StateDB.AddRefund(params.SstoreRefundGas)
+		return params.SstoreClearGas, nil
+	default: // non 0 => non 0 (or 0 => 0)
+		return params.SstoreResetGas, nil
 	}
 	// The new gas metering is based on net gas costs (EIP-1283):
 	//
@@ -392,13 +389,8 @@ func gasCall(gt params.GasTable, evm *EVM, contract *vmcommon.Contract, stack *S
 		gas            = gt.Calls
 		transfersValue = stack.Back(2).Sign() != 0
 		address        = types.BigToAddress(stack.Back(1))
-		eip158         = evm.ChainConfig().IsEIP158(evm.BlockNumber)
 	)
-	if eip158 {
-		if transfersValue && evm.StateDB.Empty(address) {
-			gas += params.CallNewAccountGas
-		}
-	} else if !evm.StateDB.Exist(address) {
+	if transfersValue && evm.StateDB.Empty(address) {
 		gas += params.CallNewAccountGas
 	}
 	if transfersValue {
@@ -457,22 +449,13 @@ func gasRevert(gt params.GasTable, evm *EVM, contract *vmcommon.Contract, stack 
 
 func gasSuicide(gt params.GasTable, evm *EVM, contract *vmcommon.Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var gas uint64
-	// EIP150 homestead gas reprice fork:
-	if evm.ChainConfig().IsEIP150(evm.BlockNumber) {
-		gas = gt.Suicide
-		var (
-			address = types.BigToAddress(stack.Back(0))
-			eip158  = evm.ChainConfig().IsEIP158(evm.BlockNumber)
-		)
-
-		if eip158 {
-			// if empty and transfers value
-			if evm.StateDB.Empty(address) && evm.StateDB.GetBalance(contract.Address()).Sign() != 0 {
-				gas += gt.CreateBySuicide
-			}
-		} else if !evm.StateDB.Exist(address) {
-			gas += gt.CreateBySuicide
-		}
+	gas = gt.Suicide
+	var (
+		address = types.BigToAddress(stack.Back(0))
+	)
+	// if empty and transfers value
+	if evm.StateDB.Empty(address) && evm.StateDB.GetBalance(contract.Address()).Sign() != 0 {
+		gas += gt.CreateBySuicide
 	}
 
 	if !evm.StateDB.HasSuicided(contract.Address()) {

@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/vm/eth/core/vm"
-	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/vm/eth/params"
@@ -12,7 +11,7 @@ import (
 
 func ExampleExecute() {
 
-	txContext := &vmcommon.TxContext{
+	txContext := &ovm.TxContext{
 		From:     types.HexToAddress("0x01"),
 		To:       types.HexToAddress("0x02"),
 		Value:    math.NewBigInt(10),
@@ -22,15 +21,15 @@ func ExampleExecute() {
 	}
 	coinBase := types.HexToAddress("0x03")
 
-	context := vmcommon.NewEVMContext(txContext, &vmcommon.DefaultChainContext{}, &coinBase)
-	db := &vmcommon.MemoryStateDB{}
+	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase)
+	db := &ovm.MemoryStateDB{}
 
-	evm := vm.NewEVM(context, db, &params.ChainConfig{ChainID: 0}, vm.Config{})
+	evm := ovm.NewOVM(context, db, &params.ChainConfig{ChainID: 0}, ovm.Config{})
 
-	ret, contractAddr, leftOverGas, err := evm.Create(vmcommon.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err := evm.Create(ovm.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(ret, contractAddr, leftOverGas, err)
 
-	ret, leftOverGas, err = evm.Call(vmcommon.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = evm.Call(ovm.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(ret, contractAddr, leftOverGas, err)
 }
 

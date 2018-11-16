@@ -1,11 +1,11 @@
-package vmcommon
+package ovm
 
 import (
 	"math/big"
 	"github.com/annchain/OG/types"
 )
 
-// StateDB is an EVM database for full state querying.
+// StateDB is an OVM database for full state querying.
 type StateDB interface {
 	CreateAccount(types.Address)
 

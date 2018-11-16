@@ -18,19 +18,19 @@ package vm
 
 import (
 	"math/big"
-	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/types"
 )
 
-// CallContext provides a basic interface for the EVM calling conventions. The EVM
-// depends on this context being implemented for doing subcalls and initialising new EVM contracts.
+// CallContext provides a basic interface for the OVM calling conventions. The OVM
+// depends on this context being implemented for doing subcalls and initialising new OVM contracts.
 type CallContext interface {
 	// Call another contract
-	Call(env *EVM, me vmcommon.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
+	Call(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
 	// Take another's contract code and execute within our own context
-	CallCode(env *EVM, me vmcommon.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
+	CallCode(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
 	// Same as CallCode except sender and value is propagated from parent to child scope
-	DelegateCall(env *EVM, me vmcommon.ContractRef, addr types.Address, data []byte, gas *big.Int) ([]byte, error)
+	DelegateCall(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas *big.Int) ([]byte, error)
 	// Create a new contract
-	Create(env *EVM, me vmcommon.ContractRef, data []byte, gas, value *big.Int) ([]byte, types.Address, error)
+	Create(env *ovm.OVM, me ovm.ContractRef, data []byte, gas, value *big.Int) ([]byte, types.Address, error)
 }

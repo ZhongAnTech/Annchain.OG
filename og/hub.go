@@ -346,7 +346,7 @@ func (h *Hub) loopReceive() {
 func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
-	msgLog.WithField("type", messageType).Trace("broadcast message")
+	msgLog.WithField("size ",len(msg)).WithField("type", messageType).Trace("broadcast message")
 	h.outgoing <- msgOut
 }
 
@@ -354,7 +354,7 @@ func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
 	msgOut.init()
 	msgOut.BroadCastToRandom = true
-	msgLog.WithField("type", messageType).Trace("unicast message")
+	msgLog.WithField("size",len(msg)).WithField("type", messageType).Trace("unicast message")
 	h.outgoing <- msgOut
 }
 
@@ -370,7 +370,7 @@ func (h *Hub) SendBytesToPeer(peerId string, messageType MessageType, msg []byte
 	if p == nil {
 		return fmt.Errorf("peer not found")
 	}
-	return p.sendRawMessage(uint64(messageType), msg)
+	return p.sendRawMessage(messageType, msg)
 }
 
 // SetPeerHead is just a hack to set the latest seq number known of the peer

@@ -23,34 +23,10 @@ import (
 
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/vm/vmcommon"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/instruction"
+	"github.com/annchain/OG/vm/ovm"
 )
-
-// Config are the configuration options for the Interpreter
-type Config struct {
-	// Debug enabled debugging Interpreter options
-	Debug bool
-	// Tracer is the op code logger
-	Tracer Tracer
-	// NoRecursion disabled Interpreter call, callcode,
-	// delegate call and create.
-	NoRecursion bool
-	// Enable recording of SHA3/keccak preimages
-	EnablePreimageRecording bool
-	// JumpTable contains the EVM instruction table. This
-	// may be left uninitialised and will be set to the default
-	// table.
-	JumpTable [256]operation
-
-	// Type of the EWASM interpreter
-	EWASMInterpreter string
-	// Type of the EVM interpreter
-	EVMInterpreter string
-}
-
-
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
 // Read to get a variable amount of data from the hash state. Read is faster than Sum
@@ -60,34 +36,29 @@ type keccakState interface {
 	Read([]byte) (int, error)
 }
 
-// EVMInterpreter represents an EVM interpreter
+// EVMInterpreter represents an OVM interpreter
+//
 type EVMInterpreter struct {
-	evm      *EVM
-	cfg      Config
+	ovm      *ovm.OVM
+	cfg      ovm.Config
 	gasTable params.GasTable
 
 	intPool *intPool
 
-	hasher    keccakState // Keccak256 hasher instance shared across opcodes
-	hasherBuf types.Hash // Keccak256 hasher result array shared aross opcodes
-
-	readOnly   bool   // Whether to throw on stateful modifications
-	returnData []byte // Last CALL's return data for subsequent reuse
+	hasher     keccakState    // Keccak256 hasher instance shared across opcodes
+	hasherBuf  types.Hash     // Keccak256 hasher result array shared aross opcodes
+	jumpTable  [256]operation // JumpTable contains the OVM instruction table.
+	readOnly   bool           // Whether to throw on stateful modifications
+	returnData []byte         // Last CALL's return data for subsequent reuse
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
-	// We use the STOP instruction whether to see
-	// the jump table was initialised. If it was not
-	// we'll set the default jump table.
-	if !cfg.JumpTable[instruction.STOP].valid {
-		cfg.JumpTable = byzantiumInstructionSet
-	}
-
+func NewEVMInterpreter(ovm *ovm.OVM, cfg ovm.Config) *EVMInterpreter {
 	return &EVMInterpreter{
-		evm:      evm,
-		cfg:      cfg,
-		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
+		ovm:       ovm,
+		cfg:       cfg,
+		gasTable:  ovm.ChainConfig.GasTable(ovm.SequenceID),
+		jumpTable: byzantiumInstructionSet,
 	}
 }
 
@@ -99,7 +70,7 @@ func (in *EVMInterpreter) enforceRestrictions(op instruction.OpCode, operation o
 		// account to the others means the state is modified and should also
 		// return with an error.
 		if operation.writes || (op == instruction.CALL && stack.Back(2).BitLen() > 0) {
-			return errWriteProtection
+			return ovm.ErrWriteProtection
 		}
 	}
 	return nil
@@ -111,7 +82,7 @@ func (in *EVMInterpreter) enforceRestrictions(op instruction.OpCode, operation o
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -121,8 +92,8 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 	}
 
 	// Increment the call depth which is restricted to 1024
-	in.evm.depth++
-	defer func() { in.evm.depth-- }()
+	in.ovm.Depth++
+	defer func() { in.ovm.Depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
 	// This makes also sure that the readOnly flag isn't removed for child calls.
@@ -141,9 +112,9 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 	}
 
 	var (
-		op    instruction.OpCode        // current opcode
-		mem   = NewMemory() // bound memory
-		stack = newstack()  // local stack
+		op    instruction.OpCode // current opcode
+		mem   = NewMemory()      // bound memory
+		stack = newstack()       // local stack
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC
 		// to be uint256. Practically much less so feasible.
@@ -163,9 +134,9 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureState(in.ovm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureFault(in.ovm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
 				}
 			}
 		}()
@@ -174,7 +145,7 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	for atomic.LoadInt32(&in.evm.abort) == 0 {
+	for atomic.LoadInt32(&in.ovm.Abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
@@ -183,7 +154,7 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
-		operation := in.cfg.JumpTable[op]
+		operation := in.jumpTable[op]
 		if !operation.valid {
 			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
 		}
@@ -211,16 +182,16 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
-		cost, err = operation.gasCost(in.gasTable, in.evm, contract, stack, mem, memorySize)
+		cost, err = operation.gasCost(in.gasTable, in.ovm, contract, stack, mem, memorySize)
 		if err != nil || !contract.UseGas(cost) {
-			return nil, ErrOutOfGas
+			return nil, ovm.ErrOutOfGas
 		}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, contract, in.evm.depth, err)
+			in.cfg.Tracer.CaptureState(in.ovm, pc, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
 			logged = true
 		}
 
@@ -241,7 +212,7 @@ func (in *EVMInterpreter) Run(contract *vmcommon.Contract, input []byte, readOnl
 		case err != nil:
 			return nil, err
 		case operation.reverts:
-			return res, errExecutionReverted
+			return res, ovm.ErrExecutionReverted
 		case operation.halts:
 			return res, nil
 		case !operation.jumps:

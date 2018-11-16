@@ -27,11 +27,11 @@ import (
 	"github.com/annchain/OG/vm/eth/ethdb"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/vm/vmcommon"
+	"github.com/annchain/OG/vm/ovm"
 )
 
 // Config is a basic type specifying certain configuration flags for running
-// the EVM.
+// the OVM.
 type Config struct {
 	ChainConfig *params.ChainConfig
 	Difficulty  *big.Int
@@ -44,7 +44,7 @@ type Config struct {
 	Value       *big.Int
 	Debug       bool
 	EVMConfig   vm.Config
-	State       vmcommon.StateDB
+	State       ovm.StateDB
 	GetHashFn   func(n uint64) types.Hash
 }
 
@@ -52,7 +52,7 @@ type Config struct {
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
-			ChainID:        big.NewInt(1),
+			ChainID:        1,
 		}
 	}
 
@@ -82,11 +82,11 @@ func setDefaults(cfg *Config) {
 }
 
 // Execute executes the code using the input as call data during the execution.
-// It returns the EVM's return value, the new state and an error if it failed.
+// It returns the OVM's return value, the new state and an error if it failed.
 //
 // Executes sets up a in memory, temporarily, environment for the execution of
 // the given code. It makes sure that it's restored to it's original state afterwards.
-func Execute(code, input []byte, cfg *Config) ([]byte, vmcommon.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, ovm.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
@@ -98,7 +98,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, vmcommon.StateDB, error) 
 	var (
 		address = types.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
-		sender  = vmcommon.AccountRef(cfg.Origin)
+		sender  = ovm.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
@@ -115,7 +115,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, vmcommon.StateDB, error) 
 	return ret, cfg.State, err
 }
 
-// Create executes the code using the EVM create method
+// Create executes the code using the OVM create method
 func Create(input []byte, cfg *Config) ([]byte, types.Address, uint64, error) {
 	if cfg == nil {
 		cfg = new(Config)
@@ -127,7 +127,7 @@ func Create(input []byte, cfg *Config) ([]byte, types.Address, uint64, error) {
 	}
 	var (
 		vmenv  = NewEnv(cfg)
-		sender = vmcommon.AccountRef(cfg.Origin)
+		sender = ovm.AccountRef(cfg.Origin)
 	)
 
 	// Call the code with the given configuration.
@@ -141,7 +141,7 @@ func Create(input []byte, cfg *Config) ([]byte, types.Address, uint64, error) {
 }
 
 // Call executes the code given by the contract's address. It will return the
-// EVM's return value or an error if it failed.
+// OVM's return value or an error if it failed.
 //
 // Call, unlike Execute, requires a config and also requires the State field to
 // be set.

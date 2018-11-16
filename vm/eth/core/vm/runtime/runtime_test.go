@@ -168,7 +168,7 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		Coinbase:    types.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
 		ChainConfig: &params.ChainConfig{
-			ChainID:             big.NewInt(1),
+			ChainID: 1,
 		},
 		EVMConfig: instruction.Config{},
 	}

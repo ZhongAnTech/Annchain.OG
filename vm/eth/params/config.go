@@ -49,7 +49,7 @@ func (c *ChainConfig) String() string {
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
 //
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
-func (c *ChainConfig) GasTable(num *big.Int) GasTable {
+func (c *ChainConfig) GasTable(num uint64) GasTable {
 	return GasTableConstantinople
 }
 

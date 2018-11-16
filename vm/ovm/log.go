@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vmcommon
+package ovm
 
 import (
 	"io"
@@ -40,7 +40,7 @@ type Log struct {
 	// Derived fields. These fields are filled in by the node
 	// but not secured by consensus.
 	// block in which the transaction was included
-	BlockNumber uint64 `json:"blockNumber"`
+	SequenceID uint64 `json:"blockNumber"`
 	// hash of the transaction
 	TxHash types.Hash `json:"transactionHash" gencodec:"required"`
 	// index of the transaction in the block
@@ -104,7 +104,7 @@ func (l *LogForStorage) EncodeRLP(w io.Writer) error {
 		Address:     l.Address,
 		Topics:      l.Topics,
 		Data:        l.Data,
-		BlockNumber: l.BlockNumber,
+		BlockNumber: l.SequenceID,
 		TxHash:      l.TxHash,
 		TxIndex:     l.TxIndex,
 		BlockHash:   l.BlockHash,
@@ -118,14 +118,14 @@ func (l *LogForStorage) DecodeRLP(s *rlp.Stream) error {
 	err := s.Decode(&dec)
 	if err == nil {
 		*l = LogForStorage{
-			Address:     dec.Address,
-			Topics:      dec.Topics,
-			Data:        dec.Data,
-			BlockNumber: dec.BlockNumber,
-			TxHash:      dec.TxHash,
-			TxIndex:     dec.TxIndex,
-			BlockHash:   dec.BlockHash,
-			Index:       dec.Index,
+			Address:    dec.Address,
+			Topics:     dec.Topics,
+			Data:       dec.Data,
+			SequenceID: dec.BlockNumber,
+			TxHash:     dec.TxHash,
+			TxIndex:    dec.TxIndex,
+			BlockHash:  dec.BlockHash,
+			Index:      dec.Index,
 		}
 	}
 	return err

@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,28 +14,17 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package ovm
 
-import (
-	//"github.com/annchain/OG/vm/eth/core"
-	"github.com/annchain/OG/vm/eth/core/vm"
-	"github.com/annchain/OG/vm/vmcommon"
+import "math/big"
+
+// Common big integers often used
+var (
+	Big1   = big.NewInt(1)
+	Big2   = big.NewInt(2)
+	Big3   = big.NewInt(3)
+	Big0   = big.NewInt(0)
+	Big32  = big.NewInt(32)
+	Big256 = big.NewInt(256)
+	Big257 = big.NewInt(257)
 )
-
-func NewEnv(cfg *Config) *vm.EVM {
-	context := vm.Context{
-		CanTransfer: vmcommon.CanTransfer,
-		Transfer:    vmcommon.Transfer,
-		//GetHash:     func(uint64) types.Hash { return types.Hash{} },
-
-		Origin:      cfg.Origin,
-		Coinbase:    cfg.Coinbase,
-		//BlockNumber: cfg.BlockNumber,
-		//Time:        cfg.Time,
-		//Difficulty:  cfg.Difficulty,
-		GasLimit:    cfg.GasLimit,
-		GasPrice:    cfg.GasPrice,
-	}
-
-	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
-}

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package ovm
 
 import (
 	"math/big"
@@ -23,7 +23,6 @@ import (
 	"github.com/annchain/OG/vm/eth/core/state"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/vm/vmcommon"
 	"github.com/annchain/OG/vm/instruction"
 )
 
@@ -52,11 +51,11 @@ func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewEVM(Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
+		env      = NewOVM(Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()
-		contract = vmcommon.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
+		contract = ovm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
 	)
 	stack.push(big.NewInt(1))
 	stack.push(big.NewInt(0))

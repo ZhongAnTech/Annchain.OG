@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package ovm
 
 import "errors"
 
@@ -28,3 +28,17 @@ var (
 	ErrContractAddressCollision = errors.New("contract address collision")
 	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
 )
+
+var (
+	// ErrGasLimitReached is returned by the gas pool if the amount of gas required
+	// by a transaction is higher than what's left in the block.
+	ErrGasLimitReached = errors.New("gas limit reached")
+)
+
+var(
+	ErrWriteProtection       = errors.New("ovm: write protection")
+	ErrReturnDataOutOfBounds = errors.New("ovm: return data out of bounds")
+	ErrExecutionReverted     = errors.New("ovm: execution reverted")
+	ErrMaxCodeSizeExceeded   = errors.New("ovm: max code size exceeded")
+)
+

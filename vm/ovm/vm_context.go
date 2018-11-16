@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vmcommon
+package ovm
 
 import (
 	"math/big"
-	"github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/math"
 )
@@ -38,22 +37,20 @@ type TxContext struct {
 // ChainContext supports retrieving headers and consensus parameters from the
 // current blockchain to be used during transaction processing.
 type ChainContext interface {
-
 }
 
-type DefaultChainContext struct{
-
+type DefaultChainContext struct {
 }
 
-// NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address) vm.Context {
-	return vm.Context{
+// NewEVMContext creates a new context for use in the OVM.
+func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address) Context {
+	return Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		Origin:      txContext.From,
 		//Coinbase:    beneficiary,
 		GasLimit: txContext.GasLimit,
-		GasPrice: txContext.GasPrice,
+		GasPrice: txContext.GasPrice.Value,
 	}
 }
 
@@ -67,4 +64,17 @@ func CanTransfer(db StateDB, addr types.Address, amount *big.Int) bool {
 func Transfer(db StateDB, sender, recipient types.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+}
+
+// Config are the configuration options for the Interpreter
+type Config struct {
+	// Debug enabled debugging Interpreter options
+	Debug bool
+	// Tracer is the op code logger
+	Tracer Tracer
+	// NoRecursion disabled Interpreter call, callcode,
+	// delegate call and create.
+	NoRecursion bool
+	// Enable recording of SHA3/keccak preimages
+	EnablePreimageRecording bool
 }

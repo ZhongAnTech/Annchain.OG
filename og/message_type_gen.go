@@ -7,6 +7,83 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageCounter) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z MessageCounter) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 0
+	err = en.Append(0x80)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z MessageCounter) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 0
+	o = append(o, 0x80)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageCounter) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z MessageCounter) Msgsize() (s int) {
+	s = 1
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zb0001 uint64
@@ -62,8 +139,8 @@ func (z *P2PMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 6 {
+		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
 	{
@@ -74,11 +151,23 @@ func (z *P2PMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		z.MessageType = MessageType(zb0002)
 	}
-	z.Message, err = dc.ReadBytes(z.Message)
+	z.SourceID, err = dc.ReadString()
 	if err != nil {
 		return
 	}
-	z.SourceID, err = dc.ReadString()
+	z.BroadCastToRandom, err = dc.ReadBool()
+	if err != nil {
+		return
+	}
+	z.Version, err = dc.ReadInt()
+	if err != nil {
+		return
+	}
+	err = z.Message.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	err = z.MsgWithFilter.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -87,8 +176,8 @@ func (z *P2PMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *P2PMessage) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 6
+	err = en.Append(0x96)
 	if err != nil {
 		return
 	}
@@ -96,11 +185,23 @@ func (z *P2PMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Message)
+	err = en.WriteString(z.SourceID)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(z.SourceID)
+	err = en.WriteBool(z.BroadCastToRandom)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.Version)
+	if err != nil {
+		return
+	}
+	err = z.Message.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	err = z.MsgWithFilter.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -110,11 +211,20 @@ func (z *P2PMessage) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *P2PMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 6
+	o = append(o, 0x96)
 	o = msgp.AppendUint64(o, uint64(z.MessageType))
-	o = msgp.AppendBytes(o, z.Message)
 	o = msgp.AppendString(o, z.SourceID)
+	o = msgp.AppendBool(o, z.BroadCastToRandom)
+	o = msgp.AppendInt(o, z.Version)
+	o, err = z.Message.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	o, err = z.MsgWithFilter.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -125,8 +235,8 @@ func (z *P2PMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 6 {
+		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
 	{
@@ -137,11 +247,23 @@ func (z *P2PMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		z.MessageType = MessageType(zb0002)
 	}
-	z.Message, bts, err = msgp.ReadBytesBytes(bts, z.Message)
+	z.SourceID, bts, err = msgp.ReadStringBytes(bts)
 	if err != nil {
 		return
 	}
-	z.SourceID, bts, err = msgp.ReadStringBytes(bts)
+	z.BroadCastToRandom, bts, err = msgp.ReadBoolBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Version, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.Message.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.MsgWithFilter.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -151,7 +273,7 @@ func (z *P2PMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *P2PMessage) Msgsize() (s int) {
-	s = 1 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.Message) + msgp.StringPrefixSize + len(z.SourceID)
+	s = 1 + msgp.Uint64Size + msgp.StringPrefixSize + len(z.SourceID) + msgp.BoolSize + msgp.IntSize + z.Message.Msgsize() + z.MsgWithFilter.Msgsize()
 	return
 }
 

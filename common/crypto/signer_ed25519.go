@@ -28,7 +28,7 @@ func (s *SignerEd25519) PubKey(privKey PrivateKey) PublicKey {
 }
 
 func (s *SignerEd25519) AddressFromPubKeyBytes(pubKey []byte) types.Address {
-	return s.Address(PublicKeyFromBytes(CryptoTypeEd25519,pubKey))
+	return s.Address(PublicKeyFromBytes(CryptoTypeEd25519, pubKey))
 }
 
 func (s *SignerEd25519) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {

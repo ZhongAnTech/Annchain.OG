@@ -33,7 +33,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 	}
 }
 
-func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
 	if len(syncRequest.Hashes) == 0 {
 		msgLog.Debug("empty MessageSyncRequest")
 		return
@@ -62,7 +62,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.Mess
 	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
 }
 
-func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerId string) {
 
 	headers := types.RawSequencerToSeqSequencers(headerMsg.RawSequencers)
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
@@ -83,7 +83,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	msgLog.WithField("header lens", len(seqHeaders)).Trace("handle MessageTypeHeaderResponse")
 }
 
-func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderRequest, peerId string) {
 	hashMode := !query.Origin.Hash.Empty()
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
@@ -172,7 +172,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
+func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResponse) {
 	if request.RawSequencer != nil {
 		msgLog.WithField("len", len(request.RawTxs)).WithField("seq id", request.RawSequencer.Id).Trace("got response txs ")
 	} else {
@@ -193,7 +193,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsRespo
 	return
 }
 
-func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsRequest, peerId string) {
 	var msgRes types.MessageTxsResponse
 
 	var seq *types.Sequencer
@@ -212,7 +212,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodiesResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodiesResponse, peerId string) {
 	// Deliver them all to the downloader for queuing
 	transactions := make([][]*types.Tx, len(request.Bodies))
 	sequencers := make([]*types.Sequencer, len(request.Bodies))
@@ -249,7 +249,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 	return
 }
 
-func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodiesRequest, peerId string) {
 	var msgRes types.MessageBodiesResponse
 	var bytes int
 
@@ -279,7 +279,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
+func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageSequencerHeader, peerId string) {
 	if msgHeader.Hash == nil {
 		return
 	}

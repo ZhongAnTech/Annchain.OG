@@ -71,20 +71,20 @@ func (mt MessageType) String() string {
 
 type P2PMessage struct {
 	MessageType       MessageType
-	Message           []byte
+	data              []byte
 	hash              types.Hash //inner use to avoid resend a message to the same peer
-	needCheckRepeat   bool
-	SourceID          string // the source that this message  coming from
-	BroadCastToRandom bool   //just broadcast to random peer
-	Version           int    // peer version.
+	SourceID          string     // the source that this message  coming from
+	BroadCastToRandom bool       //just broadcast to random peer
+	Version           int        // peer version.
+	Message           types.Message
+	MsgWithFilter     types.MessageWithFilter
 }
 
-func (m *P2PMessage) calculateHash() {
+func (m *P2PMessage) calculateHash(data []byte) {
 	// TODO: implement hash for message
 	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
 	//for request ,if source id is different they were different  msg ,don't drop it
 	//if we dropped header response because of duplicate , header request will time out
-	data := m.Message
 	if m.MessageType == MessageTypeBodiesRequest || m.MessageType == MessageTypeFetchByHashRequest ||
 		m.MessageType == MessageTypeTxsRequest || m.MessageType == MessageTypeHeaderRequest ||
 		m.MessageType == MessageTypeSequencerHeader || m.MessageType == MessageTypeHeaderResponse ||
@@ -97,13 +97,6 @@ func (m *P2PMessage) calculateHash() {
 	sum := h.Sum(nil)
 	m.hash.MustSetBytes(sum)
 	return
-}
-
-func (m *P2PMessage) init() {
-	if m.MessageType != MessageTypePing && m.MessageType != MessageTypePong {
-		m.needCheckRepeat = true
-		m.calculateHash()
-	}
 }
 
 type errCode int
@@ -167,4 +160,55 @@ func MsgCountInit() {
 	MsgCounter = &MessageCounter{
 		requestId: 1,
 	}
+}
+
+func (p *P2PMessage) GetMessage(withfilter bool) error {
+	if withfilter {
+		switch p.MessageType {
+		case MessageTypeNewTx:
+			p.MsgWithFilter = &types.MessageNewTx{}
+		case MessageTypeNewSequencer:
+			p.MsgWithFilter = &types.MessageNewSequencer{}
+		default:
+			return fmt.Errorf("unkown mssage type %v ", p.MessageType)
+		}
+		p.Message = p.MsgWithFilter
+		return nil
+
+	}
+	switch p.MessageType {
+	case MessageTypePing:
+		p.Message = &types.MessagePing{}
+	case MessageTypePong:
+		p.Message = &types.MessagePong{}
+	case MessageTypeFetchByHashRequest:
+		p.Message = &types.MessageSyncRequest{}
+	case MessageTypeFetchByHashResponse:
+		p.Message = &types.MessageSyncResponse{}
+	case MessageTypeNewTx:
+		p.Message = &types.MessageNewTx{}
+	case MessageTypeNewSequencer:
+		p.Message = &types.MessageNewSequencer{}
+	case MessageTypeNewTxs:
+		p.Message = &types.MessageNewTxs{}
+	case MessageTypeSequencerHeader:
+		p.Message = &types.MessageSequencerHeader{}
+
+	case MessageTypeBodiesRequest:
+		p.Message = &types.MessageBodiesRequest{}
+	case MessageTypeBodiesResponse:
+		p.Message = &types.MessageBodiesResponse{}
+
+	case MessageTypeTxsRequest:
+		p.Message = &types.MessageTxsRequest{}
+	case MessageTypeTxsResponse:
+		p.Message = &types.MessageTxsResponse{}
+	case MessageTypeHeaderRequest:
+		p.Message = &types.MessageHeaderRequest{}
+	case MessageTypeHeaderResponse:
+		p.Message = &types.MessageHeaderResponse{}
+	default:
+		return fmt.Errorf("unkown mssage type %v ", p.MessageType)
+	}
+	return nil
 }

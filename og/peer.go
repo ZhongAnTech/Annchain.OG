@@ -145,17 +145,15 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 		return nil
 	}
 	for _, msg := range messages {
-		if msg.needCheckRepeat {
-			p.knownMsg.Add(msg.hash)
-		}
+		p.knownMsg.Add(msg.hash)
 		msgType = msg.MessageType
-		msgBytes = append(msgBytes, msg.Message...)
+		msgBytes = append(msgBytes, msg.data...)
 	}
-	return p.sendRawMessage(msgType,msgBytes)
+	return p.sendRawMessage(msgType, msgBytes)
 }
 
 func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
-	msgLog.WithField("type ",msgType).WithField("size",len(msgBytes)).Trace("send msg")
+	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, uint64(msgType), msgBytes)
 }
 
@@ -167,7 +165,7 @@ func (p *peer) SendTransactions(txs types.Txs) error {
 	data, _ := txs.MarshalMsg(nil)
 	msg := &P2PMessage{
 		MessageType: MessageTypeNewTxs,
-		Message:     data,
+		data:        data,
 	}
 	var msgs []*P2PMessage
 	msgs = append(msgs, msg)
@@ -181,9 +179,7 @@ func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
-			if msg.needCheckRepeat {
-				p.knownMsg.Add(msg.hash)
-			}
+			p.knownMsg.Add(msg.hash)
 		}
 	default:
 		msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
@@ -195,9 +191,7 @@ func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:
-		if msg.needCheckRepeat {
-			p.knownMsg.Add(msg.hash)
-		}
+		p.knownMsg.Add(msg.hash)
 	default:
 		msgLog.Debug("Dropping transaction propagation")
 	}
@@ -326,7 +320,7 @@ func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
 		clog.WithError(err).Warn("encode request error")
 		return err
 	}
-	clog.WithField("size",len(data)).Debug("send")
+	clog.WithField("size", len(data)).Debug("send")
 	err = p2p.Send(p.rw, uint64(msgType), data)
 	if err != nil {
 		clog.WithError(err).Warn("send failed")

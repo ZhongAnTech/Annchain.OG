@@ -33,7 +33,7 @@ func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 }
 
 func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
-	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1,pubKey))
+	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1, pubKey))
 }
 
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {

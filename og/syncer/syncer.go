@@ -11,8 +11,9 @@ import (
 )
 
 type MessageSender interface {
-	BroadcastMessage(messageType og.MessageType, message []byte)
-	UnicastMessageRandomly(messageType og.MessageType, message []byte)
+	BroadcastMessage(messageType og.MessageType, message types.Message)
+
+	UnicastMessageRandomly(messageType og.MessageType, message types.Message)
 }
 
 type FireHistory struct {
@@ -120,11 +121,6 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 
 		req.Hashes = append(req.Hashes, key)
 	}
-	bytes, err := req.MarshalMsg(nil)
-	if err != nil {
-		log.WithError(err).Warnf("failed to marshal request: %+v", req)
-		return
-	}
 	log.WithField("type", og.MessageTypeFetchByHashRequest).
 		WithField("length", len(req.Hashes)).
 		WithField("hashes", types.HashesToString(req.Hashes)).
@@ -133,7 +129,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so brodacst it
 	//todo optimize later
-	m.messageSender.BroadcastMessage(og.MessageTypeFetchByHashRequest, bytes)
+	m.messageSender.BroadcastMessage(og.MessageTypeFetchByHashRequest, &req)
 }
 
 // LoopSync checks if there is new hash to fetcs. Dedup.
@@ -224,8 +220,8 @@ func (m *IncrementalSyncer) eventLoop() {
 	}
 }
 
-func (m *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
-	tx :=  newTx.RawTx.Tx()
+func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
+	tx := newTx.RawTx.Tx()
 	if tx == nil {
 		logrus.Debug("empty MessageNewTx")
 		return
@@ -248,7 +244,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx types.MessageNewTx) {
 	m.notifyNewTxi(tx)
 }
 
-func (m *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
+func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
 	txs := types.RawTxsToTxs(newTxs.RawTxs)
 	if txs == nil {
 		logrus.Debug("Empty MessageNewTx")
@@ -264,7 +260,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 			logrus.Debug("incremental received txs but sync disabled")
 			return
 		}
-		for _, tx := range txs  {
+		for _, tx := range txs {
 			logrus.WithField("tx", tx).Trace("cache tx for future.")
 			m.bufferedIncomingTxCache.Set(tx.Hash, tx)
 		}
@@ -272,12 +268,12 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs types.MessageNewTxs) {
 	}
 	logrus.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 
-	for _, tx := range txs  {
+	for _, tx := range txs {
 		m.notifyNewTxi(tx)
 	}
 }
 
-func (m *IncrementalSyncer) HandleNewSequencer(newSeq types.MessageNewSequencer) {
+func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
 	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
 		logrus.Debug("empty NewSequence")
@@ -315,7 +311,7 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Trace("incoming cache dumped")
 }
 
-func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse types.MessageSyncResponse, sourceId string) {
+func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
 	if (syncResponse.RawTxs == nil || len(syncResponse.RawTxs) == 0) &&
 		(syncResponse.RawSequencers == nil || len(syncResponse.RawSequencers) == 0) {
 		logrus.Debug("empty MessageSyncResponse")

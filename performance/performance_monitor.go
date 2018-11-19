@@ -43,8 +43,7 @@ func (PerformanceMonitor) Name() string {
 	return "PerformanceMonitor"
 }
 
-
-func (p *PerformanceMonitor) CollectData() map[string]interface{}{
+func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	data := make(map[string]interface{})
 	for _, ch := range p.reporters {
 		data[ch.Name()] = ch.GetBenchmarks()

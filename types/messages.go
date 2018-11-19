@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
+	"github.com/seiflotfy/cuckoofilter"
+	"github.com/tinylib/msgp/msgp"
 	"strings"
 )
 
@@ -15,9 +17,34 @@ type ISigner interface {
 //go:generate msgp
 
 type Message interface {
-	MarshalMsg([]byte) ([]byte, error)
+	msgp.MarshalSizer
+	msgp.Unmarshaler
+	msgp.Decodable
+	msgp.Encodable
 	String() string //string is for logging ,
-	UnmarshalMsg([]byte) ([]byte, error)
+}
+
+type MessageWithFilter interface {
+	Message
+	AddItem(item []byte) error
+	LookUpItem(item []byte) (bool, error)
+	MarshalMsgWithOutFilter([]byte) ([]byte, error)
+	SetFilter(*CuckooFilter)
+	GetFilter() *CuckooFilter
+}
+
+type MessagePing struct {
+	Data []byte
+}
+type MessagePong struct {
+	Data []byte
+}
+
+func (m *MessagePing) String() string {
+	return fmt.Sprintf("ping")
+}
+func (m *MessagePong) String() string {
+	return fmt.Sprintf("pong")
 }
 
 //msgp:tuple MessageSyncRequest
@@ -43,7 +70,14 @@ func (m *MessageSyncResponse) String() string {
 
 //msgp:tuple MessageNewTx
 type MessageNewTx struct {
-	RawTx *RawTx
+	RawTx        *RawTx
+	CuckooFilter *CuckooFilter
+}
+
+//msgp:tuple CuckooFilter
+type CuckooFilter struct {
+	Data   []byte
+	filter *cuckoofilter.CuckooFilter
 }
 
 func (m *MessageNewTx) String() string {
@@ -53,10 +87,90 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
+	CuckooFilter *CuckooFilter
 }
 
 func (m *MessageNewSequencer) String() string {
 	return m.RawSequencer.String()
+}
+
+func (m *MessageNewSequencer) AddItem(item []byte) error {
+	return m.CuckooFilter.AddItem(item)
+}
+
+func (m *MessageNewSequencer) LookUpItem(item []byte) (bool, error) {
+	return m.CuckooFilter.LookUpItem(item)
+}
+
+func (m *MessageNewSequencer) DelFilter() {
+	m.CuckooFilter = nil
+}
+
+func (m *MessageNewSequencer) MarshalMsgWithOutFilter(b []byte) ([]byte, error) {
+	newMsg := &MessageNewSequencer{
+		RawSequencer: m.RawSequencer,
+	}
+	return newMsg.MarshalMsg(b)
+}
+
+func (m *MessageNewSequencer) SetFilter(c *CuckooFilter) {
+	m.CuckooFilter = c
+}
+
+func (m *MessageNewSequencer) GetFilter() *CuckooFilter {
+	return m.CuckooFilter
+}
+
+func (m *MessageNewTx) AddItem(item []byte) error {
+	return m.CuckooFilter.AddItem(item)
+}
+
+func (m *MessageNewTx) LookUpItem(item []byte) (bool, error) {
+	return m.CuckooFilter.LookUpItem(item)
+}
+
+func (m *MessageNewTx) DelFilter() {
+	m.CuckooFilter = nil
+}
+
+func (m *MessageNewTx) MarshalMsgWithOutFilter(b []byte) ([]byte, error) {
+	newMsg := &MessageNewTx{
+		RawTx: m.RawTx,
+	}
+	return newMsg.MarshalMsg(b)
+}
+
+func (m *MessageNewTx) SetFilter(c *CuckooFilter) {
+	m.CuckooFilter = c
+}
+
+func (m *MessageNewTx) GetFilter() *CuckooFilter {
+	return m.CuckooFilter
+}
+
+func (c *CuckooFilter) AddItem(item []byte) error {
+	if c == nil {
+		c = &CuckooFilter{}
+	}
+	if c.filter == nil {
+		if len(c.Data) != 0 {
+			cf, err := cuckoofilter.Decode(c.Data)
+			if err != nil {
+				return err
+			}
+			c.filter = cf
+		}
+	}
+	c.filter.Insert(item)
+	c.Data = c.filter.Encode()
+	return nil
+}
+
+func (c *CuckooFilter) LookUpItem(item []byte) (bool, error) {
+	if c == nil || c.filter == nil {
+		return false, nil
+	}
+	return c.filter.Lookup(item), nil
 }
 
 //msgp:tuple MessageNewTxs
@@ -267,5 +381,3 @@ func RawSeqsToString(seqs []*RawSequencer) string {
 	}
 	return strings.Join(strs, ", ")
 }
-
-

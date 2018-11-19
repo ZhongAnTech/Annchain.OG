@@ -134,7 +134,7 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var keys []types.Hash
-	for k,  _ := range s.Txs {
+	for k, _ := range s.Txs {
 		keys = append(keys, k)
 	}
 	return keys

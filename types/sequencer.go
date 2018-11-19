@@ -115,7 +115,6 @@ func (t *Sequencer) Dump() string {
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }
 
-
 func (s *Sequencer) RawSequencer() *RawSequencer {
 	if s == nil {
 		return nil

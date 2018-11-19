@@ -1,10 +1,10 @@
 package performance
 
 import (
-	"go.uber.org/atomic"
-	"time"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/atomic"
+	"time"
 )
 
 type TxCounter struct {

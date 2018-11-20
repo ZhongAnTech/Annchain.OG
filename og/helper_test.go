@@ -25,7 +25,7 @@ var (
 func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	var (
 		db               = ogdb.NewMemDatabase()
-		genesis, balance = core.DefaultGenesis()
+		genesis, balance = core.DefaultGenesis(0)
 		config           = core.DagConfig{}
 		dag              = core.NewDag(config, db)
 	)
@@ -37,8 +37,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	txPool.Init(genesis)
 
 	hubConf := DefaultHubConfig()
-	hubConf.NetworkId = testNetworkId //for test
-	hub := NewHub(&hubConf, mode, dag, txPool)
+	hub := NewHub(&hubConf, dag, txPool)
 	/*
 		syncConf := DefaultSyncerConfig()
 		syncer := NewSyncer(&syncConf, hub)
@@ -102,11 +101,12 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 	// Execute any implicitly requested handshakes and return
 	if shake {
 		var (
-			genesis = h.Dag.Genesis()
-			head    = h.Dag.LatestSequencer()
-			id      = h.Dag.LatestSequencer().Number()
+			currentStatus = h.StatusDataProvider.GetCurrentNodeStatus()
+			genesis       = currentStatus.GenesisBlock
+			head          = currentStatus.CurrentBlock
+			id            = currentStatus.CurrentId
 		)
-		tp.handshake(nil, id, head.GetTxHash(), genesis.GetTxHash())
+		tp.handshake(nil, id, head, genesis)
 	}
 	return tp, errc
 }

@@ -1,5 +1,6 @@
 package og
 
+
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
@@ -259,3 +260,5 @@ func TestLocalHash(t *testing.T) {
 		t.Fatal("is not localhash")
 	}
 }
+
+

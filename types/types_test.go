@@ -6,20 +6,23 @@ import (
 )
 
 func TestCuckooFilter_EncodeMsg(t *testing.T) {
-	m := &MessageNewTx{}
+	m := &MessageSyncRequest{}
+	m.Filter = NewDefaultBloomFilter()
 	for i := 0; i < 25; i++ {
 		str := "abcdef" + fmt.Sprintf("%d%d%d", i, i+2, i) + "ef"
-		err := m.AddItem([]byte(str))
-		date, err := m.BloomFilter.filter.GobEncode()
+		m.Filter.AddItem([]byte(str))
+		date, err := m.Filter.filter.Encode()
 		fmt.Println("len ", len(date), err)
 		out, _ := m.MarshalMsg(nil)
-		fmt.Println("i", i, "size ", m.Msgsize(), "len", len(out), err, len(m.BloomFilter.Data))
+		fmt.Println("i", i, "size ", m.Msgsize(), "len", len(out), err, len(m.Filter.Data))
 	}
 	for i := 0; i < 37; i++ {
 		str := "abcdef" + fmt.Sprintf("%d%d%d", i, i+2, i) + "ef"
-		ok, err := m.LookUpItem([]byte(str))
+		ok, err := m.Filter.LookUpItem([]byte(str))
+		if i< 25 && !ok {
+			t.Fatal("shoud be true")
+		}
 		fmt.Println(i, str, ok, err)
 	}
-	fmt.Println(m.BloomFilter.filter)
-
+	fmt.Println(m.Filter.filter)
 }

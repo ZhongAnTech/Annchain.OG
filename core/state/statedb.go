@@ -1,4 +1,4 @@
-package core
+package state
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/trie"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,8 +27,9 @@ func DefaultStateDBConfig() StateDBConfig {
 type StateDB struct {
 	conf StateDBConfig
 
-	db       ogdb.Database
-	accessor *Accessor
+	db Database
+	// accessor *Accessor
+	trie Trie
 
 	states   map[types.Address]*State
 	dirtyset map[types.Address]struct{}
@@ -41,11 +40,10 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, db ogdb.Database, acc *Accessor) *StateDB {
+func NewStateDB(conf StateDBConfig, db Database) *StateDB {
 	sd := &StateDB{
 		conf:     conf,
 		db:       db,
-		accessor: acc,
 		states:   make(map[types.Address]*State),
 		dirtyset: make(map[types.Address]struct{}),
 		beats:    make(map[types.Address]time.Time),
@@ -298,9 +296,8 @@ func (sd *StateDB) Commit() {
 // Note that commit doesn't hold any StateDB locks.
 func (sd *StateDB) commit() {
 
-	// TODO 
+	// TODO
 	// use journal to set some state to dirty.
-
 
 }
 

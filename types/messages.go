@@ -2,13 +2,18 @@ package types
 
 import (
 	"fmt"
+	"github.com/Metabdulla/bloom"
 	"github.com/annchain/OG/common/math"
-	"github.com/seiflotfy/cuckoofilter"
 	"github.com/tinylib/msgp/msgp"
 	"strings"
 )
 
 var Signer ISigner
+
+const (
+	BloomItemNumber = 3000
+	HashFuncNum     = 8
+)
 
 type ISigner interface {
 	AddressFromPubKeyBytes(pubKey []byte) Address
@@ -21,21 +26,13 @@ type Message interface {
 	msgp.Unmarshaler
 	msgp.Decodable
 	msgp.Encodable
-	String() string //string is for logging ,
-}
-
-type MessageWithFilter interface {
-	Message
-	AddItem(item []byte) error
-	LookUpItem(item []byte) (bool, error)
-	MarshalMsgWithOutFilter([]byte) ([]byte, error)
-	SetFilter(*CuckooFilter)
-	GetFilter() *CuckooFilter
+	String() string //string is for logging
 }
 
 type MessagePing struct {
 	Data []byte
 }
+
 type MessagePong struct {
 	Data []byte
 }
@@ -50,11 +47,12 @@ func (m *MessagePong) String() string {
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
 	Hashes    []Hash
+	Filter    *BloomFilter
 	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageSyncRequest) String() string {
-	return HashesToString(m.Hashes) + fmt.Sprintf(" requestId %d", m.RequestId)
+	return fmt.Sprintf(" requestId %d", m.RequestId)
 }
 
 //msgp:tuple MessageSyncResponse
@@ -70,14 +68,25 @@ func (m *MessageSyncResponse) String() string {
 
 //msgp:tuple MessageNewTx
 type MessageNewTx struct {
-	RawTx        *RawTx
-	CuckooFilter *CuckooFilter
+	RawTx *RawTx
 }
 
-//msgp:tuple CuckooFilter
-type CuckooFilter struct {
+func (m *MessageNewTx) GetHash() *Hash {
+	if m == nil {
+		return nil
+	}
+	if m.RawTx == nil {
+		return nil
+	}
+	hash := m.RawTx.GetTxHash()
+	return &hash
+
+}
+
+//msgp:tuple BloomFilter
+type BloomFilter struct {
 	Data   []byte
-	filter *cuckoofilter.CuckooFilter
+	filter *bloom.BloomFilter
 }
 
 func (m *MessageNewTx) String() string {
@@ -87,90 +96,50 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
-	CuckooFilter *CuckooFilter
+}
+
+func (m *MessageNewSequencer) GetHash() *Hash {
+	if m == nil {
+		return nil
+	}
+	if m.RawSequencer == nil {
+		return nil
+	}
+	hash := m.RawSequencer.GetTxHash()
+	return &hash
+
 }
 
 func (m *MessageNewSequencer) String() string {
 	return m.RawSequencer.String()
 }
 
-func (m *MessageNewSequencer) AddItem(item []byte) error {
-	return m.CuckooFilter.AddItem(item)
+func (c *BloomFilter) Encode() error {
+	var err error
+	c.Data, err = c.filter.Encode()
+	return err
 }
 
-func (m *MessageNewSequencer) LookUpItem(item []byte) (bool, error) {
-	return m.CuckooFilter.LookUpItem(item)
+func (c *BloomFilter) Decode() error {
+	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	return c.filter.Decode(c.Data)
 }
 
-func (m *MessageNewSequencer) DelFilter() {
-	m.CuckooFilter = nil
+func NewDefaultBloomFilter() *BloomFilter {
+	c := &BloomFilter{}
+	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	return c
 }
 
-func (m *MessageNewSequencer) MarshalMsgWithOutFilter(b []byte) ([]byte, error) {
-	newMsg := &MessageNewSequencer{
-		RawSequencer: m.RawSequencer,
-	}
-	return newMsg.MarshalMsg(b)
+func (c *BloomFilter) AddItem(item []byte) {
+	c.filter.Add(item)
 }
 
-func (m *MessageNewSequencer) SetFilter(c *CuckooFilter) {
-	m.CuckooFilter = c
-}
-
-func (m *MessageNewSequencer) GetFilter() *CuckooFilter {
-	return m.CuckooFilter
-}
-
-func (m *MessageNewTx) AddItem(item []byte) error {
-	return m.CuckooFilter.AddItem(item)
-}
-
-func (m *MessageNewTx) LookUpItem(item []byte) (bool, error) {
-	return m.CuckooFilter.LookUpItem(item)
-}
-
-func (m *MessageNewTx) DelFilter() {
-	m.CuckooFilter = nil
-}
-
-func (m *MessageNewTx) MarshalMsgWithOutFilter(b []byte) ([]byte, error) {
-	newMsg := &MessageNewTx{
-		RawTx: m.RawTx,
-	}
-	return newMsg.MarshalMsg(b)
-}
-
-func (m *MessageNewTx) SetFilter(c *CuckooFilter) {
-	m.CuckooFilter = c
-}
-
-func (m *MessageNewTx) GetFilter() *CuckooFilter {
-	return m.CuckooFilter
-}
-
-func (c *CuckooFilter) AddItem(item []byte) error {
-	if c == nil {
-		c = &CuckooFilter{}
-	}
-	if c.filter == nil {
-		if len(c.Data) != 0 {
-			cf, err := cuckoofilter.Decode(c.Data)
-			if err != nil {
-				return err
-			}
-			c.filter = cf
-		}
-	}
-	c.filter.Insert(item)
-	c.Data = c.filter.Encode()
-	return nil
-}
-
-func (c *CuckooFilter) LookUpItem(item []byte) (bool, error) {
+func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 	if c == nil || c.filter == nil {
 		return false, nil
 	}
-	return c.filter.Lookup(item), nil
+	return c.filter.Test(item), nil
 }
 
 //msgp:tuple MessageNewTxs

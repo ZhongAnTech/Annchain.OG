@@ -8,7 +8,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *CuckooFilter) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *BloomFilter) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -26,7 +26,7 @@ func (z *CuckooFilter) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *CuckooFilter) EncodeMsg(en *msgp.Writer) (err error) {
+func (z *BloomFilter) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 1
 	err = en.Append(0x91)
 	if err != nil {
@@ -40,7 +40,7 @@ func (z *CuckooFilter) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *CuckooFilter) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *BloomFilter) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 1
 	o = append(o, 0x91)
@@ -49,7 +49,7 @@ func (z *CuckooFilter) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *CuckooFilter) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *BloomFilter) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -68,7 +68,7 @@ func (z *CuckooFilter) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *CuckooFilter) Msgsize() (s int) {
+func (z *BloomFilter) Msgsize() (s int) {
 	s = 1 + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
@@ -715,8 +715,8 @@ func (z *MessageNewSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
 	if dc.IsNil() {
@@ -734,37 +734,13 @@ func (z *MessageNewSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.CuckooFilter = nil
-	} else {
-		if z.CuckooFilter == nil {
-			z.CuckooFilter = new(CuckooFilter)
-		}
-		var zb0002 uint32
-		zb0002, err = dc.ReadArrayHeader()
-		if err != nil {
-			return
-		}
-		if zb0002 != 1 {
-			err = msgp.ArrayError{Wanted: 1, Got: zb0002}
-			return
-		}
-		z.CuckooFilter.Data, err = dc.ReadBytes(z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageNewSequencer) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
@@ -779,30 +755,14 @@ func (z *MessageNewSequencer) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	if z.CuckooFilter == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		// array header, size 1
-		err = en.Append(0x91)
-		if err != nil {
-			return
-		}
-		err = en.WriteBytes(z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageNewSequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 1
+	o = append(o, 0x91)
 	if z.RawSequencer == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -810,13 +770,6 @@ func (z *MessageNewSequencer) MarshalMsg(b []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-	}
-	if z.CuckooFilter == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		// array header, size 1
-		o = append(o, 0x91)
-		o = msgp.AppendBytes(o, z.CuckooFilter.Data)
 	}
 	return
 }
@@ -828,8 +781,8 @@ func (z *MessageNewSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -847,30 +800,6 @@ func (z *MessageNewSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.CuckooFilter = nil
-	} else {
-		if z.CuckooFilter == nil {
-			z.CuckooFilter = new(CuckooFilter)
-		}
-		var zb0002 uint32
-		zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-		if err != nil {
-			return
-		}
-		if zb0002 != 1 {
-			err = msgp.ArrayError{Wanted: 1, Got: zb0002}
-			return
-		}
-		z.CuckooFilter.Data, bts, err = msgp.ReadBytesBytes(bts, z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	o = bts
 	return
 }
@@ -883,11 +812,6 @@ func (z *MessageNewSequencer) Msgsize() (s int) {
 	} else {
 		s += z.RawSequencer.Msgsize()
 	}
-	if z.CuckooFilter == nil {
-		s += msgp.NilSize
-	} else {
-		s += 1 + msgp.BytesPrefixSize + len(z.CuckooFilter.Data)
-	}
 	return
 }
 
@@ -898,8 +822,8 @@ func (z *MessageNewTx) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
 	if dc.IsNil() {
@@ -917,37 +841,13 @@ func (z *MessageNewTx) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.CuckooFilter = nil
-	} else {
-		if z.CuckooFilter == nil {
-			z.CuckooFilter = new(CuckooFilter)
-		}
-		var zb0002 uint32
-		zb0002, err = dc.ReadArrayHeader()
-		if err != nil {
-			return
-		}
-		if zb0002 != 1 {
-			err = msgp.ArrayError{Wanted: 1, Got: zb0002}
-			return
-		}
-		z.CuckooFilter.Data, err = dc.ReadBytes(z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageNewTx) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
@@ -962,30 +862,14 @@ func (z *MessageNewTx) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	if z.CuckooFilter == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		// array header, size 1
-		err = en.Append(0x91)
-		if err != nil {
-			return
-		}
-		err = en.WriteBytes(z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageNewTx) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 1
+	o = append(o, 0x91)
 	if z.RawTx == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -993,13 +877,6 @@ func (z *MessageNewTx) MarshalMsg(b []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-	}
-	if z.CuckooFilter == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		// array header, size 1
-		o = append(o, 0x91)
-		o = msgp.AppendBytes(o, z.CuckooFilter.Data)
 	}
 	return
 }
@@ -1011,8 +888,8 @@ func (z *MessageNewTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -1030,30 +907,6 @@ func (z *MessageNewTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.CuckooFilter = nil
-	} else {
-		if z.CuckooFilter == nil {
-			z.CuckooFilter = new(CuckooFilter)
-		}
-		var zb0002 uint32
-		zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-		if err != nil {
-			return
-		}
-		if zb0002 != 1 {
-			err = msgp.ArrayError{Wanted: 1, Got: zb0002}
-			return
-		}
-		z.CuckooFilter.Data, bts, err = msgp.ReadBytesBytes(bts, z.CuckooFilter.Data)
-		if err != nil {
-			return
-		}
-	}
 	o = bts
 	return
 }
@@ -1065,11 +918,6 @@ func (z *MessageNewTx) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += z.RawTx.Msgsize()
-	}
-	if z.CuckooFilter == nil {
-		s += msgp.NilSize
-	} else {
-		s += 1 + msgp.BytesPrefixSize + len(z.CuckooFilter.Data)
 	}
 	return
 }
@@ -1532,8 +1380,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	var zb0002 uint32
@@ -1552,6 +1400,30 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Filter = nil
+	} else {
+		if z.Filter == nil {
+			z.Filter = new(BloomFilter)
+		}
+		var zb0003 uint32
+		zb0003, err = dc.ReadArrayHeader()
+		if err != nil {
+			return
+		}
+		if zb0003 != 1 {
+			err = msgp.ArrayError{Wanted: 1, Got: zb0003}
+			return
+		}
+		z.Filter.Data, err = dc.ReadBytes(z.Filter.Data)
+		if err != nil {
+			return
+		}
+	}
 	z.RequestId, err = dc.ReadUint32()
 	if err != nil {
 		return
@@ -1561,8 +1433,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -1572,6 +1444,22 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	for za0001 := range z.Hashes {
 		err = z.Hashes[za0001].EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	if z.Filter == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		// array header, size 1
+		err = en.Append(0x91)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes(z.Filter.Data)
 		if err != nil {
 			return
 		}
@@ -1586,14 +1474,21 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Hashes)))
 	for za0001 := range z.Hashes {
 		o, err = z.Hashes[za0001].MarshalMsg(o)
 		if err != nil {
 			return
 		}
+	}
+	if z.Filter == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		// array header, size 1
+		o = append(o, 0x91)
+		o = msgp.AppendBytes(o, z.Filter.Data)
 	}
 	o = msgp.AppendUint32(o, z.RequestId)
 	return
@@ -1606,8 +1501,8 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	var zb0002 uint32
@@ -1626,6 +1521,30 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Filter = nil
+	} else {
+		if z.Filter == nil {
+			z.Filter = new(BloomFilter)
+		}
+		var zb0003 uint32
+		zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		if err != nil {
+			return
+		}
+		if zb0003 != 1 {
+			err = msgp.ArrayError{Wanted: 1, Got: zb0003}
+			return
+		}
+		z.Filter.Data, bts, err = msgp.ReadBytesBytes(bts, z.Filter.Data)
+		if err != nil {
+			return
+		}
+	}
 	z.RequestId, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
 		return
@@ -1639,6 +1558,11 @@ func (z *MessageSyncRequest) Msgsize() (s int) {
 	s = 1 + msgp.ArrayHeaderSize
 	for za0001 := range z.Hashes {
 		s += z.Hashes[za0001].Msgsize()
+	}
+	if z.Filter == nil {
+		s += msgp.NilSize
+	} else {
+		s += 1 + msgp.BytesPrefixSize + len(z.Filter.Data)
 	}
 	s += msgp.Uint32Size
 	return

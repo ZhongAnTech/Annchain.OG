@@ -9,8 +9,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-func TestMarshalUnmarshalCuckooFilter(t *testing.T) {
-	v := CuckooFilter{}
+func TestMarshalUnmarshalBloomFilter(t *testing.T) {
+	v := BloomFilter{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,8 +32,8 @@ func TestMarshalUnmarshalCuckooFilter(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgCuckooFilter(b *testing.B) {
-	v := CuckooFilter{}
+func BenchmarkMarshalMsgBloomFilter(b *testing.B) {
+	v := BloomFilter{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,8 +41,8 @@ func BenchmarkMarshalMsgCuckooFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgCuckooFilter(b *testing.B) {
-	v := CuckooFilter{}
+func BenchmarkAppendMsgBloomFilter(b *testing.B) {
+	v := BloomFilter{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -53,8 +53,8 @@ func BenchmarkAppendMsgCuckooFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalCuckooFilter(b *testing.B) {
-	v := CuckooFilter{}
+func BenchmarkUnmarshalBloomFilter(b *testing.B) {
+	v := BloomFilter{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -67,8 +67,8 @@ func BenchmarkUnmarshalCuckooFilter(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeCuckooFilter(t *testing.T) {
-	v := CuckooFilter{}
+func TestEncodeDecodeBloomFilter(t *testing.T) {
+	v := BloomFilter{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -77,7 +77,7 @@ func TestEncodeDecodeCuckooFilter(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := CuckooFilter{}
+	vn := BloomFilter{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -91,8 +91,8 @@ func TestEncodeDecodeCuckooFilter(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeCuckooFilter(b *testing.B) {
-	v := CuckooFilter{}
+func BenchmarkEncodeBloomFilter(b *testing.B) {
+	v := BloomFilter{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -105,8 +105,8 @@ func BenchmarkEncodeCuckooFilter(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeCuckooFilter(b *testing.B) {
-	v := CuckooFilter{}
+func BenchmarkDecodeBloomFilter(b *testing.B) {
+	v := BloomFilter{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

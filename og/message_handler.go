@@ -34,32 +34,65 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
-	if len(syncRequest.Hashes) == 0 {
+	var txs []*types.RawTx
+	var seqs []*types.RawSequencer
+	//encode bloom filter , send txs that the peer dose't have
+	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
+		err := syncRequest.Filter.Decode()
+		if err != nil {
+			msgLog.WithError(err).Warn("encode bloom filter error")
+			return
+		}
+
+		hashs := h.Og.TxPool.GetHashOrder()
+		msgLog.WithField("len ", len(hashs)).Trace("get hashes")
+		for _, hash := range hashs {
+			ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
+			if err != nil {
+				msgLog.WithError(err).Warn("lookup bloom filter error")
+				continue
+			}
+			//if peer miss this tx ,send it
+			if !ok {
+				txi := h.Og.TxPool.Get(hash)
+				if txi.GetType() == types.TxBaseTypeNormal {
+					tx := txi.(*types.Tx)
+					txs = append(txs, tx.RawTx())
+				} else {
+					seq := txi.(*types.Sequencer)
+					seqs = append(seqs, seq.RawSequencer())
+				}
+			}
+		}
+		msgLog.WithField("len ", len(txs)).Trace("will send txs after bloom filter")
+	} else if len(syncRequest.Hashes) > 0 {
+		for _, hash := range syncRequest.Hashes {
+			txi := h.Og.TxPool.Get(hash)
+			if txi == nil {
+				txi = h.Og.Dag.GetTx(hash)
+			}
+			switch tx := txi.(type) {
+			case *types.Sequencer:
+				seqs = append(seqs, tx.RawSequencer())
+			case *types.Tx:
+				txs = append(txs, tx.RawTx())
+			}
+
+		}
+	} else {
 		msgLog.Debug("empty MessageSyncRequest")
 		return
 	}
-
-	var txs []*types.RawTx
-	var seqs []*types.RawSequencer
-
-	for _, hash := range syncRequest.Hashes {
-		txi := h.Og.TxPool.Get(hash)
-		if txi == nil {
-			txi = h.Og.Dag.GetTx(hash)
+	if len(txs) > 0 || len(seqs) > 0 {
+		syncResponse := types.MessageSyncResponse{
+			RawTxs:        txs,
+			RawSequencers: seqs,
 		}
-		switch tx := txi.(type) {
-		case *types.Sequencer:
-			seqs = append(seqs, tx.RawSequencer())
-		case *types.Tx:
-			txs = append(txs, tx.RawTx())
-		}
-
+		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
+	} else {
+		msgLog.Debug("empty data , did't send")
 	}
-	syncResponse := types.MessageSyncResponse{
-		RawTxs:        txs,
-		RawSequencers: seqs,
-	}
-	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
+	return
 }
 
 func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerId string) {

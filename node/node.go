@@ -171,7 +171,7 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheMaxSize:           10000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m)
+		}, m, org.TxPool.GetHashOrder)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer

@@ -411,11 +411,33 @@ func (ps *peerSet) Peers() []*peer {
 	return list
 }
 
+func (ps *peerSet) GetPeers(ids []string, n int) []*peer {
+	if len(ids) == 0 || n <= 0 {
+		return nil
+	}
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	all := make([]*peer, 0, len(ids))
+	list := make([]*peer, 0, n)
+	for _, id := range ids {
+		peer := ps.peers[id]
+		if peer != nil {
+
+		}
+		all = append(all, peer)
+	}
+	indices := generateRandomIndices(n, len(all))
+	for _, i := range indices {
+		list = append(list, all[i])
+	}
+	return list
+}
+
 func (ps *peerSet) GetRandomPeers(n int) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	all := make([]*peer, 0, len(ps.peers))
-	list := make([]*peer, 0, len(ps.peers))
+	list := make([]*peer, 0, n)
 	for _, p := range ps.peers {
 		all = append(list, p)
 	}

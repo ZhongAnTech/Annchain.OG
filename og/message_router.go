@@ -161,7 +161,11 @@ func (m *MessageRouter) BroadcastMessage(messageType MessageType, message types.
 	m.Hub.BroadcastMessage(messageType, message)
 }
 
-// UnicastMessageRandomly send message to a randomly chosen peer
-func (m *MessageRouter) UnicastMessageRandomly(messageType MessageType, message types.Message) {
-	m.Hub.BroadcastMessageToRandom(messageType, message)
+// MulticastMessage send message to a randomly chosen peer
+func (m *MessageRouter) MulticastMessage(messageType MessageType, message types.Message) {
+	m.Hub.MulticastMessage(messageType, message)
+}
+
+func (m *MessageRouter) MulticastToSource(messageType MessageType, message types.Message, sourceMsgHash *types.Hash) {
+	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }

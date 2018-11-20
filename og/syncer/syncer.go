@@ -12,8 +12,8 @@ import (
 
 type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
-
-	UnicastMessageRandomly(messageType og.MessageType, message types.Message)
+	MulticastMessage(messageType og.MessageType, message types.Message)
+	MulticastToSource(messageType og.MessageType, message types.Message, sourceMsgHash *types.Hash)
 }
 
 type FireHistory struct {
@@ -27,6 +27,7 @@ type FireHistory struct {
 type IncrementalSyncer struct {
 	config                         *SyncerConfig
 	messageSender                  MessageSender
+	getTxsHashes                   func() []types.Hash
 	acquireTxQueue                 chan types.Hash
 	acquireTxDedupCache            gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
 	bufferedIncomingTxCache        gcache.Cache // cache of incoming txs that are not fired during full sync.
@@ -59,7 +60,7 @@ type SyncerConfig struct {
 	FiredTxCacheExpirationSeconds            int
 }
 
-func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *IncrementalSyncer {
+func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, getTxsHashes func() []types.Hash) *IncrementalSyncer {
 	return &IncrementalSyncer{
 		config:         config,
 		messageSender:  messageSender,
@@ -75,6 +76,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender) *In
 		quitLoopEvent:                  make(chan bool),
 		EnableEvent:                    make(chan bool),
 		Enabled:                        false,
+		getTxsHashes:                   getTxsHashes,
 	}
 }
 
@@ -100,7 +102,6 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 		return
 	}
 	req := types.MessageSyncRequest{
-		Hashes:    []types.Hash{},
 		RequestId: og.MsgCounter.Get(),
 	}
 	for key := range buffer {
@@ -118,18 +119,20 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 			h.LastTime = time.Now()
 			m.firedTxCache.Set(key, h)
 		}
-
 		req.Hashes = append(req.Hashes, key)
+		//req.Hashes = append(req.Hashes, key)
 	}
 	log.WithField("type", og.MessageTypeFetchByHashRequest).
-		WithField("length", len(req.Hashes)).
-		WithField("hashes", types.HashesToString(req.Hashes)).
-		Debugf("sending message MessageTypeFetchByHashRequest")
+		WithField("length", len(req.Hashes)).WithField("hashes", req.String()).Debugf(
+		"sending message MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
-	//if the random peer dose't have this txs ,we will get nil response ,so brodacst it
+	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
 	//todo optimize later
-	m.messageSender.BroadcastMessage(og.MessageTypeFetchByHashRequest, &req)
+	//get source msg
+	soucrHash := req.Hashes[0]
+
+	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &soucrHash)
 }
 
 // LoopSync checks if there is new hash to fetcs. Dedup.
@@ -137,7 +140,7 @@ func (m *IncrementalSyncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
 	pauseCheckDuration := time.Duration(time.Second)
-
+	var fired int
 	for {
 		//if paused wait until resume
 		if !m.Enabled {
@@ -157,14 +160,28 @@ func (m *IncrementalSyncer) loopSync() {
 			// collect to the set so that we can query in batch
 			buffer[hash] = struct{}{}
 			if len(buffer) >= m.config.MaxBatchSize {
-				m.fireRequest(buffer)
-				buffer = make(map[types.Hash]struct{})
+				fired++
+				//bloom filter msg is large , don't send too frequently
+				if fired%3 == 0 {
+					m.sendBloomFilter(buffer)
+					fired = 0
+				} else {
+					m.fireRequest(buffer)
+					buffer = make(map[types.Hash]struct{})
+				}
 			}
 		case <-time.After(sleepDuration):
 			// trigger the message if we do not have new queries in such duration
 			// check duplicate here in the future
-			m.fireRequest(buffer)
-			buffer = make(map[types.Hash]struct{})
+			fired++
+			//bloom filter msg is large , don't send too frequently
+			if fired%3 == 0 {
+				m.sendBloomFilter(buffer)
+				fired = 0
+			} else {
+				m.fireRequest(buffer)
+				buffer = make(map[types.Hash]struct{})
+			}
 		case <-time.After(time.Second * 5):
 			repickedHashes := m.repickHashes()
 			logrus.WithField("hashes", types.HashesToString(repickedHashes)).Info("syncer repicked hashes")
@@ -212,12 +229,46 @@ func (m *IncrementalSyncer) eventLoop() {
 				// changed from disable to enable.
 				m.notifyAllCachedTxs()
 			}
-
 		case <-m.quitLoopEvent:
 			log.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}
+}
+
+func (m *IncrementalSyncer) sendBloomFilter(buffer map[types.Hash]struct{}) {
+	if len(buffer) == 0 {
+		return
+	}
+	req := types.MessageSyncRequest{
+		Filter:    types.NewDefaultBloomFilter(),
+		RequestId: og.MsgCounter.Get(),
+	}
+	hashs := m.getTxsHashes()
+	for _, hash := range hashs {
+		req.Filter.AddItem(hash.Bytes[:])
+	}
+	err := req.Filter.Encode()
+	if err != nil {
+		log.WithError(err).Warn("encode filter err")
+	}
+	log.WithField("type", og.MessageTypeFetchByHashRequest).
+		WithField("hash length", len(hashs)).WithField("filter length", len(req.Filter.Data)).Debugf(
+		"sending bloom filter  MessageTypeFetchByHashRequest")
+
+	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
+	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
+	if len(hashs) == 0 {
+		//source unknown
+		m.messageSender.MulticastMessage(og.MessageTypeFetchByHashRequest, &req)
+		return
+	}
+	var sourceHash *types.Hash
+	for k, _ := range buffer {
+		sourceHash = &k
+		break
+	}
+	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, sourceHash)
 }
 
 func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {

@@ -24,13 +24,10 @@ import (
 	"github.com/annchain/OG/trie"
 	"github.com/annchain/OG/types"
 
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/ethdb"
-	// "github.com/ethereum/go-ethereum/trie"
 	lru "github.com/hashicorp/golang-lru"
 )
 
-// Trie cache generation limit after which to evict trie nodes from memory.
+// MaxTrieCacheGen is trie cache generation limit after which to evict trie nodes from memory.
 var MaxTrieCacheGen = uint16(120)
 
 const (

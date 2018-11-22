@@ -62,7 +62,10 @@ func NewOg(config OGConfig) (*Og, error) {
 		return nil, derr
 	}
 	dagconfig := core.DagConfig{}
-	og.Dag = core.NewDag(dagconfig, db)
+	og.Dag, derr = core.NewDag(dagconfig, db)
+	if derr != nil {
+		return nil, derr
+	}
 
 	txpoolconfig := core.TxPoolConfig{
 		QueueSize:              viper.GetInt("txpool.queue_size"),

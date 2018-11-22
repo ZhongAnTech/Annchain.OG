@@ -24,8 +24,10 @@ import (
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
 	"github.com/annchain/OG/vm/ovm"
+	"github.com/annchain/OG/vm/eth/common"
 )
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -39,8 +41,9 @@ type keccakState interface {
 // EVMInterpreter represents an OVM interpreter
 //
 type EVMInterpreter struct {
-	ovm      *ovm.OVM
-	cfg      ovm.Config
+	//ovm      *ovm.OVM
+	ctx      *vmtypes.Context
+	cfg      *ovm.Config
 	gasTable params.GasTable
 
 	intPool *intPool
@@ -53,11 +56,11 @@ type EVMInterpreter struct {
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(ovm *ovm.OVM, cfg ovm.Config) *EVMInterpreter {
+func NewEVMInterpreter(ctx *vmtypes.Context, cfg *ovm.Config) *EVMInterpreter {
 	return &EVMInterpreter{
-		ovm:       ovm,
 		cfg:       cfg,
-		gasTable:  ovm.ChainConfig.GasTable(ovm.SequenceID),
+		ctx:       ctx,
+		gasTable:  params.GetGasTable(ctx.SequenceID),
 		jumpTable: byzantiumInstructionSet,
 	}
 }
@@ -70,7 +73,7 @@ func (in *EVMInterpreter) enforceRestrictions(op instruction.OpCode, operation o
 		// account to the others means the state is modified and should also
 		// return with an error.
 		if operation.writes || (op == instruction.CALL && stack.Back(2).BitLen() > 0) {
-			return ovm.ErrWriteProtection
+			return vmtypes.ErrWriteProtection
 		}
 	}
 	return nil
@@ -82,7 +85,7 @@ func (in *EVMInterpreter) enforceRestrictions(op instruction.OpCode, operation o
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	if in.intPool == nil {
 		in.intPool = poolOfIntPools.get()
 		defer func() {
@@ -92,8 +95,8 @@ func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly boo
 	}
 
 	// Increment the call depth which is restricted to 1024
-	in.ovm.Depth++
-	defer func() { in.ovm.Depth-- }()
+	in.ctx.Depth++
+	defer func() { in.ctx.Depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
 	// This makes also sure that the readOnly flag isn't removed for child calls.
@@ -134,9 +137,9 @@ func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly boo
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.ovm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
+					in.cfg.Tracer.CaptureState(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.ovm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
+					in.cfg.Tracer.CaptureFault(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 				}
 			}
 		}()
@@ -145,7 +148,7 @@ func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly boo
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	for atomic.LoadInt32(&in.ovm.Abort) == 0 {
+	for atomic.LoadInt32(&in.ctx.Abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
@@ -170,28 +173,28 @@ func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly boo
 		// calculate the new memory size and expand the memory to fit
 		// the operation
 		if operation.memorySize != nil {
-			memSize, overflow := bigUint64(operation.memorySize(stack))
+			memSize, overflow := common.BigUint64(operation.memorySize(stack))
 			if overflow {
 				return nil, errGasUintOverflow
 			}
 			// memory is expanded in words of 32 bytes. Gas
 			// is also calculated in words.
-			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
+			if memorySize, overflow = math.SafeMul(common.ToWordSize(memSize), 32); overflow {
 				return nil, errGasUintOverflow
 			}
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
-		cost, err = operation.gasCost(in.gasTable, in.ovm, contract, stack, mem, memorySize)
+		cost, err = operation.gasCost(in.gasTable, in.ctx, contract, stack, mem, memorySize)
 		if err != nil || !contract.UseGas(cost) {
-			return nil, ovm.ErrOutOfGas
+			return nil, vmtypes.ErrOutOfGas
 		}
 		if memorySize > 0 {
 			mem.Resize(memorySize)
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.ovm, pc, op, gasCopy, cost, mem, stack, contract, in.ovm.Depth, err)
+			in.cfg.Tracer.CaptureState(in.ctx, pc, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 			logged = true
 		}
 
@@ -212,7 +215,7 @@ func (in *EVMInterpreter) Run(contract *ovm.Contract, input []byte, readOnly boo
 		case err != nil:
 			return nil, err
 		case operation.reverts:
-			return res, ovm.ErrExecutionReverted
+			return res, vmtypes.ErrExecutionReverted
 		case operation.halts:
 			return res, nil
 		case !operation.jumps:

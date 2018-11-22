@@ -14,12 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ovm
+package common
 
 import (
 	"math/big"
-
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 )
 
@@ -43,7 +41,7 @@ func GetData(data []byte, start uint64, size uint64) []byte {
 	if end > length {
 		end = length
 	}
-	return common.RightPadBytes(data[start:end], int(size))
+	return RightPadBytes(data[start:end], int(size))
 }
 
 // getDataBig returns a slice from the data based on the start and size and pads
@@ -53,7 +51,7 @@ func GetDataBig(data []byte, start *big.Int, size *big.Int) []byte {
 
 	s := math.BigMin(start, dlen)
 	e := math.BigMin(new(big.Int).Add(s, size), dlen)
-	return common.RightPadBytes(data[s.Uint64():e.Uint64()], int(size.Uint64()))
+	return RightPadBytes(data[s.Uint64():e.Uint64()], int(size.Uint64()))
 }
 
 // bigUint64 returns the integer casted to a uint64 and returns whether it
@@ -71,11 +69,4 @@ func ToWordSize(size uint64) uint64 {
 	return (size + 31) / 32
 }
 
-func AllZero(b []byte) bool {
-	for _, byte := range b {
-		if byte != 0 {
-			return false
-		}
-	}
-	return true
-}
+

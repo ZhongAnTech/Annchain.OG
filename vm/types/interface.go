@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package types
 
 import (
 	"math/big"
-	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/types"
 )
 
@@ -26,11 +25,11 @@ import (
 // depends on this context being implemented for doing subcalls and initialising new OVM contracts.
 type CallContext interface {
 	// Call another contract
-	Call(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
+	Call(ctx *Context, me ContractRef, addr types.Address, data []byte, gas, value *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Take another's contract code and execute within our own context
-	CallCode(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas, value *big.Int) ([]byte, error)
+	CallCode(ctx *Context, me ContractRef, addr types.Address, data []byte, gas, value *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Same as CallCode except sender and value is propagated from parent to child scope
-	DelegateCall(env *ovm.OVM, me ovm.ContractRef, addr types.Address, data []byte, gas *big.Int) ([]byte, error)
+	DelegateCall(ctx *Context, me ContractRef, addr types.Address, data []byte, gas *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Create a new contract
-	Create(env *ovm.OVM, me ovm.ContractRef, data []byte, gas, value *big.Int) ([]byte, types.Address, error)
+	Create(ctx *Context, me ContractRef, data []byte, gas, value *big.Int) (resp []byte, contractAddr types.Address, leftOverGas uint64, err error)
 }

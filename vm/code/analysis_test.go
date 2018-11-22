@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ovm
+package code
 
 import (
 	"testing"
@@ -49,7 +49,7 @@ func TestJumpDestAnalysis(t *testing.T) {
 		{[]byte{byte(instruction.PUSH32)}, 0xFF, 2},
 	}
 	for _, test := range tests {
-		ret := codeBitmap(test.code)
+		ret := CodeBitmap(test.code)
 		if ret[test.which] != test.exp {
 			t.Fatalf("expected %x, got %02x", test.exp, ret[test.which])
 		}
@@ -61,7 +61,7 @@ func BenchmarkJumpdestAnalysis_1200k(bench *testing.B) {
 	code := make([]byte, 1200000)
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		codeBitmap(code)
+		CodeBitmap(code)
 	}
 	bench.StopTimer()
 }

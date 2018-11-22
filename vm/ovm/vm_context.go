@@ -19,6 +19,7 @@ package ovm
 import (
 	"math/big"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
 )
 
@@ -43,8 +44,8 @@ type DefaultChainContext struct {
 }
 
 // NewEVMContext creates a new context for use in the OVM.
-func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address) Context {
-	return Context{
+func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address) vmtypes.Context {
+	return vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		Origin:      txContext.From,
@@ -56,12 +57,12 @@ func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *ty
 
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
-func CanTransfer(db StateDB, addr types.Address, amount *big.Int) bool {
+func CanTransfer(db vmtypes.StateDB, addr types.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db StateDB, sender, recipient types.Address, amount *big.Int) {
+func Transfer(db vmtypes.StateDB, sender, recipient types.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }

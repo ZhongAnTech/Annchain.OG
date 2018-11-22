@@ -27,6 +27,7 @@ import (
 	"github.com/annchain/OG/vm/eth/ethdb"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/ovm"
 )
 
@@ -43,8 +44,8 @@ type Config struct {
 	GasPrice    *big.Int
 	Value       *big.Int
 	Debug       bool
-	EVMConfig   vm.Config
-	State       ovm.StateDB
+	EVMConfig   ovm.Config
+	State       vmtypes.StateDB
 	GetHashFn   func(n uint64) types.Hash
 }
 
@@ -86,7 +87,7 @@ func setDefaults(cfg *Config) {
 //
 // Executes sets up a in memory, temporarily, environment for the execution of
 // the given code. It makes sure that it's restored to it's original state afterwards.
-func Execute(code, input []byte, cfg *Config) ([]byte, ovm.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, vmtypes.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
@@ -98,7 +99,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, ovm.StateDB, error) {
 	var (
 		address = types.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
-		sender  = ovm.AccountRef(cfg.Origin)
+		sender  = vmtypes.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
@@ -127,7 +128,7 @@ func Create(input []byte, cfg *Config) ([]byte, types.Address, uint64, error) {
 	}
 	var (
 		vmenv  = NewEnv(cfg)
-		sender = ovm.AccountRef(cfg.Origin)
+		sender = vmtypes.AccountRef(cfg.Origin)
 	)
 
 	// Call the code with the given configuration.

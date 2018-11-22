@@ -25,6 +25,7 @@ import (
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/ovm"
 )
 
@@ -34,15 +35,15 @@ type twoOperandTest struct {
 	expected string
 }
 
-func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *ovm.Contract, memory *Memory, stack *Stack) ([]byte, error)) {
+func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
 		pc             = uint64(0)
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
 
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	for i, test := range tests {
 		x := new(big.Int).SetBytes(common.Hex2Bytes(test.x))
@@ -77,12 +78,12 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 
 func TestByteOp(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
 
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	tests := []struct {
 		v        string
@@ -210,14 +211,14 @@ func TestSLT(t *testing.T) {
 	testTwoOperandOp(t, tests, opSlt)
 }
 
-func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *ovm.Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
+func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
 
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	// convert args
 	byteArgs := make([][]byte, len(args))
@@ -447,13 +448,13 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
 
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
@@ -473,13 +474,13 @@ func TestOpMstore(t *testing.T) {
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
 
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(64)
 	pc := uint64(0)
@@ -496,12 +497,12 @@ func BenchmarkOpMstore(bench *testing.B) {
 
 func BenchmarkOpSHA3(bench *testing.B) {
 	var (
-		env            = NewEVM(Context{}, nil, params.TestChainConfig, Config{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, params.TestChainConfig, ovm.Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.VmConfig)
 	)
-	env.interpreter = evmInterpreter
+	env.Interpreter = evmInterpreter
 	evmInterpreter.intPool = poolOfIntPools.get()
 	mem.Resize(32)
 	pc := uint64(0)

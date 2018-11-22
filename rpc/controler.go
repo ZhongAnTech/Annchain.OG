@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 	"strings"
@@ -483,6 +484,36 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
+}
+
+type  Monitor struct {
+	Port  string `json:"port"`
+	Peers []string
+	SeqId  uint64
+}
+
+func (r*RpcController)Monitor(c*gin.Context) {
+	var m Monitor
+	seq := r.Og.Dag.LatestSequencer()
+	if seq!=nil {
+		m.SeqId = seq.Id
+	}
+	peersinfo:=  r.P2pServer.PeersInfo()
+	for _,p:= range peersinfo {
+		var addr string
+		if p.Network.Inbound {
+			addr = p.Network.LocalAddress
+		}else {
+			addr = p.Network.RemoteAddress
+		}
+			ipPort :=strings.Split(addr,":")
+			if len(ipPort) ==2 {
+				m.Peers = append(m.Peers ,ipPort[1])
+			}
+
+		}
+	   m.Port = viper.GetString("p2p.port")
+	c.JSON(http.StatusOK, m)
 }
 
 func (r *RpcController) Debug(c *gin.Context) {

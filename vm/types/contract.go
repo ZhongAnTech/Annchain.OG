@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ovm
+package types
 
 import (
 	"math/big"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/vm/instruction"
+	"github.com/annchain/OG/vm/common"
+	"github.com/annchain/OG/vm/code"
 )
 
 type CodeAndHash struct {
@@ -53,7 +55,7 @@ type AccountRef types.Address
 // Address casts AccountRef to a Address
 func (ar AccountRef) Address() types.Address { return (types.Address)(ar) }
 
-// Contract represents an ethereum contract in the state database. It contains
+// Contract represents an general contract in the state database. It contains
 // the contract code, calling arguments. Contract implements ContractRef
 type Contract struct {
 	// CallerAddress is the result of the caller which initialised this
@@ -63,8 +65,8 @@ type Contract struct {
 	caller        ContractRef
 	self          ContractRef
 
-	jumpdests map[types.Hash]bitvec // Aggregated result of JUMPDEST analysis.
-	analysis  bitvec                 // Locally cached result of JUMPDEST analysis
+	jumpdests map[types.Hash]common.Bitvec // Aggregated result of JUMPDEST analysis.
+	analysis  common.Bitvec                 // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
 	CodeHash types.Hash
@@ -83,7 +85,7 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 		// Reuse JUMPDEST analysis from parent context if available.
 		c.jumpdests = parent.jumpdests
 	} else {
-		c.jumpdests = make(map[types.Hash]bitvec)
+		c.jumpdests = make(map[types.Hash]common.Bitvec)
 	}
 
 	// Gas should be a pointer so it can safely be reduced through the run
@@ -113,19 +115,19 @@ func (c *Contract) ValidJumpdest(dest *big.Int) bool {
 		if !exist {
 			// Do the analysis and save in parent context
 			// We do not need to store it in c.analysis
-			analysis = codeBitmap(c.Code)
+			analysis = code.CodeBitmap(c.Code)
 			c.jumpdests[c.CodeHash] = analysis
 		}
-		return analysis.codeSegment(udest)
+		return analysis.CodeSegment(udest)
 	}
 	// We don't have the code hash, most likely a piece of initcode not already
 	// in state trie. In that case, we do an analysis, and save it locally, so
 	// we don't have to recalculate it for every JUMP instruction in the execution
 	// However, we don't save it within the parent context
 	if c.analysis == nil {
-		c.analysis = codeBitmap(c.Code)
+		c.analysis = code.CodeBitmap(c.Code)
 	}
-	return c.analysis.codeSegment(udest)
+	return c.analysis.CodeSegment(udest)
 }
 
 // AsDelegate sets the contract to be a delegate call and returns the current

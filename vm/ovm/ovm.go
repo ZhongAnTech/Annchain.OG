@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
@@ -31,18 +32,8 @@ import (
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
-type (
-	// CanTransferFunc is the signature of a transfer guard function
-	CanTransferFunc func(StateDB, types.Address, *big.Int) bool
-	// TransferFunc is the signature of a transfer function
-	TransferFunc func(StateDB, types.Address, types.Address, *big.Int)
-	// GetHashFunc returns the nth block hash in the blockchain
-	// and is used by the BLOCKHASH OVM op code.
-	GetHashFunc func(uint64) types.Hash
-)
-
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(evm *OVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
 		if p := precompiles[*contract.CodeAddr]; p != nil {
@@ -65,29 +56,6 @@ func run(evm *OVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 	return nil, ErrNoCompatibleInterpreter
 }
 
-// Context provides the OVM with auxiliary information. Once provided
-// it shouldn't be modified.
-type Context struct {
-	// CanTransfer returns whether the account contains
-	// sufficient ether to transfer the value
-	CanTransfer CanTransferFunc
-	// Transfer transfers ether from one account to the other
-	Transfer TransferFunc
-	// GetHash returns the hash corresponding to n
-	//GetHash GetHashFunc
-
-	// Message information
-	Origin   types.Address // Provides information for ORIGIN
-	GasPrice *big.Int      // Provides information for GASPRICE
-
-	// Block information
-	Coinbase   types.Address // Provides information for COINBASE
-	GasLimit   uint64        // Provides information for GASLIMIT
-	SequenceID uint64        // Provides information for SequenceID
-	//Time        *math.BigInt      // Provides information for TIME
-	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
-}
-
 // OVM is the Ethereum Virtual Machine base object and provides
 // the necessary tools to run a contract on the given state with
 // the provided context. It should be noted that any error
@@ -99,47 +67,44 @@ type Context struct {
 // The OVM should never be reused and is not thread safe.
 type OVM struct {
 	// Context provides auxiliary blockchain related information
-	Context
+	vmtypes.Context
 	// StateDB gives access to the underlying state
-	StateDB StateDB
-	// Depth is the current call stack
-	Depth int
+	// StateDB ovm.StateDB moved to Context
 
 	// chainConfig contains information about the current chain
-	ChainConfig *params.ChainConfig
+	// ChainConfig *params.ChainConfig
 	// chain rules contains the chain rules for the current epoch
-	//chainRules params.Rules
+	// chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
-	VmConfig Config
+	VmConfig *Config
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
 	Interpreters []Interpreter
 	Interpreter  Interpreter
 	// abort is used to abort the OVM calling operations
 	// NOTE: must be set atomically
-	Abort int32
+	// Abort int32
 	// callGasTemp holds the gas available for the current call. This is needed because the
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
-	CallGasTemp uint64
+	// CallGasTemp uint64 moved to Context
 }
 
 // NewOVM returns a new OVM. The returned OVM is not thread safe and should
 // only ever be used *once*.
-func NewOVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *OVM {
+func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, vmConfig *Config) *OVM {
 	evm := &OVM{
-		Context:     ctx,
-		StateDB:     statedb,
-		VmConfig:    vmConfig,
-		ChainConfig: chainConfig,
+		Context:  ctx,
+		VmConfig: vmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
 		Interpreters: make([]Interpreter, 0, 1),
 	}
+	evm.StateDB = statedb
 
 	// vmConfig.EVMInterpreter will be used by OVM-C, it won't be checked here
 	// as we always want to have the built-in OVM as the failover option.
-	evm.Interpreters = append(evm.Interpreters, vm.NewEVMInterpreter(evm, vmConfig))
+	evm.Interpreters = append(evm.Interpreters, vm.NewEVMInterpreter(&evm.Context, vmConfig))
 	evm.Interpreter = evm.Interpreters[0]
 
 	return evm
@@ -155,7 +120,7 @@ func (ovm *OVM) Cancel() {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (ovm *OVM) Call(caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
@@ -170,7 +135,7 @@ func (ovm *OVM) Call(caller ContractRef, addr types.Address, input []byte, gas u
 	}
 
 	var (
-		to       = AccountRef(addr)
+		to       = vmtypes.AccountRef(addr)
 		snapshot = ovm.StateDB.Snapshot()
 	)
 	if !ovm.StateDB.Exist(addr) {
@@ -188,7 +153,7 @@ func (ovm *OVM) Call(caller ContractRef, addr types.Address, input []byte, gas u
 	ovm.Transfer(ovm.StateDB, caller.Address(), to.Address(), value)
 	// Initialise a new contract and set the code that is to be used by the OVM.
 	// The contract is a scoped environment for this execution context only.
-	contract := NewContract(caller, to, value, gas)
+	contract := vmtypes.NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
@@ -223,7 +188,7 @@ func (ovm *OVM) Call(caller ContractRef, addr types.Address, input []byte, gas u
 //
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
-func (ovm *OVM) CallCode(caller ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
@@ -239,12 +204,12 @@ func (ovm *OVM) CallCode(caller ContractRef, addr types.Address, input []byte, g
 
 	var (
 		snapshot = ovm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
+		to       = vmtypes.AccountRef(caller.Address())
 	)
 	// initialise a new contract and set the code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
-	contract := NewContract(caller, to, value, gas)
+	contract := vmtypes.NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
 	ret, err = run(ovm, contract, input, false)
@@ -262,7 +227,7 @@ func (ovm *OVM) CallCode(caller ContractRef, addr types.Address, input []byte, g
 //
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
-func (ovm *OVM) DelegateCall(caller ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
@@ -273,11 +238,11 @@ func (ovm *OVM) DelegateCall(caller ContractRef, addr types.Address, input []byt
 
 	var (
 		snapshot = ovm.StateDB.Snapshot()
-		to       = AccountRef(caller.Address())
+		to       = vmtypes.AccountRef(caller.Address())
 	)
 
 	// Initialise a new contract and make initialise the delegate values
-	contract := NewContract(caller, to, nil, gas).AsDelegate()
+	contract := vmtypes.NewContract(caller, to, nil, gas).AsDelegate()
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
 	ret, err = run(ovm, contract, input, false)
@@ -294,7 +259,7 @@ func (ovm *OVM) DelegateCall(caller ContractRef, addr types.Address, input []byt
 // as parameters while disallowing any modifications to the state during the call.
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
-func (ovm *OVM) StaticCall(caller ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
@@ -304,13 +269,13 @@ func (ovm *OVM) StaticCall(caller ContractRef, addr types.Address, input []byte,
 	}
 
 	var (
-		to       = AccountRef(addr)
+		to       = vmtypes.AccountRef(addr)
 		snapshot = ovm.StateDB.Snapshot()
 	)
 	// Initialise a new contract and set the code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
-	contract := NewContract(caller, to, new(big.Int), gas)
+	contract := vmtypes.NewContract(caller, to, new(big.Int), gas)
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
 	// When an error was returned by the OVM or when setting the creation code
@@ -327,7 +292,7 @@ func (ovm *OVM) StaticCall(caller ContractRef, addr types.Address, input []byte,
 }
 
 // create creates a new contract using code as deployment code.
-func (ovm *OVM) create(caller ContractRef, codeAndHash *CodeAndHash, gas uint64, value *big.Int, address types.Address) ([]byte, types.Address, uint64, error) {
+func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAndHash *vmtypes.CodeAndHash, gas uint64, value *big.Int, address types.Address) ([]byte, types.Address, uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if ovm.Depth > int(params.CallCreateDepth) {
@@ -354,7 +319,7 @@ func (ovm *OVM) create(caller ContractRef, codeAndHash *CodeAndHash, gas uint64,
 	// initialise a new contract and set the code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
-	contract := NewContract(caller, AccountRef(address), value, gas)
+	contract := vmtypes.NewContract(caller, vmtypes.AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
 	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
@@ -404,17 +369,17 @@ func (ovm *OVM) create(caller ContractRef, codeAndHash *CodeAndHash, gas uint64,
 }
 
 // Create creates a new contract using code as deployment code.
-func (ovm *OVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
+func (ovm *OVM) Create(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	contractAddr = crypto.CreateAddress(caller.Address(), ovm.StateDB.GetNonce(caller.Address()))
-	return ovm.create(caller, &CodeAndHash{Code: code}, gas, value, contractAddr)
+	return ovm.create(ctx, caller, &vmtypes.CodeAndHash{Code: code}, gas, value, contractAddr)
 }
 
 // Create2 creates a new contract using code as deployment code.
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (ovm *OVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
-	codeAndHash := &CodeAndHash{Code: code}
+func (ovm *OVM) Create2(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
+	codeAndHash := &vmtypes.CodeAndHash{Code: code}
 	contractAddr = crypto.CreateAddress2(caller.Address(), types.BigToHash(salt).Bytes, codeAndHash.Hash().Bytes[:])
-	return ovm.create(caller, codeAndHash, gas, endowment, contractAddr)
+	return ovm.create(ctx, caller, codeAndHash, gas, endowment, contractAddr)
 }

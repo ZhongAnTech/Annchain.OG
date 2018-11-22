@@ -22,12 +22,12 @@ import (
 
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/vm/instruction"
-	"github.com/annchain/OG/vm/ovm"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 type (
-	executionFunc       func(pc *uint64, interpreter *EVMInterpreter, contract *ovm.Contract, memory *Memory, stack *Stack) ([]byte, error)
-	gasFunc             func(params.GasTable, *ovm.OVM, *ovm.Contract, *Stack, *Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
+	executionFunc       func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error)
+	gasFunc             func(params.GasTable, *vmtypes.Context, *vmtypes.Contract, *Stack, *Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
 	stackValidationFunc func(*Stack) error
 	memorySizeFunc      func(*Stack) *big.Int
 )

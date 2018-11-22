@@ -66,13 +66,13 @@ func TestEVM(t *testing.T) {
 	}()
 
 	Execute([]byte{
-		byte(instruction.DIFFICULTY),
-		byte(instruction.TIMESTAMP),
-		byte(instruction.GASLIMIT),
+		//byte(instruction.DIFFICULTY),
+		//byte(instruction.TIMESTAMP),
+		//byte(instruction.GASLIMIT),
 		byte(instruction.PUSH1),
 		byte(instruction.ORIGIN),
-		byte(instruction.BLOCKHASH),
-		byte(instruction.COINBASE),
+		//byte(instruction.BLOCKHASH),
+		//byte(instruction.COINBASE),
 	}, nil, nil)
 }
 

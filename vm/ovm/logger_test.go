@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/vm/eth/core/state"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
 )
 
@@ -30,9 +31,9 @@ type dummyContractRef struct {
 	calledForEach bool
 }
 
-func (dummyContractRef) ReturnGas(*big.Int)          {}
+func (dummyContractRef) ReturnGas(*big.Int)         {}
 func (dummyContractRef) Address() types.Address     { return types.Address{} }
-func (dummyContractRef) Value() *big.Int             { return new(big.Int) }
+func (dummyContractRef) Value() *big.Int            { return new(big.Int) }
 func (dummyContractRef) SetCode(types.Hash, []byte) {}
 func (d *dummyContractRef) ForEachStorage(callback func(key, value types.Hash) bool) {
 	d.calledForEach = true
@@ -51,11 +52,11 @@ func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewOVM(Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
+		env      = NewOVM(vmtypes.Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()
-		contract = ovm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
+		contract = vmtypes.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
 	)
 	stack.push(big.NewInt(1))
 	stack.push(big.NewInt(0))

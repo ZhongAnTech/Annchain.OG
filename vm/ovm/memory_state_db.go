@@ -3,6 +3,7 @@ package ovm
 import (
 	"math/big"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 type MemoryStateDB struct{
@@ -97,7 +98,7 @@ func (MemoryStateDB) Snapshot() int {
 	panic("implement me")
 }
 
-func (MemoryStateDB) AddLog(*Log) {
+func (MemoryStateDB) AddLog(*vmtypes.Log) {
 	panic("implement me")
 }
 

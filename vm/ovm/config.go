@@ -14,21 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package ovm
 
 import (
 	"fmt"
 	"math/big"
 )
 
-var (
-	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Ethereum core developers into the Ethash consensus.
-	//
-	// This configuration is intentionally not using keyed fields to force anyone
-	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{ChainID: 0}
-)
 
 // ChainConfig is the core config which determines the blockchain settings.
 //
@@ -46,12 +38,6 @@ func (c *ChainConfig) String() string {
 	)
 }
 
-// GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
-//
-// The returned GasTable's fields shouldn't, under any circumstances, be changed.
-func (c *ChainConfig) GasTable(num uint64) GasTable {
-	return GasTableConstantinople
-}
 
 // ConfigCompatError is raised if the locally-stored blockchain is initialised with a
 // ChainConfig that would alter the past.
@@ -66,3 +52,5 @@ type ConfigCompatError struct {
 func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
 }
+
+var TestChainConfig = &ChainConfig{0}

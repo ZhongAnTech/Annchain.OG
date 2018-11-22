@@ -34,7 +34,7 @@ func (d *DataLoader) LoadLocalData() {
 		genesisBalance := d.GenerateGenesisBalance()
 		d.Dag.Init(genesis, genesisBalance)
 		// init tips
-		d.TxPool.Init(d.Dag.LatestSequencer())
+		//d.TxPool.Init(d.Dag.LatestSequencer())
 	}
 }
 

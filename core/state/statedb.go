@@ -240,12 +240,18 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.updateState(addr, state)
 }
 
-// Load data from db.
+// laodState loads a state from current trie.
 func (sd *StateDB) loadState(addr types.Address) (*State, error) {
-	// return sd.accessor.LoadState(addr)
-
-	// TODO delete this function?
-	return nil, nil
+	data, err := sd.trie.TryGet(addr.ToBytes())
+	if err != nil {
+		return nil, fmt.Errorf("get state from trie err: ", err)
+	}
+	var state State
+	_, err = state.UnmarshalMsg(data)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal err: ", err)
+	}
+	return &state, nil
 }
 
 // func (sd *StateDB) Flush() {
@@ -301,7 +307,6 @@ func (sd *StateDB) Commit() {
 //
 // Note that commit doesn't hold any StateDB locks.
 func (sd *StateDB) commit() (types.Hash, error) {
-
 	// TODO
 	// use journal to set some state to dirty.
 

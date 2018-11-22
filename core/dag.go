@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -22,7 +23,7 @@ type Dag struct {
 
 	db       ogdb.Database
 	accessor *Accessor
-	statedb  *StateDB
+	statedb  *state.StateDB
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
@@ -33,22 +34,26 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, db ogdb.Database) *Dag {
+func NewDag(conf DagConfig, db ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
-	stateDBConfig := StateDBConfig{
+	stateDBConfig := state.StateDBConfig{
 		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
+	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
+	if err != nil {
+		return nil, fmt.Errorf("create statedb err: ", err)
+	}
 
 	dag.conf = conf
 	dag.db = db
+	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
-	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
 	dag.close = make(chan struct{})
 
-	return dag
+	return dag, nil
 }
 
 func DefaultDagConfig() DagConfig {
@@ -442,7 +447,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			}
 		}
 	}
-	go dag.statedb.Flush()
+	// TODO commit statedb and flush triedb.
+	// go dag.statedb.Flush()
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0

@@ -435,20 +435,35 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
-
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
-
 			err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
 			if err != nil {
 				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
 			}
 		}
 	}
-	// TODO commit statedb and flush triedb.
-	// go dag.statedb.Flush()
+
+	// TODO
+	// get new trie root after commit, then compare
+	// new root the the root in seq. If not equal then
+	// return error
+
+	// commit statedb changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: ", err)
+	}
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, true)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: ", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: ", err)
+	}
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0

@@ -61,6 +61,10 @@ func (sd *StateDB) Stop() {
 	close(sd.close)
 }
 
+func (sd *StateDB) Database() Database {
+	return sd.db
+}
+
 // CreateNewState will create a new state for input address and
 // return the state. If input address already exists in StateDB
 // it returns an error.
@@ -296,11 +300,11 @@ func (sd *StateDB) refreshbeat(addr types.Address) {
 }
 
 // Commit tries to save dirty data to memory trie db.
-func (sd *StateDB) Commit() {
+func (sd *StateDB) Commit() (types.Hash, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.commit()
+	return sd.commit()
 }
 
 // commit tries to save dirty data to memory trie db.

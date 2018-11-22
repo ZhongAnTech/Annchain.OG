@@ -569,8 +569,8 @@ func (b *BeegoHTTPRequest) ToFile(filename string) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode!=http.StatusOK {
-		return fmt.Errorf("got status code %d",resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status code %d", resp.StatusCode)
 	}
 	if resp.Body == nil {
 		return nil

@@ -114,3 +114,15 @@ func (t *Sequencer) Dump() string {
 		strings.Join(phashes, " ,"), t.Issuer.Hex(), t.Id,
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }
+
+func (s *Sequencer) RawSequencer() *RawSequencer {
+	if s == nil {
+		return nil
+	}
+	rawSequencer := &RawSequencer{
+		TxBase:            s.TxBase,
+		Id:                s.Id,
+		ContractHashOrder: s.ContractHashOrder,
+	}
+	return rawSequencer
+}

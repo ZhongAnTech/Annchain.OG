@@ -14,9 +14,9 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/performance"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
-	"github.com/annchain/OG/performance"
 )
 
 type RpcController struct {
@@ -366,7 +366,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	<- ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
+	<-ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
 
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{

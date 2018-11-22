@@ -45,7 +45,7 @@ func (c *AutoClient) Init() {
 	c.ManualChan = make(chan types.TxBaseType)
 }
 
-func (c*AutoClient)SetTxIntervalMs (i int) {
+func (c *AutoClient) SetTxIntervalMs(i int) {
 	c.TxIntervalMs = i
 }
 

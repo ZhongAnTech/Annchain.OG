@@ -2,11 +2,11 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
 	"sync"
 	"time"
-	"github.com/annchain/OG/ffchan"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
@@ -33,38 +33,71 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 	}
 }
 
-func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest types.MessageSyncRequest, peerId string) {
-	if len(syncRequest.Hashes) == 0 {
+func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
+	var txs []*types.RawTx
+	var seqs []*types.RawSequencer
+	//encode bloom filter , send txs that the peer dose't have
+	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
+		err := syncRequest.Filter.Decode()
+		if err != nil {
+			msgLog.WithError(err).Warn("encode bloom filter error")
+			return
+		}
+
+		hashs := h.Og.TxPool.GetHashOrder()
+		msgLog.WithField("len ", len(hashs)).Trace("get hashes")
+		for _, hash := range hashs {
+			ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
+			if err != nil {
+				msgLog.WithError(err).Warn("lookup bloom filter error")
+				continue
+			}
+			//if peer miss this tx ,send it
+			if !ok {
+				txi := h.Og.TxPool.Get(hash)
+				if txi.GetType() == types.TxBaseTypeNormal {
+					tx := txi.(*types.Tx)
+					txs = append(txs, tx.RawTx())
+				} else {
+					seq := txi.(*types.Sequencer)
+					seqs = append(seqs, seq.RawSequencer())
+				}
+			}
+		}
+		msgLog.WithField("len ", len(txs)).Trace("will send txs after bloom filter")
+	} else if len(syncRequest.Hashes) > 0 {
+		for _, hash := range syncRequest.Hashes {
+			txi := h.Og.TxPool.Get(hash)
+			if txi == nil {
+				txi = h.Og.Dag.GetTx(hash)
+			}
+			switch tx := txi.(type) {
+			case *types.Sequencer:
+				seqs = append(seqs, tx.RawSequencer())
+			case *types.Tx:
+				txs = append(txs, tx.RawTx())
+			}
+
+		}
+	} else {
 		msgLog.Debug("empty MessageSyncRequest")
 		return
 	}
-
-	var txs []*types.Tx
-	var seqs []*types.Sequencer
-
-	for _, hash := range syncRequest.Hashes {
-		txi := h.Og.TxPool.Get(hash)
-		if txi == nil {
-			txi = h.Og.Dag.GetTx(hash)
+	if len(txs) > 0 || len(seqs) > 0 {
+		syncResponse := types.MessageSyncResponse{
+			RawTxs:        txs,
+			RawSequencers: seqs,
 		}
-		switch tx := txi.(type) {
-		case *types.Sequencer:
-			seqs = append(seqs, tx)
-		case *types.Tx:
-			txs = append(txs, tx)
-		}
-
+		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
+	} else {
+		msgLog.Debug("empty data , did't send")
 	}
-	syncResponse := types.MessageSyncResponse{
-		Txs:        txs,
-		Sequencers: seqs,
-	}
-	h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
+	return
 }
 
-func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHeaderResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerId string) {
 
-	headers := headerMsg.Sequencers
+	headers := types.RawSequencerToSeqSequencers(headerMsg.RawSequencers)
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
 	seqHeaders := types.SeqsToHeaders(headers)
 	filter := len(seqHeaders) == 1
@@ -83,7 +116,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg types.MessageHea
 	msgLog.WithField("header lens", len(seqHeaders)).Trace("handle MessageTypeHeaderResponse")
 }
 
-func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderRequest, peerId string) {
 	hashMode := !query.Origin.Hash.Empty()
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
@@ -166,33 +199,34 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query types.MessageHeaderRe
 	}
 
 	msgRes := types.MessageHeaderResponse{
-		Sequencers:  headers,
-		RequestedId: query.RequestId,
+		RawSequencers: types.SequencersToRawSequencers(headers),
+		RequestedId:   query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleTxsResponse(request types.MessageTxsResponse) {
-	if request.Sequencer != nil {
-		msgLog.WithField("len", len(request.Txs)).WithField("seq id", request.Sequencer.Id).Trace("got response txs ")
+func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResponse) {
+	if request.RawSequencer != nil {
+		msgLog.WithField("len", len(request.RawTxs)).WithField("seq id", request.RawSequencer.Id).Trace("got response txs ")
 	} else {
 		msgLog.Warn("got nil sequencer")
 		return
 	}
-
+	seq := request.RawSequencer.Sequencer()
 	lseq := h.Og.Dag.LatestSequencer()
 	//todo need more condition
-	if lseq.Number() < request.Sequencer.Number() {
-		<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, request.Sequencer, "HandleTxsResponse").C
+	if lseq.Number() < seq.Number() {
+		<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, seq, "HandleTxsResponse").C
 
-		for tx := range request.Txs{
-			<- ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
+		for _, rawtx := range request.RawTxs {
+			tx := rawtx.Tx()
+			<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
 		}
 	}
 	return
 }
 
-func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsRequest, peerId string) {
 	var msgRes types.MessageTxsResponse
 
 	var seq *types.Sequencer
@@ -201,16 +235,17 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq types.MessageTxsRequest
 	} else {
 		seq = h.Og.Dag.GetSequencerById(msgReq.Id)
 	}
-	msgRes.Sequencer = seq
+	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
-		msgRes.Txs = h.Og.Dag.GetTxsByNumber(seq.Id)
+		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
+		msgRes.RawTxs = types.TxsToRawTxs(txs)
 	} else {
 		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodiesResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodiesResponse, peerId string) {
 	// Deliver them all to the downloader for queuing
 	transactions := make([][]*types.Tx, len(request.Bodies))
 	sequencers := make([]*types.Sequencer, len(request.Bodies))
@@ -221,12 +256,12 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 			msgLog.WithError(err).Warn("decode error")
 			break
 		}
-		if body.Sequencer == nil {
+		if body.RawSequencer == nil {
 			msgLog.Warn(" body.Sequencer is nil")
 			break
 		}
-		transactions[i] = body.Txs
-		sequencers[i] = body.Sequencer
+		transactions[i] = types.RawTxsToTxs(body.RawTxs)
+		sequencers[i] = body.RawSequencer.Sequencer()
 	}
 	msgLog.WithField("bodies len", len(request.Bodies)).Trace("got bodies")
 
@@ -247,7 +282,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request types.MessageBodie
 	return
 }
 
-func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodiesRequest, peerId string) {
 	var msgRes types.MessageBodiesResponse
 	var bytes int
 
@@ -266,8 +301,9 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 			break
 		}
 		var body types.MessageTxsResponse
-		body.Sequencer = seq
-		body.Txs = h.Og.Dag.GetTxsByNumber(seq.Id)
+		body.RawSequencer = seq.RawSequencer()
+		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
+		body.RawTxs = types.TxsToRawTxs(txs)
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
 		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))
@@ -276,7 +312,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq types.MessageBodiesR
 	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader types.MessageSequencerHeader, peerId string) {
+func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageSequencerHeader, peerId string) {
 	if msgHeader.Hash == nil {
 		return
 	}

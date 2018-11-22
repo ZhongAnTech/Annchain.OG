@@ -360,7 +360,7 @@ func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sour
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
-	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Trace("multicast msg to source")
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("multicast msg to source")
 	h.outgoing <- msgOut
 }
 
@@ -372,7 +372,7 @@ func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
-	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Trace("broadcast message")
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
 
@@ -567,10 +567,7 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
 		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
-			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Trace("received a message")
-		if msg.MessageType!=MessageTypeNewSequencer {
-			msgLog.WithField("type",msg.MessageType).Warn("disabled")
-		}
+			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Debug("received a message")
 		msgLog.WithField("type",msg.MessageType).Debug("handle")
 		v(msg)
 	} else {

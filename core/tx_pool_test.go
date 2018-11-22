@@ -23,7 +23,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 	dag := core.NewDag(core.DagConfig{}, db)
 	pool := core.NewTxPool(txpoolconfig, dag)
 
-	genesis, balance := core.DefaultGenesis()
+	genesis, balance := core.DefaultGenesis(0)
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)

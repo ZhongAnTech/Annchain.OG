@@ -15,11 +15,11 @@ import (
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/performance"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 	"strconv"
-	"github.com/annchain/OG/performance"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -43,7 +43,6 @@ func NewNode() *Node {
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
-
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
 		maxPeers = defaultMaxPeers
@@ -79,6 +78,7 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
+		WithCukooFilter:               viper.GetBool("hub.cukoo_filter"),
 	}, org.Dag, org.TxPool)
 
 	hub.StatusDataProvider = org
@@ -88,7 +88,7 @@ func NewNode() *Node {
 
 	// Setup crypto algorithm
 	signer := crypto.NewSigner(cryptoType)
-
+	types.Signer = signer
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,
@@ -105,9 +105,9 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers:                        verifiers,
-		Dag:                              org.Dag,
-		TxPool:                           org.TxPool,
+		Verifiers: verifiers,
+		Dag:       org.Dag,
+		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
@@ -137,9 +137,9 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:                    hub,
-		Downloader:             downloaderInstance,
-		SyncMode:               downloader.FullSync,
+		Hub:        hub,
+		Downloader: downloaderInstance,
+		SyncMode:   downloader.FullSync,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -156,7 +156,7 @@ func NewNode() *Node {
 		TxsResponseHandler:        messageHandler,
 		HeaderResponseHandler:     messageHandler,
 		FetchByHashRequestHandler: messageHandler,
-		Hub:                       hub,
+		Hub: hub,
 	}
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
@@ -171,7 +171,7 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheMaxSize:           10000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m)
+		}, m, org.TxPool.GetHashOrder)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
@@ -289,6 +289,7 @@ func NewNode() *Node {
 		privKey := getNodePrivKey()
 		p2pServer = NewP2PServer(privKey)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+		hub.NodeInfo = p2pServer.NodeInfo
 
 		n.Components = append(n.Components, p2pServer)
 	}

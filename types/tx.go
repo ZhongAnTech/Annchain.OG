@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/common/hexutil"
@@ -43,11 +44,26 @@ func SampleTx() *Tx {
 
 func randomHash() Hash {
 	v := math.NewBigInt(rand.Int63())
-	return BigToHash(v.Value)
+	sh :=  BigToHash(v.Value)
+	h := sha256.New()
+	data := []byte("456544546fhjsiodiruheswer8ih")
+	h.Write(sh.Bytes[:])
+	h.Write(data)
+	sum := h.Sum(nil)
+	sh.MustSetBytes(sum)
+	return sh
 }
+
 func randomAddress() Address {
 	v := math.NewBigInt(rand.Int63())
-	return BigToAddress(v.Value)
+	adr:= BigToAddress(v.Value)
+	h := sha256.New()
+	data := []byte("abcd8342804fhddhfhisfdyr89")
+	h.Write(adr.Bytes[:])
+	h.Write(data)
+	sum := h.Sum(nil)
+	adr.MustSetBytes(sum[:20])
+	return adr
 }
 
 func RandomTx() *Tx {
@@ -108,7 +124,19 @@ func (t *Tx) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("pHash:[%s], from : %s , to :0x%x ,value : %s , nonce : %d , signatute : %s, pubkey %s",
+	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ," +
+		"height %d ,mined Nonce %v type %v",t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey) ,t.Height,t.MineNonce,t.Type)
+}
+func (t *Tx) RawTx() *RawTx {
+	if t == nil {
+		return nil
+	}
+	rawTx := &RawTx{
+		TxBase: t.TxBase,
+		To:     t.To,
+		Value:  t.Value,
+	}
+	return rawTx
 }

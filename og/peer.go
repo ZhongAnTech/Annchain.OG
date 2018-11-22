@@ -139,20 +139,22 @@ func (p *peer) MarkMessage(hash types.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendMessages(messages []*P2PMessage) error {
-	var msgType uint64
+	var msgType MessageType
 	var msgBytes []byte
-	for _, msg := range messages {
-		if msg.needCheckRepeat {
-			p.knownMsg.Add(msg.hash)
-		}
-		msgType = uint64(msg.MessageType)
-		msgBytes = append(msgBytes, msg.Message...)
+	if len(messages) == 0 {
+		return nil
 	}
-	return p2p.Send(p.rw, msgType, msgBytes)
+	for _, msg := range messages {
+		p.knownMsg.Add(msg.hash)
+		msgType = msg.MessageType
+		msgBytes = append(msgBytes, msg.data...)
+	}
+	return p.sendRawMessage(msgType, msgBytes)
 }
 
-func (p *peer) sendRawMessage(msgType uint64, msgBytes []byte) error {
-	return p2p.Send(p.rw, msgType, msgBytes)
+func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
+	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
+	return p2p.Send(p.rw, uint64(msgType), msgBytes)
 }
 
 func (p *peer) SendTransactions(txs types.Txs) error {
@@ -163,7 +165,7 @@ func (p *peer) SendTransactions(txs types.Txs) error {
 	data, _ := txs.MarshalMsg(nil)
 	msg := &P2PMessage{
 		MessageType: MessageTypeNewTxs,
-		Message:     data,
+		data:        data,
 	}
 	var msgs []*P2PMessage
 	msgs = append(msgs, msg)
@@ -177,9 +179,7 @@ func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
-			if msg.needCheckRepeat {
-				p.knownMsg.Add(msg.hash)
-			}
+			p.knownMsg.Add(msg.hash)
 		}
 	default:
 		msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
@@ -191,9 +191,7 @@ func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:
-		if msg.needCheckRepeat {
-			p.knownMsg.Add(msg.hash)
-		}
+		p.knownMsg.Add(msg.hash)
 	default:
 		msgLog.Debug("Dropping transaction propagation")
 	}
@@ -202,7 +200,7 @@ func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 // SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
-	return p2p.Send(p.rw, uint64(NodeDataMsg), data)
+	return p.sendRawMessage(NodeDataMsg, data)
 }
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
@@ -211,14 +209,14 @@ func (p *peer) RequestNodeData(hashes []types.Hash) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
 	hashsStruct := types.Hashs(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(GetNodeDataMsg), b)
+	return p.sendRawMessage(GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes types.Hashs) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
-	return p2p.Send(p.rw, uint64(GetReceiptsMsg), b)
+	return p.sendRawMessage(GetReceiptsMsg, b)
 }
 
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
@@ -322,7 +320,7 @@ func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
 		clog.WithError(err).Warn("encode request error")
 		return err
 	}
-	clog.Debug("send")
+	clog.WithField("size", len(data)).Debug("send")
 	err = p2p.Send(p.rw, uint64(msgType), data)
 	if err != nil {
 		clog.WithError(err).Warn("send failed")
@@ -413,11 +411,33 @@ func (ps *peerSet) Peers() []*peer {
 	return list
 }
 
+func (ps *peerSet) GetPeers(ids []string, n int) []*peer {
+	if len(ids) == 0 || n <= 0 {
+		return nil
+	}
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	all := make([]*peer, 0, len(ids))
+	list := make([]*peer, 0, n)
+	for _, id := range ids {
+		peer := ps.peers[id]
+		if peer != nil {
+
+		}
+		all = append(all, peer)
+	}
+	indices := generateRandomIndices(n, len(all))
+	for _, i := range indices {
+		list = append(list, all[i])
+	}
+	return list
+}
+
 func (ps *peerSet) GetRandomPeers(n int) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	all := make([]*peer, 0, len(ps.peers))
-	list := make([]*peer, 0, len(ps.peers))
+	list := make([]*peer, 0, n)
 	for _, p := range ps.peers {
 		all = append(list, p)
 	}

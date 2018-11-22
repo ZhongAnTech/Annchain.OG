@@ -3,8 +3,6 @@ package og
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -55,8 +53,8 @@ type Hub struct {
 
 	// new peer event
 	OnNewPeerConnected []chan string
-	Downloader         *downloader.Downloader
-	Fetcher            *fetcher.Fetcher
+	//Downloader         *downloader.Downloader
+	//Fetcher            *fetcher.Fetcher
 
 	WithCukooFilter bool
 
@@ -101,7 +99,7 @@ func DefaultHubConfig() HubConfig {
 	return config
 }
 
-func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
+func (h *Hub) Init(config *HubConfig) {
 	h.outgoing = make(chan *P2PMessage, config.OutgoingBufferSize)
 	h.incoming = make(chan *P2PMessage, config.IncomingBufferSize)
 	h.peers = newPeerSet()
@@ -117,9 +115,9 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 	h.WithCukooFilter = config.WithCukooFilter
 }
 
-func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
+func NewHub(config *HubConfig) *Hub {
 	h := &Hub{}
-	h.Init(config, dag, txPool)
+	h.Init(config)
 
 	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
@@ -198,11 +196,11 @@ func (h *Hub) handle(p *peer) error {
 
 	defer h.RemovePeer(p.id)
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-	if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
-		return err
-	}
+	//if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
+	//	return err
+	//}
 	//announce new peer
-	h.newPeerCh <- p
+	//h.newPeerCh <- p
 	// main loop. handle incoming messages.
 	for {
 		if err := h.handleMsg(p); err != nil {
@@ -266,7 +264,7 @@ func (h *Hub) RemovePeer(id string) {
 	log.WithField("peer", id).Debug("Removing og peer")
 
 	// Unregister the peer from the downloader (should already done) and OG peer set
-	h.Downloader.UnregisterPeer(id)
+	//h.Downloader.UnregisterPeer(id)
 	if err := h.peers.Unregister(id); err != nil {
 		log.WithField("peer", "id").WithError(err).
 			Error("Peer removal failed")
@@ -278,10 +276,10 @@ func (h *Hub) RemovePeer(id string) {
 }
 
 func (h *Hub) Start() {
-	h.Fetcher.Start()
+	//h.Fetcher.Start()
 	go h.loopSend()
 	go h.loopReceive()
-	go h.loopNotify()
+	//go h.loopNotify()
 }
 
 func (h *Hub) Stop() {
@@ -295,7 +293,7 @@ func (h *Hub) Stop() {
 	log.Info("peers closing")
 	h.wg.Wait()
 	log.Info("peers closed")
-	h.Fetcher.Stop()
+	//h.Fetcher.Stop()
 	log.Info("fetcher stopped")
 	log.Info("hub stopped")
 }
@@ -570,6 +568,10 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
 		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
 			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Trace("received a message")
+		if msg.MessageType!=MessageTypeNewSequencer {
+			msgLog.WithField("type",msg.MessageType).Warn("disabled")
+		}
+		msgLog.WithField("type",msg.MessageType).Debug("handle")
 		v(msg)
 	} else {
 		msgLog.WithField("from", msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")

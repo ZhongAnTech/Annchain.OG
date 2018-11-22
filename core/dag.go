@@ -152,6 +152,10 @@ func (dag *Dag) LoadLastState() bool {
 	return true
 }
 
+func (dag *Dag)SetLatest(seq *types.Sequencer) {
+	dag.latestSeqencer = seq
+}
+
 // Genesis returns the genesis tx of dag
 func (dag *Dag) Genesis() *types.Sequencer {
 	dag.mu.RLock()

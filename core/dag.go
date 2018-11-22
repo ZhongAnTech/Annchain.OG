@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"sort"
 
-	// "fmt"
-	"sync"
-	"time"
-
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	// "fmt"
+	"sync"
 )
 
 type DagConfig struct{}
@@ -36,16 +33,16 @@ type Dag struct {
 func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{}
 
-	stateDBConfig := StateDBConfig{
-		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
-	}
+	//stateDBConfig := StateDBConfig{
+		//FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
+		//PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
+		//BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	//}
 
 	dag.conf = conf
 	dag.db = db
 	dag.accessor = NewAccessor(db)
-	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
+	//dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
 	dag.close = make(chan struct{})
 
 	return dag
@@ -81,7 +78,7 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 	dag.wg.Wait()
-	dag.statedb.Stop()
+	//dag.statedb.Stop()
 	log.Infof("Dag Stopped")
 }
 
@@ -109,7 +106,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 	// store genesis as first tx
-	err = dag.WriteTransaction(dbBatch, genesis)
+	err = dag.accessor.WriteTransaction(dbBatch, genesis)
 	if err != nil {
 		return err
 	}

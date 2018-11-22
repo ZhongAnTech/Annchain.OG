@@ -153,7 +153,7 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 }
 
 func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
-	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
+	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Debug("send msg")
 	return p2p.Send(p.rw, uint64(msgType), msgBytes)
 }
 

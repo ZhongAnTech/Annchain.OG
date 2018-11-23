@@ -123,7 +123,7 @@ func BenchmarkDecodeFullNode(b *testing.B) {
 }
 
 func TestMarshalUnmarshalShortNode(t *testing.T) {
-	v := ShortNode{}
+	v := ShortNode{Val: nil}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)

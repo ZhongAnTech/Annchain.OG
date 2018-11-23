@@ -22,8 +22,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/ogdb"
+	"github.com/annchain/OG/types"
+	// "github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/ethdb"
 )
 
 func TestIterator(t *testing.T) {
@@ -101,9 +104,9 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	db, trie, _ := makeTestTrie()
 
 	// Gather all the node hashes found by the iterator
-	hashes := make(map[common.Hash]struct{})
+	hashes := make(map[types.Hash]struct{})
 	for it := trie.NodeIterator(nil); it.Next(true); {
-		if it.Hash() != (common.Hash{}) {
+		if it.Hash() != (types.Hash{}) {
 			hashes[it.Hash()] = struct{}{}
 		}
 	}
@@ -114,14 +117,14 @@ func TestNodeIteratorCoverage(t *testing.T) {
 		}
 	}
 	for hash, obj := range db.nodes {
-		if obj != nil && hash != (common.Hash{}) {
+		if obj != nil && hash != (types.Hash{}) {
 			if _, ok := hashes[hash]; !ok {
 				t.Errorf("state entry not reported %x", hash)
 			}
 		}
 	}
-	for _, key := range db.diskdb.(*ethdb.MemDatabase).Keys() {
-		if _, ok := hashes[common.BytesToHash(key)]; !ok {
+	for _, key := range db.diskdb.(*ogdb.MemDatabase).Keys() {
+		if _, ok := hashes[types.BytesToHash(key)]; !ok {
 			t.Errorf("state entry not reported %x", key)
 		}
 	}
@@ -289,10 +292,10 @@ func TestIteratorContinueAfterErrorDisk(t *testing.T)    { testIteratorContinueA
 func TestIteratorContinueAfterErrorMemonly(t *testing.T) { testIteratorContinueAfterError(t, true) }
 
 func testIteratorContinueAfterError(t *testing.T, memonly bool) {
-	diskdb := ethdb.NewMemDatabase()
+	diskdb := ogdb.NewMemDatabase()
 	triedb := NewDatabase(diskdb)
 
-	tr, _ := New(common.Hash{}, triedb)
+	tr, _ := New(types.Hash{}, triedb)
 	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
 	}
@@ -304,7 +307,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 
 	var (
 		diskKeys [][]byte
-		memKeys  []common.Hash
+		memKeys  []types.Hash
 	)
 	if memonly {
 		memKeys = triedb.Nodes()
@@ -318,7 +321,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		// Remove a random node from the database. It can't be the root node
 		// because that one is already loaded.
 		var (
-			rkey common.Hash
+			rkey types.Hash
 			rval []byte
 			robj *cachedNode
 		)
@@ -326,7 +329,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 			if memonly {
 				rkey = memKeys[rand.Intn(len(memKeys))]
 			} else {
-				copy(rkey[:], diskKeys[rand.Intn(len(diskKeys))])
+				copy(rkey.ToBytes(), diskKeys[rand.Intn(len(diskKeys))])
 			}
 			if rkey != tr.Hash() {
 				break
@@ -336,8 +339,8 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 			robj = triedb.nodes[rkey]
 			delete(triedb.nodes, rkey)
 		} else {
-			rval, _ = diskdb.Get(rkey[:])
-			diskdb.Delete(rkey[:])
+			rval, _ = diskdb.Get(rkey.ToBytes())
+			diskdb.Delete(rkey.ToBytes())
 		}
 		// Iterate until the error is hit.
 		seen := make(map[string]bool)
@@ -352,7 +355,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		if memonly {
 			triedb.nodes[rkey] = robj
 		} else {
-			diskdb.Put(rkey[:], rval)
+			diskdb.Put(rkey.ToBytes(), rval)
 		}
 		checkIteratorNoDups(t, it, seen)
 		if it.Error() != nil {
@@ -376,10 +379,10 @@ func TestIteratorContinueAfterSeekErrorMemonly(t *testing.T) {
 
 func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	// Commit test trie to db, then remove the node containing "bars".
-	diskdb := ethdb.NewMemDatabase()
+	diskdb := ogdb.NewMemDatabase()
 	triedb := NewDatabase(diskdb)
 
-	ctr, _ := New(common.Hash{}, triedb)
+	ctr, _ := New(types.Hash{}, triedb)
 	for _, val := range testdata1 {
 		ctr.Update([]byte(val.k), []byte(val.v))
 	}
@@ -387,7 +390,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	if !memonly {
 		triedb.Commit(root, true)
 	}
-	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
+	barNodeHash := types.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (
 		barNodeBlob []byte
 		barNodeObj  *cachedNode
@@ -396,8 +399,8 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 		barNodeObj = triedb.nodes[barNodeHash]
 		delete(triedb.nodes, barNodeHash)
 	} else {
-		barNodeBlob, _ = diskdb.Get(barNodeHash[:])
-		diskdb.Delete(barNodeHash[:])
+		barNodeBlob, _ = diskdb.Get(barNodeHash.ToBytes())
+		diskdb.Delete(barNodeHash.ToBytes())
 	}
 	// Create a new iterator that seeks to "bars". Seeking can't proceed because
 	// the node is missing.
@@ -413,7 +416,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	if memonly {
 		triedb.nodes[barNodeHash] = barNodeObj
 	} else {
-		diskdb.Put(barNodeHash[:], barNodeBlob)
+		diskdb.Put(barNodeHash.ToBytes(), barNodeBlob)
 	}
 	// Check that iteration produces the right set of values.
 	if err := checkIteratorOrder(testdata1[2:], NewIterator(it)); err != nil {

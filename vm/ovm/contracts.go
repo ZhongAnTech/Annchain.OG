@@ -29,7 +29,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/eth/common"
-	vmcommon "github.com/annchain/OG/vm/common"
 )
 
 
@@ -81,7 +80,7 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *vmtyp
 	if contract.UseGas(gas) {
 		return p.Run(input)
 	}
-	return nil, ErrOutOfGas
+	return nil, vmtypes.ErrOutOfGas
 }
 
 // ECRECOVER implemented as a native contract.
@@ -103,7 +102,7 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 	v := input[63] - 27
 
 	// tighter sig s values input homestead only apply to tx sigs
-	if !vmcommon.AllZero(input[32:63]) || !crypto.ValidateSignatureValues(v, r, s, false) {
+	if !common.AllZero(input[32:63]) || !crypto.ValidateSignatureValues(v, r, s, false) {
 		return nil, nil
 	}
 	// v needs to be at the end for libsecp256k1
@@ -169,9 +168,9 @@ type bigModExp struct{}
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	var (
-		baseLen = new(big.Int).SetBytes(vmcommon.GetData(input, 0, 32))
-		expLen  = new(big.Int).SetBytes(vmcommon.GetData(input, 32, 32))
-		modLen  = new(big.Int).SetBytes(vmcommon.GetData(input, 64, 32))
+		baseLen = new(big.Int).SetBytes(common.GetData(input, 0, 32))
+		expLen  = new(big.Int).SetBytes(common.GetData(input, 32, 32))
+		modLen  = new(big.Int).SetBytes(common.GetData(input, 64, 32))
 	)
 	if len(input) > 96 {
 		input = input[96:]
@@ -184,9 +183,9 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 		expHead = new(big.Int)
 	} else {
 		if expLen.Cmp(big32) > 0 {
-			expHead = new(big.Int).SetBytes(vmcommon.GetData(input, baseLen.Uint64(), 32))
+			expHead = new(big.Int).SetBytes(common.GetData(input, baseLen.Uint64(), 32))
 		} else {
-			expHead = new(big.Int).SetBytes(vmcommon.GetData(input, baseLen.Uint64(), expLen.Uint64()))
+			expHead = new(big.Int).SetBytes(common.GetData(input, baseLen.Uint64(), expLen.Uint64()))
 		}
 	}
 	// Calculate the adjusted exponent length
@@ -228,9 +227,9 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 
 func (c *bigModExp) Run(input []byte) ([]byte, error) {
 	var (
-		baseLen = new(big.Int).SetBytes(GetData(input, 0, 32)).Uint64()
-		expLen  = new(big.Int).SetBytes(GetData(input, 32, 32)).Uint64()
-		modLen  = new(big.Int).SetBytes(GetData(input, 64, 32)).Uint64()
+		baseLen = new(big.Int).SetBytes(common.GetData(input, 0, 32)).Uint64()
+		expLen  = new(big.Int).SetBytes(common.GetData(input, 32, 32)).Uint64()
+		modLen  = new(big.Int).SetBytes(common.GetData(input, 64, 32)).Uint64()
 	)
 	if len(input) > 96 {
 		input = input[96:]
@@ -243,9 +242,9 @@ func (c *bigModExp) Run(input []byte) ([]byte, error) {
 	}
 	// Retrieve the operands and execute the exponentiation
 	var (
-		base = new(big.Int).SetBytes(GetData(input, 0, baseLen))
-		exp  = new(big.Int).SetBytes(GetData(input, baseLen, expLen))
-		mod  = new(big.Int).SetBytes(GetData(input, baseLen+expLen, modLen))
+		base = new(big.Int).SetBytes(common.GetData(input, 0, baseLen))
+		exp  = new(big.Int).SetBytes(common.GetData(input, baseLen, expLen))
+		mod  = new(big.Int).SetBytes(common.GetData(input, baseLen+expLen, modLen))
 	)
 	if mod.BitLen() == 0 {
 		// Modulo 0 is undefined, return zero
@@ -283,11 +282,11 @@ func (c *bn256Add) RequiredGas(input []byte) uint64 {
 }
 
 func (c *bn256Add) Run(input []byte) ([]byte, error) {
-	x, err := newCurvePoint(GetData(input, 0, 64))
+	x, err := newCurvePoint(common.GetData(input, 0, 64))
 	if err != nil {
 		return nil, err
 	}
-	y, err := newCurvePoint(GetData(input, 64, 64))
+	y, err := newCurvePoint(common.GetData(input, 64, 64))
 	if err != nil {
 		return nil, err
 	}
@@ -305,12 +304,12 @@ func (c *bn256ScalarMul) RequiredGas(input []byte) uint64 {
 }
 
 func (c *bn256ScalarMul) Run(input []byte) ([]byte, error) {
-	p, err := newCurvePoint(GetData(input, 0, 64))
+	p, err := newCurvePoint(common.GetData(input, 0, 64))
 	if err != nil {
 		return nil, err
 	}
 	res := new(bn256.G1)
-	res.ScalarMult(p, new(big.Int).SetBytes(GetData(input, 64, 32)))
+	res.ScalarMult(p, new(big.Int).SetBytes(common.GetData(input, 64, 32)))
 	return res.Marshal(), nil
 }
 

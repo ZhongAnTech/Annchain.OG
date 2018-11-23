@@ -66,16 +66,3 @@ func Transfer(db vmtypes.StateDB, sender, recipient types.Address, amount *big.I
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
-
-// Config are the configuration options for the Interpreter
-type Config struct {
-	// Debug enabled debugging Interpreter options
-	Debug bool
-	// Tracer is the op code logger
-	Tracer Tracer
-	// NoRecursion disabled Interpreter call, callcode,
-	// delegate call and create.
-	NoRecursion bool
-	// Enable recording of SHA3/keccak preimages
-	EnablePreimageRecording bool
-}

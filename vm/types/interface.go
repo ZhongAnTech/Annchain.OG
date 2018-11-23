@@ -21,15 +21,19 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-// CallContext provides a basic interface for the OVM calling conventions. The OVM
+// Caller provides a basic interface for the OVM calling conventions. The OVM
 // depends on this context being implemented for doing subcalls and initialising new OVM contracts.
-type CallContext interface {
+type Caller interface {
 	// Call another contract
-	Call(ctx *Context, me ContractRef, addr types.Address, data []byte, gas, value *big.Int) (resp []byte, leftOverGas uint64, err error)
+	Call(ctx *Context, me ContractRef, addr types.Address, data []byte, gas uint64, value *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Take another's contract code and execute within our own context
-	CallCode(ctx *Context, me ContractRef, addr types.Address, data []byte, gas, value *big.Int) (resp []byte, leftOverGas uint64, err error)
+	CallCode(ctx *Context, me ContractRef, addr types.Address, data []byte, gas uint64, value *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Same as CallCode except sender and value is propagated from parent to child scope
-	DelegateCall(ctx *Context, me ContractRef, addr types.Address, data []byte, gas *big.Int) (resp []byte, leftOverGas uint64, err error)
+	DelegateCall(ctx *Context, me ContractRef, addr types.Address, data []byte, gas uint64) (resp []byte, leftOverGas uint64, err error)
 	// Create a new contract
-	Create(ctx *Context, me ContractRef, data []byte, gas, value *big.Int) (resp []byte, contractAddr types.Address, leftOverGas uint64, err error)
+	Create(ctx *Context, me ContractRef, data []byte, gas uint64, value *big.Int) (resp []byte, contractAddr types.Address, leftOverGas uint64, err error)
+	// Create a new contract use sha3
+	Create2(ctx *Context, caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error)
+
+	StaticCall(ctx *Context, caller ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error)
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
-	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/vm/eth/common"
 )
 
@@ -42,12 +41,10 @@ type keccakState interface {
 //
 type EVMInterpreter struct {
 	//ovm      *ovm.OVM
-	ctx      *vmtypes.Context
-	cfg      *ovm.Config
-	gasTable params.GasTable
-
-	intPool *intPool
-
+	ctx        *vmtypes.Context
+	cfg        *vmtypes.InterpreterConfig
+	gasTable   params.GasTable
+	intPool    *intPool
 	hasher     keccakState    // Keccak256 hasher instance shared across opcodes
 	hasherBuf  types.Hash     // Keccak256 hasher result array shared aross opcodes
 	jumpTable  [256]operation // JumpTable contains the OVM instruction table.
@@ -56,10 +53,10 @@ type EVMInterpreter struct {
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(ctx *vmtypes.Context, cfg *ovm.Config) *EVMInterpreter {
+func NewEVMInterpreter(ctx *vmtypes.Context, cfg *vmtypes.InterpreterConfig) *EVMInterpreter {
 	return &EVMInterpreter{
-		cfg:       cfg,
 		ctx:       ctx,
+		cfg:       cfg,
 		gasTable:  params.GetGasTable(ctx.SequenceID),
 		jumpTable: byzantiumInstructionSet,
 	}

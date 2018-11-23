@@ -94,19 +94,20 @@ type OVM struct {
 // only ever be used *once*.
 func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []runtime.Interpreter, ovmConfig *OVMConfig) *OVM {
 	evm := &OVM{
-		Context: ctx,
+		Context:    ctx,
 		OVMConfigs: ovmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
 		Interpreters: supportInterpreters,
-		Interpreter: supportInterpreters[0],
 	}
-	if evm.Interpreter == nil{
+	if evm.Interpreter == nil {
 		// goto default
 		evm.Interpreters = []runtime.Interpreter{
 			vm.NewEVMInterpreter(&evm.Context, &vm.InterpreterConfig{}),
 		}
 		evm.Interpreter = evm.Interpreters[0]
 	}
+	evm.Interpreter = evm.Interpreters[0]
+
 	evm.StateDB = statedb
 
 	return evm
@@ -382,6 +383,6 @@ func (ovm *OVM) Create(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
 func (ovm *OVM) Create2(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	codeAndHash := &vmtypes.CodeAndHash{Code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), types.BigToHash(salt).Bytes, codeAndHash.Hash().Bytes[:])
+	contractAddr = crypto.CreateAddress2(caller.Address(), types.BigToHash(salt).Bytes, codeAndHash.Hash().ToBytes())
 	return ovm.create(ctx, caller, codeAndHash, gas, endowment, contractAddr)
 }

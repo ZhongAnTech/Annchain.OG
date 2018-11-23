@@ -388,13 +388,13 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 		interpreter.hasher.Reset()
 	}
 	interpreter.hasher.Write(data)
-	interpreter.hasher.Read(interpreter.hasherBuf.Bytes[:])
+	interpreter.hasher.Read(interpreter.hasherBuf.ToBytes())
 
 	evm := interpreter.ctx
 	if interpreter.cfg.EnablePreimageRecording {
 		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
 	}
-	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf.Bytes[:]))
+	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf.ToBytes()))
 
 	interpreter.intPool.put(offset, size)
 	return nil, nil
@@ -544,7 +544,7 @@ func opExtCodeHash(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Co
 	if interpreter.ctx.StateDB.Empty(address) {
 		slot.SetUint64(0)
 	} else {
-		slot.SetBytes(interpreter.ctx.StateDB.GetCodeHash(address).Bytes[:])
+		slot.SetBytes(interpreter.ctx.StateDB.GetCodeHash(address).ToBytes())
 	}
 	return nil, nil
 }
@@ -625,7 +625,7 @@ func opMstore8(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 func opSload(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
 	val := interpreter.ctx.StateDB.GetState(contract.Address(), types.BigToHash(loc))
-	loc.SetBytes(val.Bytes[:])
+	loc.SetBytes(val.ToBytes())
 	return nil, nil
 }
 

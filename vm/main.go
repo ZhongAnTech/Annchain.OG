@@ -24,9 +24,9 @@ func ExampleExecute() {
 	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase)
 	db := &ovm.MemoryStateDB{}
 
-	ovm := ovm.NewOVM(context, db, &vmtypes.InterpreterConfig{})
+	ovm := ovm.NewOVM(context, db, nil, &ovm.OVMConfig{NoRecursion: false})
 
-	ret, contractAddr, leftOverGas, err := ovm.Create(&context,vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(ret, contractAddr, leftOverGas, err)
 
 	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)

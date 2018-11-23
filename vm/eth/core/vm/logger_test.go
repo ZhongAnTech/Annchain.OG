@@ -14,13 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package ovm
+package vm
 
 import (
 	"math/big"
 	"testing"
 
-	"github.com/annchain/OG/vm/eth/core/state"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
@@ -51,7 +50,7 @@ func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewOVM(vmtypes.Context{}, &dummyStatedb{}, &vmtypes.InterpreterConfig{})
+		env      = &vmtypes.Context{}
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()

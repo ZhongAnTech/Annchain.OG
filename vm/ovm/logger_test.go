@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/vm/eth/core/state"
-	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
@@ -45,14 +44,14 @@ func (d *dummyContractRef) SetNonce(uint64)            {}
 func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
 type dummyStatedb struct {
-	state.StateDB
+	vmtypes.StateDB
 }
 
 func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewOVM(vmtypes.Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
+		env      = NewOVM(vmtypes.Context{}, &dummyStatedb{}, &vmtypes.InterpreterConfig{})
 		logger   = NewStructLogger(nil)
 		mem      = NewMemory()
 		stack    = newstack()

@@ -141,7 +141,7 @@ func (l *StructLogger) CaptureStart(from types.Address, to types.Address, create
 func (l *StructLogger) CaptureState(env *OVM, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmtypes.Contract, depth int, err error) error {
 	// check if already accumulated the specified number of logs
 	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
-		return ErrTraceLimitReached
+		return vmtypes.ErrTraceLimitReached
 	}
 
 	// initialise new changed values storage container for this contract
@@ -245,7 +245,7 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 // WriteLogs writes vm logs in a readable format to the given writer
 func WriteLogs(writer io.Writer, logs []*vmtypes.Log) {
 	for _, log := range logs {
-		fmt.Fprintf(writer, "LOG%d: %x bn=%d txi=%x\n", len(log.Topics), log.Address, log.BlockNumber, log.TxIndex)
+		fmt.Fprintf(writer, "LOG%d: %x seq=%d txi=%x\n", len(log.Topics), log.Address, log.SequenceID, log.TxIndex)
 
 		for i, topic := range log.Topics {
 			fmt.Fprintf(writer, "%08d  %x\n", i, topic)

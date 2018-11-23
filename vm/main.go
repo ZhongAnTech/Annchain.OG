@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/vm/eth/params"
 )
 
 func ExampleExecute() {
@@ -25,12 +24,12 @@ func ExampleExecute() {
 	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase)
 	db := &ovm.MemoryStateDB{}
 
-	ovm := ovm.NewOVM(context, db, &params.ChainConfig{ChainID: 0}, ovm.Config{})
+	ovm := ovm.NewOVM(context, db, &vmtypes.InterpreterConfig{})
 
-	ret, contractAddr, leftOverGas, err := ovm.Create(vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err := ovm.Create(&context,vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(ret, contractAddr, leftOverGas, err)
 
-	ret, leftOverGas, err = ovm.Call(vmtypes.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(ret, contractAddr, leftOverGas, err)
 }
 

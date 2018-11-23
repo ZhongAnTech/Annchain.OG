@@ -53,7 +53,7 @@ func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]b
 			return interpreter.Run(contract, input, readOnly)
 		}
 	}
-	return nil, ErrNoCompatibleInterpreter
+	return nil, vmtypes.ErrNoCompatibleInterpreter
 }
 
 // OVM is the Ethereum Virtual Machine base object and provides
@@ -77,7 +77,7 @@ type OVM struct {
 	// chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
-	VmConfig *Config
+	InterpreterConfig *vmtypes.InterpreterConfig
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
 	Interpreters []Interpreter
@@ -93,10 +93,10 @@ type OVM struct {
 
 // NewOVM returns a new OVM. The returned OVM is not thread safe and should
 // only ever be used *once*.
-func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, vmConfig *Config) *OVM {
+func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, vmConfig *vmtypes.InterpreterConfig) *OVM {
 	evm := &OVM{
-		Context:  ctx,
-		VmConfig: vmConfig,
+		Context:           ctx,
+		InterpreterConfig: vmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
 		Interpreters: make([]Interpreter, 0, 1),
 	}
@@ -121,17 +121,17 @@ func (ovm *OVM) Cancel() {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if ovm.Depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, vmtypes.ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !ovm.Context.CanTransfer(ovm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, gas, vmtypes.ErrInsufficientBalance
 	}
 
 	var (
@@ -142,9 +142,9 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 		precompiles := PrecompiledContractsByzantium
 		if precompiles[addr] == nil && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
-			if ovm.VmConfig.Debug && ovm.Depth == 0 {
-				ovm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-				ovm.VmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+			if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+				ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				ovm.InterpreterConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
 			return nil, gas, nil
 		}
@@ -160,11 +160,11 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
-	if ovm.VmConfig.Debug && ovm.Depth == 0 {
-		ovm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+		ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
 		defer func() { // Lazy evaluation of the parameters
-			ovm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 		}()
 	}
 	ret, err = run(ovm, contract, input, false)
@@ -174,7 +174,7 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 	// when we're in homestead this also counts for code storage gas errors.
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
-		if err != ErrExecutionReverted {
+		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -189,17 +189,17 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
 func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if ovm.Depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, vmtypes.ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !ovm.CanTransfer(ovm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, gas, vmtypes.ErrInsufficientBalance
 	}
 
 	var (
@@ -215,7 +215,7 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 	ret, err = run(ovm, contract, input, false)
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
-		if err != ErrExecutionReverted {
+		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -228,12 +228,12 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
 func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if ovm.Depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, vmtypes.ErrDepth
 	}
 
 	var (
@@ -248,7 +248,7 @@ func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, a
 	ret, err = run(ovm, contract, input, false)
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
-		if err != ErrExecutionReverted {
+		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -260,12 +260,12 @@ func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, a
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if ovm.Depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, vmtypes.ErrDepth
 	}
 
 	var (
@@ -284,7 +284,7 @@ func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, add
 	ret, err = run(ovm, contract, input, true)
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
-		if err != ErrExecutionReverted {
+		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
@@ -296,10 +296,10 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if ovm.Depth > int(params.CallCreateDepth) {
-		return nil, types.Address{}, gas, ErrDepth
+		return nil, types.Address{}, gas, vmtypes.ErrDepth
 	}
 	if !ovm.CanTransfer(ovm.StateDB, caller.Address(), value) {
-		return nil, types.Address{}, gas, ErrInsufficientBalance
+		return nil, types.Address{}, gas, vmtypes.ErrInsufficientBalance
 	}
 	nonce := ovm.StateDB.GetNonce(caller.Address())
 	ovm.StateDB.SetNonce(caller.Address(), nonce+1)
@@ -307,7 +307,7 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ovm.StateDB.GetCodeHash(address)
 	if ovm.StateDB.GetNonce(address) != 0 || (contractHash != (types.Hash{}) && contractHash != emptyCodeHash) {
-		return nil, types.Address{}, 0, ErrContractAddressCollision
+		return nil, types.Address{}, 0, vmtypes.ErrContractAddressCollision
 	}
 	// Create a new account on the state
 	snapshot := ovm.StateDB.Snapshot()
@@ -322,12 +322,12 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	contract := vmtypes.NewContract(caller, vmtypes.AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
-	if ovm.VmConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
 		return nil, address, gas, nil
 	}
 
-	if ovm.VmConfig.Debug && ovm.Depth == 0 {
-		ovm.VmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.Code, gas, value)
+	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+		ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.Code, gas, value)
 	}
 	start := time.Now()
 
@@ -344,25 +344,25 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 		if contract.UseGas(createDataGas) {
 			ovm.StateDB.SetCode(address, ret)
 		} else {
-			err = ErrCodeStoreOutOfGas
+			err = vmtypes.ErrCodeStoreOutOfGas
 		}
 	}
 
 	// When an error was returned by the OVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
 	// when we're in homestead this also counts for code storage gas errors.
-	if maxCodeSizeExceeded || (err != nil && err != ErrCodeStoreOutOfGas) {
+	if maxCodeSizeExceeded || (err != nil && err != vmtypes.ErrCodeStoreOutOfGas) {
 		ovm.StateDB.RevertToSnapshot(snapshot)
-		if err != ErrExecutionReverted {
+		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
 	// Assign err if contract code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
-		err = ErrMaxCodeSizeExceeded
+		err = vmtypes.ErrMaxCodeSizeExceeded
 	}
-	if ovm.VmConfig.Debug && ovm.Depth == 0 {
-		ovm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+		ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
 	}
 	return ret, address, contract.Gas, err
 

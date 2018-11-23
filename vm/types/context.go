@@ -46,7 +46,7 @@ type Context struct {
 	// NOTE: must be set atomically
 	Abort int32
 
-	// CallContext is the object for routing Call ops
+	// Caller is the object for routing Call ops
 	// This object is probably OVM.
-	CallContext CallContext
+	Caller Caller
 }

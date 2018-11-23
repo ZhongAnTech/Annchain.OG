@@ -24,7 +24,6 @@ import (
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/crypto/sha3"
 	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 )
@@ -392,7 +391,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	interpreter.hasher.Read(interpreter.hasherBuf.Bytes[:])
 
 	evm := interpreter.ctx
-	if evm.VmConfig.EnablePreimageRecording {
+	if interpreter.cfg.EnablePreimageRecording {
 		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
 	}
 	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf.Bytes[:]))
@@ -698,7 +697,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contrac
 	//}
 
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.ctx.CallContext.Create(interpreter.ctx, contract, input, gas, value)
+	res, addr, returnGas, suberr := interpreter.ctx.Caller.Create(interpreter.ctx, contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -731,7 +730,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.ctx.Create2(contract, input, gas, endowment, salt)
+	res, addr, returnGas, suberr := interpreter.ctx.Caller.Create2(interpreter.ctx, contract, input, gas, endowment, salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -761,7 +760,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.ctx.Call(contract, toAddr, args, gas, value)
+	ret, returnGas, err := interpreter.ctx.Caller.Call(interpreter.ctx, contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -790,7 +789,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.ctx.CallCode(contract, toAddr, args, gas, value)
+	ret, returnGas, err := interpreter.ctx.Caller.CallCode(interpreter.ctx, contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -815,7 +814,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.C
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.ctx.DelegateCall(contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.ctx.Caller.DelegateCall(interpreter.ctx, contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -840,7 +839,7 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Con
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.ctx.StaticCall(contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.ctx.Caller.StaticCall(interpreter.ctx, contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {

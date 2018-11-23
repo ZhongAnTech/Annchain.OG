@@ -35,7 +35,7 @@ type  Monitors struct {
 }
 
 func run () {
-	var peerNum = 50
+	var peerNum = 80
 	var ms = make([]*Monitor,peerNum)
 	mch := make(chan *Monitor ,peerNum)
 

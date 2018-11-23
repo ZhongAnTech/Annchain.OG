@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
+	"math/big"
 )
 
 func ExampleExecute() {
@@ -22,15 +23,22 @@ func ExampleExecute() {
 	coinBase := types.HexToAddress("0x03")
 
 	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase)
-	db := &ovm.MemoryStateDB{}
+	db := ovm.NewMemoryStateDB()
+	db.CreateAccount(txContext.From)
+	db.AddBalance(txContext.From, big.NewInt(100000))
+	db.CreateAccount(coinBase)
+	db.AddBalance(coinBase, big.NewInt(100000))
+
 
 	ovm := ovm.NewOVM(context, db, nil, &ovm.OVMConfig{NoRecursion: false})
 
 	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
-	fmt.Println(ret, contractAddr, leftOverGas, err)
+	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 
 	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
-	fmt.Println(ret, contractAddr, leftOverGas, err)
+	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
+
+	fmt.Println(db.Dump())
 }
 
 // loads a solidity file and run it

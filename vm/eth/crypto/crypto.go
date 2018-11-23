@@ -80,7 +80,7 @@ func CreateAddress(b types.Address, nonce uint64) types.Address {
 // CreateAddress2 creates an ethereum address given the address bytes, initial
 // contract code hash and a salt.
 func CreateAddress2(b types.Address, salt [32]byte, inithash []byte) types.Address {
-	return types.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes[:], salt[:], inithash)[12:])
+	return types.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes(), salt[:], inithash)[12:])
 }
 
 // ToECDSA creates a private key with the given D value.

@@ -488,8 +488,8 @@ func (r *RpcController) OgPeersInfo(c *gin.Context) {
 
 type  Monitor struct {
 	Port  string `json:"port"`
-	Peers []string
-	SeqId  uint64
+	Peers []string `json:"peers"`
+	SeqId  uint64 `json:"seq_id"`
 }
 
 func (r*RpcController)Monitor(c*gin.Context) {

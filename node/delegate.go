@@ -49,7 +49,7 @@ type SeqRequest struct {
 }
 
 func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
-	seq = c.TxCreator.NewSignedSequencer(r.Issuer, r.SequenceID, r.Hashes, r.Nonce, r.PrivateKey)
+	seq = c.TxCreator.NewUnsignedSequencer(r.Issuer, r.SequenceID, r.Hashes, r.Nonce)
 	tx := types.RandomTx()
 	seq.GetBase().ParentsHash= tx.GetBase().ParentsHash
 	seq.GetBase().AccountNonce = tx.AccountNonce

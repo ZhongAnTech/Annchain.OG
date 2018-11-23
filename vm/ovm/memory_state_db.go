@@ -4,108 +4,164 @@ import (
 	"math/big"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
+	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/vm/eth/crypto"
+	"strings"
+	"fmt"
 )
 
-type MemoryStateDB struct{
-	
+type stateObject struct {
+	balance  *big.Int
+	nonce    uint64
+	code     []byte
+	codeHash types.Hash
 }
 
-func (MemoryStateDB) CreateAccount(types.Address) {
+func (s *stateObject) String() string {
+	return fmt.Sprintf("Balance %s Nonce %d CodeLen: %d CodeHash: %s", s.balance, s.nonce, len(s.code), s.codeHash.String())
+}
+
+func newStateObject() *stateObject {
+	return &stateObject{
+		balance: big.NewInt(0),
+	}
+}
+
+type MemoryStateDB struct {
+	ledger map[types.Address]*stateObject
+}
+
+func NewMemoryStateDB() *MemoryStateDB {
+	return &MemoryStateDB{
+		ledger: make(map[types.Address]*stateObject),
+	}
+}
+
+func (m *MemoryStateDB) CreateAccount(addr types.Address) {
+	m.ledger[addr] = newStateObject()
+}
+
+func (m *MemoryStateDB) SubBalance(addr types.Address, v *big.Int) {
+	m.ledger[addr].balance = new(big.Int).Sub(m.ledger[addr].balance, v)
+}
+
+func (m *MemoryStateDB) AddBalance(addr types.Address, v *big.Int) {
+	m.ledger[addr].balance = new(big.Int).Add(m.ledger[addr].balance, v)
+}
+
+func (m *MemoryStateDB) GetBalance(addr types.Address) *big.Int {
+	if v, ok := m.ledger[addr]; ok {
+		return v.balance
+	}
+	return common.Big0
+}
+
+func (m *MemoryStateDB) GetNonce(addr types.Address) uint64 {
+	if v, ok := m.ledger[addr]; ok {
+		return v.nonce
+	}
+	return 0
+}
+
+func (m *MemoryStateDB) SetNonce(addr types.Address, nonce uint64) {
+	if v, ok := m.ledger[addr]; ok {
+		v.nonce = nonce
+	}
+}
+
+func (m *MemoryStateDB) GetCodeHash(addr types.Address) types.Hash {
+	if v, ok := m.ledger[addr]; ok {
+		return v.codeHash
+	}
+	return types.Hash{}
+}
+
+func (m *MemoryStateDB) GetCode(addr types.Address) []byte {
+	if v, ok := m.ledger[addr]; ok {
+		return v.code
+	}
+	return nil
+}
+
+func (m *MemoryStateDB) SetCode(addr types.Address, code []byte) {
+	if v, ok := m.ledger[addr]; ok {
+		v.code = code
+		v.codeHash = crypto.Keccak256Hash(code)
+	}
+}
+
+func (m *MemoryStateDB) GetCodeSize(addr types.Address) int {
+	if v, ok := m.ledger[addr]; ok {
+		return len(v.code)
+	}
+	return 0
+}
+
+func (m *MemoryStateDB) AddRefund(v uint64) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) SubBalance(types.Address, *big.Int) {
+func (m *MemoryStateDB) SubRefund(v uint64) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) AddBalance(types.Address, *big.Int) {
+func (m *MemoryStateDB) GetRefund() uint64 {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetBalance(types.Address) *big.Int {
+func (m *MemoryStateDB) GetCommittedState(addr types.Address, hash types.Hash) types.Hash {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetNonce(types.Address) uint64 {
+func (m *MemoryStateDB) GetState(addr types.Address, key types.Hash) types.Hash {
 	panic("implement me")
 }
 
-func (MemoryStateDB) SetNonce(types.Address, uint64) {
+func (m *MemoryStateDB) SetState(addr types.Address, key types.Hash, value types.Hash) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetCodeHash(types.Address) types.Hash {
+func (m *MemoryStateDB) Suicide(addr types.Address) bool {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetCode(types.Address) []byte {
+func (m *MemoryStateDB) HasSuicided(addr types.Address) bool {
 	panic("implement me")
 }
 
-func (MemoryStateDB) SetCode(types.Address, []byte) {
+func (m *MemoryStateDB) Exist(addr types.Address) bool {
+	_, ok := m.ledger[addr]
+	return ok
+}
+
+func (m *MemoryStateDB) Empty(addr types.Address) bool {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetCodeSize(types.Address) int {
+func (m *MemoryStateDB) RevertToSnapshot(int) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) AddRefund(uint64) {
+func (m *MemoryStateDB) Snapshot() int {
+	return 0
+}
+
+func (m *MemoryStateDB) AddLog(*vmtypes.Log) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) SubRefund(uint64) {
+func (m *MemoryStateDB) AddPreimage(hash types.Hash, preImage []byte) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetRefund() uint64 {
+func (m *MemoryStateDB) ForEachStorage(addr types.Address, cb func(key, value types.Hash) bool) {
 	panic("implement me")
 }
 
-func (MemoryStateDB) GetCommittedState(types.Address, types.Hash) types.Hash {
-	panic("implement me")
-}
-
-func (MemoryStateDB) GetState(types.Address, types.Hash) types.Hash {
-	panic("implement me")
-}
-
-func (MemoryStateDB) SetState(types.Address, types.Hash, types.Hash) {
-	panic("implement me")
-}
-
-func (MemoryStateDB) Suicide(types.Address) bool {
-	panic("implement me")
-}
-
-func (MemoryStateDB) HasSuicided(types.Address) bool {
-	panic("implement me")
-}
-
-func (MemoryStateDB) Exist(types.Address) bool {
-	panic("implement me")
-}
-
-func (MemoryStateDB) Empty(types.Address) bool {
-	panic("implement me")
-}
-
-func (MemoryStateDB) RevertToSnapshot(int) {
-	panic("implement me")
-}
-
-func (MemoryStateDB) Snapshot() int {
-	panic("implement me")
-}
-
-func (MemoryStateDB) AddLog(*vmtypes.Log) {
-	panic("implement me")
-}
-
-func (MemoryStateDB) AddPreimage(types.Hash, []byte) {
-	panic("implement me")
-}
-
-func (MemoryStateDB) ForEachStorage(types.Address, func(types.Hash, types.Hash) bool) {
-	panic("implement me")
+func (m *MemoryStateDB) Dump() string {
+	b := strings.Builder{}
+	for k, v := range m.ledger {
+		b.WriteString(fmt.Sprintf("%s: %s\n", k.String(), v))
+	}
+	return b.String()
 }

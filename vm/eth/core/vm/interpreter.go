@@ -42,7 +42,7 @@ type keccakState interface {
 type EVMInterpreter struct {
 	//ovm      *ovm.OVM
 	ctx        *vmtypes.Context
-	cfg        *vmtypes.InterpreterConfig
+	cfg        *InterpreterConfig
 	gasTable   params.GasTable
 	intPool    *intPool
 	hasher     keccakState    // Keccak256 hasher instance shared across opcodes
@@ -53,7 +53,7 @@ type EVMInterpreter struct {
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(ctx *vmtypes.Context, cfg *vmtypes.InterpreterConfig) *EVMInterpreter {
+func NewEVMInterpreter(ctx *vmtypes.Context, cfg *InterpreterConfig) *EVMInterpreter {
 	return &EVMInterpreter{
 		ctx:       ctx,
 		cfg:       cfg,

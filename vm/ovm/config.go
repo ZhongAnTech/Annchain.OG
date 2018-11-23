@@ -21,7 +21,6 @@ import (
 	"math/big"
 )
 
-
 // ChainConfig is the core config which determines the blockchain settings.
 //
 // ChainConfig is stored in the database on a per block basis. This means
@@ -38,7 +37,6 @@ func (c *ChainConfig) String() string {
 	)
 }
 
-
 // ConfigCompatError is raised if the locally-stored blockchain is initialised with a
 // ChainConfig that would alter the past.
 type ConfigCompatError struct {
@@ -54,3 +52,9 @@ func (err *ConfigCompatError) Error() string {
 }
 
 var TestChainConfig = &ChainConfig{0}
+
+type OVMConfig struct {
+	// NoRecursion disabled Interpreter call, callcode,
+	// delegate call and create.
+	NoRecursion bool
+}

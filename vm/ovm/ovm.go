@@ -19,12 +19,11 @@ package ovm
 import (
 	"math/big"
 	"sync/atomic"
-	"time"
-
 	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
+	"github.com/annchain/OG/vm/runtime"
 	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
@@ -45,7 +44,7 @@ func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]b
 			if evm.Interpreter != interpreter {
 				// Ensure that the interpreter pointer is set back
 				// to its current value upon return.
-				defer func(i Interpreter) {
+				defer func(i runtime.Interpreter) {
 					evm.Interpreter = i
 				}(evm.Interpreter)
 				evm.Interpreter = interpreter
@@ -77,11 +76,11 @@ type OVM struct {
 	// chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
-	InterpreterConfig *vmtypes.InterpreterConfig
+	OVMConfigs *OVMConfig
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
-	Interpreters []Interpreter
-	Interpreter  Interpreter
+	Interpreters []runtime.Interpreter
+	Interpreter  runtime.Interpreter
 	// abort is used to abort the OVM calling operations
 	// NOTE: must be set atomically
 	// Abort int32
@@ -93,19 +92,22 @@ type OVM struct {
 
 // NewOVM returns a new OVM. The returned OVM is not thread safe and should
 // only ever be used *once*.
-func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, vmConfig *vmtypes.InterpreterConfig) *OVM {
+func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []runtime.Interpreter, ovmConfig *OVMConfig) *OVM {
 	evm := &OVM{
-		Context:           ctx,
-		InterpreterConfig: vmConfig,
+		Context: ctx,
+		OVMConfigs: ovmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
-		Interpreters: make([]Interpreter, 0, 1),
+		Interpreters: supportInterpreters,
+		Interpreter: supportInterpreters[0],
+	}
+	if evm.Interpreter == nil{
+		// goto default
+		evm.Interpreters = []runtime.Interpreter{
+			vm.NewEVMInterpreter(&evm.Context, &vm.InterpreterConfig{}),
+		}
+		evm.Interpreter = evm.Interpreters[0]
 	}
 	evm.StateDB = statedb
-
-	// vmConfig.EVMInterpreter will be used by OVM-C, it won't be checked here
-	// as we always want to have the built-in OVM as the failover option.
-	evm.Interpreters = append(evm.Interpreters, vm.NewEVMInterpreter(&evm.Context, vmConfig))
-	evm.Interpreter = evm.Interpreters[0]
 
 	return evm
 }
@@ -121,7 +123,7 @@ func (ovm *OVM) Cancel() {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 
@@ -142,10 +144,10 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 		precompiles := PrecompiledContractsByzantium
 		if precompiles[addr] == nil && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
-			if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
-				ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-				ovm.InterpreterConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
-			}
+			//if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+			//	ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+			//	ovm.InterpreterConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+			//}
 			return nil, gas, nil
 		}
 		ovm.StateDB.CreateAccount(addr)
@@ -157,16 +159,16 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
-	start := time.Now()
+	//start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
-	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
-		ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-
-		defer func() { // Lazy evaluation of the parameters
-			ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
-		}()
-	}
+	//if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+	//	ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+	//
+	//	defer func() { // Lazy evaluation of the parameters
+	//		ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+	//	}()
+	//}
 	ret, err = run(ovm, contract, input, false)
 
 	// When an error was returned by the OVM or when setting the creation code
@@ -189,7 +191,7 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
 func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 
@@ -228,7 +230,7 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
 func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -260,7 +262,7 @@ func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, a
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
-	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
@@ -322,14 +324,14 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	contract := vmtypes.NewContract(caller, vmtypes.AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
-	if ovm.InterpreterConfig.NoRecursion && ovm.Depth > 0 {
+	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, address, gas, nil
 	}
 
-	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
-		ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.Code, gas, value)
-	}
-	start := time.Now()
+	//if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+	//	ovm.InterpreterConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.Code, gas, value)
+	//}
+	//start := time.Now()
 
 	ret, err := run(ovm, contract, nil, false)
 
@@ -361,9 +363,9 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	if maxCodeSizeExceeded && err == nil {
 		err = vmtypes.ErrMaxCodeSizeExceeded
 	}
-	if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
-		ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
-	}
+	//if ovm.InterpreterConfig.Debug && ovm.Depth == 0 {
+	//	ovm.InterpreterConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+	//}
 	return ret, address, contract.Gas, err
 
 }

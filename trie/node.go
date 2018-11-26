@@ -23,14 +23,13 @@ import (
 	"strings"
 
 	"github.com/tinylib/msgp/msgp"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/rlp"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
 
 type Node interface {
 	fstring(string) string
+	nodeType() int
 	cache() (HashNode, bool)
 	canUnload(cachegen, cachelimit uint16) bool
 	encodeNode() []byte
@@ -81,6 +80,19 @@ type nodeFlag struct {
 func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {
 	return !n.dirty && cachegen-n.gen >= cachelimit
 }
+
+const (
+	nilnode int = iota
+	fullnode
+	shortnode
+	hashnode
+	valuenode
+)
+
+func (n *FullNode) nodeType() int  { return fullnode }
+func (n *ShortNode) nodeType() int { return shortnode }
+func (n HashNode) nodeType() int   { return hashnode }
+func (n ValueNode) nodeType() int  { return valuenode }
 
 func (n *FullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }
 func (n *ShortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload(gen, limit) }

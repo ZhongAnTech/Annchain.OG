@@ -248,12 +248,12 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 func (sd *StateDB) loadState(addr types.Address) (*State, error) {
 	data, err := sd.trie.TryGet(addr.ToBytes())
 	if err != nil {
-		return nil, fmt.Errorf("get state from trie err: ", err)
+		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
 	var state State
 	_, err = state.UnmarshalMsg(data)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal err: ", err)
+		return nil, fmt.Errorf("unmarshal err: %v", err)
 	}
 	return &state, nil
 }

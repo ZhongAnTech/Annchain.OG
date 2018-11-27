@@ -67,7 +67,10 @@ func (z *FullNode) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x91)
 	o = msgp.AppendArrayHeader(o, uint32(17))
 	for za0001 := range z.Children {
-		o = detectNodeType(z.Children[za0001], o)
+		o, err = detectNodeType(z.Children[za0001], o)
+		if err != nil {
+			return
+		}
 		if z.Children[za0001] == nil {
 			continue
 		}
@@ -134,6 +137,8 @@ func (z *FullNode) GenNode(b []byte, i int) (o []byte, err error) {
 		z.Children[i] = &ValueNode{}
 	case hashnode:
 		z.Children[i] = &HashNode{}
+	default:
+		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}
 
 	o = b[1:]
@@ -248,7 +253,10 @@ func (z *ShortNode) MarshalMsg(b []byte) (o []byte, err error) {
 	// array header, size 2
 	o = append(o, 0x92)
 	o = msgp.AppendBytes(o, z.Key)
-	o = detectNodeType(z.Val, o)
+	o, err = detectNodeType(z.Val, o)
+	if err != nil {
+		return
+	}
 	if z.Val == nil {
 		return
 	}
@@ -317,6 +325,8 @@ func (z *ShortNode) GenNode(b []byte) (o []byte, err error) {
 		z.Val = &ValueNode{}
 	case hashnode:
 		z.Val = &HashNode{}
+	default:
+		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}
 
 	o = b[1:]
@@ -377,7 +387,7 @@ func nodetypebyte(t nodetype) byte {
 	return ([]byte(strconv.Itoa(int(t))))[0]
 }
 
-func detectNodeType(n Node, b []byte) (o []byte) {
+func detectNodeType(n Node, b []byte) (o []byte, err error) {
 	switch n.(type) {
 	case nil:
 		o = append(b, nodetypebyte(nilnode))
@@ -388,12 +398,14 @@ func detectNodeType(n Node, b []byte) (o []byte) {
 	case *ShortNode:
 		o = append(b, nodetypebyte(shortnode))
 		return
-	case *HashNode:
+	case HashNode:
 		o = append(b, nodetypebyte(hashnode))
 		return
-	case *ValueNode:
+	case ValueNode:
 		o = append(b, nodetypebyte(valuenode))
 		return
+	default:
+		err = fmt.Errorf("unknown nodetype: %v", n)
 	}
 	return
 }

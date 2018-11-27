@@ -4,10 +4,70 @@ package trie
 
 import (
 	"bytes"
+	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/annchain/OG/types"
 	"github.com/tinylib/msgp/msgp"
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func newFullNode() *FullNode {
+	rand.Seed(time.Now().UnixNano())
+
+	fn := FullNode{}
+	for i := range fn.Children {
+		flag := rand.Intn(3)
+		if flag == 0 {
+			continue
+		} else if flag == 1 {
+			fn.Children[i] = newHashNode()
+		} else {
+			fn.Children[i] = newValueNode()
+		}
+	}
+	return &fn
+}
+
+func newShortNode() *ShortNode {
+	rand.Seed(time.Now().UnixNano())
+
+	sn := ShortNode{}
+	flag := rand.Intn(3)
+	if flag == 0 {
+		return &sn
+	} else if flag == 1 {
+		sn.Val = newHashNode()
+	} else {
+		sn.Val = newValueNode()
+	}
+	sn.Key = []byte("key")
+	return &sn
+}
+
+func newHashNode() HashNode {
+	rand.Seed(time.Now().UnixNano())
+
+	sr := make([]rune, 10)
+	for i := range sr {
+		sr[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	seedstr := string(sr)
+	return HashNode(types.HexToHash(seedstr).ToBytes())
+}
+
+func newValueNode() ValueNode {
+	rand.Seed(time.Now().UnixNano())
+
+	sr := make([]rune, rand.Intn(50))
+	for i := range sr {
+		sr[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	seedstr := string(sr)
+	return ValueNode([]byte(seedstr))
+}
 
 func TestMarshalUnmarshalFullNode(t *testing.T) {
 	v := FullNode{}
@@ -30,6 +90,21 @@ func TestMarshalUnmarshalFullNode(t *testing.T) {
 	if len(left) > 0 {
 		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
 	}
+
+	vnew := newFullNode()
+	bts, err = vnew.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fn FullNode
+	left, err = fn.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
 }
 
 func BenchmarkMarshalMsgFullNode(b *testing.B) {
@@ -143,6 +218,24 @@ func TestMarshalUnmarshalShortNode(t *testing.T) {
 	if len(left) > 0 {
 		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
 	}
+
+	vnew := newShortNode()
+	bts, err = vnew.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sn ShortNode
+	left, err = sn.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+	if string(vnew.Key) != string(sn.Key) {
+		t.Errorf("vnew and sn not the same, vnew key: %s, sn key: %s", string(vnew.Key), string(sn.Key))
+	}
+
 }
 
 func BenchmarkMarshalMsgShortNode(b *testing.B) {

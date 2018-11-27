@@ -11,10 +11,6 @@ import (
 
 var nodeTypeSize = 1
 
-func nodetypebyte(t int) byte {
-	return ([]byte(strconv.Itoa(t)))[0]
-}
-
 // DecodeMsg implements msgp.Decodable
 func (z *FullNode) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
@@ -71,6 +67,10 @@ func (z *FullNode) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x91)
 	o = msgp.AppendArrayHeader(o, uint32(17))
 	for za0001 := range z.Children {
+		o = detectNodeType(z.Children[za0001], o)
+		if z.Children[za0001] == nil {
+			continue
+		}
 		o, err = z.Children[za0001].MarshalMsg(o)
 		if err != nil {
 			return
@@ -100,6 +100,13 @@ func (z *FullNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	for za0001 := range z.Children {
+		bts, err = z.GenNode(bts, za0001)
+		if err != nil {
+			return
+		}
+		if z.Children[za0001] == nil {
+			return
+		}
 		bts, err = z.Children[za0001].UnmarshalMsg(bts)
 		if err != nil {
 			return
@@ -109,11 +116,38 @@ func (z *FullNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
+// GenNode checks the type of z.Val and initiate an object entity for it.
+func (z *FullNode) GenNode(b []byte, i int) (o []byte, err error) {
+	t, errc := strconv.Atoi(string(b[0]))
+	if errc != nil {
+		err = fmt.Errorf("convert byte to int error: %v", errc)
+		return
+	}
+	switch nodetype(t) {
+	case nilnode:
+		z.Children[i] = nil
+	case fullnode:
+		z.Children[i] = &FullNode{}
+	case shortnode:
+		z.Children[i] = &ShortNode{}
+	case valuenode:
+		z.Children[i] = &ValueNode{}
+	case hashnode:
+		z.Children[i] = &HashNode{}
+	}
+
+	o = b[1:]
+	return
+}
+
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *FullNode) Msgsize() (s int) {
 	s = 1 + msgp.ArrayHeaderSize
 	for za0001 := range z.Children {
 		s += nodeTypeSize
+		if z.Children[za0001] == nil {
+			continue
+		}
 		s += z.Children[za0001].Msgsize()
 	}
 	return
@@ -214,23 +248,9 @@ func (z *ShortNode) MarshalMsg(b []byte) (o []byte, err error) {
 	// array header, size 2
 	o = append(o, 0x92)
 	o = msgp.AppendBytes(o, z.Key)
-
-	switch z.Val.(type) {
-	case nil:
-		o = append(o, nodetypebyte(nilnode))
+	o = detectNodeType(z.Val, o)
+	if z.Val == nil {
 		return
-	case *FullNode:
-		o = append(o, nodetypebyte(fullnode))
-		break
-	case *ShortNode:
-		o = append(o, nodetypebyte(shortnode))
-		break
-	case *HashNode:
-		o = append(o, nodetypebyte(hashnode))
-		break
-	case *ValueNode:
-		o = append(o, nodetypebyte(valuenode))
-		break
 	}
 	o, err = z.Val.MarshalMsg(o)
 	if err != nil {
@@ -286,7 +306,7 @@ func (z *ShortNode) GenNode(b []byte) (o []byte, err error) {
 		err = fmt.Errorf("convert byte to int error: %v", errc)
 		return
 	}
-	switch t {
+	switch nodetype(t) {
 	case nilnode:
 		z.Val = nil
 	case fullnode:
@@ -349,5 +369,31 @@ func (z ValueNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z ValueNode) Msgsize() (s int) {
 	s = msgp.BytesPrefixSize + len([]byte(z))
+	return
+}
+
+// convert nodetype to byte
+func nodetypebyte(t nodetype) byte {
+	return ([]byte(strconv.Itoa(int(t))))[0]
+}
+
+func detectNodeType(n Node, b []byte) (o []byte) {
+	switch n.(type) {
+	case nil:
+		o = append(b, nodetypebyte(nilnode))
+		return
+	case *FullNode:
+		o = append(b, nodetypebyte(fullnode))
+		return
+	case *ShortNode:
+		o = append(b, nodetypebyte(shortnode))
+		return
+	case *HashNode:
+		o = append(b, nodetypebyte(hashnode))
+		return
+	case *ValueNode:
+		o = append(b, nodetypebyte(valuenode))
+		return
+	}
 	return
 }

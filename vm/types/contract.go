@@ -27,14 +27,14 @@ import (
 
 type CodeAndHash struct {
 	Code []byte
-	CodeHash types.Hash
+	hash types.Hash
 }
 
 func (c *CodeAndHash) Hash() types.Hash {
-	if c.CodeHash == (types.Hash{}) {
-		c.CodeHash = crypto.Keccak256Hash(c.Code)
+	if c.hash == (types.Hash{}) {
+		c.hash = crypto.Keccak256Hash(c.Code)
 	}
-	return c.CodeHash
+	return c.hash
 }
 
 
@@ -195,6 +195,6 @@ func (c *Contract) SetCallCode(addr *types.Address, hash types.Hash, code []byte
 // In case hash is not provided, the jumpdest analysis will not be saved to the parent context
 func (c *Contract) SetCodeOptionalHash(addr *types.Address, codeAndHash *CodeAndHash) {
 	c.Code = codeAndHash.Code
-	c.CodeHash = codeAndHash.CodeHash
+	c.CodeHash = codeAndHash.hash
 	c.CodeAddr = addr
 }

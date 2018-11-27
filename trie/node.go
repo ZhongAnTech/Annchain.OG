@@ -29,7 +29,7 @@ var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b
 
 type Node interface {
 	fstring(string) string
-	nodeType() int
+	nodeType() nodetype
 	cache() (HashNode, bool)
 	canUnload(cachegen, cachelimit uint16) bool
 	encodeNode() []byte
@@ -81,18 +81,20 @@ func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {
 	return !n.dirty && cachegen-n.gen >= cachelimit
 }
 
+type nodetype int
+
 const (
-	nilnode int = iota
+	nilnode nodetype = iota
 	fullnode
 	shortnode
 	hashnode
 	valuenode
 )
 
-func (n *FullNode) nodeType() int  { return fullnode }
-func (n *ShortNode) nodeType() int { return shortnode }
-func (n HashNode) nodeType() int   { return hashnode }
-func (n ValueNode) nodeType() int  { return valuenode }
+func (n *FullNode) nodeType() nodetype  { return fullnode }
+func (n *ShortNode) nodeType() nodetype { return shortnode }
+func (n HashNode) nodeType() nodetype   { return hashnode }
+func (n ValueNode) nodeType() nodetype  { return valuenode }
 
 func (n *FullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }
 func (n *ShortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload(gen, limit) }

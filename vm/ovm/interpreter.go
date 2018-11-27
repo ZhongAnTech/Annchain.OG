@@ -1,4 +1,4 @@
-package runtime
+package ovm
 
 import "github.com/annchain/OG/vm/types"
 

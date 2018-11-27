@@ -10,89 +10,86 @@ import (
 	"fmt"
 )
 
-type stateObject struct {
-	balance  *big.Int
-	nonce    uint64
-	code     []byte
-	codeHash types.Hash
-}
-
-func (s *stateObject) String() string {
-	return fmt.Sprintf("Balance %s Nonce %d CodeLen: %d CodeHash: %s", s.balance, s.nonce, len(s.code), s.codeHash.String())
-}
-
-func newStateObject() *stateObject {
-	return &stateObject{
-		balance: big.NewInt(0),
-	}
-}
-
 type MemoryStateDB struct {
-	ledger map[types.Address]*stateObject
+	ledger map[types.Address]*vmtypes.StateObject
+}
+
+func (m *MemoryStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
+	if v, ok := m.ledger[addr]; ok {
+		return v
+	}
+	return nil
+}
+
+func (m *MemoryStateDB) SetStateObject(addr types.Address, stateObject *vmtypes.StateObject) {
+	m.ledger[addr] = stateObject
 }
 
 func NewMemoryStateDB() *MemoryStateDB {
 	return &MemoryStateDB{
-		ledger: make(map[types.Address]*stateObject),
+		ledger: make(map[types.Address]*vmtypes.StateObject),
 	}
 }
 
 func (m *MemoryStateDB) CreateAccount(addr types.Address) {
-	m.ledger[addr] = newStateObject()
+	if _, ok := m.ledger[addr]; ok {
+		return
+	}
+	m.ledger[addr] = vmtypes.NewStateObject()
 }
 
 func (m *MemoryStateDB) SubBalance(addr types.Address, v *big.Int) {
-	m.ledger[addr].balance = new(big.Int).Sub(m.ledger[addr].balance, v)
+	m.ledger[addr].Balance = new(big.Int).Sub(m.ledger[addr].Balance, v)
 }
 
 func (m *MemoryStateDB) AddBalance(addr types.Address, v *big.Int) {
-	m.ledger[addr].balance = new(big.Int).Add(m.ledger[addr].balance, v)
+	m.ledger[addr].Balance = new(big.Int).Add(m.ledger[addr].Balance, v)
 }
 
 func (m *MemoryStateDB) GetBalance(addr types.Address) *big.Int {
 	if v, ok := m.ledger[addr]; ok {
-		return v.balance
+		return v.Balance
 	}
 	return common.Big0
 }
 
 func (m *MemoryStateDB) GetNonce(addr types.Address) uint64 {
 	if v, ok := m.ledger[addr]; ok {
-		return v.nonce
+		return v.Nonce
 	}
 	return 0
 }
 
 func (m *MemoryStateDB) SetNonce(addr types.Address, nonce uint64) {
 	if v, ok := m.ledger[addr]; ok {
-		v.nonce = nonce
+		v.Nonce = nonce
 	}
 }
 
 func (m *MemoryStateDB) GetCodeHash(addr types.Address) types.Hash {
 	if v, ok := m.ledger[addr]; ok {
-		return v.codeHash
+		return v.CodeHash
 	}
 	return types.Hash{}
 }
 
 func (m *MemoryStateDB) GetCode(addr types.Address) []byte {
 	if v, ok := m.ledger[addr]; ok {
-		return v.code
+		return v.Code
 	}
 	return nil
 }
 
 func (m *MemoryStateDB) SetCode(addr types.Address, code []byte) {
 	if v, ok := m.ledger[addr]; ok {
-		v.code = code
-		v.codeHash = crypto.Keccak256Hash(code)
+		v.Code = code
+		v.CodeHash = crypto.Keccak256Hash(code)
 	}
 }
 
 func (m *MemoryStateDB) GetCodeSize(addr types.Address) int {
 	if v, ok := m.ledger[addr]; ok {
-		return len(v.code)
+		return len(v.Code)
 	}
 	return 0
 }
@@ -158,7 +155,7 @@ func (m *MemoryStateDB) ForEachStorage(addr types.Address, cb func(key, value ty
 	panic("implement me")
 }
 
-func (m *MemoryStateDB) Dump() string {
+func (m *MemoryStateDB) String() string {
 	b := strings.Builder{}
 	for k, v := range m.ledger {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k.String(), v))

@@ -8,6 +8,7 @@ import (
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
 	"math/big"
+	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
 func ExampleExecute() {
@@ -29,8 +30,9 @@ func ExampleExecute() {
 	db.CreateAccount(coinBase)
 	db.AddBalance(coinBase, big.NewInt(100000))
 
+	evmInterpreter := vm.NewEVMInterpreter(&context, &vm.InterpreterConfig{})
 
-	ovm := ovm.NewOVM(context, db, nil, &ovm.OVMConfig{NoRecursion: false})
+	ovm := ovm.NewOVM(context, db, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
 
 	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
@@ -38,7 +40,7 @@ func ExampleExecute() {
 	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(coinBase), contractAddr, txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 
-	fmt.Println(db.Dump())
+	fmt.Println(db.String())
 }
 
 // loads a solidity file and run it

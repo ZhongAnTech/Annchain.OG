@@ -23,15 +23,13 @@ import (
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/vm/runtime"
-	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
-// run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
+// run runs the given contract and takes care of running precompiles with a fallback to the byte Code interpreter.
 func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
@@ -44,7 +42,7 @@ func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]b
 			if evm.Interpreter != interpreter {
 				// Ensure that the interpreter pointer is set back
 				// to its current value upon return.
-				defer func(i runtime.Interpreter) {
+				defer func(i Interpreter) {
 					evm.Interpreter = i
 				}(evm.Interpreter)
 				evm.Interpreter = interpreter
@@ -61,7 +59,7 @@ func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]b
 // generated through any of the calls should be considered a
 // revert-state-and-consume-all-gas operation, no checks on
 // specific errors should ever be performed. The interpreter makes
-// sure that any errors generated are to be considered faulty code.
+// sure that any errors generated are to be considered faulty Code.
 //
 // The OVM should never be reused and is not thread safe.
 type OVM struct {
@@ -79,8 +77,8 @@ type OVM struct {
 	OVMConfigs *OVMConfig
 	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
-	Interpreters []runtime.Interpreter
-	Interpreter  runtime.Interpreter
+	Interpreters []Interpreter
+	Interpreter  Interpreter
 	// abort is used to abort the OVM calling operations
 	// NOTE: must be set atomically
 	// Abort int32
@@ -92,18 +90,15 @@ type OVM struct {
 
 // NewOVM returns a new OVM. The returned OVM is not thread safe and should
 // only ever be used *once*.
-func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []runtime.Interpreter, ovmConfig *OVMConfig) *OVM {
+func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []Interpreter, ovmConfig *OVMConfig) *OVM {
 	evm := &OVM{
 		Context:    ctx,
 		OVMConfigs: ovmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
 		Interpreters: supportInterpreters,
 	}
-	if evm.Interpreter == nil {
-		// goto default
-		evm.Interpreters = []runtime.Interpreter{
-			vm.NewEVMInterpreter(&evm.Context, &vm.InterpreterConfig{}),
-		}
+	if evm.Interpreter != nil {
+
 		evm.Interpreter = evm.Interpreters[0]
 	}
 	evm.Interpreter = evm.Interpreters[0]
@@ -132,7 +127,7 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 	if ovm.Depth > int(params.CallCreateDepth) {
 		return nil, gas, vmtypes.ErrDepth
 	}
-	// Fail if we're trying to transfer more than the available balance
+	// Fail if we're trying to transfer more than the available Balance
 	if !ovm.Context.CanTransfer(ovm.StateDB, caller.Address(), value) {
 		return nil, gas, vmtypes.ErrInsufficientBalance
 	}
@@ -154,12 +149,12 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 		ovm.StateDB.CreateAccount(addr)
 	}
 	ovm.Transfer(ovm.StateDB, caller.Address(), to.Address(), value)
-	// Initialise a new contract and set the code that is to be used by the OVM.
+	// Initialise a new contract and set the Code that is to be used by the OVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := vmtypes.NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
-	// Even if the account has no code, we need to continue because it might be a precompile
+	// Even if the account has no Code, we need to continue because it might be a precompile
 	//start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -172,9 +167,9 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 	//}
 	ret, err = run(ovm, contract, input, false)
 
-	// When an error was returned by the OVM or when setting the creation code
+	// When an error was returned by the OVM or when setting the creation Code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in homestead this also counts for code storage gas errors.
+	// when we're in homestead this also counts for Code storage gas errors.
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
 		if err != vmtypes.ErrExecutionReverted {
@@ -190,7 +185,7 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 // execution error or failed value transfer.
 //
 // CallCode differs from Call in the sense that it executes the given address'
-// code with the caller as context.
+// Code with the caller as context.
 func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
@@ -200,7 +195,7 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 	if ovm.Depth > int(params.CallCreateDepth) {
 		return nil, gas, vmtypes.ErrDepth
 	}
-	// Fail if we're trying to transfer more than the available balance
+	// Fail if we're trying to transfer more than the available Balance
 	if !ovm.CanTransfer(ovm.StateDB, caller.Address(), value) {
 		return nil, gas, vmtypes.ErrInsufficientBalance
 	}
@@ -209,7 +204,7 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 		snapshot = ovm.StateDB.Snapshot()
 		to       = vmtypes.AccountRef(caller.Address())
 	)
-	// initialise a new contract and set the code that is to be used by the
+	// initialise a new contract and set the Code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := vmtypes.NewContract(caller, to, value, gas)
@@ -229,7 +224,7 @@ func (ovm *OVM) CallCode(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr 
 // as parameters. It reverses the state in case of an execution error.
 //
 // DelegateCall differs from CallCode in the sense that it executes the given address'
-// code with the caller as context and the caller is set to the caller of the caller.
+// Code with the caller as context and the caller is set to the caller of the caller.
 func (ovm *OVM) DelegateCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
 	if ovm.OVMConfigs.NoRecursion && ovm.Depth > 0 {
 		return nil, gas, nil
@@ -275,15 +270,15 @@ func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, add
 		to       = vmtypes.AccountRef(addr)
 		snapshot = ovm.StateDB.Snapshot()
 	)
-	// Initialise a new contract and set the code that is to be used by the
+	// Initialise a new contract and set the Code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := vmtypes.NewContract(caller, to, new(big.Int), gas)
 	contract.SetCallCode(&addr, ovm.StateDB.GetCodeHash(addr), ovm.StateDB.GetCode(addr))
 
-	// When an error was returned by the OVM or when setting the creation code
+	// When an error was returned by the OVM or when setting the creation Code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in Homestead this also counts for code storage gas errors.
+	// when we're in Homestead this also counts for Code storage gas errors.
 	ret, err = run(ovm, contract, input, true)
 	if err != nil {
 		ovm.StateDB.RevertToSnapshot(snapshot)
@@ -294,7 +289,7 @@ func (ovm *OVM) StaticCall(ctx *vmtypes.Context, caller vmtypes.ContractRef, add
 	return ret, contract.Gas, err
 }
 
-// create creates a new contract using code as deployment code.
+// create creates a new contract using Code as deployment Code.
 func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAndHash *vmtypes.CodeAndHash, gas uint64, value *big.Int, address types.Address) ([]byte, types.Address, uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
@@ -319,7 +314,7 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 
 	ovm.Transfer(ovm.StateDB, caller.Address(), address, value)
 
-	// initialise a new contract and set the code that is to be used by the
+	// initialise a new contract and set the Code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := vmtypes.NewContract(caller, vmtypes.AccountRef(address), value, gas)
@@ -336,10 +331,10 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 
 	ret, err := run(ovm, contract, nil, false)
 
-	// check whether the max code size has been exceeded
+	// check whether the max Code size has been exceeded
 	maxCodeSizeExceeded := len(ret) > params.MaxCodeSize
 	// if the contract creation ran successfully and no errors were returned
-	// calculate the gas required to store the code. If the code could not
+	// calculate the gas required to store the Code. If the Code could not
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
@@ -351,16 +346,16 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 		}
 	}
 
-	// When an error was returned by the OVM or when setting the creation code
+	// When an error was returned by the OVM or when setting the creation Code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
-	// when we're in homestead this also counts for code storage gas errors.
+	// when we're in homestead this also counts for Code storage gas errors.
 	if maxCodeSizeExceeded || (err != nil && err != vmtypes.ErrCodeStoreOutOfGas) {
 		ovm.StateDB.RevertToSnapshot(snapshot)
 		if err != vmtypes.ErrExecutionReverted {
 			contract.UseGas(contract.Gas)
 		}
 	}
-	// Assign err if contract code size exceeds the max while the err is still empty.
+	// Assign err if contract Code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
 		err = vmtypes.ErrMaxCodeSizeExceeded
 	}
@@ -371,16 +366,16 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 
 }
 
-// Create creates a new contract using code as deployment code.
+// Create creates a new contract using Code as deployment Code.
 func (ovm *OVM) Create(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	contractAddr = crypto.CreateAddress(caller.Address(), ovm.StateDB.GetNonce(caller.Address()))
 	return ovm.create(ctx, caller, &vmtypes.CodeAndHash{Code: code}, gas, value, contractAddr)
 }
 
-// Create2 creates a new contract using code as deployment code.
+// Create2 creates a new contract using Code as deployment Code.
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
-// instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
+// instead of the usual sender-and-Nonce-hash as the address where the contract is initialized at.
 func (ovm *OVM) Create2(ctx *vmtypes.Context, caller vmtypes.ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	codeAndHash := &vmtypes.CodeAndHash{Code: code}
 	contractAddr = crypto.CreateAddress2(caller.Address(), types.BigToHash(salt).Bytes, codeAndHash.Hash().ToBytes())

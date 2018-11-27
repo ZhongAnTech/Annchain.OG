@@ -220,6 +220,6 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	c.Dag.Accessor().WriteSequencerById(sequencer)
 	c.Dag.Accessor().WriteLatestSequencer(sequencer)
 	c.Dag.SetLatest(sequencer)
-	c.Hub.BroadcastMessage(og.MessageTypeNewSequencer ,&types.MessageNewSequencer{sequencer.RawSequencer()})
+	c.Hub.BroadcastMessageWithFilter(og.MessageTypeNewSequencer ,&types.MessageNewSequencer{sequencer.RawSequencer(),nil,0})
 	return true
 }

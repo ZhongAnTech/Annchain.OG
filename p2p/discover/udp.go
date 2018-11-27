@@ -432,6 +432,9 @@ func (t *udp) loop() {
 					}
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
+				}else {
+					log.WithField("pfrom ",p.from.String()).WithField("rfrom",r.from).WithField("" +
+						" ptype",p.ptype).WithField("rtype",r.ptype).Debug("mismatch")
 				}
 			}
 			r.matched <- matched

@@ -398,7 +398,7 @@ func (h*IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSeque
 	}
 	txi := h.Og.Dag.GetTx(seq.Hash)
 	if txi!=nil {
-		msgLog.Debug("duplicate tx")
+		msgLog.WithField("tx ",txi.String()).Debug("duplicate tx")
 		return
 	}else {
 		h.mu.Lock()
@@ -407,7 +407,8 @@ func (h*IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSeque
 		h.Og.Dag.Accessor().WriteSequencerById(seq)
 		h.Og.Dag.Accessor().WriteLatestSequencer(seq)
 		h.Og.Dag.SetLatest(seq)
-		msgLog.Debug("handled tx ,broadcast to other peers")
-		h.Hub.BroadcastMessage(MessageTypeNewSequencer, newSeq)
+		msgLog.Debug("handled sequencer ,broadcast to other peers")
+		newSeq.Hop++
+		h.Hub.BroadcastMessageWithFilter(MessageTypeNewSequencer, newSeq)
 	}
 }

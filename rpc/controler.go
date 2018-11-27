@@ -486,33 +486,45 @@ func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, info)
 }
 
-type  Monitor struct {
-	Port  string `json:"port"`
-	Peers []string `json:"peers"`
-	SeqId  uint64 `json:"seq_id"`
+type Monitor struct {
+	Port    string `json:"port"`
+	ShortId string `json:"short_id"`
+	Peers   []Peer `json:"peers,omitempty"`
+	SeqId   uint64 `json:"seq_id"`
 }
 
-func (r*RpcController)Monitor(c*gin.Context) {
+type Peer struct {
+	Addr    string `json:"addr"`
+	ShortId string `json:"short_id"`
+}
+
+func (r *RpcController) Monitor(c *gin.Context) {
 	var m Monitor
 	seq := r.Og.Dag.LatestSequencer()
-	if seq!=nil {
+	if seq != nil {
 		m.SeqId = seq.Id
 	}
-	peersinfo:=  r.P2pServer.PeersInfo()
-	for _,p:= range peersinfo {
-		var addr string
-		if p.Network.Inbound {
-			addr = p.Network.LocalAddress
-		}else {
-			addr = p.Network.RemoteAddress
-		}
-			ipPort :=strings.Split(addr,":")
-			if len(ipPort) ==2 {
-				m.Peers = append(m.Peers ,ipPort[1])
+	peersinfo := r.P2pServer.PeersInfo()
+	for _, p := range peersinfo {
+		/*
+			if p.Network.Inbound {
+				addr = p.Network.LocalAddress
+			}else {
+				addr = p.Network.RemoteAddress
 			}
+				ipPort :=strings.Split(addr,":")
+				if len(ipPort) ==2 {
+					m.Peers = append(m.Peers ,ipPort[1])
+				}
+		*/
+		var peer Peer
+		peer.Addr = p.Network.RemoteAddress
+		peer.ShortId = p.ShortId
+		m.Peers = append(m.Peers, peer)
+	}
+	m.Port = viper.GetString("p2p.port")
+	m.ShortId = r.P2pServer.NodeInfo().ShortId
 
-		}
-	   m.Port = viper.GetString("p2p.port")
 	c.JSON(http.StatusOK, m)
 }
 

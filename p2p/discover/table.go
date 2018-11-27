@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	alpha           = 3  // Kademlia concurrency factor
+	alpha           = 3  // Kademlia concurrencyiifactor
 	bucketSize      = 16 // Kademlia bucket size
 	maxReplacements = 10 // Size of per-bucket replacement list
 

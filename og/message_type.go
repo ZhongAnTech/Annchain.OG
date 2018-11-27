@@ -65,6 +65,7 @@ const (
 	sendingTypeBroacast SendingType = iota
 	sendingTypeMulticast
 	sendingTypeMulticastToSource
+	sendingTypeBroacastWithFilter
 )
 
 func (mt MessageType) String() string {

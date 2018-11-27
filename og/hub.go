@@ -56,7 +56,7 @@ type Hub struct {
 	//Downloader         *downloader.Downloader
 	//Fetcher            *fetcher.Fetcher
 
-	WithCukooFilter bool
+	WithBloomFilter bool
 
 	NodeInfo func() *p2p.NodeInfo
 }
@@ -84,7 +84,7 @@ type HubConfig struct {
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
-	WithCukooFilter               bool
+	WithBloomFilter               bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -94,7 +94,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
-		WithCukooFilter:               true,
+		WithBloomFilter:               true,
 	}
 	return config
 }
@@ -112,7 +112,7 @@ func (h *Hub) Init(config *HubConfig) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 	h.CallbackRegistryOG32 = make(map[MessageType]func(*P2PMessage))
-	h.WithCukooFilter = config.WithCukooFilter
+	h.WithBloomFilter = config.WithBloomFilter
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -240,6 +240,8 @@ func (h *Hub) handleMsg(p *peer) error {
 	default:
 		duplicate, err := h.checkMsg(&p2pMsg)
 		if duplicate {
+			log.WithField("type",p2pMsg.MessageType).WithField("msg",p2pMsg.Message.String()).WithField(
+				"hash",p2pMsg.hash).Debug("duplicate msg ,discard")
 			return nil
 		}
 		if err != nil {
@@ -328,6 +330,13 @@ func (h *Hub) loopSend() {
 				go h.multicastMessage(m)
 			case sendingTypeMulticastToSource:
 				h.multicastMessageToSource(m)
+			case sendingTypeBroacastWithFilter:
+				if h.WithBloomFilter{
+					go h.broadcastMessageWithFilter(m)
+				}else {
+					h.broadcastMessage(m)
+				}
+
 			default:
 				log.WithField("type ", m.sendingType).Error("unknown sending  type")
 				panic(m)
@@ -376,6 +385,18 @@ func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 	h.outgoing <- msgOut
 }
 
+
+//BroadcastMessage broadcast to whole network
+func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Message) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeBroacastWithFilter}
+	_, err := h.checkMsg(msgOut)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		return
+	}
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
+	h.outgoing <- msgOut
+}
 //MulticastMessage multicast message to some peer
 func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeMulticast}
@@ -394,6 +415,7 @@ func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg types.Messa
 	}
 	return p.sendRequest(messageType, msg)
 }
+
 func (h *Hub) SendBytesToPeer(peerId string, messageType MessageType, msg []byte) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
@@ -487,6 +509,38 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	// h.incoming <- msg
 }
 
+func (h*Hub)broadcastMessageWithFilter(msg*P2PMessage) {
+	newSeq :=  msg.Message.(*types.MessageNewSequencer)
+	if newSeq.Filter ==nil {
+		newSeq.Filter = types.NewDefaultBloomFilter()
+	}else if len(newSeq.Filter.Data)!=0{
+		err := newSeq.Filter.Decode()
+		if err != nil {
+			msgLog.WithError(err).Warn("encode bloom filter error")
+			return
+		}
+	}
+	var allpeers []*peer
+	var peers []*peer
+	allpeers = h.peers.PeersWithoutMsg(msg.hash)
+	for _, peer := range allpeers {
+		ok,_:= newSeq.Filter.LookUpItem(peer.ID().Bytes())
+		if ok{
+			msgLog.WithField("id ",peer.id).Debug("filtered ,don't send")
+		}else {
+			newSeq.Filter.AddItem(peer.ID().Bytes())
+			peers = append(peers,peer)
+			msgLog.WithField("id ",peer.id).Debug("not filtered ,don't send")
+		}
+	}
+	newSeq.Filter.Encode()
+	msg.Message = newSeq
+	msg.data,_ = newSeq.MarshalMsg(nil)
+	for _, peer := range peers {
+		peer.AsyncSendMessage(msg)
+	}
+}
+
 //multicastMessage
 func (h *Hub) multicastMessage(msg *P2PMessage) error {
 	peers := h.peers.GetRandomPeers(2)
@@ -509,7 +563,8 @@ func (h *Hub) multicastMessageToSource(msg *P2PMessage) error {
 	//send to 2 peer , considering if one peer disconnect,
 	peers := h.peers.GetPeers(ids, 2)
 	if len(peers) == 0 {
-		msgLog.WithField("type ", msg.MessageType).WithField("peeers id ", ids).Warn("not found source peers, multicast to random")
+		msgLog.WithField("type ", msg.MessageType).WithField("peeers id ", ids).Warn(
+			"not found source peers, multicast to random")
 		return h.multicastMessage(msg)
 	}
 	// choose random peer and then send.

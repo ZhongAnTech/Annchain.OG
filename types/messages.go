@@ -52,7 +52,7 @@ type MessageSyncRequest struct {
 }
 
 func (m *MessageSyncRequest) String() string {
-	return fmt.Sprintf(" requestId %d", m.RequestId)
+	return fmt.Sprintf(" requestId %d", m.RequestId) + fmt.Sprintf("count: %d", m.Filter.GetCount())
 }
 
 //msgp:tuple MessageSyncResponse
@@ -86,6 +86,7 @@ func (m *MessageNewTx) GetHash() *Hash {
 //msgp:tuple BloomFilter
 type BloomFilter struct {
 	Data   []byte
+	Count   uint32
 	filter *bloom.BloomFilter
 }
 
@@ -96,6 +97,8 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
+	Filter    *BloomFilter
+	Hop       uint8
 }
 
 func (m *MessageNewSequencer) GetHash() *Hash {
@@ -111,7 +114,14 @@ func (m *MessageNewSequencer) GetHash() *Hash {
 }
 
 func (m *MessageNewSequencer) String() string {
-	return m.RawSequencer.String()
+	return m.RawSequencer.String()+fmt.Sprintf("  hop :%d , filterCount :%d",m.Hop,m.Filter.GetCount())
+}
+
+func (c*BloomFilter)GetCount()uint32 {
+	if c ==nil {
+		return 0
+	}
+	return c.Count
 }
 
 func (c *BloomFilter) Encode() error {
@@ -128,12 +138,15 @@ func (c *BloomFilter) Decode() error {
 func NewDefaultBloomFilter() *BloomFilter {
 	c := &BloomFilter{}
 	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	c.Count = 0
 	return c
 }
 
 func (c *BloomFilter) AddItem(item []byte) {
 	c.filter.Add(item)
+	c.Count++
 }
+
 
 func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 	if c == nil || c.filter == nil {
@@ -141,6 +154,7 @@ func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 	}
 	return c.filter.Test(item), nil
 }
+
 
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {

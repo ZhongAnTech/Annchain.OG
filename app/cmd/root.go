@@ -103,7 +103,7 @@ func init() {
 	viper.SetDefault("hub.incoming_buffer_size", 10)
 	viper.SetDefault("hub.message_cache_expiration_seconds", 60)
 	viper.SetDefault("hub.message_cache_max_size", 3000)
-	viper.SetDefault("crypto.algorithm", "secp256k1")
+	viper.SetDefault("crypto.algorithm", "ed25519")
 
 	viper.SetDefault("max_tx_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	viper.SetDefault("max_mined_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")

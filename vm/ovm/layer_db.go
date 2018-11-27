@@ -12,7 +12,7 @@ import (
 )
 
 var MAX_LAYER = 1024
-var FAST_FAIL = true
+var FAST_FAIL = false
 
 // LayerStateDB is the cascading storage for contracts.
 // It consists of multiple layers, each of which represents the result of a contract.

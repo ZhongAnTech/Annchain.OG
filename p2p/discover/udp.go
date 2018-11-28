@@ -433,7 +433,7 @@ func (t *udp) loop() {
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
 				}else {
-					log.WithField("pfrom ",p.from.String()).WithField("rfrom",r.from).WithField("" +
+					log.WithField("pfrom ",p.from.TerminalString()).WithField("rfrom",r.from.TerminalString()).WithField("" +
 						" ptype",p.ptype).WithField("rtype",r.ptype).Debug("mismatch")
 				}
 			}
@@ -624,7 +624,7 @@ func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 		return err
 	}
 	err = packet.handle(t, from, fromID, hash)
-	log.WithError(err).WithField("addr", from).Trace("<< handle  " + packet.name())
+	log.WithError(err).WithField("from id",fromID.TerminalString()).WithField("addr", from).Trace("<< handle  " + packet.name())
 	return err
 }
 

@@ -530,7 +530,7 @@ func (h*Hub)broadcastMessageWithFilter(msg*P2PMessage) {
 		}else {
 			newSeq.Filter.AddItem(peer.ID().Bytes())
 			peers = append(peers,peer)
-			msgLog.WithField("id ",peer.id).Debug("not filtered ,don't send")
+			msgLog.WithField("id ",peer.id).Debug("not filtered , send")
 		}
 	}
 	newSeq.Filter.Encode()

@@ -198,6 +198,7 @@ type pending struct {
 	// errc receives nil when the callback indicates completion or an
 	// error if no further reply is received within the timeout.
 	errc chan<- error
+	//fromAddr *net.UDPAddr
 }
 
 type reply struct {
@@ -207,6 +208,7 @@ type reply struct {
 	// loop indicates whether there was
 	// a matching request by sending on this channel.
 	matched chan<- bool
+	//fromAddr *net.UDPAddr
 }
 
 // ReadPacket is sent to the unhandled channel when it could not be processed
@@ -291,7 +293,7 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 		errc <- err
 		return errc
 	}
-	errc := t.pending(toid, pongPacket, func(p interface{}) bool {
+	errc := t.pending(toid, pongPacket,toaddr, func(p interface{}) bool {
 		ok := bytes.Equal(p.(*Pong).ReplyTok, hash)
 		if ok && callback != nil {
 			callback()
@@ -302,8 +304,8 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 	return errc
 }
 
-func (t *udp) waitping(from NodeID) error {
-	return <-t.pending(from, pingPacket, func(interface{}) bool { return true })
+func (t *udp) waitping(from NodeID,fromAddr *net.UDPAddr) error {
+	return <-t.pending(from, pingPacket,fromAddr, func(interface{}) bool { return true })
 }
 
 // findnode sends a findnode request to the given node and waits until
@@ -313,12 +315,12 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
 		t.ping(toid, toaddr)
-		t.waitping(toid)
+		t.waitping(toid,toaddr)
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
 	nreceived := 0
-	errc := t.pending(toid, neighborsPacket, func(r interface{}) bool {
+	errc := t.pending(toid, neighborsPacket, toaddr,func(r interface{}) bool {
 		reply := r.(*Neighbors)
 		for _, rn := range reply.Nodes {
 			nreceived++
@@ -344,7 +346,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 
 // pending adds a reply callback to the pending reply queue.
 // see the documentation of type pending for a detailed explanation.
-func (t *udp) pending(id NodeID, ptype byte, callback func(interface{}) bool) <-chan error {
+func (t *udp) pending(id NodeID, ptype byte, from *net.UDPAddr, callback func(interface{}) bool) <-chan error {
 	ch := make(chan error, 1)
 	p := &pending{from: id, ptype: ptype, callback: callback, errc: ch}
 	select {
@@ -356,10 +358,11 @@ func (t *udp) pending(id NodeID, ptype byte, callback func(interface{}) bool) <-
 	return ch
 }
 
-func (t *udp) handleReply(from NodeID, ptype byte, req packet) bool {
+func (t *udp) handleReply(fromID NodeID, ptype byte, req packet) bool {
 	matched := make(chan bool, 1)
+
 	select {
-	case t.gotreply <- reply{from, ptype, req, matched}:
+	case t.gotreply <- reply{fromID, ptype, req, matched}:
 		// loop will handle it
 		return <-matched
 	case <-t.closing:
@@ -418,6 +421,7 @@ func (t *udp) loop() {
 
 		case r := <-t.gotreply:
 			var matched bool
+		    var try = 0
 			for el := plist.Front(); el != nil; el = el.Next() {
 				p := el.Value.(*pending)
 				if p.from == r.from && p.ptype == r.ptype {
@@ -433,9 +437,13 @@ func (t *udp) loop() {
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
 				}else {
-					log.WithField("pfrom ",p.from.TerminalString()).WithField("rfrom",r.from.TerminalString()).WithField("" +
-						" ptype",p.ptype).WithField("rtype",r.ptype).Debug("mismatch")
+					try ++
 				}
+			}
+			if matched ==false {
+				log.WithField("fromId",r.from.TerminalString()).WithField(
+					//"rfrom",r.fromAddr.String()).WithField(
+					"rtype",r.ptype).Debug("mismatch")
 			}
 			r.matched <- matched
 
@@ -681,7 +689,8 @@ func (req *Ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	}
 	data, _ := pong.MarshalMsg(nil)
 	t.send(from, pongPacket, data, pong.name())
-	t.handleReply(fromID, pingPacket, req)
+	// no need to handle reply ,because we did'n add to pending
+	//t.handleReply(fromID, pingPacket,req,from)
 
 	// Add the node to the table. Before doing so, ensure that we have a recent enough pong
 	// recorded in the database so their findnode requests will be accepted later.

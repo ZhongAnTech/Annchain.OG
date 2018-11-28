@@ -16,7 +16,7 @@ type  Monitor struct {
 	SeqId  uint64 `json:"seq_id"`
 	ShortId string `json:"short_id"`
 	Err error
-	id   int
+	Id   int
 }
 
 type Peer struct {
@@ -36,7 +36,7 @@ func main() {
 	ips := GetIps()
 	for {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(15 * time.Second):
 			go run(ips)
 		}
 	}
@@ -62,7 +62,7 @@ func run (ips []string) {
 			if data.Err==nil{
 				valid = true
 				d:=*data
-				ms[data.id] = &d
+				ms[data.Id] = &d
 			}else {
 				//d:= Monitor{}
 				//d.Port = fmt.Sprintf("%d", getPort(data.id))
@@ -105,6 +105,7 @@ func getPort( id int ) int {
 }
 
 func GetIps () []string{
+	//return  []string{"192.168.45.128"}
 	dir,_ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts",dir)
 	f,err:= os.Open(fName)
@@ -126,14 +127,14 @@ func getRequest (ip string ,id ,portId int , ch chan *Monitor) {
 	port := getPort(portId)
 	host :=  fmt.Sprintf("http://%s:%d",ip,port )
 	req := httplib.NewBeegoRequest(host+"/monitor","GET")
-	req.SetTimeout(5*time.Second,5*time.Second)
+	req.SetTimeout(8*time.Second,8*time.Second)
 	var m Monitor
 	err := req.ToJSON(&m)
 	if err!=nil {
 		m.Err =err
 	}
-	m.id = id
-	m.Port = fmt.Sprintf("%s:%s",ip, port)
+	m.Id = id
+	m.Port = fmt.Sprintf("%s:%d",ip, port)
 	ch <-&m
 	return
 }

@@ -56,7 +56,7 @@ type Hub struct {
 	//Downloader         *downloader.Downloader
 	//Fetcher            *fetcher.Fetcher
 
-	WithBloomFilter bool
+	WithFilter bool
 
 	NodeInfo func() *p2p.NodeInfo
 }
@@ -84,7 +84,7 @@ type HubConfig struct {
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
-	WithBloomFilter               bool
+	WithFilter               bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -94,7 +94,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
-		WithBloomFilter:               true,
+		WithFilter:               true,
 	}
 	return config
 }
@@ -112,7 +112,7 @@ func (h *Hub) Init(config *HubConfig) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 	h.CallbackRegistryOG32 = make(map[MessageType]func(*P2PMessage))
-	h.WithBloomFilter = config.WithBloomFilter
+	h.WithFilter = config.WithFilter
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -331,7 +331,7 @@ func (h *Hub) loopSend() {
 			case sendingTypeMulticastToSource:
 				h.multicastMessageToSource(m)
 			case sendingTypeBroacastWithFilter:
-				if h.WithBloomFilter{
+				if h.WithFilter{
 					go h.broadcastMessageWithFilter(m)
 				}else {
 					h.broadcastMessage(m)
@@ -508,6 +508,18 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	// DUMMY: Send to me
 	// h.incoming <- msg
 }
+
+func (h*Hub)broadcastMessageWithLink(msg*P2PMessage) {
+	var peers []*peer
+	// choose all  peer and then send.
+	peers = h.peers.PeersWithoutMsg(msg.hash)
+
+	for _, peer := range peers {
+		peer.AsyncSendMessage(msg)
+	}
+	return
+}
+
 
 func (h*Hub)broadcastMessageWithFilter(msg*P2PMessage) {
 	newSeq :=  msg.Message.(*types.MessageNewSequencer)

@@ -74,7 +74,7 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
-		WithBloomFilter: viper.GetBool("hub.bloom_filter"),
+		WithFilter: viper.GetBool("hub.bloom_filter"),
 	})
 
 	hub.StatusDataProvider = org

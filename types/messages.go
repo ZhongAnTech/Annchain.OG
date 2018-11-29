@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/Metabdulla/bloom"
 	"github.com/annchain/OG/common/math"
-	"github.com/tinylib/msgp/msgp"
+	"github.com/annchain/OG/common/msgp"
 	"strings"
 )
+//go:generate msgp
 
 var Signer ISigner
 
@@ -19,13 +20,10 @@ type ISigner interface {
 	AddressFromPubKeyBytes(pubKey []byte) Address
 }
 
-//go:generate msgp
+
 
 type Message interface {
-	msgp.MarshalSizer
-	msgp.Unmarshaler
-	msgp.Decodable
-	msgp.Encodable
+  	 msgp.Message
 	String() string //string is for logging
 }
 

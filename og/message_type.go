@@ -26,7 +26,7 @@ var ProtocolLengths = []uint64{18, 15}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
-type MessageType uint64
+type MessageType uint32
 
 //global msg counter , generate global msg request id
 var MsgCounter *MessageCounter
@@ -66,6 +66,7 @@ const (
 	sendingTypeMulticast
 	sendingTypeMulticastToSource
 	sendingTypeBroacastWithFilter
+	sendingTypeBroacastWithLink
 )
 
 func (mt MessageType) String() string {

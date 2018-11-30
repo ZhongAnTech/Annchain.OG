@@ -134,15 +134,15 @@ func TestSortedGetAndSet(t *testing.T) {
 	} {
 		var r Record
 		for _, i := range tt.input {
-			val:= msg.Uint(i.V)
+			val := msg.Uint(i.V)
 			r.Set(WithEntry(i.K, &val))
 		}
 		for i, w := range tt.want {
 			// set got's key from r.Pair[i], so that we preserve order of Pairs
 			got := Pair{K: r.Pairs[i].K}
-			val:= msg.Uint(got.V)
+			val := msg.Uint(got.V)
 			assert.NoError(t, r.Load(WithEntry(w.K, &val)))
-			got.V = uint32( val)
+			got.V = uint32(val)
 			assert.Equal(t, w, got)
 		}
 	}
@@ -167,7 +167,7 @@ func TestDirty(t *testing.T) {
 	if len(r.Signature) != 0 {
 		t.Error("Signature still set after modification")
 	}
-	if _, err :=r.Encode(nil); err != errEncodeUnsigned {
+	if _, err := r.Encode(nil); err != errEncodeUnsigned {
 		t.Errorf("expected errEncodeUnsigned, got %#v", err)
 	}
 }
@@ -176,12 +176,12 @@ func TestSeq(t *testing.T) {
 	var r Record
 
 	assert.Equal(t, uint64(0), r.GetSeq())
-	u:= UDP(1)
+	u := UDP(1)
 	r.Set(&u)
 	assert.Equal(t, uint64(0), r.GetSeq())
 	signTest([]byte{5}, &r)
 	assert.Equal(t, uint64(0), r.GetSeq())
-	u2:= UDP(2)
+	u2 := UDP(2)
 	r.Set(&u2)
 	assert.Equal(t, uint64(1), r.GetSeq())
 }
@@ -204,9 +204,9 @@ func TestGetSetOverwrite(t *testing.T) {
 // TestSignEncodeAndDecode tests signing, RLP encoding and RLP decoding of a record.
 func TestSignEncodeAndDecode(t *testing.T) {
 	var r Record
-	u:= UDP(30303)
+	u := UDP(30303)
 	r.Set(&u)
-	ip:= IP{127, 0, 0, 1}
+	ip := IP{127, 0, 0, 1}
 	r.Set(&ip)
 	require.NoError(t, signTest([]byte{5}, &r))
 
@@ -214,7 +214,7 @@ func TestSignEncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 
 	var r2 Record
-	_ , err = r2.Decode(blob)
+	_, err = r2.Decode(blob)
 	require.NoError(t, err)
 	assert.Equal(t, r, r2)
 
@@ -229,12 +229,12 @@ func TestRecordTooBig(t *testing.T) {
 	key := randomString(10)
 
 	// set a big value for random key, expect error
-	str:= msg.String( randomString(SizeLimit))
+	str := msg.String(randomString(SizeLimit))
 	r.Set(WithEntry(key, &str))
 	if err := signTest([]byte{5}, &r); err != errTooBig {
 		t.Fatalf("expected to get errTooBig, got %#v", err)
 	}
-	str2 :=msg.String( randomString(100))
+	str2 := msg.String(randomString(100))
 	// set an acceptable value for random key, expect no error
 	r.Set(WithEntry(key, &str2))
 	require.NoError(t, signTest([]byte{5}, &r))
@@ -250,7 +250,7 @@ func TestSignEncodeAndDecodeRandom(t *testing.T) {
 		key := randomString(7)
 		value := rnd.Uint32()
 		Pairs[string(key)] = value
-		v:= msg.Uint(value)
+		v := msg.Uint(value)
 		r.Set(WithEntry(string(key), &v))
 	}
 
@@ -273,10 +273,9 @@ type testID struct {
 	msg.Bytes
 }
 
-func newTestId (b[]byte) *testID {
+func newTestId(b []byte) *testID {
 	return &testID{b}
 }
-
 
 func (id testID) ENRKey() string { return "testid" }
 

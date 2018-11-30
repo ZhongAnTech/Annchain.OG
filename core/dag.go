@@ -34,9 +34,9 @@ func NewDag(conf DagConfig, db ogdb.Database) *Dag {
 	dag := &Dag{}
 
 	//stateDBConfig := StateDBConfig{
-		//FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		//PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		//BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	//FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
+	//PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
+	//BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	//}
 
 	dag.conf = conf
@@ -149,7 +149,7 @@ func (dag *Dag) LoadLastState() bool {
 	return true
 }
 
-func (dag *Dag)SetLatest(seq *types.Sequencer) {
+func (dag *Dag) SetLatest(seq *types.Sequencer) {
 	dag.latestSeqencer = seq
 }
 

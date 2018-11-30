@@ -53,7 +53,7 @@ type peer struct {
 	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
 	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
 	term      chan struct{}      // Termination channel to stop the broadcaster
-	link     bool
+	link      bool
 }
 
 type PeerInfo struct {
@@ -92,11 +92,11 @@ func (p *peer) broadcast() {
 	}
 }
 
-func (p*peer)SetLink (valid bool) {
+func (p *peer) SetLink(valid bool) {
 	p.link = true
 }
 
-func (p*peer)CheckLink() (valid bool ){
+func (p *peer) CheckLink() (valid bool) {
 	return p.link
 }
 

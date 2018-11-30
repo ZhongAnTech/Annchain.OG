@@ -19,14 +19,15 @@ package enode
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/netutil"
+	"github.com/sirupsen/logrus"
 	"net"
 	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
- "github.com/annchain/OG/p2p/enr"
-	"github.com/annchain/OG/p2p/netutil"
 )
 
 const (
@@ -188,17 +189,17 @@ func (ln *LocalNode) updateEndpoints() {
 
 	// Update the record.
 	if newIP != nil && !newIP.IsUnspecified() {
-		nIp:= enr.IP(newIP)
+		nIp := enr.IP(newIP)
 		ln.set(&nIp)
 		if newUDP != 0 {
-			nU:= enr.UDP(newUDP)
+			nU := enr.UDP(newUDP)
 			ln.set(&nU)
 		} else {
-			u:= enr.UDP(0)
+			u := enr.UDP(0)
 			ln.delete(&u)
 		}
 	} else {
-		i:= enr.IP{}
+		i := enr.IP{}
 		ln.delete(&i)
 	}
 }
@@ -239,7 +240,12 @@ func (ln *LocalNode) sign() {
 		panic(fmt.Errorf("enode: can't verify local record: %v", err))
 	}
 	ln.cur.Store(n)
-	log.Info("New local node record", "seq", ln.seq, "id", n.ID(), "ip", n.IP(), "udp", n.UDP(), "tcp", n.TCP())
+	log.WithFields(logrus.Fields{
+		"seq": ln.seq, "id": n.ID(),
+		"ip":  n.IP(),
+		"udp": n.UDP(),
+		"tcp": n.TCP(),
+	}).Info("New local node record")
 }
 
 func (ln *LocalNode) bumpSeq() {

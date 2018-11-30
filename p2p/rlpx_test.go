@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -32,7 +33,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/crypto/sha3"
-	"github.com/annchain/OG/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -77,9 +77,9 @@ func TestEncHandshake(t *testing.T) {
 
 func testEncHandshake(token []byte) error {
 	type result struct {
-		side string
-		id   discover.NodeID
-		err  error
+		side   string
+		pubkey *ecdsa.PublicKey
+		err    error
 	}
 	var (
 		prv0, _  = crypto.GenerateKey()
@@ -94,14 +94,12 @@ func testEncHandshake(token []byte) error {
 		defer func() { output <- r }()
 		defer fd0.Close()
 
-		dest := &discover.Node{ID: discover.PubkeyID(&prv1.PublicKey)}
-		r.id, r.err = c0.doEncHandshake(prv0, dest)
+		r.pubkey, r.err = c0.doEncHandshake(prv0, &prv1.PublicKey)
 		if r.err != nil {
 			return
 		}
-		id1 := discover.PubkeyID(&prv1.PublicKey)
-		if r.id != id1 {
-			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.id, id1)
+		if !reflect.DeepEqual(r.pubkey, &prv1.PublicKey) {
+			r.err = fmt.Errorf("remote pubkey mismatch: got %v, want: %v", r.pubkey, &prv1.PublicKey)
 		}
 	}()
 	go func() {
@@ -109,13 +107,12 @@ func testEncHandshake(token []byte) error {
 		defer func() { output <- r }()
 		defer fd1.Close()
 
-		r.id, r.err = c1.doEncHandshake(prv1, nil)
+		r.pubkey, r.err = c1.doEncHandshake(prv1, nil)
 		if r.err != nil {
 			return
 		}
-		id0 := discover.PubkeyID(&prv0.PublicKey)
-		if r.id != id0 {
-			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.id, id0)
+		if !reflect.DeepEqual(r.pubkey, &prv0.PublicKey) {
+			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.pubkey, &prv0.PublicKey)
 		}
 	}()
 

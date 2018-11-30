@@ -28,6 +28,7 @@ import (
 
 	"github.com/annchain/OG/p2p/enr"
 )
+
 //go:generate msgp
 // Node represents a host on the network.
 type Node struct {

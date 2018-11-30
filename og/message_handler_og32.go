@@ -16,7 +16,7 @@ func (h *IncomingMessageHandlerOG32) HandleGetNodeDataMsg(peerId string) {
 func (h *IncomingMessageHandlerOG32) HandleNodeDataMsg(peerId string) {
 	// Deliver all to the downloader
 	//if err := h.Hub.Downloader.DeliverNodeData(peerId, nil); err != nil {
-		//msgLog.Debug("Failed to deliver node state data", "err", err)
+	//msgLog.Debug("Failed to deliver node state data", "err", err)
 	//}
 }
 func (h *IncomingMessageHandlerOG32) HandleGetReceiptsMsg(peerId string) {

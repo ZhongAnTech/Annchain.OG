@@ -86,7 +86,7 @@ func (d *dummyTxPool) AddRemoteTx(tx types.Txi) error {
 	return nil
 }
 
-func (d *dummyTxPool)IsLocalHash(hash types.Hash) bool{
+func (d *dummyTxPool) IsLocalHash(hash types.Hash) bool {
 	return false
 }
 
@@ -98,7 +98,7 @@ type dummySyncer struct {
 
 func (d *dummySyncer) ClearQueue() {
 	for k := range d.dmap {
-		delete(d.dmap,k)
+		delete(d.dmap, k)
 	}
 }
 
@@ -129,14 +129,14 @@ func (d *dummyVerifier) Verify(t types.Txi) bool {
 	return true
 }
 
-func (d *dummyVerifier) Name()string {
+func (d *dummyVerifier) Name() string {
 	return "dumnmy verifier"
 }
 
 func setup() *TxBuffer {
 	ver := new(dummyVerifier)
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifiers:               []Verifier{ver},
+		Verifiers:              []Verifier{ver},
 		DependencyCacheMaxSize: 20,
 		TxPool:                 new(dummyTxPool),
 		Dag:                    new(dummyDag),
@@ -234,7 +234,7 @@ func TestBufferCache(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
 	m := buffer.Syncer.(*dummySyncer)
-	tx :=sampleTx("0x0A", []string{"0x09"})
+	tx := sampleTx("0x0A", []string{"0x09"})
 	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	buffer.Start()
 	success := false
@@ -269,5 +269,3 @@ func TestLocalHash(t *testing.T) {
 		t.Fatal("is not localhash")
 	}
 }
-
-

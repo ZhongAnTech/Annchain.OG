@@ -1,4 +1,5 @@
 package enr
+
 // An IdentityScheme is capable of verifying record Signatures and
 // deriving node addresses.
 type IdentityScheme interface {

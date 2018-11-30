@@ -21,18 +21,32 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/annchain/OG/p2p/enr"
 	"github.com/stretchr/testify/assert"
 )
 
-var pyRecord, _ = hex.DecodeString("f884b8407098ad865b00a582051940cb9cf36836572411a47278783077011599ed5cd16b76f2635f4e234738f30813a89eb9137e3e3df5266e3a1f11df72ecf1145ccb9c01826964827634826970847f00000189736563703235366b31a103ca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31388375647082765f")
+//var pyRecord, _ = hex.DecodeString("f884b8407098ad865b00a582051940cb9cf36836572411a47278783077011599ed5cd16b76f2635f4e234738f30813a89eb9137e3e3df5266e3a1f11df72ecf1145ccb9c01826964827634826970847f00000189736563703235366b31a103ca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31388375647082765f")
+var pyRecord, _ = hex.DecodeString("83a353657101a95369676e6174757265c4401fb4a09b1eb072d998b35ca3c681902d3866507c527eb612fffbb021cbd110c34087a517948b6130914fca1cb7acb52e1c4ea4779cfb93cb74de731bf7d2415fa550616972739482a14ba26964a156c403a2763482a14ba26970a156c406c4047f00000182a14ba9736563703235366b31a156c423c42103ca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd313882a14ba3756470a156c403cd765f")
 
 // TestPythonInterop checks that we can decode and verify a record produced by the Python
 // implementation.
 func TestPythonInterop(t *testing.T) {
+	//var r1 enr.Record
+	var (
+		wantID  = HexID("a448f24c6d18e575453db13171562b71999873db5b286df957af199ec94617f7")
+		wantSeq = uint64(1)
+		wantIP  = enr.IP{127, 0, 0, 1}
+		wantUDP = enr.UDP(30303)
+	)
+	//r1.Set(&wantIP)
+	//r1.Set(&wantUDP)
+	//r1.SetSeq(1)
+	// err := SignV4(&r1,privkey)
+	//fmt.Println(err)
+	//pyRecord ,err := r1.Encode(nil)
+	//fmt.Println(err,hex.EncodeToString(pyRecord))
 	var r enr.Record
-	if err := rlp.DecodeBytes(pyRecord, &r); err != nil {
+	if _, err := r.Decode(pyRecord); err != nil {
 		t.Fatalf("can't decode: %v", err)
 	}
 	n, err := New(ValidSchemes, &r)
@@ -40,12 +54,6 @@ func TestPythonInterop(t *testing.T) {
 		t.Fatalf("can't verify record: %v", err)
 	}
 
-	var (
-		wantID  = HexID("a448f24c6d18e575453db13171562b71999873db5b286df957af199ec94617f7")
-		wantSeq = uint64(1)
-		wantIP  = enr.IP{127, 0, 0, 1}
-		wantUDP = enr.UDP(30303)
-	)
 	if n.Seq() != wantSeq {
 		t.Errorf("wrong seq: got %d, want %d", n.Seq(), wantSeq)
 	}

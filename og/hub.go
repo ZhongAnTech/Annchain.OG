@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/big"
 
-	"github.com/annchain/OG/p2p/discover"
+	"github.com/annchain/OG/p2p/enode"
 	"github.com/bluele/gcache"
 	"sync"
 	"time"
@@ -84,7 +84,7 @@ type HubConfig struct {
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
-	WithFilter               bool
+	WithFilter                    bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -94,7 +94,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
-		WithFilter:               true,
+		WithFilter:                    true,
 	}
 	return config
 }
@@ -146,7 +146,7 @@ func NewHub(config *HubConfig) *Hub {
 			NodeInfo: func() interface{} {
 				return h.NodeStatus()
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID)  interface{} {
 				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 					return p.Info()
 				}
@@ -240,8 +240,8 @@ func (h *Hub) handleMsg(p *peer) error {
 	default:
 		duplicate, err := h.checkMsg(&p2pMsg)
 		if duplicate {
-			log.WithField("type",p2pMsg.MessageType).WithField("msg",p2pMsg.Message.String()).WithField(
-				"hash",p2pMsg.hash).Debug("duplicate msg ,discard")
+			log.WithField("type", p2pMsg.MessageType).WithField("msg", p2pMsg.Message.String()).WithField(
+				"hash", p2pMsg.hash).Debug("duplicate msg ,discard")
 			return nil
 		}
 		if err != nil {
@@ -331,9 +331,9 @@ func (h *Hub) loopSend() {
 			case sendingTypeMulticastToSource:
 				h.multicastMessageToSource(m)
 			case sendingTypeBroacastWithFilter:
-				if h.WithFilter{
+				if h.WithFilter {
 					go h.broadcastMessageWithFilter(m)
-				}else {
+				} else {
 					h.broadcastMessage(m)
 				}
 
@@ -385,7 +385,6 @@ func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 	h.outgoing <- msgOut
 }
 
-
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Message) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeBroacastWithFilter}
@@ -397,6 +396,7 @@ func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Mess
 	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
+
 //MulticastMessage multicast message to some peer
 func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeMulticast}
@@ -509,7 +509,7 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	// h.incoming <- msg
 }
 
-func (h*Hub)broadcastMessageWithLink(msg*P2PMessage) {
+func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
 	peers = h.peers.PeersWithoutMsg(msg.hash)
@@ -520,12 +520,11 @@ func (h*Hub)broadcastMessageWithLink(msg*P2PMessage) {
 	return
 }
 
-
-func (h*Hub)broadcastMessageWithFilter(msg*P2PMessage) {
-	newSeq :=  msg.Message.(*types.MessageNewSequencer)
-	if newSeq.Filter ==nil {
+func (h *Hub) broadcastMessageWithFilter(msg *P2PMessage) {
+	newSeq := msg.Message.(*types.MessageNewSequencer)
+	if newSeq.Filter == nil {
 		newSeq.Filter = types.NewDefaultBloomFilter()
-	}else if len(newSeq.Filter.Data)!=0{
+	} else if len(newSeq.Filter.Data) != 0 {
 		err := newSeq.Filter.Decode()
 		if err != nil {
 			msgLog.WithError(err).Warn("encode bloom filter error")
@@ -536,18 +535,18 @@ func (h*Hub)broadcastMessageWithFilter(msg*P2PMessage) {
 	var peers []*peer
 	allpeers = h.peers.PeersWithoutMsg(msg.hash)
 	for _, peer := range allpeers {
-		ok,_:= newSeq.Filter.LookUpItem(peer.ID().Bytes())
-		if ok{
-			msgLog.WithField("id ",peer.id).Debug("filtered ,don't send")
-		}else {
+		ok, _ := newSeq.Filter.LookUpItem(peer.ID().Bytes())
+		if ok {
+			msgLog.WithField("id ", peer.id).Debug("filtered ,don't send")
+		} else {
 			newSeq.Filter.AddItem(peer.ID().Bytes())
-			peers = append(peers,peer)
-			msgLog.WithField("id ",peer.id).Debug("not filtered , send")
+			peers = append(peers, peer)
+			msgLog.WithField("id ", peer.id).Debug("not filtered , send")
 		}
 	}
 	newSeq.Filter.Encode()
 	msg.Message = newSeq
-	msg.data,_ = newSeq.MarshalMsg(nil)
+	msg.data, _ = newSeq.MarshalMsg(nil)
 	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)
 	}
@@ -635,7 +634,7 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
 		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
 			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Debug("received a message")
-		msgLog.WithField("type",msg.MessageType).Debug("handle")
+		msgLog.WithField("type", msg.MessageType).Debug("handle")
 		v(msg)
 	} else {
 		msgLog.WithField("from", msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")

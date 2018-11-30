@@ -31,8 +31,8 @@ type AutoClient struct {
 	AutoTxEnabled        bool
 
 	Delegate *Delegate
-	Dag *core.Dag
-	Hub*og.Hub
+	Dag      *core.Dag
+	Hub      *og.Hub
 
 	ManualChan chan types.TxBaseType
 	quit       chan bool
@@ -142,7 +142,7 @@ func (c *AutoClient) Resume() {
 	c.pause = false
 }
 
-var nonce  uint64
+var nonce uint64
 
 func (c *AutoClient) judgeNonce() uint64 {
 	c.nonceLock.Lock()
@@ -170,7 +170,6 @@ func (c *AutoClient) judgeNonce() uint64 {
 		return n
 	}
 }
-
 
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
@@ -216,10 +215,10 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Info("Generated seq")
 	sequencer := seq.(*types.Sequencer)
-	c.Dag.Accessor().WriteTransaction(nil,sequencer)
+	c.Dag.Accessor().WriteTransaction(nil, sequencer)
 	c.Dag.Accessor().WriteSequencerById(sequencer)
 	c.Dag.Accessor().WriteLatestSequencer(sequencer)
 	c.Dag.SetLatest(sequencer)
-	c.Hub.BroadcastMessageWithFilter(og.MessageTypeNewSequencer ,&types.MessageNewSequencer{sequencer.RawSequencer(),nil,0})
+	c.Hub.BroadcastMessageWithFilter(og.MessageTypeNewSequencer, &types.MessageNewSequencer{sequencer.RawSequencer(), nil, 0})
 	return true
 }

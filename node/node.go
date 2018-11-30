@@ -74,7 +74,7 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
-		WithFilter: viper.GetBool("hub.bloom_filter"),
+		WithFilter:                    viper.GetBool("hub.bloom_filter"),
 	})
 
 	hub.StatusDataProvider = org
@@ -82,66 +82,65 @@ func NewNode() *Node {
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 
-
 	// Setup crypto algorithm
 	signer := crypto.NewSigner(cryptoType)
 	types.Signer = signer
 	/*
-	graphVerifier := &og.GraphVerifier{
-		Dag:    org.Dag,
-		TxPool: org.TxPool,
-		//Buffer: txBuffer,
-	}
+		graphVerifier := &og.GraphVerifier{
+			Dag:    org.Dag,
+			TxPool: org.TxPool,
+			//Buffer: txBuffer,
+		}
 
-	txFormatVerifier := &og.TxFormatVerifier{
-		Signer:       signer,
-		CryptoType:   signer.GetCryptoType(),
-		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
-		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
-	}
+		txFormatVerifier := &og.TxFormatVerifier{
+			Signer:       signer,
+			CryptoType:   signer.GetCryptoType(),
+			MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
+			MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
+		}
 
-	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
+		verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
 
-	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		//Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.TxPool,
-		DependencyCacheExpirationSeconds: 10 * 60,
-		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   1,
-	})
+		txBuffer := og.NewTxBuffer(og.TxBufferConfig{
+			//Verifiers: verifiers,
+			Dag:       org.Dag,
+			TxPool:    org.TxPool,
+			DependencyCacheExpirationSeconds: 10 * 60,
+			DependencyCacheMaxSize:           5000,
+			NewTxQueueSize:                   1,
+		})
 
-	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
-		TxPool:         org.TxPool,
-		Dag:            org.Dag,
-		FormatVerifier: txFormatVerifier,
-		GraphVerifier:  graphVerifier,
-	})
-	n.Components = append(n.Components, syncBuffer)
+		syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
+			TxPool:         org.TxPool,
+			Dag:            org.Dag,
+			FormatVerifier: txFormatVerifier,
+			GraphVerifier:  graphVerifier,
+		})
+		n.Components = append(n.Components, syncBuffer)
 
-	org.TxBuffer = txBuffer
-	n.Components = append(n.Components, txBuffer)
+		org.TxBuffer = txBuffer
+		n.Components = append(n.Components, txBuffer)
 
-	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
-		Mode:           downloader.FullSync,
-		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
-		BootstrapNode:  bootNode,
-	}, hub, org)
+		syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
+			Mode:           downloader.FullSync,
+			ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
+			BootstrapNode:  bootNode,
+		}, hub, org)
 
-	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
-	heighter := func() uint64 {
-		return org.Dag.LatestSequencer().Id
-	}
-	hub.Fetcher = fetcher.New(org.Dag.GetSequencerByHash, heighter, syncBuffer.AddTxs, hub.RemovePeer)
-	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
-		PeerProvider:           hub,
-		NodeStatusDataProvider: org,
-		Hub:        hub,
-		Downloader: downloaderInstance,
-		SyncMode:   downloader.FullSync,
-	}
-	syncManager.CatchupSyncer.Init()
-	hub.Downloader = downloaderInstance
+		downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
+		heighter := func() uint64 {
+			return org.Dag.LatestSequencer().Id
+		}
+		hub.Fetcher = fetcher.New(org.Dag.GetSequencerByHash, heighter, syncBuffer.AddTxs, hub.RemovePeer)
+		syncManager.CatchupSyncer = &syncer.CatchupSyncer{
+			PeerProvider:           hub,
+			NodeStatusDataProvider: org,
+			Hub:        hub,
+			Downloader: downloaderInstance,
+			SyncMode:   downloader.FullSync,
+		}
+		syncManager.CatchupSyncer.Init()
+		hub.Downloader = downloaderInstance
 
 	*/
 
@@ -158,50 +157,50 @@ func NewNode() *Node {
 		//TxsResponseHandler:        messageHandler,
 		//HeaderResponseHandler:     messageHandler,
 		//FetchByHashRequestHandler: messageHandler,
-		NewSequencerHandler:    messageHandler,
-		Hub: hub,
+		NewSequencerHandler: messageHandler,
+		Hub:                 hub,
 	}
- /*
-	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
-		&syncer.SyncerConfig{
-			BatchTimeoutMilliSecond:                  100,
-			AcquireTxQueueSize:                       1000,
-			MaxBatchSize:                             100,
-			AcquireTxDedupCacheMaxSize:               10000,
-			AcquireTxDedupCacheExpirationSeconds:     60,
-			BufferedIncomingTxCacheEnabled:           true,
-			BufferedIncomingTxCacheExpirationSeconds: 600,
-			BufferedIncomingTxCacheMaxSize:           10000,
-			FiredTxCacheExpirationSeconds:            600,
-			FiredTxCacheMaxSize:                      10000,
-		}, m, org.TxPool.GetHashOrder)
+	/*
+		syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
+			&syncer.SyncerConfig{
+				BatchTimeoutMilliSecond:                  100,
+				AcquireTxQueueSize:                       1000,
+				MaxBatchSize:                             100,
+				AcquireTxDedupCacheMaxSize:               10000,
+				AcquireTxDedupCacheExpirationSeconds:     60,
+				BufferedIncomingTxCacheEnabled:           true,
+				BufferedIncomingTxCacheExpirationSeconds: 600,
+				BufferedIncomingTxCacheMaxSize:           10000,
+				FiredTxCacheExpirationSeconds:            600,
+				FiredTxCacheMaxSize:                      10000,
+			}, m, org.TxPool.GetHashOrder)
 
-	m.NewSequencerHandler = syncManager.IncrementalSyncer
-	m.NewTxsHandler = syncManager.IncrementalSyncer
-	m.NewTxHandler = syncManager.IncrementalSyncer
-	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
+		m.NewSequencerHandler = syncManager.IncrementalSyncer
+		m.NewTxsHandler = syncManager.IncrementalSyncer
+		m.NewTxHandler = syncManager.IncrementalSyncer
+		m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
 
-	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
-	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
+		//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
+		//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
-	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
+		syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
 
-	txBuffer.Syncer = syncManager.IncrementalSyncer
-	announcer := syncer.NewAnnouncer(m)
-	txBuffer.Announcer = announcer
-	n.Components = append(n.Components, syncManager)
+		txBuffer.Syncer = syncManager.IncrementalSyncer
+		announcer := syncer.NewAnnouncer(m)
+		txBuffer.Announcer = announcer
+		n.Components = append(n.Components, syncManager)
 
-	messageHandler32 := &og.IncomingMessageHandlerOG32{
-		Hub: hub,
-		Og:  org,
-	}
+		messageHandler32 := &og.IncomingMessageHandlerOG32{
+			Hub: hub,
+			Og:  org,
+		}
 
-	mr32 := &og.MessageRouterOG32{
-		GetNodeDataMsgHandler: messageHandler32,
-		GetReceiptsMsgHandler: messageHandler32,
-		NodeDataMsgHandler:    messageHandler32,
-	}
- */
+		mr32 := &og.MessageRouterOG32{
+			GetNodeDataMsgHandler: messageHandler32,
+			GetReceiptsMsgHandler: messageHandler32,
+			NodeDataMsgHandler:    messageHandler32,
+		}
+	*/
 	// Setup Hub
 	SetupCallbacks(m, hub)
 	//SetupCallbacksOG32(mr32, hub)
@@ -236,19 +235,19 @@ func NewNode() *Node {
 	//}
 
 	delegate := &Delegate{
-		TxPool:    org.TxPool,
+		TxPool: org.TxPool,
 		//TxBuffer:  txBuffer,
 		Dag:       org.Dag,
 		TxCreator: txCreator,
 	}
 
-  //	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+	//	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
 
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
-		Dag                    :org.Dag,
-		Hub:hub,
+		Dag: org.Dag,
+		Hub: hub,
 	}
 	autoClientManager.Init(
 		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),
@@ -268,7 +267,7 @@ func NewNode() *Node {
 
 	// DataLoader
 	dataLoader := &og.DataLoader{
-		Dag:    org.Dag,
+		Dag: org.Dag,
 		//TxPool: org.TxPool,
 	}
 	n.Components = append(n.Components, dataLoader)
@@ -299,26 +298,26 @@ func NewNode() *Node {
 		rpcServer.C.PerformanceMonitor = pm
 	}
 	/*
-	if viper.GetBool("websocket.enabled") {
-		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
-		n.Components = append(n.Components, wsServer)
-		org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, wsServer.NewTxReceivedChan)
-		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
-		pm.Register(wsServer)
-	}
+		if viper.GetBool("websocket.enabled") {
+			wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
+			n.Components = append(n.Components, wsServer)
+			org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, wsServer.NewTxReceivedChan)
+			org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
+			pm.Register(wsServer)
+		}
 
-	// txMetrics
-	txCounter := performance.NewTxCounter()
+		// txMetrics
+		txCounter := performance.NewTxCounter()
 
-	org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, txCounter.NewTxReceivedChan)
-	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
-	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
-	n.Components = append(n.Components, txCounter)
+		org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, txCounter.NewTxReceivedChan)
+		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
+		delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
+		n.Components = append(n.Components, txCounter)
 
-	pm.Register(org.TxPool)
-	//pm.Register(syncManager)
-	//pm.Register(syncManager.IncrementalSyncer)
-	//pm.Register(txBuffer)
+		pm.Register(org.TxPool)
+		//pm.Register(syncManager)
+		//pm.Register(syncManager.IncrementalSyncer)
+		//pm.Register(txBuffer)
 	*/
 	pm.Register(hub)
 	//pm.Register(txCounter)

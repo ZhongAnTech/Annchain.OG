@@ -35,37 +35,33 @@ type Entry interface {
 	msg.Message
 }
 
-
 type generic struct {
-	key   string
+	key string
 	//value interface{}
 	value msg.Message
 }
 
 func (g generic) ENRKey() string { return g.key }
 
-
-func (g generic) MarshalMsg(b []byte) ([]byte , error){
-	return  g.value.MarshalMsg(b)
+func (g generic) MarshalMsg(b []byte) ([]byte, error) {
+	return g.value.MarshalMsg(b)
 }
 
-func (g *generic) UnmarshalMsg(b []byte) ([]byte , error) {
-	 return g.value.UnmarshalMsg(b)
+func (g *generic) UnmarshalMsg(b []byte) ([]byte, error) {
+	return g.value.UnmarshalMsg(b)
 }
 
-func (g*generic)Msgsize () int {
+func (g *generic) Msgsize() int {
 	return g.value.Msgsize()
 }
 
-func (g*generic)DecodeMsg(en *msgp.Reader) (err error) {
+func (g *generic) DecodeMsg(en *msgp.Reader) (err error) {
 	return g.value.DecodeMsg(en)
 }
 
-func (g generic)EncodeMsg(en *msgp.Writer) (err error) {
+func (g generic) EncodeMsg(en *msgp.Writer) (err error) {
 	return g.value.EncodeMsg(en)
 }
-
-
 
 // WithEntry wraps any value with a key name. It can be used to set and load arbitrary values
 // in a record. The value v must be supported by rlp. To use WithEntry with Load, the value
@@ -106,39 +102,39 @@ func (v IP) MarshalMsg(b []byte) ([]byte, error) {
 	return bs.MarshalMsg(b)
 }
 
-func (v IP)Msgsize()int {
+func (v IP) Msgsize() int {
 	bs := msg.Bytes(v)
 	return bs.Msgsize()
 }
 
 // DecodeRLP implements rlp.Decoder.
-func (v *IP) UnmarshalMsg(b[]byte) ([]byte, error) {
-	var bs  msg.Bytes
-	d, err:= bs.UnmarshalMsg(b)
-	if err!=nil {
-		return d,err
+func (v *IP) UnmarshalMsg(b []byte) ([]byte, error) {
+	var bs msg.Bytes
+	d, err := bs.UnmarshalMsg(b)
+	if err != nil {
+		return d, err
 	}
 	if len(bs) != 4 && len(bs) != 16 {
 		return d, fmt.Errorf("invalid IP address, want 4 or 16 bytes: %v", *v)
 	}
-	*v= IP(bs)
-	return d,nil
+	*v = IP(bs)
+	return d, nil
 }
 
-func (v*IP)DecodeMsg(en *msgp.Reader) (error){
-	var bs  msg.Bytes
-	 err:= bs.DecodeMsg(en)
-	if err!=nil {
+func (v *IP) DecodeMsg(en *msgp.Reader) error {
+	var bs msg.Bytes
+	err := bs.DecodeMsg(en)
+	if err != nil {
 		return err
 	}
 	if len(bs) != 4 && len(bs) != 16 {
-		return  fmt.Errorf("invalid IP address, want 4 or 16 bytes: %v", *v)
+		return fmt.Errorf("invalid IP address, want 4 or 16 bytes: %v", *v)
 	}
-	*v= IP(bs)
+	*v = IP(bs)
 	return nil
 }
 
-func (v IP)EncodeMsg(en *msgp.Writer) (err error) {
+func (v IP) EncodeMsg(en *msgp.Writer) (err error) {
 	if ip4 := net.IP(v).To4(); ip4 != nil {
 		bs := msg.Bytes(ip4)
 		return bs.EncodeMsg(en)
@@ -146,6 +142,3 @@ func (v IP)EncodeMsg(en *msgp.Writer) (err error) {
 	bs := msg.Bytes(v)
 	return bs.EncodeMsg(en)
 }
-
-
-

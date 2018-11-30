@@ -23,9 +23,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/types"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/crypto/sha3"
-	// "github.com/ethereum/go-ethereum/rlp"
+	log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {
@@ -129,6 +127,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 
 	switch n := original.(type) {
 	case *ShortNode:
+		log.Debugf("hash ShortNode, key: %x", n.Key)
 		// Hash the short node's child, caching the newly hashed subtree
 		collapsed, cached := n.copy(), n.copy()
 		collapsed.Key = hexToCompact(n.Key)
@@ -143,6 +142,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 		if collapsed.Val == nil {
 			collapsed.Val = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
 		}
+		log.Debugf("end of hash ShortNode, now return collapsed key: %x", collapsed.Key)
 		return collapsed, cached, nil
 
 	case *FullNode:
@@ -200,10 +200,12 @@ func (h *hasher) store(n Node, db *Database, force bool) (Node, error) {
 		// Track all direct parent->child node references
 		switch n := n.(type) {
 		case *ShortNode:
+			log.Debugf("store a ShortNode, key: %x, hash: %x", n.Key, hash)
 			if child, ok := n.Val.(HashNode); ok {
 				db.reference(types.BytesToHash(child), hash)
 			}
 		case *FullNode:
+			log.Debugf("store a FullNode, hash: %x", hash)
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(HashNode); ok {
 					db.reference(types.BytesToHash(child), hash)

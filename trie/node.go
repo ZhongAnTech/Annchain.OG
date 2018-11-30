@@ -22,6 +22,7 @@ import (
 	"io"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -141,19 +142,27 @@ var (
 )
 
 func (n *FullNode) encodeNode() []byte {
+	log.Debugf("encode FullNode")
 	data, _ := n.MarshalMsg(nil)
+	log.Debugf("after encode FullNode, get byte: %x", data)
 	return append(encodePrefixFullNode, data...)
 }
 func (n *ShortNode) encodeNode() []byte {
+	log.Debugf("encode ShortNode, key: %x", n.Key)
 	data, _ := n.MarshalMsg(nil)
+	log.Debugf("after encode ShortNode, get byte: %x", data)
 	return append(encodePrefixShortNode, data...)
 }
 func (n HashNode) encodeNode() []byte {
+	log.Debugf("encode HashNode, node: %x", []byte(n))
 	data, _ := n.MarshalMsg(nil)
+	log.Debugf("after encode HashNode, get byte: %x", data)
 	return append(encodePrefixHashNode, data...)
 }
 func (n ValueNode) encodeNode() []byte {
+	log.Debugf("encode ValueNode, node: %x", []byte(n))
 	data, _ := n.MarshalMsg(nil)
+	log.Debugf("after encode ValueNode, get byte: %x", data)
 	return append(encodePrefixValueNode, data...)
 }
 
@@ -167,19 +176,22 @@ func mustDecodeNode(hash, buf []byte, cachegen uint16) Node {
 
 // decodeNode parses the msgp encoding of a trie node.
 func decodeNode(hash, buf []byte, cachegen uint16) (Node, error) {
+	log.Debugf("decode node hash: %x, data: %x", hash, buf)
 	if len(buf) == 0 {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	prefix := buf[:1]
-	data := buf[1:]
+	prefix := buf[:len(encodePrefixFullNode)]
+	data := buf[len(encodePrefixFullNode):]
 
 	if bytes.Equal(prefix, encodePrefixFullNode) {
 		n, err := decodeFull(hash, data, cachegen)
+		log.Debugf("decode FullNode hash: %x", hash)
 		return n, wrapError(err, "full")
 	}
 	if bytes.Equal(prefix, encodePrefixShortNode) {
 		n, err := decodeShort(hash, data, cachegen)
+		log.Debugf("decode ShortNode hash: %x", hash)
 		return n, wrapError(err, "short")
 	}
 	return nil, fmt.Errorf("invalid prefix of encoded node: %v", prefix)
@@ -220,9 +232,11 @@ func decodeShort(hash, data []byte, cachegen uint16) (Node, error) {
 	if err != nil {
 		return &n, err
 	}
+	n.Key = compactToHex(n.Key)
 
 	flag := nodeFlag{hash: hash, gen: cachegen}
 	n.flags = flag
+
 	return &n, nil
 
 	// kbuf, rest, err := rlp.SplitString(elems)

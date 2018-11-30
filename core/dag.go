@@ -421,6 +421,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	var err error
+
+	// TODO batch is not used properly.
 	dbBatch := dag.db.NewBatch()
 
 	// store the tx and update the state
@@ -447,23 +449,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// TODO
-	// get new trie root after commit, then compare
-	// new root the the root in seq. If not equal then
-	// return error
-
-	// commit statedb changes to trie and triedb
-	root, errdb := dag.statedb.Commit()
-	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: ", err)
-		return fmt.Errorf("can't Commit statedb, err: ", err)
-	}
-	// flush triedb into diskdb.
-	triedb := dag.statedb.Database().TrieDB()
-	err = triedb.Commit(root, true)
-	if err != nil {
-		log.Errorf("can't flush trie from triedb into diskdb, err: ", err)
-		return fmt.Errorf("can't flush trie from triedb into diskdb, err: ", err)
-	}
+	// get new trie root after commit, then compare new root
+	// to the root in seq. If not equal then return error.
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
@@ -491,6 +478,20 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSeqencer = batch.Seq
+
+	// commit statedb changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: ", err)
+	}
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, true)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: ", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: ", err)
+	}
 
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
@@ -528,7 +529,15 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// update the nonce if current nonce is larger than previous, or
 	// there is no nonce stored in db.
 	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
+		log.Debugf("nonce before: %v, addr: %s", curNonce, tx.Sender().Hex())
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
+
+		ln, errn := dag.getLatestNonce(tx.Sender())
+		if errn != nil {
+			log.Debugf("get latest nonce err: %v", errn)
+		} else {
+			log.Debugf("nonce after: %v, addr: %s", ln, tx.Sender().Hex())
+		}
 	}
 
 	return nil

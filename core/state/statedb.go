@@ -7,6 +7,7 @@ import (
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type StateDBConfig struct {
@@ -320,15 +321,15 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.MarshalMsg(nil)
+		log.Debugf("addr: %s, state addr: %s, state nonce %d, state balance: %d", addr.Hex(), state.Address.Hex(), state.Nonce, state.Balance.GetInt64())
 		sd.trie.TryUpdate(addr.ToBytes(), data)
+		delete(sd.dirtyset, addr)
 	}
 	// commit current trie into triedb.
 	// TODO later need onleaf callback to link account trie to storage trie.
 	rootHash, err := sd.trie.Commit(nil)
 	return rootHash, err
 }
-
-// func (sd *StateDB) commitToTrie()
 
 func (sd *StateDB) loop() {
 	// flushTimer := time.NewTicker(sd.conf.FlushTimer)

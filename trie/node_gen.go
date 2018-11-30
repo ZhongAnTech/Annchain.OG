@@ -134,9 +134,9 @@ func (z *FullNode) GenNode(b []byte, i int) (o []byte, err error) {
 	case shortnode:
 		z.Children[i] = &ShortNode{}
 	case valuenode:
-		z.Children[i] = &ValueNode{}
+		z.Children[i] = ValueNode{}
 	case hashnode:
-		z.Children[i] = &HashNode{}
+		z.Children[i] = HashNode{}
 	default:
 		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}
@@ -322,9 +322,9 @@ func (z *ShortNode) GenNode(b []byte) (o []byte, err error) {
 	case shortnode:
 		z.Val = &ShortNode{}
 	case valuenode:
-		z.Val = &ValueNode{}
+		z.Val = ValueNode{}
 	case hashnode:
-		z.Val = &HashNode{}
+		z.Val = HashNode{}
 	default:
 		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}

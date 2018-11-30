@@ -1,6 +1,6 @@
 package msg
 
-import  "github.com/tinylib/msgp/msgp"
+import "github.com/tinylib/msgp/msgp"
 
 //go:generate msgp
 
@@ -33,11 +33,9 @@ type Float32 float32
 
 type Float64 float64
 
-
 type String string
 
 type Int int
-
 
 type Uint uint
 
@@ -50,6 +48,5 @@ type Strings []string
 type Uints []uint
 
 type Messages []Message
-
 
 //add new basic type here

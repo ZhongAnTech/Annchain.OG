@@ -19,7 +19,7 @@ func TestCuckooFilter_EncodeMsg(t *testing.T) {
 	for i := 0; i < 37; i++ {
 		str := "abcdef" + fmt.Sprintf("%d%d%d", i, i+2, i) + "ef"
 		ok, err := m.Filter.LookUpItem([]byte(str))
-		if i< 25 && !ok {
+		if i < 25 && !ok {
 			t.Fatal("shoud be true")
 		}
 		fmt.Println(i, str, ok, err)

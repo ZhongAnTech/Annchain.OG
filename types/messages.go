@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/Metabdulla/bloom"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/common/msgp"
+	"github.com/annchain/OG/common/msg"
 	"strings"
 )
+
 //go:generate msgp
 
 var Signer ISigner
@@ -20,10 +21,8 @@ type ISigner interface {
 	AddressFromPubKeyBytes(pubKey []byte) Address
 }
 
-
-
 type Message interface {
-  	 msgp.Message
+	msg.Message
 	String() string //string is for logging
 }
 
@@ -84,7 +83,7 @@ func (m *MessageNewTx) GetHash() *Hash {
 //msgp:tuple BloomFilter
 type BloomFilter struct {
 	Data   []byte
-	Count   uint32
+	Count  uint32
 	filter *bloom.BloomFilter
 }
 
@@ -95,8 +94,8 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
-	Filter    *BloomFilter
-	Hop       uint8
+	Filter       *BloomFilter
+	Hop          uint8
 }
 
 func (m *MessageNewSequencer) GetHash() *Hash {
@@ -112,11 +111,11 @@ func (m *MessageNewSequencer) GetHash() *Hash {
 }
 
 func (m *MessageNewSequencer) String() string {
-	return m.RawSequencer.String()+fmt.Sprintf("  hop :%d , filterCount :%d",m.Hop,m.Filter.GetCount())
+	return m.RawSequencer.String() + fmt.Sprintf("  hop :%d , filterCount :%d", m.Hop, m.Filter.GetCount())
 }
 
-func (c*BloomFilter)GetCount()uint32 {
-	if c ==nil {
+func (c *BloomFilter) GetCount() uint32 {
+	if c == nil {
 		return 0
 	}
 	return c.Count
@@ -145,14 +144,12 @@ func (c *BloomFilter) AddItem(item []byte) {
 	c.Count++
 }
 
-
 func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 	if c == nil || c.filter == nil {
 		return false, nil
 	}
 	return c.filter.Test(item), nil
 }
-
 
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {

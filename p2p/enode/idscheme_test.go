@@ -23,9 +23,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/p2p/enr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,11 +50,11 @@ func TestSignError(t *testing.T) {
 	invalidKey := &ecdsa.PrivateKey{D: new(big.Int), PublicKey: *pubkey}
 
 	var r enr.Record
-	emptyEnc, _ := rlp.EncodeToBytes(&r)
+	emptyEnc, _ := r.Encode(nil)
 	if err := SignV4(&r, invalidKey); err == nil {
 		t.Fatal("expected error from SignV4")
 	}
-	newEnc, _ := rlp.EncodeToBytes(&r)
+	newEnc, _ := r.Encode(nil)
 	if !bytes.Equal(newEnc, emptyEnc) {
 		t.Fatal("record modified even though signing failed")
 	}

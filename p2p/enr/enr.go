@@ -34,11 +34,13 @@
 package enr
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common/msg"
 	"sort"
 )
+
 //go:generate msgp
 const SizeLimit = 300 // maximum encoded size of a node record in bytes
 
@@ -52,14 +54,12 @@ var (
 	errNotFound       = errors.New("no such key in record")
 )
 
-
-
 // Pair is a key/value Pair in a record.
 //msgp:Pair
 type Pair struct {
 	K string
 	//v rlp.RawValue
-	V   []byte
+	V []byte
 }
 
 // Record represents a node record. The zero value is an empty record.
@@ -70,7 +70,6 @@ type Record struct {
 	Pairs     []Pair // sorted list of all key/value Pairs
 	raw       []byte // msgp encoded record
 }
-
 
 // Seq returns the sequence number.
 func (r *Record) GetSeq() uint64 {
@@ -94,8 +93,8 @@ func (r *Record) SetSeq(s uint64) {
 func (r *Record) Load(e Entry) error {
 	i := sort.Search(len(r.Pairs), func(i int) bool { return r.Pairs[i].K >= e.ENRKey() })
 	if i < len(r.Pairs) && r.Pairs[i].K == e.ENRKey() {
-		if _, err:= e.UnmarshalMsg(r.Pairs[i].V) ;err!=nil{
-		//if err := rlp.DecodeBytes(r.Pairs[i].V, e); err != nil {
+		if _, err := e.UnmarshalMsg(r.Pairs[i].V); err != nil {
+			//if err := rlp.DecodeBytes(r.Pairs[i].V, e); err != nil {
 			return &KeyError{Key: e.ENRKey(), Err: err}
 		}
 		return nil
@@ -143,41 +142,41 @@ func (r *Record) invalidate() {
 
 // EncodeRLP implements rlp.Encoder. Encoding fails if
 // the record is unsigned.
-func (r Record) Encode(b[]byte) ([]byte, error) {
+func (r Record) Encode(b []byte) ([]byte, error) {
 	if r.Signature == nil {
-		return nil,  errEncodeUnsigned
+		return nil, errEncodeUnsigned
 	}
-	return r.raw,nil
+	return r.raw, nil
 }
 
 // DecodeRLP implements rlp.Decoder. Decoding verifies the Signature.
-func (r *Record) Decode(b[]byte) ([]byte, error)  {
+func (r *Record) Decode(b []byte) ([]byte, error) {
 	dec, err := decodeRecord(b)
 	if err != nil {
-		return nil,  err
+		return nil, err
 	}
 	*r = dec
 	r.raw = b
-	return nil,nil
+	return nil, nil
 }
 
 func decodeRecord(b []byte) (dec Record, err error) {
 	if len(b) > SizeLimit {
-		return dec,  errTooBig
+		return dec, errTooBig
 	}
-    if _,err =dec.UnmarshalMsg(b) ;err!=nil {
-    	return  dec ,err
+	if _, err = dec.UnmarshalMsg(b); err != nil {
+		return dec, err
 	}
 	// The rest of the record contains sorted k/v Pairs.
 	var prevkey string
-	for i := 0; i<len(dec.Pairs) ; i++ {
-		kv:= dec.Pairs[i]
+	for i := 0; i < len(dec.Pairs); i++ {
+		kv := dec.Pairs[i]
 		if i > 0 {
 			if kv.K == prevkey {
-				return dec,  errDuplicateKey
+				return dec, errDuplicateKey
 			}
 			if kv.K < prevkey {
-				return dec,  errNotSorted
+				return dec, errNotSorted
 			}
 		}
 		prevkey = kv.K
@@ -218,9 +217,9 @@ func (r *Record) SetSig(s IdentityScheme, sig []byte) error {
 		}
 		r.Signature = sig
 		raw, err := r.MarshalMsg(nil)
-		if err== nil {
+		if err == nil {
 			if len(raw) > SizeLimit {
-				err =  errTooBig
+				err = errTooBig
 			}
 		}
 		if err != nil {
@@ -237,12 +236,12 @@ func (r *Record) SetSig(s IdentityScheme, sig []byte) error {
 
 // AppendElements appends the sequence number and entries to the given slice.
 func (r *Record) AppendElements(list []msg.Message) []msg.Message {
-	seq :=  msg.Uint64( r.Seq)
-	list = append(list,&seq)
+	seq := msg.Uint64(r.Seq)
+	list = append(list, &seq)
 	for _, p := range r.Pairs {
-		 k :=msg.String(p.K)
-		 v:= msg.Bytes(p.V)
-		list = append(list,&k,&v)
+		k := msg.String(p.K)
+		v := msg.Bytes(p.V)
+		list = append(list, &k, &v)
 	}
 	return list
 }
@@ -264,3 +263,28 @@ func (r *Record) encode(sig []byte) (raw []byte, err error) {
 }
 
 */
+
+func (r Record) Equal(r1 Record) (ok bool, reason error) {
+	if r.Seq != r1.Seq {
+		return false, fmt.Errorf("seq not equal")
+	}
+	if len(r.Pairs) != len(r1.Pairs) {
+		return false, fmt.Errorf("pairs len not equal")
+	}
+	for i, p := range r.Pairs {
+		if p.K != r1.Pairs[i].K {
+			return false, fmt.Errorf("pair key is diff")
+		}
+		if !bytes.Equal(p.V, r.Pairs[i].V) {
+			return false, fmt.Errorf("pair val is diff")
+		}
+	}
+
+	if !bytes.Equal(r.Signature, r1.Signature) {
+		return false, fmt.Errorf("signatrue not equal")
+	}
+	if !bytes.Equal(r.raw, r1.raw) {
+		return false, fmt.Errorf("raw not equal")
+	}
+	return true, nil
+}

@@ -26,9 +26,9 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/p2p/enr"
 )
 
 var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
@@ -82,13 +82,16 @@ func ParseV4(rawurl string) (*Node, error) {
 func NewV4(pubkey *ecdsa.PublicKey, ip net.IP, tcp, udp int) *Node {
 	var r enr.Record
 	if ip != nil {
-		r.Set(enr.IP(ip))
+		eIp := enr.IP(ip)
+		r.Set(&eIp)
 	}
 	if udp != 0 {
-		r.Set(enr.UDP(udp))
+		eudp := enr.UDP(udp)
+		r.Set(&eudp)
 	}
 	if tcp != 0 {
-		r.Set(enr.TCP(tcp))
+		etcp := enr.TCP(tcp)
+		r.Set(&etcp)
 	}
 	signV4Compat(&r, pubkey)
 	n, err := New(v4CompatID{}, &r)
@@ -169,7 +172,7 @@ func (n *Node) v4URL() string {
 	case scheme == "v4" || key != ecdsa.PublicKey{}:
 		nodeid = fmt.Sprintf("%x", crypto.FromECDSAPub(&key)[1:])
 	default:
-		nodeid = fmt.Sprintf("%s.%x", scheme, n.id[:])
+		nodeid = fmt.Sprintf("%s.%x", scheme, n.Id[:])
 	}
 	u := url.URL{Scheme: "enode"}
 	if n.Incomplete() {
@@ -190,5 +193,5 @@ func PubkeyToIDV4(key *ecdsa.PublicKey) ID {
 	e := make([]byte, 64)
 	math.ReadBits(key.X, e[:len(e)/2])
 	math.ReadBits(key.Y, e[len(e)/2:])
-	return ID(crypto.Keccak256Hash(e))
+	return ID(crypto.Keccak256Hash(e).Bytes)
 }

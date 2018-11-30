@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-type  Monitor struct {
-	Port  string `json:"port"`
-	Peers []Peer `json:"peers"`
-	SeqId  uint64 `json:"seq_id"`
+type Monitor struct {
+	Port    string `json:"port"`
+	Peers   []Peer `json:"peers"`
+	SeqId   uint64 `json:"seq_id"`
 	ShortId string `json:"short_id"`
-	Err error
-	Id   int
+	Err     error
+	Id      int
 }
 
 type Peer struct {
@@ -25,10 +25,10 @@ type Peer struct {
 }
 
 type Statistics struct {
-	PeersNum map[int] int
+	PeersNum map[int]int
 }
 
-var fistPort = 11300
+var fistPort = 7300
 var peerNum = 40
 var ipsNum = 20
 
@@ -42,99 +42,97 @@ func main() {
 	}
 }
 
-type  Monitors struct {
-	  Ms     []*Monitor `json:"monitors,omitempty"`
+type Monitors struct {
+	Ms []*Monitor `json:"monitors,omitempty"`
 }
 
-func run (ips []string) {
-	var ms = make([]*Monitor,peerNum*len(ips))
-	mch := make(chan *Monitor ,peerNum*len(ips))
-	for i, ip:= range ips {
+func run(ips []string) {
+	var ms = make([]*Monitor, peerNum*len(ips))
+	mch := make(chan *Monitor, peerNum*len(ips))
+	for i, ip := range ips {
 		for j := 0; j < peerNum; j++ {
-			go getRequest(ip,i*peerNum+j, j, mch)
+			go getRequest(ip, i*peerNum+j, j, mch)
 		}
 	}
 	var valid bool
-	i:=0
+	i := 0
 	for {
 		select {
 		case data := <-mch:
-			if data.Err==nil{
+			if data.Err == nil {
 				valid = true
-				d:=*data
+				d := *data
 				ms[data.Id] = &d
-			}else {
+			} else {
 				//d:= Monitor{}
 				//d.Port = fmt.Sprintf("%d", getPort(data.id))
 				//ms[data.id]  = &d
 			}
 			i++
-			if i==peerNum*len(ips) {
+			if i == peerNum*len(ips) {
 				goto Out
 			}
 
 		}
 	}
-	Out :
+Out:
 	if valid {
-		fmt.Println("time now",time.Now().Format(time.RFC3339))
+		fmt.Println("time now", time.Now().Format(time.RFC3339))
 		var s Statistics
 		s.PeersNum = make(map[int]int)
-		for _,m:= range ms {
-			if m==nil {
+		for _, m := range ms {
+			if m == nil {
 				continue
 			}
-			l := len( m.Peers)
-			if v,ok:= s.PeersNum[l];ok {
-				s.PeersNum[l] =  v+1
-			}else {
-				s.PeersNum[l] =1
+			l := len(m.Peers)
+			if v, ok := s.PeersNum[l]; ok {
+				s.PeersNum[l] = v + 1
+			} else {
+				s.PeersNum[l] = 1
 			}
 		}
-		monitors:=Monitors{ms}
-		data ,_:= json.MarshalIndent(&monitors,"","\t")
-		sData ,_:= json.MarshalIndent(&s,"","\t")
+		monitors := Monitors{ms}
+		data, _ := json.MarshalIndent(&monitors, "", "\t")
+		sData, _ := json.MarshalIndent(&s, "", "\t")
 		fmt.Println(string(data))
 		fmt.Println(string(sData))
 		fmt.Println("end \n\n")
 	}
 }
 
-func getPort( id int ) int {
-	return 	fistPort+id*10
+func getPort(id int) int {
+	return fistPort + id*10
 }
 
-func GetIps () []string{
-	//return  []string{"192.168.45.128"}
-	dir,_ := os.Getwd()
-	fName := fmt.Sprintf("%s/scripts/data/hosts",dir)
-	f,err:= os.Open(fName)
-	if err!=nil {
+func GetIps() []string {
+	return  []string{"192.168.45.128"}
+	dir, _ := os.Getwd()
+	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
+	f, err := os.Open(fName)
+	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	data,err := ioutil.ReadAll(f)
-	if err!=nil {
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
 		panic(err)
 	}
-	ips := strings.Split(string(data),"\n")
+	ips := strings.Split(string(data), "\n")
 	return ips
 }
 
-
-
-func getRequest (ip string ,id ,portId int , ch chan *Monitor) {
+func getRequest(ip string, id, portId int, ch chan *Monitor) {
 	port := getPort(portId)
-	host :=  fmt.Sprintf("http://%s:%d",ip,port )
-	req := httplib.NewBeegoRequest(host+"/monitor","GET")
-	req.SetTimeout(8*time.Second,8*time.Second)
+	host := fmt.Sprintf("http://%s:%d", ip, port)
+	req := httplib.NewBeegoRequest(host+"/monitor", "GET")
+	req.SetTimeout(8*time.Second, 8*time.Second)
 	var m Monitor
 	err := req.ToJSON(&m)
-	if err!=nil {
-		m.Err =err
+	if err != nil {
+		m.Err = err
 	}
 	m.Id = id
-	m.Port = fmt.Sprintf("%s:%d",ip, port)
-	ch <-&m
+	m.Port = fmt.Sprintf("%s:%d", ip, port)
+	ch <- &m
 	return
 }

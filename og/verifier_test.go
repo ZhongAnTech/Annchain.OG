@@ -1,6 +1,5 @@
 package og
 
-
 import (
 	"github.com/annchain/OG/types"
 	"github.com/magiconair/properties/assert"
@@ -154,5 +153,3 @@ func TestA6(t *testing.T) {
 	}
 
 }
-
-

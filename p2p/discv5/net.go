@@ -21,10 +21,12 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/msg"
 	"net"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
@@ -1236,7 +1238,8 @@ func (net *Network) checkTopicRegister(data *TopicRegister) (*Pong, error) {
 	}
 	// check that we previously authorised all topics
 	// that the other side is trying to register.
-	btHash := CommonHash(rlpHash(data.Topics).Bytes)
+	t := stringsToTopics(data.Topics)
+	btHash := CommonHash(rlpHash(&t).Bytes)
 	if btHash != pongpkt.data.(*Pong).TopicHash {
 		return nil, errors.New("topic hash mismatch")
 	}
@@ -1246,10 +1249,12 @@ func (net *Network) checkTopicRegister(data *TopicRegister) (*Pong, error) {
 	return pongpkt.data.(*Pong), nil
 }
 
-func rlpHash(x interface{}) (h types.Hash) {
-	//hw := sha3.NewKeccak256()
+func rlpHash(x msg.Message) (h types.Hash) {
+	hw := sha3.NewKeccak256()
 	//rlp.Encode(hw, x)
-	//hw.Sum(h.Bytes[:0])
+	d, _ := x.MarshalMsg(nil)
+	hw.Write(d)
+	hw.Sum(h.Bytes[:0])
 	return h
 }
 

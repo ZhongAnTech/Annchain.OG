@@ -56,7 +56,7 @@ type dummyTxPoolParents struct {
 	poolMap map[types.Hash]types.Txi
 }
 
-func (p *dummyTxPoolParents)IsLocalHash (h types.Hash)bool {
+func (p *dummyTxPoolParents) IsLocalHash(h types.Hash) bool {
 	return false
 }
 

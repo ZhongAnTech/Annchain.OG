@@ -17,10 +17,11 @@
 package enode
 
 import (
+	"github.com/annchain/OG/common/msg"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/p2p/enr"
 )
 
 func newLocalNodeForTesting() (*LocalNode, *DB) {
@@ -36,9 +37,9 @@ func TestLocalNode(t *testing.T) {
 	if ln.Node().ID() != ln.ID() {
 		t.Fatal("inconsistent ID")
 	}
-
-	ln.Set(enr.WithEntry("x", uint(3)))
-	var x uint
+	val := msg.Uint(3)
+	ln.Set(enr.WithEntry("x", &val))
+	var x msg.Uint
 	if err := ln.Node().Load(enr.WithEntry("x", &x)); err != nil {
 		t.Fatal("can't load entry 'x':", err)
 	} else if x != 3 {
@@ -53,7 +54,8 @@ func TestLocalNodeSeqPersist(t *testing.T) {
 	if s := ln.Node().Seq(); s != 1 {
 		t.Fatalf("wrong initial seq %d, want 1", s)
 	}
-	ln.Set(enr.WithEntry("x", uint(1)))
+	val := msg.Uint(1)
+	ln.Set(enr.WithEntry("x", &val))
 	if s := ln.Node().Seq(); s != 2 {
 		t.Fatalf("wrong seq %d after set, want 2", s)
 	}

@@ -152,7 +152,9 @@ func TestDBFetchStore(t *testing.T) {
 	if stored := db.Node(node.ID()); stored == nil {
 		t.Errorf("node: not found")
 	} else if !reflect.DeepEqual(stored, node) {
-		t.Errorf("node: data mismatch: have %v, want %v", stored, node)
+		if ok, _ := node.R.Equal(stored.R); !ok && node.Id != stored.Id {
+			t.Errorf("node: data mismatch: have %v, want %v", stored, node)
+		}
 	}
 }
 

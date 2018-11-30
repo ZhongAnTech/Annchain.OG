@@ -10,7 +10,7 @@ type IncomingMessageHandler struct {
 	Og           *Og
 	Hub          *Hub
 	requestCache *Cache
-	mu    sync.RWMutex
+	mu           sync.RWMutex
 }
 
 //msg request cache ,don't send duplicate message
@@ -29,7 +29,6 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 		},
 	}
 }
-
 
 /*
 
@@ -387,23 +386,23 @@ func (h *IncomingMessageHandler) HandlePong() {
 }
 */
 
-func (h*IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
-	if newSeq ==nil {
+func (h *IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
+	if newSeq == nil {
 		msgLog.Warn("new seq is nil ")
 	}
 	seq := newSeq.RawSequencer.Sequencer()
-	if seq==nil {
+	if seq == nil {
 		msgLog.Warn("new seq is nil ")
 		return
 	}
 	txi := h.Og.Dag.GetTx(seq.Hash)
-	if txi!=nil {
-		msgLog.WithField("tx ",txi.String()).Debug("duplicate tx")
+	if txi != nil {
+		msgLog.WithField("tx ", txi.String()).Debug("duplicate tx")
 		return
-	}else {
+	} else {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		h.Og.Dag.Accessor().WriteTransaction(nil,seq)
+		h.Og.Dag.Accessor().WriteTransaction(nil, seq)
 		h.Og.Dag.Accessor().WriteSequencerById(seq)
 		h.Og.Dag.Accessor().WriteLatestSequencer(seq)
 		h.Og.Dag.SetLatest(seq)

@@ -51,9 +51,9 @@ type SeqRequest struct {
 func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
 	seq = c.TxCreator.NewUnsignedSequencer(r.Issuer, r.SequenceID, r.Hashes, r.Nonce)
 	tx := types.RandomTx()
-	seq.GetBase().ParentsHash= tx.GetBase().ParentsHash
+	seq.GetBase().ParentsHash = tx.GetBase().ParentsHash
 	seq.GetBase().AccountNonce = tx.AccountNonce
-	seq.GetBase().Hash =  seq.CalcTxHash()
+	seq.GetBase().Hash = seq.CalcTxHash()
 	logrus.WithField("seq", seq).Infof("sequencer generated")
 	return
 }

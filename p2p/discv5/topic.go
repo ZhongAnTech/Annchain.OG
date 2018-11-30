@@ -16,6 +16,7 @@
 
 package discv5
 
+//go:generate  msgp
 import (
 	"container/heap"
 	"fmt"
@@ -34,6 +35,8 @@ const (
 )
 
 type Topic string
+
+type Topics []Topic
 
 type topicEntry struct {
 	topic   Topic

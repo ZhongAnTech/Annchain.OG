@@ -17,8 +17,8 @@ type AutoClientManager struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
 	quit                   chan bool
 	wg                     sync.WaitGroup
-	Dag *core.Dag
-	Hub * og.Hub
+	Dag                    *core.Dag
+	Hub                    *og.Hub
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
@@ -39,8 +39,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
 			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
-			Dag:m.Dag,
-			Hub:m.Hub,
+			Dag:                  m.Dag,
+			Hub:                  m.Hub,
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -61,8 +61,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: true,
-			Dag:m.Dag,
-			Hub:m.Hub,
+			Dag:                  m.Dag,
+			Hub:                  m.Hub,
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)

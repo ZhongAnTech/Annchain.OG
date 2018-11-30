@@ -44,7 +44,7 @@ func SampleTx() *Tx {
 
 func randomHash() Hash {
 	v := math.NewBigInt(rand.Int63())
-	sh :=  BigToHash(v.Value)
+	sh := BigToHash(v.Value)
 	h := sha256.New()
 	data := []byte("456544546fhjsiodiruheswer8ih")
 	h.Write(sh.Bytes[:])
@@ -56,7 +56,7 @@ func randomHash() Hash {
 
 func randomAddress() Address {
 	v := math.NewBigInt(rand.Int63())
-	adr:= BigToAddress(v.Value)
+	adr := BigToAddress(v.Value)
 	h := sha256.New()
 	data := []byte("abcd8342804fhddhfhisfdyr89")
 	h.Write(adr.Bytes[:])
@@ -124,10 +124,10 @@ func (t *Tx) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ," +
-		"height %d ,mined Nonce %v type %v",t.Hash.Hex(),
+	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ,"+
+		"height %d ,mined Nonce %v type %v", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey) ,t.Height,t.MineNonce,t.Type)
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type)
 }
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {

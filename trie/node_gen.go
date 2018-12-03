@@ -195,7 +195,7 @@ func (z HashNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		(z) = HashNode(zb0001)
+		z = HashNode(zb0001)
 	}
 	o = bts
 	return

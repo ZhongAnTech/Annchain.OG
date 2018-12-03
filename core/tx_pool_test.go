@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
@@ -20,10 +21,13 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag := core.NewDag(core.DagConfig{}, db)
+	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db)
+	if errnew != nil {
+		t.Fatalf("new a dag failed with error: %v", errnew)
+	}
 	pool := core.NewTxPool(txpoolconfig, dag)
 
-	genesis, balance := core.DefaultGenesis()
+	genesis, balance := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)

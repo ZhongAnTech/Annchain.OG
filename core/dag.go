@@ -6,14 +6,12 @@ import (
 
 	// "fmt"
 	"sync"
-	"time"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type DagConfig struct{}
@@ -34,17 +32,12 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, db ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
-	stateDBConfig := state.StateDBConfig{
-		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
-	}
 	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
 	if err != nil {
-		return nil, fmt.Errorf("create statedb err: ", err)
+		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 
 	dag.conf = conf
@@ -136,8 +129,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadLastState load genesis and latestsequencer data from ogdb. return false if there
-// is no genesis stored in the db.
+// LoadLastState load genesis and latestsequencer data from ogdb.
+// return false if there is no genesis stored in the db.
 func (dag *Dag) LoadLastState() bool {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
@@ -483,14 +476,14 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
 		log.Errorf("can't Commit statedb, err: ", err)
-		return fmt.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: %v", err)
 	}
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()
 	err = triedb.Commit(root, true)
 	if err != nil {
-		log.Errorf("can't flush trie from triedb into diskdb, err: ", err)
-		return fmt.Errorf("can't flush trie from triedb into diskdb, err: ", err)
+		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())

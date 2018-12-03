@@ -2,12 +2,14 @@ package og
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 )
@@ -62,7 +64,11 @@ func NewOg(config OGConfig) (*Og, error) {
 		return nil, derr
 	}
 	dagconfig := core.DagConfig{}
-	og.Dag, derr = core.NewDag(dagconfig, db)
+	statedbConfig := state.StateDBConfig{
+		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
+		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	}
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db)
 	if derr != nil {
 		return nil, derr
 	}

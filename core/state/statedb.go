@@ -11,14 +11,12 @@ import (
 )
 
 type StateDBConfig struct {
-	FlushTimer     time.Duration
 	PurgeTimer     time.Duration
 	BeatExpireTime time.Duration
 }
 
 func DefaultStateDBConfig() StateDBConfig {
 	return StateDBConfig{
-		FlushTimer:     time.Duration(5000),
 		PurgeTimer:     time.Duration(10000),
 		BeatExpireTime: time.Duration(10 * time.Minute),
 	}
@@ -259,26 +257,6 @@ func (sd *StateDB) loadState(addr types.Address) (*State, error) {
 	return &state, nil
 }
 
-// func (sd *StateDB) Flush() {
-// 	sd.mu.Lock()
-// 	defer sd.mu.Unlock()
-
-// 	sd.flush()
-// }
-
-// // flush tries to save those dirty data to disk db.
-// func (sd *StateDB) flush() {
-// 	for addr, _ := range sd.dirtyset {
-// 		state, exist := sd.states[addr]
-// 		if !exist {
-// 			log.Warnf("can't find dirty state in StateDB, addr: %s", addr.String())
-// 			continue
-// 		}
-// 		sd.accessor.SaveState(addr, state)
-// 	}
-// 	sd.dirtyset = make(map[types.Address]struct{})
-// }
-
 // purge tries to remove all the state that haven't sent any beat
 // for a long time.
 //
@@ -332,7 +310,6 @@ func (sd *StateDB) commit() (types.Hash, error) {
 }
 
 func (sd *StateDB) loop() {
-	// flushTimer := time.NewTicker(sd.conf.FlushTimer)
 	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
 
 	for {

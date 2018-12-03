@@ -82,7 +82,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test tx read write
 	tx := newTestUnsealTx(0)
-	err = acc.WriteTransaction(tx)
+	err = acc.WriteTransaction(db.NewBatch(), tx)
 	if err != nil {
 		t.Fatalf("write tx %s failed: %v", tx.GetTxHash().String(), err)
 	}
@@ -105,7 +105,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test sequencer read write
 	seq := newTestSeq(1)
-	err = acc.WriteTransaction(seq)
+	err = acc.WriteTransaction(db.NewBatch(), seq)
 	if err != nil {
 		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)
 	}
@@ -234,7 +234,7 @@ func TestLatestNonce(t *testing.T) {
 	var nonce uint64
 
 	tx0 := newTestUnsealTx(0)
-	err = acc.WriteTransaction(tx0)
+	err = acc.WriteTransaction(db.NewBatch(), tx0)
 	if err != nil {
 		t.Fatalf("write tx0 %s failed: %v", tx0.GetTxHash().String(), err)
 	}
@@ -244,7 +244,7 @@ func TestLatestNonce(t *testing.T) {
 	}
 
 	tx1 := newTestUnsealTx(1)
-	err = acc.WriteTransaction(tx1)
+	err = acc.WriteTransaction(db.NewBatch(), tx1)
 	if err != nil {
 		t.Fatalf("write tx1 %s failed: %v", tx1.GetTxHash().String(), err)
 	}
@@ -257,7 +257,7 @@ func TestLatestNonce(t *testing.T) {
 	}
 
 	tx2 := newTestUnsealTx(2)
-	err = acc.WriteTransaction(tx2)
+	err = acc.WriteTransaction(db.NewBatch(), tx2)
 	if err != nil {
 		t.Fatalf("write tx2 %s failed: %v", tx2.GetTxHash().String(), err)
 	}
@@ -270,7 +270,7 @@ func TestLatestNonce(t *testing.T) {
 	}
 
 	badtx := newTestUnsealTx(1)
-	err = acc.WriteTransaction(badtx)
+	err = acc.WriteTransaction(db.NewBatch(), badtx)
 	if err != nil {
 		t.Fatalf("write badtx %s failed: %v", badtx.GetTxHash().String(), err)
 	}

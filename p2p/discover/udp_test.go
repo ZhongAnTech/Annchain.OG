@@ -376,7 +376,7 @@ func TestUDP_successfulPing(t *testing.T) {
 	// remote is unknown, the table pings back.
 	hash, _ := test.waitPacketOut(func(p *Ping) error {
 		//if !reflect.DeepEqual(p.From,test.udp.ourEndpoint()) {
-		if !p.From.Equal(test.udp.ourEndpoint()){
+		if !p.From.Equal(test.udp.ourEndpoint()) {
 			t.Errorf("got ping.From %#v, want %#v", p.From, test.udp.ourEndpoint())
 		}
 		wantTo := RpcEndpoint{

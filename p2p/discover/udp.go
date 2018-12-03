@@ -119,11 +119,11 @@ type (
 	}
 )
 
-func ( r RpcEndpoint) Equal  (r1 RpcEndpoint) bool {
-	if len(r.IP)!=len(r1.IP) {
+func (r RpcEndpoint) Equal(r1 RpcEndpoint) bool {
+	if len(r.IP) != len(r1.IP) {
 		return false
 	}
-	if !bytes.Equal(r.IP,r1.IP) {
+	if !bytes.Equal(r.IP, r1.IP) {
 		return false
 	}
 	if r.TCP != r1.TCP {

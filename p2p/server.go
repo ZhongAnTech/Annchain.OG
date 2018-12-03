@@ -914,10 +914,10 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) 
 	if err != nil {
 		c.close(err)
 		var id string
-		if c.node!=nil {
+		if c.node != nil {
 			id = c.node.ID().TerminalString()
 		}
-		log.WithField("addr",fd.RemoteAddr()).WithField("id", id).WithError(err).Trace("Setting up connection failed")
+		log.WithField("addr", fd.RemoteAddr()).WithField("id", id).WithError(err).Trace("Setting up connection failed")
 	}
 	return err
 }

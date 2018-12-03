@@ -361,31 +361,31 @@ func RawSeqsToString(seqs []*RawSequencer) string {
 }
 
 type MessageControl struct {
-	Hash * Hash
+	Hash *Hash
 }
 
 type MessageGetMsg struct {
-	Hash * Hash
+	Hash *Hash
 }
 
 type MessageDuplicate struct {
-      Nothing byte
+	Nothing byte
 }
 
-func (m *MessageControl)String()string {
-	if m==nil || m.Hash ==nil {
+func (m *MessageControl) String() string {
+	if m == nil || m.Hash == nil {
 		return ""
 	}
 	return m.Hash.String()
 }
 
-func (m *MessageGetMsg)String()string {
-	if m==nil || m.Hash ==nil {
+func (m *MessageGetMsg) String() string {
+	if m == nil || m.Hash == nil {
 		return ""
 	}
 	return m.Hash.String()
 }
 
-func (m *MessageDuplicate)String()string {
+func (m *MessageDuplicate) String() string {
 	return "duplicate"
 }

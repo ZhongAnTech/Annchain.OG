@@ -386,9 +386,10 @@ func (h *IncomingMessageHandler) HandlePong() {
 }
 */
 
-func (h *IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
+func (h *IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequencer, sourcePeerId string) {
 	if newSeq == nil {
 		msgLog.Warn("new seq is nil ")
+		return
 	}
 	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
@@ -408,6 +409,31 @@ func (h *IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequ
 		h.Og.Dag.SetLatest(seq)
 		msgLog.Debug("handled sequencer ,broadcast to other peers")
 		newSeq.Hop++
-		h.Hub.BroadcastMessageWithFilter(MessageTypeNewSequencer, newSeq)
+		h.Hub.BroadcastMessageWithLink(MessageTypeNewSequencer, newSeq)
 	}
+}
+
+func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePeerId string) {
+	if msg == nil || msg.Hash == nil {
+		msgLog.Warn("msg is nil ")
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	txi := h.Og.Dag.GetTx(*msg.Hash)
+	if txi == nil {
+		msgLog.WithField("tx ", txi.String()).Debug("not found")
+		return
+	}
+	switch txi.GetType() {
+	case types.TxBaseTypeNormal:
+		tx := txi.(*types.Tx)
+		response := types.MessageNewTx{RawTx: tx.RawTx()}
+		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
+	case types.TxBaseTypeSequencer:
+		tx := txi.(*types.Sequencer)
+		response := types.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
+		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
+	}
+	return
 }

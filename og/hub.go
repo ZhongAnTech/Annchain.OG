@@ -131,7 +131,7 @@ func NewHub(config *HubConfig) *Hub {
 		h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
 			Name:    ProtocolName,
 			Version: version,
-			Length:  ProtocolLengths[i],
+			Length:  p2p.MsgCodeType(ProtocolLengths[i]),
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				peer := h.newPeer(int(version), p, rw)
 				select {
@@ -146,7 +146,7 @@ func NewHub(config *HubConfig) *Hub {
 			NodeInfo: func() interface{} {
 				return h.NodeStatus()
 			},
-			PeerInfo: func(id enode.ID)  interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 					return p.Info()
 				}
@@ -237,11 +237,24 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
+	case p2pMsg.MessageType == MessageTypeDuplicate:
+		msgLog.WithField("peer ", p.id).Debug("set path to false")
+		if _, out := p.CheckPath(); out {
+			p.SetOutPath(false)
+		}
+
+		return nil
+
 	default:
 		duplicate, err := h.checkMsg(&p2pMsg)
 		if duplicate {
 			log.WithField("type", p2pMsg.MessageType).WithField("msg", p2pMsg.Message.String()).WithField(
 				"hash", p2pMsg.hash).Debug("duplicate msg ,discard")
+			if in, _ := p.CheckPath(); in {
+				p.SetInpath(false)
+				dup := types.MessageDuplicate{}
+				return h.SendToPeer(p.id, MessageTypeDuplicate, &dup)
+			}
 			return nil
 		}
 		if err != nil {
@@ -336,7 +349,13 @@ func (h *Hub) loopSend() {
 				} else {
 					h.broadcastMessage(m)
 				}
-
+			case sendingTypeBroacastWithLink:
+				if h.WithFilter {
+					go h.broadcastMessageWithLink(m)
+				} else {
+					//go h.broadcastMessage(m)
+					go h.broadcastMessageWithLink(m)
+				}
 			default:
 				log.WithField("type ", m.sendingType).Error("unknown sending  type")
 				panic(m)
@@ -376,6 +395,18 @@ func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sour
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeBroacast}
+	_, err := h.checkMsg(msgOut)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		return
+	}
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
+	h.outgoing <- msgOut
+}
+
+//BroadcastMessage broadcast to whole network
+func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg types.Message) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeBroacastWithLink}
 	_, err := h.checkMsg(msgOut)
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
@@ -468,7 +499,6 @@ func (h *Hub) BestPeerId() (peerId string, err error) {
 }
 
 func (h *Hub) checkMsg(m *P2PMessage) (duplicate bool, err error) {
-
 	//for incoming msg
 	if m.SourceID != "" {
 		err := m.GetMessage()
@@ -512,10 +542,18 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
+	hash := msg.hash
+	c := types.MessageControl{&hash}
+	var pMsg = &P2PMessage{MessageType: MessageTypeControl, Message: &c}
+	msgLog.Debug(pMsg.MessageType)
+	h.checkMsg(pMsg)
 	peers = h.peers.PeersWithoutMsg(msg.hash)
-
 	for _, peer := range peers {
-		peer.AsyncSendMessage(msg)
+		if _, out := peer.CheckPath(); out {
+			peer.AsyncSendMessage(msg)
+		} else {
+			peer.AsyncSendMessage(pMsg)
+		}
 	}
 	return
 }
@@ -622,6 +660,38 @@ func (h *Hub) getMsgFromCache(hash types.Hash) []string {
 	return nil
 }
 
+func (h *Hub) HandleControlMsg(msg *P2PMessage) {
+	req := msg.Message.(*types.MessageControl)
+	if req.Hash == nil {
+		msgLog.WithError(fmt.Errorf("miss hash")).Debug("control msg request err")
+		return
+	}
+	hash := *req.Hash
+	source := msg.SourceID
+	if err, _ := h.messageCache.GetIFPresent(hash); err == nil {
+		msgLog.WithField("hash", hash).Debug("got msg already")
+		return
+	}
+	var i int
+	for {
+		select {
+		case <-time.After(5 * time.Millisecond):
+			i++
+			if _, err := h.messageCache.GetIFPresent(hash); err == nil {
+				msgLog.WithField("duration", i*5).WithField("hash", hash).Debug()
+				return
+			}
+			if i > 10 {
+				getMsg := types.MessageGetMsg{Hash: &hash}
+				h.SendToPeer(source, MessageTypeGetMsg, &getMsg)
+				return
+			}
+		}
+
+	}
+
+}
+
 func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG32 {
@@ -631,9 +701,22 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 			return
 		}
 	}
+	msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
+		"Message", msg.Message.String()).WithField("len ", len(msg.data)).Debug("received a message")
+
+	if msg.MessageType == MessageTypeControl {
+		h.HandleControlMsg(msg)
+		return
+	}
+	if msg.MessageType == MessageTypeGetMsg {
+		peer := h.peers.Peer(msg.SourceID)
+		if peer != nil {
+			msgLog.WithField("peer ", msg.SourceID).Debug("set path to true")
+			peer.SetOutPath(true)
+		}
+	}
+
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
-			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Debug("received a message")
 		msgLog.WithField("type", msg.MessageType).Debug("handle")
 		v(msg)
 	} else {

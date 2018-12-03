@@ -276,6 +276,55 @@ func (z CapsByNameAndVersion) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MsgCodeType) DecodeMsg(dc *msgp.Reader) (err error) {
+	{
+		var zb0001 uint16
+		zb0001, err = dc.ReadUint16()
+		if err != nil {
+			return
+		}
+		(*z) = MsgCodeType(zb0001)
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z MsgCodeType) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteUint16(uint16(z))
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z MsgCodeType) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendUint16(o, uint16(z))
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MsgCodeType) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	{
+		var zb0001 uint16
+		zb0001, bts, err = msgp.ReadUint16Bytes(bts)
+		if err != nil {
+			return
+		}
+		(*z) = MsgCodeType(zb0001)
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z MsgCodeType) Msgsize() (s int) {
+	s = msgp.Uint16Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *ProtoHandshake) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -650,20 +699,24 @@ func (z *Protocol) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Length":
-			z.Length, err = dc.ReadUint64()
-			if err != nil {
-				return
+			{
+				var zb0002 uint16
+				zb0002, err = dc.ReadUint16()
+				if err != nil {
+					return
+				}
+				z.Length = MsgCodeType(zb0002)
 			}
 		case "Attributes":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
+			var zb0003 uint32
+			zb0003, err = dc.ReadArrayHeader()
 			if err != nil {
 				return
 			}
-			if cap(z.Attributes) >= int(zb0002) {
-				z.Attributes = (z.Attributes)[:zb0002]
+			if cap(z.Attributes) >= int(zb0003) {
+				z.Attributes = (z.Attributes)[:zb0003]
 			} else {
-				z.Attributes = make([]enr.Entry, zb0002)
+				z.Attributes = make([]enr.Entry, zb0003)
 			}
 			for za0001 := range z.Attributes {
 				err = z.Attributes[za0001].DecodeMsg(dc)
@@ -707,7 +760,7 @@ func (z *Protocol) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.Length)
+	err = en.WriteUint16(uint16(z.Length))
 	if err != nil {
 		return
 	}
@@ -741,7 +794,7 @@ func (z *Protocol) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendUint(o, z.Version)
 	// string "Length"
 	o = append(o, 0xa6, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68)
-	o = msgp.AppendUint64(o, z.Length)
+	o = msgp.AppendUint16(o, uint16(z.Length))
 	// string "Attributes"
 	o = append(o, 0xaa, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62, 0x75, 0x74, 0x65, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Attributes)))
@@ -781,20 +834,24 @@ func (z *Protocol) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Length":
-			z.Length, bts, err = msgp.ReadUint64Bytes(bts)
-			if err != nil {
-				return
+			{
+				var zb0002 uint16
+				zb0002, bts, err = msgp.ReadUint16Bytes(bts)
+				if err != nil {
+					return
+				}
+				z.Length = MsgCodeType(zb0002)
 			}
 		case "Attributes":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				return
 			}
-			if cap(z.Attributes) >= int(zb0002) {
-				z.Attributes = (z.Attributes)[:zb0002]
+			if cap(z.Attributes) >= int(zb0003) {
+				z.Attributes = (z.Attributes)[:zb0003]
 			} else {
-				z.Attributes = make([]enr.Entry, zb0002)
+				z.Attributes = make([]enr.Entry, zb0003)
 			}
 			for za0001 := range z.Attributes {
 				bts, err = z.Attributes[za0001].UnmarshalMsg(bts)
@@ -815,7 +872,7 @@ func (z *Protocol) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Protocol) Msgsize() (s int) {
-	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 8 + msgp.UintSize + 7 + msgp.Uint64Size + 11 + msgp.ArrayHeaderSize
+	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 8 + msgp.UintSize + 7 + msgp.Uint16Size + 11 + msgp.ArrayHeaderSize
 	for za0001 := range z.Attributes {
 		s += z.Attributes[za0001].Msgsize()
 	}

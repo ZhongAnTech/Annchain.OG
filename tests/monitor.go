@@ -28,7 +28,7 @@ type Statistics struct {
 	PeersNum map[int]int
 }
 
-var fistPort = 7300
+var fistPort = 11300
 var peerNum = 40
 var ipsNum = 20
 
@@ -105,7 +105,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	return  []string{"192.168.45.128"}
+	//return  []string{"192.168.45.128"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)

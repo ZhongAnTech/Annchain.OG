@@ -18,10 +18,11 @@ package p2p
 
 import (
 	"fmt"
-
 	"github.com/annchain/OG/p2p/enode"
 	"github.com/annchain/OG/p2p/enr"
 )
+
+type MsgCodeType uint16
 
 // Protocol represents a P2P subprotocol implementation.
 type Protocol struct {
@@ -34,7 +35,7 @@ type Protocol struct {
 
 	// Length should contain the number of message codes used
 	// by the protocol.
-	Length uint64
+	Length MsgCodeType
 
 	// Run is called in a new groutine when the protocol has been
 	// negotiated with a peer. It should read and write messages from

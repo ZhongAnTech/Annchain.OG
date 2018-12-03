@@ -22,11 +22,11 @@ var ProtocolName = "og"
 var ProtocolVersions = []uint{OG32, OG31}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{18, 15}
+var ProtocolLengths = []MessageType{21, 18}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
-type MessageType uint32
+type MessageType uint16
 
 //global msg counter , generate global msg request id
 var MsgCounter *MessageCounter
@@ -52,6 +52,11 @@ const (
 	MessageTypeHeaderRequest
 	MessageTypeHeaderResponse
 
+	//for optimizing network
+	MessageTypeGetMsg
+	MessageTypeDuplicate
+	MessageTypeControl
+
 	// Protocol messages belonging to OG/32
 
 	GetNodeDataMsg
@@ -75,6 +80,7 @@ func (mt MessageType) String() string {
 		"MessageTypeNewTx", "MessageTypeNewSequencer", "MessageTypeNewTxs", "MessageTypeLatestSequencer",
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
+		"MessageTypeGetMsg", "MessageTypeDuplicate", "MessageTypeControl",
 		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
 	}[int(mt)]
 }
@@ -100,7 +106,8 @@ func (m *P2PMessage) calculateHash() {
 	if m.MessageType == MessageTypeBodiesRequest || m.MessageType == MessageTypeFetchByHashRequest ||
 		m.MessageType == MessageTypeTxsRequest || m.MessageType == MessageTypeHeaderRequest ||
 		m.MessageType == MessageTypeSequencerHeader || m.MessageType == MessageTypeHeaderResponse ||
-		m.MessageType == MessageTypeBodiesResponse {
+		m.MessageType == MessageTypeBodiesResponse || m.MessageType == MessageTypeGetMsg ||
+		m.MessageType == MessageTypeDuplicate {
 		data = append(data, []byte(m.SourceID+"hi")...)
 	} else if m.MessageType == MessageTypeNewTx {
 		msg := m.Message.(*types.MessageNewTx)
@@ -224,6 +231,12 @@ func (p *P2PMessage) GetMessage() error {
 		p.Message = &types.MessageHeaderRequest{}
 	case MessageTypeHeaderResponse:
 		p.Message = &types.MessageHeaderResponse{}
+	case MessageTypeDuplicate:
+		p.Message = &types.MessageDuplicate{}
+	case MessageTypeGetMsg:
+		p.Message = &types.MessageGetMsg{}
+	case MessageTypeControl:
+		p.Message = &types.MessageControl{}
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.MessageType)
 	}

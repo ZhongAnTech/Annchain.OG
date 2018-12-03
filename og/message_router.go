@@ -14,14 +14,14 @@ type MessageRouter struct {
 	NewTxHandler               NewTxHandler
 	NewTxsHandler              NewTxsHandler
 	NewSequencerHandler        NewSequencerHandler
-
-	SequencerHeaderHandler SequencerHeaderHandler
-	BodiesRequestHandler   BodiesRequestHandler
-	BodiesResponseHandler  BodiesResponseHandler
-	TxsRequestHandler      TxsRequestHandler
-	TxsResponseHandler     TxsResponseHandler
-	HeaderRequestHandler   HeaderRequestHandler
-	HeaderResponseHandler  HeaderResponseHandler
+	GetMsgHandler              GetMsgHandler
+	SequencerHeaderHandler     SequencerHeaderHandler
+	BodiesRequestHandler       BodiesRequestHandler
+	BodiesResponseHandler      BodiesResponseHandler
+	TxsRequestHandler          TxsRequestHandler
+	TxsResponseHandler         TxsResponseHandler
+	HeaderRequestHandler       HeaderRequestHandler
+	HeaderResponseHandler      HeaderResponseHandler
 }
 
 type ManagerConfig struct {
@@ -45,15 +45,19 @@ type FetchByHashResponseHandler interface {
 }
 
 type NewTxHandler interface {
-	HandleNewTx(*types.MessageNewTx)
+	HandleNewTx(msg *types.MessageNewTx, peerId string)
+}
+
+type GetMsgHandler interface {
+	HandleGetMsg(msg *types.MessageGetMsg, peerId string)
 }
 
 type NewTxsHandler interface {
-	HandleNewTxs(*types.MessageNewTxs)
+	HandleNewTxs(msg *types.MessageNewTxs, peerId string)
 }
 
 type NewSequencerHandler interface {
-	HandleNewSequencer(*types.MessageNewSequencer)
+	HandleNewSequencer(msg *types.MessageNewSequencer, peerId string)
 }
 
 type SequencerHeaderHandler interface {
@@ -112,15 +116,20 @@ func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
 }
 
 func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
-	m.NewTxHandler.HandleNewTx(msg.Message.(*types.MessageNewTx))
+	m.NewTxHandler.HandleNewTx(msg.Message.(*types.MessageNewTx), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
 	//maybe received more transactions
-	m.NewTxsHandler.HandleNewTxs(msg.Message.(*types.MessageNewTxs))
+	m.NewTxsHandler.HandleNewTxs(msg.Message.(*types.MessageNewTxs), msg.SourceID)
 }
+
 func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
-	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*types.MessageNewSequencer))
+	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*types.MessageNewSequencer), msg.SourceID)
+}
+
+func (m *MessageRouter) RouteGetMsg(msg *P2PMessage) {
+	m.GetMsgHandler.HandleGetMsg(msg.Message.(*types.MessageGetMsg), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteSequencerHeader(msg *P2PMessage) {

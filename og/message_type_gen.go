@@ -87,8 +87,8 @@ func (z MessageCounter) Msgsize() (s int) {
 // DecodeMsg implements msgp.Decodable
 func (z *MessageType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zb0001 uint64
-		zb0001, err = dc.ReadUint64()
+		var zb0001 uint16
+		zb0001, err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -99,7 +99,7 @@ func (z *MessageType) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z MessageType) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteUint64(uint64(z))
+	err = en.WriteUint16(uint16(z))
 	if err != nil {
 		return
 	}
@@ -109,15 +109,15 @@ func (z MessageType) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z MessageType) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendUint64(o, uint64(z))
+	o = msgp.AppendUint16(o, uint16(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *MessageType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zb0001 uint64
-		zb0001, bts, err = msgp.ReadUint64Bytes(bts)
+		var zb0001 uint16
+		zb0001, bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -129,7 +129,7 @@ func (z *MessageType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z MessageType) Msgsize() (s int) {
-	s = msgp.Uint64Size
+	s = msgp.Uint16Size
 	return
 }
 
@@ -145,8 +145,8 @@ func (z *P2PMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	{
-		var zb0002 uint64
-		zb0002, err = dc.ReadUint64()
+		var zb0002 uint16
+		zb0002, err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -189,7 +189,7 @@ func (z *P2PMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(uint64(z.MessageType))
+	err = en.WriteUint16(uint16(z.MessageType))
 	if err != nil {
 		return
 	}
@@ -224,7 +224,7 @@ func (z *P2PMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 5
 	o = append(o, 0x95)
-	o = msgp.AppendUint64(o, uint64(z.MessageType))
+	o = msgp.AppendUint16(o, uint16(z.MessageType))
 	o = msgp.AppendString(o, z.SourceID)
 	o = msgp.AppendInt(o, z.Version)
 	o, err = z.Message.MarshalMsg(o)
@@ -254,8 +254,8 @@ func (z *P2PMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	{
-		var zb0002 uint64
-		zb0002, bts, err = msgp.ReadUint64Bytes(bts)
+		var zb0002 uint16
+		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -294,7 +294,7 @@ func (z *P2PMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *P2PMessage) Msgsize() (s int) {
-	s = 1 + msgp.Uint64Size + msgp.StringPrefixSize + len(z.SourceID) + msgp.IntSize + z.Message.Msgsize()
+	s = 1 + msgp.Uint16Size + msgp.StringPrefixSize + len(z.SourceID) + msgp.IntSize + z.Message.Msgsize()
 	if z.SourceHash == nil {
 		s += msgp.NilSize
 	} else {

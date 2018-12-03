@@ -704,7 +704,7 @@ func newRLPXFrameRW(conn io.ReadWriter, s secrets) *rlpxFrameRW {
 
 func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	//ptype, _ := rlp.EncodeToBytes(msg.Code)
-	ptype, _ := Mint64(msg.Code).MarshalMsg(nil)
+	ptype, _ := msg.Code.MarshalMsg(nil)
 	// if snappy is enabled, compress message now
 	if rw.snappy {
 		if msg.Size > maxUint24 {
@@ -801,13 +801,11 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 			return msg, err
 		}
 	*/
-	var muint64 Muint64
-	out, err := muint64.UnmarshalMsg(framebuf[:fsize])
+	out, err := msg.Code.UnmarshalMsg(framebuf[:fsize])
 	if err != nil {
 		return msg, err
 	}
 	content := bytes.NewReader(out)
-	msg.Code = uint64(muint64)
 	msg.Size = uint32(content.Len())
 	msg.Payload = content
 	// if snappy is enabled, verify and decompress message

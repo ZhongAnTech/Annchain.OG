@@ -53,7 +53,8 @@ type peer struct {
 	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
 	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
 	term      chan struct{}      // Termination channel to stop the broadcaster
-	link      bool
+	outPath   bool
+	inPath    bool
 }
 
 type PeerInfo struct {
@@ -71,6 +72,8 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		knownMsg:  mapset.NewSet(),
 		queuedMsg: make(chan []*P2PMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
+		outPath:   true,
+		inPath:    true,
 	}
 }
 
@@ -84,7 +87,7 @@ func (p *peer) broadcast() {
 			if err := p.SendMessages(msg); err != nil {
 				return
 			}
-			msgLog.WithField("count", len(msg)).Trace("Broadcast transactions")
+			msgLog.WithField("count", len(msg)).Trace("Broadcast msg")
 
 		case <-p.term:
 			return
@@ -92,12 +95,15 @@ func (p *peer) broadcast() {
 	}
 }
 
-func (p *peer) SetLink(valid bool) {
-	p.link = true
+func (p *peer) SetInpath(value bool) {
+	p.inPath = value
+}
+func (p *peer) SetOutPath(v bool) {
+	p.outPath = v
 }
 
-func (p *peer) CheckLink() (valid bool) {
-	return p.link
+func (p *peer) CheckPath() (inPath, outPath bool) {
+	return p.inPath, p.outPath
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -163,7 +169,7 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 
 func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
 	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Debug("send msg")
-	return p2p.Send(p.rw, uint64(msgType), msgBytes)
+	return p2p.Send(p.rw, p2p.MsgCodeType(msgType), msgBytes)
 }
 
 func (p *peer) SendTransactions(txs types.Txs) error {
@@ -330,7 +336,7 @@ func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
 		return err
 	}
 	clog.WithField("size", len(data)).Debug("send")
-	err = p2p.Send(p.rw, uint64(msgType), data)
+	err = p2p.Send(p.rw, p2p.MsgCodeType(msgType), data)
 	if err != nil {
 		clog.WithError(err).Warn("send failed")
 	}
@@ -537,7 +543,7 @@ func (p *peer) Handshake(network uint64, head types.Hash, seqId uint64, genesis 
 			GenesisBlock:    genesis,
 		}
 		data, _ := s.MarshalMsg(nil)
-		errc <- p2p.Send(p.rw, uint64(StatusMsg), data)
+		errc <- p2p.Send(p.rw, p2p.MsgCodeType(StatusMsg), data)
 	}()
 	go func() {
 		errc <- p.readStatus(network, &status, genesis)
@@ -564,7 +570,7 @@ func (p *peer) readStatus(network uint64, status *StatusData, genesis types.Hash
 	if err != nil {
 		return err
 	}
-	if msg.Code != uint64(StatusMsg) {
+	if msg.Code != p2p.MsgCodeType(StatusMsg) {
 		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, StatusMsg)
 	}
 	if msg.Size > ProtocolMaxMsgSize {

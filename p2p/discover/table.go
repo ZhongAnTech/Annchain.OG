@@ -310,7 +310,7 @@ func (tab *Table) findnode(n *node, targetKey EncPubkey, reply chan<- []*node) {
 		fails++
 		tab.db.UpdateFindFails(n.ID(), fails)
 		log.WithFields(logrus.Fields{"id": n.ID(),
-		"failCount": fails,
+			"failCount": fails,
 		}).WithError(err).Trace("Findnode failed")
 		if fails >= maxFindnodeFailures {
 			log.WithFields(logrus.Fields{"id": n.ID(), "failCount": fails}).Trace("Too many findnode failures, dropping")
@@ -437,7 +437,7 @@ func (tab *Table) loadSeedNodes() {
 	for i := range seeds {
 		seed := seeds[i]
 		age := time.Since(tab.db.LastPongReceived(seed.ID()))
-		log.WithFields(logrus.Fields{"id": seed.ID, "addr": seed.addr(), "age": age}).Debug("found seed node in database")
+		log.WithFields(logrus.Fields{"id": seed.ID(), "addr": seed.addr(), "age": age.String()}).Debug("found seed node in database")
 		tab.add(seed)
 	}
 }

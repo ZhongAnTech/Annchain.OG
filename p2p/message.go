@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/msg"
 	"github.com/tinylib/msgp/msgp"
 	"io"
 	"io/ioutil"
@@ -34,8 +35,9 @@ import (
 // send it any number of times. If you want to reuse an encoded
 // structure, encode the payload into a byte array and create a
 // separate Msg with a bytes.Reader as Payload for each send.
+
 type Msg struct {
-	Code       uint64
+	Code       MsgCodeType
 	Size       uint32 // size of the paylod
 	Payload    io.Reader
 	ReceivedAt time.Time
@@ -104,7 +106,7 @@ func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 
 */
 
-func Send(w MsgWriter, msgcode uint64, data []byte) error {
+func Send(w MsgWriter, msgcode MsgCodeType, data []byte) error {
 	size := len(data)
 	r := bytes.NewReader(data)
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
@@ -235,7 +237,7 @@ func (p *MsgPipeRW) Close() error {
 // code and encoded RLP content match the provided values.
 // If content is nil, the payload is discarded and not verified.
 
-func ExpectMsg(r MsgReader, code uint64, content msgp.Marshaler) error {
+func ExpectMsg(r MsgReader, code MsgCodeType, content msgp.Marshaler) error {
 	msg, err := r.ReadMsg()
 	if err != nil {
 		return err
@@ -263,25 +265,25 @@ func ExpectMsg(r MsgReader, code uint64, content msgp.Marshaler) error {
 	}
 	return nil
 }
-func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
+func ExpectMsgArrByte(r MsgReader, code MsgCodeType, content []byte) error {
 	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
-	return ExpectMsg(r, code, ArrByte(content))
+	return ExpectMsg(r, code, msg.Bytes(content))
 }
 
-func ExpectMsgArrUint(r MsgReader, code uint64, content []uint) error {
+func ExpectMsgArrUint(r MsgReader, code MsgCodeType, content []uint) error {
 	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
-	return ExpectMsg(r, code, ArrUint(content))
+	return ExpectMsg(r, code, msg.Uints(content))
 }
 
-func ExpectMsgArrString(r MsgReader, code uint64, content []string) error {
+func ExpectMsgArrString(r MsgReader, code MsgCodeType, content []string) error {
 	if content == nil {
 		return ExpectMsg(r, code, nil)
 	}
-	return ExpectMsg(r, code, ArrString(content))
+	return ExpectMsg(r, code, msg.Strings(content))
 }
 
 /*

@@ -36,7 +36,7 @@ var (
 
 const (
 	baseProtocolVersion    = 5
-	baseProtocolLength     = uint64(16)
+	baseProtocolLength     = MsgCodeType(16)
 	baseProtocolMaxMsgSize = 2 * 1024
 
 	snappyProtocolVersion = 5
@@ -357,7 +357,7 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 
 // getProto finds the protocol responsible for handling
 // the given message code.
-func (p *Peer) getProto(code uint64) (*protoRW, error) {
+func (p *Peer) getProto(code MsgCodeType) (*protoRW, error) {
 	for _, proto := range p.running {
 		if code >= proto.offset && code < proto.offset+proto.Length {
 			return proto, nil
@@ -372,7 +372,7 @@ type protoRW struct {
 	closed <-chan struct{} // receives when peer is shutting down
 	wstart <-chan struct{} // receives when write may start
 	werr   chan<- error    // for write results
-	offset uint64
+	offset MsgCodeType
 	w      MsgWriter
 }
 

@@ -158,6 +158,7 @@ func NewNode() *Node {
 		//HeaderResponseHandler:     messageHandler,
 		//FetchByHashRequestHandler: messageHandler,
 		NewSequencerHandler: messageHandler,
+		GetMsgHandler:       messageHandler,
 		Hub:                 hub,
 	}
 	/*
@@ -366,7 +367,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	//hub.CallbackRegistry[og.MessageTypeNewTx] = m.RouteNewTx
 	//hub.CallbackRegistry[og.MessageTypeNewTxs] = m.RouteNewTxs
 	hub.CallbackRegistry[og.MessageTypeNewSequencer] = m.RouteNewSequencer
-
+	hub.CallbackRegistry[og.MessageTypeGetMsg] = m.RouteGetMsg
 	//hub.CallbackRegistry[og.MessageTypeSequencerHeader] = m.RouteSequencerHeader
 	//hub.CallbackRegistry[og.MessageTypeBodiesRequest] = m.RouteBodiesRequest
 	//hub.CallbackRegistry[og.MessageTypeBodiesResponse] = m.RouteBodiesResponse

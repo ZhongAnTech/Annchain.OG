@@ -15,15 +15,21 @@ import (
 )
 
 var (
-	testPk0   = "0000000000000000000000000000000000000000000000000000000000000000"
-	testAddr0 = "188A3EB3BFD8DA1274C935946CB5765B4225503E"
+	// Address "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
+	testPkSecp0 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F00"
 
-	testPk1   = "1111111111111111111111111111111111111111111111111111111111111111"
-	testAddr1 = "E97BB1E3813CA30F8CFC6A0E8B50047063E893B7"
+	// Address "0x885ab414a52faad7818d064ce2254b6612b93532"
+	testPkSecp1 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F01"
 
-	testPk2   = "2222222222222222222222222222222222222222222222222222222222222222"
-	testAddr2 = "2EC79FEA2B6F64FAD50CD20CF5CC2281E141441E"
+	// Address "0x5065e6235a4e389bd1b94419df93d998475628ea"
+	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
+
+func newTestAddress(priv crypto.PrivateKey) types.Address {
+	signer := crypto.NewSigner(priv.Type)
+	pubkey := signer.PubKey(priv)
+	return signer.Address(pubkey)
+}
 
 func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 	dirname, err := ioutil.TempDir(os.TempDir(), "ogdb_test_"+dirPrefix+"_")
@@ -45,8 +51,8 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -58,8 +64,8 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk1)
-	addr := types.HexToAddress(testAddr1)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
+	addr := newTestAddress(pk)
 
 	seq := txCreator.NewSignedSequencer(addr, nonce, []types.Hash{}, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
@@ -172,7 +178,8 @@ func TestBalanceStorage(t *testing.T) {
 
 	var err error
 	acc := core.NewAccessor(db)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
+	addr := newTestAddress(pk)
 
 	balance := acc.ReadBalance(addr)
 	if balance == nil {
@@ -222,64 +229,5 @@ func TestBalanceStorage(t *testing.T) {
 	}
 }
 
-func TestLatestNonce(t *testing.T) {
-	t.Parallel()
-
-	db, remove := newTestLDB("TestLatestNonce")
-	defer remove()
-
-	var err error
-	acc := core.NewAccessor(db)
-
-	var nonce uint64
-
-	tx0 := newTestUnsealTx(0)
-	err = acc.WriteTransaction(db.NewBatch(), tx0)
-	if err != nil {
-		t.Fatalf("write tx0 %s failed: %v", tx0.GetTxHash().String(), err)
-	}
-	_, err = acc.ReadAddrLatestNonce(tx0.Sender())
-	if (err != nil) && (err.Error() != "not exists") {
-		t.Fatalf("first tx0 nonce is not empty")
-	}
-
-	tx1 := newTestUnsealTx(1)
-	err = acc.WriteTransaction(db.NewBatch(), tx1)
-	if err != nil {
-		t.Fatalf("write tx1 %s failed: %v", tx1.GetTxHash().String(), err)
-	}
-	nonce, err = acc.ReadAddrLatestNonce(tx1.Sender())
-	if err != nil {
-		t.Fatalf("read tx1 nonce failed: %v", err)
-	}
-	if nonce != uint64(1) {
-		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
-	}
-
-	tx2 := newTestUnsealTx(2)
-	err = acc.WriteTransaction(db.NewBatch(), tx2)
-	if err != nil {
-		t.Fatalf("write tx2 %s failed: %v", tx2.GetTxHash().String(), err)
-	}
-	nonce, err = acc.ReadAddrLatestNonce(tx2.Sender())
-	if err != nil {
-		t.Fatalf("read tx2 nonce failed: %v", err)
-	}
-	if nonce != uint64(2) {
-		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 2, nonce)
-	}
-
-	badtx := newTestUnsealTx(1)
-	err = acc.WriteTransaction(db.NewBatch(), badtx)
-	if err != nil {
-		t.Fatalf("write badtx %s failed: %v", badtx.GetTxHash().String(), err)
-	}
-	nonce, err = acc.ReadAddrLatestNonce(badtx.Sender())
-	if err != nil {
-		t.Fatalf("read badtx nonce failed: %v", err)
-	}
-	if nonce != uint64(2) {
-		t.Fatalf("the nonce in db is not we expected. hope %d but get %d", 1, nonce)
-	}
-
-}
+// Note that nonce is now managed by statedb, so no need to test
+// latest nonce in accessor part. 

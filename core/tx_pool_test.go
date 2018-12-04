@@ -47,8 +47,8 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -60,8 +60,8 @@ func newTestPoolBadTx() *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk2)
-	addr := types.HexToAddress(testAddr2)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(100), 0, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -188,6 +188,10 @@ func TestPoolConfirm(t *testing.T) {
 	tx0 := newTestPoolTx(0)
 	tx0.ParentsHash = []types.Hash{genesis.GetTxHash()}
 	pool.AddLocalTx(tx0)
+
+	// TODO
+	// tx3 := newTestPoolBadTx()
+	// pool.AddLocalTx(tx3)
 
 	tx1 := newTestPoolTx(1)
 	tx1.ParentsHash = []types.Hash{genesis.GetTxHash()}

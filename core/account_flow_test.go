@@ -14,8 +14,8 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -194,13 +194,3 @@ func TestAccountFlow(t *testing.T) {
 	}
 
 }
-
-// func TestNonceHeap(t *testing.T) {
-// 	testList := []uint64{ 208, 505, 910, 157, 771, 718, 98, 897, 538, 38 }
-
-// 	nh := make(nonceHeap)
-// 	for _, v := range testList {
-
-// 	}
-
-// }

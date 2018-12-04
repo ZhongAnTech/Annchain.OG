@@ -39,11 +39,8 @@ func newTestDagTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	// TODO
-	// testPk0 is private key for ed25519 not secp256.
-	// try create new private key for crypto type secp256.
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())

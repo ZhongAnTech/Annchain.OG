@@ -182,7 +182,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		return false
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
-		WithField("id", c.MyAccountIndex).Info("Generated tx")
+		WithField("id", c.MyAccountIndex).Trace("Generated tx")
 	c.Delegate.Announce(tx)
 	return true
 }

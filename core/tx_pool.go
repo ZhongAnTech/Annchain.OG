@@ -770,7 +770,6 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 			return fmt.Errorf("nonce %d is not zero when there is no nonce in db, addr: %s", nonces[0], addr.String())
 		}
 	} else {
-		log.Debugf("in verifyNonce with nErr: %v", nErr)
 		if nonces[0] != latestNonce+1 {
 			return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
 		}

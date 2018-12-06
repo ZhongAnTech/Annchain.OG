@@ -1,10 +1,13 @@
 package crypto
 
 import (
+	"crypto/ecdsa"
 	"crypto/sha256"
+	"fmt"
+
 	"github.com/annchain/OG/types"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
-	log "github.com/sirupsen/logrus"
+	ecdsabtcec "github.com/btcsuite/btcd/btcec"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -16,19 +19,18 @@ func (s *SignerSecp256k1) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey.Bytes)
-	sig, err := priv.Sign(Sha256(msg))
-	if err != nil {
-		panic(err)
-	}
+	priv, _ := ethcrypto.HexToECDSA(fmt.Sprintf("%x", privKey.Bytes))
 
-	return SignatureFromBytes(CryptoTypeSecp256k1, sig.Serialize())
+	hash := Sha256(msg)
+	sig, _ := ethcrypto.Sign(hash, priv)
+
+	return SignatureFromBytes(CryptoTypeSecp256k1, sig)
 }
 
 func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
-	_, pub__ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey.Bytes)
-	pub := [64]byte{}
-	copy(pub[:], pub__.SerializeUncompressed()[1:])
+	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.Bytes)
+	pub := ethcrypto.FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
+
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
@@ -37,33 +39,16 @@ func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
 }
 
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
-	pub65Bytes := append([]byte{0x04}, pubKey.Bytes...)
-	pub__, err := secp256k1.ParsePubKey(pub65Bytes, secp256k1.S256())
-	if err != nil {
-		//no panic ,prevent attack
-		//panic(err)
-		log.WithError(err).Warn("verify signature fail")
-		return false
-	}
-	sig__, err := secp256k1.ParseDERSignature(signature.Bytes, secp256k1.S256())
-	if err != nil {
-		//no panic ,prevent attack
-		//panic(err)
-		log.WithError(err).Warn("verify signature fail")
-		return false
-	}
-	return sig__.Verify(Sha256(msg), pub__)
+	sig := (signature.Bytes)[:len(signature.Bytes)-1]
+	return ethcrypto.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
 }
 
 func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error) {
 	privKeyBytes := [32]byte{}
-	pubKeyBytes := [64]byte{}
 	copy(privKeyBytes[:], CRandBytes(32))
-	priv, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
-	copy(privKeyBytes[:], priv.Serialize())
-	copy(pubKeyBytes[:], pub.SerializeUncompressed()[1:])
+
 	privateKey = PrivateKeyFromBytes(CryptoTypeSecp256k1, privKeyBytes[:])
-	publicKey = PublicKeyFromBytes(CryptoTypeSecp256k1, pubKeyBytes[:])
+	publicKey = s.PubKey(privateKey)
 	return
 }
 

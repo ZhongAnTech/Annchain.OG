@@ -286,7 +286,7 @@ func (r*RpcController)getTps () (t*Tps , err error) {
 		tps.Num = int(num)
 	}
 	tps.Seconds = sec
-	return  tps ,nil
+	return  &tps ,nil
 }
 
 func (r*RpcController)Tps(c *gin.Context) {

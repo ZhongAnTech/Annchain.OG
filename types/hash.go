@@ -40,7 +40,14 @@ var (
 	hashT = reflect.TypeOf(Hash{})
 )
 
-// Hash represents the 20 byte of Hash.
+type Padding uint
+const (
+	PaddingLeft Padding = iota
+	PaddingRight
+	PaddingNone
+)
+
+// Hash represents the 32 byte of Hash.
 type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
@@ -58,7 +65,7 @@ func (h *Hash) Empty() bool {
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToHash(b []byte) Hash {
 	var h Hash
-	h.MustSetBytes(b)
+	h.MustSetBytes(b, PaddingLeft)
 	return h
 }
 
@@ -128,12 +135,23 @@ func (h Hash) MarshalText() ([]byte, error) {
 
 // SetBytes sets the Hash to the value of b.
 // If b is larger than len(h), panic. It usually indicates a logic error.
-func (h *Hash) MustSetBytes(b []byte) {
+func (h *Hash) MustSetBytes(b []byte, padding Padding) {
 	if len(b) > HashLength {
-		panic(fmt.Sprintf("byte to set is longer than expected length: %d > %d", len(b), HashLength))
+		panic(fmt.Sprintf("bytes to set is longer than expected length: %d > %d", len(b), HashLength))
 	}
+
 	h.Bytes = [HashLength]byte{}
-	copy(h.Bytes[:], b)
+	switch padding{
+	case PaddingLeft:
+		copy(h.Bytes[HashLength - len(b):], b)
+	case PaddingRight:
+		copy(h.Bytes[:], b)
+	case PaddingNone:
+		if len(b) != HashLength{
+			panic(fmt.Sprintf("bytes to set is not expected length: %d != %d", len(b), HashLength))
+		}
+	}
+
 }
 
 func (h *Hash) SetBytes(b []byte) error {

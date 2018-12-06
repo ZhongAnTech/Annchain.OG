@@ -121,7 +121,7 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
+	hash.MustSetBytes(result[0:], PaddingNone)
 	return
 }
 
@@ -133,7 +133,7 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
 
 	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
+	hash.MustSetBytes(result[0:], PaddingNone)
 	return
 }
 

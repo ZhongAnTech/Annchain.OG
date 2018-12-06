@@ -28,6 +28,7 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
+	"strings"
 )
 
 // Storage represents a contract's storage.
@@ -101,7 +102,7 @@ func (s *StructLog) ErrorString() string {
 type StructLogger struct {
 	cfg LogConfig
 
-	logs          []StructLog
+	Logs          []StructLog
 	changedValues map[types.Address]Storage
 	output        []byte
 	err           error
@@ -123,12 +124,12 @@ func (l *StructLogger) CaptureStart(from types.Address, to types.Address, create
 	return nil
 }
 
-// CaptureState logs a new structured log message and pushes it out to the environment
+// CaptureState Logs a new structured log message and pushes it out to the environment
 //
 // CaptureState also tracks SSTORE ops to track dirty values.
 func (l *StructLogger) CaptureState(ctx *vmtypes.Context, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmtypes.Contract, depth int, err error) error {
-	// check if already accumulated the specified number of logs
-	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.logs) {
+	// check if already accumulated the specified number of Logs
+	if l.cfg.Limit != 0 && l.cfg.Limit <= len(l.Logs) {
 		return vmtypes.ErrTraceLimitReached
 	}
 
@@ -169,7 +170,7 @@ func (l *StructLogger) CaptureState(ctx *vmtypes.Context, pc uint64, op instruct
 	// create a new snaptshot of the OVM.
 	log := StructLog{pc, op, gas, cost, mem, memory.Len(), stck, storage, depth, ctx.StateDB.GetRefund(), err}
 
-	l.logs = append(l.logs, log)
+	l.Logs = append(l.Logs, log)
 	return nil
 }
 
@@ -193,7 +194,7 @@ func (l *StructLogger) CaptureEnd(output []byte, gasUsed uint64, t time.Duration
 }
 
 // StructLogs returns the captured log entries.
-func (l *StructLogger) StructLogs() []StructLog { return l.logs }
+func (l *StructLogger) StructLogs() []StructLog { return l.Logs }
 
 // Error returns the VM error captured by the trace.
 func (l *StructLogger) Error() error { return l.err }
@@ -203,6 +204,7 @@ func (l *StructLogger) Output() []byte { return l.output }
 
 // WriteTrace writes a formatted trace to the given writer
 func WriteTrace(writer io.Writer, logs []StructLog) {
+	omitZero := true
 	for _, log := range logs {
 		fmt.Fprintf(writer, "%-16spc=%08d gas=%v cost=%v", log.Op, log.Pc, log.Gas, log.GasCost)
 		if log.Err != nil {
@@ -213,7 +215,11 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Stack) > 0 {
 			fmt.Fprintln(writer, "Stack:")
 			for i := len(log.Stack) - 1; i >= 0; i-- {
-				fmt.Fprintf(writer, "%08d  %x\n", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+				s := fmt.Sprintf( "%08d  %x", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+				if omitZero{
+					s = strings.Replace(s, "00", "__",-1)
+				}
+				fmt.Println(s)
 			}
 		}
 		if len(log.Memory) > 0 {
@@ -223,14 +229,19 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Storage) > 0 {
 			fmt.Fprintln(writer, "Storage:")
 			for h, item := range log.Storage {
-				fmt.Fprintf(writer, "%x: %x\n", h, item)
+				s := fmt.Sprintf("%x: %x", h, item)
+				if omitZero{
+					s = strings.Replace(s, "00", "__",-1)
+				}
+				fmt.Println(s)
+
 			}
 		}
 		fmt.Fprintln(writer)
 	}
 }
 
-// WriteLogs writes vm logs in a readable format to the given writer
+// WriteLogs writes vm Logs in a readable format to the given writer
 func WriteLogs(writer io.Writer, logs []*vmtypes.Log) {
 	for _, log := range logs {
 		fmt.Fprintf(writer, "LOG%d: %x seq=%d txi=%x\n", len(log.Topics), log.Address, log.SequenceID, log.TxIndex)

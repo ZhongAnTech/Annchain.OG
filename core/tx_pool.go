@@ -225,6 +225,7 @@ func (pool *TxPool) GetHashOrder() []types.Hash {
 
 	return pool.getHashOrder()
 }
+
 func (pool *TxPool) getHashOrder() []types.Hash {
 	return pool.txLookup.GetOrder()
 }

@@ -15,6 +15,7 @@ import (
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/performance"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
@@ -30,7 +31,7 @@ func NewNode() *Node {
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
-	pm := &PerformanceMonitor{}
+	pm := &performance.PerformanceMonitor{}
 
 	var rpcServer *rpc.RpcServer
 	var cryptoType crypto.CryptoType
@@ -42,7 +43,6 @@ func NewNode() *Node {
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
-
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
 		maxPeers = defaultMaxPeers
@@ -62,6 +62,7 @@ func NewNode() *Node {
 		og.OGConfig{
 			BootstrapNode: bootNode,
 			NetworkId:     uint64(networkId),
+			CryptoType:    cryptoType,
 		},
 	)
 	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
@@ -77,6 +78,7 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
+		WithCukooFilter:               viper.GetBool("hub.cukoo_filter"),
 	}, org.Dag, org.TxPool)
 
 	hub.StatusDataProvider = org
@@ -86,7 +88,7 @@ func NewNode() *Node {
 
 	// Setup crypto algorithm
 	signer := crypto.NewSigner(cryptoType)
-
+	types.Signer = signer
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,
@@ -169,7 +171,7 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheMaxSize:           10000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m)
+		}, m, org.TxPool.GetHashOrder)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
@@ -237,6 +239,8 @@ func NewNode() *Node {
 		TxCreator: txCreator,
 	}
 
+	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
@@ -285,6 +289,7 @@ func NewNode() *Node {
 		privKey := getNodePrivKey()
 		p2pServer = NewP2PServer(privKey)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+		hub.NodeInfo = p2pServer.NodeInfo
 
 		n.Components = append(n.Components, p2pServer)
 	}
@@ -297,6 +302,8 @@ func NewNode() *Node {
 		// just for debugging, ignoring index OOR
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 		rpcServer.C.SyncerManager = syncManager
+		rpcServer.C.AutoTxCli = autoClientManager
+		rpcServer.C.PerformanceMonitor = pm
 	}
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
@@ -306,11 +313,20 @@ func NewNode() *Node {
 		pm.Register(wsServer)
 	}
 
+	// txMetrics
+	txCounter := performance.NewTxCounter()
+
+	org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, txCounter.NewTxReceivedChan)
+	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
+	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
+	n.Components = append(n.Components, txCounter)
+
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
 	pm.Register(hub)
+	pm.Register(txCounter)
 	n.Components = append(n.Components, pm)
 
 	return n

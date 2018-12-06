@@ -32,6 +32,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
 	router.POST("new_account", rpc.NewAccount)
+	router.GET("auto_tx", rpc.AutoTx)
 
 	// query API
 	router.GET("query", rpc.Query)
@@ -45,7 +46,9 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
+	router.GET("tps", rpc.Tps)
 	router.GET("sync_status", rpc.SyncStatus)
+	router.GET("performance", rpc.Performance)
 	return router
 
 }
@@ -63,8 +66,11 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"og_peers_info": "",
 		"genesis":       "",
 		"sync_status":   "",
+		"performance":   "",
+		"tps":			 "",
 		// broadcast API
 		"new_transaction": "tx",
+		"auto_tx":         "interval_ms",
 
 		// query API
 		"query":            "query",

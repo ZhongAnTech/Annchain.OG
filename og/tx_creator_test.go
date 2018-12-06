@@ -45,6 +45,16 @@ func TestTxCreator(t *testing.T) {
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned)
 	logrus.Infof("result: %t %v", ok, txSigned)
+	txdata ,_:= tx.MarshalMsg(nil)
+	rawtx:= tx.RawTx()
+	rawTxData ,_:=rawtx.MarshalMsg(nil)
+	msg := types.MessageNewTx{
+		RawTx:rawtx,
+	}
+	msgData ,_:= msg.MarshalMsg(nil)
+	logrus.WithField("len tx ",len(txdata)).WithField("len raw tx ",len(rawTxData)).WithField(
+		"len msg",len(msgData)).Debug("encode msg")
+	logrus.Debug(txSigned.Dump())
 }
 
 func TestSequencerCreator(t *testing.T) {

@@ -42,3 +42,9 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 	cors(c)
 	c.JSON(http.StatusOK, status)
 }
+
+func (r *RpcController) Performance(c *gin.Context) {
+	cd := r.PerformanceMonitor.CollectData()
+	cors(c)
+	c.JSON(http.StatusOK, cd)
+}

@@ -54,6 +54,14 @@ func (bi *BigInt) SetInt64(x int64) {
 	bi.Value.SetInt64(x)
 }
 
+// GetSigBytes returns the bytes of bigint. This bytes are for signatures only.
+func (bi *BigInt) GetSigBytes() []byte {
+	if bi.GetInt64() == 0 {
+		return []byte{0}
+	}
+	return bi.GetBytes()
+}
+
 // Sign returns:
 //
 //	-1 if x <  0
@@ -143,4 +151,32 @@ func ReadBits(bigint *big.Int, buf []byte) {
 			d >>= 8
 		}
 	}
+}
+
+// ParseBig256 parses s as a 256 bit integer in decimal or hexadecimal syntax.
+// Leading zeros are accepted. The empty string parses as zero.
+func ParseBig256(s string) (*big.Int, bool) {
+	if s == "" {
+		return new(big.Int), true
+	}
+	var bigint *big.Int
+	var ok bool
+	if len(s) >= 2 && (s[:2] == "0x" || s[:2] == "0X") {
+		bigint, ok = new(big.Int).SetString(s[2:], 16)
+	} else {
+		bigint, ok = new(big.Int).SetString(s, 10)
+	}
+	if ok && bigint.BitLen() > 256 {
+		bigint, ok = nil, false
+	}
+	return bigint, ok
+}
+
+// MustParseBig256 parses s as a 256 bit big integer and panics if the string is invalid.
+func MustParseBig256(s string) *big.Int {
+	v, ok := ParseBig256(s)
+	if !ok {
+		panic("invalid 256 bit integer: " + s)
+	}
+	return v
 }

@@ -9,4 +9,5 @@ type Signer interface {
 	Verify(pubKey PublicKey, signature Signature, msg []byte) bool
 	RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error)
 	Address(pubKey PublicKey) types.Address
+	AddressFromPubKeyBytes(pubKey []byte) types.Address
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	// "fmt"
 	"sync"
@@ -322,6 +323,23 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
+func (dag *Dag) GetConfirmTime(seqId uint64) *types.ConfirmTime {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	return dag.getConfirmTime(seqId)
+}
+
+func (dag *Dag) getConfirmTime(seqId uint64) *types.ConfirmTime {
+	if seqId == 0 {
+		return nil
+	}
+	cf := dag.accessor.readConfirmTime(seqId)
+	if cf == nil {
+		log.Warn("ConfirmTime not found")
+	}
+	return cf
+}
+
 func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -486,10 +504,26 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
+	// TODO: confirm time is for tps calculation, delete later.
+	cf := types.ConfirmTime{
+		SeqId:       batch.Seq.Id,
+		TxNum:       uint64(txHashNum),
+		ConfirmTime: time.Now().Format(time.RFC3339Nano),
+	}
+	dag.writeConfirmTime(&cf)
+
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil
+}
+
+func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
+	return dag.accessor.writeConfirmTime(cf)
+}
+
+func (dag *Dag) ReadConfirmTime(seqId uint64) *types.ConfirmTime {
+	return dag.accessor.readConfirmTime(seqId)
 }
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes

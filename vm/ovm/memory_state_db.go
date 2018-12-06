@@ -12,6 +12,7 @@ import (
 
 type MemoryStateDB struct {
 	ledger map[types.Address]*vmtypes.StateObject
+	refund uint64
 }
 
 func (m *MemoryStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
@@ -95,15 +96,18 @@ func (m *MemoryStateDB) GetCodeSize(addr types.Address) int {
 }
 
 func (m *MemoryStateDB) AddRefund(v uint64) {
-	panic("implement me")
+	m.refund += v
 }
 
 func (m *MemoryStateDB) SubRefund(v uint64) {
-	panic("implement me")
+	if v > m.refund {
+		panic("Refund counter below zero")
+	}
+	m.refund -= v
 }
 
 func (m *MemoryStateDB) GetRefund() uint64 {
-	panic("implement me")
+	return m.refund
 }
 
 func (m *MemoryStateDB) GetCommittedState(addr types.Address, hash types.Hash) types.Hash {

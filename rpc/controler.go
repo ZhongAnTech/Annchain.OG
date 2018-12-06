@@ -240,17 +240,13 @@ type Tps struct {
 	Seconds     float64 `json:"duration"`
 }
 
-func (r*RpcController)Tps(c *gin.Context) {
-	cors(c)
+func (r*RpcController)getTps () (t*Tps , err error) {
 	var tps Tps
 	lseq := r.Og.Dag.LatestSequencer()
 	if lseq ==nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "not found",
-		})
+		return nil,  fmt.Errorf("not found")
 	}
 	if lseq.Id<3 {
-		c.JSON(http.StatusOK, tps)
 		return
 	}
 
@@ -258,28 +254,22 @@ func (r*RpcController)Tps(c *gin.Context) {
 	for id :=lseq.Id;id >0 && id >lseq.Id -5 ;id--{
 		cf :=  r.Og.Dag.GetConfirmTime(id)
 		if cf==nil  {
-			c.JSON(http.StatusOK, tps)
-			return
+			return nil, fmt.Errorf("db error")
 		}
 		cfs = append(cfs,*cf)
 	}
 	var start,end time.Time
-	var err error
 	for i,cf := range cfs {
 		if i==0 {
 			end,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
 			if err!=nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": err.Error(),
-				})
+				return  nil ,err
 			}
 		}
 		if i==len(cfs)-1 {
 			start,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
 			if err!=nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": err.Error(),
-				})
+				return  nil ,err
 			}
 		}else {
 			tps.TxCount += int(cf.TxNum)
@@ -287,11 +277,7 @@ func (r*RpcController)Tps(c *gin.Context) {
 	}
 
 	if !end.After(start) {
-		if err!=nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
-		}
+		return nil, fmt.Errorf("time server error")
 	}
 	sub := end.Sub(start)
 	sec:= sub.Seconds()
@@ -300,7 +286,17 @@ func (r*RpcController)Tps(c *gin.Context) {
 		tps.Num = int(num)
 	}
 	tps.Seconds = sec
-	c.JSON(http.StatusOK, tps)
+	return  tps ,nil
+}
+
+func (r*RpcController)Tps(c *gin.Context) {
+	cors(c)
+	t,err := r.getTps()
+	if err!=nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, t)
 	return
 }
 
@@ -562,6 +558,7 @@ type Monitor struct {
 	ShortId string `json:"short_id"`
 	Peers   []Peer `json:"peers,omitempty"`
 	SeqId   uint64 `json:"seq_id"`
+	Tps     *Tps   `json:"tps"`
 }
 
 type Peer struct {
@@ -595,7 +592,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	}
 	m.Port = viper.GetString("p2p.port")
 	m.ShortId = r.P2pServer.NodeInfo().ShortId
-
+	m.Tps,_  = r.getTps()
 	c.JSON(http.StatusOK, m)
 }
 

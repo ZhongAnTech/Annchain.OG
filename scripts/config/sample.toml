@@ -7,13 +7,13 @@ level = "debug"
 
 [rpc]
 enabled = true
-port = 8000
+port = 30000
 
 [p2p]
 enabled = true
 bootstrap_node = true
-port = 8001
-max_peers = 50
+port = 30001
+max_peers = 15
 network_id = 1
 enable_sync = true
 bootstrap_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@127.0.0.1:8001"
@@ -21,16 +21,16 @@ bootstrap_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c
 
 [websocket]
 enabled = true
-port = 8002
+port = 30002
 
 [profiling]
-port = 8003
+port = 30003
 
 [db]
 name = "leveldb"
 
 [leveldb]
-path = "datadir_1"
+path = "datadir"
 cache = 16
 handles = 16
 
@@ -53,7 +53,7 @@ timeout_latest_seq_ms = 10000
 [auto_client]
 # whether auto_tx will maintain its own nonce records.
 # false to query latest nonce every time.
-nonce_self_discipline = false
+nonce_self_discipline = true
 
 [auto_client.sequencer]
 enabled = true
@@ -70,42 +70,10 @@ node_id = 1
 
 [hub]
 sync_cycle_ms = 10000
+cukoo_filter = true
 
 [crypto]
-algorithm = "ed25519"
+algorithm = "secp256k1"
 
 [dag]
 consensus = "dpos"
-
-
-# samples below
-
-#[owner]
-#name = "Tom Preston-Werner"
-#dob = 1979-05-27T07:32:00-08:00 # First class dates
-#
-#[database]
-#server = "192.168.1.1"
-#ports = [ 8001, 8001, 8002 ]
-#connection_max = 5000
-#enabled = true
-#
-#[servers]
-#
-#  # Indentation (tabs and/or spaces) is allowed but not required
-#  [servers.alpha]
-#  ip = "10.0.0.1"
-#  dc = "eqdc10"
-#
-#  [servers.beta]
-#  ip = "10.0.0.2"
-#  dc = "eqdc10"
-#
-#[clients]
-#data = [ ["gamma", "delta"], [1, 2] ]
-#
-## Line breaks are OK when inside arrays
-#hosts = [
-#  "alpha",
-#  "omega"
-#]

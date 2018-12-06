@@ -5,32 +5,41 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/performance"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 )
 
 type RpcController struct {
-	P2pServer      *p2p.Server
-	Og             *og.Og
-	TxBuffer       *og.TxBuffer
-	TxCreator      *og.TxCreator
-	SyncerManager  *syncer.SyncManager
-	NewRequestChan chan types.TxBaseType
+	P2pServer          *p2p.Server
+	Og                 *og.Og
+	TxBuffer           *og.TxBuffer
+	TxCreator          *og.TxCreator
+	SyncerManager      *syncer.SyncManager
+	PerformanceMonitor *performance.PerformanceMonitor
+	AutoTxCli          AutoTxClient
+	NewRequestChan     chan types.TxBaseType
 }
 
 //NodeStatus
 type NodeStatus struct {
 	NodeInfo  *p2p.NodeInfo   `json:"node_info"`
 	PeersInfo []*p2p.PeerInfo `json:"peers_info"`
+}
+
+type AutoTxClient interface {
+	SetTxIntervalMs(i int)
 }
 
 //TxRequester
@@ -225,6 +234,73 @@ func (r *RpcController) Genesis(c *gin.Context) {
 	return
 }
 
+type Tps struct {
+	Num        int  `json:"num"`
+	TxCount     int `json:"tx_num"`
+	Seconds     float64 `json:"duration"`
+}
+
+func (r*RpcController)getTps () (t*Tps , err error) {
+	var tps Tps
+	lseq := r.Og.Dag.LatestSequencer()
+	if lseq ==nil {
+		return nil,  fmt.Errorf("not found")
+	}
+	if lseq.Id<3 {
+		return
+	}
+
+	var cfs []types.ConfirmTime
+	for id :=lseq.Id;id >0 && id >lseq.Id -5 ;id--{
+		cf :=  r.Og.Dag.GetConfirmTime(id)
+		if cf==nil  {
+			return nil, fmt.Errorf("db error")
+		}
+		cfs = append(cfs,*cf)
+	}
+	var start,end time.Time
+	for i,cf := range cfs {
+		if i==0 {
+			end,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
+			if err!=nil {
+				return  nil ,err
+			}
+		}
+		if i==len(cfs)-1 {
+			start,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
+			if err!=nil {
+				return  nil ,err
+			}
+		}else {
+			tps.TxCount += int(cf.TxNum)
+		}
+	}
+
+	if !end.After(start) {
+		return nil, fmt.Errorf("time server error")
+	}
+	sub := end.Sub(start)
+	sec:= sub.Seconds()
+	if sec !=0 {
+		num := float64(tps.TxCount)/sec
+		tps.Num = int(num)
+	}
+	tps.Seconds = sec
+	return  &tps ,nil
+}
+
+func (r*RpcController)Tps(c *gin.Context) {
+	cors(c)
+	t,err := r.getTps()
+	if err!=nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, t)
+	return
+}
+
+
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
 	var sq *types.Sequencer
@@ -359,7 +435,8 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	r.TxBuffer.AddLocalTx(tx)
+	<-ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
+
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
 		"hash": tx.GetTxHash().Hex(),
@@ -391,6 +468,23 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		"privkey": priv.String(),
 	})
 }
+
+func (r *RpcController) AutoTx(c *gin.Context) {
+	intervalStr := c.Query("interval_ms")
+	interval, err := strconv.Atoi(intervalStr)
+	if err != nil || interval < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "interval format err",
+		})
+		return
+	}
+	r.AutoTxCli.SetTxIntervalMs(interval)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "ok",
+	})
+	return
+}
+
 func (r *RpcController) QueryNonce(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)
@@ -458,6 +552,48 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
+}
+type Monitor struct {
+	Port    string `json:"port"`
+	ShortId string `json:"short_id"`
+	Peers   []Peer `json:"peers,omitempty"`
+	SeqId   uint64 `json:"seq_id"`
+	Tps     *Tps   `json:"tps"`
+}
+
+type Peer struct {
+	Addr    string `json:"addr"`
+	ShortId string `json:"short_id"`
+}
+
+func (r *RpcController) Monitor(c *gin.Context) {
+	var m Monitor
+	seq := r.Og.Dag.LatestSequencer()
+	if seq != nil {
+		m.SeqId = seq.Id
+	}
+	peersinfo := r.P2pServer.PeersInfo()
+	for _, p := range peersinfo {
+		/*
+			if p.Network.Inbound {
+				addr = p.Network.LocalAddress
+			}else {
+				addr = p.Network.RemoteAddress
+			}
+				ipPort :=strings.Split(addr,":")
+				if len(ipPort) ==2 {
+					m.Peers = append(m.Peers ,ipPort[1])
+				}
+		*/
+		var peer Peer
+		peer.Addr = p.Network.RemoteAddress
+		peer.ShortId = p.ShortId
+		m.Peers = append(m.Peers, peer)
+	}
+	m.Port = viper.GetString("p2p.port")
+	m.ShortId = r.P2pServer.NodeInfo().ShortId
+	m.Tps,_  = r.getTps()
+	c.JSON(http.StatusOK, m)
 }
 
 func (r *RpcController) Debug(c *gin.Context) {

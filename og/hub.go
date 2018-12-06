@@ -22,7 +22,8 @@ const (
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
-	txChanSize = 4096
+	txChanSize          = 4096
+	DuplicateMsgPeerNum = 5
 )
 
 var errIncompatibleConfig = errors.New("incompatible configuration")
@@ -56,6 +57,10 @@ type Hub struct {
 	OnNewPeerConnected []chan string
 	Downloader         *downloader.Downloader
 	Fetcher            *fetcher.Fetcher
+
+	WithCukooFilter bool
+
+	NodeInfo func() *p2p.NodeInfo
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -81,6 +86,7 @@ type HubConfig struct {
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
+	WithCukooFilter               bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -90,6 +96,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
+		WithCukooFilter:               true,
 	}
 	return config
 }
@@ -107,6 +114,7 @@ func (h *Hub) Init(config *HubConfig, dag IDag, txPool ITxPool) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 	h.CallbackRegistryOG32 = make(map[MessageType]func(*P2PMessage))
+	h.WithCukooFilter = config.WithCukooFilter
 }
 
 func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
@@ -138,7 +146,7 @@ func NewHub(config *HubConfig, dag IDag, txPool ITxPool) *Hub {
 				}
 			},
 			NodeInfo: func() interface{} {
-				return h.NodeInfo()
+				return h.NodeStatus()
 			},
 			PeerInfo: func(id discover.NodeID) interface{} {
 				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
@@ -222,7 +230,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	defer msg.Discard()
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
-	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), Message: data, SourceID: p.id, Version: p.version}
+	p2pMsg := P2PMessage{MessageType: MessageType(msg.Code), data: data, SourceID: p.id, Version: p.version}
 	//log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
 	switch {
 	case p2pMsg.MessageType == StatusMsg:
@@ -232,10 +240,15 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
 	default:
-		p2pMsg.init()
-		if p2pMsg.needCheckRepeat {
-			p.MarkMessage(p2pMsg.hash)
+		duplicate, err := h.checkMsg(&p2pMsg)
+		if duplicate {
+			return nil
 		}
+		if err != nil {
+			log.WithField("type ", p2pMsg.MessageType).WithError(err).Warn("handle msg error")
+			return err
+		}
+		p.MarkMessage(p2pMsg.hash)
 		h.incoming <- &p2pMsg
 		return nil
 	}
@@ -310,10 +323,16 @@ func (h *Hub) loopSend() {
 		select {
 		case m := <-h.outgoing:
 			// start a new routine in order not to block other communications
-			if m.BroadCastToRandom {
-				go h.broadcastMessageToRandom(m)
-			} else {
+			switch m.sendingType {
+			case sendingTypeBroacast:
 				go h.broadcastMessage(m)
+			case sendingTypeMulticast:
+				go h.multicastMessage(m)
+			case sendingTypeMulticastToSource:
+				h.multicastMessageToSource(m)
+			default:
+				log.WithField("type ", m.sendingType).Error("unknown sending  type")
+				panic(m)
 			}
 		case <-h.quit:
 			log.Info("Hub-loopSend received quit message. Quitting...")
@@ -326,14 +345,6 @@ func (h *Hub) loopReceive() {
 	for {
 		select {
 		case m := <-h.incoming:
-			// check duplicates
-			if _, err := h.messageCache.GetIFPresent(m.hash); err == nil {
-				// already there
-				msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("type", m.MessageType.String()).
-					Trace("we have a duplicate message. Discard")
-				continue
-			}
-			h.messageCache.Set(m.hash, nil)
 			// start a new routine in order not to block other communications
 			go h.receiveMessage(m)
 		case <-h.quit:
@@ -343,18 +354,38 @@ func (h *Hub) loopReceive() {
 	}
 }
 
-func (h *Hub) BroadcastMessage(messageType MessageType, msg []byte) {
-	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
-	msgOut.init()
-	msgLog.WithField("type", messageType).Trace("broadcast message")
+//MulticastToSource  multicast msg to source , for example , send tx request to the peer which hash the tx
+func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sourceMsgHash *types.Hash) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeMulticastToSource, SourceHash: sourceMsgHash}
+	_, err := h.checkMsg(msgOut)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		return
+	}
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Trace("multicast msg to source")
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) BroadcastMessageToRandom(messageType MessageType, msg []byte) {
-	msgOut := &P2PMessage{MessageType: messageType, Message: msg}
-	msgOut.init()
-	msgOut.BroadCastToRandom = true
-	msgLog.WithField("type", messageType).Trace("unicast message")
+//BroadcastMessage broadcast to whole network
+func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeBroacast}
+	_, err := h.checkMsg(msgOut)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		return
+	}
+	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Trace("broadcast message")
+	h.outgoing <- msgOut
+}
+
+//MulticastMessage multicast message to some peer
+func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
+	msgOut := &P2PMessage{MessageType: messageType, Message: msg, sendingType: sendingTypeMulticast}
+	_, err := h.checkMsg(msgOut)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+	}
+	msgLog.WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("multicast message")
 	h.outgoing <- msgOut
 }
 
@@ -370,7 +401,7 @@ func (h *Hub) SendBytesToPeer(peerId string, messageType MessageType, msg []byte
 	if p == nil {
 		return fmt.Errorf("peer not found")
 	}
-	return p.sendRawMessage(uint64(messageType), msg)
+	return p.sendRawMessage(messageType, msg)
 }
 
 // SetPeerHead is just a hack to set the latest seq number known of the peer
@@ -416,14 +447,40 @@ func (h *Hub) BestPeerId() (peerId string, err error) {
 	return
 }
 
+func (h *Hub) checkMsg(m *P2PMessage) (duplicate bool, err error) {
+
+	//for incoming msg
+	if m.SourceID != "" {
+		err := m.GetMessage()
+		if err != nil {
+			return false, err
+		}
+		_, err = m.Message.UnmarshalMsg(m.data)
+		if err != nil {
+			return false, err
+		}
+		m.calculateHash()
+		if h.cacheMessage(m) {
+			return true, nil
+		}
+
+	} else {
+		//outgoing msg
+		data, err := m.Message.MarshalMsg(nil)
+		if err != nil {
+			return false, err
+		}
+		m.data = data
+		m.calculateHash()
+	}
+	return false, nil
+}
+
+//broadcastMessage
 func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
-	if msg.needCheckRepeat {
-		peers = h.peers.PeersWithoutMsg(msg.hash)
-	} else {
-		peers = h.peers.Peers()
-	}
+	peers = h.peers.PeersWithoutMsg(msg.hash)
 	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)
 	}
@@ -431,15 +488,74 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 	// DUMMY: Send to me
 	// h.incoming <- msg
 }
-func (h *Hub) broadcastMessageToRandom(msg *P2PMessage) {
+
+//multicastMessage
+func (h *Hub) multicastMessage(msg *P2PMessage) error {
 	peers := h.peers.GetRandomPeers(2)
 	// choose random peer and then send.
 	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)
 	}
-	return
+	return nil
 	// DUMMY: Send to me
 	// h.incoming <- msg
+}
+
+//multicastMessageToSource
+func (h *Hub) multicastMessageToSource(msg *P2PMessage) error {
+	if msg.SourceHash == nil {
+		msgLog.Warn("source msg hash is nil , multuicast to random ")
+		return h.multicastMessage(msg)
+	}
+	ids := h.getMsgFromCache(*msg.SourceHash)
+	//send to 2 peer , considering if one peer disconnect,
+	peers := h.peers.GetPeers(ids, 2)
+	if len(peers) == 0 {
+		msgLog.WithField("type ", msg.MessageType).WithField("peeers id ", ids).Warn("not found source peers, multicast to random")
+		return h.multicastMessage(msg)
+	}
+	// choose random peer and then send.
+	for _, peer := range peers {
+		if peer == nil {
+			continue
+		}
+		peer.AsyncSendMessage(msg)
+	}
+	return nil
+	// DUMMY: Send to me
+	// h.incoming <- msg
+}
+
+//cacheMessge save msg to cache
+func (h *Hub) cacheMessage(m *P2PMessage) (exists bool) {
+	var peers []string
+	if a, err := h.messageCache.GetIFPresent(m.hash); err == nil {
+		// already there
+		exists = true
+		//var peers []string
+		peers = a.([]string)
+		msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("peers", peers).WithField("type", m.MessageType.String()).
+			Trace("we have a duplicate message. Discard")
+		if len(peers) == 0 {
+			msgLog.Error("peers is nil")
+		} else if len(peers) >= DuplicateMsgPeerNum {
+			return
+		}
+	}
+	peers = append(peers, m.SourceID)
+	h.messageCache.Set(m.hash, peers)
+	return exists
+}
+
+//getMsgFromCache
+func (h *Hub) getMsgFromCache(hash types.Hash) []string {
+	if a, err := h.messageCache.GetIFPresent(hash); err == nil {
+		var peers []string
+		peers = a.([]string)
+		msgLog.WithField("peers ", peers).Trace("get peers from cache ")
+		return peers
+	}
+	return nil
 }
 
 func (h *Hub) receiveMessage(msg *P2PMessage) {
@@ -452,7 +568,8 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 		}
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		//msgLog.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
+		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
+			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Trace("received a message")
 		v(msg)
 	} else {
 		msgLog.WithField("from", msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")
@@ -474,7 +591,7 @@ func (h *Hub) PeersInfo() []*PeerInfo {
 
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
-type NodeInfo struct {
+type NodeStatus struct {
 	Network    uint64     `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
 	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
 	Genesis    types.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
@@ -482,9 +599,9 @@ type NodeInfo struct {
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
-func (h *Hub) NodeInfo() *NodeInfo {
+func (h *Hub) NodeStatus() *NodeStatus {
 	statusData := h.StatusDataProvider.GetCurrentNodeStatus()
-	return &NodeInfo{
+	return &NodeStatus{
 		Network: statusData.NetworkId,
 		Genesis: statusData.GenesisBlock,
 		Head:    statusData.CurrentBlock,

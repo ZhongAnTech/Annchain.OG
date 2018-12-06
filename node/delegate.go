@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -20,10 +21,11 @@ type TxRequest struct {
 }
 
 type Delegate struct {
-	TxCreator *og.TxCreator
-	TxBuffer  *og.TxBuffer
-	TxPool    *core.TxPool
-	Dag       *core.Dag
+	TxCreator         *og.TxCreator
+	TxBuffer          *og.TxBuffer
+	TxPool            *core.TxPool
+	Dag               *core.Dag
+	OnNewTxiGenerated []chan types.Txi
 }
 
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
@@ -79,5 +81,7 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	c.TxBuffer.AddLocalTx(txi)
+	for i, ch := range c.OnNewTxiGenerated {
+		<-ffchan.NewTimeoutSenderShort(ch, txi, fmt.Sprintf("OnNewTxiGenerated_%d", i)).C
+	}
 }

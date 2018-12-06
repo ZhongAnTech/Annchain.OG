@@ -5,7 +5,7 @@ import time
 
 import requests
 
-import hosts
+from common import hosts
 
 LOCAL_ROOT_FOLDER = '/ws/go/src/github.com/annchain/OG/build/'
 REMOTE_ROOT_FOLDER = '/home/admin/sync/'

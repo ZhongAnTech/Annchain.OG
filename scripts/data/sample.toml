@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "info"
+level = "debug"
 
 [rpc]
 enabled = true
@@ -13,11 +13,11 @@ port = 30000
 enabled = true
 bootstrap_node = true
 port = 30001
-max_peers = 3
+max_peers = 15
 network_id = 1
 enable_sync = true
-bootstrap_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@192.168.45.163:30001"
-#node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
+bootstrap_nodes = "enode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@127.0.0.1:8001"
+# node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
 
 [websocket]
 enabled = true
@@ -30,9 +30,14 @@ port = 30003
 name = "leveldb"
 
 [leveldb]
-path = "data/datadir"
+path = "datadir"
 cache = 16
 handles = 16
+
+[statedb]
+flush_timer_s = 5
+purge_timer_s = 10
+beat_expire_time_s = 300
 
 [txpool]
 queue_size = 100
@@ -40,6 +45,10 @@ tips_size = 1000
 reset_duration = 10
 tx_verify_time = 2
 tx_valid_time = 100
+timeout_pool_queue_ms = 10000
+timeout_subscriber_ms = 10000
+timeout_confirmation_ms = 10000
+timeout_latest_seq_ms = 10000
 
 [auto_client]
 # whether auto_tx will maintain its own nonce records.
@@ -52,8 +61,8 @@ interval_ms = 5000
 
 [auto_client.tx]
 enabled = true
-interval_ms = 5000
-account_ids = [0,1,3]
+interval_ms = 500
+account_ids = [0,1]
 interval_mode = "random"
 
 [debug]
@@ -63,9 +72,7 @@ node_id = 1
 sync_cycle_ms = 10000
 
 [crypto]
-algorithm = "secp256k1"
-
-consensus = "dpos"
+algorithm = "ed25519"
 
 [dag]
-
+consensus = "dpos"

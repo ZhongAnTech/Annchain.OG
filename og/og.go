@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -24,8 +25,8 @@ type Og struct {
 
 	BootstrapNode bool
 	NetworkId     uint64
-
-	quit chan bool
+	CryptoType    crypto.CryptoType
+	quit          chan bool
 }
 
 func (og *Og) GetCurrentNodeStatus() StatusData {
@@ -59,6 +60,7 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
+	og.CryptoType = config.CryptoType
 	db, derr := CreateDB()
 	if derr != nil {
 		return nil, derr
@@ -177,10 +179,9 @@ func (og *Og) BrodcastLatestSequencer() {
 		case <-og.NewLatestSequencerCh:
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
-			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
-			data, _ := msgTx.MarshalMsg(nil)
+			msg := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
 			// latest sequencer updated , broadcast it
-			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, data)
+			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 		case <-og.quit:
 			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
 			return

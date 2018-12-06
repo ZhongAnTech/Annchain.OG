@@ -2,6 +2,7 @@ import datetime
 import json
 import multiprocessing
 import time
+import traceback
 
 import pandas as pd
 import requests
@@ -16,9 +17,10 @@ total = 20
 s = requests.Session()
 s.trust_env = False
 
-
 id_host_map = {}
 host_id_map = {}
+
+tps = {}  # host ->{}
 
 
 def host_to_show(ip):
@@ -37,7 +39,7 @@ def myid(host):
         j = json.loads(resp.text)
         return j['short_id']
     except Exception as e:
-        raise e
+        return None
 
 
 def doone(host):
@@ -48,6 +50,7 @@ def doone(host):
             j = json.loads(resp.text)
             d['seq'] = j['Id']
         except Exception as e:
+            print(e)
             return None
             # d['seq'] = -1
 
@@ -59,6 +62,7 @@ def doone(host):
                 peers.append(peer['short_id'])
                 d['peers'] = peers
         except Exception as e:
+            print(e)
             return None
 
         try:
@@ -69,6 +73,15 @@ def doone(host):
             d['syncMode'] = d['syncMode'].strip()[10:][0:4]
             d['catchupSyncerStatus'] = d['catchupSyncerStatus'].strip()[3:]
         except Exception as e:
+            print(e)
+            return None
+
+        try:
+            resp = s.get('http://%s/performance' % host, timeout=5)
+            j = json.loads(resp.text)
+            d.update(j['TxCounter'])
+        except Exception as e:
+            traceback.print_exc()
             return None
 
         return host, d
@@ -77,15 +90,18 @@ def doone(host):
     except Exception as e:
         return None
 
+
 def doround(hosts, pool):
     r = {}
     ever = False
     for host in hosts:
         if host not in host_id_map:
+            print('Resolving', host)
             id = myid(host)
             if id is not None:
                 host_id_map[host] = id
                 id_host_map[id] = host
+    # print('Collecting')
 
     for c in pool.imap(doone, hosts):
         if c is None:
@@ -94,11 +110,29 @@ def doround(hosts, pool):
         if d is not None:
             d['bestPeer'] = id_to_show(d['bestPeer'])
             ippeers = []
-            for peer in d['peers']:
-                ippeers.append(id_to_show(peer))
+            if 'peers' in peer:
+                for peer in d['peers']:
+                    ippeers.append(id_to_show(peer))
             d['peers'] = ippeers
             d['peers'] = len(ippeers)
             d['id'] = d['id'][0:4]
+
+            if host in tps:
+                # there is results
+                v = tps[host]
+
+                d['tpsReceived'] = (d['txReceived'] + d['sequencerReceived'] - v['v_rcv']) / (time.time() - v['t'])
+                d['tpsGenerated'] = (d['txGenerated'] + d['sequencerGenerated'] - v['v_gen']) / (time.time() - v['t'])
+                d['tpsConfirmed'] = (d['txConfirmed'] + d['sequencerConfirmed'] - v['v_cfm']) / (time.time() - v['t'])
+
+                d['tpsReceivedFB'] = (d['txReceived'] + d['sequencerReceived']) / (time.time() - d['startupTime'])
+                d['tpsGeneratedFB'] = (d['txGenerated'] + d['sequencerGenerated']) / (time.time() - d['startupTime'])
+                d['tpsConfirmedFB'] = (d['txConfirmed'] + d['sequencerConfirmed']) / (time.time() - d['startupTime'])
+
+            tps[host] = {'t': time.time(),
+                         'v_rcv': d['txReceived'] + d['sequencerReceived'],
+                         'v_gen': d['txGenerated'] + d['sequencerGenerated'],
+                         'v_cfm': d['txConfirmed'] + d['sequencerConfirmed']}
 
             r[host_to_show(host)] = d
             ever = True
@@ -116,7 +150,7 @@ def hosts(fname):
 
 if __name__ == '__main__':
     # hosts = ['127.0.0.1:%d' % (8000 + i*100) for i in range(total)]
-    host_ips = hosts('hosts')
+    host_ips = hosts('data/hosts')
     host_ipports = ['%s:30000' % (x) for x in host_ips]
     pool = multiprocessing.Pool(processes=20)
 
@@ -131,7 +165,8 @@ if __name__ == '__main__':
                 time.sleep(1)
             except KeyboardInterrupt as e:
                 raise e
-            except:
+            except Exception as e:
+                print(e)
                 pass
             finally:
                 time.sleep(1)

@@ -1,12 +1,12 @@
 package account
 
 import (
-	"testing"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/common/crypto"
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	"testing"
 )
 
 func TestSignature(t *testing.T) {

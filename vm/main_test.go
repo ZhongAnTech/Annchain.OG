@@ -23,16 +23,18 @@ func ExampleExecute() {
 	}
 	coinBase := types.HexToAddress("0x03")
 
-	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase)
+
 	db := ovm.NewMemoryStateDB()
 	db.CreateAccount(txContext.From)
 	db.AddBalance(txContext.From, big.NewInt(100000))
 	db.CreateAccount(coinBase)
 	db.AddBalance(coinBase, big.NewInt(100000))
 
+	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, db)
+
 	evmInterpreter := vm.NewEVMInterpreter(&context, &vm.InterpreterConfig{})
 
-	ovm := ovm.NewOVM(context, db, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
+	ovm := ovm.NewOVM(context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
 
 	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)

@@ -90,7 +90,7 @@ type OVM struct {
 
 // NewOVM returns a new OVM. The returned OVM is not thread safe and should
 // only ever be used *once*.
-func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []Interpreter, ovmConfig *OVMConfig) *OVM {
+func NewOVM(ctx vmtypes.Context, supportInterpreters []Interpreter, ovmConfig *OVMConfig) *OVM {
 	evm := &OVM{
 		Context:    ctx,
 		OVMConfigs: ovmConfig,
@@ -103,7 +103,7 @@ func NewOVM(ctx vmtypes.Context, statedb vmtypes.StateDB, supportInterpreters []
 	}
 	evm.Interpreter = evm.Interpreters[0]
 
-	evm.StateDB = statedb
+	evm.StateDB = ctx.StateDB
 
 	return evm
 }

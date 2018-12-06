@@ -9,6 +9,7 @@ import (
 	"strings"
 	"github.com/pkg/errors"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
 )
 
 var MAX_LAYER = 1024
@@ -187,6 +188,7 @@ func (l *LayerStateDB) GetCode(addr types.Address) []byte {
 func (l *LayerStateDB) SetCode(addr types.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
+		so.CodeHash = crypto.Keccak256Hash(code)
 		l.SetStateObject(addr, so)
 	} else {
 		if FAST_FAIL {

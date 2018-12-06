@@ -17,11 +17,18 @@ type Monitor struct {
 	ShortId string `json:"short_id"`
 	Err     error
 	Id      int
+	Tps     *Tps `json:"tps"`
 }
 
 type Peer struct {
 	Addr    string `json:"addr"`
 	ShortId string `json:"short_id"`
+}
+
+type Tps struct {
+	Num        int  `json:"num"`
+	TxCount     int `json:"tx_num"`
+	Seconds     float64 `json:"duration"`
 }
 
 type Statistics struct {
@@ -30,7 +37,7 @@ type Statistics struct {
 
 var fistPort = 11300
 var peerNum = 40
-var ipsNum = 20
+var ipsNum = 10
 
 func main() {
 	ips := GetIps()

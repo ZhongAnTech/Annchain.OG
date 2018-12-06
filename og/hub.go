@@ -3,6 +3,8 @@ package og
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -53,10 +55,8 @@ type Hub struct {
 
 	// new peer event
 	OnNewPeerConnected []chan string
-	//Downloader         *downloader.Downloader
-	//Fetcher            *fetcher.Fetcher
-
-	WithFilter bool
+	Downloader         *downloader.Downloader
+	Fetcher            *fetcher.Fetcher
 
 	NodeInfo func() *p2p.NodeInfo
 }
@@ -84,7 +84,6 @@ type HubConfig struct {
 	MessageCacheMaxSize           int
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
-	WithFilter                    bool
 }
 
 func DefaultHubConfig() HubConfig {
@@ -94,7 +93,6 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
-		WithFilter:                    true,
 	}
 	return config
 }
@@ -112,7 +110,6 @@ func (h *Hub) Init(config *HubConfig) {
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*P2PMessage))
 	h.CallbackRegistryOG32 = make(map[MessageType]func(*P2PMessage))
-	h.WithFilter = config.WithFilter
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -196,11 +193,11 @@ func (h *Hub) handle(p *peer) error {
 
 	defer h.RemovePeer(p.id)
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-	//if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
-	//	return err
-	//}
+	if err := h.Downloader.RegisterPeer(p.id, p.version, p); err != nil {
+		return err
+	}
 	//announce new peer
-	//h.newPeerCh <- p
+	h.newPeerCh <- p
 	// main loop. handle incoming messages.
 	for {
 		if err := h.handleMsg(p); err != nil {
@@ -279,7 +276,7 @@ func (h *Hub) RemovePeer(id string) {
 	log.WithField("peer", id).Debug("Removing og peer")
 
 	// Unregister the peer from the downloader (should already done) and OG peer set
-	//h.Downloader.UnregisterPeer(id)
+	h.Downloader.UnregisterPeer(id)
 	if err := h.peers.Unregister(id); err != nil {
 		log.WithField("peer", "id").WithError(err).
 			Error("Peer removal failed")
@@ -291,16 +288,16 @@ func (h *Hub) RemovePeer(id string) {
 }
 
 func (h *Hub) Start() {
-	//h.Fetcher.Start()
+	h.Fetcher.Start()
 	go h.loopSend()
 	go h.loopReceive()
-	//go h.loopNotify()
+	go h.loopNotify()
 }
 
 func (h *Hub) Stop() {
 	// Quit the sync loop.
 	// After this send has completed, no new peers will be accepted.
-	//h.noMorePeers <- struct{}{}
+	h.noMorePeers <- struct{}{}
 	log.Info("quit notifying")
 	close(h.quitSync)
 	log.Info("quit notified")
@@ -308,7 +305,7 @@ func (h *Hub) Stop() {
 	log.Info("peers closing")
 	h.wg.Wait()
 	log.Info("peers closed")
-	//h.Fetcher.Stop()
+	h.Fetcher.Stop()
 	log.Info("fetcher stopped")
 	log.Info("hub stopped")
 }
@@ -344,18 +341,10 @@ func (h *Hub) loopSend() {
 			case sendingTypeMulticastToSource:
 				h.multicastMessageToSource(m)
 			case sendingTypeBroacastWithFilter:
-				if h.WithFilter {
-					go h.broadcastMessageWithFilter(m)
-				} else {
-					h.broadcastMessage(m)
-				}
+				go h.broadcastMessage(m)
 			case sendingTypeBroacastWithLink:
-				if h.WithFilter {
-					go h.broadcastMessageWithLink(m)
-				} else {
-					//go h.broadcastMessage(m)
-					go h.broadcastMessageWithLink(m)
-				}
+				go h.broadcastMessageWithLink(m)
+
 			default:
 				log.WithField("type ", m.sendingType).Error("unknown sending  type")
 				panic(m)
@@ -535,8 +524,6 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 		peer.AsyncSendMessage(msg)
 	}
 	return
-	// DUMMY: Send to me
-	// h.incoming <- msg
 }
 
 func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
@@ -558,6 +545,7 @@ func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
 	return
 }
 
+/*
 func (h *Hub) broadcastMessageWithFilter(msg *P2PMessage) {
 	newSeq := msg.Message.(*types.MessageNewSequencer)
 	if newSeq.Filter == nil {
@@ -590,6 +578,8 @@ func (h *Hub) broadcastMessageWithFilter(msg *P2PMessage) {
 	}
 }
 
+*/
+
 //multicastMessage
 func (h *Hub) multicastMessage(msg *P2PMessage) error {
 	peers := h.peers.GetRandomPeers(2)
@@ -598,8 +588,6 @@ func (h *Hub) multicastMessage(msg *P2PMessage) error {
 		peer.AsyncSendMessage(msg)
 	}
 	return nil
-	// DUMMY: Send to me
-	// h.incoming <- msg
 }
 
 //multicastMessageToSource
@@ -624,8 +612,6 @@ func (h *Hub) multicastMessageToSource(msg *P2PMessage) error {
 		peer.AsyncSendMessage(msg)
 	}
 	return nil
-	// DUMMY: Send to me
-	// h.incoming <- msg
 }
 
 //cacheMessge save msg to cache

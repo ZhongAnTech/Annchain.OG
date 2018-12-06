@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ffchan"
@@ -229,6 +230,76 @@ func (r *RpcController) Genesis(c *gin.Context) {
 			"error": "not found",
 		})
 	}
+	return
+}
+
+type Tps struct {
+	Num        int  `json:"num"`
+	TxCount     int `json:"tx_num"`
+	Seconds     float64 `json:"duration"`
+}
+
+func (r*RpcController)Tps(c *gin.Context) {
+	cors(c)
+	var tps Tps
+	lseq := r.Og.Dag.LatestSequencer()
+	if lseq ==nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "not found",
+		})
+	}
+	if lseq.Id<3 {
+		c.JSON(http.StatusOK, tps)
+		return
+	}
+
+	var cfs []types.ConfirmTime
+	for id :=lseq.Id;id >0 && id >lseq.Id -5 ;id--{
+            cf :=  r.Og.Dag.GetConfirmTime(id)
+            if cf==nil  {
+				c.JSON(http.StatusOK, tps)
+				return
+			}
+            cfs = append(cfs,*cf)
+	}
+	var start,end time.Time
+	var err error
+	for i,cf := range cfs {
+		if i==0 {
+			end,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
+			if err!=nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+			}
+		}
+		if i==len(cfs)-1 {
+			start,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
+			if err!=nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+			}
+		}else {
+			tps.TxCount += int(cf.TxNum)
+		}
+	}
+
+		if !end.After(start) {
+			if err!=nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+			}
+		}
+		sub := end.Sub(start)
+		sec:= sub.Seconds()
+		if sec !=0 {
+			num := float64(tps.TxCount)/sec
+			tps.Num = int(num)
+		}
+		tps.Seconds = sec
+	c.JSON(http.StatusOK, tps)
 	return
 }
 

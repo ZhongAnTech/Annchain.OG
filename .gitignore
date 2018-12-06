@@ -22,3 +22,5 @@ config_*.toml
 datadir_*
 /dump_*
 db_*/
+common/crypto/debug.test
+core/debug.test

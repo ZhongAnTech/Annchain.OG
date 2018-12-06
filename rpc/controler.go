@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 	"strings"
@@ -239,69 +240,66 @@ type Tps struct {
 	Seconds     float64 `json:"duration"`
 }
 
-func (r*RpcController)Tps(c *gin.Context) {
-	cors(c)
+func (r*RpcController)getTps () (t*Tps , err error) {
 	var tps Tps
 	lseq := r.Og.Dag.LatestSequencer()
 	if lseq ==nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "not found",
-		})
+		return nil,  fmt.Errorf("not found")
 	}
 	if lseq.Id<3 {
-		c.JSON(http.StatusOK, tps)
 		return
 	}
 
 	var cfs []types.ConfirmTime
 	for id :=lseq.Id;id >0 && id >lseq.Id -5 ;id--{
-            cf :=  r.Og.Dag.GetConfirmTime(id)
-            if cf==nil  {
-				c.JSON(http.StatusOK, tps)
-				return
-			}
-            cfs = append(cfs,*cf)
+		cf :=  r.Og.Dag.GetConfirmTime(id)
+		if cf==nil  {
+			return nil, fmt.Errorf("db error")
+		}
+		cfs = append(cfs,*cf)
 	}
 	var start,end time.Time
-	var err error
 	for i,cf := range cfs {
 		if i==0 {
 			end,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
 			if err!=nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": err.Error(),
-				})
+				return  nil ,err
 			}
 		}
 		if i==len(cfs)-1 {
 			start,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
 			if err!=nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": err.Error(),
-				})
+				return  nil ,err
 			}
 		}else {
 			tps.TxCount += int(cf.TxNum)
 		}
 	}
 
-		if !end.After(start) {
-			if err!=nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": err.Error(),
-				})
-			}
-		}
-		sub := end.Sub(start)
-		sec:= sub.Seconds()
-		if sec !=0 {
-			num := float64(tps.TxCount)/sec
-			tps.Num = int(num)
-		}
-		tps.Seconds = sec
-	c.JSON(http.StatusOK, tps)
+	if !end.After(start) {
+		return nil, fmt.Errorf("time server error")
+	}
+	sub := end.Sub(start)
+	sec:= sub.Seconds()
+	if sec !=0 {
+		num := float64(tps.TxCount)/sec
+		tps.Num = int(num)
+	}
+	tps.Seconds = sec
+	return  tps ,nil
+}
+
+func (r*RpcController)Tps(c *gin.Context) {
+	cors(c)
+	t,err := r.getTps()
+	if err!=nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, t)
 	return
 }
+
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
@@ -554,6 +552,48 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
+}
+type Monitor struct {
+	Port    string `json:"port"`
+	ShortId string `json:"short_id"`
+	Peers   []Peer `json:"peers,omitempty"`
+	SeqId   uint64 `json:"seq_id"`
+	Tps     *Tps   `json:"tps"`
+}
+
+type Peer struct {
+	Addr    string `json:"addr"`
+	ShortId string `json:"short_id"`
+}
+
+func (r *RpcController) Monitor(c *gin.Context) {
+	var m Monitor
+	seq := r.Og.Dag.LatestSequencer()
+	if seq != nil {
+		m.SeqId = seq.Id
+	}
+	peersinfo := r.P2pServer.PeersInfo()
+	for _, p := range peersinfo {
+		/*
+			if p.Network.Inbound {
+				addr = p.Network.LocalAddress
+			}else {
+				addr = p.Network.RemoteAddress
+			}
+				ipPort :=strings.Split(addr,":")
+				if len(ipPort) ==2 {
+					m.Peers = append(m.Peers ,ipPort[1])
+				}
+		*/
+		var peer Peer
+		peer.Addr = p.Network.RemoteAddress
+		peer.ShortId = p.ShortId
+		m.Peers = append(m.Peers, peer)
+	}
+	m.Port = viper.GetString("p2p.port")
+	m.ShortId = r.P2pServer.NodeInfo().ShortId
+	m.Tps,_  = r.getTps()
+	c.JSON(http.StatusOK, m)
 }
 
 func (r *RpcController) Debug(c *gin.Context) {

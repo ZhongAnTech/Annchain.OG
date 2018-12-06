@@ -178,3 +178,7 @@ func (m *MessageRouter) MulticastMessage(messageType MessageType, message types.
 func (m *MessageRouter) MulticastToSource(messageType MessageType, message types.Message, sourceMsgHash *types.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
+
+func (m*MessageRouter)BroadcastMessageWithLink(messageType MessageType, message types.Message) {
+	m.Hub.BroadcastMessageWithLink(messageType, message)
+}

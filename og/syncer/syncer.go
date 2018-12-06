@@ -14,6 +14,7 @@ type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
 	MulticastMessage(messageType og.MessageType, message types.Message)
 	MulticastToSource(messageType og.MessageType, message types.Message, sourceMsgHash *types.Hash)
+	BroadcastMessageWithLink(messageType og.MessageType, message types.Message)
 }
 
 type FireHistory struct {
@@ -271,7 +272,7 @@ func (m *IncrementalSyncer) sendBloomFilter(buffer map[types.Hash]struct{}) {
 	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, sourceHash)
 }
 
-func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
+func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string) {
 	tx := newTx.RawTx.Tx()
 	if tx == nil {
 		logrus.Debug("empty MessageNewTx")
@@ -295,7 +296,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
 	m.notifyNewTxi(tx)
 }
 
-func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
+func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId string) {
 	txs := types.RawTxsToTxs(newTxs.RawTxs)
 	if txs == nil {
 		logrus.Debug("Empty MessageNewTx")
@@ -324,7 +325,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
 	}
 }
 
-func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
+func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer, peerId string) {
 	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
 		logrus.Debug("empty NewSequence")

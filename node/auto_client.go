@@ -2,8 +2,6 @@ package node
 
 import (
 	"fmt"
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og"
 	"math/rand"
 	"sync"
 	"time"
@@ -31,8 +29,6 @@ type AutoClient struct {
 	AutoTxEnabled        bool
 
 	Delegate *Delegate
-	Dag      *core.Dag
-	Hub      *og.Hub
 
 	ManualChan chan types.TxBaseType
 	quit       chan bool
@@ -142,13 +138,9 @@ func (c *AutoClient) Resume() {
 	c.pause = false
 }
 
-var nonce uint64
-
 func (c *AutoClient) judgeNonce() uint64 {
 	c.nonceLock.Lock()
 	defer c.nonceLock.Unlock()
-	nonce++
-	return nonce
 
 	var n uint64
 	me := c.SampleAccounts[c.MyAccountIndex]
@@ -214,11 +206,6 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Info("Generated seq")
-	sequencer := seq.(*types.Sequencer)
-	c.Dag.Accessor().WriteTransaction(nil, sequencer)
-	c.Dag.Accessor().WriteSequencerById(sequencer)
-	c.Dag.Accessor().WriteLatestSequencer(sequencer)
-	c.Dag.SetLatest(sequencer)
-	c.Hub.BroadcastMessageWithLink(og.MessageTypeNewSequencer, &types.MessageNewSequencer{sequencer.RawSequencer(), nil, 0})
+	c.Delegate.Announce(seq)
 	return true
 }

@@ -1,8 +1,12 @@
 package og
 
 import (
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/ffchan"
+	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
 	"sync"
+	"time"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
@@ -10,7 +14,6 @@ type IncomingMessageHandler struct {
 	Og           *Og
 	Hub          *Hub
 	requestCache *Cache
-	mu           sync.RWMutex
 }
 
 //msg request cache ,don't send duplicate message
@@ -29,8 +32,6 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 		},
 	}
 }
-
-/*
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
 	var txs []*types.RawTx
@@ -311,9 +312,6 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodies
 	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
 }
 
-
-
-
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageSequencerHeader, peerId string) {
 	if msgHeader.Hash == nil {
 		return
@@ -368,7 +366,7 @@ func (c *Cache) removeItems(id uint64) {
 func (c *Cache) clean(lseqId uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for k, _ := range c.cache {
+	for k := range c.cache {
 		if k <= lseqId {
 			delete(c.cache, k)
 		}
@@ -384,43 +382,16 @@ func (h *IncomingMessageHandler) HandlePing(peerId string) {
 func (h *IncomingMessageHandler) HandlePong() {
 	msgLog.Debug("received your pong.")
 }
-*/
-
-func (h *IncomingMessageHandler) HandleNewSequencer(newSeq *types.MessageNewSequencer, sourcePeerId string) {
-	if newSeq == nil {
-		msgLog.Warn("new seq is nil ")
-		return
-	}
-	seq := newSeq.RawSequencer.Sequencer()
-	if seq == nil {
-		msgLog.Warn("new seq is nil ")
-		return
-	}
-	txi := h.Og.Dag.GetTx(seq.Hash)
-	if txi != nil {
-		msgLog.WithField("tx ", txi.String()).Debug("duplicate tx")
-		return
-	} else {
-		h.mu.Lock()
-		defer h.mu.Unlock()
-		h.Og.Dag.Accessor().WriteTransaction(nil, seq)
-		h.Og.Dag.Accessor().WriteSequencerById(seq)
-		h.Og.Dag.Accessor().WriteLatestSequencer(seq)
-		h.Og.Dag.SetLatest(seq)
-		msgLog.Debug("handled sequencer ,broadcast to other peers")
-		newSeq.Hop++
-		h.Hub.BroadcastMessageWithLink(MessageTypeNewSequencer, newSeq)
-	}
-}
 
 func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePeerId string) {
 	if msg == nil || msg.Hash == nil {
 		msgLog.Warn("msg is nil ")
 		return
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	txi := h.Og.Dag.GetTx(*msg.Hash)
+	txi := h.Og.TxPool.Get(*msg.Hash)
+	if txi == nil {
+		h.Og.Dag.GetTx(*msg.Hash)
+	}
 	if txi == nil {
 		msgLog.WithField("tx ", txi.String()).Debug("not found")
 		return

@@ -94,8 +94,8 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
-	Filter       *BloomFilter
-	Hop          uint8
+	//Filter       *BloomFilter
+	//Hop          uint8
 }
 
 func (m *MessageNewSequencer) GetHash() *Hash {
@@ -111,7 +111,7 @@ func (m *MessageNewSequencer) GetHash() *Hash {
 }
 
 func (m *MessageNewSequencer) String() string {
-	return m.RawSequencer.String() + fmt.Sprintf("  hop :%d , filterCount :%d", m.Hop, m.Filter.GetCount())
+	return m.RawSequencer.String()
 }
 
 func (c *BloomFilter) GetCount() uint32 {

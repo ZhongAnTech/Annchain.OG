@@ -49,11 +49,12 @@ type SeqRequest struct {
 }
 
 func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
-	seq = c.TxCreator.NewUnsignedSequencer(r.Issuer, r.SequenceID, r.Hashes, r.Nonce)
-	tx := types.RandomTx()
-	seq.GetBase().ParentsHash = tx.GetBase().ParentsHash
-	seq.GetBase().AccountNonce = tx.AccountNonce
-	seq.GetBase().Hash = seq.CalcTxHash()
+	seq = c.TxCreator.NewSignedSequencer(r.Issuer, r.SequenceID, r.Hashes, r.Nonce, r.PrivateKey)
+	if ok := c.TxCreator.SealTx(seq); !ok {
+		logrus.Warn("delegate failed to seal seq")
+		err = fmt.Errorf("delegate failed to seal seq")
+		return
+	}
 	logrus.WithField("seq", seq).Infof("sequencer generated")
 	return
 }

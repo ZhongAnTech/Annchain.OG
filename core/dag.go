@@ -3,16 +3,16 @@ package core
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	// "fmt"
 	"sync"
-	"time"
 
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type DagConfig struct{}
@@ -22,7 +22,7 @@ type Dag struct {
 
 	db       ogdb.Database
 	accessor *Accessor
-	statedb  *StateDB
+	statedb  *state.StateDB
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
@@ -33,22 +33,21 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, db ogdb.Database) *Dag {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
-	stateDBConfig := StateDBConfig{
-		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
+	if err != nil {
+		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 
 	dag.conf = conf
 	dag.db = db
+	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
-	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
 	dag.close = make(chan struct{})
 
-	return dag
+	return dag, nil
 }
 
 func DefaultDagConfig() DagConfig {
@@ -131,8 +130,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadLastState load genesis and latestsequencer data from ogdb. return false if there
-// is no genesis stored in the db.
+// LoadLastState load genesis and latestsequencer data from ogdb.
+// return false if there is no genesis stored in the db.
 func (dag *Dag) LoadLastState() bool {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
@@ -324,23 +323,22 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
-func (dag *Dag)	GetConfirmTime(seqId uint64)*types.ConfirmTime {
+func (dag *Dag) GetConfirmTime(seqId uint64) *types.ConfirmTime {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	return dag.getConfirmTime(seqId)
 }
 
-func (dag*Dag)getConfirmTime(seqId uint64)*types.ConfirmTime {
-	if seqId ==0 {
+func (dag *Dag) getConfirmTime(seqId uint64) *types.ConfirmTime {
+	if seqId == 0 {
 		return nil
 	}
-	cf:= dag.accessor.readConfirmTime(seqId)
+	cf := dag.accessor.readConfirmTime(seqId)
 	if cf == nil {
 		log.Warn("ConfirmTime not found")
 	}
-	 return cf
+	return cf
 }
-
 
 func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
 	dag.mu.RLock()
@@ -434,6 +432,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	var err error
+
+	// TODO batch is not used properly.
 	dbBatch := dag.db.NewBatch()
 
 	// store the tx and update the state
@@ -448,19 +448,20 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
-
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
-
 			err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
 			if err != nil {
 				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
 			}
 		}
 	}
-	go dag.statedb.Flush()
+
+	// TODO
+	// get new trie root after commit, then compare new root
+	// to the root in seq. If not equal then return error.
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
@@ -488,23 +489,40 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSeqencer = batch.Seq
-	cf := types.ConfirmTime{
-		SeqId:batch.Seq.Id,
-		TxNum: uint64( txHashNum),
-		ConfirmTime:time.Now().Format(time.RFC3339Nano),
+
+	// commit statedb changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: %v", err)
 	}
-    dag.writeConfirmTime(&cf)
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, true)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+	}
+
+	// TODO: confirm time is for tps calculation, delete later.
+	cf := types.ConfirmTime{
+		SeqId:       batch.Seq.Id,
+		TxNum:       uint64(txHashNum),
+		ConfirmTime: time.Now().Format(time.RFC3339Nano),
+	}
+	dag.writeConfirmTime(&cf)
+
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil
 }
 
-func (dag*Dag)writeConfirmTime (cf *types.ConfirmTime) error  {
+func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 	return dag.accessor.writeConfirmTime(cf)
 }
 
-func (dag*Dag)ReadConfirmTime(seqId uint64) *types.ConfirmTime {
+func (dag *Dag) ReadConfirmTime(seqId uint64) *types.ConfirmTime {
 	return dag.accessor.readConfirmTime(seqId)
 }
 
@@ -538,7 +556,15 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// update the nonce if current nonce is larger than previous, or
 	// there is no nonce stored in db.
 	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
+		log.Debugf("nonce before: %v, addr: %s", curNonce, tx.Sender().Hex())
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
+
+		ln, errn := dag.getLatestNonce(tx.Sender())
+		if errn != nil {
+			log.Debugf("get latest nonce err: %v", errn)
+		} else {
+			log.Debugf("nonce after: %v, addr: %s", ln, tx.Sender().Hex())
+		}
 	}
 
 	return nil

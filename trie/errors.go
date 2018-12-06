@@ -1,4 +1,4 @@
-// Copyright 2014 The go-ethereum Authors
+// Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,35 +14,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package trie
 
 import (
 	"fmt"
+
+	"github.com/annchain/OG/types"
 )
 
-// StorageSize is a wrapper around a float value that supports user friendly
-// formatting.
-type StorageSize float64
-
-// String implements the stringer interface.
-func (s StorageSize) String() string {
-	if s > 1000000 {
-		return fmt.Sprintf("%.2f mB", s/1000000)
-	} else if s > 1000 {
-		return fmt.Sprintf("%.2f kB", s/1000)
-	} else {
-		return fmt.Sprintf("%.2f B", s)
-	}
+// MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)
+// in the case where a trie node is not present in the local database. It contains
+// information necessary for retrieving the missing node.
+type MissingNodeError struct {
+	NodeHash types.Hash // hash of the missing node
+	Path     []byte     // hex-encoded path to the missing node
 }
 
-// TerminalString implements log.TerminalStringer, formatting a string for console
-// output during logging.
-func (s StorageSize) TerminalString() string {
-	if s > 1000000 {
-		return fmt.Sprintf("%.2fmB", s/1000000)
-	} else if s > 1000 {
-		return fmt.Sprintf("%.2fkB", s/1000)
-	} else {
-		return fmt.Sprintf("%.2fB", s)
-	}
+func (err *MissingNodeError) Error() string {
+	return fmt.Sprintf("missing trie node %x (path %x)", err.NodeHash, err.Path)
 }

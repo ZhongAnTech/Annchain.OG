@@ -47,6 +47,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
+	router.GET("tps", rpc.Tps)
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
 	return router
@@ -68,6 +69,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"sync_status":   "",
 		"performance":   "",
 		"monitor":       "",
+		"tps":			 "",
 		// broadcast API
 		"new_transaction": "tx",
 		"auto_tx":         "interval_ms",

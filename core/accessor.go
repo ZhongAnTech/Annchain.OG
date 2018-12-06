@@ -29,6 +29,7 @@ var (
 	prefixAddressBalanceKey = []byte("ba")
 
 	prefixStateKey = []byte("st")
+	prefixConfimtime   = []byte("cf")
 	// prefixContractState = []byte("con")
 )
 
@@ -59,6 +60,11 @@ func addrLatestNonceKey(addr types.Address) []byte {
 
 func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
+}
+
+func confirmTimeKey(seqId uint64) []byte {
+	suffix := prefixSeqIdKey
+	return append(prefixSeqIdKey, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
 }
 
 func seqIdKey(seqid uint64) []byte {
@@ -193,6 +199,31 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 // HasAddrLatestNonce returns true if addr already sent some txs.
 func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
+}
+func (da*Accessor)writeConfirmTime(cf *types.ConfirmTime) error {
+	data, err := cf.MarshalMsg(nil)
+	if err !=nil {
+		return err
+	}
+	err = da.db.Put(confirmTimeKey(cf.SeqId), data)
+	if err != nil {
+		return fmt.Errorf("write tx to db batch err: %v", err)
+	}
+
+	return nil
+}
+
+func (da*Accessor)readConfirmTime(seqId uint64) *types.ConfirmTime {
+	data, _ := da.db.Get(confirmTimeKey(seqId))
+	if len(data) == 0 {
+		return nil
+	}
+	var cf types.ConfirmTime
+	_,err:=  cf.UnmarshalMsg(data)
+	if err!=nil || cf.SeqId != seqId{
+		return nil
+	}
+	return &cf
 }
 
 // WriteTransaction write the tx or sequencer into ogdb.

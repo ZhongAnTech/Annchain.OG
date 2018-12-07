@@ -46,8 +46,8 @@ func transactionKey(hash types.Hash) []byte {
 }
 
 func confirmTimeKey(seqId uint64) []byte {
-	suffix := prefixSeqIdKey
-	return append(prefixSeqIdKey, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
+	suffix := prefixConfimtime
+	return append(prefixConfimtime, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
 }
 
 func txHashFlowKey(addr types.Address, nonce uint64) []byte {

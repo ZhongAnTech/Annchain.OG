@@ -72,7 +72,8 @@ node_id = 1
 sync_cycle_ms = 10000
 
 [crypto]
-algorithm = "ed25519"
+# ed25519 or secp256k1
+algorithm = "secp256k1"
 
 [dag]
 consensus = "dpos"

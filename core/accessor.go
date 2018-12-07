@@ -63,8 +63,8 @@ func addressBalanceKey(addr types.Address) []byte {
 }
 
 func confirmTimeKey(seqId uint64) []byte {
-	suffix := prefixSeqIdKey
-	return append(prefixSeqIdKey, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
+	suffix := prefixConfimtime
+	return append(prefixConfimtime, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
 }
 
 func seqIdKey(seqid uint64) []byte {

@@ -36,7 +36,7 @@ type Statistics struct {
 }
 
 var fistPort = 11300
-var peerNum = 10
+var peerNum = 1
 var ipsNum = 20
 
 func main() {

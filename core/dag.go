@@ -382,18 +382,6 @@ func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
 	return dag.statedb.GetNonce(addr)
 }
 
-// // HasLatestNonce returns true if addr already sent any txs to db.
-// func (dag *Dag) HasLatestNonce(addr types.Address) (bool, error) {
-// 	dag.mu.RLock()
-// 	defer dag.mu.RUnlock()
-
-// 	return dag.hasLatestNonce(addr)
-// }
-
-// func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
-// 	return dag.accessor.HasAddrLatestNonce(addr)
-// }
-
 //GetTxsByAddress get all txs from this address
 func (dag *Dag) GetTxsByAddress(addr types.Address) []types.Txi {
 	dag.mu.RLock()

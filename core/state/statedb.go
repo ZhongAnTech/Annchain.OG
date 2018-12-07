@@ -222,10 +222,10 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
+	defer sd.refreshbeat(addr)
 	sd.setBalance(addr, balance)
 }
 func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
-	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateState(addr)
 	state.SetBalance(balance)
 

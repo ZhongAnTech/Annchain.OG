@@ -42,7 +42,7 @@ type keccakState interface {
 type EVMInterpreter struct {
 	//ovm      *ovm.OVM
 	ctx        *vmtypes.Context
-	cfg        *InterpreterConfig
+	Cfg        *InterpreterConfig
 	gasTable   params.GasTable
 	intPool    *intPool
 	hasher     keccakState    // Keccak256 hasher instance shared across opcodes
@@ -56,7 +56,7 @@ type EVMInterpreter struct {
 func NewEVMInterpreter(ctx *vmtypes.Context, cfg *InterpreterConfig) *EVMInterpreter {
 	return &EVMInterpreter{
 		ctx:       ctx,
-		cfg:       cfg,
+		Cfg:       cfg,
 		gasTable:  params.GetGasTable(ctx.SequenceID),
 		jumpTable: byzantiumInstructionSet,
 	}
@@ -130,13 +130,13 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 	// Reclaim the stack as an int pool when the execution stops
 	defer func() { in.intPool.put(stack.data...) }()
 
-	if in.cfg.Debug {
+	if in.Cfg.Debug {
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+					in.Cfg.Tracer.CaptureState(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+					in.Cfg.Tracer.CaptureFault(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 				}
 			}
 		}()
@@ -146,7 +146,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	for atomic.LoadInt32(&in.ctx.Abort) == 0 {
-		if in.cfg.Debug {
+		if in.Cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
@@ -190,8 +190,8 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 			mem.Resize(memorySize)
 		}
 
-		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.ctx, pc, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+		if in.Cfg.Debug {
+			in.Cfg.Tracer.CaptureState(in.ctx, pc, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
 			logged = true
 		}
 

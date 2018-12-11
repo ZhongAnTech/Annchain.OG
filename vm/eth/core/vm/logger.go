@@ -202,6 +202,10 @@ func (l *StructLogger) Error() error { return l.err }
 // Output returns the VM return value captured by the trace.
 func (l *StructLogger) Output() []byte { return l.output }
 
+func (l *StructLogger) Write(writer io.Writer){
+	WriteTrace(writer, l.Logs)
+}
+
 // WriteTrace writes a formatted trace to the given writer
 func WriteTrace(writer io.Writer, logs []StructLog) {
 	omitZero := true
@@ -229,7 +233,7 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Storage) > 0 {
 			fmt.Fprintln(writer, "Storage:")
 			for h, item := range log.Storage {
-				s := fmt.Sprintf("%x: %x", h, item)
+				s := fmt.Sprintf("%s: %s", h.Hex(), item.Hex())
 				if omitZero{
 					s = strings.Replace(s, "00", "__",-1)
 				}

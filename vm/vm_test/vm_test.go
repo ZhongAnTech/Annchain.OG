@@ -10,31 +10,20 @@ import (
 	"math/big"
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"fmt"
-	"io/ioutil"
-	"encoding/hex"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"os"
 )
 
-func readFile(filename string) []byte {
-	bytes, err := ioutil.ReadFile(filename)
-	if err != nil {
-		panic(err)
-	}
-	bytes, err = hex.DecodeString(string(bytes))
-	return bytes
-}
-
-func TestSmallContract(t *testing.T) {
+func TestContractSmallStorage(t *testing.T) {
 	txContext := &ovm.TxContext{
 		From: types.HexToAddress("0x01"),
 		//To:       types.HexToAddress("0x02"),
 		Value:    math.NewBigInt(0),
-		Data:     readFile("./compiler/d/OwnedToken.bin"),
+		Data:     readFile("OwnedToken.bin"),
 		GasPrice: math.NewBigInt(1),
-		GasLimit: 600000,
+		GasLimit: DefaultGasLimit,
 	}
 	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
@@ -67,8 +56,8 @@ func TestSmallContract(t *testing.T) {
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Deployed contract")
 	fmt.Println("CP1", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
-	//fmt.Println(ldb.String())
-	//vm.WriteTrace(os.Stdout, tracer.Logs)
+	fmt.Println(ldb.String())
+	vm.WriteTrace(os.Stdout, tracer.Logs)
 	assert.NoError(t, err)
 
 	txContext.Value = math.NewBigInt(0)
@@ -90,4 +79,38 @@ func TestSmallContract(t *testing.T) {
 	fmt.Println(ldb.String())
 	vm.WriteTrace(os.Stdout, tracer.Logs)
 	assert.NoError(t, err)
+}
+
+func TestContractHelloWorld(t *testing.T) {
+	from := types.HexToAddress("0x01")
+	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+
+	tracer := vm.NewStructLogger(&vm.LogConfig{
+		Debug: true,
+	})
+
+	txContext := &ovm.TxContext{
+		From: types.HexToAddress("0x01"),
+		//To:       types.HexToAddress("0x02"),
+		Value:    math.NewBigInt(0),
+		Data:     readFile("hello.bin"),
+		GasPrice: math.NewBigInt(1),
+		GasLimit: DefaultGasLimit,
+	}
+
+	ldb := DefaultLDB(txContext.From, coinBase)
+
+	rt := &Runtime{
+		Tracer:  tracer,
+		Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb),
+	}
+
+	_, contractAddr, _, err := DeployContract("hello.bin", from, coinBase, rt, nil)
+	assert.NoError(t, err)
+
+	value := math.NewBigInt(0)
+
+	_, _, err = CallContract(contractAddr, from, coinBase, rt, value, "898855ed", []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+	assert.NoError(t, err)
+
 }

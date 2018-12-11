@@ -27,6 +27,8 @@ type Dag struct {
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
 
+	txcached *txcached
+
 	close chan struct{}
 
 	wg sync.WaitGroup
@@ -45,6 +47,10 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database)
 	dag.db = db
 	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
+	// TODO
+	// default maxsize of txcached is 10000,
+	// move this size to config later.
+	dag.txcached = newTxcached(10000)
 	dag.close = make(chan struct{})
 
 	return dag, nil
@@ -191,6 +197,10 @@ func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
 }
 func (dag *Dag) getTx(hash types.Hash) types.Txi {
+	tx := dag.txcached.get(hash)
+	if tx != nil {
+		return tx
+	}
 	return dag.accessor.ReadTransaction(hash)
 }
 
@@ -555,5 +565,50 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		}
 	}
 
+	dag.txcached.add(tx)
 	return nil
+}
+
+type txcached struct {
+	maxsize int
+	order   []types.Hash
+	txs     map[types.Hash]types.Txi
+}
+
+func newTxcached(maxsize int) *txcached {
+	return &txcached{
+		maxsize: maxsize,
+		order:   []types.Hash{},
+		txs:     make(map[types.Hash]types.Txi),
+	}
+}
+
+func (tc *txcached) get(hash types.Hash) types.Txi {
+	return tc.txs[hash]
+}
+
+func (tc *txcached) add(tx types.Txi) {
+	if _, ok := tc.txs[tx.GetTxHash()]; ok {
+		return
+	}
+	if len(tc.order) >= tc.maxsize {
+		fstHash := tc.order[0]
+		delete(tc.txs, fstHash)
+		tc.order = tc.order[1:]
+	}
+	tc.order = append(tc.order, tx.GetTxHash())
+	tc.txs[tx.GetTxHash()] = tx
+}
+
+func (tc *txcached) remove(hash types.Hash) {
+	if _, ok := tc.txs[hash]; !ok {
+		return
+	}
+	for i := 0; i < len(tc.order); i++ {
+		if tc.order[i] == hash {
+			tc.order = append(tc.order[0:i], tc.order[i+1:]...)
+			break
+		}
+	}
+	delete(tc.txs, hash)
 }

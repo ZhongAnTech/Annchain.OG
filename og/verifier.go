@@ -28,18 +28,22 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+	logrus.WithField("tx", t).Tracef("before VerifyHash")
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("before VerifySignature")
 	if !v.VerifySignature(t) {
 		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("before VerifySourceAddress")
 	if !v.VerifySourceAddress(t) {
 		logrus.WithField("tx", t).Debug("Source address not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("after VerifySourceAddress")
 	return true
 }
 
@@ -135,18 +139,13 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 	}
 	seeked := map[types.Hash]bool{}
 	seekingHashes := []types.Hash{}
-	// seekingHashes := list.New()
 	for _, parent := range currentTx.Parents() {
 		seekingHashes = append(seekingHashes, parent)
-		// seekingHashes.PushBack(parent)
 	}
 
 	for len(seekingHashes) > 0 {
 		head := seekingHashes[0]
 		seekingHashes = seekingHashes[1:]
-
-		// head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		//logrus.WithField("ancestor", head).WithField("tx", currentTx).Debug("fetching ancestor tx")
 
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
@@ -171,7 +170,6 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 				for _, parent := range txi.Parents() {
 					if _, ok := seeked[parent]; !ok {
 						seekingHashes = append(seekingHashes, parent)
-						// seekingHashes.PushBack(parent)
 						seeked[parent] = true
 					}
 				}
@@ -260,14 +258,17 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
+	logrus.WithField("tx", txi).Tracef("before verifyA3")
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
+	logrus.WithField("tx", txi).Tracef("before verifyB1")
 	if ok = v.verifyB1(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
+	logrus.WithField("tx", txi).Tracef("after verifyB1")
 	return true
 }
 

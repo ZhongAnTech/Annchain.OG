@@ -9,6 +9,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 
 	"fmt"
+	"strconv"
+
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
@@ -19,7 +21,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
-	"strconv"
 )
 
 // Node is the basic entrypoint for all modules to start.
@@ -308,7 +309,7 @@ func NewNode() *Node {
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
-		org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, wsServer.NewTxReceivedChan)
+		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan")
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
@@ -316,7 +317,7 @@ func NewNode() *Node {
 	// txMetrics
 	txCounter := performance.NewTxCounter()
 
-	org.TxPool.OnNewTxReceived = append(org.TxPool.OnNewTxReceived, txCounter.NewTxReceivedChan)
+	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan")
 	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)

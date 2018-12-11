@@ -1,7 +1,6 @@
 package og
 
 import (
-	"container/list"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -135,13 +134,18 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		return
 	}
 	seeked := map[types.Hash]bool{}
-	seekingHashes := list.New()
+	seekingHashes := []types.Hash{}
+	// seekingHashes := list.New()
 	for _, parent := range currentTx.Parents() {
-		seekingHashes.PushBack(parent)
+		seekingHashes = append(seekingHashes, parent)
+		// seekingHashes.PushBack(parent)
 	}
 
-	for seekingHashes.Len() > 0 {
-		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
+	for len(seekingHashes) > 0 {
+		head := seekingHashes[0]
+		seekingHashes = seekingHashes[1:]
+
+		// head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
 		//logrus.WithField("ancestor", head).WithField("tx", currentTx).Debug("fetching ancestor tx")
 
 		txi, archived := v.getTxFromAnywhere(head)
@@ -166,7 +170,8 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 				}
 				for _, parent := range txi.Parents() {
 					if _, ok := seeked[parent]; !ok {
-						seekingHashes.PushBack(parent)
+						seekingHashes = append(seekingHashes, parent)
+						// seekingHashes.PushBack(parent)
 						seeked[parent] = true
 					}
 				}
@@ -193,10 +198,14 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 // get the nearest previous sequencer from txpool
 func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
-	seekingHashes := list.New()
-	seekingHashes.PushBack(currentSeq.GetTxHash())
-	for seekingHashes.Len() > 0 {
-		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
+	seekingHashes := []types.Hash{}
+	// seekingHashes := list.New()
+	seekingHashes = append(seekingHashes, currentSeq.GetTxHash())
+	// seekingHashes.PushBack(currentSeq.GetTxHash())
+	for len(seekingHashes) > 0 {
+		head := seekingHashes[0]
+		seekingHashes = seekingHashes[1:]
+		// head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
 		txi, archived := v.getTxFromAnywhere(head)
 
 		if txi != nil {
@@ -220,7 +229,8 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 			}
 			for _, parent := range txi.Parents() {
 				if _, ok := seeked[parent]; !ok {
-					seekingHashes.PushBack(parent)
+					seekingHashes = append(seekingHashes, parent)
+					// seekingHashes.PushBack(parent)
 					seeked[parent] = true
 				}
 			}

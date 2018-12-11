@@ -1,7 +1,6 @@
 package og
 
 import (
-	"container/list"
 	"sync"
 	"time"
 
@@ -29,7 +28,7 @@ type Announcer interface {
 type ITxPool interface {
 	Get(hash types.Hash) types.Txi
 	AddRemoteTx(tx types.Txi) error
-	RegisterOnNewTxReceived(c chan types.Txi)
+	RegisterOnNewTxReceived(c chan types.Txi, name string)
 	GetLatestNonce(addr types.Address) (uint64, error)
 	IsLocalHash(hash types.Hash) bool
 }
@@ -103,7 +102,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 }
 
 func (b *TxBuffer) Start() {
-	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan)
+	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan, "b.txAddedToPoolChan")
 	go b.loop()
 	go b.releasedTxCacheLoop()
 }
@@ -355,17 +354,20 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 	defer func() {
 		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Trace("missing hashes done")
 	}()
-	l := list.New()
+	l := []types.Hash{}
 	lDedup := map[types.Hash]int{}
 	s := map[types.Hash]struct{}{}
 	visited := map[types.Hash]struct{}{}
 	// find out who is missing
 	for _, v := range txi.Parents() {
-		l.PushBack(v)
+		l = append(l, v)
+		// l.PushBack(v)v
 	}
 
-	for l.Len() != 0 {
-		hash := l.Remove(l.Front()).(types.Hash)
+	for len(l) != 0 {
+		hash := l[0]
+		l = l[1:]
+		// hash := l.Remove(l.Front()).(types.Hash)
 		if _, ok := visited[hash]; ok {
 			// already there, continue
 			continue
@@ -374,7 +376,8 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 		if parentTx := b.GetFromAllKnownSource(hash); parentTx != nil {
 			for _, v := range parentTx.Parents() {
 				if _, ok := lDedup[v]; !ok {
-					l.PushBack(v)
+					l = append(l, v)
+					// l.PushBack(v)v
 					lDedup[v] = 1
 				} else {
 					lDedup[v] = lDedup[v] + 1
@@ -404,8 +407,10 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			//	tx.String()
 			//	//todo  resolve the tx remove dependency
 			//}
+
 			// tx already received by pool. remove from local cache
 			b.knownCache.Remove(v.GetTxHash())
+			logrus.Tracef("after remove from known Cache %s", v.GetTxHash().String())
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

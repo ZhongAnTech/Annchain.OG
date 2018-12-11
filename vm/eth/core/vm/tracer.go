@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/vm/instruction"
 	"time"
 
+	"io"
 )
 
 // Tracer is used to collect execution traces from an OVM transaction
@@ -19,4 +20,5 @@ type Tracer interface {
 	CaptureState(ctx *vmtypes.Context, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmtypes.Contract, depth int, err error) error
 	CaptureFault(ctx *vmtypes.Context, pc uint64, op instruction.OpCode, gas, cost uint64, memory *Memory, stack *Stack, contract *vmtypes.Contract, depth int, err error) error
 	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) error
+	Write(writer io.Writer)
 }

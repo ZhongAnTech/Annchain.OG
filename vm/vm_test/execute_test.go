@@ -19,7 +19,7 @@ func ExampleExecute() {
 		Value:    math.NewBigInt(10),
 		Data:     common.Hex2Bytes("6060604052600a8060106000396000f360606040526008565b00"),
 		GasPrice: math.NewBigInt(10000),
-		GasLimit: 600000,
+		GasLimit: DefaultGasLimit,
 	}
 	coinBase := types.HexToAddress("0x03")
 
@@ -43,9 +43,4 @@ func ExampleExecute() {
 	fmt.Println(common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 
 	fmt.Println(db.String())
-}
-
-// loads a solidity file and run it
-func main() {
-	ExampleExecute()
 }

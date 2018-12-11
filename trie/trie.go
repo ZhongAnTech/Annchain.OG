@@ -199,8 +199,6 @@ func (t *Trie) Update(key, value []byte) {
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *Trie) TryUpdate(key, value []byte) error {
 	k := keybytesToHex(key)
-	log.Debugf("key before hex: %v, %x", key, key)
-	log.Debugf("key after hex: %v, %x", k, k)
 	if len(value) != 0 {
 		_, n, err := t.insert(t.root, nil, k, ValueNode(value))
 		if err != nil {
@@ -218,7 +216,6 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 }
 
 func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error) {
-	log.Debugf("insert with prefix: %x, key: %x", prefix, key)
 	if len(key) == 0 {
 		if v, ok := n.(ValueNode); ok {
 			return !bytes.Equal(v, value.(ValueNode)), value, nil
@@ -227,7 +224,6 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 	}
 	switch n := n.(type) {
 	case *ShortNode:
-		log.Debugf("[ShortNode] insert with prefix: %x, key: %x, n.key: %x", prefix, key, n.Key)
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
@@ -243,12 +239,10 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		// Otherwise branch out at the index where they differ.
 		branch := &FullNode{flags: t.newFlag()}
 		var err error
-		log.Debugf("n.key: %v, in hex: %x, matchlen: %d, key value in matchlen: %x", n.Key, n.Key, matchlen, n.Key[matchlen])
 		_, branch.Children[n.Key[matchlen]], err = t.insert(nil, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
 		if err != nil {
 			return false, nil, err
 		}
-		log.Debugf("key: %v, in hex: %x, matchlen: %d, key value in matchlen: %x", key, key, matchlen, key[matchlen])
 		_, branch.Children[key[matchlen]], err = t.insert(nil, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
 		if err != nil {
 			return false, nil, err
@@ -263,7 +257,6 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		return true, sn, nil
 
 	case *FullNode:
-		log.Debugf("[FullNode] insert with prefix: %x, key: %x", prefix, key)
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
@@ -274,13 +267,11 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		return true, n, nil
 
 	case nil:
-		log.Debugf("[nil] insert with prefix: %x, key: %x", prefix, key)
 		sn := &ShortNode{key, value, t.newFlag()}
 		log.Debugf("new shortnode with key: %x", sn.Key)
 		return true, sn, nil
 
 	case HashNode:
-		log.Debugf("[HashNode] insert with prefix: %x, key: %x, hash: %x", prefix, key, []byte(n))
 		// We've hit a part of the trie that isn't loaded yet. Load
 		// the node and insert into it. This leaves all child nodes on
 		// the path to the value in the trie.

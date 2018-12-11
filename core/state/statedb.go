@@ -7,7 +7,6 @@ import (
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type StateDBConfig struct {
@@ -135,7 +134,8 @@ func (sd *StateDB) getState(addr types.Address) (*State, error) {
 	return state, nil
 }
 
-// GetOrCreateState
+// GetOrCreateState will find a state from memory by account address.
+// If state not exists, it will load a state from db.
 func (sd *StateDB) GetOrCreateState(addr types.Address) *State {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
@@ -299,7 +299,6 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.MarshalMsg(nil)
-		log.Debugf("addr: %s, state addr: %s, state nonce %d, state balance: %d", addr.Hex(), state.Address.Hex(), state.Nonce, state.Balance.GetInt64())
 		sd.trie.TryUpdate(addr.ToBytes(), data)
 		delete(sd.dirtyset, addr)
 	}
@@ -316,9 +315,6 @@ func (sd *StateDB) loop() {
 		select {
 		case <-sd.close:
 			purgeTimer.Stop()
-			// sd.mu.Lock()
-			// sd.flush()
-			// sd.mu.Unlock()
 			return
 
 		case <-purgeTimer.C:

@@ -238,7 +238,7 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 	return txs
 }
 
-// GetTxConfirmId returns the id of the sequencer that confirm this tx.
+// GetTxConfirmId returns the id of sequencer that confirm this tx.
 func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -246,7 +246,11 @@ func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
 	return dag.getTxConfirmId(hash)
 }
 func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
-	return dag.accessor.ReadTxSeqRelation(hash)
+	tx := dag.getTx(hash)
+	if tx == nil {
+		return 0, fmt.Errorf("hash not exists: %s", hash.String())
+	}
+	return tx.GetBase().GetHeight(), nil
 }
 
 func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
@@ -446,14 +450,15 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
+			txi.GetBase().Height = batch.Seq.Id
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
-			err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
-			if err != nil {
-				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
-			}
+			// err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
+			// if err != nil {
+			// 	return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
+			// }
 		}
 	}
 
@@ -556,13 +561,6 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
 		log.Debugf("nonce before: %v, addr: %s", curNonce, tx.Sender().Hex())
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
-
-		ln, errn := dag.getLatestNonce(tx.Sender())
-		if errn != nil {
-			log.Debugf("get latest nonce err: %v", errn)
-		} else {
-			log.Debugf("nonce after: %v, addr: %s", ln, tx.Sender().Hex())
-		}
 	}
 
 	dag.txcached.add(tx)

@@ -19,7 +19,7 @@ var (
 	contentPrefixTransaction = []byte("cptx")
 	contentPrefixSequencer   = []byte("cpsq")
 
-	prefixTxSeqRelationKey = []byte("tsr")
+	// prefixTxSeqRelationKey = []byte("tsr")
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
@@ -28,8 +28,8 @@ var (
 
 	prefixAddressBalanceKey = []byte("ba")
 
-	prefixStateKey = []byte("st")
-	prefixConfimtime   = []byte("cf")
+	prefixStateKey   = []byte("st")
+	prefixConfimtime = []byte("cf")
 	// prefixContractState = []byte("con")
 )
 
@@ -55,9 +55,9 @@ func txHashFlowKey(addr types.Address, nonce uint64) []byte {
 	return append(prefixTxHashFlowKey, keybody...)
 }
 
-func txSeqRelationKey(hash types.Hash) []byte {
-	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
-}
+// func txSeqRelationKey(hash types.Hash) []byte {
+// 	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
+// }
 
 func addrLatestNonceKey(addr types.Address) []byte {
 	return append(prefixAddrLatestNonceKey, addr.ToBytes()...)
@@ -201,9 +201,9 @@ func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 
-func (da*Accessor)writeConfirmTime(cf *types.ConfirmTime) error {
+func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
 	data, err := cf.MarshalMsg(nil)
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 	err = da.db.Put(confirmTimeKey(cf.SeqId), data)
@@ -214,16 +214,16 @@ func (da*Accessor)writeConfirmTime(cf *types.ConfirmTime) error {
 	return nil
 }
 
-func (da*Accessor)readConfirmTime(seqId uint64) *types.ConfirmTime {
+func (da *Accessor) readConfirmTime(seqId uint64) *types.ConfirmTime {
 	data, _ := da.db.Get(confirmTimeKey(seqId))
 	if len(data) == 0 {
 		return nil
 	}
 	var cf types.ConfirmTime
-		_,err:=  cf.UnmarshalMsg(data)
-		if err!=nil || cf.SeqId != seqId{
-			return nil
-		}
+	_, err := cf.UnmarshalMsg(data)
+	if err != nil || cf.SeqId != seqId {
+		return nil
+	}
 	return &cf
 }
 
@@ -255,24 +255,24 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	return nil
 }
 
-// ReadTxSeqRelation get the bound seq id of a tx
-func (da *Accessor) ReadTxSeqRelation(hash types.Hash) (uint64, error) {
-	data, err := da.db.Get(txSeqRelationKey(hash))
-	if err != nil {
-		return 0, err
-	}
-	seqid, errToUint := strconv.ParseUint(string(data), 10, 64)
-	if errToUint != nil {
-		return 0, errToUint
-	}
-	return seqid, nil
-}
+// // ReadTxSeqRelation get the bound seq id of a tx
+// func (da *Accessor) ReadTxSeqRelation(hash types.Hash) (uint64, error) {
+// 	data, err := da.db.Get(txSeqRelationKey(hash))
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	seqid, errToUint := strconv.ParseUint(string(data), 10, 64)
+// 	if errToUint != nil {
+// 		return 0, errToUint
+// 	}
+// 	return seqid, nil
+// }
 
-// WriteTxSeqRelation bind the seq id to a tx hash
-func (da *Accessor) WriteTxSeqRelation(hash types.Hash, seqid uint64) error {
-	data := []byte(strconv.FormatUint(seqid, 10))
-	return da.db.Put(txSeqRelationKey(hash), data)
-}
+// // WriteTxSeqRelation bind the seq id to a tx hash
+// func (da *Accessor) WriteTxSeqRelation(hash types.Hash, seqid uint64) error {
+// 	data := []byte(strconv.FormatUint(seqid, 10))
+// 	return da.db.Put(txSeqRelationKey(hash), data)
+// }
 
 // DeleteTransaction delete the tx or sequencer.
 func (da *Accessor) DeleteTransaction(hash types.Hash) error {

@@ -559,7 +559,6 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// update the nonce if current nonce is larger than previous, or
 	// there is no nonce stored in db.
 	if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
-		log.Debugf("nonce before: %v, addr: %s", curNonce, tx.Sender().Hex())
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 

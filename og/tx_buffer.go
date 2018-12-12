@@ -152,6 +152,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	start := time.Now()
 	defer func() {
 		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer handled tx")
+		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 
 	// already in the dag or tx_pool or buffer itself.

@@ -130,6 +130,10 @@ func pad(r []byte, baseLen int, padLeft bool) []byte {
 // DecodeParamToString decodes bytes to string in return value of a contract call
 // Just for debugging. Do not use it in prod code
 func DecodeParamToString(b []byte) string {
+	if len(b) < 96 {
+		// no string possible here
+		return ""
+	}
 	length := binary.BigEndian.Uint64(b[56:64])
 	return string(b[64 : 64+length])
 }

@@ -288,13 +288,11 @@ func (l *LayerStateDB) Snapshot() int {
 }
 
 func (l *LayerStateDB) AddLog(log *vmtypes.Log) {
-	// TODO: log
-	panic("implement me")
+	l.activeLayer.AddLog(log)
 }
 
 func (l *LayerStateDB) AddPreimage(hash types.Hash, code []byte) {
-	// TODO: preimage
-	panic("implement me")
+	l.activeLayer.AddPreimage(hash, code)
 }
 
 func (l *LayerStateDB) ForEachStorage(addr types.Address, f func(types.Hash, types.Hash) bool) {

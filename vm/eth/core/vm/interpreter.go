@@ -165,7 +165,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 		if err := in.enforceRestrictions(op, operation, stack); err != nil {
 			return nil, err
 		}
-		//fmt.Printf("%d OP: %s\n", pc, op.String())
+		fmt.Printf("%d OP: %s\n", pc, op.String())
 		//if op.String() == "CALLER" {
 		//	fmt.Println(pc, "CALLER")
 		//}
@@ -230,11 +230,12 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 			pc++
 		}
 
-		//if op.String() == "CALLER" {
-		//	stack.Print()
-		//	mem.Print()
-		//}
-		//fmt.Println(in.ctx.StateDB.String())
+		if op.String() == "SSTORE" {
+			fmt.Println(in.ctx.StateDB.String())
+			stack.Print()
+			mem.Print()
+		}
+
 
 		//stack.Print()
 		//mem.Print()

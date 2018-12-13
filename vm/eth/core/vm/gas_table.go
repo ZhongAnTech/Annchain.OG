@@ -455,7 +455,7 @@ func gasSuicide(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Cont
 		address = types.BigToAddress(stack.Back(0))
 	)
 	// if empty and transfers value
-	if ctx.StateDB.Empty(address) && ctx.StateDB.GetBalance(contract.Address()).Sign() != 0 {
+	if ctx.StateDB.Empty(address) && ctx.StateDB.GetBalance(contract.Address()).Value.Sign() != 0 {
 		gas += gt.CreateBySuicide
 	}
 

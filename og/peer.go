@@ -209,13 +209,13 @@ func (p *peer) SendNodeData(data []byte) error {
 // data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes []types.Hash) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
-	hashsStruct := types.Hashs(hashes)
+	hashsStruct := types.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(GetNodeDataMsg), b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
-func (p *peer) RequestReceipts(hashes types.Hashs) error {
+func (p *peer) RequestReceipts(hashes types.Hashes) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
 	return p2p.Send(p.rw, uint64(GetReceiptsMsg), b)

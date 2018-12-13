@@ -52,7 +52,7 @@ type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
-type Hashs []Hash
+type Hashes []Hash
 
 type HashBytes [HashLength]byte
 
@@ -186,3 +186,7 @@ func (h Hash) Cmp(another Hash) int {
 	}
 	return 0
 }
+
+func (a Hashes) Len() int {return len(a)}
+func (a Hashes) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Hashes) Less(i, j int) bool { return a[i].Hex() < a[j].Hex() }

@@ -338,12 +338,12 @@ func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
 // holds the id 'seqid'.
-func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
+func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashes, error) {
 	data, _ := da.db.Get(txIndexKey(seqid))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("tx hashs with seq id %d not found", seqid)
 	}
-	var hashs types.Hashs
+	var hashs types.Hashes
 	_, err := hashs.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -353,7 +353,7 @@ func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'seqid'.
-func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error {
+func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashes) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err

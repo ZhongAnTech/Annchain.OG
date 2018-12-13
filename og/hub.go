@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/big"
 
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/bluele/gcache"
 	"sync"
 	"time"
@@ -144,7 +144,7 @@ func NewHub(config *HubConfig) *Hub {
 			NodeInfo: func() interface{} {
 				return h.NodeStatus()
 			},
-			PeerInfo: func(id enode.ID) interface{} {
+			PeerInfo: func(id onode.ID) interface{} {
 				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 					return p.Info()
 				}

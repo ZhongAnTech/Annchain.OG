@@ -27,7 +27,7 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/sha3"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
 )
 
@@ -89,7 +89,7 @@ func TestServerListen(t *testing.T) {
 	connected := make(chan *Peer)
 	remid := &newkey().PublicKey
 	srv := startTestServer(t, remid, func(p *Peer) {
-		if p.ID() != enode.PubkeyToIDV4(remid) {
+		if p.ID() != onode.PubkeyToIDV4(remid) {
 			t.Error("peer func called with wrong node id")
 		}
 		connected <- p
@@ -144,7 +144,7 @@ func TestServerDial(t *testing.T) {
 
 	// tell the server to connect
 	tcpAddr := listener.Addr().(*net.TCPAddr)
-	node := enode.NewV4(remid, tcpAddr.IP, tcpAddr.Port, 0)
+	node := onode.NewV4(remid, tcpAddr.IP, tcpAddr.Port, 0)
 	srv.AddPeer(node)
 
 	select {
@@ -153,7 +153,7 @@ func TestServerDial(t *testing.T) {
 
 		select {
 		case peer := <-connected:
-			if peer.ID() != enode.PubkeyToIDV4(remid) {
+			if peer.ID() != onode.PubkeyToIDV4(remid) {
 				t.Errorf("peer has wrong id")
 			}
 			if peer.Name() != "test" {
@@ -207,7 +207,7 @@ func TestServerTaskScheduling(t *testing.T) {
 		quit, returned = make(chan struct{}), make(chan struct{})
 		tc             = 0
 		tg             = taskgen{
-			newFunc: func(running int, peers map[enode.ID]*Peer) []task {
+			newFunc: func(running int, peers map[onode.ID]*Peer) []task {
 				tc++
 				return []task{&testTask{index: tc - 1}}
 			},
@@ -224,10 +224,10 @@ func TestServerTaskScheduling(t *testing.T) {
 	// because we're only interested in what run does.
 	// The Server in this test isn't actually running
 	// because we're only interested in what run does.
-	db, _ := enode.OpenDB("")
+	db, _ := onode.OpenDB("")
 	srv := &Server{
 		Config:    Config{MaxPeers: 10},
-		localnode: enode.NewLocalNode(db, newkey()),
+		localnode: onode.NewLocalNode(db, newkey()),
 		nodedb:    db,
 		quit:      make(chan struct{}),
 		ntab:      fakeTable{},
@@ -272,10 +272,10 @@ func TestServerManyTasks(t *testing.T) {
 	}
 
 	var (
-		db, _ = enode.OpenDB("")
+		db, _ = onode.OpenDB("")
 		srv   = &Server{
 			quit:      make(chan struct{}),
-			localnode: enode.NewLocalNode(db, newkey()),
+			localnode: onode.NewLocalNode(db, newkey()),
 			nodedb:    db,
 			ntab:      fakeTable{},
 			running:   true,
@@ -286,7 +286,7 @@ func TestServerManyTasks(t *testing.T) {
 	defer srv.Stop()
 	srv.loopWG.Add(1)
 	go srv.run(taskgen{
-		newFunc: func(running int, peers map[enode.ID]*Peer) []task {
+		newFunc: func(running int, peers map[onode.ID]*Peer) []task {
 			start, end = end, end+maxActiveDialTasks+10
 			if end > len(alltasks) {
 				end = len(alltasks)
@@ -321,19 +321,19 @@ func TestServerManyTasks(t *testing.T) {
 }
 
 type taskgen struct {
-	newFunc  func(running int, peers map[enode.ID]*Peer) []task
+	newFunc  func(running int, peers map[onode.ID]*Peer) []task
 	doneFunc func(task)
 }
 
-func (tg taskgen) newTasks(running int, peers map[enode.ID]*Peer, now time.Time) []task {
+func (tg taskgen) newTasks(running int, peers map[onode.ID]*Peer, now time.Time) []task {
 	return tg.newFunc(running, peers)
 }
 func (tg taskgen) taskDone(t task, now time.Time) {
 	tg.doneFunc(t)
 }
-func (tg taskgen) addStatic(*enode.Node) {
+func (tg taskgen) addStatic(*onode.Node) {
 }
-func (tg taskgen) removeStatic(*enode.Node) {
+func (tg taskgen) removeStatic(*onode.Node) {
 }
 
 type testTask struct {
@@ -350,13 +350,13 @@ func (t *testTask) Do(srv *Server) {
 // at capacity. Trusted connections should still be accepted.
 func TestServerAtCap(t *testing.T) {
 	trustedNode := newkey()
-	trustedID := enode.PubkeyToIDV4(&trustedNode.PublicKey)
+	trustedID := onode.PubkeyToIDV4(&trustedNode.PublicKey)
 	srv := &Server{
 		Config: Config{
 			PrivateKey:   newkey(),
 			MaxPeers:     10,
 			NoDial:       true,
-			TrustedNodes: []*enode.Node{newNode(trustedID, nil)},
+			TrustedNodes: []*onode.Node{newNode(trustedID, nil)},
 		},
 	}
 	if err := srv.start(); err != nil {
@@ -364,10 +364,10 @@ func TestServerAtCap(t *testing.T) {
 	}
 	defer srv.Stop()
 
-	newconn := func(id enode.ID) *conn {
+	newconn := func(id onode.ID) *conn {
 		fd, _ := net.Pipe()
 		tx := newTestTransport(&trustedNode.PublicKey, fd)
-		node := enode.SignNull(new(enr.Record), id)
+		node := onode.SignNull(new(enr.Record), id)
 		return &conn{fd: fd, transport: tx, flags: inboundConn, node: node, cont: make(chan error)}
 	}
 
@@ -414,7 +414,7 @@ func TestServerAtCap(t *testing.T) {
 func TestServerPeerLimits(t *testing.T) {
 	srvkey := newkey()
 	clientkey := newkey()
-	clientnode := enode.NewV4(&clientkey.PublicKey, nil, 0, 0)
+	clientnode := onode.NewV4(&clientkey.PublicKey, nil, 0, 0)
 
 	var tp = &setupTransport{
 		pubkey: &clientkey.PublicKey,
@@ -484,7 +484,7 @@ func TestServerSetupConn(t *testing.T) {
 		dontstart bool
 		tt        *setupTransport
 		flags     connFlag
-		dialDest  *enode.Node
+		dialDest  *onode.Node
 
 		wantCloseErr error
 		wantCalls    string
@@ -503,21 +503,21 @@ func TestServerSetupConn(t *testing.T) {
 		},
 		{
 			tt:           &setupTransport{pubkey: clientpub},
-			dialDest:     enode.NewV4(&newkey().PublicKey, nil, 0, 0),
+			dialDest:     onode.NewV4(&newkey().PublicKey, nil, 0, 0),
 			flags:        dynDialedConn,
 			wantCalls:    "doEncHandshake,close,",
 			wantCloseErr: DiscUnexpectedIdentity,
 		},
 		{
 			tt:           &setupTransport{pubkey: clientpub, phs: ProtoHandshake{ID: randomID().Bytes()}},
-			dialDest:     enode.NewV4(clientpub, nil, 0, 0),
+			dialDest:     onode.NewV4(clientpub, nil, 0, 0),
 			flags:        dynDialedConn,
 			wantCalls:    "doEncHandshake,doProtoHandshake,close,",
 			wantCloseErr: DiscUnexpectedIdentity,
 		},
 		{
 			tt:           &setupTransport{pubkey: clientpub, protoHandshakeErr: errors.New("foo")},
-			dialDest:     enode.NewV4(clientpub, nil, 0, 0),
+			dialDest:     onode.NewV4(clientpub, nil, 0, 0),
 			flags:        dynDialedConn,
 			wantCalls:    "doEncHandshake,doProtoHandshake,close,",
 			wantCloseErr: errors.New("foo"),
@@ -605,7 +605,7 @@ func newkey() *ecdsa.PrivateKey {
 	return key
 }
 
-func randomID() (id enode.ID) {
+func randomID() (id onode.ID) {
 	for i := range id {
 		id[i] = byte(rand.Intn(255))
 	}

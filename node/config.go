@@ -7,7 +7,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discv5"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/nat"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -113,14 +113,14 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	return &p2p.Server{Config: p2pConfig}
 }
 
-func parserNodes(nodeString string) []*enode.Node {
+func parserNodes(nodeString string) []*onode.Node {
 	nodeList := strings.Split(nodeString, ";")
-	var nodes []*enode.Node
+	var nodes []*onode.Node
 	for _, url := range nodeList {
 		if url == "" {
 			continue
 		}
-		node, err := enode.ParseV4(url)
+		node, err := onode.ParseV4(url)
 		if err != nil {
 			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
 			continue

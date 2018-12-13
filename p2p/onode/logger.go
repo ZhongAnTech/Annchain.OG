@@ -1,4 +1,4 @@
-package enode
+package onode
 
 import (
 	"github.com/sirupsen/logrus"

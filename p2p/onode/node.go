@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package enode
+package onode
 
 import (
 	"crypto/ecdsa"
@@ -158,7 +158,7 @@ func (n ID) String() string {
 
 // The Go syntax representation of a ID is a call to HexID.
 func (n ID) GoString() string {
-	return fmt.Sprintf("enode.HexID(\"%x\")", n[:])
+	return fmt.Sprintf("onode.HexID(\"%x\")", n[:])
 }
 
 // TerminalString returns a shortened hex string for terminal logging.

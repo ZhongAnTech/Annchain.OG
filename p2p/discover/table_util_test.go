@@ -24,35 +24,35 @@ import (
 	"net"
 	"sync"
 
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
 )
 
-var nullNode *enode.Node
+var nullNode *onode.Node
 
 func init() {
 	var r enr.Record
 	ip := enr.IP{0, 0, 0, 0}
 	r.Set(&ip)
-	nullNode = enode.SignNull(&r, enode.ID{})
+	nullNode = onode.SignNull(&r, onode.ID{})
 }
 
-func newTestTable(t transport) (*Table, *enode.DB) {
-	db, _ := enode.OpenDB("")
+func newTestTable(t transport) (*Table, *onode.DB) {
+	db, _ := onode.OpenDB("")
 	tab, _ := newTable(t, db, nil)
 	return tab, db
 }
 
-// nodeAtDistance creates a node for which enode.LogDist(base, n.id) == ld.
-func nodeAtDistance(base enode.ID, ld int, ip net.IP) *node {
+// nodeAtDistance creates a node for which onode.LogDist(base, n.id) == ld.
+func nodeAtDistance(base onode.ID, ld int, ip net.IP) *node {
 	var r enr.Record
 	eIP := enr.IP(ip)
 	r.Set(&eIP)
-	return wrapNode(enode.SignNull(&r, idAtDistance(base, ld)))
+	return wrapNode(onode.SignNull(&r, idAtDistance(base, ld)))
 }
 
-// idAtDistance returns a random hash such that enode.LogDist(a, b) == n
-func idAtDistance(a enode.ID, n int) (b enode.ID) {
+// idAtDistance returns a random hash such that onode.LogDist(a, b) == n
+func idAtDistance(a onode.ID, n int) (b onode.ID) {
 	if n == 0 {
 		return a
 	}
@@ -77,7 +77,7 @@ func intIP(i int) net.IP {
 
 // fillBucket inserts nodes into the given bucket until it is full.
 func fillBucket(tab *Table, n *node) (last *node) {
-	ld := enode.LogDist(tab.self().ID(), n.ID())
+	ld := onode.LogDist(tab.self().ID(), n.ID())
 	b := tab.bucket(n.ID())
 	for len(b.entries) < bucketSize {
 		b.entries = append(b.entries, nodeAtDistance(tab.self().ID(), ld, intIP(ld)))
@@ -87,36 +87,36 @@ func fillBucket(tab *Table, n *node) (last *node) {
 
 type pingRecorder struct {
 	mu           sync.Mutex
-	dead, pinged map[enode.ID]bool
-	n            *enode.Node
+	dead, pinged map[onode.ID]bool
+	n            *onode.Node
 }
 
 func newPingRecorder() *pingRecorder {
 	var r enr.Record
 	eIp := enr.IP{0, 0, 0, 0}
 	r.Set(&eIp)
-	n := enode.SignNull(&r, enode.ID{})
+	n := onode.SignNull(&r, onode.ID{})
 
 	return &pingRecorder{
-		dead:   make(map[enode.ID]bool),
-		pinged: make(map[enode.ID]bool),
+		dead:   make(map[onode.ID]bool),
+		pinged: make(map[onode.ID]bool),
 		n:      n,
 	}
 }
 
-func (t *pingRecorder) self() *enode.Node {
+func (t *pingRecorder) self() *onode.Node {
 	return nullNode
 }
 
-func (t *pingRecorder) findnode(toid enode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
+func (t *pingRecorder) findnode(toid onode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
 	return nil, nil
 }
 
-func (t *pingRecorder) waitping(from enode.ID) error {
+func (t *pingRecorder) waitping(from onode.ID) error {
 	return nil // remote always pings
 }
 
-func (t *pingRecorder) ping(toid enode.ID, toaddr *net.UDPAddr) error {
+func (t *pingRecorder) ping(toid onode.ID, toaddr *net.UDPAddr) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -131,7 +131,7 @@ func (t *pingRecorder) ping(toid enode.ID, toaddr *net.UDPAddr) error {
 func (t *pingRecorder) close() {}
 
 func hasDuplicates(slice []*node) bool {
-	seen := make(map[enode.ID]bool)
+	seen := make(map[onode.ID]bool)
 	for i, e := range slice {
 		if e == nil {
 			panic(fmt.Sprintf("nil *Node at %d", i))
@@ -144,7 +144,7 @@ func hasDuplicates(slice []*node) bool {
 	return false
 }
 
-func contains(ns []*node, id enode.ID) bool {
+func contains(ns []*node, id onode.ID) bool {
 	for _, n := range ns {
 		if n.ID() == id {
 			return true
@@ -153,10 +153,10 @@ func contains(ns []*node, id enode.ID) bool {
 	return false
 }
 
-func sortedByDistanceTo(distbase enode.ID, slice []*node) bool {
-	var last enode.ID
+func sortedByDistanceTo(distbase onode.ID, slice []*node) bool {
+	var last onode.ID
 	for i, e := range slice {
-		if i > 0 && enode.DistCmp(distbase, e.ID(), last) < 0 {
+		if i > 0 && onode.DistCmp(distbase, e.ID(), last) < 0 {
 			return false
 		}
 		last = e.ID()

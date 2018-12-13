@@ -18,7 +18,7 @@ def generate_config_local_server(id, seq_enabled):
     d['rpc']['port'] = port_add + 0
     d['p2p']['port'] = port_add + 1
     d['p2p']['bootstrap_node'] = id == 0
-    d['p2p']['bootstrap_nodes'] = "enode://%s@127.0.0.1:%d" % (boot_node, 8001)
+    d['p2p']['bootstrap_nodes'] = "onode://%s@127.0.0.1:%d" % (boot_node, 8001)
 
     d['websocket']['port'] = port_add + 2
     d['profiling']['port'] = port_add + 3

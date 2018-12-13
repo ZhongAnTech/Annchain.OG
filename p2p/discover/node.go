@@ -20,7 +20,7 @@ import (
 	"errors"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"math/big"
 	"net"
 	"time"
@@ -30,7 +30,7 @@ import (
 // node represents a host on the network.
 // The fields of Node may not be modified.
 type node struct {
-	enode.Node
+	onode.Node
 	addedAt time.Time // time when the node was added to the table
 }
 
@@ -54,8 +54,8 @@ func decodePubkey(e EncPubkey) (*ecdsa.PublicKey, error) {
 	return p, nil
 }
 
-func (e EncPubkey) id() enode.ID {
-	return enode.ID(crypto.Keccak256Hash(e[:]).Bytes)
+func (e EncPubkey) id() onode.ID {
+	return onode.ID(crypto.Keccak256Hash(e[:]).Bytes)
 }
 
 // recoverNodeKey computes the public key used to sign the
@@ -69,11 +69,11 @@ func recoverNodeKey(hash, sig []byte) (key EncPubkey, err error) {
 	return key, nil
 }
 
-func wrapNode(n *enode.Node) *node {
+func wrapNode(n *onode.Node) *node {
 	return &node{Node: *n}
 }
 
-func wrapNodes(ns []*enode.Node) []*node {
+func wrapNodes(ns []*onode.Node) []*node {
 	result := make([]*node, len(ns))
 	for i, n := range ns {
 		result[i] = wrapNode(n)
@@ -81,12 +81,12 @@ func wrapNodes(ns []*enode.Node) []*node {
 	return result
 }
 
-func unwrapNode(n *node) *enode.Node {
+func unwrapNode(n *node) *onode.Node {
 	return &n.Node
 }
 
-func unwrapNodes(ns []*node) []*enode.Node {
-	result := make([]*enode.Node, len(ns))
+func unwrapNodes(ns []*node) []*onode.Node {
+	result := make([]*onode.Node, len(ns))
 	for i, n := range ns {
 		result[i] = unwrapNode(n)
 	}

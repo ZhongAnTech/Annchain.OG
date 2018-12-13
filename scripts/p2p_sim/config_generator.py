@@ -17,7 +17,7 @@ def generate_config(id, seq_enabled):
     d['rpc']['port'] = port_add + 0
     d['p2p']['port'] = port_add + 1
     d['p2p']['bootstrap_node'] = seq_enabled
-    d['p2p']['bootstrap_nodes'] = "enode://%s@%s:%d" % (boot_node,boot_ip, 11301)
+    d['p2p']['bootstrap_nodes'] = "onode://%s@%s:%d" % (boot_node,boot_ip, 11301)
     if (seq_enabled ):
         d['p2p']['node_key'] = boot_node_key
     d['websocket']['port'] = port_add + 2

@@ -18,7 +18,7 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
 )
 
@@ -53,7 +53,7 @@ type Protocol struct {
 	// PeerInfo is an optional helper method to retrieve protocol specific metadata
 	// about a certain peer in the network. If an info retrieval function is set,
 	// but returns nil, it is assumed that the protocol handshake is still running.
-	PeerInfo func(id enode.ID) interface{}
+	PeerInfo func(id onode.ID) interface{}
 
 	// Attributes contains protocol specific information for the node record.
 	Attributes []enr.Entry

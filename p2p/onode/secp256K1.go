@@ -1,4 +1,4 @@
-package enode
+package onode
 
 import (
 	"crypto/ecdsa"

@@ -19,10 +19,10 @@ package ovm
 import (
 	"math/big"
 	"sync/atomic"
-	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
+	"github.com/annchain/OG/common/crypto"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already

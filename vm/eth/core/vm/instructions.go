@@ -22,7 +22,7 @@ import (
 
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/vm/eth/crypto/sha3"
+	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"

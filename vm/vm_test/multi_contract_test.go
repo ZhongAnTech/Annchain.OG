@@ -72,11 +72,18 @@ func TestMultiContract(t *testing.T) {
 
 	// query symbol name
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "95d89b41", nil)
-	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
+	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "8da5cb5b", nil)
 	// get balance
 	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
+
+
+	// transfer
+	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), 102500000000})
+	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
+
+
 
 	//logrus.Info("Called contract ")
 	fmt.Println(ldb.String())

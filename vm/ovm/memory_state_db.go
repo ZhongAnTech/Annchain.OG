@@ -5,10 +5,10 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/vm/eth/crypto"
 	"strings"
 	"fmt"
 	"sort"
+	"github.com/annchain/OG/common/crypto"
 )
 
 type MemoryStateDB struct {
@@ -149,11 +149,13 @@ func (m *MemoryStateDB) Snapshot() int {
 }
 
 func (m *MemoryStateDB) AddLog(*vmtypes.Log) {
-	panic("implement me")
+	// Maybe we don't care about logs sinces we have layerdb.
+	return
 }
 
 func (m *MemoryStateDB) AddPreimage(hash types.Hash, preImage []byte) {
-	panic("implement me")
+	// Any usage?
+	return
 }
 
 func (m *MemoryStateDB) ForEachStorage(addr types.Address, cb func(key, value types.Hash) bool) {

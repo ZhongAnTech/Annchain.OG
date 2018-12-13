@@ -132,7 +132,7 @@ func TestDagPush(t *testing.T) {
 		tx2.GetTxHash(),
 	}
 
-	hashes := &types.Hashs{tx1.GetTxHash(), tx2.GetTxHash()}
+	hashes := &types.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
 
 	cb := &core.ConfirmBatch{}
 	cb.Seq = seq
@@ -158,7 +158,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("latest seq is not set")
 	}
 	// check txs' hashs
-	var hashsP *types.Hashs
+	var hashsP *types.Hashes
 	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Id)
 	hashs := *hashsP
 	if err != nil {

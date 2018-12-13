@@ -236,7 +236,7 @@ func BenchmarkDecodeHashBytes(b *testing.B) {
 }
 
 func TestMarshalUnmarshalHashs(t *testing.T) {
-	v := Hashs{}
+	v := Hashes{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -259,7 +259,7 @@ func TestMarshalUnmarshalHashs(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgHashs(b *testing.B) {
-	v := Hashs{}
+	v := Hashes{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -268,7 +268,7 @@ func BenchmarkMarshalMsgHashs(b *testing.B) {
 }
 
 func BenchmarkAppendMsgHashs(b *testing.B) {
-	v := Hashs{}
+	v := Hashes{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -280,7 +280,7 @@ func BenchmarkAppendMsgHashs(b *testing.B) {
 }
 
 func BenchmarkUnmarshalHashs(b *testing.B) {
-	v := Hashs{}
+	v := Hashes{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -294,7 +294,7 @@ func BenchmarkUnmarshalHashs(b *testing.B) {
 }
 
 func TestEncodeDecodeHashs(t *testing.T) {
-	v := Hashs{}
+	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -303,7 +303,7 @@ func TestEncodeDecodeHashs(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := Hashs{}
+	vn := Hashes{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -318,7 +318,7 @@ func TestEncodeDecodeHashs(t *testing.T) {
 }
 
 func BenchmarkEncodeHashs(b *testing.B) {
-	v := Hashs{}
+	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -332,7 +332,7 @@ func BenchmarkEncodeHashs(b *testing.B) {
 }
 
 func BenchmarkDecodeHashs(b *testing.B) {
-	v := Hashs{}
+	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

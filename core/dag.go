@@ -58,7 +58,7 @@ func DefaultDagConfig() DagConfig {
 type ConfirmBatch struct {
 	Seq      *types.Sequencer
 	Batch    map[types.Address]*BatchDetail
-	TxHashes *types.Hashs
+	TxHashes *types.Hashes
 }
 
 // BatchDetail describes all the details of a specific address within a
@@ -324,14 +324,14 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
-func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashs {
+func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashes {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxsHashesByNumber(id)
 }
 
-func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashs {
+func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashes {
 	if id > dag.latestSeqencer.Number() {
 		return nil
 	}

@@ -707,7 +707,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	}
 
 	// construct tx hashes
-	var txhashes types.Hashs
+	var txhashes types.Hashes
 	for _, hash := range pool.getHashOrder() {
 		elder, in := elders[hash]
 		if !in {

@@ -368,9 +368,7 @@ type MessageGetMsg struct {
 	Hash *Hash
 }
 
-type MessageDuplicate struct {
-	Nothing byte
-}
+type MessageDuplicate bool
 
 func (m *MessageControl) String() string {
 	if m == nil || m.Hash == nil {

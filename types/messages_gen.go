@@ -548,44 +548,20 @@ func (z *MessageControl) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *MessageDuplicate) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
-	if err != nil {
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
+	{
+		var zb0001 bool
+		zb0001, err = dc.ReadBool()
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "Nothing":
-			z.Nothing, err = dc.ReadByte()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+		(*z) = MessageDuplicate(zb0001)
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z MessageDuplicate) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Nothing"
-	err = en.Append(0x81, 0xa7, 0x4e, 0x6f, 0x74, 0x68, 0x69, 0x6e, 0x67)
-	if err != nil {
-		return
-	}
-	err = en.WriteByte(z.Nothing)
+	err = en.WriteBool(bool(z))
 	if err != nil {
 		return
 	}
@@ -595,40 +571,19 @@ func (z MessageDuplicate) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z MessageDuplicate) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Nothing"
-	o = append(o, 0x81, 0xa7, 0x4e, 0x6f, 0x74, 0x68, 0x69, 0x6e, 0x67)
-	o = msgp.AppendByte(o, z.Nothing)
+	o = msgp.AppendBool(o, bool(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *MessageDuplicate) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
+	{
+		var zb0001 bool
+		zb0001, bts, err = msgp.ReadBoolBytes(bts)
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "Nothing":
-			z.Nothing, bts, err = msgp.ReadByteBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+		(*z) = MessageDuplicate(zb0001)
 	}
 	o = bts
 	return
@@ -636,7 +591,7 @@ func (z *MessageDuplicate) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z MessageDuplicate) Msgsize() (s int) {
-	s = 1 + 8 + msgp.ByteSize
+	s = msgp.BoolSize
 	return
 }
 

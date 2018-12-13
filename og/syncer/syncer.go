@@ -292,7 +292,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string
 		return
 	}
 
-	logrus.WithField("q", newTx).Debug("incremental received MessageNewTx")
+	logrus.WithField("q", newTx).Trace("incremental received MessageNewTx")
 	m.notifyNewTxi(tx)
 }
 
@@ -318,7 +318,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 		}
 		return
 	}
-	logrus.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
+	logrus.WithField("q", newTxs).Trace("incremental received MessageNewTxs")
 
 	for _, tx := range txs {
 		m.notifyNewTxi(tx)
@@ -342,7 +342,7 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer
 		m.bufferedIncomingTxCache.Set(seq.Hash, seq)
 		return
 	}
-	logrus.WithField("q", newSeq).Debug("incremental received NewSequence")
+	logrus.WithField("q", newSeq).Trace("incremental received NewSequence")
 	m.notifyNewTxi(seq)
 }
 

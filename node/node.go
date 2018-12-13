@@ -112,7 +112,7 @@ func NewNode() *Node {
 		DependencyCacheMaxSize:           5000,
 		NewTxQueueSize:                   1,
 	})
-
+    hub.IsKnownHash = txBuffer.IsKnownHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
 		Dag:            org.Dag,

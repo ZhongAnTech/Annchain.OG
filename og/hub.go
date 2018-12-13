@@ -58,7 +58,8 @@ type Hub struct {
 	Downloader         *downloader.Downloader
 	Fetcher            *fetcher.Fetcher
 
-	NodeInfo func() *p2p.NodeInfo
+	NodeInfo    func() *p2p.NodeInfo
+	IsKnownHash func(hash types.Hash) bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -235,8 +236,8 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
 	case p2pMsg.MessageType == MessageTypeDuplicate:
-		msgLog.WithField("peer ", p.id).Debug("set path to false")
-		if _, out := p.CheckPath(); out {
+		msgLog.WithField("got msg", MessageTypeDuplicate).WithField("peer ", p.String()).Info("set path to false")
+		if out, _ := p.CheckPath(); out {
 			p.SetOutPath(false)
 		}
 
@@ -245,11 +246,16 @@ func (h *Hub) handleMsg(p *peer) error {
 	default:
 		duplicate, err := h.checkMsg(&p2pMsg)
 		if duplicate {
+			out, in := p.CheckPath()
 			log.WithField("type", p2pMsg.MessageType).WithField("msg", p2pMsg.Message.String()).WithField(
-				"hash", p2pMsg.hash).Debug("duplicate msg ,discard")
-			if in, _ := p.CheckPath(); in {
-				p.SetInpath(false)
-				dup := types.MessageDuplicate{}
+				"hash", p2pMsg.hash).WithField("from ", p.String()).WithField("out ", out).WithField("in ", in).Debug("duplicate msg ,discard")
+			if p2pMsg.MessageType == MessageTypeNewTx || p2pMsg.MessageType == MessageTypeNewSequencer {
+				if outNum, inNum := h.peers.ValidPathNum(); inNum <= 1 {
+					log.WithField("outNum ", outNum).WithField("inNum", inNum).Debug("not enough valid path")
+					//return nil
+				}
+				var  dup types.MessageDuplicate
+				p.SetInPath(false)
 				return h.SendToPeer(p.id, MessageTypeDuplicate, &dup)
 			}
 			return nil
@@ -259,6 +265,8 @@ func (h *Hub) handleMsg(p *peer) error {
 			return err
 		}
 		p.MarkMessage(p2pMsg.hash)
+		msgLog.WithField("type", p2pMsg.MessageType.String()).WithField("from", p.String()).WithField(
+			"Message", p2pMsg.Message.String()).WithField("len ", len(p2pMsg.data)).Debug("received a message")
 		h.incoming <- &p2pMsg
 		return nil
 	}
@@ -530,16 +538,23 @@ func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
 	hash := msg.hash
-	c := types.MessageControl{&hash}
+	c := types.MessageControl{Hash: &hash}
 	var pMsg = &P2PMessage{MessageType: MessageTypeControl, Message: &c}
-	msgLog.Debug(pMsg.MessageType)
 	h.checkMsg(pMsg)
 	peers = h.peers.PeersWithoutMsg(msg.hash)
+
 	for _, peer := range peers {
-		if _, out := peer.CheckPath(); out {
+		if peer.inBound || len(peers) ==1{
+		//if out, _ := peer.CheckPath(); out {
 			peer.AsyncSendMessage(msg)
 		} else {
-			peer.AsyncSendMessage(pMsg)
+			continue
+			if !peer.knownMsg.Contains(pMsg.hash) {
+				msgLog.WithField("hash ", hash).Debug("send MessageTypeControl")
+				peer.AsyncSendMessage(pMsg)
+			} else {
+				msgLog.WithField("hash ", hash).Debug("contains MessageTypeControl")
+			}
 		}
 	}
 	return
@@ -654,7 +669,7 @@ func (h *Hub) HandleControlMsg(msg *P2PMessage) {
 	}
 	hash := *req.Hash
 	source := msg.SourceID
-	if err, _ := h.messageCache.GetIFPresent(hash); err == nil {
+	if _, err := h.messageCache.GetIFPresent(hash); err == nil {
 		msgLog.WithField("hash", hash).Debug("got msg already")
 		return
 	}
@@ -666,10 +681,21 @@ func (h *Hub) HandleControlMsg(msg *P2PMessage) {
 			if _, err := h.messageCache.GetIFPresent(hash); err == nil {
 				msgLog.WithField("duration", i*5).WithField("hash", hash).Debug()
 				return
+
 			}
+			if h.IsKnownHash(hash) {
+				return
+			}
+
 			if i > 10 {
 				getMsg := types.MessageGetMsg{Hash: &hash}
 				h.SendToPeer(source, MessageTypeGetMsg, &getMsg)
+				p := h.peers.Peer(source)
+				if p != nil {
+					if _, in := p.CheckPath(); in {
+						p.SetInPath(true)
+					}
+				}
 				return
 			}
 		}
@@ -687,17 +713,15 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 			return
 		}
 	}
-	msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
-		"Message", msg.Message.String()).WithField("len ", len(msg.data)).Debug("received a message")
 
 	if msg.MessageType == MessageTypeControl {
-		h.HandleControlMsg(msg)
+		go h.HandleControlMsg(msg)
 		return
 	}
 	if msg.MessageType == MessageTypeGetMsg {
 		peer := h.peers.Peer(msg.SourceID)
 		if peer != nil {
-			msgLog.WithField("peer ", msg.SourceID).Debug("set path to true")
+			msgLog.WithField("msg", msg.Message.String()).WithField("peer ", peer.String()).Info("set path to true")
 			peer.SetOutPath(true)
 		}
 	}

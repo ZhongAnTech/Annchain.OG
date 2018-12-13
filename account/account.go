@@ -29,7 +29,7 @@ func NewAccount(privateKeyHex string) *SampleAccount {
 	s.PrivateKey = pv
 	s.PublicKey = signer.PubKey(pv)
 	s.Address = signer.Address(s.PublicKey)
-	logrus.WithField("add", s.Address.String()).WithField("priv", privateKeyHex).Info("Sample Account")
+	logrus.WithField("add", s.Address.String()).WithField("priv", privateKeyHex).Trace("Sample Account")
 	return s
 }
 

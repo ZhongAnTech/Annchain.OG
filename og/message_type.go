@@ -232,7 +232,8 @@ func (p *P2PMessage) GetMessage() error {
 	case MessageTypeHeaderResponse:
 		p.Message = &types.MessageHeaderResponse{}
 	case MessageTypeDuplicate:
-		p.Message = &types.MessageDuplicate{}
+		var dup types.MessageDuplicate
+		p.Message = &dup
 	case MessageTypeGetMsg:
 		p.Message = &types.MessageGetMsg{}
 	case MessageTypeControl:

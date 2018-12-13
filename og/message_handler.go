@@ -390,10 +390,10 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePe
 	}
 	txi := h.Og.TxPool.Get(*msg.Hash)
 	if txi == nil {
-		h.Og.Dag.GetTx(*msg.Hash)
+		txi = h.Og.Dag.GetTx(*msg.Hash)
 	}
 	if txi == nil {
-		msgLog.WithField("tx ", txi.String()).Debug("not found")
+		msgLog.WithField("for hash ", *msg.Hash).Warn("txi not found")
 		return
 	}
 	switch txi.GetType() {

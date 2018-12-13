@@ -55,12 +55,17 @@ type peer struct {
 	term      chan struct{}      // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
+	inBound  bool
 }
 
 type PeerInfo struct {
 	Version     int    `json:"version"`      // Ethereum protocol version negotiated
 	SequencerId uint64 `json:"sequencer_id"` // Total difficulty of the peer's blockchain
 	Head        string `json:"head"`         // SHA3 hash of the peer's best owned block
+	ShortId     string `json:"short_id"`
+	Link        bool   `json:"link"`
+	Addrs       string `json:"addrs"`
+	InBound     bool 	`json:"in_bound"`
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -74,6 +79,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
+		inBound   :p.Inbound(),
 	}
 }
 
@@ -95,15 +101,16 @@ func (p *peer) broadcast() {
 	}
 }
 
-func (p *peer) SetInpath(value bool) {
-	p.inPath = value
-}
 func (p *peer) SetOutPath(v bool) {
 	p.outPath = v
 }
 
-func (p *peer) CheckPath() (inPath, outPath bool) {
-	return p.inPath, p.outPath
+func (p *peer) SetInPath(v bool) {
+	p.inPath = v
+}
+
+func (p *peer) CheckPath() (outPath, inpath bool) {
+	return p.outPath, p.inPath
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -119,6 +126,10 @@ func (p *peer) Info() *PeerInfo {
 		Version:     p.version,
 		Head:        hash.Hex(),
 		SequencerId: seqId,
+		ShortId:     p.id,
+		Link:        p.outPath,
+		Addrs:       p.RemoteAddr().String(),
+		InBound: 	p.inBound,
 	}
 }
 
@@ -329,7 +340,7 @@ func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, rever
 }
 
 func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
-	clog := msgLog.WithField("msgType", msgType.String()).WithField("request ", request.String()).WithField("to", p.id)
+	clog := msgLog.WithField("msgType", msgType.String()).WithField("request ", request.String()).WithField("to", p.String())
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
 		clog.WithError(err).Warn("encode request error")
@@ -345,8 +356,8 @@ func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
 
 // String implements fmt.Stringer.
 func (p *peer) String() string {
-	return fmt.Sprintf("Peer %s [%s]", p.id,
-		fmt.Sprintf("og/%2d", p.version),
+	return fmt.Sprintf("Peer-%s-[%s]-[%s]", p.id,
+		fmt.Sprintf("og/%2d", p.version), p.RemoteAddr().String(),
 	)
 }
 
@@ -424,6 +435,21 @@ func (ps *peerSet) Peers() []*peer {
 		list = append(list, p)
 	}
 	return list
+}
+
+func (ps *peerSet) ValidPathNum() (outPath,inPath int ) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	var out,in  int
+	for _, p := range ps.peers {
+		if p.outPath {
+			out++
+		}
+		if p.inPath {
+			in++
+		}
+	}
+	return out,in
 }
 
 func (ps *peerSet) GetPeers(ids []string, n int) []*peer {

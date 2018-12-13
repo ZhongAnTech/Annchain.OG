@@ -88,7 +88,7 @@ func CallContract(contractAddr types.Address, from types.Address, coinBase types
 		GasLimit: DefaultGasLimit,
 	}
 
-	logrus.Info("Calling contract")
+	logrus.WithField("contract", contractAddr.Hex()).WithField("function", functionHash).Info("Calling contract")
 
 	var input []byte
 	contractAddress, err := hex.DecodeString(functionHash)
@@ -170,6 +170,12 @@ func EncodeParams(params []interface{}) []byte {
 		case uint:
 			bs = make([]byte, 4)
 			binary.BigEndian.PutUint32(bs, uint32(obj.(uint)))
+		case int64:
+			bs = make([]byte, 8)
+			binary.BigEndian.PutUint64(bs, uint64(obj.(int64)))
+		case uint64:
+			bs = make([]byte, 8)
+			binary.BigEndian.PutUint64(bs, uint64(obj.(uint64)))
 		case bool:
 			bs = make([]byte, 4)
 			if obj.(bool) {

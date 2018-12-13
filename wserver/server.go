@@ -68,7 +68,7 @@ type Server struct {
 
 func (s *Server) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
-		"newtx": len(s.NewTxReceivedChan),
+		"newtx":   len(s.NewTxReceivedChan),
 		"batchtx": len(s.BatchConfirmedChan),
 	}
 }

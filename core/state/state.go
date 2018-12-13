@@ -1,4 +1,4 @@
-package core
+package state
 
 import (
 	"github.com/annchain/OG/common/math"
@@ -9,10 +9,11 @@ import (
 
 //msgp:tuple State
 type State struct {
-	Address 	types.Address
-	Balance		*math.BigInt
-	Nonce		uint64
+	Address types.Address
+	Balance *math.BigInt
+	Nonce   uint64
 }
+
 func NewState(addr types.Address) *State {
 	s := &State{}
 	s.Address = addr

@@ -294,17 +294,20 @@ func (q *queue) Schedule(headers []*types.SequencerHeader, from uint64) []*types
 		// Make sure chain order is honoured and preserved throughout
 		hash := header.Hash()
 		if header.SequencerId() == 0 || header.SequencerId() != from {
-			log.Warn("Header broke chain ordering", "number", header.SequencerId(), "hash", hash, "expected", from)
+			log.WithField("number", header.SequencerId()).WithField(	"hash", hash).WithField(
+				"expected", from).Warn("Header broke chain ordering",)
 			break
 		}
 
 		// Make sure no duplicate requests are executed
 		if _, ok := q.blockTaskPool[hash]; ok {
-			log.Warn("Header  already scheduled for block fetch", "number", header.SequencerId(), "hash", hash)
+			log.WithField("number", header.SequencerId()).WithField(
+				"hash", hash).Warn("Header  already scheduled for block fetch")
 			continue
 		}
 		if _, ok := q.receiptTaskPool[hash]; ok {
-			log.Warn("Header already scheduled for receipt fetch", "number", header.SequencerId(), "hash", hash)
+			log.WithField("number", header.SequencerId()).WithField(	"hash", hash).Warn(
+				"Header already scheduled for receipt fetch", hash)
 			continue
 		}
 		// Queue the header for content retrieval

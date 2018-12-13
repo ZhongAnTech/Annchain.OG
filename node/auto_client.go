@@ -45,7 +45,7 @@ func (c *AutoClient) Init() {
 	c.ManualChan = make(chan types.TxBaseType)
 }
 
-func (c*AutoClient)SetTxIntervalMs (i int) {
+func (c *AutoClient) SetTxIntervalMs(i int) {
 	c.TxIntervalMs = i
 }
 
@@ -182,7 +182,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		return false
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
-		WithField("id", c.MyAccountIndex).Info("Generated tx")
+		WithField("id", c.MyAccountIndex).Trace("Generated tx")
 	c.Delegate.Announce(tx)
 	return true
 }

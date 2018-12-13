@@ -23,5 +23,7 @@ datadir_*
 data/
 /dump_*
 db_*/
+common/crypto/debug.test
+core/debug.test
 /vm/compiler/
 /vm/contracts/

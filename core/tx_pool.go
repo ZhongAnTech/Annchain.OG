@@ -1,7 +1,6 @@
 package core
 
 import (
-	"container/list"
 	"fmt"
 	"sort"
 	"sync"
@@ -10,7 +9,6 @@ import (
 	"math/rand"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,7 +73,7 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	OnNewTxReceived      []chan types.Txi                // for notifications of new txs.
+	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
 }
@@ -83,7 +81,7 @@ type TxPool struct {
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"queue":      len(pool.queue),
-		"event":      len(pool.OnNewTxReceived),
+		"event":      len(pool.onNewTxReceived),
 		"txlookup":   len(pool.txLookup.txs),
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
@@ -102,7 +100,7 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		flows:                NewAccountFlows(),
 		txLookup:             newTxLookUp(),
 		close:                make(chan struct{}),
-		OnNewTxReceived:      []chan types.Txi{},
+		onNewTxReceived:      make(map[string]chan types.Txi),
 		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
 		OnNewLatestSequencer: make(chan bool),
 	}
@@ -225,6 +223,7 @@ func (pool *TxPool) GetHashOrder() []types.Hash {
 
 	return pool.getHashOrder()
 }
+
 func (pool *TxPool) getHashOrder() []types.Hash {
 	return pool.txLookup.GetOrder()
 }
@@ -259,8 +258,9 @@ func (pool *TxPool) getStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
-func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi) {
-	pool.OnNewTxReceived = append(pool.OnNewTxReceived, c)
+func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string) {
+	log.Tracef("RegisterOnNewTxReceived with chan: %s", chanName)
+	pool.onNewTxReceived[chanName] = c
 }
 
 // GetRandomTips returns n tips randomly.
@@ -377,6 +377,8 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
+			log.WithField("tx", txEvent.txEnv.tx).Trace("get tx from queue")
+
 			var err error
 			tx := txEvent.txEnv.tx
 			// check if tx is duplicate
@@ -410,6 +412,8 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
+	log.WithField("tx", tx).Trace("start addTx")
+
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
@@ -418,7 +422,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-	<-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
+	pool.queue <- te
+	// <-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
 
 	// waiting for callback
 	select {
@@ -427,9 +432,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			return err
 		}
 		// notify all subscribers of newTxEvent
-		for _, subscriber := range pool.OnNewTxReceived {
-			log.Trace("notify subscriber")
-			<-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
+		for name, subscriber := range pool.onNewTxReceived {
+			log.WithField("tx", tx).Trace("notify subscriber: ", name)
+			subscriber <- tx
+			// <-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 		}
 	}
 
@@ -596,13 +602,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-		<-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
+		c <- elders
+		// <-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-	<-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
+	pool.OnNewLatestSequencer <- true
+	// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
 
+	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	return nil
 }
 
@@ -621,12 +629,16 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	batch := make(map[types.Hash]types.Txi)
 
 	inSeekingPool := map[types.Hash]int{}
-	seekingPool := list.New()
+	seekingPool := []types.Hash{}
 	for _, parentHash := range baseTx.Parents() {
-		seekingPool.PushBack(parentHash)
+		seekingPool = append(seekingPool, parentHash)
+		// seekingPool.PushBack(parentHash)
 	}
-	for seekingPool.Len() > 0 {
-		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+	for len(seekingPool) > 0 {
+		elderHash := seekingPool[0]
+		seekingPool = seekingPool[1:]
+		// elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+
 		elder := pool.get(elderHash)
 		if elder == nil {
 			elder = pool.dag.GetTx(elderHash)
@@ -640,7 +652,8 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
-				seekingPool.PushBack(elderParentHash)
+				seekingPool = append(seekingPool, elderParentHash)
+				// seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
 			}
 		}
@@ -725,8 +738,8 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-// solveConflicts reproduce all the txs in pool to make sure
-// all the txs are correct after seq confirmation.
+// solveConflicts reprocess all txs in the pool in order to
+// make sure all txs are correct after seq confirmation.
 func (pool *TxPool) solveConflicts() {
 	txsInPool := []types.Txi{}
 	for _, hash := range pool.txLookup.getorder() {
@@ -769,7 +782,6 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 			return fmt.Errorf("nonce %d is not zero when there is no nonce in db, addr: %s", nonces[0], addr.String())
 		}
 	} else {
-		log.Debugf("in verifyNonce with nErr: %v", nErr)
 		if nonces[0] != latestNonce+1 {
 			return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
 		}

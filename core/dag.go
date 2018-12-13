@@ -2,17 +2,16 @@ package core
 
 import (
 	"fmt"
-	"sort"
+	"time"
 
 	// "fmt"
 	"sync"
-	"time"
 
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type DagConfig struct{}
@@ -22,10 +21,12 @@ type Dag struct {
 
 	db       ogdb.Database
 	accessor *Accessor
-	statedb  *StateDB
+	statedb  *state.StateDB
 
 	genesis        *types.Sequencer
 	latestSeqencer *types.Sequencer
+
+	txcached *txcached
 
 	close chan struct{}
 
@@ -33,22 +34,25 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, db ogdb.Database) *Dag {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
-	stateDBConfig := StateDBConfig{
-		FlushTimer:     time.Duration(viper.GetInt("statedb.flush_timer_s")),
-		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
-		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
+	if err != nil {
+		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 
 	dag.conf = conf
 	dag.db = db
+	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
-	dag.statedb = NewStateDB(stateDBConfig, db, dag.accessor)
+	// TODO
+	// default maxsize of txcached is 10000,
+	// move this size to config later.
+	dag.txcached = newTxcached(10000)
 	dag.close = make(chan struct{})
 
-	return dag
+	return dag, nil
 }
 
 func DefaultDagConfig() DagConfig {
@@ -131,8 +135,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	return nil
 }
 
-// LoadLastState load genesis and latestsequencer data from ogdb. return false if there
-// is no genesis stored in the db.
+// LoadLastState load genesis and latestsequencer data from ogdb.
+// return false if there is no genesis stored in the db.
 func (dag *Dag) LoadLastState() bool {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
@@ -192,6 +196,10 @@ func (dag *Dag) GetTx(hash types.Hash) types.Txi {
 	return dag.getTx(hash)
 }
 func (dag *Dag) getTx(hash types.Hash) types.Txi {
+	tx := dag.txcached.get(hash)
+	if tx != nil {
+		return tx
+	}
 	return dag.accessor.ReadTransaction(hash)
 }
 
@@ -229,7 +237,7 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 	return txs
 }
 
-// GetTxConfirmId returns the id of the sequencer that confirm this tx.
+// GetTxConfirmId returns the id of sequencer that confirm this tx.
 func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -237,7 +245,11 @@ func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
 	return dag.getTxConfirmId(hash)
 }
 func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
-	return dag.accessor.ReadTxSeqRelation(hash)
+	tx := dag.getTx(hash)
+	if tx == nil {
+		return 0, fmt.Errorf("hash not exists: %s", hash.String())
+	}
+	return tx.GetBase().GetHeight(), nil
 }
 
 func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
@@ -324,6 +336,23 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
+func (dag *Dag) GetConfirmTime(seqId uint64) *types.ConfirmTime {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	return dag.getConfirmTime(seqId)
+}
+
+func (dag *Dag) getConfirmTime(seqId uint64) *types.ConfirmTime {
+	if seqId == 0 {
+		return nil
+	}
+	cf := dag.accessor.readConfirmTime(seqId)
+	if cf == nil {
+		log.Warn("ConfirmTime not found")
+	}
+	return cf
+}
+
 func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashes {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -366,18 +395,6 @@ func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
 	return dag.statedb.GetNonce(addr)
 }
 
-// // HasLatestNonce returns true if addr already sent any txs to db.
-// func (dag *Dag) HasLatestNonce(addr types.Address) (bool, error) {
-// 	dag.mu.RLock()
-// 	defer dag.mu.RUnlock()
-
-// 	return dag.hasLatestNonce(addr)
-// }
-
-// func (dag *Dag) hasLatestNonce(addr types.Address) (bool, error) {
-// 	return dag.accessor.HasAddrLatestNonce(addr)
-// }
-
 //GetTxsByAddress get all txs from this address
 func (dag *Dag) GetTxsByAddress(addr types.Address) []types.Txi {
 	dag.mu.RLock()
@@ -416,6 +433,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	var err error
+
+	// TODO batch is not used properly.
 	dbBatch := dag.db.NewBatch()
 
 	// store the tx and update the state
@@ -424,25 +443,23 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		if txlist == nil {
 			return fmt.Errorf("batch detail does't have txlist")
 		}
-		sort.Sort(txlist.keys)
+		// sort.Sort(txlist.keys)
 		for _, nonce := range *txlist.keys {
 			txi := txlist.get(nonce)
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
-
+			txi.GetBase().Height = batch.Seq.Id
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
-
-			err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
-			if err != nil {
-				return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
-			}
 		}
 	}
-	go dag.statedb.Flush()
+
+	// TODO
+	// get new trie root after commit, then compare new root
+	// to the root in seq. If not equal then return error.
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
@@ -454,6 +471,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// save latest sequencer into db
+	batch.Seq.GetBase().Height = batch.Seq.Id
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
 	if err != nil {
 		return err
@@ -471,10 +489,40 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.latestSeqencer = batch.Seq
 
+	// commit statedb changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: %v", err)
+	}
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, true)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+	}
+
+	// TODO: confirm time is for tps calculation, delete later.
+	cf := types.ConfirmTime{
+		SeqId:       batch.Seq.Id,
+		TxNum:       uint64(txHashNum),
+		ConfirmTime: time.Now().Format(time.RFC3339Nano),
+	}
+	dag.writeConfirmTime(&cf)
+
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil
+}
+
+func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
+	return dag.accessor.writeConfirmTime(cf)
+}
+
+func (dag *Dag) ReadConfirmTime(seqId uint64) *types.ConfirmTime {
+	return dag.accessor.readConfirmTime(seqId)
 }
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
@@ -510,5 +558,50 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
+	dag.txcached.add(tx)
 	return nil
+}
+
+type txcached struct {
+	maxsize int
+	order   []types.Hash
+	txs     map[types.Hash]types.Txi
+}
+
+func newTxcached(maxsize int) *txcached {
+	return &txcached{
+		maxsize: maxsize,
+		order:   []types.Hash{},
+		txs:     make(map[types.Hash]types.Txi),
+	}
+}
+
+func (tc *txcached) get(hash types.Hash) types.Txi {
+	return tc.txs[hash]
+}
+
+func (tc *txcached) add(tx types.Txi) {
+	if _, ok := tc.txs[tx.GetTxHash()]; ok {
+		return
+	}
+	if len(tc.order) >= tc.maxsize {
+		fstHash := tc.order[0]
+		delete(tc.txs, fstHash)
+		tc.order = tc.order[1:]
+	}
+	tc.order = append(tc.order, tx.GetTxHash())
+	tc.txs[tx.GetTxHash()] = tx
+}
+
+func (tc *txcached) remove(hash types.Hash) {
+	if _, ok := tc.txs[hash]; !ok {
+		return
+	}
+	for i := 0; i < len(tc.order); i++ {
+		if tc.order[i] == hash {
+			tc.order = append(tc.order[0:i], tc.order[i+1:]...)
+			break
+		}
+	}
+	delete(tc.txs, hash)
 }

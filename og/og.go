@@ -2,12 +2,15 @@ package og
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 )
@@ -22,8 +25,8 @@ type Og struct {
 
 	BootstrapNode bool
 	NetworkId     uint64
-
-	quit chan bool
+	CryptoType    crypto.CryptoType
+	quit          chan bool
 }
 
 func (og *Og) GetCurrentNodeStatus() StatusData {
@@ -57,12 +60,20 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
+	og.CryptoType = config.CryptoType
 	db, derr := CreateDB()
 	if derr != nil {
 		return nil, derr
 	}
 	dagconfig := core.DagConfig{}
-	og.Dag = core.NewDag(dagconfig, db)
+	statedbConfig := state.StateDBConfig{
+		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
+		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
+	}
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db)
+	if derr != nil {
+		return nil, derr
+	}
 
 	txpoolconfig := core.TxPoolConfig{
 		QueueSize:              viper.GetInt("txpool.queue_size"),
@@ -168,10 +179,9 @@ func (og *Og) BrodcastLatestSequencer() {
 		case <-og.NewLatestSequencerCh:
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
-			msgTx := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
-			data, _ := msgTx.MarshalMsg(nil)
+			msg := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
 			// latest sequencer updated , broadcast it
-			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, data)
+			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 		case <-og.quit:
 			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
 			return

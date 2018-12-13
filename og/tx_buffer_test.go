@@ -2,6 +2,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/magiconair/properties/assert"
@@ -85,10 +86,20 @@ func (d *dummyTxPool) AddRemoteTx(tx types.Txi) error {
 	return nil
 }
 
+func (d *dummyTxPool)IsLocalHash(hash types.Hash) bool{
+	return false
+}
+
 type dummySyncer struct {
 	dmap                map[types.Hash]types.Txi
 	buffer              *TxBuffer
 	acquireTxDedupCache gcache.Cache
+}
+
+func (d *dummySyncer) ClearQueue() {
+	for k := range d.dmap {
+		delete(d.dmap,k)
+	}
 }
 
 func (d *dummySyncer) Know(tx types.Txi) {
@@ -103,7 +114,7 @@ func (d *dummySyncer) Enqueue(hash types.Hash) {
 	d.acquireTxDedupCache.Set(hash, struct{}{})
 
 	if v, ok := d.dmap[hash]; ok {
-		d.buffer.AddTx(v)
+		<-ffchan.NewTimeoutSenderShort(d.buffer.ReceivedNewTxChan, v, "test").C
 		logrus.WithField("hash", hash).Infof("syncer added tx")
 		logrus.WithField("hash", hash).Infof("syncer returned tx")
 	} else {
@@ -114,20 +125,18 @@ func (d *dummySyncer) Enqueue(hash types.Hash) {
 
 type dummyVerifier struct{}
 
-func (d *dummyVerifier) VerifyGraphOrder(t types.Txi) bool {
+func (d *dummyVerifier) Verify(t types.Txi) bool {
 	return true
 }
 
-func (d *dummyVerifier) VerifyHash(t types.Txi) bool {
-	return true
-}
-func (d *dummyVerifier) VerifySignature(t types.Txi) bool {
-	return true
+func (d *dummyVerifier) Name()string {
+	return "dumnmy verifier"
 }
 
 func setup() *TxBuffer {
+	ver := new(dummyVerifier)
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifier:               new(dummyVerifier),
+		Verifiers:               []Verifier{ver},
 		DependencyCacheMaxSize: 20,
 		TxPool:                 new(dummyTxPool),
 		Dag:                    new(dummyDag),
@@ -137,11 +146,9 @@ func setup() *TxBuffer {
 		KnownCacheMaxSize:                10000,
 		KnownCacheExpirationSeconds:      30,
 	})
-	hubCOnfig := DefaultHubConfig()
-	buffer.Hub = NewHub(&hubCOnfig, 0, buffer.dag, buffer.txPool)
-	buffer.syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
-	buffer.syncer.(*dummySyncer).buffer = buffer
-	buffer.syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
+	buffer.Syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
+	buffer.Syncer.(*dummySyncer).buffer = buffer
+	buffer.Syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
 		Expiration(time.Second * 10).Build()
 	buffer.dag.(*dummyDag).init()
 	buffer.txPool.(*dummyTxPool).init()
@@ -177,7 +184,7 @@ func TestBuffer(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.syncer.(*dummySyncer)
+	m := buffer.Syncer.(*dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}))
 	m.Know(sampleTx("0x03", []string{"0x00"}))
@@ -187,7 +194,8 @@ func TestBuffer(t *testing.T) {
 	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
 	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
 	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	buffer.AddTx(sampleTx("0x0A", []string{"0x09"}))
+	tx := sampleTx("0x0A", []string{"0x09"})
+	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	//buffer.AddTx(sampleTx("0x09", []string{"0x04"}))
 
 	doTest(buffer)
@@ -200,7 +208,7 @@ func TestBufferMissing3(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.syncer.(*dummySyncer)
+	m := buffer.Syncer.(*dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}))
 	//m.Know(sampleTx("0x03", []string{"0x00"}))
@@ -210,7 +218,8 @@ func TestBufferMissing3(t *testing.T) {
 	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
 	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
 	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	buffer.AddTx(sampleTx("0x0A", []string{"0x09"}))
+	tx := sampleTx("0x0A", []string{"0x09"})
+	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	//buffer.AddTx(sampleTx("0x09", []string{"0x04"}))
 
 	doTest(buffer)
@@ -224,8 +233,9 @@ func TestBufferCache(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.syncer.(*dummySyncer)
-	buffer.AddTx(sampleTx("0x0A", []string{"0x09"}))
+	m := buffer.Syncer.(*dummySyncer)
+	tx :=sampleTx("0x0A", []string{"0x09"})
+	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	buffer.Start()
 	success := false
 	for i := 0; i < 8; i++ {
@@ -259,3 +269,5 @@ func TestLocalHash(t *testing.T) {
 		t.Fatal("is not localhash")
 	}
 }
+
+

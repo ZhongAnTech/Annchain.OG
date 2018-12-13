@@ -233,7 +233,6 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 				return false, n, err
 			}
 			sn := &ShortNode{n.Key, nn, t.newFlag()}
-			log.Debugf("new shortnode with key: %x", sn.Key)
 			return true, sn, nil
 		}
 		// Otherwise branch out at the index where they differ.
@@ -253,7 +252,6 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		}
 		// Otherwise, replace it with a short node leading up to the branch.
 		sn := &ShortNode{key[:matchlen], branch, t.newFlag()}
-		log.Debugf("new shortnode with key: %x", sn.Key)
 		return true, sn, nil
 
 	case *FullNode:
@@ -268,7 +266,6 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 
 	case nil:
 		sn := &ShortNode{key, value, t.newFlag()}
-		log.Debugf("new shortnode with key: %x", sn.Key)
 		return true, sn, nil
 
 	case HashNode:

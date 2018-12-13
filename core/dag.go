@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	// "fmt"
@@ -444,7 +443,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		if txlist == nil {
 			return fmt.Errorf("batch detail does't have txlist")
 		}
-		sort.Sort(txlist.keys)
+		// sort.Sort(txlist.keys)
 		for _, nonce := range *txlist.keys {
 			txi := txlist.get(nonce)
 			if txi == nil {

@@ -48,16 +48,17 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	if !(t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("MinedHash is not less than MaxMinedHash")
+	calMinedHash := t.CalcMinedHash()
+	if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
+		logrus.WithField("tx", t).WithField("hash", calMinedHash.String()).Debug("MinedHash is not less than MaxMinedHash")
 		return false
 	}
 	if t.CalcTxHash() != t.GetTxHash() {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not aligned with content")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not aligned with content")
 		return false
 	}
 	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not less than MaxTxHash")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}
 	return true

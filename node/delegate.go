@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -81,7 +80,8 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 }
 
 func (c *Delegate) Announce(txi types.Txi) {
-	for i, ch := range c.OnNewTxiGenerated {
-		<-ffchan.NewTimeoutSenderShort(ch, txi, fmt.Sprintf("OnNewTxiGenerated_%d", i)).C
+	for _, ch := range c.OnNewTxiGenerated {
+		ch <- txi
+		// <-ffchan.NewTimeoutSenderShort(ch, txi, fmt.Sprintf("OnNewTxiGenerated_%d", i)).C
 	}
 }

@@ -238,7 +238,9 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+	logrus.WithField("tx", tx).Trace("before cache GetIFPresent")
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
 		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")

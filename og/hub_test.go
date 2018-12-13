@@ -7,6 +7,7 @@ import (
 
 // Tests that protocol versions and modes of operations are matched up properly.
 func TestProtocolCompatibility(t *testing.T) {
+
 	// Define the compatibility chart
 	tests := []struct {
 		version    uint

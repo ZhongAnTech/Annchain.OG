@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/ffchan"
+	// "github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
@@ -83,10 +83,10 @@ func (c *CatchupSyncer) Start() {
 }
 
 func (c *CatchupSyncer) Stop() {
-	<-ffchan.NewTimeoutSender(c.quit, true, "catchupSyncerQuit", 1000).C
-	<-ffchan.NewTimeoutSender(c.quitLoopEvent, true, "catchupSyncerQuitLoopEvent", 1000).C
-	//c.quit <- true
-	//c.quitLoopEvent <- true
+	c.quit <- true
+	c.quitLoopEvent <- true
+	// <-ffchan.NewTimeoutSender(c.quit, true, "catchupSyncerQuit", 1000).C
+	// <-ffchan.NewTimeoutSender(c.quitLoopEvent, true, "catchupSyncerQuitLoopEvent", 1000).C
 }
 
 func (CatchupSyncer) Name() string {
@@ -256,6 +256,7 @@ func (c *CatchupSyncer) NotifyWorkingStateChanged(status CatchupSyncerStatus) {
 	}
 	c.WorkState = status
 	for _, ch := range c.OnWorkingStateChanged {
-		<-ffchan.NewTimeoutSender(ch, status, "NotifyWorkingStateChanged", 1000).C
+		ch <- status
+		// <-ffchan.NewTimeoutSender(ch, status, "NotifyWorkingStateChanged", 1000).C
 	}
 }

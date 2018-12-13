@@ -1,4 +1,4 @@
-package core
+package state
 
 import (
 	"fmt"
@@ -6,20 +6,16 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type StateDBConfig struct {
-	FlushTimer     time.Duration
 	PurgeTimer     time.Duration
 	BeatExpireTime time.Duration
 }
 
 func DefaultStateDBConfig() StateDBConfig {
 	return StateDBConfig{
-		FlushTimer:     time.Duration(5000),
 		PurgeTimer:     time.Duration(10000),
 		BeatExpireTime: time.Duration(10 * time.Minute),
 	}
@@ -28,10 +24,9 @@ func DefaultStateDBConfig() StateDBConfig {
 type StateDB struct {
 	conf StateDBConfig
 
-	db       ogdb.Database
-	accessor *Accessor
+	db   Database
+	trie Trie
 
-	// txs      *CacheTxs
 	states   map[types.Address]*State
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time
@@ -41,11 +36,15 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, db ogdb.Database, acc *Accessor) *StateDB {
+func NewStateDB(conf StateDBConfig, root types.Hash, db Database) (*StateDB, error) {
+	tr, err := db.OpenTrie(root)
+	if err != nil {
+		return nil, err
+	}
 	sd := &StateDB{
 		conf:     conf,
 		db:       db,
-		accessor: acc,
+		trie:     tr,
 		states:   make(map[types.Address]*State),
 		dirtyset: make(map[types.Address]struct{}),
 		beats:    make(map[types.Address]time.Time),
@@ -53,11 +52,15 @@ func NewStateDB(conf StateDBConfig, db ogdb.Database, acc *Accessor) *StateDB {
 	}
 
 	go sd.loop()
-	return sd
+	return sd, nil
 }
 
 func (sd *StateDB) Stop() {
 	close(sd.close)
+}
+
+func (sd *StateDB) Database() Database {
+	return sd.db
 }
 
 // CreateNewState will create a new state for input address and
@@ -131,7 +134,8 @@ func (sd *StateDB) getState(addr types.Address) (*State, error) {
 	return state, nil
 }
 
-// GetOrCreateState
+// GetOrCreateState will find a state from memory by account address.
+// If state not exists, it will load a state from db.
 func (sd *StateDB) GetOrCreateState(addr types.Address) *State {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
@@ -218,10 +222,10 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
+	defer sd.refreshbeat(addr)
 	sd.setBalance(addr, balance)
 }
 func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
-	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateState(addr)
 	state.SetBalance(balance)
 
@@ -239,29 +243,18 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.updateState(addr, state)
 }
 
-// Load data from db.
+// laodState loads a state from current trie.
 func (sd *StateDB) loadState(addr types.Address) (*State, error) {
-	return sd.accessor.LoadState(addr)
-}
-
-func (sd *StateDB) Flush() {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
-
-	sd.flush()
-}
-
-// flush tries to save those dirty data to disk db.
-func (sd *StateDB) flush() {
-	for addr, _ := range sd.dirtyset {
-		state, exist := sd.states[addr]
-		if !exist {
-			log.Warnf("can't find dirty state in StateDB, addr: %s", addr.String())
-			continue
-		}
-		sd.accessor.SaveState(addr, state)
+	data, err := sd.trie.TryGet(addr.ToBytes())
+	if err != nil {
+		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
-	sd.dirtyset = make(map[types.Address]struct{})
+	var state State
+	_, err = state.UnmarshalMsg(data)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal err: %v", err)
+	}
+	return &state, nil
 }
 
 // purge tries to remove all the state that haven't sent any beat
@@ -285,17 +278,43 @@ func (sd *StateDB) refreshbeat(addr types.Address) {
 	sd.beats[addr] = time.Now()
 }
 
+// Commit tries to save dirty data to memory trie db.
+func (sd *StateDB) Commit() (types.Hash, error) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	return sd.commit()
+}
+
+// commit tries to save dirty data to memory trie db.
+//
+// Note that commit doesn't hold any StateDB locks.
+func (sd *StateDB) commit() (types.Hash, error) {
+	// TODO
+	// use journal to set some state to dirty.
+
+	for addr, state := range sd.states {
+		if _, isdirty := sd.dirtyset[addr]; !isdirty {
+			continue
+		}
+		// update state data in current trie.
+		data, _ := state.MarshalMsg(nil)
+		sd.trie.TryUpdate(addr.ToBytes(), data)
+		delete(sd.dirtyset, addr)
+	}
+	// commit current trie into triedb.
+	// TODO later need onleaf callback to link account trie to storage trie.
+	rootHash, err := sd.trie.Commit(nil)
+	return rootHash, err
+}
+
 func (sd *StateDB) loop() {
-	// flushTimer := time.NewTicker(sd.conf.FlushTimer)
 	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
 
 	for {
 		select {
 		case <-sd.close:
 			purgeTimer.Stop()
-			// sd.mu.Lock()
-			// sd.flush()
-			// sd.mu.Unlock()
 			return
 
 		case <-purgeTimer.C:

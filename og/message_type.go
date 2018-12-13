@@ -59,6 +59,14 @@ const (
 	GetReceiptsMsg
 )
 
+type SendingType uint8
+
+const (
+	sendingTypeBroacast SendingType = iota
+	sendingTypeMulticast
+	sendingTypeMulticastToSource
+)
+
 func (mt MessageType) String() string {
 	return []string{
 		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHashRequest", "MessageTypeFetchByHashResponse",
@@ -70,26 +78,46 @@ func (mt MessageType) String() string {
 }
 
 type P2PMessage struct {
-	MessageType       MessageType
-	Message           []byte
-	hash              types.Hash //inner use to avoid resend a message to the same peer
-	needCheckRepeat   bool
-	SourceID          string // the source that this message  coming from
-	BroadCastToRandom bool   //just broadcast to random peer
-	Version           int    // peer version.
+	MessageType MessageType
+	data        []byte
+	hash        types.Hash  //inner use to avoid resend a message to the same peer
+	SourceID    string      // the source that this message  coming from ,fou outgoing it is nil
+	sendingType SendingType //sending type
+	Version     int         // peer version.
+	Message     types.Message
+	SourceHash  *types.Hash
 }
 
 func (m *P2PMessage) calculateHash() {
-	// TODO: implement hash for message
+
 	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
 	//for request ,if source id is different they were different  msg ,don't drop it
 	//if we dropped header response because of duplicate , header request will time out
-	data := m.Message
+	data := m.data
+	var hash *types.Hash
 	if m.MessageType == MessageTypeBodiesRequest || m.MessageType == MessageTypeFetchByHashRequest ||
 		m.MessageType == MessageTypeTxsRequest || m.MessageType == MessageTypeHeaderRequest ||
 		m.MessageType == MessageTypeSequencerHeader || m.MessageType == MessageTypeHeaderResponse ||
 		m.MessageType == MessageTypeBodiesResponse {
 		data = append(data, []byte(m.SourceID+"hi")...)
+	} else if m.MessageType == MessageTypeNewTx {
+		msg := m.Message.(*types.MessageNewTx)
+		hash = msg.GetHash()
+		if hash != nil {
+			m.hash = *hash
+			return
+		} else {
+			msgLog.Error("hash is nil , programmer error")
+		}
+	} else if m.MessageType == MessageTypeNewSequencer {
+		msg := m.Message.(*types.MessageNewSequencer)
+		hash = msg.GetHash()
+		if hash != nil {
+			m.hash = *hash
+			return
+		} else {
+			msgLog.Error("hash is nil , programmer error")
+		}
 	}
 
 	h := sha256.New()
@@ -97,13 +125,6 @@ func (m *P2PMessage) calculateHash() {
 	sum := h.Sum(nil)
 	m.hash.MustSetBytes(sum, types.PaddingNone)
 	return
-}
-
-func (m *P2PMessage) init() {
-	if m.MessageType != MessageTypePing && m.MessageType != MessageTypePong {
-		m.needCheckRepeat = true
-		m.calculateHash()
-	}
 }
 
 type errCode int
@@ -167,4 +188,42 @@ func MsgCountInit() {
 	MsgCounter = &MessageCounter{
 		requestId: 1,
 	}
+}
+
+func (p *P2PMessage) GetMessage() error {
+	switch p.MessageType {
+	case MessageTypePing:
+		p.Message = &types.MessagePing{}
+	case MessageTypePong:
+		p.Message = &types.MessagePong{}
+	case MessageTypeFetchByHashRequest:
+		p.Message = &types.MessageSyncRequest{}
+	case MessageTypeFetchByHashResponse:
+		p.Message = &types.MessageSyncResponse{}
+	case MessageTypeNewTx:
+		p.Message = &types.MessageNewTx{}
+	case MessageTypeNewSequencer:
+		p.Message = &types.MessageNewSequencer{}
+	case MessageTypeNewTxs:
+		p.Message = &types.MessageNewTxs{}
+	case MessageTypeSequencerHeader:
+		p.Message = &types.MessageSequencerHeader{}
+
+	case MessageTypeBodiesRequest:
+		p.Message = &types.MessageBodiesRequest{}
+	case MessageTypeBodiesResponse:
+		p.Message = &types.MessageBodiesResponse{}
+
+	case MessageTypeTxsRequest:
+		p.Message = &types.MessageTxsRequest{}
+	case MessageTypeTxsResponse:
+		p.Message = &types.MessageTxsResponse{}
+	case MessageTypeHeaderRequest:
+		p.Message = &types.MessageHeaderRequest{}
+	case MessageTypeHeaderResponse:
+		p.Message = &types.MessageHeaderResponse{}
+	default:
+		return fmt.Errorf("unkown mssage type %v ", p.MessageType)
+	}
+	return nil
 }

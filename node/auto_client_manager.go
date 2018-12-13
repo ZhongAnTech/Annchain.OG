@@ -62,9 +62,9 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	}
 }
 
-func (m*AutoClientManager)SetTxIntervalMs(interval  int ) {
-	for i:=0;i<len(m.Clients);i++ {
-		if m.Clients[i]!=nil {
+func (m *AutoClientManager) SetTxIntervalMs(interval int) {
+	for i := 0; i < len(m.Clients); i++ {
+		if m.Clients[i] != nil {
 			m.Clients[i].SetTxIntervalMs(interval)
 		}
 

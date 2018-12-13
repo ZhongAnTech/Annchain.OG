@@ -50,7 +50,7 @@ func TestContractSmallStorage(t *testing.T) {
 	ovm := ovm.NewOVM(context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
 
 	logrus.Info("Deploying contract")
-	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
@@ -73,7 +73,7 @@ func TestContractSmallStorage(t *testing.T) {
 	input = append(input, contractAddress...)
 	input = append(input, name[:]...)
 
-	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(coinBase), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Called contract")
 	fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 	fmt.Println(ldb.String())

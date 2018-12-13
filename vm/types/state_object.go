@@ -13,10 +13,11 @@ type StateObject struct {
 	CodeHash types.Hash
 	States   map[types.Hash]types.Hash
 	Suicided bool
+	Version int
 }
 
 func (s *StateObject) String() string {
-	return fmt.Sprintf("Balance %s Nonce %d CodeLen: %d CodeHash: %s", s.Balance, s.Nonce, len(s.Code), s.CodeHash.String())
+	return fmt.Sprintf("Balance %s Nonce %d CodeLen: %d CodeHash: %s States: %d Version: %d", s.Balance, s.Nonce, len(s.Code), s.CodeHash.String(), len(s.States), s.Version)
 }
 
 func (s *StateObject) Empty() bool {
@@ -33,10 +34,11 @@ func (s *StateObject) Copy() (d *StateObject) {
 
 	d.States = make(map[types.Hash]types.Hash)
 	for k, v := range s.States {
-		d.States[k] = v
+		d.States[types.BytesToHash(k.Bytes[:])] = types.BytesToHash(v.Bytes[:])
 	}
 
 	d.Suicided = s.Suicided
+	d.Version = s.Version +1
 	return d
 }
 

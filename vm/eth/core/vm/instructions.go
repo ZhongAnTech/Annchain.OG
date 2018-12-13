@@ -388,13 +388,15 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 		interpreter.hasher.Reset()
 	}
 	interpreter.hasher.Write(data)
-	interpreter.hasher.Read(interpreter.hasherBuf.ToBytes())
+	hasherBufBytes := interpreter.hasherBuf.ToBytes()
+	interpreter.hasher.Read(hasherBufBytes)
+	interpreter.hasherBuf = types.BytesToHash(hasherBufBytes)
 
 	evm := interpreter.ctx
 	if interpreter.Cfg.EnablePreimageRecording {
 		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
 	}
-	stack.push(interpreter.intPool.get().SetBytes(interpreter.hasherBuf.ToBytes()))
+	stack.push(interpreter.intPool.get().SetBytes(hasherBufBytes))
 
 	interpreter.intPool.put(offset, size)
 	return nil, nil

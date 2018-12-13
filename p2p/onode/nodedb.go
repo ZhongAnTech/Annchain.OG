@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package enode
+package onode
 
 import (
 	"bytes"
@@ -190,7 +190,7 @@ func mustDecodeNode(id, data []byte) *Node {
 	node := new(Node)
 	var r enr.Record
 	if _, err := r.Decode(data); err != nil {
-		panic(fmt.Errorf("p2p/enode: can't decode node %x in DB: %v", id, err))
+		panic(fmt.Errorf("p2p/onode: can't decode node %x in DB: %v", id, err))
 	}
 	node.R = r
 	// Restore node id cache.

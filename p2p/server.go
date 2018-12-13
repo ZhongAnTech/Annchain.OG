@@ -23,7 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"sort"
 
@@ -93,7 +93,7 @@ type Config struct {
 
 	// BootstrapNodes are used to establish connectivity
 	// with the rest of the network.
-	BootstrapNodes []*enode.Node
+	BootstrapNodes []*onode.Node
 
 	// BootstrapNodesV5 are used to establish connectivity
 	// with the rest of the network using the V5 discovery
@@ -102,11 +102,11 @@ type Config struct {
 
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
-	StaticNodes []*enode.Node
+	StaticNodes []*onode.Node
 
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
-	TrustedNodes []*enode.Node
+	TrustedNodes []*onode.Node
 
 	// Connectivity can be restricted to certain IP networks.
 	// If this option is set to a non-nil value, only hosts which match one of the
@@ -160,8 +160,8 @@ type Server struct {
 	lock    sync.Mutex // protects running
 	running bool
 
-	nodedb    *enode.DB
-	localnode *enode.LocalNode
+	nodedb    *onode.DB
+	localnode *onode.LocalNode
 
 	ntab         discoverTable
 	listener     net.Listener
@@ -174,10 +174,10 @@ type Server struct {
 	peerOpDone chan struct{}
 
 	quit          chan struct{}
-	addstatic     chan *enode.Node
-	removestatic  chan *enode.Node
-	addtrusted    chan *enode.Node
-	removetrusted chan *enode.Node
+	addstatic     chan *onode.Node
+	removestatic  chan *onode.Node
+	addtrusted    chan *onode.Node
+	removetrusted chan *onode.Node
 	posthandshake chan *conn
 	addpeer       chan *conn
 	delpeer       chan peerDrop
@@ -185,7 +185,7 @@ type Server struct {
 	//peerFeed      event.Feed
 }
 
-type peerOpFunc func(map[enode.ID]*Peer)
+type peerOpFunc func(map[onode.ID]*Peer)
 
 type peerDrop struct {
 	*Peer
@@ -207,7 +207,7 @@ const (
 type conn struct {
 	fd net.Conn
 	transport
-	node  *enode.Node
+	node  *onode.Node
 	flags connFlag
 	cont  chan error // The run loop uses cont to signal errors to SetupConn.
 	caps  []Cap      // valid after the protocol handshake
@@ -230,7 +230,7 @@ type transport interface {
 
 func (c *conn) String() string {
 	s := c.flags.String()
-	if (c.node.ID() != enode.ID{}) {
+	if (c.node.ID() != onode.ID{}) {
 		s += " " + c.node.ID().String()
 	}
 	s += " " + c.fd.RemoteAddr().String()
@@ -285,7 +285,7 @@ func (srv *Server) Peers() []*Peer {
 	// Note: We'd love to put this function into a variable but
 	// that seems to cause a weird compiler error in some
 	// environments.
-	case srv.peerOp <- func(peers map[enode.ID]*Peer) {
+	case srv.peerOp <- func(peers map[onode.ID]*Peer) {
 		for _, p := range peers {
 			ps = append(ps, p)
 		}
@@ -300,7 +300,7 @@ func (srv *Server) Peers() []*Peer {
 func (srv *Server) PeerCount() int {
 	var count int
 	select {
-	case srv.peerOp <- func(ps map[enode.ID]*Peer) { count = len(ps) }:
+	case srv.peerOp <- func(ps map[onode.ID]*Peer) { count = len(ps) }:
 		<-srv.peerOpDone
 	case <-srv.quit:
 	}
@@ -310,7 +310,7 @@ func (srv *Server) PeerCount() int {
 // AddPeer connects to the given node and maintains the connection until the
 // server is shut down. If the connection fails for any reason, the server will
 // attempt to reconnect the peer.
-func (srv *Server) AddPeer(node *enode.Node) {
+func (srv *Server) AddPeer(node *onode.Node) {
 	select {
 	case srv.addstatic <- node:
 	case <-srv.quit:
@@ -318,7 +318,7 @@ func (srv *Server) AddPeer(node *enode.Node) {
 }
 
 // RemovePeer disconnects from the given node
-func (srv *Server) RemovePeer(node *enode.Node) {
+func (srv *Server) RemovePeer(node *onode.Node) {
 	select {
 	case srv.removestatic <- node:
 	case <-srv.quit:
@@ -327,7 +327,7 @@ func (srv *Server) RemovePeer(node *enode.Node) {
 
 // AddTrustedPeer adds the given node to a reserved whitelist which allows the
 // node to always connect, even if the slot are full.
-func (srv *Server) AddTrustedPeer(node *enode.Node) {
+func (srv *Server) AddTrustedPeer(node *onode.Node) {
 	select {
 	case srv.addtrusted <- node:
 	case <-srv.quit:
@@ -335,7 +335,7 @@ func (srv *Server) AddTrustedPeer(node *enode.Node) {
 }
 
 // RemoveTrustedPeer removes the given node from the trusted peer set.
-func (srv *Server) RemoveTrustedPeer(node *enode.Node) {
+func (srv *Server) RemoveTrustedPeer(node *onode.Node) {
 	select {
 	case srv.removetrusted <- node:
 	case <-srv.quit:
@@ -350,12 +350,12 @@ func (srv *Server) SubscribeEvents(ch chan *PeerEvent) event.Subscription {
 */
 
 // Self returns the local node's endpoint information.
-func (srv *Server) Self() *enode.Node {
+func (srv *Server) Self() *onode.Node {
 	srv.lock.Lock()
 	ln := srv.localnode
 	srv.lock.Unlock()
 	if ln == nil {
-		return enode.NewV4(&srv.PrivateKey.PublicKey, net.ParseIP("0.0.0.0"), 0, 0)
+		return onode.NewV4(&srv.PrivateKey.PublicKey, net.ParseIP("0.0.0.0"), 0, 0)
 	}
 	return ln.Node()
 }
@@ -446,10 +446,10 @@ func (srv *Server) start() (err error) {
 	srv.addpeer = make(chan *conn)
 	srv.delpeer = make(chan peerDrop)
 	srv.posthandshake = make(chan *conn)
-	srv.addstatic = make(chan *enode.Node)
-	srv.removestatic = make(chan *enode.Node)
-	srv.addtrusted = make(chan *enode.Node)
-	srv.removetrusted = make(chan *enode.Node)
+	srv.addstatic = make(chan *onode.Node)
+	srv.removestatic = make(chan *onode.Node)
+	srv.addtrusted = make(chan *onode.Node)
+	srv.removetrusted = make(chan *onode.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
 
@@ -482,12 +482,12 @@ func (srv *Server) setupLocalNode() error {
 	sort.Sort(CapsByNameAndVersion(srv.ourHandshake.Caps))
 
 	// Create the local node.
-	db, err := enode.OpenDB(srv.Config.NodeDatabase)
+	db, err := onode.OpenDB(srv.Config.NodeDatabase)
 	if err != nil {
 		return err
 	}
 	srv.nodedb = db
-	srv.localnode = enode.NewLocalNode(db, srv.PrivateKey)
+	srv.localnode = onode.NewLocalNode(db, srv.PrivateKey)
 	srv.localnode.SetFallbackIP(net.IP{127, 0, 0, 1})
 	cap := CapsByNameAndVersion(srv.ourHandshake.Caps)
 	srv.localnode.Set(&cap)
@@ -607,10 +607,10 @@ func (srv *Server) setupListening() error {
 }
 
 type dialer interface {
-	newTasks(running int, peers map[enode.ID]*Peer, now time.Time) []task
+	newTasks(running int, peers map[onode.ID]*Peer, now time.Time) []task
 	taskDone(task, time.Time)
-	addStatic(*enode.Node)
-	removeStatic(*enode.Node)
+	addStatic(*onode.Node)
+	removeStatic(*onode.Node)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -619,9 +619,9 @@ func (srv *Server) run(dialstate dialer) {
 	defer srv.nodedb.Close()
 
 	var (
-		peers        = make(map[enode.ID]*Peer)
+		peers        = make(map[onode.ID]*Peer)
 		inboundCount = 0
-		trusted      = make(map[enode.ID]bool, len(srv.TrustedNodes))
+		trusted      = make(map[onode.ID]bool, len(srv.TrustedNodes))
 		taskdone     = make(chan task, maxActiveDialTasks)
 		runningTasks []task
 		queuedTasks  []task // tasks that can't run yet
@@ -689,7 +689,7 @@ running:
 				p.Disconnect(DiscRequested)
 			}
 		case n := <-srv.addtrusted:
-			// This channel is used by AddTrustedPeer to add an enode
+			// This channel is used by AddTrustedPeer to add an onode
 			// to the trusted node set.
 			log.WithField("node", n).Trace("Adding trusted node")
 			trusted[n.ID()] = true
@@ -698,7 +698,7 @@ running:
 				p.rw.set(trustedConn, true)
 			}
 		case n := <-srv.removetrusted:
-			// This channel is used by RemoveTrustedPeer to remove an enode
+			// This channel is used by RemoveTrustedPeer to remove an onode
 			// from the trusted node set.
 			log.WithField("node", n).Trace("Removing trusted node")
 			if _, ok := trusted[n.ID()]; ok {
@@ -798,7 +798,7 @@ running:
 	}
 }
 
-func (srv *Server) protoHandshakeChecks(peers map[enode.ID]*Peer, inboundCount int, c *conn) error {
+func (srv *Server) protoHandshakeChecks(peers map[onode.ID]*Peer, inboundCount int, c *conn) error {
 	// Drop connections with no matching protocols.
 	if len(srv.Protocols) > 0 && countMatchingProtocols(srv.Protocols, c.caps) == 0 {
 		return DiscUselessPeer
@@ -808,7 +808,7 @@ func (srv *Server) protoHandshakeChecks(peers map[enode.ID]*Peer, inboundCount i
 	return srv.encHandshakeChecks(peers, inboundCount, c)
 }
 
-func (srv *Server) encHandshakeChecks(peers map[enode.ID]*Peer, inboundCount int, c *conn) error {
+func (srv *Server) encHandshakeChecks(peers map[onode.ID]*Peer, inboundCount int, c *conn) error {
 	switch {
 	case !c.is(trustedConn|staticDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
@@ -903,7 +903,7 @@ func (srv *Server) listenLoop() {
 // SetupConn runs the handshakes and attempts to add the connection
 // as a peer. It returns when the connection has been added as a peer
 // or the handshakes have failed.
-func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) error {
+func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *onode.Node) error {
 	self := srv.Self()
 	if self == nil {
 		return errors.New("shutdown")
@@ -922,7 +922,7 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) 
 	return err
 }
 
-func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) error {
+func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *onode.Node) error {
 	// Prevent leftover pending conns from entering the handshake.
 	srv.lock.Lock()
 	running := srv.running
@@ -937,7 +937,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	var dialPubkey *ecdsa.PublicKey
 	if dialDest != nil {
 		dialPubkey = new(ecdsa.PublicKey)
-		if err := dialDest.Load((*enode.Secp256k1)(dialPubkey)); err != nil {
+		if err := dialDest.Load((*onode.Secp256k1)(dialPubkey)); err != nil {
 			return fmt.Errorf("dial destination doesn't have a secp256k1 public key")
 		}
 	}
@@ -995,14 +995,14 @@ func truncateName(s string) string {
 	return s
 }
 
-func nodeFromConn(pubkey *ecdsa.PublicKey, conn net.Conn) *enode.Node {
+func nodeFromConn(pubkey *ecdsa.PublicKey, conn net.Conn) *onode.Node {
 	var ip net.IP
 	var port int
 	if tcp, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
 		ip = tcp.IP
 		port = tcp.Port
 	}
-	return enode.NewV4(pubkey, ip, port, port)
+	return onode.NewV4(pubkey, ip, port, port)
 }
 
 // checkpoint sends the conn to run, which performs the
@@ -1057,7 +1057,7 @@ type NodeInfo struct {
 	ID      string `json:"id"` // Unique node identifier (also the encryption key)
 	ShortId string `json:"short_id"`
 	Name    string `json:"name"`  // Name of the node, including client type, version, OS, custom data
-	Enode   string `json:"enode"` // Enode URL for adding this peer from remote peers
+	Onode   string `json:"onode"` // Onode URL for adding this peer from remote peers
 	ENR     string `json:"enr"`   // og Node Record
 	IP      string `json:"ip"`    // IP address of the node
 	Ports   struct {
@@ -1075,7 +1075,7 @@ func (srv *Server) NodeInfo() *NodeInfo {
 	// Gather and assemble the generic node infos
 	info := &NodeInfo{
 		Name:       srv.NodeName,
-		Enode:      node.String(),
+		Onode:      node.String(),
 		ID:         node.ID().String(),
 		ShortId:    node.ID().TerminalString(),
 		IP:         node.IP().String(),

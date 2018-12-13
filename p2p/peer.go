@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/mclock"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 )
 
 var (
@@ -77,7 +77,7 @@ const (
 // a p2p.Server or when a message is sent or received on a peer connection
 type PeerEvent struct {
 	Type     PeerEventType `json:"type"`
-	Peer     enode.ID      `json:"peer"`
+	Peer     onode.ID      `json:"peer"`
 	Error    string        `json:"error,omitempty"`
 	Protocol string        `json:"protocol,omitempty"`
 	MsgCode  *uint64       `json:"msg_code,omitempty"`
@@ -100,9 +100,9 @@ type Peer struct {
 }
 
 // NewPeer returns a peer for testing purposes.
-func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
+func NewPeer(id onode.ID, name string, caps []Cap) *Peer {
 	pipe, _ := net.Pipe()
-	node := enode.SignNull(new(enr.Record), id)
+	node := onode.SignNull(new(enr.Record), id)
 
 	conn := &conn{fd: pipe, transport: nil, node: node, caps: caps, name: name}
 	peer := newPeer(conn, nil)
@@ -111,12 +111,12 @@ func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
 }
 
 // ID returns the node's public key.
-func (p *Peer) ID() enode.ID {
+func (p *Peer) ID() onode.ID {
 	return p.rw.node.ID()
 }
 
 // Node returns the peer's node descriptor.
-func (p *Peer) Node() *enode.Node {
+func (p *Peer) Node() *onode.Node {
 	return p.rw.node
 }
 
@@ -409,7 +409,7 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 // peer. Sub-protocol independent fields are contained and initialized here, with
 // protocol specifics delegated to all connected sub-protocols.
 type PeerInfo struct {
-	Enode   string   `json:"enode"` //node url
+	Onode   string   `json:"onode"` //node url
 	ID      string   `json:"id"`    // Unique node identifier (also the encryption key)
 	ShortId string   `json:"short_id"`
 	Name    string   `json:"name"` // Name of the node, including client type, version, OS, custom data
@@ -433,7 +433,7 @@ func (p *Peer) Info() *PeerInfo {
 	}
 	// Assemble the generic peer metadata
 	info := &PeerInfo{
-		Enode:     p.Node().String(),
+		Onode:     p.Node().String(),
 		ID:        p.ID().String(),
 		ShortId:   p.ID().TerminalString(),
 		Name:      p.Name(),

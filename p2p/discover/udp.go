@@ -22,7 +22,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
@@ -159,7 +159,7 @@ func (t *udp) nodeFromRPC(sender *net.UDPAddr, rn RpcNode) (*node, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := wrapNode(enode.NewV4(key, rn.IP, int(rn.TCP), int(rn.UDP)))
+	n := wrapNode(onode.NewV4(key, rn.IP, int(rn.TCP), int(rn.UDP)))
 	err = n.ValidateComplete()
 	return n, err
 }
@@ -167,7 +167,7 @@ func (t *udp) nodeFromRPC(sender *net.UDPAddr, rn RpcNode) (*node, error) {
 func nodeToRPC(n *node) RpcNode {
 	var key ecdsa.PublicKey
 	var ekey EncPubkey
-	if err := n.Load((*enode.Secp256k1)(&key)); err == nil {
+	if err := n.Load((*onode.Secp256k1)(&key)); err == nil {
 		ekey = encodePubkey(&key)
 	}
 	return RpcNode{ID: ekey, IP: n.IP(), UDP: uint16(n.UDP()), TCP: uint16(n.TCP())}
@@ -190,8 +190,8 @@ type udp struct {
 	conn        conn
 	netrestrict *netutil.Netlist
 	priv        *ecdsa.PrivateKey
-	localNode   *enode.LocalNode
-	db          *enode.DB
+	localNode   *onode.LocalNode
+	db          *onode.DB
 	tab         *Table
 	wg          sync.WaitGroup
 
@@ -211,7 +211,7 @@ type udp struct {
 // to all the callback functions for that node.
 type pending struct {
 	// these fields must match in the reply.
-	from  enode.ID
+	from  onode.ID
 	ptype byte
 
 	// time when the request must complete
@@ -229,7 +229,7 @@ type pending struct {
 }
 
 type reply struct {
-	from  enode.ID
+	from  onode.ID
 	ptype byte
 	data  interface{}
 	// loop indicates whether there was
@@ -250,12 +250,12 @@ type Config struct {
 
 	// These settings are optional:
 	NetRestrict *netutil.Netlist  `msg:"-"` // network whitelist
-	Bootnodes   []*enode.Node     `msg:"-"` // list of bootstrap nodes
+	Bootnodes   []*onode.Node     `msg:"-"` // list of bootstrap nodes
 	Unhandled   chan<- ReadPacket `msg:"-"` // unhandled packets are sent on this channel
 }
 
 // ListenUDP returns a new table that listens for UDP packets on laddr.
-func ListenUDP(c conn, ln *enode.LocalNode, cfg Config) (*Table, error) {
+func ListenUDP(c conn, ln *onode.LocalNode, cfg Config) (*Table, error) {
 	tab, _, err := newUDP(c, ln, cfg)
 	if err != nil {
 		return nil, err
@@ -263,7 +263,7 @@ func ListenUDP(c conn, ln *enode.LocalNode, cfg Config) (*Table, error) {
 	return tab, nil
 }
 
-func newUDP(c conn, ln *enode.LocalNode, cfg Config) (*Table, *udp, error) {
+func newUDP(c conn, ln *onode.LocalNode, cfg Config) (*Table, *udp, error) {
 	udp := &udp{
 		conn:        c,
 		priv:        cfg.PrivateKey,
@@ -286,7 +286,7 @@ func newUDP(c conn, ln *enode.LocalNode, cfg Config) (*Table, *udp, error) {
 	return udp.tab, udp, nil
 }
 
-func (t *udp) self() *enode.Node {
+func (t *udp) self() *onode.Node {
 	return t.localNode.Node()
 }
 
@@ -302,13 +302,13 @@ func (t *udp) ourEndpoint() RpcEndpoint {
 }
 
 // ping sends a ping message to the given node and waits for a reply.
-func (t *udp) ping(toid enode.ID, toaddr *net.UDPAddr) error {
+func (t *udp) ping(toid onode.ID, toaddr *net.UDPAddr) error {
 	return <-t.sendPing(toid, toaddr, nil)
 }
 
 // sendPing sends a ping message to the given node and invokes the callback
 // when the reply arrives.
-func (t *udp) sendPing(toid enode.ID, toaddr *net.UDPAddr, callback func()) <-chan error {
+func (t *udp) sendPing(toid onode.ID, toaddr *net.UDPAddr, callback func()) <-chan error {
 	req := &Ping{
 		Version:    4,
 		From:       t.ourEndpoint(),
@@ -334,13 +334,13 @@ func (t *udp) sendPing(toid enode.ID, toaddr *net.UDPAddr, callback func()) <-ch
 	return errc
 }
 
-func (t *udp) waitping(from enode.ID) error {
+func (t *udp) waitping(from onode.ID) error {
 	return <-t.pending(from, pingPacket, func(interface{}) bool { return true })
 }
 
 // findnode sends a findnode request to the given node and waits until
 // the node has sent up to k neighbors.
-func (t *udp) findnode(toid enode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
+func (t *udp) findnode(toid onode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
 	// If we haven't seen a ping from the destination node for a while, it won't remember
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.LastPingReceived(toid)) > bondExpiration {
@@ -376,7 +376,7 @@ func (t *udp) findnode(toid enode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]
 
 // pending adds a reply callback to the pending reply queue.
 // see the documentation of type pending for a detailed explanation.
-func (t *udp) pending(id enode.ID, ptype byte, callback func(interface{}) bool) <-chan error {
+func (t *udp) pending(id onode.ID, ptype byte, callback func(interface{}) bool) <-chan error {
 	ch := make(chan error, 1)
 	p := &pending{from: id, ptype: ptype, callback: callback, errc: ch}
 	select {
@@ -388,7 +388,7 @@ func (t *udp) pending(id enode.ID, ptype byte, callback func(interface{}) bool) 
 	return ch
 }
 
-func (t *udp) handleReply(from enode.ID, ptype byte, req packet) bool {
+func (t *udp) handleReply(from onode.ID, ptype byte, req packet) bool {
 	matched := make(chan bool, 1)
 	select {
 	case t.gotreply <- reply{from, ptype, req, matched}:
@@ -671,7 +671,7 @@ func (req *Ping) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []byte
 
 	// Add the node to the table. Before doing so, ensure that we have a recent enough pong
 	// recorded in the database so their findnode requests will be accepted later.
-	n := wrapNode(enode.NewV4(key, from.IP, int(req.From.TCP), from.Port))
+	n := wrapNode(onode.NewV4(key, from.IP, int(req.From.TCP), from.Port))
 	if time.Since(t.db.LastPongReceived(n.ID())) > bondExpiration {
 		t.sendPing(n.ID(), from, func() { t.tab.addThroughPing(n) })
 	} else {
@@ -713,7 +713,7 @@ func (req *Findnode) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []
 		// findnode) to the victim.
 		return errUnknownNode
 	}
-	target := enode.ID(crypto.Keccak256Hash(req.Target[:]).Bytes)
+	target := onode.ID(crypto.Keccak256Hash(req.Target[:]).Bytes)
 	t.tab.mutex.Lock()
 	closest := t.tab.closest(target, bucketSize).entries
 	t.tab.mutex.Unlock()

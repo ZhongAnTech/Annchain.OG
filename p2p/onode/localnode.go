@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package enode
+package onode
 
 import (
 	"crypto/ecdsa"
@@ -233,11 +233,11 @@ func (ln *LocalNode) sign() {
 	ln.bumpSeq()
 	r.SetSeq(ln.seq)
 	if err := SignV4(&r, ln.key); err != nil {
-		panic(fmt.Errorf("enode: can't sign record: %v", err))
+		panic(fmt.Errorf("onode: can't sign record: %v", err))
 	}
 	n, err := New(ValidSchemes, &r)
 	if err != nil {
-		panic(fmt.Errorf("enode: can't verify local record: %v", err))
+		panic(fmt.Errorf("onode: can't verify local record: %v", err))
 	}
 	ln.cur.Store(n)
 	log.WithFields(logrus.Fields{

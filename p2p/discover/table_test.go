@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/p2p/enode"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
 )
 
@@ -57,7 +57,7 @@ func testPingReplace(t *testing.T, newNodeIsResponding, lastInBucketIsResponding
 
 	// Fill up the sender's bucket.
 	pingKey, _ := crypto.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
-	pingSender := wrapNode(enode.NewV4(&pingKey.PublicKey, net.IP{}, 99, 99))
+	pingSender := wrapNode(onode.NewV4(&pingKey.PublicKey, net.IP{}, 99, 99))
 	last := fillBucket(tab, pingSender)
 
 	// Add the sender as if it just pinged us. Revalidate should replace the last node in
@@ -101,7 +101,7 @@ func TestBucket_bumpNoDuplicates(t *testing.T) {
 			n := rand.Intn(bucketSize-1) + 1
 			nodes := make([]*node, n)
 			for i := range nodes {
-				nodes[i] = nodeAtDistance(enode.ID{}, 200, intIP(200))
+				nodes[i] = nodeAtDistance(onode.ID{}, 200, intIP(200))
 			}
 			args[0] = reflect.ValueOf(nodes)
 			// generate random bump positions.
@@ -207,7 +207,7 @@ func TestTable_closest(t *testing.T) {
 					continue // don't run the check below for nodes in result
 				}
 				farthestResult := result[len(result)-1].ID()
-				if enode.DistCmp(test.Target, n.ID(), farthestResult) < 0 {
+				if onode.DistCmp(test.Target, n.ID(), farthestResult) < 0 {
 					t.Errorf("table contains node that is closer to target but it's not in result")
 					t.Logf("  Target:          %v", test.Target)
 					t.Logf("  Farthest Result: %v", farthestResult)
@@ -228,10 +228,10 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 		MaxCount: 200,
 		Rand:     rand.New(rand.NewSource(time.Now().Unix())),
 		Values: func(args []reflect.Value, rand *rand.Rand) {
-			args[0] = reflect.ValueOf(make([]*enode.Node, rand.Intn(1000)))
+			args[0] = reflect.ValueOf(make([]*onode.Node, rand.Intn(1000)))
 		},
 	}
-	test := func(buf []*enode.Node) bool {
+	test := func(buf []*onode.Node) bool {
 		transport := newPingRecorder()
 		tab, db := newTestTable(transport)
 		defer tab.Close()
@@ -259,20 +259,20 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 }
 
 type closeTest struct {
-	Self   enode.ID
-	Target enode.ID
+	Self   onode.ID
+	Target onode.ID
 	All    []*node
 	N      int
 }
 
 func (*closeTest) Generate(rand *rand.Rand, size int) reflect.Value {
 	t := &closeTest{
-		Self:   gen(enode.ID{}, rand).(enode.ID),
-		Target: gen(enode.ID{}, rand).(enode.ID),
+		Self:   gen(onode.ID{}, rand).(onode.ID),
+		Target: gen(onode.ID{}, rand).(onode.ID),
 		N:      rand.Intn(bucketSize),
 	}
-	for _, id := range gen([]enode.ID{}, rand).([]enode.ID) {
-		n := enode.SignNull(new(enr.Record), id)
+	for _, id := range gen([]onode.ID{}, rand).([]onode.ID) {
+		n := onode.SignNull(new(enr.Record), id)
 		t.All = append(t.All, wrapNode(n))
 	}
 	return reflect.ValueOf(t)
@@ -289,13 +289,13 @@ func TestTable_Lookup(t *testing.T) {
 	}
 	// seed table with initial node (otherwise lookup will terminate immediately)
 	seedKey, _ := decodePubkey(lookupTestnet.dists[256][0])
-	seed := wrapNode(enode.NewV4(seedKey, net.IP{}, 0, 256))
+	seed := wrapNode(onode.NewV4(seedKey, net.IP{}, 0, 256))
 	tab.stuff([]*node{seed})
 
 	results := tab.lookup(lookupTestnet.target, true)
 	t.Logf("results:")
 	for _, e := range results {
-		t.Logf("  ld=%d, %x", enode.LogDist(lookupTestnet.targetSha, e.ID()), e.ID().Bytes())
+		t.Logf("  ld=%d, %x", onode.LogDist(lookupTestnet.targetSha, e.ID()), e.ID().Bytes())
 	}
 	if len(results) != bucketSize {
 		t.Errorf("wrong number of results: got %d, want %d", len(results), bucketSize)
@@ -313,7 +313,7 @@ func TestTable_Lookup(t *testing.T) {
 // The nodes were obtained by running testnet.mine with a random NodeID as target.
 var lookupTestnet = &preminedTestnet{
 	target:    hexEncPubkey("166aea4f556532c6d34e8b740e5d314af7e9ac0ca79833bd751d6b665f12dfd38ec563c363b32f02aef4a80b44fd3def94612d497b99cb5f17fd24de454927ec"),
-	targetSha: enode.HexID("5c944ee51c5ae9f72a95eccb8aed0374eecb5119d720cbea6813e8e0d6ad9261"),
+	targetSha: onode.HexID("5c944ee51c5ae9f72a95eccb8aed0374eecb5119d720cbea6813e8e0d6ad9261"),
 	dists: [257][]EncPubkey{
 		240: {
 			hexEncPubkey("2001ad5e3e80c71b952161bc0186731cf5ffe942d24a79230a0555802296238e57ea7a32f5b6f18564eadc1c65389448481f8c9338df0a3dbd18f708cbc2cbcb"),
@@ -506,15 +506,15 @@ var lookupTestnet = &preminedTestnet{
 
 type preminedTestnet struct {
 	target    EncPubkey
-	targetSha enode.ID // sha3(target)
+	targetSha onode.ID // sha3(target)
 	dists     [hashBits + 1][]EncPubkey
 }
 
-func (tn *preminedTestnet) self() *enode.Node {
+func (tn *preminedTestnet) self() *onode.Node {
 	return nullNode
 }
 
-func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
+func (tn *preminedTestnet) findnode(toid onode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]*node, error) {
 	// current log distance is encoded in port number
 	// fmt.Println("findnode query at dist", toaddr.Port)
 	if toaddr.Port == 0 {
@@ -524,15 +524,15 @@ func (tn *preminedTestnet) findnode(toid enode.ID, toaddr *net.UDPAddr, target E
 	var result []*node
 	for i, ekey := range tn.dists[toaddr.Port] {
 		key, _ := decodePubkey(ekey)
-		node := wrapNode(enode.NewV4(key, net.ParseIP("127.0.0.1"), i, next))
+		node := wrapNode(onode.NewV4(key, net.ParseIP("127.0.0.1"), i, next))
 		result = append(result, node)
 	}
 	return result, nil
 }
 
 func (*preminedTestnet) close()                                        {}
-func (*preminedTestnet) waitping(from enode.ID) error                  { return nil }
-func (*preminedTestnet) ping(toid enode.ID, toaddr *net.UDPAddr) error { return nil }
+func (*preminedTestnet) waitping(from onode.ID) error                  { return nil }
+func (*preminedTestnet) ping(toid onode.ID, toaddr *net.UDPAddr) error { return nil }
 
 // mine generates a testnet struct literal with nodes at
 // various distances to the given target.
@@ -543,7 +543,7 @@ func (tn *preminedTestnet) mine(target EncPubkey) {
 	for found < bucketSize*10 {
 		k := newkey()
 		key := encodePubkey(&k.PublicKey)
-		ld := enode.LogDist(tn.targetSha, key.id())
+		ld := onode.LogDist(tn.targetSha, key.id())
 		if len(tn.dists[ld]) < bucketSize {
 			tn.dists[ld] = append(tn.dists[ld], key)
 			fmt.Println("found ID with ld", ld)

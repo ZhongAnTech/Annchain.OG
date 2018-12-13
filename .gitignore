@@ -23,3 +23,5 @@ datadir_*
 data/
 /dump_*
 db_*/
+/vm/compiler/
+/vm/contracts/

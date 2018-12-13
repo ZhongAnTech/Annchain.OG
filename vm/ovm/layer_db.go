@@ -4,12 +4,14 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 
-	"math/big"
 	"fmt"
+	"math/big"
 	"strings"
-	"github.com/pkg/errors"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
+	"github.com/pkg/errors"
 )
 
 var MAX_LAYER = 1024
@@ -106,9 +108,9 @@ func (l *LayerStateDB) CreateAccount(addr types.Address) {
 	}
 }
 
-func (l *LayerStateDB) SubBalance(addr types.Address, value *big.Int) {
+func (l *LayerStateDB) SubBalance(addr types.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
-		so.Balance = new(big.Int).Sub(so.Balance, value)
+		so.Balance = new(big.Int).Sub(so.Balance, value.Value)
 		// store to this layer
 		l.SetStateObject(addr, so)
 	} else {
@@ -118,9 +120,9 @@ func (l *LayerStateDB) SubBalance(addr types.Address, value *big.Int) {
 	}
 }
 
-func (l *LayerStateDB) AddBalance(addr types.Address, value *big.Int) {
+func (l *LayerStateDB) AddBalance(addr types.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
-		so.Balance = new(big.Int).Add(so.Balance, value)
+		so.Balance = new(big.Int).Add(so.Balance, value.Value)
 		// store to this layer
 		l.SetStateObject(addr, so)
 	} else {
@@ -130,15 +132,15 @@ func (l *LayerStateDB) AddBalance(addr types.Address, value *big.Int) {
 	}
 }
 
-func (l *LayerStateDB) GetBalance(addr types.Address) *big.Int {
+func (l *LayerStateDB) GetBalance(addr types.Address) *math.BigInt {
 	if so := l.GetStateObject(addr); so != nil {
-		return so.Balance
+		return math.NewBigIntFromBigInt(so.Balance)
 	} else {
 		if FAST_FAIL {
 			panic("address not exists")
 		}
 	}
-	return common.Big0
+	return math.NewBigIntFromBigInt(common.Big0)
 }
 
 func (l *LayerStateDB) GetNonce(addr types.Address) uint64 {
@@ -308,7 +310,7 @@ func (l *LayerStateDB) MergeChanges() {
 	}
 	// put all changes to layer #1
 
-	for i := 2; i < len(l.Layers); i ++ {
+	for i := 2; i < len(l.Layers); i++ {
 		l.mergeLayer(1, i)
 	}
 	// delete all layers after #1

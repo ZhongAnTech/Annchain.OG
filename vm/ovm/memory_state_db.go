@@ -4,7 +4,8 @@ import (
 	"math/big"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
 	"strings"
 	"fmt"
 	"sort"
@@ -40,19 +41,19 @@ func (m *MemoryStateDB) CreateAccount(addr types.Address) {
 	m.ledger[addr] = vmtypes.NewStateObject()
 }
 
-func (m *MemoryStateDB) SubBalance(addr types.Address, v *big.Int) {
-	m.ledger[addr].Balance = new(big.Int).Sub(m.ledger[addr].Balance, v)
+func (m *MemoryStateDB) SubBalance(addr types.Address, v *math.BigInt) {
+	m.ledger[addr].Balance = new(big.Int).Sub(m.ledger[addr].Balance, v.Value)
 }
 
-func (m *MemoryStateDB) AddBalance(addr types.Address, v *big.Int) {
-	m.ledger[addr].Balance = new(big.Int).Add(m.ledger[addr].Balance, v)
+func (m *MemoryStateDB) AddBalance(addr types.Address, v *math.BigInt) {
+	m.ledger[addr].Balance = new(big.Int).Add(m.ledger[addr].Balance, v.Value)
 }
 
-func (m *MemoryStateDB) GetBalance(addr types.Address) *big.Int {
+func (m *MemoryStateDB) GetBalance(addr types.Address) *math.BigInt {
 	if v, ok := m.ledger[addr]; ok {
-		return v.Balance
+		return math.NewBigIntFromBigInt(v.Balance)
 	}
-	return common.Big0
+	return math.NewBigIntFromBigInt(common.Big0)
 }
 
 func (m *MemoryStateDB) GetNonce(addr types.Address) uint64 {

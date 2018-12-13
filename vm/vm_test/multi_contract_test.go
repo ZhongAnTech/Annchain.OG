@@ -35,9 +35,9 @@ func TestMultiContract(t *testing.T) {
 
 		var params []byte
 
-		switch file{
+		switch file {
 		case "ABBToken":
-			params = EncodeParams([]interface{}{4, "AAAAAA", "ZZZZZZ"})
+			params = EncodeParams([]interface{}{1, "AAAAAA", "ZZZZZZ"})
 			fmt.Println(hex.Dump(params))
 		}
 
@@ -78,14 +78,32 @@ func TestMultiContract(t *testing.T) {
 	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 
-
 	// transfer
-	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), 102500000000})
-	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
+	//u64, err := strconv.ParseUint("0de0b6b3a7640001", 16, 64)
+	//assert.NoError(t, err)
+	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF87"), u64})
+	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
 
+	{
+		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
+		dump(t, ldb, ret, err)
+	}
+	{
+		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), true})
+		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "e724529c", params)
+		dump(t, ldb, ret, err)
+	}
 
+	{
+		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
+		dump(t, ldb, ret, err)
+	}
 
-	//logrus.Info("Called contract ")
+}
+
+func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
 	fmt.Println(ldb.String())
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
 	fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))

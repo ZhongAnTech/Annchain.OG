@@ -45,7 +45,7 @@ type DefaultChainContext struct {
 }
 
 // NewEVMContext creates a new context for use in the OVM.
-func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) vmtypes.Context {
+func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB, caller vmtypes.Caller) vmtypes.Context {
 	return vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
@@ -54,6 +54,7 @@ func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *ty
 		GasLimit: txContext.GasLimit,
 		GasPrice: txContext.GasPrice.Value,
 		StateDB:  stateDB,
+		Caller:   caller,
 	}
 }
 

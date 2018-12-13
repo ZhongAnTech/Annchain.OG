@@ -44,7 +44,7 @@ func TestMultiContract(t *testing.T) {
 
 		rt := &Runtime{
 			Tracer:  tracer,
-			Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb),
+			Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb, nil),
 		}
 		_, contractAddr, _, err := DeployContract(file+".bin", from, coinBase, rt, params)
 		assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestMultiContract(t *testing.T) {
 
 	rt := &Runtime{
 		Tracer:  tracer,
-		Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb),
+		Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb, nil),
 	}
 
 	// query symbol name
@@ -78,7 +78,6 @@ func TestMultiContract(t *testing.T) {
 	// get balance
 	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
-
 
 	{
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "95d89b41", nil)
@@ -154,4 +153,60 @@ func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
 	fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
 	fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
 	assert.NoError(t, err)
+}
+
+func TestInterCall(t *testing.T) {
+	from := types.HexToAddress("0xABCDEF88")
+	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+
+	tracer := vm.NewStructLogger(&vm.LogConfig{
+		Debug: true,
+	})
+	ldb := DefaultLDB(from, coinBase)
+
+	contracts := make(map[string]types.Address)
+
+	for _, file := range ([]string{"C1", "C2"}) {
+		txContext := &ovm.TxContext{
+			From:     from,
+			Value:    math.NewBigInt(0),
+			Data:     readFile(file + ".bin"),
+			GasPrice: math.NewBigInt(1),
+			GasLimit: DefaultGasLimit,
+		}
+
+		var params []byte
+
+		rt := &Runtime{
+			Tracer:  tracer,
+			Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb, nil),
+		}
+		_, contractAddr, _, err := DeployContract(file+".bin", from, coinBase, rt, params)
+		assert.NoError(t, err)
+		contracts[file] = contractAddr
+	}
+
+	txContext := &ovm.TxContext{
+		From:     types.HexToAddress("0xABCDEF88"),
+		To:       contracts["TokenERC20"],
+		Value:    math.NewBigInt(0),
+		GasPrice: math.NewBigInt(1),
+		GasLimit: DefaultGasLimit,
+	}
+
+	rt := &Runtime{
+		Tracer:  tracer,
+		Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb, nil),
+	}
+
+	{
+		ret, _, err := CallContract(contracts["C1"], from, coinBase, rt, math.NewBigInt(0), "c27fc305", nil)
+		dump(t, ldb, ret, err)
+	}
+	{
+		params := EncodeParams([]interface{}{contracts["C1"]})
+		ret, _, err := CallContract(contracts["C2"], from, coinBase, rt, math.NewBigInt(0), "c3642756", params)
+		dump(t, ldb, ret, err)
+	}
+
 }

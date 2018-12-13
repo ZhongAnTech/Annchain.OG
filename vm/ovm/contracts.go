@@ -22,7 +22,7 @@ import (
 	"math/big"
 
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/vm/eth/crypto/bn256"
+	"github.com/annchain/OG/common/crypto/bn256"
 	"github.com/annchain/OG/vm/eth/params"
 	"golang.org/x/crypto/ripemd160"
 	"github.com/annchain/OG/types"

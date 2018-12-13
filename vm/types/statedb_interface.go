@@ -1,19 +1,18 @@
 package types
 
 import (
-	"math/big"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 )
 
 // StateDB is an OVM database for full state querying.
 type StateDB interface {
-
 	CreateAccount(types.Address)
 
-	SubBalance(types.Address, *big.Int)
-	AddBalance(types.Address, *big.Int)
+	SubBalance(types.Address, *math.BigInt)
+	AddBalance(types.Address, *math.BigInt)
 	// Retrieve the balance from the given address or 0 if object not found
-	GetBalance(types.Address) *big.Int
+	GetBalance(types.Address) *math.BigInt
 
 	GetNonce(types.Address) uint64
 	SetNonce(types.Address, uint64)

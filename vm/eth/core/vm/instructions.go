@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/annchain/OG/common/crypto/sha3"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 )
 
@@ -409,7 +409,7 @@ func opAddress(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opBalance(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.Set(interpreter.ctx.StateDB.GetBalance(types.BigToAddress(slot)))
+	slot.Set(interpreter.ctx.StateDB.GetBalance(types.BigToAddress(slot)).Value)
 	return nil, nil
 }
 

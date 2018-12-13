@@ -9,7 +9,6 @@ import (
 	"math/rand"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -378,6 +377,8 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
+			log.WithField("tx", txEvent.txEnv.tx).Trace("get tx from queue")
+
 			var err error
 			tx := txEvent.txEnv.tx
 			// check if tx is duplicate
@@ -411,6 +412,8 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
+	log.WithField("tx", tx).Trace("start addTx")
+
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
@@ -419,7 +422,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 			status: TxStatusQueue,
 		},
 	}
-	<-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
+	pool.queue <- te
+	// <-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
 
 	// waiting for callback
 	select {
@@ -429,8 +433,9 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		}
 		// notify all subscribers of newTxEvent
 		for name, subscriber := range pool.onNewTxReceived {
-			log.Trace("notify subscriber: ", name)
-			<-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
+			log.WithField("tx", tx).Trace("notify subscriber: ", name)
+			subscriber <- tx
+			// <-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 		}
 	}
 
@@ -600,9 +605,11 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-		<-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
+		c <- elders
+		// <-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-	<-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
+	pool.OnNewLatestSequencer <- true
+	// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
 
 	return nil
 }

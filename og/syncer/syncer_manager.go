@@ -1,7 +1,6 @@
 package syncer
 
 import (
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 )
@@ -109,11 +108,11 @@ func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvide
 
 // loopSync constantly check if there is new peer connected
 func (s *SyncManager) loopSync() {
-	<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "timeoutAcquireTx", 1000).C
-	<-ffchan.NewTimeoutSender(s.CatchupSyncer.EnableEvent, true, "timeoutAcquireTx", 1000).C
+	s.IncrementalSyncer.EnableEvent <- false
+	s.CatchupSyncer.EnableEvent <- true
+	// <-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "timeoutAcquireTx", 1000).C
+	// <-ffchan.NewTimeoutSender(s.CatchupSyncer.EnableEvent, true, "timeoutAcquireTx", 1000).C
 
-	//s.IncrementalSyncer.EnableEvent <- false
-	//s.CatchupSyncer.EnableEvent <- true
 	s.Status = SyncStatusFull
 
 	for !s.quitFlag {
@@ -125,12 +124,14 @@ func (s *SyncManager) loopSync() {
 			case Started:
 				// catch up started. pause incremental
 				s.Status = SyncStatusFull
-				<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "IncrementalSyncerEnable", 1000).C
+				s.IncrementalSyncer.EnableEvent <- false
+				// <-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, false, "IncrementalSyncerEnable", 1000).C
 				s.NotifyUpToDateEvent(false)
 			case Stopped:
 				// catch up already done. now it is up to date. start incremental
 				s.Status = SyncStatusIncremental
-				<-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, true, "IncrementalSyncerEnable", 1000).C
+				s.IncrementalSyncer.EnableEvent <- true
+				// <-ffchan.NewTimeoutSender(s.IncrementalSyncer.EnableEvent, true, "IncrementalSyncerEnable", 1000).C
 				s.NotifyUpToDateEvent(true)
 			}
 		}

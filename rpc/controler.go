@@ -2,17 +2,17 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/common/math"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/math"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
@@ -235,43 +235,43 @@ func (r *RpcController) Genesis(c *gin.Context) {
 }
 
 type Tps struct {
-	Num        int  `json:"num"`
-	TxCount     int `json:"tx_num"`
-	Seconds     float64 `json:"duration"`
+	Num     int     `json:"num"`
+	TxCount int     `json:"tx_num"`
+	Seconds float64 `json:"duration"`
 }
 
-func (r*RpcController)getTps () (t*Tps , err error) {
+func (r *RpcController) getTps() (t *Tps, err error) {
 	var tps Tps
 	lseq := r.Og.Dag.LatestSequencer()
-	if lseq ==nil {
-		return nil,  fmt.Errorf("not found")
+	if lseq == nil {
+		return nil, fmt.Errorf("not found")
 	}
-	if lseq.Id<3 {
+	if lseq.Id < 3 {
 		return
 	}
 
 	var cfs []types.ConfirmTime
-	for id :=lseq.Id;id >0 && id >lseq.Id -5 ;id--{
-		cf :=  r.Og.Dag.GetConfirmTime(id)
-		if cf==nil  {
+	for id := lseq.Id; id > 0 && id > lseq.Id-5; id-- {
+		cf := r.Og.Dag.GetConfirmTime(id)
+		if cf == nil {
 			return nil, fmt.Errorf("db error")
 		}
-		cfs = append(cfs,*cf)
+		cfs = append(cfs, *cf)
 	}
-	var start,end time.Time
-	for i,cf := range cfs {
-		if i==0 {
-			end,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
-			if err!=nil {
-				return  nil ,err
+	var start, end time.Time
+	for i, cf := range cfs {
+		if i == 0 {
+			end, err = time.Parse(time.RFC3339Nano, cf.ConfirmTime)
+			if err != nil {
+				return nil, err
 			}
 		}
-		if i==len(cfs)-1 {
-			start,err = time.Parse(time.RFC3339Nano,cf.ConfirmTime)
-			if err!=nil {
-				return  nil ,err
+		if i == len(cfs)-1 {
+			start, err = time.Parse(time.RFC3339Nano, cf.ConfirmTime)
+			if err != nil {
+				return nil, err
 			}
-		}else {
+		} else {
 			tps.TxCount += int(cf.TxNum)
 		}
 	}
@@ -280,26 +280,25 @@ func (r*RpcController)getTps () (t*Tps , err error) {
 		return nil, fmt.Errorf("time server error")
 	}
 	sub := end.Sub(start)
-	sec:= sub.Seconds()
-	if sec !=0 {
-		num := float64(tps.TxCount)/sec
+	sec := sub.Seconds()
+	if sec != 0 {
+		num := float64(tps.TxCount) / sec
 		tps.Num = int(num)
 	}
 	tps.Seconds = sec
-	return  &tps ,nil
+	return &tps, nil
 }
 
-func (r*RpcController)Tps(c *gin.Context) {
+func (r *RpcController) Tps(c *gin.Context) {
 	cors(c)
-	t,err := r.getTps()
-	if err!=nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+	t, err := r.getTps()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, t)
 	return
 }
-
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
@@ -435,7 +434,8 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	<-ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
+	r.TxBuffer.ReceivedNewTxChan <- tx
+	// <-ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
 
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{
@@ -553,6 +553,7 @@ func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
 	c.JSON(http.StatusOK, info)
 }
+
 type Monitor struct {
 	Port    string `json:"port"`
 	ShortId string `json:"short_id"`
@@ -592,7 +593,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	}
 	m.Port = viper.GetString("p2p.port")
 	m.ShortId = r.P2pServer.NodeInfo().ShortId
-	m.Tps,_  = r.getTps()
+	m.Tps, _ = r.getTps()
 	c.JSON(http.StatusOK, m)
 }
 
@@ -600,11 +601,11 @@ func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
-		//r.NewRequestChan <- types.TxBaseTypeNormal
+		r.NewRequestChan <- types.TxBaseTypeNormal
+		// <-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
 	case "2":
-		<-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
-		//r.NewRequestChan <- types.TxBaseTypeSequencer
+		r.NewRequestChan <- types.TxBaseTypeSequencer
+		// <-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
 	}
 }
 

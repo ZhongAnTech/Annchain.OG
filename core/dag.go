@@ -455,10 +455,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if err != nil {
 				return fmt.Errorf("Write tx into db error: %v", err)
 			}
-			// err = dag.accessor.WriteTxSeqRelation(txi.GetTxHash(), batch.Seq.Id)
-			// if err != nil {
-			// 	return fmt.Errorf("Bound the seq id %d to tx err: %v", batch.Seq.Id, err)
-			// }
 		}
 	}
 
@@ -476,6 +472,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// save latest sequencer into db
+	batch.Seq.GetBase().Height = batch.Seq.Id
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
 	if err != nil {
 		return err

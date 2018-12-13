@@ -49,8 +49,9 @@ func DefaultOVM(runtime *Runtime) *ovm.OVM {
 		Debug:  true,
 		Tracer: runtime.Tracer,
 	})
-
-	return ovm.NewOVM(runtime.Context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
+	oovm := ovm.NewOVM(runtime.Context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
+	runtime.Context.Caller = oovm
+	return oovm
 }
 
 func DeployContract(filename string, from types.Address, coinBase types.Address, rt *Runtime, params []byte) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
@@ -62,13 +63,13 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 		GasLimit: DefaultGasLimit,
 	}
 
-	ovm := DefaultOVM(rt)
+	oovm := DefaultOVM(rt)
 	if params != nil && len(params) != 0 {
 		txContext.Data = append(txContext.Data, params...)
 	}
 
 	logrus.Info("Deploying contract", filename)
-	ret, contractAddr, leftOverGas, err = ovm.Create(&rt.Context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err = oovm.Create(&rt.Context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
@@ -100,10 +101,10 @@ func CallContract(contractAddr types.Address, from types.Address, coinBase types
 		input = append(input, params...)
 	}
 
-	ovm := DefaultOVM(rt)
+	oovm := DefaultOVM(rt)
 	//fmt.Println("Input:")
 	//fmt.Println(hex.Dump(input))
-	ret, leftOverGas, err = ovm.Call(&rt.Context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = oovm.Call(&rt.Context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Called contract")
 	//fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 	//fmt.Println(rt.Context.StateDB.String())

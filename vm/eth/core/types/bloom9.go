@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/annchain/OG/vm/eth/common/hexutil"
-	"github.com/annchain/OG/vm/eth/crypto"
+	"github.com/annchain/OG/common/crypto"
 )
 
 type bytesBacked interface {

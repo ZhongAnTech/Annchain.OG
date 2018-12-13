@@ -602,7 +602,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.tips.Add(seq)
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
-	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
 		c <- elders
@@ -611,6 +610,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.OnNewLatestSequencer <- true
 	// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
 
+	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	return nil
 }
 

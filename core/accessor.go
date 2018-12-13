@@ -19,8 +19,6 @@ var (
 	contentPrefixTransaction = []byte("cptx")
 	contentPrefixSequencer   = []byte("cpsq")
 
-	// prefixTxSeqRelationKey = []byte("tsr")
-
 	prefixAddrLatestNonceKey = []byte("aln")
 
 	prefixSeqIdKey   = []byte("si")
@@ -30,7 +28,6 @@ var (
 
 	prefixStateKey   = []byte("st")
 	prefixConfimtime = []byte("cf")
-	// prefixContractState = []byte("con")
 )
 
 func genesisKey() []byte {
@@ -54,10 +51,6 @@ func txHashFlowKey(addr types.Address, nonce uint64) []byte {
 	keybody := append(addr.ToBytes(), []byte(strconv.FormatUint(nonce, 10))...)
 	return append(prefixTxHashFlowKey, keybody...)
 }
-
-// func txSeqRelationKey(hash types.Hash) []byte {
-// 	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
-// }
 
 func addrLatestNonceKey(addr types.Address) []byte {
 	return append(prefixAddrLatestNonceKey, addr.ToBytes()...)
@@ -255,25 +248,6 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	return nil
 }
 
-// // ReadTxSeqRelation get the bound seq id of a tx
-// func (da *Accessor) ReadTxSeqRelation(hash types.Hash) (uint64, error) {
-// 	data, err := da.db.Get(txSeqRelationKey(hash))
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	seqid, errToUint := strconv.ParseUint(string(data), 10, 64)
-// 	if errToUint != nil {
-// 		return 0, errToUint
-// 	}
-// 	return seqid, nil
-// }
-
-// // WriteTxSeqRelation bind the seq id to a tx hash
-// func (da *Accessor) WriteTxSeqRelation(hash types.Hash, seqid uint64) error {
-// 	data := []byte(strconv.FormatUint(seqid, 10))
-// 	return da.db.Put(txSeqRelationKey(hash), data)
-// }
-
 // DeleteTransaction delete the tx or sequencer.
 func (da *Accessor) DeleteTransaction(hash types.Hash) error {
 	return da.db.Delete(transactionKey(hash))
@@ -392,28 +366,3 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error 
 	}
 	return da.db.Put(txIndexKey(seqid), data)
 }
-
-// // LoadState load get state from database
-// func (da *Accessor) LoadState(addr types.Address) (*State, error) {
-// 	data, dbErr := da.db.Get(stateKey(addr))
-// 	if dbErr != nil {
-// 		return nil, fmt.Errorf("can't get state from db, err: %v", dbErr)
-// 	}
-// 	var state State
-// 	_, err := state.UnmarshalMsg(data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &state, nil
-// }
-
-// // SaveState store the state data into db. Overwrite the data if it already exists.
-// func (da *Accessor) SaveState(addr types.Address, state *State) error {
-// 	data, err := state.MarshalMsg(nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return da.db.Put(stateKey(addr), data)
-// }
-
-// Save

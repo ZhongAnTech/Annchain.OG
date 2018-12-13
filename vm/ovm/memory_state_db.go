@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/vm/eth/crypto"
 	"strings"
 	"fmt"
+	"sort"
 )
 
 type MemoryStateDB struct {
@@ -163,6 +164,17 @@ func (m *MemoryStateDB) String() string {
 	b := strings.Builder{}
 	for k, v := range m.ledger {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k.String(), v))
+		if len(v.States) > 0 {
+			var keys types.Hashes
+			for sk := range v.States {
+				keys = append(keys, sk)
+			}
+			sort.Sort(keys)
+
+			for _, key := range keys{
+				b.WriteString(fmt.Sprintf("-->  %s: %s\n", key.Hex(), v.States[key].Hex()))
+			}
+		}
 	}
 	return b.String()
 }

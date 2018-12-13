@@ -29,6 +29,7 @@ import (
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
 	"strings"
+	"sort"
 )
 
 // Storage represents a contract's storage.
@@ -232,8 +233,15 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		}
 		if len(log.Storage) > 0 {
 			fmt.Fprintln(writer, "Storage:")
-			for h, item := range log.Storage {
-				s := fmt.Sprintf("%s: %s", h.Hex(), item.Hex())
+			var keys types.Hashes
+			for h := range log.Storage{
+				keys = append(keys, h)
+			}
+			sort.Sort(keys)
+
+			for _, key := range keys {
+				item := log.Storage[key]
+				s := fmt.Sprintf("%s: %s", key.Hex(), item.Hex())
 				if omitZero{
 					s = strings.Replace(s, "00", "__",-1)
 				}

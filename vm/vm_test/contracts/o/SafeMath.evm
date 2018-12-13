@@ -1,0 +1,37 @@
+    /* "../contracts/token.sol":27:691  contract SafeMath {... */
+  mstore(0x40, 0x80)
+  callvalue
+    /* "--CODEGEN--":8:17   */
+  dup1
+    /* "--CODEGEN--":5:7   */
+  iszero
+  tag_1
+  jumpi
+    /* "--CODEGEN--":30:31   */
+  0x0
+    /* "--CODEGEN--":27:28   */
+  dup1
+    /* "--CODEGEN--":20:32   */
+  revert
+    /* "--CODEGEN--":5:7   */
+tag_1:
+    /* "../contracts/token.sol":27:691  contract SafeMath {... */
+  pop
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../contracts/token.sol":27:691  contract SafeMath {... */
+      mstore(0x40, 0x80)
+      0x0
+      dup1
+      revert
+
+    auxdata: 0xa165627a7a723058208d7338f90c300057636341dd86521b88a7214a706fe478b5ccd55cfa0cac12430029
+}

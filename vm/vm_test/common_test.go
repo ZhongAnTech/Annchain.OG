@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"github.com/annchain/OG/common"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"os"
 	"bytes"
 	"testing"
 	"encoding/binary"
@@ -68,8 +67,8 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 		txContext.Data = append(txContext.Data, params...)
 	}
 
-	logrus.Info("Deploying contract")
-	ret, contractAddr, leftOverGas, err = ovm.Create(&rt.Context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	logrus.Info("Deploying contract", filename)
+	ret, contractAddr, leftOverGas, err = ovm.Create(&rt.Context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
@@ -83,6 +82,7 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 func CallContract(contractAddr types.Address, from types.Address, coinBase types.Address, rt *Runtime, value *math.BigInt, functionHash string, params []byte) (ret []byte, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
 		From:     from,
+		To:       contractAddr,
 		Value:    value,
 		GasPrice: math.NewBigInt(1),
 		GasLimit: DefaultGasLimit,
@@ -101,12 +101,13 @@ func CallContract(contractAddr types.Address, from types.Address, coinBase types
 	}
 
 	ovm := DefaultOVM(rt)
-
-	ret, leftOverGas, err = ovm.Call(&rt.Context, vmtypes.AccountRef(coinBase), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
+	//fmt.Println("Input:")
+	//fmt.Println(hex.Dump(input))
+	ret, leftOverGas, err = ovm.Call(&rt.Context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Called contract")
-	fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
-	fmt.Println(rt.Context.StateDB.String())
-	rt.Tracer.Write(os.Stdout)
+	//fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
+	//fmt.Println(rt.Context.StateDB.String())
+	//rt.Tracer.Write(os.Stdout)
 	return
 }
 
@@ -126,6 +127,23 @@ func pad(r []byte, baseLen int, padLeft bool) []byte {
 	return bytes
 }
 
+// DecodeParamToString decodes bytes to string in return value of a contract call
+// Just for debugging. Do not use it in prod code
+func DecodeParamToString(b []byte) string {
+	length := binary.BigEndian.Uint64(b[56:64])
+	return string(b[64 : 64+length])
+}
+
+func DecodeParamToBigInt(b []byte) *math.BigInt {
+	return math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(b))
+}
+
+func DecodeParamToByteString(b []byte) string {
+	return hex.EncodeToString(b)
+}
+
+// EncodeParams is for encoding params to ABI bytecode
+// Just for debugging. Do not use it in prod code
 func EncodeParams(params []interface{}) []byte {
 	//300000, test me   ,PPPPPPPPPP
 	//00000000000000000000000000000000000000000000000000000000000493e0
@@ -155,20 +173,29 @@ func EncodeParams(params []interface{}) []byte {
 			} else {
 				binary.BigEndian.PutUint32(bs, 0)
 			}
+		case types.Address:
+			bsv := obj.(types.Address).Bytes
+			bs = bsv[:]
+		case types.Hash:
+			bsv := obj.(types.Hash).Bytes
+			bs = bsv[:]
 		case string:
 			bs = make([]byte, 4)
 			binary.BigEndian.PutUint32(bs, uint32(pointer))
 			bsPayloadLength := make([]byte, 4)
 			binary.BigEndian.PutUint32(bsPayloadLength, uint32(len(obj.(string))))
-			buf.Write(pad(bsPayloadLength, 32, true))
-			buf.Write(pad([]byte(obj.(string)), 32, false))
-			pointer = buf.Len()
+
+			payLoadLengthBytes := pad(bsPayloadLength, 32, true)
+			payLoadBytes := pad([]byte(obj.(string)), 32, false)
+
+			buf.Write(payLoadLengthBytes)
+			buf.Write(payLoadBytes)
+			pointer += len(payLoadLengthBytes) + len(payLoadBytes)
 		default:
 			panic(fmt.Sprintf("not supported: %s", reflect.TypeOf(obj).String()))
 		}
 		bsWrite := pad(bs, 32, true)
 		copy(head[i*32:i*32+32], bsWrite)
-
 
 	}
 	result := bytes.Buffer{}

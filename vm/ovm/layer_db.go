@@ -16,6 +16,7 @@ import (
 
 var MAX_LAYER = 1024
 var FAST_FAIL = false
+var empty = types.Hash{}
 
 // LayerStateDB is the cascading storage for contracts.
 // It consists of multiple layers, each of which represents the result of a contract.
@@ -191,6 +192,7 @@ func (l *LayerStateDB) SetCode(addr types.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
 		so.CodeHash = crypto.Keccak256Hash(code)
+		so.DirtyCode = true
 		l.SetStateObject(addr, so)
 	} else {
 		if FAST_FAIL {
@@ -232,23 +234,17 @@ func (l *LayerStateDB) GetCommittedState(addr types.Address, hash types.Hash) ty
 }
 
 func (l *LayerStateDB) GetState(addr types.Address, key types.Hash) types.Hash {
-	so := l.GetStateObject(addr)
-	if so == nil {
-		return types.Hash{}
-	}
-	if v, ok := so.States[key]; ok {
-		return v
+	for i := len(l.Layers) - 1; i >= 0; i-- {
+		layer := l.Layers[i]
+		if so := layer.GetState(addr, key); so != empty {
+			return so
+		}
 	}
 	return types.Hash{}
 }
 
 func (l *LayerStateDB) SetState(addr types.Address, key types.Hash, value types.Hash) {
-	so := l.GetStateObject(addr)
-	if so == nil {
-		return
-	}
-	so.States[key] = value
-	l.SetStateObject(addr, so)
+	l.activeLayer.SetState(addr, key, value)
 }
 
 func (l *LayerStateDB) Suicide(addr types.Address) bool {
@@ -327,8 +323,11 @@ func (l *LayerStateDB) mergeLayer(toLayerIndex int, fromLayerIndex int) {
 		panic("from layer does not support merging")
 	}
 
-	for k, v := range fromLayer.ledger {
-		toLayer.ledger[k] = v
+	for k, v := range fromLayer.soLedger {
+		toLayer.soLedger[k] = v
+	}
+	for k, v := range fromLayer.kvLedger {
+		toLayer.kvLedger[k] = v
 	}
 
 }

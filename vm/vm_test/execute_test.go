@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
-	"math/big"
 	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
@@ -26,9 +25,9 @@ func ExampleExecute() {
 
 	db := ovm.NewMemoryStateDB()
 	db.CreateAccount(txContext.From)
-	db.AddBalance(txContext.From, big.NewInt(100000))
+	db.AddBalance(txContext.From, math.NewBigInt(10000000))
 	db.CreateAccount(coinBase)
-	db.AddBalance(coinBase, big.NewInt(100000))
+	db.AddBalance(coinBase, math.NewBigInt(10000000))
 
 	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, db, nil)
 

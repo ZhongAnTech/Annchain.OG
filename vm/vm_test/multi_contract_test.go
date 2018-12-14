@@ -79,60 +79,66 @@ func TestMultiContract(t *testing.T) {
 	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 
+	//symbol
 	{
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "95d89b41", nil)
 		dump(t, ldb, ret, err)
 	}
+	//totalsupply
 	{
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
 		dump(t, ldb, ret, err)
 	}
+	//owner
 	{
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "8da5cb5b", nil)
 		dump(t, ldb, ret, err)
 	}
-	{
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
-		dump(t, ldb, ret, err)
-	}
-	{
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), true})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "e724529c", params)
-		dump(t, ldb, ret, err)
-	}
-
-	{
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
-		dump(t, ldb, ret, err)
-	}
-
-	{
-		params := EncodeParams([]interface{}{100000000})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "42966c68", params)
-		dump(t, ldb, ret, err)
-	}
+	//frozenAccount
+	//{
+	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
+	//	dump(t, ldb, ret, err)
+	//}
+	//freezeAccount
+	//{
+	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), true})
+	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "e724529c", params)
+	//	dump(t, ldb, ret, err)
+	//}
+	////frozenAccount
+	//{
+	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
+	//	dump(t, ldb, ret, err)
+	//}
+	//burn
+	//{
+	//	params := EncodeParams([]interface{}{100000000})
+	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "42966c68", params)
+	//	dump(t, ldb, ret, err)
+	//}
+	//burn2
 	//{
 	//	params := EncodeParams([]interface{}{100000000})
 	//	ret, _, err := CallContract(contracts["ABBToken"], types.HexToAddress("0xDEADBEEF"), coinBase, rt, math.NewBigInt(0), "42966c68", params)
 	//	dump(t, ldb, ret, err)
 	//}
-	{
-		params := EncodeParams([]interface{}{100000000})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "42966c68", params)
-		dump(t, ldb, ret, err)
-	}
+	// burn
+	//{
+	//	params := EncodeParams([]interface{}{100000000})
+	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "42966c68", params)
+	//	dump(t, ldb, ret, err)
+	//}
 	// query balance
 	{
 		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 		dump(t, ldb, ret, err)
 	}
-
 	// transfer
 	{
-		u64, err := strconv.ParseUint("0de0b6b39b783e00", 16, 64)
+		u64, err := strconv.ParseUint("0101", 16, 64)
 		assert.NoError(t, err)
 		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF87"), u64})
 		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)

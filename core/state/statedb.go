@@ -27,7 +27,7 @@ type StateDB struct {
 	db   Database
 	trie Trie
 
-	states   map[types.Address]*State
+	states   map[types.Address]*StateObject
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time
 
@@ -45,7 +45,7 @@ func NewStateDB(conf StateDBConfig, root types.Hash, db Database) (*StateDB, err
 		conf:     conf,
 		db:       db,
 		trie:     tr,
-		states:   make(map[types.Address]*State),
+		states:   make(map[types.Address]*StateObject),
 		dirtyset: make(map[types.Address]struct{}),
 		beats:    make(map[types.Address]time.Time),
 		close:    make(chan struct{}),
@@ -66,7 +66,7 @@ func (sd *StateDB) Database() Database {
 // CreateNewState will create a new state for input address and
 // return the state. If input address already exists in StateDB
 // it returns an error.
-func (sd *StateDB) CreateNewState(addr types.Address) (*State, error) {
+func (sd *StateDB) CreateNewState(addr types.Address) (*StateObject, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
@@ -75,7 +75,7 @@ func (sd *StateDB) CreateNewState(addr types.Address) (*State, error) {
 		return nil, fmt.Errorf("state already exists, addr: %s", addr.String())
 	}
 
-	state = NewState(addr)
+	state = NewStateObject(addr)
 	sd.states[addr] = state
 	sd.beats[addr] = time.Now()
 
@@ -90,11 +90,11 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	return sd.getBalance(addr)
 }
 func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
-	state, err := sd.getState(addr)
+	state, err := sd.getStateObject(addr)
 	if err != nil {
 		return math.NewBigInt(0)
 	}
-	return state.Balance
+	return state.GetBalance()
 }
 
 func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
@@ -105,27 +105,27 @@ func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
 	return sd.getNonce(addr)
 }
 func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
-	state, err := sd.getState(addr)
+	state, err := sd.getStateObject(addr)
 	if err != nil {
 		return 0, types.ErrNonceNotExist
 	}
-	return state.Nonce, nil
+	return state.GetNonce(), nil
 }
 
 // GetState get a state from StateDB. If state not exist,
 // load it from db.
-func (sd *StateDB) GetState(addr types.Address) (*State, error) {
+func (sd *StateDB) GetStateObject(addr types.Address) (*StateObject, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
-	return sd.getState(addr)
+	return sd.getStateObject(addr)
 }
-func (sd *StateDB) getState(addr types.Address) (*State, error) {
+func (sd *StateDB) getStateObject(addr types.Address) (*StateObject, error) {
 	state, exist := sd.states[addr]
 	if !exist {
 		var err error
-		state, err = sd.loadState(addr)
+		state, err = sd.loadStateObject(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -136,31 +136,32 @@ func (sd *StateDB) getState(addr types.Address) (*State, error) {
 
 // GetOrCreateState will find a state from memory by account address.
 // If state not exists, it will load a state from db.
-func (sd *StateDB) GetOrCreateState(addr types.Address) *State {
+func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
-	return sd.getOrCreateState(addr)
+	return sd.getOrCreateStateObject(addr)
 }
-func (sd *StateDB) getOrCreateState(addr types.Address) *State {
-	state, _ := sd.getState(addr)
+func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
+	state, _ := sd.getStateObject(addr)
 	if state == nil {
-		state = NewState(addr)
+		state = NewStateObject(addr)
+		state.db = sd
 	}
 	return state
 }
 
 // DeleteState remove a state from StateDB. Return error
 // if it fails.
-func (sd *StateDB) DeleteState(addr types.Address) error {
+func (sd *StateDB) DeleteStateObject(addr types.Address) error {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
-	return sd.deleteState(addr)
+	return sd.deleteStateObject(addr)
 }
-func (sd *StateDB) deleteState(addr types.Address) error {
+func (sd *StateDB) deleteStateObject(addr types.Address) error {
 	_, exist := sd.states[addr]
 	if !exist {
 		return nil
@@ -171,18 +172,18 @@ func (sd *StateDB) deleteState(addr types.Address) error {
 	return nil
 }
 
-// UpdateState set addr's state in StateDB.
+// UpdateStateObject set addr's state in StateDB.
 //
 // Note that this setting will force updating the StateDB without
 // any verification. Call this UpdateState carefully.
-func (sd *StateDB) UpdateState(addr types.Address, state *State) {
+func (sd *StateDB) UpdateStateObject(addr types.Address, state *StateObject) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
-	sd.updateState(addr, state)
+	sd.updateStateObject(addr, state)
 }
-func (sd *StateDB) updateState(addr types.Address, state *State) {
+func (sd *StateDB) updateStateObject(addr types.Address, state *StateObject) {
 	sd.states[addr] = state
 	sd.dirtyset[addr] = struct{}{}
 }
@@ -196,10 +197,10 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 }
 func (sd *StateDB) addBalance(addr types.Address, increment *math.BigInt) {
 	defer sd.refreshbeat(addr)
-	state := sd.getOrCreateState(addr)
+	state := sd.getOrCreateStateObject(addr)
 	state.AddBalance(increment)
 
-	sd.updateState(addr, state)
+	sd.updateStateObject(addr, state)
 }
 
 // SubBalance
@@ -211,10 +212,10 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 }
 func (sd *StateDB) subBalance(addr types.Address, decrement *math.BigInt) {
 	defer sd.refreshbeat(addr)
-	state := sd.getOrCreateState(addr)
+	state := sd.getOrCreateStateObject(addr)
 	state.SubBalance(decrement)
 
-	sd.updateState(addr, state)
+	sd.updateStateObject(addr, state)
 }
 
 // SetBalance
@@ -226,10 +227,10 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.setBalance(addr, balance)
 }
 func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
-	state := sd.getOrCreateState(addr)
+	state := sd.getOrCreateStateObject(addr)
 	state.SetBalance(balance)
 
-	sd.updateState(addr, state)
+	sd.updateStateObject(addr, state)
 }
 
 func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
@@ -237,23 +238,24 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
-	state := sd.getOrCreateState(addr)
+	state := sd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
 
-	sd.updateState(addr, state)
+	sd.updateStateObject(addr, state)
 }
 
 // laodState loads a state from current trie.
-func (sd *StateDB) loadState(addr types.Address) (*State, error) {
+func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 	data, err := sd.trie.TryGet(addr.ToBytes())
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
-	var state State
-	_, err = state.UnmarshalMsg(data)
+	var state StateObject
+	err = state.Decode(data)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal err: %v", err)
+		return nil, fmt.Errorf("decode err: %v", err)
 	}
+	state.db = sd
 	return &state, nil
 }
 
@@ -268,7 +270,7 @@ func (sd *StateDB) purge() {
 			continue
 		}
 		if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-			sd.deleteState(addr)
+			sd.deleteStateObject(addr)
 		}
 	}
 }
@@ -298,7 +300,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 			continue
 		}
 		// update state data in current trie.
-		data, _ := state.MarshalMsg(nil)
+		data, _ := state.Encode()
 		sd.trie.TryUpdate(addr.ToBytes(), data)
 		delete(sd.dirtyset, addr)
 	}

@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
-	"math/big"
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -31,9 +30,9 @@ func TestContractSmallStorage(t *testing.T) {
 	ldb := ovm.NewLayerDB(mmdb)
 	ldb.NewLayer()
 	ldb.CreateAccount(txContext.From)
-	ldb.AddBalance(txContext.From, big.NewInt(10000000))
+	ldb.AddBalance(txContext.From, math.NewBigInt(10000000))
 	ldb.CreateAccount(coinBase)
-	ldb.AddBalance(coinBase, big.NewInt(10000000))
+	ldb.AddBalance(coinBase, math.NewBigInt(10000000))
 	logrus.Info("Init accounts done")
 
 	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb,nil)

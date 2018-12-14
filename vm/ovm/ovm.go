@@ -148,7 +148,10 @@ func (ovm *OVM) Call(ctx *vmtypes.Context, caller vmtypes.ContractRef, addr type
 		}
 		ovm.StateDB.CreateAccount(addr)
 	}
-	ovm.Transfer(ovm.StateDB, caller.Address(), to.Address(), value)
+	if value.Sign() != 0{
+		ovm.Transfer(ovm.StateDB, caller.Address(), to.Address(), value)
+	}
+
 	// Initialise a new contract and set the Code that is to be used by the OVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := vmtypes.NewContract(caller, to, value, gas)
@@ -312,7 +315,9 @@ func (ovm *OVM) create(ctx *vmtypes.Context, caller vmtypes.ContractRef, codeAnd
 	ovm.StateDB.CreateAccount(address)
 	ovm.StateDB.SetNonce(address, 1)
 
-	ovm.Transfer(ovm.StateDB, caller.Address(), address, value)
+	if value.Sign() != 0{
+		ovm.Transfer(ovm.StateDB, caller.Address(), address, value)
+	}
 
 	// initialise a new contract and set the Code that is to be used by the
 	// OVM. The contract is a scoped environment for this execution context

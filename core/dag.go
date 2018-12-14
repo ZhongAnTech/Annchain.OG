@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -20,6 +21,7 @@ type Dag struct {
 	conf DagConfig
 
 	db       ogdb.Database
+	oldDb    ogdb.Database
 	accessor *Accessor
 	statedb  *state.StateDB
 
@@ -34,7 +36,7 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb  ogdb.Database ) (*Dag, error) {
 	dag := &Dag{}
 
 	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
@@ -44,6 +46,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database)
 
 	dag.conf = conf
 	dag.db = db
+	dag.oldDb = oldDb
 	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
 	// TODO
@@ -214,6 +217,37 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 
 	return dag.getTxByNonce(addr, nonce)
 }
+
+func (dag*Dag)GetOldTx(addr types.Address, nonce uint64) types.Txi{
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	data, err := dag.oldDb.Get(txHashFlowKey(addr, nonce))
+	if len(data) == 0 {
+		log.Error(err)
+		return nil
+	}
+	hash := types.BytesToHash(data)
+	data, _ = dag.oldDb.Get(transactionKey(hash))
+	if len(data) == 0 {
+		return nil
+	}
+	prefixLen := len(contentPrefixTransaction)
+	prefix := data[:prefixLen]
+	data = data[prefixLen:]
+	if bytes.Equal(prefix, contentPrefixTransaction) {
+		var tx types.Tx
+		tx.UnmarshalMsg(data)
+		return &tx
+	}
+	if bytes.Equal(prefix, contentPrefixSequencer) {
+		var sq types.Sequencer
+		sq.UnmarshalMsg(data)
+		return &sq
+	}
+	return nil
+
+}
+
 func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return dag.accessor.ReadTxByNonce(addr, nonce)
 }

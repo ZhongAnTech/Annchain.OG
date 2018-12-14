@@ -33,7 +33,6 @@ func NewNode() *Node {
 	// Order matters.
 	// Start myself first and then provide service and do p2p
 	pm := &performance.PerformanceMonitor{}
-
 	var rpcServer *rpc.RpcServer
 	var cryptoType crypto.CryptoType
 	switch viper.GetString("crypto.algorithm") {
@@ -66,12 +65,12 @@ func NewNode() *Node {
 			CryptoType:    cryptoType,
 		},
 	)
-	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
 
 	if err != nil {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
-		panic("Error occurred while initializing OG")
+		panic(fmt.Sprintf("Error occurred while initializing OG %v",err))
 	}
+	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),

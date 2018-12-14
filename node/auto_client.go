@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"math/rand"
 	"sync"
 	"time"
@@ -163,12 +164,33 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
+func (c * AutoClient )fireTxs(me types.Address) bool {
+	m := viper.GetInt("auto_client.tx.send_micro")
+	if m==0 {
+		m = 1000
+	}
+	for i:=1;i<10000;i++ {
+			time.Sleep(time.Duration(m) *time.Microsecond)
+			txi:= c.Delegate.Dag.GetOldTx(me,uint64(i))
+			c.Delegate.Announce(txi)
+	}
+	return true
+}
+
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
 		return false
 	}
 
 	me := c.SampleAccounts[c.MyAccountIndex]
+    txi :=  c.Delegate.Dag.GetOldTx(me.Address,0)
+    if txi!=nil {
+    	logrus.WithField("txi",txi).Info("get start test tps")
+    	c.AutoTxEnabled = false
+    	c.AutoSequencerEnabled = false
+    	c.Delegate.Announce(txi)
+    	return c.fireTxs(me.Address)
+	}
 
 	tx, err := c.Delegate.GenerateTx(TxRequest{
 		AddrFrom:   me.Address,
@@ -191,6 +213,11 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
+	txi :=  c.Delegate.Dag.GetOldTx(me.Address,0)
+	if txi!=nil {
+		c.AutoSequencerEnabled = false
+		return true
+	}
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,

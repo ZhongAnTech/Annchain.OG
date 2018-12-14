@@ -65,12 +65,16 @@ func NewOg(config OGConfig) (*Og, error) {
 	if derr != nil {
 		return nil, derr
 	}
+	olddb, derr := GetOldDb()
+	if derr != nil {
+		return nil, derr
+	}
 	dagconfig := core.DagConfig{}
 	statedbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db)
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db,olddb)
 	if derr != nil {
 		return nil, derr
 	}
@@ -154,6 +158,18 @@ func CreateDB() (ogdb.Database, error) {
 	switch viper.GetString("db.name") {
 	case "leveldb":
 		path := viper.GetString("leveldb.path")
+		cache := viper.GetInt("leveldb.cache")
+		handles := viper.GetInt("leveldb.handles")
+		return ogdb.NewLevelDB(path, cache, handles)
+	default:
+		return ogdb.NewMemDatabase(), nil
+	}
+}
+
+func GetOldDb()(ogdb.Database, error) {
+	switch viper.GetString("db.name") {
+	case "leveldb":
+		path := viper.GetString("leveldb.path")+"old"
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)

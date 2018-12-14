@@ -27,8 +27,8 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/sha3"
-	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/onode"
 )
 
 func init() {

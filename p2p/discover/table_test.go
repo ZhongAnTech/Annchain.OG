@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/onode"
 )
 
 func TestTable_pingReplace(t *testing.T) {

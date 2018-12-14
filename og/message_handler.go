@@ -2,11 +2,12 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/types"
+	// "github.com/annchain/OG/ffchan"
 	"sync"
 	"time"
+
+	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/types"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
@@ -216,11 +217,13 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 	lseq := h.Og.Dag.LatestSequencer()
 	//todo need more condition
 	if lseq.Number() < seq.Number() {
-		<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, seq, "HandleTxsResponse").C
+		h.Og.TxBuffer.ReceivedNewTxChan <- seq
+		// <-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, seq, "HandleTxsResponse").C
 
 		for _, rawtx := range request.RawTxs {
 			tx := rawtx.Tx()
-			<-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
+			h.Og.TxBuffer.ReceivedNewTxChan <- tx
+			// <-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
 		}
 	}
 	return

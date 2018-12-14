@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignerSecp(t *testing.T) {
@@ -36,5 +37,19 @@ func TestSignerSecp(t *testing.T) {
 
 	content[0] = 0x88
 	assert.False(t, signer.Verify(pub2, sig, content))
+
+}
+
+func TestSignerNewPrivKey(t *testing.T) {
+	t.Parallel()
+
+	signer := SignerSecp256k1{}
+	pk, priv, _ := signer.RandomKeyPair()
+
+	b := []byte("foo")
+	sig := signer.Sign(priv, b)
+	if !signer.Verify(pk, sig, b) {
+		t.Fatalf("vertfy failed")
+	}
 
 }

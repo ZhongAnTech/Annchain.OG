@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	"fmt"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 )
@@ -14,9 +16,13 @@ import (
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
 	conf := core.DagConfig{}
 	db, remove := newTestLDB(dbDirPrefix)
-	dag := core.NewDag(conf, db)
+	stdbconf := state.DefaultStateDBConfig()
+	dag, errnew := core.NewDag(conf, stdbconf, db)
+	if errnew != nil {
+		t.Fatalf("new dag failed with error: %v", errnew)
+	}
 
-	genesis, balance := core.DefaultGenesis()
+	genesis, balance := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -33,8 +39,8 @@ func newTestDagTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
 		Signer: &crypto.SignerSecp256k1{},
 	}
-	pk, _ := crypto.PrivateKeyFromString(testPk0)
-	addr := types.HexToAddress(testAddr0)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
@@ -70,16 +76,17 @@ func TestDagInit(t *testing.T) {
 func TestDagLoadGenesis(t *testing.T) {
 	t.Parallel()
 
-	var err error
-
 	conf := core.DagConfig{}
 	db, remove := newTestLDB("TestDagLoadGenesis")
 	defer remove()
-	dag := core.NewDag(conf, db)
+	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db)
+	if errnew != nil {
+		t.Fatalf("can't new a dag: %v", errnew)
+	}
 
 	acc := core.NewAccessor(db)
-	genesis, _ := core.DefaultGenesis()
-	err = acc.WriteGenesis(genesis)
+	genesis, _ := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
+	err := acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
 	}
@@ -132,7 +139,7 @@ func TestDagPush(t *testing.T) {
 		tx2.GetTxHash(),
 	}
 
-	hashes := &types.Hashs{tx1.GetTxHash(), tx2.GetTxHash()}
+	hashes := &types.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
 
 	cb := &core.ConfirmBatch{}
 	cb.Seq = seq
@@ -158,7 +165,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("latest seq is not set")
 	}
 	// check txs' hashs
-	var hashsP *types.Hashs
+	var hashsP *types.Hashes
 	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Id)
 	hashs := *hashsP
 	if err != nil {

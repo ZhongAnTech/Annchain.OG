@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strings"
+
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
-	"strings"
 )
 
 //go:generate msgp
@@ -33,7 +34,7 @@ func (t TxBaseType) String() string {
 // |      |                   | Signature target |     NonceHash(Slow) |    TxHash(Fast) |
 // |------|-------------------|------------------|---------------------|-----------------|
 // | Base | ParentsHash       |                  |                     |               1 |
-// | Base | Height            |                  |                     |               1 |
+// | Base | Height            |                  |                     |                 |
 // | Base | PublicKey         |                  |                   1 | 1 (nonce hash)  |
 // | Base | Signature         |                  |                   1 | 1 (nonce hash)  |
 // | Base | MinedNonce        |                  |                   1 | 1 (nonce hash)  |
@@ -117,11 +118,12 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	// TODO do not use Height to calculate tx hash.
+	// panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
+	hash.MustSetBytes(result[0:], PaddingNone)
 	return
 }
 
@@ -133,7 +135,7 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
 
 	result := sha3.Sum256(buf.Bytes())
-	hash.MustSetBytes(result[0:])
+	hash.MustSetBytes(result[0:], PaddingNone)
 	return
 }
 

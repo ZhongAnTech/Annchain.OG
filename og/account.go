@@ -1,4 +1,3 @@
 package og
 
-type Account struct {
-}
+type Account struct{}

@@ -1,7 +1,6 @@
 package og
 
 import (
-	"container/list"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -29,32 +28,37 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+	logrus.WithField("tx", t).Tracef("before VerifyHash")
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("before VerifySignature")
 	if !v.VerifySignature(t) {
 		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("before VerifySourceAddress")
 	if !v.VerifySourceAddress(t) {
 		logrus.WithField("tx", t).Debug("Source address not valid")
 		return false
 	}
+	logrus.WithField("tx", t).Tracef("after VerifySourceAddress")
 	return true
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	if !(t.CalcMinedHash().Cmp(v.MaxMinedHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("MinedHash is not less than MaxMinedHash")
+	calMinedHash := t.CalcMinedHash()
+	if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
+		logrus.WithField("tx", t).WithField("hash", calMinedHash.String()).Debug("MinedHash is not less than MaxMinedHash")
 		return false
 	}
 	if t.CalcTxHash() != t.GetTxHash() {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not aligned with content")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not aligned with content")
 		return false
 	}
 	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.CalcMinedHash().String()).Debug("TxHash is not less than MaxTxHash")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}
 	return true
@@ -135,14 +139,14 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		return
 	}
 	seeked := map[types.Hash]bool{}
-	seekingHashes := list.New()
+	seekingHashes := []types.Hash{}
 	for _, parent := range currentTx.Parents() {
-		seekingHashes.PushBack(parent)
+		seekingHashes = append(seekingHashes, parent)
 	}
 
-	for seekingHashes.Len() > 0 {
-		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
-		//logrus.WithField("ancestor", head).WithField("tx", currentTx).Debug("fetching ancestor tx")
+	for len(seekingHashes) > 0 {
+		head := seekingHashes[0]
+		seekingHashes = seekingHashes[1:]
 
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
@@ -166,7 +170,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 				}
 				for _, parent := range txi.Parents() {
 					if _, ok := seeked[parent]; !ok {
-						seekingHashes.PushBack(parent)
+						seekingHashes = append(seekingHashes, parent)
 						seeked[parent] = true
 					}
 				}
@@ -193,10 +197,14 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 // get the nearest previous sequencer from txpool
 func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
-	seekingHashes := list.New()
-	seekingHashes.PushBack(currentSeq.GetTxHash())
-	for seekingHashes.Len() > 0 {
-		head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
+	seekingHashes := []types.Hash{}
+	// seekingHashes := list.New()
+	seekingHashes = append(seekingHashes, currentSeq.GetTxHash())
+	// seekingHashes.PushBack(currentSeq.GetTxHash())
+	for len(seekingHashes) > 0 {
+		head := seekingHashes[0]
+		seekingHashes = seekingHashes[1:]
+		// head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
 		txi, archived := v.getTxFromAnywhere(head)
 
 		if txi != nil {
@@ -220,7 +228,8 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 			}
 			for _, parent := range txi.Parents() {
 				if _, ok := seeked[parent]; !ok {
-					seekingHashes.PushBack(parent)
+					seekingHashes = append(seekingHashes, parent)
+					// seekingHashes.PushBack(parent)
 					seeked[parent] = true
 				}
 			}
@@ -250,14 +259,17 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
+	logrus.WithField("tx", txi).Tracef("before verifyA3")
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
+	logrus.WithField("tx", txi).Tracef("before verifyB1")
 	if ok = v.verifyB1(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
+	logrus.WithField("tx", txi).Tracef("after verifyB1")
 	return true
 }
 

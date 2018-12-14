@@ -24,8 +24,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/onode"
 )
 
 var nullNode *onode.Node

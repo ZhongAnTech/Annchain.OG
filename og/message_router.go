@@ -179,6 +179,6 @@ func (m *MessageRouter) MulticastToSource(messageType MessageType, message types
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
 
-func (m*MessageRouter)BroadcastMessageWithLink(messageType MessageType, message types.Message) {
+func (m *MessageRouter) BroadcastMessageWithLink(messageType MessageType, message types.Message) {
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }

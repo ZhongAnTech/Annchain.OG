@@ -254,7 +254,7 @@ func (h *Hub) handleMsg(p *peer) error {
 					log.WithField("outNum ", outNum).WithField("inNum", inNum).Debug("not enough valid path")
 					//return nil
 				}
-				var  dup types.MessageDuplicate
+				var dup types.MessageDuplicate
 				p.SetInPath(false)
 				return h.SendToPeer(p.id, MessageTypeDuplicate, &dup)
 			}
@@ -544,8 +544,8 @@ func (h *Hub) broadcastMessageWithLink(msg *P2PMessage) {
 	peers = h.peers.PeersWithoutMsg(msg.hash)
 
 	for _, peer := range peers {
-		if peer.inBound || len(peers) ==1{
-		//if out, _ := peer.CheckPath(); out {
+		if peer.inBound || len(peers) == 1 {
+			//if out, _ := peer.CheckPath(); out {
 			peer.AsyncSendMessage(msg)
 		} else {
 			continue

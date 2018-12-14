@@ -5,10 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/common/math"
 	"math/rand"
 	"strings"
+
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/math"
 )
 
 //go:generate msgp
@@ -50,7 +51,7 @@ func randomHash() Hash {
 	h.Write(sh.Bytes[:])
 	h.Write(data)
 	sum := h.Sum(nil)
-	sh.MustSetBytes(sum)
+	sh.MustSetBytes(sum, PaddingRight)
 	return sh
 }
 
@@ -86,7 +87,7 @@ func (t *Tx) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetBytes()))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetSigBytes()))
 
 	return buf.Bytes()
 }

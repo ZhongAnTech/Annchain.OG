@@ -2,12 +2,13 @@ package og
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type TipGenerator interface {
@@ -34,7 +35,6 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeNormal,
-			Height:       uint64(m.DebugNodeId),
 		},
 	}
 	return &tx
@@ -49,7 +49,6 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
-			Height:       uint64(m.DebugNodeId),
 		},
 	}
 	tx.GetBase().Signature = sig.Bytes
@@ -86,7 +85,7 @@ func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, id uint64, contra
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,
-			Height:       uint64(m.DebugNodeId),
+			Height:       id,
 		},
 	}
 	return &tx

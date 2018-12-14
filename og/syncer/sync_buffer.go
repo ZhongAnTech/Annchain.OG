@@ -1,7 +1,6 @@
 package syncer
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"sync"
@@ -219,12 +218,16 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 	}
 
 	inSeekingPool := map[types.Hash]int{}
-	seekingPool := list.New()
+	seekingPool := []types.Hash{}
 	for _, parentHash := range seq.Parents() {
-		seekingPool.PushBack(parentHash)
+		seekingPool = append(seekingPool, parentHash)
+		// seekingPool.PushBack(parentHash)
 	}
-	for seekingPool.Len() > 0 {
-		elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+	for len(seekingPool) > 0 {
+		elderHash := seekingPool[0]
+		seekingPool = seekingPool[1:]
+		// elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+
 		elder := s.Get(elderHash)
 		if elder == nil {
 			// TODO: recover it if we need sync buffer again
@@ -238,7 +241,8 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 		delete(keysMap, elderHash)
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
-				seekingPool.PushBack(elderParentHash)
+				seekingPool = append(seekingPool, elderParentHash)
+				// seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
 			}
 		}

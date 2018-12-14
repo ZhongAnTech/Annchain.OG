@@ -19,8 +19,6 @@ var (
 	contentPrefixTransaction = []byte("cptx")
 	contentPrefixSequencer   = []byte("cpsq")
 
-	prefixTxSeqRelationKey = []byte("tsr")
-
 	prefixAddrLatestNonceKey = []byte("aln")
 
 	prefixSeqIdKey   = []byte("si")
@@ -28,9 +26,8 @@ var (
 
 	prefixAddressBalanceKey = []byte("ba")
 
-	prefixStateKey = []byte("st")
-	prefixConfimtime   = []byte("cf")
-	// prefixContractState = []byte("con")
+	prefixStateKey   = []byte("st")
+	prefixConfimtime = []byte("cf")
 )
 
 func genesisKey() []byte {
@@ -48,10 +45,6 @@ func transactionKey(hash types.Hash) []byte {
 func txHashFlowKey(addr types.Address, nonce uint64) []byte {
 	keybody := append(addr.ToBytes(), []byte(strconv.FormatUint(nonce, 10))...)
 	return append(prefixTxHashFlowKey, keybody...)
-}
-
-func txSeqRelationKey(hash types.Hash) []byte {
-	return append(prefixTxSeqRelationKey, hash.ToBytes()...)
 }
 
 func addrLatestNonceKey(addr types.Address) []byte {
@@ -200,9 +193,9 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
-func (da*Accessor)writeConfirmTime(cf *types.ConfirmTime) error {
+func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
 	data, err := cf.MarshalMsg(nil)
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 	err = da.db.Put(confirmTimeKey(cf.SeqId), data)
@@ -213,14 +206,14 @@ func (da*Accessor)writeConfirmTime(cf *types.ConfirmTime) error {
 	return nil
 }
 
-func (da*Accessor)readConfirmTime(seqId uint64) *types.ConfirmTime {
+func (da *Accessor) readConfirmTime(seqId uint64) *types.ConfirmTime {
 	data, _ := da.db.Get(confirmTimeKey(seqId))
 	if len(data) == 0 {
 		return nil
 	}
 	var cf types.ConfirmTime
-	_,err:=  cf.UnmarshalMsg(data)
-	if err!=nil || cf.SeqId != seqId{
+	_, err := cf.UnmarshalMsg(data)
+	if err != nil || cf.SeqId != seqId {
 		return nil
 	}
 	return &cf
@@ -252,25 +245,6 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	}
 
 	return nil
-}
-
-// ReadTxSeqRelation get the bound seq id of a tx
-func (da *Accessor) ReadTxSeqRelation(hash types.Hash) (uint64, error) {
-	data, err := da.db.Get(txSeqRelationKey(hash))
-	if err != nil {
-		return 0, err
-	}
-	seqid, errToUint := strconv.ParseUint(string(data), 10, 64)
-	if errToUint != nil {
-		return 0, errToUint
-	}
-	return seqid, nil
-}
-
-// WriteTxSeqRelation bind the seq id to a tx hash
-func (da *Accessor) WriteTxSeqRelation(hash types.Hash, seqid uint64) error {
-	data := []byte(strconv.FormatUint(seqid, 10))
-	return da.db.Put(txSeqRelationKey(hash), data)
 }
 
 // DeleteTransaction delete the tx or sequencer.
@@ -369,12 +343,12 @@ func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
 // holds the id 'seqid'.
-func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
+func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashes, error) {
 	data, _ := da.db.Get(txIndexKey(seqid))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("tx hashs with seq id %d not found", seqid)
 	}
-	var hashs types.Hashs
+	var hashs types.Hashes
 	_, err := hashs.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -384,35 +358,10 @@ func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashs, error) {
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'seqid'.
-func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashs) error {
+func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashes) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
 	return da.db.Put(txIndexKey(seqid), data)
 }
-
-// LoadState load get state from database
-func (da *Accessor) LoadState(addr types.Address) (*State, error) {
-	data, dbErr := da.db.Get(stateKey(addr))
-	if dbErr != nil {
-		return nil, fmt.Errorf("can't get state from db, err: %v", dbErr)
-	}
-	var state State
-	_, err := state.UnmarshalMsg(data)
-	if err != nil {
-		return nil, err
-	}
-	return &state, nil
-}
-
-// SaveState store the state data into db. Overwrite the data if it already exists.
-func (da *Accessor) SaveState(addr types.Address, state *State) error {
-	data, err := state.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
-	return da.db.Put(stateKey(addr), data)
-}
-
-// Save

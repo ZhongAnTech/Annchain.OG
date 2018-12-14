@@ -26,9 +26,9 @@ type Peer struct {
 }
 
 type Tps struct {
-	Num        int  `json:"num"`
-	TxCount     int `json:"tx_num"`
-	Seconds     float64 `json:"duration"`
+	Num     int     `json:"num"`
+	TxCount int     `json:"tx_num"`
+	Seconds float64 `json:"duration"`
 }
 
 type Statistics struct {
@@ -125,7 +125,7 @@ func GetIps() []string {
 		panic(err)
 	}
 	ips := strings.Split(string(data), "\n")
-	if len(ips) >ipsNum {
+	if len(ips) > ipsNum {
 		ips = ips[:ipsNum]
 	}
 	return ips

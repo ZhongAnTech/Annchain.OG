@@ -1,13 +1,12 @@
 package syncer
 
 import (
-	"fmt"
-	"github.com/annchain/OG/ffchan"
+	"time"
+
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type MessageSender interface {
@@ -88,10 +87,10 @@ func (m *IncrementalSyncer) Start() {
 
 func (m *IncrementalSyncer) Stop() {
 	m.Enabled = false
-	<-ffchan.NewTimeoutSender(m.quitLoopEvent, true, "increSyncerQuitLoopEvent", 1000).C
-	<-ffchan.NewTimeoutSender(m.quitLoopSync, true, "increSyncerQuitLoopSync", 1000).C
-	//m.quitLoopEvent <- true
-	//m.quitLoopSync <- true
+	m.quitLoopEvent <- true
+	m.quitLoopSync <- true
+	// <-ffchan.NewTimeoutSender(m.quitLoopEvent, true, "increSyncerQuitLoopEvent", 1000).C
+	// <-ffchan.NewTimeoutSender(m.quitLoopSync, true, "increSyncerQuitLoopSync", 1000).C
 }
 
 func (m *IncrementalSyncer) Name() string {
@@ -208,7 +207,8 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 	}
 	m.acquireTxDedupCache.Set(hash, struct{}{})
 
-	<-ffchan.NewTimeoutSender(m.acquireTxQueue, hash, "timeoutAcquireTx", 1000).C
+	m.acquireTxQueue <- hash
+	// <-ffchan.NewTimeoutSender(m.acquireTxQueue, hash, "timeoutAcquireTx", 1000).C
 }
 
 func (m *IncrementalSyncer) ClearQueue() {
@@ -347,8 +347,9 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer
 }
 
 func (m *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
-	for i, c := range m.OnNewTxiReceived {
-		<-ffchan.NewTimeoutSenderShort(c, txi, fmt.Sprintf("syncerNotifyNewTxi_%d", i)).C
+	for _, c := range m.OnNewTxiReceived {
+		c <- txi
+		// <-ffchan.NewTimeoutSenderShort(c, txi, fmt.Sprintf("syncerNotifyNewTxi_%d", i)).C
 	}
 }
 

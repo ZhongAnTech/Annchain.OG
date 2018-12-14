@@ -36,7 +36,7 @@ func (f *Foo) CalcHash() (hash Hash, err error) {
 
 	hasher := sha3.New512()
 	v := hasher.Sum(buf.Bytes())
-	hash.MustSetBytes(v)
+	hash.MustSetBytes(v, PaddingNone)
 	fmt.Println(hash.Hex())
 	return
 }

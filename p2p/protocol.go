@@ -18,8 +18,8 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/onode"
 )
 
 type MsgCodeType uint16

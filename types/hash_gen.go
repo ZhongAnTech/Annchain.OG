@@ -114,7 +114,7 @@ func (z *HashBytes) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *Hashs) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *Hashes) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0003 uint32
 	zb0003, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -123,7 +123,7 @@ func (z *Hashs) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap((*z)) >= int(zb0003) {
 		(*z) = (*z)[:zb0003]
 	} else {
-		(*z) = make(Hashs, zb0003)
+		(*z) = make(Hashes, zb0003)
 	}
 	for zb0001 := range *z {
 		var zb0004 uint32
@@ -144,7 +144,7 @@ func (z *Hashs) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z Hashs) EncodeMsg(en *msgp.Writer) (err error) {
+func (z Hashes) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
 		return
@@ -164,7 +164,7 @@ func (z Hashs) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z Hashs) MarshalMsg(b []byte) (o []byte, err error) {
+func (z Hashes) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
 	for zb0005 := range z {
@@ -176,7 +176,7 @@ func (z Hashs) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Hashs) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *Hashes) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0003 uint32
 	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -185,7 +185,7 @@ func (z *Hashs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap((*z)) >= int(zb0003) {
 		(*z) = (*z)[:zb0003]
 	} else {
-		(*z) = make(Hashs, zb0003)
+		(*z) = make(Hashes, zb0003)
 	}
 	for zb0001 := range *z {
 		var zb0004 uint32
@@ -207,7 +207,7 @@ func (z *Hashs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z Hashs) Msgsize() (s int) {
+func (z Hashes) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize + (len(z) * (7 + (HashLength * (msgp.ByteSize))))
 	return
 }

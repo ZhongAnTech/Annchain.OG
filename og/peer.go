@@ -55,7 +55,7 @@ type peer struct {
 	term      chan struct{}      // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
-	inBound  bool
+	inBound   bool
 }
 
 type PeerInfo struct {
@@ -65,7 +65,7 @@ type PeerInfo struct {
 	ShortId     string `json:"short_id"`
 	Link        bool   `json:"link"`
 	Addrs       string `json:"addrs"`
-	InBound     bool 	`json:"in_bound"`
+	InBound     bool   `json:"in_bound"`
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -79,7 +79,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
-		inBound   :p.Inbound(),
+		inBound:   p.Inbound(),
 	}
 }
 
@@ -129,7 +129,7 @@ func (p *peer) Info() *PeerInfo {
 		ShortId:     p.id,
 		Link:        p.outPath,
 		Addrs:       p.RemoteAddr().String(),
-		InBound: 	p.inBound,
+		InBound:     p.inBound,
 	}
 }
 
@@ -233,13 +233,13 @@ func (p *peer) SendNodeData(data []byte) error {
 // data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes []types.Hash) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
-	hashsStruct := types.Hashs(hashes)
+	hashsStruct := types.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
 	return p.sendRawMessage(GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
-func (p *peer) RequestReceipts(hashes types.Hashs) error {
+func (p *peer) RequestReceipts(hashes types.Hashes) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
 	return p.sendRawMessage(GetReceiptsMsg, b)
@@ -437,10 +437,10 @@ func (ps *peerSet) Peers() []*peer {
 	return list
 }
 
-func (ps *peerSet) ValidPathNum() (outPath,inPath int ) {
+func (ps *peerSet) ValidPathNum() (outPath, inPath int) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
-	var out,in  int
+	var out, in int
 	for _, p := range ps.peers {
 		if p.outPath {
 			out++
@@ -449,7 +449,7 @@ func (ps *peerSet) ValidPathNum() (outPath,inPath int ) {
 			in++
 		}
 	}
-	return out,in
+	return out, in
 }
 
 func (ps *peerSet) GetPeers(ids []string, n int) []*peer {

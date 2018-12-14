@@ -150,6 +150,7 @@ func (h *Hash) MustSetBytes(b []byte, padding Padding) {
 		if len(b) != HashLength{
 			panic(fmt.Sprintf("bytes to set is not expected length: %d != %d", len(b), HashLength))
 		}
+		copy(h.Bytes[:], b)
 	}
 
 }

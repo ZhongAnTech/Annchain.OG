@@ -25,12 +25,15 @@ type StateObject struct {
 
 	dbErr error
 
-	code []byte
-	trie Trie
-	db   *StateDB
+	code      []byte
+	dirtycode bool
+	suicided  bool // TODO suicided is useless now.
 
 	cacheStorage map[types.Hash]types.Hash
 	dirtyStorage map[types.Hash]types.Hash
+
+	trie Trie
+	db   *StateDB
 }
 
 func NewStateObject(addr types.Address) *StateObject {
@@ -70,6 +73,10 @@ func (s *StateObject) SubBalance(decrement *math.BigInt) {
 }
 
 func (s *StateObject) SetBalance(balance *math.BigInt) {
+	s.db.journal.append(&balanceChange{
+		account: &s.address,
+		prev:    s.data.Balance,
+	})
 	s.data.Balance = balance
 }
 
@@ -78,6 +85,10 @@ func (s *StateObject) GetNonce() uint64 {
 }
 
 func (s *StateObject) SetNonce(nonce uint64) {
+	s.db.journal.append(&nonceChange{
+		account: &s.address,
+		prev:    s.data.Nonce,
+	})
 	s.data.Nonce = nonce
 }
 
@@ -98,9 +109,25 @@ func (s *StateObject) GetState(db Database, key types.Hash) types.Hash {
 	return value
 }
 
-func (s *StateObject) SetState(key, value types.Hash) {
+func (s *StateObject) SetState(db Database, key, value types.Hash) {
+	s.db.journal.append(&storageChange{
+		account:  &s.address,
+		key:      key,
+		prevalue: s.GetState(db, key),
+	})
 	s.cacheStorage[key] = value
 	s.dirtyStorage[key] = value
+}
+
+func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
+	s.db.journal.append(&codeChange{
+		account:  &s.address,
+		prevcode: s.code,
+		prevhash: s.data.CodeHash,
+	})
+	s.code = code
+	s.data.CodeHash = codehash.ToBytes()
+	s.dirtycode = true
 }
 
 func (s *StateObject) openTrie(db Database) Trie {

@@ -32,8 +32,12 @@ type TxContext struct {
 	Data  []byte
 
 	// Temporarily keep using gas as resource billing
-	GasLimit uint64
-	GasPrice *math.BigInt
+	GasLimit   uint64
+	GasPrice   *math.BigInt
+	Coinbase   types.Address // Provides information for COINBASE
+	SequenceID uint64        // Provides information for SequenceID
+	//Time        *math.BigInt      // Provides information for TIME
+	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -45,16 +49,11 @@ type DefaultChainContext struct {
 }
 
 // NewEVMContext creates a new context for use in the OVM.
-func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB, caller vmtypes.Caller) vmtypes.Context {
-	return vmtypes.Context{
+func NewEVMContext(chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
+	return &vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
-		Origin:      txContext.From,
-		//Coinbase:    beneficiary,
-		GasLimit: txContext.GasLimit,
-		GasPrice: txContext.GasPrice.Value,
-		StateDB:  stateDB,
-		Caller:   caller,
+		StateDB:     stateDB,
 	}
 }
 

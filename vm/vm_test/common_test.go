@@ -16,6 +16,7 @@ import (
 	"testing"
 	"encoding/binary"
 	"reflect"
+	"github.com/stretchr/testify/assert"
 )
 
 func readFile(filename string) []byte {
@@ -28,8 +29,9 @@ func readFile(filename string) []byte {
 }
 
 type Runtime struct {
-	Context vmtypes.Context
-	Tracer  vm.Tracer
+	VmContext *vmtypes.Context
+	TxContext *ovm.TxContext
+	Tracer    vm.Tracer
 }
 
 func DefaultLDB(from types.Address, coinBase types.Address) *ovm.LayerStateDB {
@@ -45,12 +47,12 @@ func DefaultLDB(from types.Address, coinBase types.Address) *ovm.LayerStateDB {
 }
 
 func DefaultOVM(runtime *Runtime) *ovm.OVM {
-	evmInterpreter := vm.NewEVMInterpreter(&runtime.Context, &vm.InterpreterConfig{
-		Debug:  true,
-		Tracer: runtime.Tracer,
-	})
-	oovm := ovm.NewOVM(runtime.Context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
-	runtime.Context.Caller = oovm
+	evmInterpreter := vm.NewEVMInterpreter(runtime.VmContext, runtime.TxContext,
+		&vm.InterpreterConfig{
+			Debug:  true,
+			Tracer: runtime.Tracer,
+		})
+	oovm := ovm.NewOVM(runtime.VmContext, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
 	return oovm
 }
 
@@ -61,6 +63,8 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 		Data:     readFile(filename),
 		GasPrice: math.NewBigInt(1),
 		GasLimit: DefaultGasLimit,
+		Coinbase: coinBase,
+		SequenceID: 0,
 	}
 
 	oovm := DefaultOVM(rt)
@@ -69,13 +73,13 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 	}
 
 	logrus.Info("Deploying contract", filename)
-	ret, contractAddr, leftOverGas, err = oovm.Create(&rt.Context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err = oovm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Deployed contract")
 	fmt.Println("CP1", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
-	//fmt.Println(rt.Context.StateDB.String())
+	//fmt.Println(rt.VmContext.StateDB.String())
 	//rt.Tracer.Write(os.Stdout)
 	return
 }
@@ -87,6 +91,8 @@ func CallContract(contractAddr types.Address, from types.Address, coinBase types
 		Value:    value,
 		GasPrice: math.NewBigInt(1),
 		GasLimit: DefaultGasLimit,
+		Coinbase: coinBase,
+		SequenceID: 0,
 	}
 
 	logrus.WithField("contract", contractAddr.Hex()).WithField("function", functionHash).Info("Calling contract")
@@ -104,10 +110,10 @@ func CallContract(contractAddr types.Address, from types.Address, coinBase types
 	oovm := DefaultOVM(rt)
 	//fmt.Println("Input:")
 	//fmt.Println(hex.Dump(input))
-	ret, leftOverGas, err = oovm.Call(&rt.Context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = oovm.Call(vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Called contract")
 	//fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
-	//fmt.Println(rt.Context.StateDB.String())
+	//fmt.Println(rt.VmContext.StateDB.String())
 	//rt.Tracer.Write(os.Stdout)
 	return
 }
@@ -242,4 +248,14 @@ func TestEncodeParams(t *testing.T) {
 	params := []interface{}{1024, "TTTTTTTTTTT", "PPPPPPPPPP"}
 	bs := EncodeParams(params)
 	fmt.Println(hex.Dump(bs))
+}
+
+
+func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
+	fmt.Println(ldb.String())
+	//vm.WriteTrace(os.Stdout, tracer.Logs)
+	fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))
+	fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
+	fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
+	assert.NoError(t, err)
 }

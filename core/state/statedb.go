@@ -5,8 +5,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+)
+
+var (
+	// emptyState is the known hash of an empty state trie entry.
+	emptyState = crypto.Keccak256Hash(nil)
+
+	// emptyCode is the known hash of the empty EVM bytecode.
+	emptyCode = crypto.Keccak256Hash(nil)
 )
 
 type StateDBConfig struct {
@@ -134,7 +143,7 @@ func (sd *StateDB) getStateObject(addr types.Address) (*StateObject, error) {
 	return state, nil
 }
 
-// GetOrCreateState will find a state from memory by account address.
+// GetOrCreateStateObject will find a state from memory by account address.
 // If state not exists, it will load a state from db.
 func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
@@ -152,7 +161,7 @@ func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
 	return state
 }
 
-// DeleteState remove a state from StateDB. Return error
+// DeleteStateObject remove a state from StateDB. Return error
 // if it fails.
 func (sd *StateDB) DeleteStateObject(addr types.Address) error {
 	sd.mu.Lock()
@@ -305,8 +314,21 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		delete(sd.dirtyset, addr)
 	}
 	// commit current trie into triedb.
-	// TODO later need onleaf callback to link account trie to storage trie.
-	rootHash, err := sd.trie.Commit(nil)
+	rootHash, err := sd.trie.Commit(func(leaf []byte, parent types.Hash) error {
+		var account Account
+		if _, err := account.UnmarshalMsg(leaf); err != nil {
+			return nil
+		}
+		if account.Root != emptyState {
+			sd.db.TrieDB().Reference(account.Root, parent)
+		}
+		code := types.BytesToHash(account.CodeHash)
+		if code != emptyCode {
+			sd.db.TrieDB().Reference(code, parent)
+		}
+		return nil
+	})
+
 	return rootHash, err
 }
 

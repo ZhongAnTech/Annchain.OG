@@ -98,6 +98,11 @@ func (s *StateObject) GetState(db Database, key types.Hash) types.Hash {
 	return value
 }
 
+func (s *StateObject) SetState(key, value types.Hash) {
+	s.cacheStorage[key] = value
+	s.dirtyStorage[key] = value
+}
+
 func (s *StateObject) openTrie(db Database) Trie {
 	if s.trie != nil {
 		return s.trie

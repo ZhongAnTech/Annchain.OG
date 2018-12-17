@@ -153,14 +153,6 @@ func TestMultiContract(t *testing.T) {
 	}
 }
 
-func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
-	fmt.Println(ldb.String())
-	//vm.WriteTrace(os.Stdout, tracer.Logs)
-	fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))
-	fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
-	fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
-	assert.NoError(t, err)
-}
 
 func TestInterCall(t *testing.T) {
 	from := types.HexToAddress("0xABCDEF88")

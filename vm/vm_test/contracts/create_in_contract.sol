@@ -35,7 +35,7 @@ contract C {
 
 
     // You can also create a contract and at the same time transfer some ethers to it.
-    function createAndEndowD(uint arg, uint amount) public returns (uint){
+    function createAndEndowD(uint arg, uint amount) public payable returns (uint){
         // Send ether along with the creation of the contract
         D newD = (new D).value(amount)(arg);
         return newD.getD();

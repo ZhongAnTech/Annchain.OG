@@ -36,9 +36,12 @@ type StateDB struct {
 	db   Database
 	trie Trie
 
+	refund uint64
+
 	states   map[types.Address]*StateObject
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time
+	journal  *journal
 
 	close chan struct{}
 
@@ -181,21 +184,21 @@ func (sd *StateDB) deleteStateObject(addr types.Address) error {
 	return nil
 }
 
-// UpdateStateObject set addr's state in StateDB.
-//
-// Note that this setting will force updating the StateDB without
-// any verification. Call this UpdateState carefully.
-func (sd *StateDB) UpdateStateObject(addr types.Address, state *StateObject) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
+// // UpdateStateObject set addr's state in StateDB.
+// //
+// // Note that this setting will force updating the StateDB without
+// // any verification. Call this UpdateState carefully.
+// func (sd *StateDB) UpdateStateObject(addr types.Address, state *StateObject) {
+// 	sd.mu.Lock()
+// 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
-	sd.updateStateObject(addr, state)
-}
-func (sd *StateDB) updateStateObject(addr types.Address, state *StateObject) {
-	sd.states[addr] = state
-	sd.dirtyset[addr] = struct{}{}
-}
+// 	defer sd.refreshbeat(addr)
+// 	sd.updateStateObject(addr, state)
+// }
+// func (sd *StateDB) updateStateObject(addr types.Address, state *StateObject) {
+// 	sd.states[addr] = state
+// 	sd.dirtyset[addr] = struct{}{}
+// }
 
 // AddBalance
 func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
@@ -205,11 +208,17 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 	sd.addBalance(addr, increment)
 }
 func (sd *StateDB) addBalance(addr types.Address, increment *math.BigInt) {
+	// check if increment is zero
+	if increment.Sign() == 0 {
+		return
+	}
+
 	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
-	state.AddBalance(increment)
+	sd.setBalance(addr, state.data.Balance.Add(increment))
 
-	sd.updateStateObject(addr, state)
+	// TODO replace updateStateObject by append journal
+	// sd.updateStateObject(addr, state)
 }
 
 // SubBalance
@@ -220,26 +229,63 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 	sd.subBalance(addr, decrement)
 }
 func (sd *StateDB) subBalance(addr types.Address, decrement *math.BigInt) {
+	// check if increment is zero
+	if decrement.Sign() == 0 {
+		return
+	}
+
 	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
-	state.SubBalance(decrement)
+	sd.setBalance(addr, state.data.Balance.Sub(decrement))
 
-	sd.updateStateObject(addr, state)
+	// TODO replace updateStateObject by append journal
+	// sd.updateStateObject(addr, state)
 }
+
+func (sd *StateDB) GetRefund() uint64 {
+	return sd.refund
+}
+
+func (sd *StateDB) GetCodeHash(addr types.Address) types.Hash {
+	// TODO
+	// implement it
+	return types.Hash{}
+}
+
+func (sd *StateDB) GetCode(addr types.Address) []byte {
+	// TODO 
+	// implement it
+	return []byte{}
+}
+
+func (sd *StateDB) GetCodeSize(addr types.Address) int {
+	// TODO
+	// implement it
+	return 0
+}
+
+
+/**
+Setters
+
+Belows are the functions that will dirt the StateDB's data,
+add the change to journal for later revert.
+*/
 
 // SetBalance
 func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
 	sd.setBalance(addr, balance)
 }
 func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
+	defer sd.refreshbeat(addr)
+
 	state := sd.getOrCreateStateObject(addr)
 	state.SetBalance(balance)
 
-	sd.updateStateObject(addr, state)
+	// sd.updateStateObject(addr, state)
 }
 
 func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
@@ -250,8 +296,44 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	state := sd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
 
-	sd.updateStateObject(addr, state)
+	// sd.updateStateObject(addr, state)
 }
+
+func (sd *StateDB) AddRefund(refund uint64) {
+
+}
+
+func (sd *StateDB) SubRefund(refund uint64) {
+
+}
+
+func (sd *StateDB) SetStateObject(addr types.Address, stateObj *StateObject) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	sd.setStateObject(addr, stateObj)
+}
+func (sd *StateDB) setStateObject(addr types.Address, stateObj *StateObject) {
+	defer sd.refreshbeat(addr)
+
+	oldobj, _ := sd.getStateObject(addr)
+	if oldobj == nil {
+		return
+	}
+	sd.journal.append(&resetObjectChange{
+		prev: oldobj,
+	})
+	sd.states[addr] = stateObj
+}
+
+func (sd *StateDB) SetCode(addr types.Address, code []byte) {
+	// TODO
+	// implement it.
+}
+
+/**
+Setters end
+*/
 
 // laodState loads a state from current trie.
 func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {

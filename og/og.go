@@ -139,6 +139,7 @@ func (og *Og) Start() {
 
 	logrus.Info("OG Started")
 }
+
 func (og *Og) Stop() {
 	// Quit fetcher, txsyncLoop.
 	close(og.quit)
@@ -199,7 +200,7 @@ func (og *Og) BrodcastLatestSequencer() {
 			// latest sequencer updated , broadcast it
 			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 		case <-og.quit:
-			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
+			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return
 		}
 	}

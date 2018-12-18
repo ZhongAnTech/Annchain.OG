@@ -64,6 +64,7 @@ func NewStateDB(conf StateDBConfig, root types.Hash, db Database) (*StateDB, err
 		states:   make(map[types.Address]*StateObject),
 		dirtyset: make(map[types.Address]struct{}),
 		beats:    make(map[types.Address]time.Time),
+		journal:  newJournal(),
 		close:    make(chan struct{}),
 	}
 
@@ -282,6 +283,12 @@ func (sd *StateDB) GetCodeSize(addr types.Address) int {
 	return l
 }
 
+func (sd *StateDB) GetState(addr types.Address, key types.Hash) types.Hash {
+	// TODO
+	// not implemented yet
+	return types.BytesToHash([]byte{})
+}
+
 /**
 Setters
 
@@ -333,13 +340,13 @@ func (sd *StateDB) SubRefund(decrement uint64) {
 	sd.refund -= decrement
 }
 
-func (sd *StateDB) SetStateObject(addr types.Address, stateObj *StateObject) {
+func (sd *StateDB) SetStateObject(addr types.Address, stobj *StateObject) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.setStateObject(addr, stateObj)
+	sd.setStateObject(addr, stobj)
 }
-func (sd *StateDB) setStateObject(addr types.Address, stateObj *StateObject) {
+func (sd *StateDB) setStateObject(addr types.Address, stobj *StateObject) {
 	defer sd.refreshbeat(addr)
 
 	oldobj, _ := sd.getStateObject(addr)
@@ -349,12 +356,20 @@ func (sd *StateDB) setStateObject(addr types.Address, stateObj *StateObject) {
 	sd.journal.append(&resetObjectChange{
 		prev: oldobj,
 	})
-	sd.states[addr] = stateObj
+	sd.states[addr] = stobj
 }
 
 func (sd *StateDB) SetCode(addr types.Address, code []byte) {
-	stateobj := sd.getOrCreateStateObject(addr)
-	stateobj.SetCode(crypto.Keccak256Hash(code), code)
+	stobj := sd.getOrCreateStateObject(addr)
+	stobj.SetCode(crypto.Keccak256Hash(code), code)
+}
+
+func (sd *StateDB) SetState(addr types.Address, key, value types.Hash) {
+	stobj := sd.getOrCreateStateObject(addr)
+	if stobj == nil {
+		return
+	}
+	stobj.SetState(sd.db, key, value)
 }
 
 /**

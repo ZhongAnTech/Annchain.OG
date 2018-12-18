@@ -277,7 +277,7 @@ func (l *LayerStateDB) Empty(addr types.Address) bool {
 }
 
 func (l *LayerStateDB) RevertToSnapshot(i int) {
-	l.Layers = l.Layers[0 : i+1]
+	l.Layers = l.Layers[0 : i]
 }
 
 func (l *LayerStateDB) Snapshot() int {

@@ -52,6 +52,7 @@ type StateDB interface {
 
 	// RevertToSnapshot reverts all state changes made since the given revision.
 	RevertToSnapshot(int)
+	// Snapshot creates a new revision
 	Snapshot() int
 
 	AddLog(*Log)

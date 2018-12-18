@@ -2,21 +2,24 @@ package vm_test
 
 import (
 	"testing"
-	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/common/math"
 	"github.com/stretchr/testify/assert"
 	"github.com/annchain/OG/vm/eth/core/vm"
 )
 
-func TestContractCreation(t *testing.T) {
+func TestAsserts(t *testing.T) {
 	from := types.HexToAddress("0xABCDEF88")
+	from2 := types.HexToAddress("0xABCDEF87")
 	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
 	})
 	ldb := DefaultLDB(from, coinBase)
+	ldb.CreateAccount(from2)
+	ldb.AddBalance(from2, math.NewBigInt(10000000))
 
 	rt := &Runtime{
 		Tracer:    tracer,
@@ -31,15 +34,18 @@ func TestContractCreation(t *testing.T) {
 		},
 	}
 
-	_, contractAddr, _, err := DeployContract("C.bin", from, coinBase, rt, nil)
+	_, contractAddr, _, err := DeployContract("asserts.bin", from, coinBase, rt, nil)
 	assert.NoError(t, err)
 
-	// Use C to create D
 	{
-		params := EncodeParams([]interface{}{55, 66})
-		ret, leftGas, err := CallContract(contractAddr, from, coinBase, rt, math.NewBigInt(66), "8dcd64cc", params)
+		// op jumps to 0xfe and then raise a non-existing op
+		ret, leftGas, err := CallContract(contractAddr, from, coinBase, rt, math.NewBigInt(2), "2911e7b2", nil)
 		dump(t, ldb, ret, leftGas, err)
 	}
-
+	//vm.WriteTrace(os.Stdout, tracer.Logs)
+	{
+		ret, leftGas, err := CallContract(contractAddr, from2, coinBase, rt, math.NewBigInt(2), "0d43aaf2", nil)
+		dump(t, ldb, ret, leftGas, err)
+	}
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
 }

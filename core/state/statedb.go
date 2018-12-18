@@ -129,7 +129,31 @@ func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
 	return state.GetNonce(), nil
 }
 
-// GetState get a state from StateDB. If state not exist,
+func (sd *StateDB) Exist(addr types.Address) bool {
+	if stobj, _ := sd.getStateObject(addr); stobj != nil {
+		return true
+	}
+	return false
+}
+
+func (sd *StateDB) Empty(addr types.Address) bool {
+	stobj, _ := sd.getStateObject(addr)
+	if stobj == nil {
+		return true
+	}
+	if len(stobj.code) != 0 {
+		return false
+	}
+	if stobj.data.Nonce != uint64(0) {
+		return false
+	}
+	if stobj.data.Balance.GetInt64() != int64(0) {
+		return false
+	}
+	return true
+}
+
+// GetStateObject get a state from StateDB. If state not exist,
 // load it from db.
 func (sd *StateDB) GetStateObject(addr types.Address) (*StateObject, error) {
 	sd.mu.Lock()
@@ -188,22 +212,6 @@ func (sd *StateDB) deleteStateObject(addr types.Address) error {
 	delete(sd.beats, addr)
 	return nil
 }
-
-// // UpdateStateObject set addr's state in StateDB.
-// //
-// // Note that this setting will force updating the StateDB without
-// // any verification. Call this UpdateState carefully.
-// func (sd *StateDB) UpdateStateObject(addr types.Address, state *StateObject) {
-// 	sd.mu.Lock()
-// 	defer sd.mu.Unlock()
-
-// 	defer sd.refreshbeat(addr)
-// 	sd.updateStateObject(addr, state)
-// }
-// func (sd *StateDB) updateStateObject(addr types.Address, state *StateObject) {
-// 	sd.states[addr] = state
-// 	sd.dirtyset[addr] = struct{}{}
-// }
 
 // AddBalance
 func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {

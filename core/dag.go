@@ -221,9 +221,8 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 func (dag*Dag)GetOldTx(addr types.Address, nonce uint64) types.Txi{
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
-	data, err := dag.oldDb.Get(txHashFlowKey(addr, nonce))
+	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
-		log.Error(err)
 		return nil
 	}
 	hash := types.BytesToHash(data)
@@ -286,7 +285,7 @@ func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
 	return tx.GetBase().GetHeight(), nil
 }
 
-func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
+func (dag *Dag) GetTxsByNumber(id uint64) types.Txs {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 

@@ -99,10 +99,10 @@ func init() {
 	//viper.BindPFlag("log_stdout", rootCmd.PersistentFlags().Lookup("log_stdout"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log_level"))
 
-	viper.SetDefault("hub.outgoing_buffer_size", 10)
-	viper.SetDefault("hub.incoming_buffer_size", 10)
+	viper.SetDefault("hub.outgoing_buffer_size", 1000)
+	viper.SetDefault("hub.incoming_buffer_size", 1000)
 	viper.SetDefault("hub.message_cache_expiration_seconds", 60)
-	viper.SetDefault("hub.message_cache_max_size", 3000)
+	viper.SetDefault("hub.message_cache_max_size", 30000)
 	viper.SetDefault("crypto.algorithm", "secp256k1")
 
 	viper.SetDefault("max_tx_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")

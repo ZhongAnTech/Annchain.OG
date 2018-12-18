@@ -273,9 +273,10 @@ func (h *Hub) RequestBodies(peerId string, hashs []types.Hash) error {
 }
 
 func (p *peer) RequestOneHeader(hash types.Hash) error {
+	tmpHash := hash
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
-			Hash: hash,
+			Hash: &tmpHash,
 		},
 		Amount:    uint64(1),
 		Skip:      uint64(0),
@@ -301,9 +302,10 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 }
 
 func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
+	tmpHash := hash
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
-			Hash: hash,
+			Hash: &tmpHash,
 		},
 		Amount:    uint64(amount),
 		Skip:      uint64(skip),
@@ -314,7 +316,7 @@ func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, rever
 }
 
 func (p *peer) sendRequest(msgType MessageType, request types.Message) error {
-	clog := msgLog.WithField("msgType", msgType.String()).WithField("request ", request.String()).WithField("to", p.id)
+	clog := msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
 		clog.WithError(err).Warn("encode request error")

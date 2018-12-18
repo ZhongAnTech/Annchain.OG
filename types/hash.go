@@ -21,11 +21,11 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strings"
 
 	"bytes"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"strings"
 )
 
 //go:generate msgp
@@ -41,6 +41,7 @@ var (
 )
 
 type Padding uint
+
 const (
 	PaddingLeft Padding = iota
 	PaddingRight
@@ -81,14 +82,6 @@ func HexStringToHash(s string) (Hash, error) {
 	var h Hash
 	err := h.SetBytes(common.FromHex(s))
 	return h, err
-}
-
-func HashesToString(hashes []Hash) string {
-	var strs []string
-	for _, v := range hashes {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
 }
 
 // ToBytes convers hash to []byte.
@@ -141,13 +134,13 @@ func (h *Hash) MustSetBytes(b []byte, padding Padding) {
 	}
 
 	h.Bytes = [HashLength]byte{}
-	switch padding{
+	switch padding {
 	case PaddingLeft:
-		copy(h.Bytes[HashLength - len(b):], b)
+		copy(h.Bytes[HashLength-len(b):], b)
 	case PaddingRight:
 		copy(h.Bytes[:], b)
 	case PaddingNone:
-		if len(b) != HashLength{
+		if len(b) != HashLength {
 			panic(fmt.Sprintf("bytes to set is not expected length: %d != %d", len(b), HashLength))
 		}
 		copy(h.Bytes[:], b)
@@ -188,6 +181,14 @@ func (h Hash) Cmp(another Hash) int {
 	return 0
 }
 
-func (a Hashes) Len() int {return len(a)}
+func (a Hashes) Len() int           { return len(a) }
 func (a Hashes) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a Hashes) Less(i, j int) bool { return a[i].Hex() < a[j].Hex() }
+
+func (h Hashes) String() string {
+	var strs []string
+	for _, v := range h {
+		strs = append(strs,v.String())
+	}
+	return strings.Join(strs, ", ")
+}

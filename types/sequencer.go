@@ -18,12 +18,14 @@ type Sequencer struct {
 	TxBase
 	Id                uint64 `msgp:"id"`
 	Issuer            Address
-	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+	ContractHashOrder Hashes `msgp:"contractHashOrder"`
 }
 
 func (t *Sequencer) String() string {
 	return fmt.Sprintf("%s-[%.10s]-%d-id_%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce, t.Id)
 }
+
+type Sequencers []*Sequencer
 
 func SampleSequencer() *Sequencer {
 	return &Sequencer{Id: 99,
@@ -77,7 +79,7 @@ func (t *Sequencer) GetValue() *math.BigInt {
 	return math.NewBigInt(0)
 }
 
-func (t *Sequencer) Parents() []Hash {
+func (t *Sequencer) Parents() Hashes {
 	return t.ParentsHash
 }
 
@@ -125,4 +127,36 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		ContractHashOrder: s.ContractHashOrder,
 	}
 	return rawSequencer
+}
+
+func (s Sequencers)String() string {
+	var strs []string
+	for _, v := range s {
+		strs = append(strs,v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (s Sequencers)ToHeaders()SequencerHeaders {
+	if len(s) == 0 {
+		return nil
+	}
+	var headers SequencerHeaders
+	for _, v := range s {
+		head := NewSequencerHead(v.Hash, v.Id)
+		headers = append(headers, head)
+	}
+	return headers
+}
+
+func (seqs Sequencers)ToRawSequencers()RawSequencers {
+	if len(seqs) == 0 {
+		return nil
+	}
+	var rawSeqs RawSequencers
+	for _, v := range seqs {
+		rasSeq := v.RawSequencer()
+		rawSeqs = append(rawSeqs, rasSeq)
+	}
+	return rawSeqs
 }

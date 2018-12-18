@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
-	"time"
 )
 
 type AutoClientManager struct {
@@ -103,8 +102,8 @@ func (c *AutoClientManager) eventLoop() {
 					client.Resume()
 				}
 			}
-		case <-time.After(time.Second * 20):
-			continue
+		//case <-time.After(time.Second * 20):
+			//continue
 		case <-c.quit:
 			logrus.Info("got quit signal")
 			// wait for all clients to stop

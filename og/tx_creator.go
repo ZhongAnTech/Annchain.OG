@@ -126,7 +126,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	hash := tx.CalcTxHash()
 	if hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
-		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Trace("new tx connected")
+		logrus.WithField("hash", hash).WithField("parent",tx.Parents()).Trace("new tx connected")
 		// yes
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)

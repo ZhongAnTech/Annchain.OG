@@ -5,10 +5,14 @@ import (
 	"strings"
 )
 
+//go:generate msgp
+
 type SequencerHeader struct {
 	hash Hash
 	id   uint64
 }
+
+type SequencerHeaders []*SequencerHeader
 
 func (s *SequencerHeader) SequencerId() uint64 {
 	return s.id
@@ -43,17 +47,6 @@ func NewSequencerHead(hash Hash, id uint64) *SequencerHeader {
 	}
 }
 
-func SeqsToHeaders(seqs []*Sequencer) []*SequencerHeader {
-	if len(seqs) == 0 {
-		return nil
-	}
-	var headers []*SequencerHeader
-	for _, v := range seqs {
-		head := NewSequencerHead(v.Hash, v.Id)
-		headers = append(headers, head)
-	}
-	return headers
-}
 
 func (s *SequencerHeader) Equal(h *SequencerHeader) bool {
 	if s == nil || h == nil {
@@ -62,13 +55,11 @@ func (s *SequencerHeader) Equal(h *SequencerHeader) bool {
 	return s.id == h.id && s.hash == h.hash
 }
 
-func HeadersToString(headers []*SequencerHeader) string {
+
+func (h SequencerHeaders)String()string{
 	var strs []string
-	for _, v := range headers {
-		if v == nil {
-			continue
-		}
-		strs = append(strs, v.String())
+	for _, v := range h {
+		strs = append(strs,v.String())
 	}
 	return strings.Join(strs, ", ")
 }

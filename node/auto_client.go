@@ -16,6 +16,8 @@ import (
 const (
 	IntervalModeConstantInterval = "constant"
 	IntervalModeRandom           = "random"
+	IntervalModeMicroRandom      = "micro_random"
+	IntervalModeMicroConstanrt   = "micro_constant"
 )
 
 type AutoClient struct {
@@ -58,6 +60,10 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 		sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMs)
 	case IntervalModeRandom:
 		sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
+	case IntervalModeMicroConstanrt:
+		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalMs)
+	case IntervalModeMicroRandom:
+		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
 	default:
 		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 	}
@@ -164,18 +170,24 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
-func (c * AutoClient )fireTxs(me types.Address) bool {
+func (c *AutoClient) fireTxs(me types.Address) bool {
 	m := viper.GetInt("auto_client.tx.send_micro")
-	if m==0 {
+	if m == 0 {
 		m = 1000
 	}
-	for i:=1;i<10000;i++ {
-			time.Sleep(time.Duration(m) *time.Microsecond)
-			txi:= c.Delegate.Dag.GetOldTx(me,uint64(i))
-			c.Delegate.Announce(txi)
+	logrus.WithField("micro", m).Info("sent interval ")
+	for i := uint64(1); i < 1000000000; i++ {
+		time.Sleep(time.Duration(m) * time.Microsecond)
+		txi := c.Delegate.Dag.GetOldTx(me, i)
+		if txi == nil {
+			return true
+		}
+		c.Delegate.Announce(txi)
 	}
 	return true
 }
+
+var firstTx bool
 
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
@@ -183,13 +195,17 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 
 	me := c.SampleAccounts[c.MyAccountIndex]
-    txi :=  c.Delegate.Dag.GetOldTx(me.Address,0)
-    if txi!=nil {
-    	logrus.WithField("txi",txi).Info("get start test tps")
-    	c.AutoTxEnabled = false
-    	c.AutoSequencerEnabled = false
-    	c.Delegate.Announce(txi)
-    	return c.fireTxs(me.Address)
+	if !firstTx {
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		if txi != nil {
+			logrus.WithField("txi", txi).Info("get start test tps")
+			c.AutoTxEnabled = false
+			c.AutoSequencerEnabled = false
+			firstTx = true
+			c.Delegate.Announce(txi)
+			return c.fireTxs(me.Address)
+		}
+		firstTx = true
 	}
 
 	tx, err := c.Delegate.GenerateTx(TxRequest{
@@ -213,10 +229,12 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
-	txi :=  c.Delegate.Dag.GetOldTx(me.Address,0)
-	if txi!=nil {
-		c.AutoSequencerEnabled = false
-		return true
+	if !firstTx {
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		if txi != nil {
+			c.AutoSequencerEnabled = false
+			return true
+		}
 	}
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{

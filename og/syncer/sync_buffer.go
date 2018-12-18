@@ -172,11 +172,11 @@ func (s *SyncBuffer) Handle() error {
 		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
-		//if !s.formatVerifier.Verify(tx) {
-		//	log.WithField("tx", tx).Warn("bad tx format")
-		//	err = errors.New("bad tx format")
-		//	break
-		//}
+		if !s.formatVerifier.Verify(tx) {
+			log.WithField("tx", tx).Warn("bad tx format")
+			err = errors.New("bad tx format")
+			break
+		}
 
 		if !s.graphVerifier.Verify(tx) {
 			log.WithField("tx", tx).Warn("bad tx graph")

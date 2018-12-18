@@ -109,8 +109,10 @@ func NewNode() *Node {
 		Dag:       org.Dag,
 		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
-		DependencyCacheMaxSize:           5000,
-		NewTxQueueSize:                   1,
+		DependencyCacheMaxSize:           20000,
+		NewTxQueueSize:                   10000,
+		KnownCacheMaxSize:					30000,
+		KnownCacheExpirationSeconds:		10 * 60,
 	})
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,

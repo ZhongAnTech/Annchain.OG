@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"strings"
-
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
+	"strings"
 )
 
 //go:generate msgp
@@ -50,7 +49,7 @@ type Txi interface {
 	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
 	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-	Parents() []Hash          // Parents returns the hash of txs that it directly proves.
+	Parents() Hashes         // Parents returns the hash of txs that it directly proves.
 
 	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
@@ -76,7 +75,7 @@ type Txi interface {
 type TxBase struct {
 	Type         TxBaseType
 	Hash         Hash
-	ParentsHash  []Hash
+	ParentsHash  Hashes
 	AccountNonce uint64
 	Height       uint64
 	PublicKey    []byte
@@ -100,7 +99,7 @@ func (t *TxBase) GetNonce() uint64 {
 	return t.AccountNonce
 }
 
-func (t *TxBase) Parents() []Hash {
+func (t *TxBase) Parents() Hashes {
 	return t.ParentsHash
 }
 
@@ -111,6 +110,7 @@ func (t *TxBase) SetHash(hash Hash) {
 func (t *TxBase) String() string {
 	return fmt.Sprintf("%d-[%.10s]", t.Height, t.GetTxHash().Hex())
 }
+
 
 func (t *TxBase) CalcTxHash() (hash Hash) {
 	var buf bytes.Buffer
@@ -139,26 +139,12 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	return
 }
 
-func TxisToString(txs []Txi) string {
-	var strs []string
-	for _, v := range txs {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
-}
+type Txis  []Txi
 
-func TxsToString(txs []*Tx) string {
+func (t Txis) String() string {
 	var strs []string
-	for _, v := range txs {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
-}
-
-func SeqsToString(txs []*Sequencer) string {
-	var strs []string
-	for _, v := range txs {
-		strs = append(strs, v.String())
+	for _, v := range t {
+		strs = append(strs,v.String())
 	}
 	return strings.Join(strs, ", ")
 }

@@ -36,7 +36,7 @@ type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
 	GetSequencerById(id uint64) *types.Sequencer
-	GetTxsByNumber(id uint64) []*types.Tx
+	GetTxsByNumber(id uint64) types.Txs
 	LatestSequencer() *types.Sequencer
 	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
 	Genesis() *types.Sequencer
@@ -148,10 +148,10 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
-	logrus.WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer is handling tx")
+	logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
-		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", types.HashesToString(tx.Parents())).Debugf("buffer handled tx")
+		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents",tx.Parents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 
@@ -159,7 +159,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.isKnownHash(tx.GetTxHash()) {
 		return
 	}
-	// not in tx buffer , a new tx , shoud broadcast
+	// not in tx buffer , a new tx , should broadcast
 
 	// TODO: Temporarily comment it out to test performance.
 	//if err := b.verifyTxFormat(tx); err != nil {
@@ -208,13 +208,13 @@ func (b *TxBuffer) GetFromProviders(hash types.Hash) types.Txi {
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{
-			"parent": parentHash.String(),
+			"parent": parentHash,
 			"child":  nil,
 		}).Debugf("updating dependency map")
 	} else {
 		logrus.WithFields(logrus.Fields{
-			"parent": parentHash.String(),
-			"child":  self.String(),
+			"parent": parentHash,
+			"child":  self,
 		}).Debugf("updating dependency map")
 	}
 
@@ -306,7 +306,7 @@ func (b *TxBuffer) isCachedHash(hash types.Hash) bool {
 // It will check if the given hash has no more dependencies in the cache.
 // If so, resolve this hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) {
-	logrus.Debugf("try to resolve %s", tx.String())
+	logrus.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		if err == nil {
@@ -385,7 +385,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 				} else {
 					lDedup[v] = lDedup[v] + 1
 					if lDedup[v]%100 == 0 {
-						logrus.WithField("tx", txi).WithField("parent", hash.String()).WithField("pp", v.String()).WithField("times", lDedup[v]).Trace("pushback")
+						logrus.WithField("tx", txi).WithField("parent", hash).WithField("pp", v).WithField("times", lDedup[v]).Trace("pushback")
 					}
 				}
 			}
@@ -407,13 +407,12 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			//if err!=nil {
 			//	// the tx added not by tx buffer , clean dependency
 			//	tx := a.(types.Txi)
-			//	tx.String()
 			//	//todo  resolve the tx remove dependency
 			//}
 
 			// tx already received by pool. remove from local cache
 			b.knownCache.Remove(v.GetTxHash())
-			logrus.Tracef("after remove from known Cache %s", v.GetTxHash().String())
+			logrus.Tracef("after remove from known Cache %s", v.GetTxHash())
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

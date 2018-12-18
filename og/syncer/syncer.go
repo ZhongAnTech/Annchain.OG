@@ -183,7 +183,7 @@ func (m *IncrementalSyncer) loopSync() {
 			}
 		case <-time.After(time.Second * 5):
 			repickedHashes := m.repickHashes()
-			logrus.WithField("hashes", types.HashesToString(repickedHashes)).Info("syncer repicked hashes")
+			logrus.WithField("hashes", repickedHashes).Info("syncer repicked hashes")
 			for _, hash := range repickedHashes {
 				buffer[hash] = struct{}{}
 			}
@@ -296,7 +296,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
 }
 
 func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
-	txs := types.RawTxsToTxs(newTxs.RawTxs)
+	txs := newTxs.RawTxs.ToTxs()
 	if txs == nil {
 		logrus.Debug("Empty MessageNewTx")
 		return
@@ -383,7 +383,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 		m.notifyNewTxi(seq)
 	}
 }
-func (m *IncrementalSyncer) repickHashes() []types.Hash {
+func (m *IncrementalSyncer) repickHashes() types.Hashes {
 	maps := m.firedTxCache.GetALL()
 	duration := time.Duration(time.Second * 10)
 	var result []types.Hash

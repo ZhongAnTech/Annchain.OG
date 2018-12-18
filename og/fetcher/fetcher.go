@@ -207,8 +207,8 @@ func (f *Fetcher) Enqueue(peer string, sequencer *types.Sequencer) error {
 
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
-func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, time time.Time) []*types.SequencerHeader {
-	log.WithField("peer", peer).WithField("headers", types.HeadersToString(headers)).Trace(
+func (f *Fetcher) FilterHeaders(peer string, headers types.SequencerHeaders, time time.Time) []*types.SequencerHeader {
+	log.WithField("peer", peer).WithField("headers", headers).Trace(
 		"Filtering headers")
 
 	// Send the filter channel to the fetcher
@@ -236,8 +236,8 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.SequencerHeader, t
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers []*types.Sequencer, time time.Time) [][]*types.Tx {
-	log.WithField("txs", len(transactions)).WithField("sequencers ", types.SeqsToString(sequencers)).WithField(
+func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers types.Sequencers, time time.Time) [][]*types.Tx {
+	log.WithField("txs", len(transactions)).WithField("sequencers ", sequencers).WithField(
 		"peer", peer).Trace("Filtering bodies")
 
 	// Send the filter channel to the fetcher
@@ -356,7 +356,7 @@ func (f *Fetcher) loop() {
 
 		case <-fetchTimer.C:
 			// At least one sequencer's timer ran out, check for needing retrieval
-			request := make(map[string][]types.Hash)
+			request := make(map[string]types.Hashes)
 
 			for hash, announces := range f.announced {
 				if time.Since(announces[0].time) > arriveTimeout-gatherSlack {
@@ -373,7 +373,7 @@ func (f *Fetcher) loop() {
 			}
 			// Send out all sequencer header requests
 			for peer, hashes := range request {
-				log.WithField("peer", peer).WithField("list", types.HashesToString(hashes)).Trace(
+				log.WithField("peer", peer).WithField("list", hashes).Trace(
 					"Fetching scheduled headers")
 
 				// Create a closure of the fetch and schedule in on a new thread

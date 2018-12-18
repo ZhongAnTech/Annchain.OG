@@ -9,8 +9,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-func TestMarshalUnmarshalHash(t *testing.T) {
-	v := Hash{}
+func TestMarshalUnmarshalSequencerHeader(t *testing.T) {
+	v := SequencerHeader{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,8 +32,8 @@ func TestMarshalUnmarshalHash(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgHash(b *testing.B) {
-	v := Hash{}
+func BenchmarkMarshalMsgSequencerHeader(b *testing.B) {
+	v := SequencerHeader{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,8 +41,8 @@ func BenchmarkMarshalMsgHash(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgHash(b *testing.B) {
-	v := Hash{}
+func BenchmarkAppendMsgSequencerHeader(b *testing.B) {
+	v := SequencerHeader{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -53,8 +53,8 @@ func BenchmarkAppendMsgHash(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalHash(b *testing.B) {
-	v := Hash{}
+func BenchmarkUnmarshalSequencerHeader(b *testing.B) {
+	v := SequencerHeader{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -67,8 +67,8 @@ func BenchmarkUnmarshalHash(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeHash(t *testing.T) {
-	v := Hash{}
+func TestEncodeDecodeSequencerHeader(t *testing.T) {
+	v := SequencerHeader{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -77,7 +77,7 @@ func TestEncodeDecodeHash(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := Hash{}
+	vn := SequencerHeader{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -91,8 +91,8 @@ func TestEncodeDecodeHash(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeHash(b *testing.B) {
-	v := Hash{}
+func BenchmarkEncodeSequencerHeader(b *testing.B) {
+	v := SequencerHeader{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -105,8 +105,8 @@ func BenchmarkEncodeHash(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeHash(b *testing.B) {
-	v := Hash{}
+func BenchmarkDecodeSequencerHeader(b *testing.B) {
+	v := SequencerHeader{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -122,8 +122,8 @@ func BenchmarkDecodeHash(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalHashBytes(t *testing.T) {
-	v := HashBytes{}
+func TestMarshalUnmarshalSequencerHeaders(t *testing.T) {
+	v := SequencerHeaders{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -145,8 +145,8 @@ func TestMarshalUnmarshalHashBytes(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgHashBytes(b *testing.B) {
-	v := HashBytes{}
+func BenchmarkMarshalMsgSequencerHeaders(b *testing.B) {
+	v := SequencerHeaders{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -154,8 +154,8 @@ func BenchmarkMarshalMsgHashBytes(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgHashBytes(b *testing.B) {
-	v := HashBytes{}
+func BenchmarkAppendMsgSequencerHeaders(b *testing.B) {
+	v := SequencerHeaders{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -166,8 +166,8 @@ func BenchmarkAppendMsgHashBytes(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalHashBytes(b *testing.B) {
-	v := HashBytes{}
+func BenchmarkUnmarshalSequencerHeaders(b *testing.B) {
+	v := SequencerHeaders{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -180,8 +180,8 @@ func BenchmarkUnmarshalHashBytes(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeHashBytes(t *testing.T) {
-	v := HashBytes{}
+func TestEncodeDecodeSequencerHeaders(t *testing.T) {
+	v := SequencerHeaders{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -190,7 +190,7 @@ func TestEncodeDecodeHashBytes(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := HashBytes{}
+	vn := SequencerHeaders{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -204,8 +204,8 @@ func TestEncodeDecodeHashBytes(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeHashBytes(b *testing.B) {
-	v := HashBytes{}
+func BenchmarkEncodeSequencerHeaders(b *testing.B) {
+	v := SequencerHeaders{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -218,121 +218,8 @@ func BenchmarkEncodeHashBytes(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeHashBytes(b *testing.B) {
-	v := HashBytes{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	rd := msgp.NewEndlessReader(buf.Bytes(), b)
-	dc := msgp.NewReader(rd)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := v.DecodeMsg(dc)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestMarshalUnmarshalHashes(t *testing.T) {
-	v := Hashes{}
-	bts, err := v.MarshalMsg(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	left, err := v.UnmarshalMsg(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
-	}
-
-	left, err = msgp.Skip(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
-	}
-}
-
-func BenchmarkMarshalMsgHashes(b *testing.B) {
-	v := Hashes{}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.MarshalMsg(nil)
-	}
-}
-
-func BenchmarkAppendMsgHashes(b *testing.B) {
-	v := Hashes{}
-	bts := make([]byte, 0, v.Msgsize())
-	bts, _ = v.MarshalMsg(bts[0:0])
-	b.SetBytes(int64(len(bts)))
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		bts, _ = v.MarshalMsg(bts[0:0])
-	}
-}
-
-func BenchmarkUnmarshalHashes(b *testing.B) {
-	v := Hashes{}
-	bts, _ := v.MarshalMsg(nil)
-	b.ReportAllocs()
-	b.SetBytes(int64(len(bts)))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := v.UnmarshalMsg(bts)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestEncodeDecodeHashes(t *testing.T) {
-	v := Hashes{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-
-	m := v.Msgsize()
-	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
-	}
-
-	vn := Hashes{}
-	err := msgp.Decode(&buf, &vn)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf.Reset()
-	msgp.Encode(&buf, &v)
-	err = msgp.NewReader(&buf).Skip()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func BenchmarkEncodeHashes(b *testing.B) {
-	v := Hashes{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	en := msgp.NewWriter(msgp.Nowhere)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.EncodeMsg(en)
-	}
-	en.Flush()
-}
-
-func BenchmarkDecodeHashes(b *testing.B) {
-	v := Hashes{}
+func BenchmarkDecodeSequencerHeaders(b *testing.B) {
+	v := SequencerHeaders{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

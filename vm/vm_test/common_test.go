@@ -251,11 +251,12 @@ func TestEncodeParams(t *testing.T) {
 }
 
 
-func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
+func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, leftGas uint64, err error) {
 	fmt.Println(ldb.String())
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
 	fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))
 	fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
 	fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
+	fmt.Printf("Left Gas: [%d]\n", leftGas)
 	assert.NoError(t, err)
 }

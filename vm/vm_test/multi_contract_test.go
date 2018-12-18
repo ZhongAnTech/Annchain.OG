@@ -39,11 +39,11 @@ func TestMultiContract(t *testing.T) {
 			TxContext: &ovm.TxContext{
 				From: types.HexToAddress("0xABCDEF88"),
 				//To:       types.HexToAddress("0x02"),
-				Value:    math.NewBigInt(0),
-				Data:     readFile(file + ".bin"),
-				GasPrice: math.NewBigInt(1),
-				GasLimit: DefaultGasLimit,
-				Coinbase: coinBase,
+				Value:      math.NewBigInt(0),
+				Data:       readFile(file + ".bin"),
+				GasPrice:   math.NewBigInt(1),
+				GasLimit:   DefaultGasLimit,
+				Coinbase:   coinBase,
 				SequenceID: 0,
 			},
 		}
@@ -62,12 +62,12 @@ func TestMultiContract(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:     types.HexToAddress("0xABCDEF88"),
-			To:       contracts["TokenERC20"],
-			Value:    math.NewBigInt(0),
-			GasPrice: math.NewBigInt(1),
-			GasLimit: DefaultGasLimit,
-			Coinbase: coinBase,
+			From:       types.HexToAddress("0xABCDEF88"),
+			To:         contracts["TokenERC20"],
+			Value:      math.NewBigInt(0),
+			GasPrice:   math.NewBigInt(1),
+			GasLimit:   DefaultGasLimit,
+			Coinbase:   coinBase,
 			SequenceID: 0,
 		},
 	}
@@ -82,18 +82,18 @@ func TestMultiContract(t *testing.T) {
 
 	//symbol
 	{
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "95d89b41", nil)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "95d89b41", nil)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	//totalsupply
 	{
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	//owner
 	{
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "8da5cb5b", nil)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "8da5cb5b", nil)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	//frozenAccount
 	//{
@@ -134,25 +134,24 @@ func TestMultiContract(t *testing.T) {
 	// query balance
 	{
 		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	// transfer
 	{
 		u64, err := strconv.ParseUint("0101", 16, 64)
 		assert.NoError(t, err)
 		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF87"), u64})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	// query again
 	{
 		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
-		ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
+		dump(t, ldb, ret, leftGas, err)
 	}
 }
-
 
 func TestInterCall(t *testing.T) {
 	from := types.HexToAddress("0xABCDEF88")
@@ -173,12 +172,12 @@ func TestInterCall(t *testing.T) {
 			Tracer:    tracer,
 			VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 			TxContext: &ovm.TxContext{
-				From:     from,
-				Value:    math.NewBigInt(0),
-				Data:     readFile(file + ".bin"),
-				GasPrice: math.NewBigInt(1),
-				GasLimit: DefaultGasLimit,
-				Coinbase: coinBase,
+				From:       from,
+				Value:      math.NewBigInt(0),
+				Data:       readFile(file + ".bin"),
+				GasPrice:   math.NewBigInt(1),
+				GasLimit:   DefaultGasLimit,
+				Coinbase:   coinBase,
 				SequenceID: 0,
 			},
 		}
@@ -191,24 +190,24 @@ func TestInterCall(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:     types.HexToAddress("0xABCDEF88"),
-			To:       contracts["TokenERC20"],
-			Value:    math.NewBigInt(0),
-			GasPrice: math.NewBigInt(1),
-			GasLimit: DefaultGasLimit,
-			Coinbase: coinBase,
+			From:       types.HexToAddress("0xABCDEF88"),
+			To:         contracts["TokenERC20"],
+			Value:      math.NewBigInt(0),
+			GasPrice:   math.NewBigInt(1),
+			GasLimit:   DefaultGasLimit,
+			Coinbase:   coinBase,
 			SequenceID: 0,
 		},
 	}
 
 	{
-		ret, _, err := CallContract(contracts["C1"], from, coinBase, rt, math.NewBigInt(0), "c27fc305", nil)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["C1"], from, coinBase, rt, math.NewBigInt(0), "c27fc305", nil)
+		dump(t, ldb, ret, leftGas, err)
 	}
 	{
 		params := EncodeParams([]interface{}{contracts["C1"]})
-		ret, _, err := CallContract(contracts["C2"], from, coinBase, rt, math.NewBigInt(0), "c3642756", params)
-		dump(t, ldb, ret, err)
+		ret, leftGas, err := CallContract(contracts["C2"], from, coinBase, rt, math.NewBigInt(0), "c3642756", params)
+		dump(t, ldb, ret, leftGas, err)
 	}
 
 }

@@ -1,6 +1,9 @@
 package state
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/annchain/OG/common/math"
 	// "github.com/annchain/OG/trie"
 	"github.com/annchain/OG/common/crypto"
@@ -47,6 +50,7 @@ func NewStateObject(addr types.Address) *StateObject {
 	a.Address = addr
 	a.Balance = math.NewBigInt(0)
 	a.Nonce = 0
+	a.CodeHash = emptyCodeHash.ToBytes()
 
 	s.data = a
 	return s
@@ -119,6 +123,21 @@ func (s *StateObject) SetState(db Database, key, value types.Hash) {
 	s.dirtyStorage[key] = value
 }
 
+func (s *StateObject) GetCode(db Database) []byte {
+	if s.code != nil {
+		return s.code
+	}
+	if bytes.Equal(s.GetCodeHash().ToBytes(), emptyCodeHash.ToBytes()) {
+		return nil
+	}
+	code, err := db.ContractCode(s.addressHash, s.GetCodeHash())
+	if err != nil {
+		s.setError(fmt.Errorf("load code from db error: %v", err))
+	}
+	s.code = code
+	return s.code
+}
+
 func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
 	s.db.journal.append(&codeChange{
 		account:  &s.address,
@@ -128,6 +147,17 @@ func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
 	s.code = code
 	s.data.CodeHash = codehash.ToBytes()
 	s.dirtycode = true
+}
+
+func (s *StateObject) GetCodeHash() types.Hash {
+	return types.BytesToHash(s.data.CodeHash)
+}
+
+func (s *StateObject) GetCodeSize(db Database) (int, error) {
+	if s.code != nil {
+		return len(s.code), nil
+	}
+	return db.ContractCodeSize(s.addressHash, types.BytesToHash(s.data.CodeHash))
 }
 
 func (s *StateObject) openTrie(db Database) Trie {
@@ -140,6 +170,30 @@ func (s *StateObject) openTrie(db Database) Trie {
 	}
 	s.trie = t
 	return s.trie
+}
+
+func (s *StateObject) updateTrie(db Database) {
+	t := s.openTrie(db)
+	for key, value := range s.dirtyStorage {
+		if len(value.ToBytes()) == 0 {
+			s.setError(t.TryDelete(key.ToBytes()))
+		}
+		s.setError(t.TryUpdate(key.ToBytes(), value.ToBytes()))
+		delete(s.dirtyStorage, key)
+	}
+}
+
+func (s *StateObject) CommitStorage(db Database) error {
+	s.updateTrie(db)
+	if s.dbErr != nil {
+		return s.dbErr
+	}
+	root, err := s.trie.Commit(nil)
+	if err != nil {
+		return err
+	}
+	s.data.Root = root
+	return nil
 }
 
 /*
@@ -160,4 +214,14 @@ func (s *StateObject) Decode(b []byte) error {
 	s.cacheStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
 	return err
+}
+
+/*
+	components
+*/
+
+func (s *StateObject) setError(err error) {
+	if s.dbErr == nil {
+		s.dbErr = err
+	}
 }

@@ -489,7 +489,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.latestSeqencer = batch.Seq
 
-	// commit statedb changes to trie and triedb
+	// commit statedb's changes to trie and triedb
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
 		log.Errorf("can't Commit statedb, err: ", err)

@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -16,6 +17,9 @@ var (
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
+
+	// emptyCodeHash is the known hash of the empty EVM bytecode.
+	emptyCodeHash = crypto.Keccak256Hash(nil)
 )
 
 type StateDBConfig struct {
@@ -247,23 +251,36 @@ func (sd *StateDB) GetRefund() uint64 {
 }
 
 func (sd *StateDB) GetCodeHash(addr types.Address) types.Hash {
-	// TODO
-	// implement it
-	return types.Hash{}
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		log.Errorf("get state object error: %v", err)
+		return types.Hash{}
+	}
+	return stobj.GetCodeHash()
 }
 
 func (sd *StateDB) GetCode(addr types.Address) []byte {
-	// TODO 
-	// implement it
-	return []byte{}
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		log.Errorf("get state object error: %v", err)
+		return nil
+	}
+	return stobj.GetCode(sd.db)
 }
 
 func (sd *StateDB) GetCodeSize(addr types.Address) int {
-	// TODO
-	// implement it
-	return 0
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		log.Errorf("get state object error: %v", err)
+		return 0
+	}
+	l, dberr := stobj.GetCodeSize(sd.db)
+	if dberr != nil {
+		log.Errorf("get code size from obj error: %v, obj: %s", dberr, stobj.address.String())
+		return 0
+	}
+	return l
 }
-
 
 /**
 Setters
@@ -299,12 +316,21 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	// sd.updateStateObject(addr, state)
 }
 
-func (sd *StateDB) AddRefund(refund uint64) {
-
+func (sd *StateDB) AddRefund(increment uint64) {
+	sd.journal.append(&refundChange{
+		prev: sd.refund,
+	})
+	sd.refund += increment
 }
 
-func (sd *StateDB) SubRefund(refund uint64) {
-
+func (sd *StateDB) SubRefund(decrement uint64) {
+	sd.journal.append(&refundChange{
+		prev: sd.refund,
+	})
+	if decrement > sd.refund {
+		panic("Refund counter below zero")
+	}
+	sd.refund -= decrement
 }
 
 func (sd *StateDB) SetStateObject(addr types.Address, stateObj *StateObject) {
@@ -327,8 +353,8 @@ func (sd *StateDB) setStateObject(addr types.Address, stateObj *StateObject) {
 }
 
 func (sd *StateDB) SetCode(addr types.Address, code []byte) {
-	// TODO
-	// implement it.
+	stateobj := sd.getOrCreateStateObject(addr)
+	stateobj.SetCode(crypto.Keccak256Hash(code), code)
 }
 
 /**
@@ -357,6 +383,9 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 func (sd *StateDB) purge() {
 	for addr, lastbeat := range sd.beats {
 		// skip dirty states
+		if _, in := sd.journal.dirties[addr]; in {
+			continue
+		}
 		if _, in := sd.dirtyset[addr]; in {
 			continue
 		}
@@ -383,13 +412,15 @@ func (sd *StateDB) Commit() (types.Hash, error) {
 //
 // Note that commit doesn't hold any StateDB locks.
 func (sd *StateDB) commit() (types.Hash, error) {
-	// TODO
-	// use journal to set some state to dirty.
-
+	// update dirtyset according to journal
+	for addr := range sd.journal.dirties {
+		sd.dirtyset[addr] = struct{}{}
+	}
 	for addr, state := range sd.states {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
+
 		// update state data in current trie.
 		data, _ := state.Encode()
 		sd.trie.TryUpdate(addr.ToBytes(), data)

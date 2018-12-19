@@ -35,7 +35,7 @@ func TestMultiContract(t *testing.T) {
 
 		rt := &Runtime{
 			Tracer:    tracer,
-			VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+			VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 			TxContext: &ovm.TxContext{
 				From: types.HexToAddress("0xABCDEF88"),
 				//To:       types.HexToAddress("0x02"),
@@ -60,7 +60,7 @@ func TestMultiContract(t *testing.T) {
 	}
 	rt := &Runtime{
 		Tracer:    tracer,
-		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
 			From:       types.HexToAddress("0xABCDEF88"),
 			To:         contracts["TokenERC20"],
@@ -170,7 +170,7 @@ func TestInterCall(t *testing.T) {
 
 		rt := &Runtime{
 			Tracer:    tracer,
-			VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+			VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 			TxContext: &ovm.TxContext{
 				From:       from,
 				Value:      math.NewBigInt(0),
@@ -188,7 +188,7 @@ func TestInterCall(t *testing.T) {
 
 	rt := &Runtime{
 		Tracer:    tracer,
-		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
 			From:       types.HexToAddress("0xABCDEF88"),
 			To:         contracts["TokenERC20"],

@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/sirupsen/logrus"
 	"time"
+	"fmt"
 )
 
 func TestCall(t *testing.T) {
@@ -85,5 +86,9 @@ func TestCall(t *testing.T) {
 	//}
 
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
+
+	ldb.MergeChanges()
+	fmt.Println("Merged")
+	fmt.Println(ldb.String())
 
 }

@@ -332,3 +332,7 @@ func (l *LayerStateDB) mergeLayer(toLayerIndex int, fromLayerIndex int) {
 	}
 
 }
+
+func (l *LayerStateDB) CurrentLayer() int{
+	return len(l.Layers) - 1
+}

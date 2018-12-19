@@ -1,0 +1,270 @@
+    /* "../vm_test/contracts/asserts.sol":26:442  contract asserts {... */
+  mstore(0x40, 0x60)
+  jumpi(tag_1, iszero(callvalue))
+  0x0
+  dup1
+  revert
+tag_1:
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../vm_test/contracts/asserts.sol":26:442  contract asserts {... */
+      mstore(0x40, 0x60)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0xd43aaf2
+      eq
+      tag_2
+      jumpi
+      dup1
+      0x2911e7b2
+      eq
+      tag_3
+      jumpi
+      dup1
+      0xc768d990
+      eq
+      tag_4
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../vm_test/contracts/asserts.sol":157:294  function req() payable public {... */
+    tag_2:
+      tag_5
+      jump(tag_6)
+    tag_5:
+      stop
+        /* "../vm_test/contracts/asserts.sol":299:440  function asrt() payable public {... */
+    tag_3:
+      tag_7
+      jump(tag_8)
+    tag_7:
+      stop
+        /* "../vm_test/contracts/asserts.sol":50:94  mapping (address => address) public calledby */
+    tag_4:
+      jumpi(tag_9, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_9:
+      tag_10
+      0x4
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap2
+      swap1
+      pop
+      pop
+      jump(tag_11)
+    tag_10:
+      mload(0x40)
+      dup1
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../vm_test/contracts/asserts.sol":157:294  function req() payable public {... */
+    tag_6:
+        /* "../vm_test/contracts/asserts.sol":220:230  msg.sender */
+      caller
+        /* "../vm_test/contracts/asserts.sol":197:205  calledby */
+      0x0
+        /* "../vm_test/contracts/asserts.sol":197:217  calledby[msg.sender] */
+      dup1
+        /* "../vm_test/contracts/asserts.sol":206:216  msg.sender */
+      caller
+        /* "../vm_test/contracts/asserts.sol":197:217  calledby[msg.sender] */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap1
+      dup2
+      mstore
+      0x20
+      add
+      0x0
+      keccak256
+      0x0
+        /* "../vm_test/contracts/asserts.sol":197:230  calledby[msg.sender] = msg.sender */
+      0x100
+      exp
+      dup2
+      sload
+      dup2
+      0xffffffffffffffffffffffffffffffffffffffff
+      mul
+      not
+      and
+      swap1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      mul
+      or
+      swap1
+      sstore
+      pop
+        /* "../vm_test/contracts/asserts.sol":285:286  0 */
+      0x0
+        /* "../vm_test/contracts/asserts.sol":280:281  2 */
+      0x2
+        /* "../vm_test/contracts/asserts.sol":268:277  msg.value */
+      callvalue
+        /* "../vm_test/contracts/asserts.sol":268:281  msg.value % 2 */
+      dup2
+      iszero
+      iszero
+      tag_13
+      jumpi
+      invalid
+    tag_13:
+      mod
+        /* "../vm_test/contracts/asserts.sol":268:286  msg.value % 2 == 0 */
+      eq
+        /* "../vm_test/contracts/asserts.sol":260:287  require(msg.value % 2 == 0) */
+      iszero
+      iszero
+      tag_14
+      jumpi
+      0x0
+      dup1
+      revert
+    tag_14:
+        /* "../vm_test/contracts/asserts.sol":157:294  function req() payable public {... */
+      jump	// out
+        /* "../vm_test/contracts/asserts.sol":299:440  function asrt() payable public {... */
+    tag_8:
+        /* "../vm_test/contracts/asserts.sol":363:373  msg.sender */
+      caller
+        /* "../vm_test/contracts/asserts.sol":340:348  calledby */
+      0x0
+        /* "../vm_test/contracts/asserts.sol":340:360  calledby[msg.sender] */
+      dup1
+        /* "../vm_test/contracts/asserts.sol":349:359  msg.sender */
+      caller
+        /* "../vm_test/contracts/asserts.sol":340:360  calledby[msg.sender] */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap1
+      dup2
+      mstore
+      0x20
+      add
+      0x0
+      keccak256
+      0x0
+        /* "../vm_test/contracts/asserts.sol":340:373  calledby[msg.sender] = msg.sender */
+      0x100
+      exp
+      dup2
+      sload
+      dup2
+      0xffffffffffffffffffffffffffffffffffffffff
+      mul
+      not
+      and
+      swap1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      mul
+      or
+      swap1
+      sstore
+      pop
+        /* "../vm_test/contracts/asserts.sol":431:432  0 */
+      0x0
+        /* "../vm_test/contracts/asserts.sol":426:427  2 */
+      0x2
+        /* "../vm_test/contracts/asserts.sol":414:423  msg.value */
+      callvalue
+        /* "../vm_test/contracts/asserts.sol":414:427  msg.value % 2 */
+      dup2
+      iszero
+      iszero
+      tag_16
+      jumpi
+      invalid
+    tag_16:
+      mod
+        /* "../vm_test/contracts/asserts.sol":414:432  msg.value % 2 == 0 */
+      eq
+        /* "../vm_test/contracts/asserts.sol":407:433  assert(msg.value % 2 == 0) */
+      iszero
+      iszero
+      tag_17
+      jumpi
+      invalid
+    tag_17:
+        /* "../vm_test/contracts/asserts.sol":299:440  function asrt() payable public {... */
+      jump	// out
+        /* "../vm_test/contracts/asserts.sol":50:94  mapping (address => address) public calledby */
+    tag_11:
+      mstore(0x20, 0x0)
+      dup1
+      0x0
+      mstore
+      keccak256(0x0, 0x40)
+      0x0
+      swap2
+      pop
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      jump	// out
+
+    auxdata: 0xa165627a7a72305820eff31fa670209a59022241e0e62e9fa19d341b8896c33b9461bd29ac62725e390029
+}

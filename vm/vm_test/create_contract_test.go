@@ -20,7 +20,7 @@ func TestContractCreation(t *testing.T) {
 
 	rt := &Runtime{
 		Tracer:    tracer,
-		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
 			From:       types.HexToAddress("0xABCDEF88"),
 			Value:      math.NewBigInt(0),

@@ -48,8 +48,8 @@ type ChainContext interface {
 type DefaultChainContext struct {
 }
 
-// NewEVMContext creates a new context for use in the OVM.
-func NewEVMContext(chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
+// NewOVMContext creates a new context for use in the OVM.
+func NewOVMContext(chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
 	return &vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,

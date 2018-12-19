@@ -31,7 +31,7 @@ func ExampleExecute() {
 	db.CreateAccount(coinBase)
 	db.AddBalance(coinBase, math.NewBigInt(10000000))
 
-	context := ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, db)
+	context := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, db)
 
 	evmInterpreter := vm.NewEVMInterpreter(context, txContext, &vm.InterpreterConfig{})
 

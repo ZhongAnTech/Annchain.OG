@@ -1,0 +1,6 @@
+fdfa868f: callSetValue(address,uint256)
+0eebdd95: callcodeSetValue(address,uint256)
+9207ba9a: delegatecallSetValue(address,uint256)
+d737d0c7: msgSender()
+f96757d1: txOrigin()
+3fa4f245: value()

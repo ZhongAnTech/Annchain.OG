@@ -17,6 +17,7 @@ type StateObject struct {
 	Version     int
 	dirtyStates Storage
 	DirtyCode   bool
+	DirtySO     bool
 }
 
 func (s *StateObject) String() string {
@@ -24,23 +25,21 @@ func (s *StateObject) String() string {
 }
 
 func (s *StateObject) Empty() bool {
-	return s.Nonce == 0 && s.Balance.Sign() == 0 && s.CodeHash.Empty()
+	return s.DirtySO == false && len(s.dirtyStates) != 0
 }
 func (s *StateObject) Copy() (d *StateObject) {
 	d = NewStateObject()
-	d.CodeHash = s.CodeHash
-	//d.CodeHash.SetBytes(s.CodeHash.Bytes[:])
-	d.Code = s.Code
-	//copy(d.Code, s.Code)
 	d.Balance = s.Balance
 	d.Nonce = s.Nonce
-
+	d.Code = s.Code
+	d.CodeHash = s.CodeHash
+	d.Suicided = s.Suicided
+	d.DirtySO = false
 	d.dirtyStates = make(map[types.Hash]types.Hash)
 	for k, v := range s.dirtyStates {
 		d.dirtyStates[types.BytesToHash(k.Bytes[:])] = types.BytesToHash(v.Bytes[:])
 	}
 
-	d.Suicided = s.Suicided
 	d.Version = s.Version + 1
 	return d
 }

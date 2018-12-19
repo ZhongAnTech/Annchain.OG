@@ -32,22 +32,22 @@ import (
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte Code interpreter.
-func run(evm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]byte, error) {
+func run(ovm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
-	for _, interpreter := range evm.Interpreters {
+	for _, interpreter := range ovm.Interpreters {
 		if interpreter.CanRun(contract.Code) {
-			if evm.Interpreter != interpreter {
+			if ovm.Interpreter != interpreter {
 				// Ensure that the interpreter pointer is set back
 				// to its current value upon return.
 				defer func(i Interpreter) {
-					evm.Interpreter = i
-				}(evm.Interpreter)
-				evm.Interpreter = interpreter
+					ovm.Interpreter = i
+				}(ovm.Interpreter)
+				ovm.Interpreter = interpreter
 			}
 			return interpreter.Run(contract, input, readOnly)
 		}

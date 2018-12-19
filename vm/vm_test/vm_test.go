@@ -34,7 +34,7 @@ func TestContractSmallStorage(t *testing.T) {
 
 	logrus.Info("Init accounts done")
 
-	context := ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb)
+	context := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb)
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
@@ -91,7 +91,7 @@ func TestContractHelloWorld(t *testing.T) {
 
 	rt := &Runtime{
 		Tracer:    tracer,
-		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
 			From: types.HexToAddress("0x01"),
 			//To:       types.HexToAddress("0x02"),

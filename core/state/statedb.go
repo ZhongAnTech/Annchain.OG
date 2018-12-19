@@ -7,13 +7,18 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/trie"
 	"github.com/annchain/OG/types"
+	vmtypes "github.com/annchain/OG/vm/types"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// emptyState is the known hash of an empty state trie entry.
 	emptyState = crypto.Keccak256Hash(nil)
+
+	// emptyStateHash is the known hash of an empty state trie.
+	emptyStateHash = crypto.Keccak256Hash(nil)
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
@@ -40,12 +45,14 @@ type StateDB struct {
 	db   Database
 	trie Trie
 
-	refund uint64
+	refund      uint64
+	journal     *journal
+	snapshotSet []shot
+	snapshotID  int
 
 	states   map[types.Address]*StateObject
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time
-	journal  *journal
 
 	close chan struct{}
 
@@ -80,23 +87,25 @@ func (sd *StateDB) Database() Database {
 	return sd.db
 }
 
-// CreateNewState will create a new state for input address and
+// CreateAccount will create a new state for input address and
 // return the state. If input address already exists in StateDB
-// it returns an error.
-func (sd *StateDB) CreateNewState(addr types.Address) (*StateObject, error) {
-	sd.mu.Lock()
-	defer sd.mu.Unlock()
-
-	state := sd.states[addr]
-	if state != nil {
-		return nil, fmt.Errorf("state already exists, addr: %s", addr.String())
+// returns it.
+func (sd *StateDB) CreateAccount(addr types.Address) *StateObject {
+	newstate := NewStateObject(addr)
+	oldstate, _ := sd.getStateObject(addr)
+	if oldstate != nil {
+		sd.journal.append(&resetObjectChange{
+			prev: oldstate,
+		})
+	} else {
+		sd.journal.append(&createObjectChange{
+			account: &addr,
+		})
 	}
-
-	state = NewStateObject(addr)
-	sd.states[addr] = state
+	sd.states[addr] = newstate
 	sd.beats[addr] = time.Now()
 
-	return state, nil
+	return newstate
 }
 
 func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
@@ -114,19 +123,19 @@ func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
 	return state.GetBalance()
 }
 
-func (sd *StateDB) GetNonce(addr types.Address) (uint64, error) {
+func (sd *StateDB) GetNonce(addr types.Address) uint64 {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
 	defer sd.refreshbeat(addr)
 	return sd.getNonce(addr)
 }
-func (sd *StateDB) getNonce(addr types.Address) (uint64, error) {
+func (sd *StateDB) getNonce(addr types.Address) uint64 {
 	state, err := sd.getStateObject(addr)
 	if err != nil {
-		return 0, types.ErrNonceNotExist
+		return 0
 	}
-	return state.GetNonce(), nil
+	return state.GetNonce()
 }
 
 func (sd *StateDB) Exist(addr types.Address) bool {
@@ -292,17 +301,22 @@ func (sd *StateDB) GetCodeSize(addr types.Address) int {
 }
 
 func (sd *StateDB) GetState(addr types.Address, key types.Hash) types.Hash {
-	// TODO
-	// not implemented yet
-	return types.BytesToHash([]byte{})
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		log.Errorf("get state object error: %v", err)
+		return emptyStateHash
+	}
+	return stobj.GetState(sd.db, key)
 }
 
-/**
-Setters
-
-Belows are the functions that will dirt the StateDB's data,
-add the change to journal for later revert.
-*/
+func (sd *StateDB) GetCommittedState(addr types.Address, key types.Hash) types.Hash {
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		log.Errorf("get state object error: %v", err)
+		return emptyStateHash
+	}
+	return stobj.GetCommittedState(sd.db, key)
+}
 
 // SetBalance
 func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
@@ -316,8 +330,6 @@ func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
 
 	state := sd.getOrCreateStateObject(addr)
 	state.SetBalance(balance)
-
-	// sd.updateStateObject(addr, state)
 }
 
 func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
@@ -327,8 +339,6 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
-
-	// sd.updateStateObject(addr, state)
 }
 
 func (sd *StateDB) AddRefund(increment uint64) {
@@ -380,9 +390,54 @@ func (sd *StateDB) SetState(addr types.Address, key, value types.Hash) {
 	stobj.SetState(sd.db, key, value)
 }
 
-/**
-Setters end
-*/
+func (sd *StateDB) Suicide(addr types.Address) bool {
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		return false
+	}
+	sd.journal.append(&suicideChange{
+		account:     &addr,
+		prev:        stobj.suicided,
+		prevbalance: math.NewBigIntFromBigInt(stobj.GetBalance().Value),
+	})
+	stobj.suicided = true
+	stobj.data.Balance = math.NewBigInt(0)
+	return true
+}
+
+func (sd *StateDB) HasSuicided(addr types.Address) bool {
+	stobj, err := sd.getStateObject(addr)
+	if err != nil {
+		return false
+	}
+	return stobj.suicided
+}
+
+func (sd *StateDB) AddLog(l *vmtypes.Log) {
+	// TODO
+	// Not implemented yet
+}
+
+func (sd *StateDB) AddPreimage(h types.Hash, b []byte) {
+	// TODO
+	// Not implemented yet
+}
+
+func (sd *StateDB) ForEachStorage(addr types.Address, f func(key, value types.Hash) bool) {
+	so, err := sd.getStateObject(addr)
+	if err != nil {
+		return
+	}
+	it := trie.NewIterator(so.openTrie(sd.db).NodeIterator(nil))
+	for it.Next() {
+		key := types.BytesToHash(sd.trie.GetKey(it.Key))
+		if value, dirty := so.dirtyStorage[key]; dirty {
+			f(key, value)
+			continue
+		}
+		f(key, types.BytesToHash(it.Value))
+	}
+}
 
 // laodState loads a state from current trie.
 func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
@@ -481,11 +536,45 @@ func (sd *StateDB) loop() {
 			sd.mu.Lock()
 			sd.purge()
 			sd.mu.Unlock()
-
 		}
 	}
 }
 
-func (sd *StateDB) Snapshot() {
+func (sd *StateDB) Snapshot() int {
+	id := sd.snapshotID
+	sd.snapshotID++
+	sd.snapshotSet = append(sd.snapshotSet, shot{shotid: id, journalIndex: sd.journal.length()})
+	return id
+}
+
+func (sd *StateDB) RevertToSnapshot(snapshotid int) {
 	// TODO
+	// Ethereum uses sort.Search to get the valid snapshot,
+	// consider any necessary for this.
+	index := 0
+	s := shot{shotid: -1}
+	for i, shotInMem := range sd.snapshotSet {
+		if shotInMem.shotid == snapshotid {
+			index = i
+			s = shotInMem
+			break
+		}
+	}
+	if s.shotid == -1 {
+		panic(fmt.Sprintf("can't find valid snapshot, id: %d", snapshotid))
+	}
+	sd.journal.revert(sd, s.journalIndex)
+	sd.snapshotSet = sd.snapshotSet[:index]
+}
+
+func (sd *StateDB) clearJournalAndRefund() {
+	sd.journal = newJournal()
+	sd.snapshotID = 0
+	sd.snapshotSet = sd.snapshotSet[:0]
+	sd.refund = 0
+}
+
+type shot struct {
+	shotid       int
+	journalIndex int
 }

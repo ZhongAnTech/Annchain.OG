@@ -392,7 +392,10 @@ func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
 }
 
 func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
-	return dag.statedb.GetNonce(addr)
+	if !dag.statedb.Exist(addr) {
+		return uint64(0), types.ErrNonceNotExist
+	}
+	return dag.statedb.GetNonce(addr), nil
 }
 
 //GetTxsByAddress get all txs from this address

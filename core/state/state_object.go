@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/annchain/OG/common/math"
-	// "github.com/annchain/OG/trie"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 //go:generate msgp
@@ -32,8 +32,8 @@ type StateObject struct {
 	dirtycode bool
 	suicided  bool // TODO suicided is useless now.
 
-	cacheStorage map[types.Hash]types.Hash
-	dirtyStorage map[types.Hash]types.Hash
+	committedStorage map[types.Hash]types.Hash
+	dirtyStorage     map[types.Hash]types.Hash
 
 	trie Trie
 	db   *StateDB
@@ -43,7 +43,7 @@ func NewStateObject(addr types.Address) *StateObject {
 	s := &StateObject{}
 	s.address = addr
 	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
-	s.cacheStorage = make(map[types.Hash]types.Hash)
+	s.committedStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
 
 	a := Account{}
@@ -97,19 +97,27 @@ func (s *StateObject) SetNonce(nonce uint64) {
 }
 
 func (s *StateObject) GetState(db Database, key types.Hash) types.Hash {
-	value, ok := s.cacheStorage[key]
+	value, ok := s.dirtyStorage[key]
+	if ok {
+		return value
+	}
+	return s.GetCommittedState(db, key)
+}
+
+func (s *StateObject) GetCommittedState(db Database, key types.Hash) types.Hash {
+	value, ok := s.committedStorage[key]
 	if ok {
 		return value
 	}
 	// load state from trie db.
 	b, err := s.openTrie(db).TryGet(key.ToBytes())
 	if err != nil {
-		s.dbErr = err
+		log.Errorf("get from trie db error: %v, key: %x", key.ToBytes())
+		s.setError(err)
+	} else {
+		s.committedStorage[key] = value
 	}
-	// TODO:
-	// rlp.Split  ?
 	value = types.BytesToHash(b)
-	s.cacheStorage[key] = value
 	return value
 }
 
@@ -119,7 +127,6 @@ func (s *StateObject) SetState(db Database, key, value types.Hash) {
 		key:      key,
 		prevalue: s.GetState(db, key),
 	})
-	s.cacheStorage[key] = value
 	s.dirtyStorage[key] = value
 }
 
@@ -173,12 +180,23 @@ func (s *StateObject) openTrie(db Database) Trie {
 }
 
 func (s *StateObject) updateTrie(db Database) {
+	var err error
 	t := s.openTrie(db)
 	for key, value := range s.dirtyStorage {
 		if len(value.ToBytes()) == 0 {
-			s.setError(t.TryDelete(key.ToBytes()))
+			err = t.TryDelete(key.ToBytes())
+			if err != nil {
+				s.setError(err)
+				continue
+			}
+			delete(s.committedStorage, key)
+			continue
 		}
-		s.setError(t.TryUpdate(key.ToBytes(), value.ToBytes()))
+		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
+		if err != nil {
+			s.setError(err)
+		}
+		s.committedStorage[key] = value
 		delete(s.dirtyStorage, key)
 	}
 }
@@ -211,7 +229,7 @@ func (s *StateObject) Decode(b []byte) error {
 	s.data = a
 	s.address = a.Address
 	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
-	s.cacheStorage = make(map[types.Hash]types.Hash)
+	s.committedStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
 	return err
 }

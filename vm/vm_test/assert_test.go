@@ -39,12 +39,12 @@ func TestAsserts(t *testing.T) {
 
 	{
 		// op jumps to 0xfe and then raise a non-existing op
-		ret, leftGas, err := CallContract(contractAddr, from, coinBase, rt, math.NewBigInt(2), "2911e7b2", nil)
+		ret, leftGas, err := CallContract(contractAddr, from, coinBase, rt, math.NewBigInt(3), "2911e7b2", nil)
 		dump(t, ldb, ret, leftGas, err)
 	}
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
 	{
-		ret, leftGas, err := CallContract(contractAddr, from2, coinBase, rt, math.NewBigInt(2), "0d43aaf2", nil)
+		ret, leftGas, err := CallContract(contractAddr, from2, coinBase, rt, math.NewBigInt(3), "0d43aaf2", nil)
 		dump(t, ldb, ret, leftGas, err)
 	}
 	//vm.WriteTrace(os.Stdout, tracer.Logs)

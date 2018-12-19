@@ -51,6 +51,7 @@ func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
 
 func (l *LayerStateDB) SetStateObject(addr types.Address, stateObject *vmtypes.StateObject) {
 	l.activeLayer.SetStateObject(addr, stateObject)
+	stateObject.DirtySO = true
 }
 
 func NewLayerDB(baseLayer vmtypes.StateDB) *LayerStateDB {

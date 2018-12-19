@@ -1,0 +1,259 @@
+    /* "../vm_test/contracts/delegatecall.sol":721:1288  contract Callee {... */
+  mstore(0x40, 0x60)
+  jumpi(tag_1, iszero(callvalue))
+  0x0
+  dup1
+  revert
+tag_1:
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../vm_test/contracts/delegatecall.sol":721:1288  contract Callee {... */
+      mstore(0x40, 0x60)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0x3fa4f245
+      eq
+      tag_2
+      jumpi
+      dup1
+      0x55241077
+      eq
+      tag_3
+      jumpi
+      dup1
+      0xd737d0c7
+      eq
+      tag_4
+      jumpi
+      dup1
+      0xf96757d1
+      eq
+      tag_5
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../vm_test/contracts/delegatecall.sol":743:760  uint public value */
+    tag_2:
+      jumpi(tag_6, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_6:
+      tag_7
+      jump(tag_8)
+    tag_7:
+      mload(0x40)
+      dup1
+      dup3
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../vm_test/contracts/delegatecall.sol":827:1286  function setValue(uint _value) {... */
+    tag_3:
+      jumpi(tag_9, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_9:
+      tag_10
+      0x4
+      dup1
+      dup1
+      calldataload
+      swap1
+      0x20
+      add
+      swap1
+      swap2
+      swap1
+      pop
+      pop
+      jump(tag_11)
+    tag_10:
+      stop
+        /* "../vm_test/contracts/delegatecall.sol":766:790  address public msgSender */
+    tag_4:
+      jumpi(tag_12, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_12:
+      tag_13
+      jump(tag_14)
+    tag_13:
+      mload(0x40)
+      dup1
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../vm_test/contracts/delegatecall.sol":796:819  address public txOrigin */
+    tag_5:
+      jumpi(tag_15, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_15:
+      tag_16
+      jump(tag_17)
+    tag_16:
+      mload(0x40)
+      dup1
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../vm_test/contracts/delegatecall.sol":743:760  uint public value */
+    tag_8:
+      sload(0x0)
+      dup2
+      jump	// out
+        /* "../vm_test/contracts/delegatecall.sol":827:1286  function setValue(uint _value) {... */
+    tag_11:
+        /* "../vm_test/contracts/delegatecall.sol":876:882  _value */
+      dup1
+        /* "../vm_test/contracts/delegatecall.sol":868:873  value */
+      0x0
+        /* "../vm_test/contracts/delegatecall.sol":868:882  value = _value */
+      dup2
+      swap1
+      sstore
+      pop
+        /* "../vm_test/contracts/delegatecall.sol":904:914  msg.sender */
+      caller
+        /* "../vm_test/contracts/delegatecall.sol":892:901  msgSender */
+      0x1
+      0x0
+        /* "../vm_test/contracts/delegatecall.sol":892:914  msgSender = msg.sender */
+      0x100
+      exp
+      dup2
+      sload
+      dup2
+      0xffffffffffffffffffffffffffffffffffffffff
+      mul
+      not
+      and
+      swap1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      mul
+      or
+      swap1
+      sstore
+      pop
+        /* "../vm_test/contracts/delegatecall.sol":935:944  tx.origin */
+      origin
+        /* "../vm_test/contracts/delegatecall.sol":924:932  txOrigin */
+      0x2
+      0x0
+        /* "../vm_test/contracts/delegatecall.sol":924:944  txOrigin = tx.origin */
+      0x100
+      exp
+      dup2
+      sload
+      dup2
+      0xffffffffffffffffffffffffffffffffffffffff
+      mul
+      not
+      and
+      swap1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      mul
+      or
+      swap1
+      sstore
+      pop
+        /* "../vm_test/contracts/delegatecall.sol":827:1286  function setValue(uint _value) {... */
+      pop
+      jump	// out
+        /* "../vm_test/contracts/delegatecall.sol":766:790  address public msgSender */
+    tag_14:
+      0x1
+      0x0
+      swap1
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      jump	// out
+        /* "../vm_test/contracts/delegatecall.sol":796:819  address public txOrigin */
+    tag_17:
+      0x2
+      0x0
+      swap1
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      jump	// out
+
+    auxdata: 0xa165627a7a7230582069f6c976d7f07116bf84b222cfff9c1a0f3c4c662a694fbeb36ae68977c869c00029
+}

@@ -58,12 +58,12 @@ func DefaultOVM(runtime *Runtime) *ovm.OVM {
 
 func DeployContract(filename string, from types.Address, coinBase types.Address, rt *Runtime, params []byte) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
-		From:     from,
-		Value:    math.NewBigInt(0),
-		Data:     readFile(filename),
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-		Coinbase: coinBase,
+		From:       from,
+		Value:      math.NewBigInt(0),
+		Data:       readFile(filename),
+		GasPrice:   math.NewBigInt(1),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   coinBase,
 		SequenceID: 0,
 	}
 
@@ -72,13 +72,17 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 		txContext.Data = append(txContext.Data, params...)
 	}
 
-	logrus.Info("Deploying contract", filename)
+	logrus.WithField("filename", filename).Info("Deploying contract")
 	ret, contractAddr, leftOverGas, err = oovm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
-	logrus.Info("Deployed contract")
-	fmt.Println("CP1", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
+	logrus.WithFields(logrus.Fields{
+		"filename":     filename,
+		"contractAddr": contractAddr.Hex(),
+		"err":          err,
+		"ret":          common.Bytes2Hex(ret),
+	}).Info("Deployed contract")
 	//fmt.Println(rt.VmContext.StateDB.String())
 	//rt.Tracer.Write(os.Stdout)
 	return
@@ -86,12 +90,12 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 
 func CallContract(contractAddr types.Address, from types.Address, coinBase types.Address, rt *Runtime, value *math.BigInt, functionHash string, params []byte) (ret []byte, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
-		From:     from,
-		To:       contractAddr,
-		Value:    value,
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-		Coinbase: coinBase,
+		From:       from,
+		To:         contractAddr,
+		Value:      value,
+		GasPrice:   math.NewBigInt(1),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   coinBase,
 		SequenceID: 0,
 	}
 
@@ -250,13 +254,14 @@ func TestEncodeParams(t *testing.T) {
 	fmt.Println(hex.Dump(bs))
 }
 
-
 func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, leftGas uint64, err error) {
 	fmt.Println(ldb.String())
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
-	fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))
-	fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
-	fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
+	if ret != nil{
+		fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
+		fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
+		fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))
+	}
 	fmt.Printf("Left Gas: [%d]\n", leftGas)
 	assert.NoError(t, err)
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/sirupsen/logrus"
+	"github.com/annchain/OG/common/hexutil"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -119,6 +121,13 @@ func (ovm *OVM) Cancel() {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (ovm *OVM) Call(caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	logrus.WithFields(logrus.Fields{
+		"caller": caller.Address().Hex(),
+		"addr": addr.Hex(),
+		"input": hexutil.Encode(input),
+		"gas": gas,
+		"value": value,
+	}).Info("It is calling")
 	ctx := ovm.VMContext
 	if ovm.OVMConfigs.NoRecursion && ctx.Depth > 0 {
 		return nil, gas, nil
@@ -191,6 +200,14 @@ func (ovm *OVM) Call(caller vmtypes.ContractRef, addr types.Address, input []byt
 // CallCode differs from Call in the sense that it executes the given address'
 // Code with the caller as context.
 func (ovm *OVM) CallCode(caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	logrus.WithFields(logrus.Fields{
+		"caller": caller.Address().Hex(),
+		"addr": addr.Hex(),
+		"input": hexutil.Encode(input),
+		"gas": gas,
+		"value": value,
+	}).Info("It is code calling")
+
 	ctx := ovm.VMContext
 	if ovm.OVMConfigs.NoRecursion && ctx.Depth > 0 {
 		return nil, gas, nil
@@ -231,6 +248,13 @@ func (ovm *OVM) CallCode(caller vmtypes.ContractRef, addr types.Address, input [
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // Code with the caller as context and the caller is set to the caller of the caller.
 func (ovm *OVM) DelegateCall(caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+	logrus.WithFields(logrus.Fields{
+		"caller": caller.Address().Hex(),
+		"addr": addr.Hex(),
+		"input": hexutil.Encode(input),
+		"gas": gas,
+		//"value": value,
+	}).Info("It is delegate calling")
 	ctx := ovm.VMContext
 	if ovm.OVMConfigs.NoRecursion && ctx.Depth > 0 {
 		return nil, gas, nil
@@ -264,6 +288,13 @@ func (ovm *OVM) DelegateCall(caller vmtypes.ContractRef, addr types.Address, inp
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (ovm *OVM) StaticCall(caller vmtypes.ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+	logrus.WithFields(logrus.Fields{
+		"caller": caller.Address().Hex(),
+		"addr": addr.Hex(),
+		"input": hexutil.Encode(input),
+		"gas": gas,
+		//"value": value,
+	}).Info("It is static calling")
 	ctx := ovm.VMContext
 	if ovm.OVMConfigs.NoRecursion && ctx.Depth > 0 {
 		return nil, gas, nil

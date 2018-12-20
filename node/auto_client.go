@@ -112,6 +112,7 @@ func (c *AutoClient) loop() {
 		logrus.Trace("client is working")
 		select {
 		case <-c.quit:
+			c.pause = true
 			logrus.Debug("got quit signal")
 			return
 		case txType := <-c.ManualChan:
@@ -177,6 +178,10 @@ func (c *AutoClient) fireTxs(me types.Address) bool {
 	}
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
+		if c.pause {
+			logrus.Info("tx generate stopped")
+			return  true
+		}
 		time.Sleep(time.Duration(m) * time.Microsecond)
 		txi := c.Delegate.Dag.GetOldTx(me, i)
 		if txi == nil {

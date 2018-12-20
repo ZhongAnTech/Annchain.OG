@@ -8,22 +8,22 @@ import (
 //go:generate msgp
 
 type SequencerHeader struct {
-	hash Hash
-	id   uint64
+	SeqHash Hash
+	SeqId    uint64
 }
 
 type SequencerHeaders []*SequencerHeader
 
 func (s *SequencerHeader) SequencerId() uint64 {
-	return s.id
+	return s.SeqId
 }
 
 func (s *SequencerHeader) Hash() Hash {
-	return s.hash
+	return s.SeqHash
 }
 
 func (s *SequencerHeader) Id() uint64 {
-	return s.id
+	return s.SeqId
 }
 
 func (s *SequencerHeader) String() string {
@@ -42,8 +42,8 @@ func (s *SequencerHeader) StringFull() string {
 
 func NewSequencerHead(hash Hash, id uint64) *SequencerHeader {
 	return &SequencerHeader{
-		hash: hash,
-		id:   id,
+		SeqHash: hash,
+		SeqId:   id,
 	}
 }
 
@@ -52,7 +52,7 @@ func (s *SequencerHeader) Equal(h *SequencerHeader) bool {
 	if s == nil || h == nil {
 		return false
 	}
-	return s.id == h.id && s.hash == h.hash
+	return s.SeqId == h.SeqId && s.SeqHash == h.SeqHash
 }
 
 

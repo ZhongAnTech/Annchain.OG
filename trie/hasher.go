@@ -198,12 +198,12 @@ func (h *hasher) store(n Node, db *Database, force bool) (Node, error) {
 		// Track all direct parent->child node references
 		switch n := n.(type) {
 		case *ShortNode:
-			log.Debugf("store a ShortNode, key: %x, hash: %x", n.Key, hash)
+			log.Tracef("store a ShortNode, key: %x, hash: %x", n.Key, hash)
 			if child, ok := n.Val.(HashNode); ok {
 				db.reference(types.BytesToHash(child), hash)
 			}
 		case *FullNode:
-			log.Debugf("store a FullNode, hash: %x", hash)
+			log.Tracef("store a FullNode, hash: %x", hash)
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(HashNode); ok {
 					db.reference(types.BytesToHash(child), hash)

@@ -28,22 +28,18 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	logrus.WithField("tx", t).Tracef("before VerifyHash")
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	logrus.WithField("tx", t).Tracef("before VerifySignature")
 	if !v.VerifySignature(t) {
 		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
-	logrus.WithField("tx", t).Tracef("before VerifySourceAddress")
 	if !v.VerifySourceAddress(t) {
 		logrus.WithField("tx", t).Debug("Source address not valid")
 		return false
 	}
-	logrus.WithField("tx", t).Tracef("after VerifySourceAddress")
 	return true
 }
 
@@ -259,17 +255,14 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
-	logrus.WithField("tx", txi).Tracef("before verifyA3")
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
-	logrus.WithField("tx", txi).Tracef("before verifyB1")
 	if ok = v.verifyB1(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
-	logrus.WithField("tx", txi).Tracef("after verifyB1")
 	return true
 }
 

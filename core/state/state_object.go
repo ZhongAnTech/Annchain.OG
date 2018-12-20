@@ -51,6 +51,7 @@ func NewStateObject(addr types.Address) *StateObject {
 	a.Balance = math.NewBigInt(0)
 	a.Nonce = 0
 	a.CodeHash = emptyCodeHash.ToBytes()
+	a.Root = emptyStateHash
 
 	s.data = a
 	return s

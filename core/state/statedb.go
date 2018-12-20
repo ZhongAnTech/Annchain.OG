@@ -196,7 +196,7 @@ func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
 	state, _ := sd.getStateObject(addr)
 	if state == nil {
-		state = NewStateObject(addr)
+		state = sd.CreateAccount(addr)
 		state.db = sd
 	}
 	return state
@@ -498,10 +498,12 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
-
 		// update state data in current trie.
 		data, _ := state.Encode()
-		sd.trie.TryUpdate(addr.ToBytes(), data)
+		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
+			log.Errorf("commit statedb error: %v", err)
+		}
+		log.Debugf("committed state addr: %s, nonce: %d", addr.String(), state.GetNonce())
 		delete(sd.dirtyset, addr)
 	}
 	// commit current trie into triedb.

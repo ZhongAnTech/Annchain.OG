@@ -299,6 +299,11 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash types.Hash, seqId uint
 		return err
 	}
 
+	//ancestor is smaller than our height
+	ourHeight :=  d.dag.LatestSequencer().Number()
+	if  ourHeight > origin {
+		origin = ourHeight
+	}
 	// Ensure our origin point is below any fast sync pivot point
 	pivot := uint64(0)
 	if d.mode == FastSync {
@@ -637,7 +642,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 
 	var ttl time.Duration
 
-	skeleton = false
+	//skeleton = false
 	getHeaders := func(from uint64) {
 		request = time.Now()
 
@@ -963,6 +968,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				// Short circuit if there is no more available task.
 				if pending() == 0 {
 					break
+				}
+				_, id:= peer.peer.Head()
+				if id <  d.dag.LatestSequencer().Number() {
+					log.WithField("peer head ",id).WithField("peer", peer.id).Debug("peer head is behind")
+					continue
 				}
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
 				// no more headers are available, or that the peer is known not to

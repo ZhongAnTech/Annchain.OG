@@ -229,6 +229,7 @@ func (m *IncrementalSyncer) eventLoop() {
 				// changed from disable to enable.
 				m.notifyAllCachedTxs()
 			}
+			//notify txs from cached first and enable to receive new tx from p2p
 		case <-m.quitLoopEvent:
 			log.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
@@ -353,14 +354,14 @@ func (m *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
 }
 
 func (m *IncrementalSyncer) notifyAllCachedTxs() {
-	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Trace("incoming cache is being dumped")
+	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache is being dumped")
 	kvMap := m.bufferedIncomingTxCache.GetALL()
 	for k, v := range kvMap {
 		// annouce and then remove
 		m.notifyNewTxi(v.(types.Txi))
 		m.bufferedIncomingTxCache.Remove(k)
 	}
-	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Trace("incoming cache dumped")
+	logrus.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache dumped")
 }
 
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
@@ -374,6 +375,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 		tx := rawTx.Tx()
 		logrus.WithField("tx", tx).WithField("peer", sourceId).Debug("received sync response Tx")
 		m.firedTxCache.Remove(tx.Hash)
+		//m.bufferedIncomingTxCache.Remove(tx.Hash)
 		m.notifyNewTxi(tx)
 	}
 	for _, v := range syncResponse.RawSequencers {

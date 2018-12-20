@@ -81,6 +81,7 @@ type TxBufferConfig struct {
 	NewTxQueueSize                   int
 	KnownCacheMaxSize                int
 	KnownCacheExpirationSeconds      int
+	AddedToPoolQueueSize             int
 }
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
@@ -94,7 +95,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
 		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
 		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
-		txAddedToPoolChan:      make(chan types.Txi, config.NewTxQueueSize),
+		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
@@ -402,17 +403,29 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 func (b *TxBuffer) releasedTxCacheLoop() {
 	for {
 		select {
-		case v := <-b.txAddedToPoolChan:
-			//a,err:= 	b.releasedTxCache.Get(v.GetTxHash())
-			//if err!=nil {
-			//	// the tx added not by tx buffer , clean dependency
-			//	tx := a.(types.Txi)
-			//	//todo  resolve the tx remove dependency
-			//}
-
+		case tx := <-b.txAddedToPoolChan:
 			// tx already received by pool. remove from local cache
-			b.knownCache.Remove(v.GetTxHash())
-			logrus.Tracef("after remove from known Cache %s", v.GetTxHash())
+			ok := b.knownCache.Remove(tx.GetTxHash())
+			if ok {
+				// try resolve the remaining txs
+				vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+				if err==nil {
+					b.dependencyCache.Remove(tx.GetTxHash())
+					for _, v := range vs.(map[types.Hash]types.Txi) {
+						if v.GetTxHash() == tx.GetTxHash() {
+							// self already resolved
+							continue
+						}
+						if !b.isLocalHash(v.GetTxHash()) &&  b.isCachedHash(v.GetTxHash()) {
+							b.tryResolve(v)
+							logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving after remove")
+						}
+						logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade already resolved")
+					}
+
+				}
+				logrus.WithField("tx ",tx).Trace("after remove from known Cache")
+			}
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

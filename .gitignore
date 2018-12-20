@@ -25,3 +25,4 @@ data/
 db_*/
 common/crypto/debug.test
 core/debug.test
+app/debug

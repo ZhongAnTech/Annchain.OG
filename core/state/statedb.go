@@ -503,6 +503,10 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}
+		// commit state's storage
+		if err := state.CommitStorage(sd.db); err != nil {
+			log.Errorf("commit state's storage error: %v", err)
+		}
 		log.Debugf("committed state addr: %s, nonce: %d", addr.String(), state.GetNonce())
 		delete(sd.dirtyset, addr)
 	}
@@ -522,6 +526,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		return nil
 	})
 
+	sd.clearJournalAndRefund()
 	return rootHash, err
 }
 

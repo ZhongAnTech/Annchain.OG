@@ -25,18 +25,6 @@ type Context struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	//GetHash GetHashFunc
-
-	// Message information
-	Origin   types.Address // Provides information for ORIGIN
-	GasPrice *big.Int      // Provides information for GASPRICE
-
-	// Block information
-	Coinbase   types.Address // Provides information for COINBASE
-	GasLimit   uint64        // Provides information for GASLIMIT
-	SequenceID uint64        // Provides information for SequenceID
-	//Time        *math.BigInt      // Provides information for TIME
-	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
-
 	StateDB     StateDB
 	CallGasTemp uint64
 	// Depth is the current call stack
@@ -45,8 +33,4 @@ type Context struct {
 	// abort is used to abort the OVM calling operations
 	// NOTE: must be set atomically
 	Abort int32
-
-	// Caller is the object for routing Call ops
-	// This object is probably OVM.
-	Caller Caller
 }

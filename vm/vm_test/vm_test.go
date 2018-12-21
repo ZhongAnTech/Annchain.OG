@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
-	"math/big"
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -17,6 +16,8 @@ import (
 )
 
 func TestContractSmallStorage(t *testing.T) {
+	from :=types.HexToAddress("0x01")
+
 	txContext := &ovm.TxContext{
 		From: types.HexToAddress("0x01"),
 		//To:       types.HexToAddress("0x02"),
@@ -24,25 +25,22 @@ func TestContractSmallStorage(t *testing.T) {
 		Data:     readFile("OwnedToken.bin"),
 		GasPrice: math.NewBigInt(1),
 		GasLimit: DefaultGasLimit,
+		Coinbase: types.HexToAddress("0x01"),
+		SequenceID: 0,
 	}
 	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
-	mmdb := ovm.NewMemoryStateDB()
-	ldb := ovm.NewLayerDB(mmdb)
-	ldb.NewLayer()
-	ldb.CreateAccount(txContext.From)
-	ldb.AddBalance(txContext.From, big.NewInt(10000000))
-	ldb.CreateAccount(coinBase)
-	ldb.AddBalance(coinBase, big.NewInt(10000000))
+	ldb := DefaultLDB(from, coinBase)
+
 	logrus.Info("Init accounts done")
 
-	context := ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb)
+	context := ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb)
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
 	})
 
-	evmInterpreter := vm.NewEVMInterpreter(&context, &vm.InterpreterConfig{
+	evmInterpreter := vm.NewEVMInterpreter(context, txContext, &vm.InterpreterConfig{
 		Debug:  true,
 		Tracer: tracer,
 	})
@@ -50,7 +48,7 @@ func TestContractSmallStorage(t *testing.T) {
 	ovm := ovm.NewOVM(context, []ovm.Interpreter{evmInterpreter}, &ovm.OVMConfig{NoRecursion: false})
 
 	logrus.Info("Deploying contract")
-	ret, contractAddr, leftOverGas, err := ovm.Create(&context, vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+	ret, contractAddr, leftOverGas, err := ovm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	// make duplicate
 	//ovm.StateDB.SetNonce(coinBase, 0)
 	//ret, contractAddr, leftOverGas, err = ovm.Create(&context, vmtypes.AccountRef(coinBase), txContext.Data, txContext.GasLimit, txContext.Value.Value)
@@ -73,7 +71,7 @@ func TestContractSmallStorage(t *testing.T) {
 	input = append(input, contractAddress...)
 	input = append(input, name[:]...)
 
-	ret, leftOverGas, err = ovm.Call(&context, vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
+	ret, leftOverGas, err = ovm.Call(vmtypes.AccountRef(txContext.From), contractAddr, input, txContext.GasLimit, txContext.Value.Value)
 	logrus.Info("Called contract")
 	fmt.Println("CP2", common.Bytes2Hex(ret), contractAddr.String(), leftOverGas, err)
 	fmt.Println(ldb.String())
@@ -89,20 +87,21 @@ func TestContractHelloWorld(t *testing.T) {
 		Debug: true,
 	})
 
-	txContext := &ovm.TxContext{
-		From: types.HexToAddress("0x01"),
-		//To:       types.HexToAddress("0x02"),
-		Value:    math.NewBigInt(0),
-		Data:     readFile("hello.bin"),
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-	}
-
-	ldb := DefaultLDB(txContext.From, coinBase)
+	ldb := DefaultLDB(from, coinBase)
 
 	rt := &Runtime{
-		Tracer:  tracer,
-		Context: ovm.NewEVMContext(txContext, &ovm.DefaultChainContext{}, &coinBase, ldb),
+		Tracer:    tracer,
+		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
+		TxContext: &ovm.TxContext{
+			From: types.HexToAddress("0x01"),
+			//To:       types.HexToAddress("0x02"),
+			Value:    math.NewBigInt(0),
+			Data:     readFile("hello.bin"),
+			GasPrice: math.NewBigInt(1),
+			GasLimit: DefaultGasLimit,
+			Coinbase: coinBase,
+			SequenceID: 0,
+		},
 	}
 
 	_, contractAddr, _, err := DeployContract("hello.bin", from, coinBase, rt, nil)

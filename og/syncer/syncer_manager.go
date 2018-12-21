@@ -71,7 +71,7 @@ func (s *SyncManager) Start() {
 	go func() {
 		// if BootstrapNode  just accept txs
 		if s.BootstrapNode {
-			s.NotifyUpToDateEvent(true)
+			s.CatchupSyncer.NotifyWorkingStateChanged(Stopped)
 		} else {
 			s.NotifyUpToDateEvent(false)
 		}

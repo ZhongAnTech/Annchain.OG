@@ -37,6 +37,7 @@ type AutoClient struct {
 	quit       chan bool
 
 	pause bool
+	testMode  bool
 
 	wg sync.WaitGroup
 
@@ -119,9 +120,17 @@ func (c *AutoClient) loop() {
 			c.fireManualTx(txType, true)
 		case <-timerTx.C:
 			logrus.Debug("timer sample tx")
+			if c.testMode {
+				timerTx.Stop()
+				continue
+			}
 			c.doSampleTx(false)
 			timerTx.Reset(c.nextSleepDuraiton())
 		case <-tickerSeq.C:
+			if c.testMode {
+				timerTx.Stop()
+				continue
+			}
 			logrus.Debug("timer sample seq")
 			c.doSampleSequencer(false)
 		}
@@ -206,6 +215,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 			logrus.WithField("txi", txi).Info("get start test tps")
 			c.AutoTxEnabled = false
 			c.AutoSequencerEnabled = false
+			c.testMode  = true
 			firstTx = true
 			c.Delegate.Announce(txi)
 			return c.fireTxs(me.Address)

@@ -157,7 +157,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}()
 
 	// already in the dag or tx_pool or buffer itself.
-	if b.isKnownHash(tx.GetTxHash()) {
+	if b.IsKnownHash(tx.GetTxHash()) {
 		return
 	}
 	// not in tx buffer , a new tx , should broadcast
@@ -294,7 +294,7 @@ func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
 
 // isKnownHash tests if the tx is ever heard of, either in local or in buffer.
 // if tx is known, do not broadcast anymore
-func (b *TxBuffer) isKnownHash(hash types.Hash) bool {
+func (b *TxBuffer) IsKnownHash(hash types.Hash) bool {
 	return b.isLocalHash(hash) || b.isCachedHash(hash)
 }
 

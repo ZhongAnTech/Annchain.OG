@@ -22,6 +22,7 @@ const (
 	// TODO: this value will be set to optimal value in the future.
 	// If generating sequencer is very fast with few transactions, it should be bigger,
 	// otherwise it should be smaller
+	SyncerCheckTime = time.Second*6
 
 	// when to stop sync once started
 	stopSyncHeightDiffThreashold uint64 = 0
@@ -139,7 +140,7 @@ func (c *CatchupSyncer) loopSync() {
 				continue
 			}
 			go c.syncToLatest()
-		case <-time.After(time.Second * 15):
+		case <-time.After(SyncerCheckTime):
 			if !c.Enabled {
 				log.Debug("catchup syncer not enabled")
 				continue

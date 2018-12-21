@@ -27,7 +27,7 @@ func TestSerialization(t *testing.T) {
 	if err != nil {
 		t.Errorf("encode state object meet error: %v", err)
 	}
-	newstobj := &state.StateObject{}
+	var newstobj state.StateObject
 	err = newstobj.Decode(b, stdb)
 	if err != nil {
 		t.Errorf("decode state object error: %v", err)
@@ -40,10 +40,5 @@ func TestSerialization(t *testing.T) {
 	if newblc.GetInt64() != testblc {
 		t.Errorf("balance error, should be %d, but get %d", testblc, newblc.GetInt64())
 	}
-
-}
-
-func TestStorage(t *testing.T) {
-	t.Parallel()
 
 }

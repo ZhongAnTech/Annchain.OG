@@ -215,6 +215,16 @@ func (s *StateObject) CommitStorage(db Database) error {
 	return nil
 }
 
+// Uncache clears dirtyStorage and committedStorage. This is aimed
+// to check if state is committed into db.
+//
+// Note that this function is for test debug only, should not
+// be called by other functions.
+func (s *StateObject) Uncache() {
+	s.committedStorage = make(map[types.Hash]types.Hash)
+	s.dirtyStorage = make(map[types.Hash]types.Hash)
+}
+
 /*
 	Encode part
 */

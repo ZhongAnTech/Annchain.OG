@@ -446,12 +446,12 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
-	state := &StateObject{}
+	var state StateObject
 	err = state.Decode(data, sd)
 	if err != nil {
 		return nil, fmt.Errorf("decode err: %v", err)
 	}
-	return state, nil
+	return &state, nil
 }
 
 // purge tries to remove all the state that haven't sent any beat

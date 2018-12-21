@@ -52,9 +52,9 @@ func TestStateStorage(t *testing.T) {
 	}
 
 	// check if is successfully committed into trie db.
-	stobj, geterr := stdb.GetStateObject(addr)
-	if geterr != nil {
-		t.Fatalf("get stateobject error: %v", geterr)
+	stobj := stdb.GetStateObject(addr)
+	if stobj == nil {
+		t.Fatalf("get stateobject error, stobj is nil")
 	}
 	stobj.Uncache()
 	st2 := stdb.GetState(addr, storageKey2)

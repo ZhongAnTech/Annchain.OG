@@ -19,7 +19,10 @@ func TestSerialization(t *testing.T) {
 	testblc := int64(666)
 
 	stdb := newTestStateDB(t)
-	stobj := stdb.CreateAccount(types.HexToAddress(testAddress))
+	stdb.CreateAccount(types.HexToAddress(testAddress))
+
+	addr := types.HexToAddress(testAddress)
+	stobj := stdb.GetStateObject(addr)
 	stobj.SetNonce(testnonce)
 	stobj.SetBalance(math.NewBigInt(testblc))
 

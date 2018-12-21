@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	// emptyState is the known hash of an empty state trie entry.
-	emptyState = crypto.Keccak256Hash(nil)
+	// emptyStateRoot is the known hash of an empty state trie entry.
+	emptyStateRoot = crypto.Keccak256Hash(nil)
 
 	// emptyStateHash is the known hash of an empty state trie.
-	emptyStateHash = crypto.Keccak256Hash(nil)
+	emptyStateHash = types.Hash{}
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
@@ -91,9 +91,9 @@ func (sd *StateDB) Database() Database {
 // CreateAccount will create a new state for input address and
 // return the state. If input address already exists in StateDB
 // returns it.
-func (sd *StateDB) CreateAccount(addr types.Address) *StateObject {
+func (sd *StateDB) CreateAccount(addr types.Address) {
 	newstate := NewStateObject(addr, sd)
-	oldstate, _ := sd.getStateObject(addr)
+	oldstate := sd.getStateObject(addr)
 	if oldstate != nil {
 		sd.journal.append(&resetObjectChange{
 			prev: oldstate,
@@ -106,7 +106,6 @@ func (sd *StateDB) CreateAccount(addr types.Address) *StateObject {
 	sd.states[addr] = newstate
 	sd.beats[addr] = time.Now()
 
-	return newstate
 }
 
 func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
@@ -117,8 +116,8 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	return sd.getBalance(addr)
 }
 func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
-	state, err := sd.getStateObject(addr)
-	if err != nil {
+	state := sd.getStateObject(addr)
+	if state == nil {
 		return math.NewBigInt(0)
 	}
 	return state.GetBalance()
@@ -132,22 +131,22 @@ func (sd *StateDB) GetNonce(addr types.Address) uint64 {
 	return sd.getNonce(addr)
 }
 func (sd *StateDB) getNonce(addr types.Address) uint64 {
-	state, err := sd.getStateObject(addr)
-	if err != nil {
+	state := sd.getStateObject(addr)
+	if state == nil {
 		return 0
 	}
 	return state.GetNonce()
 }
 
 func (sd *StateDB) Exist(addr types.Address) bool {
-	if stobj, _ := sd.getStateObject(addr); stobj != nil {
+	if stobj := sd.getStateObject(addr); stobj != nil {
 		return true
 	}
 	return false
 }
 
 func (sd *StateDB) Empty(addr types.Address) bool {
-	stobj, _ := sd.getStateObject(addr)
+	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return true
 	}
@@ -165,24 +164,25 @@ func (sd *StateDB) Empty(addr types.Address) bool {
 
 // GetStateObject get a state from StateDB. If state not exist,
 // load it from db.
-func (sd *StateDB) GetStateObject(addr types.Address) (*StateObject, error) {
+func (sd *StateDB) GetStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	defer sd.refreshbeat(addr)
 	return sd.getStateObject(addr)
 }
-func (sd *StateDB) getStateObject(addr types.Address) (*StateObject, error) {
+func (sd *StateDB) getStateObject(addr types.Address) *StateObject {
 	state, exist := sd.states[addr]
 	if !exist {
 		var err error
 		state, err = sd.loadStateObject(addr)
 		if err != nil {
-			return nil, err
+			log.Errorf("load stateobject from trie error: %v", err)
+			return nil
 		}
 		sd.states[addr] = state
 	}
-	return state, nil
+	return state
 }
 
 // GetOrCreateStateObject will find a state from memory by account address.
@@ -195,10 +195,10 @@ func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 	return sd.getOrCreateStateObject(addr)
 }
 func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
-	state, _ := sd.getStateObject(addr)
+	state := sd.getStateObject(addr)
 	if state == nil {
-		state = sd.CreateAccount(addr)
-		state.db = sd
+		sd.CreateAccount(addr)
+		state = sd.getStateObject(addr)
 	}
 	return state
 }
@@ -239,9 +239,6 @@ func (sd *StateDB) addBalance(addr types.Address, increment *math.BigInt) {
 	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	sd.setBalance(addr, state.data.Balance.Add(increment))
-
-	// TODO replace updateStateObject by append journal
-	// sd.updateStateObject(addr, state)
 }
 
 // SubBalance
@@ -260,9 +257,6 @@ func (sd *StateDB) subBalance(addr types.Address, decrement *math.BigInt) {
 	defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	sd.setBalance(addr, state.data.Balance.Sub(decrement))
-
-	// TODO replace updateStateObject by append journal
-	// sd.updateStateObject(addr, state)
 }
 
 func (sd *StateDB) GetRefund() uint64 {
@@ -270,27 +264,24 @@ func (sd *StateDB) GetRefund() uint64 {
 }
 
 func (sd *StateDB) GetCodeHash(addr types.Address) types.Hash {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
-		log.Errorf("get state object error: %v", err)
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return types.Hash{}
 	}
 	return stobj.GetCodeHash()
 }
 
 func (sd *StateDB) GetCode(addr types.Address) []byte {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
-		log.Errorf("get state object error: %v", err)
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return nil
 	}
 	return stobj.GetCode(sd.db)
 }
 
 func (sd *StateDB) GetCodeSize(addr types.Address) int {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
-		log.Errorf("get state object error: %v", err)
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return 0
 	}
 	l, dberr := stobj.GetCodeSize(sd.db)
@@ -302,18 +293,16 @@ func (sd *StateDB) GetCodeSize(addr types.Address) int {
 }
 
 func (sd *StateDB) GetState(addr types.Address, key types.Hash) types.Hash {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
-		log.Errorf("get state object error: %v", err)
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return emptyStateHash
 	}
 	return stobj.GetState(sd.db, key)
 }
 
 func (sd *StateDB) GetCommittedState(addr types.Address, key types.Hash) types.Hash {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
-		log.Errorf("get state object error: %v", err)
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return emptyStateHash
 	}
 	return stobj.GetCommittedState(sd.db, key)
@@ -368,7 +357,7 @@ func (sd *StateDB) SetStateObject(addr types.Address, stobj *StateObject) {
 func (sd *StateDB) setStateObject(addr types.Address, stobj *StateObject) {
 	defer sd.refreshbeat(addr)
 
-	oldobj, _ := sd.getStateObject(addr)
+	oldobj := sd.getStateObject(addr)
 	if oldobj == nil {
 		return
 	}
@@ -392,8 +381,8 @@ func (sd *StateDB) SetState(addr types.Address, key, value types.Hash) {
 }
 
 func (sd *StateDB) Suicide(addr types.Address) bool {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return false
 	}
 	sd.journal.append(&suicideChange{
@@ -407,8 +396,8 @@ func (sd *StateDB) Suicide(addr types.Address) bool {
 }
 
 func (sd *StateDB) HasSuicided(addr types.Address) bool {
-	stobj, err := sd.getStateObject(addr)
-	if err != nil {
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return false
 	}
 	return stobj.suicided
@@ -425,14 +414,14 @@ func (sd *StateDB) AddPreimage(h types.Hash, b []byte) {
 }
 
 func (sd *StateDB) ForEachStorage(addr types.Address, f func(key, value types.Hash) bool) {
-	so, err := sd.getStateObject(addr)
-	if err != nil {
+	stobj := sd.getStateObject(addr)
+	if stobj == nil {
 		return
 	}
-	it := trie.NewIterator(so.openTrie(sd.db).NodeIterator(nil))
+	it := trie.NewIterator(stobj.openTrie(sd.db).NodeIterator(nil))
 	for it.Next() {
 		key := types.BytesToHash(sd.trie.GetKey(it.Key))
-		if value, dirty := so.dirtyStorage[key]; dirty {
+		if value, dirty := stobj.dirtyStorage[key]; dirty {
 			f(key, value)
 			continue
 		}
@@ -516,12 +505,12 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
 		}
-		if account.Root != emptyState {
+		if account.Root != emptyStateRoot {
 			sd.db.TrieDB().Reference(account.Root, parent)
 		}
-		code := types.BytesToHash(account.CodeHash)
-		if code != emptyCode {
-			sd.db.TrieDB().Reference(code, parent)
+		codehash := types.BytesToHash(account.CodeHash)
+		if codehash != emptyCodeHash {
+			sd.db.TrieDB().Reference(codehash, parent)
 		}
 		return nil
 	})
@@ -579,6 +568,10 @@ func (sd *StateDB) clearJournalAndRefund() {
 	sd.snapshotID = 0
 	sd.snapshotSet = sd.snapshotSet[:0]
 	sd.refund = 0
+}
+
+func (sd *StateDB) String() string {
+	return "you shall-not paaaaaaaasss!!!"
 }
 
 type shot struct {

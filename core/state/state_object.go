@@ -39,13 +39,7 @@ type StateObject struct {
 	db   *StateDB
 }
 
-func NewStateObject(addr types.Address) *StateObject {
-	s := &StateObject{}
-	s.address = addr
-	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
-	s.committedStorage = make(map[types.Hash]types.Hash)
-	s.dirtyStorage = make(map[types.Hash]types.Hash)
-
+func NewStateObject(addr types.Address, db *StateDB) *StateObject {
 	a := Account{}
 	a.Address = addr
 	a.Balance = math.NewBigInt(0)
@@ -53,7 +47,13 @@ func NewStateObject(addr types.Address) *StateObject {
 	a.CodeHash = emptyCodeHash.ToBytes()
 	a.Root = emptyStateHash
 
+	s := &StateObject{}
+	s.address = addr
+	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
+	s.committedStorage = make(map[types.Hash]types.Hash)
+	s.dirtyStorage = make(map[types.Hash]types.Hash)
 	s.data = a
+	s.db = db
 	return s
 }
 
@@ -223,7 +223,7 @@ func (s *StateObject) Encode() ([]byte, error) {
 	return s.data.MarshalMsg(nil)
 }
 
-func (s *StateObject) Decode(b []byte) error {
+func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	var a Account
 	_, err := a.UnmarshalMsg(b)
 
@@ -232,6 +232,7 @@ func (s *StateObject) Decode(b []byte) error {
 	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
 	s.committedStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
+	s.db = db
 	return err
 }
 

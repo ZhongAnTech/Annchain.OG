@@ -59,8 +59,9 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, root types.Hash, db Database) (*StateDB, error) {
-	tr, err := db.OpenTrie(root)
+func NewStateDB(conf StateDBConfig, db Database) (*StateDB, error) {
+	initRoot := types.Hash{}
+	tr, err := db.OpenTrie(initRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (sd *StateDB) Database() Database {
 // return the state. If input address already exists in StateDB
 // returns it.
 func (sd *StateDB) CreateAccount(addr types.Address) *StateObject {
-	newstate := NewStateObject(addr)
+	newstate := NewStateObject(addr, sd)
 	oldstate, _ := sd.getStateObject(addr)
 	if oldstate != nil {
 		sd.journal.append(&resetObjectChange{
@@ -446,11 +447,10 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
 	var state StateObject
-	err = state.Decode(data)
+	err = state.Decode(data, sd)
 	if err != nil {
 		return nil, fmt.Errorf("decode err: %v", err)
 	}
-	state.db = sd
 	return &state, nil
 }
 

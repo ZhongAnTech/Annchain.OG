@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const BloomFilterRate  = 5 //sendign 4 req
+
 type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
 	MulticastMessage(messageType og.MessageType, message types.Message)
@@ -161,7 +163,7 @@ func (m *IncrementalSyncer) loopSync() {
 			if len(buffer) >= m.config.MaxBatchSize {
 				fired++
 				//bloom filter msg is large , don't send too frequently
-				if fired%3 == 0 {
+				if fired%BloomFilterRate == 0 {
 					m.sendBloomFilter(buffer)
 					fired = 0
 				} else {
@@ -174,7 +176,7 @@ func (m *IncrementalSyncer) loopSync() {
 			// check duplicate here in the future
 			fired++
 			//bloom filter msg is large , don't send too frequently
-			if fired%3 == 0 {
+			if fired%BloomFilterRate == 0 {
 				m.sendBloomFilter(buffer)
 				fired = 0
 			} else {

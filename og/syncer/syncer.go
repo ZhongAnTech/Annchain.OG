@@ -385,6 +385,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 		m.notifyNewTxi(seq)
 	}
 }
+
 func (m *IncrementalSyncer) repickHashes() types.Hashes {
 	maps := m.firedTxCache.GetALL()
 	duration := time.Duration(time.Second * 10)

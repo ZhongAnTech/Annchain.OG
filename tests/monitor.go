@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/rpc"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -12,23 +13,13 @@ import (
 
 type Monitor struct {
 	Port    string `json:"port"`
-	Peers   []Peer `json:"peers"`
+	Peers   []rpc.Peer `json:"peers"`
 	SeqId   uint64 `json:"seq_id"`
 	ShortId string `json:"short_id"`
+	Status  rpc.SyncStatus `json:"status"`
 	Err     error
 	Id      int
-	Tps     *Tps `json:"tps"`
-}
-
-type Peer struct {
-	Addr    string `json:"addr"`
-	ShortId string `json:"short_id"`
-}
-
-type Tps struct {
-	Num     int     `json:"num"`
-	TxCount int     `json:"tx_num"`
-	Seconds float64 `json:"duration"`
+	Tps     *rpc.Tps `json:"tps"`
 }
 
 type Statistics struct {

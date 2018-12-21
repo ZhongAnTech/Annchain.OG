@@ -560,6 +560,7 @@ type Monitor struct {
 	Peers   []Peer `json:"peers,omitempty"`
 	SeqId   uint64 `json:"seq_id"`
 	Tps     *Tps   `json:"tps"`
+	Status		SyncStatus `json:"status"`
 }
 
 type Peer struct {
@@ -594,6 +595,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	m.Port = viper.GetString("p2p.port")
 	m.ShortId = r.P2pServer.NodeInfo().ShortId
 	m.Tps, _ = r.getTps()
+	m.Status = r.syncStatus()
 	c.JSON(http.StatusOK, m)
 }
 

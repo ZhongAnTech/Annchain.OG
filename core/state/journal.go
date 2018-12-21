@@ -150,10 +150,10 @@ func (ch resetObjectChange) dirtied() *types.Address {
 }
 
 func (ch suicideChange) revert(s *StateDB) {
-	obj, _ := s.getStateObject(*ch.account)
-	if obj != nil {
-		obj.suicided = ch.prev
-		obj.SetBalance(ch.prevbalance)
+	stobj := s.getStateObject(*ch.account)
+	if stobj != nil {
+		stobj.suicided = ch.prev
+		stobj.SetBalance(ch.prevbalance)
 	}
 }
 
@@ -171,7 +171,7 @@ func (ch touchChange) dirtied() *types.Address {
 }
 
 func (ch balanceChange) revert(s *StateDB) {
-	stobj, _ := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetBalance(ch.prev)
 	}
@@ -182,7 +182,7 @@ func (ch balanceChange) dirtied() *types.Address {
 }
 
 func (ch nonceChange) revert(s *StateDB) {
-	stobj, _ := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetNonce(ch.prev)
 	}
@@ -193,7 +193,7 @@ func (ch nonceChange) dirtied() *types.Address {
 }
 
 func (ch codeChange) revert(s *StateDB) {
-	stobj, _ := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetCode(types.BytesToHash(ch.prevhash), ch.prevcode)
 	}
@@ -204,7 +204,7 @@ func (ch codeChange) dirtied() *types.Address {
 }
 
 func (ch storageChange) revert(s *StateDB) {
-	stobj, _ := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetState(s.db, ch.key, ch.prevalue)
 	}

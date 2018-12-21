@@ -45,7 +45,7 @@ func NewStateObject(addr types.Address, db *StateDB) *StateObject {
 	a.Balance = math.NewBigInt(0)
 	a.Nonce = 0
 	a.CodeHash = emptyCodeHash.ToBytes()
-	a.Root = emptyStateHash
+	a.Root = emptyStateRoot
 
 	s := &StateObject{}
 	s.address = addr

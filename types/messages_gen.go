@@ -1273,8 +1273,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	err = z.Hashes.DecodeMsg(dc)
@@ -1305,6 +1305,21 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Height = nil
+	} else {
+		if z.Height == nil {
+			z.Height = new(uint64)
+		}
+		*z.Height, err = dc.ReadUint64()
+		if err != nil {
+			return
+		}
+	}
 	z.RequestId, err = dc.ReadUint32()
 	if err != nil {
 		return
@@ -1314,8 +1329,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -1339,6 +1354,17 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	if z.Height == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = en.WriteUint64(*z.Height)
+		if err != nil {
+			return
+		}
+	}
 	err = en.WriteUint32(z.RequestId)
 	if err != nil {
 		return
@@ -1349,8 +1375,8 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
 	o, err = z.Hashes.MarshalMsg(o)
 	if err != nil {
 		return
@@ -1361,6 +1387,11 @@ func (z *MessageSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 		// array header, size 1
 		o = append(o, 0x91)
 		o = msgp.AppendBytes(o, z.Filter.Data)
+	}
+	if z.Height == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o = msgp.AppendUint64(o, *z.Height)
 	}
 	o = msgp.AppendUint32(o, z.RequestId)
 	return
@@ -1373,8 +1404,8 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	bts, err = z.Hashes.UnmarshalMsg(bts)
@@ -1405,6 +1436,21 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Height = nil
+	} else {
+		if z.Height == nil {
+			z.Height = new(uint64)
+		}
+		*z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+		if err != nil {
+			return
+		}
+	}
 	z.RequestId, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
 		return
@@ -1420,6 +1466,11 @@ func (z *MessageSyncRequest) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += 1 + msgp.BytesPrefixSize + len(z.Filter.Data)
+	}
+	if z.Height == nil {
+		s += msgp.NilSize
+	} else {
+		s += msgp.Uint64Size
 	}
 	s += msgp.Uint32Size
 	return

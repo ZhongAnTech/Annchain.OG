@@ -44,34 +44,57 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			msgLog.WithError(err).Warn("encode bloom filter error")
 			return
 		}
-
-		hashs := h.Og.TxPool.GetHashOrder()
-		msgLog.WithField("len ", len(hashs)).Trace("get hashes")
-		for _, hash := range hashs {
-			ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
-			if err != nil {
-				msgLog.WithError(err).Warn("lookup bloom filter error")
-				continue
-			}
-			//if peer miss this tx ,send it
-			if !ok {
-				txi := h.Og.TxPool.Get(hash)
-				if txi ==nil {
-					txi = h.Og.Dag.GetTx(hash)
+		if syncRequest.Height == nil {
+			msgLog.WithError(err).Warn("param error, height is nil")
+			return
+		}
+		height := *syncRequest.Height
+		ourHeight := h.Og.Dag.LatestSequencer().Id
+		if height < ourHeight {
+			msgLog.WithField("ourHeight ", ourHeight).WithField("height", height).Warn("our height is smaller")
+			return
+		} else {
+			var filterHashes types.Hashes
+			if height == ourHeight {
+				filterHashes  = h.Og.TxPool.GetHashOrder()
+			}else if height  < ourHeight {
+				dagHashes  := h.Og.Dag.GetTxsHashesByNumber(height+1)
+				if dagHashes!=nil {
+					filterHashes = *dagHashes
 				}
-				if txi ==nil {
+			}
+			msgLog.WithField("len ", len(filterHashes)).Trace("get hashes")
+			for _, hash := range filterHashes {
+				ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
+				if err != nil {
+					msgLog.WithError(err).Warn("lookup bloom filter error")
 					continue
 				}
-				if txi.GetType() == types.TxBaseTypeNormal {
-					tx := txi.(*types.Tx)
-					txs = append(txs, tx.RawTx())
-				} else {
-					seq := txi.(*types.Sequencer)
-					seqs = append(seqs, seq.RawSequencer())
+				//if peer miss this tx ,send it
+				if !ok {
+					txi := h.Og.TxPool.Get(hash)
+					if txi == nil {
+						txi = h.Og.Dag.GetTx(hash)
+					}
+					if txi == nil {
+						continue
+					}
+					if txi.GetType() == types.TxBaseTypeNormal {
+						tx := txi.(*types.Tx)
+						txs = append(txs, tx.RawTx())
+					} else {
+						seq := txi.(*types.Sequencer)
+						seqs = append(seqs, seq.RawSequencer())
+					}
 				}
 			}
+			if height <= ourHeight -2 {
+				dagTxs :=  h.Og.Dag.GetTxsByNumber(height+2)
+				txs = dagTxs.ToRawTxs()
+				seqs = append(seqs, h.Og.Dag.GetSequencerById(height+2).RawSequencer())
+			}
+			msgLog.WithField("len seqs",len(seqs)).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
 		}
-		msgLog.WithField("len ", len(txs)).Trace("will send txs after bloom filter")
 	} else if len(syncRequest.Hashes) > 0 {
 		for _, hash := range syncRequest.Hashes {
 			txi := h.Og.TxPool.Get(hash)
@@ -119,11 +142,11 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHe
 			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
-	msgLog.WithField("headers",headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle MessageTypeHeaderResponse")
+	msgLog.WithField("headers", headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderRequest, peerId string) {
-	hashMode := query.Origin.Hash!=nil
+	hashMode := query.Origin.Hash != nil
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
 		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Trace("requests")
@@ -166,7 +189,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 				seq := h.Og.Dag.GetSequencerById(query.Origin.Number - ancestor)
 				hash := seq.GetTxHash()
 				query.Origin.Hash, query.Origin.Number = &hash, seq.Number()
-				unknown = query.Origin.Hash==nil
+				unknown = query.Origin.Hash == nil
 			}
 		case hashMode && !query.Reverse:
 			// Hash based traversal towards the leaf block
@@ -206,8 +229,8 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 	}
 
 	msgRes := types.MessageHeaderResponse{
-		Headers: headers.ToHeaders(),
-		RequestedId:   query.RequestId,
+		Headers:     headers.ToHeaders(),
+		RequestedId: query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }

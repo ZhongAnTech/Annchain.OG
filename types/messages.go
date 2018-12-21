@@ -46,11 +46,12 @@ func (m *MessagePong) String() string {
 type MessageSyncRequest struct {
 	Hashes    Hashes
 	Filter    *BloomFilter
+	Height    *uint64
 	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageSyncRequest) String() string {
-	return fmt.Sprintf(" requestId %d", m.RequestId)
+	return m.Hashes.String()+ fmt.Sprintf(" requestId %d  height: %v", m.RequestId ,m.Height)
 }
 
 //msgp:tuple MessageSyncResponse

@@ -144,7 +144,7 @@ func NewNode() *Node {
 		SyncMode:   downloader.FullSync,
 		BootStrapNode : bootNode,
 	}
-	syncManager.CatchupSyncer.Init()
+	syncManager.CatchupSyncer.Init( )
 	hub.Downloader = downloaderInstance
 	messageHandler := og.NewIncomingMessageHandler(org, hub)
 
@@ -174,7 +174,7 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheMaxSize:           10000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m, org.TxPool.GetHashOrder)
+		}, m, org.TxPool.GetHashOrder,org.TxBuffer.IsKnownHash, heighter)
 
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer

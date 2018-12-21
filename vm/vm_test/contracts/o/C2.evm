@@ -1,0 +1,258 @@
+    /* "../vm_test/contracts/intercall.sol":89:222  contract C2 {... */
+  mstore(0x40, 0x80)
+  callvalue
+    /* "--CODEGEN--":8:17   */
+  dup1
+    /* "--CODEGEN--":5:7   */
+  iszero
+  tag_1
+  jumpi
+    /* "--CODEGEN--":30:31   */
+  0x0
+    /* "--CODEGEN--":27:28   */
+  dup1
+    /* "--CODEGEN--":20:32   */
+  revert
+    /* "--CODEGEN--":5:7   */
+tag_1:
+    /* "../vm_test/contracts/intercall.sol":89:222  contract C2 {... */
+  pop
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../vm_test/contracts/intercall.sol":89:222  contract C2 {... */
+      mstore(0x40, 0x80)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0xc3642756
+      eq
+      tag_2
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../vm_test/contracts/intercall.sol":107:220  function f2(address addrC1) pure public returns(uint) {... */
+    tag_2:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_3
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_3:
+        /* "../vm_test/contracts/intercall.sol":107:220  function f2(address addrC1) pure public returns(uint) {... */
+      pop
+      tag_4
+      0x4
+      dup1
+      calldatasize
+      sub
+        /* "--CODEGEN--":13:15   */
+      0x20
+        /* "--CODEGEN--":8:11   */
+      dup2
+        /* "--CODEGEN--":5:16   */
+      lt
+        /* "--CODEGEN--":2:4   */
+      iszero
+      tag_5
+      jumpi
+        /* "--CODEGEN--":29:30   */
+      0x0
+        /* "--CODEGEN--":26:27   */
+      dup1
+        /* "--CODEGEN--":19:31   */
+      revert
+        /* "--CODEGEN--":2:4   */
+    tag_5:
+        /* "../vm_test/contracts/intercall.sol":107:220  function f2(address addrC1) pure public returns(uint) {... */
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+      jump(tag_6)
+    tag_4:
+      mload(0x40)
+      dup1
+      dup3
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+    tag_6:
+        /* "../vm_test/contracts/intercall.sol":155:159  uint */
+      0x0
+        /* "../vm_test/contracts/intercall.sol":171:176  C1 c1 */
+      dup1
+        /* "../vm_test/contracts/intercall.sol":182:188  addrC1 */
+      dup3
+        /* "../vm_test/contracts/intercall.sol":171:189  C1 c1 = C1(addrC1) */
+      swap1
+      pop
+        /* "../vm_test/contracts/intercall.sol":206:208  c1 */
+      dup1
+        /* "../vm_test/contracts/intercall.sol":206:211  c1.f1 */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xc27fc305
+        /* "../vm_test/contracts/intercall.sol":206:213  c1.f1() */
+      mload(0x40)
+      dup2
+      0xffffffff
+      and
+      0x100000000000000000000000000000000000000000000000000000000
+      mul
+      dup2
+      mstore
+      0x4
+      add
+      0x20
+      mload(0x40)
+      dup1
+      dup4
+      sub
+      dup2
+      dup7
+      dup1
+      extcodesize
+      iszero
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_8
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_8:
+        /* "../vm_test/contracts/intercall.sol":206:213  c1.f1() */
+      pop
+      gas
+      staticcall
+      iszero
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_9
+      jumpi
+        /* "--CODEGEN--":45:61   */
+      returndatasize
+        /* "--CODEGEN--":42:43   */
+      0x0
+        /* "--CODEGEN--":39:40   */
+      dup1
+        /* "--CODEGEN--":24:62   */
+      returndatacopy
+        /* "--CODEGEN--":77:93   */
+      returndatasize
+        /* "--CODEGEN--":74:75   */
+      0x0
+        /* "--CODEGEN--":67:94   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_9:
+        /* "../vm_test/contracts/intercall.sol":206:213  c1.f1() */
+      pop
+      pop
+      pop
+      pop
+      mload(0x40)
+      returndatasize
+        /* "--CODEGEN--":13:15   */
+      0x20
+        /* "--CODEGEN--":8:11   */
+      dup2
+        /* "--CODEGEN--":5:16   */
+      lt
+        /* "--CODEGEN--":2:4   */
+      iszero
+      tag_10
+      jumpi
+        /* "--CODEGEN--":29:30   */
+      0x0
+        /* "--CODEGEN--":26:27   */
+      dup1
+        /* "--CODEGEN--":19:31   */
+      revert
+        /* "--CODEGEN--":2:4   */
+    tag_10:
+        /* "../vm_test/contracts/intercall.sol":206:213  c1.f1() */
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      mload
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+        /* "../vm_test/contracts/intercall.sol":199:213  return c1.f1() */
+      swap2
+      pop
+      pop
+        /* "../vm_test/contracts/intercall.sol":107:220  function f2(address addrC1) pure public returns(uint) {... */
+      swap2
+      swap1
+      pop
+      jump	// out
+
+    auxdata: 0xa165627a7a723058204e9beb52721cf84dbff7bae9db470f98b63cedf848ba61eea8dc89b0ec852e1c0029
+}

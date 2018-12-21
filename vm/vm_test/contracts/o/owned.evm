@@ -1,0 +1,291 @@
+    /* "../contracts/token.sol":693:1162  contract owned {... */
+  mstore(0x40, 0x80)
+    /* "../contracts/token.sol":831:890  function owned() public {... */
+  callvalue
+    /* "--CODEGEN--":8:17   */
+  dup1
+    /* "--CODEGEN--":5:7   */
+  iszero
+  tag_1
+  jumpi
+    /* "--CODEGEN--":30:31   */
+  0x0
+    /* "--CODEGEN--":27:28   */
+  dup1
+    /* "--CODEGEN--":20:32   */
+  revert
+    /* "--CODEGEN--":5:7   */
+tag_1:
+    /* "../contracts/token.sol":831:890  function owned() public {... */
+  pop
+    /* "../contracts/token.sol":873:883  msg.sender */
+  caller
+    /* "../contracts/token.sol":865:870  owner */
+  0x0
+  dup1
+    /* "../contracts/token.sol":865:883  owner = msg.sender */
+  0x100
+  exp
+  dup2
+  sload
+  dup2
+  0xffffffffffffffffffffffffffffffffffffffff
+  mul
+  not
+  and
+  swap1
+  dup4
+  0xffffffffffffffffffffffffffffffffffffffff
+  and
+  mul
+  or
+  swap1
+  sstore
+  pop
+    /* "../contracts/token.sol":693:1162  contract owned {... */
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../contracts/token.sol":693:1162  contract owned {... */
+      mstore(0x40, 0x80)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0x8da5cb5b
+      eq
+      tag_2
+      jumpi
+      dup1
+      0xf2fde38b
+      eq
+      tag_3
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../contracts/token.sol":714:734  address public owner */
+    tag_2:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_4
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_4:
+        /* "../contracts/token.sol":714:734  address public owner */
+      pop
+      tag_5
+      jump(tag_6)
+    tag_5:
+      mload(0x40)
+      dup1
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../contracts/token.sol":977:1160  function transferOwnership(address newOwner) onlyOwner public {... */
+    tag_3:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_7
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_7:
+        /* "../contracts/token.sol":977:1160  function transferOwnership(address newOwner) onlyOwner public {... */
+      pop
+      tag_8
+      0x4
+      dup1
+      calldatasize
+      sub
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+      jump(tag_9)
+    tag_8:
+      stop
+        /* "../contracts/token.sol":714:734  address public owner */
+    tag_6:
+      0x0
+      dup1
+      swap1
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      jump	// out
+        /* "../contracts/token.sol":977:1160  function transferOwnership(address newOwner) onlyOwner public {... */
+    tag_9:
+        /* "../contracts/token.sol":947:952  owner */
+      0x0
+      dup1K
+      swap1
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+        /* "../contracts/token.sol":933:952  msg.sender == owner */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+        /* "../contracts/token.sol":933:943  msg.sender */
+      caller
+        /* "../contracts/token.sol":933:952  msg.sender == owner */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      eq
+        /* "../contracts/token.sol":925:953  require(msg.sender == owner) */
+      iszero
+      iszero
+      tag_11
+      jumpi
+      0x0
+      dup1
+      revert
+    tag_11:
+        /* "../contracts/token.sol":1077:1078  0 */
+      0x0
+        /* "../contracts/token.sol":1057:1079  newOwner != address(0) */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+        /* "../contracts/token.sol":1057:1065  newOwner */
+      dup2
+        /* "../contracts/token.sol":1057:1079  newOwner != address(0) */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      eq
+      iszero
+        /* "../contracts/token.sol":1049:1080  require(newOwner != address(0)) */
+      iszero
+      iszero
+      tag_13
+      jumpi
+      0x0
+      dup1
+      revert
+    tag_13:
+        /* "../contracts/token.sol":1118:1126  newOwner */
+      dup1
+        /* "../contracts/token.sol":1090:1127  OwnershipTransferred(owner, newOwner) */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+        /* "../contracts/token.sol":1111:1116  owner */
+      0x0
+      dup1
+      swap1
+      sload
+      swap1
+      0x100
+      exp
+      swap1
+      div
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+        /* "../contracts/token.sol":1090:1127  OwnershipTransferred(owner, newOwner) */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0
+      mload(0x40)
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      log3
+        /* "../contracts/token.sol":1145:1153  newOwner */
+      dup1
+        /* "../contracts/token.sol":1137:1142  owner */
+      0x0
+      dup1
+        /* "../contracts/token.sol":1137:1153  owner = newOwner */
+      0x100
+      exp
+      dup2
+      sload
+      dup2
+      0xffffffffffffffffffffffffffffffffffffffff
+      mul
+      not
+      and
+      swap1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      mul
+      or
+      swap1
+      sstore
+      pop
+        /* "../contracts/token.sol":977:1160  function transferOwnership(address newOwner) onlyOwner public {... */
+      pop
+      jump	// out
+
+    auxdata: 0xa165627a7a72305820cf5c091fa71c5a22c7b180f7781b66822beed43bce4e4bed29d779a40187f6f00029
+}

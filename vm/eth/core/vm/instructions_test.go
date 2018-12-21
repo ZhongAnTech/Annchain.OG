@@ -22,10 +22,10 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/vm/eth/crypto"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/ovm"
+	"github.com/annchain/OG/common/crypto"
 )
 
 type twoOperandTest struct {
@@ -36,7 +36,7 @@ type twoOperandTest struct {
 
 func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(&env.Context, &InterpreterConfig{})
@@ -77,7 +77,7 @@ func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64
 
 func TestByteOp(t *testing.T) {
 	var (
-		env            = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack          = newstack()
 		evmInterpreter = NewEVMInterpreter(&env.Context, &InterpreterConfig{})
 	)
@@ -212,7 +212,7 @@ func TestSLT(t *testing.T) {
 
 func opBenchmark(bench *testing.B, op func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error), args ...string) {
 	var (
-		env            = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack          = newstack()
 		evmInterpreter = NewEVMInterpreter(&env.Context, &InterpreterConfig{})
 	)
@@ -447,7 +447,7 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env            = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack          = newstack()
 		mem            = NewMemory()
 		evmInterpreter = NewEVMInterpreter(&env.Context, &InterpreterConfig{})
@@ -473,7 +473,7 @@ func TestOpMstore(t *testing.T) {
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env   = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env   = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack = newstack()
 		mem   = NewMemory()
 	)
@@ -495,7 +495,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 
 func BenchmarkOpSHA3(bench *testing.B) {
 	var (
-		env   = ovm.NewOVM(vmtypes.Context{}, nil, nil, &ovm.OVMConfig{})
+		env   = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack = newstack()
 		mem   = NewMemory()
 	)

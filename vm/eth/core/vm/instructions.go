@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/annchain/OG/common/crypto/sha3"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 )
 
@@ -392,7 +392,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	interpreter.hasher.Read(hasherBufBytes)
 	interpreter.hasherBuf = types.BytesToHash(hasherBufBytes)
 
-	evm := interpreter.ctx
+	evm := interpreter.vmContext
 	if interpreter.Cfg.EnablePreimageRecording {
 		evm.StateDB.AddPreimage(interpreter.hasherBuf, data)
 	}
@@ -409,12 +409,12 @@ func opAddress(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opBalance(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.Set(interpreter.ctx.StateDB.GetBalance(types.BigToAddress(slot)))
+	slot.Set(interpreter.vmContext.StateDB.GetBalance(types.BigToAddress(slot)).Value)
 	return nil, nil
 }
 
 func opOrigin(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(interpreter.ctx.Origin.Big())
+	stack.push(interpreter.txContext.From.Big())
 	return nil, nil
 }
 
@@ -475,7 +475,7 @@ func opReturnDataCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes
 
 func opExtCodeSize(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetUint64(uint64(interpreter.ctx.StateDB.GetCodeSize(types.BigToAddress(slot))))
+	slot.SetUint64(uint64(interpreter.vmContext.StateDB.GetCodeSize(types.BigToAddress(slot))))
 
 	return nil, nil
 }
@@ -507,7 +507,7 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Co
 		codeOffset = stack.pop()
 		length     = stack.pop()
 	)
-	codeCopy := common.GetDataBig(interpreter.ctx.StateDB.GetCode(addr), codeOffset, length)
+	codeCopy := common.GetDataBig(interpreter.vmContext.StateDB.GetCode(addr), codeOffset, length)
 	memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
 
 	interpreter.intPool.put(memOffset, codeOffset, length)
@@ -543,25 +543,25 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Co
 func opExtCodeHash(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
 	address := types.BigToAddress(slot)
-	if interpreter.ctx.StateDB.Empty(address) {
+	if interpreter.vmContext.StateDB.Empty(address) {
 		slot.SetUint64(0)
 	} else {
-		slot.SetBytes(interpreter.ctx.StateDB.GetCodeHash(address).ToBytes())
+		slot.SetBytes(interpreter.vmContext.StateDB.GetCodeHash(address).ToBytes())
 	}
 	return nil, nil
 }
 
 func opGasprice(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	stack.push(interpreter.intPool.get().Set(interpreter.ctx.GasPrice))
+	stack.push(interpreter.intPool.get().Set(interpreter.txContext.GasPrice.Value))
 	return nil, nil
 }
 
 //func opBlockhash(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 //	num := stack.pop()
 //
-//	n := interpreter.intPool.get().Sub(interpreter.ctx.SequenceID, common.Big257)
-//	if num.Cmp(n) > 0 && num.Cmp(interpreter.ctx.SequenceID) < 0 {
-//		stack.push(interpreter.ctx.GetHash(num.Uint64()).Big())
+//	n := interpreter.intPool.get().Sub(interpreter.vmContext.SequenceID, common.Big257)
+//	if num.Cmp(n) > 0 && num.Cmp(interpreter.vmContext.SequenceID) < 0 {
+//		stack.push(interpreter.vmContext.GetHash(num.Uint64()).Big())
 //	} else {
 //		stack.push(interpreter.intPool.getZero())
 //	}
@@ -570,27 +570,27 @@ func opGasprice(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 //}
 //
 //func opCoinbase(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-//	stack.push(interpreter.ctx.Coinbase.Big())
+//	stack.push(interpreter.vmContext.Coinbase.Big())
 //	return nil, nil
 //}
 //
 //func opTimestamp(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.ctx.Time)))
+//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.vmContext.Time)))
 //	return nil, nil
 //}
 //
 //func opNumber(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.ctx.SequenceID)))
+//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.vmContext.SequenceID)))
 //	return nil, nil
 //}
 //
 //func opDifficulty(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.ctx.Difficulty)))
+//	stack.push(math.U256(interpreter.intPool.get().Set(interpreter.vmContext.Difficulty)))
 //	return nil, nil
 //}
 //
 //func opGasLimit(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-//	stack.push(math.U256(interpreter.intPool.get().SetUint64(interpreter.ctx.GasLimit)))
+//	stack.push(math.U256(interpreter.intPool.get().SetUint64(interpreter.vmContext.GasLimit)))
 //	return nil, nil
 //}
 
@@ -626,7 +626,7 @@ func opMstore8(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opSload(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
-	val := interpreter.ctx.StateDB.GetState(contract.Address(), types.BigToHash(loc))
+	val := interpreter.vmContext.StateDB.GetState(contract.Address(), types.BigToHash(loc))
 	loc.SetBytes(val.ToBytes())
 	return nil, nil
 }
@@ -634,7 +634,7 @@ func opSload(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract
 func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := types.BigToHash(stack.pop())
 	val := stack.pop()
-	interpreter.ctx.StateDB.SetState(contract.Address(), loc, types.BigToHash(val))
+	interpreter.vmContext.StateDB.SetState(contract.Address(), loc, types.BigToHash(val))
 
 	interpreter.intPool.put(val)
 	return nil, nil
@@ -694,12 +694,12 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contrac
 		input        = memory.Get(offset.Int64(), size.Int64())
 		gas          = contract.Gas
 	)
-	//if interpreter.ctx.ChainConfig().IsEIP150(interpreter.ctx.SequenceID) {
+	//if interpreter.vmContext.ChainConfig().IsEIP150(interpreter.vmContext.SequenceID) {
 	gas -= gas / 64
 	//}
 
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.ctx.Caller.Create(interpreter.ctx, contract, input, gas, value)
+	res, addr, returnGas, suberr := interpreter.Caller.Create(contract, input, gas, value)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -732,7 +732,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 	// Apply EIP150
 	gas -= gas / 64
 	contract.UseGas(gas)
-	res, addr, returnGas, suberr := interpreter.ctx.Caller.Create2(interpreter.ctx, contract, input, gas, endowment, salt)
+	res, addr, returnGas, suberr := interpreter.Caller.Create2(contract, input, gas, endowment, salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stack.push(interpreter.intPool.getZero())
@@ -749,9 +749,9 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 }
 
 func opCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas in interpreter.ctx.CallGasTemp.
+	// Pop gas. The actual gas in interpreter.vmContext.CallGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.ctx.CallGasTemp
+	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := types.BigToAddress(addr)
@@ -762,7 +762,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.ctx.Caller.Call(interpreter.ctx, contract, toAddr, args, gas, value)
+	ret, returnGas, err := interpreter.Caller.Call(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -778,9 +778,9 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 }
 
 func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.ctx.CallGasTemp.
+	// Pop gas. The actual gas is in interpreter.vmContext.CallGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.ctx.CallGasTemp
+	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := types.BigToAddress(addr)
@@ -791,7 +791,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 	if value.Sign() != 0 {
 		gas += params.CallStipend
 	}
-	ret, returnGas, err := interpreter.ctx.Caller.CallCode(interpreter.ctx, contract, toAddr, args, gas, value)
+	ret, returnGas, err := interpreter.Caller.CallCode(contract, toAddr, args, gas, value)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -807,16 +807,16 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 }
 
 func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.ctx.CallGasTemp.
+	// Pop gas. The actual gas is in interpreter.vmContext.CallGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.ctx.CallGasTemp
+	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := types.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.ctx.Caller.DelegateCall(interpreter.ctx, contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.Caller.DelegateCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -832,16 +832,16 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.C
 }
 
 func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	// Pop gas. The actual gas is in interpreter.ctx.CallGasTemp.
+	// Pop gas. The actual gas is in interpreter.vmContext.CallGasTemp.
 	interpreter.intPool.put(stack.pop())
-	gas := interpreter.ctx.CallGasTemp
+	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := types.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
-	ret, returnGas, err := interpreter.ctx.Caller.StaticCall(interpreter.ctx, contract, toAddr, args, gas)
+	ret, returnGas, err := interpreter.Caller.StaticCall(contract, toAddr, args, gas)
 	if err != nil {
 		stack.push(interpreter.intPool.getZero())
 	} else {
@@ -877,10 +877,10 @@ func opStop(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 }
 
 func opSuicide(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	balance := interpreter.ctx.StateDB.GetBalance(contract.Address())
-	interpreter.ctx.StateDB.AddBalance(types.BigToAddress(stack.pop()), balance)
+	balance := interpreter.vmContext.StateDB.GetBalance(contract.Address())
+	interpreter.vmContext.StateDB.AddBalance(types.BigToAddress(stack.pop()), balance)
 
-	interpreter.ctx.StateDB.Suicide(contract.Address())
+	interpreter.vmContext.StateDB.Suicide(contract.Address())
 	return nil, nil
 }
 
@@ -896,13 +896,13 @@ func makeLog(size int) executionFunc {
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())
-		interpreter.ctx.StateDB.AddLog(&vmtypes.Log{
+		interpreter.vmContext.StateDB.AddLog(&vmtypes.Log{
 			Address: contract.Address(),
 			Topics:  topics,
 			Data:    d,
 			// This is a non-consensus field, but assigned here because
 			// core/state doesn't know the current block number.
-			SequenceID: interpreter.ctx.SequenceID,
+			SequenceID: interpreter.txContext.SequenceID,
 		})
 
 		interpreter.intPool.put(mStart, mSize)

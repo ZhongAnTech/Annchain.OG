@@ -24,6 +24,8 @@ import (
 	"strings"
 
 	"bytes"
+	"strings"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 )

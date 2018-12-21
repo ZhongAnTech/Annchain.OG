@@ -1,0 +1,1147 @@
+    /* "../contracts/contruct.sol":1934:2893  contract TokenCreator {... */
+  mstore(0x40, 0x80)
+  callvalue
+    /* "--CODEGEN--":8:17   */
+  dup1
+    /* "--CODEGEN--":5:7   */
+  iszero
+  tag_1
+  jumpi
+    /* "--CODEGEN--":30:31   */
+  0x0
+    /* "--CODEGEN--":27:28   */
+  dup1
+    /* "--CODEGEN--":20:32   */
+  revert
+    /* "--CODEGEN--":5:7   */
+tag_1:
+    /* "../contracts/contruct.sol":1934:2893  contract TokenCreator {... */
+  pop
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../contracts/contruct.sol":1934:2893  contract TokenCreator {... */
+      mstore(0x40, 0x80)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0x7379b422
+      eq
+      tag_2
+      jumpi
+      dup1
+      0xae3edb65
+      eq
+      tag_3
+      jumpi
+      dup1
+      0xc3cee9c1
+      eq
+      tag_4
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../contracts/contruct.sol":2304:2502  function changeName(OwnedToken tokenAddress, bytes32 name) public {... */
+    tag_2:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_5
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_5:
+        /* "../contracts/contruct.sol":2304:2502  function changeName(OwnedToken tokenAddress, bytes32 name) public {... */
+      pop
+      tag_6
+      0x4
+      dup1
+      calldatasize
+      sub
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      dup1
+      calldataload
+      not(0x0)
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+      jump(tag_7)
+    tag_6:
+      stop
+        /* "../contracts/contruct.sol":1962:2298  function createToken(bytes32 name)... */
+    tag_3:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_8
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_8:
+        /* "../contracts/contruct.sol":1962:2298  function createToken(bytes32 name)... */
+      pop
+      tag_9
+      0x4
+      dup1
+      calldatasize
+      sub
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      calldataload
+      not(0x0)
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+      jump(tag_10)
+    tag_9:
+      mload(0x40)
+      dup1
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../contracts/contruct.sol":2618:2891  function isTokenTransferOK(address currentOwner, address newOwner)... */
+    tag_4:
+      callvalue
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_11
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_11:
+        /* "../contracts/contruct.sol":2618:2891  function isTokenTransferOK(address currentOwner, address newOwner)... */
+      pop
+      tag_12
+      0x4
+      dup1
+      calldatasize
+      sub
+      dup2
+      add
+      swap1
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap3
+      swap2
+      swap1
+      pop
+      pop
+      pop
+      jump(tag_13)
+    tag_12:
+      mload(0x40)
+      dup1
+      dup3
+      iszero
+      iszero
+      iszero
+      iszero
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+        /* "../contracts/contruct.sol":2304:2502  function changeName(OwnedToken tokenAddress, bytes32 name) public {... */
+    tag_7:
+        /* "../contracts/contruct.sol":2466:2478  tokenAddress */
+      dup2
+        /* "../contracts/contruct.sol":2466:2489  tokenAddress.changeName */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0x898855ed
+        /* "../contracts/contruct.sol":2490:2494  name */
+      dup3
+        /* "../contracts/contruct.sol":2466:2495  tokenAddress.changeName(name) */
+      mload(0x40)
+      dup3
+      0xffffffff
+      and
+      0x100000000000000000000000000000000000000000000000000000000
+      mul
+      dup2
+      mstore
+      0x4
+      add
+      dup1
+      dup3
+      not(0x0)
+      and
+      not(0x0)
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      0x0
+      mload(0x40)
+      dup1
+      dup4
+      sub
+      dup2
+      0x0
+      dup8
+      dup1
+      extcodesize
+      iszero
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_15
+      jumpi
+        /* "--CODEGEN--":30:31   */
+      0x0
+        /* "--CODEGEN--":27:28   */
+      dup1
+        /* "--CODEGEN--":20:32   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_15:
+        /* "../contracts/contruct.sol":2466:2495  tokenAddress.changeName(name) */
+      pop
+      gas
+      call
+      iszero
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_16
+      jumpi
+        /* "--CODEGEN--":45:61   */
+      returndatasize
+        /* "--CODEGEN--":42:43   */
+      0x0
+        /* "--CODEGEN--":39:40   */
+      dup1
+        /* "--CODEGEN--":24:62   */
+      returndatacopy
+        /* "--CODEGEN--":77:93   */
+      returndatasize
+        /* "--CODEGEN--":74:75   */
+      0x0
+        /* "--CODEGEN--":67:94   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_16:
+        /* "../contracts/contruct.sol":2466:2495  tokenAddress.changeName(name) */
+      pop
+      pop
+      pop
+      pop
+        /* "../contracts/contruct.sol":2304:2502  function changeName(OwnedToken tokenAddress, bytes32 name) public {... */
+      pop
+      pop
+      jump	// out
+        /* "../contracts/contruct.sol":1962:2298  function createToken(bytes32 name)... */
+    tag_10:
+        /* "../contracts/contruct.sol":2021:2044  OwnedToken tokenAddress */
+      0x0
+        /* "../contracts/contruct.sol":2286:2290  name */
+      dup2
+        /* "../contracts/contruct.sol":2271:2291  new OwnedToken(name) */
+      tag_18
+      jump	// in(tag_19)
+    tag_18:
+      dup1
+      dup3
+      not(0x0)
+      and
+      not(0x0)
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      0x0
+      create
+      dup1
+      iszero
+        /* "--CODEGEN--":8:17   */
+      dup1
+        /* "--CODEGEN--":5:7   */
+      iszero
+      tag_20
+      jumpi
+        /* "--CODEGEN--":45:61   */
+      returndatasize
+        /* "--CODEGEN--":42:43   */
+      0x0
+        /* "--CODEGEN--":39:40   */
+      dup1
+        /* "--CODEGEN--":24:62   */
+      returndatacopy
+        /* "--CODEGEN--":77:93   */
+      returndatasize
+        /* "--CODEGEN--":74:75   */
+      0x0
+        /* "--CODEGEN--":67:94   */
+      revert
+        /* "--CODEGEN--":5:7   */
+    tag_20:
+        /* "../contracts/contruct.sol":2271:2291  new OwnedToken(name) */
+      pop
+        /* "../contracts/contruct.sol":2264:2291  return new OwnedToken(name) */
+      swap1
+      pop
+        /* "../contracts/contruct.sol":1962:2298  function createToken(bytes32 name)... */
+      swap2
+      swap1
+      pop
+      jump	// out
+        /* "../contracts/contruct.sol":2618:2891  function isTokenTransferOK(address currentOwner, address newOwner)... */
+    tag_13:
+        /* "../contracts/contruct.sol":2718:2725  bool ok */
+      0x0
+        /* "../contracts/contruct.sol":2880:2884  0x7f */
+      0x7f
+        /* "../contracts/contruct.sol":2822:2884  keccak256(abi.encodePacked(currentOwner, newOwner))[0] == 0x7f */
+      0x100000000000000000000000000000000000000000000000000000000000000
+      mul
+        /* "../contracts/contruct.sol":2849:2861  currentOwner */
+      dup4
+        /* "../contracts/contruct.sol":2863:2871  newOwner */
+      dup4
+        /* "../contracts/contruct.sol":2832:2872  abi.encodePacked(currentOwner, newOwner) */
+      add(0x20, mload(0x40))
+      dup1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0x1000000000000000000000000
+      mul
+      dup2
+      mstore
+      0x14
+      add
+      dup3
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0x1000000000000000000000000
+      mul
+      dup2
+      mstore
+      0x14
+      add
+      swap3
+      pop
+      pop
+      pop
+      mload(0x40)
+        /* "--CODEGEN--":49:53   */
+      0x20
+        /* "--CODEGEN--":39:46   */
+      dup2
+        /* "--CODEGEN--":30:37   */
+      dup4
+        /* "--CODEGEN--":26:47   */
+      sub
+        /* "--CODEGEN--":22:54   */
+      sub
+        /* "--CODEGEN--":13:20   */
+      dup2
+        /* "--CODEGEN--":6:55   */
+      mstore
+        /* "../contracts/contruct.sol":2832:2872  abi.encodePacked(currentOwner, newOwner) */
+      swap1
+      0x40
+      mstore
+        /* "../contracts/contruct.sol":2822:2873  keccak256(abi.encodePacked(currentOwner, newOwner)) */
+      mload(0x40)
+      dup1
+      dup3
+      dup1
+      mload
+      swap1
+      0x20
+      add
+      swap1
+      dup1
+      dup4
+      dup4
+        /* "--CODEGEN--":36:189   */
+    tag_22:
+        /* "--CODEGEN--":66:68   */
+      0x20
+        /* "--CODEGEN--":61:64   */
+      dup4
+        /* "--CODEGEN--":58:69   */
+      lt
+        /* "--CODEGEN--":51:70   */
+      iszero
+        /* "--CODEGEN--":36:189   */
+      iszero
+      tag_23
+      jumpi
+        /* "--CODEGEN--":182:185   */
+      dup1
+        /* "--CODEGEN--":176:186   */
+      mload
+        /* "--CODEGEN--":171:174   */
+      dup3
+        /* "--CODEGEN--":164:187   */
+      mstore
+        /* "--CODEGEN--":98:100   */
+      0x20
+        /* "--CODEGEN--":93:96   */
+      dup3
+        /* "--CODEGEN--":89:101   */
+      add
+        /* "--CODEGEN--":82:101   */
+      swap2
+      pop
+        /* "--CODEGEN--":123:125   */
+      0x20
+        /* "--CODEGEN--":118:121   */
+      dup2
+        /* "--CODEGEN--":114:126   */
+      add
+        /* "--CODEGEN--":107:126   */
+      swap1
+      pop
+        /* "--CODEGEN--":148:150   */
+      0x20
+        /* "--CODEGEN--":143:146   */
+      dup4
+        /* "--CODEGEN--":139:151   */
+      sub
+        /* "--CODEGEN--":132:151   */
+      swap3
+      pop
+        /* "--CODEGEN--":36:189   */
+      jump(tag_22)
+    tag_23:
+        /* "--CODEGEN--":274:275   */
+      0x1
+        /* "--CODEGEN--":267:270   */
+      dup4
+        /* "--CODEGEN--":263:265   */
+      0x20
+        /* "--CODEGEN--":259:271   */
+      sub
+        /* "--CODEGEN--":254:257   */
+      0x100
+        /* "--CODEGEN--":250:272   */
+      exp
+        /* "--CODEGEN--":246:276   */
+      sub
+        /* "--CODEGEN--":315:319   */
+      dup1
+        /* "--CODEGEN--":311:320   */
+      not
+        /* "--CODEGEN--":305:308   */
+      dup3
+        /* "--CODEGEN--":299:309   */
+      mload
+        /* "--CODEGEN--":295:321   */
+      and
+        /* "--CODEGEN--":356:360   */
+      dup2
+        /* "--CODEGEN--":350:353   */
+      dup5
+        /* "--CODEGEN--":344:354   */
+      mload
+        /* "--CODEGEN--":340:361   */
+      and
+        /* "--CODEGEN--":389:396   */
+      dup1
+        /* "--CODEGEN--":380:387   */
+      dup3
+        /* "--CODEGEN--":377:397   */
+      or
+        /* "--CODEGEN--":372:375   */
+      dup6
+        /* "--CODEGEN--":365:398   */
+      mstore
+        /* "--CODEGEN--":3:402   */
+      pop
+      pop
+      pop
+        /* "../contracts/contruct.sol":2822:2873  keccak256(abi.encodePacked(currentOwner, newOwner)) */
+      pop
+      pop
+      pop
+      swap1
+      pop
+      add
+      swap2
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      keccak256
+        /* "../contracts/contruct.sol":2874:2875  0 */
+      0x0
+        /* "../contracts/contruct.sol":2822:2876  keccak256(abi.encodePacked(currentOwner, newOwner))[0] */
+      0x20
+      dup2
+      lt
+      iszero
+      iszero
+      tag_25
+      jumpi
+      invalid
+    tag_25:
+      byte
+      0x100000000000000000000000000000000000000000000000000000000000000
+      mul
+        /* "../contracts/contruct.sol":2822:2884  keccak256(abi.encodePacked(currentOwner, newOwner))[0] == 0x7f */
+      not(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
+      and
+      eq
+        /* "../contracts/contruct.sol":2815:2884  return keccak256(abi.encodePacked(currentOwner, newOwner))[0] == 0x7f */
+      swap1
+      pop
+        /* "../contracts/contruct.sol":2618:2891  function isTokenTransferOK(address currentOwner, address newOwner)... */
+      swap3
+      swap2
+      pop
+      pop
+      jump	// out
+        /* "../contracts/contruct.sol":1934:2893  contract TokenCreator {... */
+    tag_19:
+      mload(0x40)
+      dataSize(sub_0)
+      dup1
+      dataOffset(sub_0)
+      dup4
+      codecopy
+      add
+      swap1
+      jump	// out
+    stop
+
+    sub_0: assembly {
+            /* "../contracts/contruct.sol":34:1932  contract OwnedToken {... */
+          mstore(0x40, 0x80)
+            /* "../contracts/contruct.sol":370:1148  constructor(bytes32 _name) public {... */
+          callvalue
+            /* "--CODEGEN--":8:17   */
+          dup1
+            /* "--CODEGEN--":5:7   */
+          iszero
+          tag_1
+          jumpi
+            /* "--CODEGEN--":30:31   */
+          0x0
+            /* "--CODEGEN--":27:28   */
+          dup1
+            /* "--CODEGEN--":20:32   */
+          revert
+            /* "--CODEGEN--":5:7   */
+        tag_1:
+            /* "../contracts/contruct.sol":370:1148  constructor(bytes32 _name) public {... */
+          pop
+          mload(0x40)
+          0x20
+          dup1
+          bytecodeSize
+          dup4
+          codecopy
+          dup2
+          add
+          dup1
+          0x40
+          mstore
+          dup2
+          add
+          swap1
+          dup1
+          dup1
+          mload
+          swap1
+          0x20
+          add
+          swap1
+          swap3
+          swap2
+          swap1
+          pop
+          pop
+          pop
+            /* "../contracts/contruct.sol":849:859  msg.sender */
+          caller
+            /* "../contracts/contruct.sol":841:846  owner */
+          0x1
+          0x0
+            /* "../contracts/contruct.sol":841:859  owner = msg.sender */
+          0x100
+          exp
+          dup2
+          sload
+          dup2
+          0xffffffffffffffffffffffffffffffffffffffff
+          mul
+          not
+          and
+          swap1
+          dup4
+          0xffffffffffffffffffffffffffffffffffffffff
+          and
+          mul
+          or
+          swap1
+          sstore
+          pop
+            /* "../contracts/contruct.sol":1108:1118  msg.sender */
+          caller
+            /* "../contracts/contruct.sol":1085:1092  creator */
+          0x0
+          dup1
+            /* "../contracts/contruct.sol":1085:1119  creator = TokenCreator(msg.sender) */
+          0x100
+          exp
+          dup2
+          sload
+          dup2
+          0xffffffffffffffffffffffffffffffffffffffff
+          mul
+          not
+          and
+          swap1
+          dup4
+          0xffffffffffffffffffffffffffffffffffffffff
+          and
+          mul
+          or
+          swap1
+          sstore
+          pop
+            /* "../contracts/contruct.sol":1136:1141  _name */
+          dup1
+            /* "../contracts/contruct.sol":1129:1133  name */
+          0x2
+            /* "../contracts/contruct.sol":1129:1141  name = _name */
+          dup2
+          not(0x0)
+          and
+          swap1
+          sstore
+          pop
+            /* "../contracts/contruct.sol":370:1148  constructor(bytes32 _name) public {... */
+          pop
+            /* "../contracts/contruct.sol":34:1932  contract OwnedToken {... */
+          dataSize(sub_0)
+          dup1
+          dataOffset(sub_0)
+          0x0
+          codecopy
+          0x0
+          return
+        stop
+
+        sub_0: assembly {
+                /* "../contracts/contruct.sol":34:1932  contract OwnedToken {... */
+              mstore(0x40, 0x80)
+              jumpi(tag_1, lt(calldatasize, 0x4))
+              calldataload(0x0)
+              0x100000000000000000000000000000000000000000000000000000000
+              swap1
+              div
+              0xffffffff
+              and
+              dup1
+              0x1a695230
+              eq
+              tag_2
+              jumpi
+              dup1
+              0x898855ed
+              eq
+              tag_3
+              jumpi
+            tag_1:
+              0x0
+              dup1
+              revert
+                /* "../contracts/contruct.sol":1439:1930  function transfer(address newOwner) public {... */
+            tag_2:
+              callvalue
+                /* "--CODEGEN--":8:17   */
+              dup1
+                /* "--CODEGEN--":5:7   */
+              iszero
+              tag_4
+              jumpi
+                /* "--CODEGEN--":30:31   */
+              0x0
+                /* "--CODEGEN--":27:28   */
+              dup1
+                /* "--CODEGEN--":20:32   */
+              revert
+                /* "--CODEGEN--":5:7   */
+            tag_4:
+                /* "../contracts/contruct.sol":1439:1930  function transfer(address newOwner) public {... */
+              pop
+              tag_5
+              0x4
+              dup1
+              calldatasize
+              sub
+              dup2
+              add
+              swap1
+              dup1
+              dup1
+              calldataload
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              swap1
+              0x20
+              add
+              swap1
+              swap3
+              swap2
+              swap1
+              pop
+              pop
+              pop
+              jump(tag_6)
+            tag_5:
+              stop
+                /* "../contracts/contruct.sol":1154:1433  function changeName(bytes32 newName) public {... */
+            tag_3:
+              callvalue
+                /* "--CODEGEN--":8:17   */
+              dup1
+                /* "--CODEGEN--":5:7   */
+              iszero
+              tag_7
+              jumpi
+                /* "--CODEGEN--":30:31   */
+              0x0
+                /* "--CODEGEN--":27:28   */
+              dup1
+                /* "--CODEGEN--":20:32   */
+              revert
+                /* "--CODEGEN--":5:7   */
+            tag_7:
+                /* "../contracts/contruct.sol":1154:1433  function changeName(bytes32 newName) public {... */
+              pop
+              tag_8
+              0x4
+              dup1
+              calldatasize
+              sub
+              dup2
+              add
+              swap1
+              dup1
+              dup1
+              calldataload
+              not(0x0)
+              and
+              swap1
+              0x20
+              add
+              swap1
+              swap3
+              swap2
+              swap1
+              pop
+              pop
+              pop
+              jump(tag_9)
+            tag_8:
+              stop
+                /* "../contracts/contruct.sol":1439:1930  function transfer(address newOwner) public {... */
+            tag_6:
+                /* "../contracts/contruct.sol":1568:1573  owner */
+              0x1
+              0x0
+              swap1
+              sload
+              swap1
+              0x100
+              exp
+              swap1
+              div
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1554:1573  msg.sender != owner */
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1554:1564  msg.sender */
+              caller
+                /* "../contracts/contruct.sol":1554:1573  msg.sender != owner */
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              eq
+              iszero
+                /* "../contracts/contruct.sol":1550:1582  if (msg.sender != owner) return; */
+              iszero
+              tag_11
+              jumpi
+                /* "../contracts/contruct.sol":1575:1582  return; */
+              jump(tag_10)
+                /* "../contracts/contruct.sol":1550:1582  if (msg.sender != owner) return; */
+            tag_11:
+                /* "../contracts/contruct.sol":1851:1858  creator */
+              0x0
+              dup1
+              swap1
+              sload
+              swap1
+              0x100
+              exp
+              swap1
+              div
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1851:1876  creator.isTokenTransferOK */
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              0xc3cee9c1
+                /* "../contracts/contruct.sol":1877:1882  owner */
+              0x1
+              0x0
+              swap1
+              sload
+              swap1
+              0x100
+              exp
+              swap1
+              div
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1884:1892  newOwner */
+              dup4
+                /* "../contracts/contruct.sol":1851:1893  creator.isTokenTransferOK(owner, newOwner) */
+              mload(0x40)
+              dup4
+              0xffffffff
+              and
+              0x100000000000000000000000000000000000000000000000000000000
+              mul
+              dup2
+              mstore
+              0x4
+              add
+              dup1
+              dup4
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              dup2
+              mstore
+              0x20
+              add
+              dup3
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              dup2
+              mstore
+              0x20
+              add
+              swap3
+              pop
+              pop
+              pop
+              0x20
+              mload(0x40)
+              dup1
+              dup4
+              sub
+              dup2
+              0x0
+              dup8
+              dup1
+              extcodesize
+              iszero
+                /* "--CODEGEN--":8:17   */
+              dup1
+                /* "--CODEGEN--":5:7   */
+              iszero
+              tag_12
+              jumpi
+                /* "--CODEGEN--":30:31   */
+              0x0
+                /* "--CODEGEN--":27:28   */
+              dup1
+                /* "--CODEGEN--":20:32   */
+              revert
+                /* "--CODEGEN--":5:7   */
+            tag_12:
+                /* "../contracts/contruct.sol":1851:1893  creator.isTokenTransferOK(owner, newOwner) */
+              pop
+              gas
+              call
+              iszero
+                /* "--CODEGEN--":8:17   */
+              dup1
+                /* "--CODEGEN--":5:7   */
+              iszero
+              tag_13
+              jumpi
+                /* "--CODEGEN--":45:61   */
+              returndatasize
+                /* "--CODEGEN--":42:43   */
+              0x0
+                /* "--CODEGEN--":39:40   */
+              dup1
+                /* "--CODEGEN--":24:62   */
+              returndatacopy
+                /* "--CODEGEN--":77:93   */
+              returndatasize
+                /* "--CODEGEN--":74:75   */
+              0x0
+                /* "--CODEGEN--":67:94   */
+              revert
+                /* "--CODEGEN--":5:7   */
+            tag_13:
+                /* "../contracts/contruct.sol":1851:1893  creator.isTokenTransferOK(owner, newOwner) */
+              pop
+              pop
+              pop
+              pop
+              mload(0x40)
+              returndatasize
+                /* "--CODEGEN--":13:15   */
+              0x20
+                /* "--CODEGEN--":8:11   */
+              dup2
+                /* "--CODEGEN--":5:16   */
+              lt
+                /* "--CODEGEN--":2:4   */
+              iszero
+              tag_14
+              jumpi
+                /* "--CODEGEN--":29:30   */
+              0x0
+                /* "--CODEGEN--":26:27   */
+              dup1
+                /* "--CODEGEN--":19:31   */
+              revert
+                /* "--CODEGEN--":2:4   */
+            tag_14:
+                /* "../contracts/contruct.sol":1851:1893  creator.isTokenTransferOK(owner, newOwner) */
+              dup2
+              add
+              swap1
+              dup1
+              dup1
+              mload
+              swap1
+              0x20
+              add
+              swap1
+              swap3
+              swap2
+              swap1
+              pop
+              pop
+              pop
+                /* "../contracts/contruct.sol":1847:1923  if (creator.isTokenTransferOK(owner, newOwner))... */
+              iszero
+              tag_15
+              jumpi
+                /* "../contracts/contruct.sol":1915:1923  newOwner */
+              dup1
+                /* "../contracts/contruct.sol":1907:1912  owner */
+              0x1
+              0x0
+                /* "../contracts/contruct.sol":1907:1923  owner = newOwner */
+              0x100
+              exp
+              dup2
+              sload
+              dup2
+              0xffffffffffffffffffffffffffffffffffffffff
+              mul
+              not
+              and
+              swap1
+              dup4
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              mul
+              or
+              swap1
+              sstore
+              pop
+                /* "../contracts/contruct.sol":1847:1923  if (creator.isTokenTransferOK(owner, newOwner))... */
+            tag_15:
+                /* "../contracts/contruct.sol":1439:1930  function transfer(address newOwner) public {... */
+            tag_10:
+              pop
+              jump	// out
+                /* "../contracts/contruct.sol":1154:1433  function changeName(bytes32 newName) public {... */
+            tag_9:
+                /* "../contracts/contruct.sol":1390:1397  creator */
+              0x0
+              dup1
+              swap1
+              sload
+              swap1
+              0x100
+              exp
+              swap1
+              div
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1368:1398  msg.sender == address(creator) */
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+                /* "../contracts/contruct.sol":1368:1378  msg.sender */
+              caller
+                /* "../contracts/contruct.sol":1368:1398  msg.sender == address(creator) */
+              0xffffffffffffffffffffffffffffffffffffffff
+              and
+              eq
+                /* "../contracts/contruct.sol":1364:1426  if (msg.sender == address(creator))... */
+              iszero
+              tag_17
+              jumpi
+                /* "../contracts/contruct.sol":1419:1426  newName */
+              dup1
+                /* "../contracts/contruct.sol":1412:1416  name */
+              0x2
+                /* "../contracts/contruct.sol":1412:1426  name = newName */
+              dup2
+              not(0x0)
+              and
+              swap1
+              sstore
+              pop
+                /* "../contracts/contruct.sol":1364:1426  if (msg.sender == address(creator))... */
+            tag_17:
+                /* "../contracts/contruct.sol":1154:1433  function changeName(bytes32 newName) public {... */
+              pop
+              jump	// out
+
+            auxdata: 0xa165627a7a723058209d0ea79f79c204b184d75f1016ae7588671aa20a3ecb7a8ae78a0c50185d19df0029
+        }
+    }
+
+    auxdata: 0xa165627a7a7230582022488ac5c41f35a6032c7adf199d2816215315af5457a32a791ab1fde698b5760029
+}

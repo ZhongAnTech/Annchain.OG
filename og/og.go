@@ -23,7 +23,6 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
-	BootstrapNode bool
 	NetworkId     uint64
 	CryptoType    crypto.CryptoType
 	quit          chan bool
@@ -40,14 +39,12 @@ func (og *Og) GetCurrentNodeStatus() StatusData {
 }
 
 type OGConfig struct {
-	BootstrapNode bool //start accept txs even if no peers
 	NetworkId     uint64
 	CryptoType    crypto.CryptoType
 }
 
 func DefaultOGConfig() OGConfig {
 	config := OGConfig{
-		BootstrapNode: false,
 		NetworkId:     1,
 	}
 	return config
@@ -58,7 +55,6 @@ func NewOg(config OGConfig) (*Og, error) {
 		quit: make(chan bool),
 	}
 
-	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
 	og.CryptoType = config.CryptoType
 	db, derr := CreateDB()

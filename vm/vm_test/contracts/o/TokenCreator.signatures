@@ -1,0 +1,3 @@
+7379b422: changeName(address,bytes32)
+ae3edb65: createToken(bytes32)
+c3cee9c1: isTokenTransferOK(address,address)

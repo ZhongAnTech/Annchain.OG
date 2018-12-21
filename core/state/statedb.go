@@ -326,66 +326,6 @@ func (sd *StateDB) loop() {
 	}
 }
 
-// type CacheTxs struct {
-// 	txmap  *TxMap
-// 	txlist map[types.Address]*TxList
-// }
-
-// func NewCacheTxs() *CacheTxs {
-// 	return &CacheTxs{
-// 		txmap:  NewTxMap(),
-// 		txlist: make(map[types.Address]*TxList),
-// 	}
-// }
-
-// func (ctxs *CacheTxs) GetTxByHash(hash types.Hash) types.Txi {
-// 	return ctxs.txmap.Get(hash)
-// }
-
-// func (ctxs *CacheTxs) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
-// 	txlist, ok := ctxs.txlist[addr]
-// 	if !ok {
-// 		return nil
-// 	}
-// 	return txlist.Get(nonce)
-// }
-
-// func (ctxs *CacheTxs) AddTx(tx types.Txi) {
-// 	txlist, ok := ctxs.txlist[tx.Sender()]
-// 	if !ok {
-// 		txlist = NewTxList()
-// 		ctxs.txlist[tx.Sender()] = txlist
-// 	}
-// 	txlist.Put(tx)
-// 	ctxs.txmap.Add(tx)
-// }
-
-// func (ctxs *CacheTxs) RemoveTxByHash(hash types.Hash) error {
-// 	tx := ctxs.txmap.Get(hash)
-// 	if tx == nil {
-// 		return nil
-// 	}
-// 	ctxs.txmap.Remove(hash)
-
-// 	txlist, ok := ctxs.txlist[tx.Sender()]
-// 	if !ok {
-// 		return fmt.Errorf("tx not exist in txlist.")
-// 	}
-// 	txlist.Remove(tx.GetNonce())
-
-// 	return nil
-// }
-
-// func (ctxs *CacheTxs) RemoveTxByNonce(addr types.Address, nonce uint64) error {
-// 	txlist, ok := ctxs.txlist[addr]
-// 	if !ok {
-// 		return nil
-// 	}
-// 	tx := txlist.Get(nonce)
-// 	if tx == nil {
-// 		return nil
-// 	}
-// 	ctxs.txmap.Remove(tx.GetTxHash())
-// 	txlist.Remove(nonce)
-// 	return nil
-// }
+func (sd *StateDB) Snapshot() {
+	// TODO
+}

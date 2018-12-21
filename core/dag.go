@@ -37,7 +37,7 @@ type Dag struct {
 func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
-	statedb, err := state.NewStateDB(stateDBConfig, types.Hash{}, state.NewDatabase(db))
+	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db))
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}

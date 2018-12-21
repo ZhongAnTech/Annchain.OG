@@ -61,7 +61,6 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			BootstrapNode: bootNode,
 			NetworkId:     uint64(networkId),
 			CryptoType:    cryptoType,
 		},
@@ -141,6 +140,7 @@ func NewNode() *Node {
 		Hub:        hub,
 		Downloader: downloaderInstance,
 		SyncMode:   downloader.FullSync,
+		BootStrapNode : bootNode,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -253,12 +253,6 @@ func NewNode() *Node {
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
-
-	if org.BootstrapNode {
-		go func() {
-			autoClientManager.UpToDateEventListener <- true
-		}()
-	}
 	//init msg requst id
 	og.MsgCountInit()
 	switch viper.GetString("consensus") {

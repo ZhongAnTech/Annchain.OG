@@ -68,6 +68,7 @@ type CatchupSyncer struct {
 	syncFlag                      bool
 	WorkState                     CatchupSyncerStatus
 	mu                            sync.RWMutex
+	BootStrapNode                      bool
 }
 
 func (c *CatchupSyncer) Init() {
@@ -97,6 +98,9 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
 		logrus.WithError(err).Debug("get best peer")
+		if c.BootStrapNode {
+			return  true
+		}
 		return false
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId

@@ -3,7 +3,7 @@
 title = "TOML Example"
 
 [log]
-level = "trace"
+level = "info"
 
 [rpc]
 enabled = true

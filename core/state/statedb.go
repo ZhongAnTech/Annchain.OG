@@ -39,17 +39,30 @@ func DefaultStateDBConfig() StateDBConfig {
 	}
 }
 
+// StateDB stores account's data. Account's data include address,
+// balance, nonce, code and its contract db if it is an contract
+// address. An account is stored as a StateObject, for more detail
+// please check StateObject struct.
 type StateDB struct {
 	conf StateDBConfig
 
+	// trie stores account's basic data, every node of the trie
+	// represents a StateObject.Account.
+	// db is for trie accessing.
 	db   Database
 	trie Trie
 
-	refund      uint64
+	refund uint64
+	// journal records every action which will change statedb's data
+	// and it's for VM term revert only.
 	journal     *journal
 	snapshotSet []shot
 	snapshotID  int
 
+	// states stores all the active state object, any changes on stateobject
+	// will also update states. Active stateobject means those objects
+	// that has recently been updated or queried. This "recently" is measured
+	// by [beats] map.
 	states   map[types.Address]*StateObject
 	dirtyset map[types.Address]struct{}
 	beats    map[types.Address]time.Time

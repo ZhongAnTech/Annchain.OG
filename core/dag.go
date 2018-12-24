@@ -635,7 +635,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) {
 	if txnormal.To.Bytes == emptyAddress.Bytes {
 		ret, _, leftOverGas, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	} else {
-		ret, leftOverGas, err = ogvm.Call(vmtypes.Accoun tRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value)
+		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value)
 	}
 
 	// TODO

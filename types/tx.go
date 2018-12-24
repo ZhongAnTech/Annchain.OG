@@ -22,6 +22,9 @@ type Tx struct {
 	From  Address
 	To    Address
 	Value *math.BigInt
+	// TODO
+	// Data not generated yet.
+	Data  []byte
 }
 
 func (t *Tx) String() string {
@@ -37,8 +40,8 @@ func SampleTx() *Tx {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From: HexToAddress("0x99"),
-		To: HexToAddress("0x88"),
+		From:  HexToAddress("0x99"),
+		To:    HexToAddress("0x88"),
 		Value: v,
 	}
 }
@@ -75,8 +78,8 @@ func RandomTx() *Tx {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 	},
-		From: randomAddress(),
-		To: randomAddress(),
+		From:  randomAddress(),
+		To:    randomAddress(),
 		Value: math.NewBigInt(rand.Int63()),
 	}
 }

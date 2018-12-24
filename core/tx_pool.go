@@ -363,6 +363,25 @@ func (pool *TxPool) remove(tx types.Txi) {
 	pool.txLookup.Remove(tx.GetTxHash())
 }
 
+// ClearAll removes all the txs in the pool.
+//
+// Note that ClearAll should only be called when solving conflicts
+// during a sequencer confirmation time.
+func (pool *TxPool) ClearAll() {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pool.clearall()
+}
+
+func (pool *TxPool) clearall() {
+	pool.badtxs = NewTxMap()
+	pool.tips = NewTxMap()
+	pool.pendings = NewTxMap()
+	pool.flows = NewAccountFlows()
+	pool.txLookup = newTxLookUp()
+}
+
 func (pool *TxPool) loop() {
 	defer log.Tracef("TxPool.loop() terminates")
 
@@ -592,7 +611,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		pool.remove(elder)
 	}
 	// solve conflicts of txs in pool
-	pool.solveConflicts()
+	pool.solveConflicts(elders)
 
 	if pool.flows.Get(seq.Sender()) == nil {
 		originBalance := pool.dag.GetBalance(seq.Sender())
@@ -738,9 +757,23 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-// solveConflicts reprocess all txs in the pool in order to
-// make sure all txs are correct after seq confirmation.
-func (pool *TxPool) solveConflicts() {
+// solveConflicts remove elders from txpool and reprocess
+// all txs in the pool in order to make sure all txs are
+// correct after seq confirmation.
+func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
+	// remove elders from pool.txLookUp.txs
+	//
+	// pool.txLookUp.remove() will try remove tx from txLookup.order
+	// and it will call hash.Cmp() to check if two hashes are the same.
+	// For a large amount of txs to remove, hash.Cmp() will cost a O(n^2)
+	// complexity. To solve this, solveConflicts will just remove the tx
+	// from txLookUp.txs, which is a map struct, and find out txs left
+	// which in this case is stored in txsInPool. As for the txs should
+	// be removed from pool, pool.clearall() will be called to remove all
+	// the txs in the pool including pool.txLookUp.order.
+	for elderhash := range elders {
+		pool.txLookup.Remove(elderhash)
+	}
 	txsInPool := []types.Txi{}
 	for _, hash := range pool.txLookup.getorder() {
 		tx := pool.get(hash)
@@ -752,9 +785,9 @@ func (pool *TxPool) solveConflicts() {
 		}
 		txsInPool = append(txsInPool, tx)
 	}
+	pool.clearall()
 	for _, tx := range txsInPool {
 		log.WithField("tx", tx).Tracef("start rejudge")
-		pool.remove(tx)
 		txEnv := &txEnvelope{
 			tx:     tx,
 			txType: TxTypeRejudge,
@@ -937,6 +970,17 @@ func (t *txLookUp) remove(h types.Hash) {
 			t.order = append(t.order[:i], t.order[i+1:]...)
 		}
 	}
+	delete(t.txs, h)
+}
+
+// RemoveTx removes tx from txLookUp.txs only, ignore the order.
+func (t *txLookUp) RemoveTx(h types.Hash) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.removeTx(h)
+}
+func (t *txLookUp) removeTx(h types.Hash) {
 	delete(t.txs, h)
 }
 

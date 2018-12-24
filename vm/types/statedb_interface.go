@@ -62,6 +62,6 @@ type StateDB interface {
 	// for debug.
 	String() string
 
-	GetStateObject(addr types.Address) *StateObject
-	SetStateObject(addr types.Address, stateObject *StateObject)
+	// GetStateObject(addr types.Address) *state.StateObject
+	// SetStateObject(addr types.Address, stateObject *state.StateObject)
 }

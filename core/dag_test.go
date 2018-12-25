@@ -3,6 +3,7 @@ package core_test
 import (
 	"testing"
 
+	"encoding/hex"
 	"fmt"
 
 	"github.com/annchain/OG/common/crypto"
@@ -184,4 +185,63 @@ func TestDagPush(t *testing.T) {
 
 	// TODO check addr balance
 
+}
+
+func TestDagProcess(t *testing.T) {
+	t.Parallel()
+
+	var ret []byte
+	var err error
+
+	dag, _, finish := newTestDag(t, "TestDagProcess")
+	defer finish()
+
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
+
+	// evm contract bytecode, for source code detail please check:
+	// github.com/annchain/OG/vm/vm_test/contracts/setter.sol
+	contractCode := "6060604052341561000f57600080fd5b600a6000819055506101c9806100266000396000f300606060405260043610610057576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806360fe47b11461005c578063c605f76c1461007f578063e5aa3d581461010d575b600080fd5b341561006757600080fd5b61007d6004808035906020019091905050610136565b005b341561008a57600080fd5b610092610140565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156100d25780820151818401526020810190506100b7565b50505050905090810190601f1680156100ff5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b341561011857600080fd5b610120610183565b6040518082815260200191505060405180910390f35b8060008190555050565b610148610189565b6040805190810160405280600a81526020017f68656c6c6f576f726c6400000000000000000000000000000000000000000000815250905090565b60005481565b6020604051908101604052806000815250905600a165627a7a72305820746cc41ab9d8793025829e7c5703d2685ff43efe9c4287079ee7d55868b4dc5c0029"
+
+	createTx := &types.Tx{}
+	createTx.From = addr
+	createTx.Value = math.NewBigInt(0)
+	createTx.Data, err = hex.DecodeString(contractCode)
+	if err != nil {
+		t.Fatalf("decode hex string to bytes error: %v", err)
+	}
+	_, err = dag.ProcessTransaction(createTx)
+	if err != nil {
+		t.Fatalf("error during contract creation: %v", err)
+	}
+	// nonce, nerr := dag.GetLatestNonce(addr)
+	// if nerr != nil && nerr != types.ErrNonceNotExist {
+	// 	t.Fatalf("get latest nonce from dag error: %v", nerr)
+	// }
+	contractAddr := crypto.CreateAddress(addr, uint64(0))
+
+	stdb := dag.StateDatabase()
+	cObj := stdb.GetStateObject(contractAddr)
+	if cObj == nil {
+		t.Fatalf("contract object not initiated in statedb")
+	}
+	codeInDB := stdb.GetCode(contractAddr)
+	if codeInDB == nil {
+		t.Fatalf("code not saved in statedb")
+	}
+
+	// get i from setter contract
+	calldata := "e5aa3d58"
+
+	callTx := &types.Tx{}
+	callTx.From = addr
+	callTx.Value = math.NewBigInt(0)
+	callTx.To = contractAddr
+	callTx.Data, _ = hex.DecodeString(calldata)
+	ret, err = dag.ProcessTransaction(callTx)
+	if err != nil {
+		t.Fatalf("error during contract calling: %v", err)
+	}
+
+	fmt.Println(ret)
 }

@@ -29,8 +29,8 @@ var empty = types.Hash{}
 // Same mechanism as Docker image layers.
 // Add a layer each time a new contract is run
 type LayerStateDB struct {
-	Layers      []vmtypes.StateDB
-	activeLayer vmtypes.StateDB
+	Layers      []vmtypes.StateDBDebug
+	activeLayer vmtypes.StateDBDebug
 }
 
 func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
@@ -54,9 +54,9 @@ func (l *LayerStateDB) SetStateObject(addr types.Address, stateObject *vmtypes.S
 	stateObject.DirtySO = true
 }
 
-func NewLayerDB(baseLayer vmtypes.StateDB) *LayerStateDB {
+func NewLayerDB(baseLayer vmtypes.StateDBDebug) *LayerStateDB {
 	return &LayerStateDB{
-		Layers:      []vmtypes.StateDB{baseLayer},
+		Layers:      []vmtypes.StateDBDebug{baseLayer},
 		activeLayer: baseLayer,
 	}
 }
@@ -278,7 +278,7 @@ func (l *LayerStateDB) Empty(addr types.Address) bool {
 }
 
 func (l *LayerStateDB) RevertToSnapshot(i int) {
-	l.Layers = l.Layers[0 : i]
+	l.Layers = l.Layers[0:i]
 }
 
 func (l *LayerStateDB) Snapshot() int {
@@ -333,6 +333,6 @@ func (l *LayerStateDB) mergeLayer(toLayerIndex int, fromLayerIndex int) {
 
 }
 
-func (l *LayerStateDB) CurrentLayer() int{
+func (l *LayerStateDB) CurrentLayer() int {
 	return len(l.Layers) - 1
 }

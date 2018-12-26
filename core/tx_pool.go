@@ -75,7 +75,7 @@ type TxPool struct {
 
 	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
+	OnNewLatestSequencer []chan bool                       //for broadcasting new latest sequencer to record height
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -102,7 +102,6 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		close:                make(chan struct{}),
 		onNewTxReceived:      make(map[string]chan types.Txi),
 		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
-		OnNewLatestSequencer: make(chan bool),
 	}
 	return pool
 }
@@ -607,8 +606,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		c <- elders
 		// <-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-	pool.OnNewLatestSequencer <- true
-	// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
+	for  _,c := range pool.OnNewLatestSequencer{
+		c <- true
+		// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
+	}
 
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	return nil

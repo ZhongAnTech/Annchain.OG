@@ -38,6 +38,10 @@ func (og *Og) GetCurrentNodeStatus() StatusData {
 	}
 }
 
+func (og*Og)GetHeight() uint64 {
+	return   og.Dag.LatestSequencer().Id
+}
+
 type OGConfig struct {
 	NetworkId     uint64
 	CryptoType    crypto.CryptoType
@@ -53,6 +57,7 @@ func DefaultOGConfig() OGConfig {
 func NewOg(config OGConfig) (*Og, error) {
 	og := &Og{
 		quit: make(chan bool),
+		NewLatestSequencerCh: make(chan  bool),
 	}
 
 	og.NetworkId = config.NetworkId
@@ -166,7 +171,7 @@ func CreateDB() (ogdb.Database, error) {
 func GetOldDb()(ogdb.Database, error) {
 	switch viper.GetString("db.name") {
 	case "leveldb":
-		path := viper.GetString("leveldb.path")+"old"
+		path := viper.GetString("leveldb.path")+"test"
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)
@@ -190,6 +195,7 @@ func (og *Og) BrodcastLatestSequencer() {
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
+			logrus.Debug("sequencer updated")
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			msg := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}

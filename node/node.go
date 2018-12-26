@@ -69,7 +69,6 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v",err))
 	}
-	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -169,13 +168,14 @@ func NewNode() *Node {
 			MaxBatchSize:                             100,
 			AcquireTxDedupCacheMaxSize:               10000,
 			AcquireTxDedupCacheExpirationSeconds:     60,
-			BufferedIncomingTxCacheEnabled:           true,
 			BufferedIncomingTxCacheExpirationSeconds: 600,
-			BufferedIncomingTxCacheMaxSize:           10000,
+			BufferedIncomingTxCacheMaxSize:           40000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m, org.TxPool.GetHashOrder,org.TxBuffer.IsKnownHash, heighter)
-
+		}, m, org.TxPool.GetHashOrder,org.TxBuffer.IsKnownHash,
+		heighter,syncManager.CatchupSyncer.CacheNewTxEnabled)
+	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer,org.NewLatestSequencerCh,
+		syncManager.IncrementalSyncer.NewLatestSequencerCh )
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer

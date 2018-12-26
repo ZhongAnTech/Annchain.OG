@@ -73,6 +73,7 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 
 type NodeStatusDataProvider interface {
 	GetCurrentNodeStatus() StatusData
+	GetHeight       () uint64
 }
 
 type PeerProvider interface {

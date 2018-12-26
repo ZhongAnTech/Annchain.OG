@@ -70,6 +70,7 @@ type CatchupSyncer struct {
 	WorkState                     CatchupSyncerStatus
 	mu                            sync.RWMutex
 	BootStrapNode                      bool
+	currentBestHeight                 uint64 //maybe incorect
 }
 
 func (c *CatchupSyncer) Init() {
@@ -170,10 +171,23 @@ func (c *CatchupSyncer) setSyncFlag() {
 	c.syncFlag = true
 }
 
+
 func (c *CatchupSyncer) unsetSyncFlag() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.syncFlag = false
+}
+
+func (c *CatchupSyncer)CacheNewTxEnabled()bool {
+	if c.getWorkState() ==Stopped {
+		return true
+	}
+	ourSeqId:= c.NodeStatusDataProvider.GetHeight()
+	if ourSeqId + startSyncHeightDiffThreashold*3 < c.currentBestHeight {
+       return false
+	}
+	return true
+
 }
 
 func (c *CatchupSyncer) syncToLatest() error {
@@ -200,7 +214,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 
 		log.WithField("peerId", bpId).WithField("seq", seqId).WithField("ourId", ourId).
 			Debug("catchup sync with best peer")
-
+		c.currentBestHeight = seqId
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
 		if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
 			log.WithError(err).Warn("catchup sync failed")

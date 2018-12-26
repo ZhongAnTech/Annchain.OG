@@ -1,6 +1,8 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og/txcache"
+	"sync"
 	"time"
 
 	"github.com/annchain/OG/og"
@@ -8,7 +10,7 @@ import (
 	"github.com/bluele/gcache"
 )
 
-const BloomFilterRate  = 5 //sendign 4 req
+const BloomFilterRate = 5 //sendign 4 req
 
 type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
@@ -16,33 +18,35 @@ type MessageSender interface {
 	MulticastToSource(messageType og.MessageType, message types.Message, sourceMsgHash *types.Hash)
 }
 
-
 type FireHistory struct {
 	StartTime  time.Time
 	LastTime   time.Time
 	FiredTimes int
 }
 
-
-
 // IncrementalSyncer fetches tx from other  peers. (incremental)
 // IncrementalSyncer will not fire duplicate requests in a period of time.
 type IncrementalSyncer struct {
-	config                         *SyncerConfig
-	messageSender                  MessageSender
-	getTxsHashes                   func() []types.Hash
-	isKnownHash                    func (hash types.Hash) bool
-	getHeight                      func () uint64
-	acquireTxQueue                 chan types.Hash
-	acquireTxDedupCache            gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
-	bufferedIncomingTxCache        gcache.Cache // cache of incoming txs that are not fired during full sync.
-	firedTxCache                   gcache.Cache // cache of hashes that are fired however haven't got any response yet
-	bufferedIncomingTxCacheEnabled bool
-	quitLoopSync                   chan bool
-	quitLoopEvent                  chan bool
-	EnableEvent                    chan bool
-	Enabled                        bool
-	OnNewTxiReceived               []chan types.Txi
+	config                  *SyncerConfig
+	messageSender           MessageSender
+	getTxsHashes            func() []types.Hash
+	isKnownHash             func(hash types.Hash) bool
+	getHeight               func() uint64
+	acquireTxQueue          chan types.Hash
+	acquireTxDedupCache     gcache.Cache     // list of hashes that are queried recently. Prevent duplicate requests.
+	bufferedIncomingTxCache *txcache.TxCache // cache of incoming txs that are not fired during full sync.
+	firedTxCache            gcache.Cache     // cache of hashes that are fired however haven't got any response yet
+	quitLoopSync            chan bool
+	quitLoopEvent           chan bool
+	quitNotifyEvent         chan  bool
+	EnableEvent             chan bool
+	Enabled                 bool
+	OnNewTxiReceived        []chan types.Txi
+	notifyTxEvent           chan bool
+	notifying               bool
+	cacheNewTxEnabled       func() bool
+	mu                      sync.RWMutex
+	NewLatestSequencerCh     chan bool
 }
 
 func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
@@ -66,37 +70,42 @@ type SyncerConfig struct {
 }
 
 func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, getTxsHashes func() []types.Hash,
-	isKnownHash func(hash types.Hash) bool , getHeight func()uint64) *IncrementalSyncer {
+	isKnownHash func(hash types.Hash) bool, getHeight func() uint64, cacheNewTxEnabled func() bool) *IncrementalSyncer {
 	return &IncrementalSyncer{
 		config:         config,
 		messageSender:  messageSender,
 		acquireTxQueue: make(chan types.Hash, config.AcquireTxQueueSize),
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
-		bufferedIncomingTxCache: gcache.New(config.BufferedIncomingTxCacheMaxSize).Simple().
-			Expiration(time.Second * time.Duration(config.BufferedIncomingTxCacheExpirationSeconds)).Build(),
+		bufferedIncomingTxCache: txcache.NewTxCache(config.BufferedIncomingTxCacheMaxSize,
+			config.BufferedIncomingTxCacheExpirationSeconds),
 		firedTxCache: gcache.New(config.BufferedIncomingTxCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.BufferedIncomingTxCacheExpirationSeconds)).Build(),
-		bufferedIncomingTxCacheEnabled: config.BufferedIncomingTxCacheEnabled,
-		quitLoopSync:                   make(chan bool),
-		quitLoopEvent:                  make(chan bool),
-		EnableEvent:                    make(chan bool),
-		Enabled:                        false,
-		getTxsHashes:                   getTxsHashes,
-		isKnownHash:					isKnownHash,
-		getHeight:						getHeight,
+		quitLoopSync:      make(chan bool),
+		quitLoopEvent:     make(chan bool),
+		EnableEvent:       make(chan bool),
+		notifyTxEvent:     make(chan bool),
+		NewLatestSequencerCh: make(chan  bool),
+		quitNotifyEvent :make (chan bool),
+		Enabled:           false,
+		getTxsHashes:      getTxsHashes,
+		isKnownHash:       isKnownHash,
+		getHeight:         getHeight,
+		cacheNewTxEnabled: cacheNewTxEnabled,
 	}
 }
 
 func (m *IncrementalSyncer) Start() {
 	go m.eventLoop()
 	go m.loopSync()
+	go m.txNotifyLoop()
 }
 
 func (m *IncrementalSyncer) Stop() {
 	m.Enabled = false
 	m.quitLoopEvent <- true
 	m.quitLoopSync <- true
+	m.quitLoopEvent <-true
 	// <-ffchan.NewTimeoutSender(m.quitLoopEvent, true, "increSyncerQuitLoopEvent", 1000).C
 	// <-ffchan.NewTimeoutSender(m.quitLoopSync, true, "increSyncerQuitLoopSync", 1000).C
 }
@@ -209,7 +218,8 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 		log.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
-	if _, err := m.bufferedIncomingTxCache.GetIFPresent(hash); err == nil {
+	if txi := m.bufferedIncomingTxCache.Get(hash); txi != nil {
+		m.bufferedIncomingTxCache.MoveFront(hash)
 		log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
 		return
 	}
@@ -232,19 +242,43 @@ func (m *IncrementalSyncer) eventLoop() {
 		select {
 		case v := <-m.EnableEvent:
 			log.WithField("enable", v).Info("incremental syncer got enable event ")
-			old := m.Enabled
+			//old := m.Enabled
 			m.Enabled = v
-			if !old && v {
-				// changed from disable to enable.
-				m.notifyAllCachedTxs()
-			}
-			//notify txs from cached first and enable to receive new tx from p2p
+			m.notifyTxEvent <-true
+			//if !old && v {
+		// changed from disable to enable.
+		//go m.notifyAllCachedTxs()
+		//}
+		//notify txs from cached first and enable to receive new tx from p2p
+
 		case <-m.quitLoopEvent:
+			m.Enabled = false
 			log.Info("incremental syncer eventLoop received quit message. Quitting...")
 			return
 		}
 	}
 }
+
+func (m*IncrementalSyncer)txNotifyLoop() {
+	for {
+		select {
+		case  <-time.After(20*time.Microsecond):
+			   go m.notifyNewTxi()
+		case <-m.notifyTxEvent:
+			  go m.notifyNewTxi()
+         case <-m.NewLatestSequencerCh:
+         	log.Debug("sequencer updated")
+         	go m.	RemoveConfirmedFromCache()
+		case <-m.quitNotifyEvent:
+			m.Enabled = false
+			log.Info("incremental syncer txNotifyLoop received quit message. Quitting...")
+			return
+		}
+	}
+}
+
+
+
 
 func (m *IncrementalSyncer) sendBloomFilter(buffer map[types.Hash]struct{}) {
 	if len(buffer) == 0 {
@@ -276,7 +310,7 @@ func (m *IncrementalSyncer) sendBloomFilter(buffer map[types.Hash]struct{}) {
 		return
 	}
 	var sourceHash *types.Hash
-	for k, _ := range buffer {
+	for k := range buffer {
 		sourceHash = &k
 		break
 	}
@@ -293,24 +327,12 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
 	// cancel pending requests if it is there
 	m.firedTxCache.Remove(tx.Hash)
 	//notify channel will be  blocked if tps is high ,check first and add
-    if m.isKnownHash(tx.Hash) {
-          log.WithField("tx ",tx).Debug("duplicated tx")
-		return
-	}
-	if !m.Enabled {
-		if !m.bufferedIncomingTxCacheEnabled {
-			log.Debug("incremental received tx but sync disabled")
-			return
-		}
-		log.WithField("tx", tx).Trace("cache tx for future.")
-		m.bufferedIncomingTxCache.Set(tx.Hash, tx)
-		return
-	}
+	start := time.Now()
+	m.AddTxs(nil,nil,tx)
+	end :=time.Now()
+	log.WithField("used time for add",end.Sub(start).String()).WithField("q", newTx).Debug("incremental received MessageNewTx")
 
-	log.WithField("q", newTx).Debug("incremental received MessageNewTx")
-	m.notifyNewTxi(tx)
 }
-
 
 func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
 	txs := newTxs.RawTxs.ToTxs()
@@ -322,31 +344,8 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs) {
 	for _, tx := range txs {
 		m.firedTxCache.Remove(tx.Hash)
 	}
-
-	if !m.Enabled {
-		if !m.bufferedIncomingTxCacheEnabled {
-			log.Debug("incremental received txs but sync disabled")
-			return
-		}
-		for _, tx := range txs {
-			if m.isKnownHash(tx.Hash) {
-				log.WithField("tx ",tx).Debug("duplicated tx")
-				continue
-			}
-			log.WithField("tx", tx).Trace("cache tx for future.")
-			m.bufferedIncomingTxCache.Set(tx.Hash, tx)
-		}
-		return
-	}
 	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
-
-	for _, tx := range txs {
-		if m.isKnownHash(tx.Hash) {
-			log.WithField("tx ",tx).Debug("duplicated tx")
-			continue
-		}
-		m.notifyNewTxi(tx)
-	}
+	m.AddTxs(txs,nil,nil)
 }
 
 func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
@@ -356,47 +355,46 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer
 		return
 	}
 	m.firedTxCache.Remove(seq.Hash)
-	if m.isKnownHash(seq.Hash) {
-		log.WithField("seq ",seq).Debug("duplicated seq")
+	log.WithField("q", newSeq).Debug("incremental received NewSequence")
+	m.AddTxs(nil,nil,seq)
+}
+
+func (m *IncrementalSyncer) notifyNewTxi() {
+	if !m.Enabled || m.GetNotifying() {
 		return
 	}
-	if !m.Enabled {
-		if !m.bufferedIncomingTxCacheEnabled {
-			log.Debug("incremental received seq but sync disabled")
+	m.SetNotifying(true)
+	defer  m.SetNotifying(false)
+	for m.bufferedIncomingTxCache.Len() != 0 {
+		if !m.Enabled {
 			return
 		}
-		log.WithField("seq", seq).Trace("cache seq for future.")
-		m.bufferedIncomingTxCache.Set(seq.Hash, seq)
-		return
-	}
-	log.WithField("q", newSeq).Debug("incremental received NewSequence")
-	m.notifyNewTxi(seq)
-}
-
-
-func (m *IncrementalSyncer) notifyNewTxi(txi types.Txi) {
-	for _, c := range m.OnNewTxiReceived {
-		c <- txi
-		// <-ffchan.NewTimeoutSenderShort(c, txi, fmt.Sprintf("syncerNotifyNewTxi_%d", i)).C
+		txi := m.bufferedIncomingTxCache.DeQueue()
+		if txi != nil && !m.isKnownHash(txi.GetTxHash()) {
+			for _, c := range m.OnNewTxiReceived {
+				c <- txi
+				// <-ffchan.NewTimeoutSenderShort(c, txi, fmt.Sprintf("syncerNotifyNewTxi_%d", i)).C
+			}
+		}
 	}
 }
 
+
+/*
 func (m *IncrementalSyncer) notifyAllCachedTxs() {
 	log.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache is being dumped")
-	kvMap := m.bufferedIncomingTxCache.GetALL()
-	for k, v := range kvMap {
-		// annouce and then remove
-		tx := v.(types.Txi)
+	txs := m.bufferedIncomingTxCache.PopALl()
+	for _, tx := range txs {
+		// announce and then remove
 		if m.isKnownHash(tx.GetTxHash()) {
-			log.WithField("tx ",tx).Debug("duplicated tx ")
+			log.WithField("tx ", tx).Debug("duplicated tx ")
 			continue
 		}
 		m.notifyNewTxi(tx)
-		m.bufferedIncomingTxCache.Remove(k)
 	}
-	log.WithField("size", m.bufferedIncomingTxCache.Len()).Debug("incoming cache dumped")
+	log.WithField("size", len(txs)).Debug("incoming cache dumped")
 }
-
+*/
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
 	if (syncResponse.RawTxs == nil || len(syncResponse.RawTxs) == 0) &&
 		(syncResponse.RawSequencers == nil || len(syncResponse.RawSequencers) == 0) {
@@ -409,21 +407,13 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 		log.WithField("tx", tx).WithField("peer", sourceId).Debug("received sync response Tx")
 		m.firedTxCache.Remove(tx.Hash)
 		//m.bufferedIncomingTxCache.Remove(tx.Hash)
-		if m.isKnownHash(tx.GetTxHash()) {
-			log.WithField("tx ",tx).Debug("got duplicated tx ")
-			continue
-		}
-		m.notifyNewTxi(tx)
+		m.AddTxs(nil,nil,tx	)
 	}
 	for _, v := range syncResponse.RawSequencers {
 		seq := v.Sequencer()
 		log.WithField("seq", seq).WithField("peer", sourceId).Debug("received sync response seq")
 		m.firedTxCache.Remove(v.Hash)
-		if m.isKnownHash(seq.GetTxHash()) {
-			log.WithField("tx ",seq).Debug("got duplicated seq ")
-			continue
-		}
-		m.notifyNewTxi(seq)
+		m.AddTxs(nil,nil,seq	)
 	}
 }
 
@@ -439,4 +429,69 @@ func (m *IncrementalSyncer) repickHashes() types.Hashes {
 		}
 	}
 	return result
+}
+
+func (m*IncrementalSyncer)addTx(tx types.Txi) error {
+	if m.isKnownHash(tx.GetTxHash()) {
+		log.WithField("tx ", tx).Debug("duplicated tx received")
+		return nil
+	}
+	if !m.Enabled {
+		log.WithField("tx ", tx).Debug("cache txs for future.")
+	}
+	return  m.bufferedIncomingTxCache.EnQueue(tx)
+
+}
+
+
+func (m *IncrementalSyncer) AddTxs(txs types.Txs,seqs types.Sequencers, txi types.Txi) error {
+	if !m.Enabled && !m.cacheNewTxEnabled() {
+		log.Debug("incremental received nexTx but sync disabled")
+		return nil
+	}
+	var err error
+	if len(txs)!=0 {
+		for _, tx := range txs {
+			err = m.addTx(tx)
+			if err ==nil || err == txcache.DuplicateErr {
+				continue
+			}
+			break
+
+		}
+	}else if len(seqs)!=0 {
+		for _, tx := range seqs {
+			err = m.addTx(tx)
+			if err ==nil || err == txcache.DuplicateErr {
+				continue
+			}
+			break
+		}
+	}else {
+		err =  m.addTx(txi)
+	}
+	if err == txcache.DuplicateErr {
+		err = nil
+	}
+	if err!=nil {
+		log.WithError(err).Warn("add tx err")
+	}
+	//m.notifyTxEvent <- true
+    return err
+}
+
+func (m *IncrementalSyncer) SetNotifying(v bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifying = v
+}
+
+func (m *IncrementalSyncer) GetNotifying() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.notifying
+}
+
+func ( m*IncrementalSyncer)RemoveConfirmedFromCache () {
+	m.bufferedIncomingTxCache.RemoveExpiredAndInvalid(m.isKnownHash, false)
 }

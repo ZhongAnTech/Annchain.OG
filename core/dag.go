@@ -589,23 +589,22 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
 func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, error) {
-
 	// update nonce
 	curNonce := dag.statedb.GetNonce(tx.Sender())
 	if !dag.statedb.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
-
-	// TODO
-	// transfer will be done in vm, maybe delete this part?
-	//
 	// transfer balance
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		return nil, nil
 	}
 	txnormal := tx.(*types.Tx)
-	dag.statedb.SubBalance(txnormal.From, txnormal.Value)
-	dag.statedb.AddBalance(txnormal.To, txnormal.Value)
+	if txnormal.Value.Value.Sign() != 0 {
+		dag.statedb.SubBalance(txnormal.From, txnormal.Value)
+		dag.statedb.AddBalance(txnormal.To, txnormal.Value)
+	}
+
+	fmt.Println(dag.statedb.GetBalance(txnormal.To))
 
 	// create ovm object.
 	//
@@ -634,9 +633,9 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, error) {
 	var leftOverGas uint64
 	var err error
 	if txnormal.To.Bytes == emptyAddress.Bytes {
-		ret, _, leftOverGas, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value)
+		ret, _, leftOverGas, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
-		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value)
+		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("vm processing error: %v", err)

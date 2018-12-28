@@ -57,6 +57,13 @@ const (
 	TxQualityIsFatal
 )
 
+type hashOrderRemoveType byte
+const  (
+	noRemove  hashOrderRemoveType = iota
+	removeFromFront
+	removeFromEnd
+)
+
 type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
@@ -339,14 +346,15 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 
 // Remove totally removes a tx from pool, it checks badtxs, tips,
 // pendings and txlookup.
-func (pool *TxPool) Remove(tx types.Txi) {
+func (pool *TxPool) Remove(tx types.Txi,removeType hashOrderRemoveType) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.remove(tx)
+	pool.remove(tx,removeType)
 }
 
-func (pool *TxPool) remove(tx types.Txi) {
+
+func (pool *TxPool) remove(tx types.Txi, removeType hashOrderRemoveType) {
 	status := pool.getStatus(tx.GetTxHash())
 	if status == TxStatusBadTx {
 		pool.badtxs.Remove(tx.GetTxHash())
@@ -359,8 +367,28 @@ func (pool *TxPool) remove(tx types.Txi) {
 		pool.pendings.Remove(tx.GetTxHash())
 		pool.flows.Remove(tx)
 	}
-	pool.txLookup.Remove(tx.GetTxHash())
+	pool.txLookup.Remove(tx.GetTxHash(),removeType)
 }
+
+// ClearAll removes all the txs in the pool.
+//
+// Note that ClearAll should only be called when solving conflicts
+// during a sequencer confirmation time.
+func (pool *TxPool) ClearAll() {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pool.clearall()
+}
+
+func (pool *TxPool) clearall() {
+	pool.badtxs = NewTxMap()
+	pool.tips = NewTxMap()
+	pool.pendings = NewTxMap()
+	pool.flows = NewAccountFlows()
+	pool.txLookup = newTxLookUp()
+}
+
 
 func (pool *TxPool) loop() {
 	defer log.Tracef("TxPool.loop() terminates")
@@ -386,20 +414,20 @@ func (pool *TxPool) loop() {
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
 			}
-
-			pool.txLookup.Add(txEvent.txEnv)
 			pool.mu.Lock()
+			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
 				err = pool.commit(tx)
+				//if err is not nil , item removed inside commit
 			case *types.Sequencer:
 				err = pool.confirm(tx)
+				if err!=nil {
+					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
+				}
 			}
 			pool.mu.Unlock()
 
-			if err != nil {
-				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
-			}
 			txEvent.callbackChan <- err
 
 			// TODO case reset?
@@ -451,7 +479,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	// check tx's quality.
 	txquality := pool.isBadTx(tx)
 	if txquality == TxQualityIsFatal {
-		pool.remove(tx)
+		pool.remove(tx,removeFromEnd)
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
@@ -478,7 +506,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		// remove sequencer from pool
 		if parent.GetType() == types.TxBaseTypeSequencer {
 			pool.tips.Remove(pHash)
-			pool.txLookup.Remove(pHash)
+			pool.txLookup.Remove(pHash,removeFromFront)
 			continue
 		}
 		// move parent to pending
@@ -586,12 +614,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
-	// remove elders from pool
-	for _, elder := range elders {
-		pool.remove(elder)
-	}
 	// solve conflicts of txs in pool
-	pool.solveConflicts()
+	pool.solveConflicts(elders)
 
 	if pool.flows.Get(seq.Sender()) == nil {
 		originBalance := pool.dag.GetBalance(seq.Sender())
@@ -739,23 +763,39 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	return cb, nil
 }
 
-// solveConflicts reprocess all txs in the pool in order to
-// make sure all txs are correct after seq confirmation.
-func (pool *TxPool) solveConflicts() {
-	txsInPool := []types.Txi{}
+// solveConflicts remove elders from txpool and reprocess
+// all txs in the pool in order to make sure all txs are
+// correct after seq confirmation.
+ func (pool *TxPool) solveConflicts(elders map[types.Hash] types.Txi) {
+		// remove elders from pool.txLookUp.txs
+		//
+		// pool.txLookUp.remove() will try remove tx from txLookup.order
+		// and it will call hash.Cmp() to check if two hashes are the same.
+		// For a large amount of txs to remove, hash.Cmp() will cost a O(n^2)
+		// complexity. To solve this, solveConflicts will just remove the tx
+		// from txLookUp.txs, which is a map struct, and find out txs left
+		// which in this case is stored in txsInPool. As for the txs should
+		// be removed from pool, pool.clearall() will be called to remove all
+		// the txs in the pool including pool.txLookUp.order.
+		txsInPool := []types.Txi{}
+	 // remove elders from pool
+	 for elserHash := range elders {
+		 pool.txLookup.remove(elserHash,noRemove)
+	 }
 	for _, hash := range pool.txLookup.getorder() {
 		tx := pool.get(hash)
 		if tx == nil {
 			continue
 		}
 		if tx.GetType() == types.TxBaseTypeSequencer {
+			log.WithField("found seq",tx).Warn("shoud never come here")
 			continue
 		}
 		txsInPool = append(txsInPool, tx)
 	}
+	pool.clearall()
 	for _, tx := range txsInPool {
 		log.WithField("tx", tx).Tracef("start rejudge")
-		pool.remove(tx)
 		txEnv := &txEnvelope{
 			tx:     tx,
 			txType: TxTypeRejudge,
@@ -926,17 +966,42 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 }
 
 // Remove tx from txLookUp
-func (t *txLookUp) Remove(h types.Hash) {
+func (t *txLookUp) Remove(h types.Hash, removeType hashOrderRemoveType) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.remove(h)
+	t.remove(h, removeType)
 }
-func (t *txLookUp) remove(h types.Hash) {
-	for i, hash := range t.order {
-		if hash.Cmp(h) == 0 {
-			t.order = append(t.order[:i], t.order[i+1:]...)
+
+func (t *txLookUp) remove(h types.Hash , removeType hashOrderRemoveType) {
+	switch removeType {
+	case noRemove:
+		log.Trace("no remove")
+	case removeFromFront:
+		j := -100
+		for i, hash := range t.order {
+			if hash.Cmp(h) == 0 {
+				t.order = append(t.order[:i], t.order[i+1:]...)
+				j = i
+				break
+			}
 		}
+		log.WithField(" iteration time ", j).Debug("remove from type")
+
+	case removeFromEnd:
+		j := -1
+		for i := len(t.order) - 1; i >= 0; i-- {
+			hash := t.order[i]
+			if hash.Cmp(h) == 0 {
+				j = len(t.order) - 1 - i
+				t.order = append(t.order[:i], t.order[i+1:]...)
+				j = i
+				break
+			}
+		}
+		log.WithField(" iteration time ", j).Debug("remove from type")
+	default:
+		panic("unknown remove type")
 	}
 	delete(t.txs, h)
 }
@@ -948,6 +1013,7 @@ func (t *txLookUp) RemoveByIndex(i int) {
 
 	t.removeByIndex(i)
 }
+
 func (t *txLookUp) removeByIndex(i int) {
 	if (i < 0) || (i >= len(t.order)) {
 		return
@@ -965,10 +1031,23 @@ func (t *txLookUp) GetOrder() []types.Hash {
 
 	return t.getorder()
 }
+
 func (t *txLookUp) getorder() []types.Hash {
 	return t.order
 }
 
+
+// Order returns hash list of txs in pool, ordered by the time
+// it added into pool.
+func (t *txLookUp) ResetOrder() {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	 t.resetOrder()
+}
+
+func (t *txLookUp) resetOrder()  {
+	 t.order = nil
+}
 // Count returns the total number of txs in txLookUp
 func (t *txLookUp) Count() int {
 	t.mu.RLock()

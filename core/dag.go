@@ -485,7 +485,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			txi.GetBase().Height = batch.Seq.Id
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
-				return fmt.Errorf("Write tx into db error: %v", err)
+				return fmt.Errorf("write tx into db error: %v", err)
 			}
 		}
 	}

@@ -512,7 +512,7 @@ func (h *Hub) multicastMessageToSource(msg *P2PMessage) error {
 	//send to 2 peer , considering if one peer disconnect,
 	peers := h.peers.GetPeers(ids, 2)
 	if len(peers) == 0 {
-		msgLog.WithField("type ", msg.MessageType).WithField("peeers id ", ids).Warn("not found source peers, multicast to random")
+		msgLog.WithField("type ", msg.MessageType).WithField("peers id ", ids).Warn("not found source peers, multicast to random")
 		return h.multicastMessage(msg)
 	}
 	// choose random peer and then send.

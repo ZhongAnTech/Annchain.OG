@@ -78,7 +78,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, get
 		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
 		bufferedIncomingTxCache: txcache.NewTxCache(config.BufferedIncomingTxCacheMaxSize,
-			config.BufferedIncomingTxCacheExpirationSeconds),
+			config.BufferedIncomingTxCacheExpirationSeconds, isKnownHash),
 		firedTxCache: gcache.New(config.BufferedIncomingTxCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.BufferedIncomingTxCacheExpirationSeconds)).Build(),
 		quitLoopSync:      make(chan bool),
@@ -219,7 +219,7 @@ func (m *IncrementalSyncer) Enqueue(hash types.Hash) {
 		return
 	}
 	if txi := m.bufferedIncomingTxCache.Get(hash); txi != nil {
-		m.bufferedIncomingTxCache.MoveFront(hash)
+		m.bufferedIncomingTxCache.MoveFront(txi)
 		log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
 		return
 	}
@@ -268,7 +268,7 @@ func (m*IncrementalSyncer)txNotifyLoop() {
 			  go m.notifyNewTxi()
          case <-m.NewLatestSequencerCh:
          	log.Debug("sequencer updated")
-         	go m.	RemoveConfirmedFromCache()
+         	go m.RemoveConfirmedFromCache()
 		case <-m.quitNotifyEvent:
 			m.Enabled = false
 			log.Info("incremental syncer txNotifyLoop received quit message. Quitting...")
@@ -453,26 +453,22 @@ func (m *IncrementalSyncer) AddTxs(txs types.Txs,seqs types.Sequencers, txi type
 	if len(txs)!=0 {
 		for _, tx := range txs {
 			err = m.addTx(tx)
-			if err ==nil || err == txcache.DuplicateErr {
-				continue
+			if err !=nil  {
+				goto out
 			}
-			break
-
 		}
 	}else if len(seqs)!=0 {
 		for _, tx := range seqs {
 			err = m.addTx(tx)
-			if err ==nil || err == txcache.DuplicateErr {
-				continue
+			if err !=nil{
+				goto out
 			}
-			break
 		}
 	}else {
 		err =  m.addTx(txi)
 	}
-	if err == txcache.DuplicateErr {
-		err = nil
-	}
+
+	out :
 	if err!=nil {
 		log.WithError(err).Warn("add tx err")
 	}
@@ -493,5 +489,7 @@ func (m *IncrementalSyncer) GetNotifying() bool {
 }
 
 func ( m*IncrementalSyncer)RemoveConfirmedFromCache () {
-	m.bufferedIncomingTxCache.RemoveExpiredAndInvalid(m.isKnownHash, false)
+	log.WithField("total cache item ",  m.bufferedIncomingTxCache.Len()).Info("removing expired item")
+	m.bufferedIncomingTxCache.RemoveExpiredAndInvalid(100)
+	log.WithField("total cache item ",  m.bufferedIncomingTxCache.Len()).Info("removed expired item")
 }

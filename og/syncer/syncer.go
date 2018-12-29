@@ -289,16 +289,16 @@ func (m *IncrementalSyncer) sendBloomFilter(buffer map[types.Hash]struct{}) {
 		RequestId: og.MsgCounter.Get(),
 	}
 	height := m.getHeight()
+	req.Height = &height
 	hashs := m.getTxsHashes()
 	for _, hash := range hashs {
 		req.Filter.AddItem(hash.Bytes[:])
-		req.Height = &height
 	}
 	err := req.Filter.Encode()
 	if err != nil {
 		log.WithError(err).Warn("encode filter err")
 	}
-	log.WithField("type", og.MessageTypeFetchByHashRequest).
+	log.WithField("height ",height).WithField("type", og.MessageTypeFetchByHashRequest).
 		WithField("hash length", len(hashs)).WithField("filter length", len(req.Filter.Data)).Debugf(
 		"sending bloom filter  MessageTypeFetchByHashRequest")
 
@@ -404,6 +404,10 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 
 	for _, rawTx := range syncResponse.RawTxs {
 		tx := rawTx.Tx()
+		if tx==nil {
+			log.Warn("nil tx received")
+			continue
+		}
 		log.WithField("tx", tx).WithField("peer", sourceId).Debug("received sync response Tx")
 		m.firedTxCache.Remove(tx.Hash)
 		//m.bufferedIncomingTxCache.Remove(tx.Hash)
@@ -411,6 +415,10 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 	}
 	for _, v := range syncResponse.RawSequencers {
 		seq := v.Sequencer()
+		if seq ==nil {
+			log.Warn("nil seq received")
+			continue
+		}
 		log.WithField("seq", seq).WithField("peer", sourceId).Debug("received sync response seq")
 		m.firedTxCache.Remove(v.Hash)
 		m.AddTxs(nil,nil,seq	)

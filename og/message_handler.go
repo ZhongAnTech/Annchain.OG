@@ -90,7 +90,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			}
 			if height <= ourHeight -2 {
 				dagTxs :=  h.Og.Dag.GetTxsByNumber(height+2)
-				txs = dagTxs.ToRawTxs()
+				txs = append(dagTxs.ToRawTxs(),txs...)
 				seqs = append(seqs, h.Og.Dag.GetSequencerById(height+2).RawSequencer())
 			}
 			msgLog.WithField("len seqs",len(seqs)).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
@@ -100,6 +100,9 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			txi := h.Og.TxPool.Get(hash)
 			if txi == nil {
 				txi = h.Og.Dag.GetTx(hash)
+			}
+			if txi == nil {
+				continue
 			}
 			switch tx := txi.(type) {
 			case *types.Sequencer:

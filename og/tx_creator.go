@@ -40,12 +40,15 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 	return &tx
 }
 
-func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt,
+func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt, data []byte,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.Tx{
-		From:  from,
+		From: from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
 		To:    to,
 		Value: value,
+		Data:  data,
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,

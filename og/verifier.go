@@ -28,18 +28,18 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	if !v.VerifyHash(t) {
-		logrus.WithField("tx", t).Debug("Hash not valid")
-		return false
-	}
-	if !v.VerifySignature(t) {
-		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-		return false
-	}
-	if !v.VerifySourceAddress(t) {
-		logrus.WithField("tx", t).Debug("Source address not valid")
-		return false
-	}
+	// if !v.VerifyHash(t) {
+	// 	logrus.WithField("tx", t).Debug("Hash not valid")
+	// 	return false
+	// }
+	// if !v.VerifySignature(t) {
+	// 	logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
+	// 	return false
+	// }
+	// if !v.VerifySourceAddress(t) {
+	// 	logrus.WithField("tx", t).Debug("Source address not valid")
+	// 	return false
+	// }
 	return true
 }
 
@@ -130,7 +130,7 @@ func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archi
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool or in dag
 func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
-	if currentTx.GetNonce() == 0 {
+	if currentTx.GetNonce() <= 1 {
 		ok = true
 		return
 	}

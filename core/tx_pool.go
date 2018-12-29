@@ -606,10 +606,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
-	// remove elders from pool
-	for _, elder := range elders {
-		pool.remove(elder)
-	}
+	// // remove elders from pool
+	// for _, elder := range elders {
+	// 	pool.remove(elder)
+	// }
 	// solve conflicts of txs in pool
 	pool.solveConflicts(elders)
 
@@ -780,6 +780,9 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 		if tx == nil {
 			continue
 		}
+		// TODO sequencer is removed from txpool later when calling
+		// pool.clearall() but not added back. Try figure out if this
+		// will cause any problem.
 		if tx.GetType() == types.TxBaseTypeSequencer {
 			continue
 		}
@@ -802,10 +805,6 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
-	// has, hErr := pool.dag.HasLatestNonce(addr)
-	// if hErr != nil {
-	// 	return fmt.Errorf("check nonce in db err: %v", hErr)
-	// }
 	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
 	if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
 		return fmt.Errorf("get latest nonce err: %v", nErr)

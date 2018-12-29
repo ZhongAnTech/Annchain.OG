@@ -22,8 +22,6 @@ type Tx struct {
 	From  Address
 	To    Address
 	Value *math.BigInt
-	// TODO
-	// Data not generated yet.
 	Data  []byte
 }
 

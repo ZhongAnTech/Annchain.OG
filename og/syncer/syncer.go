@@ -404,6 +404,9 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 
 	for _, rawTx := range syncResponse.RawTxs {
 		tx := rawTx.Tx()
+		if tx ==nil {
+			continue
+		}
 		log.WithField("tx", tx).WithField("peer", sourceId).Debug("received sync response Tx")
 		m.firedTxCache.Remove(tx.Hash)
 		//m.bufferedIncomingTxCache.Remove(tx.Hash)
@@ -411,6 +414,9 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 	}
 	for _, v := range syncResponse.RawSequencers {
 		seq := v.Sequencer()
+		if seq ==nil {
+			continue
+		}
 		log.WithField("seq", seq).WithField("peer", sourceId).Debug("received sync response seq")
 		m.firedTxCache.Remove(v.Hash)
 		m.AddTxs(nil,nil,seq	)

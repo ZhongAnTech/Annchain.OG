@@ -59,6 +59,70 @@ type TxBuffer struct {
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
+	//children               *childrenCache //key : phash ,value :
+}
+
+type childrenCache struct {
+	cache gcache.Cache
+	mu    sync.RWMutex
+}
+
+func newChilrdenCache(size int, expire time.Duration) *childrenCache {
+	return &childrenCache{
+		cache: gcache.New(size).Simple().Expiration(expire).Build(),
+	}
+}
+
+func (c *childrenCache) AddChildren(parent types.Hash, child types.Hash) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value, err := c.cache.GetIFPresent(parent)
+	var children types.Hashes
+	if err == nil {
+		children = value.(types.Hashes)
+	}
+	for _, h := range children {
+		if h == child {
+			return
+		}
+	}
+	children = append(children, child)
+	if len(children) != 0 {
+		c.cache.Set(parent, children)
+	}
+}
+
+func (c *childrenCache) GetChildren(parent types.Hash) (children types.Hashes) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value, err := c.cache.GetIFPresent(parent)
+	if err == nil {
+		children = value.(types.Hashes)
+	}
+	return
+}
+
+func (c *childrenCache) GetAndRemove(parent types.Hash) (children types.Hashes) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value, err := c.cache.GetIFPresent(parent)
+	if err == nil {
+		children = value.(types.Hashes)
+	} else {
+		return
+	}
+	c.cache.Remove(parent)
+	return
+}
+
+func (c *childrenCache) Remove(parent types.Hash) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.cache.Remove(parent)
+}
+
+func (c *childrenCache) Len() int {
+	return c.cache.Len()
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
@@ -67,6 +131,7 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
 		"dependencyCache":        b.dependencyCache.Len(),
 		"knownCache":             b.knownCache.Len(),
+		//"childrenCache": b.children.Len(),
 	}
 }
 
@@ -99,6 +164,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		quit:                   make(chan bool),
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
+		//children: newChilrdenCache(config.DependencyCacheMaxSize, time.Second*time.Duration(config.DependencyCacheExpirationSeconds)),
 	}
 }
 
@@ -135,13 +201,13 @@ func (b *TxBuffer) loop() {
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
+	b.knownCache.Remove(tx.GetTxHash())
 	for _, verifier := range b.verifiers {
 		if !verifier.Verify(tx) {
 			logrus.WithField("tx", tx).WithField("verifier", verifier.Name()).Warn("bad tx")
 			return
 		}
 	}
-
 	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
@@ -152,7 +218,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
-		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents",tx.Parents()).Debugf("buffer handled tx")
+		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 
@@ -206,6 +272,7 @@ func (b *TxBuffer) GetFromProviders(hash types.Hash) types.Txi {
 
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
+
 func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{
@@ -241,6 +308,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	logrus.WithField("tx", tx).Trace("before cache GetIFPresent")
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+	//children := b.children.GetAndRemove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
@@ -250,10 +318,11 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		b.Announcer.BroadcastNewTx(tx)
 		logrus.WithField("tx", tx).Trace("broadcasted tx")
 	}
-	b.dependencyCache.Remove(tx.GetTxHash())
+	//b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {
+		//if len(children) == 0 {
 		// key not present, already resolved.
 		if firstTime {
 			logrus.WithField("tx", tx).Debug("new local tx")
@@ -268,8 +337,15 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			// self already resolved
 			continue
 		}
-		logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving")
-		b.tryResolve(v)
+		//for _, h := range children {
+		//	v, err := b.knownCache.GetIFPresent(h)
+		//if err != nil {
+		//continue
+		//}
+		//txi := v.(types.Txi)
+		txi := v
+		logrus.WithField("resolved", tx).WithField("resolving", txi).Debugf("cascade resolving")
+		b.tryResolve(txi)
 	}
 }
 
@@ -310,6 +386,8 @@ func (b *TxBuffer) tryResolve(tx types.Txi) {
 	logrus.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
+		//children := b.children.GetChildren(parent)
+		//if len(children) != 0 {
 		if err == nil {
 			// dependency presents.
 			logrus.WithField("parent", parent).WithField("tx", tx).Debugf("cascade resolving is still ongoing")
@@ -338,6 +416,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				b.Syncer.Enqueue(parentHash)
 				b.updateDependencyMap(parentHash, tx)
+				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
 			}
@@ -407,24 +486,38 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			// tx already received by pool. remove from local cache
 			ok := b.knownCache.Remove(tx.GetTxHash())
 			if ok {
-				// try resolve the remaining txs
-				vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-				if err==nil {
-					b.dependencyCache.Remove(tx.GetTxHash())
-					for _, v := range vs.(map[types.Hash]types.Txi) {
-						if v.GetTxHash() == tx.GetTxHash() {
-							// self already resolved
-							continue
-						}
-						if !b.isLocalHash(v.GetTxHash()) &&  b.isCachedHash(v.GetTxHash()) {
-							b.tryResolve(v)
-							logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving after remove")
-						}
-						logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade already resolved")
+				logrus.WithField("tx ", tx).Trace("after remove from known Cache")
+			}
+			// try resolve the remaining txs
+			vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
+			//children := b.children.GetAndRemove(tx.GetTxHash())
+			if err == nil {
+				//if len(children) != 0 {
+				b.dependencyCache.Remove(tx.GetTxHash())
+				for _, v := range vs.(map[types.Hash]types.Txi) {
+					if v.GetTxHash() == tx.GetTxHash() {
+						//self already resolved
+						continue
+					}
+					txi := v
+					if !b.isCachedHash(v.GetTxHash()) {
+						continue
 					}
 
+					//for _, hash := range children {
+					//var txi types.Txi
+					// v, err := b.knownCache.GetIFPresent(hash)
+					//if err == nil {
+					//continue
+					//}
+					//txi = v.(types.Txi)
+					if !b.isLocalHash(txi.GetTxHash()) {
+						b.tryResolve(txi)
+						logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade resolving after remove")
+					}
+					logrus.WithField("resolved", tx).WithField("resolving", v).Debugf("cascade already resolved")
 				}
-				logrus.WithField("tx ",tx).Trace("after remove from known Cache")
+
 			}
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")

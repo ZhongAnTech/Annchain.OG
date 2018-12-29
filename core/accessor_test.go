@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	// Address "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
+	// Secp256k1 Address "0x7349f7a6f622378d5fb0e2c16b9d4a3e5237c187"
 	testPkSecp0 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F00"
 
-	// Address "0x885ab414a52faad7818d064ce2254b6612b93532"
+	// Secp256k1 Address "0x96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406"
 	testPkSecp1 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F01"
 
-	// Address "0x5065e6235a4e389bd1b94419df93d998475628ea"
+	// Secp256k1 Address "0xa70c8a9485441f6fa2141d550c26d793107d3dea"
 	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
 
@@ -230,4 +230,4 @@ func TestBalanceStorage(t *testing.T) {
 }
 
 // Note that nonce is now managed by statedb, so no need to test
-// latest nonce in accessor part. 
+// latest nonce in accessor part.

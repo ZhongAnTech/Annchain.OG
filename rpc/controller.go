@@ -650,12 +650,23 @@ func (r *RpcController) Debug(c *gin.Context) {
 		ret, err := r.DebugQueryContract()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("new contract failed, err: %v", err),
+				"error": fmt.Sprintf("query contract failed, err: %v", err),
 			})
 		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"ret": fmt.Sprintf("%x", ret),
 			})
+		}
+		return
+	case "sc":
+		param := c.Request.URL.Query().Get("param")
+		err := r.DebugSetContract(param)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("set contract failed, err: %v", err),
+			})
+		} else {
+			c.JSON(http.StatusOK, "success")
 		}
 		return
 	}
@@ -683,7 +694,6 @@ func (r *RpcController) DebugCreateContract() error {
 	if err != nil {
 		return err
 	}
-
 	r.TxBuffer.ReceivedNewTxChan <- tx
 	return nil
 }
@@ -700,6 +710,47 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 	callTx.Data, _ = hex.DecodeString(calldata)
 
 	return r.Og.Dag.ProcessTransaction(callTx)
+}
+
+func (r *RpcController) DebugSetContract(n string) error {
+	from := types.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
+	contractAddr := crypto.CreateAddress(from, uint64(1))
+	value := math.NewBigInt(0)
+	curnonce, err := r.Og.Dag.GetLatestNonce(from)
+	if err != nil {
+		return err
+	}
+	nonce := curnonce + 1
+	// "0000000000000000000000000000000000000000000000000000000000000064"
+	setdata := fmt.Sprintf("60fe47b1%s", n)
+	data, err := hex.DecodeString(setdata)
+	if err != nil {
+		return err
+	}
+
+	pubstr := "0x0104a391a55b84e45858748324534a187c60046266b17a5c77161104c4a6c4b1511789de692b898768ff6ee731e2fe068d6234a19a1e20246c968df9c0ca797498e7"
+	pub, err := crypto.PublicKeyFromString(pubstr)
+	if err != nil {
+		return err
+	}
+	sigstr := "6060604052341561000f57600080fd5b600a60008190555060006001819055506102078061002e6000396000f300606060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631c0f72e11461006b57806360fe47b114610094578063c605f76c146100b7578063e5aa3d5814610145575b34600181905550005b341561007657600080fd5b61007e61016e565b6040518082815260200191505060405180910390f35b341561009f57600080fd5b6100b56004808035906020019091905050610174565b005b34156100c257600080fd5b6100ca61017e565b6040518080602001828103825283818151815260200191508051906020019080838360005b8381101561010a5780820151818401526020810190506100ef565b50505050905090810190601f1680156101375780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b341561015057600080fd5b6101586101c1565b6040518082815260200191505060405180910390f35b60015481565b8060008190555050565b6101866101c7565b6040805190810160405280600a81526020017f68656c6c6f576f726c6400000000000000000000000000000000000000000000815250905090565b60005481565b6020604051908101604052806000815250905600a165627a7a723058208e1bdbeee227900e60082cfcc0e44d400385e8811ae77ac6d7f3b72f630f04170029"
+	sigb, _ := hex.DecodeString(sigstr)
+	sig := crypto.SignatureFromBytes(crypto.CryptoTypeSecp256k1, sigb)
+
+	tx, err := r.TxCreator.NewTxWithSeal(from, contractAddr, value, data, nonce, pub, sig)
+	if err != nil {
+		return err
+	}
+	r.TxBuffer.ReceivedNewTxChan <- tx
+
+	// setTx := &types.Tx{}
+	// setTx.From = from
+	// setTx.Value = math.NewBigInt(0)
+	// setTx.To = contractAddr
+	// setTx.Data, _ = hex.DecodeString(setdata)
+
+	// _, err := r.Og.Dag.ProcessTransaction(setTx)
+	return nil
 }
 
 func checkError(err error, c *gin.Context, status int, message string) bool {

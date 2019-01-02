@@ -529,7 +529,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
 		}
-		log.Tracef("onleaf called with address: %s, root: %v, codehash: %v", account.Address.Hex(), account.Root.ToBytes(), account.CodeHash)
+		// log.Tracef("onleaf called with address: %s, root: %v, codehash: %v", account.Address.Hex(), account.Root.ToBytes(), account.CodeHash)
 		if account.Root != emptyStateRoot {
 			sd.db.TrieDB().Reference(account.Root, parent)
 		}

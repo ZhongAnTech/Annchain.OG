@@ -28,18 +28,18 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	// if !v.VerifyHash(t) {
-	// 	logrus.WithField("tx", t).Debug("Hash not valid")
-	// 	return false
-	// }
-	// if !v.VerifySignature(t) {
-	// 	logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-	// 	return false
-	// }
-	// if !v.VerifySourceAddress(t) {
-	// 	logrus.WithField("tx", t).Debug("Source address not valid")
-	// 	return false
-	// }
+	if !v.VerifyHash(t) {
+		logrus.WithField("tx", t).Debug("Hash not valid")
+		return false
+	}
+	if !v.VerifySignature(t) {
+		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
+		return false
+	}
+	if !v.VerifySourceAddress(t) {
+		logrus.WithField("tx", t).Debug("Source address not valid")
+		return false
+	}
 	return true
 }
 

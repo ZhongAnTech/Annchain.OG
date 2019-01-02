@@ -238,19 +238,14 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
-	logrus.WithField("tx", tx).Trace("before cache GetIFPresent")
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
 		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
 	} else {
-		logrus.WithField("tx", tx).Trace("broadcasting tx")
 		b.Announcer.BroadcastNewTx(tx)
-		logrus.WithField("tx", tx).Trace("broadcasted tx")
 	}
 	b.dependencyCache.Remove(tx.GetTxHash())
-	logrus.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {
 		// key not present, already resolved.
@@ -413,7 +408,6 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 
 			// tx already received by pool. remove from local cache
 			b.knownCache.Remove(v.GetTxHash())
-			logrus.Tracef("after remove from known Cache %s", v.GetTxHash().String())
 		case <-b.quit:
 			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
 			return

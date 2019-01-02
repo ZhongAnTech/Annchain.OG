@@ -193,6 +193,9 @@ func (sd *StateDB) getStateObject(addr types.Address) *StateObject {
 			log.Errorf("load stateobject from trie error: %v", err)
 			return nil
 		}
+		if state == nil {
+			return nil
+		}
 		sd.states[addr] = state
 	}
 	return state
@@ -448,6 +451,9 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
+	if data == nil {
+		return nil, nil
+	}
 	var state StateObject
 	err = state.Decode(data, sd)
 	if err != nil {
@@ -500,14 +506,19 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
-		// update state data in current trie.
-		data, _ := state.Encode()
-		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
-			log.Errorf("commit statedb error: %v", err)
+		// commit state's code
+		if state.code != nil && state.dirtycode {
+			sd.db.TrieDB().Insert(state.GetCodeHash(), state.code)
+			state.dirtycode = false
 		}
 		// commit state's storage
 		if err := state.CommitStorage(sd.db); err != nil {
 			log.Errorf("commit state's storage error: %v", err)
+		}
+		// update state data in current trie.
+		data, _ := state.Encode()
+		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
+			log.Errorf("commit statedb error: %v", err)
 		}
 		log.Debugf("committed state addr: %s, nonce: %d", addr.String(), state.GetNonce())
 		delete(sd.dirtyset, addr)
@@ -518,6 +529,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
 		}
+		log.Tracef("onleaf called with address: %s, root: %v, codehash: %v", account.Address.Hex(), account.Root.ToBytes(), account.CodeHash)
 		if account.Root != emptyStateRoot {
 			sd.db.TrieDB().Reference(account.Root, parent)
 		}

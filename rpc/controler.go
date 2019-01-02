@@ -645,7 +645,7 @@ func (r *RpcController) Debug(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusOK, "success")
 		}
-		return 
+		return
 	case "qc":
 		ret, err := r.DebugQueryContract()
 		if err != nil {
@@ -663,7 +663,7 @@ func (r *RpcController) Debug(c *gin.Context) {
 
 func (r *RpcController) DebugCreateContract() error {
 	from := types.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
-	to := types.HexToAddress("0x594a35ba66101523fcd229cb51368d176c405a2f")
+	to := types.BytesToAddress(nil)
 	value := math.NewBigInt(0)
 	nonce := uint64(1)
 

@@ -606,10 +606,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
-	// // remove elders from pool
-	// for _, elder := range elders {
-	// 	pool.remove(elder)
-	// }
 	// solve conflicts of txs in pool
 	pool.solveConflicts(elders)
 

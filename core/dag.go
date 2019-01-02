@@ -82,8 +82,8 @@ type ConfirmBatch struct {
 // BatchDetail describes all the details of a specific address within a
 // sequencer confirmation term.
 // - TxList - represents the txs sent by this addrs, ordered by nonce.
-// - Neg - means the amount this address should spent out.
-// - Pos - means the amount this address get paid.
+// - Neg    - means the amount this address should spent out.
+// - Pos    - means the amount this address get paid.
 type BatchDetail struct {
 	TxList *TxList
 	Neg    *math.BigInt
@@ -495,6 +495,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if err != nil {
 				return err
 			}
+			log.WithField("tx", txi).Tracef("successfully process tx")
 		}
 	}
 

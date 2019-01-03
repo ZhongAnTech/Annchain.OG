@@ -716,7 +716,8 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)
 
-	return r.Og.Dag.ProcessTransaction(callTx)
+	b, _, err := r.Og.Dag.ProcessTransaction(callTx)
+	return b, err
 }
 
 func (r *RpcController) DebugSetContract(n string) error {

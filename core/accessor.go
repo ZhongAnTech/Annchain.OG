@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 
@@ -13,6 +14,8 @@ import (
 var (
 	prefixGenesisKey   = []byte("genesis")
 	prefixLatestSeqKey = []byte("latestseq")
+
+	prefixReceiptKey = []byte("rp")
 
 	prefixTransactionKey     = []byte("tx")
 	prefixTxHashFlowKey      = []byte("fl")
@@ -26,9 +29,10 @@ var (
 
 	prefixAddressBalanceKey = []byte("ba")
 
-	prefixStateKey   = []byte("st")
-	prefixConfimtime = []byte("cf")
+	prefixConfirmtime = []byte("cf")
 )
+
+// TODO encode uint to specific length bytes
 
 func genesisKey() []byte {
 	return prefixGenesisKey
@@ -38,17 +42,20 @@ func latestSequencerKey() []byte {
 	return prefixLatestSeqKey
 }
 
+func receiptKey(seqID uint64) []byte {
+	return append(prefixReceiptKey, encodeUint64(seqID)...)
+}
+
 func transactionKey(hash types.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
 }
 
-func confirmTimeKey(seqId uint64) []byte {
-	suffix := prefixConfimtime
-	return append(prefixConfimtime, append([]byte(strconv.FormatUint(seqId, 10)), suffix...)...)
+func confirmTimeKey(seqID uint64) []byte {
+	return append(prefixConfirmtime, encodeUint64(seqID)...)
 }
 
 func txHashFlowKey(addr types.Address, nonce uint64) []byte {
-	keybody := append(addr.ToBytes(), []byte(strconv.FormatUint(nonce, 10))...)
+	keybody := append(addr.ToBytes(), encodeUint64(nonce)...)
 	return append(prefixTxHashFlowKey, keybody...)
 }
 
@@ -60,18 +67,12 @@ func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
-func seqIdKey(seqid uint64) []byte {
-	suffix := prefixSeqIdKey
-	return append(prefixSeqIdKey, append([]byte(strconv.FormatUint(seqid, 10)), suffix...)...)
+func seqIdKey(seqID uint64) []byte {
+	return append(prefixSeqIdKey, encodeUint64(seqID)...)
 }
 
-func txIndexKey(seqid uint64) []byte {
-	suffix := prefixTxIndexKey
-	return append(prefixTxIndexKey, append([]byte(strconv.FormatUint(seqid, 10)), suffix...)...)
-}
-
-func stateKey(addr types.Address) []byte {
-	return append(prefixStateKey, addr.ToBytes()...)
+func txIndexKey(seqID uint64) []byte {
+	return append(prefixTxIndexKey, encodeUint64(seqID)...)
 }
 
 type Accessor struct {
@@ -220,6 +221,37 @@ func (da *Accessor) readConfirmTime(seqId uint64) *types.ConfirmTime {
 	return &cf
 }
 
+// WriteReceipts write a receipt map into db.
+func (da *Accessor) WriteReceipts(seqID uint64, receipts ReceiptSet) error {
+	data, err := receipts.MarshalMsg(nil)
+	if err != nil {
+		return fmt.Errorf("marshal seq%d's receipts err: %v", seqID, err)
+	}
+	err = da.db.Put(receiptKey(seqID), data)
+	if err != nil {
+		return fmt.Errorf("write seq%d's receipts err: %v", seqID, err)
+	}
+	return nil
+}
+
+// ReadReceipt try get receipt by tx hash and seqID.
+func (da *Accessor) ReadReceipt(seqID uint64, hash types.Hash) *Receipt {
+	bundleBytes, _ := da.db.Get(receiptKey(seqID))
+	if len(bundleBytes) == 0 {
+		return nil
+	}
+	var receipts ReceiptSet
+	_, err := receipts.UnmarshalMsg(bundleBytes)
+	if err != nil {
+		return nil
+	}
+	receipt, ok := receipts[hash.Hex()]
+	if !ok {
+		return nil
+	}
+	return receipt
+}
+
 // WriteTransaction write the tx or sequencer into ogdb.
 func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	var prefix, data []byte
@@ -365,4 +397,14 @@ func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashes) error
 		return err
 	}
 	return da.db.Put(txIndexKey(seqid), data)
+}
+
+/**
+Components
+*/
+
+func encodeUint64(n uint64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, n)
+	return b
 }

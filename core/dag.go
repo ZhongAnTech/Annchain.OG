@@ -291,7 +291,7 @@ func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
-	if tx != nil {
+	if tx == nil {
 		return nil
 	}
 	seqid := tx.GetHeight()

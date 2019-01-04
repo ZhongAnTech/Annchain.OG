@@ -211,7 +211,7 @@ func TestDagProcess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode hex string to bytes error: %v", err)
 	}
-	_, err = dag.ProcessTransaction(createTx)
+	_, _, err = dag.ProcessTransaction(createTx)
 	if err != nil {
 		t.Fatalf("error during contract creation: %v", err)
 	}

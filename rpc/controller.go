@@ -551,8 +551,23 @@ func (r *RpcController) ConstructPayload(c *gin.Context) {
 }
 
 func (r *RpcController) QueryReceipt(c *gin.Context) {
+	hashHex := c.Query("hash")
+	hashBytes, err := hex.DecodeString(hashHex)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("decode hex error: %v", err),
+		})
+		return
+	}
+	hash := types.BytesToHash(hashBytes)
+	receipt := r.Og.Dag.GetReceipt(hash)
+	if receipt == nil {
+		c.JSON(http.StatusNotFound, "can't find receipt")
+		return
+	}
+	receiptJSON := receipt.ToJsonMap()
 	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
+		"message": receiptJSON,
 	})
 }
 

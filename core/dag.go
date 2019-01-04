@@ -286,6 +286,18 @@ func (dag *Dag) GetTxsByNumber(id uint64) []*types.Tx {
 	return dag.getTxs(*hashs)
 }
 
+func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	tx := dag.getTx(hash)
+	if tx != nil {
+		return nil
+	}
+	seqid := tx.GetHeight()
+	return dag.accessor.ReadReceipt(seqid, hash)
+}
+
 func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -501,10 +513,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		}
 	}
 
-	// TODO
-	// get new trie root after commit, then compare new root
-	// to the root in seq. If not equal then return error.
-
 	// save latest sequencer into db
 	batch.Seq.GetBase().Height = batch.Seq.Id
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
@@ -516,9 +524,29 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	receipts[batch.Seq.GetTxHash().Hex()] = receipt
+	// write receipts.
+	err = dag.accessor.WriteReceipts(batch.Seq.Id, receipts)
+	if err != nil {
+		return err
+	}
 
 	// TODO
-	// write receipts.
+	// get new trie root after commit, then compare new root
+	// to the root in seq. If not equal then return error.
+
+	// commit statedb's changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", err)
+		return fmt.Errorf("can't Commit statedb, err: %v", err)
+	}
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, true)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+	}
 
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
@@ -541,20 +569,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSeqencer = batch.Seq
-
-	// commit statedb's changes to trie and triedb
-	root, errdb := dag.statedb.Commit()
-	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: ", err)
-		return fmt.Errorf("can't Commit statedb, err: %v", err)
-	}
-	// flush triedb into diskdb.
-	triedb := dag.statedb.Database().TrieDB()
-	err = triedb.Commit(root, true)
-	if err != nil {
-		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-	}
 
 	// TODO: confirm time is for tps calculation, delete later.
 	cf := types.ConfirmTime{
@@ -679,7 +693,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	//
 	// 1. refund gas
 	// 2. add service fee to coinbase
-	log.Debugf("ret and leftOverGas not used yet, this log is for compiling, ret: %x, leftOverGas: %d", ret, leftOverGas)
+	log.Debugf("leftOverGas not used yet, this log is for compiling, ret: %x, leftOverGas: %d", ret, leftOverGas)
 	return ret, receipt, nil
 }
 

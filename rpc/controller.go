@@ -550,6 +550,13 @@ func (r *RpcController) ConstructPayload(c *gin.Context) {
 	})
 }
 
+type ReceiptResponse struct {
+	TxHash          string `json:"tx_hash"`
+	Status          int    `json:"status"`
+	Result          string `json:"result"`
+	ContractAddress string `json:"contract_address"`
+}
+
 func (r *RpcController) QueryReceipt(c *gin.Context) {
 	hashHex := c.Query("hash")
 	hashBytes, err := hex.DecodeString(hashHex)
@@ -565,9 +572,14 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 		c.JSON(http.StatusNotFound, "can't find receipt")
 		return
 	}
-	receiptJSON := receipt.ToJsonMap()
+
+	rr := ReceiptResponse{}
+	rr.TxHash = receipt.TxHash.Hex()
+	rr.Status = int(receipt.Status)
+	rr.Result = receipt.ProcessResult
+	rr.ContractAddress = receipt.ContractAddress.Hex()
 	c.JSON(http.StatusOK, gin.H{
-		"message": receiptJSON,
+		"message": rr,
 	})
 }
 

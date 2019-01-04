@@ -1,6 +1,7 @@
 package og
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -22,9 +23,11 @@ type Syncer interface {
 	Enqueue(hash types.Hash)
 	ClearQueue()
 }
+
 type Announcer interface {
 	BroadcastNewTx(txi types.Txi)
 }
+
 type ITxPool interface {
 	Get(hash types.Hash) types.Txi
 	AddRemoteTx(tx types.Txi) error
@@ -32,6 +35,7 @@ type ITxPool interface {
 	GetLatestNonce(addr types.Address) (uint64, error)
 	IsLocalHash(hash types.Hash) bool
 }
+
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
@@ -56,10 +60,12 @@ type TxBuffer struct {
 	affmu                  sync.RWMutex
 	SelfGeneratedNewTxChan chan types.Txi
 	ReceivedNewTxChan      chan types.Txi
+	ReceivedNewTxsChan     chan []types.Txi
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
 	//children               *childrenCache //key : phash ,value :
+	//HandlingQueue           txQueue
 }
 
 type childrenCache struct {
@@ -160,6 +166,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
 		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
 		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
+		ReceivedNewTxsChan:     make(chan []types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
@@ -175,7 +182,7 @@ func (b *TxBuffer) Start() {
 }
 
 func (b *TxBuffer) Stop() {
-	logrus.Info("tx bu will stop.")
+	logrus.Info("tx buffer will stop.")
 	close(b.quit)
 }
 
@@ -191,6 +198,8 @@ func (b *TxBuffer) loop() {
 			return
 		case v := <-b.ReceivedNewTxChan:
 			b.handleTx(v)
+		case txs := <-b.ReceivedNewTxsChan:
+			b.handleTxs(txs)
 		case v := <-b.SelfGeneratedNewTxChan:
 			b.handleTx(v)
 		}
@@ -241,6 +250,35 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		// needs to resolve itself first
 		logrus.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
 		b.niceTx(tx, true)
+	}
+}
+
+// in parallel
+func (b *TxBuffer) handleTxs(txs types.Txis) {
+	logrus.WithField("tx", txs).Debug("buffer is handling txs")
+	start := time.Now()
+	defer func() {
+		logrus.WithField("txs", time.Now().Sub(start)).WithField("txs", txs).Debug("buffer handled txs")
+		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
+	}()
+	var validTxs types.Txis
+	for _, tx := range txs {
+		// already in the dag or tx_pool or buffer itself.
+		if b.IsKnownHash(tx.GetTxHash()) {
+			continue
+		}
+		validTxs = append(validTxs, tx)
+		b.knownCache.Set(tx.GetTxHash(), tx)
+	}
+	sort.Sort(validTxs)
+	for _, tx := range validTxs {
+		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
+		if b.buildDependencies(tx) {
+			// directly fulfilled, insert into txpool
+			// needs to resolve itself first
+			logrus.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
+			b.niceTx(tx, true)
+		}
 	}
 }
 
@@ -431,6 +469,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	}
 	return allFetched
 }
+
 func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 	start := time.Now()
 	logrus.WithField("tx", txi).Trace("missing hashes start")
@@ -479,6 +518,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 	}
 	return missingHashes
 }
+
 func (b *TxBuffer) releasedTxCacheLoop() {
 	for {
 		select {

@@ -11,7 +11,7 @@ import (
 )
 
 //go:generate msgp
-type TxBaseType uint
+type TxBaseType uint16
 
 const (
 	TxBaseTypeNormal TxBaseType = iota
@@ -63,7 +63,7 @@ type Txi interface {
 	SetHash(h Hash)
 	String() string
 	Dump() string
-
+	GetOrder() uint32
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
 	MarshalMsg(b []byte) (o []byte, err error)
@@ -81,6 +81,7 @@ type TxBase struct {
 	PublicKey    []byte
 	Signature    []byte
 	MineNonce    uint64
+	Order        uint32
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -89,6 +90,10 @@ func (t *TxBase) GetType() TxBaseType {
 
 func (t *TxBase) GetHeight() uint64 {
 	return t.Height
+}
+
+func (t *TxBase) GetOrder() uint32 {
+	return t.Order
 }
 
 func (t *TxBase) GetTxHash() Hash {
@@ -108,7 +113,7 @@ func (t *TxBase) SetHash(hash Hash) {
 }
 
 func (t *TxBase) String() string {
-	return fmt.Sprintf("%d-[%.10s]", t.Height, t.GetTxHash().Hex())
+	return fmt.Sprintf("%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(),t.Order)
 }
 
 
@@ -147,4 +152,29 @@ func (t Txis) String() string {
 		strs = append(strs,v.String())
 	}
 	return strings.Join(strs, ", ")
+}
+
+
+func (t Txis)Len() int {
+	return len(t)
+}
+
+func (t Txis)Less(i,j int ) bool {
+	if t[i].GetHeight() < t[j].GetHeight() {
+		return  true
+	}
+	if t[i].GetHeight() > t[j].GetHeight() {
+		return false
+	}
+	if t[i].GetOrder() < t[j].GetOrder() {
+		return true
+	}
+	if t[i].GetOrder() > t[j].GetOrder() {
+		return false
+	}
+	return false
+}
+
+func ( t Txis)Swap(i,j int) {
+	t[i],t[j] = t[j],t[i]
 }

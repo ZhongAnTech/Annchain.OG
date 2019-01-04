@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -141,12 +142,20 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
 		var tx types.Tx
-		tx.UnmarshalMsg(data)
+		_,err:= tx.UnmarshalMsg(data)
+		if err!=nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
 		var sq types.Sequencer
-		sq.UnmarshalMsg(data)
+		_,err:= sq.UnmarshalMsg(data)
+		if err!=nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &sq
 	}
 	return nil

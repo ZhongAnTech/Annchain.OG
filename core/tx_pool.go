@@ -83,6 +83,7 @@ type TxPool struct {
 	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                       //for broadcasting new latest sequencer to record height
+	txNum               uint32
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -378,10 +379,10 @@ func (pool *TxPool) ClearAll() {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.clearall()
+	pool.clearAll()
 }
 
-func (pool *TxPool) clearall() {
+func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
@@ -420,10 +421,17 @@ func (pool *TxPool) loop() {
 			case *types.Tx:
 				err = pool.commit(tx)
 				//if err is not nil , item removed inside commit
+				if err==nil {
+					pool.txNum++
+					tx.GetBase().Order = pool.txNum
+					tx.GetBase().Height = pool.dag.LatestSequencer().Id+1   //temporary height ,will be re write after confirm
+				}
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 				if err!=nil {
 					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
+				}else {
+					pool.txNum = 0
 				}
 			}
 			pool.mu.Unlock()
@@ -793,7 +801,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		}
 		txsInPool = append(txsInPool, tx)
 	}
-	pool.clearall()
+	pool.clearAll()
 	for _, tx := range txsInPool {
 		log.WithField("tx", tx).Tracef("start rejudge")
 		txEnv := &txEnvelope{

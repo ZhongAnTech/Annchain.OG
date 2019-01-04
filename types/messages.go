@@ -57,12 +57,16 @@ func (m *MessageSyncRequest) String() string {
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
 	RawTxs        RawTxs
+	//SequencerIndex  []uint32
 	RawSequencers RawSequencers
 	RequestedId   uint32 //avoid msg drop
 }
 
 func (m *MessageSyncResponse) String() string {
-	return fmt.Sprintf("txs: [%s], seqs: [%s] ,requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
+	//for _,i := range m.SequencerIndex {
+		//index = append(index ,fmt.Sprintf("%d",i))
+	//}
+	return fmt.Sprintf("txs: [%s], seqs: [%s],requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx

@@ -90,8 +90,6 @@ func (t *TxCache)Refresh() {
 }
 
 
-
-
 func (c*TxCache)DeQueueBatch(count int) (txs types.Txis,err error) {
 	_, values,err:=  c.cache.DeQueueBatch(count)
 	if err!=nil {
@@ -104,9 +102,74 @@ func (c*TxCache)DeQueueBatch(count int) (txs types.Txis,err error) {
 	return txs,nil
 }
 
+// Add tx into txCache
+func (t *TxCache) Prepend(tx  types.Txi) error {
+	start := time.Now()
+	err:=  t.cache.Prepend(tx.GetTxHash(),tx)
+	log.WithField("Prepend tx",tx).WithField("used",time.Now().Sub(start)).Debug("Prepend total")
+	return err
+}
 
+
+func (c*TxCache) PrependBatchTxs( txs types.Txs) error {
+	if len(txs) == 0 {
+		return nil
+	}
+	var  keys []interface{}
+	var values  []interface{}
+	for _,tx := range txs {
+		keys =  append(keys,tx.GetTxHash())
+		txi := types.Txi(tx)
+		values = append(values,txi)
+	}
+	return c.cache.PrependBatch(keys,values)
+}
+
+func (c*TxCache) PrependBatchTxis( txis types.Txis) error {
+	if len(txis) == 0 {
+		return nil
+	}
+	var  keys []interface{}
+	var values  []interface{}
+	for _,tx := range txis {
+		keys =  append(keys,tx.GetTxHash())
+		txi := types.Txi(tx)
+		values = append(values,txi)
+	}
+	return c.cache.PrependBatch(keys,values)
+}
+
+func (c*TxCache) PrependBatchSeqs( seqs types.Sequencers) error {
+	if len(seqs) == 0 {
+		return nil
+	}
+	var  keys []interface{}
+	var values  []interface{}
+	for _,tx := range seqs {
+		keys =  append(keys,tx.GetTxHash())
+		txi := types.Txi(tx)
+		values = append(values,txi)
+	}
+	return c.cache.PrependBatch(keys,values)
+}
+
+func (c*TxCache) PrependBatch( txs types.Txis) error {
+	if len(txs) == 0 {
+		return nil
+	}
+	var  keys []interface{}
+	var values  []interface{}
+	for _,tx := range txs {
+		keys =  append(keys,tx.GetTxHash())
+		values = append(values,tx)
+	}
+	return c.cache.PrependBatch(keys,values)
+}
 
 func (c*TxCache) EnQueueBatchTxs( txs types.Txs) error {
+	if len(txs) == 0 {
+		return nil
+	}
      var  keys []interface{}
      var values  []interface{}
      for _,tx := range txs {
@@ -117,7 +180,24 @@ func (c*TxCache) EnQueueBatchTxs( txs types.Txs) error {
 	return c.cache.EnQueueBatch(keys,values)
 }
 
+func (c*TxCache) EnQueueBatchSeqs( seqs types.Sequencers) error {
+	if len(seqs) == 0 {
+		return nil
+	}
+	var  keys []interface{}
+	var values  []interface{}
+	for _,tx := range seqs {
+		keys =  append(keys,tx.GetTxHash())
+		txi := types.Txi(tx)
+		values = append(values,txi)
+	}
+	return c.cache.EnQueueBatch(keys,values)
+}
+
 func (c*TxCache) EnQueueBatch( txs types.Txis) error {
+	if len(txs) == 0 {
+		return nil
+	}
 	var  keys []interface{}
 	var values  []interface{}
 	for _,tx := range txs {

@@ -194,3 +194,30 @@ func TestTxCache_DeQueueBatch(t *testing.T) {
 	}
 	fmt.Println(c.cache.Len(),"used",time.Now().Sub(start))
 }
+
+func TestTxCache_AddFrontBatch(t *testing.T) {
+	c:= newTestTxcache()
+	start := time.Now()
+	var txis [] *types.Tx
+	for i:=0; i<100;i++{
+		tx:= types.RandomTx()
+		txis = append(txis,tx)
+		//begin := time.Now()
+		//fmt.Println(time.Now().Sub(begin).String(),"enqueue")
+		if i%20==0 {
+			fmt.Println("top,i", c.GetTop())
+		}
+		//fmt.Println(time.Now().Sub(begin).String(),"done")
+	}
+    c.AddFrontBatchTxs(txis)
+	for i:=0; i<100;i++{
+		tx := c.DeQueue()
+		if tx!= txis[i] {
+			t.Fatal("diff ", tx ,txis[i])
+		}
+		if i%20==0 {
+			t.Log("same ", tx ,txis[i])
+		}
+	}
+	fmt.Println(c.cache.Len(),"used",time.Now().Sub(start))
+}

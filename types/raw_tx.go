@@ -8,12 +8,14 @@ import (
 
 //go:generate msgp
 
+
 // compress data ,for p2p  , small size
 type RawTx struct {
 	TxBase
 	To    Address
 	Value *math.BigInt
 }
+
 
 type RawSequencer struct {
 	TxBase
@@ -25,17 +27,6 @@ type RawSequencers []*RawSequencer
 
 type RawTxs        []*RawTx
 
-func (s RawSequencers) ToHeders() []*SequencerHeader {
-	if len(s) == 0 {
-		return nil
-	}
-	var headers []*SequencerHeader
-	for _, v := range s {
-		head := NewSequencerHead(v.Hash, v.Id)
-		headers = append(headers, head)
-	}
-	return headers
-}
 
 func (t *RawTx) Tx() *Tx {
 	if t == nil {
@@ -62,6 +53,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
 }
+
 
 func (t *RawTx) String() string {
 	return fmt.Sprintf("%s-%d-RawTx", t.TxBase.String(), t.AccountNonce)

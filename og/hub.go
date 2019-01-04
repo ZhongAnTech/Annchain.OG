@@ -492,7 +492,7 @@ func (h *Hub) broadcastMessage(msg *P2PMessage) {
 
 //multicastMessage
 func (h *Hub) multicastMessage(msg *P2PMessage) error {
-	peers := h.peers.GetRandomPeers(2)
+	peers := h.peers.GetRandomPeers(3)
 	// choose random peer and then send.
 	for _, peer := range peers {
 		peer.AsyncSendMessage(msg)

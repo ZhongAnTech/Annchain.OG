@@ -172,6 +172,7 @@ func NewNode() *Node {
 			BufferedIncomingTxCacheMaxSize:           40000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
+			NewTxsChannelSize:20,
 		}, m, org.TxPool.GetHashOrder,org.TxBuffer.IsKnownHash,
 		heighter,syncManager.CatchupSyncer.CacheNewTxEnabled)
 	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer,org.NewLatestSequencerCh,
@@ -184,7 +185,7 @@ func NewNode() *Node {
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
-	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
+	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxsChan)
 
 	txBuffer.Syncer = syncManager.IncrementalSyncer
 	announcer := syncer.NewAnnouncer(m)

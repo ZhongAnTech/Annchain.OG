@@ -235,12 +235,20 @@ func (dag*Dag)GetOldTx(addr types.Address, nonce uint64) types.Txi{
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
 		var tx types.Tx
-		tx.UnmarshalMsg(data)
+		_,err:= tx.UnmarshalMsg(data)
+		if err!=nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
 		var sq types.Sequencer
-		sq.UnmarshalMsg(data)
+		_,err := sq.UnmarshalMsg(data)
+		if err!=nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &sq
 	}
 	return nil

@@ -37,6 +37,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
 	var txs []*types.RawTx
 	var seqs []*types.RawSequencer
+	var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
 		err := syncRequest.Filter.Decode()
@@ -62,6 +63,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 				if dagHashes!=nil {
 					filterHashes = *dagHashes
 				}
+				filterHashes = append(filterHashes,h.Og.Dag.LatestSequencer().GetTxHash())
 			}
 			msgLog.WithField("len ", len(filterHashes)).Trace("get hashes")
 			for _, hash := range filterHashes {
@@ -83,6 +85,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 						tx := txi.(*types.Tx)
 						txs = append(txs, tx.RawTx())
 					} else {
+						//index = append(index, uint32(len(txs)))
 						seq := txi.(*types.Sequencer)
 						seqs = append(seqs, seq.RawSequencer())
 					}
@@ -90,8 +93,9 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			}
 			if height <= ourHeight -2 {
 				dagTxs :=  h.Og.Dag.GetTxsByNumber(height+2)
-				txs =  append(dagTxs.ToRawTxs(),txs...)
-				seqs = append(types.RawSequencers{ h.Og.Dag.GetSequencerById(height+2).RawSequencer()}, seqs...)
+				txs =  append(txs,dagTxs.ToRawTxs()...)
+				//index = append(index, uint32(len(txs)))
+				seqs = append(seqs,h.Og.Dag.GetSequencerById(height+2).RawSequencer())
 			}
 			msgLog.WithField("len seqs",len(seqs)).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
 		}
@@ -106,6 +110,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			}
 			switch tx := txi.(type) {
 			case *types.Sequencer:
+				index = append(index, uint32(len(txs)))
 				seqs = append(seqs, tx.RawSequencer())
 			case *types.Tx:
 				txs = append(txs, tx.RawTx())
@@ -120,6 +125,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 		syncResponse := types.MessageSyncResponse{
 			RawTxs:        txs,
 			RawSequencers: seqs,
+			//SequencerIndex: index,
 		}
 		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
 	} else {
@@ -254,6 +260,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 
 		for _, rawtx := range request.RawTxs {
 			tx := rawtx.Tx()
+			//todo add to txcache first
 			h.Og.TxBuffer.ReceivedNewTxChan <- tx
 			// <-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
 		}
@@ -401,7 +408,7 @@ func (c *Cache) removeItems(id uint64) {
 func (c *Cache) clean(lseqId uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for k, _ := range c.cache {
+	for k := range c.cache {
 		if k <= lseqId {
 			delete(c.cache, k)
 		}

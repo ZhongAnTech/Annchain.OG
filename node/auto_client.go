@@ -2,10 +2,11 @@ package node
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/math"
@@ -36,8 +37,8 @@ type AutoClient struct {
 	ManualChan chan types.TxBaseType
 	quit       chan bool
 
-	pause bool
-	testMode  bool
+	pause    bool
+	testMode bool
 
 	wg sync.WaitGroup
 
@@ -189,7 +190,7 @@ func (c *AutoClient) fireTxs(me types.Address) bool {
 	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
-			return  true
+			return true
 		}
 		time.Sleep(time.Duration(m) * time.Microsecond)
 		txi := c.Delegate.Dag.GetOldTx(me, i)
@@ -215,7 +216,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 			logrus.WithField("txi", txi).Info("get start test tps")
 			c.AutoTxEnabled = false
 			c.AutoSequencerEnabled = false
-			c.testMode  = true
+			c.testMode = true
 			firstTx = true
 			c.Delegate.Announce(txi)
 			return c.fireTxs(me.Address)
@@ -264,7 +265,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
-		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Info("Generated seq")
+		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
 	c.Delegate.Announce(seq)
 	return true
 }

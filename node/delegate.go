@@ -54,7 +54,7 @@ func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
 		err = fmt.Errorf("delegate failed to seal seq")
 		return
 	}
-	logrus.WithField("seq", seq).Infof("sequencer generated")
+	logrus.WithField("seq", seq).Trace("sequencer generated")
 	return
 }
 
@@ -82,6 +82,5 @@ func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 func (c *Delegate) Announce(txi types.Txi) {
 	for _, ch := range c.OnNewTxiGenerated {
 		ch <- txi
-		// <-ffchan.NewTimeoutSenderShort(ch, txi, fmt.Sprintf("OnNewTxiGenerated_%d", i)).C
 	}
 }

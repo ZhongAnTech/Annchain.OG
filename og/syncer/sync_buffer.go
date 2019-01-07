@@ -133,7 +133,7 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var keys []types.Hash
-	for k, _ := range s.Txs {
+	for k := range s.Txs {
 		keys = append(keys, k)
 	}
 	return keys
@@ -142,7 +142,7 @@ func (s *SyncBuffer) GetAllKeys() []types.Hash {
 func (s *SyncBuffer) clean() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for k, _ := range s.Txs {
+	for k := range s.Txs {
 		delete(s.Txs, k)
 	}
 	s.TxsList = nil
@@ -172,11 +172,11 @@ func (s *SyncBuffer) Handle() error {
 		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
-		//if !s.formatVerifier.Verify(tx) {
-		//	log.WithField("tx", tx).Warn("bad tx format")
-		//	err = errors.New("bad tx format")
-		//	break
-		//}
+		if !s.formatVerifier.Verify(tx) {
+			log.WithField("tx", tx).Warn("bad tx format")
+			err = errors.New("bad tx format")
+			break
+		}
 
 		if !s.graphVerifier.Verify(tx) {
 			log.WithField("tx", tx).Warn("bad tx graph")

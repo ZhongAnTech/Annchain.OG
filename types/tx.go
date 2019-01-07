@@ -101,7 +101,7 @@ func (t *Tx) GetValue() *math.BigInt {
 	return t.Value
 }
 
-func (t *Tx) Parents() []Hash {
+func (t *Tx) Parents() Hashes {
 	return t.ParentsHash
 }
 
@@ -128,7 +128,7 @@ func (t *Tx) Dump() string {
 	}
 	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ,"+
 		"height %d ,mined Nonce %v type %v", t.Hash.Hex(),
-		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
+		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type)
 }
 func (t *Tx) RawTx() *RawTx {
@@ -141,4 +141,24 @@ func (t *Tx) RawTx() *RawTx {
 		Value:  t.Value,
 	}
 	return rawTx
+}
+
+func (t Txs) String() string {
+	var strs []string
+	for _, v := range t {
+		strs = append(strs,v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (t Txs)ToRawTxs()RawTxs {
+	if len(t) == 0 {
+		return nil
+	}
+	var rawTxs []*RawTx
+	for _, v := range t {
+		rasTx := v.RawTx()
+		rawTxs = append(rawTxs, rasTx)
+	}
+	return rawTxs
 }

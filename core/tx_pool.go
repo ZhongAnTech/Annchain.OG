@@ -57,6 +57,14 @@ const (
 	TxQualityIsFatal
 )
 
+type hashOrderRemoveType byte
+
+const (
+	noRemove hashOrderRemoveType = iota
+	removeFromFront
+	removeFromEnd
+)
+
 type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
@@ -75,7 +83,7 @@ type TxPool struct {
 
 	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer chan bool                       //for broadcasting new latest sequencer to record height
+	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -91,18 +99,17 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:                 conf,
-		dag:                  d,
-		queue:                make(chan *txEvent, conf.QueueSize),
-		tips:                 NewTxMap(),
-		badtxs:               NewTxMap(),
-		pendings:             NewTxMap(),
-		flows:                NewAccountFlows(),
-		txLookup:             newTxLookUp(),
-		close:                make(chan struct{}),
-		onNewTxReceived:      make(map[string]chan types.Txi),
-		OnBatchConfirmed:     []chan map[types.Hash]types.Txi{},
-		OnNewLatestSequencer: make(chan bool),
+		conf:             conf,
+		dag:              d,
+		queue:            make(chan *txEvent, conf.QueueSize),
+		tips:             NewTxMap(),
+		badtxs:           NewTxMap(),
+		pendings:         NewTxMap(),
+		flows:            NewAccountFlows(),
+		txLookup:         newTxLookUp(),
+		close:            make(chan struct{}),
+		onNewTxReceived:  make(map[string]chan types.Txi),
+		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
 	}
 	return pool
 }
@@ -340,14 +347,14 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
 
 // Remove totally removes a tx from pool, it checks badtxs, tips,
 // pendings and txlookup.
-func (pool *TxPool) Remove(tx types.Txi) {
+func (pool *TxPool) Remove(tx types.Txi, removeType hashOrderRemoveType) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.remove(tx)
+	pool.remove(tx, removeType)
 }
 
-func (pool *TxPool) remove(tx types.Txi) {
+func (pool *TxPool) remove(tx types.Txi, removeType hashOrderRemoveType) {
 	status := pool.getStatus(tx.GetTxHash())
 	if status == TxStatusBadTx {
 		pool.badtxs.Remove(tx.GetTxHash())
@@ -360,7 +367,7 @@ func (pool *TxPool) remove(tx types.Txi) {
 		pool.pendings.Remove(tx.GetTxHash())
 		pool.flows.Remove(tx)
 	}
-	pool.txLookup.Remove(tx.GetTxHash())
+	pool.txLookup.Remove(tx.GetTxHash(), removeType)
 }
 
 // ClearAll removes all the txs in the pool.
@@ -406,20 +413,20 @@ func (pool *TxPool) loop() {
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
 			}
-
-			pool.txLookup.Add(txEvent.txEnv)
 			pool.mu.Lock()
+			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
 			case *types.Tx:
 				err = pool.commit(tx)
+				//if err is not nil , item removed inside commit
 			case *types.Sequencer:
 				err = pool.confirm(tx)
+				if err != nil {
+					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
+				}
 			}
 			pool.mu.Unlock()
 
-			if err != nil {
-				pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash())
-			}
 			txEvent.callbackChan <- err
 
 			// TODO case reset?
@@ -471,7 +478,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	// check tx's quality.
 	txquality := pool.isBadTx(tx)
 	if txquality == TxQualityIsFatal {
-		pool.remove(tx)
+		pool.remove(tx, removeFromEnd)
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
@@ -498,7 +505,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 		// remove sequencer from pool
 		if parent.GetType() == types.TxBaseTypeSequencer {
 			pool.tips.Remove(pHash)
-			pool.txLookup.Remove(pHash)
+			pool.txLookup.Remove(pHash, removeFromFront)
 			continue
 		}
 		// move parent to pending
@@ -620,10 +627,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
 		c <- elders
-		// <-ffchan.NewTimeoutSenderShort(c, elders, "batchConfirmed").C
 	}
-	pool.OnNewLatestSequencer <- true
-	// <-ffchan.NewTimeoutSenderShort(pool.OnNewLatestSequencer, true, "notifyLatestSequencer").C
+	for _, c := range pool.OnNewLatestSequencer {
+		c <- true
+	}
 
 	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
 	return nil
@@ -647,12 +654,10 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	seekingPool := []types.Hash{}
 	for _, parentHash := range baseTx.Parents() {
 		seekingPool = append(seekingPool, parentHash)
-		// seekingPool.PushBack(parentHash)
 	}
 	for len(seekingPool) > 0 {
 		elderHash := seekingPool[0]
 		seekingPool = seekingPool[1:]
-		// elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
 
 		elder := pool.get(elderHash)
 		if elder == nil {
@@ -668,7 +673,6 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool = append(seekingPool, elderParentHash)
-				// seekingPool.PushBack(elderParentHash)
 				inSeekingPool[elderParentHash] = 0
 			}
 		}
@@ -768,7 +772,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
 	for elderhash := range elders {
-		pool.txLookup.Remove(elderhash)
+		pool.txLookup.RemoveTxFromMapOnly(elserHash)
 	}
 	txsInPool := []types.Txi{}
 	for _, hash := range pool.txLookup.getorder() {
@@ -780,6 +784,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
 		if tx.GetType() == types.TxBaseTypeSequencer {
+			log.WithField("found seq", tx).Warn("shoud never come here")
 			continue
 		}
 		txsInPool = append(txsInPool, tx)
@@ -953,29 +958,48 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 }
 
 // Remove tx from txLookUp
-func (t *txLookUp) Remove(h types.Hash) {
+func (t *txLookUp) Remove(h types.Hash, removeType hashOrderRemoveType) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.remove(h)
+	t.remove(h, removeType)
 }
-func (t *txLookUp) remove(h types.Hash) {
-	for i, hash := range t.order {
-		if hash.Cmp(h) == 0 {
-			t.order = append(t.order[:i], t.order[i+1:]...)
+
+func (t *txLookUp) remove(h types.Hash, removeType hashOrderRemoveType) {
+	switch removeType {
+	case noRemove:
+		log.Trace("no remove")
+	case removeFromFront:
+		for i, hash := range t.order {
+			if hash.Cmp(h) == 0 {
+				t.order = append(t.order[:i], t.order[i+1:]...)
+				break
+			}
 		}
+
+	case removeFromEnd:
+		j := -1
+		for i := len(t.order) - 1; i >= 0; i-- {
+			hash := t.order[i]
+			if hash.Cmp(h) == 0 {
+				t.order = append(t.order[:i], t.order[i+1:]...)
+				break
+			}
+		}
+	default:
+		panic("unknown remove type")
 	}
 	delete(t.txs, h)
 }
 
 // RemoveTx removes tx from txLookUp.txs only, ignore the order.
-func (t *txLookUp) RemoveTx(h types.Hash) {
+func (t *txLookUp) RemoveTxFromMapOnly(h types.Hash) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.removeTx(h)
+	t.removeTxFromMapOnly(h)
 }
-func (t *txLookUp) removeTx(h types.Hash) {
+func (t *txLookUp) removeTxFromMapOnly(h types.Hash) {
 	delete(t.txs, h)
 }
 
@@ -986,6 +1010,7 @@ func (t *txLookUp) RemoveByIndex(i int) {
 
 	t.removeByIndex(i)
 }
+
 func (t *txLookUp) removeByIndex(i int) {
 	if (i < 0) || (i >= len(t.order)) {
 		return
@@ -1003,8 +1028,21 @@ func (t *txLookUp) GetOrder() []types.Hash {
 
 	return t.getorder()
 }
+
 func (t *txLookUp) getorder() []types.Hash {
 	return t.order
+}
+
+// Order returns hash list of txs in pool, ordered by the time
+// it added into pool.
+func (t *txLookUp) ResetOrder() {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	t.resetOrder()
+}
+
+func (t *txLookUp) resetOrder() {
+	t.order = nil
 }
 
 // Count returns the total number of txs in txLookUp

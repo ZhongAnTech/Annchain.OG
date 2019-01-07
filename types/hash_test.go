@@ -1,6 +1,9 @@
 package types
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestHash(t *testing.T) {
 
@@ -13,4 +16,6 @@ func TestHash(t *testing.T) {
 	if nHash.Empty() {
 		t.Fatalf("fail")
 	}
+	 hashes := Hashes{nHash,emHash}
+	fmt.Println(hashes.String())
 }

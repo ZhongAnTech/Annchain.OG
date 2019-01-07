@@ -7,10 +7,13 @@ import (
 
 func TestNewSequencerHead(t *testing.T) {
 
-	var seqs []*Sequencer
+	var seqs Sequencers
 	for i := 0; i < 3; i++ {
 		s := Sequencer{
 			Id: uint64(i),
+			TxBase : TxBase{
+				Hash:randomHash(),
+			},
 		}
 		seqs = append(seqs, &s)
 	}
@@ -19,7 +22,7 @@ func TestNewSequencerHead(t *testing.T) {
 		fmt.Println(*seqs[i])
 	}
 
-	headres := SeqsToHeaders(seqs)
+	headres := seqs.ToHeaders()
 	for i := 0; i < 3; i++ {
 		fmt.Println(headres[i])
 		//fmt.Println(*headres[i])

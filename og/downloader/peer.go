@@ -74,8 +74,8 @@ type peerConnection struct {
 // Peer encapsulates the methods required to synchronise with a remote full peer.
 type Peer interface {
 	Head() (types.Hash, uint64)
-	RequestHeadersByHash(types.Hash, int, int, bool) error
-	RequestHeadersByNumber(uint64, int, int, bool) error
+	RequestHeadersByHash( origin types.Hash, amount int, skip int, reverse bool) error
+	RequestHeadersByNumber(origin uint64,  amount int, skip int, reverse bool) error
 	//RequestSequencerByHash(types.Hash, int, int, bool) error
 	//RequestSequencerByNumber(uint64, int, int, bool) error
 	//RequestTxs([]types.Hash) error

@@ -23,7 +23,6 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
-	BootstrapNode bool
 	NetworkId     uint64
 	CryptoType    crypto.CryptoType
 	quit          chan bool
@@ -39,15 +38,17 @@ func (og *Og) GetCurrentNodeStatus() StatusData {
 	}
 }
 
+func (og*Og)GetHeight() uint64 {
+	return   og.Dag.LatestSequencer().Id
+}
+
 type OGConfig struct {
-	BootstrapNode bool //start accept txs even if no peers
 	NetworkId     uint64
 	CryptoType    crypto.CryptoType
 }
 
 func DefaultOGConfig() OGConfig {
 	config := OGConfig{
-		BootstrapNode: false,
 		NetworkId:     1,
 	}
 	return config
@@ -56,12 +57,16 @@ func DefaultOGConfig() OGConfig {
 func NewOg(config OGConfig) (*Og, error) {
 	og := &Og{
 		quit: make(chan bool),
+		NewLatestSequencerCh: make(chan  bool),
 	}
 
-	og.BootstrapNode = config.BootstrapNode
 	og.NetworkId = config.NetworkId
 	og.CryptoType = config.CryptoType
 	db, derr := CreateDB()
+	if derr != nil {
+		return nil, derr
+	}
+	olddb, derr := GetOldDb()
 	if derr != nil {
 		return nil, derr
 	}
@@ -70,7 +75,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db)
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db,olddb)
 	if derr != nil {
 		return nil, derr
 	}
@@ -135,6 +140,7 @@ func (og *Og) Start() {
 
 	logrus.Info("OG Started")
 }
+
 func (og *Og) Stop() {
 	// Quit fetcher, txsyncLoop.
 	close(og.quit)
@@ -162,6 +168,18 @@ func CreateDB() (ogdb.Database, error) {
 	}
 }
 
+func GetOldDb()(ogdb.Database, error) {
+	switch viper.GetString("db.name") {
+	case "leveldb":
+		path := viper.GetString("leveldb.path")+"test"
+		cache := viper.GetInt("leveldb.cache")
+		handles := viper.GetInt("leveldb.handles")
+		return ogdb.NewLevelDB(path, cache, handles)
+	default:
+		return ogdb.NewMemDatabase(), nil
+	}
+}
+
 func (og *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
@@ -177,13 +195,14 @@ func (og *Og) BrodcastLatestSequencer() {
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
+			logrus.Debug("sequencer updated")
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			msg := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
 			// latest sequencer updated , broadcast it
 			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 		case <-og.quit:
-			logrus.Info("hub BrodcastLatestSequencer reeived quit message. Quitting...")
+			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return
 		}
 	}

@@ -211,3 +211,52 @@ func (z Hashes) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize + (len(z) * (7 + (HashLength * (msgp.ByteSize))))
 	return
 }
+
+// DecodeMsg implements msgp.Decodable
+func (z *Padding) DecodeMsg(dc *msgp.Reader) (err error) {
+	{
+		var zb0001 uint
+		zb0001, err = dc.ReadUint()
+		if err != nil {
+			return
+		}
+		(*z) = Padding(zb0001)
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z Padding) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteUint(uint(z))
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z Padding) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendUint(o, uint(z))
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *Padding) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	{
+		var zb0001 uint
+		zb0001, bts, err = msgp.ReadUintBytes(bts)
+		if err != nil {
+			return
+		}
+		(*z) = Padding(zb0001)
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z Padding) Msgsize() (s int) {
+	s = msgp.UintSize
+	return
+}

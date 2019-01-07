@@ -19,6 +19,12 @@ type SyncStatus struct {
 
 //Status node status
 func (r *RpcController) SyncStatus(c *gin.Context) {
+	status := r.syncStatus()
+	cors(c)
+	c.JSON(http.StatusOK, status)
+}
+
+func (r *RpcController)syncStatus() SyncStatus {
 	var status SyncStatus
 
 	status = SyncStatus{
@@ -38,9 +44,7 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 		status.BestPeer = peerId
 
 	}
-
-	cors(c)
-	c.JSON(http.StatusOK, status)
+	return status
 }
 
 func (r *RpcController) Performance(c *gin.Context) {

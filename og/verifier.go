@@ -36,25 +36,21 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
-	if !v.VerifySourceAddress(t) {
-		logrus.WithField("tx", t).Debug("Source address not valid")
-		return false
-	}
 	return true
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 	calMinedHash := t.CalcMinedHash()
 	if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", calMinedHash.String()).Debug("MinedHash is not less than MaxMinedHash")
+		logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
 		return false
 	}
 	if t.CalcTxHash() != t.GetTxHash() {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not aligned with content")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
 		return false
 	}
 	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not less than MaxTxHash")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}
 	return true

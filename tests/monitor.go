@@ -88,7 +88,7 @@ Out:
 			} else {
 				s.PeersNum[l] = 1
 			}
-			m.Peers = nil
+			//m.Peers = nil
 		}
 		monitors := Monitors{ms}
 		data, _ := json.MarshalIndent(&monitors, "", "\t")

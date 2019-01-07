@@ -73,6 +73,7 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 
 type NodeStatusDataProvider interface {
 	GetCurrentNodeStatus() StatusData
+	GetHeight       () uint64
 }
 
 type PeerProvider interface {
@@ -234,7 +235,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	//log.Debug("start handle p2p messgae ",p2pMsg.MessageType)
 	switch {
 	case p2pMsg.MessageType == StatusMsg:
-		// Handle the message depending on its contentsms
+		// Handle the message depending on its contents
 
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
@@ -504,14 +505,14 @@ func (h *Hub) multicastMessage(msg *P2PMessage) error {
 //multicastMessageToSource
 func (h *Hub) multicastMessageToSource(msg *P2PMessage) error {
 	if msg.SourceHash == nil {
-		msgLog.Warn("source msg hash is nil , multuicast to random ")
+		msgLog.Warn("source msg hash is nil , multicast to random ")
 		return h.multicastMessage(msg)
 	}
 	ids := h.getMsgFromCache(*msg.SourceHash)
 	//send to 2 peer , considering if one peer disconnect,
 	peers := h.peers.GetPeers(ids, 2)
 	if len(peers) == 0 {
-		msgLog.WithField("type ", msg.MessageType).WithField("peeers id ", ids).Warn("not found source peers, multicast to random")
+		msgLog.WithField("type ", msg.MessageType).WithField("peers id ", ids).Warn("not found source peers, multicast to random")
 		return h.multicastMessage(msg)
 	}
 	// choose random peer and then send.
@@ -534,7 +535,7 @@ func (h *Hub) cacheMessage(m *P2PMessage) (exists bool) {
 		exists = true
 		//var peers []string
 		peers = a.([]string)
-		msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("peers", peers).WithField("type", m.MessageType.String()).
+		msgLog.WithField("from ", m.SourceID).WithField("hash", m.hash).WithField("peers", peers).WithField("type", m.MessageType).
 			Trace("we have a duplicate message. Discard")
 		if len(peers) == 0 {
 			msgLog.Error("peers is nil")
@@ -568,8 +569,8 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 		}
 	}
 	if v, ok := h.CallbackRegistry[msg.MessageType]; ok {
-		msgLog.WithField("type", msg.MessageType.String()).WithField("from", msg.SourceID).WithField(
-			"Message", msg.Message.String()).WithField("len ", len(msg.data)).Trace("received a message")
+		msgLog.WithField("type", msg.MessageType).WithField("from", msg.SourceID).WithField(
+			"Message", msg.Message).WithField("len ", len(msg.data)).Trace("received a message")
 		v(msg)
 	} else {
 		msgLog.WithField("from", msg.SourceID).WithField("type", msg.MessageType).Debug("Received an Unknown message")

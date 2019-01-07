@@ -65,7 +65,7 @@ func DumpStack() {
 		logrus.WithField("obj", err).Error("Fatal error occurred. Program will exit")
 		var buf bytes.Buffer
 		stack := debug.Stack()
-		buf.WriteString(fmt.Sprintf("Panic: %s\n", err))
+		buf.WriteString(fmt.Sprintf("Panic: %v\n", err))
 		buf.Write(stack)
 		dumpName := "dump_" + time.Now().Format("20060102-150405")
 		nerr := ioutil.WriteFile(dumpName, buf.Bytes(), 0644)
@@ -102,7 +102,7 @@ func init() {
 	viper.SetDefault("hub.outgoing_buffer_size", 10)
 	viper.SetDefault("hub.incoming_buffer_size", 10)
 	viper.SetDefault("hub.message_cache_expiration_seconds", 60)
-	viper.SetDefault("hub.message_cache_max_size", 3000)
+	viper.SetDefault("hub.message_cache_max_size", 30000)
 	viper.SetDefault("crypto.algorithm", "secp256k1")
 
 	viper.SetDefault("max_tx_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")

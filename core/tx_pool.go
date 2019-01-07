@@ -772,7 +772,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
 	for elderhash := range elders {
-		pool.txLookup.RemoveTxFromMapOnly(elserHash)
+		pool.txLookup.RemoveTxFromMapOnly(elderhash)
 	}
 	txsInPool := []types.Txi{}
 	for _, hash := range pool.txLookup.getorder() {
@@ -978,7 +978,6 @@ func (t *txLookUp) remove(h types.Hash, removeType hashOrderRemoveType) {
 		}
 
 	case removeFromEnd:
-		j := -1
 		for i := len(t.order) - 1; i >= 0; i-- {
 			hash := t.order[i]
 			if hash.Cmp(h) == 0 {

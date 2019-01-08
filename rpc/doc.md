@@ -92,7 +92,7 @@ Get transaction from og node.
 
 | 参数 | 数据类型 | 是否必填 | 备注
 | --- | --- | --- | ---
-| hash | string | 是 | 必须是可以转成byte数组的 hex string，且不可带有"0x"
+| hash | string | 是 | 必须是可以转成byte数组的 hex string
 
 **请求示例**：
 > /peers_info?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
@@ -119,7 +119,7 @@ Check if a transaction is been confirmed.
 
 | 参数 | 数据类型 | 是否必填 | 备注
 | --- | --- | --- | ---
-| hash | string | 是 | tx的哈希，必须是可以转成byte数组的 hex string，且不可带有"0x"
+| hash | string | 是 | tx的哈希，必须是可以转成byte数组的 hex string
 
 **请求示例**：
 > /confirm?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
@@ -232,12 +232,13 @@ Send new transaction to OG.
 
 | 参数 | 数据类型 | 是否必填 | 备注
 | --- | --- | --- | ---
-| nonce | int | 是 |
+| nonce | int string | 是 |
 | from | hex string | 是 |
 | to | hex string | 否 | 创建合约时可以置空
-| value | int | 是 | 不转账时填0
+| value | int string | 是 | 不转账时填0
 | signature | hex string | 是 |
 | pubkey | hex string | 是 |
+| data | hex string | 否 | 
 
 **请求示例**：
 ```json
@@ -247,7 +248,8 @@ Send new transaction to OG.
     "to": "0x473c176c84213626588c4d2d7724b9524aaf6f3d",
     "value": "0",
     "signature": "0x421001d20e2dbbd13...",
-    "pubkey": "0x0104249f001e59783eb10f1..."
+    "pubkey": "0x0104249f001e59783eb10f1...",
+    "data": "0x5682aec..."
 }
 ```
 
@@ -258,4 +260,130 @@ Send new transaction to OG.
 }
 ```
 ---
+
+## **New Account**
+Generage a random key pair. 
+
+**URL**: 
+```
+/new_account
+```
+
+**Method**: POST
+
+**请求参数**:  
+
+| 参数 | 数据类型 | 是否必填 | 备注
+| --- | --- | --- | ---
+| algorithm | string | 是 | 签名类型（ed25519, secp256k1）
+
+**请求示例**：
+```json
+{
+    "algorithm": "secp256k1",
+}
+```
+
+**返回示例**:
+```json
+{
+
+}
+```
+---
+
+## **Auto Tx**
+TODO 
+
+**URL**: 
+```
+/auto_tx
+```
+
+**Method**: GET
+
+---
+
+## **Query Nonce**
+Get latest nonce of a specific address. 
+
+**URL**: 
+```
+/query_nonce
+```
+
+**Method**: GET
+
+**请求参数**:  
+
+| 参数 | 数据类型 | 是否必填 | 备注
+| --- | --- | --- | ---
+| address | hex string | 是 | 
+
+**请求示例**：
+> /query_nonce?address=96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406
+
+**返回示例**:
+```json
+{
+
+}
+```
+---
+
+## **Query Balance**
+Get current balance of a specific address. 
+
+**URL**: 
+```
+/query_balance
+```
+
+**Method**: GET
+
+**请求参数**:  
+
+| 参数 | 数据类型 | 是否必填 | 备注
+| --- | --- | --- | ---
+| address | hex string | 是 | 
+
+**请求示例**：
+> /query_balance?address=96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406
+
+**返回示例**:
+```json
+{
+
+}
+```
+---
+
+## **Query Receipt**
+Get receipt of a transaction. 
+
+**URL**: 
+```
+/query_receipt
+```
+
+**Method**: GET
+
+**请求参数**:  
+
+| 参数 | 数据类型 | 是否必填 | 备注
+| --- | --- | --- | ---
+| hash | hex string | 是 | 
+
+**请求示例**：
+> /query_receipt?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
+
+**返回示例**:
+```json
+{
+
+}
+```
+---
+
+
 

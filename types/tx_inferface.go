@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strings"
+
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
-	"strings"
 )
 
 //go:generate msgp
@@ -41,6 +42,7 @@ func (t TxBaseType) String() string {
 // | Tx   | From              |                1 |                     |                 |
 // | Tx   | To                |                1 |                     |                 |
 // | Tx   | Value             |                1 |                     |                 |
+// | Tx   | Data              |                1 |                     |                 |
 // | Seq  | Id                |                1 |                     |                 |
 // | Seq  | ContractHashOrder |                1 |                     |                 |
 
@@ -49,7 +51,7 @@ type Txi interface {
 	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
 	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-	Parents() Hashes         // Parents returns the hash of txs that it directly proves.
+	Parents() Hashes          // Parents returns the hash of txs that it directly proves.
 
 	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
@@ -111,7 +113,6 @@ func (t *TxBase) String() string {
 	return fmt.Sprintf("%d-[%.10s]", t.Height, t.GetTxHash().Hex())
 }
 
-
 func (t *TxBase) CalcTxHash() (hash Hash) {
 	var buf bytes.Buffer
 
@@ -139,12 +140,12 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	return
 }
 
-type Txis  []Txi
+type Txis []Txi
 
 func (t Txis) String() string {
 	var strs []string
 	for _, v := range t {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }

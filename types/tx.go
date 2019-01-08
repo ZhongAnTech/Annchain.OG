@@ -89,6 +89,7 @@ func (t *Tx) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetSigBytes()))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Data))
 
 	return buf.Bytes()
 }
@@ -146,12 +147,12 @@ func (t *Tx) RawTx() *RawTx {
 func (t Txs) String() string {
 	var strs []string
 	for _, v := range t {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }
 
-func (t Txs)ToRawTxs()RawTxs {
+func (t Txs) ToRawTxs() RawTxs {
 	if len(t) == 0 {
 		return nil
 	}

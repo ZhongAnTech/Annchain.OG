@@ -447,7 +447,6 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
-	// <-ffchan.NewTimeoutSenderShort(r.TxBuffer.ReceivedNewTxChan, tx, "rpcNewTx").C
 
 	//todo add transaction
 	c.JSON(http.StatusOK, gin.H{

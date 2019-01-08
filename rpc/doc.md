@@ -96,12 +96,12 @@ Get transaction from og node.
 ## **Check Confirm**
 Check if a transaction is been confirmed. 
 
-**Method**: GET
-
 **URL**: 
 ```
 /confirm
 ```
+
+**Method**: GET
 
 **请求参数**:  
 

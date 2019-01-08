@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"github.com/annchain/OG/common"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -402,12 +403,9 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	var data []byte
-	if txReq.Data == "" {
-		data = []byte{}
-	} else {
-		data, err = hex.DecodeString(txReq.Data)
-		if !checkError(err, c, http.StatusBadRequest, "data format error") {
+	data := common.FromHex(txReq.Data)
+	if data == nil {
+		if !checkError(fmt.Errorf("data not hex"), c, http.StatusBadRequest, "data format error") {
 			return
 		}
 	}
@@ -453,6 +451,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		"hash": tx.GetTxHash().Hex(),
 	})
 }
+
 func (r *RpcController) NewAccount(c *gin.Context) {
 	var (
 		txReq  NewAccountRequest
@@ -543,7 +542,7 @@ func (r *RpcController) QueryShare(c *gin.Context) {
 	})
 }
 
-func (r *RpcController) ConstructPayload(c *gin.Context) {
+func (r *RpcController) ContractPayload(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "hello",
 	})

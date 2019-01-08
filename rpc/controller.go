@@ -1,13 +1,14 @@
 package rpc
 
 import (
-	"github.com/annchain/OG/common"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
@@ -80,28 +81,26 @@ func (r *RpcController) Status(c *gin.Context) {
 	status.NodeInfo = r.P2pServer.NodeInfo()
 	status.PeersInfo = r.P2pServer.PeersInfo()
 	cors(c)
-	c.JSON(http.StatusOK, status)
+	Response(c, http.StatusOK, nil, status)
 }
 
 //PeersInfo network information
 func (r *RpcController) NetInfo(c *gin.Context) {
 	info := r.P2pServer.NodeInfo()
 	cors(c)
-	c.JSON(http.StatusOK, info)
+	Response(c, http.StatusOK, nil, info)
 }
 
 //PeersInfo  peers information
 func (r *RpcController) PeersInfo(c *gin.Context) {
 	peersInfo := r.P2pServer.PeersInfo()
 	cors(c)
-	c.JSON(http.StatusOK, peersInfo)
+	Response(c, http.StatusOK, nil, peersInfo)
 }
 
 //Query query
 func (r *RpcController) Query(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
-	})
+	Response(c, http.StatusOK, nil, "not implemented yet")
 }
 
 //Transaction  get  transaction
@@ -110,9 +109,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	hash, err := types.HexStringToHash(hashtr)
 	cors(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "hash format error",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 		return
 	}
 	txi := r.Og.Dag.GetTx(hash)
@@ -120,53 +117,48 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		txi = r.Og.TxPool.Get(hash)
 	}
 	if txi == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "not found",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("tx not found"), nil)
 		return
 	}
 	switch tx := txi.(type) {
 	case *types.Tx:
-		c.JSON(http.StatusOK, tx)
+		Response(c, http.StatusOK, nil, tx)
 		return
 	case *types.Sequencer:
-		c.JSON(http.StatusOK, tx)
+		Response(c, http.StatusOK, nil, tx)
 		return
 	}
-	c.JSON(http.StatusNotFound, gin.H{
-		"message": "not found",
-	})
-
+	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
 }
 
-//Transaction  get  transaction
+//Confirm checks if tx has already been confirmed.
 func (r *RpcController) Confirm(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := types.HexStringToHash(hashtr)
 	cors(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "hash format error",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 		return
 	}
 	txiDag := r.Og.Dag.GetTx(hash)
 	txiTxpool := r.Og.TxPool.Get(hash)
 
 	if txiDag == nil && txiTxpool == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "not found",
-		})
+		Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 		return
 	}
 	if txiTxpool != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"confirm": false,
-		})
+		Response(c, http.StatusOK, nil, false)
+		return
+		// c.JSON(http.StatusNotFound, gin.H{
+		// 	"confirm": false,
+		// })
 	} else {
-		c.JSON(http.StatusNotFound, gin.H{
-			"confirm": true,
-		})
+		Response(c, http.StatusOK, nil, true)
+		return
+		// c.JSON(http.StatusNotFound, gin.H{
+		// 	"confirm": true,
+		// })
 	}
 
 }
@@ -179,47 +171,41 @@ func (r *RpcController) Transactions(c *gin.Context) {
 	if address == "" {
 		id, err := strconv.Atoi(seqId)
 		if err != nil || id < 0 {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "seq_id format error",
-			})
+			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
 			return
 		}
 		txs := r.Og.Dag.GetTxsByNumber(uint64(id))
-		var txsREsponse struct {
+		var txsResponse struct {
 			Total int         `json:"total"`
 			Txs   []*types.Tx `json:"txs"`
 		}
 		if len(txs) != 0 {
-			txsREsponse.Total = len(txs)
-			txsREsponse.Txs = txs
-			c.JSON(http.StatusOK, txsREsponse)
+			txsResponse.Total = len(txs)
+			txsResponse.Txs = txs
+			Response(c, http.StatusOK, nil, txsResponse)
 			return
 		}
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "not found",
-		})
+		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		return
 	} else {
 		addr, err := types.StringToAddress(address)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "address format error",
-			})
+			Response(c, http.StatusOK, fmt.Errorf("address format error"), nil)
 			return
 		}
 		txs := r.Og.Dag.GetTxsByAddress(addr)
-		var txsREsponse struct {
+		var txsResponse struct {
 			Total int         `json:"total"`
 			Txs   []types.Txi `json:"txs"`
 		}
 		if len(txs) != 0 {
-			txsREsponse.Total = len(txs)
-			txsREsponse.Txs = txs
-			c.JSON(http.StatusOK, txsREsponse)
+			txsResponse.Total = len(txs)
+			txsResponse.Txs = txs
+			Response(c, http.StatusOK, nil, txsResponse)
 			return
 		}
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "not found",
-		})
+		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		return
 	}
 
 }
@@ -228,11 +214,9 @@ func (r *RpcController) Genesis(c *gin.Context) {
 	cors(c)
 	sq := r.Og.Dag.Genesis()
 	if sq != nil {
-		c.JSON(http.StatusOK, sq)
+		Response(c, http.StatusOK, nil, sq)
 	} else {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "not found",
-		})
+		Response(c, http.StatusNotFound, fmt.Errorf("genesis not found"), nil)
 	}
 	return
 }
@@ -296,10 +280,10 @@ func (r *RpcController) Tps(c *gin.Context) {
 	cors(c)
 	t, err := r.getTps()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
-	c.JSON(http.StatusOK, t)
+	Response(c, http.StatusOK, nil, t)
 	return
 }
 
@@ -314,37 +298,31 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 	if seqId != "" {
 		id, err := strconv.Atoi(seqId)
 		if err != nil || id < 0 {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "id format error",
-			})
+			Response(c, http.StatusBadRequest, fmt.Errorf("id format error"), nil)
 			return
 		}
 		sq = r.Og.Dag.GetSequencerById(uint64(id))
 		if sq != nil {
-			c.JSON(http.StatusOK, sq)
+			Response(c, http.StatusOK, nil, sq)
+			return
 		} else {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "not found",
-			})
+			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
+			return
 		}
-		return
 	}
 	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
 		if sq != nil {
-			c.JSON(http.StatusOK, sq)
+			Response(c, http.StatusOK, nil, sq)
+			return
 		} else {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "not found",
-			})
+			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
+			return
 		}
-		return
 	} else {
 		hash, err := types.HexStringToHash(hashtr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "hash format error",
-			})
+			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 			return
 		}
 		txi := r.Og.Dag.GetTx(hash)
@@ -352,27 +330,25 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			txi = r.Og.TxPool.Get(hash)
 		}
 		if txi == nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"message": "not found",
-			})
+			Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 			return
 		}
 		sq := txi.(*types.Sequencer)
 		if sq != nil {
-			c.JSON(http.StatusOK, sq)
+			Response(c, http.StatusOK, nil, sq)
 			return
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{
-		"error": "not found",
-	})
+	Response(c, http.StatusNotFound, fmt.Errorf("not found"), nil)
+	return
 }
+
 func (r *RpcController) Validator(c *gin.Context) {
 	cors(c)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "validator",
-	})
+	Response(c, http.StatusOK, nil, "validator")
+	return
 }
+
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
 		tx    types.Txi
@@ -382,16 +358,18 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	)
 
 	err := c.ShouldBindJSON(&txReq)
-	if !checkError(err, c, http.StatusBadRequest, "request format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
 	from, err := types.StringToAddress(txReq.From)
-	if !checkError(err, c, http.StatusBadRequest, "address format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
 	}
-
 	to, err := types.StringToAddress(txReq.To)
-	if !checkError(err, c, http.StatusBadRequest, "address format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("to address format error: %v", err), nil)
 		return
 	}
 
@@ -399,57 +377,56 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	if !ok {
 		err = fmt.Errorf("new Big Int error")
 	}
-	if !checkError(err, c, http.StatusBadRequest, "value format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("value format error: %v", err), nil)
 		return
 	}
 
 	data := common.FromHex(txReq.Data)
 	if data == nil {
-		if !checkError(fmt.Errorf("data not hex"), c, http.StatusBadRequest, "data format error") {
-			return
-		}
+		Response(c, http.StatusBadRequest, fmt.Errorf("data not hex"), nil)
+		return
 	}
 
 	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if !checkError(err, c, http.StatusBadRequest, "nonce format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
 		return
 	}
 
 	signature, err := hexutil.Decode(txReq.Signature)
-	if !checkError(err, c, http.StatusBadRequest, "signature format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 		return
 	}
 
 	pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-	if !checkError(err, c, http.StatusBadRequest, "pubkey format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error"), nil)
 		return
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
 	if sig.Type != r.TxCreator.Signer.GetCryptoType() || pub.Type != r.TxCreator.Signer.GetCryptoType() {
-		c.JSON(http.StatusOK, gin.H{
-			"error": "crypto algorithm mismatch",
-		})
+		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
 		return
 	}
 	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig)
-	if !checkError(err, c, http.StatusInternalServerError, "new tx failed") {
+	if err != nil {
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
-		c.JSON(http.StatusOK, gin.H{
-			"error": "tx is disabled when syncing",
-		})
+		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 		return
 	}
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	//todo add transaction
-	c.JSON(http.StatusOK, gin.H{
-		"hash": tx.GetTxHash().Hex(),
-	})
+	//TODO add transaction
+	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	return
 }
 
 func (r *RpcController) NewAccount(c *gin.Context) {
@@ -459,7 +436,8 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		err    error
 	)
 	err = c.ShouldBindJSON(&txReq)
-	if !checkError(err, c, http.StatusBadRequest, "request format error") {
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error"), nil)
 		return
 	}
 	algorithm := strings.ToLower(txReq.Algorithm)
@@ -470,28 +448,27 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		signer = &crypto.SignerSecp256k1{}
 	}
 	pub, priv, err := signer.RandomKeyPair()
-	if !checkError(err, c, http.StatusInternalServerError, "Generate account error.") {
+	if err != nil {
+		Response(c, http.StatusInternalServerError, fmt.Errorf("Generate account error"), nil)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	Response(c, http.StatusInternalServerError, nil, gin.H{
 		"pubkey":  pub.String(),
 		"privkey": priv.String(),
 	})
+	return
 }
 
 func (r *RpcController) AutoTx(c *gin.Context) {
 	intervalStr := c.Query("interval_ms")
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil || interval < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "interval format err",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("interval format err"), nil)
 		return
 	}
 	r.AutoTxCli.SetTxIntervalMs(interval)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "ok",
-	})
+	
+	Response(c, http.StatusOK, nil, nil)
 	return
 }
 
@@ -499,9 +476,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "address format err",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("address format err"), nil)
 		return
 	}
 	noncePool, errPool := r.Og.TxPool.GetLatestNonce(addr)
@@ -515,37 +490,34 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 			nonce = int64(nonceDag)
 		}
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"nonce": nonce,
-	})
+	Response(c, http.StatusOK, fmt.Errorf("address format err"), nonce)
+	return
 }
+
 func (r *RpcController) QueryBalance(c *gin.Context) {
 	address := c.Query("address")
 	addr, err := types.StringToAddress(address)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "address format err",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("address format err"), nil)
 		return
 	}
 	b := r.Og.Dag.GetBalance(addr)
-	c.JSON(http.StatusBadRequest, gin.H{
-		"balance": b,
-	})
+	Response(c, http.StatusOK, fmt.Errorf("address format err"), b)
 	return
+	// c.JSON(http.StatusBadRequest, gin.H{
+	// 	"balance": b,
+	// })
+	// return
 }
 
 func (r *RpcController) QueryShare(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
-	})
+	Response(c, http.StatusOK, nil, "not implemented yet")
+	return
 }
 
 func (r *RpcController) ContractPayload(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "hello",
-	})
+	Response(c, http.StatusOK, nil, "not implemented yet")
+	return
 }
 
 type ReceiptResponse struct {
@@ -559,15 +531,13 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 	hashHex := c.Query("hash")
 	hashBytes, err := hex.DecodeString(hashHex)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": fmt.Sprintf("decode hex error: %v", err),
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("decode hex error: %v", err), nil)
 		return
 	}
 	hash := types.BytesToHash(hashBytes)
 	receipt := r.Og.Dag.GetReceipt(hash)
 	if receipt == nil {
-		c.JSON(http.StatusNotFound, "can't find receipt")
+		Response(c, http.StatusNotFound, fmt.Errorf("can't find receipt"), nil)
 		return
 	}
 
@@ -576,9 +546,9 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 	rr.Status = int(receipt.Status)
 	rr.Result = receipt.ProcessResult
 	rr.ContractAddress = receipt.ContractAddress.Hex()
-	c.JSON(http.StatusOK, gin.H{
-		"message": rr,
-	})
+	
+	Response(c, http.StatusOK, nil, rr)
+	return
 }
 
 func (r *RpcController) QueryContract(c *gin.Context) {
@@ -588,34 +558,33 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 	addr := types.HexToAddress(addrstr)
 	query, err := hex.DecodeString(querystr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "can't decode query_data to bytes",
-		})
+		Response(c, http.StatusBadRequest, fmt.Errorf("can't decode query_data to bytes"), nil)
+		return
 	}
 	ret, errc := r.Og.Dag.CallContract(addr, query)
 	if errc != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Errorf("query contract error: %v", errc),
-		})
+		Response(c, http.StatusNotFound, fmt.Errorf("query contract error: %v", errc), nil)
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": hex.EncodeToString(ret),
-	})
+	Response(c, http.StatusOK, nil, hex.EncodeToString(ret))
+	return
 }
 
 func (r *RpcController) OgPeersInfo(c *gin.Context) {
 	info := r.Og.Manager.Hub.PeersInfo()
-	c.JSON(http.StatusOK, info)
+
+	Response(c, http.StatusOK, nil, info)
+	return
 }
 
 type Monitor struct {
-	Port    string `json:"port"`
-	ShortId string `json:"short_id"`
-	Peers   []Peer `json:"peers,omitempty"`
-	SeqId   uint64 `json:"seq_id"`
-	Tps     *Tps   `json:"tps"`
-	Status		SyncStatus `json:"status"`
+	Port    string     `json:"port"`
+	ShortId string     `json:"short_id"`
+	Peers   []Peer     `json:"peers,omitempty"`
+	SeqId   uint64     `json:"seq_id"`
+	Tps     *Tps       `json:"tps"`
+	Status  SyncStatus `json:"status"`
 }
 
 type Peer struct {
@@ -651,7 +620,9 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	m.ShortId = r.P2pServer.NodeInfo().ShortId
 	m.Tps, _ = r.getTps()
 	m.Status = r.syncStatus()
-	c.JSON(http.StatusOK, m)
+
+	Response(c, http.StatusOK, nil, m)
+	return
 }
 
 func (r *RpcController) Debug(c *gin.Context) {
@@ -659,64 +630,55 @@ func (r *RpcController) Debug(c *gin.Context) {
 	switch p {
 	case "1":
 		r.NewRequestChan <- types.TxBaseTypeNormal
-		// <-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeNormal, "manualRequest", 1000).C
 	case "2":
 		r.NewRequestChan <- types.TxBaseTypeSequencer
-		// <-ffchan.NewTimeoutSender(r.NewRequestChan, types.TxBaseTypeSequencer, "manualRequest", 1000).C
 	case "cc":
 		err := r.DebugCreateContract()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("new contract failed, err: %v", err),
-			})
+			Response(c, http.StatusInternalServerError, fmt.Errorf("new contract failed, err: %v", err), nil)
+			return
 		} else {
-			c.JSON(http.StatusOK, "success")
+			Response(c, http.StatusOK, nil, nil)
+			return
 		}
-		return
 	case "qc":
 		ret, err := r.DebugQueryContract()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("query contract failed, err: %v", err),
-			})
+			Response(c, http.StatusInternalServerError, fmt.Errorf("query contract failed, err: %v", err), nil)
+			return
 		} else {
-			c.JSON(http.StatusOK, gin.H{
-				"ret": fmt.Sprintf("%x", ret),
-			})
+			Response(c, http.StatusOK, nil, fmt.Sprintf("%x", ret))
+			return
 		}
-		return
 	case "sc":
 		param := c.Request.URL.Query().Get("param")
 		err := r.DebugSetContract(param)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("set contract failed, err: %v", err),
-			})
+			Response(c, http.StatusInternalServerError, fmt.Errorf("set contract failed, err: %v", err), nil)
+			return
 		} else {
-			c.JSON(http.StatusOK, "success")
+			Response(c, http.StatusOK, nil, nil)
+			return
 		}
-		return
 	case "callerCreate":
 		err := r.DebugCallerCreate()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("create caller contract failed, err: %v", err),
-			})
+			Response(c, http.StatusInternalServerError, fmt.Errorf("create caller contract failed, err: %v", err), nil)
+			return
 		} else {
-			c.JSON(http.StatusOK, "success")
+			Response(c, http.StatusOK, nil, nil)
+			return
 		}
-		return
 	case "callerCall":
 		value := c.Request.URL.Query().Get("value")
 		err := r.DebugCallerCall(value)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("call caller contract failed, err: %v", err),
-			})
+			Response(c, http.StatusInternalServerError, fmt.Errorf("call caller contract failed, err: %v", err), nil)
+			return
 		} else {
-			c.JSON(http.StatusOK, "success")
+			Response(c, http.StatusOK, nil, nil)
+			return
 		}
-		return
 	}
 }
 
@@ -819,4 +781,15 @@ func checkError(err error, c *gin.Context, status int, message string) bool {
 		return false
 	}
 	return true
+}
+
+func Response(c *gin.Context, status int, err error, data interface{}) {
+	var msg string
+	if err != nil {
+		msg = err.Error()
+	}
+	c.JSON(status, gin.H{
+		"message": msg,
+		"data":    data,
+	})
 }

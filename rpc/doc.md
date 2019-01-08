@@ -3,7 +3,10 @@
 ## **Get Status**
 Get the status of 
 
-**URL**: `/status` 
+**URL**:
+```
+/status
+```
 
 **Method**: GET
 
@@ -26,7 +29,10 @@ Get the status of
 ## **Get Net Information**
 Get information of the network. 
 
-**URL**: `/net_info` 
+**URL**:
+```
+/net_info
+```
 
 **Method**: GET
 
@@ -49,7 +55,10 @@ Get information of the network.
 ## **Get Peers Information**
 Get information of the peers. 
 
-**URL**: `/peers_info` 
+**URL**:
+```
+/peers_info
+```
 
 **Method**: GET
 
@@ -72,7 +81,10 @@ Get information of the peers.
 ## **Query Transaction**
 Get transaction from og node. 
 
-**URL**: `/transaction` 
+**URL**: 
+```
+/transaction
+```
 
 **Method**: GET
 
@@ -123,12 +135,12 @@ Check if a transaction is been confirmed.
 ## **Transactions**
 Check if a transaction is been confirmed. 
 
-**Method**: GET
-
 **URL**: 
 ```
 /transactions
 ```
+
+**Method**: GET
 
 **请求参数**:  
 
@@ -153,12 +165,12 @@ Check if a transaction is been confirmed.
 ## **Genesis**
 Check genesis sequencer from OG. 
 
-**Method**: GET
-
 **URL**: 
 ```
 /genesis
 ```
+
+**Method**: GET
 
 **请求参数**:  
 
@@ -179,13 +191,12 @@ Check genesis sequencer from OG.
 ## **Sequencer**
 Check sequencer from OG. 
 
-**Method**: GET
-
 **URL**: 
 ```
 /sequencer
 ```
 
+**Method**: GET
 
 **请求参数**:  
 
@@ -210,18 +221,23 @@ Check sequencer from OG.
 ## **New Transaction**
 Send new transaction to OG. 
 
-**Method**: GET / POST
-
 **URL**: 
 ```
 /new_transaction
 ```
 
+**Method**: GET / POST
+
 **请求参数**:  
 
 | 参数 | 数据类型 | 是否必填 | 备注
 | --- | --- | --- | ---
-<!-- todo -->
+| nonce | int | 是 |
+| from | hex string | 是 |
+| to | hex string | 否 | 创建合约时可以置空
+| value | int | 是 | 不转账时填0
+| signature | hex string | 是 |
+| pubkey | hex string | 是 |
 
 **请求示例**：
 ```json

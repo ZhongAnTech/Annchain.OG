@@ -11,9 +11,7 @@ Get the status of
 **Method**: GET
 
 **请求参数**:  
-
-| 参数 | 数据类型 | 是否必填 
-| --- | --- | --- 
+无
 
 **请求示例**：
 > /status
@@ -37,9 +35,7 @@ Get information of the network.
 **Method**: GET
 
 **请求参数**:  
-
-| 参数 | 数据类型 | 是否必填 
-| --- | --- | --- 
+无
 
 **请求示例**：
 > /net_info
@@ -63,9 +59,7 @@ Get information of the peers.
 **Method**: GET
 
 **请求参数**:  
-
-| 参数 | 数据类型 | 是否必填 
-| --- | --- | --- 
+无
 
 **请求示例**：
 > /peers_info
@@ -146,7 +140,7 @@ Check if a transaction is been confirmed.
 
 | 参数 | 数据类型 | 是否必填 | 备注
 | --- | --- | --- | ---
-| seq_id | int | 否 | 和 address 两个选一个必填，如果address有值优先获取地址相关的所有交易。
+| seq_id | int string | 否 | 和 address 两个选一个必填，如果address有值优先获取地址相关的所有交易。
 | address | string | 否 | 和 seq_id 两个选一个必填，必须是 hex string.
 
 **请求示例**：
@@ -172,10 +166,8 @@ Check genesis sequencer from OG.
 
 **Method**: GET
 
-**请求参数**:  
-
-| 参数 | 数据类型 | 是否必填 | 备注
-| --- | --- | --- | ---
+**请求参数**:
+无
 
 **请求示例**：
 > /genesis

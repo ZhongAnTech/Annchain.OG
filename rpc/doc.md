@@ -96,9 +96,12 @@ Get transaction from og node.
 ## **Check Confirm**
 Check if a transaction is been confirmed. 
 
-**URL**: `/confirm` 
-
 **Method**: GET
+
+**URL**: 
+```
+/confirm
+```
 
 **请求参数**:  
 
@@ -120,9 +123,12 @@ Check if a transaction is been confirmed.
 ## **Transactions**
 Check if a transaction is been confirmed. 
 
-**URL**: `/transactions` 
-
 **Method**: GET
+
+**URL**: 
+```
+/transactions
+```
 
 **请求参数**:  
 
@@ -147,9 +153,12 @@ Check if a transaction is been confirmed.
 ## **Genesis**
 Check genesis sequencer from OG. 
 
-**URL**: `/genesis` 
-
 **Method**: GET
+
+**URL**: 
+```
+/genesis
+```
 
 **请求参数**:  
 
@@ -170,9 +179,13 @@ Check genesis sequencer from OG.
 ## **Sequencer**
 Check sequencer from OG. 
 
-**URL**: `/sequencer` 
-
 **Method**: GET
+
+**URL**: 
+```
+/sequencer
+```
+
 
 **请求参数**:  
 
@@ -197,9 +210,12 @@ Check sequencer from OG.
 ## **New Transaction**
 Send new transaction to OG. 
 
-**URL**: `/new_transaction` 
-
 **Method**: GET / POST
+
+**URL**: 
+```
+/new_transaction
+```
 
 **请求参数**:  
 
@@ -208,7 +224,16 @@ Send new transaction to OG.
 <!-- todo -->
 
 **请求示例**：
-> 
+```json
+{
+    "nonce": "0",
+    "from": "0x889e0b36dc6f2c06eb68d9c5f53434e4c42c8d19",
+    "to": "0x473c176c84213626588c4d2d7724b9524aaf6f3d",
+    "value": "0",
+    "signature": "0x421001d20e2dbbd13...",
+    "pubkey": "0x0104249f001e59783eb10f1..."
+}
+```
 
 **返回示例**:
 ```json

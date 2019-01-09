@@ -345,7 +345,8 @@ Send new transaction to OG.
 **返回示例**:
 ```json
 {
-
+    "data":"0xb4d525888e28119419f8ad1ccb837d899c17c1680f3bb4cb184471313439f570",
+    "message":""
 }
 ```
 ---

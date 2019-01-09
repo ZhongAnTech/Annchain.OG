@@ -502,7 +502,10 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 		return
 	}
 	b := r.Og.Dag.GetBalance(addr)
-	Response(c, http.StatusOK, nil, b)
+	Response(c, http.StatusOK, nil, gin.H{
+		"address": address,
+		"balance": b,
+	})
 	return
 	// c.JSON(http.StatusBadRequest, gin.H{
 	// 	"balance": b,

@@ -19,7 +19,27 @@ Get the status of
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "node_info":{
+            "id":"99fa33...",
+            "short_id":"99fa3376342834b0",
+            "name":"og",
+            "enode":"enode://99fa3376342...2b8d6@0.0.0.0:8001",
+            "ip":"0.0.0.0",
+            "ports":{"discovery":8001,"listener":8001},
+            "listenAddr":"[::]:8001",
+            "protocols":{
+                "og":{
+                    "network":1,
+                    "difficulty":null,
+                    "genesis":"0x1dfb...d3736e",
+                    "head":"0x38ed1158...e7e2"
+                }
+            }
+        },
+        "peers_info":[]
+    },
+    "message":""
 }
 ```
 ---
@@ -43,7 +63,24 @@ Get information of the network.
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "id":"99fa3...4f2b8d6",
+        "short_id":"99fa3376342834b0",
+        "name":"og",
+        "enode":"enode://99fa337634...2b8d6@0.0.0.0:8001",
+        "ip":"0.0.0.0",
+        "ports":{"discovery":8001,"listener":8001},
+        "listenAddr":"[::]:8001",
+        "protocols":{
+            "og":{
+                "network":1,
+                "difficulty":null,
+                "genesis":"0x1dfb...36e",
+                "head":"0x3e...15"
+            }
+        }
+    },
+    "message":""
 }
 ```
 ---
@@ -67,7 +104,8 @@ Get information of the peers.
 **返回示例**:
 ```json
 {
-
+    "data":[],
+    "message":""
 }
 ```
 ---
@@ -89,12 +127,26 @@ Get transaction from og node.
 | hash | string | 是 | 必须是可以转成byte数组的 hex string
 
 **请求示例**：
-> /peers_info?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
+> /transaction?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
 
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "Type":0,
+        "Hash":"0x22359bb1c...8c56",
+        "ParentsHash":["0xce63a703e0a...b9990509"],
+        "AccountNonce":10,
+        "Height":1,
+        "PublicKey":"BKVH401d4...eGR+I=",
+        "Signature":"HzgliZb...YpzdgE=",
+        "MineNonce":1,
+        "From":"0x96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406",
+        "To":"0xa70c8a9485441f6fa2141d550c26d793107d3dea",
+        "Value":"0",
+        "Data":null
+    },
+    "message":""
 }
 ```
 ---
@@ -121,7 +173,8 @@ Check if a transaction is been confirmed.
 **返回示例**:
 ```json
 {
-
+    "data":true,
+    "message":""
 }
 ```
 ---
@@ -144,14 +197,30 @@ Check if a transaction is been confirmed.
 | address | string | 否 | 和 seq_id 两个选一个必填，必须是 hex string.
 
 **请求示例**：
-> /confirm?seq_id=123
+> /transactions?seq_id=123
 
-> /confirm?address=96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406
+> /transactions?address=96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406
 
 **返回示例**:
 ```json
 {
-
+	"data":{
+		"total":12,
+		"txs":[
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...},
+			{...}
+		]},
+	"message":""
 }
 ```
 ---
@@ -175,7 +244,20 @@ Check genesis sequencer from OG.
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "Type":1,
+        "Hash":"0x1dfb6fea83e3d62af98d72255527a677dbaf3ba4f98c80ae0ea9e3db97d3736e",
+        "ParentsHash":null,
+        "AccountNonce":0,
+        "Height":0,
+        "PublicKey":"s+G4MG4bqxXtUaTCSwhlUGd7qZzWKDWWUxajZBno9ZzmojKJIYLadAGjKQZuj+KvYHKHE55jfTFL8NYcudHH7g==",
+        "Signature":"MEQCIBIwK9fJUfy/7yZG2Zb6QnCaPMNd/K9ID6Tw+HgmRVhdAiBCTXEC2on0R7KMU6rjiKzwulcAjIBI9eNNwRdlscq39g==",
+        "MineNonce":0,
+        "Id":0,"
+        Issuer":"0x0000000000000000000000000000000000000000",
+        "ContractHashOrder":[]
+    },
+    "message":""
 }
 ```
 ---
@@ -205,7 +287,22 @@ Check sequencer from OG.
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "Type":1,
+        "Hash":"0x5bcb676788cd6...6cf5",
+        "ParentsHash":[
+            "0xfb9aa6509b5...61b8c233b4d",
+            "0x363e56d1a0f...fdaef3b1e46"
+        ],
+        "AccountNonce":225,
+        "Height":12,
+        "PublicKey":"BIDG6ARHwZ...0gHt8RtnRHzrI=","Signature":"AcRW9jpW...o9dQE=",
+        "MineNonce":1,
+        "Id":12,
+        "Issuer":"0x7349f7a6f622378d5fb0e2c16b9d4a3e5237c187",
+        "ContractHashOrder":null
+    },
+    "message":""
 }
 ```
 ---
@@ -318,7 +415,8 @@ Get latest nonce of a specific address.
 **返回示例**:
 ```json
 {
-
+    "data":144,
+    "message":""
 }
 ```
 ---
@@ -345,7 +443,8 @@ Get current balance of a specific address.
 **返回示例**:
 ```json
 {
-
+    "data":"8888888",
+    "message":""
 }
 ```
 ---
@@ -367,12 +466,18 @@ Get receipt of a transaction.
 | hash | hex string | 是 | 
 
 **请求示例**：
-> /query_receipt?hash=69a1379feffe1049e0b45d5dcb131034f79e94cd2ce5085cececb9c4ccdc2be0
+> /query_receipt?hash=0x0a0e69f4bd4c027e8ec0d6ab20eda7c8558c9a5ea690aa25b5e1cd72c67f444a
 
 **返回示例**:
 ```json
 {
-
+    "data":{
+        "tx_hash":"0x0a0e69...67f444a",
+        "status":1,
+        "result":"",
+        "contract_address":"0x0000...0000000"
+    },
+    "message":""
 }
 ```
 ---

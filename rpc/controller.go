@@ -467,7 +467,7 @@ func (r *RpcController) AutoTx(c *gin.Context) {
 		return
 	}
 	r.AutoTxCli.SetTxIntervalMs(interval)
-	
+
 	Response(c, http.StatusOK, nil, nil)
 	return
 }
@@ -490,7 +490,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 			nonce = int64(nonceDag)
 		}
 	}
-	Response(c, http.StatusOK, fmt.Errorf("address format err"), nonce)
+	Response(c, http.StatusOK, nil, nonce)
 	return
 }
 
@@ -502,7 +502,7 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 		return
 	}
 	b := r.Og.Dag.GetBalance(addr)
-	Response(c, http.StatusOK, fmt.Errorf("address format err"), b)
+	Response(c, http.StatusOK, nil, b)
 	return
 	// c.JSON(http.StatusBadRequest, gin.H{
 	// 	"balance": b,
@@ -529,9 +529,10 @@ type ReceiptResponse struct {
 
 func (r *RpcController) QueryReceipt(c *gin.Context) {
 	hashHex := c.Query("hash")
-	hashBytes, err := hex.DecodeString(hashHex)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("decode hex error: %v", err), nil)
+
+	hashBytes := common.FromHex(hashHex)
+	if hashBytes == nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("hash not hex"), nil)
 		return
 	}
 	hash := types.BytesToHash(hashBytes)
@@ -546,7 +547,7 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 	rr.Status = int(receipt.Status)
 	rr.Result = receipt.ProcessResult
 	rr.ContractAddress = receipt.ContractAddress.Hex()
-	
+
 	Response(c, http.StatusOK, nil, rr)
 	return
 }

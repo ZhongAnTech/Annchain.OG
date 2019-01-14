@@ -93,7 +93,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"txlookup":   len(pool.txLookup.txs),
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
-		"latest_seq": int(pool.dag.latestSeqencer.Id),
+		"latest_seq": int(pool.dag.latestSequencer.Id),
 	}
 }
 

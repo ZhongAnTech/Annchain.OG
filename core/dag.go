@@ -34,13 +34,15 @@ type DagConfig struct{}
 type Dag struct {
 	conf DagConfig
 
-	db       ogdb.Database
+	db ogdb.Database
+	// TODO
+	// oldDb is for test only, should be deleted later.
 	oldDb    ogdb.Database
 	accessor *Accessor
 	statedb  *state.StateDB
 
-	genesis        *types.Sequencer
-	latestSeqencer *types.Sequencer
+	genesis         *types.Sequencer
+	latestSequencer *types.Sequencer
 
 	txcached *txcached
 
@@ -106,7 +108,7 @@ func (dag *Dag) Stop() {
 	log.Infof("Dag Stopped")
 }
 
-// for testing only
+// StateDatabase is for testing only
 func (dag *Dag) StateDatabase() *state.StateDB {
 	return dag.statedb
 }
@@ -147,7 +149,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	}
 
 	dag.genesis = genesis
-	dag.latestSeqencer = genesis
+	dag.latestSequencer = genesis
 
 	log.Infof("Dag finish init")
 	return nil
@@ -166,9 +168,9 @@ func (dag *Dag) LoadLastState() bool {
 	dag.genesis = genesis
 	seq := dag.accessor.ReadLatestSequencer()
 	if seq == nil {
-		dag.latestSeqencer = genesis
+		dag.latestSequencer = genesis
 	} else {
-		dag.latestSeqencer = seq
+		dag.latestSequencer = seq
 	}
 
 	return true
@@ -187,7 +189,7 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.latestSeqencer
+	return dag.latestSequencer
 }
 
 // Accessor returns the db accessor of dag
@@ -355,7 +357,7 @@ func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
 	if id == 0 {
 		return dag.genesis
 	}
-	if id > dag.latestSeqencer.Id {
+	if id > dag.latestSequencer.Id {
 		return nil
 	}
 	seq, err := dag.accessor.ReadSequencerById(id)
@@ -425,7 +427,7 @@ func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashes {
 }
 
 func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashes {
-	if id > dag.latestSeqencer.Number() {
+	if id > dag.latestSequencer.Number() {
 		return nil
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(id)
@@ -507,8 +509,8 @@ func (dag *Dag) RollBack() {
 }
 
 func (dag *Dag) push(batch *ConfirmBatch) error {
-	if dag.latestSeqencer.Id+1 != batch.Seq.Id {
-		return fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSeqencer.Id, batch.Seq.Id)
+	if dag.latestSequencer.Id+1 != batch.Seq.Id {
+		return fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSequencer.Id, batch.Seq.Id)
 	}
 
 	var err error
@@ -601,7 +603,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	dag.latestSeqencer = batch.Seq
+	dag.latestSequencer = batch.Seq
 
 	// TODO: confirm time is for tps calculation, delete later.
 	cf := types.ConfirmTime{
@@ -642,16 +644,6 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	if err != nil {
 		return err
 	}
-	// if tx.GetType() == types.TxBaseTypeNormal {
-	// 	txNormal := tx.(*types.Tx)
-	// 	dag.statedb.SubBalance(txNormal.From, txNormal.Value)
-	// 	dag.statedb.AddBalance(txNormal.To, txNormal.Value)
-	// }
-	// // update the nonce if current nonce is larger than previous, or
-	// // there is no nonce stored in db.
-	// if (tx.GetNonce() > curNonce) || (err == types.ErrNonceNotExist) {
-	// 	dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
-	// }
 
 	dag.txcached.add(tx)
 	return nil
@@ -694,7 +686,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		GasPrice:   math.NewBigInt(0),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSeqencer.Id,
+		SequenceID: dag.latestSequencer.Id,
 	}
 	// TODO more interpreters should be initialized, here only evm.
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,
@@ -744,7 +736,7 @@ func (dag *Dag) CallContract(addr types.Address, data []byte) ([]byte, error) {
 		GasPrice:   math.NewBigInt(0),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSeqencer.Id,
+		SequenceID: dag.latestSequencer.Id,
 	}
 	// TODO more interpreters should be initialized, here only evm.
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,

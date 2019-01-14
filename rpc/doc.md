@@ -444,7 +444,10 @@ Get current balance of a specific address.
 **返回示例**:
 ```json
 {
-    "data":"8888888",
+    "data":{
+        "balance":"8888888",
+        "address":"0x96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406"
+    },
     "message":""
 }
 ```

@@ -50,7 +50,7 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb  ogdb.Database ) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db))
@@ -237,7 +237,7 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag*Dag)GetOldTx(addr types.Address, nonce uint64) types.Txi{
+func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
@@ -575,7 +575,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()
-	err = triedb.Commit(root, true)
+	err = triedb.Commit(root, false)
 	if err != nil {
 		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
@@ -60,6 +61,41 @@ func TestStateStorage(t *testing.T) {
 	st2 := stdb.GetState(addr, storageKey2)
 	if st2.Hex() != storageValue2.Hex() {
 		t.Fatalf("value2 is not committed, should be %s, get %s", st2.Hex(), storageValue2.Hex())
+	}
+
+}
+
+func TestStateWorkFlow(t *testing.T) {
+	t.Parallel()
+
+	addr := types.HexToAddress(testAddress)
+	testnonce := uint64(123456)
+	testblc := int64(666)
+
+	stdb := newTestStateDB(t)
+	stdb.CreateAccount(addr)
+
+	stobj := stdb.GetStateObject(addr)
+	stobj.SetNonce(testnonce)
+	stobj.SetBalance(math.NewBigInt(testblc))
+
+	blcInStateDB := stdb.GetBalance(addr)
+	if blcInStateDB.GetInt64() != testblc {
+		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", blcInStateDB.GetInt64(), testblc)
+	}
+
+	root, err := stdb.Commit()
+	if err != nil {
+		t.Fatalf("commit statedb error: %v", err)
+	}
+	err = stdb.Database().TrieDB().Commit(root, true)
+	if err != nil {
+		t.Fatalf("commit triedb error: %v", err)
+	}
+
+	blcInStateDB = stdb.GetBalance(addr)
+	if blcInStateDB.GetInt64() != testblc {
+		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", blcInStateDB.GetInt64(), testblc)
 	}
 
 }

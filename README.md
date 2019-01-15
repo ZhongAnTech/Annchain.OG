@@ -45,6 +45,12 @@ The node will be built in `build` directory
 
 ## Usage
 
+### RPC
+
+Users can call the node's functions through RPC interface. The default URL address for RPC is `localhost:8000`, which is set in the default config file. You can switch the port by changing the value of key `[rpc].port` in config file.
+
+For more details of each RPC API, you can check document: [https://github.com/annchain/OG/blob/dev/rpc/doc.md](https://github.com/annchain/OG/blob/dev/rpc/doc.md)
+
 ## Development
 
 ## License

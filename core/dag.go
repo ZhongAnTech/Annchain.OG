@@ -782,16 +782,3 @@ func (tc *txcached) add(tx types.Txi) {
 	tc.order = append(tc.order, tx.GetTxHash())
 	tc.txs[tx.GetTxHash()] = tx
 }
-
-// func (tc *txcached) remove(hash types.Hash) {
-// 	if _, ok := tc.txs[hash]; !ok {
-// 		return
-// 	}
-// 	for i := 0; i < len(tc.order); i++ {
-// 		if tc.order[i] == hash {
-// 			tc.order = append(tc.order[0:i], tc.order[i+1:]...)
-// 			break
-// 		}
-// 	}
-// 	delete(tc.txs, hash)
-// }

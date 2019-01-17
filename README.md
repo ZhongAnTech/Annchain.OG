@@ -5,13 +5,13 @@ OG is a dag based decentralized ledger and Dapp platform.
 ## Insatallation
 Get code from github:
 
-```cmd
+```
 go get github.com/annchain/OG
 ```
 
 Build the project:
 
-```cmd
+```
 cd $GOPATH/src/github.com/annchain/OG
 
 make og
@@ -21,7 +21,7 @@ The node will be built in `build` directory
 
 ## Running
 
-```cmd
+```
 # running og by loading config file from local filesystem :
 ./og -c config.toml  run
 
@@ -30,8 +30,10 @@ The node will be built in `build` directory
 
 # running og by assigning log output path:
 ./og -c config.toml -l log_path/ run
+```
 
-# other og commands:
+Other og commands:
+```
 -c, --config string         Path for configuration file or url of config server (default "config.toml")
 -d, --datadir string        Runtime directory for storage and configurations (default "data")
 -h, --help                  help for OG

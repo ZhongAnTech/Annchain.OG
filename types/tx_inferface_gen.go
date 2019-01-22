@@ -53,7 +53,7 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.Order, err = dc.ReadUint32()
+	z.Weight, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -99,7 +99,7 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint32(z.Order)
+	err = en.WriteUint64(z.Weight)
 	if err != nil {
 		return
 	}
@@ -125,7 +125,7 @@ func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendBytes(o, z.PublicKey)
 	o = msgp.AppendBytes(o, z.Signature)
 	o = msgp.AppendUint64(o, z.MineNonce)
-	o = msgp.AppendUint32(o, z.Order)
+	o = msgp.AppendUint64(o, z.Weight)
 	return
 }
 
@@ -176,7 +176,7 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.Order, bts, err = msgp.ReadUint32Bytes(bts)
+	z.Weight, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -186,7 +186,7 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size + msgp.Uint32Size
+	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size + msgp.Uint64Size
 	return
 }
 

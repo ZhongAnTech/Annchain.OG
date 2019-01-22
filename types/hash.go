@@ -189,7 +189,7 @@ func (a Hashes) Less(i, j int) bool { return a[i].Hex() < a[j].Hex() }
 func (h Hashes) String() string {
 	var strs []string
 	for _, v := range h {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }

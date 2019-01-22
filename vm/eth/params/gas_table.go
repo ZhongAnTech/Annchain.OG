@@ -54,14 +54,13 @@ var (
 	}
 )
 
-
 var (
-	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Ethereum core developers into the Ethash consensus.
-	//
-	// This configuration is intentionally not using keyed fields to force anyone
-	// adding flags to the config to also have to set these fields.
-	//AllEthashProtocolChanges = &ChainConfig{ChainID: 0}
+// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
+// and accepted by the Ethereum core developers into the Ethash consensus.
+//
+// This configuration is intentionally not using keyed fields to force anyone
+// adding flags to the config to also have to set these fields.
+//AllEthashProtocolChanges = &ChainConfig{ChainID: 0}
 )
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).

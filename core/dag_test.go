@@ -17,7 +17,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 	conf := core.DagConfig{}
 	db, remove := newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
-	dag, errnew := core.NewDag(conf, stdbconf, db)
+	dag, errnew := core.NewDag(conf, stdbconf, db, nil)
 	if errnew != nil {
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}
@@ -79,7 +79,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	conf := core.DagConfig{}
 	db, remove := newTestLDB("TestDagLoadGenesis")
 	defer remove()
-	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db)
+	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("can't new a dag: %v", errnew)
 	}
@@ -166,7 +166,7 @@ func TestDagPush(t *testing.T) {
 	}
 	// check txs' hashs
 	var hashsP *types.Hashes
-	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Id)
+	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Height)
 	hashs := *hashsP
 	if err != nil {
 		t.Fatalf("read indexed tx hashs failed: %v", err)
@@ -179,7 +179,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("indexed hashs are not the list of tx1 and tx2's hash")
 	}
 
-	txs := dag.GetTxsByNumber(seq.Id)
+	txs := dag.GetTxsByNumber(seq.Height)
 	fmt.Println("txs", types.Txs(txs))
 
 	// TODO check addr balance

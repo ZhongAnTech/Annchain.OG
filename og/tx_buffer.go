@@ -20,7 +20,7 @@ const (
 )
 
 type Syncer interface {
-	Enqueue(hash types.Hash)
+	Enqueue(hash *types.Hash, sendBloomFilter bool)
 	ClearQueue()
 }
 
@@ -34,12 +34,13 @@ type ITxPool interface {
 	RegisterOnNewTxReceived(c chan types.Txi, name string)
 	GetLatestNonce(addr types.Address) (uint64, error)
 	IsLocalHash(hash types.Hash) bool
+	GetMaxWeight() uint64
 }
 
 type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
-	GetSequencerById(id uint64) *types.Sequencer
+	GetSequencerByHeight(id uint64) *types.Sequencer
 	GetTxsByNumber(id uint64) types.Txs
 	LatestSequencer() *types.Sequencer
 	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
@@ -348,6 +349,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	//children := b.children.GetAndRemove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
+	b.dependencyCache.Remove(tx.GetTxHash())
 	addErr := b.addToTxPool(tx)
 	if addErr != nil {
 		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
@@ -356,7 +358,6 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		b.Announcer.BroadcastNewTx(tx)
 		logrus.WithField("tx", tx).Trace("broadcasted tx")
 	}
-	//b.dependencyCache.Remove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {
@@ -442,6 +443,7 @@ func (b *TxBuffer) tryResolve(tx types.Txi) {
 func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
+	var sendBloom bool
 	for _, parentHash := range tx.Parents() {
 		if !b.isLocalHash(parentHash) {
 			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
@@ -452,11 +454,19 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				// not in cache, never synced before.
 				// sync.
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
-				b.Syncer.Enqueue(parentHash)
+				pHash := parentHash
 				b.updateDependencyMap(parentHash, tx)
+				if !sendBloom && tx.GetWeight() > b.txPool.GetMaxWeight() && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
+					b.Syncer.Enqueue(&pHash, true)
+					sendBloom = true
+				} else {
+					b.Syncer.Enqueue(&pHash, false)
+
+				}
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
+				b.Syncer.Enqueue(nil, false)
 			}
 		}
 	}

@@ -1,15 +1,15 @@
 package vm_test
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/annchain/OG/common/math"
-	"testing"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/vm/eth/core/vm"
 	"encoding/hex"
+	"fmt"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
+	"github.com/stretchr/testify/assert"
 	"strconv"
+	"testing"
 )
 
 func TestMultiContract(t *testing.T) {
@@ -24,7 +24,7 @@ func TestMultiContract(t *testing.T) {
 	contracts := make(map[string]types.Address)
 
 	//for _, file := range ([]string{"ABBToken", "owned", "SafeMath", "TokenCreator", "TokenERC20"}) {
-	for _, file := range ([]string{"ABBToken"}) {
+	for _, file := range []string{"ABBToken"} {
 		var params []byte
 
 		switch file {
@@ -39,11 +39,11 @@ func TestMultiContract(t *testing.T) {
 			TxContext: &ovm.TxContext{
 				From: types.HexToAddress("0xABCDEF88"),
 				//To:       types.HexToAddress("0x02"),
-				Value:    math.NewBigInt(0),
-				Data:     readFile(file + ".bin"),
-				GasPrice: math.NewBigInt(1),
-				GasLimit: DefaultGasLimit,
-				Coinbase: coinBase,
+				Value:      math.NewBigInt(0),
+				Data:       readFile(file + ".bin"),
+				GasPrice:   math.NewBigInt(1),
+				GasLimit:   DefaultGasLimit,
+				Coinbase:   coinBase,
 				SequenceID: 0,
 			},
 		}
@@ -62,12 +62,12 @@ func TestMultiContract(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:     types.HexToAddress("0xABCDEF88"),
-			To:       contracts["TokenERC20"],
-			Value:    math.NewBigInt(0),
-			GasPrice: math.NewBigInt(1),
-			GasLimit: DefaultGasLimit,
-			Coinbase: coinBase,
+			From:       types.HexToAddress("0xABCDEF88"),
+			To:         contracts["TokenERC20"],
+			Value:      math.NewBigInt(0),
+			GasPrice:   math.NewBigInt(1),
+			GasLimit:   DefaultGasLimit,
+			Coinbase:   coinBase,
 			SequenceID: 0,
 		},
 	}
@@ -153,7 +153,6 @@ func TestMultiContract(t *testing.T) {
 	}
 }
 
-
 func TestInterCall(t *testing.T) {
 	from := types.HexToAddress("0xABCDEF88")
 	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
@@ -165,7 +164,7 @@ func TestInterCall(t *testing.T) {
 
 	contracts := make(map[string]types.Address)
 
-	for _, file := range ([]string{"C1", "C2"}) {
+	for _, file := range []string{"C1", "C2"} {
 
 		var params []byte
 
@@ -173,12 +172,12 @@ func TestInterCall(t *testing.T) {
 			Tracer:    tracer,
 			VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 			TxContext: &ovm.TxContext{
-				From:     from,
-				Value:    math.NewBigInt(0),
-				Data:     readFile(file + ".bin"),
-				GasPrice: math.NewBigInt(1),
-				GasLimit: DefaultGasLimit,
-				Coinbase: coinBase,
+				From:       from,
+				Value:      math.NewBigInt(0),
+				Data:       readFile(file + ".bin"),
+				GasPrice:   math.NewBigInt(1),
+				GasLimit:   DefaultGasLimit,
+				Coinbase:   coinBase,
 				SequenceID: 0,
 			},
 		}
@@ -191,12 +190,12 @@ func TestInterCall(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewEVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:     types.HexToAddress("0xABCDEF88"),
-			To:       contracts["TokenERC20"],
-			Value:    math.NewBigInt(0),
-			GasPrice: math.NewBigInt(1),
-			GasLimit: DefaultGasLimit,
-			Coinbase: coinBase,
+			From:       types.HexToAddress("0xABCDEF88"),
+			To:         contracts["TokenERC20"],
+			Value:      math.NewBigInt(0),
+			GasPrice:   math.NewBigInt(1),
+			GasLimit:   DefaultGasLimit,
+			Coinbase:   coinBase,
 			SequenceID: 0,
 		},
 	}

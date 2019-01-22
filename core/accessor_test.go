@@ -230,4 +230,4 @@ func TestBalanceStorage(t *testing.T) {
 }
 
 // Note that nonce is now managed by statedb, so no need to test
-// latest nonce in accessor part. 
+// latest nonce in accessor part.

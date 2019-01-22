@@ -1,9 +1,9 @@
 package types
 
 import (
-	"math/big"
-	"github.com/annchain/OG/types"
 	"fmt"
+	"github.com/annchain/OG/types"
+	"math/big"
 )
 
 type Storage map[types.Hash]types.Hash

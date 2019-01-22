@@ -73,7 +73,7 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 
 type NodeStatusDataProvider interface {
 	GetCurrentNodeStatus() StatusData
-	GetHeight       () uint64
+	GetHeight() uint64
 }
 
 type PeerProvider interface {
@@ -242,14 +242,22 @@ func (h *Hub) handleMsg(p *peer) error {
 		// Block header query, collect the requested headers and reply
 	default:
 		duplicate, err := h.checkMsg(&p2pMsg)
-		if duplicate {
-			return nil
-		}
 		if err != nil {
 			log.WithField("type ", p2pMsg.MessageType).WithError(err).Warn("handle msg error")
 			return err
 		}
 		p.MarkMessage(p2pMsg.hash)
+		hashes :=  p2pMsg.GetMarkHashes()
+		if len(hashes)!=0 {
+			msgLog.Trace("before mark msg")
+			for _, h:=range hashes {
+				p.MarkMessage(h)
+			}
+			msgLog.WithField("len ",len(hashes)).Trace("after mark msg")
+		}
+		if duplicate {
+			return nil
+		}
 		h.incoming <- &p2pMsg
 		return nil
 	}
@@ -563,7 +571,7 @@ func (h *Hub) receiveMessage(msg *P2PMessage) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG32 {
 		if v, ok := h.CallbackRegistryOG32[msg.MessageType]; ok {
-			//log.WithField("from",msg.SourceID).WithField("type", msg.MessageType.String()).Debug("Received a message")
+			log.WithField("from", msg.SourceID).WithField("type", msg.MessageType.String()).Trace("Received a message")
 			v(msg)
 			return
 		}

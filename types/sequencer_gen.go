@@ -27,18 +27,8 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "Id":
-			z.Id, err = dc.ReadUint64()
-			if err != nil {
-				return
-			}
 		case "Issuer":
 			err = z.Issuer.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "ContractHashOrder":
-			err = z.ContractHashOrder.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -54,22 +44,13 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
+	// map header, size 2
 	// write "TxBase"
-	err = en.Append(0x84, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
 	if err != nil {
 		return
 	}
 	err = z.TxBase.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "Id"
-	err = en.Append(0xa2, 0x49, 0x64)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint64(z.Id)
 	if err != nil {
 		return
 	}
@@ -82,40 +63,22 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "ContractHashOrder"
-	err = en.Append(0xb1, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x48, 0x61, 0x73, 0x68, 0x4f, 0x72, 0x64, 0x65, 0x72)
-	if err != nil {
-		return
-	}
-	err = z.ContractHashOrder.EncodeMsg(en)
-	if err != nil {
-		return
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
+	// map header, size 2
 	// string "TxBase"
-	o = append(o, 0x84, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Id"
-	o = append(o, 0xa2, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.Id)
 	// string "Issuer"
 	o = append(o, 0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
 	o, err = z.Issuer.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	// string "ContractHashOrder"
-	o = append(o, 0xb1, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x48, 0x61, 0x73, 0x68, 0x4f, 0x72, 0x64, 0x65, 0x72)
-	o, err = z.ContractHashOrder.MarshalMsg(o)
 	if err != nil {
 		return
 	}
@@ -143,18 +106,8 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-		case "Id":
-			z.Id, bts, err = msgp.ReadUint64Bytes(bts)
-			if err != nil {
-				return
-			}
 		case "Issuer":
 			bts, err = z.Issuer.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "ContractHashOrder":
-			bts, err = z.ContractHashOrder.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -171,7 +124,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + 7 + z.TxBase.Msgsize() + 3 + msgp.Uint64Size + 7 + z.Issuer.Msgsize() + 18 + z.ContractHashOrder.Msgsize()
+	s = 1 + 7 + z.TxBase.Msgsize() + 7 + z.Issuer.Msgsize()
 	return
 }
 
@@ -198,9 +151,36 @@ func (z *Sequencers) DecodeMsg(dc *msgp.Reader) (err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Sequencer)
 			}
-			err = (*z)[zb0001].DecodeMsg(dc)
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, err = dc.ReadMapHeader()
 			if err != nil {
 				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					err = (*z)[zb0001].TxBase.DecodeMsg(dc)
+					if err != nil {
+						return
+					}
+				case "Issuer":
+					err = (*z)[zb0001].Issuer.DecodeMsg(dc)
+					if err != nil {
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						return
+					}
+				}
 			}
 		}
 	}
@@ -213,14 +193,29 @@ func (z Sequencers) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	for zb0003 := range z {
-		if z[zb0003] == nil {
+	for zb0004 := range z {
+		if z[zb0004] == nil {
 			err = en.WriteNil()
 			if err != nil {
 				return
 			}
 		} else {
-			err = z[zb0003].EncodeMsg(en)
+			// map header, size 2
+			// write "TxBase"
+			err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			if err != nil {
+				return
+			}
+			err = z[zb0004].TxBase.EncodeMsg(en)
+			if err != nil {
+				return
+			}
+			// write "Issuer"
+			err = en.Append(0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
+			if err != nil {
+				return
+			}
+			err = z[zb0004].Issuer.EncodeMsg(en)
 			if err != nil {
 				return
 			}
@@ -233,11 +228,20 @@ func (z Sequencers) EncodeMsg(en *msgp.Writer) (err error) {
 func (z Sequencers) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
-	for zb0003 := range z {
-		if z[zb0003] == nil {
+	for zb0004 := range z {
+		if z[zb0004] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			o, err = z[zb0003].MarshalMsg(o)
+			// map header, size 2
+			// string "TxBase"
+			o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			o, err = z[zb0004].TxBase.MarshalMsg(o)
+			if err != nil {
+				return
+			}
+			// string "Issuer"
+			o = append(o, 0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
+			o, err = z[zb0004].Issuer.MarshalMsg(o)
 			if err != nil {
 				return
 			}
@@ -269,9 +273,36 @@ func (z *Sequencers) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Sequencer)
 			}
-			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
 			if err != nil {
 				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, bts, err = msgp.ReadMapKeyZC(bts)
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
+					if err != nil {
+						return
+					}
+				case "Issuer":
+					bts, err = (*z)[zb0001].Issuer.UnmarshalMsg(bts)
+					if err != nil {
+						return
+					}
+				default:
+					bts, err = msgp.Skip(bts)
+					if err != nil {
+						return
+					}
+				}
 			}
 		}
 	}
@@ -282,11 +313,11 @@ func (z *Sequencers) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z Sequencers) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
-	for zb0003 := range z {
-		if z[zb0003] == nil {
+	for zb0004 := range z {
+		if z[zb0004] == nil {
 			s += msgp.NilSize
 		} else {
-			s += z[zb0003].Msgsize()
+			s += 1 + 7 + z[zb0004].TxBase.Msgsize() + 7 + z[zb0004].Issuer.Msgsize()
 		}
 	}
 	return

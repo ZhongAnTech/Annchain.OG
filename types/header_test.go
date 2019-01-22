@@ -11,8 +11,8 @@ func TestNewSequencerHead(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		s := Sequencer{
 			Id: uint64(i),
-			TxBase : TxBase{
-				Hash:randomHash(),
+			TxBase: TxBase{
+				Hash: randomHash(),
 			},
 		}
 		seqs = append(seqs, &s)

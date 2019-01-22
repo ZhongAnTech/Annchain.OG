@@ -246,12 +246,12 @@ func (r *RpcController) getTps() (t *Tps, err error) {
 	if lseq == nil {
 		return nil, fmt.Errorf("not found")
 	}
-	if lseq.Id < 3 {
+	if lseq.Height < 3 {
 		return
 	}
 
 	var cfs []types.ConfirmTime
-	for id := lseq.Id; id > 0 && id > lseq.Id-5; id-- {
+	for id := lseq.Height; id > 0 && id > lseq.Height-5; id-- {
 		cf := r.Og.Dag.GetConfirmTime(id)
 		if cf == nil {
 			return nil, fmt.Errorf("db error")
@@ -316,7 +316,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			})
 			return
 		}
-		sq = r.Og.Dag.GetSequencerById(uint64(id))
+		sq = r.Og.Dag.GetSequencerByHeight(uint64(id))
 		if sq != nil {
 			c.JSON(http.StatusOK, sq)
 		} else {
@@ -555,12 +555,12 @@ func (r *RpcController) OgPeersInfo(c *gin.Context) {
 }
 
 type Monitor struct {
-	Port    string `json:"port"`
-	ShortId string `json:"short_id"`
-	Peers   []Peer `json:"peers,omitempty"`
-	SeqId   uint64 `json:"seq_id"`
-	Tps     *Tps   `json:"tps"`
-	Status		SyncStatus `json:"status"`
+	Port    string     `json:"port"`
+	ShortId string     `json:"short_id"`
+	Peers   []Peer     `json:"peers,omitempty"`
+	SeqId   uint64     `json:"seq_id"`
+	Tps     *Tps       `json:"tps"`
+	Status  SyncStatus `json:"status"`
 }
 
 type Peer struct {
@@ -572,7 +572,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	var m Monitor
 	seq := r.Og.Dag.LatestSequencer()
 	if seq != nil {
-		m.SeqId = seq.Id
+		m.SeqId = seq.Height
 	}
 	peersinfo := r.P2pServer.PeersInfo()
 	for _, p := range peersinfo {

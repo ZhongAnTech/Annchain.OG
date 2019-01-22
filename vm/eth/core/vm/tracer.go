@@ -2,9 +2,9 @@ package vm
 
 import (
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/instruction"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"math/big"
-	"github.com/annchain/OG/vm/instruction"
 	"time"
 
 	"io"

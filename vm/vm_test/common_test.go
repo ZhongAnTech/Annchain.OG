@@ -1,22 +1,22 @@
 package vm_test
 
 import (
-	"math/big"
-	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/vm/eth/core/vm"
+	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"io/ioutil"
-	"encoding/hex"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"bytes"
-	"testing"
-	"encoding/binary"
-	"reflect"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"math/big"
+	"reflect"
+	"testing"
 )
 
 func readFile(filename string) []byte {
@@ -58,12 +58,12 @@ func DefaultOVM(runtime *Runtime) *ovm.OVM {
 
 func DeployContract(filename string, from types.Address, coinBase types.Address, rt *Runtime, params []byte) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
-		From:     from,
-		Value:    math.NewBigInt(0),
-		Data:     readFile(filename),
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-		Coinbase: coinBase,
+		From:       from,
+		Value:      math.NewBigInt(0),
+		Data:       readFile(filename),
+		GasPrice:   math.NewBigInt(1),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   coinBase,
 		SequenceID: 0,
 	}
 
@@ -86,12 +86,12 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 
 func CallContract(contractAddr types.Address, from types.Address, coinBase types.Address, rt *Runtime, value *math.BigInt, functionHash string, params []byte) (ret []byte, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
-		From:     from,
-		To:       contractAddr,
-		Value:    value,
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-		Coinbase: coinBase,
+		From:       from,
+		To:         contractAddr,
+		Value:      value,
+		GasPrice:   math.NewBigInt(1),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   coinBase,
 		SequenceID: 0,
 	}
 
@@ -249,7 +249,6 @@ func TestEncodeParams(t *testing.T) {
 	bs := EncodeParams(params)
 	fmt.Println(hex.Dump(bs))
 }
-
 
 func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, err error) {
 	fmt.Println(ldb.String())

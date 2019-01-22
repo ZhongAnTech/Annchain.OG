@@ -12,10 +12,10 @@ import (
 )
 
 type Monitor struct {
-	Port    string `json:"port"`
-	Peers   []rpc.Peer `json:"peers"`
-	SeqId   uint64 `json:"seq_id"`
-	ShortId string `json:"short_id"`
+	Port    string         `json:"port"`
+	Peers   []rpc.Peer     `json:"peers"`
+	SeqId   uint64         `json:"seq_id"`
+	ShortId string         `json:"short_id"`
 	Status  rpc.SyncStatus `json:"status"`
 	Err     error
 	Id      int
@@ -27,14 +27,14 @@ type Statistics struct {
 }
 
 var fistPort = 11300
-var peerNum = 1
-var ipsNum = 3
+var peerNum = 3
+var ipsNum = 1
 
 func main() {
 	ips := GetIps()
 	for {
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(2 * time.Second):
 			go run(ips)
 		}
 	}
@@ -104,7 +104,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	//return  []string{"192.168.45.131"}
+	return  []string{"192.168.45.145"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)

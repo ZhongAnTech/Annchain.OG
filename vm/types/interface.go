@@ -17,8 +17,8 @@
 package types
 
 import (
-	"math/big"
 	"github.com/annchain/OG/types"
+	"math/big"
 )
 
 // Caller provides a basic interface for the OVM calling conventions. The OVM

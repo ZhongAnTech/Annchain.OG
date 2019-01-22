@@ -1,9 +1,9 @@
 package crypto
 
 import (
+	"encoding/binary"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
-	"encoding/binary"
 )
 
 type CryptoType int8

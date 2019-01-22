@@ -8,7 +8,6 @@ import (
 
 //go:generate msgp
 
-
 // compress data ,for p2p  , small size
 type RawTx struct {
 	TxBase
@@ -16,17 +15,13 @@ type RawTx struct {
 	Value *math.BigInt
 }
 
-
 type RawSequencer struct {
 	TxBase
-	Id                uint64 `msgp:"id"`
-	ContractHashOrder Hashes `msgp:"contractHashOrder"`
 }
 
 type RawSequencers []*RawSequencer
 
-type RawTxs        []*RawTx
-
+type RawTxs []*RawTx
 
 func (t *RawTx) Tx() *Tx {
 	if t == nil {
@@ -46,24 +41,21 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		return nil
 	}
 	tx := &Sequencer{
-		TxBase:            t.TxBase,
-		Id:                t.Id,
-		ContractHashOrder: t.ContractHashOrder,
+		TxBase: t.TxBase,
 	}
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
 }
-
 
 func (t *RawTx) String() string {
 	return fmt.Sprintf("%s-%d-RawTx", t.TxBase.String(), t.AccountNonce)
 }
 
 func (t *RawSequencer) String() string {
-	return fmt.Sprintf("%s-%d-id_%d-RawSeq", t.TxBase.String(), t.AccountNonce, t.Id)
+	return fmt.Sprintf("%s-%d_%d-RawSeq", t.TxBase.String(), t.AccountNonce, t.Height)
 }
 
-func (r RawTxs)ToTxs() Txs {
+func (r RawTxs)Txs() Txs {
 	if len(r) == 0 {
 		return nil
 	}
@@ -75,8 +67,19 @@ func (r RawTxs)ToTxs() Txs {
 	return txs
 }
 
+func (r RawTxs) Txis() Txis {
+	if len(r) == 0 {
+		return nil
+	}
+	var txis Txis
+	for _, v := range r {
+		tx := v.Tx()
+		txis = append(txis, tx)
+	}
+	return txis
+}
 
-func (r RawSequencers)ToSequencers()Sequencers {
+func (r RawSequencers) Sequencers() Sequencers {
 	if len(r) == 0 {
 		return nil
 	}
@@ -88,30 +91,42 @@ func (r RawSequencers)ToSequencers()Sequencers {
 	return seqs
 }
 
-func (seqs RawSequencers)ToHeaders()SequencerHeaders {
+func (r RawSequencers) Txis() Txis{
+	if len(r) == 0 {
+		return nil
+	}
+	var txis Txis
+	for _, v := range r {
+		seq := v.Sequencer()
+		txis = append(txis, seq)
+	}
+	return txis
+}
+
+func (seqs RawSequencers) ToHeaders() SequencerHeaders {
 	if len(seqs) == 0 {
 		return nil
 	}
 	var headers SequencerHeaders
 	for _, v := range seqs {
-		head := NewSequencerHead(v.Hash, v.Id)
+		head := NewSequencerHead(v.Hash, v.Height)
 		headers = append(headers, head)
 	}
 	return headers
 }
 
-func (r RawTxs)String()string {
+func (r RawTxs) String() string {
 	var strs []string
 	for _, v := range r {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }
 
-func (r RawSequencers)String()string {
+func (r RawSequencers) String() string {
 	var strs []string
 	for _, v := range r {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }

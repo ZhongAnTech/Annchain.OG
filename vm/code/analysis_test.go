@@ -19,8 +19,8 @@ package code
 import (
 	"testing"
 
-	"github.com/annchain/OG/vm/instruction"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/vm/instruction"
 )
 
 func TestJumpDestAnalysis(t *testing.T) {

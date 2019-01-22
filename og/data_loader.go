@@ -40,9 +40,7 @@ func (d *DataLoader) LoadLocalData() {
 
 func (d *DataLoader) GenerateGenesis() *types.Sequencer {
 	return &types.Sequencer{
-		Issuer:            types.HexToAddress("0x00"),
-		ContractHashOrder: []types.Hash{},
-		Id:                0,
+		Issuer: types.HexToAddress("0x00"),
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeSequencer,
 			Hash:         types.HexToHash("0x00"),

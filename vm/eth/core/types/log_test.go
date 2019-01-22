@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/common/hexutil"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var unmarshalLogTests = map[string]struct {

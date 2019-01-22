@@ -36,8 +36,8 @@ type AutoClient struct {
 	ManualChan chan types.TxBaseType
 	quit       chan bool
 
-	pause bool
-	testMode  bool
+	pause    bool
+	testMode bool
 
 	wg sync.WaitGroup
 
@@ -189,7 +189,7 @@ func (c *AutoClient) fireTxs(me types.Address) bool {
 	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
-			return  true
+			return true
 		}
 		time.Sleep(time.Duration(m) * time.Microsecond)
 		txi := c.Delegate.Dag.GetOldTx(me, i)
@@ -215,7 +215,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 			logrus.WithField("txi", txi).Info("get start test tps")
 			c.AutoTxEnabled = false
 			c.AutoSequencerEnabled = false
-			c.testMode  = true
+			c.testMode = true
 			firstTx = true
 			c.Delegate.Announce(txi)
 			return c.fireTxs(me.Address)
@@ -239,6 +239,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	c.Delegate.Announce(tx)
 	return true
 }
+
 func (c *AutoClient) doSampleSequencer(force bool) bool {
 	if !force && !c.AutoSequencerEnabled {
 		return false
@@ -254,9 +255,8 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,
-		SequenceID: c.Delegate.GetLatestDagSequencer().Id + 1,
+		Height:     c.Delegate.GetLatestDagSequencer().Height + 1,
 		Nonce:      c.judgeNonce(),
-		Hashes:     []types.Hash{},
 		PrivateKey: me.PrivateKey,
 	})
 	if err != nil {

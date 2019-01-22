@@ -1,31 +1,31 @@
 package vm_test
 
 import (
-	"testing"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/vm/eth/core/vm"
 	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/common/hexutil"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"os"
+	"testing"
 )
 
 func TestContractSmallStorage(t *testing.T) {
-	from :=types.HexToAddress("0x01")
+	from := types.HexToAddress("0x01")
 
 	txContext := &ovm.TxContext{
 		From: types.HexToAddress("0x01"),
 		//To:       types.HexToAddress("0x02"),
-		Value:    math.NewBigInt(0),
-		Data:     readFile("OwnedToken.bin"),
-		GasPrice: math.NewBigInt(1),
-		GasLimit: DefaultGasLimit,
-		Coinbase: types.HexToAddress("0x01"),
+		Value:      math.NewBigInt(0),
+		Data:       readFile("OwnedToken.bin"),
+		GasPrice:   math.NewBigInt(1),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   types.HexToAddress("0x01"),
 		SequenceID: 0,
 	}
 	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
@@ -95,11 +95,11 @@ func TestContractHelloWorld(t *testing.T) {
 		TxContext: &ovm.TxContext{
 			From: types.HexToAddress("0x01"),
 			//To:       types.HexToAddress("0x02"),
-			Value:    math.NewBigInt(0),
-			Data:     readFile("hello.bin"),
-			GasPrice: math.NewBigInt(1),
-			GasLimit: DefaultGasLimit,
-			Coinbase: coinBase,
+			Value:      math.NewBigInt(0),
+			Data:       readFile("hello.bin"),
+			GasPrice:   math.NewBigInt(1),
+			GasLimit:   DefaultGasLimit,
+			Coinbase:   coinBase,
 			SequenceID: 0,
 		},
 	}

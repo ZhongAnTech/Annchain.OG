@@ -1,22 +1,21 @@
 package ovm
 
 import (
-	"math/big"
+	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/math"
-	"strings"
-	"fmt"
+	"math/big"
 	"sort"
-	"github.com/annchain/OG/common/crypto"
+	"strings"
 )
-
 
 type MemoryStateDB struct {
 	soLedger map[types.Address]*vmtypes.StateObject
 	kvLedger map[types.Address]vmtypes.Storage
-	refund uint64
+	refund   uint64
 }
 
 func (m *MemoryStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
@@ -123,7 +122,7 @@ func (m *MemoryStateDB) GetCommittedState(addr types.Address, hash types.Hash) t
 
 func (m *MemoryStateDB) GetState(addr types.Address, key types.Hash) types.Hash {
 	if kv, ok := m.kvLedger[addr]; ok {
-		if v, ok := kv[key]; ok{
+		if v, ok := kv[key]; ok {
 			return v
 		}
 	}
@@ -180,14 +179,14 @@ func (m *MemoryStateDB) String() string {
 	b := strings.Builder{}
 	for k, v := range m.soLedger {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k.String(), v))
-		if innerKV, ok := m.kvLedger[k]; ok{
+		if innerKV, ok := m.kvLedger[k]; ok {
 			var keys types.Hashes
 			for sk := range innerKV {
 				keys = append(keys, sk)
 			}
 			sort.Sort(keys)
 
-			for _, key := range keys{
+			for _, key := range keys {
 				b.WriteString(fmt.Sprintf("-->  %s: %s\n", key.Hex(), innerKV[key].Hex()))
 			}
 		}

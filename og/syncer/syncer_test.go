@@ -10,22 +10,22 @@ import (
 	"time"
 )
 
-func newTestIncrementalSyncer()*IncrementalSyncer {
+func newTestIncrementalSyncer() *IncrementalSyncer {
 
-   isKnownHash := func (h types.Hash) bool{
-   	return  false
-   }
-   newTxEnable := func ()bool {
-   	return  true
-   }
-   hashOrder := func () []types.Hash{
-   	return nil
-   }
-   heighter:= func ()uint64 {
-   	 return  0
-   }
-   log = logrus.StandardLogger()
-   log.SetLevel(logrus.InfoLevel)
+	isKnownHash := func(h types.Hash) bool {
+		return false
+	}
+	newTxEnable := func() bool {
+		return true
+	}
+	hashOrder := func() []types.Hash {
+		return nil
+	}
+	heighter := func() uint64 {
+		return 0
+	}
+	log = logrus.StandardLogger()
+	log.SetLevel(logrus.InfoLevel)
 	syncer := NewIncrementalSyncer(
 		&SyncerConfig{
 			BatchTimeoutMilliSecond:                  100,
@@ -37,44 +37,60 @@ func newTestIncrementalSyncer()*IncrementalSyncer {
 			BufferedIncomingTxCacheMaxSize:           80000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, nil, hashOrder ,isKnownHash,
-		heighter,newTxEnable)
+		}, nil, hashOrder, isKnownHash,
+		heighter, newTxEnable)
 	syncer.Enabled = true
-	for i:=0;i<5000;i++{
-		tx:= types.RandomTx()
-		err:= syncer.bufferedIncomingTxCache.EnQueue(tx)
-		if err!=nil {
+	for i := 0; i < 5000; i++ {
+		tx := types.RandomTx()
+		err := syncer.bufferedIncomingTxCache.EnQueue(tx)
+		if err != nil {
 			panic(err)
 		}
 	}
-    go syncer.txNotifyLoop()
+	go syncer.txNotifyLoop()
 	return syncer
 
 }
 
 func stopIncSyncer(syncer *IncrementalSyncer) {
-	syncer.quitNotifyEvent <-true
+	syncer.quitNotifyEvent <- true
 }
-
 
 func TestIncrementalSyncer_AddTxs(t *testing.T) {
 	syncer := newTestIncrementalSyncer()
-	defer  stopIncSyncer(syncer)
+	defer stopIncSyncer(syncer)
 	var wg sync.WaitGroup
 	start := time.Now()
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
-	pubKey,_,_:= signer.RandomKeyPair()
+	pubKey, _, _ := signer.RandomKeyPair()
 	types.Signer = signer
-	for i:=0;i<60000;i++ {
-		tx:= types.RandomTx()
+	for i := 0; i < 60000; i++ {
+		tx := types.RandomTx()
 		tx.PublicKey = pubKey.Bytes
-		msg:= &types.MessageNewTx{tx.RawTx()}
+		msg := &types.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
-		go func (){
+		go func() {
 			syncer.HandleNewTx(msg)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
-	fmt.Println("used",time.Now().Sub(start).String(),"len",syncer.bufferedIncomingTxCache.Len())
+	fmt.Println("used", time.Now().Sub(start).String(), "len", syncer.bufferedIncomingTxCache.Len())
+}
+
+
+func TestSyncBuffer_AddTxs(t *testing.T) {
+	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
+	pubKey, _, _ := signer.RandomKeyPair()
+	types.Signer = signer
+	for i := 0; i < 60000; i++ {
+		tx := types.RandomTx()
+		tx.PublicKey = pubKey.Bytes
+		msg := &types.MessageNewTx{tx.RawTx()}
+		wg.Add(1)
+		go func() {
+			syncer.HandleNewTx(msg)
+			wg.Done()
+		}()
+	}
 }

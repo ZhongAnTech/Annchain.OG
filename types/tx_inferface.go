@@ -49,7 +49,7 @@ type Txi interface {
 	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
 	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-	Parents() Hashes         // Parents returns the hash of txs that it directly proves.
+	Parents() Hashes          // Parents returns the hash of txs that it directly proves.
 
 	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
 
@@ -63,12 +63,14 @@ type Txi interface {
 	SetHash(h Hash)
 	String() string
 	Dump() string
-	GetOrder() uint32
+	GetWeight() uint64
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
 	MarshalMsg(b []byte) (o []byte, err error)
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
+
+	CalculateWeight(parents Txis) uint64
 }
 
 //msgp:tuple TxBase
@@ -81,7 +83,7 @@ type TxBase struct {
 	PublicKey    []byte
 	Signature    []byte
 	MineNonce    uint64
-	Order        uint32
+	Weight       uint64
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -92,8 +94,8 @@ func (t *TxBase) GetHeight() uint64 {
 	return t.Height
 }
 
-func (t *TxBase) GetOrder() uint32 {
-	return t.Order
+func (t *TxBase) GetWeight() uint64 {
+	return t.Weight
 }
 
 func (t *TxBase) GetTxHash() Hash {
@@ -113,9 +115,8 @@ func (t *TxBase) SetHash(hash Hash) {
 }
 
 func (t *TxBase) String() string {
-	return fmt.Sprintf("%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(),t.Order)
+	return fmt.Sprintf("%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
 }
-
 
 func (t *TxBase) CalcTxHash() (hash Hash) {
 	var buf bytes.Buffer
@@ -124,7 +125,7 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
 	// TODO do not use Height to calculate tx hash.
-	// panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
 
 	result := sha3.Sum256(buf.Bytes())
@@ -144,37 +145,45 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	return
 }
 
-type Txis  []Txi
+//CalculateWeight  a core algorithm for tx sorting,
+//a tx's weight must bigger than any of it's parent's weight  and bigger than any of it's elder transaction's
+func (t *TxBase) CalculateWeight(parents Txis) uint64 {
+	var maxWeight uint64
+	for _, p := range parents {
+		if p.GetWeight() > maxWeight {
+			maxWeight = p.GetWeight()
+		}
+	}
+	return maxWeight + 1
+}
+
+type Txis []Txi
 
 func (t Txis) String() string {
 	var strs []string
 	for _, v := range t {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }
 
-
-func (t Txis)Len() int {
+func (t Txis) Len() int {
 	return len(t)
 }
 
-func (t Txis)Less(i,j int ) bool {
-	if t[i].GetHeight() < t[j].GetHeight() {
-		return  true
-	}
-	if t[i].GetHeight() > t[j].GetHeight() {
-		return false
-	}
-	if t[i].GetOrder() < t[j].GetOrder() {
+func (t Txis) Less(i, j int) bool {
+	if t[i].GetWeight() < t[j].GetWeight() {
 		return true
 	}
-	if t[i].GetOrder() > t[j].GetOrder() {
+	if t[i].GetWeight() > t[j].GetWeight() {
 		return false
+	}
+	if t[i].GetTxHash().Cmp(t[j].GetTxHash()) < 0 {
+		return true
 	}
 	return false
 }
 
-func ( t Txis)Swap(i,j int) {
-	t[i],t[j] = t[j],t[i]
+func (t Txis) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }

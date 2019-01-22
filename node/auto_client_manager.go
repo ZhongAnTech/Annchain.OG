@@ -103,7 +103,7 @@ func (c *AutoClientManager) eventLoop() {
 				}
 			}
 		//case <-time.After(time.Second * 20):
-			//continue
+		//continue
 		case <-c.quit:
 			logrus.Info("got quit signal")
 			// wait for all clients to stop

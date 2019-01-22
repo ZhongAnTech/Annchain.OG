@@ -400,6 +400,166 @@ func (z *MessageBodiesResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageBodyData) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "RawTxs":
+			err = z.RawTxs.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "RawSequencer":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					return
+				}
+				z.RawSequencer = nil
+			} else {
+				if z.RawSequencer == nil {
+					z.RawSequencer = new(RawSequencer)
+				}
+				err = z.RawSequencer.DecodeMsg(dc)
+				if err != nil {
+					return
+				}
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageBodyData) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 2
+	// write "RawTxs"
+	err = en.Append(0x82, 0xa6, 0x52, 0x61, 0x77, 0x54, 0x78, 0x73)
+	if err != nil {
+		return
+	}
+	err = z.RawTxs.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "RawSequencer"
+	err = en.Append(0xac, 0x52, 0x61, 0x77, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	if z.RawSequencer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.RawSequencer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageBodyData) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 2
+	// string "RawTxs"
+	o = append(o, 0x82, 0xa6, 0x52, 0x61, 0x77, 0x54, 0x78, 0x73)
+	o, err = z.RawTxs.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "RawSequencer"
+	o = append(o, 0xac, 0x52, 0x61, 0x77, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	if z.RawSequencer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.RawSequencer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageBodyData) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "RawTxs":
+			bts, err = z.RawTxs.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "RawSequencer":
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.RawSequencer = nil
+			} else {
+				if z.RawSequencer == nil {
+					z.RawSequencer = new(RawSequencer)
+				}
+				bts, err = z.RawSequencer.UnmarshalMsg(bts)
+				if err != nil {
+					return
+				}
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageBodyData) Msgsize() (s int) {
+	s = 1 + 7 + z.RawTxs.Msgsize() + 13
+	if z.RawSequencer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.RawSequencer.Msgsize()
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageHeaderRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

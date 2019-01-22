@@ -81,11 +81,13 @@ func (p *peer) broadcast() {
 		select {
 		case msg := <-p.queuedMsg:
 			if err := p.SendMessages(msg); err != nil {
+				msgLog.WithError(err).Warn("send msg failed,quiting")
 				return
 			}
-			msgLog.WithField("count", len(msg)).Trace("Broadcast transactions")
+			msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
 
 		case <-p.term:
+			msgLog.Debug("peer terminating,quiting")
 			return
 		}
 	}
@@ -153,7 +155,7 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 }
 
 func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
-	msgLog.WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
+	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, uint64(msgType), msgBytes)
 }
 
@@ -424,9 +426,8 @@ func (ps *peerSet) GetPeers(ids []string, n int) []*peer {
 	for _, id := range ids {
 		peer := ps.peers[id]
 		if peer != nil {
-
+			all = append(all, peer)
 		}
-		all = append(all, peer)
 	}
 	indices := generateRandomIndices(n, len(all))
 	for _, i := range indices {
@@ -441,10 +442,9 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 	all := make([]*peer, 0, len(ps.peers))
 	list := make([]*peer, 0, n)
 	for _, p := range ps.peers {
-		all = append(list, p)
+		all = append(all, p)
 	}
 	indices := generateRandomIndices(n, len(all))
-
 	for _, i := range indices {
 		list = append(list, all[i])
 	}

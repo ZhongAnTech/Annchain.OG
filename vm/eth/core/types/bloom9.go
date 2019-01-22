@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/vm/eth/common/hexutil"
 )
 
 type bytesBacked interface {

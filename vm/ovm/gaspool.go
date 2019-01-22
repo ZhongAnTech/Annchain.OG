@@ -18,8 +18,8 @@ package ovm
 
 import (
 	"fmt"
-	"math"
 	"github.com/annchain/OG/vm/types"
+	"math"
 )
 
 // GasPool tracks the amount of gas available during execution of the transactions

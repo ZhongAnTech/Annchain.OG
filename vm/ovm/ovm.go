@@ -17,12 +17,12 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/params"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"math/big"
 	"sync/atomic"
-	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/common/crypto"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -92,14 +92,14 @@ type OVM struct {
 // only ever be used *once*.
 func NewOVM(ctx *vmtypes.Context, supportInterpreters []Interpreter, ovmConfig *OVMConfig) *OVM {
 	ovm := &OVM{
-		VMContext:    ctx,
+		VMContext:  ctx,
 		OVMConfigs: ovmConfig,
 		//chainRules:   chainConfig.Rules(ctx.SequenceID),
 		Interpreters: supportInterpreters,
 	}
-	if ovm.Interpreters != nil && len(ovm.Interpreters) > 0{
+	if ovm.Interpreters != nil && len(ovm.Interpreters) > 0 {
 		// set callers
-		for _, interpreter := range ovm.Interpreters{
+		for _, interpreter := range ovm.Interpreters {
 			interpreter.SetCaller(ovm)
 		}
 
@@ -149,7 +149,7 @@ func (ovm *OVM) Call(caller vmtypes.ContractRef, addr types.Address, input []byt
 		}
 		ctx.StateDB.CreateAccount(addr)
 	}
-	if value.Sign() != 0{
+	if value.Sign() != 0 {
 		ctx.Transfer(ctx.StateDB, caller.Address(), to.Address(), value)
 	}
 
@@ -320,7 +320,7 @@ func (ovm *OVM) create(caller vmtypes.ContractRef, codeAndHash *vmtypes.CodeAndH
 	ctx.StateDB.CreateAccount(address)
 	ctx.StateDB.SetNonce(address, 1)
 
-	if value.Sign() != 0{
+	if value.Sign() != 0 {
 		ctx.Transfer(ctx.StateDB, caller.Address(), address, value)
 	}
 

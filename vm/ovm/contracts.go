@@ -21,16 +21,15 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/common/crypto/bn256"
-	"github.com/annchain/OG/vm/eth/params"
-	"golang.org/x/crypto/ripemd160"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/bn256"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/vm/eth/common/math"
+	"github.com/annchain/OG/vm/eth/params"
+	vmtypes "github.com/annchain/OG/vm/types"
+	"golang.org/x/crypto/ripemd160"
 )
-
 
 var (
 	big1      = big.NewInt(1)
@@ -50,8 +49,6 @@ var (
 	big256    = big.NewInt(256)
 	big257    = big.NewInt(257)
 )
-
-
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
 // requires a deterministic gas count based on the input size of the Run method of the
@@ -163,7 +160,6 @@ func (c *dataCopy) Run(in []byte) ([]byte, error) {
 
 // bigModExp implements a native big integer exponential modular operation.
 type bigModExp struct{}
-
 
 // RequiredGas returns the gas required to execute the pre-compiled contract.
 func (c *bigModExp) RequiredGas(input []byte) uint64 {

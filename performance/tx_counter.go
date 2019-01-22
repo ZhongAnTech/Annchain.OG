@@ -33,7 +33,7 @@ func NewTxCounter() *TxCounter {
 	}
 }
 
-func (t*TxCounter)loop() {
+func (t *TxCounter) loop() {
 	for {
 		select {
 		case <-t.quit:

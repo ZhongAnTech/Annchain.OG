@@ -292,10 +292,10 @@ func (q *queue) Schedule(headers []*types.SequencerHeader, from uint64) []*types
 	inserts := make([]*types.SequencerHeader, 0, len(headers))
 	for _, header := range headers {
 		// Make sure chain order is honoured and preserved throughout
-		hash := header.Hash()
+		hash := header.GetHash()
 		if header.SequencerId() == 0 || header.SequencerId() != from {
-			log.WithField("number", header.SequencerId()).WithField(	"hash", hash).WithField(
-				"expected", from).Warn("Header broke chain ordering",)
+			log.WithField("number", header.SequencerId()).WithField("hash", hash).WithField(
+				"expected", from).Warn("Header broke chain ordering")
 			break
 		}
 
@@ -306,7 +306,7 @@ func (q *queue) Schedule(headers []*types.SequencerHeader, from uint64) []*types
 			continue
 		}
 		if _, ok := q.receiptTaskPool[hash]; ok {
-			log.WithField("number", header.SequencerId()).WithField(	"hash", hash).Warn(
+			log.WithField("number", header.SequencerId()).WithField("hash", hash).Warn(
 				"Header already scheduled for receipt fetch", hash)
 			continue
 		}
@@ -349,7 +349,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 	if len(results) > 0 {
 		// Mark results as done before dropping them from the cache.
 		for _, result := range results {
-			hash := result.Header.Hash()
+			hash := result.Header.GetHash()
 			delete(q.blockDonePool, hash)
 			delete(q.receiptDonePool, hash)
 		}
@@ -429,7 +429,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 // returns a flag whether empty blocks were queued requiring processing.
 func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
 	isNoop := func(header *types.SequencerHeader) bool {
-		hash := header.Hash()
+		hash := header.GetHash()
 		return hash.Empty()
 	}
 	q.lock.Lock()
@@ -465,7 +465,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[types.
 	progress := false
 	for proc := 0; proc < space && len(send) < count && !taskQueue.Empty(); proc++ {
 		header := taskQueue.PopItem().(*types.SequencerHeader)
-		hash := header.Hash()
+		hash := header.GetHash()
 
 		// If we're the first to request this task, initialise the result container
 		index := int(header.SequencerId() - q.resultOffset)
@@ -650,24 +650,24 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 	delete(q.headerPendPool, id)
 
 	// Ensure headers can be mapped onto the skeleton chain
-	target := q.headerTaskPool[request.From].Hash()
+	target := q.headerTaskPool[request.From].GetHash()
 	clog := log.WithField("peer", id).WithField("from", request.From)
 	accepted := len(headers) == MaxHeaderFetch
 	if accepted {
 		if headers[0].SequencerId() != request.From {
 			clog.WithField("number", headers[0].SequencerId()).WithField(
-				"hash", headers[0].Hash()).Trace("First header broke chain ordering")
+				"hash", headers[0].GetHash()).Trace("First header broke chain ordering")
 			accepted = false
-		} else if headers[len(headers)-1].Hash() != target {
+		} else if headers[len(headers)-1].GetHash() != target {
 			clog.WithField("number", headers[len(headers)-1].SequencerId()).WithField(
-				"hash", headers[len(headers)-1].Hash()).WithField("expected", target).Trace(
+				"hash", headers[len(headers)-1].GetHash()).WithField("expected", target).Trace(
 				"Last header broke skeleton structure ")
 			accepted = false
 		}
 	}
 	if accepted {
 		for i, header := range headers[1:] {
-			hash := header.Hash()
+			hash := header.GetHash()
 			if want := request.From + 1 + uint64(i); header.SequencerId() != want {
 				clog.WithField("number", header.SequencerId()).WithField(
 					"hash", hash).WithField("expected", want).Warn(
@@ -761,7 +761,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 	// If no data items were retrieved, mark them as unavailable for the origin peer
 	if results == 0 {
 		for _, header := range request.Headers {
-			request.Peer.MarkLacking(header.Hash())
+			request.Peer.MarkLacking(header.GetHash())
 		}
 	}
 	// Assemble each of the results with their headers and retrieved data parts
@@ -785,7 +785,7 @@ func (q *queue) deliver(id string, taskPool map[types.Hash]*types.SequencerHeade
 			failure = err
 			break
 		}
-		hash := header.Hash()
+		hash := header.GetHash()
 
 		donePool[hash] = struct{}{}
 		q.resultCache[index].Pending--

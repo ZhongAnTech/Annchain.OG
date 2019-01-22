@@ -56,7 +56,7 @@ type dummyTxPoolParents struct {
 	poolMap map[types.Hash]types.Txi
 }
 
-func (p *dummyTxPoolParents)IsLocalHash (h types.Hash)bool {
+func (p *dummyTxPoolParents) IsLocalHash(h types.Hash) bool {
 	return false
 }
 
@@ -64,7 +64,7 @@ func (p *dummyTxPoolParents) GetLatestNonce(addr types.Address) (uint64, error) 
 	return 0, fmt.Errorf("not supported")
 }
 
-func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi) {
+func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string) {
 	return
 }
 

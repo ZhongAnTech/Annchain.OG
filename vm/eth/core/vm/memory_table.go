@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/vm/eth/common/math"
 )
 
 func memorySha3(stack *Stack) *big.Int {

@@ -62,20 +62,20 @@ type MessageSyncResponse struct {
 	RequestedId   uint32 //avoid msg drop
 }
 
-func  (m*MessageSyncResponse)Txis () Txis {
+func (m *MessageSyncResponse) Txis() Txis {
 	var txis Txis
-	txis  = m.RawTxs.Txis()
-	 txis = append(txis,m.RawSequencers.Txis()...)
-	 return txis
+	txis = m.RawTxs.Txis()
+	txis = append(txis, m.RawSequencers.Txis()...)
+	return txis
 }
 
-func  (m*MessageSyncResponse)Hashes () Hashes {
+func (m *MessageSyncResponse) Hashes() Hashes {
 	var hashes Hashes
-	if len(m.RawSequencers) ==0 && len(m.RawTxs) ==0 {
-		return  nil
+	if len(m.RawSequencers) == 0 && len(m.RawTxs) == 0 {
+		return nil
 	}
 	for _, seq := range m.RawSequencers {
-		if seq ==nil {
+		if seq == nil {
 			continue
 		}
 		hashes = append(hashes, seq.GetTxHash())
@@ -89,7 +89,6 @@ func  (m*MessageSyncResponse)Hashes () Hashes {
 	return hashes
 }
 
-
 func (m *MessageSyncResponse) String() string {
 	//for _,i := range m.SequencerIndex {
 	//index = append(index ,fmt.Sprintf("%d",i))
@@ -101,8 +100,6 @@ func (m *MessageSyncResponse) String() string {
 type MessageNewTx struct {
 	RawTx *RawTx
 }
-
-
 
 func (m *MessageNewTx) GetHash() *Hash {
 	if m == nil {
@@ -180,14 +177,14 @@ type MessageNewTxs struct {
 	RawTxs RawTxs
 }
 
-func  (m*MessageNewTxs)Txis () Txis {
+func (m *MessageNewTxs) Txis() Txis {
 	return m.Txis()
 }
 
-func  (m*MessageNewTxs)Hashes () Hashes {
+func (m *MessageNewTxs) Hashes() Hashes {
 	var hashes Hashes
-	if len(m.RawTxs) ==0 {
-		return  nil
+	if len(m.RawTxs) == 0 {
+		return nil
 	}
 	for _, tx := range m.RawTxs {
 		if tx == nil {
@@ -224,7 +221,6 @@ type MessageTxsResponse struct {
 func (m *MessageTxsResponse) String() string {
 	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
 }
-
 
 //msgp:tuple MessageTxsResponse
 type MessageBodyData struct {

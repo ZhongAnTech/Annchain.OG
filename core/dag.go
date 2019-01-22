@@ -556,7 +556,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		}
 	}
 
-
 	// save latest sequencer into db
 	batch.Seq.GetBase().Height = batch.Seq.Height
 	err = dag.WriteTransaction(dbBatch, batch.Seq)

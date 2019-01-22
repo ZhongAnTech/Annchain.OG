@@ -10,76 +10,75 @@ import (
 
 //adding bloom filter status , avoid send too frequently, after sending a request , wait until got response or time out
 //
-type BloomFilterFireStatus struct  {
-	mu sync.RWMutex
-	startTime  time.Time
-	requestId  uint32
-	gotResponse  bool
-	minFrequency  time.Duration
+type BloomFilterFireStatus struct {
+	mu              sync.RWMutex
+	startTime       time.Time
+	requestId       uint32
+	gotResponse     bool
+	minFrequency    time.Duration
 	responseTimeOut time.Duration
 }
 
-func NewBloomFilterFireStatus (minFrequencyTime int, responseTimeOut int  )*BloomFilterFireStatus{
-	if minFrequencyTime >=responseTimeOut{
-		panic(fmt.Sprintf("param err %v, %v",minFrequencyTime,responseTimeOut))
+func NewBloomFilterFireStatus(minFrequencyTime int, responseTimeOut int) *BloomFilterFireStatus {
+	if minFrequencyTime >= responseTimeOut {
+		panic(fmt.Sprintf("param err %v, %v", minFrequencyTime, responseTimeOut))
 	}
 	return &BloomFilterFireStatus{
-		requestId:0,
-		gotResponse:true,
-		minFrequency:time.Duration(minFrequencyTime)*time.Millisecond,
-		responseTimeOut:time.Millisecond*time.Duration(responseTimeOut),
+		requestId:       0,
+		gotResponse:     true,
+		minFrequency:    time.Duration(minFrequencyTime) * time.Millisecond,
+		responseTimeOut: time.Millisecond * time.Duration(responseTimeOut),
 	}
 }
 
-func (b*BloomFilterFireStatus)set(requestId uint32) {
+func (b *BloomFilterFireStatus) set(requestId uint32) {
 	b.requestId = requestId
 	b.gotResponse = false
 	b.startTime = time.Now()
 }
 
-func (b*BloomFilterFireStatus)Set(requestId uint32) {
+func (b *BloomFilterFireStatus) Set(requestId uint32) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.set(requestId)
 }
 
-func (b*BloomFilterFireStatus)UpdateResponse(requestId uint32) {
+func (b *BloomFilterFireStatus) UpdateResponse(requestId uint32) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.updateResponse(requestId)
 }
 
-func (b*BloomFilterFireStatus)updateResponse(requestId uint32) {
-	if b.requestId !=requestId {
+func (b *BloomFilterFireStatus) updateResponse(requestId uint32) {
+	if b.requestId != requestId {
 		return
 	}
 	b.gotResponse = true
-	log.WithField("requestId ",requestId).WithField("after ",time.Now().Sub(b.startTime)).Debug(
+	log.WithField("requestId ", requestId).WithField("after ", time.Now().Sub(b.startTime)).Debug(
 		"bloom filter got response after")
 	return
 }
 
-func (b*BloomFilterFireStatus)Check() bool {
+func (b *BloomFilterFireStatus) Check() bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.check()
 }
 
-func (b*BloomFilterFireStatus)check() bool {
+func (b *BloomFilterFireStatus) check() bool {
 	stamp := time.Now().Sub(b.startTime)
-	if stamp > b.responseTimeOut  {
+	if stamp > b.responseTimeOut {
 		return true
 	}
-	if b.gotResponse == true && stamp >  b.minFrequency{
-		return  true
+	if b.gotResponse == true && stamp > b.minFrequency {
+		return true
 	}
 	return false
 }
 
-
 //sendBloomFilter , avoid sending blomm filter frequently ,wait until got response of bloom filter or timeout
 
-func (m*IncrementalSyncer)sendBloomFilter(hash types.Hash) {
+func (m *IncrementalSyncer) sendBloomFilter(hash types.Hash) {
 	m.bloomFilterStatus.mu.Lock()
 	if !m.bloomFilterStatus.check() {
 		log.Debug("bloom filter request is pending")
@@ -104,7 +103,7 @@ func (m*IncrementalSyncer)sendBloomFilter(hash types.Hash) {
 		log.WithError(err).Warn("encode filter err")
 	}
 	log.WithField("height ", height).WithField("type", og.MessageTypeFetchByHashRequest).WithField(
-		"req ",req.String()).WithField("filter length", len(req.Filter.Data)).Debug(
+		"req ", req.String()).WithField("filter length", len(req.Filter.Data)).Debug(
 		"sending bloom filter  MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)

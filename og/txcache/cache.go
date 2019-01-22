@@ -189,10 +189,10 @@ func (c *TxCache) PrependBatch(txs types.Txis) error {
 		keys = append(keys, tx.GetTxHash())
 		values = append(values, tx)
 	}
-	start:= time.Now()
+	start := time.Now()
 	log.WithField("len ", len(keys)).Debug("before prepend keys")
-	err:=  c.cache.PrependBatch(keys, values)
-	log.WithField("used time ",time.Now().Sub(start)).WithField("len ", len(keys)).Debug("after prepend keys")
+	err := c.cache.PrependBatch(keys, values)
+	log.WithField("used time ", time.Now().Sub(start)).WithField("len ", len(keys)).Debug("after prepend keys")
 	return err
 }
 

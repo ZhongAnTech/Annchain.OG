@@ -49,7 +49,7 @@ type NewTxHandler interface {
 }
 
 type NewTxsHandler interface {
-	HandleNewTxs(newTxs *types.MessageNewTxs,peerId string)
+	HandleNewTxs(newTxs *types.MessageNewTxs, peerId string)
 }
 
 type NewSequencerHandler interface {
@@ -117,7 +117,7 @@ func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
 
 func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
 	//maybe received more transactions
-	m.NewTxsHandler.HandleNewTxs(msg.Message.(*types.MessageNewTxs),msg.SourceID)
+	m.NewTxsHandler.HandleNewTxs(msg.Message.(*types.MessageNewTxs), msg.SourceID)
 }
 func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
 	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*types.MessageNewSequencer))

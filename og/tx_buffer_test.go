@@ -68,7 +68,7 @@ func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string) {
 	return
 }
 
-func (d*dummyTxPool)GetMaxWeight()uint64{
+func (d *dummyTxPool) GetMaxWeight() uint64 {
 	return 0
 }
 
@@ -110,7 +110,7 @@ func (d *dummySyncer) Know(tx types.Txi) {
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummySyncer) Enqueue(hash types.Hash , b bool) {
+func (d *dummySyncer) Enqueue(hash types.Hash, b bool) {
 	if _, err := d.acquireTxDedupCache.Get(hash); err == nil {
 		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return

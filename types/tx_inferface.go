@@ -147,7 +147,6 @@ func (t *TxBase) CalcMinedHash() (hash Hash) {
 	return
 }
 
-
 //CalculateWeight  a core algorithm for tx sorting,
 //a tx's weight must bigger than any of it's parent's weight  and bigger than any of it's elder transaction's
 func (t *TxBase) CalculateWeight(parents Txis) uint64 {

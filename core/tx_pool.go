@@ -87,7 +87,6 @@ type TxPool struct {
 	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                uint32
 	maxWeight            uint64
-
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -98,7 +97,6 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
 		"latest_seq": int(pool.dag.latestSequencer.Number()),
-
 	}
 }
 
@@ -210,7 +208,7 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 }
 
 func (pool *TxPool) GetTxNum() uint32 {
-	return  atomic.LoadUint32(&pool.txNum)
+	return atomic.LoadUint32(&pool.txNum)
 }
 
 func (pool *TxPool) GetMaxWeight() uint64 {
@@ -433,10 +431,10 @@ func (pool *TxPool) loop() {
 				err = pool.commit(tx)
 				//if err is not nil , item removed inside commit
 				if err == nil {
-					atomic.AddUint32(&pool.txNum,1)
-					maxWeight:= atomic.LoadUint64(&pool.maxWeight)
+					atomic.AddUint32(&pool.txNum, 1)
+					maxWeight := atomic.LoadUint64(&pool.maxWeight)
 					if maxWeight < tx.GetWeight() {
-						atomic.StoreUint64(&pool.maxWeight,tx.GetWeight())
+						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 					}
 					tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
 				}
@@ -445,10 +443,10 @@ func (pool *TxPool) loop() {
 				if err != nil {
 					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
 				} else {
-					atomic.StoreUint32(&pool.txNum,0)
-					maxWeight:= atomic.LoadUint64(&pool.maxWeight)
+					atomic.StoreUint32(&pool.txNum, 0)
+					maxWeight := atomic.LoadUint64(&pool.maxWeight)
 					if maxWeight < tx.GetWeight() {
-						atomic.StoreUint64(&pool.maxWeight,tx.GetWeight())
+						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 					}
 				}
 			}

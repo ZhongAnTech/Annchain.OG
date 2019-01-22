@@ -331,5 +331,5 @@ func TestTxCache_Has(t *testing.T) {
 	gcache.DebugMode = true
 	hash := c.GetHashOrder()[150]
 	tx := c.Get(hash)
-	fmt.Println( hash, tx, c.cache.Len(), c.Get(hash),c.Has(hash),c.Has(types.RandomTx().GetTxHash()))
+	fmt.Println(hash, tx, c.cache.Len(), c.Get(hash), c.Has(hash), c.Has(types.RandomTx().GetTxHash()))
 }

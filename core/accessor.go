@@ -51,7 +51,6 @@ func transactionKey(hash types.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
 }
 
-
 func confirmTimeKey(SeqHeight uint64) []byte {
 	return append(prefixConfirmtime, encodeUint64(SeqHeight)...)
 }

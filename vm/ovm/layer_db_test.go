@@ -1,10 +1,10 @@
 package ovm
 
 import (
-	"testing"
+	"fmt"
 	"github.com/annchain/OG/types"
 	"math/big"
-	"fmt"
+	"testing"
 )
 
 func TestLayers(t *testing.T) {
@@ -40,4 +40,3 @@ func TestLayers(t *testing.T) {
 	fmt.Println(ldb.GetBalance(addr2))
 	fmt.Println(ldb.GetBalance(addr3))
 }
-

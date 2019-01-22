@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"math/rand"
@@ -84,6 +85,9 @@ type TxPool struct {
 	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
+	txNum                uint32
+	maxWeight            uint64
+
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -93,7 +97,8 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"txlookup":   len(pool.txLookup.txs),
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
-		"latest_seq": int(pool.dag.latestSequencer.Id),
+		"latest_seq": int(pool.dag.latestSequencer.Number()),
+
 	}
 }
 
@@ -202,6 +207,14 @@ func (pool *TxPool) Get(hash types.Hash) types.Txi {
 	defer pool.mu.RUnlock()
 
 	return pool.get(hash)
+}
+
+func (pool *TxPool) GetTxNum() uint32 {
+	return  atomic.LoadUint32(&pool.txNum)
+}
+
+func (pool *TxPool) GetMaxWeight() uint64 {
+	return atomic.LoadUint64(&pool.maxWeight)
 }
 
 func (pool *TxPool) get(hash types.Hash) types.Txi {
@@ -378,10 +391,10 @@ func (pool *TxPool) ClearAll() {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pool.clearall()
+	pool.clearAll()
 }
 
-func (pool *TxPool) clearall() {
+func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
@@ -419,10 +432,24 @@ func (pool *TxPool) loop() {
 			case *types.Tx:
 				err = pool.commit(tx)
 				//if err is not nil , item removed inside commit
+				if err == nil {
+					atomic.AddUint32(&pool.txNum,1)
+					maxWeight:= atomic.LoadUint64(&pool.maxWeight)
+					if maxWeight < tx.GetWeight() {
+						atomic.StoreUint64(&pool.maxWeight,tx.GetWeight())
+					}
+					tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
+				}
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 				if err != nil {
 					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
+				} else {
+					atomic.StoreUint32(&pool.txNum,0)
+					maxWeight:= atomic.LoadUint64(&pool.maxWeight)
+					if maxWeight < tx.GetWeight() {
+						atomic.StoreUint64(&pool.maxWeight,tx.GetWeight())
+					}
 				}
 			}
 			pool.mu.Unlock()
@@ -602,7 +629,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return errElders
 	}
 	// verify the elders
-	log.WithField("seq id", seq.Id).WithField("count", len(elders)).Info("tx being confirmed by seq")
+	log.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		log.WithField("error", err).Errorf("verifyConfirmBatch error: %v", err)
@@ -632,7 +659,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		c <- true
 	}
 
-	log.WithField("seq id", seq.Id).WithField("seq", seq).Trace("finished confirm seq")
+	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
 	return nil
 }
 
@@ -771,10 +798,13 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 	// which in this case is stored in txsInPool. As for the txs should
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
-	for elderhash := range elders {
-		pool.txLookup.RemoveTxFromMapOnly(elderhash)
-	}
+
 	txsInPool := []types.Txi{}
+	// remove elders from pool
+	for elserHash := range elders {
+		pool.txLookup.remove(elserHash, noRemove)
+	}
+
 	for _, hash := range pool.txLookup.getorder() {
 		tx := pool.get(hash)
 		if tx == nil {
@@ -784,12 +814,14 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
 		if tx.GetType() == types.TxBaseTypeSequencer {
-			log.WithField("found seq", tx).Warn("shoud never come here")
+
+			//log.WithField("found seq",tx).Warn("should never come here")
+
 			continue
 		}
 		txsInPool = append(txsInPool, tx)
 	}
-	pool.clearall()
+	pool.clearAll()
 	for _, tx := range txsInPool {
 		log.WithField("tx", tx).Tracef("start rejudge")
 		txEnv := &txEnvelope{

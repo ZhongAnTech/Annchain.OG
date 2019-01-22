@@ -1,5 +1,4 @@
 package types
 
-type Resource struct{
-
+type Resource struct {
 }

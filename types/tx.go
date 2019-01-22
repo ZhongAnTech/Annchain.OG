@@ -71,10 +71,11 @@ func randomAddress() Address {
 func RandomTx() *Tx {
 	return &Tx{TxBase: TxBase{
 		Hash:         randomHash(),
-		Height:       rand.Uint64(),
+		Height:       uint64(rand.Int63n(1000)),
 		ParentsHash:  []Hash{randomHash(), randomHash()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
+		Weight:       uint64(rand.Int31n(2000)),
 	},
 		From:  randomAddress(),
 		To:    randomAddress(),
@@ -128,9 +129,9 @@ func (t *Tx) Dump() string {
 		phashes = append(phashes, p.Hex())
 	}
 	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ,"+
-		"height %d ,mined Nonce %v type %v", t.Hash.Hex(),
+		"height %d ,mined Nonce %v type %v weight %d", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type)
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight)
 }
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {

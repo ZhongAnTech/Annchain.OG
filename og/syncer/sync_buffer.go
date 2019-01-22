@@ -98,8 +98,9 @@ func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
 			log.WithError(err).Debug("add txs error")
 			return err
 		}
-		if seq.Id != s.dag.LatestSequencer().Id+1 {
-			log.WithField("latests seq id ", s.dag.LatestSequencer().Id).WithField("seq id", seq.Id).Warn("id mismatch")
+		if seq.Height != s.dag.LatestSequencer().Height+1 {
+			log.WithField("latests seq height ", s.dag.LatestSequencer().Height).WithField(
+				"seq height", seq.Height).Warn("id mismatch")
 			return nil
 		}
 		err := s.addTxs(txs, seq)

@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -24,8 +25,8 @@ var (
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
-	prefixSeqIdKey   = []byte("si")
-	prefixTxIndexKey = []byte("ti")
+	prefixSeqHeightKey = []byte("sh")
+	prefixTxIndexKey   = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
 
@@ -50,8 +51,9 @@ func transactionKey(hash types.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
 }
 
-func confirmTimeKey(seqID uint64) []byte {
-	return append(prefixConfirmtime, encodeUint64(seqID)...)
+
+func confirmTimeKey(SeqHeight uint64) []byte {
+	return append(prefixConfirmtime, encodeUint64(SeqHeight)...)
 }
 
 func txHashFlowKey(addr types.Address, nonce uint64) []byte {
@@ -67,8 +69,8 @@ func addressBalanceKey(addr types.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
-func seqIdKey(seqID uint64) []byte {
-	return append(prefixSeqIdKey, encodeUint64(seqID)...)
+func seqHeightKey(seqID uint64) []byte {
+	return append(prefixSeqHeightKey, encodeUint64(seqID)...)
 }
 
 func txIndexKey(seqID uint64) []byte {
@@ -142,12 +144,20 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
 		var tx types.Tx
-		tx.UnmarshalMsg(data)
+		_, err := tx.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
 		var sq types.Sequencer
-		sq.UnmarshalMsg(data)
+		_, err := sq.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &sq
 	}
 	return nil
@@ -200,7 +210,7 @@ func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
 	if err != nil {
 		return err
 	}
-	err = da.db.Put(confirmTimeKey(cf.SeqId), data)
+	err = da.db.Put(confirmTimeKey(cf.SeqHeight), data)
 	if err != nil {
 		return fmt.Errorf("write tx to db batch err: %v", err)
 	}
@@ -208,14 +218,14 @@ func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
 	return nil
 }
 
-func (da *Accessor) readConfirmTime(seqId uint64) *types.ConfirmTime {
-	data, _ := da.db.Get(confirmTimeKey(seqId))
+func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
+	data, _ := da.db.Get(confirmTimeKey(SeqHeight))
 	if len(data) == 0 {
 		return nil
 	}
 	var cf types.ConfirmTime
 	_, err := cf.UnmarshalMsg(data)
-	if err != nil || cf.SeqId != seqId {
+	if err != nil || cf.SeqHeight != SeqHeight {
 		return nil
 	}
 	return &cf
@@ -351,11 +361,11 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
 }
 
-// ReadSequencerById get sequencer from db by sequencer id.
-func (da *Accessor) ReadSequencerById(seqid uint64) (*types.Sequencer, error) {
-	data, _ := da.db.Get(seqIdKey(seqid))
+// ReadSequencerByHeight get sequencer from db by sequencer id.
+func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, error) {
+	data, _ := da.db.Get(seqHeightKey(SeqHeight))
 	if len(data) == 0 {
-		return nil, fmt.Errorf("sequencer with seqid %d not found", seqid)
+		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
 	var seq types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
@@ -365,21 +375,21 @@ func (da *Accessor) ReadSequencerById(seqid uint64) (*types.Sequencer, error) {
 	return &seq, nil
 }
 
-// WriteSequencerById stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerById(seq *types.Sequencer) error {
+// WriteSequencerByHeight stores the sequencer into db and indexed by its id.
+func (da *Accessor) WriteSequencerByHeight(seq *types.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
-	return da.db.Put(seqIdKey(seq.Id), data)
+	return da.db.Put(seqHeightKey(seq.Height), data)
 }
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
-// holds the id 'seqid'.
-func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashes, error) {
-	data, _ := da.db.Get(txIndexKey(seqid))
+// holds the id 'SeqHeight'.
+func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*types.Hashes, error) {
+	data, _ := da.db.Get(txIndexKey(SeqHeight))
 	if len(data) == 0 {
-		return nil, fmt.Errorf("tx hashs with seq id %d not found", seqid)
+		return nil, fmt.Errorf("tx hashs with seq height %d not found", SeqHeight)
 	}
 	var hashs types.Hashes
 	_, err := hashs.UnmarshalMsg(data)
@@ -390,13 +400,13 @@ func (da *Accessor) ReadIndexedTxHashs(seqid uint64) (*types.Hashes, error) {
 }
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
-// confirmed by sequencer that holds the id 'seqid'.
-func (da *Accessor) WriteIndexedTxHashs(seqid uint64, hashs *types.Hashes) error {
+// confirmed by sequencer that holds the id 'SeqHeight'.
+func (da *Accessor) WriteIndexedTxHashs(SeqHeight uint64, hashs *types.Hashes) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err
 	}
-	return da.db.Put(txIndexKey(seqid), data)
+	return da.db.Put(txIndexKey(SeqHeight), data)
 }
 
 /**

@@ -1,15 +1,15 @@
 package ovm
 
 import (
-	"math/big"
+	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/math"
-	"strings"
-	"fmt"
+	"math/big"
 	"sort"
-	"github.com/annchain/OG/common/crypto"
+	"strings"
 )
 
 type MemoryStateDB struct {
@@ -178,6 +178,7 @@ func (m *MemoryStateDB) String() string {
 
 	for k, v := range m.soLedger {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k.String(), v))
+
 	}
 	for k, v := range m.kvLedger {
 		b.WriteString(fmt.Sprintf("%s: -->\n", k.String()))
@@ -189,6 +190,7 @@ func (m *MemoryStateDB) String() string {
 
 		for _, key := range keys {
 			b.WriteString(fmt.Sprintf("-->  %s: %s\n", key.Hex(), v[key].Hex()))
+
 		}
 	}
 	return b.String()

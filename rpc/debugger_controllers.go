@@ -15,6 +15,7 @@ type SyncStatus struct {
 	LatestHeight             uint64 `json:"latestHeight"`
 	BestPeer                 string `json:"bestPeer"`
 	Error                    string `json:"error"`
+	Txid                     uint32 `json:"txid"`
 }
 
 //Status node status
@@ -24,7 +25,7 @@ func (r *RpcController) SyncStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, status)
 }
 
-func (r *RpcController)syncStatus() SyncStatus {
+func (r *RpcController) syncStatus() SyncStatus {
 	var status SyncStatus
 
 	status = SyncStatus{
@@ -44,6 +45,7 @@ func (r *RpcController)syncStatus() SyncStatus {
 		status.BestPeer = peerId
 
 	}
+	status.Txid = r.Og.TxPool.GetTxNum()
 	return status
 }
 

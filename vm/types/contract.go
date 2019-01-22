@@ -17,15 +17,16 @@
 package types
 
 import (
-	"math/big"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/vm/instruction"
-	"github.com/annchain/OG/vm/common"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/code"
 	"github.com/sirupsen/logrus"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/vm/common"
+	"github.com/annchain/OG/vm/instruction"
+	"math/big"
+
 )
 
 type CodeAndHash struct {
@@ -39,7 +40,6 @@ func (c *CodeAndHash) Hash() types.Hash {
 	}
 	return c.hash
 }
-
 
 // ContractRef is a reference to the contract's backing object
 type ContractRef interface {
@@ -69,7 +69,7 @@ type Contract struct {
 	self          ContractRef
 
 	jumpdests map[types.Hash]common.Bitvec // Aggregated result of JUMPDEST analysis.
-	analysis  common.Bitvec                 // Locally cached result of JUMPDEST analysis
+	analysis  common.Bitvec                // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
 	CodeHash types.Hash

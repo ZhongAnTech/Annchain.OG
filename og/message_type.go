@@ -229,12 +229,12 @@ func (p *P2PMessage) GetMessage() error {
 }
 
 func (p *P2PMessage) GetMarkHashes() types.Hashes {
-	if p.Message ==nil {
+	if p.Message == nil {
 		panic("unmarshal first")
 	}
 	switch p.MessageType {
 	case MessageTypeFetchByHashResponse:
-		msg:= p.Message.(*types.MessageSyncResponse)
+		msg := p.Message.(*types.MessageSyncResponse)
 		return msg.Hashes()
 	case MessageTypeNewTxs:
 		msg := p.Message.(*types.MessageNewTxs)

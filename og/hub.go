@@ -247,13 +247,13 @@ func (h *Hub) handleMsg(p *peer) error {
 			return err
 		}
 		p.MarkMessage(p2pMsg.hash)
-		hashes :=  p2pMsg.GetMarkHashes()
-		if len(hashes)!=0 {
+		hashes := p2pMsg.GetMarkHashes()
+		if len(hashes) != 0 {
 			msgLog.Trace("before mark msg")
-			for _, h:=range hashes {
+			for _, h := range hashes {
 				p.MarkMessage(h)
 			}
-			msgLog.WithField("len ",len(hashes)).Trace("after mark msg")
+			msgLog.WithField("len ", len(hashes)).Trace("after mark msg")
 		}
 		if duplicate {
 			return nil

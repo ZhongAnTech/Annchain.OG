@@ -104,7 +104,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	return  []string{"192.168.45.145"}
+	return []string{"192.168.45.145"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)

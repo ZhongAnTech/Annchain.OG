@@ -78,7 +78,6 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 	fmt.Println("used", time.Now().Sub(start).String(), "len", syncer.bufferedIncomingTxCache.Len())
 }
 
-
 func TestSyncBuffer_AddTxs(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	pubKey, _, _ := signer.RandomKeyPair()

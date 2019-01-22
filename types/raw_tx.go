@@ -55,7 +55,7 @@ func (t *RawSequencer) String() string {
 	return fmt.Sprintf("%s-%d_%d-RawSeq", t.TxBase.String(), t.AccountNonce, t.Height)
 }
 
-func (r RawTxs)Txs() Txs {
+func (r RawTxs) Txs() Txs {
 	if len(r) == 0 {
 		return nil
 	}
@@ -91,7 +91,7 @@ func (r RawSequencers) Sequencers() Sequencers {
 	return seqs
 }
 
-func (r RawSequencers) Txis() Txis{
+func (r RawSequencers) Txis() Txis {
 	if len(r) == 0 {
 		return nil
 	}

@@ -25,8 +25,6 @@ type FireHistory struct {
 	FiredTimes int
 }
 
-
-
 // IncrementalSyncer fetches tx from other  peers. (incremental)
 // IncrementalSyncer will not fire duplicate requests in a period of time.
 type IncrementalSyncer struct {
@@ -97,8 +95,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, get
 		isKnownHash:          isKnownHash,
 		getHeight:            getHeight,
 		cacheNewTxEnabled:    cacheNewTxEnabled,
-		bloomFilterStatus:NewBloomFilterFireStatus(120,500),
-
+		bloomFilterStatus:    NewBloomFilterFireStatus(120, 500),
 	}
 }
 
@@ -164,7 +161,7 @@ func (m *IncrementalSyncer) loopSync() {
 	buffer := make(map[types.Hash]struct{})
 	var triggerTime int
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
-	pauseCheckDuration := time.Duration(time.Millisecond*100)
+	pauseCheckDuration := time.Duration(time.Millisecond * 100)
 	var fired int
 	for {
 		//if paused wait until resume
@@ -183,12 +180,12 @@ func (m *IncrementalSyncer) loopSync() {
 			return
 		case v := <-m.acquireTxQueue:
 			// collect to the set so that we can query in batch
-			if v!=nil {
-				hash:= *v
+			if v != nil {
+				hash := *v
 				buffer[hash] = struct{}{}
 			}
 			triggerTime++
-			if len(buffer) >0 && triggerTime >= m.config.MaxBatchSize  {
+			if len(buffer) > 0 && triggerTime >= m.config.MaxBatchSize {
 				//bloom filter msg is large , don't send too frequently
 				if fired%BloomFilterRate == 0 {
 					var hash types.Hash
@@ -208,7 +205,7 @@ func (m *IncrementalSyncer) loopSync() {
 			// trigger the message if we do not have new queries in such duration
 			// check duplicate here in the future
 			//bloom filter msg is large , don't send too frequently
-			if len(buffer)>0 {
+			if len(buffer) > 0 {
 				if fired%BloomFilterRate == 0 {
 					var hash types.Hash
 					for hash = range buffer {
@@ -239,13 +236,13 @@ func (m *IncrementalSyncer) Enqueue(phash *types.Hash, sendBloomfilter bool) {
 		log.WithField("hash", phash).Info("sync task is ignored since syncer is paused")
 		return
 	}
-	if phash!=nil {
-		hash:= *phash
+	if phash != nil {
+		hash := *phash
 		if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
 			log.WithField("hash", hash).Debugf("duplicate sync task")
 			return
 		}
-		if  m.bufferedIncomingTxCache.Has(hash) {
+		if m.bufferedIncomingTxCache.Has(hash) {
 			log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
 			return
 		}
@@ -306,8 +303,6 @@ func (m *IncrementalSyncer) txNotifyLoop() {
 	}
 }
 
-
-
 func (m *IncrementalSyncer) notifyNewTxi() {
 	if !m.Enabled || m.GetNotifying() {
 		return
@@ -358,7 +353,6 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 }
 */
 
-
 func (m *IncrementalSyncer) repickHashes() types.Hashes {
 	maps := m.firedTxCache.GetALL()
 	duration := time.Duration(time.Second * 10)
@@ -372,7 +366,6 @@ func (m *IncrementalSyncer) repickHashes() types.Hashes {
 	}
 	return result
 }
-
 
 func (m *IncrementalSyncer) SetNotifying(v bool) {
 	m.mu.Lock()

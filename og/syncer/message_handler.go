@@ -32,7 +32,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
 
 }
 
-func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId string ) {
+func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId string) {
 	txs := newTxs.RawTxs.Txs()
 	if txs == nil {
 		log.Debug("Empty MessageNewTx")

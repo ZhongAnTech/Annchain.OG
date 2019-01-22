@@ -17,6 +17,7 @@
 package ovm
 
 import (
+
 	"math/big"
 	"sync/atomic"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/annchain/OG/vm/eth/params"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/sirupsen/logrus"
+
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -160,6 +162,8 @@ func (ovm *OVM) Call(caller vmtypes.ContractRef, addr types.Address, input []byt
 		ctx.StateDB.CreateAccount(addr)
 	}
 	if value.Sign() != 0 && !txCall {
+
+
 		ctx.Transfer(ctx.StateDB, caller.Address(), to.Address(), value)
 	}
 

@@ -35,10 +35,9 @@ var (
 	ErrGasLimitReached = errors.New("gas limit reached")
 )
 
-var(
+var (
 	ErrWriteProtection       = errors.New("ovm: write protection")
 	ErrReturnDataOutOfBounds = errors.New("ovm: return data out of bounds")
 	ErrExecutionReverted     = errors.New("ovm: execution reverted")
 	ErrMaxCodeSizeExceeded   = errors.New("ovm: max code size exceeded")
 )
-

@@ -4,142 +4,226 @@ import (
 	"github.com/Metabdulla/gcache"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
+	"sort"
 	"time"
 )
 
-type TxCache  struct {
-	  cache          gcache.OrderedCache
+type TxCache struct {
+	cache gcache.OrderedCache
 }
 
+func newCacheItemCmpFunction() gcache.SearchCompareFunction {
+	cmpFunc := func(value interface{}, anotherValue interface{}) int {
+		tx1 := value.(types.Txi)
+		tx2 := anotherValue.(types.Txi)
+		if tx1.GetWeight() > tx2.GetWeight() {
+			return 1
+		} else if tx1.GetWeight() < tx2.GetWeight() {
+			return -1
+		}
+		return 0
+	}
+	return cmpFunc
+}
 
-func NewTxCache (maxSize int, expire int ,invalidTx func(h types.Hash) bool )*TxCache {
-	expireFunction :=  func ( key  interface{}) bool {
-		hash:= key.(types.Hash)
-		return  invalidTx(hash)
+func newCacheItemSortFunction() gcache.SortKeysFunction {
+	var allItem = false
+	sortByAllValue := func(keys []interface{}, values []interface{}, getItem func(key interface{}) (interface{}, bool)) (sortedKeys []interface{}, sortOk bool) {
+		var txis types.Txis
+		for i, val := range values {
+			tx := val.(types.Txi)
+			if tx == nil {
+				log.WithField("i", i).Error("got nil tx")
+				continue
+			}
+			txis = append(txis, tx)
+		}
+		sort.Sort(txis)
+		for _, tx := range txis {
+			sortedKeys = append(sortedKeys, tx.GetTxHash())
+		}
+		if len(keys) != len(sortedKeys) {
+			log.WithField("len keys", len(keys)).WithField("len txis ", len(txis)).Info("sorted tx")
+		}
+		return sortedKeys, true
+	}
+	sortByGetEachItem := func(keys []interface{}, values []interface{}, getItem func(key interface{}) (interface{}, bool)) (sortedKeys []interface{}, sortOk bool) {
+		var txis types.Txis
+		for i, k := range keys {
+			val, ok := getItem(k)
+			if !ok {
+				continue
+			}
+			tx := val.(types.Txi)
+			if tx == nil {
+				log.WithField("i", i).WithField("key ", k).Error("got nil tx")
+				continue
+			}
+			txis = append(txis, tx)
+		}
+		sort.Sort(txis)
+		for _, tx := range txis {
+			sortedKeys = append(sortedKeys, tx.GetTxHash())
+		}
+		if len(keys) != len(sortedKeys) {
+			log.WithField("len keys", len(keys)).WithField("len txis ", len(txis)).Info("sorted tx")
+		}
+		return sortedKeys, true
+	}
+	if allItem {
+		return sortByAllValue
+	}
+	return sortByGetEachItem
+}
+
+func NewTxCache(maxSize int, expire int, invalidTx func(h types.Hash) bool, sorted bool) *TxCache {
+
+	expireFunction := func(key interface{}) bool {
+		hash := key.(types.Hash)
+		return invalidTx(hash)
+	}
+	sortFunc := newCacheItemSortFunction()
+	var cmpFunction gcache.SearchCompareFunction
+	if sorted {
+		cmpFunction = newCacheItemCmpFunction()
+	} else {
+		cmpFunction = nil
 	}
 	return &TxCache{
 		cache: gcache.New(maxSize).Expiration(
-			time.Second * time.Duration(expire)).ExpiredFunc(expireFunction).BuildOrderedCache(),
+			time.Second * time.Duration(expire)).ExpiredFunc(expireFunction).SortKeysFunc(sortFunc).SearchCompareFunction(
+			cmpFunction).BuildOrderedCache(),
 	}
+
 }
 
-func (t *TxCache)GetHashOrder () types.Hashes{
+func (t *TxCache) GetHashOrder() types.Hashes {
 	v := t.cache.OrderedKeys()
 	var hashes types.Hashes
-	for _ ,k := range v {
+	for _, k := range v {
 		hash := k.(types.Hash)
-		hashes = append(hashes,hash)
+		hashes = append(hashes, hash)
 	}
 	return hashes
 }
 
 //Get get an item
 func (t *TxCache) Get(h types.Hash) types.Txi {
-	v,err :=  t.cache.GetIFPresent(h)
+	v, err := t.cache.GetIFPresent(h)
 	if err == nil {
-		return  v.(types.Txi)
+		return v.(types.Txi)
 	}
 	return nil
 }
 
-func ( t *TxCache)Has(h types.Hash)  bool {
-	_, err :=  t.cache.GetIFPresent(h)
+func (t *TxCache) Has(h types.Hash) bool {
+	_, err := t.cache.GetIFPresent(h)
 	if err == nil {
-		return  true
+		return true
 	}
 	return false
 }
 
-
 // Add tx into txCache
-func (t *TxCache) EnQueue(tx  types.Txi) error {
-	start := time.Now()
-	err:=  t.cache.EnQueue(tx.GetTxHash(),tx)
-	log.WithField("enqueued tx",tx).WithField("used",time.Now().Sub(start)).Debug("enqueue total")
+func (t *TxCache) EnQueue(tx types.Txi) error {
+	err := t.cache.EnQueue(tx.GetTxHash(), tx)
+	//log.WithField("enqueued tx",tx).WithField("used",time.Now().Sub(start)).Debug("enqueue total")
 	return err
 }
 
-
 //get top element end remove it
-func (t *TxCache)DeQueue () types.Txi {
-	_, value ,err :=  t.cache.DeQueue()
-	if err!=nil {
-		return  nil
+func (t *TxCache) DeQueue() types.Txi {
+	_, value, err := t.cache.DeQueue()
+	if err != nil {
+		return nil
 	}
 	return value.(types.Txi)
 }
 
-// Remove tx from txCache , too slow ,don't use this
-func (t *TxCache) Remove(h types.Hash) bool	 {
-	return  t.cache.Remove(h)
+// Remove tx from txCache
+func (t *TxCache) Remove(h types.Hash) bool {
+	return t.cache.Remove(h)
 }
 
-func ( t*TxCache)Len()int {
-	 return  t.cache.Len()
+func (t *TxCache) Len() int {
+	return t.cache.Len()
 }
 
 //
-func ( t*TxCache)RemoveExpiredAndInvalid( allowFailCount int ) error  {
-	log.WithField("total cache len" ,t.cache.Len()).Debug("before remove expired ")
-	defer log.WithField("total cache len" ,t.cache.Len()).Debug("after remove expired ")
-	return  t.cache.RemoveExpired(allowFailCount)
+func (t *TxCache) RemoveExpiredAndInvalid(allowFailCount int) error {
+	return t.cache.RemoveExpired(allowFailCount)
 }
 
-func (t *TxCache)Refresh() {
-	 t.cache.Refresh()
+func (t *TxCache) Refresh() {
+	t.cache.Refresh()
 }
 
-
-
-
-func (c*TxCache)DeQueueBatch(count int) (txs types.Txis,err error) {
-	_, values,err:=  c.cache.DeQueueBatch(count)
-	if err!=nil {
+func (c *TxCache) DeQueueBatch(count int) (txs types.Txis, err error) {
+	_, values, err := c.cache.DeQueueBatch(count)
+	if err != nil {
 		return nil, err
 	}
-	for _, v:= range values {
+	for _, v := range values {
 		txi := v.(types.Txi)
-		txs = append(txs,txi)
+		txs = append(txs, txi)
 	}
-	return txs,nil
+	return txs, nil
 }
 
-
-
-func (c*TxCache) EnQueueBatchTxs( txs types.Txs) error {
-     var  keys []interface{}
-     var values  []interface{}
-     for _,tx := range txs {
-     	keys =  append(keys,tx.GetTxHash())
-     	txi := types.Txi(tx)
-		 values = append(values,txi)
-	 }
-	return c.cache.EnQueueBatch(keys,values)
+// Add tx into txCache
+func (t *TxCache) Prepend(tx types.Txi) error {
+	start := time.Now()
+	err := t.cache.Prepend(tx.GetTxHash(), tx)
+	log.WithField("Prepend tx", tx).WithField("used", time.Now().Sub(start)).Debug("Prepend total")
+	return err
 }
 
-func (c*TxCache) EnQueueBatch( txs types.Txis) error {
-	var  keys []interface{}
-	var values  []interface{}
-	for _,tx := range txs {
-		keys =  append(keys,tx.GetTxHash())
-		values = append(values,tx)
+func (c *TxCache) PrependBatch(txs types.Txis) error {
+	if len(txs) == 0 {
+		return nil
 	}
-	return c.cache.EnQueueBatch(keys,values)
+	sort.Sort(txs)
+	var keys []interface{}
+	var values []interface{}
+	for _, tx := range txs {
+		keys = append(keys, tx.GetTxHash())
+		values = append(values, tx)
+	}
+	start:= time.Now()
+	log.WithField("len ", len(keys)).Debug("before prepend keys")
+	err:=  c.cache.PrependBatch(keys, values)
+	log.WithField("used time ",time.Now().Sub(start)).WithField("len ", len(keys)).Debug("after prepend keys")
+	return err
 }
 
-func (t*TxCache)GetTop()types.Txi{
-	_, value ,err :=  t.cache.GetTop()
-	if err!=nil {
-		return  nil
+func (c *TxCache) EnQueueBatch(txs types.Txis) error {
+	if len(txs) == 0 {
+		return nil
+	}
+	sort.Sort(txs)
+	var keys []interface{}
+	var values []interface{}
+	for _, tx := range txs {
+		keys = append(keys, tx.GetTxHash())
+		values = append(values, tx)
+	}
+	return c.cache.EnQueueBatch(keys, values)
+}
+
+func (t *TxCache) GetTop() types.Txi {
+	_, value, err := t.cache.GetTop()
+	if err != nil {
+		return nil
 	}
 	return value.(types.Txi)
 }
 
+//MoveFront move an element to font, if searchFunction is set
+//func (t *TxCache) MoveFront(tx types.Txi) error {
+//	defer log.WithField(" tx", tx).Debug("moved to front")
+//	return t.cache.MoveFront(tx.GetTxHash())
+//}
 
-//MoveFront move an element to font
-func (t*TxCache)MoveFront(tx types.Txi) error  {
-	defer log.WithField(" tx",tx).Debug("moved to front")
-	return  t.cache.MoveFront(tx.GetTxHash())
+func (t *TxCache) Sort() {
+	t.cache.Sort()
 }
-
-

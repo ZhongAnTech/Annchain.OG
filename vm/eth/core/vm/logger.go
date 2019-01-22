@@ -23,13 +23,13 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/common/math"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
-	"strings"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"sort"
+	"strings"
 )
 
 // Storage represents a contract's storage.
@@ -203,7 +203,7 @@ func (l *StructLogger) Error() error { return l.err }
 // Output returns the VM return value captured by the trace.
 func (l *StructLogger) Output() []byte { return l.output }
 
-func (l *StructLogger) Write(writer io.Writer){
+func (l *StructLogger) Write(writer io.Writer) {
 	WriteTrace(writer, l.Logs)
 }
 
@@ -220,9 +220,9 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Stack) > 0 {
 			fmt.Fprintln(writer, "Stack:")
 			for i := len(log.Stack) - 1; i >= 0; i-- {
-				s := fmt.Sprintf( "%08d  %x", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
-				if omitZero{
-					s = strings.Replace(s, "00", "__",-1)
+				s := fmt.Sprintf("%08d  %x", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+				if omitZero {
+					s = strings.Replace(s, "00", "__", -1)
 				}
 				fmt.Println(s)
 			}
@@ -234,7 +234,7 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Storage) > 0 {
 			fmt.Fprintln(writer, "Storage:")
 			var keys types.Hashes
-			for h := range log.Storage{
+			for h := range log.Storage {
 				keys = append(keys, h)
 			}
 			sort.Sort(keys)
@@ -242,8 +242,8 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 			for _, key := range keys {
 				item := log.Storage[key]
 				s := fmt.Sprintf("%s: %s", key.Hex(), item.Hex())
-				if omitZero{
-					s = strings.Replace(s, "00", "__",-1)
+				if omitZero {
+					s = strings.Replace(s, "00", "__", -1)
 				}
 				fmt.Println(s)
 

@@ -21,11 +21,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/vm/ovm"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/common"
+	"github.com/annchain/OG/vm/ovm"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 type twoOperandTest struct {

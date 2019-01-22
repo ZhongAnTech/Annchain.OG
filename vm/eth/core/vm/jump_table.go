@@ -53,9 +53,8 @@ type operation struct {
 }
 
 var (
-	byzantiumInstructionSet      = newByzantiumInstructionSet()
+	byzantiumInstructionSet = newByzantiumInstructionSet()
 )
-
 
 // NewByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.

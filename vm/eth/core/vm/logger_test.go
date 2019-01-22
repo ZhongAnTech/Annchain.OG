@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/instruction"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 type dummyContractRef struct {

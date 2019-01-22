@@ -22,8 +22,8 @@ func (z *ConfirmTime) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SeqId":
-			z.SeqId, err = dc.ReadUint64()
+		case "SeqHeight":
+			z.SeqHeight, err = dc.ReadUint64()
 			if err != nil {
 				return
 			}
@@ -50,12 +50,12 @@ func (z *ConfirmTime) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z ConfirmTime) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 3
-	// write "SeqId"
-	err = en.Append(0x83, 0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
+	// write "SeqHeight"
+	err = en.Append(0x83, 0xa9, 0x53, 0x65, 0x71, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.SeqId)
+	err = en.WriteUint64(z.SeqHeight)
 	if err != nil {
 		return
 	}
@@ -84,9 +84,9 @@ func (z ConfirmTime) EncodeMsg(en *msgp.Writer) (err error) {
 func (z ConfirmTime) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 3
-	// string "SeqId"
-	o = append(o, 0x83, 0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.SeqId)
+	// string "SeqHeight"
+	o = append(o, 0x83, 0xa9, 0x53, 0x65, 0x71, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	o = msgp.AppendUint64(o, z.SeqHeight)
 	// string "TxNum"
 	o = append(o, 0xa5, 0x54, 0x78, 0x4e, 0x75, 0x6d)
 	o = msgp.AppendUint64(o, z.TxNum)
@@ -112,8 +112,8 @@ func (z *ConfirmTime) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SeqId":
-			z.SeqId, bts, err = msgp.ReadUint64Bytes(bts)
+		case "SeqHeight":
+			z.SeqHeight, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				return
 			}
@@ -140,6 +140,6 @@ func (z *ConfirmTime) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z ConfirmTime) Msgsize() (s int) {
-	s = 1 + 6 + msgp.Uint64Size + 6 + msgp.Uint64Size + 12 + msgp.StringPrefixSize + len(z.ConfirmTime)
+	s = 1 + 10 + msgp.Uint64Size + 6 + msgp.Uint64Size + 12 + msgp.StringPrefixSize + len(z.ConfirmTime)
 	return
 }

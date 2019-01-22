@@ -51,24 +51,58 @@ type MessageSyncRequest struct {
 }
 
 func (m *MessageSyncRequest) String() string {
-	return m.Hashes.String()+ fmt.Sprintf(" requestId %d  height: %v", m.RequestId ,m.Height)
+	return m.Hashes.String() + fmt.Sprintf(" requestId %d  height: %v", m.RequestId, m.Height)
 }
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	RawTxs        RawTxs
+	RawTxs RawTxs
+	//SequencerIndex  []uint32
 	RawSequencers RawSequencers
 	RequestedId   uint32 //avoid msg drop
 }
 
+func  (m*MessageSyncResponse)Txis () Txis {
+	var txis Txis
+	txis  = m.RawTxs.Txis()
+	 txis = append(txis,m.RawSequencers.Txis()...)
+	 return txis
+}
+
+func  (m*MessageSyncResponse)Hashes () Hashes {
+	var hashes Hashes
+	if len(m.RawSequencers) ==0 && len(m.RawTxs) ==0 {
+		return  nil
+	}
+	for _, seq := range m.RawSequencers {
+		if seq ==nil {
+			continue
+		}
+		hashes = append(hashes, seq.GetTxHash())
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	return hashes
+}
+
+
 func (m *MessageSyncResponse) String() string {
-	return fmt.Sprintf("txs: [%s], seqs: [%s] ,requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
+	//for _,i := range m.SequencerIndex {
+	//index = append(index ,fmt.Sprintf("%d",i))
+	//}
+	return fmt.Sprintf("txs: [%s], seqs: [%s],requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
 type MessageNewTx struct {
 	RawTx *RawTx
 }
+
+
 
 func (m *MessageNewTx) GetHash() *Hash {
 	if m == nil {
@@ -146,6 +180,24 @@ type MessageNewTxs struct {
 	RawTxs RawTxs
 }
 
+func  (m*MessageNewTxs)Txis () Txis {
+	return m.Txis()
+}
+
+func  (m*MessageNewTxs)Hashes () Hashes {
+	var hashes Hashes
+	if len(m.RawTxs) ==0 {
+		return  nil
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	return hashes
+}
+
 func (m *MessageNewTxs) String() string {
 	return m.RawTxs.String()
 }
@@ -173,6 +225,17 @@ func (m *MessageTxsResponse) String() string {
 	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
 }
 
+
+//msgp:tuple MessageTxsResponse
+type MessageBodyData struct {
+	RawTxs       RawTxs
+	RawSequencer *RawSequencer
+}
+
+func (m *MessageBodyData) String() string {
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String())
+}
+
 // getBlockHeadersData represents a block header query.
 //msgp:tuple MessageHeaderRequest
 type MessageHeaderRequest struct {
@@ -190,12 +253,12 @@ func (m *MessageHeaderRequest) String() string {
 // hashOrNumber is a combined field for specifying an origin block.
 //msgp:tuple HashOrNumber
 type HashOrNumber struct {
-	Hash   *Hash   // Block hash from which to retrieve headers (excludes Number)
+	Hash   *Hash  // Block hash from which to retrieve headers (excludes Number)
 	Number uint64 // Block hash from which to retrieve headers (excludes Hash)
 }
 
 func (m *HashOrNumber) String() string {
-	if m.Hash ==nil {
+	if m.Hash == nil {
 		return fmt.Sprintf("hash: nil, number : %d", m.Number)
 	}
 	return fmt.Sprintf("hash: %s, number : %d", m.Hash.String(), m.Number)
@@ -213,8 +276,8 @@ func (m *MessageSequencerHeader) String() string {
 
 //msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
-	Headers SequencerHeaders
-	RequestedId   uint32 //avoid msg drop
+	Headers     SequencerHeaders
+	RequestedId uint32 //avoid msg drop
 }
 
 func (m *MessageHeaderResponse) String() string {
@@ -242,4 +305,3 @@ func (m *MessageBodiesResponse) String() string {
 }
 
 type RawData []byte
-

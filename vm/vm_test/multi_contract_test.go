@@ -1,15 +1,15 @@
 package vm_test
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/annchain/OG/common/math"
-	"testing"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/vm/eth/core/vm"
 	"encoding/hex"
+	"fmt"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
+	"github.com/stretchr/testify/assert"
 	"strconv"
+	"testing"
 )
 
 func TestMultiContract(t *testing.T) {
@@ -24,7 +24,7 @@ func TestMultiContract(t *testing.T) {
 	contracts := make(map[string]types.Address)
 
 	//for _, file := range ([]string{"ABBToken", "owned", "SafeMath", "TokenCreator", "TokenERC20"}) {
-	for _, file := range ([]string{"ABBToken"}) {
+	for _, file := range []string{"ABBToken"} {
 		var params []byte
 
 		switch file {
@@ -164,7 +164,7 @@ func TestInterCall(t *testing.T) {
 
 	contracts := make(map[string]types.Address)
 
-	for _, file := range ([]string{"C1", "C2"}) {
+	for _, file := range []string{"C1", "C2"} {
 
 		var params []byte
 

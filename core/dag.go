@@ -743,7 +743,7 @@ func (dag *Dag) CallContract(addr types.Address, data []byte) ([]byte, error) {
 		GasPrice:   math.NewBigInt(0),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSequencer.Id,
+		SequenceID: dag.latestSequencer.Height,
 	}
 	// TODO more interpreters should be initialized, here only evm.
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,

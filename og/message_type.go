@@ -243,3 +243,22 @@ func (p *P2PMessage) GetMessage() error {
 	}
 	return nil
 }
+
+func (p *P2PMessage) GetMarkHashes() types.Hashes {
+	if p.Message == nil {
+		panic("unmarshal first")
+	}
+	switch p.MessageType {
+	case MessageTypeFetchByHashResponse:
+		msg := p.Message.(*types.MessageSyncResponse)
+		return msg.Hashes()
+	case MessageTypeNewTxs:
+		msg := p.Message.(*types.MessageNewTxs)
+		return msg.Hashes()
+	case MessageTypeTxsResponse:
+		p.Message = &types.MessageTxsResponse{}
+	default:
+		return nil
+	}
+	return nil
+}

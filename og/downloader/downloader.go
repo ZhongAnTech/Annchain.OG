@@ -299,6 +299,11 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash types.Hash, seqId uint
 		return err
 	}
 
+	//ancestor is smaller than our height
+	ourHeight := d.dag.LatestSequencer().Number()
+	if ourHeight > origin {
+		origin = ourHeight
+	}
 	// Ensure our origin point is below any fast sync pivot point
 	pivot := uint64(0)
 	if d.mode == FastSync {
@@ -434,7 +439,7 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 				return nil, errBadPeer
 			}
 			head := headers[0]
-			log.WithField("number", head.SequencerId()).WithField("hash", head.Hash()).Debug(
+			log.WithField("number", head.SequencerId()).WithField("hash", head.GetHash()).Debug(
 				"Remote head header identified")
 			return head, nil
 
@@ -523,8 +528,8 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 					continue
 				}
 				// Otherwise check if we already know the header or not
-				if d.mode == FullSync && d.dag.GetSequencer(headers[i].Hash(), headers[i].SequencerId()) != nil {
-					number, hash = headers[i].SequencerId(), headers[i].Hash()
+				if d.mode == FullSync && d.dag.GetSequencer(headers[i].GetHash(), headers[i].SequencerId()) != nil {
+					number, hash = headers[i].SequencerId(), headers[i].GetHash()
 
 					// If every header is known, even future ones, the peer straight out lied about its head
 					if number > height && i == limit-1 {
@@ -589,7 +594,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 				arrived = true
 
 				// Modify the search interval based on the response
-				if d.mode == FullSync && d.dag.GetSequencer(headers[0].Hash(), headers[0].SequencerId()) == nil {
+				if d.mode == FullSync && d.dag.GetSequencer(headers[0].GetHash(), headers[0].SequencerId()) == nil {
 					end = check
 					break
 				}
@@ -637,7 +642,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 
 	var ttl time.Duration
 
-	skeleton = false
+	//skeleton = false
 	getHeaders := func(from uint64) {
 		request = time.Now()
 
@@ -964,6 +969,11 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				if pending() == 0 {
 					break
 				}
+				_, id := peer.peer.Head()
+				if id < d.dag.LatestSequencer().Number() {
+					log.WithField("peer head ", id).WithField("peer", peer.id).Debug("peer head is behind")
+					continue
+				}
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
 				// no more headers are available, or that the peer is known not to
 				// have them.
@@ -1134,7 +1144,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	first, last := results[0].Header, results[len(results)-1].Header
 
 	log.WithField("items", len(results)).WithField("firstnum", first.SequencerId()).WithField(
-		"firsthash", first.Hash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.Hash()).Debug(
+		"firsthash", first.GetHash()).WithField("lastnum", last.SequencerId()).WithField("lasthash", last.GetHash()).Debug(
 		"Inserting downloaded txs")
 
 	for _, result := range results {

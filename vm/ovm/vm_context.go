@@ -31,8 +31,12 @@ type TxContext struct {
 	Data  []byte
 
 	// Temporarily keep using gas as resource billing
-	GasLimit uint64
-	GasPrice *math.BigInt
+	GasLimit   uint64
+	GasPrice   *math.BigInt
+	Coinbase   types.Address // Provides information for COINBASE
+	SequenceID uint64        // Provides information for SequenceID
+	//Time        *math.BigInt      // Provides information for TIME
+	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -43,27 +47,24 @@ type ChainContext interface {
 type DefaultChainContext struct {
 }
 
-// NewEVMContext creates a new context for use in the OVM.
-func NewEVMContext(txContext *TxContext, chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) vmtypes.Context {
-	return vmtypes.Context{
+// NewOVMContext creates a new context for use in the OVM.
+func NewOVMContext(chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
+	return &vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
-		Origin:      txContext.From,
-		//Coinbase:    beneficiary,
-		GasLimit: txContext.GasLimit,
-		GasPrice: txContext.GasPrice.Value,
-		StateDB:  stateDB,
+		StateDB:     stateDB,
 	}
 }
 
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vmtypes.StateDB, addr types.Address, amount *big.Int) bool {
-	return db.GetBalance(addr).Cmp(amount) >= 0
+	return db.GetBalance(addr).Value.Cmp(amount) >= 0
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db vmtypes.StateDB, sender, recipient types.Address, amount *big.Int) {
-	db.SubBalance(sender, amount)
-	db.AddBalance(recipient, amount)
+	a := math.NewBigIntFromBigInt(amount)
+	db.SubBalance(sender, a)
+	db.AddBalance(recipient, a)
 }

@@ -1,0 +1,22 @@
+PragmaDirective
+   Source: "pragma solidity ^0.4.20;"
+ContractDefinition "hello"
+   Source: "contract hello {\n    function helloWorld() public pure returns (string){\n        return 'helloWorld';\n    }\n}"
+  FunctionDefinition "helloWorld" - public
+     Source: "function helloWorld() public pure returns (string){\n        return 'helloWorld';\n    }"
+    ParameterList
+       Source: "()"
+    ParameterList
+       Source: "(string)"
+      VariableDeclaration ""
+         Type: string memory
+         Source: "string"
+        ElementaryTypeName string
+           Source: "string"
+    Block
+       Source: "{\n        return 'helloWorld';\n    }"
+      Return
+         Source: "return 'helloWorld'"
+        Literal, token: [no token] value: helloWorld
+           Type: literal_string "helloWorld"
+           Source: "'helloWorld'"

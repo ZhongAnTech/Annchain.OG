@@ -28,37 +28,29 @@ func (v *TxFormatVerifier) Name() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	logrus.WithField("tx", t).Tracef("before VerifyHash")
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	logrus.WithField("tx", t).Tracef("before VerifySignature")
 	if !v.VerifySignature(t) {
 		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
-	logrus.WithField("tx", t).Tracef("before VerifySourceAddress")
-	if !v.VerifySourceAddress(t) {
-		logrus.WithField("tx", t).Debug("Source address not valid")
-		return false
-	}
-	logrus.WithField("tx", t).Tracef("after VerifySourceAddress")
 	return true
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 	calMinedHash := t.CalcMinedHash()
 	if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", calMinedHash.String()).Debug("MinedHash is not less than MaxMinedHash")
+		logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
 		return false
 	}
 	if t.CalcTxHash() != t.GetTxHash() {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not aligned with content")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
 		return false
 	}
 	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash().String()).Debug("TxHash is not less than MaxTxHash")
+		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}
 	return true
@@ -134,7 +126,7 @@ func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archi
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool or in dag
 func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
-	if currentTx.GetNonce() == 0 {
+	if currentTx.GetNonce() <= 1 {
 		ok = true
 		return
 	}
@@ -214,7 +206,7 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 			case types.TxBaseTypeSequencer:
 				// found seq, check nonce
 				// verify if the nonce is larger
-				if txi.(*types.Sequencer).Id == currentSeq.Id-1 {
+				if txi.(*types.Sequencer).Height == currentSeq.Height-1 {
 					// good
 					previousSeq = txi.(*types.Sequencer)
 					ok = true
@@ -237,7 +229,7 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 	}
 	// Here, the ancestor of the same From address must be in the dag.
 	// Once found, this tx must be the previous tx of currentTx because everyone behind sequencer is confirmed by sequencer
-	if ptx := v.Dag.GetSequencerById(currentSeq.Id - 1); ptx != nil {
+	if ptx := v.Dag.GetSequencerByHeight(currentSeq.Height - 1); ptx != nil {
 		previousSeq = ptx
 		ok = true
 		return
@@ -259,17 +251,20 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	ok = false
+	if ok = v.verifyWeight(txi); !ok {
+		logrus.WithField("tx", txi).Debug("tx failed on weight")
+		return
+	}
 	logrus.WithField("tx", txi).Tracef("before verifyA3")
+
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return
 	}
-	logrus.WithField("tx", txi).Tracef("before verifyB1")
 	if ok = v.verifyB1(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
-	logrus.WithField("tx", txi).Tracef("after verifyB1")
 	return true
 }
 
@@ -300,7 +295,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		// no additional check
 	case types.TxBaseTypeSequencer:
 		seq := txi.(*types.Sequencer)
-		// to check if there is a lower seq id in the path behind
+		// to check if there is a lower seq height in the path behind
 		_, ok := v.getPreviousSequencer(seq)
 		return ok
 	}
@@ -310,4 +305,19 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 func (v *GraphVerifier) verifyB1(txi types.Txi) bool {
 	// compare the sequencer id
 	return true
+}
+
+func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
+	var txis types.Txis
+	for _, pHash := range txi.Parents() {
+		parent := v.TxPool.Get(pHash)
+		if parent == nil {
+			parent = v.Dag.GetTx(pHash)
+		}
+		if parent == nil {
+			return false
+		}
+		txis = append(txis, parent)
+	}
+	return txi.CalculateWeight(txis) == txi.GetWeight()
 }

@@ -3,10 +3,11 @@ package rpc
 import (
 	"bytes"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"sort"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (rpc *RpcController) Newrouter() *gin.Engine {
@@ -40,15 +41,12 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_nonce", rpc.QueryNonce)
 	router.GET("query_balance", rpc.QueryBalance)
 	router.GET("query_share", rpc.QueryShare)
-	router.GET("contract_payload", rpc.ConstructPayload)
-
+	router.GET("contract_payload", rpc.ContractPayload)
 	router.GET("query_receipt", rpc.QueryReceipt)
-
 	router.GET("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
 	router.GET("tps", rpc.Tps)
-
 	router.GET("monitor", rpc.Monitor)
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
@@ -70,8 +68,9 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"genesis":       "",
 		"sync_status":   "",
 		"performance":   "",
-		"monitor":       "",
-		"tps":           "",
+
+		"monitor": "",
+		"tps":     "",
 
 		// broadcast API
 		"new_transaction": "tx",
@@ -89,6 +88,9 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"transactions":   "seq_id,address",
 		"confirm":        "hash",
 		"query_contract": "tx",
+
+		// debug
+		"debug": "f",
 	}
 	noArgNames := []string{}
 	argNames := []string{}

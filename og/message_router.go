@@ -53,7 +53,7 @@ type GetMsgHandler interface {
 }
 
 type NewTxsHandler interface {
-	HandleNewTxs(msg *types.MessageNewTxs, peerId string)
+	HandleNewTxs(newTxs *types.MessageNewTxs, peerId string)
 }
 
 type NewSequencerHandler interface {

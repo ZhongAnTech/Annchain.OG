@@ -40,12 +40,15 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 	return &tx
 }
 
-func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt,
+func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt, data []byte,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.Tx{
-		From:  from,
+		From: from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
 		To:    to,
 		Value: value,
+		Data:  data,
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
@@ -77,25 +80,23 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64) types.Txi {
+func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, accountNonce uint64) types.Txi {
 	tx := types.Sequencer{
-		Id:                id,
-		ContractHashOrder: contractHashOrder,
-		Issuer:            issuer,
+		Issuer: issuer,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,
-			Height:       id,
+			Height:       Height,
 		},
 	}
 	return &tx
 }
 
-func (m *TxCreator) NewSignedSequencer(issuer types.Address, id uint64, contractHashOrder []types.Hash, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+func (m *TxCreator) NewSignedSequencer(issuer types.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
 	if privateKey.Type != m.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedSequencer(issuer, id, contractHashOrder, accountNonce)
+	tx := m.NewUnsignedSequencer(issuer, height, accountNonce)
 	// do sign work
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
@@ -121,12 +122,15 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		parentHashes[i] = parent.GetTxHash()
 	}
 
+	//calculate weight
+	tx.GetBase().Weight = tx.CalculateWeight(parents)
+
 	tx.GetBase().ParentsHash = parentHashes
 	// verify if the hash of the structure meet the standard.
 	hash := tx.CalcTxHash()
 	if hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
-		logrus.WithField("hash", hash).WithField("parent", types.HashesToString(tx.Parents())).Trace("new tx connected")
+		logrus.WithField("hash", hash).WithField("parent", tx.Parents()).Trace("new tx connected")
 		// yes
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)

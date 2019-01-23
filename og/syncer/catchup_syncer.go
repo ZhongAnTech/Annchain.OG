@@ -22,6 +22,7 @@ const (
 	// TODO: this value will be set to optimal value in the future.
 	// If generating sequencer is very fast with few transactions, it should be bigger,
 	// otherwise it should be smaller
+	SyncerCheckTime = time.Second * 6
 
 	// when to stop sync once started
 	stopSyncHeightDiffThreashold uint64 = 0
@@ -68,6 +69,8 @@ type CatchupSyncer struct {
 	syncFlag                      bool
 	WorkState                     CatchupSyncerStatus
 	mu                            sync.RWMutex
+	BootStrapNode                 bool
+	currentBestHeight             uint64 //maybe incorect
 }
 
 func (c *CatchupSyncer) Init() {
@@ -97,6 +100,9 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	_, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
 	if err != nil {
 		logrus.WithError(err).Debug("get best peer")
+		if c.BootStrapNode {
+			return true
+		}
 		return false
 	}
 	ourId := c.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId
@@ -135,7 +141,7 @@ func (c *CatchupSyncer) loopSync() {
 				continue
 			}
 			go c.syncToLatest()
-		case <-time.After(time.Second * 15):
+		case <-time.After(SyncerCheckTime):
 			if !c.Enabled {
 				log.Debug("catchup syncer not enabled")
 				continue
@@ -171,6 +177,18 @@ func (c *CatchupSyncer) unsetSyncFlag() {
 	c.syncFlag = false
 }
 
+func (c *CatchupSyncer) CacheNewTxEnabled() bool {
+	if c.getWorkState() == Stopped {
+		return true
+	}
+	ourSeqId := c.NodeStatusDataProvider.GetHeight()
+	if ourSeqId+startSyncHeightDiffThreashold*3 < c.currentBestHeight {
+		return false
+	}
+	return true
+
+}
+
 func (c *CatchupSyncer) syncToLatest() error {
 	if c.isSyncing() {
 		log.Trace("catchup syncing task is busy")
@@ -195,7 +213,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 
 		log.WithField("peerId", bpId).WithField("seq", seqId).WithField("ourId", ourId).
 			Debug("catchup sync with best peer")
-
+		c.currentBestHeight = seqId
 		// Run the sync cycle, and disable fast sync if we've went past the pivot block
 		if err := c.Downloader.Synchronise(bpId, bpHash, seqId, c.SyncMode); err != nil {
 			log.WithError(err).Warn("catchup sync failed")

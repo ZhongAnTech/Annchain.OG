@@ -235,7 +235,7 @@ func BenchmarkDecodeHashBytes(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalHashs(t *testing.T) {
+func TestMarshalUnmarshalHashes(t *testing.T) {
 	v := Hashes{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
@@ -258,7 +258,7 @@ func TestMarshalUnmarshalHashs(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgHashs(b *testing.B) {
+func BenchmarkMarshalMsgHashes(b *testing.B) {
 	v := Hashes{}
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -267,7 +267,7 @@ func BenchmarkMarshalMsgHashs(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgHashs(b *testing.B) {
+func BenchmarkAppendMsgHashes(b *testing.B) {
 	v := Hashes{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
@@ -279,7 +279,7 @@ func BenchmarkAppendMsgHashs(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalHashs(b *testing.B) {
+func BenchmarkUnmarshalHashes(b *testing.B) {
 	v := Hashes{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
@@ -293,7 +293,7 @@ func BenchmarkUnmarshalHashs(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeHashs(t *testing.T) {
+func TestEncodeDecodeHashes(t *testing.T) {
 	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
@@ -317,7 +317,7 @@ func TestEncodeDecodeHashs(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeHashs(b *testing.B) {
+func BenchmarkEncodeHashes(b *testing.B) {
 	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
@@ -331,7 +331,7 @@ func BenchmarkEncodeHashs(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeHashs(b *testing.B) {
+func BenchmarkDecodeHashes(b *testing.B) {
 	v := Hashes{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)

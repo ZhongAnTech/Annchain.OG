@@ -35,17 +35,12 @@ func TestSerializer(t *testing.T) {
 			"3test1":  43.3111,
 			"41test2": 43.3111,
 		},
-		Seq: Sequencer{Id: 99,
+		Seq: Sequencer{
 			TxBase: TxBase{
 				Height:       12,
 				ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 				Type:         1,
 				AccountNonce: 234,
-			},
-			ContractHashOrder: []Hash{
-				HexToHash("0x00667788"),
-				HexToHash("0xAA667788"),
-				HexToHash("0xBB667788"), // 20 bytes
 			},
 		},
 		TxInner: Tx{TxBase: TxBase{

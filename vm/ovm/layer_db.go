@@ -1,10 +1,12 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 
 	"fmt"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/pkg/errors"
@@ -14,6 +16,7 @@ import (
 
 var MAX_LAYER = 1024
 var FAST_FAIL = false
+var empty = types.Hash{}
 
 // LayerStateDB is the cascading storage for contracts.
 // It consists of multiple layers, each of which represents the result of a contract.
@@ -26,8 +29,8 @@ var FAST_FAIL = false
 // Same mechanism as Docker image layers.
 // Add a layer each time a new contract is run
 type LayerStateDB struct {
-	Layers      []vmtypes.StateDB
-	activeLayer vmtypes.StateDB
+	Layers      []vmtypes.StateDBDebug
+	activeLayer vmtypes.StateDBDebug
 }
 
 func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
@@ -48,11 +51,12 @@ func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
 
 func (l *LayerStateDB) SetStateObject(addr types.Address, stateObject *vmtypes.StateObject) {
 	l.activeLayer.SetStateObject(addr, stateObject)
+	stateObject.DirtySO = true
 }
 
-func NewLayerDB(baseLayer vmtypes.StateDB) *LayerStateDB {
+func NewLayerDB(baseLayer vmtypes.StateDBDebug) *LayerStateDB {
 	return &LayerStateDB{
-		Layers:      []vmtypes.StateDB{baseLayer},
+		Layers:      []vmtypes.StateDBDebug{baseLayer},
 		activeLayer: baseLayer,
 	}
 }
@@ -106,9 +110,9 @@ func (l *LayerStateDB) CreateAccount(addr types.Address) {
 	}
 }
 
-func (l *LayerStateDB) SubBalance(addr types.Address, value *big.Int) {
+func (l *LayerStateDB) SubBalance(addr types.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
-		so.Balance = new(big.Int).Sub(so.Balance, value)
+		so.Balance = new(big.Int).Sub(so.Balance, value.Value)
 		// store to this layer
 		l.SetStateObject(addr, so)
 	} else {
@@ -118,9 +122,9 @@ func (l *LayerStateDB) SubBalance(addr types.Address, value *big.Int) {
 	}
 }
 
-func (l *LayerStateDB) AddBalance(addr types.Address, value *big.Int) {
+func (l *LayerStateDB) AddBalance(addr types.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
-		so.Balance = new(big.Int).Add(so.Balance, value)
+		so.Balance = new(big.Int).Add(so.Balance, value.Value)
 		// store to this layer
 		l.SetStateObject(addr, so)
 	} else {
@@ -130,15 +134,15 @@ func (l *LayerStateDB) AddBalance(addr types.Address, value *big.Int) {
 	}
 }
 
-func (l *LayerStateDB) GetBalance(addr types.Address) *big.Int {
+func (l *LayerStateDB) GetBalance(addr types.Address) *math.BigInt {
 	if so := l.GetStateObject(addr); so != nil {
-		return so.Balance
+		return math.NewBigIntFromBigInt(so.Balance)
 	} else {
 		if FAST_FAIL {
 			panic("address not exists")
 		}
 	}
-	return common.Big0
+	return math.NewBigIntFromBigInt(common.Big0)
 }
 
 func (l *LayerStateDB) GetNonce(addr types.Address) uint64 {
@@ -189,6 +193,7 @@ func (l *LayerStateDB) SetCode(addr types.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
 		so.CodeHash = crypto.Keccak256Hash(code)
+		so.DirtyCode = true
 		l.SetStateObject(addr, so)
 	} else {
 		if FAST_FAIL {
@@ -230,23 +235,17 @@ func (l *LayerStateDB) GetCommittedState(addr types.Address, hash types.Hash) ty
 }
 
 func (l *LayerStateDB) GetState(addr types.Address, key types.Hash) types.Hash {
-	so := l.GetStateObject(addr)
-	if so == nil {
-		return types.Hash{}
-	}
-	if v, ok := so.States[key]; ok {
-		return v
+	for i := len(l.Layers) - 1; i >= 0; i-- {
+		layer := l.Layers[i]
+		if so := layer.GetState(addr, key); so != empty {
+			return so
+		}
 	}
 	return types.Hash{}
 }
 
 func (l *LayerStateDB) SetState(addr types.Address, key types.Hash, value types.Hash) {
-	so := l.GetStateObject(addr)
-	if so == nil {
-		return
-	}
-	so.States[key] = value
-	l.SetStateObject(addr, so)
+	l.activeLayer.SetState(addr, key, value)
 }
 
 func (l *LayerStateDB) Suicide(addr types.Address) bool {
@@ -279,7 +278,7 @@ func (l *LayerStateDB) Empty(addr types.Address) bool {
 }
 
 func (l *LayerStateDB) RevertToSnapshot(i int) {
-	l.Layers = l.Layers[0 : i+1]
+	l.Layers = l.Layers[0:i]
 }
 
 func (l *LayerStateDB) Snapshot() int {
@@ -325,8 +324,15 @@ func (l *LayerStateDB) mergeLayer(toLayerIndex int, fromLayerIndex int) {
 		panic("from layer does not support merging")
 	}
 
-	for k, v := range fromLayer.ledger {
-		toLayer.ledger[k] = v
+	for k, v := range fromLayer.soLedger {
+		toLayer.soLedger[k] = v
+	}
+	for k, v := range fromLayer.kvLedger {
+		toLayer.kvLedger[k] = v
 	}
 
+}
+
+func (l *LayerStateDB) CurrentLayer() int {
+	return len(l.Layers) - 1
 }

@@ -37,6 +37,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
 	var txs []*types.RawTx
 	var seqs []*types.RawSequencer
+	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
 		err := syncRequest.Filter.Decode()
@@ -44,36 +45,76 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			msgLog.WithError(err).Warn("encode bloom filter error")
 			return
 		}
-
-		hashs := h.Og.TxPool.GetHashOrder()
-		msgLog.WithField("len ", len(hashs)).Trace("get hashes")
-		for _, hash := range hashs {
-			ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
-			if err != nil {
-				msgLog.WithError(err).Warn("lookup bloom filter error")
-				continue
+		if syncRequest.Height == nil {
+			msgLog.WithError(err).Warn("param error, height is nil")
+			return
+		}
+		height := *syncRequest.Height
+		ourHeight := h.Og.Dag.LatestSequencer().Number()
+		if height < ourHeight {
+			msgLog.WithField("ourHeight ", ourHeight).WithField("height", height).Warn("our height is smaller")
+			return
+		} else {
+			var filterHashes types.Hashes
+			if height == ourHeight {
+				filterHashes = h.Og.TxPool.GetHashOrder()
+			} else if height < ourHeight {
+				dagHashes := h.Og.Dag.GetTxsHashesByNumber(height + 1)
+				if dagHashes != nil {
+					filterHashes = *dagHashes
+				}
+				filterHashes = append(filterHashes, h.Og.Dag.LatestSequencer().GetTxHash())
 			}
-			//if peer miss this tx ,send it
-			if !ok {
-				txi := h.Og.TxPool.Get(hash)
-				if txi.GetType() == types.TxBaseTypeNormal {
-					tx := txi.(*types.Tx)
-					txs = append(txs, tx.RawTx())
-				} else {
-					seq := txi.(*types.Sequencer)
-					seqs = append(seqs, seq.RawSequencer())
+			msgLog.WithField("len ", len(filterHashes)).Trace("get hashes")
+			for _, hash := range filterHashes {
+				ok, err := syncRequest.Filter.LookUpItem(hash.Bytes[:])
+				if err != nil {
+					msgLog.WithError(err).Warn("lookup bloom filter error")
+					continue
+				}
+				//if peer miss this tx ,send it
+				if !ok {
+					txi := h.Og.TxPool.Get(hash)
+					if txi == nil {
+						txi = h.Og.Dag.GetTx(hash)
+					}
+					if txi == nil {
+						continue
+					}
+					if txi.GetType() == types.TxBaseTypeNormal {
+						tx := txi.(*types.Tx)
+						txs = append(txs, tx.RawTx())
+					} else {
+						//index = append(index, uint32(len(txs)))
+						seq := txi.(*types.Sequencer)
+						seqs = append(seqs, seq.RawSequencer())
+					}
 				}
 			}
+
+			// uint64(0) -2 >0
+			if height+2 <= ourHeight {
+				dagTxs := h.Og.Dag.GetTxsByNumber(height + 2)
+				txs = append(txs, dagTxs.ToRawTxs()...)
+				//index = append(index, uint32(len(txs)))
+				seq := h.Og.Dag.GetSequencerByHeight(height + 2)
+				seqs = append(seqs, seq.RawSequencer())
+			}
+			msgLog.WithField("len seqs", len(seqs)).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
 		}
-		msgLog.WithField("len ", len(txs)).Trace("will send txs after bloom filter")
 	} else if len(syncRequest.Hashes) > 0 {
 		for _, hash := range syncRequest.Hashes {
 			txi := h.Og.TxPool.Get(hash)
 			if txi == nil {
 				txi = h.Og.Dag.GetTx(hash)
 			}
+			if txi == nil {
+				continue
+			}
 			switch tx := txi.(type) {
 			case *types.Sequencer:
+				//index = append(index, uint32(len(txs)))
+				msgLog.Debug(tx)
 				seqs = append(seqs, tx.RawSequencer())
 			case *types.Tx:
 				txs = append(txs, tx.RawTx())
@@ -88,6 +129,8 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 		syncResponse := types.MessageSyncResponse{
 			RawTxs:        txs,
 			RawSequencers: seqs,
+			//SequencerIndex: index,
+			RequestedId: syncRequest.RequestId,
 		}
 		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &syncResponse)
 	} else {
@@ -98,9 +141,8 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 
 func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerId string) {
 
-	headers := types.RawSequencerToSeqSequencers(headerMsg.RawSequencers)
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
-	seqHeaders := types.SeqsToHeaders(headers)
+	seqHeaders := headerMsg.Headers
 	filter := len(seqHeaders) == 1
 
 	// TODO: verify fetcher
@@ -114,18 +156,18 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHe
 			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
-	msgLog.WithField("header lens", len(seqHeaders)).Trace("handle MessageTypeHeaderResponse")
+	msgLog.WithField("headers", headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderRequest, peerId string) {
-	hashMode := !query.Origin.Hash.Empty()
+	hashMode := query.Origin.Hash != nil
 	first := true
 	msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
 		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Trace("requests")
 	// Gather headers until the fetch or network limits is reached
 	var (
 		bytes   common.StorageSize
-		headers []*types.Sequencer
+		headers types.Sequencers
 		unknown bool
 	)
 	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
@@ -134,15 +176,15 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 		if hashMode {
 			if first {
 				first = false
-				origin = h.Og.Dag.GetSequencerByHash(query.Origin.Hash)
+				origin = h.Og.Dag.GetSequencerByHash(*query.Origin.Hash)
 				if origin != nil {
 					query.Origin.Number = origin.Number()
 				}
 			} else {
-				origin = h.Og.Dag.GetSequencer(query.Origin.Hash, query.Origin.Number)
+				origin = h.Og.Dag.GetSequencer(*query.Origin.Hash, query.Origin.Number)
 			}
 		} else {
-			origin = h.Og.Dag.GetSequencerById(query.Origin.Number)
+			origin = h.Og.Dag.GetSequencerByHeight(query.Origin.Number)
 		}
 		if origin == nil {
 			break
@@ -158,9 +200,10 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 			if ancestor == 0 {
 				unknown = true
 			} else {
-				seq := h.Og.Dag.GetSequencerById(query.Origin.Number - ancestor)
-				query.Origin.Hash, query.Origin.Number = seq.GetTxHash(), seq.Number()
-				unknown = query.Origin.Hash.Empty()
+				seq := h.Og.Dag.GetSequencerByHeight(query.Origin.Number - ancestor)
+				hash := seq.GetTxHash()
+				query.Origin.Hash, query.Origin.Number = &hash, seq.Number()
+				unknown = query.Origin.Hash == nil
 			}
 		case hashMode && !query.Reverse:
 			// Hash based traversal towards the leaf block
@@ -172,12 +215,12 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 				msgLog.Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", peerId)
 				unknown = true
 			} else {
-				if header := h.Og.Dag.GetSequencerById(next); header != nil {
+				if header := h.Og.Dag.GetSequencerByHeight(next); header != nil {
 					nextHash := header.GetTxHash()
-					oldSeq := h.Og.Dag.GetSequencerById(next - (query.Skip + 1))
+					oldSeq := h.Og.Dag.GetSequencerByHeight(next - (query.Skip + 1))
 					expOldHash := oldSeq.GetTxHash()
-					if expOldHash == query.Origin.Hash {
-						query.Origin.Hash, query.Origin.Number = nextHash, next
+					if expOldHash == *query.Origin.Hash {
+						query.Origin.Hash, query.Origin.Number = &nextHash, next
 					} else {
 						unknown = true
 					}
@@ -200,15 +243,16 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 	}
 
 	msgRes := types.MessageHeaderResponse{
-		RawSequencers: types.SequencersToRawSequencers(headers),
-		RequestedId:   query.RequestId,
+		Headers:     headers.ToHeaders(),
+		RequestedId: query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResponse) {
 	if request.RawSequencer != nil {
-		msgLog.WithField("len", len(request.RawTxs)).WithField("seq id", request.RawSequencer.Id).Trace("got response txs ")
+		msgLog.WithField("len", len(request.RawTxs)).WithField("seq height", request.RawSequencer.Height).Trace(
+			"got response txs ")
 	} else {
 		msgLog.Warn("got nil sequencer")
 		return
@@ -222,6 +266,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 
 		for _, rawtx := range request.RawTxs {
 			tx := rawtx.Tx()
+			//todo add to txcache first
 			h.Og.TxBuffer.ReceivedNewTxChan <- tx
 			// <-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, tx, "HandleTxsResponse").C
 		}
@@ -236,12 +281,12 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsReques
 	if msgReq.SeqHash != nil && msgReq.Id != 0 {
 		seq = h.Og.Dag.GetSequencer(*msgReq.SeqHash, msgReq.Id)
 	} else {
-		seq = h.Og.Dag.GetSequencerById(msgReq.Id)
+		seq = h.Og.Dag.GetSequencerByHeight(msgReq.Id)
 	}
 	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
-		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
-		msgRes.RawTxs = types.TxsToRawTxs(txs)
+		txs := h.Og.Dag.GetTxsByNumber(seq.Height)
+		msgRes.RawTxs = txs.ToRawTxs()
 	} else {
 		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
@@ -253,7 +298,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodi
 	transactions := make([][]*types.Tx, len(request.Bodies))
 	sequencers := make([]*types.Sequencer, len(request.Bodies))
 	for i, bodyData := range request.Bodies {
-		var body types.MessageTxsResponse
+		var body types.MessageBodyData
 		_, err := body.UnmarshalMsg(bodyData)
 		if err != nil {
 			msgLog.WithError(err).Warn("decode error")
@@ -263,7 +308,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodi
 			msgLog.Warn(" body.Sequencer is nil")
 			break
 		}
-		transactions[i] = types.RawTxsToTxs(body.RawTxs)
+		transactions[i] = body.RawTxs.Txs()
 		sequencers[i] = body.RawSequencer.Sequencer()
 	}
 	msgLog.WithField("bodies len", len(request.Bodies)).Trace("got bodies")
@@ -303,10 +348,10 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodies
 			msgLog.Debug("reached MaxBlockFetch 128 ")
 			break
 		}
-		var body types.MessageTxsResponse
+		var body types.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
-		txs := h.Og.Dag.GetTxsByNumber(seq.Id)
-		body.RawTxs = types.TxsToRawTxs(txs)
+		txs := h.Og.Dag.GetTxsByNumber(seq.Height)
+		body.RawTxs = txs.ToRawTxs()
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
 		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))

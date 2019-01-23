@@ -16,17 +16,17 @@ import (
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
-	Id                uint64 `msgp:"id"`
-	Issuer            Address
-	ContractHashOrder []Hash `msgp:"contractHashOrder"`
+	Issuer Address
 }
 
 func (t *Sequencer) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-id_%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce, t.Id)
+	return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
+type Sequencers []*Sequencer
+
 func SampleSequencer() *Sequencer {
-	return &Sequencer{Id: 99,
+	return &Sequencer{
 		TxBase: TxBase{
 			Height:       12,
 			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
@@ -34,25 +34,21 @@ func SampleSequencer() *Sequencer {
 			AccountNonce: 234,
 		},
 		Issuer: HexToAddress("0x33"),
-		ContractHashOrder: []Hash{
-			HexToHash("0x00667788"),
-			HexToHash("0xAA667788"),
-			HexToHash("0xBB667788"), // 20 bytes
-		},
 	}
 }
 
 func RandomSequencer() *Sequencer {
+	id := uint64(rand.Int63n(1000))
+
 	return &Sequencer{TxBase: TxBase{
 		Hash:         randomHash(),
-		Height:       rand.Uint64(),
+		Height:       id,
 		ParentsHash:  []Hash{randomHash(), randomHash()},
 		Type:         TxBaseTypeSequencer,
 		AccountNonce: uint64(rand.Int63n(50000)),
+		Weight:       uint64(rand.Int31n(2000)),
 	},
-		Id:                rand.Uint64(),
-		Issuer:            randomAddress(),
-		ContractHashOrder: []Hash{randomHash(), randomHash(), randomHash()},
+		Issuer: randomAddress(),
 	}
 }
 
@@ -61,10 +57,7 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Id))
-	for _, orderHash := range t.ContractHashOrder {
-		panicIfError(binary.Write(&buf, binary.BigEndian, orderHash.Bytes))
-	}
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
 
 	return buf.Bytes()
 }
@@ -77,12 +70,12 @@ func (t *Sequencer) GetValue() *math.BigInt {
 	return math.NewBigInt(0)
 }
 
-func (t *Sequencer) Parents() []Hash {
+func (t *Sequencer) Parents() Hashes {
 	return t.ParentsHash
 }
 
 func (t *Sequencer) Number() uint64 {
-	return t.Id
+	return t.GetHeight()
 }
 
 func (t *Sequencer) Compare(tx Txi) bool {
@@ -102,7 +95,7 @@ func (t *Sequencer) GetBase() *TxBase {
 }
 
 func (t *Sequencer) GetHead() *SequencerHeader {
-	return NewSequencerHead(t.GetTxHash(), t.Id)
+	return NewSequencerHead(t.GetTxHash(), t.Height)
 }
 
 func (t *Sequencer) Dump() string {
@@ -110,8 +103,8 @@ func (t *Sequencer) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("pHash:[%s], Issuer : %s , id :%d , nonce : %d , signatute : %s, pubkey %s",
-		strings.Join(phashes, " ,"), t.Issuer.Hex(), t.Id,
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height :%d , nonce : %d , signatute : %s, pubkey %s",
+		strings.Join(phashes, " ,"), t.Issuer.Hex(), t.Height,
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
 }
 
@@ -119,10 +112,39 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 	if s == nil {
 		return nil
 	}
-	rawSequencer := &RawSequencer{
-		TxBase:            s.TxBase,
-		Id:                s.Id,
-		ContractHashOrder: s.ContractHashOrder,
+	return &RawSequencer{
+		TxBase: s.TxBase,
 	}
-	return rawSequencer
+}
+
+func (s Sequencers) String() string {
+	var strs []string
+	for _, v := range s {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (s Sequencers) ToHeaders() SequencerHeaders {
+	if len(s) == 0 {
+		return nil
+	}
+	var headers SequencerHeaders
+	for _, v := range s {
+		head := NewSequencerHead(v.Hash, v.Height)
+		headers = append(headers, head)
+	}
+	return headers
+}
+
+func (seqs Sequencers) ToRawSequencers() RawSequencers {
+	if len(seqs) == 0 {
+		return nil
+	}
+	var rawSeqs RawSequencers
+	for _, v := range seqs {
+		rasSeq := v.RawSequencer()
+		rawSeqs = append(rawSeqs, rasSeq)
+	}
+	return rawSeqs
 }

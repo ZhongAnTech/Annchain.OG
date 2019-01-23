@@ -13,13 +13,13 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 8 {
-		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
+	if zb0001 != 9 {
+		err = msgp.ArrayError{Wanted: 9, Got: zb0001}
 		return
 	}
 	{
-		var zb0002 uint
-		zb0002, err = dc.ReadUint()
+		var zb0002 uint16
+		zb0002, err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -29,21 +29,9 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
+	err = z.ParentsHash.DecodeMsg(dc)
 	if err != nil {
 		return
-	}
-	if cap(z.ParentsHash) >= int(zb0003) {
-		z.ParentsHash = (z.ParentsHash)[:zb0003]
-	} else {
-		z.ParentsHash = make([]Hash, zb0003)
-	}
-	for za0001 := range z.ParentsHash {
-		err = z.ParentsHash[za0001].DecodeMsg(dc)
-		if err != nil {
-			return
-		}
 	}
 	z.AccountNonce, err = dc.ReadUint64()
 	if err != nil {
@@ -65,17 +53,21 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	z.Weight, err = dc.ReadUint64()
+	if err != nil {
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 8
-	err = en.Append(0x98)
+	// array header, size 9
+	err = en.Append(0x99)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint(uint(z.Type))
+	err = en.WriteUint16(uint16(z.Type))
 	if err != nil {
 		return
 	}
@@ -83,15 +75,9 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.ParentsHash)))
+	err = z.ParentsHash.EncodeMsg(en)
 	if err != nil {
 		return
-	}
-	for za0001 := range z.ParentsHash {
-		err = z.ParentsHash[za0001].EncodeMsg(en)
-		if err != nil {
-			return
-		}
 	}
 	err = en.WriteUint64(z.AccountNonce)
 	if err != nil {
@@ -113,31 +99,33 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	err = en.WriteUint64(z.Weight)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 8
-	o = append(o, 0x98)
-	o = msgp.AppendUint(o, uint(z.Type))
+	// array header, size 9
+	o = append(o, 0x99)
+	o = msgp.AppendUint16(o, uint16(z.Type))
 	o, err = z.Hash.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o = msgp.AppendArrayHeader(o, uint32(len(z.ParentsHash)))
-	for za0001 := range z.ParentsHash {
-		o, err = z.ParentsHash[za0001].MarshalMsg(o)
-		if err != nil {
-			return
-		}
+	o, err = z.ParentsHash.MarshalMsg(o)
+	if err != nil {
+		return
 	}
 	o = msgp.AppendUint64(o, z.AccountNonce)
 	o = msgp.AppendUint64(o, z.Height)
 	o = msgp.AppendBytes(o, z.PublicKey)
 	o = msgp.AppendBytes(o, z.Signature)
 	o = msgp.AppendUint64(o, z.MineNonce)
+	o = msgp.AppendUint64(o, z.Weight)
 	return
 }
 
@@ -148,13 +136,13 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 8 {
-		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
+	if zb0001 != 9 {
+		err = msgp.ArrayError{Wanted: 9, Got: zb0001}
 		return
 	}
 	{
-		var zb0002 uint
-		zb0002, bts, err = msgp.ReadUintBytes(bts)
+		var zb0002 uint16
+		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -164,21 +152,9 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	bts, err = z.ParentsHash.UnmarshalMsg(bts)
 	if err != nil {
 		return
-	}
-	if cap(z.ParentsHash) >= int(zb0003) {
-		z.ParentsHash = (z.ParentsHash)[:zb0003]
-	} else {
-		z.ParentsHash = make([]Hash, zb0003)
-	}
-	for za0001 := range z.ParentsHash {
-		bts, err = z.ParentsHash[za0001].UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
 	}
 	z.AccountNonce, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
@@ -200,25 +176,25 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	z.Weight, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.UintSize + z.Hash.Msgsize() + msgp.ArrayHeaderSize
-	for za0001 := range z.ParentsHash {
-		s += z.ParentsHash[za0001].Msgsize()
-	}
-	s += msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size
+	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size + msgp.Uint64Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *TxBaseType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zb0001 uint
-		zb0001, err = dc.ReadUint()
+		var zb0001 uint16
+		zb0001, err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -229,7 +205,7 @@ func (z *TxBaseType) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z TxBaseType) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteUint(uint(z))
+	err = en.WriteUint16(uint16(z))
 	if err != nil {
 		return
 	}
@@ -239,15 +215,15 @@ func (z TxBaseType) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z TxBaseType) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendUint(o, uint(z))
+	o = msgp.AppendUint16(o, uint16(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *TxBaseType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zb0001 uint
-		zb0001, bts, err = msgp.ReadUintBytes(bts)
+		var zb0001 uint16
+		zb0001, bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -259,6 +235,86 @@ func (z *TxBaseType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z TxBaseType) Msgsize() (s int) {
-	s = msgp.UintSize
+	s = msgp.Uint16Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *Txis) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(Txis, zb0002)
+	}
+	for zb0001 := range *z {
+		err = (*z)[zb0001].DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z Txis) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteArrayHeader(uint32(len(z)))
+	if err != nil {
+		return
+	}
+	for zb0003 := range z {
+		err = z[zb0003].EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z Txis) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for zb0003 := range z {
+		o, err = z[zb0003].MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *Txis) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(Txis, zb0002)
+	}
+	for zb0001 := range *z {
+		bts, err = (*z)[zb0001].UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z Txis) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize
+	for zb0003 := range z {
+		s += z[zb0003].Msgsize()
+	}
 	return
 }

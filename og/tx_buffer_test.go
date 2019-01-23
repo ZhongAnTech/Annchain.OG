@@ -15,7 +15,7 @@ type dummyDag struct {
 	dmap map[types.Hash]types.Txi
 }
 
-func (d *dummyDag) GetSequencerById(id uint64) *types.Sequencer {
+func (d *dummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 	return nil
 }
 
@@ -27,7 +27,7 @@ func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return nil
 }
 
-func (d *dummyDag) GetTxsByNumber(id uint64) []*types.Tx {
+func (d *dummyDag) GetTxsByNumber(id uint64) types.Txs {
 	return nil
 }
 
@@ -64,8 +64,12 @@ func (d *dummyTxPool) GetLatestNonce(addr types.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
-func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi) {
+func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string) {
 	return
+}
+
+func (d *dummyTxPool) GetMaxWeight() uint64 {
+	return 0
 }
 
 func (d *dummyTxPool) init() {
@@ -106,7 +110,7 @@ func (d *dummySyncer) Know(tx types.Txi) {
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummySyncer) Enqueue(hash types.Hash) {
+func (d *dummySyncer) Enqueue(hash types.Hash, b bool) {
 	if _, err := d.acquireTxDedupCache.Get(hash); err == nil {
 		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return

@@ -22,4 +22,8 @@ type Interpreter interface {
 	// }
 	// ```
 	CanRun([]byte) bool
+
+	// SetCaller will be called when OVM is initializing this intepreter.
+	// OVM will tell which caller interpreter should use if there is a inter-contract call
+	SetCaller(caller types.Caller)
 }

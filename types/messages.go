@@ -3,9 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/Metabdulla/bloom"
-	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/msg"
-	"strings"
 )
 
 //go:generate msgp
@@ -43,24 +41,60 @@ func (m *MessagePong) String() string {
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
-	Hashes    []Hash
+	Hashes    Hashes
 	Filter    *BloomFilter
+	Height    *uint64
 	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageSyncRequest) String() string {
-	return fmt.Sprintf(" requestId %d", m.RequestId) + fmt.Sprintf("count: %d", m.Filter.GetCount())
+	if m.Filter != nil {
+		return fmt.Sprintf(" requestId %d  height: %v ", m.RequestId, m.Height) + fmt.Sprintf("count: %d", m.Filter.GetCount())
+	}
+	return m.Hashes.String() + fmt.Sprintf(" requestId %d  ", m.RequestId)
+
 }
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	RawTxs        []*RawTx
-	RawSequencers []*RawSequencer
+	RawTxs RawTxs
+	//SequencerIndex  []uint32
+	RawSequencers RawSequencers
 	RequestedId   uint32 //avoid msg drop
 }
 
+func (m *MessageSyncResponse) Txis() Txis {
+	var txis Txis
+	txis = m.RawTxs.Txis()
+	txis = append(txis, m.RawSequencers.Txis()...)
+	return txis
+}
+
+func (m *MessageSyncResponse) Hashes() Hashes {
+	var hashes Hashes
+	if len(m.RawSequencers) == 0 && len(m.RawTxs) == 0 {
+		return nil
+	}
+	for _, seq := range m.RawSequencers {
+		if seq == nil {
+			continue
+		}
+		hashes = append(hashes, seq.GetTxHash())
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	return hashes
+}
+
 func (m *MessageSyncResponse) String() string {
-	return fmt.Sprintf("txs: [%s], seqs: [%s] ,requestedId :%d", RawTxsToString(m.RawTxs), RawSeqsToString(m.RawSequencers), m.RequestedId)
+	//for _,i := range m.SequencerIndex {
+	//index = append(index ,fmt.Sprintf("%d",i))
+	//}
+	return fmt.Sprintf("txs: [%s], seqs: [%s],requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
@@ -153,34 +187,62 @@ func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {
-	RawTxs []*RawTx
+	RawTxs RawTxs
+}
+
+func (m *MessageNewTxs) Txis() Txis {
+	return m.Txis()
+}
+
+func (m *MessageNewTxs) Hashes() Hashes {
+	var hashes Hashes
+	if len(m.RawTxs) == 0 {
+		return nil
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	return hashes
 }
 
 func (m *MessageNewTxs) String() string {
-	return RawTxsToString(m.RawTxs)
+	return m.RawTxs.String()
 }
 
 //msgp:tuple MessageTxsRequest
 type MessageTxsRequest struct {
-	Hashes    []Hash
+	Hashes    Hashes
 	SeqHash   *Hash
 	Id        uint64
 	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageTxsRequest) String() string {
-	return fmt.Sprintf("hashes: [%s], seqHash: %s, id : %d, requstId : %d", HashesToString(m.Hashes), m.SeqHash.String(), m.Id, m.RequestId)
+	return fmt.Sprintf("hashes: [%s], seqHash: %s, id : %d, requstId : %d", m.Hashes.String(), m.SeqHash.String(), m.Id, m.RequestId)
 }
 
 //msgp:tuple MessageTxsResponse
 type MessageTxsResponse struct {
-	RawTxs       []*RawTx
+	RawTxs       RawTxs
 	RawSequencer *RawSequencer
 	RequestedId  uint32 //avoid msg drop
 }
 
 func (m *MessageTxsResponse) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", RawTxsToString(m.RawTxs), m.RawSequencer.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
+}
+
+//msgp:tuple MessageTxsResponse
+type MessageBodyData struct {
+	RawTxs       RawTxs
+	RawSequencer *RawSequencer
+}
+
+func (m *MessageBodyData) String() string {
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String())
 }
 
 // getBlockHeadersData represents a block header query.
@@ -200,11 +262,14 @@ func (m *MessageHeaderRequest) String() string {
 // hashOrNumber is a combined field for specifying an origin block.
 //msgp:tuple HashOrNumber
 type HashOrNumber struct {
-	Hash   Hash   // Block hash from which to retrieve headers (excludes Number)
+	Hash   *Hash  // Block hash from which to retrieve headers (excludes Number)
 	Number uint64 // Block hash from which to retrieve headers (excludes Hash)
 }
 
 func (m *HashOrNumber) String() string {
+	if m.Hash == nil {
+		return fmt.Sprintf("hash: nil, number : %d", m.Number)
+	}
 	return fmt.Sprintf("hash: %s, number : %d", m.Hash.String(), m.Number)
 }
 
@@ -220,22 +285,22 @@ func (m *MessageSequencerHeader) String() string {
 
 //msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
-	RawSequencers []*RawSequencer
-	RequestedId   uint32 //avoid msg drop
+	Headers     SequencerHeaders
+	RequestedId uint32 //avoid msg drop
 }
 
 func (m *MessageHeaderResponse) String() string {
-	return fmt.Sprintf("seqs: [%s] reuqestedId :%d", RawSeqsToString(m.RawSequencers), m.RequestedId)
+	return fmt.Sprintf("headers: [%s] reuqestedId :%d", m.Headers.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageBodiesRequest
 type MessageBodiesRequest struct {
-	SeqHashes []Hash
+	SeqHashes Hashes
 	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageBodiesRequest) String() string {
-	return HashesToString(m.SeqHashes) + fmt.Sprintf(" requestId :%d", m.RequestId)
+	return m.SeqHashes.String() + fmt.Sprintf(" requestId :%d", m.RequestId)
 }
 
 //msgp:tuple MessageBodiesResponse
@@ -249,116 +314,6 @@ func (m *MessageBodiesResponse) String() string {
 }
 
 type RawData []byte
-
-// compress data ,for p2p  , small size
-type RawTx struct {
-	TxBase
-	To    Address
-	Value *math.BigInt
-}
-
-type RawSequencer struct {
-	TxBase
-	Id                uint64 `msgp:"id"`
-	ContractHashOrder []Hash `msgp:"contractHashOrder"`
-}
-
-func (t *RawTx) Tx() *Tx {
-	if t == nil {
-		return nil
-	}
-	tx := &Tx{
-		TxBase: t.TxBase,
-		To:     t.To,
-		Value:  t.Value,
-	}
-	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
-	return tx
-}
-
-func (t *RawSequencer) Sequencer() *Sequencer {
-	if t == nil {
-		return nil
-	}
-	tx := &Sequencer{
-		TxBase:            t.TxBase,
-		Id:                t.Id,
-		ContractHashOrder: t.ContractHashOrder,
-	}
-	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
-	return tx
-}
-
-func (t *RawTx) String() string {
-	return fmt.Sprintf("%s-%d-RawTx", t.TxBase.String(), t.AccountNonce)
-}
-
-func (t *RawSequencer) String() string {
-	return fmt.Sprintf("%s-%d-id_%d-Seq", t.TxBase.String(), t.AccountNonce, t.Id)
-}
-
-func RawTxsToTxs(rawTxs []*RawTx) []*Tx {
-	if len(rawTxs) == 0 {
-		return nil
-	}
-	var txs []*Tx
-	for _, v := range rawTxs {
-		tx := v.Tx()
-		txs = append(txs, tx)
-	}
-	return txs
-}
-func RawSequencerToSeqSequencers(rawSeqs []*RawSequencer) []*Sequencer {
-	if len(rawSeqs) == 0 {
-		return nil
-	}
-	var seqs []*Sequencer
-	for _, v := range rawSeqs {
-		seq := v.Sequencer()
-		seqs = append(seqs, seq)
-	}
-	return seqs
-}
-
-func TxsToRawTxs(txs []*Tx) []*RawTx {
-	if len(txs) == 0 {
-		return nil
-	}
-	var rawTxs []*RawTx
-	for _, v := range txs {
-		rasTx := v.RawTx()
-		rawTxs = append(rawTxs, rasTx)
-	}
-	return rawTxs
-}
-
-func SequencersToRawSequencers(seqs []*Sequencer) []*RawSequencer {
-	if len(seqs) == 0 {
-		return nil
-	}
-	var rawSeqs []*RawSequencer
-	for _, v := range seqs {
-		rasSeq := v.RawSequencer()
-		rawSeqs = append(rawSeqs, rasSeq)
-	}
-	return rawSeqs
-}
-
-func RawTxsToString(txs []*RawTx) string {
-	var strs []string
-	for _, v := range txs {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
-}
-
-func RawSeqsToString(seqs []*RawSequencer) string {
-	var strs []string
-	for _, v := range seqs {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
-}
 
 type MessageControl struct {
 	Hash *Hash

@@ -50,4 +50,5 @@ type VM interface {
 	// The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 	// instead of the usual sender-and-Nonce-hash as the address where the vmtypes.Contract is initialized at.
 	Create2(caller vmtypes.ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, ContractAddr types.Address, leftOverGas uint64, err error)
+
 }

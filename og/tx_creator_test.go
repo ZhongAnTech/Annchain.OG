@@ -67,7 +67,7 @@ func TestSequencerCreator(t *testing.T) {
 	// for copy
 	randomSeq := types.RandomSequencer()
 
-	txSigned := txc.NewSignedSequencer(types.Address{}, randomSeq.Id, randomSeq.ContractHashOrder, randomSeq.AccountNonce, priv)
+	txSigned := txc.NewSignedSequencer(types.Address{}, randomSeq.Height, randomSeq.AccountNonce, priv)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned)
 	logrus.Infof("result: %t %v", ok, txSigned)
@@ -104,12 +104,12 @@ func TestBuildDag(t *testing.T) {
 	_, privateKey, _ := txc.Signer.RandomKeyPair()
 
 	txs := []types.Txi{
-		txc.NewSignedSequencer(types.Address{}, 0, []types.Hash{}, 0, privateKey),
+		txc.NewSignedSequencer(types.Address{}, 0, 0, privateKey),
 		txc.NewSignedTx(types.HexToAddress("0x01"), types.HexToAddress("0x02"), math.NewBigInt(10), 0, privateKey),
-		txc.NewSignedSequencer(types.Address{}, 1, []types.Hash{}, 1, privateKey),
+		txc.NewSignedSequencer(types.Address{}, 1, 1, privateKey),
 		txc.NewSignedTx(types.HexToAddress("0x02"), types.HexToAddress("0x03"), math.NewBigInt(9), 0, privateKey),
 		txc.NewSignedTx(types.HexToAddress("0x03"), types.HexToAddress("0x04"), math.NewBigInt(8), 0, privateKey),
-		txc.NewSignedSequencer(types.Address{}, 2, []types.Hash{}, 2, privateKey),
+		txc.NewSignedSequencer(types.Address{}, 2, 2, privateKey),
 	}
 
 	txs[0].GetBase().Hash = txs[0].CalcTxHash()

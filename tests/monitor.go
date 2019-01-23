@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+
+	"github.com/annchain/OG/rpc"
+
 	"io/ioutil"
 	"os"
 	"strings"
@@ -11,24 +14,14 @@ import (
 )
 
 type Monitor struct {
-	Port    string `json:"port"`
-	Peers   []Peer `json:"peers"`
-	SeqId   uint64 `json:"seq_id"`
-	ShortId string `json:"short_id"`
+	Port    string         `json:"port"`
+	Peers   []rpc.Peer     `json:"peers"`
+	SeqId   uint64         `json:"seq_id"`
+	ShortId string         `json:"short_id"`
+	Status  rpc.SyncStatus `json:"status"`
 	Err     error
 	Id      int
-	Tps     *Tps `json:"tps"`
-}
-
-type Peer struct {
-	Addr    string `json:"addr"`
-	ShortId string `json:"short_id"`
-}
-
-type Tps struct {
-	Num     int     `json:"num"`
-	TxCount int     `json:"tx_num"`
-	Seconds float64 `json:"duration"`
+	Tps     *rpc.Tps `json:"tps"`
 }
 
 type Statistics struct {
@@ -36,14 +29,15 @@ type Statistics struct {
 }
 
 var fistPort = 11300
-var peerNum = 5
-var ipsNum = 4
+
+var peerNum = 3
+var ipsNum = 1
 
 func main() {
 	ips := GetIps()
 	for {
 		select {
-		case <-time.After(15 * time.Second):
+		case <-time.After(2 * time.Second):
 			go run(ips)
 		}
 	}
@@ -97,6 +91,8 @@ Out:
 			} else {
 				s.PeersNum[l] = 1
 			}
+
+			//m.Peers = nil
 		}
 		monitors := Monitors{ms}
 		data, _ := json.MarshalIndent(&monitors, "", "\t")
@@ -112,7 +108,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	//return  []string{"192.168.45.131"}
+	return []string{"192.168.45.145"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)

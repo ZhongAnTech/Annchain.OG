@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
@@ -15,6 +17,8 @@ import (
 const (
 	IntervalModeConstantInterval = "constant"
 	IntervalModeRandom           = "random"
+	IntervalModeMicroRandom      = "micro_random"
+	IntervalModeMicroConstanrt   = "micro_constant"
 )
 
 type AutoClient struct {
@@ -33,7 +37,8 @@ type AutoClient struct {
 	ManualChan chan types.TxBaseType
 	quit       chan bool
 
-	pause bool
+	pause    bool
+	testMode bool
 
 	wg sync.WaitGroup
 
@@ -57,6 +62,10 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 		sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMs)
 	case IntervalModeRandom:
 		sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
+	case IntervalModeMicroConstanrt:
+		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalMs)
+	case IntervalModeMicroRandom:
+		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
 	default:
 		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 	}
@@ -105,15 +114,24 @@ func (c *AutoClient) loop() {
 		logrus.Trace("client is working")
 		select {
 		case <-c.quit:
+			c.pause = true
 			logrus.Debug("got quit signal")
 			return
 		case txType := <-c.ManualChan:
 			c.fireManualTx(txType, true)
 		case <-timerTx.C:
 			logrus.Debug("timer sample tx")
+			if c.testMode {
+				timerTx.Stop()
+				continue
+			}
 			c.doSampleTx(false)
 			timerTx.Reset(c.nextSleepDuraiton())
 		case <-tickerSeq.C:
+			if c.testMode {
+				timerTx.Stop()
+				continue
+			}
 			logrus.Debug("timer sample seq")
 			c.doSampleSequencer(false)
 		}
@@ -163,12 +181,48 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
+func (c *AutoClient) fireTxs(me types.Address) bool {
+	m := viper.GetInt("auto_client.tx.send_micro")
+	if m == 0 {
+		m = 1000
+	}
+	logrus.WithField("micro", m).Info("sent interval ")
+	for i := uint64(1); i < 1000000000; i++ {
+		if c.pause {
+			logrus.Info("tx generate stopped")
+			return true
+		}
+		time.Sleep(time.Duration(m) * time.Microsecond)
+		txi := c.Delegate.Dag.GetOldTx(me, i)
+		if txi == nil {
+			return true
+		}
+		c.Delegate.Announce(txi)
+	}
+	return true
+}
+
+var firstTx bool
+
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
 		return false
 	}
 
 	me := c.SampleAccounts[c.MyAccountIndex]
+	if !firstTx {
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		if txi != nil {
+			logrus.WithField("txi", txi).Info("get start test tps")
+			c.AutoTxEnabled = false
+			c.AutoSequencerEnabled = false
+			c.testMode = true
+			firstTx = true
+			c.Delegate.Announce(txi)
+			return c.fireTxs(me.Address)
+		}
+		firstTx = true
+	}
 
 	tx, err := c.Delegate.GenerateTx(TxRequest{
 		AddrFrom:   me.Address,
@@ -192,12 +246,18 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
+	if !firstTx {
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		if txi != nil {
+			c.AutoSequencerEnabled = false
+			return true
+		}
+	}
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,
-		SequenceID: c.Delegate.GetLatestDagSequencer().Id + 1,
+		Height:     c.Delegate.GetLatestDagSequencer().Height + 1,
 		Nonce:      c.judgeNonce(),
-		Hashes:     []types.Hash{},
 		PrivateKey: me.PrivateKey,
 	})
 	if err != nil {
@@ -205,7 +265,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
-		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Info("Generated seq")
+		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
 	c.Delegate.Announce(seq)
 	return true
 }

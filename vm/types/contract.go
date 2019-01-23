@@ -18,10 +18,16 @@ package types
 
 import (
 	"github.com/annchain/OG/common/crypto"
+
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/math"
+
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/code"
 	"github.com/annchain/OG/vm/common"
 	"github.com/annchain/OG/vm/instruction"
+
+	"github.com/sirupsen/logrus"
 	"math/big"
 )
 
@@ -185,6 +191,11 @@ func (c *Contract) Value() *big.Int {
 // SetCallCode sets the code of the contract and address of the backing data
 // object
 func (c *Contract) SetCallCode(addr *types.Address, hash types.Hash, code []byte) {
+	logrus.WithFields(logrus.Fields{
+		"addr":  addr.Hex(),
+		"hash":  hash.Hex(),
+		"bytes": hexutil.Encode(code[0:math.MinInt(20, len(code))]) + "...",
+	}).Info("SetCallCode")
 	c.Code = code
 	c.CodeHash = hash
 	c.CodeAddr = addr

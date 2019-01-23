@@ -35,7 +35,6 @@ func NewNode() *Node {
 	// Order matters.
 	// Start myself first and then provide service and do p2p
 	pm := &performance.PerformanceMonitor{}
-
 	var rpcServer *rpc.RpcServer
 	var cryptoType crypto.CryptoType
 
@@ -64,16 +63,14 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			BootstrapNode: bootNode,
-			NetworkId:     uint64(networkId),
-			CryptoType:    cryptoType,
+			NetworkId:  uint64(networkId),
+			CryptoType: cryptoType,
 		},
 	)
-	org.NewLatestSequencerCh = org.TxPool.OnNewLatestSequencer
 
 	if err != nil {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
-		panic("Error occurred while initializing OG")
+		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
 
 	hub := og.NewHub(&og.HubConfig{
@@ -112,8 +109,11 @@ func NewNode() *Node {
 		Dag:       org.Dag,
 		TxPool:    org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
-		DependencyCacheMaxSize:           5000,
+		DependencyCacheMaxSize:           20000,
 		NewTxQueueSize:                   1,
+		KnownCacheMaxSize:                30000,
+		KnownCacheExpirationSeconds:      10 * 60,
+		AddedToPoolQueueSize:             10000,
 	})
 	hub.IsKnownHash = txBuffer.IsKnownHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
@@ -135,15 +135,16 @@ func NewNode() *Node {
 
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
 	heighter := func() uint64 {
-		return org.Dag.LatestSequencer().Id
+		return org.Dag.LatestSequencer().Height
 	}
 	hub.Fetcher = fetcher.New(org.Dag.GetSequencerByHash, heighter, syncBuffer.AddTxs, hub.RemovePeer)
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:        hub,
-		Downloader: downloaderInstance,
-		SyncMode:   downloader.FullSync,
+		Hub:           hub,
+		Downloader:    downloaderInstance,
+		SyncMode:      downloader.FullSync,
+		BootStrapNode: bootNode,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -167,18 +168,20 @@ func NewNode() *Node {
 
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
 		&syncer.SyncerConfig{
-			BatchTimeoutMilliSecond:                  100,
+			BatchTimeoutMilliSecond:                  40,
 			AcquireTxQueueSize:                       1000,
-			MaxBatchSize:                             100,
+			MaxBatchSize:                             5, //smaller
 			AcquireTxDedupCacheMaxSize:               10000,
 			AcquireTxDedupCacheExpirationSeconds:     60,
-			BufferedIncomingTxCacheEnabled:           true,
 			BufferedIncomingTxCacheExpirationSeconds: 600,
-			BufferedIncomingTxCacheMaxSize:           10000,
+			BufferedIncomingTxCacheMaxSize:           40000,
 			FiredTxCacheExpirationSeconds:            600,
 			FiredTxCacheMaxSize:                      10000,
-		}, m, org.TxPool.GetHashOrder)
-
+			NewTxsChannelSize:                        15,
+		}, m, org.TxPool.GetHashOrder, org.TxBuffer.IsKnownHash,
+		heighter, syncManager.CatchupSyncer.CacheNewTxEnabled)
+	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, org.NewLatestSequencerCh,
+		syncManager.IncrementalSyncer.NewLatestSequencerCh)
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
@@ -187,7 +190,7 @@ func NewNode() *Node {
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
-	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxChan)
+	syncManager.IncrementalSyncer.OnNewTxiReceived = append(syncManager.IncrementalSyncer.OnNewTxiReceived, txBuffer.ReceivedNewTxsChan)
 
 	txBuffer.Syncer = syncManager.IncrementalSyncer
 	announcer := syncer.NewAnnouncer(m)
@@ -258,12 +261,6 @@ func NewNode() *Node {
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
-
-	if org.BootstrapNode {
-		go func() {
-			autoClientManager.UpToDateEventListener <- true
-		}()
-	}
 	//init msg requst id
 	og.MsgCountInit()
 	switch viper.GetString("consensus") {

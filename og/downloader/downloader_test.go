@@ -48,12 +48,12 @@ type downloadTester struct {
 // newTester creates a new downloader test mocker.
 func newTester() *downloadTester {
 	testdb := ogdb.NewMemDatabase()
-	genesis, _ := core.DefaultGenesis()
+	genesis, _ := core.DefaultGenesis(0)
 	tester := &downloadTester{
 		genesis:           genesis,
 		peerDb:            testdb,
 		ownHashes:         []types.Hash{genesis.GetTxHash()},
-		ownHeaders:        map[types.Hash]*types.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Id)},
+		ownHeaders:        map[types.Hash]*types.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
 		ownBlocks:         map[types.Hash]*types.Sequencer{genesis.GetTxHash(): genesis},
 		ownChainTd:        map[types.Hash]uint64{genesis.GetTxHash(): genesis.Number()},
 		peerHashes:        make(map[string][]types.Hash),
@@ -71,9 +71,8 @@ func newTester() *downloadTester {
 func TestHeaderEuqual(t *testing.T) {
 	testHash, _ := types.HexStringToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
 	head := types.NewSequencerHead(testHash, 1447)
-	seq := &types.Sequencer{
-		Id: 1447,
-	}
+	seq := &types.Sequencer{}
+	seq.Height = 1447
 	seq.Hash = testHash
 	seq.Issuer = types.Address{}
 	seqHead := seq.GetHead()

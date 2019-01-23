@@ -26,6 +26,9 @@ import (
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/vm/instruction"
+
+	"github.com/annchain/OG/vm/ovm"
+
 	vmtypes "github.com/annchain/OG/vm/types"
 )
 
@@ -41,7 +44,8 @@ type keccakState interface {
 //
 type EVMInterpreter struct {
 	//ovm      *ovm.OVM
-	ctx        *vmtypes.Context
+	vmContext  *vmtypes.Context
+	txContext  *ovm.TxContext
 	Cfg        *InterpreterConfig
 	gasTable   params.GasTable
 	intPool    *intPool
@@ -50,14 +54,20 @@ type EVMInterpreter struct {
 	jumpTable  [256]operation // JumpTable contains the OVM instruction table.
 	readOnly   bool           // Whether to throw on stateful modifications
 	returnData []byte         // Last CALL's return data for subsequent reuse
+	Caller     vmtypes.Caller
+}
+
+func (in *EVMInterpreter) SetCaller(caller vmtypes.Caller) {
+	in.Caller = caller
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(ctx *vmtypes.Context, cfg *InterpreterConfig) *EVMInterpreter {
+func NewEVMInterpreter(vmContext *vmtypes.Context, txContext *ovm.TxContext, cfg *InterpreterConfig) *EVMInterpreter {
 	return &EVMInterpreter{
-		ctx:       ctx,
+		vmContext: vmContext,
+		txContext: txContext,
 		Cfg:       cfg,
-		gasTable:  params.GetGasTable(ctx.SequenceID),
+		gasTable:  params.GetGasTable(txContext.SequenceID),
 		jumpTable: byzantiumInstructionSet,
 	}
 }
@@ -92,8 +102,8 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 	}
 
 	// Increment the call depth which is restricted to 1024
-	in.ctx.Depth++
-	defer func() { in.ctx.Depth-- }()
+	in.vmContext.Depth++
+	defer func() { in.vmContext.Depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
 	// This makes also sure that the readOnly flag isn't removed for child calls.
@@ -134,9 +144,9 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.Cfg.Tracer.CaptureState(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+					in.Cfg.Tracer.CaptureState(in.vmContext, pcCopy, op, gasCopy, cost, mem, stack, contract, in.vmContext.Depth, err)
 				} else {
-					in.Cfg.Tracer.CaptureFault(in.ctx, pcCopy, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+					in.Cfg.Tracer.CaptureFault(in.vmContext, pcCopy, op, gasCopy, cost, mem, stack, contract, in.vmContext.Depth, err)
 				}
 			}
 		}()
@@ -145,7 +155,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
-	for atomic.LoadInt32(&in.ctx.Abort) == 0 {
+	for atomic.LoadInt32(&in.vmContext.Abort) == 0 {
 		if in.Cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
@@ -165,7 +175,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 		if err := in.enforceRestrictions(op, operation, stack); err != nil {
 			return nil, err
 		}
-		fmt.Printf("%d OP: %s\n", pc, op.String())
+		//fmt.Printf("%d OP: %s\n", pc, op.String())
 		//if op.String() == "CALLER" {
 		//	fmt.Println(pc, "CALLER")
 		//}
@@ -175,7 +185,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 
 		//stack.Print()
 		//mem.Print()
-		//fmt.Println(in.ctx.StateDB.String())
+		//fmt.Println(in.vmContext.StateDB.String())
 
 		var memorySize uint64
 		// calculate the new memory size and expand the memory to fit
@@ -193,7 +203,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 		}
 		// consume the gas and return an error if not enough gas is available.
 		// cost is explicitly set so that the capture state defer method can get the proper cost
-		cost, err = operation.gasCost(in.gasTable, in.ctx, contract, stack, mem, memorySize)
+		cost, err = operation.gasCost(in.gasTable, in.vmContext, contract, stack, mem, memorySize)
 		if err != nil || !contract.UseGas(cost) {
 			return nil, vmtypes.ErrOutOfGas
 		}
@@ -202,7 +212,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 		}
 
 		if in.Cfg.Debug {
-			in.Cfg.Tracer.CaptureState(in.ctx, pc, op, gasCopy, cost, mem, stack, contract, in.ctx.Depth, err)
+			in.Cfg.Tracer.CaptureState(in.vmContext, pc, op, gasCopy, cost, mem, stack, contract, in.vmContext.Depth, err)
 			logged = true
 		}
 
@@ -230,11 +240,11 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 			pc++
 		}
 
-		if op.String() == "SSTORE" {
-			fmt.Println(in.ctx.StateDB.String())
-			stack.Print()
-			mem.Print()
-		}
+		//if op.String() == "SSTORE" {
+		//	fmt.Println(in.vmContext.StateDB.String())
+		//	stack.Print()
+		//	mem.Print()
+		//}
 
 		//stack.Print()
 		//mem.Print()

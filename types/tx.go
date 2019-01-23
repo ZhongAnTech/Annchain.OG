@@ -22,6 +22,7 @@ type Tx struct {
 	From  Address
 	To    Address
 	Value *math.BigInt
+	Data  []byte
 }
 
 func (t *Tx) String() string {
@@ -70,10 +71,11 @@ func randomAddress() Address {
 func RandomTx() *Tx {
 	return &Tx{TxBase: TxBase{
 		Hash:         randomHash(),
-		Height:       rand.Uint64(),
+		Height:       uint64(rand.Int63n(1000)),
 		ParentsHash:  []Hash{randomHash(), randomHash()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
+		Weight:       uint64(rand.Int31n(2000)),
 	},
 		From:  randomAddress(),
 		To:    randomAddress(),
@@ -88,6 +90,7 @@ func (t *Tx) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetSigBytes()))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Data))
 
 	return buf.Bytes()
 }
@@ -100,7 +103,7 @@ func (t *Tx) GetValue() *math.BigInt {
 	return t.Value
 }
 
-func (t *Tx) Parents() []Hash {
+func (t *Tx) Parents() Hashes {
 	return t.ParentsHash
 }
 
@@ -126,9 +129,9 @@ func (t *Tx) Dump() string {
 		phashes = append(phashes, p.Hex())
 	}
 	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ,"+
-		"height %d ,mined Nonce %v type %v", t.Hash.Hex(),
-		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value.String(),
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type)
+		"height %d ,mined Nonce %v type %v weight %d", t.Hash.Hex(),
+		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight)
 }
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {
@@ -140,4 +143,24 @@ func (t *Tx) RawTx() *RawTx {
 		Value:  t.Value,
 	}
 	return rawTx
+}
+
+func (t Txs) String() string {
+	var strs []string
+	for _, v := range t {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (t Txs) ToRawTxs() RawTxs {
+	if len(t) == 0 {
+		return nil
+	}
+	var rawTxs []*RawTx
+	for _, v := range t {
+		rasTx := v.RawTx()
+		rawTxs = append(rawTxs, rasTx)
+	}
+	return rawTxs
 }

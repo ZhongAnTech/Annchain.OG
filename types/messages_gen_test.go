@@ -461,6 +461,119 @@ func BenchmarkDecodeMessageBodiesResponse(b *testing.B) {
 	}
 }
 
+func TestMarshalUnmarshalMessageBodyData(t *testing.T) {
+	v := MessageBodyData{}
+	bts, err := v.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := v.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
+	left, err = msgp.Skip(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+	}
+}
+
+func BenchmarkMarshalMsgMessageBodyData(b *testing.B) {
+	v := MessageBodyData{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.MarshalMsg(nil)
+	}
+}
+
+func BenchmarkAppendMsgMessageBodyData(b *testing.B) {
+	v := MessageBodyData{}
+	bts := make([]byte, 0, v.Msgsize())
+	bts, _ = v.MarshalMsg(bts[0:0])
+	b.SetBytes(int64(len(bts)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bts, _ = v.MarshalMsg(bts[0:0])
+	}
+}
+
+func BenchmarkUnmarshalMessageBodyData(b *testing.B) {
+	v := MessageBodyData{}
+	bts, _ := v.MarshalMsg(nil)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bts)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := v.UnmarshalMsg(bts)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestEncodeDecodeMessageBodyData(t *testing.T) {
+	v := MessageBodyData{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+
+	m := v.Msgsize()
+	if buf.Len() > m {
+		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+	}
+
+	vn := MessageBodyData{}
+	err := msgp.Decode(&buf, &vn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf.Reset()
+	msgp.Encode(&buf, &v)
+	err = msgp.NewReader(&buf).Skip()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkEncodeMessageBodyData(b *testing.B) {
+	v := MessageBodyData{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	en := msgp.NewWriter(msgp.Nowhere)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.EncodeMsg(en)
+	}
+	en.Flush()
+}
+
+func BenchmarkDecodeMessageBodyData(b *testing.B) {
+	v := MessageBodyData{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+	dc := msgp.NewReader(rd)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := v.DecodeMsg(dc)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestMarshalUnmarshalMessageControl(t *testing.T) {
 	v := MessageControl{}
 	bts, err := v.MarshalMsg(nil)
@@ -2028,232 +2141,6 @@ func BenchmarkEncodeMessageTxsResponse(b *testing.B) {
 
 func BenchmarkDecodeMessageTxsResponse(b *testing.B) {
 	v := MessageTxsResponse{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	rd := msgp.NewEndlessReader(buf.Bytes(), b)
-	dc := msgp.NewReader(rd)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := v.DecodeMsg(dc)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestMarshalUnmarshalRawSequencer(t *testing.T) {
-	v := RawSequencer{}
-	bts, err := v.MarshalMsg(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	left, err := v.UnmarshalMsg(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
-	}
-
-	left, err = msgp.Skip(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
-	}
-}
-
-func BenchmarkMarshalMsgRawSequencer(b *testing.B) {
-	v := RawSequencer{}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.MarshalMsg(nil)
-	}
-}
-
-func BenchmarkAppendMsgRawSequencer(b *testing.B) {
-	v := RawSequencer{}
-	bts := make([]byte, 0, v.Msgsize())
-	bts, _ = v.MarshalMsg(bts[0:0])
-	b.SetBytes(int64(len(bts)))
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		bts, _ = v.MarshalMsg(bts[0:0])
-	}
-}
-
-func BenchmarkUnmarshalRawSequencer(b *testing.B) {
-	v := RawSequencer{}
-	bts, _ := v.MarshalMsg(nil)
-	b.ReportAllocs()
-	b.SetBytes(int64(len(bts)))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := v.UnmarshalMsg(bts)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestEncodeDecodeRawSequencer(t *testing.T) {
-	v := RawSequencer{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-
-	m := v.Msgsize()
-	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
-	}
-
-	vn := RawSequencer{}
-	err := msgp.Decode(&buf, &vn)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf.Reset()
-	msgp.Encode(&buf, &v)
-	err = msgp.NewReader(&buf).Skip()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func BenchmarkEncodeRawSequencer(b *testing.B) {
-	v := RawSequencer{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	en := msgp.NewWriter(msgp.Nowhere)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.EncodeMsg(en)
-	}
-	en.Flush()
-}
-
-func BenchmarkDecodeRawSequencer(b *testing.B) {
-	v := RawSequencer{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	rd := msgp.NewEndlessReader(buf.Bytes(), b)
-	dc := msgp.NewReader(rd)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := v.DecodeMsg(dc)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestMarshalUnmarshalRawTx(t *testing.T) {
-	v := RawTx{}
-	bts, err := v.MarshalMsg(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	left, err := v.UnmarshalMsg(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
-	}
-
-	left, err = msgp.Skip(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
-	}
-}
-
-func BenchmarkMarshalMsgRawTx(b *testing.B) {
-	v := RawTx{}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.MarshalMsg(nil)
-	}
-}
-
-func BenchmarkAppendMsgRawTx(b *testing.B) {
-	v := RawTx{}
-	bts := make([]byte, 0, v.Msgsize())
-	bts, _ = v.MarshalMsg(bts[0:0])
-	b.SetBytes(int64(len(bts)))
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		bts, _ = v.MarshalMsg(bts[0:0])
-	}
-}
-
-func BenchmarkUnmarshalRawTx(b *testing.B) {
-	v := RawTx{}
-	bts, _ := v.MarshalMsg(nil)
-	b.ReportAllocs()
-	b.SetBytes(int64(len(bts)))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := v.UnmarshalMsg(bts)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestEncodeDecodeRawTx(t *testing.T) {
-	v := RawTx{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-
-	m := v.Msgsize()
-	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
-	}
-
-	vn := RawTx{}
-	err := msgp.Decode(&buf, &vn)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf.Reset()
-	msgp.Encode(&buf, &v)
-	err = msgp.NewReader(&buf).Skip()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func BenchmarkEncodeRawTx(b *testing.B) {
-	v := RawTx{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	en := msgp.NewWriter(msgp.Nowhere)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.EncodeMsg(en)
-	}
-	en.Flush()
-}
-
-func BenchmarkDecodeRawTx(b *testing.B) {
-	v := RawTx{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

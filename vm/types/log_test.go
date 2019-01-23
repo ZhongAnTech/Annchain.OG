@@ -24,7 +24,7 @@ import (
 
 	"github.com/annchain/OG/types"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/annchain/OG/common/hexutil"
 )
 
 var unmarshalLogTests = map[string]struct {

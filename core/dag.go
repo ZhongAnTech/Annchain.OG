@@ -572,8 +572,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// commit statedb's changes to trie and triedb
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: ", err)
-		return fmt.Errorf("can't Commit statedb, err: %v", err)
+		log.Errorf("can't Commit statedb, err: ", errdb)
+		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()
@@ -750,6 +750,34 @@ func (dag *Dag) CallContract(addr types.Address, data []byte) ([]byte, error) {
 
 	ret, _, err := ogvm.StaticCall(vmtypes.AccountRef(txContext.From), addr, txContext.Data, txContext.GasLimit)
 	return ret, err
+}
+
+// Finalize
+func (dag *Dag) Finalize() error {
+	// consensus
+	// TODO
+
+	// state
+
+	// TODO
+	// get new trie root after commit, then compare new root
+	// to the root in seq. If not equal then return error.
+
+	// commit statedb's changes to trie and triedb
+	root, errdb := dag.statedb.Commit()
+	if errdb != nil {
+		log.Errorf("can't Commit statedb, err: ", errdb)
+		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
+	}
+	// flush triedb into diskdb.
+	triedb := dag.statedb.Database().TrieDB()
+	err := triedb.Commit(root, false)
+	if err != nil {
+		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+	}
+
+	return nil
 }
 
 type txcached struct {

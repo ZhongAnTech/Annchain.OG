@@ -8,58 +8,56 @@ import (
 //go:generate msgp
 
 type SequencerHeader struct {
-	SeqHash Hash
-	SeqId    uint64
+	Hash   Hash
+	Height uint64
 }
 
 type SequencerHeaders []*SequencerHeader
 
 func (s *SequencerHeader) SequencerId() uint64 {
-	return s.SeqId
+	return s.Height
 }
 
-func (s *SequencerHeader) Hash() Hash {
-	return s.SeqHash
+func (s *SequencerHeader) GetHash() Hash {
+	return s.Hash
 }
 
-func (s *SequencerHeader) Id() uint64 {
-	return s.SeqId
+func (s *SequencerHeader) GetHeight() uint64 {
+	return s.Height
 }
 
 func (s *SequencerHeader) String() string {
 	if s == nil {
 		return fmt.Sprintf("nil")
 	}
-	return fmt.Sprintf("%d-[%.10s]", s.Id(), s.Hash().Hex())
+	return fmt.Sprintf("%d-[%.10s]", s.Height, s.GetHash().Hex())
 }
 
 func (s *SequencerHeader) StringFull() string {
 	if s == nil {
 		return fmt.Sprintf("nil")
 	}
-	return fmt.Sprintf("%d-[%s]", s.Id(), s.Hash().Hex())
+	return fmt.Sprintf("%d-[%s]", s.GetHeight(), s.GetHash().Hex())
 }
 
-func NewSequencerHead(hash Hash, id uint64) *SequencerHeader {
+func NewSequencerHead(hash Hash, height uint64) *SequencerHeader {
 	return &SequencerHeader{
-		SeqHash: hash,
-		SeqId:   id,
+		Hash:   hash,
+		Height: height,
 	}
 }
-
 
 func (s *SequencerHeader) Equal(h *SequencerHeader) bool {
 	if s == nil || h == nil {
 		return false
 	}
-	return s.SeqId == h.SeqId && s.SeqHash == h.SeqHash
+	return s.Height == h.Height && s.Hash == h.Hash
 }
 
-
-func (h SequencerHeaders)String()string{
+func (h SequencerHeaders) String() string {
 	var strs []string
 	for _, v := range h {
-		strs = append(strs,v.String())
+		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
 }

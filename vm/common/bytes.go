@@ -8,4 +8,3 @@ func AllZero(b []byte) bool {
 	}
 	return true
 }
-

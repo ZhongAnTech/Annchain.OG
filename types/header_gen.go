@@ -22,13 +22,13 @@ func (z *SequencerHeader) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SeqHash":
-			err = z.SeqHash.DecodeMsg(dc)
+		case "Hash":
+			err = z.Hash.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
-		case "SeqId":
-			z.SeqId, err = dc.ReadUint64()
+		case "Height":
+			z.Height, err = dc.ReadUint64()
 			if err != nil {
 				return
 			}
@@ -45,21 +45,21 @@ func (z *SequencerHeader) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *SequencerHeader) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
-	// write "SeqHash"
-	err = en.Append(0x82, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
+	// write "Hash"
+	err = en.Append(0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
 	if err != nil {
 		return
 	}
-	err = z.SeqHash.EncodeMsg(en)
+	err = z.Hash.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	// write "SeqId"
-	err = en.Append(0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
+	// write "Height"
+	err = en.Append(0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.SeqId)
+	err = en.WriteUint64(z.Height)
 	if err != nil {
 		return
 	}
@@ -70,15 +70,15 @@ func (z *SequencerHeader) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *SequencerHeader) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
-	// string "SeqHash"
-	o = append(o, 0x82, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
-	o, err = z.SeqHash.MarshalMsg(o)
+	// string "Hash"
+	o = append(o, 0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
+	o, err = z.Hash.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "SeqId"
-	o = append(o, 0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.SeqId)
+	// string "Height"
+	o = append(o, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	o = msgp.AppendUint64(o, z.Height)
 	return
 }
 
@@ -98,13 +98,13 @@ func (z *SequencerHeader) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SeqHash":
-			bts, err = z.SeqHash.UnmarshalMsg(bts)
+		case "Hash":
+			bts, err = z.Hash.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
-		case "SeqId":
-			z.SeqId, bts, err = msgp.ReadUint64Bytes(bts)
+		case "Height":
+			z.Height, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				return
 			}
@@ -121,7 +121,7 @@ func (z *SequencerHeader) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *SequencerHeader) Msgsize() (s int) {
-	s = 1 + 8 + z.SeqHash.Msgsize() + 6 + msgp.Uint64Size
+	s = 1 + 5 + z.Hash.Msgsize() + 7 + msgp.Uint64Size
 	return
 }
 
@@ -162,13 +162,13 @@ func (z *SequencerHeaders) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 				switch msgp.UnsafeString(field) {
-				case "SeqHash":
-					err = (*z)[zb0001].SeqHash.DecodeMsg(dc)
+				case "Hash":
+					err = (*z)[zb0001].Hash.DecodeMsg(dc)
 					if err != nil {
 						return
 					}
-				case "SeqId":
-					(*z)[zb0001].SeqId, err = dc.ReadUint64()
+				case "Height":
+					(*z)[zb0001].Height, err = dc.ReadUint64()
 					if err != nil {
 						return
 					}
@@ -198,21 +198,21 @@ func (z SequencerHeaders) EncodeMsg(en *msgp.Writer) (err error) {
 			}
 		} else {
 			// map header, size 2
-			// write "SeqHash"
-			err = en.Append(0x82, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
+			// write "Hash"
+			err = en.Append(0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
 			if err != nil {
 				return
 			}
-			err = z[zb0004].SeqHash.EncodeMsg(en)
+			err = z[zb0004].Hash.EncodeMsg(en)
 			if err != nil {
 				return
 			}
-			// write "SeqId"
-			err = en.Append(0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
+			// write "Height"
+			err = en.Append(0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 			if err != nil {
 				return
 			}
-			err = en.WriteUint64(z[zb0004].SeqId)
+			err = en.WriteUint64(z[zb0004].Height)
 			if err != nil {
 				return
 			}
@@ -230,15 +230,15 @@ func (z SequencerHeaders) MarshalMsg(b []byte) (o []byte, err error) {
 			o = msgp.AppendNil(o)
 		} else {
 			// map header, size 2
-			// string "SeqHash"
-			o = append(o, 0x82, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
-			o, err = z[zb0004].SeqHash.MarshalMsg(o)
+			// string "Hash"
+			o = append(o, 0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
+			o, err = z[zb0004].Hash.MarshalMsg(o)
 			if err != nil {
 				return
 			}
-			// string "SeqId"
-			o = append(o, 0xa5, 0x53, 0x65, 0x71, 0x49, 0x64)
-			o = msgp.AppendUint64(o, z[zb0004].SeqId)
+			// string "Height"
+			o = append(o, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+			o = msgp.AppendUint64(o, z[zb0004].Height)
 		}
 	}
 	return
@@ -281,13 +281,13 @@ func (z *SequencerHeaders) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					return
 				}
 				switch msgp.UnsafeString(field) {
-				case "SeqHash":
-					bts, err = (*z)[zb0001].SeqHash.UnmarshalMsg(bts)
+				case "Hash":
+					bts, err = (*z)[zb0001].Hash.UnmarshalMsg(bts)
 					if err != nil {
 						return
 					}
-				case "SeqId":
-					(*z)[zb0001].SeqId, bts, err = msgp.ReadUint64Bytes(bts)
+				case "Height":
+					(*z)[zb0001].Height, bts, err = msgp.ReadUint64Bytes(bts)
 					if err != nil {
 						return
 					}
@@ -311,7 +311,7 @@ func (z SequencerHeaders) Msgsize() (s int) {
 		if z[zb0004] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + 8 + z[zb0004].SeqHash.Msgsize() + 6 + msgp.Uint64Size
+			s += 1 + 5 + z[zb0004].Hash.Msgsize() + 7 + msgp.Uint64Size
 		}
 	}
 	return

@@ -27,7 +27,7 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	defer a.mu.Unlock()
 
 	if a.afs[tx.Sender()] == nil {
-		log.WithField("tx", tx).Warnf("add to accountflows failed")
+		log.WithField("tx", tx).Warnf("add to account flows failed")
 		return
 	}
 	a.afs[tx.Sender()].Add(tx)

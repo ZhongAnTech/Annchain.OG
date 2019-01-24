@@ -22,7 +22,7 @@ const (
 	// TODO: this value will be set to optimal value in the future.
 	// If generating sequencer is very fast with few transactions, it should be bigger,
 	// otherwise it should be smaller
-	SyncerCheckTime = time.Second*6
+	SyncerCheckTime = time.Second * 6
 
 	// when to stop sync once started
 	stopSyncHeightDiffThreashold uint64 = 0
@@ -69,8 +69,8 @@ type CatchupSyncer struct {
 	syncFlag                      bool
 	WorkState                     CatchupSyncerStatus
 	mu                            sync.RWMutex
-	BootStrapNode                      bool
-	currentBestHeight                 uint64 //maybe incorect
+	BootStrapNode                 bool
+	currentBestHeight             uint64 //maybe incorect
 }
 
 func (c *CatchupSyncer) Init() {
@@ -101,7 +101,7 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 	if err != nil {
 		logrus.WithError(err).Debug("get best peer")
 		if c.BootStrapNode {
-			return  true
+			return true
 		}
 		return false
 	}
@@ -171,20 +171,19 @@ func (c *CatchupSyncer) setSyncFlag() {
 	c.syncFlag = true
 }
 
-
 func (c *CatchupSyncer) unsetSyncFlag() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.syncFlag = false
 }
 
-func (c *CatchupSyncer)CacheNewTxEnabled()bool {
-	if c.getWorkState() ==Stopped {
+func (c *CatchupSyncer) CacheNewTxEnabled() bool {
+	if c.getWorkState() == Stopped {
 		return true
 	}
-	ourSeqId:= c.NodeStatusDataProvider.GetHeight()
-	if ourSeqId + startSyncHeightDiffThreashold*3 < c.currentBestHeight {
-       return false
+	ourSeqId := c.NodeStatusDataProvider.GetHeight()
+	if ourSeqId+startSyncHeightDiffThreashold*3 < c.currentBestHeight {
+		return false
 	}
 	return true
 

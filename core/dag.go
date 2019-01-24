@@ -115,8 +115,8 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 
 // Init inits genesis sequencer and genesis state of the network.
 func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]*math.BigInt) error {
-	if genesis.Id != 0 {
-		return fmt.Errorf("invalid genesis: id is not zero")
+	if genesis.Height != 0 {
+		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
 	var err error
 	dbBatch := dag.db.NewBatch()
@@ -132,7 +132,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 
-	err = dag.accessor.WriteSequencerById(genesis)
+	err = dag.accessor.WriteSequencerByHeight(genesis)
 	if err != nil {
 		return err
 	}
@@ -256,12 +256,20 @@ func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
 		var tx types.Tx
-		tx.UnmarshalMsg(data)
+		_, err := tx.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
 		var sq types.Sequencer
-		sq.UnmarshalMsg(data)
+		_, err := sq.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal tx  error")
+			return nil
+		}
 		return &sq
 	}
 	return nil
@@ -291,14 +299,14 @@ func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
 	return txs
 }
 
-// GetTxConfirmId returns the id of sequencer that confirm this tx.
-func (dag *Dag) GetTxConfirmId(hash types.Hash) (uint64, error) {
+// GetTxConfirmHeight returns the height of sequencer that confirm this tx.
+func (dag *Dag) GetTxConfirmHeight(hash types.Hash) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getTxConfirmId(hash)
+	return dag.getTxConfirmHeight(hash)
 }
-func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
+func (dag *Dag) getTxConfirmHeight(hash types.Hash) (uint64, error) {
 	tx := dag.getTx(hash)
 	if tx == nil {
 		return 0, fmt.Errorf("hash not exists: %s", hash.String())
@@ -306,18 +314,18 @@ func (dag *Dag) getTxConfirmId(hash types.Hash) (uint64, error) {
 	return tx.GetBase().GetHeight(), nil
 }
 
-func (dag *Dag) GetTxsByNumber(id uint64) types.Txs {
+func (dag *Dag) GetTxsByNumber(height uint64) types.Txs {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	hashs := dag.getTxsHashesByNumber(id)
+	hashs := dag.getTxsHashesByNumber(height)
 	if hashs == nil {
 		return nil
 	}
 	if len(*hashs) == 0 {
 		return nil
 	}
-	log.WithField("len tx ", len(*hashs)).WithField("id", id).Trace("get txs")
+	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
 	return dag.getTxs(*hashs)
 }
 
@@ -346,54 +354,54 @@ func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	}
 }
 
-func (dag *Dag) GetSequencerById(id uint64) *types.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getSequencerById(id)
+	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerById(id uint64) *types.Sequencer {
-	if id == 0 {
+func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
+	if height == 0 {
 		return dag.genesis
 	}
-	if id > dag.latestSequencer.Id {
+	if height > dag.latestSequencer.Height {
 		return nil
 	}
-	seq, err := dag.accessor.ReadSequencerById(id)
+	seq, err := dag.accessor.ReadSequencerByHeight(height)
 	if err != nil || seq == nil {
-		log.WithField("id", id).WithError(err).Warn("head not found")
+		log.WithField("height", height).WithError(err).Warn("head not found")
 		return nil
 	}
 	return seq
 }
 
-func (dag *Dag) GetSequencerHashById(id uint64) *types.Hash {
+func (dag *Dag) GetSequencerHashByHeight(height uint64) *types.Hash {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getSequencerHashById(id)
+	return dag.getSequencerHashByHeight(height)
 }
 
-func (dag *Dag) getSequencerHashById(id uint64) *types.Hash {
-	seq, err := dag.accessor.ReadSequencerById(id)
+func (dag *Dag) getSequencerHashByHeight(height uint64) *types.Hash {
+	seq, err := dag.accessor.ReadSequencerByHeight(height)
 	if err != nil || seq == nil {
-		log.WithField("id", id).Warn("head not found")
+		log.WithField("height", height).Warn("head not found")
 		return nil
 	}
 	hash := seq.GetTxHash()
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
+func (dag *Dag) GetSequencer(hash types.Hash, seqHeight uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
 	case *types.Sequencer:
-		if tx.Id != seqId {
-			log.Warn("seq id mismatch ")
+		if tx.Height != seqHeight {
+			log.Warn("seq height mismatch ")
 			return nil
 		}
 		return tx
@@ -402,35 +410,35 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqId uint64) *types.Sequencer {
 	}
 }
 
-func (dag *Dag) GetConfirmTime(seqId uint64) *types.ConfirmTime {
+func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
-	return dag.getConfirmTime(seqId)
+	return dag.getConfirmTime(seqHeight)
 }
 
-func (dag *Dag) getConfirmTime(seqId uint64) *types.ConfirmTime {
-	if seqId == 0 {
+func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
+	if seqHeight == 0 {
 		return nil
 	}
-	cf := dag.accessor.readConfirmTime(seqId)
+	cf := dag.accessor.readConfirmTime(seqHeight)
 	if cf == nil {
 		log.Warn("ConfirmTime not found")
 	}
 	return cf
 }
 
-func (dag *Dag) GetTxsHashesByNumber(id uint64) *types.Hashes {
+func (dag *Dag) GetTxsHashesByNumber(Height uint64) *types.Hashes {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getTxsHashesByNumber(id)
+	return dag.getTxsHashesByNumber(Height)
 }
 
-func (dag *Dag) getTxsHashesByNumber(id uint64) *types.Hashes {
-	if id > dag.latestSequencer.Number() {
+func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
+	if Height > dag.latestSequencer.Number() {
 		return nil
 	}
-	hashs, err := dag.accessor.ReadIndexedTxHashs(id)
+	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
 	if err != nil {
 		log.Warn("head not found")
 	}
@@ -509,8 +517,8 @@ func (dag *Dag) RollBack() {
 }
 
 func (dag *Dag) push(batch *ConfirmBatch) error {
-	if dag.latestSequencer.Id+1 != batch.Seq.Id {
-		return fmt.Errorf("last sequencer id mismatch old %d, new %d", dag.latestSequencer.Id, batch.Seq.Id)
+	if dag.latestSequencer.Height+1 != batch.Seq.Height {
+		return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
 	}
 
 	var err error
@@ -531,7 +539,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if txi == nil {
 				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
 			}
-			txi.GetBase().Height = batch.Seq.Id
+			txi.GetBase().Height = batch.Seq.Height
 			err = dag.WriteTransaction(dbBatch, txi)
 			if err != nil {
 				return fmt.Errorf("write tx into db error: %v", err)
@@ -549,7 +557,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// save latest sequencer into db
-	batch.Seq.GetBase().Height = batch.Seq.Id
+	batch.Seq.GetBase().Height = batch.Seq.Height
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
 	if err != nil {
 		return err
@@ -558,9 +566,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
+
 	receipts[batch.Seq.GetTxHash().Hex()] = receipt
 	// write receipts.
-	err = dag.accessor.WriteReceipts(batch.Seq.Id, receipts)
+	err = dag.accessor.WriteReceipts(batch.Seq.Height, receipts)
 	if err != nil {
 		return err
 	}
@@ -583,21 +592,19 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
+	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 	// store the hashs of the txs confirmed by this sequencer.
 	txHashNum := 0
 	if batch.TxHashes != nil {
 		txHashNum = len(*batch.TxHashes)
 	}
 	if txHashNum > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.Seq.Id, batch.TxHashes)
+		dag.accessor.WriteIndexedTxHashs(batch.Seq.Height, batch.TxHashes)
 	}
-
-	err = dag.accessor.WriteSequencerById(batch.Seq)
+	err = dag.accessor.WriteSequencerByHeight(batch.Seq)
 	if err != nil {
 		return err
 	}
-	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
-
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(batch.Seq)
 	if err != nil {
@@ -607,14 +614,14 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// TODO: confirm time is for tps calculation, delete later.
 	cf := types.ConfirmTime{
-		SeqId:       batch.Seq.Id,
+		SeqHeight:   batch.Seq.Height,
 		TxNum:       uint64(txHashNum),
 		ConfirmTime: time.Now().Format(time.RFC3339Nano),
 	}
 	dag.writeConfirmTime(&cf)
 
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
-	log.WithField("height", batch.Seq.Id).WithField("txs number ", txHashNum).Info("new height")
+	log.WithField("height", batch.Seq.Height).WithField("txs number ", txHashNum).Info("new height")
 
 	return nil
 }
@@ -623,8 +630,8 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 	return dag.accessor.writeConfirmTime(cf)
 }
 
-func (dag *Dag) ReadConfirmTime(seqId uint64) *types.ConfirmTime {
-	return dag.accessor.readConfirmTime(seqId)
+func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
+	return dag.accessor.readConfirmTime(seqHeight)
 }
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
@@ -686,7 +693,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		GasPrice:   math.NewBigInt(0),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSequencer.Id,
+		SequenceID: dag.latestSequencer.Height,
 	}
 	// TODO more interpreters should be initialized, here only evm.
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,
@@ -736,7 +743,7 @@ func (dag *Dag) CallContract(addr types.Address, data []byte) ([]byte, error) {
 		GasPrice:   math.NewBigInt(0),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSequencer.Id,
+		SequenceID: dag.latestSequencer.Height,
 	}
 	// TODO more interpreters should be initialized, here only evm.
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,

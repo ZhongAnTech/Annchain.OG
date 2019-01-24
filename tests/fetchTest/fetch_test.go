@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 func CalculateRequestSpan(remoteHeight, localHeight uint64) (int64, int, int, uint64) {
 	var (
 		from     int
@@ -40,11 +39,11 @@ func CalculateRequestSpan(remoteHeight, localHeight uint64) (int64, int, int, ui
 	if count > MaxCount {
 		count = MaxCount
 	}
-	fmt.Println(count,MaxCount)
+	fmt.Println(count, MaxCount)
 	if count < 2 {
 		count = 2
 	}
-	fmt.Println(count,MaxCount)
+	fmt.Println(count, MaxCount)
 	from = requestHead - (count-1)*span
 	if from < 0 {
 		from = 0
@@ -60,15 +59,15 @@ func TestCalculateRequestSpan(t *testing.T) {
 	fmt.Println(from, count, skip, max)
 	from, count, skip, max = CalculateRequestSpan(389, 241)
 	fmt.Println(from, count, skip, max)
-	from,count = calculate(8,5)
-	fmt.Println(from, count,15)
-	from,count = calculate(10,0)
-	fmt.Println(from, count,15)
-	from,count = calculate(389,241)
-	fmt.Println(from, count,15)
+	from, count = calculate(8, 5)
+	fmt.Println(from, count, 15)
+	from, count = calculate(10, 0)
+	fmt.Println(from, count, 15)
+	from, count = calculate(389, 241)
+	fmt.Println(from, count, 15)
 }
 
-func calculate (remote ,local uint64) (int64,int) {
+func calculate(remote, local uint64) (int64, int) {
 	// Request the topmost blocks to short circuit binary ancestor lookup
 	head := local
 	if head > remote {
@@ -84,5 +83,5 @@ func calculate (remote ,local uint64) (int64,int) {
 	if count > limit {
 		count = limit
 	}
-	return from,count
+	return from, count
 }

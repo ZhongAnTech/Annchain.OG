@@ -3,27 +3,26 @@ package vm_test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 func ExampleExecute() {
 
 	txContext := &ovm.TxContext{
-		From:     types.HexToAddress("0x01"),
-		To:       types.HexToAddress("0x02"),
-		Value:    math.NewBigInt(10),
-		Data:     common.Hex2Bytes("6060604052600a8060106000396000f360606040526008565b00"),
-		GasPrice: math.NewBigInt(10000),
-		GasLimit: DefaultGasLimit,
-		Coinbase: types.HexToAddress("0x01"),
+		From:       types.HexToAddress("0x01"),
+		To:         types.HexToAddress("0x02"),
+		Value:      math.NewBigInt(10),
+		Data:       common.Hex2Bytes("6060604052600a8060106000396000f360606040526008565b00"),
+		GasPrice:   math.NewBigInt(10000),
+		GasLimit:   DefaultGasLimit,
+		Coinbase:   types.HexToAddress("0x01"),
 		SequenceID: 0,
 	}
 	coinBase := types.HexToAddress("0x03")
-
 
 	db := ovm.NewMemoryStateDB()
 	db.CreateAccount(txContext.From)

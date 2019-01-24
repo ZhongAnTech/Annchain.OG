@@ -21,7 +21,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db)
+	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}

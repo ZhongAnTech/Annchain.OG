@@ -1,15 +1,15 @@
 package vm_test
 
 import (
-	"testing"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/common/math"
-	"github.com/stretchr/testify/assert"
-	"github.com/annchain/OG/vm/eth/core/vm"
-	"github.com/sirupsen/logrus"
-	"time"
 	"fmt"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 func TestCall(t *testing.T) {
@@ -39,7 +39,7 @@ func TestCall(t *testing.T) {
 
 	addrs := make(map[string]types.Address)
 
-	for _, filename := range([]string{"Callee.bin", "Caller.bin"}){
+	for _, filename := range []string{"Callee.bin", "Caller.bin"} {
 		_, contractAddr, leftGas, err := DeployContract(filename, from, coinBase, rt, nil)
 		assert.NoError(t, err)
 		addrs[filename] = contractAddr

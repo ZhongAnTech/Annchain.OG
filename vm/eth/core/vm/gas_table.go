@@ -17,11 +17,11 @@
 package vm
 
 import (
+	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
-	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"github.com/annchain/OG/vm/eth/common"
 )
 
 // memoryGasCosts calculates the quadratic gas for memory expansion. It does so

@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/types"
-	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/annchain/OG/vm/eth/common"
+	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.

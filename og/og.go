@@ -23,41 +23,41 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
-	NetworkId     uint64
-	CryptoType    crypto.CryptoType
-	quit          chan bool
+	NetworkId  uint64
+	CryptoType crypto.CryptoType
+	quit       chan bool
 }
 
 func (og *Og) GetCurrentNodeStatus() StatusData {
 	return StatusData{
 		CurrentBlock:    og.Dag.LatestSequencer().Hash,
-		CurrentId:       og.Dag.LatestSequencer().Id,
+		CurrentId:       og.Dag.LatestSequencer().Height,
 		GenesisBlock:    og.Dag.Genesis().Hash,
 		NetworkId:       og.NetworkId,
 		ProtocolVersion: 999, // this field should not be used
 	}
 }
 
-func (og*Og)GetHeight() uint64 {
-	return   og.Dag.LatestSequencer().Id
+func (og *Og) GetHeight() uint64 {
+	return og.Dag.LatestSequencer().Height
 }
 
 type OGConfig struct {
-	NetworkId     uint64
-	CryptoType    crypto.CryptoType
+	NetworkId  uint64
+	CryptoType crypto.CryptoType
 }
 
 func DefaultOGConfig() OGConfig {
 	config := OGConfig{
-		NetworkId:     1,
+		NetworkId: 1,
 	}
 	return config
 }
 
 func NewOg(config OGConfig) (*Og, error) {
 	og := &Og{
-		quit: make(chan bool),
-		NewLatestSequencerCh: make(chan  bool),
+		quit:                 make(chan bool),
+		NewLatestSequencerCh: make(chan bool),
 	}
 
 	og.NetworkId = config.NetworkId
@@ -75,7 +75,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db,olddb)
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db, olddb)
 	if derr != nil {
 		return nil, derr
 	}
@@ -168,10 +168,10 @@ func CreateDB() (ogdb.Database, error) {
 	}
 }
 
-func GetOldDb()(ogdb.Database, error) {
+func GetOldDb() (ogdb.Database, error) {
 	switch viper.GetString("db.name") {
 	case "leveldb":
-		path := viper.GetString("leveldb.path")+"test"
+		path := viper.GetString("leveldb.path") + "test"
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)

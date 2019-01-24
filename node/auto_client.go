@@ -240,6 +240,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	c.Delegate.Announce(tx)
 	return true
 }
+
 func (c *AutoClient) doSampleSequencer(force bool) bool {
 	if !force && !c.AutoSequencerEnabled {
 		return false
@@ -255,9 +256,8 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,
-		SequenceID: c.Delegate.GetLatestDagSequencer().Id + 1,
+		Height:     c.Delegate.GetLatestDagSequencer().Height + 1,
 		Nonce:      c.judgeNonce(),
-		Hashes:     []types.Hash{},
 		PrivateKey: me.PrivateKey,
 	})
 	if err != nil {

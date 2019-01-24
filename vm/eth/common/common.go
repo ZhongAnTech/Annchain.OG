@@ -17,8 +17,8 @@
 package common
 
 import (
-	"math/big"
 	"github.com/annchain/OG/vm/eth/common/math"
+	"math/big"
 )
 
 // calculates the memory size required for a step
@@ -77,4 +77,3 @@ func AllZero(b []byte) bool {
 	}
 	return true
 }
-

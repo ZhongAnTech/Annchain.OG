@@ -16,6 +16,6 @@ func TestHash(t *testing.T) {
 	if nHash.Empty() {
 		t.Fatalf("fail")
 	}
-	 hashes := Hashes{nHash,emHash}
+	hashes := Hashes{nHash, emHash}
 	fmt.Println(hashes.String())
 }

@@ -17,8 +17,8 @@
 package code
 
 import (
-	"github.com/annchain/OG/vm/instruction"
 	"github.com/annchain/OG/vm/common"
+	"github.com/annchain/OG/vm/instruction"
 )
 
 // codeBitmap collects data locations in code.

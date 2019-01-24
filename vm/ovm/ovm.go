@@ -160,6 +160,7 @@ func (ovm *OVM) Call(caller vmtypes.ContractRef, addr types.Address, input []byt
 		ctx.StateDB.CreateAccount(addr)
 	}
 	if value.Sign() != 0 && !txCall {
+
 		ctx.Transfer(ctx.StateDB, caller.Address(), to.Address(), value)
 	}
 

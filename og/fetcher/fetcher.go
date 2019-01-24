@@ -286,7 +286,7 @@ func (f *Fetcher) loop() {
 				f.queueChangeHook(hash, false)
 			}
 			// If too high up the chain or phase, continue later
-			number := op.sequencer.Id
+			number := op.sequencer.Number()
 			if number > height+1 {
 				f.queue.Push(op, -float32(number))
 				if f.queueChangeHook != nil {
@@ -437,13 +437,13 @@ func (f *Fetcher) loop() {
 			// known incomplete ones (requiring body retrievals) and completed sequencers.
 			unknown, incomplete, complete := []*types.SequencerHeader{}, []*announce{}, []*types.Sequencer{}
 			for _, header := range task.headers {
-				hash := header.Hash()
+				hash := header.GetHash()
 
 				// Filter fetcher-requested headers from other synchronisation algorithms
 				if announce := f.fetching[hash]; announce != nil && announce.origin == task.peer && f.fetched[hash] == nil && f.completing[hash] == nil && f.queued[hash] == nil {
 					// If the delivered header does not match the promised number, drop the announcer
 					if header.SequencerId() != announce.number {
-						log.WithField("peer", announce.origin).WithField("hash", header.Hash()).WithField("announced", announce.number).WithField(
+						log.WithField("peer", announce.origin).WithField("hash", header.GetHash()).WithField("announced", announce.number).WithField(
 							"provided", header.SequencerId()).Debug("Invalid sequencer number fetched")
 						f.dropPeer(announce.origin)
 						f.forgetHash(hash)
@@ -457,7 +457,7 @@ func (f *Fetcher) loop() {
 						// Otherwise add to the list of sequencers needing completion
 						incomplete = append(incomplete, announce)
 					} else {
-						log.WithField("peer", announce.origin).WithField("hash", header.Hash()).WithField(
+						log.WithField("peer", announce.origin).WithField("hash", header.GetHash()).WithField(
 							"number", header.SequencerId()).Debug("quencer already imported, discarding header")
 
 						f.forgetHash(hash)
@@ -475,7 +475,7 @@ func (f *Fetcher) loop() {
 			}
 			// Schedule the retrieved headers for body completion
 			for _, announce := range incomplete {
-				hash := announce.header.Hash()
+				hash := announce.header.GetHash()
 				if _, ok := f.completing[hash]; ok {
 					continue
 				}

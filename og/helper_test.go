@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
@@ -27,7 +28,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 		db               = ogdb.NewMemDatabase()
 		genesis, balance = core.DefaultGenesis(0)
 		config           = core.DagConfig{}
-		dag              = core.NewDag(config, db)
+		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil)
 	)
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)

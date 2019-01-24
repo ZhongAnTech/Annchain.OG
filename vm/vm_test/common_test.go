@@ -1,22 +1,22 @@
 package vm_test
 
 import (
-	"math/big"
-	"github.com/sirupsen/logrus"
-	"github.com/annchain/OG/vm/ovm"
-	"github.com/annchain/OG/vm/eth/core/vm"
+	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"io/ioutil"
-	"encoding/hex"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/vm/eth/core/vm"
+	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
-	"bytes"
-	"testing"
-	"encoding/binary"
-	"reflect"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"math/big"
+	"reflect"
+	"testing"
 )
 
 func readFile(filename string) []byte {
@@ -255,9 +255,10 @@ func TestEncodeParams(t *testing.T) {
 }
 
 func dump(t *testing.T, ldb *ovm.LayerStateDB, ret []byte, leftGas uint64, err error) {
+
 	fmt.Println(ldb.String())
 	//vm.WriteTrace(os.Stdout, tracer.Logs)
-	if ret != nil{
+	if ret != nil {
 		fmt.Printf("Return value: [%s]\n", DecodeParamToByteString(ret))
 		fmt.Printf("Return value: [%s]\n", DecodeParamToBigInt(ret))
 		fmt.Printf("Return value: [%s]\n", DecodeParamToString(ret))

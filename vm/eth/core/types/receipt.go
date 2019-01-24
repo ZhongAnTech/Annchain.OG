@@ -22,10 +22,10 @@ import (
 	"io"
 	"unsafe"
 
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/rlp"
-	"github.com/annchain/OG/types"
 )
 
 //go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
@@ -55,7 +55,7 @@ type Receipt struct {
 	// Implementation fields (don't reorder!)
 	TxHash          types.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress types.Address `json:"contractAddress"`
-	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
+	GasUsed         uint64        `json:"gasUsed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {

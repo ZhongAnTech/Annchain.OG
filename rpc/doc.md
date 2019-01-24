@@ -1,7 +1,7 @@
 # **RPC API Document** 
 
 ## **Get Status**
-Get the status of 
+Get the status of the chain.
 
 **URL**:
 ```

@@ -8,6 +8,8 @@ type IDag interface {
 }
 
 type ConsensusEngine interface {
+	// Finalize finalizes the consensus state after a new sequencer is pushed to dag.
+	Finalize()
+
 	// TODO
-	// consider if this engine interface should be implemented.
 }

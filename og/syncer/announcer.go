@@ -21,11 +21,11 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 	if txType == types.TxBaseTypeNormal {
 		tx := txi.(*types.Tx)
 		msgTx := types.MessageNewTx{RawTx: tx.RawTx()}
-		m.messageSender.BroadcastMessage(og.MessageTypeNewTx, &msgTx)
+		m.messageSender.BroadcastMessageWithLink(og.MessageTypeNewTx, &msgTx)
 	} else if txType == types.TxBaseTypeSequencer {
 		seq := txi.(*types.Sequencer)
 		msgTx := types.MessageNewSequencer{RawSequencer: seq.RawSequencer()}
-		m.messageSender.BroadcastMessage(og.MessageTypeNewSequencer, &msgTx)
+		m.messageSender.BroadcastMessageWithLink(og.MessageTypeNewSequencer, &msgTx)
 	} else {
 		log.Warn("never come here, unknown tx type", txType)
 	}

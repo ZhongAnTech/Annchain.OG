@@ -18,12 +18,15 @@ package types
 
 import (
 	"github.com/annchain/OG/common/crypto"
+
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/code"
 	"github.com/annchain/OG/vm/common"
 	"github.com/annchain/OG/vm/instruction"
+
 	"github.com/sirupsen/logrus"
 	"math/big"
 )

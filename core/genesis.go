@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const MaxAccountCount = 200
+const MaxAccountCount = 255
 
 func DefaultGenesis(cryptoType crypto.CryptoType) (*types.Sequencer, map[types.Address]*math.BigInt) {
 

@@ -1,17 +1,17 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 
 	"fmt"
-	"math/big"
-	"strings"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/math"
 	"github.com/pkg/errors"
+	"math/big"
+	"strings"
 )
 
 var MAX_LAYER = 1024

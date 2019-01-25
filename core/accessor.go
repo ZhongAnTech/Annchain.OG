@@ -203,7 +203,6 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
-
 func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
 	data, err := cf.MarshalMsg(nil)
 	if err != nil {

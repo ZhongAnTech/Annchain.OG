@@ -411,6 +411,7 @@ func (dag *Dag) GetSequencer(hash types.Hash, seqHeight uint64) *types.Sequencer
 }
 
 func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
+
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	return dag.getConfirmTime(seqHeight)

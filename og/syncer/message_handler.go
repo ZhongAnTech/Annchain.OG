@@ -1,8 +1,10 @@
 package syncer
 
-import "github.com/annchain/OG/types"
+import (
+	"github.com/annchain/OG/types"
+)
 
-func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
+func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string) {
 	tx := newTx.RawTx.Tx()
 	if tx == nil {
 		log.Debug("empty MessageNewTx")
@@ -14,13 +16,15 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx) {
 			log.Debug("incremental received nexTx but sync disabled")
 			return
 		}
-		m.firedTxCache.Remove(tx.Hash)
-		if m.isKnownHash(tx.GetTxHash()) {
-			log.WithField("tx ", tx).Debug("duplicated tx received")
-			return
-		}
+	}
+	m.RemoveContrlMsgFromCache(tx.GetTxHash())
+	m.firedTxCache.Remove(tx.Hash)
+	if m.isKnownHash(tx.GetTxHash()) {
+		log.WithField("tx ", tx).Debug("duplicated tx received")
+		return
+	}
+	if !m.Enabled {
 		log.WithField("tx ", tx).Debug("cache txs for future.")
-
 	}
 	err := m.bufferedIncomingTxCache.EnQueue(tx)
 	if err != nil {
@@ -44,18 +48,20 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 			log.Debug("incremental received nexTx but sync disabled")
 			return
 		}
-		for _, tx := range newTxs.RawTxs {
-			m.firedTxCache.Remove(tx.GetTxHash())
-			if m.isKnownHash(tx.GetTxHash()) {
-				log.WithField("tx ", tx).Debug("duplicated tx received")
-				continue
-			}
-			if !m.Enabled {
-				log.WithField("tx ", tx).Debug("cache txs for future.")
-			}
-			validTxs = append(validTxs, tx.Tx())
-		}
 	}
+	for _, tx := range newTxs.RawTxs {
+		m.RemoveContrlMsgFromCache(tx.GetTxHash())
+		m.firedTxCache.Remove(tx.GetTxHash())
+		if m.isKnownHash(tx.GetTxHash()) {
+			log.WithField("tx ", tx).Debug("duplicated tx received")
+			continue
+		}
+		if !m.Enabled {
+			log.WithField("tx ", tx).Debug("cache txs for future.")
+		}
+		validTxs = append(validTxs, tx.Tx())
+	}
+
 	err := m.bufferedIncomingTxCache.EnQueueBatch(validTxs)
 	if err != nil {
 		log.WithError(err).Warn("add tx to cache error")
@@ -63,7 +69,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 }
 
-func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer) {
+func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer, peerId string) {
 	seq := newSeq.RawSequencer
 	if seq == nil {
 		log.Debug("empty NewSequence")
@@ -74,11 +80,14 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer
 			log.Debug("incremental received nexTx but sync disabled")
 			return
 		}
-		m.firedTxCache.Remove(seq.Hash)
-		if m.isKnownHash(seq.GetTxHash()) {
-			log.WithField("tx ", seq).Debug("duplicated tx received")
-			return
-		}
+	}
+	m.RemoveContrlMsgFromCache(seq.GetTxHash())
+	m.firedTxCache.Remove(seq.Hash)
+	if m.isKnownHash(seq.GetTxHash()) {
+		log.WithField("tx ", seq).Debug("duplicated tx received")
+		return
+	}
+	if !m.Enabled {
 		log.WithField("tx ", seq).Debug("cache txs for future.")
 	}
 	err := m.bufferedIncomingTxCache.EnQueue(seq.Sequencer())
@@ -112,6 +121,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 			log.Warn("nil seq received")
 			continue
 		}
+		m.RemoveContrlMsgFromCache(seq.GetTxHash())
 		m.firedTxCache.Remove(seq.GetTxHash())
 		if m.isKnownHash(seq.GetTxHash()) {
 			log.WithField("tx ", seq).Debug("duplicated tx received")
@@ -148,7 +158,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 			log.Warn("nil tx received")
 			continue
 		}
-
+		m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
 		m.firedTxCache.Remove(rawTx.GetTxHash())
 		if m.isKnownHash(rawTx.GetTxHash()) {
 			log.WithField("tx ", rawTx).Debug("duplicated tx received")

@@ -23,11 +23,12 @@ func TestCache(t *testing.T) {
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)
-	p2pM := &P2PMessage{MessageType: MessageTypeNewTx, data: data, SourceID: "123"}
-	hub.checkMsg(p2pM)
-	ids := hub.getMsgFromCache(p2pM.hash)
+	p2pM := &p2PMessage{messageType: MessageTypeNewTx, data: data, sourceID: "123", message: msg}
+	p2pM.calculateHash()
+	hub.cacheMessage(p2pM)
+	ids := hub.getMsgFromCache(MessageTypeNewTx, *p2pM.hash)
 	fmt.Println(ids)
 	p2pM = nil
-	ids = hub.getMsgFromCache(tx.GetTxHash())
+	ids = hub.getMsgFromCache(MessageTypeNewTx, tx.GetTxHash())
 	fmt.Println(ids)
 }

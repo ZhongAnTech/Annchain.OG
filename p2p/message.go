@@ -34,9 +34,10 @@ import (
 // send it any number of times. If you want to reuse an encoded
 // structure, encode the payload into a byte array and create a
 // separate Msg with a bytes.Reader as Payload for each send.
+
 type Msg struct {
-	Code       uint64
-	Size       uint32 // size of the paylod
+	Code       MsgCodeType
+	Size       uint32 // size of the payload
 	Payload    io.Reader
 	ReceivedAt time.Time
 }
@@ -104,10 +105,10 @@ func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 
 */
 
-func Send(w MsgWriter, msgcode uint64, data []byte) error {
+func Send(w MsgWriter, msgCode MsgCodeType, data []byte) error {
 	size := len(data)
 	r := bytes.NewReader(data)
-	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
+	return w.WriteMsg(Msg{Code: msgCode, Size: uint32(size), Payload: r})
 }
 
 // SendItems writes an RLP with the given code and data elements.
@@ -235,7 +236,7 @@ func (p *MsgPipeRW) Close() error {
 // code and encoded RLP content match the provided values.
 // If content is nil, the payload is discarded and not verified.
 
-func ExpectMsg(r MsgReader, code uint64, content msgp.Marshaler) error {
+func ExpectMsg(r MsgReader, code MsgCodeType, content msgp.Marshaler) error {
 	msg, err := r.ReadMsg()
 	if err != nil {
 		return err
@@ -262,26 +263,6 @@ func ExpectMsg(r MsgReader, code uint64, content msgp.Marshaler) error {
 		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
 	}
 	return nil
-}
-func ExpectMsgArrByte(r MsgReader, code uint64, content []byte) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, ArrByte(content))
-}
-
-func ExpectMsgArrUint(r MsgReader, code uint64, content []uint) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, ArrUint(content))
-}
-
-func ExpectMsgArrString(r MsgReader, code uint64, content []string) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, ArrString(content))
 }
 
 /*

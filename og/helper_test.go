@@ -9,7 +9,7 @@ import (
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/p2p/discover"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/annchain/OG/types"
 	"testing"
 )
@@ -38,7 +38,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	txPool.Init(genesis)
 
 	hubConf := DefaultHubConfig()
-	hub := NewHub(&hubConf, dag, txPool)
+	hub := NewHub(&hubConf)
 	/*
 		syncConf := DefaultSyncerConfig()
 		syncer := NewSyncer(&syncConf, hub)
@@ -83,7 +83,7 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 	app, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer
-	var id discover.NodeID
+	var id onode.ID
 	rand.Read(id[:])
 
 	peer := newPeer(version, p2p.NewPeer(id, name, nil), net)
@@ -122,11 +122,11 @@ func (p *testPeer) handshake(t *testing.T, seqId uint64, head types.Hash, genesi
 		CurrentBlock:    head,
 		GenesisBlock:    genesis,
 	}
-	if err := p2p.ExpectMsg(p.app, uint64(StatusMsg), msg); err != nil {
+	if err := p2p.ExpectMsg(p.app, StatusMsg.Code(), msg); err != nil {
 		t.Fatalf("status recv: %v", err)
 	}
 	data, _ := msg.MarshalMsg(nil)
-	if err := p2p.Send(p.app, uint64(StatusMsg), data); err != nil {
+	if err := p2p.Send(p.app, StatusMsg.Code(), data); err != nil {
 		t.Fatalf("status send: %v", err)
 	}
 }

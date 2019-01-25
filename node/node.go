@@ -1,25 +1,28 @@
 package node
 
 import (
-	"github.com/annchain/OG/consensus/dpos"
+	"fmt"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/rpc"
+	"github.com/annchain/OG/wserver"
 	"github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 
-	"fmt"
 	"strconv"
 
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
+
+	"github.com/annchain/OG/consensus/dpos"
+	"github.com/annchain/OG/core"
+
 	miner2 "github.com/annchain/OG/og/miner"
-	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/performance"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/wserver"
 	"github.com/spf13/viper"
 )
 
@@ -35,6 +38,7 @@ func NewNode() *Node {
 	pm := &performance.PerformanceMonitor{}
 	var rpcServer *rpc.RpcServer
 	var cryptoType crypto.CryptoType
+
 	switch viper.GetString("crypto.algorithm") {
 	case "ed25519":
 		cryptoType = crypto.CryptoTypeEd25519
@@ -76,8 +80,8 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
-		WithCukooFilter:               viper.GetBool("hub.cukoo_filter"),
-	}, org.Dag, org.TxPool)
+		BroadCastMode:                 og.FeedBackMode,
+	})
 
 	hub.StatusDataProvider = org
 
@@ -113,6 +117,7 @@ func NewNode() *Node {
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,
 	})
+	hub.IsReceivedHash = txBuffer.IsReceivedHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
 		Dag:            org.Dag,
@@ -145,7 +150,8 @@ func NewNode() *Node {
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
-	messageHandler := og.NewIncomingMessageHandler(org, hub)
+
+	messageHandler := og.NewIncomingMessageHandler(org, hub, 10000, time.Millisecond*40)
 
 	m := &og.MessageRouter{
 		PongHandler:               messageHandler,
@@ -158,9 +164,11 @@ func NewNode() *Node {
 		TxsResponseHandler:        messageHandler,
 		HeaderResponseHandler:     messageHandler,
 		FetchByHashRequestHandler: messageHandler,
-		Hub: hub,
+		GetMsgHandler:             messageHandler,
+		ControlMsgHandler:         messageHandler,
+		Hub:                       hub,
 	}
-
+	n.Components = append(n.Components, messageHandler)
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
 		&syncer.SyncerConfig{
 			BatchTimeoutMilliSecond:                  40,
@@ -181,7 +189,8 @@ func NewNode() *Node {
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
 	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
-
+	messageHandler.TxEnable = syncManager.IncrementalSyncer.TxEnable
+	syncManager.IncrementalSyncer.RemoveContrlMsgFromCache = messageHandler.RemoveControlMsgFromCache
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
@@ -190,7 +199,6 @@ func NewNode() *Node {
 	txBuffer.Syncer = syncManager.IncrementalSyncer
 	announcer := syncer.NewAnnouncer(m)
 	txBuffer.Announcer = announcer
-
 	n.Components = append(n.Components, syncManager)
 
 	messageHandler32 := &og.IncomingMessageHandlerOG32{
@@ -203,6 +211,7 @@ func NewNode() *Node {
 		GetReceiptsMsgHandler: messageHandler32,
 		NodeDataMsgHandler:    messageHandler32,
 	}
+
 	// Setup Hub
 	SetupCallbacks(m, hub)
 	SetupCallbacksOG32(mr32, hub)
@@ -237,8 +246,8 @@ func NewNode() *Node {
 	//}
 
 	delegate := &Delegate{
-		TxPool:    org.TxPool,
-		TxBuffer:  txBuffer,
+		TxPool: org.TxPool,
+		//TxBuffer:  txBuffer,
 		Dag:       org.Dag,
 		TxCreator: txCreator,
 	}
@@ -270,6 +279,8 @@ func NewNode() *Node {
 	default:
 		panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
 	}
+	//init msg requst id
+	og.MsgCountInit()
 
 	// DataLoader
 	dataLoader := &og.DataLoader{
@@ -303,18 +314,19 @@ func NewNode() *Node {
 		rpcServer.C.AutoTxCli = autoClientManager
 		rpcServer.C.PerformanceMonitor = pm
 	}
+
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
-		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan")
+		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan", true)
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
 
-	// txMetrics
+	//txMetrics
 	txCounter := performance.NewTxCounter()
 
-	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan")
+	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
 	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)
@@ -323,6 +335,7 @@ func NewNode() *Node {
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
+	pm.Register(messageHandler)
 	pm.Register(hub)
 	pm.Register(txCounter)
 	n.Components = append(n.Components, pm)
@@ -370,7 +383,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeNewTx] = m.RouteNewTx
 	hub.CallbackRegistry[og.MessageTypeNewTxs] = m.RouteNewTxs
 	hub.CallbackRegistry[og.MessageTypeNewSequencer] = m.RouteNewSequencer
-
+	hub.CallbackRegistry[og.MessageTypeGetMsg] = m.RouteGetMsg
 	hub.CallbackRegistry[og.MessageTypeSequencerHeader] = m.RouteSequencerHeader
 	hub.CallbackRegistry[og.MessageTypeBodiesRequest] = m.RouteBodiesRequest
 	hub.CallbackRegistry[og.MessageTypeBodiesResponse] = m.RouteBodiesResponse
@@ -378,6 +391,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeTxsResponse] = m.RouteTxsResponse
 	hub.CallbackRegistry[og.MessageTypeHeaderRequest] = m.RouteHeaderRequest
 	hub.CallbackRegistry[og.MessageTypeHeaderResponse] = m.RouteHeaderResponse
+	hub.CallbackRegistry[og.MessageTypeControl] = m.RouteControlMsg
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG32, hub *og.Hub) {

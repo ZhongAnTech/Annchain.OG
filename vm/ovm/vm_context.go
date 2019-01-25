@@ -17,11 +17,10 @@
 package ovm
 
 import (
-	"math/big"
-
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
+	"math/big"
 )
 
 // TxContext represents all information that evm needs to know about the tx current processing.

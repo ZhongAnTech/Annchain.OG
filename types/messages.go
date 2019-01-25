@@ -3,8 +3,10 @@ package types
 import (
 	"fmt"
 	"github.com/Metabdulla/bloom"
-	"github.com/tinylib/msgp/msgp"
+	"github.com/annchain/OG/common/msg"
 )
+
+//go:generate msgp
 
 var Signer ISigner
 
@@ -17,13 +19,8 @@ type ISigner interface {
 	AddressFromPubKeyBytes(pubKey []byte) Address
 }
 
-//go:generate msgp
-
 type Message interface {
-	msgp.MarshalSizer
-	msgp.Unmarshaler
-	msgp.Decodable
-	msgp.Encodable
+	msg.Message
 	String() string //string is for logging
 }
 
@@ -51,7 +48,11 @@ type MessageSyncRequest struct {
 }
 
 func (m *MessageSyncRequest) String() string {
-	return m.Hashes.String() + fmt.Sprintf(" requestId %d  height: %v", m.RequestId, m.Height)
+	if m.Filter != nil {
+		return fmt.Sprintf(" requestId %d  height: %v ", m.RequestId, m.Height) + fmt.Sprintf("count: %d", m.Filter.GetCount())
+	}
+	return m.Hashes.String() + fmt.Sprintf(" requestId %d  ", m.RequestId)
+
 }
 
 //msgp:tuple MessageSyncResponse
@@ -116,6 +117,7 @@ func (m *MessageNewTx) GetHash() *Hash {
 //msgp:tuple BloomFilter
 type BloomFilter struct {
 	Data   []byte
+	Count  uint32
 	filter *bloom.BloomFilter
 }
 
@@ -126,6 +128,8 @@ func (m *MessageNewTx) String() string {
 //msgp:tuple MessageNewSequencer
 type MessageNewSequencer struct {
 	RawSequencer *RawSequencer
+	//Filter       *BloomFilter
+	//Hop          uint8
 }
 
 func (m *MessageNewSequencer) GetHash() *Hash {
@@ -144,6 +148,13 @@ func (m *MessageNewSequencer) String() string {
 	return m.RawSequencer.String()
 }
 
+func (c *BloomFilter) GetCount() uint32 {
+	if c == nil {
+		return 0
+	}
+	return c.Count
+}
+
 func (c *BloomFilter) Encode() error {
 	var err error
 	c.Data, err = c.filter.Encode()
@@ -158,11 +169,13 @@ func (c *BloomFilter) Decode() error {
 func NewDefaultBloomFilter() *BloomFilter {
 	c := &BloomFilter{}
 	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	c.Count = 0
 	return c
 }
 
 func (c *BloomFilter) AddItem(item []byte) {
 	c.filter.Add(item)
+	c.Count++
 }
 
 func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
@@ -220,6 +233,23 @@ type MessageTxsResponse struct {
 
 func (m *MessageTxsResponse) String() string {
 	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
+}
+
+func (m *MessageTxsResponse) Hashes() Hashes {
+	var hashes Hashes
+	if len(m.RawTxs) == 0 {
+		return nil
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	if m.RawSequencer != nil {
+		hashes = append(hashes, m.RawSequencer.GetTxHash())
+	}
+	return hashes
 }
 
 //msgp:tuple MessageTxsResponse
@@ -301,3 +331,31 @@ func (m *MessageBodiesResponse) String() string {
 }
 
 type RawData []byte
+
+type MessageControl struct {
+	Hash *Hash
+}
+
+type MessageGetMsg struct {
+	Hash *Hash
+}
+
+type MessageDuplicate bool
+
+func (m *MessageControl) String() string {
+	if m == nil || m.Hash == nil {
+		return ""
+	}
+	return m.Hash.String()
+}
+
+func (m *MessageGetMsg) String() string {
+	if m == nil || m.Hash == nil {
+		return ""
+	}
+	return m.Hash.String()
+}
+
+func (m *MessageDuplicate) String() string {
+	return "duplicate"
+}

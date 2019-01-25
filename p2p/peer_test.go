@@ -19,6 +19,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/msg"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net"
@@ -47,8 +48,8 @@ var discard = Protocol{
 
 func testPeer(protos []Protocol) (func(), *conn, *Peer, <-chan error) {
 	fd1, fd2 := net.Pipe()
-	c1 := &conn{fd: fd1, transport: newTestTransport(randomID(), fd1)}
-	c2 := &conn{fd: fd2, transport: newTestTransport(randomID(), fd2)}
+	c1 := &conn{fd: fd1, node: newNode(randomID(), nil), transport: newTestTransport(&newkey().PublicKey, fd1)}
+	c2 := &conn{fd: fd2, node: newNode(randomID(), nil), transport: newTestTransport(&newkey().PublicKey, fd2)}
 	for _, p := range protos {
 		c1.caps = append(c1.caps, p.cap())
 		c2.caps = append(c2.caps, p.cap())
@@ -70,13 +71,13 @@ func TestPeerProtoReadMsgRlp(t *testing.T) {
 		Name:   "a",
 		Length: 5,
 		Run: func(peer *Peer, rw MsgReadWriter) error {
-			if err := ExpectMsgArrUint(rw, 2, []uint{1}); err != nil {
+			if err := ExpectMsg(rw, 2, msg.Uints{1}); err != nil {
 				t.Error(err)
 			}
-			if err := ExpectMsgArrUint(rw, 3, []uint{2}); err != nil {
+			if err := ExpectMsg(rw, 3, msg.Uints{2}); err != nil {
 				t.Error(err)
 			}
-			if err := ExpectMsgArrUint(rw, 4, []uint{3}); err != nil {
+			if err := ExpectMsg(rw, 4, msg.Uints{3}); err != nil {
 				t.Error(err)
 			}
 			return nil
@@ -85,13 +86,13 @@ func TestPeerProtoReadMsgRlp(t *testing.T) {
 
 	closer, rw, _, errc := testPeer([]Protocol{proto})
 	defer closer()
-	a := ArrUint{1}
+	a := msg.Uints{1}
 	b, _ := a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+2, b)
-	a = ArrUint{2}
+	a = msg.Uints{2}
 	b, _ = a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+3, b)
-	a = ArrUint{3}
+	a = msg.Uints{3}
 	b, _ = a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+4, b)
 
@@ -110,13 +111,13 @@ func TestPeerProtoReadMsg(t *testing.T) {
 		Name:   "a",
 		Length: 5,
 		Run: func(peer *Peer, rw MsgReadWriter) error {
-			if err := ExpectMsgArrByte(rw, 2, []byte{1}); err != nil {
+			if err := ExpectMsg(rw, 2, msg.Bytes{1}); err != nil {
 				t.Error(err)
 			}
-			if err := ExpectMsgArrByte(rw, 3, []byte{2}); err != nil {
+			if err := ExpectMsg(rw, 3, msg.Bytes{2}); err != nil {
 				t.Error(err)
 			}
-			if err := ExpectMsgArrByte(rw, 4, []byte{3}); err != nil {
+			if err := ExpectMsg(rw, 4, msg.Bytes{3}); err != nil {
 				t.Error(err)
 			}
 			return nil
@@ -125,13 +126,13 @@ func TestPeerProtoReadMsg(t *testing.T) {
 
 	closer, rw, _, errc := testPeer([]Protocol{proto})
 	defer closer()
-	a := ArrByte{1}
+	a := msg.Bytes{1}
 	b, _ := a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+2, b)
-	a = ArrByte{2}
+	a = msg.Bytes{2}
 	b, _ = a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+3, b)
-	a = ArrByte{3}
+	a = msg.Bytes{3}
 	b, _ = a.MarshalMsg(nil)
 	Send(rw, baseProtocolLength+4, b)
 
@@ -152,7 +153,7 @@ func TestPeerProtoEncodeMsg(t *testing.T) {
 			if err := Send(rw, 2, nil); err == nil {
 				t.Error("expected error for out-of-range msg code, got nil")
 			}
-			a := ArrString{"foo", "bar"}
+			a := msg.Strings{"foo", "bar"}
 			b, _ := a.MarshalMsg(nil)
 			if err := Send(rw, 1, b); err != nil {
 				t.Errorf("write error: %v", err)

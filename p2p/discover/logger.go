@@ -4,7 +4,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var log *logrus.Logger
+var log = logrus.StandardLogger()
 
 func SetLogger(logger *logrus.Logger) {
 	log = logger

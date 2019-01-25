@@ -10,9 +10,9 @@ func TestNewSequencerHead(t *testing.T) {
 	var seqs Sequencers
 	for i := 0; i < 3; i++ {
 		s := Sequencer{
-			Id: uint64(i),
 			TxBase: TxBase{
-				Hash: randomHash(),
+				Hash:   randomHash(),
+				Height: uint64(i),
 			},
 		}
 		seqs = append(seqs, &s)

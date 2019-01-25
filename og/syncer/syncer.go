@@ -17,6 +17,7 @@ type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
 	MulticastMessage(messageType og.MessageType, message types.Message)
 	MulticastToSource(messageType og.MessageType, message types.Message, sourceMsgHash *types.Hash)
+	BroadcastMessageWithLink(messageType og.MessageType, message types.Message)
 }
 
 type FireHistory struct {
@@ -28,33 +29,35 @@ type FireHistory struct {
 // IncrementalSyncer fetches tx from other  peers. (incremental)
 // IncrementalSyncer will not fire duplicate requests in a period of time.
 type IncrementalSyncer struct {
-	config                  *SyncerConfig
-	messageSender           MessageSender
-	getTxsHashes            func() []types.Hash
-	isKnownHash             func(hash types.Hash) bool
-	getHeight               func() uint64
-	acquireTxQueue          chan *types.Hash
-	acquireTxDedupCache     gcache.Cache     // list of hashes that are queried recently. Prevent duplicate requests.
-	bufferedIncomingTxCache *txcache.TxCache // cache of incoming txs that are not fired during full sync.
-	firedTxCache            gcache.Cache     // cache of hashes that are fired however haven't got any response yet
-	quitLoopSync            chan bool
-	quitLoopEvent           chan bool
-	quitNotifyEvent         chan bool
-	EnableEvent             chan bool
-	Enabled                 bool
-	OnNewTxiReceived        []chan []types.Txi
-	notifyTxEvent           chan bool
-	notifying               bool
-	cacheNewTxEnabled       func() bool
-	mu                      sync.RWMutex
-	NewLatestSequencerCh    chan bool
-	bloomFilterStatus       *BloomFilterFireStatus
+	config                   *SyncerConfig
+	messageSender            MessageSender
+	getTxsHashes             func() []types.Hash
+	isKnownHash              func(hash types.Hash) bool
+	getHeight                func() uint64
+	acquireTxQueue           chan *types.Hash
+	acquireTxDedupCache      gcache.Cache     // list of hashes that are queried recently. Prevent duplicate requests.
+	bufferedIncomingTxCache  *txcache.TxCache // cache of incoming txs that are not fired during full sync.
+	firedTxCache             gcache.Cache     // cache of hashes that are fired however haven't got any response yet
+	quitLoopSync             chan bool
+	quitLoopEvent            chan bool
+	quitNotifyEvent          chan bool
+	EnableEvent              chan bool
+	Enabled                  bool
+	OnNewTxiReceived         []chan []types.Txi
+	notifyTxEvent            chan bool
+	notifying                bool
+	cacheNewTxEnabled        func() bool
+	mu                       sync.RWMutex
+	NewLatestSequencerCh     chan bool
+	bloomFilterStatus        *BloomFilterFireStatus
+	RemoveContrlMsgFromCache func(hash types.Hash)
 }
 
 func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"acquireTxQueue":          len(m.acquireTxQueue),
 		"bufferedIncomingTxCache": m.bufferedIncomingTxCache.Len(),
+		"firedTxCache":            m.firedTxCache.Len(),
 	}
 }
 
@@ -125,7 +128,12 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	req := types.MessageSyncRequest{
 		RequestId: og.MsgCounter.Get(),
 	}
+	var source interface{}
+	var err error
 	for key := range buffer {
+		if source, err = m.acquireTxDedupCache.GetIFPresent(key); err != nil {
+			continue
+		}
 		// add it to the missing queue in case no one responds us.
 		// will retry after some time
 		if history, err := m.firedTxCache.GetIFPresent(key); err != nil {
@@ -143,6 +151,10 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 		req.Hashes = append(req.Hashes, key)
 		//req.Hashes = append(req.Hashes, key)
 	}
+	if len(req.Hashes) == 0 {
+		return
+	}
+
 	log.WithField("type", og.MessageTypeFetchByHashRequest).
 		WithField("length", len(req.Hashes)).WithField("hashes", req.String()).Debugf(
 		"sending message MessageTypeFetchByHashRequest")
@@ -151,7 +163,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
 	//todo optimize later
 	//get source msg
-	soucrHash := req.Hashes[0]
+	soucrHash := source.(types.Hash)
 
 	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &soucrHash)
 }
@@ -189,7 +201,13 @@ func (m *IncrementalSyncer) loopSync() {
 				//bloom filter msg is large , don't send too frequently
 				if fired%BloomFilterRate == 0 {
 					var hash types.Hash
-					for hash = range buffer {
+					for key := range buffer {
+						hash = key
+						source, err := m.acquireTxDedupCache.GetIFPresent(key)
+						if err != nil {
+							continue
+						}
+						hash = source.(types.Hash)
 						break
 					}
 					m.sendBloomFilter(hash)
@@ -208,7 +226,13 @@ func (m *IncrementalSyncer) loopSync() {
 			if len(buffer) > 0 {
 				if fired%BloomFilterRate == 0 {
 					var hash types.Hash
-					for hash = range buffer {
+					for key := range buffer {
+						hash = key
+						source, err := m.acquireTxDedupCache.GetIFPresent(key)
+						if err != nil {
+							continue
+						}
+						hash = source.(types.Hash)
 						break
 					}
 					m.sendBloomFilter(hash)
@@ -231,7 +255,7 @@ func (m *IncrementalSyncer) loopSync() {
 	}
 }
 
-func (m *IncrementalSyncer) Enqueue(phash *types.Hash, sendBloomfilter bool) {
+func (m *IncrementalSyncer) Enqueue(phash *types.Hash, childHash types.Hash, sendBloomfilter bool) {
 	if !m.Enabled {
 		log.WithField("hash", phash).Info("sync task is ignored since syncer is paused")
 		return
@@ -246,9 +270,9 @@ func (m *IncrementalSyncer) Enqueue(phash *types.Hash, sendBloomfilter bool) {
 			log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
 			return
 		}
-		m.acquireTxDedupCache.Set(hash, struct{}{})
+		m.acquireTxDedupCache.Set(hash, childHash)
 		if sendBloomfilter {
-			go m.sendBloomFilter(hash)
+			go m.sendBloomFilter(childHash)
 		}
 	}
 	m.acquireTxQueue <- phash
@@ -383,4 +407,12 @@ func (m *IncrementalSyncer) RemoveConfirmedFromCache() {
 	log.WithField("total cache item ", m.bufferedIncomingTxCache.Len()).Debug("removing expired item")
 	m.bufferedIncomingTxCache.RemoveExpiredAndInvalid(60)
 	log.WithField("total cache item ", m.bufferedIncomingTxCache.Len()).Debug("removed expired item")
+}
+
+func (m *IncrementalSyncer) IsCachedHash(hash types.Hash) bool {
+	return m.bufferedIncomingTxCache.Has(hash)
+}
+
+func (m *IncrementalSyncer) TxEnable() bool {
+	return m.Enabled
 }

@@ -18,9 +18,11 @@ package p2p
 
 import (
 	"fmt"
-
-	"github.com/annchain/OG/p2p/discover"
+	"github.com/annchain/OG/p2p/enr"
+	"github.com/annchain/OG/p2p/onode"
 )
+
+type MsgCodeType uint16
 
 // Protocol represents a P2P subprotocol implementation.
 type Protocol struct {
@@ -33,7 +35,7 @@ type Protocol struct {
 
 	// Length should contain the number of message codes used
 	// by the protocol.
-	Length uint64
+	Length MsgCodeType
 
 	// Run is called in a new groutine when the protocol has been
 	// negotiated with a peer. It should read and write messages from
@@ -51,7 +53,10 @@ type Protocol struct {
 	// PeerInfo is an optional helper method to retrieve protocol specific metadata
 	// about a certain peer in the network. If an info retrieval function is set,
 	// but returns nil, it is assumed that the protocol handshake is still running.
-	PeerInfo func(id discover.NodeID) interface{}
+	PeerInfo func(id onode.ID) interface{}
+
+	// Attributes contains protocol specific information for the node record.
+	Attributes []enr.Entry
 }
 
 func (p Protocol) cap() Cap {
@@ -66,11 +71,11 @@ type Cap struct {
 
 // protoHandshake is the RLP structure of the protocol handshake.
 type ProtoHandshake struct {
-	Version    uint64   `msg:"version"`
-	Name       string   `msg:"name"`
-	Caps       []Cap    `msg:"caps"`
-	ListenPort uint64   `msg:"listen_port"`
-	ID         [64]byte `msg:"id"`
+	Version    uint64 `msg:"version"`
+	Name       string `msg:"name"`
+	Caps       []Cap  `msg:"caps"`
+	ListenPort uint64 `msg:"listen_port"`
+	ID         []byte `msg:"id"` // secp256k1 public key
 
 	// Ignore additional fields (for forward compatibility).
 	Rest [][]byte `rlp:"tail" msg:"tail"`
@@ -84,10 +89,12 @@ func (cap Cap) String() string {
 	return fmt.Sprintf("%s/%d", cap.Name, cap.Version)
 }
 
-type capsByNameAndVersion []Cap
+type CapsByNameAndVersion []Cap
 
-func (cs capsByNameAndVersion) Len() int      { return len(cs) }
-func (cs capsByNameAndVersion) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
-func (cs capsByNameAndVersion) Less(i, j int) bool {
+func (cs CapsByNameAndVersion) Len() int      { return len(cs) }
+func (cs CapsByNameAndVersion) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
+func (cs CapsByNameAndVersion) Less(i, j int) bool {
 	return cs[i].Name < cs[j].Name || (cs[i].Name == cs[j].Name && cs[i].Version < cs[j].Version)
 }
+
+func (CapsByNameAndVersion) ENRKey() string { return "cap" }

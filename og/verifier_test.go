@@ -16,7 +16,6 @@ func buildTx(from types.Address, accountNonce uint64) *types.Tx {
 
 func buildSeq(from types.Address, accountNonce uint64, id uint64) *types.Sequencer {
 	tx := types.RandomSequencer()
-	tx.Id = id
 	tx.AccountNonce = accountNonce
 	tx.Issuer = from
 	return tx
@@ -79,7 +78,7 @@ func TestA3(t *testing.T) {
 	setParents(txs[11], []types.Txi{txs[10]})
 
 	for _, tx := range txs {
-		pool.AddRemoteTx(tx)
+		pool.AddRemoteTx(tx, true)
 	}
 
 	// tx2 is bad, others are good
@@ -135,7 +134,7 @@ func TestA6(t *testing.T) {
 	setParents(txs[8], []types.Txi{txs[7]})
 
 	for _, tx := range txs {
-		pool.AddRemoteTx(tx)
+		pool.AddRemoteTx(tx, true)
 	}
 
 	// tx2 is bad, others are good

@@ -18,7 +18,7 @@ def generate_config_multi_server(id):
     with open('sample.toml') as f:
         d = toml.load(f)
 
-    d['p2p']['bootstrap_nodes'] = "enode://%s@%s:%d" % (boot_node, boot_node_ip, boot_node_port)
+    d['p2p']['bootstrap_nodes'] = "onode://%s@%s:%d" % (boot_node, boot_node_ip, boot_node_port)
     d['leveldb']['path'] = 'data/datadir'
     d['p2p']['bootstrap_node'] = id == 0
     d['auto_client']['sequencer']['enabled'] = d['p2p']['bootstrap_node']

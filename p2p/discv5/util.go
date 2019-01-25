@@ -8,7 +8,7 @@ func topicsToStrings(topics []Topic) []string {
 	return topicsString
 }
 
-func stringsToTopics(topicsString []string) []Topic {
+func stringsToTopics(topicsString []string) Topics {
 	var topics []Topic
 	for _, v := range topicsString {
 		topics = append(topics, Topic(v))

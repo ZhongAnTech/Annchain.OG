@@ -151,7 +151,7 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
 
-	messageHandler := og.NewIncomingMessageHandler(org, hub, 10000, time.Microsecond*40)
+	messageHandler := og.NewIncomingMessageHandler(org, hub, 10000, time.Millisecond*40)
 
 	m := &og.MessageRouter{
 		PongHandler:               messageHandler,

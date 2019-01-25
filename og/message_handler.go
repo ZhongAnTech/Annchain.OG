@@ -517,21 +517,23 @@ func (h *IncomingMessageHandler) loop() {
 				}
 				txkey := newMsgKey(MessageTypeNewTx, k)
 				if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
+					msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
 					c.remove(k)
 					continue
 				}
 				if item.receivedAt.Add(2 * time.Millisecond).Before(time.Now()) {
 					if h.Hub.IsReceivedHash(k) {
 						msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+						c.remove(k)
 						continue
 					}
-				}
-				if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
-					hash := k
-					msg := &types.MessageGetMsg{Hash: &hash}
-					msgLog.WithField("hash ", k).Debug("send got tx msg msg")
-					go h.Hub.SendGetMsg(item.sourceId, msg)
-					c.remove(k)
+					if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
+						hash := k
+						msg := &types.MessageGetMsg{Hash: &hash}
+						msgLog.WithField("hash ", k).Debug("send GetTx msg")
+						go h.Hub.SendGetMsg(item.sourceId, msg)
+						c.remove(k)
+					}
 				}
 			}
 			atomic.StoreUint32(&handling, 0)

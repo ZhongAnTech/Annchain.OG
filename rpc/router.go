@@ -67,8 +67,10 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"genesis":       "",
 		"sync_status":   "",
 		"performance":   "",
-		"tps":           "",
-		"monitor":       "",
+
+		"monitor": "",
+		"tps":     "",
+
 		// broadcast API
 		"new_transaction": "tx",
 		"auto_tx":         "interval_ms",

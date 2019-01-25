@@ -29,7 +29,7 @@ func (r *RpcController) syncStatus() SyncStatus {
 	var status SyncStatus
 
 	status = SyncStatus{
-		Id:                       r.P2pServer.Self().ID.TerminalString(),
+		Id:                       r.P2pServer.Self().ID().TerminalString(),
 		SyncMode:                 r.SyncerManager.Status.String(),
 		CatchupSyncerStatus:      r.SyncerManager.CatchupSyncer.WorkState.String(),
 		CatchupSyncerEnabled:     r.SyncerManager.CatchupSyncer.Enabled,

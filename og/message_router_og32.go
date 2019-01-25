@@ -29,14 +29,14 @@ func (m *MessageRouterOG32) Name() string {
 	return "MessageRouterOG32"
 }
 
-func (m *MessageRouterOG32) RouteGetNodeDataMsg(msg *P2PMessage) {
-	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.SourceID)
+func (m *MessageRouterOG32) RouteGetNodeDataMsg(msg *p2PMessage) {
+	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.sourceID)
 }
 
-func (m *MessageRouterOG32) RouteNodeDataMsg(msg *P2PMessage) {
-	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.SourceID)
+func (m *MessageRouterOG32) RouteNodeDataMsg(msg *p2PMessage) {
+	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.sourceID)
 }
 
-func (m *MessageRouterOG32) RouteGetReceiptsMsg(msg *P2PMessage) {
-	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.SourceID)
+func (m *MessageRouterOG32) RouteGetReceiptsMsg(msg *p2PMessage) {
+	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.sourceID)
 }

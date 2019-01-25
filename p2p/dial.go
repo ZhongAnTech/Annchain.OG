@@ -21,12 +21,11 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/p2p/netutil"
+	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"net"
 	"time"
-
-	"github.com/annchain/OG/p2p/discover"
-	"github.com/annchain/OG/p2p/netutil"
 )
 
 const (
@@ -50,7 +49,7 @@ const (
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests
 type NodeDialer interface {
-	Dial(*discover.Node) (net.Conn, error)
+	Dial(*onode.Node) (net.Conn, error)
 }
 
 // TCPDialer implements the NodeDialer interface by using a net.Dialer to
@@ -60,8 +59,8 @@ type TCPDialer struct {
 }
 
 // Dial creates a TCP connection to the node
-func (t TCPDialer) Dial(dest *discover.Node) (net.Conn, error) {
-	addr := &net.TCPAddr{IP: dest.IP, Port: int(dest.TCP)}
+func (t TCPDialer) Dial(dest *onode.Node) (net.Conn, error) {
+	addr := &net.TCPAddr{IP: dest.IP(), Port: dest.TCP()}
 	return t.Dialer.Dial("tcp", addr.String())
 }
 
@@ -72,24 +71,25 @@ type dialstate struct {
 	maxDynDials int
 	ntab        discoverTable
 	netrestrict *netutil.Netlist
+	self        onode.ID
 
 	lookupRunning bool
-	dialing       map[discover.NodeID]connFlag
-	lookupBuf     []*discover.Node // current discovery lookup results
-	randomNodes   []*discover.Node // filled from Table
-	static        map[discover.NodeID]*dialTask
+	dialing       map[onode.ID]connFlag
+	lookupBuf     []*onode.Node // current discovery lookup results
+	randomNodes   []*onode.Node // filled from Table
+	static        map[onode.ID]*dialTask
 	hist          *dialHistory
 
-	start     time.Time        // time when the dialer was first used
-	bootnodes []*discover.Node // default dials when there are no peers
+	start     time.Time     // time when the dialer was first used
+	bootnodes []*onode.Node // default dials when there are no peers
 }
 
 type discoverTable interface {
-	Self() *discover.Node
+	//Self() *onode.Node
 	Close()
-	Resolve(target discover.NodeID) *discover.Node
-	Lookup(target discover.NodeID) []*discover.Node
-	ReadRandomNodes([]*discover.Node) int
+	Resolve(target *onode.Node) *onode.Node
+	LookupRandom() []*onode.Node
+	ReadRandomNodes([]*onode.Node) int
 }
 
 // the dial history remembers recent dials.
@@ -97,7 +97,7 @@ type dialHistory []pastDial
 
 // pastDial is an entry in the dial history.
 type pastDial struct {
-	id  discover.NodeID
+	id  onode.ID
 	exp time.Time
 }
 
@@ -109,7 +109,7 @@ type task interface {
 // fields cannot be accessed while the task is running.
 type dialTask struct {
 	flags        connFlag
-	dest         *discover.Node
+	dest         *onode.Node
 	lastResolved time.Time
 	resolveDelay time.Duration
 }
@@ -118,7 +118,7 @@ type dialTask struct {
 // Only one discoverTask is active at any time.
 // discoverTask.Do performs a random lookup.
 type discoverTask struct {
-	results []*discover.Node
+	results []*onode.Node
 }
 
 // A waitExpireTask is generated if there are no other tasks
@@ -127,15 +127,16 @@ type waitExpireTask struct {
 	time.Duration
 }
 
-func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist) *dialstate {
+func newDialState(self onode.ID, static []*onode.Node, bootnodes []*onode.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist) *dialstate {
 	s := &dialstate{
 		maxDynDials: maxdyn,
 		ntab:        ntab,
 		netrestrict: netrestrict,
-		static:      make(map[discover.NodeID]*dialTask),
-		dialing:     make(map[discover.NodeID]connFlag),
-		bootnodes:   make([]*discover.Node, len(bootnodes)),
-		randomNodes: make([]*discover.Node, maxdyn/2),
+		self:        self,
+		static:      make(map[onode.ID]*dialTask),
+		dialing:     make(map[onode.ID]connFlag),
+		bootnodes:   make([]*onode.Node, len(bootnodes)),
+		randomNodes: make([]*onode.Node, maxdyn/2),
 		hist:        new(dialHistory),
 	}
 	copy(s.bootnodes, bootnodes)
@@ -145,34 +146,34 @@ func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab disc
 	return s
 }
 
-func (s *dialstate) addStatic(n *discover.Node) {
-	// This overwites the task instead of updating an existing
+func (s *dialstate) addStatic(n *onode.Node) {
+	// This overwrites the task instead of updating an existing
 	// entry, giving users the opportunity to force a resolve operation.
-	s.static[n.ID] = &dialTask{flags: staticDialedConn, dest: n}
+	s.static[n.ID()] = &dialTask{flags: staticDialedConn, dest: n}
 }
 
-func (s *dialstate) removeStatic(n *discover.Node) {
+func (s *dialstate) removeStatic(n *onode.Node) {
 	// This removes a task so future attempts to connect will not be made.
-	delete(s.static, n.ID)
+	delete(s.static, n.ID())
 	// This removes a previous dial timestamp so that application
 	// can force a server to reconnect with chosen peer immediately.
-	s.hist.remove(n.ID)
+	s.hist.remove(n.ID())
 }
 
-func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
+func (s *dialstate) newTasks(nRunning int, peers map[onode.ID]*Peer, now time.Time) []task {
 	if s.start.IsZero() {
 		s.start = now
 	}
 
 	var newtasks []task
-	addDial := func(flag connFlag, n *discover.Node) bool {
+	addDial := func(flag connFlag, n *onode.Node) bool {
 		if err := s.checkDial(n, peers); err != nil {
-			log.WithFields(logrus.Fields{"id": n.ID, "addr": &net.TCPAddr{IP: n.IP, Port: int(n.TCP)}}).
+			log.WithFields(logrus.Fields{"id": n.ID(), "addr": &net.TCPAddr{IP: n.IP(), Port: n.TCP()}}).
 				WithError(err).
 				Trace("Skipping dial candidate")
 			return false
 		}
-		s.dialing[n.ID] = flag
+		s.dialing[n.ID()] = flag
 		newtasks = append(newtasks, &dialTask{flags: flag, dest: n})
 		return true
 	}
@@ -198,10 +199,10 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+			log.WithFields(logrus.Fields{"id": t.dest.ID().TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP(), Port: t.dest.TCP()}}).
 				WithError(err).
 				Debug("Removing static dial candidate")
-			delete(s.static, t.dest.ID)
+			delete(s.static, t.dest.ID())
 		case nil:
 			s.dialing[id] = t.flags
 			newtasks = append(newtasks, t)
@@ -264,18 +265,18 @@ var (
 	errNotWhitelisted   = errors.New("not contained in netrestrict whitelist")
 )
 
-func (s *dialstate) checkDial(n *discover.Node, peers map[discover.NodeID]*Peer) error {
-	_, dialing := s.dialing[n.ID]
+func (s *dialstate) checkDial(n *onode.Node, peers map[onode.ID]*Peer) error {
+	_, dialing := s.dialing[n.ID()]
 	switch {
 	case dialing:
 		return errAlreadyDialing
-	case peers[n.ID] != nil:
+	case peers[n.ID()] != nil:
 		return errAlreadyConnected
-	case s.ntab != nil && n.ID == s.ntab.Self().ID:
+	case s.ntab != nil && n.ID() == s.self:
 		return errSelf
-	case s.netrestrict != nil && !s.netrestrict.Contains(n.IP):
+	case s.netrestrict != nil && !s.netrestrict.Contains(n.IP()):
 		return errNotWhitelisted
-	case s.hist.contains(n.ID):
+	case s.hist.contains(n.ID()):
 		return errRecentlyDialed
 	}
 	return nil
@@ -284,8 +285,8 @@ func (s *dialstate) checkDial(n *discover.Node, peers map[discover.NodeID]*Peer)
 func (s *dialstate) taskDone(t task, now time.Time) {
 	switch t := t.(type) {
 	case *dialTask:
-		s.hist.add(t.dest.ID, now.Add(dialHistoryExpiration))
-		delete(s.dialing, t.dest.ID)
+		s.hist.add(t.dest.ID(), now.Add(dialHistoryExpiration))
+		delete(s.dialing, t.dest.ID())
 	case *discoverTask:
 		s.lookupRunning = false
 		s.lookupBuf = append(s.lookupBuf, t.results...)
@@ -328,7 +329,7 @@ func (t *dialTask) resolve(srv *Server) bool {
 	if time.Since(t.lastResolved) < t.resolveDelay {
 		return false
 	}
-	resolved := srv.ntab.Resolve(t.dest.ID)
+	resolved := srv.ntab.Resolve(t.dest)
 	t.lastResolved = time.Now()
 	if resolved == nil {
 		t.resolveDelay *= 2
@@ -341,7 +342,7 @@ func (t *dialTask) resolve(srv *Server) bool {
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.WithFields(logrus.Fields{"id": t.dest.ID.TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}}).
+	log.WithFields(logrus.Fields{"id": t.dest.ID().TerminalString(), "addr": &net.TCPAddr{IP: t.dest.IP(), Port: t.dest.TCP()}}).
 		Debug("Resolved node")
 	return true
 }
@@ -351,17 +352,18 @@ type dialError struct {
 }
 
 // dial performs the actual connection attempt.
-func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
+func (t *dialTask) dial(srv *Server, dest *onode.Node) error {
 	fd, err := srv.Dialer.Dial(dest)
 	if err != nil {
 		return &dialError{err}
 	}
-	mfd := newMeteredConn(fd, false)
+	mfd := newMeteredConn(fd, false, dest.IP())
 	return srv.SetupConn(mfd, t.flags, dest)
 }
 
 func (t *dialTask) String() string {
-	return fmt.Sprintf("%v %x %v:%d", t.flags, t.dest.ID[:8], t.dest.IP, t.dest.TCP)
+	id := t.dest.ID()
+	return fmt.Sprintf("%v %x %v:%d", t.flags, id[:8], t.dest.IP(), t.dest.TCP())
 }
 
 func (t *discoverTask) Do(srv *Server) {
@@ -373,9 +375,9 @@ func (t *discoverTask) Do(srv *Server) {
 		time.Sleep(next.Sub(now))
 	}
 	srv.lastLookup = time.Now()
-	var target discover.NodeID
+	var target onode.ID
 	rand.Read(target[:])
-	t.results = srv.ntab.Lookup(target)
+	t.results = srv.ntab.LookupRandom()
 }
 
 func (t *discoverTask) String() string {
@@ -397,11 +399,11 @@ func (t waitExpireTask) String() string {
 func (h dialHistory) min() pastDial {
 	return h[0]
 }
-func (h *dialHistory) add(id discover.NodeID, exp time.Time) {
+func (h *dialHistory) add(id onode.ID, exp time.Time) {
 	heap.Push(h, pastDial{id, exp})
 
 }
-func (h *dialHistory) remove(id discover.NodeID) bool {
+func (h *dialHistory) remove(id onode.ID) bool {
 	for i, v := range *h {
 		if v.id == id {
 			heap.Remove(h, i)
@@ -410,7 +412,7 @@ func (h *dialHistory) remove(id discover.NodeID) bool {
 	}
 	return false
 }
-func (h dialHistory) contains(id discover.NodeID) bool {
+func (h dialHistory) contains(id onode.ID) bool {
 	for _, v := range h {
 		if v.id == id {
 			return true

@@ -41,6 +41,7 @@ func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, formatVerifier og.V
 	}
 	return config
 }
+
 func (s *SyncBuffer) Name() string {
 	return "SyncBuffer"
 }
@@ -184,8 +185,8 @@ func (s *SyncBuffer) Handle() error {
 			err = errors.New("bad graph tx")
 			break
 		}
-
-		err = s.txPool.AddRemoteTx(tx)
+		//need to feedback to buffer
+		err = s.txPool.AddRemoteTx(tx, false)
 		if err != nil {
 			//this transaction received by broadcast ,so don't return err
 			if err == types.ErrDuplicateTx {
@@ -198,7 +199,7 @@ func (s *SyncBuffer) Handle() error {
 	}
 	if err == nil {
 		log.WithField("id", s.Seq).Trace("before add seq")
-		err = s.txPool.AddRemoteTx(s.Seq)
+		err = s.txPool.AddRemoteTx(s.Seq, false)
 		log.WithField("id", s.Seq).Trace("after add seq")
 	}
 	if err != nil {

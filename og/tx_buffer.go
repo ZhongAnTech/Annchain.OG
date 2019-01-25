@@ -20,8 +20,9 @@ const (
 )
 
 type Syncer interface {
-	Enqueue(hash *types.Hash, sendBloomFilter bool)
+	Enqueue(hash *types.Hash, childHash types.Hash, sendBloomFilter bool)
 	ClearQueue()
+	IsCachedHash(hash types.Hash) bool
 }
 
 type Announcer interface {
@@ -30,8 +31,8 @@ type Announcer interface {
 
 type ITxPool interface {
 	Get(hash types.Hash) types.Txi
-	AddRemoteTx(tx types.Txi) error
-	RegisterOnNewTxReceived(c chan types.Txi, name string)
+	AddRemoteTx(tx types.Txi, noFeedBack bool) error
+	RegisterOnNewTxReceived(c chan types.Txi, name string, allTx bool)
 	GetLatestNonce(addr types.Address) (uint64, error)
 	IsLocalHash(hash types.Hash) bool
 	GetMaxWeight() uint64
@@ -136,8 +137,10 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"selfGeneratedNewTxChan": len(b.SelfGeneratedNewTxChan),
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
+		"receivedNewTxsChan":     len(b.ReceivedNewTxsChan),
 		"dependencyCache":        b.dependencyCache.Len(),
 		"knownCache":             b.knownCache.Len(),
+		"txAddedToPoolChan":      len(b.txAddedToPoolChan),
 		//"childrenCache": b.children.Len(),
 	}
 }
@@ -177,7 +180,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 }
 
 func (b *TxBuffer) Start() {
-	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan, "b.txAddedToPoolChan")
+	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan, "b.txAddedToPoolChan", false)
 	go b.loop()
 	go b.releasedTxCacheLoop()
 }
@@ -339,7 +342,8 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 }
 
 func (b *TxBuffer) addToTxPool(tx types.Txi) error {
-	return b.txPool.AddRemoteTx(tx)
+	//no need to receive added tx by buffer
+	return b.txPool.AddRemoteTx(tx, true)
 }
 
 // resolve is called when all ancestors of the tx is got.
@@ -385,34 +389,46 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	}
 }
 
-// isLocalHash tests if the tx has already been in the txpool or dag.
+//// isLocalHash tests if the tx has already been in the txpool or dag.
+//func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
+//	//just get once
+//	var poolTx, dagTx types.Txi
+//	ok := false
+//	if poolTx = b.txPool.Get(hash); poolTx != nil {
+//		ok = true
+//	} else if dagTx = b.dag.GetTx(hash); dagTx != nil {
+//		ok = true
+//	}
+//	//logrus.WithFields(logrus.Fields{
+//	//	"TxPool": poolTx,
+//	//	"DAG":    dagTx,
+//	//	"Hash":   hash,
+//	//	//"Buffer": b.GetFromBuffer(hash),
+//	//}).Trace("transaction location")
+//	return ok
+//}
+
 func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
-	//just get once
-	var poolTx, dagTx types.Txi
-	ok := false
-	if poolTx = b.txPool.Get(hash); poolTx != nil {
-		ok = true
-	} else if dagTx = b.dag.GetTx(hash); dagTx != nil {
-		ok = true
-	}
-	logrus.WithFields(logrus.Fields{
-		"TxPool": poolTx,
-		"DAG":    dagTx,
-		"Hash":   hash,
-		//"Buffer": b.GetFromBuffer(hash),
-	}).Trace("transaction location")
-	return ok
+	return b.txPool.IsLocalHash(hash)
 }
 
 // isKnownHash tests if the tx is ever heard of, either in local or in buffer.
 // if tx is known, do not broadcast anymore
 func (b *TxBuffer) IsKnownHash(hash types.Hash) bool {
-	return b.isLocalHash(hash) || b.isCachedHash(hash)
+	return b.isBufferedHash(hash) || b.txPool.IsLocalHash(hash)
 }
 
 // isCachedHash tests if the tx is in the buffer
-func (b *TxBuffer) isCachedHash(hash types.Hash) bool {
+func (b *TxBuffer) isBufferedHash(hash types.Hash) bool {
 	return b.GetFromBuffer(hash) != nil
+}
+
+func (b *TxBuffer) IsCachedHash(hash types.Hash) bool {
+	return b.Syncer.IsCachedHash(hash)
+}
+
+func (b *TxBuffer) IsReceivedHash(hash types.Hash) bool {
+	return b.IsCachedHash(hash) || b.IsKnownHash(hash)
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
@@ -447,23 +463,23 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			allFetched = false
 
 			// TODO: identify if this tx is already synced
-			if !b.isCachedHash(parentHash) {
+			if !b.isBufferedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				pHash := parentHash
 				b.updateDependencyMap(parentHash, tx)
 				if !sendBloom && tx.GetWeight() > b.txPool.GetMaxWeight() && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
-					b.Syncer.Enqueue(&pHash, true)
+					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
 					sendBloom = true
 				} else {
-					b.Syncer.Enqueue(&pHash, false)
+					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
 
 				}
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
-				b.Syncer.Enqueue(nil, false)
+				b.Syncer.Enqueue(nil, types.Hash{}, false)
 			}
 		}
 	}
@@ -547,7 +563,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 						continue
 					}
 					txi := v
-					if !b.isCachedHash(v.GetTxHash()) {
+					if !b.isBufferedHash(v.GetTxHash()) {
 						continue
 
 					}

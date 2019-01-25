@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"
 	"github.com/stretchr/testify/assert"
+
 	"strconv"
 	"testing"
 )
@@ -137,6 +138,7 @@ func TestMultiContract(t *testing.T) {
 		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 		dump(t, ldb, ret, leftGas, err)
 	}
+
 	// transfer
 	{
 		u64, err := strconv.ParseUint("0101", 16, 64)

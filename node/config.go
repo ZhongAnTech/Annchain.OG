@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
+	"github.com/annchain/OG/p2p/onode"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -113,16 +113,16 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	return &p2p.Server{Config: p2pConfig}
 }
 
-func parserNodes(nodeString string) []*discover.Node {
+func parserNodes(nodeString string) []*onode.Node {
 	nodeList := strings.Split(nodeString, ";")
-	var nodes []*discover.Node
+	var nodes []*onode.Node
 	for _, url := range nodeList {
 		if url == "" {
 			continue
 		}
-		node, err := discover.ParseNode(url)
+		node, err := onode.ParseV4(url)
 		if err != nil {
-			log.Error(fmt.Sprintf("node URL %s: %v\n", url, err))
+			log.Error(fmt.Sprintf("Node URL %s: %v\n", url, err))
 			continue
 		}
 		nodes = append(nodes, node)

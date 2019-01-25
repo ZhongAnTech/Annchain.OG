@@ -18,9 +18,11 @@ package p2p
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
 	"fmt"
+	msg2 "github.com/annchain/OG/common/msg"
 	"io"
 	"io/ioutil"
 	"net"
@@ -32,7 +34,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/crypto/sha3"
-	"github.com/annchain/OG/p2p/discover"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -77,9 +78,9 @@ func TestEncHandshake(t *testing.T) {
 
 func testEncHandshake(token []byte) error {
 	type result struct {
-		side string
-		id   discover.NodeID
-		err  error
+		side   string
+		pubkey *ecdsa.PublicKey
+		err    error
 	}
 	var (
 		prv0, _  = crypto.GenerateKey()
@@ -94,14 +95,12 @@ func testEncHandshake(token []byte) error {
 		defer func() { output <- r }()
 		defer fd0.Close()
 
-		dest := &discover.Node{ID: discover.PubkeyID(&prv1.PublicKey)}
-		r.id, r.err = c0.doEncHandshake(prv0, dest)
+		r.pubkey, r.err = c0.doEncHandshake(prv0, &prv1.PublicKey)
 		if r.err != nil {
 			return
 		}
-		id1 := discover.PubkeyID(&prv1.PublicKey)
-		if r.id != id1 {
-			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.id, id1)
+		if !reflect.DeepEqual(r.pubkey, &prv1.PublicKey) {
+			r.err = fmt.Errorf("remote pubkey mismatch: got %v, want: %v", r.pubkey, &prv1.PublicKey)
 		}
 	}()
 	go func() {
@@ -109,13 +108,12 @@ func testEncHandshake(token []byte) error {
 		defer func() { output <- r }()
 		defer fd1.Close()
 
-		r.id, r.err = c1.doEncHandshake(prv1, nil)
+		r.pubkey, r.err = c1.doEncHandshake(prv1, nil)
 		if r.err != nil {
 			return
 		}
-		id0 := discover.PubkeyID(&prv0.PublicKey)
-		if r.id != id0 {
-			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.id, id0)
+		if !reflect.DeepEqual(r.pubkey, &prv0.PublicKey) {
+			r.err = fmt.Errorf("remote ID mismatch: got %v, want: %v", r.pubkey, &prv0.PublicKey)
 		}
 	}()
 
@@ -228,7 +226,7 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 	pro := ProtoHandshake{Version: 3}
 	protoData, _ := pro.MarshalMsg(nil)
 	tests := []struct {
-		code uint64
+		code MsgCodeType
 		//msg  interface{}
 		msg []byte
 		err error
@@ -290,7 +288,7 @@ ba328a4ba590cb43f7848f41c4382885
 `)
 
 	// Check WriteMsg. This puts a message into the buffer.
-	a := ArrUint{1, 2, 3, 4}
+	a := msg2.Uints{1, 2, 3, 4}
 	b, _ := a.MarshalMsg(nil)
 	if err := Send(rw, 8, b); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
@@ -363,9 +361,9 @@ func TestRLPXFrameRW(t *testing.T) {
 	// send some messages
 	for i := 0; i < 10; i++ {
 		// write message into conn buffer
-		wmsg := ArrString{"foo", "bar", strings.Repeat("test", i)}
+		wmsg := msg2.Strings{"foo", "bar", strings.Repeat("test", i)}
 		b, _ := wmsg.MarshalMsg(nil)
-		err := Send(rw1, uint64(i), b)
+		err := Send(rw1, MsgCodeType(i), b)
 		if err != nil {
 			t.Fatalf("WriteMsg error (i=%d): %v", i, err)
 		}
@@ -375,7 +373,7 @@ func TestRLPXFrameRW(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadMsg error (i=%d): %v", i, err)
 		}
-		if msg.Code != uint64(i) {
+		if msg.Code != MsgCodeType(i) {
 			t.Fatalf("msg code mismatch: got %d, want %d", msg.Code, i)
 		}
 		payload, _ := ioutil.ReadAll(msg.Payload)

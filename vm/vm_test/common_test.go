@@ -12,7 +12,9 @@ import (
 	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"github.com/sirupsen/logrus"
+
 	"github.com/stretchr/testify/assert"
+
 	"io/ioutil"
 	"math/big"
 	"reflect"

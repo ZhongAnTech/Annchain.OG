@@ -10,7 +10,7 @@ import (
 )
 
 func TestSequencer(t *testing.T) {
-	seq1 := Sequencer{Id: 1, TxBase: TxBase{ParentsHash: []Hash{HexToHash("0x0")}}}
+	seq1 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{HexToHash("0x0")}}, Issuer: randomAddress()}
 	seq2 := Tx{TxBase: TxBase{ParentsHash: []Hash{HexToHash("0x0")}},
 		To:    HexToAddress("0x1"),
 		From:  HexToAddress("0x1"),
@@ -26,14 +26,10 @@ func TestSequencer(t *testing.T) {
 }
 
 func TestSequencerSize(t *testing.T) {
-	seq := Sequencer{Id: 100}
+	seq := Sequencer{Issuer: randomAddress()}
 	n := 100
 
 	// make 1000 hashes
-	for i := 0; i < n; i++ {
-		seq.ContractHashOrder = append(seq.ContractHashOrder, HexToHash("0xAABB000000000000000000000000EEFF"))
-	}
-
 	fmt.Println("Length", seq.Msgsize(), seq.Msgsize()/n)
 	bts, err := seq.MarshalMsg(nil)
 	if err != nil {
@@ -44,7 +40,7 @@ func TestSequencerSize(t *testing.T) {
 }
 
 func TestSequencerRawSize(t *testing.T) {
-	seq := Sequencer{Id: 100}
+	seq := Sequencer{Issuer: randomAddress()}
 	n := 100
 
 	// make 1000 hashes

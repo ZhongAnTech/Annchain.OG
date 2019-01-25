@@ -14,14 +14,15 @@ type MessageRouter struct {
 	NewTxHandler               NewTxHandler
 	NewTxsHandler              NewTxsHandler
 	NewSequencerHandler        NewSequencerHandler
-
-	SequencerHeaderHandler SequencerHeaderHandler
-	BodiesRequestHandler   BodiesRequestHandler
-	BodiesResponseHandler  BodiesResponseHandler
-	TxsRequestHandler      TxsRequestHandler
-	TxsResponseHandler     TxsResponseHandler
-	HeaderRequestHandler   HeaderRequestHandler
-	HeaderResponseHandler  HeaderResponseHandler
+	GetMsgHandler              GetMsgHandler
+	ControlMsgHandler          ControlMsgHandler
+	SequencerHeaderHandler     SequencerHeaderHandler
+	BodiesRequestHandler       BodiesRequestHandler
+	BodiesResponseHandler      BodiesResponseHandler
+	TxsRequestHandler          TxsRequestHandler
+	TxsResponseHandler         TxsResponseHandler
+	HeaderRequestHandler       HeaderRequestHandler
+	HeaderResponseHandler      HeaderResponseHandler
 }
 
 type ManagerConfig struct {
@@ -45,7 +46,15 @@ type FetchByHashResponseHandler interface {
 }
 
 type NewTxHandler interface {
-	HandleNewTx(*types.MessageNewTx)
+	HandleNewTx(msg *types.MessageNewTx, peerId string)
+}
+
+type GetMsgHandler interface {
+	HandleGetMsg(msg *types.MessageGetMsg, peerId string)
+}
+
+type ControlMsgHandler interface {
+	HandleControlMsg(msg *types.MessageControl, peerId string)
 }
 
 type NewTxsHandler interface {
@@ -53,7 +62,7 @@ type NewTxsHandler interface {
 }
 
 type NewSequencerHandler interface {
-	HandleNewSequencer(*types.MessageNewSequencer)
+	HandleNewSequencer(msg *types.MessageNewSequencer, peerId string)
 }
 
 type SequencerHeaderHandler interface {
@@ -96,64 +105,73 @@ func (m *MessageRouter) Name() string {
 	return "MessageRouter"
 }
 
-func (m *MessageRouter) RoutePing(msg *P2PMessage) {
-	m.PingHandler.HandlePing(msg.SourceID)
+func (m *MessageRouter) RoutePing(msg *p2PMessage) {
+	m.PingHandler.HandlePing(msg.sourceID)
 }
 
-func (m *MessageRouter) RoutePong(*P2PMessage) {
+func (m *MessageRouter) RoutePong(*p2PMessage) {
 	m.PongHandler.HandlePong()
 }
-func (m *MessageRouter) RouteFetchByHashRequest(msg *P2PMessage) {
-	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.Message.(*types.MessageSyncRequest), msg.SourceID)
+func (m *MessageRouter) RouteFetchByHashRequest(msg *p2PMessage) {
+	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.message.(*types.MessageSyncRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteFetchByHashResponse(msg *P2PMessage) {
-	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.Message.(*types.MessageSyncResponse), msg.SourceID)
+func (m *MessageRouter) RouteFetchByHashResponse(msg *p2PMessage) {
+	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.message.(*types.MessageSyncResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteNewTx(msg *P2PMessage) {
-	m.NewTxHandler.HandleNewTx(msg.Message.(*types.MessageNewTx))
+func (m *MessageRouter) RouteNewTx(msg *p2PMessage) {
+	m.NewTxHandler.HandleNewTx(msg.message.(*types.MessageNewTx), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteNewTxs(msg *P2PMessage) {
+func (m *MessageRouter) RouteNewTxs(msg *p2PMessage) {
 	//maybe received more transactions
-	m.NewTxsHandler.HandleNewTxs(msg.Message.(*types.MessageNewTxs), msg.SourceID)
-}
-func (m *MessageRouter) RouteNewSequencer(msg *P2PMessage) {
-	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*types.MessageNewSequencer))
+	m.NewTxsHandler.HandleNewTxs(msg.message.(*types.MessageNewTxs), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteSequencerHeader(msg *P2PMessage) {
-	m.SequencerHeaderHandler.HandleSequencerHeader(msg.Message.(*types.MessageSequencerHeader), msg.SourceID)
-}
-func (m *MessageRouter) RouteBodiesRequest(msg *P2PMessage) {
-
-	m.BodiesRequestHandler.HandleBodiesRequest(msg.Message.(*types.MessageBodiesRequest), msg.SourceID)
+func (m *MessageRouter) RouteNewSequencer(msg *p2PMessage) {
+	m.NewSequencerHandler.HandleNewSequencer(msg.message.(*types.MessageNewSequencer), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteBodiesResponse(msg *P2PMessage) {
+func (m *MessageRouter) RouteGetMsg(msg *p2PMessage) {
+	m.GetMsgHandler.HandleGetMsg(msg.message.(*types.MessageGetMsg), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteControlMsg(msg *p2PMessage) {
+	m.ControlMsgHandler.HandleControlMsg(msg.message.(*types.MessageControl), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteSequencerHeader(msg *p2PMessage) {
+	m.SequencerHeaderHandler.HandleSequencerHeader(msg.message.(*types.MessageSequencerHeader), msg.sourceID)
+}
+func (m *MessageRouter) RouteBodiesRequest(msg *p2PMessage) {
+
+	m.BodiesRequestHandler.HandleBodiesRequest(msg.message.(*types.MessageBodiesRequest), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteBodiesResponse(msg *p2PMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.BodiesResponseHandler.HandleBodiesResponse(msg.Message.(*types.MessageBodiesResponse), msg.SourceID)
+	m.BodiesResponseHandler.HandleBodiesResponse(msg.message.(*types.MessageBodiesResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteTxsRequest(msg *P2PMessage) {
+func (m *MessageRouter) RouteTxsRequest(msg *p2PMessage) {
 	// Decode the retrieval message
-	m.TxsRequestHandler.HandleTxsRequest(msg.Message.(*types.MessageTxsRequest), msg.SourceID)
+	m.TxsRequestHandler.HandleTxsRequest(msg.message.(*types.MessageTxsRequest), msg.sourceID)
 
 }
-func (m *MessageRouter) RouteTxsResponse(msg *P2PMessage) {
+func (m *MessageRouter) RouteTxsResponse(msg *p2PMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.TxsResponseHandler.HandleTxsResponse(msg.Message.(*types.MessageTxsResponse))
+	m.TxsResponseHandler.HandleTxsResponse(msg.message.(*types.MessageTxsResponse))
 
 }
-func (m *MessageRouter) RouteHeaderRequest(msg *P2PMessage) {
+func (m *MessageRouter) RouteHeaderRequest(msg *p2PMessage) {
 	// Decode the complex header query
-	m.HeaderRequestHandler.HandleHeaderRequest(msg.Message.(*types.MessageHeaderRequest), msg.SourceID)
+	m.HeaderRequestHandler.HandleHeaderRequest(msg.message.(*types.MessageHeaderRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteHeaderResponse(msg *P2PMessage) {
+func (m *MessageRouter) RouteHeaderResponse(msg *p2PMessage) {
 	// A batch of headers arrived to one of our previous requests
-	m.HeaderResponseHandler.HandleHeaderResponse(msg.Message.(*types.MessageHeaderResponse), msg.SourceID)
+	m.HeaderResponseHandler.HandleHeaderResponse(msg.message.(*types.MessageHeaderResponse), msg.sourceID)
 }
 
 // BroadcastMessage send message to all peers
@@ -168,4 +186,8 @@ func (m *MessageRouter) MulticastMessage(messageType MessageType, message types.
 
 func (m *MessageRouter) MulticastToSource(messageType MessageType, message types.Message, sourceMsgHash *types.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
+}
+
+func (m *MessageRouter) BroadcastMessageWithLink(messageType MessageType, message types.Message) {
+	m.Hub.BroadcastMessageWithLink(messageType, message)
 }

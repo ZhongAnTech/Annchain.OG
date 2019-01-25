@@ -3,12 +3,13 @@ package og
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/types"
-	"github.com/deckarep/golang-set"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/types"
+	"github.com/deckarep/golang-set"
 )
 
 var (
@@ -199,7 +200,7 @@ func (p *peer) AsyncSendMessage(msg *P2PMessage) {
 	}
 }
 
-// SendNodeDataRLP sends a batch of arbitrary internal data, corresponding to the
+// SendNodeData sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
 	return p.sendRawMessage(NodeDataMsg, data)

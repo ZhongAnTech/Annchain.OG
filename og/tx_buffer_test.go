@@ -64,7 +64,7 @@ func (d *dummyTxPool) GetLatestNonce(addr types.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
-func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string) {
+func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
 	return
 }
 
@@ -85,7 +85,7 @@ func (d *dummyTxPool) Get(hash types.Hash) types.Txi {
 	return nil
 }
 
-func (d *dummyTxPool) AddRemoteTx(tx types.Txi) error {
+func (d *dummyTxPool) AddRemoteTx(tx types.Txi, b bool) error {
 	d.dmap[tx.GetTxHash()] = tx
 	return nil
 }
@@ -110,14 +110,18 @@ func (d *dummySyncer) Know(tx types.Txi) {
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummySyncer) Enqueue(hash types.Hash, b bool) {
-	if _, err := d.acquireTxDedupCache.Get(hash); err == nil {
+func (d *dummySyncer) IsCachedHash(hash types.Hash) bool {
+	return false
+}
+
+func (d *dummySyncer) Enqueue(hash *types.Hash, childHash types.Hash, b bool) {
+	if _, err := d.acquireTxDedupCache.Get(*hash); err == nil {
 		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	d.acquireTxDedupCache.Set(hash, struct{}{})
 
-	if v, ok := d.dmap[hash]; ok {
+	if v, ok := d.dmap[*hash]; ok {
 		<-ffchan.NewTimeoutSenderShort(d.buffer.ReceivedNewTxChan, v, "test").C
 		logrus.WithField("hash", hash).Infof("syncer added tx")
 		logrus.WithField("hash", hash).Infof("syncer returned tx")
@@ -265,7 +269,7 @@ func TestLocalHash(t *testing.T) {
 	buffer := setup()
 	tx2 := sampleTx("0x02", []string{"0x00"})
 	tx3 := sampleTx("0x03", []string{"0x00"})
-	buffer.txPool.AddRemoteTx(tx2)
+	buffer.txPool.AddRemoteTx(tx2, true)
 	if !buffer.isLocalHash(tx2.GetTxHash()) {
 		t.Fatal("is localhash")
 	}

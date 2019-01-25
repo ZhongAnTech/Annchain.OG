@@ -78,7 +78,7 @@ func (b *BloomFilterFireStatus) check() bool {
 
 //sendBloomFilter , avoid sending blomm filter frequently ,wait until got response of bloom filter or timeout
 
-func (m *IncrementalSyncer) sendBloomFilter(hash types.Hash) {
+func (m *IncrementalSyncer) sendBloomFilter(childhash types.Hash) {
 	m.bloomFilterStatus.mu.Lock()
 	if !m.bloomFilterStatus.check() {
 		log.Debug("bloom filter request is pending")
@@ -108,13 +108,7 @@ func (m *IncrementalSyncer) sendBloomFilter(hash types.Hash) {
 
 	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
-	if len(hashs) == 0 {
-		//source unknown
-		m.messageSender.MulticastMessage(og.MessageTypeFetchByHashRequest, &req)
-		return
-	}
-	var sourceHash *types.Hash
-	sourceHash = &hash
-	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, sourceHash)
+	hash := childhash
+	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &hash)
 	return
 }

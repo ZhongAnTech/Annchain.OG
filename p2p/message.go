@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/msg"
 	"github.com/tinylib/msgp/msgp"
 	"io"
 	"io/ioutil"
@@ -38,7 +37,7 @@ import (
 
 type Msg struct {
 	Code       MsgCodeType
-	Size       uint32 // size of the paylod
+	Size       uint32 // size of the payload
 	Payload    io.Reader
 	ReceivedAt time.Time
 }
@@ -106,10 +105,10 @@ func SendRlp(w MsgWriter, msgcode uint64, data interface{}) error {
 
 */
 
-func Send(w MsgWriter, msgcode MsgCodeType, data []byte) error {
+func Send(w MsgWriter, msgCode MsgCodeType, data []byte) error {
 	size := len(data)
 	r := bytes.NewReader(data)
-	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
+	return w.WriteMsg(Msg{Code: msgCode, Size: uint32(size), Payload: r})
 }
 
 // SendItems writes an RLP with the given code and data elements.
@@ -264,26 +263,6 @@ func ExpectMsg(r MsgReader, code MsgCodeType, content msgp.Marshaler) error {
 		return fmt.Errorf("message payload mismatch:\ngot:  %x\nwant: %x", actualContent, contentEnc)
 	}
 	return nil
-}
-func ExpectMsgArrByte(r MsgReader, code MsgCodeType, content []byte) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, msg.Bytes(content))
-}
-
-func ExpectMsgArrUint(r MsgReader, code MsgCodeType, content []uint) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, msg.Uints(content))
-}
-
-func ExpectMsgArrString(r MsgReader, code MsgCodeType, content []string) error {
-	if content == nil {
-		return ExpectMsg(r, code, nil)
-	}
-	return ExpectMsg(r, code, msg.Strings(content))
 }
 
 /*

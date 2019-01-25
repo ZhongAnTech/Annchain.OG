@@ -235,6 +235,24 @@ func (m *MessageTxsResponse) String() string {
 	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
 }
 
+func (m *MessageTxsResponse) Hashes() Hashes {
+	var hashes Hashes
+	if len(m.RawTxs) == 0 {
+		return nil
+	}
+	for _, tx := range m.RawTxs {
+		if tx == nil {
+			continue
+		}
+		hashes = append(hashes, tx.GetTxHash())
+	}
+	if m.RawSequencer!=nil {
+		hashes = append(hashes,m.RawSequencer.GetTxHash())
+	}
+	return hashes
+}
+
+
 //msgp:tuple MessageTxsResponse
 type MessageBodyData struct {
 	RawTxs       RawTxs

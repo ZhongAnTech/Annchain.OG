@@ -51,7 +51,7 @@ type peer struct {
 	seqId     uint64
 	lock      sync.RWMutex
 	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
-	queuedMsg chan []*P2PMessage // Queue of transactions to broadcast to the peer
+	queuedMsg chan []*p2PMessage // Queue of transactions to broadcast to the peer
 	term      chan struct{}      // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
@@ -75,7 +75,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*P2PMessage, maxqueuedMsg),
+		queuedMsg: make(chan []*p2PMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
@@ -103,8 +103,12 @@ func (p *peer) broadcast() {
 	}
 }
 
-func (p *peer) SetOutPath(v bool) {
+func (p *peer) SetOutPath(v bool) bool {
+	if p.outPath == v {
+		return false
+	}
 	p.outPath = v
+	return true
 }
 
 func (p *peer) SetInPath(v bool) {
@@ -156,25 +160,27 @@ func (p *peer) SetHead(hash types.Hash, seqId uint64) {
 
 // MarkMessage marks a message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkMessage(hash types.Hash) {
+func (p *peer) MarkMessage(m MessageType, hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
 	}
-	p.knownMsg.Add(hash)
+	key := newMsgKey(m, hash)
+	p.knownMsg.Add(key)
 }
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
-func (p *peer) SendMessages(messages []*P2PMessage) error {
+func (p *peer) SendMessages(messages []*p2PMessage) error {
 	var msgType MessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
 		return nil
 	}
 	for _, msg := range messages {
-		p.knownMsg.Add(msg.hash)
-		msgType = msg.MessageType
+		key := msg.msgKey()
+		p.knownMsg.Add(key)
+		msgType = msg.messageType
 		msgBytes = append(msgBytes, msg.data...)
 	}
 	return p.sendRawMessage(msgType, msgBytes)
@@ -182,45 +188,31 @@ func (p *peer) SendMessages(messages []*P2PMessage) error {
 
 func (p *peer) sendRawMessage(msgType MessageType, msgBytes []byte) error {
 	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
-	return p2p.Send(p.rw, p2p.MsgCodeType(msgType), msgBytes)
-
-}
-
-func (p *peer) SendTransactions(txs types.Txs) error {
-
-	if len(txs) == 0 {
-		return fmt.Errorf("nil txs")
-	}
-	data, _ := txs.MarshalMsg(nil)
-	msg := &P2PMessage{
-		MessageType: MessageTypeNewTxs,
-		data:        data,
-	}
-	var msgs []*P2PMessage
-	msgs = append(msgs, msg)
-	return p.SendMessages(msgs)
+	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 
 }
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendMessages(messages []*P2PMessage) {
+func (p *peer) AsyncSendMessages(messages []*p2PMessage) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
-			p.knownMsg.Add(msg.hash)
+			key := msg.msgKey()
+			p.knownMsg.Add(key)
 		}
 	default:
 		msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
 	}
 }
 
-func (p *peer) AsyncSendMessage(msg *P2PMessage) {
-	var messages []*P2PMessage
+func (p *peer) AsyncSendMessage(msg *p2PMessage) {
+	var messages []*p2PMessage
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:
-		p.knownMsg.Add(msg.hash)
+		key := msg.msgKey()
+		p.knownMsg.Add(key)
 	default:
 		msgLog.Debug("Dropping transaction propagation")
 	}
@@ -514,13 +506,24 @@ func generateRandomIndices(count int, upper int) []int {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutMsg(hash types.Hash) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash types.Hash, m MessageType) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
+	if m == MessageTypeNewTx || m == MessageTypeNewSequencer {
+		keyControl := newMsgKey(MessageTypeControl, hash)
+		key := newMsgKey(m, hash)
+		for _, p := range ps.peers {
+			if !p.knownMsg.Contains(key) && !p.knownMsg.Contains(keyControl) {
+				list = append(list, p)
+			}
+		}
+		return list
+	}
+	key := newMsgKey(m, hash)
 	for _, p := range ps.peers {
-		if !p.knownMsg.Contains(hash) {
+		if !p.knownMsg.Contains(key) {
 			list = append(list, p)
 		}
 	}

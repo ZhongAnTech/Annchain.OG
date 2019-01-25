@@ -140,7 +140,6 @@ func (s *SyncManager) loopSync() {
 
 func (s *SyncManager) NotifyUpToDateEvent(isUpToDate bool) {
 	for _, c := range s.OnUpToDate {
-
 		c <- isUpToDate
 	}
 }

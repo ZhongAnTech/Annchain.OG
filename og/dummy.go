@@ -64,7 +64,7 @@ func (p *dummyTxPoolParents) GetLatestNonce(addr types.Address) (uint64, error) 
 	return 0, fmt.Errorf("not supported")
 }
 
-func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string) {
+func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
 	return
 }
 
@@ -76,7 +76,11 @@ func (p *dummyTxPoolParents) Get(hash types.Hash) types.Txi {
 	return p.poolMap[hash]
 }
 
-func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi) error {
+func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi, b bool) error {
 	p.poolMap[tx.GetTxHash()] = tx
 	return nil
+}
+
+func (p *dummyTxPoolParents) GetMaxWeight() uint64 {
+	return 0
 }

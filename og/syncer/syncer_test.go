@@ -70,7 +70,7 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 		msg := &types.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {
-			syncer.HandleNewTx(msg)
+			syncer.HandleNewTx(msg, "123")
 			wg.Done()
 		}()
 	}
@@ -90,7 +90,7 @@ func TestSyncBuffer_AddTxs(t *testing.T) {
 		msg := &types.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {
-			syncer.HandleNewTx(msg)
+			syncer.HandleNewTx(msg, "123")
 			wg.Done()
 		}()
 	}

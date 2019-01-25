@@ -1,7 +1,10 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
+	"sync/atomic"
+
 	// "github.com/annchain/OG/ffchan"
 	"sync"
 	"time"
@@ -12,25 +15,55 @@ import (
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG
 type IncomingMessageHandler struct {
-	Og           *Og
-	Hub          *Hub
-	requestCache *Cache
+	Og              *Og
+	Hub             *Hub
+	controlMsgCache *ControlMsgCache
+	requestCache    *RequestCache
+	TxEnable        func() bool
+	quit            chan struct{}
+}
+
+type hashAndSourceId struct {
+	hash     types.Hash
+	sourceId string
 }
 
 //msg request cache ,don't send duplicate message
-type Cache struct {
+type ControlMsgCache struct {
+	cache      map[types.Hash]*controlItem
+	mu         sync.RWMutex
+	size       int
+	queue      chan *hashAndSourceId
+	ExpireTime time.Duration
+}
+
+type controlItem struct {
+	sourceId   string
+	receivedAt *time.Time
+	requested  bool
+}
+
+type RequestCache struct {
 	cache map[uint64]bool
 	mu    sync.RWMutex
 }
 
 //NewIncomingMessageHandler
-func NewIncomingMessageHandler(og *Og, hub *Hub) *IncomingMessageHandler {
+func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.Duration) *IncomingMessageHandler {
 	return &IncomingMessageHandler{
 		Og:  og,
 		Hub: hub,
-		requestCache: &Cache{
+		controlMsgCache: &ControlMsgCache{
+			cache:      make(map[types.Hash]*controlItem),
+			size:       cacheSize,
+			ExpireTime: expireTime,
+			queue:      make(chan *hashAndSourceId, 1),
+		},
+		requestCache: &RequestCache{
 			cache: make(map[uint64]bool),
 		},
+
+		quit: make(chan struct{}),
 	}
 }
 
@@ -378,7 +411,7 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageS
 	if msgHeader.Number > lseq.Number() {
 		if !h.requestCache.get(msgHeader.Number) {
 			h.Hub.Fetcher.Notify(peerId, *msgHeader.Hash, msgHeader.Number, time.Now(), h.Hub.RequestOneHeader, h.Hub.RequestBodies)
-			h.requestCache.add(msgHeader.Number)
+			h.requestCache.set(msgHeader.Number)
 			msgLog.WithField("header ", msgHeader.String()).Info("notify to header to fetcher")
 		}
 		h.requestCache.clean(lseq.Number())
@@ -387,31 +420,25 @@ func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageS
 	return
 }
 
-func (c *Cache) add(id uint64) {
+func (c *RequestCache) set(id uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.cache[id] = true
 }
 
-func (c *Cache) get(id uint64) bool {
+func (c *RequestCache) get(id uint64) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.cache[id]
 }
 
-func (c *Cache) remove(id uint64) {
+func (c *RequestCache) remove(id uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.cache, id)
 }
 
-func (c *Cache) removeItems(id uint64) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.cache, id)
-}
-
-func (c *Cache) clean(lseqId uint64) {
+func (c *RequestCache) clean(lseqId uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for k := range c.cache {
@@ -419,7 +446,102 @@ func (c *Cache) clean(lseqId uint64) {
 			delete(c.cache, k)
 		}
 	}
+}
 
+func (c *ControlMsgCache) set(hash types.Hash, sourceId string) {
+	c.queue <- &hashAndSourceId{hash: hash, sourceId: sourceId}
+}
+
+func (c *ControlMsgCache) get(hash types.Hash) *controlItem {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if v, ok := c.cache[hash]; ok {
+		return v
+	}
+	return nil
+}
+
+func (c *ControlMsgCache) getALlKey() types.Hashes {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	var hashes types.Hashes
+	for k := range c.cache {
+		hashes = append(hashes, k)
+	}
+	return hashes
+}
+
+func (c *ControlMsgCache) Len() int {
+	//c.mu.RLock()
+	//defer c.mu.RUnlock()
+	return len(c.cache)
+}
+
+func (c *ControlMsgCache) remove(hash types.Hash) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.cache, hash)
+}
+
+func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash types.Hash) {
+	h.controlMsgCache.remove(hash)
+}
+
+func (h *IncomingMessageHandler) loop() {
+	c := h.controlMsgCache
+	var handling uint32
+	for {
+		select {
+		case h := <-c.queue:
+			c.mu.Lock()
+			if len(c.cache) > c.size {
+				//todo
+			}
+			now := time.Now()
+			item := controlItem{
+				receivedAt: &now,
+				sourceId:   h.sourceId,
+			}
+			c.cache[h.hash] = &item
+			c.mu.Unlock()
+		case <-time.After(1 * time.Millisecond):
+			if atomic.LoadUint32(&handling) == 1 {
+				continue
+			}
+			atomic.StoreUint32(&handling, 1)
+			keys := c.getALlKey()
+			for _, k := range keys {
+				item := c.get(k)
+				if item == nil {
+					continue
+				}
+				txkey := newMsgKey(MessageTypeNewTx, k)
+				if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
+					c.remove(k)
+					continue
+				}
+				if item.receivedAt.Add(2 * time.Millisecond).Before(time.Now()) {
+					if h.Hub.IsReceivedHash(k) {
+						msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+						continue
+					}
+				}
+				if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
+					hash := k
+					msg := &types.MessageGetMsg{Hash: &hash}
+					msgLog.WithField("hash ", k).Debug("send got tx msg msg")
+					go h.Hub.SendGetMsg(item.sourceId, msg)
+					c.remove(k)
+				}
+			}
+			atomic.StoreUint32(&handling, 0)
+
+		case <-h.quit:
+			msgLog.Info(" incoming msg handler got quit signal ,quiting...")
+			return
+		}
+
+	}
 }
 
 func (h *IncomingMessageHandler) HandlePing(peerId string) {
@@ -455,4 +577,50 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePe
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
 	}
 	return
+}
+
+func (h *IncomingMessageHandler) HandleControlMsg(req *types.MessageControl, sourceId string) {
+	if req.Hash == nil {
+		msgLog.WithError(fmt.Errorf("miss hash")).Debug("control msg request err")
+		return
+	}
+
+	if !h.TxEnable() {
+		msgLog.Debug("incremental received MessageTypeControl but receiveTx  disabled")
+		return
+	}
+	hash := *req.Hash
+	txkey := newMsgKey(MessageTypeNewTx, hash)
+	if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
+		msgLog.WithField("hash ", hash).Trace("already got tx of this control msg")
+		return
+	}
+	if item := h.controlMsgCache.get(hash); item != nil {
+		msgLog.WithField("hash ", hash).Trace("duplicated control msg")
+		return
+	}
+	if h.Hub.IsReceivedHash(hash) {
+		msgLog.WithField("hash ", hash).Trace("already received tx of this control msg")
+	}
+	h.controlMsgCache.set(hash, sourceId)
+	msgLog.WithField("hash ", hash).Trace("already received tx of this control msg")
+}
+
+func (m *IncomingMessageHandler) Start() {
+	go m.loop()
+	msgLog.Info("message handler started")
+}
+
+func (m *IncomingMessageHandler) Stop() {
+	m.quit <- struct{}{}
+}
+
+func (m *IncomingMessageHandler) Name() string {
+	return "IncomingMessageHandler"
+}
+
+func (m *IncomingMessageHandler) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{
+		"controlMsgCache": m.controlMsgCache.Len(),
+	}
 }

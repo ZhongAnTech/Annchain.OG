@@ -82,7 +82,7 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived      map[string]chan types.Txi       // for notifications of new txs.
+	onNewTxReceived      map[chanelName]chan types.Txi   // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                uint32
@@ -111,7 +111,7 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		flows:            NewAccountFlows(),
 		txLookup:         newTxLookUp(),
 		close:            make(chan struct{}),
-		onNewTxReceived:  make(map[string]chan types.Txi),
+		onNewTxReceived:  make(map[chanelName]chan types.Txi),
 		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
 	}
 	return pool
@@ -149,9 +149,10 @@ type txEvent struct {
 	callbackChan chan error
 }
 type txEnvelope struct {
-	tx     types.Txi
-	txType TxType
-	status TxStatus
+	tx         types.Txi
+	txType     TxType
+	status     TxStatus
+	noFeedBack bool
 }
 
 // Start begin the txpool sevices
@@ -276,9 +277,19 @@ func (pool *TxPool) getStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
-func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string) {
-	log.Tracef("RegisterOnNewTxReceived with chan: %s", chanName)
-	pool.onNewTxReceived[chanName] = c
+type chanelName struct {
+	name   string
+	allMsg bool
+}
+
+func (c chanelName) String() string {
+	return c.name
+}
+
+func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, allTx bool) {
+	log.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
+	chName := chanelName{chanName, allTx}
+	pool.onNewTxReceived[chName] = c
 }
 
 // GetRandomTips returns n tips randomly.
@@ -325,17 +336,17 @@ func (pool *TxPool) GetAllTips() map[types.Hash]types.Txi {
 
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
 // AddLocalTx only process tx that sent by local node.
-func (pool *TxPool) AddLocalTx(tx types.Txi) error {
-	return pool.addTx(tx, TxTypeLocal)
+func (pool *TxPool) AddLocalTx(tx types.Txi, noFeedBack bool) error {
+	return pool.addTx(tx, TxTypeLocal, noFeedBack)
 }
 
 // AddLocalTxs adds a list of txs to txpool if they are valid. It returns
 // the process result of each tx with an error list. AddLocalTxs only process
 // txs that sent by local node.
-func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
+func (pool *TxPool) AddLocalTxs(txs []types.Txi, noFeedBack bool) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, TxTypeLocal))
+		result = append(result, pool.addTx(tx, TxTypeLocal, noFeedBack))
 	}
 	return result
 }
@@ -343,15 +354,15 @@ func (pool *TxPool) AddLocalTxs(txs []types.Txi) []error {
 // AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
 // sent by remote nodes, and will hold extra functions to prevent from ddos
 // (large amount of invalid tx sent from one node in a short time) attack.
-func (pool *TxPool) AddRemoteTx(tx types.Txi) error {
-	return pool.addTx(tx, TxTypeRemote)
+func (pool *TxPool) AddRemoteTx(tx types.Txi, noFeedBack bool) error {
+	return pool.addTx(tx, TxTypeRemote, noFeedBack)
 }
 
 // AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
-func (pool *TxPool) AddRemoteTxs(txs []types.Txi) []error {
+func (pool *TxPool) AddRemoteTxs(txs []types.Txi, noFeedBack bool) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, TxTypeRemote))
+		result = append(result, pool.addTx(tx, TxTypeRemote, noFeedBack))
 	}
 	return result
 }
@@ -462,15 +473,16 @@ func (pool *TxPool) loop() {
 }
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
-func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
+func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
 	log.WithField("tx", tx).Trace("start addTx")
 
 	te := &txEvent{
 		callbackChan: make(chan error),
 		txEnv: &txEnvelope{
-			tx:     tx,
-			txType: senderType,
-			status: TxStatusQueue,
+			tx:         tx,
+			txType:     senderType,
+			status:     TxStatusQueue,
+			noFeedBack: noFeedBack,
 		},
 	}
 	pool.queue <- te
@@ -485,8 +497,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType) error {
 		// notify all subscribers of newTxEvent
 		for name, subscriber := range pool.onNewTxReceived {
 			log.WithField("tx", tx).Trace("notify subscriber: ", name)
-			subscriber <- tx
-			// <-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
+			if !noFeedBack || name.allMsg {
+				subscriber <- tx
+				// <-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
+			}
 		}
 	}
 

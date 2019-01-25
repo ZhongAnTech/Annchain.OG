@@ -56,6 +56,10 @@ func randomHash() Hash {
 	return sh
 }
 
+func RandomHash() Hash {
+	return randomHash()
+}
+
 func randomAddress() Address {
 	v := math.NewBigInt(rand.Int63())
 	adr := BigToAddress(v.Value)

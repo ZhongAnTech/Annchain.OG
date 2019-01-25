@@ -594,6 +594,7 @@ type Monitor struct {
 type Peer struct {
 	Addr    string `json:"addr"`
 	ShortId string `json:"short_id"`
+	Link    bool   `json:"link"`
 }
 
 func (r *RpcController) Monitor(c *gin.Context) {
@@ -602,7 +603,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	if seq != nil {
 		m.SeqId = seq.Height
 	}
-	peersinfo := r.P2pServer.PeersInfo()
+	peersinfo := r.Og.Manager.Hub.PeersInfo()
 	for _, p := range peersinfo {
 		/*
 			if p.Network.Inbound {
@@ -616,8 +617,9 @@ func (r *RpcController) Monitor(c *gin.Context) {
 				}
 		*/
 		var peer Peer
-		peer.Addr = p.Network.RemoteAddress
+		peer.Addr = p.Addrs
 		peer.ShortId = p.ShortId
+		peer.Link = p.Link
 		m.Peers = append(m.Peers, peer)
 	}
 	m.Port = viper.GetString("p2p.port")

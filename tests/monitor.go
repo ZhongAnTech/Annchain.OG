@@ -14,14 +14,13 @@ import (
 )
 
 type Monitor struct {
-	Port    string         `json:"port"`
-	Peers   []rpc.Peer     `json:"peers"`
-	SeqId   uint64         `json:"seq_id"`
-	ShortId string         `json:"short_id"`
-	Status  rpc.SyncStatus `json:"status"`
-	Err     error
-	Id      int
-	Tps     *rpc.Tps `json:"tps"`
+	rpc.Monitor
+	Err error
+	Id  int
+}
+
+type response struct {
+	Data rpc.Monitor `json:"data"`
 }
 
 type Statistics struct {
@@ -30,7 +29,7 @@ type Statistics struct {
 
 var fistPort = 11300
 
-var peerNum = 3
+var peerNum = 5
 var ipsNum = 1
 
 func main() {
@@ -108,7 +107,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	return []string{"192.168.45.145"}
+	return []string{"192.168.45.147"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)
@@ -132,11 +131,13 @@ func getRequest(ip string, id, portId int, ch chan *Monitor) {
 	host := fmt.Sprintf("http://%s:%d", ip, port)
 	req := httplib.NewBeegoRequest(host+"/monitor", "GET")
 	req.SetTimeout(8*time.Second, 8*time.Second)
+	var res response
 	var m Monitor
-	err := req.ToJSON(&m)
+	err := req.ToJSON(&res)
 	if err != nil {
 		m.Err = err
 	}
+	m.Monitor = res.Data
 	m.Id = id
 	m.Port = fmt.Sprintf("%s:%d", ip, port)
 	ch <- &m

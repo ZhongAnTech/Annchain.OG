@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/wserver"
 	"github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 
@@ -79,6 +80,7 @@ func NewNode() *Node {
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
+		BroadCastMode:                 og.FeedBackMode,
 	})
 
 	hub.StatusDataProvider = org
@@ -115,7 +117,7 @@ func NewNode() *Node {
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,
 	})
-	hub.IsKnownHash = txBuffer.IsKnownHash
+	hub.IsReceivedHash = txBuffer.IsReceivedHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:         org.TxPool,
 		Dag:            org.Dag,
@@ -149,7 +151,7 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
 
-	messageHandler := og.NewIncomingMessageHandler(org, hub)
+	messageHandler := og.NewIncomingMessageHandler(org, hub, 10000, time.Microsecond*40)
 
 	m := &og.MessageRouter{
 		PongHandler:               messageHandler,
@@ -163,9 +165,10 @@ func NewNode() *Node {
 		HeaderResponseHandler:     messageHandler,
 		FetchByHashRequestHandler: messageHandler,
 		GetMsgHandler:             messageHandler,
+		ControlMsgHandler:         messageHandler,
 		Hub:                       hub,
 	}
-
+	n.Components = append(n.Components, messageHandler)
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
 		&syncer.SyncerConfig{
 			BatchTimeoutMilliSecond:                  40,
@@ -186,7 +189,8 @@ func NewNode() *Node {
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
 	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
-
+	messageHandler.TxEnable = syncManager.IncrementalSyncer.TxEnable
+	syncManager.IncrementalSyncer.RemoveContrlMsgFromCache = messageHandler.RemoveControlMsgFromCache
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
 	//org.OnNodeSyncStatusChanged = append(org.OnNodeSyncStatusChanged, syncer.UpToDateEventListener)
 
@@ -314,7 +318,7 @@ func NewNode() *Node {
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
-		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan")
+		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan", true)
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
@@ -322,7 +326,7 @@ func NewNode() *Node {
 	//txMetrics
 	txCounter := performance.NewTxCounter()
 
-	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan")
+	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
 	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)
@@ -331,7 +335,7 @@ func NewNode() *Node {
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
 	pm.Register(txBuffer)
-
+	pm.Register(messageHandler)
 	pm.Register(hub)
 	pm.Register(txCounter)
 	n.Components = append(n.Components, pm)
@@ -387,6 +391,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeTxsResponse] = m.RouteTxsResponse
 	hub.CallbackRegistry[og.MessageTypeHeaderRequest] = m.RouteHeaderRequest
 	hub.CallbackRegistry[og.MessageTypeHeaderResponse] = m.RouteHeaderResponse
+	hub.CallbackRegistry[og.MessageTypeControl] = m.RouteControlMsg
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG32, hub *og.Hub) {

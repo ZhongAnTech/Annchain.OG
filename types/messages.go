@@ -246,12 +246,11 @@ func (m *MessageTxsResponse) Hashes() Hashes {
 		}
 		hashes = append(hashes, tx.GetTxHash())
 	}
-	if m.RawSequencer!=nil {
-		hashes = append(hashes,m.RawSequencer.GetTxHash())
+	if m.RawSequencer != nil {
+		hashes = append(hashes, m.RawSequencer.GetTxHash())
 	}
 	return hashes
 }
-
 
 //msgp:tuple MessageTxsResponse
 type MessageBodyData struct {

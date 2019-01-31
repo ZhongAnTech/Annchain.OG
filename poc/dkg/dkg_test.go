@@ -54,6 +54,10 @@ func TestBLS(t *testing.T) {
 
 	// Partners gossips to share deals and responses.
 	for _, partner := range partners {
+		//if pi == nbParticipants -1 {
+		//	fmt.Println("Skip you")
+		//	continue
+		//}
 		// get all deals that needs to be sent to other partners
 		deals, err := partner.Dkger.Deals()
 		require.Nil(t, err)
@@ -85,8 +89,17 @@ func TestBLS(t *testing.T) {
 		}
 	}
 
-	// Each partner sign the message using its partSec and generates a partSig
+	// each partner should have the ability to aggregate pubkey
+	for _, partner := range partners{
+		jointPubKey, err := partner.RecoverPub()
+		if err != nil{
+			fmt.Printf("Partner %d cannot aggregate PubKey: %s\n", partner.ID, err)
+		}else{
+			fmt.Printf("Partner %d jointPubKey: %s\n", partner.ID, jointPubKey)
+		}
+	}
 
+	// Each partner sign the message using its partSec and generates a partSig
 	msg := []byte("Hello DKG, VSS, TBLS and BLS!")
 	sigShares := make([][]byte, 0)
 	for i, partner := range partners {
@@ -96,9 +109,12 @@ func TestBLS(t *testing.T) {
 			break
 		}
 		sig, err := partner.Sig(msg)
-		fmt.Printf("Sig %d %s\n", i, hexutil.Encode(sig))
-		require.NoError(t, err)
-		sigShares = append(sigShares, sig)
+		if err != nil{
+			fmt.Printf("Partner %d cannot partSig: %s\n", partner.ID, err)
+		}else{
+			fmt.Printf("Sig %d %s\n", i, hexutil.Encode(sig))
+			sigShares = append(sigShares, sig)
+		}
 	}
 	// announce partSig to all partners
 	for _, partner := range partners {

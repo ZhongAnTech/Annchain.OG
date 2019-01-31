@@ -67,6 +67,16 @@ func (p *Partner) RecoverSig(msg []byte) (jointSig []byte, err error) {
 	return
 }
 
+func (p *Partner) RecoverPub() (jointPubKey kyber.Point, err error) {
+	dks, err := p.Dkger.DistKeyShare()
+	if err != nil{
+		return
+	}
+	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
+	jointPubKey = pubPoly.Commit()
+	return
+}
+
 func (p *Partner) Sig(msg []byte) (partSig []byte, err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	if err != nil {

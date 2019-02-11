@@ -1,14 +1,14 @@
 package dkg
 
 import (
-	"testing"
-	"github.com/dedis/kyber/pairing/bn256"
-	"github.com/stretchr/testify/require"
-	"github.com/dedis/kyber/share/vss/pedersen"
 	"fmt"
-	"github.com/dedis/kyber"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/dedis/kyber/v3"
+	"github.com/annchain/OG/dedis/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/dedis/kyber/v3/share/vss/pedersen"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
@@ -90,11 +90,11 @@ func TestBLS(t *testing.T) {
 	}
 
 	// each partner should have the ability to aggregate pubkey
-	for _, partner := range partners{
+	for _, partner := range partners {
 		jointPubKey, err := partner.RecoverPub()
-		if err != nil{
+		if err != nil {
 			fmt.Printf("Partner %d cannot aggregate PubKey: %s\n", partner.ID, err)
-		}else{
+		} else {
 			fmt.Printf("Partner %d jointPubKey: %s\n", partner.ID, jointPubKey)
 		}
 	}
@@ -109,9 +109,9 @@ func TestBLS(t *testing.T) {
 			break
 		}
 		sig, err := partner.Sig(msg)
-		if err != nil{
+		if err != nil {
 			fmt.Printf("Partner %d cannot partSig: %s\n", partner.ID, err)
-		}else{
+		} else {
 			fmt.Printf("Sig %d %s\n", i, hexutil.Encode(sig))
 			sigShares = append(sigShares, sig)
 		}
@@ -125,7 +125,7 @@ func TestBLS(t *testing.T) {
 	for _, partner := range partners {
 		// Let's make partner #k have only k sig shares
 		// any partner #k < threshold will not be able to reconstruct the JoingSignature
-		partner.SigShares = partner.SigShares[0 : math.MinInt(partner.ID, actualSigners)]
+		partner.SigShares = partner.SigShares[0:math.MinInt(partner.ID, actualSigners)]
 	}
 
 	// recover JointSig
@@ -134,7 +134,7 @@ func TestBLS(t *testing.T) {
 		if err != nil {
 			fmt.Printf("partner %d cannot recover jointSig with %d sigshares: %s\n",
 				partner.ID, len(partner.SigShares), err)
-		}else{
+		} else {
 			fmt.Printf("threshold signature from partner %d: %s\n", partner.ID, hexutil.Encode(jointSig))
 			// verify if JointSig meets the JointPubkey
 			err = partner.VerifyByDksPublic(msg, jointSig)
@@ -148,7 +148,7 @@ func TestBLS(t *testing.T) {
 		if err != nil {
 			fmt.Printf("partner %d cannot recover jointSig with %d sigshares: %s\n",
 				partner.ID, len(partner.SigShares), err)
-		}else{
+		} else {
 			fmt.Printf("threshold signature from partner %d: %s\n", partner.ID, hexutil.Encode(jointSig))
 			// verify if JointSig meets the JointPubkey
 			err = partner.VerifyByPubPoly(msg, jointSig)

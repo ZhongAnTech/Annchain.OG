@@ -555,19 +555,36 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 	return
 }
 
-func (r *RpcController) QueryContract(c *gin.Context) {
-	addrstr := c.Query("contract_address")
-	querystr := c.Query("query_data")
+type NewQueryContractReq struct {
+	Address string `json:"address"`
+	Data    string `json:"data"`
+}
 
-	addr := types.HexToAddress(addrstr)
-	query, err := hex.DecodeString(querystr)
+func (r *RpcController) QueryContract(c *gin.Context) {
+	var (
+		reqdata NewQueryContractReq
+	)
+
+	err := c.ShouldBindJSON(&reqdata)
 	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("can't decode query_data to bytes"), nil)
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	ret, errc := r.Og.Dag.CallContract(addr, query)
-	if errc != nil {
-		Response(c, http.StatusNotFound, fmt.Errorf("query contract error: %v", errc), nil)
+
+	addr, err := types.StringToAddress(reqdata.Address)
+	if err != nil {
+		Response(c, http.StatusBadRequest, err, nil)
+		return
+	}
+	query, err := hex.DecodeString(reqdata.Data)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("can't decode data to bytes"), nil)
+		return
+	}
+
+	ret, err := r.Og.Dag.CallContract(addr, query)
+	if err != nil {
+		Response(c, http.StatusNotFound, fmt.Errorf("query contract error: %v", err), nil)
 		return
 	}
 

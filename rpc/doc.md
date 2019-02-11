@@ -486,5 +486,36 @@ Get receipt of a transaction.
 ```
 ---
 
+## **Query Contract**
+Query data from a contract.
 
+**URL**:
+```
+/query_contract
+```
+
+**Method**: POST
+
+**请求参数**:  
+
+| 参数 | 数据类型 | 是否必填 | 备注
+| --- | --- | --- | ---
+| address | hex string | 是 | 
+| data | hex string | 是 | 
+
+**请求示例**：
+```json
+{
+    "address": "0x0123456789000000000000000000000000000000",
+    "data": "0x5682aec..."
+}
+```
+
+**返回示例**:
+```json
+{
+    "data": "0x000000000000000000000000000000000000000000000000000000000000000a",
+    "message":""
+}
+```
 

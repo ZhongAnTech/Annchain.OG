@@ -567,8 +567,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-
 	receipts[batch.Seq.GetTxHash().Hex()] = receipt
+
 	// write receipts.
 	err = dag.accessor.WriteReceipts(batch.Seq.Height, receipts)
 	if err != nil {

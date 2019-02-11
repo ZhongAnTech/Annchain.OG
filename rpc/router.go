@@ -42,7 +42,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("query_share", rpc.QueryShare)
 	router.GET("contract_payload", rpc.ContractPayload)
 	router.GET("query_receipt", rpc.QueryReceipt)
-	router.GET("query_contract", rpc.QueryContract)
+	router.POST("query_contract", rpc.QueryContract)
 
 	router.GET("debug", rpc.Debug)
 	router.GET("tps", rpc.Tps)
@@ -86,7 +86,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"transaction":    "hash",
 		"transactions":   "seq_id,address",
 		"confirm":        "hash",
-		"query_contract": "tx",
+		"query_contract": "address,data",
 
 		// debug
 		"debug": "f",

@@ -1,14 +1,14 @@
 package dkg
 
 import (
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/share/dkg/pedersen"
-	"github.com/dedis/kyber/pairing/bn256"
-	"github.com/dedis/kyber/share"
-	"github.com/dedis/kyber/sign/tbls"
-	"github.com/dedis/kyber/sign/bls"
-	"github.com/pkg/errors"
 	"fmt"
+	"github.com/annchain/OG/dedis/kyber/v3"
+	"github.com/annchain/OG/dedis/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/dedis/kyber/v3/share"
+	"github.com/annchain/OG/dedis/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/OG/dedis/kyber/v3/sign/bls"
+	"github.com/annchain/OG/dedis/kyber/v3/sign/tbls"
+	"github.com/pkg/errors"
 )
 
 type Partner struct {
@@ -36,11 +36,11 @@ func (p *Partner) GenerateDKGer() *dkg.DistKeyGenerator {
 
 func (p *Partner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	dks, err := p.Dkger.DistKeyShare()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
-	if pubPoly.Commit() !=  dks.Public(){
+	if pubPoly.Commit() != dks.Public() {
 		err = errors.New("PubPoly not aligned to dksPublic")
 		return
 	}
@@ -53,7 +53,7 @@ func (p *Partner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 
 func (p *Partner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	dks, err := p.Dkger.DistKeyShare()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	err = bls.Verify(p.Suite, dks.Public(), msg, sig)
@@ -69,7 +69,7 @@ func (p *Partner) RecoverSig(msg []byte) (jointSig []byte, err error) {
 
 func (p *Partner) RecoverPub() (jointPubKey kyber.Point, err error) {
 	dks, err := p.Dkger.DistKeyShare()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())

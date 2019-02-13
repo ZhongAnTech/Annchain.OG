@@ -215,6 +215,9 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
 	b.knownCache.Remove(tx.GetTxHash())
+
+	// TODO
+	// add verifier for specific tx types. e.g. Campaign, TermChange.
 	for _, verifier := range b.verifiers {
 		if !verifier.Verify(tx) {
 			logrus.WithField("tx", tx).WithField("verifier", verifier.Name()).Warn("bad tx")

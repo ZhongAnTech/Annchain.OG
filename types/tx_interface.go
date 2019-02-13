@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/annchain/OG/common/crypto/sha3"
-	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -48,31 +47,32 @@ func (t TxBaseType) String() string {
 
 //msgp:tuple Txi
 type Txi interface {
-	CalcTxHash() Hash         // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	CalcMinedHash() Hash      // NonceHash returns the part that needs to be considered in PoW stage 1.
-	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-	Parents() Hashes          // Parents returns the hash of txs that it directly proves.
-
-	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
-
+	// Implemented by TxBase
 	GetType() TxBaseType
 	GetHeight() uint64
-	GetBase() *TxBase
+	GetWeight() uint64
 	GetTxHash() Hash
 	GetNonce() uint64
-	GetValue() *math.BigInt
-	Sender() Address
+	Parents() Hashes // Parents returns the hash of txs that it directly proves.
 	SetHash(h Hash)
 	String() string
-	Dump() string
-	GetWeight() uint64
+	CalcTxHash() Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+	CalcMinedHash() Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalculateWeight(parents Txis) uint64
+
+	// implemented by each tx type
+	GetBase() *TxBase
+	Sender() Address
+	Dump() string             // For logger dump
+	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
+	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
+
+	// implemented by msgp
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
 	MarshalMsg(b []byte) (o []byte, err error)
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
-
-	CalculateWeight(parents Txis) uint64
 }
 
 //msgp:tuple TxBase

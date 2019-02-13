@@ -137,7 +137,12 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		log.WithField("tx", tx).Errorf("add tx that has same nonce")
 		return fmt.Errorf("already exists")
 	}
-	err := af.balance.TrySubBalance(tx.GetValue())
+	value := math.NewBigInt(0)
+	if tx.GetType() == types.TxBaseTypeNormal {
+		txnormal := tx.(*types.Tx)
+		value = txnormal.GetValue()
+	}
+	err := af.balance.TrySubBalance(value)
 	if err != nil {
 		return err
 	}
@@ -152,7 +157,12 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	err := af.balance.TryRemoveValue(tx.GetValue())
+	value := math.NewBigInt(0)
+	if tx.GetType() == types.TxBaseTypeNormal {
+		txnormal := tx.(*types.Tx)
+		value = txnormal.GetValue()
+	}
+	err := af.balance.TryRemoveValue(value)
 	if err != nil {
 		return err
 	}

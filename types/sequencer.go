@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/common/math"
 	"math/rand"
 	"strings"
+
+	"github.com/annchain/OG/common/hexutil"
 )
 
 //go:generate msgp
@@ -64,10 +64,6 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 func (t *Sequencer) Sender() Address {
 	return t.Issuer
-}
-
-func (t *Sequencer) GetValue() *math.BigInt {
-	return math.NewBigInt(0)
 }
 
 func (t *Sequencer) Parents() Hashes {

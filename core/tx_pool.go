@@ -82,7 +82,7 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived      map[chanelName]chan types.Txi   // for notifications of new txs.
+	onNewTxReceived      map[channelName]chan types.Txi  // for notifications of new txs.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                uint32
@@ -111,7 +111,7 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		flows:            NewAccountFlows(),
 		txLookup:         newTxLookUp(),
 		close:            make(chan struct{}),
-		onNewTxReceived:  make(map[chanelName]chan types.Txi),
+		onNewTxReceived:  make(map[channelName]chan types.Txi),
 		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
 	}
 	return pool
@@ -277,18 +277,18 @@ func (pool *TxPool) getStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
 
-type chanelName struct {
+type channelName struct {
 	name   string
 	allMsg bool
 }
 
-func (c chanelName) String() string {
+func (c channelName) String() string {
 	return c.name
 }
 
 func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, allTx bool) {
 	log.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
-	chName := chanelName{chanName, allTx}
+	chName := channelName{chanName, allTx}
 	pool.onNewTxReceived[chName] = c
 }
 
@@ -473,7 +473,7 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
-	log.WithField("tx", tx).Trace("start addTx")
+	log.WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.Parents().String())
 
 	te := &txEvent{
 		callbackChan: make(chan error),
@@ -651,13 +651,14 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	// solve conflicts of txs in pool
 	pool.solveConflicts(elders)
-
+	// add seq to txpool
 	if pool.flows.Get(seq.Sender()) == nil {
 		originBalance := pool.dag.GetBalance(seq.Sender())
 		pool.flows.ResetFlow(seq.Sender(), originBalance)
 	}
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
+	pool.txLookup.Add(&txEnvelope{tx: seq})
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
 	// notification

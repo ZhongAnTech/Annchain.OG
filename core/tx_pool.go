@@ -654,13 +654,14 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	// solve conflicts of txs in pool
 	pool.solveConflicts(elders)
-
+	// add seq to txpool
 	if pool.flows.Get(seq.Sender()) == nil {
 		originBalance := pool.dag.GetBalance(seq.Sender())
 		pool.flows.ResetFlow(seq.Sender(), originBalance)
 	}
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
+	pool.txLookup.Add(&txEnvelope{tx: seq})
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
 	// notification

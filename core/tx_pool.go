@@ -465,7 +465,6 @@ func (pool *TxPool) loop() {
 
 			txEvent.callbackChan <- err
 
-			// TODO case reset?
 		case <-resetTimer.C:
 			pool.reset()
 		}
@@ -486,7 +485,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		},
 	}
 	pool.queue <- te
-	// <-ffchan.NewTimeoutSenderShort(pool.queue, te, "poolAddTx").C
 
 	// waiting for callback
 	select {
@@ -499,7 +497,6 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 			log.WithField("tx", tx).Trace("notify subscriber: ", name)
 			if !noFeedBack || name.allMsg {
 				subscriber <- tx
-				// <-ffchan.NewTimeoutSenderShort(subscriber, tx, "notifySubscriber").C
 			}
 		}
 	}

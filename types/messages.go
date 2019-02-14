@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/Metabdulla/bloom"
+	"github.com/annchain/OG/common/bloom"
 	"github.com/annchain/OG/common/msg"
 )
 

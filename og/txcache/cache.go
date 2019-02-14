@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/Metabdulla/gcache"
+	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"sort"

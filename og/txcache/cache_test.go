@@ -2,7 +2,7 @@ package txcache
 
 import (
 	"fmt"
-	"github.com/Metabdulla/gcache"
+	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"sync"

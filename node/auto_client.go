@@ -18,7 +18,7 @@ const (
 	IntervalModeConstantInterval = "constant"
 	IntervalModeRandom           = "random"
 	IntervalModeMicroRandom      = "micro_random"
-	IntervalModeMicroConstanrt   = "micro_constant"
+	IntervalModeMicroConstant   = "micro_constant"
 )
 
 type AutoClient struct {
@@ -62,7 +62,7 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 		sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMs)
 	case IntervalModeRandom:
 		sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
-	case IntervalModeMicroConstanrt:
+	case IntervalModeMicroConstant:
 		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalMs)
 	case IntervalModeMicroRandom:
 		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))

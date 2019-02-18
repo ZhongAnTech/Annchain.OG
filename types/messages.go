@@ -359,3 +359,38 @@ func (m *MessageGetMsg) String() string {
 func (m *MessageDuplicate) String() string {
 	return "duplicate"
 }
+
+
+type  MessageCampaign struct {
+	Campaign  *Campaign
+}
+
+func (m*MessageCampaign)String() string{
+	return m.Campaign.String()
+}
+
+type MessageTermChange struct {
+	TermChange* TermChange
+}
+
+func (m*MessageTermChange)String() string{
+	return m.TermChange.String()
+}
+
+
+type MessageConsensusDkgDeal struct {
+	//todo
+}
+
+
+func (m*MessageConsensusDkgDeal)String() string{
+	return ""
+}
+
+type MessageConsensusDkgDealResponse struct {
+	//todo
+}
+
+func (m*MessageConsensusDkgDealResponse)String() string{
+	return ""
+}

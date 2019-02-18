@@ -25,8 +25,8 @@ var (
 // fetchRequest is a currently running data retrieval operation.
 type fetchRequest struct {
 	Peer    *peerConnection          // Peer to which the request was sent
-	From    uint64                   // [OG/31] Requested chain element index (used for skeleton fills only)
-	Headers []*types.SequencerHeader // [OG/31] Requested headers, sorted by request order
+	From    uint64                   // [og/01] Requested chain element index (used for skeleton fills only)
+	Headers []*types.SequencerHeader // [og/01] Requested headers, sorted by request order
 	Time    time.Time                // Time when the request was made
 }
 
@@ -46,26 +46,26 @@ type queue struct {
 	mode SyncMode // Synchronisation mode to decide on the block parts to schedule for fetching
 
 	// Headers are "special", they download in batches, supported by a skeleton chain
-	headerHead      types.Hash                        // [OG/31] Hash of the last queued header to verify order
-	headerTaskPool  map[uint64]*types.SequencerHeader // [OG/31] Pending header retrieval tasks, mapping starting indexes to skeleton headers
-	headerTaskQueue *prque.Prque                      // [OG/31] Priority queue of the skeleton indexes to fetch the filling headers for
-	headerPeerMiss  map[string]map[uint64]struct{}    // [OG/31] Set of per-peer header batches known to be unavailable
-	headerPendPool  map[string]*fetchRequest          // [OG/31] Currently pending header retrieval operations
-	headerResults   []*types.SequencerHeader          // [OG/31] Result cache accumulating the completed headers
-	headerProced    int                               // [OG/31] Number of headers already processed from the results
-	headerOffset    uint64                            // [OG/31] Number of the first header in the result cache
-	headerContCh    chan bool                         // [OG/31] Channel to notify when header download finishes
+	headerHead      types.Hash                        // [og/01] Hash of the last queued header to verify order
+	headerTaskPool  map[uint64]*types.SequencerHeader // [og/01] Pending header retrieval tasks, mapping starting indexes to skeleton headers
+	headerTaskQueue *prque.Prque                      // [og/01] Priority queue of the skeleton indexes to fetch the filling headers for
+	headerPeerMiss  map[string]map[uint64]struct{}    // [og/01] Set of per-peer header batches known to be unavailable
+	headerPendPool  map[string]*fetchRequest          // [og/01] Currently pending header retrieval operations
+	headerResults   []*types.SequencerHeader          // [og/01] Result cache accumulating the completed headers
+	headerProced    int                               // [og/01] Number of headers already processed from the results
+	headerOffset    uint64                            // [og/01] Number of the first header in the result cache
+	headerContCh    chan bool                         // [og/01] Channel to notify when header download finishes
 
 	// All data retrievals below are based on an already assembles header chain
-	blockTaskPool  map[types.Hash]*types.SequencerHeader // [OG/31] Pending block (body) retrieval tasks, mapping hashes to headers
-	blockTaskQueue *prque.Prque                          // [OG/31] Priority queue of the headers to fetch the blocks (bodies) for
-	blockPendPool  map[string]*fetchRequest              // [OG/31] Currently pending block (body) retrieval operations
-	blockDonePool  map[types.Hash]struct{}               // [OG/31] Set of the completed block (body) fetches
+	blockTaskPool  map[types.Hash]*types.SequencerHeader // [og/01] Pending block (body) retrieval tasks, mapping hashes to headers
+	blockTaskQueue *prque.Prque                          // [og/01] Priority queue of the headers to fetch the blocks (bodies) for
+	blockPendPool  map[string]*fetchRequest              // [og/01] Currently pending block (body) retrieval operations
+	blockDonePool  map[types.Hash]struct{}               // [og/01] Set of the completed block (body) fetches
 
-	receiptTaskPool  map[types.Hash]*types.SequencerHeader // [OG/32] Pending receipt retrieval tasks, mapping hashes to headers
-	receiptTaskQueue *prque.Prque                          // [OG/32] Priority queue of the headers to fetch the receipts for
-	receiptPendPool  map[string]*fetchRequest              // [OG/32] Currently pending receipt retrieval operations
-	receiptDonePool  map[types.Hash]struct{}               // [OG/32] Set of the completed receipt fetches
+	receiptTaskPool  map[types.Hash]*types.SequencerHeader // [og/02] Pending receipt retrieval tasks, mapping hashes to headers
+	receiptTaskQueue *prque.Prque                          // [og/02] Priority queue of the headers to fetch the receipts for
+	receiptPendPool  map[string]*fetchRequest              // [og/02] Currently pending receipt retrieval operations
+	receiptDonePool  map[types.Hash]struct{}               // [og/02] Set of the completed receipt fetches
 
 	resultCache  []*fetchResult     // Downloaded but not yet delivered fetch results
 	resultOffset uint64             // Offset of the first cached fetch result in the block chain

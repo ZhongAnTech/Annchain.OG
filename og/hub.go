@@ -39,7 +39,7 @@ type Hub struct {
 	incoming             chan *p2PMessage
 	quit                 chan bool
 	CallbackRegistry     map[MessageType]func(*p2PMessage) // All callbacks
-	CallbackRegistryOG32 map[MessageType]func(*p2PMessage) // All callbacks of OG32
+	CallbackRegistryOG02 map[MessageType]func(*p2PMessage) // All callbacks of OG02
 	StatusDataProvider   NodeStatusDataProvider
 	peers                *peerSet
 	SubProtocols         []p2p.Protocol
@@ -127,7 +127,7 @@ func (h *Hub) Init(config *HubConfig) {
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 	h.CallbackRegistry = make(map[MessageType]func(*p2PMessage))
-	h.CallbackRegistryOG32 = make(map[MessageType]func(*p2PMessage))
+	h.CallbackRegistryOG02 = make(map[MessageType]func(*p2PMessage))
 	h.broadCastMode = config.BroadCastMode
 }
 
@@ -699,8 +699,8 @@ func (h *Hub) getMsgFromCache(m MessageType, hash types.Hash) []string {
 
 func (h *Hub) receiveMessage(msg *p2PMessage) {
 	// route to specific callbacks according to the registry.
-	if msg.version >= OG32 {
-		if v, ok := h.CallbackRegistryOG32[msg.messageType]; ok {
+	if msg.version >= OG02 {
+		if v, ok := h.CallbackRegistryOG02[msg.messageType]; ok {
 			log.WithField("from", msg.sourceID).WithField("type", msg.messageType.String()).Trace("Received a message")
 			v(msg)
 			return

@@ -1,6 +1,6 @@
 package og
 
-type MessageRouterOG32 struct {
+type MessageRouterOG02 struct {
 	GetNodeDataMsgHandler GetNodeDataMsgHandler
 	NodeDataMsgHandler    NodeDataMsgHandler
 	GetReceiptsMsgHandler GetReceiptsMsgHandler
@@ -18,25 +18,25 @@ type GetReceiptsMsgHandler interface {
 	HandleGetReceiptsMsg(peerId string)
 }
 
-func (m *MessageRouterOG32) Start() {
+func (m *MessageRouterOG02) Start() {
 }
 
-func (m *MessageRouterOG32) Stop() {
+func (m *MessageRouterOG02) Stop() {
 
 }
 
-func (m *MessageRouterOG32) Name() string {
+func (m *MessageRouterOG02) Name() string {
 	return "MessageRouterOG32"
 }
 
-func (m *MessageRouterOG32) RouteGetNodeDataMsg(msg *p2PMessage) {
+func (m *MessageRouterOG02) RouteGetNodeDataMsg(msg *p2PMessage) {
 	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.sourceID)
 }
 
-func (m *MessageRouterOG32) RouteNodeDataMsg(msg *p2PMessage) {
+func (m *MessageRouterOG02) RouteNodeDataMsg(msg *p2PMessage) {
 	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.sourceID)
 }
 
-func (m *MessageRouterOG32) RouteGetReceiptsMsg(msg *p2PMessage) {
+func (m *MessageRouterOG02) RouteGetReceiptsMsg(msg *p2PMessage) {
 	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.sourceID)
 }

@@ -64,3 +64,7 @@ func (tc *TermChange) SignatureTargets() []byte {
 
 	return buf.Bytes()
 }
+
+func (tc *TermChange)String() string {
+	return fmt.Sprintf("%s-[%s]-termChange",tc.TxBase.String(),tc.Issuer.String())
+}

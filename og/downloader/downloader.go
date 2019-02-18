@@ -30,7 +30,7 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [OG/31] Maximum number of headers to queue for import (DOS protection)
+	maxQueuedHeaders  = 32 * 1024 // [og/01] Maximum number of headers to queue for import (DOS protection)
 	maxHeadersProcess = 2048      // Number of header download results to import at once into the chain
 	maxResultsProcess = 2048      // Number of content download results to import at once into the chain
 
@@ -89,12 +89,12 @@ type Downloader struct {
 	committed       int32
 
 	// Channels
-	headerCh      chan dataPack                 // [OG/31] Channel receiving inbound block headers
-	bodyCh        chan dataPack                 // [OG/31] Channel receiving inbound block bodies
+	headerCh      chan dataPack                 // [og/01] Channel receiving inbound block headers
+	bodyCh        chan dataPack                 // [og/01] Channel receiving inbound block bodies
 	receiptCh     chan dataPack                 // [eth/63] Channel receiving inbound receipts
-	bodyWakeCh    chan bool                     // [OG/31] Channel to signal the block body fetcher of new tasks
+	bodyWakeCh    chan bool                     // [og/01] Channel to signal the block body fetcher of new tasks
 	receiptWakeCh chan bool                     // [eth/63] Channel to signal the receipt fetcher of new tasks
-	headerProcCh  chan []*types.SequencerHeader // [OG/31] Channel to feed the header processor new tasks
+	headerProcCh  chan []*types.SequencerHeader // [og/01] Channel to feed the header processor new tasks
 
 	// for stateFetcher
 	stateCh chan dataPack // [eth/63] Channel receiving inbound node state data

@@ -467,18 +467,25 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 //
 // Note that dirty states will not be removed.
 func (sd *StateDB) purge() {
-	for addr, lastbeat := range sd.beats {
-		// skip dirty states
-		if _, in := sd.journal.dirties[addr]; in {
-			continue
-		}
-		if _, in := sd.dirtyset[addr]; in {
-			continue
-		}
-		if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-			sd.deleteStateObject(addr)
-		}
-	}
+	// TODO
+	// purge will cause a panic problem, so temporaly comments the code.
+	//
+	// panic: [fatal error: concurrent map writes]
+	// reason: the reason is that [sd.beats] is been concurrently called and
+	// there is no lock handling this parameter.
+
+	// for addr, lastbeat := range sd.beats {
+	// 	// skip dirty states
+	// 	if _, in := sd.journal.dirties[addr]; in {
+	// 		continue
+	// 	}
+	// 	if _, in := sd.dirtyset[addr]; in {
+	// 		continue
+	// 	}
+	// 	if time.Since(lastbeat) > sd.conf.BeatExpireTime {
+	// 		sd.deleteStateObject(addr)
+	// 	}
+	// }
 }
 
 // refreshbeat update the beat time of an address.

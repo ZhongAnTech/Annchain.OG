@@ -14,18 +14,18 @@ import (
 //msgp:tuple p2PMessage
 
 const (
-	OG31 = 31
-	OG32 = 32
+	OG01 = 01
+	OG02 = 02
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 var ProtocolName = "og"
 
 // ProtocolVersions are the supported versions of the og protocol (first is primary).
-var ProtocolVersions = []uint{OG32, OG31}
+var ProtocolVersions = []uint{OG02, OG01}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []MessageType{21, 18}
+var ProtocolLengths = []MessageType{MessageTypeOg02Length, MessageTypeOg01Length}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -36,7 +36,7 @@ type MessageType uint16
 
 // og protocol message codes
 const (
-	// Protocol messages belonging to OG/31
+	// Protocol messages belonging to OG/01
 	StatusMsg MessageType = iota
 	MessageTypePing
 	MessageTypePong
@@ -60,11 +60,20 @@ const (
 	MessageTypeDuplicate
 	MessageTypeControl
 
-	// Protocol messages belonging to OG/32
+	//for consensus
+	MessageTypeCampaign
+	MessageTypeTermChange
+	MessageTypeConsensusDkgDeal
+	MessageTypeConsensusDkgDealResponse
+
+	MessageTypeOg01Length //og01 length
+
+	// Protocol messages belonging to og/02
 
 	GetNodeDataMsg
 	NodeDataMsg
 	GetReceiptsMsg
+	MessageTypeOg02Length
 )
 
 type SendingType uint8
@@ -84,7 +93,10 @@ func (mt MessageType) String() string {
 		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
 		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
 		"MessageTypeGetMsg", "MessageTypeDuplicate", "MessageTypeControl",
+		"MessageTypeTermChange", "MessageTypeCampaign", "MessageTypeConsensusDkgDeal", "MessgaTypeConsensusDkgDealResponse",
+		"MessageTypeOg01End",
 		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
+		"MessageTypeOg02End",
 	}[int(mt)]
 }
 
@@ -262,6 +274,15 @@ func (p *p2PMessage) GetMessage() error {
 		p.message = &types.MessageGetMsg{}
 	case MessageTypeControl:
 		p.message = &types.MessageControl{}
+	case MessageTypeCampaign:
+		p.message = &types.MessageCampaign{}
+	case MessageTypeTermChange:
+		p.message = &types.MessageTermChange{}
+	case MessageTypeConsensusDkgDeal:
+		p.message = &types.MessageConsensusDkgDeal{}
+	case MessageTypeConsensusDkgDealResponse:
+		p.message = &types.MessageConsensusDkgDealResponse{}
+
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}

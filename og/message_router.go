@@ -6,23 +6,27 @@ import (
 
 // MessageRouter is a bridge between hub and components
 type MessageRouter struct {
-	Hub                        *Hub
-	PingHandler                PingHandler
-	PongHandler                PongHandler
-	FetchByHashRequestHandler  FetchByHashHandlerRequest
-	FetchByHashResponseHandler FetchByHashResponseHandler
-	NewTxHandler               NewTxHandler
-	NewTxsHandler              NewTxsHandler
-	NewSequencerHandler        NewSequencerHandler
-	GetMsgHandler              GetMsgHandler
-	ControlMsgHandler          ControlMsgHandler
-	SequencerHeaderHandler     SequencerHeaderHandler
-	BodiesRequestHandler       BodiesRequestHandler
-	BodiesResponseHandler      BodiesResponseHandler
-	TxsRequestHandler          TxsRequestHandler
-	TxsResponseHandler         TxsResponseHandler
-	HeaderRequestHandler       HeaderRequestHandler
-	HeaderResponseHandler      HeaderResponseHandler
+	Hub                             *Hub
+	PingHandler                     PingHandler
+	PongHandler                     PongHandler
+	FetchByHashRequestHandler       FetchByHashHandlerRequest
+	FetchByHashResponseHandler      FetchByHashResponseHandler
+	NewTxHandler                    NewTxHandler
+	NewTxsHandler                   NewTxsHandler
+	NewSequencerHandler             NewSequencerHandler
+	GetMsgHandler                   GetMsgHandler
+	ControlMsgHandler               ControlMsgHandler
+	SequencerHeaderHandler          SequencerHeaderHandler
+	BodiesRequestHandler            BodiesRequestHandler
+	BodiesResponseHandler           BodiesResponseHandler
+	TxsRequestHandler               TxsRequestHandler
+	TxsResponseHandler              TxsResponseHandler
+	HeaderRequestHandler            HeaderRequestHandler
+	HeaderResponseHandler           HeaderResponseHandler
+	CampaignHandler                 CampaignHandler
+	TermChangeHandler               TermChangeHandler
+	ConsensusDkgDealHandler         ConsensusDkgDealHandler
+	ConsensusDkgDealResponseHandler ConsensusDkgDealResponseHandler
 }
 
 type ManagerConfig struct {
@@ -91,6 +95,22 @@ type HeaderRequestHandler interface {
 
 type HeaderResponseHandler interface {
 	HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerID string)
+}
+
+type CampaignHandler interface {
+	HandleCampaign(request *types.MessageCampaign, peerId string)
+}
+
+type TermChangeHandler interface {
+	HandleTermChange(request *types.MessageTermChange, peerId string)
+}
+
+type ConsensusDkgDealHandler interface {
+	HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string)
+}
+
+type ConsensusDkgDealResponseHandler interface {
+	HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string)
 }
 
 func (m *MessageRouter) Start() {
@@ -172,6 +192,23 @@ func (m *MessageRouter) RouteHeaderRequest(msg *p2PMessage) {
 func (m *MessageRouter) RouteHeaderResponse(msg *p2PMessage) {
 	// A batch of headers arrived to one of our previous requests
 	m.HeaderResponseHandler.HandleHeaderResponse(msg.message.(*types.MessageHeaderResponse), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteCampaign(msg *p2PMessage) {
+	// A batch of headers arrived to one of our previous requests
+	m.CampaignHandler.HandleCampaign(msg.message.(*types.MessageCampaign), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteTermChange(msg *p2PMessage) {
+	m.TermChangeHandler.HandleTermChange(msg.message.(*types.MessageTermChange), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteConsensusDkgDeal(msg *p2PMessage) {
+	m.ConsensusDkgDealHandler.HandleConsensusDkgDeal(msg.message.(*types.MessageConsensusDkgDeal), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *p2PMessage) {
+	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.message.(*types.MessageConsensusDkgDealResponse), msg.sourceID)
 }
 
 // BroadcastMessage send message to all peers

@@ -73,7 +73,7 @@ func (as *AnnSensus) campaign() {
 	}
 }
 
-// genCamp calculate vrf and generate a campaign that contain this vrf info.
+// genCamp calculate vrf and generate a campaign that contains this vrf info.
 func (as *AnnSensus) genCamp() *types.Campaign {
 	// TODO
 	return &types.Campaign{}

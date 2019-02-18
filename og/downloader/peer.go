@@ -34,6 +34,8 @@ import (
 const (
 	maxLackingHashes  = 4096 // Maximum number of entries allowed on the list or lacking items
 	measurementImpact = 0.1  // The impact a single measurement has on a peer's final throughput value.
+	Og01 = 01
+	Og02 = 02
 )
 
 var (
@@ -115,8 +117,8 @@ func (p *peerConnection) Reset() {
 // FetchHeaders sends a header retrieval request to the remote peer.
 func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 	// Sanity check the protocol version
-	if p.version < 31 {
-		panic(fmt.Sprintf("header fetch [og/31+] requested on eth/%d", p.version))
+	if p.version < Og01 {
+		panic(fmt.Sprintf("header fetch [og/01+] requested on og/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.headerIdle, 0, 1) {
@@ -133,8 +135,8 @@ func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 // FetchBodies sends a block body retrieval request to the remote peer.
 func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	// Sanity check the protocol version
-	if p.version < 31 {
-		panic(fmt.Sprintf("body fetch [og/31+] requested on eth/%d", p.version))
+	if p.version < Og01 {
+		panic(fmt.Sprintf("body fetch [og/01+] requested on eth/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.blockIdle, 0, 1) {
@@ -155,8 +157,8 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 // FetchNodeData sends a node state data retrieval request to the remote peer.
 func (p *peerConnection) FetchNodeData(hashes []types.Hash) error {
 	// Sanity check the protocol version
-	if p.version < 32 {
-		panic(fmt.Sprintf("node data fetch [og/32+] requested on eth/%d", p.version))
+	if p.version < Og02 {
+		panic(fmt.Sprintf("node data fetch [og/02+] requested on eth/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
 	if !atomic.CompareAndSwapInt32(&p.stateIdle, 0, 1) {

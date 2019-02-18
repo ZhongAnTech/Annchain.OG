@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/rpc"
@@ -201,12 +202,12 @@ func NewNode() *Node {
 	txBuffer.Announcer = announcer
 	n.Components = append(n.Components, syncManager)
 
-	messageHandler32 := &og.IncomingMessageHandlerOG32{
+	messageHandler32 := &og.IncomingMessageHandlerOG02{
 		Hub: hub,
 		Og:  org,
 	}
 
-	mr32 := &og.MessageRouterOG32{
+	mr32 := &og.MessageRouterOG02{
 		GetNodeDataMsgHandler: messageHandler32,
 		GetReceiptsMsgHandler: messageHandler32,
 		NodeDataMsgHandler:    messageHandler32,
@@ -331,6 +332,14 @@ func NewNode() *Node {
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)
 
+	//
+	annSunsus := annsensus.NewAnnSensus()
+	n.Components = append(n.Components, annSunsus)
+	m.CampaignHandler = annSunsus
+	m.TermChangeHandler = annSunsus
+	m.ConsensusDkgDealHandler = annSunsus
+	m.ConsensusDkgDealResponseHandler = annSunsus
+
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
@@ -338,6 +347,7 @@ func NewNode() *Node {
 	pm.Register(messageHandler)
 	pm.Register(hub)
 	pm.Register(txCounter)
+	pm.Register(annSunsus)
 	n.Components = append(n.Components, pm)
 
 	return n
@@ -392,10 +402,14 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeHeaderRequest] = m.RouteHeaderRequest
 	hub.CallbackRegistry[og.MessageTypeHeaderResponse] = m.RouteHeaderResponse
 	hub.CallbackRegistry[og.MessageTypeControl] = m.RouteControlMsg
+	hub.CallbackRegistry[og.MessageTypeCampaign] = m.RouteCampaign
+	hub.CallbackRegistry[og.MessageTypeTermChange] = m.RouteTermChange
+	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
+	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 }
 
-func SetupCallbacksOG32(m *og.MessageRouterOG32, hub *og.Hub) {
-	hub.CallbackRegistryOG32[og.GetNodeDataMsg] = m.RouteGetNodeDataMsg
-	hub.CallbackRegistryOG32[og.NodeDataMsg] = m.RouteNodeDataMsg
-	hub.CallbackRegistryOG32[og.GetReceiptsMsg] = m.RouteGetReceiptsMsg
+func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {
+	hub.CallbackRegistryOG02[og.GetNodeDataMsg] = m.RouteGetNodeDataMsg
+	hub.CallbackRegistryOG02[og.NodeDataMsg] = m.RouteNodeDataMsg
+	hub.CallbackRegistryOG02[og.GetReceiptsMsg] = m.RouteGetReceiptsMsg
 }

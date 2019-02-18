@@ -222,7 +222,7 @@ func NewNode() *Node {
 	txCreator := &og.TxCreator{
 		Signer:             signer,
 		Miner:              miner,
-		TipGenerator:       org.TxPool,
+		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
 		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),

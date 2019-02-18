@@ -9,10 +9,77 @@ import (
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"sync"
+	"math/rand"
 )
 
 type TipGenerator interface {
 	GetRandomTips(n int) (v []types.Txi)
+}
+
+type FIFOTipGenerator struct {
+	maxCacheSize int
+	upstream     TipGenerator
+	fifoRing     []types.Txi
+	fifoRingPos  int
+	fifoRingFull bool
+	mu           sync.Mutex
+}
+
+func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenerator {
+	return &FIFOTipGenerator{
+		upstream:     upstream,
+		maxCacheSize: maxCacheSize,
+		fifoRing:     make([]types.Txi, maxCacheSize),
+	}
+}
+
+func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	upstreamTips := f.upstream.GetRandomTips(n)
+	// update fifoRing
+	for _, upstreamTip := range upstreamTips {
+		duplicated := false
+		for i := 0; i < f.maxCacheSize; i ++ {
+			if f.fifoRing[i] != nil && f.fifoRing[i].GetTxHash() == upstreamTip.GetTxHash() {
+				// duplicate, ignore directly
+				duplicated = true
+				break
+			}
+		}
+		if !duplicated {
+			// advance ring and put it in the fifo ring
+			f.fifoRing[f.fifoRingPos] = upstreamTip
+			f.fifoRingPos ++
+			// round
+			if f.fifoRingPos == f.maxCacheSize {
+				f.fifoRingPos = 0
+				f.fifoRingFull = true
+			}
+		}
+	}
+	// randomly pick n from fifo cache
+	randIndices := make(map[int]bool)
+	ringSize := f.fifoRingPos
+	if f.fifoRingFull {
+		ringSize = f.maxCacheSize
+	}
+	pickSize := n
+	if !f.fifoRingFull && f.fifoRingPos < n {
+		pickSize = f.fifoRingPos
+	}
+
+	for len(randIndices) != pickSize {
+		randIndices[rand.Intn(ringSize)] = true
+	}
+
+	// dump those txs
+	for k := range randIndices {
+		v = append(v, f.fifoRing[k])
+	}
+	return
+
 }
 
 // TxCreator creates tx and do the signing and mining

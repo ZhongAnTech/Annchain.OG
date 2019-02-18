@@ -9,10 +9,13 @@ type AnnSensus struct {
 	doCamp bool // the switch of whether annsensus should produce campaign.
 
 	receivers []chan types.Txi
+
+	close chan struct{}
 }
 
 func NewAnnSensus() *AnnSensus {
 	return &AnnSensus{
+		close:     make(chan struct{}),
 		receivers: []chan types.Txi{},
 	}
 }
@@ -24,7 +27,17 @@ func (as *AnnSensus) Start() {
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
+
+	close(as.close)
+}
+
+func (as *AnnSensus) Name() string {
+	return "AnnSensus"
+}
+
+func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	// TODO
+	return nil
 }
 
 // RegisterReceiver add a channel into AnnSensus.receivers, receivers are the

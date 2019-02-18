@@ -63,3 +63,8 @@ func (c *Campaign) SignatureTargets() []byte {
 
 	return buf.Bytes()
 }
+
+
+func (c*Campaign)String()string  {
+	return fmt.Sprintf("%s-[%s]-campain",c.TxBase.String(),c.Issuer.String())
+}

@@ -19,6 +19,8 @@ type AnnSensus struct {
 	campaigns  map[types.Address]*types.Campaign //temperary
 
 	Hub  *og.Hub     //todo use interface later
+	Txpool og.ITxPool
+	Idag   og.IDag
  }
 
 func NewAnnSensus(campaign bool ) *AnnSensus {
@@ -85,9 +87,12 @@ func (as *AnnSensus) campaign() {
 		camp := as.genCamp()
 
 		// send camp
-		for _, c := range as.receivers {
-			c <- camp
+		if camp!=nil {
+			for _, c := range as.receivers {
+				c <- camp
+			}
 		}
+
 		}
 
 	}
@@ -101,11 +106,15 @@ func (as *AnnSensus) genCamp() *types.Campaign {
 	base := types.TxBase{
 		Type:types.TxBaseTypeCampaign,
 	}
-	return &types.Campaign{
+
+	cp:=  &types.Campaign{
 		TxBase:base,
 	}
-
-}
+	if as.GenerateVrf(cp){
+		return cp
+	}
+	return nil
+ }
 
 // commit takes a list of campaigns as input and record these
 // camps' information It checks if the number of camps reaches

@@ -42,7 +42,7 @@ type NodeStatus struct {
 }
 
 type AutoTxClient interface {
-	SetTxIntervalMs(i int)
+	SetTxIntervalUs(i int)
 }
 
 //TxRequester
@@ -460,13 +460,13 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 }
 
 func (r *RpcController) AutoTx(c *gin.Context) {
-	intervalStr := c.Query("interval_ms")
+	intervalStr := c.Query("interval_us")
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil || interval < 0 {
 		Response(c, http.StatusBadRequest, fmt.Errorf("interval format err"), nil)
 		return
 	}
-	r.AutoTxCli.SetTxIntervalMs(interval)
+	r.AutoTxCli.SetTxIntervalUs(interval)
 
 	Response(c, http.StatusOK, nil, nil)
 	return

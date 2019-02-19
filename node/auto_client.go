@@ -62,10 +62,6 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalUs)
 	case IntervalModeRandom:
 		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalUs-1) + 1))
-	case IntervalModeMicroConstant:
-		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalUs)
-	case IntervalModeMicroRandom:
-		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalUs-1) + 1))
 	default:
 		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 	}

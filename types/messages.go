@@ -1,9 +1,12 @@
 package types
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/bloom"
-	"github.com/annchain/OG/common/msg"
+"github.com/annchain/OG/common/bloom"
+"github.com/annchain/OG/common/hexutil"
+"github.com/annchain/OG/common/msg"
 )
 
 //go:generate msgp
@@ -379,18 +382,55 @@ func (m*MessageTermChange)String() string{
 
 
 type MessageConsensusDkgDeal struct {
+	Id  uint32
 	//todo
+	Data            string
+	PublikKey      []byte
+	Sinature       []byte
 }
 
+func  (m*MessageConsensusDkgDeal)  SignatureTargets() []byte {
+	// TODO
+
+	var buf bytes.Buffer
+	d :=[]byte(m.Data)
+	panicIfError(binary.Write(&buf, binary.BigEndian, d))
+	panicIfError(binary.Write(&buf, binary.BigEndian, m.Id))
+
+	return buf.Bytes()
+}
 
 func (m*MessageConsensusDkgDeal)String() string{
-	return ""
+	var pkstr string
+	if len(m.PublikKey) >10 {
+		pkstr = hexutil.Encode(m.PublikKey[:8])
+	}
+	return "dkg " + fmt.Sprintf(" id %d ",m.Id) + m.Data + " " + pkstr
 }
 
 type MessageConsensusDkgDealResponse struct {
+	Id  uint32
 	//todo
+	Data string
+	PublikKey      []byte
+	Sinature       []byte
 }
 
 func (m*MessageConsensusDkgDealResponse)String() string{
-	return ""
+	var pkstr string
+	if len(m.PublikKey) >10 {
+		pkstr = hexutil.Encode(m.PublikKey[:8])
+	}
+	return "dkgresponse " + fmt.Sprintf(" id %d  ",m.Id) + m.Data + " " + pkstr
+}
+
+func  (m*MessageConsensusDkgDealResponse)  SignatureTargets() []byte {
+	// TODO
+
+	var buf bytes.Buffer
+	d :=[]byte(m.Data)
+	panicIfError(binary.Write(&buf, binary.BigEndian, d))
+	panicIfError(binary.Write(&buf, binary.BigEndian, m.Id))
+
+	return buf.Bytes()
 }

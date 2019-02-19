@@ -31,6 +31,7 @@ package ecies
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
@@ -39,8 +40,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-
-	"github.com/annchain/OG/ethlib/crypto"
+	"errors"
 )
 
 var dumpEnc bool
@@ -234,7 +234,7 @@ func BenchmarkGenSharedKeyP256(b *testing.B) {
 
 // Benchmark the generation of S256 shared keys.
 func BenchmarkGenSharedKeyS256(b *testing.B) {
-	prv, err := GenerateKey(rand.Reader, crypto.S256(), nil)
+	prv, err := GenerateKey(rand.Reader, S256(), nil)
 	if err != nil {
 		fmt.Println(err.Error())
 		b.FailNow()
@@ -247,6 +247,34 @@ func BenchmarkGenSharedKeyS256(b *testing.B) {
 			b.FailNow()
 		}
 	}
+}
+
+
+func TestEncrypt(t *testing.T) {
+	//prv1, err := GenerateKey(rand.Reader, DefaultCurve, nil)
+	x,_ := big.NewInt(0).SetString( "25860957663402118420385219759979651311493566861420536707157658171589998503027",0)
+	y,_:= big.NewInt(0).SetString("86240112990591864153796259798532127250481760794327649797956296817696385215375",0)
+	D,_:= big.NewInt(0).SetString("112339918029554102382967166016087130388477159317095521880422462723592214463164",0)
+	ecdsapub := ecdsa.PublicKey{
+		Curve:S256(),
+		X:x,
+		Y:y,
+	}
+	ecdsapriv := ecdsa.PrivateKey{ecdsapub,D}
+    fmt.Println(ecdsapriv)
+	//priv:= PrivateKey{PublicKey{}}
+	message := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
+		"ufidurehfkkjfri566878798y5rejiodijfjioi;454646855455uiyrsduihfi54sdodoootoprew5468rre")
+	pub := ImportECDSAPublic(&ecdsapub)
+	priv := ImportECDSA(&ecdsapriv)
+	ct ,err := Encrypt(rand.Reader,pub,message,nil,nil)
+	if err != nil {
+		fmt.Println(err.Error())
+		t.FailNow()
+	}
+	fmt.Println(len(ct),hex.EncodeToString(ct))
+	m ,err := priv.Decrypt(ct,nil,nil)
+	fmt.Println(err,len(m),string(m))
 }
 
 // Verify that an encrypted message can be successfully decrypted.
@@ -485,9 +513,57 @@ func TestSharedKeyStatic(t *testing.T) {
 }
 
 func hexKey(prv string) *PrivateKey {
-	key, err := crypto.HexToECDSA(prv)
+	key, err := HexToECDSA(prv)
 	if err != nil {
 		panic(err)
 	}
 	return ImportECDSA(key)
 }
+
+
+// HexToECDSA parses a secp256k1 private key.
+func HexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
+	b, err := hex.DecodeString(hexkey)
+	if err != nil {
+		return nil, errors.New("invalid hex string")
+	}
+	return ToECDSA(b)
+}
+
+
+// ToECDSA creates a private key with the given D value.
+func ToECDSA(d []byte) (*ecdsa.PrivateKey, error) {
+	return toECDSA(d, true)
+}
+
+
+// toECDSA creates a private key with the given D value. The strict parameter
+// controls whether the key's length should be enforced at the curve size or
+// it can also accept legacy encodings (0 prefixes).
+func toECDSA(d []byte, strict bool) (*ecdsa.PrivateKey, error) {
+	priv := new(ecdsa.PrivateKey)
+	priv.PublicKey.Curve = S256()
+	if strict && 8*len(d) != priv.Params().BitSize {
+		return nil, fmt.Errorf("invalid length, need %d bits", priv.Params().BitSize)
+	}
+	priv.D = new(big.Int).SetBytes(d)
+
+	// The priv.D must < N
+	if priv.D.Cmp(secp256k1N) >= 0 {
+		return nil, fmt.Errorf("invalid private key, >=N")
+	}
+	// The priv.D must not be zero or negative.
+	if priv.D.Sign() <= 0 {
+		return nil, fmt.Errorf("invalid private key, zero or negative")
+	}
+
+	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d)
+	if priv.PublicKey.X == nil {
+		return nil, errors.New("invalid private key")
+	}
+	return priv, nil
+}
+
+
+var secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
+

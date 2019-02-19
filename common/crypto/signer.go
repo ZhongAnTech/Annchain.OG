@@ -10,4 +10,6 @@ type Signer interface {
 	RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error)
 	Address(pubKey PublicKey) types.Address
 	AddressFromPubKeyBytes(pubKey []byte) types.Address
+	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)
+	Decrypt(p PrivateKey, ct []byte) ( m []byte, err error)
 }

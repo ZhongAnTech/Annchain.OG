@@ -61,3 +61,13 @@ func (s *SignerEd25519) Address(pubKey PublicKey) types.Address {
 	result := hasher.Sum(nil)
 	return types.BytesToAddress(result)
 }
+
+func (s*SignerEd25519)Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error){
+	panic("not supported")
+	return nil ,nil
+}
+
+func (s*SignerEd25519) Decrypt(p PrivateKey, ct []byte) ( m []byte, err error) {
+	panic("not supported")
+	return nil ,nil
+}

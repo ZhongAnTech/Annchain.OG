@@ -2,8 +2,10 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 )
@@ -51,4 +53,26 @@ func TestSh256(t *testing.T) {
 		m.calculateHash()
 	}
 	fmt.Println("used time ", time.Now().Sub(start))
+}
+
+
+func TestP2PMessage_Encrypt(t *testing.T) {
+	logrus.SetLevel(logrus.TraceLevel)
+	msg := types.MessageConsensusDkgDeal{
+		Data:"hi hi",
+		Id:12,
+	}
+	m := p2PMessage{message:&msg,messageType:MessageTypeConsensusDkgDeal}
+	s:= crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+	pk,sk ,_ :=  s.RandomKeyPair()
+	m.Marshal()
+	logrus.Debug(len(m.data))
+	m.Encrypt(&pk)
+	logrus.Debug(len(m.data))
+	mm:= p2PMessage{data:m.data,messageType:MessageTypeSecret}
+	err:= mm.Decrypt(&sk)
+	logrus.Debug(len(mm.data),err)
+	err = mm.Unmarshal()
+	logrus.Debug(len(mm.data),err)
+	logrus.Debug(mm,mm.message.String())
 }

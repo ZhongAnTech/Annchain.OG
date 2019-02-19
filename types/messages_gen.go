@@ -723,6 +723,26 @@ func (z *MessageConsensusDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Id":
+			z.Id, err = dc.ReadUint32()
+			if err != nil {
+				return
+			}
+		case "Data":
+			z.Data, err = dc.ReadString()
+			if err != nil {
+				return
+			}
+		case "PublikKey":
+			z.PublikKey, err = dc.ReadBytes(z.PublikKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, err = dc.ReadBytes(z.Sinature)
+			if err != nil {
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -734,9 +754,41 @@ func (z *MessageConsensusDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z MessageConsensusDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 0
-	err = en.Append(0x80)
+func (z *MessageConsensusDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 4
+	// write "Id"
+	err = en.Append(0x84, 0xa2, 0x49, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.Id)
+	if err != nil {
+		return
+	}
+	// write "Data"
+	err = en.Append(0xa4, 0x44, 0x61, 0x74, 0x61)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Data)
+	if err != nil {
+		return
+	}
+	// write "PublikKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x6b, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PublikKey)
+	if err != nil {
+		return
+	}
+	// write "Sinature"
+	err = en.Append(0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Sinature)
 	if err != nil {
 		return
 	}
@@ -744,10 +796,21 @@ func (z MessageConsensusDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z MessageConsensusDkgDeal) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *MessageConsensusDkgDeal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 0
-	o = append(o, 0x80)
+	// map header, size 4
+	// string "Id"
+	o = append(o, 0x84, 0xa2, 0x49, 0x64)
+	o = msgp.AppendUint32(o, z.Id)
+	// string "Data"
+	o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
+	o = msgp.AppendString(o, z.Data)
+	// string "PublikKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x6b, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.PublikKey)
+	// string "Sinature"
+	o = append(o, 0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Sinature)
 	return
 }
 
@@ -767,6 +830,26 @@ func (z *MessageConsensusDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error)
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Id":
+			z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Data":
+			z.Data, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				return
+			}
+		case "PublikKey":
+			z.PublikKey, bts, err = msgp.ReadBytesBytes(bts, z.PublikKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+			if err != nil {
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -779,8 +862,8 @@ func (z *MessageConsensusDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error)
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z MessageConsensusDkgDeal) Msgsize() (s int) {
-	s = 1
+func (z *MessageConsensusDkgDeal) Msgsize() (s int) {
+	s = 1 + 3 + msgp.Uint32Size + 5 + msgp.StringPrefixSize + len(z.Data) + 10 + msgp.BytesPrefixSize + len(z.PublikKey) + 9 + msgp.BytesPrefixSize + len(z.Sinature)
 	return
 }
 
@@ -800,6 +883,26 @@ func (z *MessageConsensusDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error)
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Id":
+			z.Id, err = dc.ReadUint32()
+			if err != nil {
+				return
+			}
+		case "Data":
+			z.Data, err = dc.ReadString()
+			if err != nil {
+				return
+			}
+		case "PublikKey":
+			z.PublikKey, err = dc.ReadBytes(z.PublikKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, err = dc.ReadBytes(z.Sinature)
+			if err != nil {
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -811,9 +914,41 @@ func (z *MessageConsensusDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error)
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z MessageConsensusDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 0
-	err = en.Append(0x80)
+func (z *MessageConsensusDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 4
+	// write "Id"
+	err = en.Append(0x84, 0xa2, 0x49, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.Id)
+	if err != nil {
+		return
+	}
+	// write "Data"
+	err = en.Append(0xa4, 0x44, 0x61, 0x74, 0x61)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Data)
+	if err != nil {
+		return
+	}
+	// write "PublikKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x6b, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PublikKey)
+	if err != nil {
+		return
+	}
+	// write "Sinature"
+	err = en.Append(0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Sinature)
 	if err != nil {
 		return
 	}
@@ -821,10 +956,21 @@ func (z MessageConsensusDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) 
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z MessageConsensusDkgDealResponse) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *MessageConsensusDkgDealResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 0
-	o = append(o, 0x80)
+	// map header, size 4
+	// string "Id"
+	o = append(o, 0x84, 0xa2, 0x49, 0x64)
+	o = msgp.AppendUint32(o, z.Id)
+	// string "Data"
+	o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
+	o = msgp.AppendString(o, z.Data)
+	// string "PublikKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x6b, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.PublikKey)
+	// string "Sinature"
+	o = append(o, 0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Sinature)
 	return
 }
 
@@ -844,6 +990,26 @@ func (z *MessageConsensusDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, er
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "Id":
+			z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Data":
+			z.Data, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				return
+			}
+		case "PublikKey":
+			z.PublikKey, bts, err = msgp.ReadBytesBytes(bts, z.PublikKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+			if err != nil {
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -856,8 +1022,8 @@ func (z *MessageConsensusDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, er
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z MessageConsensusDkgDealResponse) Msgsize() (s int) {
-	s = 1
+func (z *MessageConsensusDkgDealResponse) Msgsize() (s int) {
+	s = 1 + 3 + msgp.Uint32Size + 5 + msgp.StringPrefixSize + len(z.Data) + 10 + msgp.BytesPrefixSize + len(z.PublikKey) + 9 + msgp.BytesPrefixSize + len(z.Sinature)
 	return
 }
 

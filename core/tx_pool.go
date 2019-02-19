@@ -460,6 +460,8 @@ func (pool *TxPool) loop() {
 						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 					}
 				}
+			case *types.Campaign:
+				//todo
 			}
 			pool.mu.Unlock()
 

@@ -58,6 +58,11 @@ func (c *Campaign) SignatureTargets() []byte {
 	// add parents infornmation.
 	var buf bytes.Buffer
 
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.PkDkg))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.PkVrf))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Proof))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Data))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.Issuer.Bytes))
 

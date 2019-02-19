@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"math/rand"
 	"sync"
 	"time"
@@ -24,12 +25,12 @@ const (
 type AutoClient struct {
 	SampleAccounts []*account.SampleAccount
 	MyAccountIndex int
-
 	SequencerIntervalMs  int
 	TxIntervalMs         int
 	IntervalMode         string
 	NonceSelfDiscipline  bool
 	AutoSequencerEnabled bool
+	CampainEnable        bool
 	AutoTxEnabled        bool
 
 	Delegate *Delegate
@@ -43,11 +44,13 @@ type AutoClient struct {
 	wg sync.WaitGroup
 
 	nonceLock sync.RWMutex
+	NewRawTx chan types.Txi
 }
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
 	c.ManualChan = make(chan types.TxBaseType)
+	c.NewRawTx = make (chan  types.Txi)
 }
 
 func (c *AutoClient) SetTxIntervalMs(i int) {
@@ -127,6 +130,8 @@ func (c *AutoClient) loop() {
 			}
 			c.doSampleTx(false)
 			timerTx.Reset(c.nextSleepDuraiton())
+		case tx := <-c.NewRawTx:
+			c.doRawTx(tx)
 		case <-tickerSeq.C:
 			if c.testMode {
 				timerTx.Stop()
@@ -238,6 +243,32 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyAccountIndex).Trace("Generated tx")
 	c.Delegate.Announce(tx)
+	return true
+}
+
+
+
+func (c *AutoClient) doRawTx(txi types.Txi) bool {
+	if !c.CampainEnable {
+		return false
+	}
+	me := c.SampleAccounts[c.MyAccountIndex]
+	txi.GetBase().PublicKey = me.PublicKey.Bytes
+	txi.GetBase().AccountNonce =  c.judgeNonce()
+	if txi.GetType() ==types.TxBaseTypeCampaign {
+		cp := txi.(*types.Campaign)
+		cp.Issuer = me.Address
+	}
+    s:= crypto.NewSigner(me.PublicKey.Type)
+    txi.GetBase().Signature =  s.Sign(me.PrivateKey,txi.SignatureTargets()).Bytes
+	if ok := c.Delegate.TxCreator.SealTx(txi); !ok {
+		logrus.Warn("delegate failed to seal tx")
+		return false
+	}
+
+	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
+		WithField("id", c.MyAccountIndex).Trace("Generated tx")
+	c.Delegate.Announce(txi)
 	return true
 }
 

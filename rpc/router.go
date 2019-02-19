@@ -73,7 +73,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 
 		// broadcast API
 		"new_transaction": "tx",
-		"auto_tx":         "interval_ms",
+		"auto_tx":         "interval_us",
 
 		// query API
 		"query":            "query",

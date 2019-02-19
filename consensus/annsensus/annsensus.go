@@ -6,52 +6,82 @@ import (
 )
 
 type AnnSensus struct {
-	quitCh        chan bool
+	doCamp bool // the switch of whether annsensus should produce campaign.
+
+	receivers []chan types.Txi
+
+	close chan struct{}
 }
 
-// Commit takes a list of campaigns as input and record these
-// camps' information It checks if the number of camps reaches
-// the threshold. If so, start term changing flow.
-func (as *AnnSensus) Commit(camps []*types.Campaign) {
-
-}
-
-// func (as *AnnSensus)
-
-func NewAnnSensus ()*AnnSensus {
+func NewAnnSensus() *AnnSensus {
 	return &AnnSensus{
-		quitCh:make(chan bool),
+		close:     make(chan struct{}),
+		receivers: []chan types.Txi{},
 	}
 }
 
-
-func (a *AnnSensus)GetBenchmarks() map[string]interface{} {
-	//todo
-	return nil
+func (as *AnnSensus) Start() {
+	log.Info("AnnSensus Start")
+	// TODO
 }
 
-// Start start dpos service.
-func (a *AnnSensus) Start() {
-	log.Info("Starting AnnSensus ...")
-	go a.loop()
+func (as *AnnSensus) Stop() {
+	log.Info("AnnSensus Stop")
+
+	close(as.close)
 }
 
-// Stop stop dpos service.
-func (a *AnnSensus) Stop() {
-	log.Info("Stopping AnnSensus ...")
-	a.quitCh <- true
-}
-
-func (a *AnnSensus) Name() string {
+func (as *AnnSensus) Name() string {
 	return "AnnSensus"
 }
 
-func (a *AnnSensus) loop() {
+func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
+	// TODO
+	return nil
+}
+
+// RegisterReceiver add a channel into AnnSensus.receivers, receivers are the
+// hooks that handle new txs.
+func (as *AnnSensus) RegisterReceiver(c chan types.Txi) {
+	as.receivers = append(as.receivers, c)
+}
+
+func (as *AnnSensus) CampaignOn() {
+	as.doCamp = true
+	go as.campaign()
+}
+
+func (as *AnnSensus) CampaignOff() {
+	as.doCamp = false
+}
+
+func (as *AnnSensus) campaign() {
+	// TODO
 	for {
-		select {
-		case <-a.quitCh:
-			log.Info("dpos received quit message. Quitting...")
+
+		if !as.doCamp {
 			return
 		}
+		// generate campaign.
+		camp := as.genCamp()
+
+		// send camp
+		for _, c := range as.receivers {
+			c <- camp
+		}
+
 	}
+}
+
+// genCamp calculate vrf and generate a campaign that contains this vrf info.
+func (as *AnnSensus) genCamp() *types.Campaign {
+	// TODO
+	return &types.Campaign{}
+}
+
+// commit takes a list of campaigns as input and record these
+// camps' information It checks if the number of camps reaches
+// the threshold. If so, start term changing flow.
+func (as *AnnSensus) commit(camps []*types.Campaign) {
+
 }

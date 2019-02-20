@@ -36,7 +36,6 @@ type Node interface {
 	DecodeMsg(dc *msgp.Reader) error
 	EncodeMsg(en *msgp.Writer) error
 	MarshalMsg(b []byte) ([]byte, error)
-	UnmarshalMsg(bts []byte) ([]byte, error)
 	Msgsize() int
 }
 

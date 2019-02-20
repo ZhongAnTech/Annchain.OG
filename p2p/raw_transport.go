@@ -17,39 +17,39 @@ import (
 )
 
 //go:generate msgp
-type RawTransport struct {
+type rawTransport struct {
 	fd net.Conn
 	MsgReadWriter
 	rmu, wmu sync.Mutex
 	rw       *rawFrameRW
 }
 
-func newRawTransport(fd net.Conn) transport {
+func newrawTransport(fd net.Conn) transport {
 	fd.SetDeadline(time.Now().Add(handshakeTimeout))
-	return &RawTransport{fd: fd}
+	return &rawTransport{fd: fd}
 }
 
-func (t *RawTransport) ReadMsg() (Msg, error) {
+func (t *rawTransport) ReadMsg() (Msg, error) {
 	t.rmu.Lock()
 	defer t.rmu.Unlock()
 	t.fd.SetReadDeadline(time.Now().Add(frameReadTimeout))
 	return t.rw.ReadMsg()
 }
 
-func (t *RawTransport) WriteMsg(msg Msg) error {
+func (t *rawTransport) WriteMsg(msg Msg) error {
 	t.wmu.Lock()
 	defer t.wmu.Unlock()
 	t.fd.SetWriteDeadline(time.Now().Add(frameWriteTimeout))
 	return t.rw.WriteMsg(msg)
 }
 
-func (t *RawTransport) close(err error) {
+func (t *rawTransport) close(err error) {
 	t.wmu.Lock()
 	defer t.wmu.Unlock()
 	// Tell the remote end why we're disconnecting if possible.
 	if t.rw != nil {
 		if r, ok := err.(DiscReason); ok && r != DiscNetworkError {
-			// RawTransport tries to send DiscReason to disconnected peer
+			// rawTransport tries to send DiscReason to disconnected peer
 			// if the connection is net.Pipe (in-memory simulation)
 			// it hangs forever, since net.Pipe does not implement
 			// a write deadline. Because of this only try to send
@@ -63,7 +63,7 @@ func (t *RawTransport) close(err error) {
 	t.fd.Close()
 }
 
-func (t *RawTransport) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err error) {
+func (t *rawTransport) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err error) {
 	// Writing our handshake happens concurrently, we prefer
 	// returning the handshake read error. If the remote side
 	// disconnects us early with a valid reason, we should return it
@@ -239,7 +239,7 @@ func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.Pub
 // messages. the protocol handshake is the first authenticated message
 // and also verifies whether the encryption handshake 'worked' and the
 // remote side actually provided the right public key.
-func (t *RawTransport) doEncHandshake(prv *ecdsa.PrivateKey, dial *ecdsa.PublicKey) (*ecdsa.PublicKey, error) {
+func (t *rawTransport) doEncHandshake(prv *ecdsa.PrivateKey, dial *ecdsa.PublicKey) (*ecdsa.PublicKey, error) {
 	var (
 		pub *ecdsa.PublicKey
 		err error
@@ -289,7 +289,10 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 
 		msg.Payload = bytes.NewReader(payload)
 		msg.Size = uint32(len(payload))
+	}else {
+		payload ,_ = msg.GetPayLoad()
 	}
+
 	// write header
 	headbuf := make([]byte, 6)
 	fsize := uint32(len(ptype)) + msg.Size
@@ -298,15 +301,18 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 	}
 	putInt24(fsize, headbuf) // TODO: check overflow
 	copy(headbuf[3:], zeroHeader)
-
 	// write header
 	if _, err := rw.conn.Write(headbuf); err != nil {
+
+		fmt.Println(headbuf)
 		return err
 	}
 	if _, err := rw.conn.Write(ptype); err != nil {
+		fmt.Println(ptype,err)
 		return err
 	}
 	if _, err := rw.conn.Write(payload); err != nil {
+		fmt.Println(payload,err)
 		return err
 	}
 	return nil

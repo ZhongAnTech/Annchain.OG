@@ -14,12 +14,16 @@ import (
 
 type Campaign struct {
 	TxBase
-	PkDkg  []byte
-	PkVrf  []byte
-	Data   []byte
-	Vrf    []byte
-	Proof  []byte
+	DkgPublicKey  []byte
+	Vrf       VrfInfo
 	Issuer Address
+}
+
+type VrfInfo struct  {
+	Message []byte
+	Proof   []byte
+	PublicKey []byte
+	Vrf        []byte
 }
 
 func (c *Campaign) GetBase() *TxBase {
@@ -50,7 +54,7 @@ func (c *Campaign) Dump() string {
 	return fmt.Sprintf("hash: %s, pHash: [%s], issuer: %s, nonce: %d , signatute: %s, pubkey %s ,"+
 		"PkDkg: %x, PkVrf: %x, Data: %x, Vrf: %x, Proof: %x", c.Hash.Hex(),
 		strings.Join(phashes, " ,"), c.Issuer.Hex(), c.AccountNonce, hexutil.Encode(c.Signature), hexutil.Encode(c.PublicKey),
-		c.PkDkg, c.PkVrf, c.Data, c.Vrf, c.Proof)
+		c.DkgPublicKey, c.Vrf.PublicKey, c.Vrf.Message, c.Vrf.Vrf, c.Vrf.Proof)
 }
 
 func (c *Campaign) SignatureTargets() []byte {
@@ -58,11 +62,11 @@ func (c *Campaign) SignatureTargets() []byte {
 	// add parents infornmation.
 	var buf bytes.Buffer
 
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.PkDkg))
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf))
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.PkVrf))
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.Proof))
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.Data))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.DkgPublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.Vrf))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.PublicKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.Proof))
+	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.Message))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.Issuer.Bytes))
 

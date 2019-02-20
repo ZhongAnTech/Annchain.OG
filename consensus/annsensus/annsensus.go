@@ -3,6 +3,7 @@ package annsensus
 import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/poc/dkg"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -21,6 +22,9 @@ type AnnSensus struct {
 	Hub  *og.Hub     //todo use interface later
 	Txpool og.ITxPool
 	Idag   og.IDag
+	partNer *dkg.Partner
+	Threshold             int
+	NbParticipants        int
  }
 
 func NewAnnSensus(campaign bool ) *AnnSensus {
@@ -98,23 +102,6 @@ func (as *AnnSensus) campaign() {
 	}
 }
 
-// genCamp calculate vrf and generate a campaign that contains this vrf info.
-func (as *AnnSensus) genCamp() *types.Campaign {
-	//once for test
-	//as.doCamp = false
-	// TODO
-	base := types.TxBase{
-		Type:types.TxBaseTypeCampaign,
-	}
-
-	cp:=  &types.Campaign{
-		TxBase:base,
-	}
-	if as.GenerateVrf(cp){
-		return cp
-	}
-	return nil
- }
 
 // commit takes a list of campaigns as input and record these
 // camps' information It checks if the number of camps reaches

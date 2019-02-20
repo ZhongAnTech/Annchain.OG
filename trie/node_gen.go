@@ -107,13 +107,6 @@ func (z *FullNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		if z.Children[za0001] == nil {
-			return
-		}
-		bts, err = z.Children[za0001].UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
 	}
 	o = bts
 	return
@@ -129,19 +122,26 @@ func (z *FullNode) GenNode(b []byte, i int) (o []byte, err error) {
 	switch nodetype(t) {
 	case nilnode:
 		z.Children[i] = nil
+		o = b[1:]
 	case fullnode:
-		z.Children[i] = &FullNode{}
+		n := &FullNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Children[i] = n
 	case shortnode:
-		z.Children[i] = &ShortNode{}
+		n := &ShortNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Children[i] = n
 	case valuenode:
-		z.Children[i] = ValueNode{}
+		n := ValueNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Children[i] = n
 	case hashnode:
-		z.Children[i] = HashNode{}
+		n := HashNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Children[i] = n
 	default:
 		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}
-
-	o = b[1:]
 	return
 }
 
@@ -188,14 +188,14 @@ func (z HashNode) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z HashNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *HashNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
 		var zb0001 []byte
-		zb0001, bts, err = msgp.ReadBytesBytes(bts, []byte((z)))
+		zb0001, bts, err = msgp.ReadBytesBytes(bts, []byte((*z)))
 		if err != nil {
 			return
 		}
-		z = HashNode(zb0001)
+		(*z) = HashNode(zb0001)
 	}
 	o = bts
 	return
@@ -287,13 +287,6 @@ func (z *ShortNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if z.Val == nil {
-		return
-	}
-	bts, err = z.Val.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
 	o = bts
 	return
 }
@@ -318,18 +311,24 @@ func (z *ShortNode) GenNode(b []byte) (o []byte, err error) {
 	case nilnode:
 		z.Val = nil
 	case fullnode:
-		z.Val = &FullNode{}
+		n := &FullNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Val = n
 	case shortnode:
-		z.Val = &ShortNode{}
+		n := &ShortNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Val = n
 	case valuenode:
-		z.Val = ValueNode{}
+		n := ValueNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Val = n
 	case hashnode:
-		z.Val = HashNode{}
+		n := HashNode{}
+		o, err = n.UnmarshalMsg(b[1:])
+		z.Val = n
 	default:
 		err = fmt.Errorf("unknown nodetype: %v", nodetype(t))
 	}
-
-	o = b[1:]
 	return
 }
 
@@ -363,14 +362,14 @@ func (z ValueNode) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z ValueNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *ValueNode) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
 		var zb0001 []byte
-		zb0001, bts, err = msgp.ReadBytesBytes(bts, []byte((z)))
+		zb0001, bts, err = msgp.ReadBytesBytes(bts, []byte((*z)))
 		if err != nil {
 			return
 		}
-		(z) = ValueNode(zb0001)
+		(*z) = ValueNode(zb0001)
 	}
 	o = bts
 	return

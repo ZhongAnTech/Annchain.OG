@@ -12,7 +12,8 @@ import (
 
 func newTestStateDB(t *testing.T) *state.StateDB {
 	db := ogdb.NewMemDatabase()
-	stdb, err := state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(db))
+	initRoot := types.Hash{}
+	stdb, err := state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(db), initRoot)
 	if err != nil {
 		t.Errorf("create StateDB error: %v", err)
 	}

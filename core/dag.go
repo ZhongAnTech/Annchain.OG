@@ -8,6 +8,7 @@ import (
 	// "fmt"
 	"sync"
 
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
@@ -52,24 +53,34 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database, cryptoType crypto.CryptoType) (*Dag, error) {
 	dag := &Dag{}
-
-	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db))
-	if err != nil {
-		return nil, fmt.Errorf("create statedb err: %v", err)
-	}
 
 	dag.conf = conf
 	dag.db = db
 	dag.oldDb = oldDb
-	dag.statedb = statedb
 	dag.accessor = NewAccessor(db)
 	// TODO
 	// default maxsize of txcached is 10000,
 	// move this size to config later.
 	dag.txcached = newTxcached(10000)
 	dag.close = make(chan struct{})
+
+	restart, root := dag.LoadLastState()
+	log.Infof("the root loaded from last state is: %x", root.ToBytes())
+	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
+	if err != nil {
+		return nil, fmt.Errorf("create statedb err: %v", err)
+	}
+	dag.statedb = statedb
+
+	if !restart {
+		// TODO use config to load the genesis
+		seq, balance := DefaultGenesis(cryptoType)
+		if err := dag.Init(seq, balance); err != nil {
+			return nil, err
+		}
+	}
 
 	return dag, nil
 }
@@ -104,8 +115,31 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 	dag.wg.Wait()
+	// TODO
+	// the state root should be stored in sequencer rather than stored seperately.
+	dag.SaveStateRoot()
 	dag.statedb.Stop()
 	log.Infof("Dag Stopped")
+}
+
+// TODO
+// This is a temp function to solve the not working problem when
+// restart the node. The perfect solution is to load the root from
+// latest sequencer every time restart the node.
+func (dag *Dag) SaveStateRoot() {
+	key := []byte("stateroot")
+	dag.db.Put(key, dag.statedb.Root().ToBytes())
+	log.Infof("stateroot saved: %x", dag.statedb.Root().ToBytes())
+}
+
+// TODO
+// This is a temp function to solve the not working problem when
+// restart the node. The perfect solution is to load the root from
+// latest sequencer every time restart the node.
+func (dag *Dag) LoadStateRoot() types.Hash {
+	key := []byte("stateroot")
+	rootbyte, _ := dag.db.Get(key)
+	return types.BytesToHash(rootbyte)
 }
 
 // StateDatabase is for testing only
@@ -157,13 +191,13 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 
 // LoadLastState load genesis and latestsequencer data from ogdb.
 // return false if there is no genesis stored in the db.
-func (dag *Dag) LoadLastState() bool {
+func (dag *Dag) LoadLastState() (bool, types.Hash) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	genesis := dag.accessor.ReadGenesis()
 	if genesis == nil {
-		return false
+		return false, types.Hash{}
 	}
 	dag.genesis = genesis
 	seq := dag.accessor.ReadLatestSequencer()
@@ -172,8 +206,9 @@ func (dag *Dag) LoadLastState() bool {
 	} else {
 		dag.latestSequencer = seq
 	}
+	root := dag.LoadStateRoot()
 
-	return true
+	return true, root
 }
 
 // Genesis returns the genesis tx of dag

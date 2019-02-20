@@ -8,15 +8,15 @@ import (
 type AnnSensus struct {
 	doCamp bool // the switch of whether annsensus should produce campaign.
 
-	receivers []chan types.Txi
+	newTxHandlers []chan types.Txi
 
 	close chan struct{}
 }
 
 func NewAnnSensus() *AnnSensus {
 	return &AnnSensus{
-		close:     make(chan struct{}),
-		receivers: []chan types.Txi{},
+		close:         make(chan struct{}),
+		newTxHandlers: []chan types.Txi{},
 	}
 }
 
@@ -40,10 +40,10 @@ func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	return nil
 }
 
-// RegisterReceiver add a channel into AnnSensus.receivers, receivers are the
-// hooks that handle new txs.
+// RegisterReceiver add a channel into AnnSensus.newTxHandlers, newTxHandlers
+// are the hooks that handle new txs.
 func (as *AnnSensus) RegisterReceiver(c chan types.Txi) {
-	as.receivers = append(as.receivers, c)
+	as.newTxHandlers = append(as.newTxHandlers, c)
 }
 
 func (as *AnnSensus) CampaignOn() {
@@ -55,10 +55,10 @@ func (as *AnnSensus) CampaignOff() {
 	as.doCamp = false
 }
 
+// campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
 func (as *AnnSensus) campaign() {
 	// TODO
 	for {
-
 		if !as.doCamp {
 			return
 		}
@@ -66,7 +66,7 @@ func (as *AnnSensus) campaign() {
 		camp := as.genCamp()
 
 		// send camp
-		for _, c := range as.receivers {
+		for _, c := range as.newTxHandlers {
 			c <- camp
 		}
 

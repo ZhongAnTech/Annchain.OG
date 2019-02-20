@@ -176,6 +176,24 @@ func (s *scalar) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
+func  UnmarshalBinaryScalar(buf []byte) (kyber.Scalar , error) {
+     var s scalar
+     err := s.UnmarshalBinary(buf)
+     if err!=nil {
+     	return nil, err
+	 }
+	return &s, nil
+}
+
+func  UnmarshalFromScalar(r io.Reader) (kyber.Scalar,int, error) {
+	var s scalar
+	n,err := s.UnmarshalFrom(r)
+	if err!=nil {
+		return nil, n,err
+	}
+	return &s,n, nil
+}
+
 // MarshalTo writes the binary representation of this scalar to the given
 // writer.
 func (s *scalar) MarshalTo(w io.Writer) (int, error) {

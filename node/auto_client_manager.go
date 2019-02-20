@@ -3,6 +3,7 @@ package node
 import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
@@ -15,6 +16,7 @@ type AutoClientManager struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
 	quit                   chan bool
 	wg                     sync.WaitGroup
+	RegisterReceiver func   (c chan types.Txi)
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
@@ -57,6 +59,25 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			AutoSequencerEnabled: true,
 		}
 		client.Init()
+		m.Clients = append(m.Clients, client)
+	}
+
+	if  viper.GetBool("annsensus.campaign") {
+		// add pure sequencer
+		client := &AutoClient{
+			Delegate:             delegate,
+			SampleAccounts:       m.SampleAccounts,
+			MyAccountIndex:       accountIndices[0],
+			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
+			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
+			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
+			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
+			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
+			AutoSequencerEnabled: false,
+			CampainEnable : true ,
+		}
+		client.Init()
+		m.RegisterReceiver(client.NewRawTx)
 		m.Clients = append(m.Clients, client)
 	}
 }

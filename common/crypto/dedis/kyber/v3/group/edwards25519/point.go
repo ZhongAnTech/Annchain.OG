@@ -59,6 +59,23 @@ func (P *point) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+func  UnmarshalBinaryPoint(b []byte)(  kyber.Point , error )  {
+	var P point
+	if err:=   P.UnmarshalBinary(b);err!=nil {
+		return nil,err
+	}
+	return &P, nil
+}
+
+func UnmarshalFromPoint(r io.Reader) ( kyber.Point,int, error) {
+	var P point
+	 n, err :=  P.UnmarshalFrom(r)
+	 if err!=nil {
+		return nil,n, err
+	}
+	return &P,n, nil
+}
+
 func (P *point) MarshalTo(w io.Writer) (int, error) {
 	return marshalling.PointMarshalTo(P, w)
 }

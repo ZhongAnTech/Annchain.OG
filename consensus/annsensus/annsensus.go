@@ -1,6 +1,11 @@
 package annsensus
 
 import (
+	"time"
+
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/poc/dkg"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -10,24 +15,40 @@ type AnnSensus struct {
 
 	newTxHandlers []chan types.Txi
 
-	close chan struct{}
+	close        chan struct{}
+	campaignFlag bool
+	MyPrivKey    *crypto.PrivateKey
+	campaigns    map[types.Address]*types.Campaign //temperary
+
+	Hub            *og.Hub //todo use interface later
+	Txpool         og.ITxPool
+	Idag           og.IDag
+	partNer        *dkg.Partner
+	Threshold      int
+	NbParticipants int
 }
 
-func NewAnnSensus() *AnnSensus {
+func NewAnnSensus(campaign bool) *AnnSensus {
 	return &AnnSensus{
 		close:         make(chan struct{}),
 		newTxHandlers: []chan types.Txi{},
+		campaignFlag:  campaign,
+		campaigns:     make(map[types.Address]*types.Campaign),
 	}
 }
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
+	if as.campaignFlag {
+		as.CampaignOn()
+		go as.gossipLoop()
+	}
 	// TODO
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-
+	as.CampaignOff()
 	close(as.close)
 }
 
@@ -59,24 +80,26 @@ func (as *AnnSensus) CampaignOff() {
 func (as *AnnSensus) campaign() {
 	// TODO
 	for {
-		if !as.doCamp {
+		select {
+		case <-as.close:
+			log.Info("campaign stopped")
 			return
-		}
-		// generate campaign.
-		camp := as.genCamp()
-
-		// send camp
-		for _, c := range as.newTxHandlers {
-			c <- camp
+		case <-time.After(time.Second):
+			if !as.doCamp {
+				log.Info("campaign stopped")
+				return
+			}
+			// generate campaign.
+			camp := as.genCamp()
+			// send camp
+			if camp != nil {
+				for _, c := range as.newTxHandlers {
+					c <- camp
+				}
+			}
 		}
 
 	}
-}
-
-// genCamp calculate vrf and generate a campaign that contains this vrf info.
-func (as *AnnSensus) genCamp() *types.Campaign {
-	// TODO
-	return &types.Campaign{}
 }
 
 // commit takes a list of campaigns as input and record these

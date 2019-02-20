@@ -345,6 +345,10 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 }
 
 func (b *TxBuffer) addToTxPool(tx types.Txi) error {
+	//fix later
+	if tx.GetType() == types.TxBaseTypeCampaign {
+		return nil
+	}
 	//no need to receive added tx by buffer
 	return b.txPool.AddRemoteTx(tx, true)
 }

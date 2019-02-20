@@ -3,10 +3,11 @@ package og
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
-	"github.com/pkg/errors"
 	"sync/atomic"
 )
 
@@ -66,6 +67,8 @@ const (
 	MessageTypeConsensusDkgDeal
 	MessageTypeConsensusDkgDealResponse
 
+	MessageTypeSecret
+
 	MessageTypeOg01Length //og01 length
 
 	// Protocol messages belonging to og/02
@@ -86,18 +89,84 @@ const (
 	sendingTypeBroacastWithLink
 )
 
+func (mt MessageType)isValid() bool  {
+	if mt >= MessageTypeOg02Length{
+		return false
+	}
+	return true
+}
+
 func (mt MessageType) String() string {
-	return []string{
-		"StatusMsg", "MessageTypePing", "MessageTypePong", "MessageTypeFetchByHashRequest", "MessageTypeFetchByHashResponse",
-		"MessageTypeNewTx", "MessageTypeNewSequencer", "MessageTypeNewTxs", "MessageTypeSequencerHeader",
-		"MessageTypeBodiesRequest", "MessageTypeBodiesResponse", "MessageTypeTxsRequest",
-		"MessageTypeTxsResponse", "MessageTypeHeaderRequest", "MessageTypeHeaderResponse",
-		"MessageTypeGetMsg", "MessageTypeDuplicate", "MessageTypeControl",
-		"MessageTypeTermChange", "MessageTypeCampaign", "MessageTypeConsensusDkgDeal", "MessgaTypeConsensusDkgDealResponse",
-		"MessageTypeOg01End",
-		"GetNodeDataMsg", "NodeDataMsg", "GetReceiptsMsg",
-		"MessageTypeOg02End",
-	}[int(mt)]
+	switch mt {
+	case StatusMsg :
+		return "StatusMsg"
+	case  	MessageTypePing:
+		return "MessageTypePing"
+	case MessageTypePong:
+		return "MessageTypePong"
+	case 	MessageTypeFetchByHashRequest:
+		return "MessageTypeFetchByHashRequest"
+	case MessageTypeFetchByHashResponse:
+		return "MessageTypeFetchByHashResponse"
+	case 	MessageTypeNewTx:
+		return "MessageTypeNewTx"
+	case 		MessageTypeNewSequencer:
+		return "MessageTypeNewSequencer"
+	case	MessageTypeNewTxs:
+		return "MessageTypeNewTxs"
+	case MessageTypeSequencerHeader:
+		return "MessageTypeSequencerHeader"
+
+	case MessageTypeBodiesRequest:
+		return "MessageTypeBodiesRequest"
+	case MessageTypeBodiesResponse:
+  return  "MessageTypeBodiesResponse"
+	case MessageTypeTxsRequest:
+		return  "MessageTypeTxsRequest"
+	case MessageTypeTxsResponse:
+		return  "MessageTypeTxsResponse"
+	case 	MessageTypeHeaderRequest:
+		return  "MessageTypeHeaderRequest"
+	case 	MessageTypeHeaderResponse:
+		return  "MessageTypeHeaderResponse"
+
+		//for optimizing network
+	case MessageTypeGetMsg:
+		return "MessageTypeGetMsg"
+	case MessageTypeDuplicate:
+		return  "MessageTypeDuplicate"
+	case MessageTypeControl:
+		return  "MessageTypeControl"
+
+		//for consensus
+	case MessageTypeCampaign:
+		return "MessageTypeCampaign"
+	case MessageTypeTermChange:
+		return "MessageTypeTermChange"
+	case MessageTypeConsensusDkgDeal:
+		return  "MessageTypeConsensusDkgDeal"
+	case MessageTypeConsensusDkgDealResponse:
+		return "MessageTypeConsensusDkgDealResponse"
+
+	case MessageTypeSecret:
+		return "MessageTypeSecret"
+
+	case MessageTypeOg01Length: //og01 length
+	return "MessageTypeOg01Length"
+
+		// Protocol messages belonging to og/02
+
+	case GetNodeDataMsg:
+		return "GetNodeDataMsg"
+	case NodeDataMsg:
+		return "NodeDataMsg"
+	case GetReceiptsMsg:
+		return  "GetReceiptsMsg"
+	case MessageTypeOg02Length:
+		return "MessageTypeOg02Length"
+	default:
+		return fmt.Sprintf("unkown message type %d",mt)
+	}
 }
 
 func (mt MessageType) Code() p2p.MsgCodeType {
@@ -114,6 +183,7 @@ type p2PMessage struct {
 	message      types.Message
 	sourceHash   *types.Hash
 	marshalState bool
+	encrypt      bool
 }
 
 func (m *p2PMessage) calculateHash() {
@@ -325,6 +395,45 @@ func (m *p2PMessage) Marshal() error {
 	return err
 }
 
+func (m*p2PMessage)Encrypt(pub	 *crypto.PublicKey) error {
+	if m.messageType == MessageTypeConsensusDkgDeal || m.messageType ==MessageTypeConsensusDkgDealResponse {
+		b := make([]byte, 2)
+		//use one key for tx and sequencer
+		binary.BigEndian.PutUint16(b, uint16(m.messageType))
+		 m.data = append(m.data,b[:]...)
+		 m.encrypt = true
+		 m.messageType = MessageTypeSecret
+		ct ,err :=  pub.Encrypt(m.data)
+		if err!=nil {
+			return err
+		}
+		m.data = ct
+
+	}
+	return  nil
+}
+
+func (m*p2PMessage)Decrypt(priv	 *crypto.PrivateKey) error {
+    if m.messageType == MessageTypeSecret {
+		msg ,err :=  priv.Decrypt(m.data)
+		if err!=nil {
+			return err
+		}
+		if len(msg) <3 {
+			return fmt.Errorf("lengh error %d", len(msg))
+		}
+		b:= make([]byte,2)
+		copy(b, msg[len(msg)-2:])
+		mType  := binary.BigEndian.Uint16(b)
+		m.messageType = MessageType(mType)
+		if !m.messageType.isValid() {
+			return  fmt.Errorf("message type error %s",  m.messageType.String())
+		}
+		m.data = msg[:len(msg)-2]
+	}
+    return nil
+}
+
 func (p *p2PMessage) Unmarshal() error {
 	if p.marshalState {
 		return nil
@@ -407,6 +516,14 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
+	case MessageTypeCampaign:
+		p.message = &types.MessageCampaign{}
+	case MessageTypeTermChange:
+		p.message = &types.MessageTermChange{}
+	case MessageTypeConsensusDkgDeal:
+		p.message = &types.MessageConsensusDkgDeal{}
+	case MessageTypeConsensusDkgDealResponse:
+		p.message = &types.MessageConsensusDkgDealResponse{}
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}

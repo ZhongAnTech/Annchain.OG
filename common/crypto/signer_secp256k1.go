@@ -2,8 +2,8 @@ package crypto
 
 import (
 	"crypto/ecdsa"
-	"fmt"
-
+	"crypto/rand"
+	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
@@ -19,7 +19,7 @@ func (s *SignerSecp256k1) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := HexToECDSA(fmt.Sprintf("%x", privKey.Bytes))
+	priv, _ := ToECDSA( privKey.Bytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		log.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
@@ -35,7 +35,6 @@ func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
 func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.Bytes)
 	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
-
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
@@ -60,4 +59,20 @@ func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey Priva
 // Address calculate the address from the pubkey
 func (s *SignerSecp256k1) Address(pubKey PublicKey) types.Address {
 	return types.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
+}
+
+
+func ( s*SignerSecp256k1) Encrypt( p PublicKey ,m []byte) (ct []byte, err error) {
+	pub,err := UnmarshalPubkey(p.Bytes)
+	if err!=nil {
+		panic(err)
+	}
+	eciesPub := ecies.ImportECDSAPublic(pub)
+	return  ecies.Encrypt(rand.Reader,eciesPub, m,nil,nil)
+}
+
+func (s *SignerSecp256k1)Decrypt(p PrivateKey, ct []byte) ( m []byte, err error) {
+	prive, err := ToECDSA(p.Bytes)
+	ecisesPriv := ecies.ImportECDSA(prive)
+	return ecisesPriv.Decrypt(ct, nil, nil)
 }

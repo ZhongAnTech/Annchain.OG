@@ -42,6 +42,8 @@ func (t *TxCounter) loop() {
 			switch tx.GetType() {
 			case types.TxBaseTypeNormal:
 				t.TxReceived.Inc()
+			case types.TxBaseTypeCampaign:
+				t.TxReceived.Inc()
 			case types.TxBaseTypeSequencer:
 				t.SequencerReceived.Inc()
 			default:
@@ -64,6 +66,8 @@ func (t *TxCounter) loop() {
 				t.TxGenerated.Inc()
 			case types.TxBaseTypeSequencer:
 				t.SequencerGenerated.Inc()
+			case types.TxBaseTypeCampaign:
+				t.TxGenerated.Inc()
 			default:
 				logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
 			}

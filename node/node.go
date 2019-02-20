@@ -246,6 +246,9 @@ func NewNode() *Node {
 	//	}
 	//}
 
+
+	campaign := viper.GetBool("annsensus.campaign")
+	annSunsus := annsensus.NewAnnSensus(campaign)
 	delegate := &Delegate{
 		TxPool: org.TxPool,
 		//TxBuffer:  txBuffer,
@@ -259,10 +262,14 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
+	 autoClientManager.RegisterReceiver = annSunsus.RegisterReceiver
+		accountIds:= StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	autoClientManager.Init(
-		StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids")),
+		accountIds,
 		delegate,
 	)
+		annSunsus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
+	hub.SetEncryptionKey(annSunsus.MyPrivKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
@@ -333,13 +340,14 @@ func NewNode() *Node {
 	n.Components = append(n.Components, txCounter)
 
 	//
-	annSunsus := annsensus.NewAnnSensus()
+
 	n.Components = append(n.Components, annSunsus)
 	m.CampaignHandler = annSunsus
 	m.TermChangeHandler = annSunsus
 	m.ConsensusDkgDealHandler = annSunsus
 	m.ConsensusDkgDealResponseHandler = annSunsus
 
+	annSunsus.Hub =hub
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)

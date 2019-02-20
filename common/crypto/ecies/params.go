@@ -40,13 +40,12 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+	"github.com/btcsuite/btcd/btcec"
 	"hash"
-
-	ethcrypto "github.com/annchain/OG/common/crypto"
 )
 
 var (
-	DefaultCurve                  = ethcrypto.S256()
+	DefaultCurve                  = S256()
 	ErrUnsupportedECDHAlgorithm   = fmt.Errorf("ecies: unsupported ECDH algorithm")
 	ErrUnsupportedECIESParameters = fmt.Errorf("ecies: unsupported ECIES parameters")
 )
@@ -100,7 +99,7 @@ var (
 )
 
 var paramsFromCurve = map[elliptic.Curve]*ECIESParams{
-	ethcrypto.S256(): ECIES_AES128_SHA256,
+	S256(): ECIES_AES128_SHA256,
 	elliptic.P256():  ECIES_AES128_SHA256,
 	elliptic.P384():  ECIES_AES256_SHA384,
 	elliptic.P521():  ECIES_AES256_SHA512,
@@ -114,4 +113,9 @@ func AddParamsForCurve(curve elliptic.Curve, params *ECIESParams) {
 // Only the curves P256, P384, and P512 are supported.
 func ParamsFromCurve(curve elliptic.Curve) (params *ECIESParams) {
 	return paramsFromCurve[curve]
+}
+
+// S256 returns an instance of the secp256k1 curve.
+func S256() elliptic.Curve {
+	return btcec.S256()
 }

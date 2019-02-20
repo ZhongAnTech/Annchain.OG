@@ -16,6 +16,8 @@ type TxBaseType uint16
 const (
 	TxBaseTypeNormal TxBaseType = iota
 	TxBaseTypeSequencer
+	TxBaseTypeCampaign
+	TxBaseTypeTermChange
 )
 
 func (t TxBaseType) String() string {
@@ -24,6 +26,10 @@ func (t TxBaseType) String() string {
 		return "TX"
 	case TxBaseTypeSequencer:
 		return "SQ"
+	case TxBaseTypeCampaign:
+		return "CP"
+	case TxBaseTypeTermChange:
+		return  "TC"
 	default:
 		return "NA"
 	}

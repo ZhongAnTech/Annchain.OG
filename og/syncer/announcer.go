@@ -26,7 +26,13 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 		seq := txi.(*types.Sequencer)
 		msgTx := types.MessageNewSequencer{RawSequencer: seq.RawSequencer()}
 		m.messageSender.BroadcastMessageWithLink(og.MessageTypeNewSequencer, &msgTx)
-	} else {
+	} else if txType == types.TxBaseTypeCampaign {
+		cp := txi.(*types.Campaign)
+		msg := types.MessageCampaign{
+			Campaign : cp ,
+		}
+		m.messageSender.BroadcastMessage(og.MessageTypeCampaign, &msg)
+	}else {
 		log.Warn("never come here, unknown tx type", txType)
 	}
 }

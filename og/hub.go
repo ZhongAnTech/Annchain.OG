@@ -3,6 +3,7 @@ package og
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
@@ -57,9 +58,10 @@ type Hub struct {
 	Downloader         *downloader.Downloader
 	Fetcher            *fetcher.Fetcher
 
-	NodeInfo       func() *p2p.NodeInfo
-	IsReceivedHash func(hash types.Hash) bool
-	broadCastMode  uint8
+	NodeInfo          func() *p2p.NodeInfo
+	IsReceivedHash    func(hash types.Hash) bool
+	broadCastMode     uint8
+	encryptionPrivKey *crypto.PrivateKey
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -87,6 +89,10 @@ type NodeStatusDataProvider interface {
 type PeerProvider interface {
 	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
 	GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error)
+}
+
+type EncryptionLayer interface {
+	SetEncryptionKey(priv *crypto.PrivateKey)
 }
 
 type HubConfig struct {
@@ -179,6 +185,10 @@ func NewHub(config *HubConfig) *Hub {
 	return h
 }
 
+func (h *Hub) SetEncryptionKey(priv *crypto.PrivateKey) {
+	h.encryptionPrivKey = priv
+}
+
 func (h *Hub) newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return newPeer(version, p, rw)
 }
@@ -261,6 +271,38 @@ func (h *Hub) handleMsg(p *peer) error {
 		return nil
 	default:
 		//for incoming msg
+		if m.messageType == MessageTypeSecret {
+			m.calculateHash()
+			p.MarkMessage(m.messageType, *m.hash)
+			oldMsg := m
+			if duplicate := h.cacheMessage(&m); !duplicate {
+				e := m.Decrypt(h.encryptionPrivKey)
+				if e == nil {
+					err = m.Unmarshal()
+					if err != nil {
+						log.WithField("type ", m.messageType).WithError(err).Warn("handle msg error")
+						return err
+					}
+					msgLog.WithField("type", m.messageType.String()).WithField("from", p.String()).WithField(
+						"Message", m.message.String()).WithField("len ", len(m.data)).Debug("received a message")
+					h.incoming <- &m
+					h.RelayMessage(&oldMsg)
+					return nil
+				} else {
+					log.WithError(e).Debug("this msg is not for me, will relay")
+					h.RelayMessage(&oldMsg)
+					return nil
+				}
+
+			} else {
+				out, in := p.CheckPath()
+				log.WithField("type", m.messageType).WithField("size", len(m.data)).WithField(
+					"hash", m.hash).WithField("from ", p.String()).WithField("out ", out).WithField(
+					"in ", in).Debug("duplicate msg ,discard")
+
+			}
+			return nil
+		}
 		err = m.Unmarshal()
 		if err != nil {
 			log.WithField("type ", m.messageType).WithError(err).Warn("handle msg error")
@@ -296,6 +338,7 @@ func (h *Hub) handleMsg(p *peer) error {
 
 	msgLog.WithField("type", m.messageType.String()).WithField("from", p.String()).WithField(
 		"Message", m.message.String()).WithField("len ", len(m.data)).Debug("received a message")
+
 	h.incoming <- &m
 	return nil
 }
@@ -407,11 +450,11 @@ func (h *Hub) loopReceive() {
 func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sourceMsgHash *types.Hash) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticastToSource, sourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
-	msgOut.calculateHash()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
+	msgOut.calculateHash()
 	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("multicast msg to source")
 	h.outgoing <- msgOut
 }
@@ -420,11 +463,11 @@ func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sour
 func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
 	err := msgOut.Marshal()
-	msgOut.calculateHash()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
+	msgOut.calculateHash()
 	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
@@ -438,11 +481,11 @@ func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg types.Messag
 	}
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithLink}
 	err := msgOut.Marshal()
-	msgOut.calculateHash()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
+	msgOut.calculateHash()
 	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
@@ -451,11 +494,11 @@ func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg types.Messag
 func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithFilter}
 	err := msgOut.Marshal()
-	msgOut.calculateHash()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
 		return
 	}
+	msgOut.calculateHash()
 	msgLog.WithField("size ", len(msgOut.data)).WithField("type", messageType).Debug("broadcast message")
 	h.outgoing <- msgOut
 }
@@ -464,11 +507,38 @@ func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Mess
 func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticast}
 	err := msgOut.Marshal()
-	msgOut.calculateHash()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		return
 	}
+	msgOut.calculateHash()
 	msgLog.WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("multicast message")
+	h.outgoing <- msgOut
+}
+
+//sned
+func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey) {
+	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
+	err := msgOut.Marshal()
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message init msg  err")
+		return
+	}
+	log.WithField("size before enc", len(msgOut.data))
+	err = msgOut.Encrypt(anyNomousPubKey)
+	if err != nil {
+		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message encrypt msg  err")
+		return
+	}
+	msgOut.calculateHash()
+	log.WithField("size after enc", len(msgOut.data))
+	msgLog.WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("SendToAnynomous message")
+	h.outgoing <- msgOut
+
+}
+
+func (h *Hub) RelayMessage(msgOut *p2PMessage) {
+	msgLog.WithField("size", len(msgOut.data)).WithField("type", msgOut.messageType).Trace("relay message")
 	h.outgoing <- msgOut
 }
 

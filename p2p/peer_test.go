@@ -164,7 +164,7 @@ func TestPeerProtoEncodeMsg(t *testing.T) {
 	closer, rw, _, _ := testPeer([]Protocol{proto})
 	defer closer()
 
-	if err := ExpectMsgArrString(rw, 17, []string{"foo", "bar"}); err != nil {
+	if err := ExpectMsg(rw, 17, msg.Strings{"foo", "bar"}); err != nil {
 		t.Error(err)
 	}
 }
@@ -175,7 +175,7 @@ func TestPeerPing(t *testing.T) {
 	if err := Send(rw, pingMsg, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := ExpectMsgArrByte(rw, pongMsg, nil); err != nil {
+	if err := ExpectMsg(rw, pongMsg, nil); err != nil {
 		t.Error(err)
 	}
 }

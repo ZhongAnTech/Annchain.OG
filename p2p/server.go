@@ -440,9 +440,11 @@ func (srv *Server) start() (err error) {
 	}
 	if srv.newTransport == nil {
 		if srv.Config.NoEncryption {
-			srv.newTransport = newRawTransport
+			srv.newTransport = newrawTransport
+		}else {
+			srv.newTransport = newRLPX
 		}
-		srv.newTransport = newRLPX
+
 	}
 	if srv.Dialer == nil {
 		srv.Dialer = TCPDialer{&net.Dialer{Timeout: defaultDialTimeout}}

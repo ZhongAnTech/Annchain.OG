@@ -51,6 +51,7 @@ type StateDB struct {
 	// db is for trie accessing.
 	db   Database
 	trie Trie
+	root types.Hash
 
 	refund uint64
 	// journal records every action which will change statedb's data
@@ -72,9 +73,8 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, db Database) (*StateDB, error) {
-	initRoot := types.Hash{}
-	tr, err := db.OpenTrie(initRoot)
+func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, error) {
+	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +99,10 @@ func (sd *StateDB) Stop() {
 
 func (sd *StateDB) Database() Database {
 	return sd.db
+}
+
+func (sd *StateDB) Root() types.Hash {
+	return sd.root
 }
 
 // CreateAccount will create a new state for input address and
@@ -447,6 +451,7 @@ func (sd *StateDB) ForEachStorage(addr types.Address, f func(key, value types.Ha
 
 // laodState loads a state from current trie.
 func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
+	log.Tracef("before TryGet, with addr: %s, input hex: %x, input bytes: %v", addr.Hex(), addr.ToBytes(), addr.ToBytes())
 	data, err := sd.trie.TryGet(addr.ToBytes())
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
@@ -546,6 +551,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		}
 		return nil
 	})
+	sd.root = rootHash
 
 	sd.clearJournalAndRefund()
 	return rootHash, err

@@ -75,7 +75,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db, olddb)
+	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db, olddb, config.CryptoType)
 	if derr != nil {
 		return nil, derr
 	}
@@ -93,14 +93,15 @@ func NewOg(config OGConfig) (*Og, error) {
 	}
 	og.TxPool = core.NewTxPool(txpoolconfig, og.Dag)
 
-	// initialize
-	if !og.Dag.LoadLastState() {
-		// TODO use config to load the genesis
-		seq, balance := core.DefaultGenesis(config.CryptoType)
-		if err := og.Dag.Init(seq, balance); err != nil {
-			return nil, err
-		}
-	}
+	// // initialize
+	// if !og.Dag.LoadLastState() {
+	// 	logrus.Trace("no existing data found in db")
+	// 	// TODO use config to load the genesis
+	// 	seq, balance := core.DefaultGenesis(config.CryptoType)
+	// 	if err := og.Dag.Init(seq, balance); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 	seq := og.Dag.LatestSequencer()
 	if seq == nil {
 		return nil, fmt.Errorf("dag's latest sequencer is not initialized.")

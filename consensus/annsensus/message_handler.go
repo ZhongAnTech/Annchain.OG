@@ -3,6 +3,7 @@ package annsensus
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -16,9 +17,21 @@ func (a *AnnSensus) HandleCampaign(request *types.MessageCampaign, peerId string
 		log.Warn("got nil MessageCampaign")
 		return
 	}
+	cp:= request.Campaign
 	//tood
 	//todo send to buffer
-	a.campaigns[request.Campaign.Issuer] = request.Campaign
+	err := a.VrfVerify(cp.Vrf.Vrf,cp.Vrf.PublicKey, cp.Vrf.Message,cp.Vrf.Proof)
+	if err!=nil {
+		log.WithError(err).Debug("vrf verify failed")
+		return
+	}
+	var partPub kyber.Point
+	err = partPub.UnmarshalBinary(cp.DkgPublicKey)
+	if err!=nil {
+		log.WithError(err).Debug("dkg Public key  verify failed")
+		return
+	}
+	a.campaigns[cp.Issuer] = cp
 	//todo
 }
 

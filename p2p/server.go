@@ -145,6 +145,8 @@ type Config struct {
 	// If EnableMsgEvents is set then the server will emit PeerEvents
 	// whenever a message is sent to or received from a peer
 	EnableMsgEvents bool
+
+	NoEncryption   bool  // plain text transport using tcp , no encryption
 }
 
 // Server manages all peer connections.
@@ -437,6 +439,9 @@ func (srv *Server) start() (err error) {
 		return fmt.Errorf("Server.PrivateKey must be set to a non-nil key")
 	}
 	if srv.newTransport == nil {
+		if srv.Config.NoEncryption {
+			srv.newTransport = newRawTransport
+		}
 		srv.newTransport = newRLPX
 	}
 	if srv.Dialer == nil {

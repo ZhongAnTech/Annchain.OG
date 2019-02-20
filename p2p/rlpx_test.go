@@ -22,6 +22,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	msg2 "github.com/annchain/OG/common/msg"
 	"io"
 	"io/ioutil"
@@ -238,7 +239,7 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 			err: DiscQuitting,
 		},
 		{
-			code: 0x989898,
+			code: 0x9898,
 			msg:  []byte{1},
 			err:  errors.New("expected handshake, got 989898"),
 		},
@@ -267,6 +268,55 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 		if !reflect.DeepEqual(err, test.err) {
 			t.Errorf("test %d: error mismatch: got %q, want %q", i, err, test.err)
 		}
+	}
+}
+
+
+func TestRlpxFrameRW_ReadMsg(t *testing.T) {
+	buf := new(bytes.Buffer)
+	hash := fakeHash([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
+	rw := newRLPXFrameRW(buf, secrets{
+		AES:        crypto.Keccak256(),
+		MAC:        crypto.Keccak256(),
+		IngressMAC: hash,
+		EgressMAC:  hash,
+	})
+	golden := unhex(`
+00828ddae471818bb0bfa6b551d1cb42
+01010101010101010101010101010101
+ba328a4ba590cb43f7848f41c4382885
+01010101010101010101010101010101
+`)
+
+	// Check WriteMsg. This puts a message into the buffer.
+	a := msg2.Uints{1, 2, 3, 4}
+	b, _ := a.MarshalMsg(nil)
+	fmt.Println(hexutil.Encode(b),len(b))
+	if err := Send(rw, 8, b); err != nil {
+		t.Fatalf("WriteMsg error: %v", err)
+	}
+	written := buf.Bytes()
+	fmt.Println(len(written))
+	if !bytes.Equal(written, golden) {
+		t.Fatalf("output mismatch:\n  got:  %x\n  want: %x", written, golden)
+	}
+
+	// Check ReadMsg. It reads the message encoded by WriteMsg, which
+	// is equivalent to the golden message above.
+	msg, err := rw.ReadMsg()
+	if err != nil {
+		t.Fatalf("ReadMsg error: %v", err)
+	}
+	if msg.Size != 5 {
+		t.Errorf("msg size mismatch: got %d, want %d", msg.Size, 5)
+	}
+	if msg.Code != 8 {
+		t.Errorf("msg code mismatch: got %d, want %d", msg.Code, 8)
+	}
+	payload, _ := ioutil.ReadAll(msg.Payload)
+	wantPayload := unhex("9401020304")
+	if !bytes.Equal(payload, wantPayload) {
+		t.Errorf("msg payload mismatch:\ngot  %x\nwant %x", payload, wantPayload)
 	}
 }
 

@@ -18,15 +18,13 @@ import (
 const (
 	IntervalModeConstantInterval = "constant"
 	IntervalModeRandom           = "random"
-	IntervalModeMicroRandom      = "micro_random"
-	IntervalModeMicroConstant   = "micro_constant"
 )
 
 type AutoClient struct {
 	SampleAccounts []*account.SampleAccount
 	MyAccountIndex int
-	SequencerIntervalMs  int
-	TxIntervalMs         int
+	SequencerIntervalUs  int
+	TxIntervalUs         int
 	IntervalMode         string
 	NonceSelfDiscipline  bool
 	AutoSequencerEnabled bool
@@ -53,8 +51,8 @@ func (c *AutoClient) Init() {
 	c.NewRawTx = make (chan  types.Txi)
 }
 
-func (c *AutoClient) SetTxIntervalMs(i int) {
-	c.TxIntervalMs = i
+func (c *AutoClient) SetTxIntervalUs(i int) {
+	c.TxIntervalUs = i
 }
 
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
@@ -62,13 +60,9 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	var sleepDuration time.Duration
 	switch c.IntervalMode {
 	case IntervalModeConstantInterval:
-		sleepDuration = time.Millisecond * time.Duration(c.TxIntervalMs)
+		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalUs)
 	case IntervalModeRandom:
-		sleepDuration = time.Millisecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
-	case IntervalModeMicroConstant:
-		sleepDuration = time.Microsecond * time.Duration(c.TxIntervalMs)
-	case IntervalModeMicroRandom:
-		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalMs-1) + 1))
+		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.TxIntervalUs-1) + 1))
 	default:
 		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
 	}
@@ -92,7 +86,7 @@ func (c *AutoClient) loop() {
 	defer c.wg.Done()
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
-	tickerSeq := time.NewTicker(time.Millisecond * time.Duration(c.SequencerIntervalMs))
+	tickerSeq := time.NewTicker(time.Microsecond * time.Duration(c.SequencerIntervalUs))
 
 	if !c.AutoTxEnabled {
 		timerTx.Stop()
@@ -187,7 +181,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 }
 
 func (c *AutoClient) fireTxs(me types.Address) bool {
-	m := viper.GetInt("auto_client.tx.send_micro")
+	m := viper.GetInt("auto_client.tx.interval_us")
 	if m == 0 {
 		m = 1000
 	}

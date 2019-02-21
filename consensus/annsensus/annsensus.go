@@ -22,7 +22,7 @@ type AnnSensus struct {
 	alsorans     map[types.Address]*types.Campaign
 	campaigns    map[types.Address]*types.Campaign // replaced by candidates
 
-	isTermChanging bool
+	termchgFlag bool
 
 	campsCh   chan []*types.Campaign
 	termchgCh chan *types.TermChange
@@ -122,26 +122,25 @@ func (as *AnnSensus) prodcampaign() {
 // camps' information It checks if the number of camps reaches
 // the threshold. If so, start term changing flow.
 func (as *AnnSensus) commit(camps []*types.Campaign) {
-	as.termchgLock.RLock()
-	changing := as.isTermChanging
-	as.termchgLock.RUnlock()
-	if changing {
-		as.addAlsorans(camps)
-		return
-	}
+	// TODO
 
-	for _, c := range camps {
-		// if len(as.candidates) >= as.maxCamps {
-		// 	as.addAlsorans(camps[i:])
-		// 	break
-		// }
+	for i, c := range camps {
+		if as.isTermChanging() {
+			// add those unsuccessful camps into alsoran list.
+			as.addAlsorans(camps[i:])
+			return
+		}
+		// TODO
+		// handle campaigns should not only add it into candidate list.
 		as.candidates[c.Issuer] = c
 		if as.canChangeTerm() {
-			as.changeTerm()
+			as.termchgLock.Lock()
+			as.termchgFlag = true
+			as.termchgLock.Unlock()
+			go as.changeTerm()
 		}
-	}
 
-	// check if start
+	}
 
 }
 
@@ -152,8 +151,16 @@ func (as *AnnSensus) canChangeTerm() bool {
 	return true
 }
 
-func (as *AnnSensus) changeTerm() {
+func (as *AnnSensus) isTermChanging() bool {
+	as.termchgLock.RLock()
+	changing := as.termchgFlag
+	as.termchgLock.RUnlock()
 
+	return changing
+}
+
+func (as *AnnSensus) changeTerm() {
+	// TODO
 }
 
 // addAlsorans add a list of campaigns into alsoran list.

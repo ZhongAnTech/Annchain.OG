@@ -109,6 +109,7 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	//p2pConfig.DiscoveryV5 = true
 	//p2pConfig.BootstrapNodesV5: config.BootstrapNodes.nodes,
 	p2pConfig.NAT = nat.Any()
+	p2pConfig.NoEncryption = viper.GetBool("p2p.no_encryption")
 
 	return &p2p.Server{Config: p2pConfig}
 }

@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"fmt"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
@@ -25,7 +24,7 @@ func (as *AnnSensus) GenerateDKgPublicKey() (dkgPubkey []byte) {
 	as.partner = partner
 	as.partner.NbParticipants = as.NbParticipants
 	as.partner.Threshold = as.Threshold
-	fmt.Println(partPub)
+	logrus.WithField("my part pub ", partPub).Debug("dkg gen")
 	dkgPubkey, err := partPub.MarshalBinary()
 	if err != nil {
 		logrus.WithError(err).Error("marshal public key error")

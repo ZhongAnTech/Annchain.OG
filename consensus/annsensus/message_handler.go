@@ -159,10 +159,11 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	a.partner.responseNumber++
 	if a.partner.responseNumber > (a.partner.NbParticipants-1)*(a.partner.NbParticipants-1) {
 		log.Info("got response done")
-		_, err = a.partner.RecoverPub()
+		jointPub , err := a.partner.RecoverPub()
 		if err != nil {
 			log.WithError(err).Warn("get recover pub key fail")
 		}
+		log.WithField("bls key ", jointPub).Info("joint pubkey ")
 	}
 	log.WithField("response number", a.partner.responseNumber).Trace("dkg")
 	_ = just

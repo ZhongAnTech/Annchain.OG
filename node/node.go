@@ -246,9 +246,10 @@ func NewNode() *Node {
 	//	}
 	//}
 
-
 	campaign := viper.GetBool("annsensus.campaign")
-	annSunsus := annsensus.NewAnnSensus(campaign)
+	partnerNum := viper.GetInt("annsensus.partner_number")
+	threshold := viper.GetInt("annsensus.threshold")
+	annSunsus := annsensus.NewAnnSensus(campaign, partnerNum, threshold)
 	delegate := &Delegate{
 		TxPool: org.TxPool,
 		//TxBuffer:  txBuffer,
@@ -262,13 +263,14 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
-	 autoClientManager.RegisterReceiver = annSunsus.RegisterReceiver
-		accountIds:= StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
+	autoClientManager.RegisterReceiver = annSunsus.RegisterReceiver
+	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	autoClientManager.Init(
 		accountIds,
 		delegate,
 	)
-		annSunsus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
+	annSunsus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
+	annSunsus.Idag = org.Dag
 	hub.SetEncryptionKey(annSunsus.MyPrivKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
@@ -347,7 +349,7 @@ func NewNode() *Node {
 	m.ConsensusDkgDealHandler = annSunsus
 	m.ConsensusDkgDealResponseHandler = annSunsus
 
-	annSunsus.Hub =hub
+	annSunsus.Hub = hub
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)

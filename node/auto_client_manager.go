@@ -33,8 +33,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			MyAccountIndex:       accountIndex,
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
-			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
 		}
@@ -53,8 +53,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			MyAccountIndex:       0,
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
-			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: true,
 		}
@@ -82,10 +82,10 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	}
 }
 
-func (m *AutoClientManager) SetTxIntervalMs(interval int) {
+func (m *AutoClientManager) SetTxIntervalUs(interval int) {
 	for i := 0; i < len(m.Clients); i++ {
 		if m.Clients[i] != nil {
-			m.Clients[i].SetTxIntervalMs(interval)
+			m.Clients[i].SetTxIntervalUs(interval)
 		}
 
 	}

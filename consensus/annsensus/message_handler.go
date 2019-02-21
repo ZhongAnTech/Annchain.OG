@@ -36,7 +36,7 @@ func (a *AnnSensus) HandleCampaign(request *types.MessageCampaign, peerId string
 	}
 	a.partner.PartPubs = append(a.partner.PartPubs, partPub)
 	a.campaigns[cp.Issuer] = cp
-	a.partner.partNeradress[cp.Issuer] = len(a.partner.PartPubs) - 1
+	a.partner.adressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
 	//todo
 }
 
@@ -77,7 +77,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 		log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 		return
 	}
-	i, ok := a.partner.adressIndex[cp.Issuer]
+	_, ok = a.partner.adressIndex[cp.Issuer]
 	if !ok {
 		log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 		return
@@ -119,7 +119,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	log.Debug("response ok")
 	var resp dkg.Response
 	_, err := resp.UnmarshalMsg(request.Data)
-	if err!=nil {
+	if err != nil {
 		log.WithError(err).Warn("verify signature failed")
 		return
 	}
@@ -134,16 +134,16 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 		log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 		return
 	}
-	i, ok := a.partner.adressIndex[cp.Issuer]
+	_, ok = a.partner.adressIndex[cp.Issuer]
 	if !ok {
 		log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 		return
 	}
 	just, err := a.partner.Dkger.ProcessResponse(&resp)
-	if err!=nil {
+	if err != nil {
 		log.WithError(err).Warn("ProcessResponse failed")
 		return
 	}
-	_ =just
+	_ = just
 	//todo
 }

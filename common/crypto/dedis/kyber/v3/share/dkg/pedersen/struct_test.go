@@ -19,11 +19,11 @@ func TestDeal_UnmarshalBinary(t *testing.T) {
 		Deal:&v,
 		Signature:randomBytes(4),
 	}
-	data,_  := d.MarshalBinary()
+	data,_  := d.MarshalMsg(nil)
 	fmt.Println(len(data))
 	fmt.Println(hex.EncodeToString(data))
 	var d2 Deal
-	err := d2.UnmarshalBinary(data)
+	_, err := d2.UnmarshalMsg(data)
 	if err!=nil || d2.Index !=d.Index  {
 		t.Fatal(err,d,d2)
 	}
@@ -35,7 +35,7 @@ func TestReadWrite(t *testing.T) {
 	a = 57
 	var b bytes.Buffer
 	err:= binary.Write(&b,binary.LittleEndian,a)
- fmt.Println(err)
+    fmt.Println(err)
 	d := b.Bytes()
 	fmt.Println(hex.EncodeToString(d))
 

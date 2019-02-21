@@ -257,7 +257,7 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 			Deal:  deals[i],
 		}
 		// sign the deal
-		buff, err := distd.MarshalBinary()
+		buff, err := distd.GetSignatureTargets()
 		if err != nil {
 			return nil, err
 		}

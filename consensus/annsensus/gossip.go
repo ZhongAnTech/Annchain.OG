@@ -1,11 +1,12 @@
 package annsensus
 
 import (
+	"time"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func (as *AnnSensus) gossipLoop() {

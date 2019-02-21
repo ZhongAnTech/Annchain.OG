@@ -57,14 +57,13 @@ nonce_self_discipline = false
 
 [auto_client.sequencer]
 enabled = true
-interval_ms = 5000
+interval_us = 5_000_000
 
 [auto_client.tx]
 enabled = true
-interval_ms = 500
+interval_us = 500_000
 account_ids = [0,1]
 interval_mode = "random"
-send_micro = 2000
 
 [debug]
 node_id = 1

@@ -7,7 +7,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/poc/dkg"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,10 +30,11 @@ type AnnSensus struct {
 	Hub            *og.Hub //todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
-	partNer        *dkg.Partner
+	partner        *Partner
 	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
 	NbParticipants int
+	startGossip    chan bool
 
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
@@ -47,6 +47,7 @@ func NewAnnSensus(campaign bool) *AnnSensus {
 		newTxHandlers: []chan types.Txi{},
 		campaignFlag:  campaign,
 		campaigns:     make(map[types.Address]*types.Campaign),
+		startGossip:   make(chan bool),
 	}
 }
 
@@ -100,7 +101,7 @@ func (as *AnnSensus) prodcampaign() {
 		case <-as.close:
 			log.Info("campaign stopped")
 			return
-		case <-time.After(time.Second):
+		case <-time.After(time.Second * 10):
 			if !as.doCamp {
 				log.Info("campaign stopped")
 				return

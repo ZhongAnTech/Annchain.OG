@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/tbls"
+	"github.com/annchain/OG/types"
 	"github.com/pkg/errors"
-
+	"github.com/sirupsen/logrus"
 )
 
-func (as *AnnSensus) GenerateDKgPublicKey()( dkgPubkey []byte){
+func (as *AnnSensus) GenerateDKgPublicKey() (dkgPubkey []byte) {
 	s := bn256.NewSuiteG2()
-	partner := & Partner{
-		Suite:          s,
+	partner := &Partner{
+		Suite: s,
 	}
 	// partner generate pair for itself.
 	partSec, partPub := genPartnerPair(partner)
@@ -27,8 +26,8 @@ func (as *AnnSensus) GenerateDKgPublicKey()( dkgPubkey []byte){
 	as.partner.NbParticipants = as.NbParticipants
 	as.partner.Threshold = as.Threshold
 	fmt.Println(partPub)
-	dkgPubkey, err:= partPub.MarshalBinary()
-	if err!=nil {
+	dkgPubkey, err := partPub.MarshalBinary()
+	if err != nil {
 		logrus.WithError(err).Error("marshal public key error")
 		panic(err)
 		return nil
@@ -37,23 +36,23 @@ func (as *AnnSensus) GenerateDKgPublicKey()( dkgPubkey []byte){
 
 }
 
-
-func genPartnerPair(p * Partner) (kyber.Scalar, kyber.Point) {
+func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
 	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
 	return sc, p.Suite.Point().Mul(sc, nil)
 }
 
-
 type Partner struct {
 	PartPubs              []kyber.Point
 	MyPartSec             kyber.Scalar
-	adressIndex          map[types.Address]int
+	adressIndex           map[types.Address]int
 	SecretKeyContribution map[types.Address]kyber.Scalar
 	Suite                 *bn256.Suite
 	Dkger                 *dkg.DistKeyGenerator
 	Resps                 map[types.Address]*dkg.Response
 	Threshold             int
 	NbParticipants        int
+	jointPubKey           kyber.Point
+	responseNumber        int
 	SigShares             [][]byte
 }
 
@@ -80,7 +79,7 @@ func (p *Partner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 
 	err = bls.Verify(p.Suite, pubPoly.Commit(), msg, sig)
 	logrus.Debugf(" pubPolyCommit [%s] dksPublic [%s] dksCommitments [%s]\n",
-		 pubPoly.Commit(), dks.Public(), dks.Commitments())
+		pubPoly.Commit(), dks.Public(), dks.Commitments())
 	return
 }
 
@@ -107,6 +106,7 @@ func (p *Partner) RecoverPub() (jointPubKey kyber.Point, err error) {
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
 	jointPubKey = pubPoly.Commit()
+	p.jointPubKey = jointPubKey
 	return
 }
 

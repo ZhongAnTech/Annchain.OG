@@ -99,7 +99,8 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 	response.Sinature = s.Sign(*a.MyPrivKey, response.SignatureTargets()).Bytes
 	response.PublicKey = a.MyPrivKey.PublicKey().Bytes
 	log.WithField("response ", response).Debug("will send response")
-	a.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, response, &pk)
+	//broadcast response to all partner
+	a.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 	//todo
 }
 
@@ -144,6 +145,15 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 		log.WithError(err).Warn("ProcessResponse failed")
 		return
 	}
+	a.partner.responseNumber++
+	if a.partner.responseNumber > (a.partner.NbParticipants-1)*(a.partner.NbParticipants-1) {
+		log.Info("got response done")
+		_, err = a.partner.RecoverPub()
+		if err != nil {
+			log.WithError(err).Warn("get recover pub key fail")
+		}
+	}
+	log.WithField("response number", a.partner.responseNumber).Trace("dkg")
 	_ = just
 	//todo
 }

@@ -9,17 +9,27 @@ import (
 )
 
 func (as *AnnSensus) gossipLoop() {
+	var isrunning bool
+	var done bool
 	for {
 		select {
+		case <-as.startGossip:
+			done = false
 		case <-time.After(time.Second):
 			if len(as.campaigns) == 0 {
 				continue
 			}
-
 			if len(as.campaigns) < as.NbParticipants {
 				log.Debug("not enough campaigns , waiting")
 				continue
 			}
+			if isrunning {
+				continue
+			}
+			if done {
+				continue
+			}
+			isrunning = true
 			as.partner.GenerateDKGer()
 			deals, err := as.partner.Dkger.Deals()
 			if err != nil {
@@ -45,13 +55,13 @@ func (as *AnnSensus) gossipLoop() {
 				pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
 				as.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 			}
+			done = true
+			isrunning = false
 		case <-as.close:
 			log.Info("gossip loop stopped")
 			return
 		}
-
 	}
-
 }
 
 func (as *AnnSensus) GetPartnerAddressByIndex(i int) *types.Address {

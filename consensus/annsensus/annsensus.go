@@ -25,6 +25,7 @@ type AnnSensus struct {
 	partner        *Partner
 	Threshold      int
 	NbParticipants int
+	startGossip    chan bool
 }
 
 func NewAnnSensus(campaign bool) *AnnSensus {
@@ -33,6 +34,7 @@ func NewAnnSensus(campaign bool) *AnnSensus {
 		newTxHandlers: []chan types.Txi{},
 		campaignFlag:  campaign,
 		campaigns:     make(map[types.Address]*types.Campaign),
+		startGossip : make (chan  bool),
 	}
 }
 

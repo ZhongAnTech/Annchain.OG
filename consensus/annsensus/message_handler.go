@@ -66,6 +66,11 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 	if err != nil {
 		log.Warn("unmarshal failed failed")
 	}
+	if !a.doCamp {
+		//not a consensus partner
+		log.Warn("why send to me")
+		return
+	}
 	var cp *types.Campaign
 	for _, v := range a.campaigns {
 		if bytes.Equal(v.PublicKey, request.PublicKey) {
@@ -122,6 +127,12 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	_, err := resp.UnmarshalMsg(request.Data)
 	if err != nil {
 		log.WithError(err).Warn("verify signature failed")
+		return
+	}
+	//broadcast  continue
+	a.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, request)
+	if !a.doCamp {
+		//not a consensus partner
 		return
 	}
 	var cp *types.Campaign

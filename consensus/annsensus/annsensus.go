@@ -85,7 +85,7 @@ func (as *AnnSensus) campaign() {
 		case <-as.close:
 			log.Info("campaign stopped")
 			return
-		case <-time.After(time.Second):
+		case <-time.After(time.Second*10):
 			if !as.doCamp {
 				log.Info("campaign stopped")
 				return

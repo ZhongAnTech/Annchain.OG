@@ -3,11 +3,13 @@ package dkg
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
 	vss "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
 )
+//go:generate msgp
 
 // DistKeyShare holds the share of a distributed key for a participant.
 type DistKeyShare struct {
@@ -51,7 +53,7 @@ type Deal struct {
 
 // MarshalBinary returns a binary representation of this deal, which is the
 // message  signed in a dkg deal.
-func (d *Deal) MarshalBinary() ([]byte, error) {
+func (d *Deal) GetSignatureTargets() ([]byte, error) {
 	var b bytes.Buffer
 	binary.Write(&b, binary.LittleEndian, d.Index)
 	b.Write(d.Deal.Cipher)
@@ -74,4 +76,9 @@ type Justification struct {
 	Index uint32
 	// Justification issued from the Dealer
 	Justification *vss.Justification
+}
+
+
+func (d Deal)String()string{
+	return fmt.Sprintf("deal-%d-%s",d.Index,d.Deal)
 }

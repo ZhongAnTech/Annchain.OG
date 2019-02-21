@@ -384,8 +384,8 @@ func (m*MessageTermChange)String() string{
 type MessageConsensusDkgDeal struct {
 	Id  uint32
 	//todo
-	Data            string
-	PublikKey      []byte
+	Data           []byte
+	PublicKey      []byte
 	Sinature       []byte
 }
 
@@ -402,26 +402,26 @@ func  (m*MessageConsensusDkgDeal)  SignatureTargets() []byte {
 
 func (m*MessageConsensusDkgDeal)String() string{
 	var pkstr string
-	if len(m.PublikKey) >10 {
-		pkstr = hexutil.Encode(m.PublikKey[:8])
+	if len(m.PublicKey) >10 {
+		pkstr = hexutil.Encode(m.PublicKey[:8])
 	}
-	return "dkg " + fmt.Sprintf(" id %d ",m.Id) + m.Data + " " + pkstr
+	return "dkg " + fmt.Sprintf(" id %d , len %d ",m.Id, len(m.Data))  + " " + pkstr
 }
 
 type MessageConsensusDkgDealResponse struct {
 	Id  uint32
 	//todo
-	Data string
-	PublikKey      []byte
+	Data []byte
+	PublicKey      []byte
 	Sinature       []byte
 }
 
 func (m*MessageConsensusDkgDealResponse)String() string{
 	var pkstr string
-	if len(m.PublikKey) >10 {
-		pkstr = hexutil.Encode(m.PublikKey[:8])
+	if len(m.PublicKey) >10 {
+		pkstr = hexutil.Encode(m.PublicKey[:8])
 	}
-	return "dkgresponse " + fmt.Sprintf(" id %d  ",m.Id) + m.Data + " " + pkstr
+	return "dkgresponse " + fmt.Sprintf(" id %d , len %d ",m.Id, len(m.Data)) + " " + pkstr
 }
 
 func  (m*MessageConsensusDkgDealResponse)  SignatureTargets() []byte {

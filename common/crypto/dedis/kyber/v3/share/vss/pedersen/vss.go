@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/protobuf"
 )
 
+//go:generate msgp
 // Suite defines the capabilities required by the vss package.
 type Suite interface {
 	kyber.Group
@@ -774,4 +775,11 @@ func (j *Justification) Hash(s Suite) []byte {
 	buff, _ := protobuf.Encode(j.Deal)
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
+}
+
+func (d *EncryptedDeal)String()string {
+	if d==nil {
+		return ""
+	}
+	return fmt.Sprintf("encDeal-%x", d.Cipher[:] )
 }

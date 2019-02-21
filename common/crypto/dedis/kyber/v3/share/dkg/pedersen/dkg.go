@@ -301,7 +301,7 @@ func (d *DistKeyGenerator) ProcessDeal(dd *Deal) (*Response, error) {
 	}
 
 	// verify signature
-	buff, err := dd.MarshalBinary()
+	buff, err := dd.GetSignatureTargets()
 	if err != nil {
 		return nil, err
 	}

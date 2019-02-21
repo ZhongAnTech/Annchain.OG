@@ -5,7 +5,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/poc/dkg"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +22,7 @@ type AnnSensus struct {
 	Hub            *og.Hub //todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
-	partNer        *dkg.Partner
+	partner        *Partner
 	Threshold      int
 	NbParticipants int
 }

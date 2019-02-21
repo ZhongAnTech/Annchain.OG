@@ -1,6 +1,8 @@
 package annsensus
 
 import (
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
@@ -15,17 +17,28 @@ type AnnSensus struct {
 
 	newTxHandlers []chan types.Txi
 
-	close        chan struct{}
 	campaignFlag bool
-	MyPrivKey    *crypto.PrivateKey
-	campaigns    map[types.Address]*types.Campaign //temperary
+	maxCamps     int
+	candidates   map[types.Address]*types.Campaign
+	alsorans     map[types.Address]*types.Campaign
+	campaigns    map[types.Address]*types.Campaign // replaced by candidates
+
+	isTermChanging bool
+
+	campsCh   chan []*types.Campaign
+	termchgCh chan *types.TermChange
 
 	Hub            *og.Hub //todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
 	partNer        *dkg.Partner
+	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
 	NbParticipants int
+
+	mu          sync.RWMutex
+	termchgLock sync.RWMutex
+	close       chan struct{}
 }
 
 func NewAnnSensus(campaign bool) *AnnSensus {
@@ -40,7 +53,8 @@ func NewAnnSensus(campaign bool) *AnnSensus {
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
 	if as.campaignFlag {
-		as.CampaignOn()
+		as.ProdCampaignOn()
+		// TODO campaign gossip starts here?
 		go as.gossipLoop()
 	}
 	// TODO
@@ -48,7 +62,7 @@ func (as *AnnSensus) Start() {
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-	as.CampaignOff()
+	as.ProdCampaignOff()
 	close(as.close)
 }
 
@@ -67,17 +81,19 @@ func (as *AnnSensus) RegisterReceiver(c chan types.Txi) {
 	as.newTxHandlers = append(as.newTxHandlers, c)
 }
 
-func (as *AnnSensus) CampaignOn() {
+// ProdCampaignOn let annsensus start producing campaign.
+func (as *AnnSensus) ProdCampaignOn() {
 	as.doCamp = true
-	go as.campaign()
+	go as.prodcampaign()
 }
 
-func (as *AnnSensus) CampaignOff() {
+// ProdCampaignOff let annsensus stop producing campaign.
+func (as *AnnSensus) ProdCampaignOff() {
 	as.doCamp = false
 }
 
 // campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
-func (as *AnnSensus) campaign() {
+func (as *AnnSensus) prodcampaign() {
 	// TODO
 	for {
 		select {
@@ -98,7 +114,6 @@ func (as *AnnSensus) campaign() {
 				}
 			}
 		}
-
 	}
 }
 
@@ -106,5 +121,62 @@ func (as *AnnSensus) campaign() {
 // camps' information It checks if the number of camps reaches
 // the threshold. If so, start term changing flow.
 func (as *AnnSensus) commit(camps []*types.Campaign) {
+	as.termchgLock.RLock()
+	changing := as.isTermChanging
+	as.termchgLock.RUnlock()
+	if changing {
+		as.addAlsorans(camps)
+		return
+	}
+
+	for _, c := range camps {
+		// if len(as.candidates) >= as.maxCamps {
+		// 	as.addAlsorans(camps[i:])
+		// 	break
+		// }
+		as.candidates[c.Issuer] = c
+		if as.canChangeTerm() {
+			as.changeTerm()
+		}
+	}
+
+	// check if start
+
+}
+
+// canChangeTerm returns true if the campaigns cached reaches the
+// term change requirments.
+func (as *AnnSensus) canChangeTerm() bool {
+	// TODO
+	return true
+}
+
+func (as *AnnSensus) changeTerm() {
+
+}
+
+// addAlsorans add a list of campaigns into alsoran list.
+func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
+	// TODO
+}
+
+func (as *AnnSensus) loop() {
+
+	for {
+		select {
+		case <-as.close:
+			return
+
+		case camps := <-as.campsCh:
+			fmt.Println(camps)
+			// TODO
+			// case commit
+
+		case termchg := <-as.termchgCh:
+			fmt.Println(termchg)
+			// TODO
+			// case start term change gossip
+		}
+	}
 
 }

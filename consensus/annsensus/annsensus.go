@@ -28,13 +28,15 @@ type AnnSensus struct {
 	startGossip    chan bool
 }
 
-func NewAnnSensus(campaign bool) *AnnSensus {
+func NewAnnSensus(campaign bool,partnerNum,threshold int ) *AnnSensus {
 	return &AnnSensus{
 		close:         make(chan struct{}),
 		newTxHandlers: []chan types.Txi{},
 		campaignFlag:  campaign,
 		campaigns:     make(map[types.Address]*types.Campaign),
 		startGossip : make (chan  bool),
+		NbParticipants : partnerNum,
+		Threshold:threshold,
 	}
 }
 

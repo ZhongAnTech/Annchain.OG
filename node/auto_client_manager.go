@@ -70,8 +70,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			MyAccountIndex:       accountIndices[0],
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-			SequencerIntervalMs:  viper.GetInt("auto_client.sequencer.interval_ms"),
-			TxIntervalMs:         viper.GetInt("auto_client.tx.interval_ms"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: false,
 			CampainEnable : true ,

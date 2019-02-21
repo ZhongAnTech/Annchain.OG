@@ -80,6 +80,9 @@ consensus = "dpos"
 
 [annsunsus]
 campaign  = true
+partner_number =21
+threshold = 15
+
 
 
 # samples below

@@ -59,7 +59,7 @@ func TestSh256(t *testing.T) {
 func TestP2PMessage_Encrypt(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	msg := types.MessageConsensusDkgDeal{
-		Data:"hi hi",
+		Data: []byte{0xa,0x34},
 		Id:12,
 	}
 	m := p2PMessage{message:&msg,messageType:MessageTypeConsensusDkgDeal}

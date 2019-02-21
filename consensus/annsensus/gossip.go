@@ -16,7 +16,7 @@ func (as *AnnSensus) gossipLoop() {
 		select {
 		case <-as.startGossip:
 			done = false
-		case <-time.After(time.Second):
+		case <-time.After(4*time.Second):
 			if len(as.campaigns) == 0 {
 				continue
 			}

@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (as *AnnSensus) GenerateDKgPublicKey() (dkgPubkey []byte) {
+func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
 	s := bn256.NewSuiteG2()
 	partner := &Partner{
 		Suite: s,

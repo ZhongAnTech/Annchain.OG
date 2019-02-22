@@ -12,6 +12,8 @@ const (
 	ReceiptStatusSeqSuccess ReceiptStatus = iota
 	ReceiptStatusTxSuccess
 	ReceiptStatusOVMFailed
+	ReceiptStatusCampaignSuccess
+	ReceiptStatusTermChangeSuccess
 )
 
 //go:generate msgp

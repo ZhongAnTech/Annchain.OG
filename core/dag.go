@@ -316,13 +316,44 @@ func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
 }
 
 // GetTxs get a bundle of txs according to a hash list.
-func (dag *Dag) GetTxs(hashs []types.Hash) []*types.Tx {
+func (dag *Dag) GetTxs(hashs types.Hashes) types.Txs {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxs(hashs)
 }
-func (dag *Dag) getTxs(hashs []types.Hash) []*types.Tx {
+
+// GetTxs get a bundle of txs according to a hash list.
+func (dag *Dag) GetTxis(hashs types.Hashes) types.Txis {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxis(hashs)
+}
+
+func (dag *Dag) getTxis(hashs types.Hashes) types.Txis {
+	var txs types.Txis
+	for _, hash := range hashs {
+		tx := dag.getTx(hash)
+		if tx!=nil {
+			txs = append(txs, tx)
+		}
+	}
+	return txs
+}
+
+func (dag *Dag) getTxisByType(hashs types.Hashes , baseType types.TxBaseType) types.Txis {
+	var txs types.Txis
+	for _, hash := range hashs {
+		tx := dag.getTx(hash)
+		if tx!=nil && tx.GetType() == baseType {
+			txs = append(txs, tx)
+		}
+	}
+	return txs
+}
+
+func (dag *Dag) getTxs(hashs types.Hashes) []*types.Tx {
 	var txs []*types.Tx
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
@@ -363,6 +394,37 @@ func (dag *Dag) GetTxsByNumber(height uint64) types.Txs {
 	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
 	return dag.getTxs(*hashs)
 }
+
+func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	hashs := dag.getTxsHashesByNumber(height)
+	if hashs == nil {
+		return nil
+	}
+	if len(*hashs) == 0 {
+		return nil
+	}
+	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
+	return dag.getTxis(*hashs)
+}
+
+func (dag *Dag) GetTxsByNumberAndType (height uint64, txType types.TxBaseType) types.Txis {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	hashs := dag.getTxsHashesByNumber(height)
+	if hashs == nil {
+		return nil
+	}
+	if len(*hashs) == 0 {
+		return nil
+	}
+	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
+	return  dag.getTxisByType(*hashs,txType)
+}
+
 
 func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
 	dag.mu.RLock()
@@ -707,6 +769,15 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
+	if tx.GetType() == types.TxBaseTypeCampaign{
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusCampaignSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+	if tx.GetType() == types.TxBaseTypeTermChange{
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		dag.statedb.SubBalance(txnormal.From, txnormal.Value)

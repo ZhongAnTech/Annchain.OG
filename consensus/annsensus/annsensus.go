@@ -14,43 +14,48 @@ import (
 type AnnSensus struct {
 	doCamp bool // the switch of whether annsensus should produce campaign.
 
-	newTxHandlers []chan types.Txi
-
 	campaignFlag bool
 	maxCamps     int
 	candidates   map[types.Address]*types.Campaign
 	alsorans     map[types.Address]*types.Campaign
-	campaigns    map[types.Address]*types.Campaign // replaced by candidates
+	campaigns    map[types.Address]*types.Campaign // TODO replaced by candidates
 
 	termchgFlag bool
 
+	// channels to send txs.
+	newTxHandlers []chan types.Txi
+
+	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
 	termchgCh chan *types.TermChange
+
+	// signal channels
+	termChgSignal chan struct{}
 
 	Hub            *og.Hub //todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
-	partner        *Partner
+	partner        *Partner // partner is for distributed key generate.
 	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
 	NbParticipants int
-	startGossip    chan bool
 
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
 	close       chan struct{}
 }
 
-func NewAnnSensus(campaign bool,partnerNum,threshold int ) *AnnSensus {
+func NewAnnSensus(campaign bool, partnerNum, threshold int) *AnnSensus {
 	return &AnnSensus{
-		close:         make(chan struct{}),
-		newTxHandlers: []chan types.Txi{},
-		campaignFlag:  campaign,
-		campaigns:     make(map[types.Address]*types.Campaign),
-		startGossip : make (chan  bool),
-		NbParticipants : partnerNum,
-		Threshold:threshold,
-
+		close:          make(chan struct{}),
+		newTxHandlers:  []chan types.Txi{},
+		campsCh:        make(chan []*types.Campaign),
+		termchgCh:      make(chan *types.TermChange),
+		termChgSignal:  make(chan struct{}),
+		campaignFlag:   campaign,
+		campaigns:      make(map[types.Address]*types.Campaign),
+		NbParticipants: partnerNum,
+		Threshold:      threshold,
 	}
 }
 
@@ -109,8 +114,10 @@ func (as *AnnSensus) prodcampaign() {
 				log.Info("campaign stopped")
 				return
 			}
+			// generate dkg partner and key pair.
+			pubKey := as.GenerateDkg()
 			// generate campaign.
-			camp := as.genCamp()
+			camp := as.genCamp(pubKey)
 			// send camp
 			if camp != nil {
 				for _, c := range as.newTxHandlers {
@@ -140,7 +147,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 			as.termchgLock.Lock()
 			as.termchgFlag = true
 			as.termchgLock.Unlock()
-			go as.changeTerm()
+			as.changeTerm()
 		}
 
 	}
@@ -151,6 +158,15 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 // term change requirments.
 func (as *AnnSensus) canChangeTerm() bool {
 	// TODO
+
+	if len(as.campaigns) == 0 {
+		return false
+	}
+	if len(as.campaigns) < as.NbParticipants {
+		log.Debug("not enough campaigns , waiting")
+		return false
+	}
+
 	return true
 }
 
@@ -164,6 +180,10 @@ func (as *AnnSensus) isTermChanging() bool {
 
 func (as *AnnSensus) changeTerm() {
 	// TODO
+	// 1. start term change gossip
+
+	as.termChgSignal <- struct{}{}
+
 }
 
 // addAlsorans add a list of campaigns into alsoran list.

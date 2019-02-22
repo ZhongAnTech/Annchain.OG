@@ -55,24 +55,23 @@ func TestSh256(t *testing.T) {
 	fmt.Println("used time ", time.Now().Sub(start))
 }
 
-
 func TestP2PMessage_Encrypt(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	msg := types.MessageConsensusDkgDeal{
-		Data: []byte{0xa,0x34},
-		Id:12,
+		Data: []byte{0xa, 0x34},
+		Id:   12,
 	}
-	m := p2PMessage{message:&msg,messageType:MessageTypeConsensusDkgDeal}
-	s:= crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	pk,sk ,_ :=  s.RandomKeyPair()
+	m := p2PMessage{message: &msg, messageType: MessageTypeConsensusDkgDeal}
+	s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+	pk, sk, _ := s.RandomKeyPair()
 	m.Marshal()
 	logrus.Debug(len(m.data))
 	m.Encrypt(&pk)
 	logrus.Debug(len(m.data))
-	mm:= p2PMessage{data:m.data,messageType:MessageTypeSecret}
-	err:= mm.Decrypt(&sk)
-	logrus.Debug(len(mm.data),err)
+	mm := p2PMessage{data: m.data, messageType: MessageTypeSecret}
+	err := mm.Decrypt(&sk)
+	logrus.Debug(len(mm.data), err)
 	err = mm.Unmarshal()
-	logrus.Debug(len(mm.data),err)
-	logrus.Debug(mm,mm.message.String())
+	logrus.Debug(len(mm.data), err)
+	logrus.Debug(mm, mm.message.String())
 }

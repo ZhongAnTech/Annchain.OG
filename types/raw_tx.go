@@ -19,7 +19,23 @@ type RawSequencer struct {
 	TxBase
 }
 
+type RawCampaign struct {
+	TxBase
+	DkgPublicKey []byte
+	Vrf          VrfInfo
+}
+
+type RawTermChange struct {
+	TxBase
+	PkBls  []byte
+	SigSet map[Address][]byte
+}
+
 type RawSequencers []*RawSequencer
+
+type RawCampaigns []*RawCampaign
+
+type RawTermChanges []*RawTermChange
 
 type RawTxs []*RawTx
 
@@ -53,6 +69,14 @@ func (t *RawTx) String() string {
 
 func (t *RawSequencer) String() string {
 	return fmt.Sprintf("%s-%d_%d-RawSeq", t.TxBase.String(), t.AccountNonce, t.Height)
+}
+
+func (t *RawTermChange) String() string {
+	return fmt.Sprintf("%s-%d_%d-RawTC", t.TxBase.String(), t.AccountNonce, t.Height)
+}
+
+func (t *RawCampaign) String() string {
+	return fmt.Sprintf("%s-%d_%d-RawCP", t.TxBase.String(), t.AccountNonce, t.Height)
 }
 
 func (r RawTxs) Txs() Txs {
@@ -129,4 +153,94 @@ func (r RawSequencers) String() string {
 		strs = append(strs, v.String())
 	}
 	return strings.Join(strs, ", ")
+}
+
+func (rc *RawCampaign) Campaign() *Campaign {
+	if rc == nil {
+		return nil
+	}
+	cp := &Campaign{
+		TxBase:       rc.TxBase,
+		DkgPublicKey: rc.DkgPublicKey,
+		Vrf:          rc.Vrf,
+	}
+	cp.Issuer = Signer.AddressFromPubKeyBytes(rc.PublicKey)
+	return cp
+}
+
+func (r *RawTermChange) TermChange() *TermChange {
+	if r == nil {
+		return nil
+	}
+	t := &TermChange{
+		TxBase: r.TxBase,
+		PkBls:  r.PkBls,
+		SigSet: r.SigSet,
+	}
+	t.Issuer = Signer.AddressFromPubKeyBytes(r.PublicKey)
+	return t
+}
+
+func (r RawCampaigns) Campaigns() Campaigns {
+	if len(r) == 0 {
+		return nil
+	}
+	var cs Campaigns
+	for _, v := range r {
+		c := v.Campaign()
+		cs = append(cs, c)
+	}
+	return cs
+}
+
+func (r RawTermChanges) TermChanges() TermChanges {
+	if len(r) == 0 {
+		return nil
+	}
+	var cs TermChanges
+	for _, v := range r {
+		c := v.TermChange()
+		cs = append(cs, c)
+	}
+	return cs
+}
+
+func (r RawTermChanges) String() string {
+	var strs []string
+	for _, v := range r {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (r RawCampaigns) String() string {
+	var strs []string
+	for _, v := range r {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (r RawTermChanges) Txis() Txis {
+	if len(r) == 0 {
+		return nil
+	}
+	var cs Txis
+	for _, v := range r {
+		c := v.TermChange()
+		cs = append(cs, c)
+	}
+	return cs
+}
+
+func (r RawCampaigns) Txis() Txis {
+	if len(r) == 0 {
+		return nil
+	}
+	var cs Txis
+	for _, v := range r {
+		c := v.Campaign()
+		cs = append(cs, c)
+	}
+	return cs
 }

@@ -17,22 +17,24 @@ func NewAnnouncer(messageSender MessageSender) *Announcer {
 
 //BroadcastNewTx brodcast newly created txi message
 func (m *Announcer) BroadcastNewTx(txi types.Txi) {
-	txType := txi.GetType()
-	if txType == types.TxBaseTypeNormal {
-		tx := txi.(*types.Tx)
+	switch tx := txi.(type) {
+	case *types.Tx:
 		msgTx := types.MessageNewTx{RawTx: tx.RawTx()}
 		m.messageSender.BroadcastMessageWithLink(og.MessageTypeNewTx, &msgTx)
-	} else if txType == types.TxBaseTypeSequencer {
-		seq := txi.(*types.Sequencer)
-		msgTx := types.MessageNewSequencer{RawSequencer: seq.RawSequencer()}
+	case *types.Sequencer:
+		msgTx := types.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		m.messageSender.BroadcastMessageWithLink(og.MessageTypeNewSequencer, &msgTx)
-	} else if txType == types.TxBaseTypeCampaign {
-		cp := txi.(*types.Campaign)
+	case *types.Campaign:
 		msg := types.MessageCampaign{
-			Campaign : cp ,
+			RawCampaign: tx.RawCampaign(),
 		}
 		m.messageSender.BroadcastMessage(og.MessageTypeCampaign, &msg)
-	}else {
-		log.Warn("never come here, unknown tx type", txType)
+	case *types.TermChange:
+		msg := types.MessageTermChange{
+			RawTermChange: tx.RawTermChange(),
+		}
+		m.messageSender.BroadcastMessage(og.MessageTypeTermChange, &msg)
+	default:
+		log.Warn("never come here, unknown tx type ", tx)
 	}
 }

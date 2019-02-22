@@ -74,6 +74,10 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
+	campaign := viper.GetBool("annsensus.campaign")
+	partnerNum := viper.GetInt("annsensus.partner_number")
+	threshold := viper.GetInt("annsensus.threshold")
+	annSunsus := annsensus.NewAnnSensus(campaign, partnerNum, threshold)
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -104,8 +108,13 @@ func NewNode() *Node {
 		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
+	consensusVerifier := &og.ConsensusVerifier{
+		VerifyTermChange: annSunsus.VerifyTermChange,
+		VerifySequencer:  annSunsus.VerifySequencer,
+		VerifyCampaign:   annSunsus.VerifyCampaign,
+	}
 
-	verifiers := []og.Verifier{graphVerifier, txFormatVerifier}
+	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers: verifiers,
@@ -120,10 +129,9 @@ func NewNode() *Node {
 	})
 	hub.IsReceivedHash = txBuffer.IsReceivedHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
-		TxPool:         org.TxPool,
-		Dag:            org.Dag,
-		FormatVerifier: txFormatVerifier,
-		GraphVerifier:  graphVerifier,
+		TxPool:    org.TxPool,
+		Dag:       org.Dag,
+		Verifiers: verifiers,
 	})
 	n.Components = append(n.Components, syncBuffer)
 
@@ -190,6 +198,8 @@ func NewNode() *Node {
 	m.NewTxsHandler = syncManager.IncrementalSyncer
 	m.NewTxHandler = syncManager.IncrementalSyncer
 	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
+	m.CampaignHandler = syncManager.IncrementalSyncer
+	m.TermChangeHandler = syncManager.IncrementalSyncer
 	messageHandler.TxEnable = syncManager.IncrementalSyncer.TxEnable
 	syncManager.IncrementalSyncer.RemoveContrlMsgFromCache = messageHandler.RemoveControlMsgFromCache
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
@@ -246,10 +256,6 @@ func NewNode() *Node {
 	//	}
 	//}
 
-	campaign := viper.GetBool("annsensus.campaign")
-	partnerNum := viper.GetInt("annsensus.partner_number")
-	threshold := viper.GetInt("annsensus.threshold")
-	annSunsus := annsensus.NewAnnSensus(campaign, partnerNum, threshold)
 	delegate := &Delegate{
 		TxPool: org.TxPool,
 		//TxBuffer:  txBuffer,
@@ -344,8 +350,6 @@ func NewNode() *Node {
 	//
 
 	n.Components = append(n.Components, annSunsus)
-	m.CampaignHandler = annSunsus
-	m.TermChangeHandler = annSunsus
 	m.ConsensusDkgDealHandler = annSunsus
 	m.ConsensusDkgDealResponseHandler = annSunsus
 

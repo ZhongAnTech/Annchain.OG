@@ -3,7 +3,6 @@ package annsensus
 import (
 	"bytes"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -11,42 +10,6 @@ import (
 )
 
 var CryptoType = crypto.CryptoTypeSecp256k1
-
-func (a *AnnSensus) HandleCampaign(request *types.MessageCampaign, peerId string) {
-	if request == nil || request.Campaign == nil {
-		log.Warn("got nil MessageCampaign")
-		return
-	}
-	cp := request.Campaign
-	//tood
-	//todo send to buffer
-	err := a.VrfVerify(cp.Vrf.Vrf, cp.Vrf.PublicKey, cp.Vrf.Message, cp.Vrf.Proof)
-	if err != nil {
-		log.WithError(err).Debug("vrf verify failed")
-		return
-	}
-	var partPub kyber.Point
-	err = partPub.UnmarshalBinary(cp.DkgPublicKey)
-	if err != nil {
-		log.WithError(err).Debug("dkg Public key  verify failed")
-		return
-	}
-	if _, ok := a.campaigns[cp.Issuer]; !ok {
-		log.WithField("campaign", cp).Debug("duplicate campaign ")
-	}
-	a.partner.PartPubs = append(a.partner.PartPubs, partPub)
-	a.campaigns[cp.Issuer] = cp
-	a.partner.adressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
-	//todo
-}
-
-func (a *AnnSensus) HandleTermChange(request *types.MessageTermChange, peerId string) {
-	if request == nil || request.TermChange == nil {
-		log.Warn("got nil MessageTermChange")
-		return
-	}
-	//todo
-}
 
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
 	if request == nil {
@@ -159,7 +122,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	a.partner.responseNumber++
 	if a.partner.responseNumber > (a.partner.NbParticipants-1)*(a.partner.NbParticipants-1) {
 		log.Info("got response done")
-		jointPub , err := a.partner.RecoverPub()
+		jointPub, err := a.partner.RecoverPub()
 		if err != nil {
 			log.WithError(err).Warn("get recover pub key fail")
 		}

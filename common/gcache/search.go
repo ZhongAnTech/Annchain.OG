@@ -4,8 +4,7 @@ import "fmt"
 
 var DebugMode bool
 
-
-func Debug(args...interface{}) {
+func Debug(args ...interface{}) {
 	if !DebugMode {
 		return
 	}
@@ -27,16 +26,16 @@ func Search(n int, f func(int) bool) int {
 			j = h // preserves f(j) == true
 		}
 	}
-	if DebugMode{
+	if DebugMode {
 		//fmt.Println("search depth",depth)
 	}
 	// i == j, f(i-1) == false, and f(j) (= f(i)) == true  =>  answer is i.
 	return i
 }
 
-func SearchFrom(to  int ,from int  , f func(int) bool) int {
-	if from >to {
-		panic(fmt.Sprintf("from is bigger than to from %d, to %d",from,to ))
+func SearchFrom(to int, from int, f func(int) bool) int {
+	if from > to {
+		panic(fmt.Sprintf("from is bigger than to from %d, to %d", from, to))
 	}
 	var depth = 0
 	// Define f(-1) == false and f(n) == true.
@@ -52,10 +51,9 @@ func SearchFrom(to  int ,from int  , f func(int) bool) int {
 			j = h // preserves f(j) == true
 		}
 	}
-	if DebugMode{
-		fmt.Println("search depth",depth)
+	if DebugMode {
+		fmt.Println("search depth", depth)
 	}
 	// i == j, f(i-1) == false, and f(j) (= f(i)) == true  =>  answer is i.
 	return i
 }
-

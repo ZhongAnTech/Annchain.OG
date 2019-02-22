@@ -201,7 +201,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 	if c.searchCmpFunc == nil {
 		panic("index func is nil")
 	}
-	if len(keys) ==0 {
+	if len(keys) == 0 {
 		return
 	}
 	if suggestedAt < 0 || suggestedAt > len(c.orderedKeys) || len(keys) != len(values) {
@@ -209,7 +209,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 			suggestedAt, len(c.orderedKeys), len(keys), len(values)))
 	}
 	if len(c.orderedKeys) == 0 {
-		log.WithField("keys ",keys).Trace("ordered keys is nil ")
+		log.WithField("keys ", keys).Trace("ordered keys is nil ")
 		c.orderedKeys = keys
 		return
 	}
@@ -227,7 +227,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 			if c.searchCmpFunc(values[len(values)-1], item.value) <= 0 {
 				newKeys := keys
 				c.orderedKeys = append(newKeys, c.orderedKeys[first:]...)
-				log.WithField("keys",keys).WithField("orderedkeys ",len(c.orderedKeys)).Trace("append keys to front")
+				log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to front")
 				return
 			}
 			break
@@ -236,7 +236,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 		first++
 		if first == len(c.orderedKeys) {
 			c.orderedKeys = keys
-			log.WithField("keys",keys).WithField("orderedkeys ",len(c.orderedKeys)).Trace("append keys to front")
+			log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to front")
 			return
 		}
 	}
@@ -252,15 +252,15 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 					c.orderedKeys = append(c.orderedKeys[:last+1])
 				}
 				c.orderedKeys = append(c.orderedKeys, keys...)
-				log.WithField("keys",keys).WithField("orderedkeys ",len(c.orderedKeys)).Trace("append keys to last")
+				log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to last")
 				return
 			}
 			break
 		}
 		last--
-		if last  < 0 {
+		if last < 0 {
 			c.orderedKeys = keys
-			log.WithField("keys",keys).WithField("orderedkeys ",len(c.orderedKeys)).Trace("append keys to last")
+			log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to last")
 			return
 		}
 	}
@@ -295,7 +295,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 	}
 	//then insert the values
 	c.insertKeysByIndex(insertIndex, keys)
-	log.WithFields(log.Fields{"key":keys,"values":values,"ordered keys ": len(c.orderedKeys), "suggestedAt":suggestedAt}).Trace("after insert keys")
+	log.WithFields(log.Fields{"key": keys, "values": values, "ordered keys ": len(c.orderedKeys), "suggestedAt": suggestedAt}).Trace("after insert keys")
 	return
 }
 
@@ -305,10 +305,10 @@ func (c *SimpleOrderedCache) insertKey(key interface{}, value interface{}, sugge
 	}
 	if len(c.orderedKeys) == 0 {
 		c.orderedKeys = append(c.orderedKeys, key)
-		log.WithField("key ",key).WithField("ordered ",len(c.orderedKeys)).Trace("ordered keys is nil")
+		log.WithField("key ", key).WithField("ordered ", len(c.orderedKeys)).Trace("ordered keys is nil")
 		return
 	}
-	if key ==nil {
+	if key == nil {
 		return
 	}
 	if suggestedAt < 0 || suggestedAt > len(c.orderedKeys) {
@@ -324,7 +324,7 @@ func (c *SimpleOrderedCache) insertKey(key interface{}, value interface{}, sugge
 			//suggested at insert front
 			if c.searchCmpFunc(value, val) >= 0 {
 				c.orderedKeys = append(c.orderedKeys, key)
-				log.WithField("key ",key).WithField("ordered ",len(c.orderedKeys)).Trace("insert to end")
+				log.WithField("key ", key).WithField("ordered ", len(c.orderedKeys)).Trace("insert to end")
 				return
 			}
 		}
@@ -336,7 +336,7 @@ func (c *SimpleOrderedCache) insertKey(key interface{}, value interface{}, sugge
 			//suggested at insert front
 			if c.searchCmpFunc(value, val) <= 0 {
 				c.orderedKeys = append([]interface{}{key}, c.orderedKeys...)
-				log.WithField("key ",key).WithField("ordered ",len(c.orderedKeys)).Trace("insert to front")
+				log.WithField("key ", key).WithField("ordered ", len(c.orderedKeys)).Trace("insert to front")
 				return
 			}
 		}
@@ -345,7 +345,7 @@ func (c *SimpleOrderedCache) insertKey(key interface{}, value interface{}, sugge
 	}
 	i := c.search(value)
 	c.orderedKeys = SliceInsert(c.orderedKeys, i, key)
-	log.WithFields(log.Fields{"key":key,"values":value," len ordered keys ": len(c.orderedKeys) , "suggestedAt":suggestedAt}).Trace("before insert key")
+	log.WithFields(log.Fields{"key": key, "values": value, " len ordered keys ": len(c.orderedKeys), "suggestedAt": suggestedAt}).Trace("before insert key")
 	return
 }
 
@@ -588,10 +588,10 @@ func (c *SimpleOrderedCache) removeKeysByIndex(indexes []int) {
 		first = second
 	}
 	c.orderedKeys = append(c.orderedKeys, oldKeys[end+1:]...)
-	log.WithFields(log.Fields{"indexes":indexes,"ordered keys ": len(c.orderedKeys)}).Trace("after remove indexes")
+	log.WithFields(log.Fields{"indexes": indexes, "ordered keys ": len(c.orderedKeys)}).Trace("after remove indexes")
 }
 
-func (c*SimpleOrderedCache)search(value interface{}) int {
+func (c *SimpleOrderedCache) search(value interface{}) int {
 	f := func(i int) bool {
 		k := c.orderedKeys[i]
 		item, ok1 := c.items[k]
@@ -603,11 +603,10 @@ func (c*SimpleOrderedCache)search(value interface{}) int {
 		}
 		return false
 	}
-	return   Search(len(c.orderedKeys), f)
+	return Search(len(c.orderedKeys), f)
 }
 
-
-func (c*SimpleOrderedCache)searchFrom (to ,from int , value interface{}) int {
+func (c *SimpleOrderedCache) searchFrom(to, from int, value interface{}) int {
 	f := func(i int) bool {
 		k := c.orderedKeys[i]
 		item, ok1 := c.items[k]
@@ -619,8 +618,9 @@ func (c*SimpleOrderedCache)searchFrom (to ,from int , value interface{}) int {
 		}
 		return false
 	}
-	return  SearchFrom(to,from, f)
+	return SearchFrom(to, from, f)
 }
+
 // Removes the provided key from the cache.
 func (c *SimpleOrderedCache) Remove(key interface{}) bool {
 	c.mu.Lock()
@@ -628,18 +628,17 @@ func (c *SimpleOrderedCache) Remove(key interface{}) bool {
 	return c.delete(key)
 }
 
-
-func (c *SimpleOrderedCache)delete(key interface{}) bool {
-	log.Tracef("item will be deleted %v",key)
-	item, ok  := c.items[key]
+func (c *SimpleOrderedCache) delete(key interface{}) bool {
+	log.Tracef("item will be deleted %v", key)
+	item, ok := c.items[key]
 	if ok {
 		if c.searchCmpFunc != nil {
 			var found bool
-			i:=c.search(item.value)
+			i := c.search(item.value)
 			j := i
 			for ; j < len(c.orderedKeys); j++ {
 				if c.orderedKeys[j] == key {
-						log.Debugf("found key at index i %d , the key[i] %v ,j %d,,key [j] %v  ", i, c.orderedKeys[i], j, c.orderedKeys[j])
+					log.Debugf("found key at index i %d , the key[i] %v ,j %d,,key [j] %v  ", i, c.orderedKeys[i], j, c.orderedKeys[j])
 					c.orderedKeys = append(c.orderedKeys[:j], c.orderedKeys[j+1:]...)
 					found = true
 					break
@@ -651,12 +650,12 @@ func (c *SimpleOrderedCache)delete(key interface{}) bool {
 					}
 				}
 			}
-			if !found  {
+			if !found {
 				if i >= len(c.orderedKeys) {
-					log.Debugf("not found key i %d , j %d",i,j)
-				} else if j >= len(c.orderedKeys){
-					log.Debugf("not found key i %d, j %d, key[i] %v",i,j ,c.orderedKeys[i])
-				} else{
+					log.Debugf("not found key i %d , j %d", i, j)
+				} else if j >= len(c.orderedKeys) {
+					log.Debugf("not found key i %d, j %d, key[i] %v", i, j, c.orderedKeys[i])
+				} else {
 					log.Debugf(" not found key at index i %d , the key[i] %v ,j %d,,key [j] %v  ", i, c.orderedKeys[i], j, c.orderedKeys[j])
 				}
 			}
@@ -668,7 +667,7 @@ func (c *SimpleOrderedCache)delete(key interface{}) bool {
 					c.orderedKeys = append(c.orderedKeys[:i], c.orderedKeys[i+1:]...)
 					break
 				}
-				j= i
+				j = i
 			}
 			log.Debugf("cmp times %d ", j)
 		}
@@ -682,7 +681,7 @@ func (c *SimpleOrderedCache)delete(key interface{}) bool {
 			c.orderedKeys = append(c.orderedKeys, k)
 		}
 	}
-	return  ok
+	return ok
 }
 
 func (c *SimpleOrderedCache) deleteVal(key interface{}) bool {
@@ -814,7 +813,7 @@ func (c *SimpleOrderedCache) moveFront(key interface{}) (err error) {
 }
 
 func (c *SimpleOrderedCache) MoveFront(key interface{}) error {
-	if c.searchCmpFunc!=nil {
+	if c.searchCmpFunc != nil {
 		panic("don't call when items are sorted")
 	}
 	return c.moveFront(key)
@@ -837,7 +836,7 @@ func (c *SimpleOrderedCache) getALl() (keys []interface{}, values []interface{})
 				//c.stats.IncrHitCount()
 			} else {
 				index = append(index, i)
-				log.Debugf("expired value will be removed %v %v",key ,item.value)
+				log.Debugf("expired value will be removed %v %v", key, item.value)
 				c.deleteVal(key)
 			}
 		} else {
@@ -860,13 +859,13 @@ func (c *SimpleOrderedCache) getTop() (key interface{}, value interface{}, err e
 			value = item.value
 			if item.IsExpired(nil) {
 				removedIndex = append(removedIndex, i)
-				log.Debugf("expired value will be removed %v %v",key ,item.value)
+				log.Debugf("expired value will be removed %v %v", key, item.value)
 				c.deleteVal(key)
 			}
 			break
 		}
 		removedIndex = append(removedIndex, i)
-		log.Debugf("expired value will be removed %v ",key)
+		log.Debugf("expired value will be removed %v ", key)
 		c.deleteVal(key)
 	}
 	c.removeKeysByIndex(removedIndex)
@@ -995,7 +994,7 @@ func (c *SimpleOrderedCache) Sort() {
 		if ok {
 			value = item.value
 			if item.IsExpired(nil) {
-				log.Debug("remove expired key %v, value %v",key,value)
+				log.Debug("remove expired key %v, value %v", key, value)
 				c.delete(key)
 			}
 		}
@@ -1035,7 +1034,7 @@ func (c *SimpleOrderedCache) removeExpired(allowFailCount int) error {
 				}
 			}
 			try++
-		}else {
+		} else {
 			removedIndex = append(removedIndex, i)
 			c.deleteVal(key)
 		}
@@ -1046,7 +1045,7 @@ func (c *SimpleOrderedCache) removeExpired(allowFailCount int) error {
 
 //for test
 func (c *SimpleOrderedCache) PrintValues(stamp int) {
-	if stamp<=0 {
+	if stamp <= 0 {
 		stamp = 0
 	}
 	keys, values := c.GetKeysAndValues()

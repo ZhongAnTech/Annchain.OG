@@ -9,7 +9,7 @@ import (
 
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
 	var as AnnSensus
-	pk := as.GenerateDKgPublicKey()
+	pk := as.GenerateDkg()
 	fmt.Println(hexutil.Encode(pk))
 	point, err := bn256.UnmarshalBinaryPointG2(pk)
 	if err != nil {

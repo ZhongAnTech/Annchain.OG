@@ -83,6 +83,7 @@ type TxPool struct {
 	wg sync.WaitGroup // for TxPool Stop()
 
 	onNewTxReceived      map[channelName]chan types.Txi  // for notifications of new txs.
+	OnConsensusTXConfirmed  []chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
 	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                uint32
@@ -113,6 +114,7 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		close:            make(chan struct{}),
 		onNewTxReceived:  make(map[channelName]chan types.Txi),
 		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
+		OnConsensusTXConfirmed : []chan map[types.Hash]types.Txi{},
 	}
 	return pool
 }
@@ -291,6 +293,8 @@ func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, a
 	chName := channelName{chanName, allTx}
 	pool.onNewTxReceived[chName] = c
 }
+
+
 
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
@@ -675,6 +679,17 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	}
 	for _, c := range pool.OnNewLatestSequencer {
 		c <- true
+	}
+	var consensusTxs  map[types.Hash]types.Txi
+	for k,v := range elders {
+		if v.GetType()!=types.TxBaseTypeTermChange || v.GetType()!=types.TxBaseTypeCampaign{
+			continue
+		}
+		consensusTxs [k] = v
+	}
+
+	for _,c := range  pool.OnConsensusTXConfirmed{
+		c <- consensusTxs
 	}
 
 	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")

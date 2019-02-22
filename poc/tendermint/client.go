@@ -40,6 +40,7 @@ const (
 	TimeoutPropose   = time.Duration(5) * time.Second
 	TimeoutPreVote   = time.Duration(5) * time.Second
 	TimeoutPreCommit = time.Duration(5) * time.Second
+	TimeoutDelta     = time.Duration(1) * time.Second
 )
 
 type ValueIdMatchType int
@@ -93,6 +94,12 @@ type MessageCommonVote struct {
 	Idv string // ID of the proposal, usually be the hash of the proposal
 }
 
+type ChangeStateEvent struct {
+	NewStepType StepType
+	Height      int
+	Round       int
+}
+
 // Partner implements a Tendermint client according to "The latest gossip on BFT consensus"
 type Partner struct {
 	Height    int
@@ -107,6 +114,7 @@ type Partner struct {
 	IncomingMessageChannel chan Message
 	OutgoingMessageChannel chan Message
 	quit                   chan bool
+	changeStateChannel     chan ChangeStateEvent
 
 	// clear below every height
 	MessageProposal                       *MessageProposal
@@ -145,6 +153,7 @@ func NewPartner(nbParticipants int, id int) *Partner {
 		IncomingMessageChannel: make(chan Message),
 		OutgoingMessageChannel: make(chan Message),
 		quit:                   make(chan bool),
+		changeStateChannel:     make(chan StepType),
 	}
 	p.resetStatus()
 	return p
@@ -152,7 +161,7 @@ func NewPartner(nbParticipants int, id int) *Partner {
 
 func (p *Partner) StartRound(round int) {
 	p.Round = round
-	p.step = StepTypePropose
+	p.changeState(StepTypePropose)
 	p.higherRoundCounter = 0
 	if p.Id == p.Proposer(p.Height, p.Round) {
 		logrus.WithField("id", p.Id).Info("I'm the proposer")
@@ -175,9 +184,13 @@ func (p *Partner) EventLoop() {
 }
 func (p *Partner) send() {
 	for {
+		timer := time.NewTimer(time.Second * 5)
+		timer.Reset(time.Second * 5)
 		select {
 		case <-p.quit:
 			break
+		case <-timer.C:
+			logrus.WithField("id", p.Id).Warn("Blocked reading outgoing")
 		case msg := <-p.OutgoingMessageChannel:
 			for _, peer := range p.Peers {
 				logrus.WithFields(logrus.Fields{
@@ -185,7 +198,7 @@ func (p *Partner) send() {
 					"to":   peer.Id,
 					"msg":  msg.String(),
 				}).Info("Outgoing message")
-				ffchan.NewTimeoutSenderShort(peer.IncomingMessageChannel,msg,"")
+				ffchan.NewTimeoutSenderShort(peer.IncomingMessageChannel, msg, "")
 			}
 		}
 	}
@@ -193,15 +206,19 @@ func (p *Partner) send() {
 
 func (p *Partner) receive() {
 	for {
+		timer := time.NewTimer(time.Second * 5)
+		timer.Reset(time.Second * 5)
 		select {
 		case <-p.quit:
 			break
+		case <-timer.C:
+			logrus.WithField("id", p.Id).Warn("Blocked reading incoming")
 		case msg := <-p.IncomingMessageChannel:
 			//logrus.WithFields(logrus.Fields{
 			//	"to":  p.Id,
 			//	"msg": msg.String(),
 			//}).Info("Incoming message")
-			p.handleMessage(msg)
+			go p.handleMessage(msg)
 		}
 	}
 }
@@ -244,19 +261,19 @@ func (p *Partner) Broadcast(messageType MessageType, height int, round int, cont
 			Idv:          content.GetId(),
 		}
 	}
-	ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m,"")
+	ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m, "")
 }
 
 func (p *Partner) OnTimeoutPropose(height int, round int) {
 	if height == p.Height && round == p.Round && p.step == StepTypePropose {
 		p.Broadcast(MessageTypePreVote, p.Height, p.Round, nil, 0)
-		p.step = StepTypePreVote
+		p.changeState(StepTypePreVote)
 	}
 }
 func (p *Partner) OnTimeoutPreVote(height int, round int) {
 	if height == p.Height && round == p.Round && p.step == StepTypePreVote {
 		p.Broadcast(MessageTypePreCommit, p.Height, p.Round, nil, 0)
-		p.step = StepTypePreCommit
+		p.changeState(StepTypePreCommit)
 	}
 }
 func (p *Partner) OnTimeoutPreCommit(height int, round int) {
@@ -265,6 +282,23 @@ func (p *Partner) OnTimeoutPreCommit(height int, round int) {
 	}
 }
 func (p *Partner) WaitStepTimeout(stepType StepType, timeout time.Duration, round int, timeoutCallback func(height int, round int)) {
+	timer := time.NewTimer(timeout + TimeoutDelta*time.Duration(round))
+	for {
+		select {
+		case <-timer.C:
+			// timeout
+			// TODO: is this parameter correct?
+			logrus.WithFields(logrus.Fields{
+				"step":
+			}).Warn("timeout")
+			timeoutCallback(p.Height, p.Round)
+		case v := <-p.changeStateChannel:
+			if v.Height != p.Height || v.Round != p.Round {
+				continue
+			}
+			return
+		}
+	}
 
 }
 func (p *Partner) handleMessage(message Message) {
@@ -294,7 +328,7 @@ func (p *Partner) handleProposal(proposal *MessageProposal) {
 		} else {
 			p.Broadcast(MessageTypePreVote, p.Height, p.Round, nil, 0)
 		}
-		p.step = StepTypePreVote
+		p.changeState(StepTypePreVote)
 	}
 
 	// rule line 28
@@ -306,7 +340,7 @@ func (p *Partner) handleProposal(proposal *MessageProposal) {
 			} else {
 				p.Broadcast(MessageTypePreVote, p.Height, p.Round, nil, 0)
 			}
-			p.step = StepTypePreVote
+			p.changeState(StepTypePreVote)
 		}
 	}
 }
@@ -327,7 +361,7 @@ func (p *Partner) handlePreVote(vote *MessageCommonVote) {
 				p.LockedValue = p.MessageProposal.Value
 				p.LockedRound = p.Round
 				p.Broadcast(MessageTypePreCommit, p.Height, p.Round, p.MessageProposal.Value, 0)
-				p.step = StepTypePreCommit
+				p.changeState(StepTypePreCommit)
 			}
 			p.validValue = p.MessageProposal.Value
 			p.validRound = p.Round
@@ -337,7 +371,7 @@ func (p *Partner) handlePreVote(vote *MessageCommonVote) {
 	count = p.count(MessageTypePreVote, p.Height, p.Round, MatchTypeNil, "")
 	if count >= 2*p.F+1 && p.step == StepTypePreVote {
 		p.Broadcast(MessageTypePreCommit, p.Height, p.Round, nil, 0)
-		p.step = StepTypePreCommit
+		p.changeState(StepTypePreCommit)
 	}
 
 }
@@ -349,7 +383,7 @@ func (p *Partner) handlePreCommit(commit *MessageCommonVote) {
 		p.WaitStepTimeout(StepTypePreCommit, TimeoutPreCommit, p.Round, p.OnTimeoutPreCommit)
 	}
 	// rule line 49
-	if p.MessageProposal != nil{
+	if p.MessageProposal != nil {
 		count = p.count(MessageTypePreCommit, p.Height, p.Round, MatchTypeByValue, p.MessageProposal.Value.GetId())
 		if count >= 2*p.F+1 {
 			if _, ok := p.Decisions[p.Height]; !ok {
@@ -416,5 +450,14 @@ func (p *Partner) checkRound(message *BasicMessage) {
 	}
 	if p.higherRoundCounter >= p.F+1 {
 		p.StartRound(p.Round)
+	}
+}
+
+func (p *Partner) changeState(stepType StepType) {
+	p.step = stepType
+	p.changeStateChannel <- ChangeStateEvent{
+		NewStepType: stepType,
+		Round:       p.Round,
+		Height:      p.Height,
 	}
 }

@@ -438,17 +438,6 @@ func (pool *TxPool) loop() {
 			pool.mu.Lock()
 			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
-			case *types.Tx:
-				err = pool.commit(tx)
-				//if err is not nil , item removed inside commit
-				if err == nil {
-					atomic.AddUint32(&pool.txNum, 1)
-					maxWeight := atomic.LoadUint64(&pool.maxWeight)
-					if maxWeight < tx.GetWeight() {
-						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
-					}
-					tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
-				}
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 				if err != nil {
@@ -460,8 +449,18 @@ func (pool *TxPool) loop() {
 						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 					}
 				}
-			case *types.Campaign:
-				//todo
+			default:
+				err = pool.commit(tx)
+				//if err is not nil , item removed inside commit
+				if err == nil {
+					atomic.AddUint32(&pool.txNum, 1)
+					maxWeight := atomic.LoadUint64(&pool.maxWeight)
+					if maxWeight < tx.GetWeight() {
+						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
+					}
+					tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
+				}
+
 			}
 			pool.mu.Unlock()
 
@@ -510,7 +509,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 // commit commits tx to tips pool. commit() checks if this tx is bad tx and moves
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in pending.
-func (pool *TxPool) commit(tx *types.Tx) error {
+func (pool *TxPool) commit(tx types.Txi) error {
 	log.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
@@ -564,7 +563,7 @@ func (pool *TxPool) commit(tx *types.Tx) error {
 	return nil
 }
 
-func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
+func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	// check if the tx's parents exists and if is badtx
 	for _, parentHash := range tx.Parents() {
 		// check if tx in pool
@@ -608,22 +607,31 @@ func (pool *TxPool) isBadTx(tx *types.Tx) TxQuality {
 		stateFrom = NewBalanceState(originBalance)
 	}
 	// if tx's value is larger than its balance, return fatal.
-	if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
-		log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
-		return TxQualityIsFatal
-	}
-	// if ( the value that 'from' already spent )
-	// 	+ ( the value that 'from' newly spent )
-	// 	> ( balance of 'from' in db )
-	totalspent := math.NewBigInt(0)
-	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
-		stateFrom.originBalance.Value) > 0 {
-		log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
-		return TxQualityIsBad
+	if tx.GetType() == types.TxBaseTypeNormal{
+		t:= tx.(*types.Tx)
+		if t.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
+			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
+			return TxQualityIsFatal
+		}
+		// if ( the value that 'from' already spent )
+		// 	+ ( the value that 'from' newly spent )
+		// 	> ( balance of 'from' in db )
+		totalspent := math.NewBigInt(0)
+		if totalspent.Value.Add(stateFrom.spent.Value, t.Value.Value).Cmp(
+			stateFrom.originBalance.Value) > 0 {
+			log.WithField("tx", t).Tracef("bad tx, total spent larget than balance")
+			return TxQualityIsBad
+		}
+	}else if tx.GetType() == types.TxBaseTypeCampaign{
+		//todo
+	}else if tx.GetType() == types.TxBaseTypeTermChange{
+		//TODO
 	}
 
 	return TxQualityIsGood
 }
+
+
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
@@ -755,6 +763,26 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
+		case *types.Campaign:
+			batchFrom, okFrom := batch[tx.Issuer]
+			if !okFrom {
+				batchFrom = &BatchDetail{}
+				batchFrom.TxList = NewTxList()
+				batchFrom.Neg = math.NewBigInt(0)
+				batchFrom.Pos = math.NewBigInt(0)
+				batch[tx.Issuer] = batchFrom
+			}
+			batchFrom.TxList.put(tx)
+		case *types.TermChange:
+			batchFrom, okFrom := batch[tx.Issuer]
+			if !okFrom {
+				batchFrom = &BatchDetail{}
+				batchFrom.TxList = NewTxList()
+				batchFrom.Neg = math.NewBigInt(0)
+				batchFrom.Pos = math.NewBigInt(0)
+				batch[tx.Issuer] = batchFrom
+			}
+			batchFrom.TxList.put(tx)
 		}
 	}
 
@@ -842,7 +870,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 			status: TxStatusQueue,
 		}
 		pool.txLookup.Add(txEnv)
-		pool.commit(tx.(*types.Tx))
+		pool.commit(tx)
 	}
 }
 

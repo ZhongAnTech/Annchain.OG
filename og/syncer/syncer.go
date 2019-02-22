@@ -35,7 +35,7 @@ type IncrementalSyncer struct {
 	isKnownHash              func(hash types.Hash) bool
 	getHeight                func() uint64
 	acquireTxQueue           chan *types.Hash
-	acquireTxDedupCache      gcache.Cache     // list of hashes that are queried recently. Prevent duplicate requests.
+	acquireTxDuplicateCache  gcache.Cache     // list of hashes that are queried recently. Prevent duplicate requests.
 	bufferedIncomingTxCache  *txcache.TxCache // cache of incoming txs that are not fired during full sync.
 	firedTxCache             gcache.Cache     // cache of hashes that are fired however haven't got any response yet
 	quitLoopSync             chan bool
@@ -81,7 +81,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, get
 		config:         config,
 		messageSender:  messageSender,
 		acquireTxQueue: make(chan *types.Hash, config.AcquireTxQueueSize),
-		acquireTxDedupCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
+		acquireTxDuplicateCache: gcache.New(config.AcquireTxDedupCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.AcquireTxDedupCacheExpirationSeconds)).Build(),
 		bufferedIncomingTxCache: txcache.NewTxCache(config.BufferedIncomingTxCacheMaxSize,
 			config.BufferedIncomingTxCacheExpirationSeconds, isKnownHash, true),
@@ -131,7 +131,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	var source interface{}
 	var err error
 	for key := range buffer {
-		if source, err = m.acquireTxDedupCache.GetIFPresent(key); err != nil {
+		if source, err = m.acquireTxDuplicateCache.GetIFPresent(key); err != nil {
 			continue
 		}
 		// add it to the missing queue in case no one responds us.
@@ -203,7 +203,7 @@ func (m *IncrementalSyncer) loopSync() {
 					var hash types.Hash
 					for key := range buffer {
 						hash = key
-						source, err := m.acquireTxDedupCache.GetIFPresent(key)
+						source, err := m.acquireTxDuplicateCache.GetIFPresent(key)
 						if err != nil {
 							continue
 						}
@@ -228,7 +228,7 @@ func (m *IncrementalSyncer) loopSync() {
 					var hash types.Hash
 					for key := range buffer {
 						hash = key
-						source, err := m.acquireTxDedupCache.GetIFPresent(key)
+						source, err := m.acquireTxDuplicateCache.GetIFPresent(key)
 						if err != nil {
 							continue
 						}
@@ -262,7 +262,7 @@ func (m *IncrementalSyncer) Enqueue(phash *types.Hash, childHash types.Hash, sen
 	}
 	if phash != nil {
 		hash := *phash
-		if _, err := m.acquireTxDedupCache.Get(hash); err == nil {
+		if _, err := m.acquireTxDuplicateCache.Get(hash); err == nil {
 			log.WithField("hash", hash).Debugf("duplicate sync task")
 			return
 		}
@@ -270,7 +270,7 @@ func (m *IncrementalSyncer) Enqueue(phash *types.Hash, childHash types.Hash, sen
 			log.WithField("hash", hash).Debugf("already in the bufferedCache. Will be announced later")
 			return
 		}
-		m.acquireTxDedupCache.Set(hash, childHash)
+		m.acquireTxDuplicateCache.Set(hash, childHash)
 		if sendBloomfilter {
 			go m.sendBloomFilter(childHash)
 		}
@@ -284,7 +284,7 @@ func (m *IncrementalSyncer) ClearQueue() {
 	for len(m.acquireTxQueue) > 0 {
 		<-m.acquireTxQueue
 	}
-	m.acquireTxDedupCache.Purge()
+	m.acquireTxDuplicateCache.Purge()
 }
 
 func (m *IncrementalSyncer) eventLoop() {

@@ -34,8 +34,8 @@ import (
 const (
 	maxLackingHashes  = 4096 // Maximum number of entries allowed on the list or lacking items
 	measurementImpact = 0.1  // The impact a single measurement has on a peer's final throughput value.
-	Og01 = 01
-	Og02 = 02
+	Og01              = 01
+	Og02              = 02
 )
 
 var (

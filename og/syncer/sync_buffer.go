@@ -13,31 +13,28 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs            map[types.Hash]types.Txi
-	TxsList        []types.Hash
-	Seq            *types.Sequencer
-	mu             sync.RWMutex
-	txPool         og.ITxPool
-	dag            og.IDag
-	acceptTxs      uint32
-	quitHandel     bool
-	formatVerifier og.Verifier
-	graphVerifier  og.Verifier
+	Txs        map[types.Hash]types.Txi
+	TxsList    []types.Hash
+	Seq        *types.Sequencer
+	mu         sync.RWMutex
+	txPool     og.ITxPool
+	dag        og.IDag
+	acceptTxs  uint32
+	quitHandel bool
+	Verifiers  []og.Verifier
 }
 
 type SyncBufferConfig struct {
-	TxPool         og.ITxPool
-	FormatVerifier og.Verifier
-	GraphVerifier  og.Verifier
-	Dag            og.IDag
+	TxPool    og.ITxPool
+	Verifiers []og.Verifier
+	Dag       og.IDag
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, formatVerifier og.Verifier, graphVerifier og.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, Verifiers []og.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
-		TxPool:         txPool,
-		Dag:            dag,
-		FormatVerifier: formatVerifier,
-		GraphVerifier:  graphVerifier,
+		TxPool:    txPool,
+		Dag:       dag,
+		Verifiers: Verifiers,
 	}
 	return config
 }
@@ -48,11 +45,9 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:            make(map[types.Hash]types.Txi),
-		txPool:         config.TxPool,
-		dag:            config.Dag,
-		formatVerifier: config.FormatVerifier,
-		graphVerifier:  config.GraphVerifier,
+		Txs:    make(map[types.Hash]types.Txi),
+		txPool: config.TxPool,
+		dag:    config.Dag,
 	}
 	return s
 }
@@ -174,16 +169,12 @@ func (s *SyncBuffer) Handle() error {
 		}
 		// temporary commit for testing
 		// TODO: Temporarily comment it out to test performance.
-		if !s.formatVerifier.Verify(tx) {
-			log.WithField("tx", tx).Warn("bad tx format")
-			err = errors.New("bad tx format")
-			break
-		}
-
-		if !s.graphVerifier.Verify(tx) {
-			log.WithField("tx", tx).Warn("bad tx graph")
-			err = errors.New("bad graph tx")
-			break
+		for _, verifier := range s.Verifiers {
+			if !verifier.Verify(tx) {
+				log.WithField("tx", tx).Warn("bad tx")
+				err = errors.New("bad tx format")
+				goto out
+			}
 		}
 		//need to feedback to buffer
 		err = s.txPool.AddRemoteTx(tx, false)
@@ -193,10 +184,12 @@ func (s *SyncBuffer) Handle() error {
 				err = nil
 				continue
 			} else {
-				break
+				goto out
 			}
 		}
 	}
+
+out:
 	if err == nil {
 		log.WithField("id", s.Seq).Trace("before add seq")
 		err = s.txPool.AddRemoteTx(s.Seq, false)

@@ -14,5 +14,3 @@ func maxInt(x, y int) int {
 	return y
 
 }
-
-

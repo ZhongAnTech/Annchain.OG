@@ -62,12 +62,12 @@ func (s *SignerEd25519) Address(pubKey PublicKey) types.Address {
 	return types.BytesToAddress(result)
 }
 
-func (s*SignerEd25519)Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error){
+func (s *SignerEd25519) Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error) {
 	panic("not supported")
-	return nil ,nil
+	return nil, nil
 }
 
-func (s*SignerEd25519) Decrypt(p PrivateKey, ct []byte) ( m []byte, err error) {
+func (s *SignerEd25519) Decrypt(p PrivateKey, ct []byte) (m []byte, err error) {
 	panic("not supported")
-	return nil ,nil
+	return nil, nil
 }

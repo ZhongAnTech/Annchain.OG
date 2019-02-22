@@ -12,7 +12,7 @@ func (as *AnnSensus) gossipLoop() {
 		// TODO case dealing dkg
 		select {
 		case <-as.termChgSignal:
-			
+
 			as.partner.GenerateDKGer()
 			deals, err := as.partner.Dkger.Deals()
 			if err != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
 	vss "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
 )
+
 //go:generate msgp
 
 // DistKeyShare holds the share of a distributed key for a participant.
@@ -78,7 +79,6 @@ type Justification struct {
 	Justification *vss.Justification
 }
 
-
-func (d Deal)String()string{
-	return fmt.Sprintf("deal-%d-%s",d.Index,d.Deal)
+func (d Deal) String() string {
+	return fmt.Sprintf("deal-%d-%s", d.Index, d.Deal)
 }

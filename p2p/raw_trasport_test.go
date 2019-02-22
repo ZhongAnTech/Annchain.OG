@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
-	msg2 "github.com/annchain/OG/common/msg"
-	"testing"
 	"github.com/annchain/OG/common/hexutil"
+	msg2 "github.com/annchain/OG/common/msg"
+	"io/ioutil"
+	"testing"
 )
 
 func TestRawFrameRW_ReadMsg(t *testing.T) {
@@ -18,7 +18,7 @@ func TestRawFrameRW_ReadMsg(t *testing.T) {
 	// Check WriteMsg. This puts a message into the buffer.
 	a := msg2.Uints{1, 2, 3, 4}
 	b, _ := a.MarshalMsg(nil)
-	fmt.Println(hexutil.Encode(b),len(b))
+	fmt.Println(hexutil.Encode(b), len(b))
 	if err := Send(rw, 8, b); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
 	}

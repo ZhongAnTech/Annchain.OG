@@ -13,7 +13,6 @@ const (
 	CryptoTypeSecp256k1
 )
 
-
 type PrivateKey struct {
 	Type  CryptoType
 	Bytes []byte
@@ -70,22 +69,26 @@ func (k *PrivateKey) String() string {
 	return hexutil.Encode(bytes)
 }
 
-func (p*PrivateKey)PublicKey( )*PublicKey{
+func (p *PrivateKey) PublicKey() *PublicKey {
 	s := NewSigner(p.Type)
 	pub := s.PubKey(*p)
 	return &pub
 }
 
-func (p*PublicKey) Encrypt( m []byte) (ct []byte, err error) {
-	s:= NewSigner(p.Type)
-	return s.Encrypt( *p,m)
+func (p *PublicKey) Encrypt(m []byte) (ct []byte, err error) {
+	s := NewSigner(p.Type)
+	return s.Encrypt(*p, m)
 }
 
-func (p*PrivateKey)Decrypt(ct []byte) ( m []byte, err error) {
-	s:= NewSigner(p.Type)
-	return s.Decrypt( *p,ct)
+func (p *PrivateKey) Decrypt(ct []byte) (m []byte, err error) {
+	s := NewSigner(p.Type)
+	return s.Decrypt(*p, ct)
 }
 
+func (p *PublicKey) Address() types.Address {
+	s := NewSigner(p.Type)
+	return s.Address(*p)
+}
 
 func (p *PublicKey) String() string {
 	var bytes []byte
@@ -93,8 +96,6 @@ func (p *PublicKey) String() string {
 	bytes = append(bytes, p.Bytes...)
 	return hexutil.Encode(bytes)
 }
-
-
 
 func NewSigner(cryptoType CryptoType) Signer {
 	if cryptoType == CryptoTypeEd25519 {
@@ -113,8 +114,6 @@ func (c CryptoType) String() string {
 	}
 	return "unknown"
 }
-
-
 
 // CreateAddress creates an ethereum address given the bytes and the nonce
 func CreateAddress(b types.Address, nonce uint64) types.Address {

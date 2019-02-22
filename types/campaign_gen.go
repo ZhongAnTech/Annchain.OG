@@ -121,6 +121,123 @@ func (z *Campaign) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *Campaigns) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(Campaigns, zb0002)
+	}
+	for zb0001 := range *z {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(Campaign)
+			}
+			err = (*z)[zb0001].DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z Campaigns) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteArrayHeader(uint32(len(z)))
+	if err != nil {
+		return
+	}
+	for zb0003 := range z {
+		if z[zb0003] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = z[zb0003].EncodeMsg(en)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z Campaigns) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for zb0003 := range z {
+		if z[zb0003] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z[zb0003].MarshalMsg(o)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *Campaigns) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(Campaigns, zb0002)
+	}
+	for zb0001 := range *z {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(Campaign)
+			}
+			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z Campaigns) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize
+	for zb0003 := range z {
+		if z[zb0003] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z[zb0003].Msgsize()
+		}
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *VrfInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field

@@ -19,7 +19,7 @@ func (s *SignerSecp256k1) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := ToECDSA( privKey.Bytes)
+	priv, _ := ToECDSA(privKey.Bytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		log.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
@@ -61,17 +61,16 @@ func (s *SignerSecp256k1) Address(pubKey PublicKey) types.Address {
 	return types.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
 }
 
-
-func ( s*SignerSecp256k1) Encrypt( p PublicKey ,m []byte) (ct []byte, err error) {
-	pub,err := UnmarshalPubkey(p.Bytes)
-	if err!=nil {
+func (s *SignerSecp256k1) Encrypt(p PublicKey, m []byte) (ct []byte, err error) {
+	pub, err := UnmarshalPubkey(p.Bytes)
+	if err != nil {
 		panic(err)
 	}
 	eciesPub := ecies.ImportECDSAPublic(pub)
-	return  ecies.Encrypt(rand.Reader,eciesPub, m,nil,nil)
+	return ecies.Encrypt(rand.Reader, eciesPub, m, nil, nil)
 }
 
-func (s *SignerSecp256k1)Decrypt(p PrivateKey, ct []byte) ( m []byte, err error) {
+func (s *SignerSecp256k1) Decrypt(p PrivateKey, ct []byte) (m []byte, err error) {
 	prive, err := ToECDSA(p.Bytes)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	return ecisesPriv.Decrypt(ct, nil, nil)

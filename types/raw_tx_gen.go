@@ -8,6 +8,367 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *RawCampaign) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TxBase":
+			err = z.TxBase.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "DkgPublicKey":
+			z.DkgPublicKey, err = dc.ReadBytes(z.DkgPublicKey)
+			if err != nil {
+				return
+			}
+		case "Vrf":
+			err = z.Vrf.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *RawCampaign) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
+	// write "TxBase"
+	err = en.Append(0x83, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.TxBase.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "DkgPublicKey"
+	err = en.Append(0xac, 0x44, 0x6b, 0x67, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.DkgPublicKey)
+	if err != nil {
+		return
+	}
+	// write "Vrf"
+	err = en.Append(0xa3, 0x56, 0x72, 0x66)
+	if err != nil {
+		return
+	}
+	err = z.Vrf.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *RawCampaign) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 3
+	// string "TxBase"
+	o = append(o, 0x83, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	o, err = z.TxBase.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "DkgPublicKey"
+	o = append(o, 0xac, 0x44, 0x6b, 0x67, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.DkgPublicKey)
+	// string "Vrf"
+	o = append(o, 0xa3, 0x56, 0x72, 0x66)
+	o, err = z.Vrf.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *RawCampaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TxBase":
+			bts, err = z.TxBase.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "DkgPublicKey":
+			z.DkgPublicKey, bts, err = msgp.ReadBytesBytes(bts, z.DkgPublicKey)
+			if err != nil {
+				return
+			}
+		case "Vrf":
+			bts, err = z.Vrf.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *RawCampaign) Msgsize() (s int) {
+	s = 1 + 7 + z.TxBase.Msgsize() + 13 + msgp.BytesPrefixSize + len(z.DkgPublicKey) + 4 + z.Vrf.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *RawCampaigns) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(RawCampaigns, zb0002)
+	}
+	for zb0001 := range *z {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(RawCampaign)
+			}
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, err = dc.ReadMapHeader()
+			if err != nil {
+				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					err = (*z)[zb0001].TxBase.DecodeMsg(dc)
+					if err != nil {
+						return
+					}
+				case "DkgPublicKey":
+					(*z)[zb0001].DkgPublicKey, err = dc.ReadBytes((*z)[zb0001].DkgPublicKey)
+					if err != nil {
+						return
+					}
+				case "Vrf":
+					err = (*z)[zb0001].Vrf.DecodeMsg(dc)
+					if err != nil {
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						return
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z RawCampaigns) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteArrayHeader(uint32(len(z)))
+	if err != nil {
+		return
+	}
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			// map header, size 3
+			// write "TxBase"
+			err = en.Append(0x83, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			if err != nil {
+				return
+			}
+			err = z[zb0004].TxBase.EncodeMsg(en)
+			if err != nil {
+				return
+			}
+			// write "DkgPublicKey"
+			err = en.Append(0xac, 0x44, 0x6b, 0x67, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+			if err != nil {
+				return
+			}
+			err = en.WriteBytes(z[zb0004].DkgPublicKey)
+			if err != nil {
+				return
+			}
+			// write "Vrf"
+			err = en.Append(0xa3, 0x56, 0x72, 0x66)
+			if err != nil {
+				return
+			}
+			err = z[zb0004].Vrf.EncodeMsg(en)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z RawCampaigns) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			// map header, size 3
+			// string "TxBase"
+			o = append(o, 0x83, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			o, err = z[zb0004].TxBase.MarshalMsg(o)
+			if err != nil {
+				return
+			}
+			// string "DkgPublicKey"
+			o = append(o, 0xac, 0x44, 0x6b, 0x67, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+			o = msgp.AppendBytes(o, z[zb0004].DkgPublicKey)
+			// string "Vrf"
+			o = append(o, 0xa3, 0x56, 0x72, 0x66)
+			o, err = z[zb0004].Vrf.MarshalMsg(o)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *RawCampaigns) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(RawCampaigns, zb0002)
+	}
+	for zb0001 := range *z {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(RawCampaign)
+			}
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, bts, err = msgp.ReadMapKeyZC(bts)
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
+					if err != nil {
+						return
+					}
+				case "DkgPublicKey":
+					(*z)[zb0001].DkgPublicKey, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].DkgPublicKey)
+					if err != nil {
+						return
+					}
+				case "Vrf":
+					bts, err = (*z)[zb0001].Vrf.UnmarshalMsg(bts)
+					if err != nil {
+						return
+					}
+				default:
+					bts, err = msgp.Skip(bts)
+					if err != nil {
+						return
+					}
+				}
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z RawCampaigns) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			s += msgp.NilSize
+		} else {
+			s += 1 + 7 + z[zb0004].TxBase.Msgsize() + 13 + msgp.BytesPrefixSize + len(z[zb0004].DkgPublicKey) + 4 + z[zb0004].Vrf.Msgsize()
+		}
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *RawSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -269,6 +630,317 @@ func (z RawSequencers) Msgsize() (s int) {
 			s += msgp.NilSize
 		} else {
 			s += 1 + 7 + z[zb0004].TxBase.Msgsize()
+		}
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TxBase":
+			err = z.TxBase.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "PkBls":
+			z.PkBls, err = dc.ReadBytes(z.PkBls)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *RawTermChange) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 2
+	// write "TxBase"
+	err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.TxBase.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "PkBls"
+	err = en.Append(0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PkBls)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *RawTermChange) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 2
+	// string "TxBase"
+	o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	o, err = z.TxBase.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "PkBls"
+	o = append(o, 0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+	o = msgp.AppendBytes(o, z.PkBls)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TxBase":
+			bts, err = z.TxBase.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "PkBls":
+			z.PkBls, bts, err = msgp.ReadBytesBytes(bts, z.PkBls)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *RawTermChange) Msgsize() (s int) {
+	s = 1 + 7 + z.TxBase.Msgsize() + 6 + msgp.BytesPrefixSize + len(z.PkBls)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *RawTermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(RawTermChanges, zb0002)
+	}
+	for zb0001 := range *z {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(RawTermChange)
+			}
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, err = dc.ReadMapHeader()
+			if err != nil {
+				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, err = dc.ReadMapKeyPtr()
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					err = (*z)[zb0001].TxBase.DecodeMsg(dc)
+					if err != nil {
+						return
+					}
+				case "PkBls":
+					(*z)[zb0001].PkBls, err = dc.ReadBytes((*z)[zb0001].PkBls)
+					if err != nil {
+						return
+					}
+				default:
+					err = dc.Skip()
+					if err != nil {
+						return
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z RawTermChanges) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteArrayHeader(uint32(len(z)))
+	if err != nil {
+		return
+	}
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			// map header, size 2
+			// write "TxBase"
+			err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			if err != nil {
+				return
+			}
+			err = z[zb0004].TxBase.EncodeMsg(en)
+			if err != nil {
+				return
+			}
+			// write "PkBls"
+			err = en.Append(0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+			if err != nil {
+				return
+			}
+			err = en.WriteBytes(z[zb0004].PkBls)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z RawTermChanges) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			// map header, size 2
+			// string "TxBase"
+			o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			o, err = z[zb0004].TxBase.MarshalMsg(o)
+			if err != nil {
+				return
+			}
+			// string "PkBls"
+			o = append(o, 0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+			o = msgp.AppendBytes(o, z[zb0004].PkBls)
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *RawTermChanges) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0002) {
+		(*z) = (*z)[:zb0002]
+	} else {
+		(*z) = make(RawTermChanges, zb0002)
+	}
+	for zb0001 := range *z {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001] = nil
+		} else {
+			if (*z)[zb0001] == nil {
+				(*z)[zb0001] = new(RawTermChange)
+			}
+			var field []byte
+			_ = field
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			for zb0003 > 0 {
+				zb0003--
+				field, bts, err = msgp.ReadMapKeyZC(bts)
+				if err != nil {
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				case "TxBase":
+					bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
+					if err != nil {
+						return
+					}
+				case "PkBls":
+					(*z)[zb0001].PkBls, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].PkBls)
+					if err != nil {
+						return
+					}
+				default:
+					bts, err = msgp.Skip(bts)
+					if err != nil {
+						return
+					}
+				}
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z RawTermChanges) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize
+	for zb0004 := range z {
+		if z[zb0004] == nil {
+			s += msgp.NilSize
+		} else {
+			s += 1 + 7 + z[zb0004].TxBase.Msgsize() + 6 + msgp.BytesPrefixSize + len(z[zb0004].PkBls)
 		}
 	}
 	return

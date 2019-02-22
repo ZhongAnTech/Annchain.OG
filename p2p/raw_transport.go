@@ -95,17 +95,16 @@ type RawHandshakeMsg struct {
 type RawHandshakeResponseMsg struct {
 	RemotePubkey [pubLen]byte
 	Nonce        [shaLen]byte
-	Signature       [sigLen]byte
+	Signature    [sigLen]byte
 	Version      uint
 }
 
 // rawHandshake contains the state of the encryption handshake.
 type rawHandshake struct {
 	initiator            bool
-	remote               *ecies.PublicKey  // remote-pubk
-	initNonce, respNonce []byte            // nonce
+	remote               *ecies.PublicKey // remote-pubk
+	initNonce, respNonce []byte           // nonce
 }
-
 
 func (h *rawHandshake) handleAuthMsg(msg *RawHandshakeMsg, prv *ecdsa.PrivateKey) error {
 	// Import the remote identity.
@@ -120,21 +119,20 @@ func (h *rawHandshake) handleAuthMsg(msg *RawHandshakeMsg, prv *ecdsa.PrivateKey
 	return nil
 }
 
-
 func initiatorRawcHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote *ecdsa.PublicKey) (err error) {
 	h := &rawHandshake{initiator: true, remote: ecies.ImportECDSAPublic(remote)}
 	h.initNonce = make([]byte, shaLen)
 	_, err = rand.Read(h.initNonce)
 	if err != nil {
-		return  err
+		return err
 	}
 	msg := &RawHandshakeMsg{
-		Version:1,
+		Version: 1,
 	}
 	copy(msg.Nonce[:], h.initNonce)
 	signature, err := crypto.Sign(h.initNonce, prv)
 	if err != nil {
-		return  err
+		return err
 	}
 	copy(msg.Signature[:], signature)
 	copy(msg.InitiatorPubkey[:], crypto.FromECDSAPub(&prv.PublicKey)[1:])
@@ -146,74 +144,73 @@ func initiatorRawcHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote *e
 	}
 	buf.Write(b)
 	enc, err := ecies.Encrypt(rand.Reader, h.remote, buf.Bytes(), nil, nil)
-	if err!=nil {
-		return  err
+	if err != nil {
+		return err
 	}
 	if _, err = conn.Write(enc); err != nil {
 		return err
 	}
 	authRespMsg := new(RawHandshakeResponseMsg)
-    err = readRawHandshakeMsgResp(authRespMsg, len(enc), prv, conn)
+	err = readRawHandshakeMsgResp(authRespMsg, len(enc), prv, conn)
 	if err != nil {
 		return err
 	}
-	if !crypto.VerifySignature(authRespMsg.RemotePubkey[:],authRespMsg.Nonce[:] ,authRespMsg.Signature[:]) {
-		return  fmt.Errorf("sig invalid")
+	if !crypto.VerifySignature(authRespMsg.RemotePubkey[:], authRespMsg.Nonce[:], authRespMsg.Signature[:]) {
+		return fmt.Errorf("sig invalid")
 	}
 	h.respNonce = authRespMsg.Nonce[:]
 	h.remote, err = importPublicKey(authRespMsg.RemotePubkey[:])
 	return nil
 }
 
-func readRawHandshakeMsgResp(msg *RawHandshakeResponseMsg, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) (  error) {
+func readRawHandshakeMsgResp(msg *RawHandshakeResponseMsg, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) error {
 	buf := make([]byte, plainSize)
 	if _, err := io.ReadFull(r, buf); err != nil {
-		return  err
-	}
-	// Attempt decoding pre-EIP-8 "plain" format.
-	key := ecies.ImportECDSA(prv)
-	dec, err := key.Decrypt(buf, nil, nil);
-	if  err != nil {
-	 return err
-	}
-	_,err = msg.UnmarshalMsg(dec)
-	//	fmt.Println("is plain",msg)
-	return  nil
-}
-
-func readRawHandshakeMsg(msg *RawHandshakeMsg, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) (  error) {
-	buf := make([]byte, plainSize)
-	if _, err := io.ReadFull(r, buf); err != nil {
-		return  err
+		return err
 	}
 	// Attempt decoding pre-EIP-8 "plain" format.
 	key := ecies.ImportECDSA(prv)
 	dec, err := key.Decrypt(buf, nil, nil)
-	if  err != nil {
+	if err != nil {
 		return err
 	}
-	_,err = msg.UnmarshalMsg(dec)
+	_, err = msg.UnmarshalMsg(dec)
 	//	fmt.Println("is plain",msg)
-	return  nil
+	return nil
 }
 
+func readRawHandshakeMsg(msg *RawHandshakeMsg, plainSize int, prv *ecdsa.PrivateKey, r io.Reader) error {
+	buf := make([]byte, plainSize)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		return err
+	}
+	// Attempt decoding pre-EIP-8 "plain" format.
+	key := ecies.ImportECDSA(prv)
+	dec, err := key.Decrypt(buf, nil, nil)
+	if err != nil {
+		return err
+	}
+	_, err = msg.UnmarshalMsg(dec)
+	//	fmt.Println("is plain",msg)
+	return nil
+}
 
-func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.PublicKey ,error) {
+func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
 	authMsg := new(RawHandshakeMsg)
 	err := readRawHandshakeMsg(authMsg, encAuthMsgLen, prv, conn)
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
-	if !crypto.VerifySignature(authMsg.InitiatorPubkey[:],authMsg.Nonce[:] ,authMsg.Signature[:]) {
-		return nil , fmt.Errorf("sig invalid")
+	if !crypto.VerifySignature(authMsg.InitiatorPubkey[:], authMsg.Nonce[:], authMsg.Signature[:]) {
+		return nil, fmt.Errorf("sig invalid")
 	}
 	h := new(rawHandshake)
 	if err := h.handleAuthMsg(authMsg, prv); err != nil {
-		return nil , err
+		return nil, err
 	}
 	h.respNonce = make([]byte, shaLen)
 	if _, err = rand.Read(h.respNonce); err != nil {
-		return nil , err
+		return nil, err
 	}
 	msg := new(RawHandshakeResponseMsg)
 	copy(msg.Nonce[:], h.respNonce)
@@ -222,15 +219,15 @@ func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.Pub
 	buf := new(bytes.Buffer)
 	b, err := msg.MarshalMsg(nil)
 	if err != nil {
-		return nil , err
+		return nil, err
 	}
 	buf.Write(b)
 	enc, err := ecies.Encrypt(rand.Reader, h.remote, buf.Bytes(), nil, nil)
-	if err!=nil {
-		return nil , err
+	if err != nil {
+		return nil, err
 	}
 	if _, err = conn.Write(enc); err != nil {
-		return nil , err
+		return nil, err
 	}
 	return h.remote.ExportECDSA(), nil
 }
@@ -265,13 +262,13 @@ func (t *rawTransport) doEncHandshake(prv *ecdsa.PrivateKey, dial *ecdsa.PublicK
 //
 // rawFrameRW is not safe for concurrent use from multiple goroutines.
 type rawFrameRW struct {
-	conn io.ReadWriter
+	conn   io.ReadWriter
 	snappy bool
 }
 
 func newRawFrameRW(conn io.ReadWriter) *rawFrameRW {
 	return &rawFrameRW{
-		conn:       conn,
+		conn: conn,
 	}
 }
 
@@ -289,8 +286,8 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 
 		msg.Payload = bytes.NewReader(payload)
 		msg.Size = uint32(len(payload))
-	}else {
-		payload ,_ = msg.GetPayLoad()
+	} else {
+		payload, _ = msg.GetPayLoad()
 	}
 
 	// write header
@@ -308,11 +305,11 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 		return err
 	}
 	if _, err := rw.conn.Write(ptype); err != nil {
-		fmt.Println(ptype,err)
+		fmt.Println(ptype, err)
 		return err
 	}
 	if _, err := rw.conn.Write(payload); err != nil {
-		fmt.Println(payload,err)
+		fmt.Println(payload, err)
 		return err
 	}
 	return nil
@@ -359,4 +356,3 @@ func (rw *rawFrameRW) ReadMsg() (msg Msg, err error) {
 	}
 	return msg, nil
 }
-

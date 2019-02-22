@@ -346,6 +346,7 @@ func NewNode() *Node {
 	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
 	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
+	org.TxPool.OnConsensusTXConfirmed = append(org.TxPool.OnConsensusTXConfirmed, annSunsus.ConsensusTXConfirmed)
 	n.Components = append(n.Components, txCounter)
 
 	//

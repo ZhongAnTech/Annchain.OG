@@ -25,6 +25,8 @@ type AnnSensus struct {
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
+	ConsensusTXConfirmed  chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
+
 	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
 	termchgCh chan *types.TermChange
@@ -32,7 +34,7 @@ type AnnSensus struct {
 	// signal channels
 	termChgSignal chan struct{}
 
-	Hub            *og.Hub //todo use interface later
+	Hub            MessageSender //todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
 	partner        *Partner // partner is for distributed key generate.
@@ -143,6 +145,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		// TODO
 		// handle campaigns should not only add it into candidate list.
 		as.candidates[c.Issuer] = c
+		as.ProcessCampaign(c) //todo remove duplication here
 		if as.canChangeTerm() {
 			as.termchgLock.Lock()
 			as.termchgFlag = true
@@ -207,6 +210,21 @@ func (as *AnnSensus) loop() {
 			fmt.Println(termchg)
 			// TODO
 			// case start term change gossip
+            //dag sent campaigns and termchanges tx
+			case txs := <-as.ConsensusTXConfirmed:
+				var cps []*types.Campaign
+			    var tcs []*types.TermChange
+				for _, tx := range txs {
+					if tx.GetType() == types.TxBaseTypeCampaign {
+						cps = append(cps,tx.(*types.Campaign))
+					}else if tx.GetType() == types.TxBaseTypeTermChange {
+						tcs = append(tcs, tx.(*types.TermChange))
+					}
+				}
+				if len(cps) >0 {
+					as.commit(cps)
+				}
+
 		}
 	}
 

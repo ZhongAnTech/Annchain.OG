@@ -6,13 +6,15 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
 type AnnSensus struct {
-	doCamp bool // the switch of whether annsensus should produce campaign.
+	cryptoType crypto.CryptoType
+	doCamp     bool // the switch of whether annsensus should produce campaign.
 
 	campaignFlag bool
 	maxCamps     int
@@ -31,6 +33,9 @@ type AnnSensus struct {
 
 	// signal channels
 	termChgSignal chan struct{}
+	dkgPkCh       chan kyber.Point
+	dkgReqCh      chan *types.MessageConsensusDkgDeal
+	dkgRespCh     chan *types.MessageConsensusDkgDealResponse
 
 	Hub            *og.Hub //todo use interface later
 	Txpool         og.ITxPool
@@ -45,7 +50,7 @@ type AnnSensus struct {
 	close       chan struct{}
 }
 
-func NewAnnSensus(campaign bool, partnerNum, threshold int) *AnnSensus {
+func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
 	return &AnnSensus{
 		close:          make(chan struct{}),
 		newTxHandlers:  []chan types.Txi{},
@@ -184,6 +189,26 @@ func (as *AnnSensus) changeTerm() {
 
 	as.termChgSignal <- struct{}{}
 
+	for {
+		select {
+		case pk := <-as.dkgPkCh:
+			tc := as.genTermChg(pk)
+			if tc != nil {
+				for _, c := range as.newTxHandlers {
+					c <- tc
+				}
+			}
+		case <-as.close:
+			return
+		}
+	}
+
+}
+
+func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
+	// TODO
+
+	return nil
 }
 
 // addAlsorans add a list of campaigns into alsoran list.

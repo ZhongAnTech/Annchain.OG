@@ -2,6 +2,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
@@ -21,6 +22,11 @@ func (d *dummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 
 func (d *dummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	return nil
+}
+
+
+func (d *dummyDag)GetBalance(address types.Address) *math.BigInt {
+	return math.NewBigInt(0)
 }
 
 func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {

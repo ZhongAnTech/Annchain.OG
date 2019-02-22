@@ -294,6 +294,10 @@ ba328a4ba590cb43f7848f41c4382885
 	if err := Send(rw, 8, b); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
 	}
+	var code MsgCodeType
+	code = 8
+	codeM,_  := code.MarshalMsg(nil)
+	fmt.Println(codeM, len(codeM))
 	written := buf.Bytes()
 	fmt.Println(len(written))
 	if !bytes.Equal(written, golden) {

@@ -28,7 +28,7 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 		db               = ogdb.NewMemDatabase()
 		genesis, balance = core.DefaultGenesis(0)
 		config           = core.DagConfig{}
-		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil)
+		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil, crypto.CryptoTypeSecp256k1)
 	)
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)

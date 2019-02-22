@@ -335,18 +335,18 @@ func (dag *Dag) getTxis(hashs types.Hashes) types.Txis {
 	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
-		if tx!=nil {
+		if tx != nil {
 			txs = append(txs, tx)
 		}
 	}
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs types.Hashes , baseType types.TxBaseType) types.Txis {
+func (dag *Dag) getTxisByType(hashs types.Hashes, baseType types.TxBaseType) types.Txis {
 	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
-		if tx!=nil && tx.GetType() == baseType {
+		if tx != nil && tx.GetType() == baseType {
 			txs = append(txs, tx)
 		}
 	}
@@ -410,7 +410,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTxsByNumberAndType (height uint64, txType types.TxBaseType) types.Txis {
+func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -422,9 +422,8 @@ func (dag *Dag) GetTxsByNumberAndType (height uint64, txType types.TxBaseType) t
 		return nil
 	}
 	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
-	return  dag.getTxisByType(*hashs,txType)
+	return dag.getTxisByType(*hashs, txType)
 }
-
 
 func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
 	dag.mu.RLock()
@@ -769,11 +768,11 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == types.TxBaseTypeCampaign{
+	if tx.GetType() == types.TxBaseTypeCampaign {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusCampaignSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == types.TxBaseTypeTermChange{
+	if tx.GetType() == types.TxBaseTypeTermChange {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}

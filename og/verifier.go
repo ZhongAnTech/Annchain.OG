@@ -15,12 +15,39 @@ type Verifier interface {
 type TxFormatVerifier struct {
 	Signer       crypto.Signer
 	CryptoType   crypto.CryptoType
-	MaxTxHash    types.Hash // The difficultiy of TxHash
-	MaxMinedHash types.Hash // The difficultiy of MinedHash
+	MaxTxHash    types.Hash // The difficulty of TxHash
+	MaxMinedHash types.Hash // The difficulty of MinedHash
+}
+
+//consensus related verification
+type ConsensusVerifier struct {
+	VerifyCampaign   func(cp *types.Campaign) bool
+	VerifyTermChange func(cp *types.TermChange) bool
+	VerifySequencer  func(cp *types.Sequencer) bool
+}
+
+func (c *ConsensusVerifier) Verify(t types.Txi) bool {
+	switch tx := t.(type) {
+	case *types.Tx:
+		return true
+	case *types.Sequencer:
+		return c.VerifySequencer(tx)
+	case *types.Campaign:
+		return c.VerifyCampaign(tx)
+	case *types.TermChange:
+		return c.VerifyTermChange(tx)
+	default:
+		return false
+	}
+	return false
 }
 
 func (v *TxFormatVerifier) Name() string {
 	return "TxFormatVerifier"
+}
+
+func (c *ConsensusVerifier) Name() string {
+	return "ConsensusVerifier"
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {

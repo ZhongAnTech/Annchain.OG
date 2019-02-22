@@ -29,7 +29,7 @@ func (t TxBaseType) String() string {
 	case TxBaseTypeCampaign:
 		return "CP"
 	case TxBaseTypeTermChange:
-		return  "TC"
+		return "TC"
 	default:
 		return "NA"
 	}

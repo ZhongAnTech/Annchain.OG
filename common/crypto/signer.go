@@ -11,5 +11,5 @@ type Signer interface {
 	Address(pubKey PublicKey) types.Address
 	AddressFromPubKeyBytes(pubKey []byte) types.Address
 	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)
-	Decrypt(p PrivateKey, ct []byte) ( m []byte, err error)
+	Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
 }

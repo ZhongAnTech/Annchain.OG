@@ -588,18 +588,18 @@ func (z *MessageCampaign) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Campaign":
+		case "RawCampaign":
 			if dc.IsNil() {
 				err = dc.ReadNil()
 				if err != nil {
 					return
 				}
-				z.Campaign = nil
+				z.RawCampaign = nil
 			} else {
-				if z.Campaign == nil {
-					z.Campaign = new(Campaign)
+				if z.RawCampaign == nil {
+					z.RawCampaign = new(RawCampaign)
 				}
-				err = z.Campaign.DecodeMsg(dc)
+				err = z.RawCampaign.DecodeMsg(dc)
 				if err != nil {
 					return
 				}
@@ -617,18 +617,18 @@ func (z *MessageCampaign) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *MessageCampaign) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 1
-	// write "Campaign"
-	err = en.Append(0x81, 0xa8, 0x43, 0x61, 0x6d, 0x70, 0x61, 0x69, 0x67, 0x6e)
+	// write "RawCampaign"
+	err = en.Append(0x81, 0xab, 0x52, 0x61, 0x77, 0x43, 0x61, 0x6d, 0x70, 0x61, 0x69, 0x67, 0x6e)
 	if err != nil {
 		return
 	}
-	if z.Campaign == nil {
+	if z.RawCampaign == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.Campaign.EncodeMsg(en)
+		err = z.RawCampaign.EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -640,12 +640,12 @@ func (z *MessageCampaign) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *MessageCampaign) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 1
-	// string "Campaign"
-	o = append(o, 0x81, 0xa8, 0x43, 0x61, 0x6d, 0x70, 0x61, 0x69, 0x67, 0x6e)
-	if z.Campaign == nil {
+	// string "RawCampaign"
+	o = append(o, 0x81, 0xab, 0x52, 0x61, 0x77, 0x43, 0x61, 0x6d, 0x70, 0x61, 0x69, 0x67, 0x6e)
+	if z.RawCampaign == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.Campaign.MarshalMsg(o)
+		o, err = z.RawCampaign.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -669,18 +669,18 @@ func (z *MessageCampaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Campaign":
+		case "RawCampaign":
 			if msgp.IsNil(bts) {
 				bts, err = msgp.ReadNilBytes(bts)
 				if err != nil {
 					return
 				}
-				z.Campaign = nil
+				z.RawCampaign = nil
 			} else {
-				if z.Campaign == nil {
-					z.Campaign = new(Campaign)
+				if z.RawCampaign == nil {
+					z.RawCampaign = new(RawCampaign)
 				}
-				bts, err = z.Campaign.UnmarshalMsg(bts)
+				bts, err = z.RawCampaign.UnmarshalMsg(bts)
 				if err != nil {
 					return
 				}
@@ -698,11 +698,11 @@ func (z *MessageCampaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageCampaign) Msgsize() (s int) {
-	s = 1 + 9
-	if z.Campaign == nil {
+	s = 1 + 12
+	if z.RawCampaign == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.Campaign.Msgsize()
+		s += z.RawCampaign.Msgsize()
 	}
 	return
 }
@@ -2550,18 +2550,18 @@ func (z *MessageTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "TermChange":
+		case "RawTermChange":
 			if dc.IsNil() {
 				err = dc.ReadNil()
 				if err != nil {
 					return
 				}
-				z.TermChange = nil
+				z.RawTermChange = nil
 			} else {
-				if z.TermChange == nil {
-					z.TermChange = new(TermChange)
+				if z.RawTermChange == nil {
+					z.RawTermChange = new(RawTermChange)
 				}
-				err = z.TermChange.DecodeMsg(dc)
+				err = z.RawTermChange.DecodeMsg(dc)
 				if err != nil {
 					return
 				}
@@ -2579,18 +2579,18 @@ func (z *MessageTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *MessageTermChange) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 1
-	// write "TermChange"
-	err = en.Append(0x81, 0xaa, 0x54, 0x65, 0x72, 0x6d, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65)
+	// write "RawTermChange"
+	err = en.Append(0x81, 0xad, 0x52, 0x61, 0x77, 0x54, 0x65, 0x72, 0x6d, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65)
 	if err != nil {
 		return
 	}
-	if z.TermChange == nil {
+	if z.RawTermChange == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.TermChange.EncodeMsg(en)
+		err = z.RawTermChange.EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -2602,12 +2602,12 @@ func (z *MessageTermChange) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *MessageTermChange) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 1
-	// string "TermChange"
-	o = append(o, 0x81, 0xaa, 0x54, 0x65, 0x72, 0x6d, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65)
-	if z.TermChange == nil {
+	// string "RawTermChange"
+	o = append(o, 0x81, 0xad, 0x52, 0x61, 0x77, 0x54, 0x65, 0x72, 0x6d, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65)
+	if z.RawTermChange == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.TermChange.MarshalMsg(o)
+		o, err = z.RawTermChange.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -2631,18 +2631,18 @@ func (z *MessageTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "TermChange":
+		case "RawTermChange":
 			if msgp.IsNil(bts) {
 				bts, err = msgp.ReadNilBytes(bts)
 				if err != nil {
 					return
 				}
-				z.TermChange = nil
+				z.RawTermChange = nil
 			} else {
-				if z.TermChange == nil {
-					z.TermChange = new(TermChange)
+				if z.RawTermChange == nil {
+					z.RawTermChange = new(RawTermChange)
 				}
-				bts, err = z.TermChange.UnmarshalMsg(bts)
+				bts, err = z.RawTermChange.UnmarshalMsg(bts)
 				if err != nil {
 					return
 				}
@@ -2660,11 +2660,11 @@ func (z *MessageTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageTermChange) Msgsize() (s int) {
-	s = 1 + 11
-	if z.TermChange == nil {
+	s = 1 + 14
+	if z.RawTermChange == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.TermChange.Msgsize()
+		s += z.RawTermChange.Msgsize()
 	}
 	return
 }

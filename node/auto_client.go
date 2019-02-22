@@ -21,8 +21,8 @@ const (
 )
 
 type AutoClient struct {
-	SampleAccounts []*account.SampleAccount
-	MyAccountIndex int
+	SampleAccounts       []*account.SampleAccount
+	MyAccountIndex       int
 	SequencerIntervalUs  int
 	TxIntervalUs         int
 	IntervalMode         string
@@ -42,13 +42,13 @@ type AutoClient struct {
 	wg sync.WaitGroup
 
 	nonceLock sync.RWMutex
-	NewRawTx chan types.Txi
+	NewRawTx  chan types.Txi
 }
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
 	c.ManualChan = make(chan types.TxBaseType)
-	c.NewRawTx = make (chan  types.Txi)
+	c.NewRawTx = make(chan types.Txi)
 }
 
 func (c *AutoClient) SetTxIntervalUs(i int) {
@@ -240,21 +240,19 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	return true
 }
 
-
-
 func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	if !c.CampainEnable {
 		return false
 	}
 	me := c.SampleAccounts[c.MyAccountIndex]
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
-	txi.GetBase().AccountNonce =  c.judgeNonce()
-	if txi.GetType() ==types.TxBaseTypeCampaign {
+	txi.GetBase().AccountNonce = c.judgeNonce()
+	if txi.GetType() == types.TxBaseTypeCampaign {
 		cp := txi.(*types.Campaign)
 		cp.Issuer = me.Address
 	}
-    s:= crypto.NewSigner(me.PublicKey.Type)
-    txi.GetBase().Signature =  s.Sign(me.PrivateKey,txi.SignatureTargets()).Bytes
+	s := crypto.NewSigner(me.PublicKey.Type)
+	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).Bytes
 	if ok := c.Delegate.TxCreator.SealTx(txi); !ok {
 		logrus.Warn("delegate failed to seal tx")
 		return false

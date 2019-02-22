@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"strings"
 
 	"github.com/annchain/OG/common/hexutil"
@@ -14,17 +15,20 @@ import (
 
 type Campaign struct {
 	TxBase
-	DkgPublicKey  []byte
-	Vrf       VrfInfo
-	Issuer Address
+	DkgPublicKey []byte
+	Vrf          VrfInfo
+	Issuer       Address
+	dkgPublicKey kyber.Point
 }
 
-type VrfInfo struct  {
-	Message []byte
-	Proof   []byte
+type VrfInfo struct {
+	Message   []byte
+	Proof     []byte
 	PublicKey []byte
-	Vrf        []byte
+	Vrf       []byte
 }
+
+type Campaigns []*Campaign
 
 func (c *Campaign) GetBase() *TxBase {
 	return &c.TxBase
@@ -73,7 +77,60 @@ func (c *Campaign) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
+func (c *Campaign) String() string {
+	return fmt.Sprintf("%s-[%s]-campain", c.TxBase.String(), c.Issuer.String())
+}
 
-func (c*Campaign)String()string  {
-	return fmt.Sprintf("%s-[%s]-campain",c.TxBase.String(),c.Issuer.String())
+func (c Campaigns) String() string {
+	var strs []string
+	for _, v := range c {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (c *Campaign) RawCampaign() *RawCampaign {
+	if c == nil {
+		return nil
+	}
+	rc := &RawCampaign{
+		TxBase:       c.TxBase,
+		DkgPublicKey: c.DkgPublicKey,
+		Vrf:          c.Vrf,
+	}
+	return rc
+}
+
+func (cs Campaigns) RawCampaigns() RawCampaigns {
+	if len(cs) == 0 {
+		return nil
+	}
+	var rawCps RawCampaigns
+	for _, v := range cs {
+		rasSeq := v.RawCampaign()
+		rawCps = append(rawCps, rasSeq)
+	}
+	return rawCps
+}
+
+func (c *Campaign) GetDkgPublicKey() kyber.Point {
+	return c.dkgPublicKey
+}
+
+func (c *Campaign) UnmarshalDkgKey(unmarshalFunc func(b []byte) (kyber.Point, error)) error {
+	p, err := unmarshalFunc(c.DkgPublicKey)
+	if err != nil {
+		return err
+	}
+	c.dkgPublicKey = p
+	return nil
+}
+
+func (c *Campaign) MarshalDkgKey() error {
+	d, err := c.dkgPublicKey.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	c.DkgPublicKey = d
+	return nil
 }

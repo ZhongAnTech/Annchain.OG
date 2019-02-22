@@ -77,22 +77,22 @@ type baseCache struct {
 	expiration       *time.Duration
 	mu               sync.RWMutex
 	loadGroup        Group
-	sortKeysFunc	SortKeysFunction
-	searchCmpFunc       SearchCompareFunction
+	sortKeysFunc     SortKeysFunction
+	searchCmpFunc    SearchCompareFunction
 	*stats
 }
 
 type (
-	LoaderFunc       func(interface{}) (interface{}, error)
-	LoaderExpireFunc func(interface{}) (interface{}, *time.Duration, error)
-	EvictedFunc      func(interface{}, interface{})
-	PurgeVisitorFunc func(interface{}, interface{})
-	AddedFunc        func(interface{}, interface{})
-	DeserializeFunc  func(interface{}, interface{}) (interface{}, error)
-	SerializeFunc    func(interface{}, interface{}) (interface{}, error)
-	ExpiredFunction  func(interface{}) bool
-	SortKeysFunction func ([]interface{}, []interface{} , func (interface{}) (interface{}, bool))([]interface{}, bool)
-	SearchCompareFunction   func (value interface{} ,anotherValue interface{} )(int)
+	LoaderFunc            func(interface{}) (interface{}, error)
+	LoaderExpireFunc      func(interface{}) (interface{}, *time.Duration, error)
+	EvictedFunc           func(interface{}, interface{})
+	PurgeVisitorFunc      func(interface{}, interface{})
+	AddedFunc             func(interface{}, interface{})
+	DeserializeFunc       func(interface{}, interface{}) (interface{}, error)
+	SerializeFunc         func(interface{}, interface{}) (interface{}, error)
+	ExpiredFunction       func(interface{}) bool
+	SortKeysFunction      func([]interface{}, []interface{}, func(interface{}) (interface{}, bool)) ([]interface{}, bool)
+	SearchCompareFunction func(value interface{}, anotherValue interface{}) int
 )
 
 type CacheBuilder struct {
@@ -107,8 +107,8 @@ type CacheBuilder struct {
 	deserializeFunc  DeserializeFunc
 	serializeFunc    SerializeFunc
 	expireFunction   ExpiredFunction
-	sortKeysFunction  SortKeysFunction
-	searchCmpFunc        SearchCompareFunction
+	sortKeysFunction SortKeysFunction
+	searchCmpFunc    SearchCompareFunction
 }
 
 // using ordered cache if orderedcache  is true
@@ -193,14 +193,12 @@ func (cb *CacheBuilder) SerializeFunc(serializeFunc SerializeFunc) *CacheBuilder
 	return cb
 }
 
-
 func (cb *CacheBuilder) SortKeysFunc(sortKeysFunction SortKeysFunction) *CacheBuilder {
 	cb.sortKeysFunction = sortKeysFunction
 	return cb
 }
 
-
-func (cb *CacheBuilder) SearchCompareFunction( searchFunction  SearchCompareFunction) *CacheBuilder {
+func (cb *CacheBuilder) SearchCompareFunction(searchFunction SearchCompareFunction) *CacheBuilder {
 	cb.searchCmpFunc = searchFunction
 	return cb
 }
@@ -265,7 +263,7 @@ func buildCache(c *baseCache, cb *CacheBuilder) {
 	c.purgeVisitorFunc = cb.purgeVisitorFunc
 	c.expireFunction = cb.expireFunction
 	c.sortKeysFunc = cb.sortKeysFunction
-	c.searchCmpFunc =  cb.searchCmpFunc
+	c.searchCmpFunc = cb.searchCmpFunc
 	c.stats = &stats{}
 }
 

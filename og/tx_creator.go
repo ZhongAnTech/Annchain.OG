@@ -9,8 +9,8 @@ import (
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"sync"
 	"math/rand"
+	"sync"
 )
 
 type TipGenerator interface {
@@ -41,7 +41,7 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 	// update fifoRing
 	for _, upstreamTip := range upstreamTips {
 		duplicated := false
-		for i := 0; i < f.maxCacheSize; i ++ {
+		for i := 0; i < f.maxCacheSize; i++ {
 			if f.fifoRing[i] != nil && f.fifoRing[i].GetTxHash() == upstreamTip.GetTxHash() {
 				// duplicate, ignore directly
 				duplicated = true
@@ -51,7 +51,7 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 		if !duplicated {
 			// advance ring and put it in the fifo ring
 			f.fifoRing[f.fifoRingPos] = upstreamTip
-			f.fifoRingPos ++
+			f.fifoRingPos++
 			// round
 			if f.fifoRingPos == f.maxCacheSize {
 				f.fifoRingPos = 0

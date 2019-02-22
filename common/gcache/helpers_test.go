@@ -206,7 +206,7 @@ func TestBinSearch(t *testing.T) {
 	}
 	m := 2089
 	f := func(i int) bool {
-		return  s[i] >= m
+		return s[i] >= m
 	}
 	total := 0
 	n := len(s)
@@ -243,16 +243,16 @@ func TestArray(t *testing.T) {
 	f := func(i int) bool {
 		total++
 		if s[i] >= val {
-				return true
-			}
+			return true
+		}
 		return false
 	}
 	start = time.Now()
 	i := sort.Search(len(s), f)
-	fmt.Println("used for search", time.Now().Sub(start), len(s),i)
+	fmt.Println("used for search", time.Now().Sub(start), len(s), i)
 	s1 := append(s[0:i], val)
 	s = append(s1, s[i:]...)
-	fmt.Println(i, total,s[i-1],s[i],s[i+1])
+	fmt.Println(i, total, s[i-1], s[i], s[i+1])
 	fmt.Println("used for insert", time.Now().Sub(start), len(s))
 
 	start = time.Now()
@@ -262,20 +262,20 @@ func TestArray(t *testing.T) {
 		s[i] = s[i-1]
 	}
 	s[i] = val
-	fmt.Println(i, val, s[i-1],s[i+1])
+	fmt.Println(i, val, s[i-1], s[i+1])
 	fmt.Println("used for copy ", time.Now().Sub(start), len(s))
 
 }
 
 func TestSearch(t *testing.T) {
-	a := []int{1, 3, 6,8, 10, 15, 21, 28, 36, 45, 55}
+	a := []int{1, 3, 6, 8, 10, 15, 21, 28, 36, 45, 55}
 	x := 9
 
 	i := Search(len(a), func(i int) bool { return a[i] >= x })
 	if i < len(a) && a[i] == x {
 		fmt.Printf("found %d at index %d in %v\n", x, i, a)
 	} else {
-		fmt.Printf("%d not found in %v i: %d\n", x, a,i )
+		fmt.Printf("%d not found in %v i: %d\n", x, a, i)
 	}
 	// Output:
 	// found 6 at index 2 in [1 3 6 10 15 21 28 36 45 55]
@@ -284,55 +284,55 @@ func TestSearch(t *testing.T) {
 	for i := 0; i < 5000000; i = i + 2 {
 		s = append(s, i)
 	}
-	target:=10003
+	target := 10003
 	i = Search(len(s), func(i int) bool { return s[i] >= target })
 	if i < len(a) && s[i] == target {
 		fmt.Printf("found %d at index %d in %v\n", target, i, len(s))
 	} else {
-		fmt.Printf("%d not found in %v at %d  %d\n ", target, len(s),i,s[i])
+		fmt.Printf("%d not found in %v at %d  %d\n ", target, len(s), i, s[i])
 	}
 }
 
 func TestSliceInsert2(t *testing.T) {
 	type Slice []interface{}
-	f:= func () Slice {
-		s:= []interface{}{}
-		for i:=0;i<1000000;i++ {
-			s= append(s,i*2)
+	f := func() Slice {
+		s := []interface{}{}
+		for i := 0; i < 1000000; i++ {
+			s = append(s, i*2)
 		}
 		return s
 	}
 	var slices []Slice
-	initSlice:= f()
+	initSlice := f()
 	fmt.Println(len(initSlice))
-	for i:=0;i<10;i++ {
+	for i := 0; i < 10; i++ {
 		var tmp = make(Slice, len(initSlice))
-		copy(tmp,initSlice)
-		slices = append(slices,tmp)
+		copy(tmp, initSlice)
+		slices = append(slices, tmp)
 	}
-	start:=time.Now()
-	s := SliceInsert(slices[0],3,9)
-	fmt.Println("insert 1 used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert2(slices[1],3,9)
-	fmt.Println("insert 2  used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert3(slices[2],3,9)
-	fmt.Println("insert 3  used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert4(slices[3],3,9)
-	fmt.Println("insert 4  used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert(slices[4],300000,9)
-	fmt.Println("insert 1 used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert2(slices[5],300000,9)
-	fmt.Println("insert 2  used " ,time.Now().Sub(start),len(s))
-	start =time.Now()
-	s = SliceInsert3(slices[6],300000,9)
-	fmt.Println("insert 3  used " ,time.Now().Sub(start),len(s))
-	s = SliceInsert3(slices[7],300000,9)
-	fmt.Println("insert 4  used " ,time.Now().Sub(start),len(s))
+	start := time.Now()
+	s := SliceInsert(slices[0], 3, 9)
+	fmt.Println("insert 1 used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert2(slices[1], 3, 9)
+	fmt.Println("insert 2  used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert3(slices[2], 3, 9)
+	fmt.Println("insert 3  used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert4(slices[3], 3, 9)
+	fmt.Println("insert 4  used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert(slices[4], 300000, 9)
+	fmt.Println("insert 1 used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert2(slices[5], 300000, 9)
+	fmt.Println("insert 2  used ", time.Now().Sub(start), len(s))
+	start = time.Now()
+	s = SliceInsert3(slices[6], 300000, 9)
+	fmt.Println("insert 3  used ", time.Now().Sub(start), len(s))
+	s = SliceInsert3(slices[7], 300000, 9)
+	fmt.Println("insert 4  used ", time.Now().Sub(start), len(s))
 	//1000000
 	//insert 1 used  24ms 1000001
 	//insert 2  used  512ms 1000001
@@ -345,16 +345,15 @@ func TestSliceInsert2(t *testing.T) {
 }
 
 func TestSearch2(t *testing.T) {
-	var arrs =[]int {1,2,3,4,5,6,6,6,7,7,7,8,8,8,9,9,9,9,10}
-	x:=10
-	f:=func (i int )bool {
-		if arrs[i] >=x {
+	var arrs = []int{1, 2, 3, 4, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 9, 10}
+	x := 10
+	f := func(i int) bool {
+		if arrs[i] >= x {
 			return true
 		}
 		return false
 	}
-	i:= Search(len(arrs),f)
-	fmt.Println(i,arrs[i],x,arrs[i-1],len(arrs))
+	i := Search(len(arrs), f)
+	fmt.Println(i, arrs[i], x, arrs[i-1], len(arrs))
 
 }
-

@@ -607,8 +607,8 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		stateFrom = NewBalanceState(originBalance)
 	}
 	// if tx's value is larger than its balance, return fatal.
-	if tx.GetType() == types.TxBaseTypeNormal{
-		t:= tx.(*types.Tx)
+	if tx.GetType() == types.TxBaseTypeNormal {
+		t := tx.(*types.Tx)
 		if t.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
@@ -622,16 +622,14 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			log.WithField("tx", t).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
-	}else if tx.GetType() == types.TxBaseTypeCampaign{
+	} else if tx.GetType() == types.TxBaseTypeCampaign {
 		//todo
-	}else if tx.GetType() == types.TxBaseTypeTermChange{
+	} else if tx.GetType() == types.TxBaseTypeTermChange {
 		//TODO
 	}
 
 	return TxQualityIsGood
 }
-
-
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {

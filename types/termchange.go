@@ -19,6 +19,8 @@ type TermChange struct {
 	Issuer Address
 }
 
+type TermChanges []*TermChange
+
 func (tc *TermChange) GetBase() *TxBase {
 	return &tc.TxBase
 }
@@ -65,6 +67,38 @@ func (tc *TermChange) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
-func (tc *TermChange)String() string {
-	return fmt.Sprintf("%s-[%s]-termChange",tc.TxBase.String(),tc.Issuer.String())
+func (tc *TermChange) String() string {
+	return fmt.Sprintf("%s-[%s]-termChange", tc.TxBase.String(), tc.Issuer.String())
+}
+
+func (c TermChanges) String() string {
+	var strs []string
+	for _, v := range c {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (c *TermChange) RawTermChange() *RawTermChange {
+	if c == nil {
+		return nil
+	}
+	rc := &RawTermChange{
+		TxBase: c.TxBase,
+		PkBls:  c.PkBls,
+		SigSet: c.SigSet,
+	}
+	return rc
+}
+
+func (cs TermChanges) RawTermChanges() RawTermChanges {
+	if len(cs) == 0 {
+		return nil
+	}
+	var rawTs RawTermChanges
+	for _, v := range cs {
+		rasSeq := v.RawTermChange()
+		rawTs = append(rawTs, rasSeq)
+	}
+	return rawTs
 }

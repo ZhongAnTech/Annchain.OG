@@ -271,7 +271,6 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 	}
 }
 
-
 func TestRlpxFrameRW_ReadMsg(t *testing.T) {
 	buf := new(bytes.Buffer)
 	hash := fakeHash([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
@@ -291,7 +290,7 @@ ba328a4ba590cb43f7848f41c4382885
 	// Check WriteMsg. This puts a message into the buffer.
 	a := msg2.Uints{1, 2, 3, 4}
 	b, _ := a.MarshalMsg(nil)
-	fmt.Println(hexutil.Encode(b),len(b))
+	fmt.Println(hexutil.Encode(b), len(b))
 	if err := Send(rw, 8, b); err != nil {
 		t.Fatalf("WriteMsg error: %v", err)
 	}

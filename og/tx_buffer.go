@@ -1,6 +1,7 @@
 package og
 
 import (
+	"github.com/annchain/OG/common/math"
 	"sort"
 	"sync"
 	"time"
@@ -47,6 +48,7 @@ type IDag interface {
 	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
 	Genesis() *types.Sequencer
 	GetSequencerByHash(hash types.Hash) *types.Sequencer
+	GetBalance(addr types.Address) *math.BigInt
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.

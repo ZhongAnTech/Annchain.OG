@@ -56,7 +56,6 @@ type Scalar interface {
 	// The endianess of the byte-slice is determined by the
 	// implementation.
 	SetBytes([]byte) Scalar
-
 }
 
 // Point represents an element of a public-key cryptographic Group.
@@ -111,7 +110,6 @@ type Point interface {
 	// Multiply point p by the scalar s.
 	// If p == nil, multiply with the standard base point Base().
 	Mul(s Scalar, p Point) Point
-
 }
 
 // AllowsVarTime allows callers to determine if a given kyber.Scalar

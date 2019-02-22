@@ -16,7 +16,7 @@ type AutoClientManager struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
 	quit                   chan bool
 	wg                     sync.WaitGroup
-	RegisterReceiver func   (c chan types.Txi)
+	RegisterReceiver       func(c chan types.Txi)
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
@@ -62,7 +62,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 		m.Clients = append(m.Clients, client)
 	}
 
-	if  viper.GetBool("annsensus.campaign") {
+	if viper.GetBool("annsensus.campaign") {
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,
@@ -74,7 +74,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: false,
-			CampainEnable : true ,
+			CampainEnable:        true,
 		}
 		client.Init()
 		m.RegisterReceiver(client.NewRawTx)

@@ -146,7 +146,7 @@ type Config struct {
 	// whenever a message is sent to or received from a peer
 	EnableMsgEvents bool
 
-	NoEncryption   bool  // plain text transport using tcp , no encryption
+	NoEncryption bool // plain text transport using tcp , no encryption
 }
 
 // Server manages all peer connections.
@@ -441,7 +441,7 @@ func (srv *Server) start() (err error) {
 	if srv.newTransport == nil {
 		if srv.Config.NoEncryption {
 			srv.newTransport = newrawTransport
-		}else {
+		} else {
 			srv.newTransport = newRLPX
 		}
 

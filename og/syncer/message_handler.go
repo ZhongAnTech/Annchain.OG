@@ -4,12 +4,7 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string) {
-	tx := newTx.RawTx.Tx()
-	if tx == nil {
-		log.Debug("empty MessageNewTx")
-		return
-	}
+func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi) {
 	// cancel pending requests if it is there
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
@@ -18,7 +13,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string
 		}
 	}
 	m.RemoveContrlMsgFromCache(tx.GetTxHash())
-	m.firedTxCache.Remove(tx.Hash)
+	m.firedTxCache.Remove(tx.GetTxHash())
 	if m.isKnownHash(tx.GetTxHash()) {
 		log.WithField("tx ", tx).Debug("duplicated tx received")
 		return
@@ -32,6 +27,15 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string
 	}
 	//m.notifyTxEvent <- true
 	//notify channel will be  blocked if tps is high ,check first and add
+}
+
+func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string) {
+	tx := newTx.RawTx.Tx()
+	if tx == nil {
+		log.Debug("empty MessageNewTx")
+		return
+	}
+	m.HandleNewTxi(tx)
 	log.WithField("q", newTx).Debug("incremental received MessageNewTx")
 
 }
@@ -70,31 +74,35 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 }
 
 func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer, peerId string) {
-	seq := newSeq.RawSequencer
+	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
 		log.Debug("empty NewSequence")
 		return
 	}
-	if !m.Enabled {
-		if !m.cacheNewTxEnabled() {
-			log.Debug("incremental received nexTx but sync disabled")
-			return
-		}
-	}
-	m.RemoveContrlMsgFromCache(seq.GetTxHash())
-	m.firedTxCache.Remove(seq.Hash)
-	if m.isKnownHash(seq.GetTxHash()) {
-		log.WithField("tx ", seq).Debug("duplicated tx received")
+	m.HandleNewTxi(seq)
+	log.WithField("q", newSeq).Debug("incremental received NewSequence")
+}
+
+func (m *IncrementalSyncer) HandleCampaign(request *types.MessageCampaign, peerId string) {
+	cp := request.RawCampaign.Campaign()
+	if cp == nil {
+		log.Warn("got nil MessageCampaign")
 		return
 	}
-	if !m.Enabled {
-		log.WithField("tx ", seq).Debug("cache txs for future.")
+	m.HandleNewTxi(cp)
+	log.WithField("q", request).Debug("incremental received MessageCampaign")
+
+}
+
+func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, peerId string) {
+	cp := request.RawTermChange.TermChange()
+	if cp == nil {
+		log.Warn("got nil MessageCampaign")
+		return
 	}
-	err := m.bufferedIncomingTxCache.EnQueue(seq.Sequencer())
-	if err != nil {
-		log.WithError(err).Warn("add seq to cache error")
-	}
-	log.WithField("q", newSeq).Debug("incremental received NewSequence")
+	m.HandleNewTxi(cp)
+	log.WithField("q", request).Debug("incremental received MessageTermChange")
+
 }
 
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {

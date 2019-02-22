@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-"github.com/annchain/OG/common/bloom"
-"github.com/annchain/OG/common/hexutil"
-"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/common/bloom"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/msg"
 )
 
 //go:generate msgp
@@ -363,72 +363,70 @@ func (m *MessageDuplicate) String() string {
 	return "duplicate"
 }
 
-
-type  MessageCampaign struct {
-	Campaign  *Campaign
+type MessageCampaign struct {
+	RawCampaign *RawCampaign
 }
 
-func (m*MessageCampaign)String() string{
-	return m.Campaign.String()
+func (m *MessageCampaign) String() string {
+	return m.RawCampaign.String()
 }
 
 type MessageTermChange struct {
-	TermChange* TermChange
+	RawTermChange *RawTermChange
 }
 
-func (m*MessageTermChange)String() string{
-	return m.TermChange.String()
+func (m *MessageTermChange) String() string {
+	return m.RawTermChange.String()
 }
-
 
 type MessageConsensusDkgDeal struct {
-	Id  uint32
+	Id uint32
 	//todo
-	Data           []byte
-	PublicKey      []byte
-	Sinature       []byte
+	Data      []byte
+	PublicKey []byte
+	Sinature  []byte
 }
 
-func  (m*MessageConsensusDkgDeal)  SignatureTargets() []byte {
+func (m *MessageConsensusDkgDeal) SignatureTargets() []byte {
 	// TODO
 
 	var buf bytes.Buffer
-	d :=[]byte(m.Data)
+	d := []byte(m.Data)
 	panicIfError(binary.Write(&buf, binary.BigEndian, d))
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.Id))
 
 	return buf.Bytes()
 }
 
-func (m*MessageConsensusDkgDeal)String() string{
+func (m *MessageConsensusDkgDeal) String() string {
 	var pkstr string
-	if len(m.PublicKey) >10 {
+	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:8])
 	}
-	return "dkg " + fmt.Sprintf(" id %d , len %d ",m.Id, len(m.Data))  + " " + pkstr
+	return "dkg " + fmt.Sprintf(" id %d , len %d ", m.Id, len(m.Data)) + " " + pkstr
 }
 
 type MessageConsensusDkgDealResponse struct {
-	Id  uint32
+	Id uint32
 	//todo
-	Data []byte
-	PublicKey      []byte
-	Sinature       []byte
+	Data      []byte
+	PublicKey []byte
+	Sinature  []byte
 }
 
-func (m*MessageConsensusDkgDealResponse)String() string{
+func (m *MessageConsensusDkgDealResponse) String() string {
 	var pkstr string
-	if len(m.PublicKey) >10 {
+	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:8])
 	}
-	return "dkgresponse " + fmt.Sprintf(" id %d , len %d ",m.Id, len(m.Data)) + " " + pkstr
+	return "dkgresponse " + fmt.Sprintf(" id %d , len %d ", m.Id, len(m.Data)) + " " + pkstr
 }
 
-func  (m*MessageConsensusDkgDealResponse)  SignatureTargets() []byte {
+func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {
 	// TODO
 
 	var buf bytes.Buffer
-	d :=[]byte(m.Data)
+	d := []byte(m.Data)
 	panicIfError(binary.Write(&buf, binary.BigEndian, d))
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.Id))
 

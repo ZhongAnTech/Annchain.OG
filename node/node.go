@@ -2,13 +2,14 @@ package node
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/wserver"
 	"github.com/sirupsen/logrus"
-	"time"
 
 	"github.com/annchain/OG/common/crypto"
 
@@ -77,7 +78,7 @@ func NewNode() *Node {
 	campaign := viper.GetBool("annsensus.campaign")
 	partnerNum := viper.GetInt("annsensus.partner_number")
 	threshold := viper.GetInt("annsensus.threshold")
-	annSunsus := annsensus.NewAnnSensus(campaign, partnerNum, threshold)
+	annSunsus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold)
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),

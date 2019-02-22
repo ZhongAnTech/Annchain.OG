@@ -89,9 +89,8 @@ func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	return nil
 }
 
-// RegisterReceiver add a channel into AnnSensus.newTxHandlers, newTxHandlers
-// are the hooks that handle new txs.
-func (as *AnnSensus) RegisterReceiver(c chan types.Txi) {
+// RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers.
+func (as *AnnSensus) RegisterNewTxHandler(c chan types.Txi) {
 	as.newTxHandlers = append(as.newTxHandlers, c)
 }
 

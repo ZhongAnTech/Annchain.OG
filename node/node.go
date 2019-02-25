@@ -78,7 +78,7 @@ func NewNode() *Node {
 	campaign := viper.GetBool("annsensus.campaign")
 	partnerNum := viper.GetInt("annsensus.partner_number")
 	threshold := viper.GetInt("annsensus.threshold")
-	annSunsus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold)
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold)
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -110,9 +110,9 @@ func NewNode() *Node {
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
 	consensusVerifier := &og.ConsensusVerifier{
-		VerifyTermChange: annSunsus.VerifyTermChange,
-		VerifySequencer:  annSunsus.VerifySequencer,
-		VerifyCampaign:   annSunsus.VerifyCampaign,
+		VerifyTermChange: annSensus.VerifyTermChange,
+		VerifySequencer:  annSensus.VerifySequencer,
+		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
@@ -270,15 +270,15 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
-	autoClientManager.RegisterReceiver = annSunsus.RegisterReceiver
+	autoClientManager.RegisterReceiver = annSensus.RegisterReceiver
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	autoClientManager.Init(
 		accountIds,
 		delegate,
 	)
-	annSunsus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
-	annSunsus.Idag = org.Dag
-	hub.SetEncryptionKey(annSunsus.MyPrivKey)
+	annSensus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
+	annSensus.Idag = org.Dag
+	hub.SetEncryptionKey(annSensus.MyPrivKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
@@ -346,16 +346,18 @@ func NewNode() *Node {
 	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
 	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
-	org.TxPool.OnConsensusTXConfirmed = append(org.TxPool.OnConsensusTXConfirmed, annSunsus.ConsensusTXConfirmed)
+	org.TxPool.OnConsensusTXConfirmed = append(org.TxPool.OnConsensusTXConfirmed, annSensus.ConsensusTXConfirmed)
 	n.Components = append(n.Components, txCounter)
 
 	//
 
-	n.Components = append(n.Components, annSunsus)
-	m.ConsensusDkgDealHandler = annSunsus
-	m.ConsensusDkgDealResponseHandler = annSunsus
+	n.Components = append(n.Components, annSensus)
+	m.ConsensusDkgDealHandler = annSensus
+	m.ConsensusDkgDealResponseHandler = annSensus
 
-	annSunsus.Hub = hub
+	annSensus.Hub = hub
+	annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
+	
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)
@@ -363,7 +365,7 @@ func NewNode() *Node {
 	pm.Register(messageHandler)
 	pm.Register(hub)
 	pm.Register(txCounter)
-	pm.Register(annSunsus)
+	pm.Register(annSensus)
 	n.Components = append(n.Components, pm)
 
 	return n

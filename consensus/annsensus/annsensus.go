@@ -39,7 +39,7 @@ type AnnSensus struct {
 	dkgReqCh      chan *types.MessageConsensusDkgDeal
 	dkgRespCh     chan *types.MessageConsensusDkgDealResponse
 
-	Hub            MessageSender //todo use interface later
+	Hub            MessageSender // todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
 	partner        *Partner // partner is for distributed key generate.

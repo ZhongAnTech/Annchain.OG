@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"strings"
@@ -133,4 +134,13 @@ func (c *Campaign) MarshalDkgKey() error {
 	}
 	c.DkgPublicKey = d
 	return nil
+}
+
+
+func (v* VrfInfo)String()string{
+	if v==nil {
+		return ""
+	}
+	return fmt.Sprintf("Msg:%s, vrf :%s , proof :%s, pubKey :%s", hex.EncodeToString(v.Message), hex.EncodeToString(v.Vrf),
+	hex.EncodeToString(v.Proof),hex.EncodeToString(v.PublicKey))
 }

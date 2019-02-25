@@ -7,40 +7,27 @@ import (
 	"fmt"
 )
 
-// interval between blocks in ms
-var BlockTime = 200
-
-type Partner interface {
-	EventLoop()
-	StartRound(round int)
-	SetPeers(peers []Partner)
-	GetIncomingMessageChannel() chan Message
-	GetOutgoingMessageChannel() chan Message
-	GetWaiterTimeoutChannel() chan *WaiterRequest
-	GetId() int
+type ByzantineFeatures struct {
+	SilenceProposal  bool
+	SilencePreVote   bool
+	SilencePreCommit bool
+	BadProposal      bool
+	BadPreVote       bool
+	BadPreCommit     bool
 }
 
-type PartnerBase struct {
-	Id                     int
-	IncomingMessageChannel chan Message
-	OutgoingMessageChannel chan Message
-	WaiterTimeoutChannel   chan *WaiterRequest
-}
-
-// DefaultPartner implements a Tendermint client according to "The latest gossip on BFT consensus"
-type DefaultPartner struct {
+// ByzantinePartner implements a Tendermint client according to "The latest gossip on BFT consensus"
+type ByzantinePartner struct {
 	PartnerBase
-	Height int
-	Round  int
-
+	Height    int
+	Round     int
 	N         int // total number of participants
 	F         int // max number of Byzantines
 	step      StepType
 	Decisions map[int]interface{}
 	Peers     []Partner
-
-	quit   chan bool
-	waiter *Waiter
+	quit      chan bool
+	waiter    *Waiter
 
 	// clear below every height
 	MessageProposal *MessageProposal
@@ -56,29 +43,14 @@ type DefaultPartner struct {
 	stepTypeEqualPreCommitFirstTime       bool // for line 47
 	higherRoundCounter                    int  // for line 55
 	// consider updating resetStatus() if you want to add things here
+	ByzantineFeatures ByzantineFeatures
 }
 
-func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
-	return p.WaiterTimeoutChannel
-}
-
-func (p *DefaultPartner) GetIncomingMessageChannel() chan Message {
-	return p.IncomingMessageChannel
-}
-
-func (p *DefaultPartner) GetOutgoingMessageChannel() chan Message {
-	return p.OutgoingMessageChannel
-}
-
-func (p *DefaultPartner) GetId() int {
-	return p.Id
-}
-
-func (p *DefaultPartner) SetPeers(peers []Partner) {
+func (p *ByzantinePartner) SetPeers(peers []Partner) {
 	p.Peers = peers
 }
 
-func (p *DefaultPartner) resetStatus() {
+func (p *ByzantinePartner) resetStatus() {
 	p.LockedRound = -1
 	p.LockedValue = nil
 	p.validRound = -1
@@ -91,18 +63,19 @@ func (p *DefaultPartner) resetStatus() {
 	p.stepTypeEqualOrLargerPreVoteFirstTime = true
 }
 
-func NewPartner(nbParticipants int, id int) *DefaultPartner {
-	p := &DefaultPartner{
-		N:         nbParticipants,
-		F:         (nbParticipants - 1) / 3,
-		Decisions: make(map[int]interface{}),
+func NewByzantinePartner(nbParticipants int, id int, byzantineFeatures ByzantineFeatures) *ByzantinePartner {
+	p := &ByzantinePartner{
+		N:                 nbParticipants,
+		F:                 (nbParticipants - 1) / 3,
+		Decisions:         make(map[int]interface{}),
+		quit:              make(chan bool),
+		ByzantineFeatures: byzantineFeatures,
 		PartnerBase: PartnerBase{
 			Id:                     id,
 			IncomingMessageChannel: make(chan Message, 100),
 			OutgoingMessageChannel: make(chan Message, 100),
 			WaiterTimeoutChannel:   make(chan *WaiterRequest, 100),
 		},
-		quit: make(chan bool),
 	}
 	p.waiter = NewWaiter(p.GetWaiterTimeoutChannel())
 	p.resetStatus()
@@ -110,7 +83,7 @@ func NewPartner(nbParticipants int, id int) *DefaultPartner {
 	return p
 }
 
-func (p *DefaultPartner) StartRound(round int) {
+func (p *ByzantinePartner) StartRound(round int) {
 	p.Round = round
 	p.changeState(StepTypePropose)
 	p.higherRoundCounter = 0
@@ -129,20 +102,40 @@ func (p *DefaultPartner) StartRound(round int) {
 	}
 }
 
-func (p *DefaultPartner) EventLoop() {
+func (p *ByzantinePartner) EventLoop() {
 	go p.send()
 	go p.receive()
 }
-func (p *DefaultPartner) send() {
-	timer := time.NewTimer(time.Second * 12)
+func (p *ByzantinePartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
+	return p.WaiterTimeoutChannel
+}
+
+func (p *ByzantinePartner) GetIncomingMessageChannel() chan Message {
+	return p.IncomingMessageChannel
+}
+
+func (p *ByzantinePartner) GetOutgoingMessageChannel() chan Message {
+	return p.OutgoingMessageChannel
+}
+
+func (p *ByzantinePartner) GetId() int {
+	return p.Id
+}
+
+func (p *ByzantinePartner) send() {
+	timer := time.NewTimer(time.Second * 15)
 	for {
-		timer.Reset(time.Second * 12)
+		timer.Reset(time.Second * 15)
 		select {
 		case <-p.quit:
 			break
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
 		case msg := <-p.OutgoingMessageChannel:
+			msg, toSend := p.doBadThings(msg)
+			if !toSend {
+				continue
+			}
 			for _, peer := range p.Peers {
 				logrus.WithFields(logrus.Fields{
 					"IM":  p.Id,
@@ -154,48 +147,72 @@ func (p *DefaultPartner) send() {
 		}
 	}
 }
+func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toSend bool) {
+	updatedMessage = msg
+	toSend = true
+	switch msg.Type {
+	case MessageTypeProposal:
+		if p.ByzantineFeatures.SilenceProposal {
+			toSend = false
+		} else if p.ByzantineFeatures.BadProposal {
+			v := updatedMessage.Payload.(MessageProposal)
+			v.Round ++
+			updatedMessage.Payload = v
+		}
 
-func (p *DefaultPartner) receive() {
-	timer := time.NewTimer(time.Second * 12)
+	case MessageTypePreVote:
+		if p.ByzantineFeatures.SilencePreVote {
+			toSend = false
+		} else if p.ByzantineFeatures.BadPreVote {
+			v := updatedMessage.Payload.(MessageCommonVote)
+			v.Round ++
+			updatedMessage.Payload = v
+		}
+	case MessageTypePreCommit:
+		if p.ByzantineFeatures.SilencePreCommit {
+			toSend = false
+		} else if p.ByzantineFeatures.BadPreCommit {
+			v := updatedMessage.Payload.(MessageCommonVote)
+			v.Round ++
+			updatedMessage.Payload = v
+		}
+
+	}
+	return
+}
+
+func (p *ByzantinePartner) receive() {
+	timer := time.NewTimer(time.Second * 15)
 	for {
-		timer.Reset(time.Second * 12)
+		timer.Reset(time.Second * 15)
 		select {
 		case <-p.quit:
 			break
-		case v := <-p.WaiterTimeoutChannel:
-			context := v.Context.(*TendermintContext)
-			logrus.WithFields(logrus.Fields{
-				"step":   context.StepType.String(),
-				"IM":     p.Id,
-				"height": context.Height,
-				"round":  context.Round,
-			}).Warn("wait step timeout")
-			v.TimeoutCallback(v.Context)
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading incoming")
 		case msg := <-p.IncomingMessageChannel:
 			logrus.WithFields(logrus.Fields{
 				"IM":  p.Id,
 				"msg": msg.String(),
-			}).Info("Incoming message")
+			}).Debug("Incoming message")
 			p.handleMessage(msg)
 		}
 	}
 }
 
 // Proposer returns current round proposer. Now simply round robin
-func (p *DefaultPartner) Proposer(height int, round int) int {
+func (p *ByzantinePartner) Proposer(height int, round int) int {
 	return (height + round) % p.N
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() Proposal {
-	time.Sleep(time.Millisecond * time.Duration(BlockTime))
+func (p *ByzantinePartner) GetValue() Proposal {
+	time.Sleep(time.Millisecond * 100)
 	v := fmt.Sprintf("[[[%d %d]]]", p.Height, p.Round)
 	return StringProposal(v)
 }
 
-func (p *DefaultPartner) Broadcast(messageType MessageType, height int, round int, content Proposal, validRound int) {
+func (p *ByzantinePartner) Broadcast(messageType MessageType, height int, round int, content Proposal, validRound int) {
 	m := Message{
 		Type: messageType,
 	}
@@ -229,21 +246,41 @@ func (p *DefaultPartner) Broadcast(messageType MessageType, height int, round in
 	ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m, "")
 }
 
-func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
+func (p *ByzantinePartner) OnTimeoutPropose(context WaiterContext) {
+	logrus.WithFields(logrus.Fields{
+		"step":   StepTypePropose.String(),
+		"IM":     p.Id,
+		"height": p.Height,
+		"round":  p.Round,
+	}).Warn("wait step timeout")
+
 	v := context.(*TendermintContext)
 	if v.Height == p.Height && v.Round == p.Round && p.step == StepTypePropose {
 		p.Broadcast(MessageTypePreVote, p.Height, p.Round, nil, 0)
 		p.changeState(StepTypePreVote)
 	}
 }
-func (p *DefaultPartner) OnTimeoutPreVote(context WaiterContext) {
+func (p *ByzantinePartner) OnTimeoutPreVote(context WaiterContext) {
+	logrus.WithFields(logrus.Fields{
+		"step":   StepTypePreVote.String(),
+		"IM":     p.Id,
+		"height": p.Height,
+		"round":  p.Round,
+	}).Warn("wait step timeout")
 	v := context.(*TendermintContext)
+
 	if v.Height == p.Height && v.Round == p.Round && p.step == StepTypePreVote {
 		p.Broadcast(MessageTypePreCommit, p.Height, p.Round, nil, 0)
 		p.changeState(StepTypePreCommit)
 	}
 }
-func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
+func (p *ByzantinePartner) OnTimeoutPreCommit(context WaiterContext) {
+	logrus.WithFields(logrus.Fields{
+		"step":   StepTypePreCommit.String(),
+		"IM":     p.Id,
+		"height": p.Height,
+		"round":  p.Round,
+	}).Warn("wait step timeout")
 	v := context.(*TendermintContext)
 	if v.Height == p.Height && v.Round == p.Round {
 		p.StartRound(p.Round + 1)
@@ -251,7 +288,7 @@ func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 }
 
 // WaitStepTimeout waits for a centain time if stepType stays too long
-func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, round int, timeoutCallback func(WaiterContext)) {
+func (p *ByzantinePartner) WaitStepTimeout(stepType StepType, timeout time.Duration, round int, timeoutCallback func(WaiterContext)) {
 	p.waiter.UpdateRequest(&WaiterRequest{
 		WaitTime:        timeout,
 		TimeoutCallback: timeoutCallback,
@@ -263,7 +300,7 @@ func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duratio
 	})
 }
 
-func (p *DefaultPartner) handleMessage(message Message) {
+func (p *ByzantinePartner) handleMessage(message Message) {
 	switch message.Type {
 	case MessageTypeProposal:
 		msg := message.Payload.(MessageProposal)
@@ -281,7 +318,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		p.handlePreCommit(&msg)
 	}
 }
-func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
+func (p *ByzantinePartner) handleProposal(proposal *MessageProposal) {
 	p.MessageProposal = proposal
 	// rule line 22
 	if p.step == StepTypePropose {
@@ -306,7 +343,7 @@ func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
 		}
 	}
 }
-func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
+func (p *ByzantinePartner) handlePreVote(vote *MessageCommonVote) {
 	// rule line 34
 	count := p.count(MessageTypePreVote, p.Height, p.Round, MatchTypeAny, "")
 	if count >= 2*p.F+1 {
@@ -337,7 +374,10 @@ func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
 	}
 
 }
-func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
+func (p *ByzantinePartner) handlePreCommit(commit *MessageCommonVote) {
+	// TODO：After +2/3 precommits for <nil>. --> goto Propose(H,R+1)
+	// This rule is not in the paper but here: hhttps://github.com/tendermint/tendermint/wiki/Byzantine-Consensus-Algorithm#precommit-step-heighthroundr
+
 	// rule line 47
 	count := p.count(MessageTypePreCommit, p.Height, p.Round, MatchTypeAny, "")
 	if count >= 2*p.F+1 && p.stepTypeEqualPreCommitFirstTime {
@@ -367,12 +407,12 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 }
 
 // check proposal validation
-func (p *DefaultPartner) valid(proposal Proposal) bool {
+func (p *ByzantinePartner) valid(proposal Proposal) bool {
 	return true
 }
 
 // count votes and commits from others.
-func (p *DefaultPartner) count(messageType MessageType, height int, validRound int, valueIdMatchType ValueIdMatchType, valueId string) int {
+func (p *ByzantinePartner) count(messageType MessageType, height int, validRound int, valueIdMatchType ValueIdMatchType, valueId string) int {
 	counter := 0
 	var target []*MessageCommonVote
 	switch messageType {
@@ -405,7 +445,7 @@ func (p *DefaultPartner) count(messageType MessageType, height int, validRound i
 	}
 	return counter
 }
-func (p *DefaultPartner) checkRound(message *BasicMessage) {
+func (p *ByzantinePartner) checkRound(message *BasicMessage) {
 	if message.Height == p.Height && message.Round > p.Round {
 		// update round
 		p.higherRoundCounter ++
@@ -415,7 +455,7 @@ func (p *DefaultPartner) checkRound(message *BasicMessage) {
 	}
 }
 
-func (p *DefaultPartner) changeState(stepType StepType) {
+func (p *ByzantinePartner) changeState(stepType StepType) {
 	p.step = stepType
 	p.waiter.UpdateContext(&TendermintContext{
 		Round:    p.Round,

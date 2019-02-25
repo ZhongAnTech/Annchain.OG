@@ -10,7 +10,7 @@ import (
 
 //go:generate msgp
 
-func (as *AnnSensus) GenerateVrf(campaign *types.Campaign) (ok bool) {
+func (as *AnnSensus) GenerateVrf() ( *types.VrfInfo ) {
 	sk, err := vrf.GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
@@ -18,13 +18,18 @@ func (as *AnnSensus) GenerateVrf(campaign *types.Campaign) (ok bool) {
 	pk, _ := sk.Public()
 	_, data := as.GetProofData(0)
 	Vrf := sk.Compute(data)
+	ok := as.VrfCondition(Vrf)
+	if !ok {
+		return nil
+	}
 	VRFFromProof, proof := sk.Prove(data)
 	_ = VRFFromProof ///todo ???
-	campaign.Vrf.Vrf = Vrf
-	campaign.Vrf.PublicKey = pk
-	campaign.Vrf.Proof = proof
-	campaign.Vrf.Message = data
-	return true
+	var VrfInfo  types.VrfInfo
+	VrfInfo.Vrf = Vrf
+	VrfInfo.PublicKey = pk
+	VrfInfo.Proof = proof
+	VrfInfo.Message = data
+	return &VrfInfo
 }
 
 type VrfData struct {
@@ -54,7 +59,7 @@ func (as *AnnSensus) VrfCondition(Vrf []byte) bool {
 		logrus.WithField("len", len(Vrf)).Warn("vrf length error")
 		return false
 	}
-	if Vrf[0] < 0xf0 {
+	if Vrf[0] < 0x80 {
 		return false
 	}
 	return true
@@ -71,7 +76,7 @@ func (as *AnnSensus) VerifyVrfData(data []byte) error {
 
 	shouldVD, _ := as.GetProofData(vd.Height)
 	if shouldVD != vd {
-		logrus.WithField("vfs data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
+		logrus.WithField("vrf data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
 		return fmt.Errorf("vfr data mismatch")
 	}
 	return nil

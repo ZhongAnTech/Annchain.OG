@@ -20,14 +20,17 @@ type AnnSensus struct {
 	maxCamps     int
 	candidates   map[types.Address]*types.Campaign
 	alsorans     map[types.Address]*types.Campaign
-	campaigns    map[types.Address]*types.Campaign // TODO replaced by candidates
+	//campaigns    map[types.Address]*types.Campaign // TODO replaced by candidates
 
 	termchgFlag bool
 
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
-	ConsensusTXConfirmed chan []types.Txi // for notifications of  consensus tx confirmation.
+
+	//receive consensus txs from pool ,for notifications
+	ConsensusTXConfirmed chan map[types.Hash]types.Txi
+
 
 	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
@@ -60,7 +63,8 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 		termchgCh:      make(chan *types.TermChange),
 		termChgSignal:  make(chan struct{}),
 		campaignFlag:   campaign,
-		campaigns:      make(map[types.Address]*types.Campaign),
+		candidates:      make(map[types.Address]*types.Campaign),
+		alsorans:make(map[types.Address]*types.Campaign),
 		NbParticipants: partnerNum,
 		Threshold:      threshold,
 	}
@@ -150,8 +154,8 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		}
 		// TODO
 		// handle campaigns should not only add it into candidate list.
-		as.candidates[c.Issuer] = c
-		as.ProcessCampaign(c) //todo remove duplication here
+		//as.candidates[c.Issuer] = c
+		as.AddCampaignCandidates(c) //todo remove duplication here
 		if as.canChangeTerm() {
 			as.termchgLock.Lock()
 			as.termchgFlag = true
@@ -168,10 +172,10 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 func (as *AnnSensus) canChangeTerm() bool {
 	// TODO
 
-	if len(as.campaigns) == 0 {
+	if len(as.candidates) == 0 {
 		return false
 	}
-	if len(as.campaigns) < as.NbParticipants {
+	if len(as.candidates) < as.NbParticipants {
 		log.Debug("not enough campaigns , waiting")
 		return false
 	}
@@ -218,6 +222,15 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
+	for _, cp:= range camps {
+		if cp ==nil {
+			continue
+		}
+		if as.HasCampaign(cp){
+			continue
+		}
+		as.alsorans[cp.Issuer] = cp
+	}
 }
 
 func (as *AnnSensus) loop() {

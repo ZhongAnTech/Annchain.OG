@@ -333,16 +333,12 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 	copy(headbuf[3:], zeroHeader)
 	// write header
 	if _, err := rw.conn.Write(headbuf); err != nil {
-
-		fmt.Println(headbuf)
 		return err
 	}
 	if _, err := rw.conn.Write(ptype); err != nil {
-		fmt.Println(ptype, err)
 		return err
 	}
 	if _, err := rw.conn.Write(payload); err != nil {
-		fmt.Println(payload, err)
 		return err
 	}
 	return nil

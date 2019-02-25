@@ -31,7 +31,7 @@ func (as *AnnSensus) gossipLoop() {
 				if addr == nil {
 					panic("address not found")
 				}
-				cp, ok := as.campaigns[*addr]
+				cp, ok := as.candidates[*addr]
 				if !ok {
 					panic("campaign not found")
 				}
@@ -54,7 +54,7 @@ func (as *AnnSensus) gossipLoop() {
 				return
 			}
 			var cp *types.Campaign
-			for _, v := range as.campaigns {
+			for _, v := range as.candidates {
 				if bytes.Equal(v.PublicKey, request.PublicKey) {
 					cp = v
 					break
@@ -105,7 +105,7 @@ func (as *AnnSensus) gossipLoop() {
 				return
 			}
 			var cp *types.Campaign
-			for _, v := range as.campaigns {
+			for _, v := range as.candidates {
 				if bytes.Equal(v.PublicKey, response.PublicKey) {
 					cp = v
 					break

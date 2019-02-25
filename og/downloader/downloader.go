@@ -64,7 +64,7 @@ var (
 	errCancelHeaderProcessing  = errors.New("header processing canceled (requested)")
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
-	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 31)")
+	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 01)")
 )
 
 type Downloader struct {
@@ -279,7 +279,7 @@ func (d *Downloader) synchronise(id string, hash types.Hash, seqId uint64, mode 
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash types.Hash, seqId uint64) (err error) {
 
-	if p.version < 31 {
+	if p.version < 1 {
 		return errTooOld
 	}
 	log.WithField("peer", p.id).WithField("og", p.version).WithField("head", hash).WithField(

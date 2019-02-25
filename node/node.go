@@ -270,7 +270,7 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
-	autoClientManager.RegisterReceiver = annSunsus.RegisterReceiver
+	autoClientManager.RegisterReceiver = annSunsus.RegisterNewTxHandler
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	autoClientManager.Init(
 		accountIds,

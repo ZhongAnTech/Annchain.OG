@@ -11,7 +11,8 @@ func callback(w WaiterContext) {
 }
 
 func TestWait(t *testing.T) {
-	w := NewWaiter()
+	c := make(chan *WaiterRequest)
+	w := NewWaiter(c)
 	go w.StartEventLoop()
 	w.UpdateRequest(&WaiterRequest{
 		WaitTime:        time.Second * 5,

@@ -48,7 +48,7 @@ func (as *AnnSensus) gossipLoop() {
 			if err != nil {
 				log.Warn("unmarshal failed failed")
 			}
-			if !as.doCamp {
+			if !as.campaignFlag {
 				//not a consensus partner
 				log.Warn("why send to me")
 				return
@@ -100,7 +100,7 @@ func (as *AnnSensus) gossipLoop() {
 			}
 			//broadcast  continue
 			as.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
-			if !as.doCamp {
+			if !as.campaignFlag {
 				//not a consensus partner
 				return
 			}

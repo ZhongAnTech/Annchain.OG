@@ -29,7 +29,7 @@ type AnnSensus struct {
 
 
 	//receive consensus txs from pool ,for notifications
-	ConsensusTXConfirmed chan map[types.Hash]types.Txi
+	ConsensusTXConfirmed chan []types.Txi
 
 
 	// channels for receiving txs.
@@ -67,6 +67,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 		alsorans:make(map[types.Address]*types.Campaign),
 		NbParticipants: partnerNum,
 		Threshold:      threshold,
+		ConsensusTXConfirmed :make(chan []types.Txi),
 	}
 }
 
@@ -136,6 +137,8 @@ func (as *AnnSensus) prodcampaign() {
 					c <- camp
 				}
 			}
+			//
+			as.doCamp = false
 		}
 	}
 }
@@ -207,6 +210,7 @@ func (as *AnnSensus) changeTerm() {
 				}
 			}
 		case <-as.close:
+			log.Info("got quit signal , annsensus termchansge stopped")
 			return
 		}
 	}

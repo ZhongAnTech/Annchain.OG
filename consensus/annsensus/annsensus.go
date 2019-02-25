@@ -73,6 +73,7 @@ func (as *AnnSensus) Start() {
 		// TODO campaign gossip starts here?
 		go as.gossipLoop()
 	}
+	go as.loop()
 	// TODO
 }
 
@@ -224,6 +225,7 @@ func (as *AnnSensus) loop() {
 	for {
 		select {
 		case <-as.close:
+			log.Info("got quit signal , annsensus loop stopped")
 			return
 
 		case camps := <-as.campsCh:

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common/hexutil"
@@ -280,15 +281,11 @@ func TestRlpxFrameRW_ReadMsg(t *testing.T) {
 		IngressMAC: hash,
 		EgressMAC:  hash,
 	})
-	golden := unhex(`
-00828ddae471818bb0bfa6b551d1cb42
-01010101010101010101010101010101
-ba328a4ba590cb43f7848f41c4382885
-01010101010101010101010101010101
-`)
-
+	golden:= unhex(`0082bbdae471818bb0bfa6b551d1cb4201010101010101010101010101010101ba
+	62a6f3941e80e6674fccb640b769410ca260cb7b00
+	9e5b45d021af17dc638f146f174d0e5ff380abf27f3a87a6e4f101010101010101010101010101010101`)
 	// Check WriteMsg. This puts a message into the buffer.
-	a := msg2.Uints{1, 2, 3, 4}
+	a := msg2.Bytes(unhex("ba328a4ba590cb43f7848f41c438288500828ddae471818bb0bfa6b551d1cb42465456465485658686555555ab"))
 	b, _ := a.MarshalMsg(nil)
 	fmt.Println(hexutil.Encode(b), len(b))
 	if err := Send(rw, 8, b); err != nil {
@@ -299,25 +296,25 @@ ba328a4ba590cb43f7848f41c4382885
 	codeM,_  := code.MarshalMsg(nil)
 	fmt.Println(codeM, len(codeM))
 	written := buf.Bytes()
-	fmt.Println(len(written))
+	fmt.Println(len(written),hex.EncodeToString(written))
 	if !bytes.Equal(written, golden) {
 		t.Fatalf("output mismatch:\n  got:  %x\n  want: %x", written, golden)
 	}
-
 	// Check ReadMsg. It reads the message encoded by WriteMsg, which
 	// is equivalent to the golden message above.
 	msg, err := rw.ReadMsg()
 	if err != nil {
 		t.Fatalf("ReadMsg error: %v", err)
 	}
-	if msg.Size != 5 {
-		t.Errorf("msg size mismatch: got %d, want %d", msg.Size, 5)
+	if msg.Size != 47 {
+		t.Errorf("msg size mismatch: got %d, want %d", msg.Size, 47)
 	}
+	fmt.Println("siez ",msg.Size)
 	if msg.Code != 8 {
 		t.Errorf("msg code mismatch: got %d, want %d", msg.Code, 8)
 	}
 	payload, _ := ioutil.ReadAll(msg.Payload)
-	wantPayload := unhex("9401020304")
+	wantPayload := unhex("c42dba328a4ba590cb43f7848f41c438288500828ddae471818bb0bfa6b551d1cb42465456465485658686555555ab")
 	if !bytes.Equal(payload, wantPayload) {
 		t.Errorf("msg payload mismatch:\ngot  %x\nwant %x", payload, wantPayload)
 	}

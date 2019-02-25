@@ -610,10 +610,11 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		originBalance := pool.dag.GetBalance(tx.Sender())
 		stateFrom = NewBalanceState(originBalance)
 	}
-	// if tx's value is larger than its balance, return fatal.
-	if tx.GetType() == types.TxBaseTypeNormal {
-		t := tx.(*types.Tx)
-		if t.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
+
+	switch tx := tx.(type) {
+	case *types.Tx:
+		// if tx's value is larger than its balance, return fatal.
+		if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
 		}
@@ -621,15 +622,17 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		// 	+ ( the value that 'from' newly spent )
 		// 	> ( balance of 'from' in db )
 		totalspent := math.NewBigInt(0)
-		if totalspent.Value.Add(stateFrom.spent.Value, t.Value.Value).Cmp(
+		if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 			stateFrom.originBalance.Value) > 0 {
-			log.WithField("tx", t).Tracef("bad tx, total spent larget than balance")
+			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
-	} else if tx.GetType() == types.TxBaseTypeCampaign {
-		//todo
-	} else if tx.GetType() == types.TxBaseTypeTermChange {
-		//TODO
+	case *types.Campaign:
+		// TODO
+	case *types.TermChange:
+		// TODO
+	default:
+		// TODO
 	}
 
 	return TxQualityIsGood
@@ -825,6 +828,8 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		if !in {
 			continue
 		}
+		// TODO 
+		// not only normal txs.
 		if elder.GetType() == types.TxBaseTypeNormal {
 			txhashes = append(txhashes, hash)
 		}

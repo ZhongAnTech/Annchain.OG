@@ -27,7 +27,7 @@ type AnnSensus struct {
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
-	ConsensusTXConfirmed  chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
+	ConsensusTXConfirmed chan []types.Txi // for notifications of  consensus tx confirmation.
 
 	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
@@ -91,7 +91,8 @@ func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	return nil
 }
 
-// RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers.
+// RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers. These
+// channels are responsible to process new txs produced by annsensus.
 func (as *AnnSensus) RegisterNewTxHandler(c chan types.Txi) {
 	as.newTxHandlers = append(as.newTxHandlers, c)
 }
@@ -113,7 +114,7 @@ func (as *AnnSensus) prodcampaign() {
 	for {
 		select {
 		case <-as.close:
-			log.Info("campaign stopped")
+			log.Info("campaign stopped due to annsensus closed")
 			return
 		case <-time.After(time.Second * 10):
 			if !as.doCamp {
@@ -234,20 +235,21 @@ func (as *AnnSensus) loop() {
 			fmt.Println(termchg)
 			// TODO
 			// case start term change gossip
-            //dag sent campaigns and termchanges tx
-			case txs := <-as.ConsensusTXConfirmed:
-				var cps []*types.Campaign
-			    var tcs []*types.TermChange
-				for _, tx := range txs {
-					if tx.GetType() == types.TxBaseTypeCampaign {
-						cps = append(cps,tx.(*types.Campaign))
-					}else if tx.GetType() == types.TxBaseTypeTermChange {
-						tcs = append(tcs, tx.(*types.TermChange))
-					}
+			// dag sent campaigns and termchanges tx
+
+		case txs := <-as.ConsensusTXConfirmed:
+			var cps []*types.Campaign
+			var tcs []*types.TermChange
+			for _, tx := range txs {
+				if tx.GetType() == types.TxBaseTypeCampaign {
+					cps = append(cps, tx.(*types.Campaign))
+				} else if tx.GetType() == types.TxBaseTypeTermChange {
+					tcs = append(tcs, tx.(*types.TermChange))
 				}
-				if len(cps) >0 {
-					as.commit(cps)
-				}
+			}
+			if len(cps) > 0 {
+				as.commit(cps)
+			}
 
 		}
 	}

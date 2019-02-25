@@ -47,6 +47,8 @@ type Dag struct {
 
 	txcached *txcached
 
+	OnConsensusTXConfirmed chan []types.Txi
+
 	close chan struct{}
 
 	wg sync.WaitGroup
@@ -624,6 +626,32 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dbBatch := dag.db.NewBatch()
 	receipts := make(ReceiptSet)
 
+	// TODO 
+	newbatch := []types.Txi
+	// store the tx and update the state
+	for _, txi := range newbatch {
+		txi.GetBase().Height = batch.Seq.Height
+		err = dag.WriteTransaction(dbBatch, txi)
+		if err != nil {
+			return fmt.Errorf("write tx into db error: %v", err)
+		}
+		// TODO
+		// the tx processing order should based on the order managed by
+		// sequencer, now seq doesn't have such order.
+		_, receipt, err := dag.ProcessTransaction(txi)
+		if err != nil {
+			return err
+		}
+
+		// TODO
+		// get campaigns and termchanges from batch, and send these txs
+		// to annsensus.
+
+		receipts[txi.GetTxHash().Hex()] = receipt
+		log.WithField("tx", txi).Tracef("successfully process tx")
+	}
+	
+
 	// store the tx and update the state
 	for _, batchDetail := range batch.Batch {
 		txlist := batchDetail.TxList
@@ -648,6 +676,12 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			if err != nil {
 				return err
 			}
+
+			// TODO
+			// get campaigns and termchanges from batch, and send these txs
+			// to annsensus.
+
+
 			receipts[txi.GetTxHash().Hex()] = receipt
 			log.WithField("tx", txi).Tracef("successfully process tx")
 		}
@@ -763,7 +797,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	if !dag.statedb.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
-	// transfer balance
+	
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
 		return nil, receipt, nil
@@ -776,7 +810,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-
+	
+	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		dag.statedb.SubBalance(txnormal.From, txnormal.Value)

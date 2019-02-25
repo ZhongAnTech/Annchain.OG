@@ -613,63 +613,30 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
 	txhashes := types.Hashes{}
+	consTxs := []types.Txi{}
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
 			return fmt.Errorf("write tx into db error: %v", err)
 		}
-		// TODO
-		// the tx processing order should based on the order managed by
-		// sequencer, now seq doesn't have such order.
 		_, receipt, err := dag.ProcessTransaction(txi)
 		if err != nil {
 			return err
 		}
-
-		// TODO
-		// get campaigns and termchanges from batch, and send these txs
-		// to annsensus.
-
 		receipts[txi.GetTxHash().Hex()] = receipt
+		
 		txhashes = append(txhashes, txi.GetTxHash())
+		// TODO
+		// Consensus related txs should not some specific types, should be 
+		// changed to a modular way.
+		txType := txi.GetType()
+		if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
+			consTxs = append(consTxs)
+		}
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
-
-	// // store the tx and update the state
-	// for _, batchDetail := range batch.Batch {
-	// 	txlist := batchDetail.TxList
-	// 	if txlist == nil {
-	// 		return fmt.Errorf("batch detail does't have txlist")
-	// 	}
-	// 	// sort.Sort(txlist.keys)
-	// 	for _, nonce := range *txlist.keys {
-	// 		txi := txlist.get(nonce)
-	// 		if txi == nil {
-	// 			return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
-	// 		}
-	// 		txi.GetBase().Height = batch.Seq.Height
-	// 		err = dag.WriteTransaction(dbBatch, txi)
-	// 		if err != nil {
-	// 			return fmt.Errorf("write tx into db error: %v", err)
-	// 		}
-	// 		// TODO
-	// 		// the tx processing order should based on the order managed by
-	// 		// sequencer, now seq doesn't have such order.
-	// 		_, receipt, err := dag.ProcessTransaction(txi)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		// TODO
-	// 		// get campaigns and termchanges from batch, and send these txs
-	// 		// to annsensus.
-
-	// 		receipts[txi.GetTxHash().Hex()] = receipt
-	// 		log.WithField("tx", txi).Tracef("successfully process tx")
-	// 	}
-	// }
-
+	
 	// save latest sequencer into db
 	batch.Seq.GetBase().Height = batch.Seq.Height
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
@@ -720,6 +687,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSequencer = batch.Seq
+
+	// send consensus related txs.
+	dag.OnConsensusTXConfirmed <- consTxs
+
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 
 	// TODO: confirm time is for tps calculation, delete later.

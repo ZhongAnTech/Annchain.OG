@@ -687,9 +687,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		}
 		consensusTxs [k] = v
 	}
-
-	for _,c := range  pool.OnConsensusTXConfirmed{
-		c <- consensusTxs
+	if len(consensusTxs)!=0 {
+		for _,c := range  pool.OnConsensusTXConfirmed{
+			c <- consensusTxs
+		}
 	}
 
 	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")

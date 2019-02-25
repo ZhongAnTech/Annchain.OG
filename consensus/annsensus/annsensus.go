@@ -27,7 +27,7 @@ type AnnSensus struct {
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
-	ConsensusTXConfirmed  chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
+	ConsensusTXConfirmed chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
 
 	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
@@ -73,6 +73,7 @@ func (as *AnnSensus) Start() {
 		// TODO campaign gossip starts here?
 		go as.gossipLoop()
 	}
+	go as.loop()
 	// TODO
 }
 
@@ -223,6 +224,7 @@ func (as *AnnSensus) loop() {
 	for {
 		select {
 		case <-as.close:
+			log.Info("got quit signal , annsensus loop stopped")
 			return
 
 		case camps := <-as.campsCh:
@@ -232,22 +234,22 @@ func (as *AnnSensus) loop() {
 
 		case termchg := <-as.termchgCh:
 			fmt.Println(termchg)
-			// TODO
-			// case start term change gossip
-            //dag sent campaigns and termchanges tx
-			case txs := <-as.ConsensusTXConfirmed:
-				var cps []*types.Campaign
-			    var tcs []*types.TermChange
-				for _, tx := range txs {
-					if tx.GetType() == types.TxBaseTypeCampaign {
-						cps = append(cps,tx.(*types.Campaign))
-					}else if tx.GetType() == types.TxBaseTypeTermChange {
-						tcs = append(tcs, tx.(*types.TermChange))
-					}
+		// TODO
+		// case start term change gossip
+		//dag sent campaigns and termchanges tx
+		case txs := <-as.ConsensusTXConfirmed:
+			var cps []*types.Campaign
+			var tcs []*types.TermChange
+			for _, tx := range txs {
+				if tx.GetType() == types.TxBaseTypeCampaign {
+					cps = append(cps, tx.(*types.Campaign))
+				} else if tx.GetType() == types.TxBaseTypeTermChange {
+					tcs = append(tcs, tx.(*types.TermChange))
 				}
-				if len(cps) >0 {
-					as.commit(cps)
-				}
+			}
+			if len(cps) > 0 {
+				as.commit(cps)
+			}
 
 		}
 	}

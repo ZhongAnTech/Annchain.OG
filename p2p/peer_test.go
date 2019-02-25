@@ -19,6 +19,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/msg"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -365,7 +366,7 @@ func TestMatchProtocols(t *testing.T) {
 }
 
 func init() {
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	fname := "log334.log"
 	f, err := os.Create(fname)
 	if err != nil {
@@ -376,4 +377,8 @@ func init() {
 		panic(err)
 	}
 	logrus.SetOutput(f)
+	log = logrus.StandardLogger()
+	filenameHook := filename.NewHook()
+	filenameHook.Field = "line"
+	logrus.AddHook(filenameHook)
 }

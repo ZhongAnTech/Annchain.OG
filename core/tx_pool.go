@@ -681,17 +681,6 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	for _, c := range pool.OnNewLatestSequencer {
 		c <- true
 	}
-	var consensusTxs map[types.Hash]types.Txi
-	for k, v := range elders {
-		if v.GetType() != types.TxBaseTypeTermChange || v.GetType() != types.TxBaseTypeCampaign {
-			continue
-		}
-		consensusTxs[k] = v
-	}
-
-	for _, c := range pool.OnConsensusTXConfirmed {
-		c <- consensusTxs
-	}
 
 	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
 	return nil

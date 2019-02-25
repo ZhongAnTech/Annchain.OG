@@ -270,7 +270,10 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
-	autoClientManager.RegisterReceiver = annSensus.RegisterReceiver
+	// TODO
+	// RegisterNewTxHandler is not for AnnSensus sending txs out.
+	// Not suitable to be used here.
+	autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	autoClientManager.Init(
 		accountIds,
@@ -357,7 +360,7 @@ func NewNode() *Node {
 
 	annSensus.Hub = hub
 	annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
-	
+
 	pm.Register(org.TxPool)
 	pm.Register(syncManager)
 	pm.Register(syncManager.IncrementalSyncer)

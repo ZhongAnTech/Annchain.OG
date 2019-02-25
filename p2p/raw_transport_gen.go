@@ -27,11 +27,6 @@ func (z *RawHandshakeMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "InitiatorPubkey":
-			err = dc.ReadExactBytes((z.InitiatorPubkey)[:])
-			if err != nil {
-				return
-			}
 		case "Nonce":
 			err = dc.ReadExactBytes((z.Nonce)[:])
 			if err != nil {
@@ -54,22 +49,13 @@ func (z *RawHandshakeMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *RawHandshakeMsg) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
+	// map header, size 3
 	// write "Signature"
-	err = en.Append(0x84, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	err = en.Append(0x83, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteBytes((z.Signature)[:])
-	if err != nil {
-		return
-	}
-	// write "InitiatorPubkey"
-	err = en.Append(0xaf, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x6f, 0x72, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
-	if err != nil {
-		return
-	}
-	err = en.WriteBytes((z.InitiatorPubkey)[:])
 	if err != nil {
 		return
 	}
@@ -97,13 +83,10 @@ func (z *RawHandshakeMsg) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *RawHandshakeMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
+	// map header, size 3
 	// string "Signature"
-	o = append(o, 0x84, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = append(o, 0x83, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	o = msgp.AppendBytes(o, (z.Signature)[:])
-	// string "InitiatorPubkey"
-	o = append(o, 0xaf, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x6f, 0x72, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
-	o = msgp.AppendBytes(o, (z.InitiatorPubkey)[:])
 	// string "Nonce"
 	o = append(o, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
@@ -134,11 +117,6 @@ func (z *RawHandshakeMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-		case "InitiatorPubkey":
-			bts, err = msgp.ReadExactBytes(bts, (z.InitiatorPubkey)[:])
-			if err != nil {
-				return
-			}
 		case "Nonce":
 			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
 			if err != nil {
@@ -162,7 +140,7 @@ func (z *RawHandshakeMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawHandshakeMsg) Msgsize() (s int) {
-	s = 1 + 10 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + 16 + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize
+	s = 1 + 10 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize
 	return
 }
 
@@ -182,18 +160,8 @@ func (z *RawHandshakeResponseMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "RemotePubkey":
-			err = dc.ReadExactBytes((z.RemotePubkey)[:])
-			if err != nil {
-				return
-			}
 		case "Nonce":
 			err = dc.ReadExactBytes((z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Signature":
-			err = dc.ReadExactBytes((z.Signature)[:])
 			if err != nil {
 				return
 			}
@@ -214,31 +182,13 @@ func (z *RawHandshakeResponseMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *RawHandshakeResponseMsg) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
-	// write "RemotePubkey"
-	err = en.Append(0x84, 0xac, 0x52, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
-	if err != nil {
-		return
-	}
-	err = en.WriteBytes((z.RemotePubkey)[:])
-	if err != nil {
-		return
-	}
+	// map header, size 2
 	// write "Nonce"
-	err = en.Append(0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	err = en.Append(0x82, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteBytes((z.Nonce)[:])
-	if err != nil {
-		return
-	}
-	// write "Signature"
-	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	if err != nil {
-		return
-	}
-	err = en.WriteBytes((z.Signature)[:])
 	if err != nil {
 		return
 	}
@@ -257,16 +207,10 @@ func (z *RawHandshakeResponseMsg) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *RawHandshakeResponseMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
-	// string "RemotePubkey"
-	o = append(o, 0x84, 0xac, 0x52, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
-	o = msgp.AppendBytes(o, (z.RemotePubkey)[:])
+	// map header, size 2
 	// string "Nonce"
-	o = append(o, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	o = append(o, 0x82, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
-	// string "Signature"
-	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, (z.Signature)[:])
 	// string "Version"
 	o = append(o, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
 	o = msgp.AppendUint(o, z.Version)
@@ -289,18 +233,8 @@ func (z *RawHandshakeResponseMsg) UnmarshalMsg(bts []byte) (o []byte, err error)
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "RemotePubkey":
-			bts, err = msgp.ReadExactBytes(bts, (z.RemotePubkey)[:])
-			if err != nil {
-				return
-			}
 		case "Nonce":
 			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Signature":
-			bts, err = msgp.ReadExactBytes(bts, (z.Signature)[:])
 			if err != nil {
 				return
 			}
@@ -322,6 +256,6 @@ func (z *RawHandshakeResponseMsg) UnmarshalMsg(bts []byte) (o []byte, err error)
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawHandshakeResponseMsg) Msgsize() (s int) {
-	s = 1 + 13 + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 10 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + 8 + msgp.UintSize
+	s = 1 + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize
 	return
 }

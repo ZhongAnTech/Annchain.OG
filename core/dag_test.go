@@ -18,7 +18,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 	conf := core.DagConfig{}
 	db, remove := newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
-	dag, errnew := core.NewDag(conf, stdbconf, db, nil)
+	dag, errnew := core.NewDag(conf, stdbconf, db, nil,0)
 	if errnew != nil {
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}

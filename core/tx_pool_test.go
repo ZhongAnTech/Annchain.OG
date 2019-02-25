@@ -21,7 +21,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
+	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db, nil, 0)
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
@@ -110,7 +110,7 @@ func TestPoolCommit(t *testing.T) {
 	// tx0's parent is genesis
 	tx0 := newTestPoolTx(0)
 	tx0.ParentsHash = []types.Hash{genesis.GetTxHash()}
-	err = pool.AddLocalTx(tx0)
+	err = pool.AddLocalTx(tx0, true)
 	if err != nil {
 		t.Fatalf("add tx0 to pool failed: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestPoolCommit(t *testing.T) {
 	// tx1's parent is tx0
 	tx1 := newTestPoolTx(1)
 	tx1.ParentsHash = []types.Hash{tx0.GetTxHash()}
-	err = pool.AddLocalTx(tx1)
+	err = pool.AddLocalTx(tx1,true)
 	if err != nil {
 		t.Fatalf("add tx1 to pool failed: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestPoolCommit(t *testing.T) {
 	// tx2's parent is genesis which is not in pool yet
 	tx2 := newTestPoolTx(2)
 	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
-	err = pool.AddLocalTx(tx2)
+	err = pool.AddLocalTx(tx2,true)
 	if err != nil {
 		t.Fatalf("add tx2 to pool failed: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestPoolConfirm(t *testing.T) {
 	// sequencer's parents are normal txs
 	tx0 := newTestPoolTx(0)
 	tx0.ParentsHash = []types.Hash{genesis.GetTxHash()}
-	pool.AddLocalTx(tx0)
+	pool.AddLocalTx(tx0,true)
 
 	// TODO
 	// tx3 := newTestPoolBadTx()
@@ -195,14 +195,14 @@ func TestPoolConfirm(t *testing.T) {
 
 	tx1 := newTestPoolTx(1)
 	tx1.ParentsHash = []types.Hash{genesis.GetTxHash()}
-	pool.AddLocalTx(tx1)
+	pool.AddLocalTx(tx1,true)
 
 	seq := newTestSeq(1)
 	seq.ParentsHash = []types.Hash{
 		tx0.GetTxHash(),
 		tx1.GetTxHash(),
 	}
-	err = pool.AddLocalTx(seq)
+	err = pool.AddLocalTx(seq,true)
 	if err != nil {
 		t.Fatalf("add seq to pool failed: %v", err)
 	}

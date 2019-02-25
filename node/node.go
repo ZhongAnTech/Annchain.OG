@@ -352,6 +352,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, txCounter)
 
 	//
+	org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
 
 	n.Components = append(n.Components, annSensus)
 	m.ConsensusDkgDealHandler = annSensus

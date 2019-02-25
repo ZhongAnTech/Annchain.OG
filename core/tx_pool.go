@@ -82,12 +82,12 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived      map[channelName]chan types.Txi  // for notifications of new txs.
-	OnConsensusTXConfirmed  []chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
-	OnBatchConfirmed     []chan map[types.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer []chan bool                     //for broadcasting new latest sequencer to record height
-	txNum                uint32
-	maxWeight            uint64
+	onNewTxReceived        map[channelName]chan types.Txi  // for notifications of new txs.
+	OnConsensusTXConfirmed []chan map[types.Hash]types.Txi // for notifications of  consensus tx confirmation.
+	OnBatchConfirmed       []chan map[types.Hash]types.Txi // for notifications of confirmation.
+	OnNewLatestSequencer   []chan bool                     //for broadcasting new latest sequencer to record height
+	txNum                  uint32
+	maxWeight              uint64
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -103,18 +103,18 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{
-		conf:             conf,
-		dag:              d,
-		queue:            make(chan *txEvent, conf.QueueSize),
-		tips:             NewTxMap(),
-		badtxs:           NewTxMap(),
-		pendings:         NewTxMap(),
-		flows:            NewAccountFlows(),
-		txLookup:         newTxLookUp(),
-		close:            make(chan struct{}),
-		onNewTxReceived:  make(map[channelName]chan types.Txi),
-		OnBatchConfirmed: []chan map[types.Hash]types.Txi{},
-		OnConsensusTXConfirmed : []chan map[types.Hash]types.Txi{},
+		conf:                   conf,
+		dag:                    d,
+		queue:                  make(chan *txEvent, conf.QueueSize),
+		tips:                   NewTxMap(),
+		badtxs:                 NewTxMap(),
+		pendings:               NewTxMap(),
+		flows:                  NewAccountFlows(),
+		txLookup:               newTxLookUp(),
+		close:                  make(chan struct{}),
+		onNewTxReceived:        make(map[channelName]chan types.Txi),
+		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
+		OnConsensusTXConfirmed: []chan map[types.Hash]types.Txi{},
 	}
 	return pool
 }
@@ -293,8 +293,6 @@ func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, a
 	chName := channelName{chanName, allTx}
 	pool.onNewTxReceived[chName] = c
 }
-
-
 
 // GetRandomTips returns n tips randomly.
 func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
@@ -683,15 +681,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	for _, c := range pool.OnNewLatestSequencer {
 		c <- true
 	}
-	var consensusTxs  map[types.Hash]types.Txi
-	for k,v := range elders {
-		if v.GetType()!=types.TxBaseTypeTermChange || v.GetType()!=types.TxBaseTypeCampaign{
+	var consensusTxs map[types.Hash]types.Txi
+	for k, v := range elders {
+		if v.GetType() != types.TxBaseTypeTermChange || v.GetType() != types.TxBaseTypeCampaign {
 			continue
 		}
-		consensusTxs [k] = v
+		consensusTxs[k] = v
 	}
 
-	for _,c := range  pool.OnConsensusTXConfirmed{
+	for _, c := range pool.OnConsensusTXConfirmed {
 		c <- consensusTxs
 	}
 
@@ -743,21 +741,38 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	return batch, nil
 }
 
+// BatchDetail describes all the details of a specific address within a
+// sequencer confirmation term.
+// - TxList - represents the txs sent by this addrs, ordered by nonce.
+// - Neg    - means the amount this address should spent out.
+// - Pos    - means the amount this address get paid.
+type BatchDetail struct {
+	TxList *TxList
+	Neg    *math.BigInt
+	Pos    *math.BigInt
+}
+
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
-	// statistics of the confirmation term.
-	// sums up the related address' income and outcome values
+	// statistics of the confirmation txs.
+	// Sums up the related address' income and outcome values for later verify
+	// and combine the txs as confirmbatch
+	cTxs := ConfirmTxs{}
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
+		cTxs = append(cTxs, txi)
+
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
 				seq.GetNonce(), txi.GetTxHash().String())
 		}
+
 		switch tx := txi.(type) {
 		case *types.Sequencer:
 			break
+
 		case *types.Tx:
 			batchFrom, okFrom := batch[tx.From]
 			if !okFrom {
@@ -779,24 +794,15 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 				batch[tx.To] = batchTo
 			}
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
-		case *types.Campaign:
-			batchFrom, okFrom := batch[tx.Issuer]
+
+		default:
+			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = math.NewBigInt(0)
 				batchFrom.Pos = math.NewBigInt(0)
-				batch[tx.Issuer] = batchFrom
-			}
-			batchFrom.TxList.put(tx)
-		case *types.TermChange:
-			batchFrom, okFrom := batch[tx.Issuer]
-			if !okFrom {
-				batchFrom = &BatchDetail{}
-				batchFrom.TxList = NewTxList()
-				batchFrom.Neg = math.NewBigInt(0)
-				batchFrom.Pos = math.NewBigInt(0)
-				batch[tx.Issuer] = batchFrom
+				batch[tx.Sender()] = batchFrom
 			}
 			batchFrom.TxList.put(tx)
 		}
@@ -821,24 +827,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		}
 	}
 
-	// construct tx hashes
-	var txhashes types.Hashes
-	for _, hash := range pool.getHashOrder() {
-		elder, in := elders[hash]
-		if !in {
-			continue
-		}
-		// TODO 
-		// not only normal txs.
-		if elder.GetType() == types.TxBaseTypeNormal {
-			txhashes = append(txhashes, hash)
-		}
-	}
-
 	cb := &ConfirmBatch{}
 	cb.Seq = seq
-	cb.Batch = batch
-	cb.TxHashes = &txhashes
+	cb.Txs = cTxs
 	return cb, nil
 }
 

@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"time"
 
 	// "fmt"
@@ -89,23 +90,6 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 
 func DefaultDagConfig() DagConfig {
 	return DagConfig{}
-}
-
-type ConfirmBatch struct {
-	Seq      *types.Sequencer
-	Batch    map[types.Address]*BatchDetail
-	TxHashes *types.Hashes
-}
-
-// BatchDetail describes all the details of a specific address within a
-// sequencer confirmation term.
-// - TxList - represents the txs sent by this addrs, ordered by nonce.
-// - Neg    - means the amount this address should spent out.
-// - Pos    - means the amount this address get paid.
-type BatchDetail struct {
-	TxList *TxList
-	Neg    *math.BigInt
-	Pos    *math.BigInt
 }
 
 func (dag *Dag) Start() {
@@ -626,10 +610,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dbBatch := dag.db.NewBatch()
 	receipts := make(ReceiptSet)
 
-	// TODO 
-	newbatch := []types.Txi
 	// store the tx and update the state
-	for _, txi := range newbatch {
+	sort.Sort(batch.Txs)
+	txhashes := types.Hashes{}
+	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
@@ -648,44 +632,43 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		// to annsensus.
 
 		receipts[txi.GetTxHash().Hex()] = receipt
+		txhashes = append(txhashes, txi.GetTxHash())
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
-	
 
-	// store the tx and update the state
-	for _, batchDetail := range batch.Batch {
-		txlist := batchDetail.TxList
-		if txlist == nil {
-			return fmt.Errorf("batch detail does't have txlist")
-		}
-		// sort.Sort(txlist.keys)
-		for _, nonce := range *txlist.keys {
-			txi := txlist.get(nonce)
-			if txi == nil {
-				return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
-			}
-			txi.GetBase().Height = batch.Seq.Height
-			err = dag.WriteTransaction(dbBatch, txi)
-			if err != nil {
-				return fmt.Errorf("write tx into db error: %v", err)
-			}
-			// TODO
-			// the tx processing order should based on the order managed by
-			// sequencer, now seq doesn't have such order.
-			_, receipt, err := dag.ProcessTransaction(txi)
-			if err != nil {
-				return err
-			}
+	// // store the tx and update the state
+	// for _, batchDetail := range batch.Batch {
+	// 	txlist := batchDetail.TxList
+	// 	if txlist == nil {
+	// 		return fmt.Errorf("batch detail does't have txlist")
+	// 	}
+	// 	// sort.Sort(txlist.keys)
+	// 	for _, nonce := range *txlist.keys {
+	// 		txi := txlist.get(nonce)
+	// 		if txi == nil {
+	// 			return fmt.Errorf("can't get tx from txlist, nonce: %d", nonce)
+	// 		}
+	// 		txi.GetBase().Height = batch.Seq.Height
+	// 		err = dag.WriteTransaction(dbBatch, txi)
+	// 		if err != nil {
+	// 			return fmt.Errorf("write tx into db error: %v", err)
+	// 		}
+	// 		// TODO
+	// 		// the tx processing order should based on the order managed by
+	// 		// sequencer, now seq doesn't have such order.
+	// 		_, receipt, err := dag.ProcessTransaction(txi)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			// TODO
-			// get campaigns and termchanges from batch, and send these txs
-			// to annsensus.
+	// 		// TODO
+	// 		// get campaigns and termchanges from batch, and send these txs
+	// 		// to annsensus.
 
-
-			receipts[txi.GetTxHash().Hex()] = receipt
-			log.WithField("tx", txi).Tracef("successfully process tx")
-		}
-	}
+	// 		receipts[txi.GetTxHash().Hex()] = receipt
+	// 		log.WithField("tx", txi).Tracef("successfully process tx")
+	// 	}
+	// }
 
 	// save latest sequencer into db
 	batch.Seq.GetBase().Height = batch.Seq.Height
@@ -723,14 +706,9 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
-	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 	// store the hashs of the txs confirmed by this sequencer.
-	txHashNum := 0
-	if batch.TxHashes != nil {
-		txHashNum = len(*batch.TxHashes)
-	}
-	if txHashNum > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.Seq.Height, batch.TxHashes)
+	if len(txhashes) > 0 {
+		dag.accessor.WriteIndexedTxHashs(batch.Seq.Height, &txhashes)
 	}
 	err = dag.accessor.WriteSequencerByHeight(batch.Seq)
 	if err != nil {
@@ -742,17 +720,18 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSequencer = batch.Seq
+	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 
 	// TODO: confirm time is for tps calculation, delete later.
 	cf := types.ConfirmTime{
 		SeqHeight:   batch.Seq.Height,
-		TxNum:       uint64(txHashNum),
+		TxNum:       uint64(len(txhashes)),
 		ConfirmTime: time.Now().Format(time.RFC3339Nano),
 	}
 	dag.writeConfirmTime(&cf)
 
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
-	log.WithField("height", batch.Seq.Height).WithField("txs number ", txHashNum).Info("new height")
+	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 
 	return nil
 }
@@ -797,7 +776,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	if !dag.statedb.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
 	}
-	
+
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
 		return nil, receipt, nil
@@ -810,7 +789,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	
+
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
@@ -958,3 +937,14 @@ func (tc *txcached) add(tx types.Txi) {
 	tc.order = append(tc.order, tx.GetTxHash())
 	tc.txs[tx.GetTxHash()] = tx
 }
+
+type ConfirmBatch struct {
+	Seq *types.Sequencer
+	Txs ConfirmTxs
+}
+
+type ConfirmTxs []types.Txi
+
+func (c ConfirmTxs) Len() int           { return len(c) }
+func (c ConfirmTxs) Less(i, j int) bool { return c[i].GetWeight() < c[j].GetWeight() }
+func (c ConfirmTxs) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }

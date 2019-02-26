@@ -18,10 +18,13 @@ var (
 
 	prefixReceiptKey = []byte("rp")
 
-	prefixTransactionKey     = []byte("tx")
-	prefixTxHashFlowKey      = []byte("fl")
+	prefixTransactionKey = []byte("tx")
+	prefixTxHashFlowKey  = []byte("fl")
+
 	contentPrefixTransaction = []byte("cptx")
 	contentPrefixSequencer   = []byte("cpsq")
+	contentPrefixCampaign    = []byte("cpcp")
+	contentPrefixTermChg     = []byte("cptc")
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
@@ -145,7 +148,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		var tx types.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
-			log.WithError(err).Warn("unmarshal tx  error")
+			log.WithError(err).Warn("unmarshal tx error")
 			return nil
 		}
 		return &tx
@@ -154,10 +157,28 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		var sq types.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
-			log.WithError(err).Warn("unmarshal tx  error")
+			log.WithError(err).Warn("unmarshal seq error")
 			return nil
 		}
 		return &sq
+	}
+	if bytes.Equal(prefix, contentPrefixCampaign) {
+		var cp types.Campaign
+		_, err := cp.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal camp error")
+			return nil
+		}
+		return &cp
+	}
+	if bytes.Equal(prefix, contentPrefixTermChg) {
+		var tc types.TermChange
+		_, err := tc.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal termchg error")
+			return nil
+		}
+		return &tc
 	}
 	return nil
 }
@@ -272,6 +293,12 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		data, err = tx.MarshalMsg(nil)
 	case *types.Sequencer:
 		prefix = contentPrefixSequencer
+		data, err = tx.MarshalMsg(nil)
+	case *types.Campaign:
+		prefix = contentPrefixCampaign
+		data, err = tx.MarshalMsg(nil)
+	case *types.TermChange:
+		prefix = contentPrefixTermChg
 		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")

@@ -123,7 +123,7 @@ func (t *TxBase) SetHash(hash Hash) {
 }
 
 func (t *TxBase) String() string {
-	return fmt.Sprintf("%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
+	return fmt.Sprintf("%d-[%.10s]-%dw", t.Height, t.GetTxHash().Hex(), t.Weight)
 }
 
 func (t *TxBase) CalcTxHash() (hash Hash) {

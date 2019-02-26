@@ -523,7 +523,7 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
 	if err != nil {
-		log.Warn("head not found")
+		log.WithError(err).WithField("height",Height).Warn("head not found")
 	}
 	return hashs
 }

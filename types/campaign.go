@@ -79,7 +79,7 @@ func (c *Campaign) SignatureTargets() []byte {
 }
 
 func (c *Campaign) String() string {
-	return fmt.Sprintf("%s-[%s]-Cp", c.TxBase.String(), c.Issuer.String())
+	return fmt.Sprintf("%s-[%.10s]-%d-Cp", c.TxBase.String(), c.Issuer.String(),c.AccountNonce)
 }
 
 func (c Campaigns) String() string {

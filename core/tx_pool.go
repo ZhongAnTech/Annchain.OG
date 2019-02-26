@@ -785,6 +785,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 
 		default:
+			log.Trace(tx)
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}

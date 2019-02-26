@@ -632,7 +632,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		// changed to a modular way.
 		txType := txi.GetType()
 		if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
-			consTxs = append(consTxs)
+			consTxs = append(consTxs,txi)
 		}
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
@@ -689,7 +689,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.latestSequencer = batch.Seq
 
 	// send consensus related txs.
-	dag.OnConsensusTXConfirmed <- consTxs
+	if len(consTxs)!=0 {
+		log.WithField("txs ", consTxs).Trace("sending consensus txs")
+		dag.OnConsensusTXConfirmed <- consTxs
+		log.WithField("txs ", consTxs).Trace("sent consensus txs")
+	}
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 

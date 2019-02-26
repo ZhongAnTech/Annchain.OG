@@ -16,7 +16,11 @@ func (as *AnnSensus) gossipLoop() {
 		select {
 		case <-as.termChgSignal:
 
-			as.partner.GenerateDKGer()
+			err:= as.partner.GenerateDKGer()
+			if err!=nil {
+				log.WithError(err).Error("gen dkger fail")
+				continue
+			}
 			deals, err := as.partner.Dkger.Deals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")

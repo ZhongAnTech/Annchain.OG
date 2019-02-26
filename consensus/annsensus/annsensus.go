@@ -257,6 +257,7 @@ func (as *AnnSensus) loop() {
 			// dag sent campaigns and termchanges tx
 
 		case txs := <-as.ConsensusTXConfirmed:
+			log.WithField(" txs ",txs).Debug("got consensus txs")
 			var cps []*types.Campaign
 			var tcs []*types.TermChange
 			for _, tx := range txs {

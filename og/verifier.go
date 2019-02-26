@@ -315,6 +315,8 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 
 	switch txi.GetType() {
 	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTermChange:
+	case types.TxBaseTypeCampaign:
 		// no additional check
 	case types.TxBaseTypeSequencer:
 		seq := txi.(*types.Sequencer)
@@ -338,6 +340,7 @@ func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
 			parent = v.Dag.GetTx(pHash)
 		}
 		if parent == nil {
+			logrus.WithField("parent hash ",pHash).Debug("parent not found")
 			return false
 		}
 		txis = append(txis, parent)

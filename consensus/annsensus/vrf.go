@@ -39,14 +39,19 @@ type VrfData struct {
 }
 
 //GetProofData get data
-func (as *AnnSensus) GetProofData(height uint64) (vd VrfData, b []byte) {
+func (as *AnnSensus) GetProofData(height uint64) (*VrfData,  []byte) {
 	var sq *types.Sequencer
 	if height == 0 {
 		sq = as.Idag.LatestSequencer()
 	} else {
 		sq = as.Idag.GetSequencerByHeight(height)
 	}
+	if sq ==nil {
+		logrus.WithField("height ",height).Warn("we don't have this sequencer yet")
+		return nil ,nil
+	}
 	txs := as.Idag.GetTxsByNumber(sq.Height)
+	vd := &VrfData{}
 	vd.SeqHash = sq.Hash
 	vd.Height = sq.Height
 	vd.TxNum = len(txs)
@@ -59,6 +64,9 @@ func (as *AnnSensus) VrfCondition(Vrf []byte) bool {
 		logrus.WithField("len", len(Vrf)).Warn("vrf length error")
 		return false
 	}
+	//for test  return true , we need more node
+	//todo remove this later
+	return  true
 	if Vrf[0] < 0x80 {
 		return false
 	}
@@ -75,7 +83,8 @@ func (as *AnnSensus) VerifyVrfData(data []byte) error {
 	//todo need more condition
 
 	shouldVD, _ := as.GetProofData(vd.Height)
-	if shouldVD != vd {
+
+	if shouldVD ==nil || *shouldVD != vd {
 		logrus.WithField("vrf data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
 		return fmt.Errorf("vfr data mismatch")
 	}

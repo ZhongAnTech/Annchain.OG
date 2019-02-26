@@ -122,7 +122,7 @@ func (as *AnnSensus) prodcampaign() {
 		case <-as.close:
 			log.Info("campaign stopped due to annsensus closed")
 			return
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * 4):
 			if !as.doCamp {
 				log.Info("campaign stopped")
 				return

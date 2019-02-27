@@ -54,10 +54,12 @@ func TestRandomTx(t *testing.T) {
 
 func TestHash_Cmp(t *testing.T) {
 	m := MessageTxsResponse{}
+	var rawTxs RawTxs
 	for i := 0; i < 10000; i++ {
 		tx := RandomTx()
-		m.RawTxs = append(m.RawTxs, tx.RawTx())
+		rawTxs = append(rawTxs, tx.RawTx())
 	}
+	m.RawTxs = &rawTxs
 	data1, _ := m.MarshalMsg(nil)
 	h := sha256.New()
 	start := time.Now()

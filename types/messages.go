@@ -62,52 +62,23 @@ func (m *MessageSyncRequest) String() string {
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	RawTxs *RawTxs
-	//SequencerIndex  []uint32
-	RawSequencers  *RawSequencers
-	RawCampaigns   *RawCampaigns
-	RawTermChanges *RawTermChanges
-	RequestedId    uint32 //avoid msg drop
+	//RawTxs *RawTxs
+	////SequencerIndex  []uint32
+	//RawSequencers  *RawSequencers
+	//RawCampaigns   *RawCampaigns
+	//RawTermChanges *RawTermChanges
+	RawTxs      *TxisMarshaler
+	RequestedId uint32 //avoid msg drop
 }
 
 func (m *MessageSyncResponse) Txis() Txis {
-	var txis Txis
-	txis = m.RawTxs.Txis()
-	txis = append(txis, m.RawSequencers.Txis()...)
-	return txis
+	return m.RawTxs.Txis()
 }
 
 func (m *MessageSyncResponse) Hashes() Hashes {
 	var hashes Hashes
-	if m.RawCampaigns == nil && m.RawSequencers == nil && m.RawTxs == nil && m.RawTermChanges == nil {
-		return nil
-	}
-	if m.RawSequencers != nil {
-		for _, seq := range *m.RawSequencers {
-			if seq == nil {
-				continue
-			}
-			hashes = append(hashes, seq.GetTxHash())
-		}
-	}
 	if m.RawTxs != nil {
 		for _, tx := range *m.RawTxs {
-			if tx == nil {
-				continue
-			}
-			hashes = append(hashes, tx.GetTxHash())
-		}
-	}
-	if m.RawTermChanges != nil {
-		for _, tx := range *m.RawTermChanges {
-			if tx == nil {
-				continue
-			}
-			hashes = append(hashes, tx.GetTxHash())
-		}
-	}
-	if m.RawCampaigns != nil {
-		for _, tx := range *m.RawCampaigns {
 			if tx == nil {
 				continue
 			}
@@ -122,8 +93,7 @@ func (m *MessageSyncResponse) String() string {
 	//for _,i := range m.SequencerIndex {
 	//index = append(index ,fmt.Sprintf("%d",i))
 	//}
-	return fmt.Sprintf("txs: [%s], seqs: [%s] , cps: [%s],tcs :[%s],requestedId :%d", m.RawTxs.String(),
-		m.RawSequencers.String(), m.RawCampaigns.String(), m.RawTermChanges.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s],requestedId :%d", m.RawTxs.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
@@ -255,15 +225,16 @@ func (m *MessageTxsRequest) String() string {
 
 //msgp:tuple MessageTxsResponse
 type MessageTxsResponse struct {
-	RawTxs         *RawTxs
-	RawSequencer   *RawSequencer
-	RawCampaigns   *RawCampaigns
-	RawTermChanges *RawTermChanges
-	RequestedId    uint32 //avoid msg drop
+	//RawTxs         *RawTxs
+	RawSequencer *RawSequencer
+	//RawCampaigns   *RawCampaigns
+	//RawTermChanges *RawTermChanges
+	RawTxs      *TxisMarshaler
+	RequestedId uint32 //avoid msg drop
 }
 
 func (m *MessageTxsResponse) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String(), m.RequestedId)
 }
 
 func (m *MessageTxsResponse) Hashes() Hashes {
@@ -285,10 +256,11 @@ func (m *MessageTxsResponse) Hashes() Hashes {
 
 //msgp:tuple MessageBodyData
 type MessageBodyData struct {
-	RawTxs         *RawTxs
-	RawTermChanges *RawTermChanges
-	RawCampaigns   *RawCampaigns
-	RawSequencer   *RawSequencer
+	//RawTxs         *RawTxs
+	//RawTermChanges *RawTermChanges
+	//RawCampaigns   *RawCampaigns
+	RawSequencer *RawSequencer
+	RawTxs       *TxisMarshaler
 }
 
 func (m *MessageBodyData) ToTxis() Txis {
@@ -296,16 +268,6 @@ func (m *MessageBodyData) ToTxis() Txis {
 	if m.RawTxs != nil {
 		txs := m.RawTxs.Txis()
 		txis = append(txis, txs...)
-
-	}
-	if m.RawTermChanges != nil {
-		txs := m.RawTermChanges.Txis()
-		txis = append(txis, txs...)
-	}
-	if m.RawCampaigns != nil {
-		txs := m.RawCampaigns.Txis()
-		txis = append(txis, txs...)
-
 	}
 	if len(txis) == 0 {
 		return nil
@@ -314,7 +276,7 @@ func (m *MessageBodyData) ToTxis() Txis {
 }
 
 func (m *MessageBodyData) String() string {
-	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.Len()+m.RawCampaigns.Len()+m.RawTermChanges.Len(), m.RawSequencer.String())
+	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String())
 }
 
 // getBlockHeadersData represents a block header query.
@@ -387,7 +349,6 @@ func (m *MessageBodiesResponse) String() string {
 
 //msgp:tuple RawData
 type RawData []byte
-
 
 //msgp:tuple MessageControl
 type MessageControl struct {

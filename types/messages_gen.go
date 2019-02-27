@@ -456,54 +456,9 @@ func (z *MessageBodyData) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawTxs = nil
-	} else {
-		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
-		}
-		err = z.RawTxs.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		err = z.RawTermChanges.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawCampaigns = nil
-	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
-		}
-		err = z.RawCampaigns.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
 	}
 	if dc.IsNil() {
 		err = dc.ReadNil()
@@ -520,48 +475,30 @@ func (z *MessageBodyData) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.RawTxs = nil
+	} else {
+		if z.RawTxs == nil {
+			z.RawTxs = new(TxisMarshaler)
+		}
+		err = z.RawTxs.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageBodyData) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
-	}
-	if z.RawTxs == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawTxs.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawTermChanges.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawCampaigns == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawCampaigns.EncodeMsg(en)
-		if err != nil {
-			return
-		}
 	}
 	if z.RawSequencer == nil {
 		err = en.WriteNil()
@@ -574,42 +511,37 @@ func (z *MessageBodyData) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	if z.RawTxs == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.RawTxs.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageBodyData) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
-	if z.RawTxs == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawTxs.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawTermChanges.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawCampaigns == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawCampaigns.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
+	// array header, size 2
+	o = append(o, 0x92)
 	if z.RawSequencer == nil {
 		o = msgp.AppendNil(o)
 	} else {
 		o, err = z.RawSequencer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	if z.RawTxs == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.RawTxs.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -624,54 +556,9 @@ func (z *MessageBodyData) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawTxs = nil
-	} else {
-		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
-		}
-		bts, err = z.RawTxs.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		bts, err = z.RawTermChanges.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawCampaigns = nil
-	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
-		}
-		bts, err = z.RawCampaigns.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
 	}
 	if msgp.IsNil(bts) {
 		bts, err = msgp.ReadNilBytes(bts)
@@ -688,6 +575,21 @@ func (z *MessageBodyData) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.RawTxs = nil
+	} else {
+		if z.RawTxs == nil {
+			z.RawTxs = new(TxisMarshaler)
+		}
+		bts, err = z.RawTxs.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
 	o = bts
 	return
 }
@@ -695,25 +597,15 @@ func (z *MessageBodyData) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageBodyData) Msgsize() (s int) {
 	s = 1
-	if z.RawTxs == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawTxs.Msgsize()
-	}
-	if z.RawTermChanges == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawTermChanges.Msgsize()
-	}
-	if z.RawCampaigns == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawCampaigns.Msgsize()
-	}
 	if z.RawSequencer == nil {
 		s += msgp.NilSize
 	} else {
 		s += z.RawSequencer.Msgsize()
+	}
+	if z.RawTxs == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.RawTxs.Msgsize()
 	}
 	return
 }
@@ -2419,8 +2311,8 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	if dc.IsNil() {
@@ -2431,54 +2323,9 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.RawTxs = nil
 	} else {
 		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
+			z.RawTxs = new(TxisMarshaler)
 		}
 		err = z.RawTxs.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawSequencers = nil
-	} else {
-		if z.RawSequencers == nil {
-			z.RawSequencers = new(RawSequencers)
-		}
-		err = z.RawSequencers.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawCampaigns = nil
-	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
-		}
-		err = z.RawCampaigns.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		err = z.RawTermChanges.DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -2492,8 +2339,8 @@ func (z *MessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 5
-	err = en.Append(0x95)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
@@ -2508,39 +2355,6 @@ func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	if z.RawSequencers == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawSequencers.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawCampaigns == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawCampaigns.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawTermChanges.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
 	err = en.WriteUint32(z.RequestedId)
 	if err != nil {
 		return
@@ -2551,36 +2365,12 @@ func (z *MessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageSyncResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
+	// array header, size 2
+	o = append(o, 0x92)
 	if z.RawTxs == nil {
 		o = msgp.AppendNil(o)
 	} else {
 		o, err = z.RawTxs.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawSequencers == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawSequencers.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawCampaigns == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawCampaigns.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawTermChanges.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -2596,8 +2386,8 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -2608,54 +2398,9 @@ func (z *MessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.RawTxs = nil
 	} else {
 		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
+			z.RawTxs = new(TxisMarshaler)
 		}
 		bts, err = z.RawTxs.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawSequencers = nil
-	} else {
-		if z.RawSequencers == nil {
-			z.RawSequencers = new(RawSequencers)
-		}
-		bts, err = z.RawSequencers.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawCampaigns = nil
-	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
-		}
-		bts, err = z.RawCampaigns.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		bts, err = z.RawTermChanges.UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -2675,21 +2420,6 @@ func (z *MessageSyncResponse) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += z.RawTxs.Msgsize()
-	}
-	if z.RawSequencers == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawSequencers.Msgsize()
-	}
-	if z.RawCampaigns == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawCampaigns.Msgsize()
-	}
-	if z.RawTermChanges == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawTermChanges.Msgsize()
 	}
 	s += msgp.Uint32Size
 	return
@@ -3035,24 +2765,9 @@ func (z *MessageTxsResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawTxs = nil
-	} else {
-		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
-		}
-		err = z.RawTxs.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
 	}
 	if dc.IsNil() {
 		err = dc.ReadNil()
@@ -3074,27 +2789,12 @@ func (z *MessageTxsResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		z.RawCampaigns = nil
+		z.RawTxs = nil
 	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
+		if z.RawTxs == nil {
+			z.RawTxs = new(TxisMarshaler)
 		}
-		err = z.RawCampaigns.DecodeMsg(dc)
-		if err != nil {
-			return
-		}
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		err = z.RawTermChanges.DecodeMsg(dc)
+		err = z.RawTxs.DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -3108,21 +2808,10 @@ func (z *MessageTxsResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageTxsResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 5
-	err = en.Append(0x95)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
-	}
-	if z.RawTxs == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawTxs.EncodeMsg(en)
-		if err != nil {
-			return
-		}
 	}
 	if z.RawSequencer == nil {
 		err = en.WriteNil()
@@ -3135,24 +2824,13 @@ func (z *MessageTxsResponse) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	if z.RawCampaigns == nil {
+	if z.RawTxs == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.RawCampaigns.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.RawTermChanges.EncodeMsg(en)
+		err = z.RawTxs.EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -3167,16 +2845,8 @@ func (z *MessageTxsResponse) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageTxsResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
-	if z.RawTxs == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawTxs.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
+	// array header, size 3
+	o = append(o, 0x93)
 	if z.RawSequencer == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -3185,18 +2855,10 @@ func (z *MessageTxsResponse) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
-	if z.RawCampaigns == nil {
+	if z.RawTxs == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.RawCampaigns.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	if z.RawTermChanges == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.RawTermChanges.MarshalMsg(o)
+		o, err = z.RawTxs.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -3212,24 +2874,9 @@ func (z *MessageTxsResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawTxs = nil
-	} else {
-		if z.RawTxs == nil {
-			z.RawTxs = new(RawTxs)
-		}
-		bts, err = z.RawTxs.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
 	}
 	if msgp.IsNil(bts) {
 		bts, err = msgp.ReadNilBytes(bts)
@@ -3251,27 +2898,12 @@ func (z *MessageTxsResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.RawCampaigns = nil
+		z.RawTxs = nil
 	} else {
-		if z.RawCampaigns == nil {
-			z.RawCampaigns = new(RawCampaigns)
+		if z.RawTxs == nil {
+			z.RawTxs = new(TxisMarshaler)
 		}
-		bts, err = z.RawCampaigns.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.RawTermChanges = nil
-	} else {
-		if z.RawTermChanges == nil {
-			z.RawTermChanges = new(RawTermChanges)
-		}
-		bts, err = z.RawTermChanges.UnmarshalMsg(bts)
+		bts, err = z.RawTxs.UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -3287,25 +2919,15 @@ func (z *MessageTxsResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageTxsResponse) Msgsize() (s int) {
 	s = 1
-	if z.RawTxs == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawTxs.Msgsize()
-	}
 	if z.RawSequencer == nil {
 		s += msgp.NilSize
 	} else {
 		s += z.RawSequencer.Msgsize()
 	}
-	if z.RawCampaigns == nil {
+	if z.RawTxs == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.RawCampaigns.Msgsize()
-	}
-	if z.RawTermChanges == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.RawTermChanges.Msgsize()
+		s += z.RawTxs.Msgsize()
 	}
 	s += msgp.Uint32Size
 	return

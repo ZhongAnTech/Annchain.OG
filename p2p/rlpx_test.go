@@ -281,7 +281,7 @@ func TestRlpxFrameRW_ReadMsg(t *testing.T) {
 		IngressMAC: hash,
 		EgressMAC:  hash,
 	})
-	golden:= unhex(`0082bbdae471818bb0bfa6b551d1cb4201010101010101010101010101010101ba
+	golden := unhex(`0082bbdae471818bb0bfa6b551d1cb4201010101010101010101010101010101ba
 	62a6f3941e80e6674fccb640b769410ca260cb7b00
 	9e5b45d021af17dc638f146f174d0e5ff380abf27f3a87a6e4f101010101010101010101010101010101`)
 	// Check WriteMsg. This puts a message into the buffer.
@@ -293,10 +293,10 @@ func TestRlpxFrameRW_ReadMsg(t *testing.T) {
 	}
 	var code MsgCodeType
 	code = 8
-	codeM,_  := code.MarshalMsg(nil)
+	codeM, _ := code.MarshalMsg(nil)
 	fmt.Println(codeM, len(codeM))
 	written := buf.Bytes()
-	fmt.Println(len(written),hex.EncodeToString(written))
+	fmt.Println(len(written), hex.EncodeToString(written))
 	if !bytes.Equal(written, golden) {
 		t.Fatalf("output mismatch:\n  got:  %x\n  want: %x", written, golden)
 	}
@@ -309,7 +309,7 @@ func TestRlpxFrameRW_ReadMsg(t *testing.T) {
 	if msg.Size != 47 {
 		t.Errorf("msg size mismatch: got %d, want %d", msg.Size, 47)
 	}
-	fmt.Println("siez ",msg.Size)
+	fmt.Println("siez ", msg.Size)
 	if msg.Code != 8 {
 		t.Errorf("msg code mismatch: got %d, want %d", msg.Code, 8)
 	}

@@ -31,7 +31,7 @@ type FireHistory struct {
 type IncrementalSyncer struct {
 	config                   *SyncerConfig
 	messageSender            MessageSender
-	getTxsHashes             func() []types.Hash
+	getTxsHashes             func() types.Hashes
 	isKnownHash              func(hash types.Hash) bool
 	getHeight                func() uint64
 	acquireTxQueue           chan *types.Hash
@@ -75,7 +75,7 @@ type SyncerConfig struct {
 	NewTxsChannelSize                        int
 }
 
-func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, getTxsHashes func() []types.Hash,
+func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, getTxsHashes func() types.Hashes,
 	isKnownHash func(hash types.Hash) bool, getHeight func() uint64, cacheNewTxEnabled func() bool) *IncrementalSyncer {
 	return &IncrementalSyncer{
 		config:         config,
@@ -130,6 +130,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	}
 	var source interface{}
 	var err error
+	var reqHashes types.Hashes
 	for key := range buffer {
 		if source, err = m.acquireTxDuplicateCache.GetIFPresent(key); err != nil {
 			continue
@@ -148,15 +149,16 @@ func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 			h.LastTime = time.Now()
 			m.firedTxCache.Set(key, h)
 		}
-		req.Hashes = append(req.Hashes, key)
+		reqHashes = append(reqHashes, key)
 		//req.Hashes = append(req.Hashes, key)
 	}
-	if len(req.Hashes) == 0 {
+	if len([]types.Hash(reqHashes)) == 0 {
 		return
 	}
+	req.Hashes = &reqHashes
 
 	log.WithField("type", og.MessageTypeFetchByHashRequest).
-		WithField("length", len(req.Hashes)).WithField("hashes", req.String()).Debugf(
+		WithField("length", len(reqHashes)).WithField("hashes", req.String()).Debugf(
 		"sending message MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
@@ -380,7 +382,7 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 func (m *IncrementalSyncer) repickHashes() types.Hashes {
 	maps := m.firedTxCache.GetALL()
 	duration := time.Duration(time.Second * 10)
-	var result []types.Hash
+	var result types.Hashes
 	for ik, iv := range maps {
 		v := iv.(FireHistory)
 		if time.Now().Sub(v.LastTime) > duration {

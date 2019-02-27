@@ -57,14 +57,14 @@ type SyncResult struct {
 // persisted data items.
 type syncMemBatch struct {
 	batch map[types.Hash][]byte // In-memory membatch of recently completed items
-	order []types.Hash          // Order of completion to prevent out-of-order data loss
+	order types.Hashes          // Order of completion to prevent out-of-order data loss
 }
 
 // newSyncMemBatch allocates a new memory-buffer for not-yet persisted trie nodes.
 func newSyncMemBatch() *syncMemBatch {
 	return &syncMemBatch{
 		batch: make(map[types.Hash][]byte),
-		order: make([]types.Hash, 0, 256),
+		order: make(types.Hashes, 0, 256),
 	}
 }
 
@@ -156,8 +156,8 @@ func (s *Sync) AddRawEntry(hash types.Hash, depth int, parent types.Hash) {
 }
 
 // Missing retrieves the known missing nodes from the trie for retrieval.
-func (s *Sync) Missing(max int) []types.Hash {
-	requests := []types.Hash{}
+func (s *Sync) Missing(max int) types.Hashes {
+	requests := types.Hashes{}
 	for !s.queue.Empty() && (max == 0 || len(requests) < max) {
 		requests = append(requests, s.queue.PopItem().(types.Hash))
 	}

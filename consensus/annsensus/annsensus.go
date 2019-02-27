@@ -178,7 +178,7 @@ func (as *AnnSensus) canChangeTerm() bool {
 		return false
 	}
 	if len(as.candidates) < as.NbParticipants {
-		log.Debug("not enough campaigns , waiting")
+		log.WithField("len ", len(as.candidates)).Debug("not enough campaigns , waiting")
 		return false
 	}
 

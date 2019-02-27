@@ -10,7 +10,7 @@ import (
 
 //go:generate msgp
 
-func (as *AnnSensus) GenerateVrf() ( *types.VrfInfo ) {
+func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
 	sk, err := vrf.GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
@@ -24,7 +24,7 @@ func (as *AnnSensus) GenerateVrf() ( *types.VrfInfo ) {
 	}
 	VRFFromProof, proof := sk.Prove(data)
 	_ = VRFFromProof ///todo ???
-	var VrfInfo  types.VrfInfo
+	var VrfInfo types.VrfInfo
 	VrfInfo.Vrf = Vrf
 	VrfInfo.PublicKey = pk
 	VrfInfo.Proof = proof
@@ -32,6 +32,7 @@ func (as *AnnSensus) GenerateVrf() ( *types.VrfInfo ) {
 	return &VrfInfo
 }
 
+//msgp:tuple VrfData
 type VrfData struct {
 	SeqHash types.Hash
 	Height  uint64
@@ -39,18 +40,18 @@ type VrfData struct {
 }
 
 //GetProofData get data
-func (as *AnnSensus) GetProofData(height uint64) (*VrfData,  []byte) {
+func (as *AnnSensus) GetProofData(height uint64) (*VrfData, []byte) {
 	var sq *types.Sequencer
 	if height == 0 {
 		sq = as.Idag.LatestSequencer()
 	} else {
 		sq = as.Idag.GetSequencerByHeight(height)
 	}
-	if sq ==nil {
-		logrus.WithField("height ",height).Warn("we don't have this sequencer yet")
-		return nil ,nil
+	if sq == nil {
+		logrus.WithField("height ", height).Warn("we don't have this sequencer yet")
+		return nil, nil
 	}
-	txs := as.Idag.GetTxsByNumber(sq.Height)
+	txs := as.Idag.GetTxisByNumber(sq.Height)
 	vd := &VrfData{}
 	vd.SeqHash = sq.Hash
 	vd.Height = sq.Height
@@ -66,7 +67,7 @@ func (as *AnnSensus) VrfCondition(Vrf []byte) bool {
 	}
 	//for test  return true , we need more node
 	//todo remove this later
-	return  true
+	return true
 	if Vrf[0] < 0x80 {
 		return false
 	}
@@ -84,7 +85,7 @@ func (as *AnnSensus) VerifyVrfData(data []byte) error {
 
 	shouldVD, _ := as.GetProofData(vd.Height)
 
-	if shouldVD ==nil || *shouldVD != vd {
+	if shouldVD == nil || *shouldVD != vd {
 		logrus.WithField("vrf data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
 		return fmt.Errorf("vfr data mismatch")
 	}

@@ -43,7 +43,7 @@ type IDag interface {
 	GetTx(hash types.Hash) types.Txi
 	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
 	GetSequencerByHeight(id uint64) *types.Sequencer
-	GetTxsByNumber(id uint64) types.Txs
+	GetTxisByNumber(id uint64) types.Txis
 	LatestSequencer() *types.Sequencer
 	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
 	Genesis() *types.Sequencer
@@ -498,13 +498,13 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	return allFetched
 }
 
-func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
+func (b *TxBuffer) getMissingHashes(txi types.Txi) types.Hashes {
 	start := time.Now()
 	logrus.WithField("tx", txi).Trace("missing hashes start")
 	defer func() {
 		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Trace("missing hashes done")
 	}()
-	l := []types.Hash{}
+	l := types.Hashes{}
 	lDedup := map[types.Hash]int{}
 	s := map[types.Hash]struct{}{}
 	visited := map[types.Hash]struct{}{}
@@ -540,7 +540,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) []types.Hash {
 			s[hash] = struct{}{}
 		}
 	}
-	var missingHashes []types.Hash
+	var missingHashes types.Hashes
 	for k := range s {
 		missingHashes = append(missingHashes, k)
 	}

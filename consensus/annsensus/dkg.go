@@ -19,7 +19,7 @@ func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
 	partSec, partPub := genPartnerPair(partner)
 	// you should always keep MyPartSec safe. Do not share.
 	partner.MyPartSec = partSec
-	partner.PartPubs = append(partner.PartPubs,partPub)
+	partner.PartPubs = append(partner.PartPubs, partPub)
 	as.partner = partner
 	as.partner.NbParticipants = as.NbParticipants
 	as.partner.Threshold = as.Threshold
@@ -54,12 +54,12 @@ type Partner struct {
 	SigShares             [][]byte
 }
 
-func NewPartner(s *bn256.Suite)*Partner{
+func NewPartner(s *bn256.Suite) *Partner {
 	return &Partner{
-		Suite:s,
-		adressIndex:make(map[types.Address]int),
-		SecretKeyContribution:make(map[types.Address]kyber.Scalar),
-		Resps:make(map[types.Address]*dkg.Response),
+		Suite:                 s,
+		adressIndex:           make(map[types.Address]int),
+		SecretKeyContribution: make(map[types.Address]kyber.Scalar),
+		Resps: make(map[types.Address]*dkg.Response),
 	}
 }
 
@@ -67,7 +67,7 @@ func (p *Partner) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
 	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
 	if err != nil {
-		logrus.WithField("dkger ",dkger).WithError(err).Error("generate dkg error")
+		logrus.WithField("dkger ", dkger).WithError(err).Error("generate dkg error")
 		return err
 	}
 	p.Dkger = dkger

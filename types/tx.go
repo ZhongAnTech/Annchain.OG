@@ -13,10 +13,11 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Tx
 
+//msgp:tuple Txs
 type Txs []*Tx
 
+//msgp:tuple Tx
 type Tx struct {
 	TxBase
 	From  Address
@@ -34,7 +35,7 @@ func SampleTx() *Tx {
 
 	return &Tx{TxBase: TxBase{
 		Height:       12,
-		ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
+		ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
@@ -76,7 +77,7 @@ func RandomTx() *Tx {
 	return &Tx{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       uint64(rand.Int63n(1000)),
-		ParentsHash:  []Hash{randomHash(), randomHash()},
+		ParentsHash:  Hashes{randomHash(), randomHash()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),

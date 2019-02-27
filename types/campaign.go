@@ -12,8 +12,8 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Campaign
 
+//msgp:tuple Campaign
 type Campaign struct {
 	TxBase
 	DkgPublicKey []byte
@@ -22,6 +22,7 @@ type Campaign struct {
 	dkgPublicKey kyber.Point
 }
 
+//msgp:tuple VrfInfo
 type VrfInfo struct {
 	Message   []byte
 	Proof     []byte
@@ -29,6 +30,7 @@ type VrfInfo struct {
 	Vrf       []byte
 }
 
+//msgp:tuple Campaigns
 type Campaigns []*Campaign
 
 func (c *Campaign) GetBase() *TxBase {
@@ -79,7 +81,7 @@ func (c *Campaign) SignatureTargets() []byte {
 }
 
 func (c *Campaign) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-Cp", c.TxBase.String(), c.Issuer.String(),c.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-Cp", c.TxBase.String(), c.Issuer.String(), c.AccountNonce)
 }
 
 func (c Campaigns) String() string {
@@ -136,11 +138,10 @@ func (c *Campaign) MarshalDkgKey() error {
 	return nil
 }
 
-
-func (v* VrfInfo)String()string{
-	if v==nil {
+func (v *VrfInfo) String() string {
+	if v == nil {
 		return ""
 	}
 	return fmt.Sprintf("Msg:%s, vrf :%s , proof :%s, pubKey :%s", hex.EncodeToString(v.Message), hex.EncodeToString(v.Vrf),
-	hex.EncodeToString(v.Proof),hex.EncodeToString(v.PublicKey))
+		hex.EncodeToString(v.Proof), hex.EncodeToString(v.PublicKey))
 }

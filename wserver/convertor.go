@@ -13,7 +13,7 @@ import (
 //type TxBase struct {
 //	Type         TxBaseType
 //	Hash         Hash
-//	ParentsHash  []Hash
+//	ParentsHash  Hashes
 //	AccountNonce uint64
 //	Height       uint64
 //	PublicKey    []byte
@@ -54,10 +54,10 @@ func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	switch tx.GetBase().Type {
 	case types.TxBaseTypeSequencer:
 		node.Type = "sequencer_unit"
-	case types.TxBaseTypeNormal:
-		node.Type = ""
 	default:
-		node.Type = "Unknown"
+		node.Type = ""
+		//default:
+		//	node.Type = "Unknown"
 	}
 
 	u.Nodes = append(u.Nodes, node)

@@ -307,7 +307,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 
 	var (
 		diskKeys [][]byte
-		memKeys  []types.Hash
+		memKeys  types.Hashes
 	)
 	if memonly {
 		memKeys = triedb.Nodes()

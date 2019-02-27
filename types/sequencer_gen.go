@@ -8,54 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBase":
-			err = z.TxBase.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "Issuer":
-			err = z.Issuer.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	err = z.TxBase.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	err = z.Issuer.DecodeMsg(dc)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "TxBase"
-	err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
 	err = z.TxBase.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "Issuer"
-	err = en.Append(0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
 	if err != nil {
 		return
 	}
@@ -69,15 +49,12 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "TxBase"
-	o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	// array header, size 2
+	o = append(o, 0x92)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Issuer"
-	o = append(o, 0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
 	o, err = z.Issuer.MarshalMsg(o)
 	if err != nil {
 		return
@@ -87,36 +64,22 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBase":
-			bts, err = z.TxBase.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "Issuer":
-			bts, err = z.Issuer.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	bts, err = z.TxBase.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.Issuer.UnmarshalMsg(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -124,7 +87,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + 7 + z.TxBase.Msgsize() + 7 + z.Issuer.Msgsize()
+	s = 1 + z.TxBase.Msgsize() + z.Issuer.Msgsize()
 	return
 }
 
@@ -151,36 +114,22 @@ func (z *Sequencers) DecodeMsg(dc *msgp.Reader) (err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Sequencer)
 			}
-			var field []byte
-			_ = field
 			var zb0003 uint32
-			zb0003, err = dc.ReadMapHeader()
+			zb0003, err = dc.ReadArrayHeader()
 			if err != nil {
 				return
 			}
-			for zb0003 > 0 {
-				zb0003--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "TxBase":
-					err = (*z)[zb0001].TxBase.DecodeMsg(dc)
-					if err != nil {
-						return
-					}
-				case "Issuer":
-					err = (*z)[zb0001].Issuer.DecodeMsg(dc)
-					if err != nil {
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						return
-					}
-				}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			err = (*z)[zb0001].TxBase.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+			err = (*z)[zb0001].Issuer.DecodeMsg(dc)
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -200,18 +149,12 @@ func (z Sequencers) EncodeMsg(en *msgp.Writer) (err error) {
 				return
 			}
 		} else {
-			// map header, size 2
-			// write "TxBase"
-			err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			// array header, size 2
+			err = en.Append(0x92)
 			if err != nil {
 				return
 			}
 			err = z[zb0004].TxBase.EncodeMsg(en)
-			if err != nil {
-				return
-			}
-			// write "Issuer"
-			err = en.Append(0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
 			if err != nil {
 				return
 			}
@@ -232,15 +175,12 @@ func (z Sequencers) MarshalMsg(b []byte) (o []byte, err error) {
 		if z[zb0004] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			// map header, size 2
-			// string "TxBase"
-			o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			// array header, size 2
+			o = append(o, 0x92)
 			o, err = z[zb0004].TxBase.MarshalMsg(o)
 			if err != nil {
 				return
 			}
-			// string "Issuer"
-			o = append(o, 0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
 			o, err = z[zb0004].Issuer.MarshalMsg(o)
 			if err != nil {
 				return
@@ -273,36 +213,22 @@ func (z *Sequencers) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Sequencer)
 			}
-			var field []byte
-			_ = field
 			var zb0003 uint32
-			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				return
 			}
-			for zb0003 > 0 {
-				zb0003--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "TxBase":
-					bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
-					if err != nil {
-						return
-					}
-				case "Issuer":
-					bts, err = (*z)[zb0001].Issuer.UnmarshalMsg(bts)
-					if err != nil {
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						return
-					}
-				}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+			bts, err = (*z)[zb0001].Issuer.UnmarshalMsg(bts)
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -317,7 +243,7 @@ func (z Sequencers) Msgsize() (s int) {
 		if z[zb0004] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + 7 + z[zb0004].TxBase.Msgsize() + 7 + z[zb0004].Issuer.Msgsize()
+			s += 1 + z[zb0004].TxBase.Msgsize() + z[zb0004].Issuer.Msgsize()
 		}
 	}
 	return

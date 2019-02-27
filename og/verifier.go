@@ -93,6 +93,10 @@ func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 		return t.(*types.Tx).From.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
 	case *types.Sequencer:
 		return t.(*types.Sequencer).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+	case *types.Campaign:
+		return t.(*types.Campaign).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+	case *types.TermChange:
+		return t.(*types.TermChange).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
 	default:
 		return true
 	}
@@ -154,7 +158,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		return
 	}
 	seeked := map[types.Hash]bool{}
-	seekingHashes := []types.Hash{}
+	seekingHashes := types.Hashes{}
 	for _, parent := range currentTx.Parents() {
 		seekingHashes = append(seekingHashes, parent)
 	}
@@ -177,7 +181,9 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 			}
 
 			switch txi.GetType() {
-			case types.TxBaseTypeNormal:
+			case types.TxBaseTypeSequencer:
+				// nothing to do, since all txs before seq should already be archived
+			default:
 				// may be somewhere else
 				// enqueue header more if we are still in the temp area
 				if archived {
@@ -190,8 +196,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 					}
 				}
 				continue
-			case types.TxBaseTypeSequencer:
-				// nothing to do, since all txs before seq should already be archived
+
 			}
 		} else {
 			// should not be here
@@ -212,7 +217,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 // get the nearest previous sequencer from txpool
 func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[types.Hash]bool{}
-	seekingHashes := []types.Hash{}
+	seekingHashes := types.Hashes{}
 	// seekingHashes := list.New()
 	seekingHashes = append(seekingHashes, currentSeq.GetTxHash())
 	// seekingHashes.PushBack(currentSeq.GetTxHash())
@@ -224,8 +229,6 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 
 		if txi != nil {
 			switch txi.GetType() {
-			case types.TxBaseTypeNormal:
-				break
 			case types.TxBaseTypeSequencer:
 				// found seq, check nonce
 				// verify if the nonce is larger
@@ -235,6 +238,8 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 					ok = true
 					return
 				}
+			default:
+				break
 			}
 			// may be somewhere else
 			// enqueue header more if we are still in the temp area
@@ -314,15 +319,13 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	}
 
 	switch txi.GetType() {
-	case types.TxBaseTypeNormal:
-	case types.TxBaseTypeTermChange:
-	case types.TxBaseTypeCampaign:
-		// no additional check
+	// no additional check
 	case types.TxBaseTypeSequencer:
 		seq := txi.(*types.Sequencer)
 		// to check if there is a lower seq height in the path behind
 		_, ok := v.getPreviousSequencer(seq)
 		return ok
+	default:
 	}
 	return true
 }
@@ -340,7 +343,7 @@ func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
 			parent = v.Dag.GetTx(pHash)
 		}
 		if parent == nil {
-			logrus.WithField("parent hash ",pHash).Debug("parent not found")
+			logrus.WithField("parent hash ", pHash).Debug("parent not found")
 			return false
 		}
 		txis = append(txis, parent)

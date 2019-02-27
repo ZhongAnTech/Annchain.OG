@@ -7,11 +7,9 @@ import (
 )
 
 type DummyDag struct {
-
 }
 
-
-func (d *DummyDag)	GetTx(hash types.Hash) types.Txi {
+func (d *DummyDag) GetTx(hash types.Hash) types.Txi {
 	return nil
 }
 
@@ -21,7 +19,7 @@ func (d *DummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 
 func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 	return &types.Sequencer{
-		TxBase:types.TxBase{Height:id},
+		TxBase: types.TxBase{Height: id},
 	}
 }
 
@@ -31,20 +29,20 @@ func (d *DummyDag) GetTxsByNumber(id uint64) types.Txs {
 
 func (d *DummyDag) LatestSequencer() *types.Sequencer {
 	return &types.Sequencer{
-		TxBase:types.TxBase{Height:rand.Uint64()},
+		TxBase: types.TxBase{Height: rand.Uint64()},
 	}
 }
 
 func (d *DummyDag) GetSequencer(hash types.Hash, id uint64) *types.Sequencer {
 	return &types.Sequencer{
-		TxBase:types.TxBase{Height:id,
-			Hash:hash},
+		TxBase: types.TxBase{Height: id,
+			Hash: hash},
 	}
 }
 
 func (d *DummyDag) Genesis() *types.Sequencer {
 	return &types.Sequencer{
-		TxBase:types.TxBase{Height:0},
+		TxBase: types.TxBase{Height: 0},
 	}
 }
 

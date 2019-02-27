@@ -238,14 +238,14 @@ func (pool *TxPool) IsLocalHash(hash types.Hash) bool {
 
 // GetHashOrder returns a hash list of txs in pool, ordered by the
 // time that txs added into pool.
-func (pool *TxPool) GetHashOrder() []types.Hash {
+func (pool *TxPool) GetHashOrder() types.Hashes {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
 	return pool.getHashOrder()
 }
 
-func (pool *TxPool) getHashOrder() []types.Hash {
+func (pool *TxPool) getHashOrder() types.Hashes {
 	return pool.txLookup.GetOrder()
 }
 
@@ -701,7 +701,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	batch := make(map[types.Hash]types.Txi)
 
 	inSeekingPool := map[types.Hash]int{}
-	seekingPool := []types.Hash{}
+	seekingPool := types.Hashes{}
 	for _, parentHash := range baseTx.Parents() {
 		seekingPool = append(seekingPool, parentHash)
 	}
@@ -939,11 +939,11 @@ func (tm *TxMap) Get(hash types.Hash) types.Txi {
 	return tm.txs[hash]
 }
 
-func (tm *TxMap) GetAllKeys() []types.Hash {
+func (tm *TxMap) GetAllKeys() types.Hashes {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	var keys []types.Hash
+	var keys types.Hashes
 	// slice of keys
 	for k := range tm.txs {
 		keys = append(keys, k)
@@ -988,14 +988,14 @@ func (tm *TxMap) Add(tx types.Txi) {
 }
 
 type txLookUp struct {
-	order []types.Hash
+	order types.Hashes
 	txs   map[types.Hash]*txEnvelope
 	mu    sync.RWMutex
 }
 
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		order: []types.Hash{},
+		order: types.Hashes{},
 		txs:   make(map[types.Hash]*txEnvelope),
 	}
 }
@@ -1094,14 +1094,14 @@ func (t *txLookUp) removeByIndex(i int) {
 
 // Order returns hash list of txs in pool, ordered by the time
 // it added into pool.
-func (t *txLookUp) GetOrder() []types.Hash {
+func (t *txLookUp) GetOrder() types.Hashes {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.getorder()
 }
 
-func (t *txLookUp) getorder() []types.Hash {
+func (t *txLookUp) getorder() types.Hashes {
 	return t.order
 }
 

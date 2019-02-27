@@ -24,8 +24,7 @@ func (d *dummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	return nil
 }
 
-
-func (d *dummyDag)GetBalance(address types.Address) *math.BigInt {
+func (d *dummyDag) GetBalance(address types.Address) *math.BigInt {
 	return math.NewBigInt(0)
 }
 
@@ -33,7 +32,7 @@ func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return nil
 }
 
-func (d *dummyDag) GetTxsByNumber(id uint64) types.Txs {
+func (d *dummyDag) GetTxisByNumber(id uint64) types.Txis {
 	return nil
 }
 
@@ -171,7 +170,7 @@ func setup() *TxBuffer {
 
 func sampleTx(selfHash string, parentsHash []string) *types.Tx {
 	tx := &types.Tx{TxBase: types.TxBase{
-		ParentsHash: []types.Hash{},
+		ParentsHash: types.Hashes{},
 		Type:        types.TxBaseTypeNormal,
 		Hash:        types.HexToHash(selfHash),
 	},

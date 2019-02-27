@@ -27,10 +27,8 @@ type AnnSensus struct {
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
-
 	//receive consensus txs from pool ,for notifications
 	ConsensusTXConfirmed chan []types.Txi
-
 
 	// channels for receiving txs.
 	campsCh   chan []*types.Campaign
@@ -57,17 +55,17 @@ type AnnSensus struct {
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
 	return &AnnSensus{
-		close:          make(chan struct{}),
-		newTxHandlers:  []chan types.Txi{},
-		campsCh:        make(chan []*types.Campaign),
-		termchgCh:      make(chan *types.TermChange),
-		termChgSignal:  make(chan struct{}),
-		campaignFlag:   campaign,
-		candidates:      make(map[types.Address]*types.Campaign),
-		alsorans:make(map[types.Address]*types.Campaign),
-		NbParticipants: partnerNum,
-		Threshold:      threshold,
-		ConsensusTXConfirmed :make(chan []types.Txi),
+		close:                make(chan struct{}),
+		newTxHandlers:        []chan types.Txi{},
+		campsCh:              make(chan []*types.Campaign),
+		termchgCh:            make(chan *types.TermChange),
+		termChgSignal:        make(chan struct{}),
+		campaignFlag:         campaign,
+		candidates:           make(map[types.Address]*types.Campaign),
+		alsorans:             make(map[types.Address]*types.Campaign),
+		NbParticipants:       partnerNum,
+		Threshold:            threshold,
+		ConsensusTXConfirmed: make(chan []types.Txi),
 	}
 }
 
@@ -179,7 +177,7 @@ func (as *AnnSensus) canChangeTerm() bool {
 		return false
 	}
 	if len(as.candidates) < as.NbParticipants {
-		log.Debug("not enough campaigns , waiting")
+		log.WithField("len ", len(as.candidates)).Debug("not enough campaigns , waiting")
 		return false
 	}
 
@@ -226,11 +224,11 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
-	for _, cp:= range camps {
-		if cp ==nil {
+	for _, cp := range camps {
+		if cp == nil {
 			continue
 		}
-		if as.HasCampaign(cp){
+		if as.HasCampaign(cp) {
 			continue
 		}
 		as.alsorans[cp.Issuer] = cp
@@ -257,7 +255,7 @@ func (as *AnnSensus) loop() {
 			// dag sent campaigns and termchanges tx
 
 		case txs := <-as.ConsensusTXConfirmed:
-			log.WithField(" txs ",txs).Debug("got consensus txs")
+			log.WithField(" txs ", txs).Debug("got consensus txs")
 			var cps []*types.Campaign
 			var tcs []*types.TermChange
 			for _, tx := range txs {

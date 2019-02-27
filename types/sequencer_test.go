@@ -10,14 +10,14 @@ import (
 )
 
 func TestSequencer(t *testing.T) {
-	seq1 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{HexToHash("0x0")}}, Issuer: randomAddress()}
-	seq2 := Tx{TxBase: TxBase{ParentsHash: []Hash{HexToHash("0x0")}},
+	seq1 := Sequencer{TxBase: TxBase{ParentsHash: Hashes{HexToHash("0x0")}}, Issuer: randomAddress()}
+	seq2 := Tx{TxBase: TxBase{ParentsHash: Hashes{HexToHash("0x0")}},
 		To:    HexToAddress("0x1"),
 		From:  HexToAddress("0x1"),
 		Value: math.NewBigInt(0),
 	}
 
-	seq3 := Sequencer{TxBase: TxBase{ParentsHash: []Hash{seq1.CalcMinedHash(), seq2.CalcMinedHash()}}}
+	seq3 := Sequencer{TxBase: TxBase{ParentsHash: Hashes{seq1.CalcMinedHash(), seq2.CalcMinedHash()}}}
 
 	fmt.Println(seq1.CalcMinedHash().String())
 	fmt.Println(seq2.CalcMinedHash().String())

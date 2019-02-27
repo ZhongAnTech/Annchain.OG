@@ -37,7 +37,7 @@ type fetchResult struct {
 	Hash    types.Hash // Hash of the header to prevent recalculating
 
 	Header       *types.SequencerHeader
-	Transactions types.Txs
+	Transactions types.Txis
 	Sequencer    *types.Sequencer
 }
 
@@ -722,7 +722,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.SequencerHeader, head
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Tx, sequencers []*types.Sequencer) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists []types.Txis, sequencers []*types.Sequencer) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 

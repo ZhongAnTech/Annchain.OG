@@ -76,7 +76,7 @@ func TestSequencerCreator(t *testing.T) {
 func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {
 
 	tx := &types.Tx{TxBase: types.TxBase{
-		ParentsHash: []types.Hash{},
+		ParentsHash: types.Hashes{},
 		Type:        types.TxBaseTypeNormal,
 		Hash:        types.HexToHash(selfHash),
 	},

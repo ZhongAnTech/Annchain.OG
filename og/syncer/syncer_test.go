@@ -18,7 +18,7 @@ func newTestIncrementalSyncer() *IncrementalSyncer {
 	newTxEnable := func() bool {
 		return true
 	}
-	hashOrder := func() []types.Hash {
+	hashOrder := func() types.Hashes {
 		return nil
 	}
 	heighter := func() uint64 {

@@ -199,7 +199,8 @@ func (og *Og) BrodcastLatestSequencer() {
 			logrus.Debug("sequencer updated")
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
-			msg := types.MessageSequencerHeader{Hash: &hash, Number: seq.Number()}
+			number := seq.Number()
+			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 		case <-og.quit:

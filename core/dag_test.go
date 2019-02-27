@@ -18,7 +18,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 	conf := core.DagConfig{}
 	db, remove := newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
-	dag, errnew := core.NewDag(conf, stdbconf, db, nil,0)
+	dag, errnew := core.NewDag(conf, stdbconf, db, nil, 0)
 	if errnew != nil {
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}
@@ -121,9 +121,9 @@ func TestDagPush(t *testing.T) {
 	var err error
 
 	tx1 := newTestDagTx(0)
-	tx1.ParentsHash = []types.Hash{genesis.GetTxHash()}
+	tx1.ParentsHash = types.Hashes{genesis.GetTxHash()}
 	tx2 := newTestDagTx(1)
-	tx2.ParentsHash = []types.Hash{genesis.GetTxHash()}
+	tx2.ParentsHash = types.Hashes{genesis.GetTxHash()}
 
 	bd := &core.BatchDetail{TxList: core.NewTxList()}
 	bd.TxList.Put(tx1)
@@ -135,7 +135,7 @@ func TestDagPush(t *testing.T) {
 	batch[tx1.From] = bd
 
 	seq := newTestSeq(1)
-	seq.ParentsHash = []types.Hash{
+	seq.ParentsHash = types.Hashes{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
 	}
@@ -180,7 +180,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("indexed hashs are not the list of tx1 and tx2's hash")
 	}
 
-	txs := dag.GetTxsByNumber(seq.Height)
+	txs := dag.GetTxisByNumber(seq.Height)
 	fmt.Println("txs", types.Txs(txs))
 
 	// TODO check addr balance

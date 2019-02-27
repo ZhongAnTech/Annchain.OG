@@ -302,14 +302,6 @@ func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
 }
 
 // GetTxs get a bundle of txs according to a hash list.
-func (dag *Dag) GetTxs(hashs types.Hashes) types.Txs {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	return dag.getTxs(hashs)
-}
-
-// GetTxs get a bundle of txs according to a hash list.
 func (dag *Dag) GetTxis(hashs types.Hashes) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -339,18 +331,6 @@ func (dag *Dag) getTxisByType(hashs types.Hashes, baseType types.TxBaseType) typ
 	return txs
 }
 
-func (dag *Dag) getTxs(hashs types.Hashes) []*types.Tx {
-	var txs []*types.Tx
-	for _, hash := range hashs {
-		tx := dag.getTx(hash)
-		switch tx := tx.(type) {
-		case *types.Tx:
-			txs = append(txs, tx)
-		}
-	}
-	return txs
-}
-
 // GetTxConfirmHeight returns the height of sequencer that confirm this tx.
 func (dag *Dag) GetTxConfirmHeight(hash types.Hash) (uint64, error) {
 	dag.mu.RLock()
@@ -364,21 +344,6 @@ func (dag *Dag) getTxConfirmHeight(hash types.Hash) (uint64, error) {
 		return 0, fmt.Errorf("hash not exists: %s", hash.String())
 	}
 	return tx.GetBase().GetHeight(), nil
-}
-
-func (dag *Dag) GetTxsByNumber(height uint64) types.Txs {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	hashs := dag.getTxsHashesByNumber(height)
-	if hashs == nil {
-		return nil
-	}
-	if len(*hashs) == 0 {
-		return nil
-	}
-	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
-	return dag.getTxs(*hashs)
 }
 
 func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
@@ -523,7 +488,7 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
 	if err != nil {
-		log.WithError(err).WithField("height",Height).Warn("head not found")
+		log.WithError(err).WithField("height", Height).Warn("head not found")
 	}
 	return hashs
 }
@@ -625,18 +590,18 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			return err
 		}
 		receipts[txi.GetTxHash().Hex()] = receipt
-		
+
 		txhashes = append(txhashes, txi.GetTxHash())
 		// TODO
-		// Consensus related txs should not some specific types, should be 
+		// Consensus related txs should not some specific types, should be
 		// changed to a modular way.
 		txType := txi.GetType()
 		if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
-			consTxs = append(consTxs,txi)
+			consTxs = append(consTxs, txi)
 		}
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
-	
+
 	// save latest sequencer into db
 	batch.Seq.GetBase().Height = batch.Seq.Height
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
@@ -689,7 +654,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.latestSequencer = batch.Seq
 
 	// send consensus related txs.
-	if len(consTxs)!=0 {
+	if len(consTxs) != 0 {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
 		dag.OnConsensusTXConfirmed <- consTxs
 		log.WithField("txs ", consTxs).Trace("sent consensus txs")
@@ -884,14 +849,14 @@ func (dag *Dag) Finalize() error {
 
 type txcached struct {
 	maxsize int
-	order   []types.Hash
+	order   types.Hashes
 	txs     map[types.Hash]types.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
-		order:   []types.Hash{},
+		order:   types.Hashes{},
 		txs:     make(map[types.Hash]types.Txi),
 	}
 }

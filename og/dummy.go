@@ -29,7 +29,7 @@ func (d *DummyTxPoolMiniTx) Init() {
 func (p *DummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 	indices := generateRandomIndices(n, len(p.tipsMap))
 	// slice of keys
-	var keys []types.Hash
+	var keys types.Hashes
 	for k := range p.tipsMap {
 		keys = append(keys, k)
 	}

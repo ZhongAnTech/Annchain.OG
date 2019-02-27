@@ -34,7 +34,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 		log.Warn("got nil MessageConsensusDkgDealResponse")
 		return
 	}
-	log.WithField("dkg data", request).WithField("from peer ", peerId).Debug("got dkg response")
+	log.WithField("dkg response data", request).WithField("from peer ", peerId).Debug("got dkg response")
 	pk := crypto.PublicKeyFromBytes(CryptoType, request.PublicKey)
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(CryptoType, request.Sinature), request.SignatureTargets())

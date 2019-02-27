@@ -80,10 +80,10 @@ type Peer interface {
 	RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error
 	//RequestSequencerByHash(types.Hash, int, int, bool) error
 	//RequestSequencerByNumber(uint64, int, int, bool) error
-	//RequestTxs([]types.Hash) error
-	RequestBodies(seqHashs []types.Hash) error
+	//RequestTxs(types.Hashes) error
+	RequestBodies(seqHashs types.Hashes) error
 	//RequestTxsByHash(hash types.Hash, id uint64) error
-	RequestNodeData([]types.Hash) error
+	RequestNodeData(types.Hashes) error
 }
 
 // newPeerConnection creates a new downloader peer.
@@ -145,7 +145,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	p.blockStarted = time.Now()
 
 	// Convert the header set to a retrievable slice
-	hashes := make([]types.Hash, 0, len(request.Headers))
+	hashes := make(types.Hashes, 0, len(request.Headers))
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.GetHash())
 	}
@@ -155,7 +155,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 }
 
 // FetchNodeData sends a node state data retrieval request to the remote peer.
-func (p *peerConnection) FetchNodeData(hashes []types.Hash) error {
+func (p *peerConnection) FetchNodeData(hashes types.Hashes) error {
 	// Sanity check the protocol version
 	if p.version < Og02 {
 		panic(fmt.Sprintf("node data fetch [og/02+] requested on eth/%d", p.version))

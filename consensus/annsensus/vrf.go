@@ -32,6 +32,7 @@ func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
 	return &VrfInfo
 }
 
+//msgp:tuple VrfData
 type VrfData struct {
 	SeqHash types.Hash
 	Height  uint64

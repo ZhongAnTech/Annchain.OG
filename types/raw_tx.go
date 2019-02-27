@@ -47,6 +47,8 @@ type RawTermChanges []*RawTermChange
 //msgp:tuple RawTxs
 type RawTxs []*RawTx
 
+type RawTxis []RawTxi
+
 func (t *RawTx) Tx() *Tx {
 	if t == nil {
 		return nil
@@ -308,3 +310,123 @@ func (r *Sequencers) Len() int {
 	}
 	return len(*r)
 }
+
+type TxisMarshaler []*RawTxMarshaler
+
+func (t *TxisMarshaler) Append(tx Txi) {
+	raw := tx.RawTxi()
+	if raw == nil {
+		return
+	}
+	m := RawTxMarshaler{raw}
+	if t==nil {
+		panic("t is nil ")
+	}
+	*t = append(*t, &m)
+}
+
+func (t TxisMarshaler) Len() int {
+	if t == nil {
+		return 0
+	}
+	return len(t)
+}
+
+func (t TxisMarshaler) String() string {
+	var strs []string
+	for _, v := range t {
+		strs = append(strs, v.String())
+	}
+	return strings.Join(strs, ", ")
+}
+
+func (t TxisMarshaler) Txis() Txis {
+	if t == nil {
+		return nil
+	}
+	var txis Txis
+	for _, v := range t {
+		if v == nil {
+			continue
+		}
+		txis = append(txis, v.Txi())
+	}
+	return txis
+}
+
+func (t *RawTx) Txi() Txi {
+	return t.Tx()
+}
+
+func (t *RawSequencer) Txi() Txi {
+	return t.Sequencer()
+}
+
+func (t *RawTermChange) Txi() Txi {
+	return t.TermChange()
+}
+
+func (t *RawCampaign) Txi() Txi {
+	return t.Campaign()
+}
+
+//func (t *RawTx) Dump() string  {
+//	return t.Tx().Dump()
+//}
+//
+//func (t *RawSequencer) Dump() string {
+//	return t.Sequencer().Dump()
+//}
+//
+//func (t *RawTermChange) Dump() string {
+//	return t.TermChange().Dump()
+//}
+//
+//func (t *RawCampaign) Dump() string {
+//	return t.Campaign().Dump()
+//}
+//
+//func (t*RawCampaign)GetBase() *TxBase{
+//	return t.Campaign().GetBase()
+//}
+//func (t*RawTermChange)GetBase() *TxBase{
+//	return t.TermChange().GetBase()
+//
+//}
+//func (t*RawTx)GetBase() *TxBase{
+//	return t.Tx().GetBase()
+//
+//}
+//func (t*RawSequencer)GetBase() *TxBase{
+//  return t.Sequencer().GetBase()
+//}
+//
+//func (t*RawCampaign)Sender() Address{
+//	return t.Campaign().Sender()
+//}
+//func (t*RawTermChange)Sender() Address{
+//	return t.TermChange().Sender()
+//
+//}
+//func (t*RawTx)Sender() Address{
+//	return t.Tx().Sender()
+//
+//}
+//func (t*RawSequencer)Sender() Address{
+//	return t.Sequencer().Sender()
+//}
+//
+//func (t*RawCampaign)SignatureTargets() []byte{
+//	return t.Campaign().SignatureTargets()
+//}
+//func (t*RawTermChange)SignatureTargets() []byte{
+//	return t.TermChange().SignatureTargets()
+//
+//}
+//func (t*RawTx)SignatureTargets() []byte{
+//	return t.Tx().SignatureTargets()
+//
+//}
+//func (t*RawSequencer)SignatureTargets() []byte{
+//	return t.Sequencer().SignatureTargets()
+//}

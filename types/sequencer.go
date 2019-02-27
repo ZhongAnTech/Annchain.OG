@@ -145,3 +145,7 @@ func (seqs Sequencers) ToRawSequencers() RawSequencers {
 	}
 	return rawSeqs
 }
+
+func (c *Sequencer) RawTxi() RawTxi {
+	return c.RawSequencer()
+}

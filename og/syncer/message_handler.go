@@ -106,10 +106,7 @@ func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, p
 
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
 	m.bloomFilterStatus.UpdateResponse(syncResponse.RequestedId)
-	if (syncResponse.RawTxs == nil || len(*syncResponse.RawTxs) == 0) &&
-		(syncResponse.RawSequencers == nil || len(*syncResponse.RawSequencers) == 0) &&
-		(syncResponse.RawCampaigns == nil || len(*syncResponse.RawCampaigns) == 0) &&
-		(syncResponse.RawTermChanges == nil || len(*syncResponse.RawTermChanges) == 0) {
+	if syncResponse.RawTxs == nil || len(*syncResponse.RawTxs) == 0 {
 		log.Debug("empty MessageSyncResponse")
 		return
 	}
@@ -123,27 +120,6 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 	//
 	//var currentIndex int
 	//var testVal int
-
-	//if len(syncResponse.RawTxs) == 0 {
-	if syncResponse.RawSequencers != nil {
-		for _, seq := range *syncResponse.RawSequencers {
-			if seq == nil {
-				log.Warn("nil seq received")
-				continue
-			}
-			m.RemoveContrlMsgFromCache(seq.GetTxHash())
-			m.firedTxCache.Remove(seq.GetTxHash())
-			if m.isKnownHash(seq.GetTxHash()) {
-				log.WithField("tx ", seq).Debug("duplicated tx received")
-			} else {
-				if !m.Enabled {
-					log.WithField("tx ", seq).Debug("cache seqs for future.")
-				}
-				log.WithField("seq ", seq).Debug("received sync response seq")
-				txis = append(txis, seq.Sequencer())
-			}
-		}
-	}
 	//testVal = len(syncResponse.RawSequencers)
 	//}
 	if syncResponse.RawTxs != nil {
@@ -178,44 +154,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 			if !m.Enabled {
 				log.WithField("tx ", rawTx).Debug("cache txs for future.")
 			}
-			txis = append(txis, rawTx.Tx())
-		}
-	}
-
-	if syncResponse.RawTermChanges != nil {
-		for _, rawTx := range *syncResponse.RawTermChanges {
-			if rawTx == nil {
-				log.Warn("nil tx received")
-				continue
-			}
-			m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
-			m.firedTxCache.Remove(rawTx.GetTxHash())
-			if m.isKnownHash(rawTx.GetTxHash()) {
-				log.WithField("tx ", rawTx).Debug("duplicated tx received")
-				continue
-			}
-			if !m.Enabled {
-				log.WithField("tx ", rawTx).Debug("cache txs for future.")
-			}
-			txis = append(txis, rawTx.TermChange())
-		}
-	}
-	if syncResponse.RawCampaigns != nil {
-		for _, rawTx := range *syncResponse.RawCampaigns {
-			if rawTx == nil {
-				log.Warn("nil tx received")
-				continue
-			}
-			m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
-			m.firedTxCache.Remove(rawTx.GetTxHash())
-			if m.isKnownHash(rawTx.GetTxHash()) {
-				log.WithField("tx ", rawTx).Debug("duplicated tx received")
-				continue
-			}
-			if !m.Enabled {
-				log.WithField("tx ", rawTx).Debug("cache txs for future.")
-			}
-			txis = append(txis, rawTx.Campaign())
+			txis = append(txis, rawTx.Txi())
 		}
 	}
 	//if testVal!=len(syncResponse.RawSequencers) {

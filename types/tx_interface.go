@@ -73,6 +73,8 @@ type Txi interface {
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 
+	RawTxi() RawTxi // compressed txi
+
 	// implemented by msgp
 	DecodeMsg(dc *msgp.Reader) (err error)
 	EncodeMsg(en *msgp.Writer) (err error)
@@ -244,4 +246,26 @@ func (t Txis) ToRaw() (txs RawTxs, cps RawCampaigns, tcs RawTermChanges, seqs Ra
 		seqs = nil
 	}
 	return
+}
+
+func (t Txis) RawTxis() RawTxis {
+	var txs RawTxis
+	for _, tx := range t {
+		txs = append(txs, tx.RawTxi())
+	}
+	if len(txs) == 0 {
+		txs = nil
+	}
+	return txs
+}
+
+func (t Txis) TxisMarshaler() TxisMarshaler {
+	var txs TxisMarshaler
+	for _, tx := range t {
+		txs.Append(tx)
+	}
+	if len(txs) == 0 {
+		txs = nil
+	}
+	return txs
 }

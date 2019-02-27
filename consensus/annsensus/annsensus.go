@@ -33,6 +33,8 @@ type AnnSensus struct {
 	// campsCh   chan []*types.Campaign
 	// termchgCh chan *types.TermChange
 
+	dkg *Dkg
+
 	// signal channels
 	termChgStartSignal chan struct{}
 	termChgEndSignal   chan []*types.TermChange
@@ -54,25 +56,28 @@ type AnnSensus struct {
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
-	return &AnnSensus{
-		close:         make(chan struct{}),
-		newTxHandlers: []chan types.Txi{},
-		// campsCh:              make(chan []*types.Campaign),
-		// termchgCh:            make(chan *types.TermChange),
-		termChgStartSignal:   make(chan struct{}),
-		termChgEndSignal:     make(chan []*types.TermChange),
-		campaignFlag:         campaign,
-		candidates:           make(map[types.Address]*types.Campaign),
-		alsorans:             make(map[types.Address]*types.Campaign),
-		NbParticipants:       partnerNum,
-		Threshold:            threshold,
-		ConsensusTXConfirmed: make(chan []types.Txi),
-	}
+	ann := &AnnSensus{}
+
+	ann.close = make(chan struct{})
+	ann.newTxHandlers = []chan types.Txi{}
+	ann.termChgStartSignal = make(chan struct{})
+	ann.termChgEndSignal = make(chan []*types.TermChange)
+	ann.campaignFlag = campaign
+	ann.candidates = make(map[types.Address]*types.Campaign)
+	ann.alsorans = make(map[types.Address]*types.Campaign)
+	ann.NbParticipants = partnerNum
+	ann.Threshold = threshold
+	ann.ConsensusTXConfirmed = make(chan []types.Txi)
+
+	dkg := newDkg(ann, campaign, partnerNum, threshold)
+	ann.dkg = dkg
+
+	return ann
+	
 }
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
-	log.Tracef("campaignFlag: %v", as.campaignFlag)
 	if as.campaignFlag {
 		as.ProdCampaignOn()
 		// TODO campaign gossip starts here?
@@ -94,6 +99,14 @@ func (as *AnnSensus) Name() string {
 func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	// TODO
 	return nil
+}
+
+func (as *AnnSensus) GetCandidate(addr types.Address) *types.Campaign {
+	return as.candidates[addr]
+}
+
+func (as *AnnSensus) Candidates() map[types.Address]*types.Campaign {
+	return as.candidates
 }
 
 // RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers. These
@@ -287,7 +300,7 @@ func (as *AnnSensus) loop() {
 			}
 			if len(cps) > 0 {
 				as.commit(cps)
-				log.Info("already candidates: %d, alsorans: %d", len(as.candidates), len(as.alsorans))
+				log.Infof("already candidates: %d, alsorans: %d", len(as.candidates), len(as.alsorans))
 			}
 
 			if len(tcs) > 0 {

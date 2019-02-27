@@ -80,7 +80,7 @@ func (as *AnnSensus) gossipLoop() {
 				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 				continue
 			}
-			_, ok := as.partner.adressIndex[cp.Issuer]
+			_, ok := as.partner.addressIndex[cp.Issuer]
 			if !ok {
 				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 				continue
@@ -133,7 +133,7 @@ func (as *AnnSensus) gossipLoop() {
 				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
 				continue
 			}
-			_, ok := as.partner.adressIndex[cp.Issuer]
+			_, ok := as.partner.addressIndex[cp.Issuer]
 			if !ok {
 				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
 				continue
@@ -168,7 +168,7 @@ func (as *AnnSensus) gossipLoop() {
 
 func (as *AnnSensus) GetPartnerAddressByIndex(i int) *types.Address {
 
-	for k, v := range as.partner.adressIndex {
+	for k, v := range as.partner.addressIndex {
 		if v == i {
 			return &k
 		}

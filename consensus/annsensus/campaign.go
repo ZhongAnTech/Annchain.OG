@@ -83,7 +83,7 @@ func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 	}
 	a.partner.PartPubs = append(a.partner.PartPubs, cp.GetDkgPublicKey())
 	a.candidates[cp.Issuer] = cp
-	a.partner.adressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
+	a.partner.addressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
 
 	return nil
 }

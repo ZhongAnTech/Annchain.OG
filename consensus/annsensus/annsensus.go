@@ -68,12 +68,11 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.NbParticipants = partnerNum
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
-
+    ann.cryptoType = cryptoType
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
 
 	return ann
-	
 }
 
 func (as *AnnSensus) Start() {
@@ -164,6 +163,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 	for i, c := range camps {
 		if as.isTermChanging() {
 			// add those unsuccessful camps into alsoran list.
+			log.Debug("is termchanging ")
 			as.addAlsorans(camps[i:])
 			return
 		}
@@ -209,7 +209,6 @@ func (as *AnnSensus) isTermChanging() bool {
 func (as *AnnSensus) changeTerm() {
 	// TODO
 	// 1. start term change gossip
-
 	as.termChgStartSignal <- struct{}{}
 
 	for {

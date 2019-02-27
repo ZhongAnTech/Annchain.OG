@@ -30,7 +30,6 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Hash
 
 // Length of hash in bytes.
 const (
@@ -50,10 +49,12 @@ const (
 )
 
 // Hash represents the 32 byte of Hash.
+//msgp:tuple Hash
 type Hash struct {
 	Bytes [HashLength]byte `msgp:"bytes"`
 }
 
+//msgp:tuple Hashes
 type Hashes []Hash
 
 type HashBytes [HashLength]byte
@@ -187,6 +188,9 @@ func (a Hashes) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a Hashes) Less(i, j int) bool { return a[i].Hex() < a[j].Hex() }
 
 func (h Hashes) String() string {
+	if h == nil {
+		return ""
+	}
 	var strs []string
 	for _, v := range h {
 		strs = append(strs, v.String())

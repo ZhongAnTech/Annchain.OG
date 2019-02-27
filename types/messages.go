@@ -27,10 +27,12 @@ type Message interface {
 	String() string //string is for logging
 }
 
+//msgp:tuple MessagePing
 type MessagePing struct {
 	Data []byte
 }
 
+//msgp:tuple MessagePong
 type MessagePong struct {
 	Data []byte
 }
@@ -44,7 +46,7 @@ func (m *MessagePong) String() string {
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
-	Hashes    Hashes
+	Hashes    *Hashes
 	Filter    *BloomFilter
 	Height    *uint64
 	RequestId uint32 //avoid msg drop
@@ -60,10 +62,12 @@ func (m *MessageSyncRequest) String() string {
 
 //msgp:tuple MessageSyncResponse
 type MessageSyncResponse struct {
-	RawTxs RawTxs
+	RawTxs *RawTxs
 	//SequencerIndex  []uint32
-	RawSequencers RawSequencers
-	RequestedId   uint32 //avoid msg drop
+	RawSequencers  *RawSequencers
+	RawCampaigns   *RawCampaigns
+	RawTermChanges *RawTermChanges
+	RequestedId    uint32 //avoid msg drop
 }
 
 func (m *MessageSyncResponse) Txis() Txis {
@@ -75,21 +79,42 @@ func (m *MessageSyncResponse) Txis() Txis {
 
 func (m *MessageSyncResponse) Hashes() Hashes {
 	var hashes Hashes
-	if len(m.RawSequencers) == 0 && len(m.RawTxs) == 0 {
+	if m.RawCampaigns == nil && m.RawSequencers == nil && m.RawTxs == nil && m.RawTermChanges == nil {
 		return nil
 	}
-	for _, seq := range m.RawSequencers {
-		if seq == nil {
-			continue
+	if m.RawSequencers != nil {
+		for _, seq := range *m.RawSequencers {
+			if seq == nil {
+				continue
+			}
+			hashes = append(hashes, seq.GetTxHash())
 		}
-		hashes = append(hashes, seq.GetTxHash())
 	}
-	for _, tx := range m.RawTxs {
-		if tx == nil {
-			continue
+	if m.RawTxs != nil {
+		for _, tx := range *m.RawTxs {
+			if tx == nil {
+				continue
+			}
+			hashes = append(hashes, tx.GetTxHash())
 		}
-		hashes = append(hashes, tx.GetTxHash())
 	}
+	if m.RawTermChanges != nil {
+		for _, tx := range *m.RawTermChanges {
+			if tx == nil {
+				continue
+			}
+			hashes = append(hashes, tx.GetTxHash())
+		}
+	}
+	if m.RawCampaigns != nil {
+		for _, tx := range *m.RawCampaigns {
+			if tx == nil {
+				continue
+			}
+			hashes = append(hashes, tx.GetTxHash())
+		}
+	}
+
 	return hashes
 }
 
@@ -97,7 +122,8 @@ func (m *MessageSyncResponse) String() string {
 	//for _,i := range m.SequencerIndex {
 	//index = append(index ,fmt.Sprintf("%d",i))
 	//}
-	return fmt.Sprintf("txs: [%s], seqs: [%s],requestedId :%d", m.RawTxs.String(), m.RawSequencers.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], seqs: [%s] , cps: [%s],tcs :[%s],requestedId :%d", m.RawTxs.String(),
+		m.RawSequencers.String(), m.RawCampaigns.String(), m.RawTermChanges.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
@@ -190,7 +216,7 @@ func (c *BloomFilter) LookUpItem(item []byte) (bool, error) {
 
 //msgp:tuple MessageNewTxs
 type MessageNewTxs struct {
-	RawTxs RawTxs
+	RawTxs *RawTxs
 }
 
 func (m *MessageNewTxs) Txis() Txis {
@@ -199,10 +225,10 @@ func (m *MessageNewTxs) Txis() Txis {
 
 func (m *MessageNewTxs) Hashes() Hashes {
 	var hashes Hashes
-	if len(m.RawTxs) == 0 {
+	if m.RawTxs == nil || len(*m.RawTxs) == 0 {
 		return nil
 	}
-	for _, tx := range m.RawTxs {
+	for _, tx := range *m.RawTxs {
 		if tx == nil {
 			continue
 		}
@@ -217,9 +243,9 @@ func (m *MessageNewTxs) String() string {
 
 //msgp:tuple MessageTxsRequest
 type MessageTxsRequest struct {
-	Hashes    Hashes
+	Hashes    *Hashes
 	SeqHash   *Hash
-	Id        uint64
+	Id        *uint64
 	RequestId uint32 //avoid msg drop
 }
 
@@ -229,9 +255,11 @@ func (m *MessageTxsRequest) String() string {
 
 //msgp:tuple MessageTxsResponse
 type MessageTxsResponse struct {
-	RawTxs       RawTxs
-	RawSequencer *RawSequencer
-	RequestedId  uint32 //avoid msg drop
+	RawTxs         *RawTxs
+	RawSequencer   *RawSequencer
+	RawCampaigns   *RawCampaigns
+	RawTermChanges *RawTermChanges
+	RequestedId    uint32 //avoid msg drop
 }
 
 func (m *MessageTxsResponse) String() string {
@@ -240,10 +268,10 @@ func (m *MessageTxsResponse) String() string {
 
 func (m *MessageTxsResponse) Hashes() Hashes {
 	var hashes Hashes
-	if len(m.RawTxs) == 0 {
+	if m.RawTxs == nil || len(*m.RawTxs) == 0 {
 		return nil
 	}
-	for _, tx := range m.RawTxs {
+	for _, tx := range *m.RawTxs {
 		if tx == nil {
 			continue
 		}
@@ -255,14 +283,38 @@ func (m *MessageTxsResponse) Hashes() Hashes {
 	return hashes
 }
 
-//msgp:tuple MessageTxsResponse
+//msgp:tuple MessageBodyData
 type MessageBodyData struct {
-	RawTxs       RawTxs
-	RawSequencer *RawSequencer
+	RawTxs         *RawTxs
+	RawTermChanges *RawTermChanges
+	RawCampaigns   *RawCampaigns
+	RawSequencer   *RawSequencer
+}
+
+func (m *MessageBodyData) ToTxis() Txis {
+	var txis Txis
+	if m.RawTxs != nil {
+		txs := m.RawTxs.Txis()
+		txis = append(txis, txs...)
+
+	}
+	if m.RawTermChanges != nil {
+		txs := m.RawTermChanges.Txis()
+		txis = append(txis, txs...)
+	}
+	if m.RawCampaigns != nil {
+		txs := m.RawCampaigns.Txis()
+		txis = append(txis, txs...)
+
+	}
+	if len(txis) == 0 {
+		return nil
+	}
+	return txis
 }
 
 func (m *MessageBodyData) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String())
+	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.Len()+m.RawCampaigns.Len()+m.RawTermChanges.Len(), m.RawSequencer.String())
 }
 
 // getBlockHeadersData represents a block header query.
@@ -282,8 +334,8 @@ func (m *MessageHeaderRequest) String() string {
 // hashOrNumber is a combined field for specifying an origin block.
 //msgp:tuple HashOrNumber
 type HashOrNumber struct {
-	Hash   *Hash  // Block hash from which to retrieve headers (excludes Number)
-	Number uint64 // Block hash from which to retrieve headers (excludes Hash)
+	Hash   *Hash   // Block hash from which to retrieve headers (excludes Number)
+	Number *uint64 // Block hash from which to retrieve headers (excludes Hash)
 }
 
 func (m *HashOrNumber) String() string {
@@ -296,7 +348,7 @@ func (m *HashOrNumber) String() string {
 //msgp:tuple MessageSequencerHeader
 type MessageSequencerHeader struct {
 	Hash   *Hash
-	Number uint64
+	Number *uint64
 }
 
 func (m *MessageSequencerHeader) String() string {
@@ -305,7 +357,7 @@ func (m *MessageSequencerHeader) String() string {
 
 //msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
-	Headers     SequencerHeaders
+	Headers     *SequencerHeaders
 	RequestedId uint32 //avoid msg drop
 }
 
@@ -333,12 +385,16 @@ func (m *MessageBodiesResponse) String() string {
 	return fmt.Sprintf("bodies len : %d, reuqestedId :%d", len(m.Bodies), m.RequestedId)
 }
 
+//msgp:tuple RawData
 type RawData []byte
 
+
+//msgp:tuple MessageControl
 type MessageControl struct {
 	Hash *Hash
 }
 
+//msgp:tuple MessageGetMsg
 type MessageGetMsg struct {
 	Hash *Hash
 }
@@ -363,6 +419,7 @@ func (m *MessageDuplicate) String() string {
 	return "duplicate"
 }
 
+//msgp:tuple MessageCampaign
 type MessageCampaign struct {
 	RawCampaign *RawCampaign
 }
@@ -371,6 +428,7 @@ func (m *MessageCampaign) String() string {
 	return m.RawCampaign.String()
 }
 
+//msgp:tuple MessageTermChange
 type MessageTermChange struct {
 	RawTermChange *RawTermChange
 }
@@ -379,6 +437,7 @@ func (m *MessageTermChange) String() string {
 	return m.RawTermChange.String()
 }
 
+//msgp:tuple MessageConsensusDkgDeal
 type MessageConsensusDkgDeal struct {
 	Id uint32
 	//todo
@@ -406,6 +465,7 @@ func (m *MessageConsensusDkgDeal) String() string {
 	return "dkg " + fmt.Sprintf(" id %d , len %d ", m.Id, len(m.Data)) + " " + pkstr
 }
 
+//msgp:tuple MessageConsensusDkgDealResponse
 type MessageConsensusDkgDealResponse struct {
 	Id uint32
 	//todo

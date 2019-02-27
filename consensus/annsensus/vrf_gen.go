@@ -8,50 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *VrfData) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "SeqHash":
-			err = z.SeqHash.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "Height":
-			z.Height, err = dc.ReadUint64()
-			if err != nil {
-				return
-			}
-		case "TxNum":
-			z.TxNum, err = dc.ReadInt()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	err = z.SeqHash.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	z.Height, err = dc.ReadUint64()
+	if err != nil {
+		return
+	}
+	z.TxNum, err = dc.ReadInt()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *VrfData) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
-	// write "SeqHash"
-	err = en.Append(0x83, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -59,17 +43,7 @@ func (z *VrfData) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Height"
-	err = en.Append(0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
-	if err != nil {
-		return
-	}
 	err = en.WriteUint64(z.Height)
-	if err != nil {
-		return
-	}
-	// write "TxNum"
-	err = en.Append(0xa5, 0x54, 0x78, 0x4e, 0x75, 0x6d)
 	if err != nil {
 		return
 	}
@@ -83,59 +57,39 @@ func (z *VrfData) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *VrfData) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
-	// string "SeqHash"
-	o = append(o, 0x83, 0xa7, 0x53, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68)
+	// array header, size 3
+	o = append(o, 0x93)
 	o, err = z.SeqHash.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Height"
-	o = append(o, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	o = msgp.AppendUint64(o, z.Height)
-	// string "TxNum"
-	o = append(o, 0xa5, 0x54, 0x78, 0x4e, 0x75, 0x6d)
 	o = msgp.AppendInt(o, z.TxNum)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *VrfData) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "SeqHash":
-			bts, err = z.SeqHash.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "Height":
-			z.Height, bts, err = msgp.ReadUint64Bytes(bts)
-			if err != nil {
-				return
-			}
-		case "TxNum":
-			z.TxNum, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	bts, err = z.SeqHash.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		return
+	}
+	z.TxNum, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -143,6 +97,6 @@ func (z *VrfData) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *VrfData) Msgsize() (s int) {
-	s = 1 + 8 + z.SeqHash.Msgsize() + 7 + msgp.Uint64Size + 6 + msgp.IntSize
+	s = 1 + z.SeqHash.Msgsize() + msgp.Uint64Size + msgp.IntSize
 	return
 }

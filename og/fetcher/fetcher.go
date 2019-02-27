@@ -47,13 +47,13 @@ type sequencerRetrievalFn func(types.Hash) *types.Sequencer
 type headerRequesterFn func(peerId string, hash types.Hash) error
 
 // bodyRequesterFn is a callback type for sending a body retrieval request.
-type bodyRequesterFn func(peerId string, hashs []types.Hash) error
+type bodyRequesterFn func(peerId string, hashs types.Hashes) error
 
 // chainHeightFn is a callback type to retrieve the current chain height.
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(seq *types.Sequencer, txs types.Txs) error
+type chainInsertFn func(seq *types.Sequencer, txs types.Txis) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -82,8 +82,8 @@ type headerFilterTask struct {
 // bodyFilterTask represents a batch of sequencer bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string        // The source peer of sequencer bodies
-	transactions [][]*types.Tx // Collection of transactions per sequencer bodies
+	peer         string       // The source peer of sequencer bodies
+	transactions []types.Txis // Collection of transactions per sequencer bodies
 	sequencers   []*types.Sequencer
 	time         time.Time // Arrival time of the sequencers' contents
 }
@@ -129,8 +129,8 @@ type Fetcher struct {
 	// Testing hooks
 	announceChangeHook func(types.Hash, bool)           // Method to call upon adding or deleting a hash from the announce list
 	queueChangeHook    func(types.Hash, bool)           // Method to call upon adding or deleting a sequencer from the import queue
-	fetchingHook       func([]types.Hash)               // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
-	completingHook     func([]types.Hash)               // Method to call upon starting a sequencer body fetch (eth/62)
+	fetchingHook       func(types.Hashes)               // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
+	completingHook     func(types.Hashes)               // Method to call upon starting a sequencer body fetch (eth/62)
 	importedHook       func(sequencer *types.Sequencer) // Method to call upon successful sequencer import (both eth/61 and eth/62)
 }
 
@@ -236,7 +236,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers types.SequencerHeaders, tim
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Tx, sequencers types.Sequencers, time time.Time) [][]*types.Tx {
+func (f *Fetcher) FilterBodies(peer string, transactions []types.Txis, sequencers types.Sequencers, time time.Time) []types.Txis {
 	log.WithField("txs", len(transactions)).WithField("sequencers ", sequencers).WithField(
 		"peer", peer).Trace("Filtering bodies")
 
@@ -393,7 +393,7 @@ func (f *Fetcher) loop() {
 
 		case <-completeTimer.C:
 			// At least one header's timer ran out, retrieve everything
-			request := make(map[string][]types.Hash)
+			request := make(map[string]types.Hashes)
 
 			for hash, announces := range f.fetched {
 				// Pick a random peer to retrieve from, reset all others
@@ -590,7 +590,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 // insert spawns a new goroutine to run a sequencer insertion into the chain. If the
 // sequencer's number is at the same height as the current import phase, it updates
 // the phase states accordingly.
-func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs []*types.Tx) {
+func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs types.Txis) {
 	hash := sequencer.GetTxHash()
 
 	// Run the import on a new thread

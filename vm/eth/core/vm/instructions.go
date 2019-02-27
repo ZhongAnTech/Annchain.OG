@@ -889,7 +889,7 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 // make log instruction function
 func makeLog(size int) executionFunc {
 	return func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-		topics := make([]types.Hash, size)
+		topics := make(types.Hashes, size)
 		mStart, mSize := stack.pop(), stack.pop()
 		for i := 0; i < size; i++ {
 			topics[i] = types.BigToHash(stack.pop())

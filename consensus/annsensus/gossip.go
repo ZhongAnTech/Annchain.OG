@@ -28,7 +28,9 @@ func (as *AnnSensus) gossipLoop() {
 			deals, err := as.partner.Dkger.Deals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
+				continue
 			}
+			log.WithField("deals", deals).WithField("len deals", len(deals)).Trace("got deals")
 			for i, deal := range deals {
 				data, _ := deal.MarshalMsg(nil)
 				msg := &types.MessageConsensusDkgDeal{
@@ -39,6 +41,11 @@ func (as *AnnSensus) gossipLoop() {
 				if addr == nil {
 					panic("address not found")
 				}
+				if *addr == as.MyPrivKey.PublicKey().Address() {
+					//this is for me ,
+					as.dkgReqCh <- msg
+					continue
+				}
 				cp, ok := as.candidates[*addr]
 				if !ok {
 					panic("campaign not found")
@@ -47,6 +54,7 @@ func (as *AnnSensus) gossipLoop() {
 				msg.Sinature = s.Sign(*as.MyPrivKey, msg.SignatureTargets()).Bytes
 				msg.PublicKey = as.MyPrivKey.PublicKey().Bytes
 				pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
+				log.WithField("deal", deal).Debug("send dkg deal to")
 				as.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 			}
 
@@ -70,22 +78,22 @@ func (as *AnnSensus) gossipLoop() {
 			}
 			if cp == nil {
 				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
-				return
+				continue
 			}
 			_, ok := as.partner.adressIndex[cp.Issuer]
 			if !ok {
 				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
-				return
+				continue
 			}
 			responseDeal, err := as.partner.Dkger.ProcessDeal(&deal)
 			if err != nil {
 				log.WithField("deal ", request).WithError(err).Warn("  partner process error")
-				return
+				continue
 			}
 			respData, err := responseDeal.MarshalMsg(nil)
 			if err != nil {
 				log.WithField("deal ", request).WithError(err).Warn("  partner process error")
-				return
+				continue
 			}
 
 			response := &types.MessageConsensusDkgDealResponse{
@@ -98,6 +106,8 @@ func (as *AnnSensus) gossipLoop() {
 			log.WithField("response ", response).Debug("will send response")
 			//broadcast response to all partner
 			as.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			//and sent to myself ?
+			as.dkgRespCh <- response
 
 		case response := <-as.dkgRespCh:
 			var resp dkg.Response
@@ -110,7 +120,7 @@ func (as *AnnSensus) gossipLoop() {
 			as.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			if !as.campaignFlag {
 				//not a consensus partner
-				return
+				continue
 			}
 			var cp *types.Campaign
 			for _, v := range as.candidates {
@@ -121,30 +131,33 @@ func (as *AnnSensus) gossipLoop() {
 			}
 			if cp == nil {
 				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
-				return
+				continue
 			}
 			_, ok := as.partner.adressIndex[cp.Issuer]
 			if !ok {
 				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
-				return
+				continue
 			}
 			just, err := as.partner.Dkger.ProcessResponse(&resp)
 			if err != nil {
-				log.WithError(err).Warn("ProcessResponse failed")
-				return
+				log.WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
+				continue
 			}
 			as.partner.responseNumber++
-			if as.partner.responseNumber > (as.partner.NbParticipants-1)*(as.partner.NbParticipants-1) {
+			if as.partner.responseNumber >= (as.partner.NbParticipants)*(as.partner.NbParticipants) {
+				log.Info("got response done")
 				jointPub, err := as.partner.RecoverPub()
 				if err != nil {
 					log.WithError(err).Warn("get recover pub key fail")
+					continue
 				}
 				// send public key to changeTerm loop.
 				as.dkgPkCh <- jointPub
+				log.WithField("bls key ", jointPub).Info("joint pubkey ")
+				continue
 
 			}
 			log.WithField("response number", as.partner.responseNumber).Trace("dkg")
-			_ = just
 
 		case <-as.close:
 			log.Info("gossip loop stopped")

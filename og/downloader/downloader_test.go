@@ -30,12 +30,12 @@ type downloadTester struct {
 	genesis *types.Sequencer // Genesis blocks used by the tester and peers
 	peerDb  ogdb.Database    // Database of the peers containing all data
 
-	ownHashes  []types.Hash                          // Hash chain belonging to the tester
+	ownHashes  types.Hashes                          // Hash chain belonging to the tester
 	ownHeaders map[types.Hash]*types.SequencerHeader // Headers belonging to the tester
 	ownBlocks  map[types.Hash]*types.Sequencer       // Blocks belonging to the tester
 	ownChainTd map[types.Hash]uint64                 // id
 
-	peerHashes   map[string][]types.Hash                          // Hash chain belonging to different test peers
+	peerHashes   map[string]types.Hashes                          // Hash chain belonging to different test peers
 	peerHeaders  map[string]map[types.Hash]*types.SequencerHeader // Headers belonging to different test peers
 	peerBlocks   map[string]map[types.Hash]*types.Sequencer       // Blocks belonging to different test peers
 	peerChainTds map[string]map[types.Hash]*big.Int               // Total difficulties of the blocks in the peer chains
@@ -52,11 +52,11 @@ func newTester() *downloadTester {
 	tester := &downloadTester{
 		genesis:           genesis,
 		peerDb:            testdb,
-		ownHashes:         []types.Hash{genesis.GetTxHash()},
+		ownHashes:         types.Hashes{genesis.GetTxHash()},
 		ownHeaders:        map[types.Hash]*types.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
 		ownBlocks:         map[types.Hash]*types.Sequencer{genesis.GetTxHash(): genesis},
 		ownChainTd:        map[types.Hash]uint64{genesis.GetTxHash(): genesis.Number()},
-		peerHashes:        make(map[string][]types.Hash),
+		peerHashes:        make(map[string]types.Hashes),
 		peerHeaders:       make(map[string]map[types.Hash]*types.SequencerHeader),
 		peerBlocks:        make(map[string]map[types.Hash]*types.Sequencer),
 		peerChainTds:      make(map[string]map[types.Hash]*big.Int),

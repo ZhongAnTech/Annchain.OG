@@ -184,7 +184,7 @@ func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 }
 
 func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.Txi, ok bool) {
-	parentHashes := make([]types.Hash, len(parents))
+	parentHashes := make(types.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
 	}

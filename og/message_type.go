@@ -274,6 +274,7 @@ var errorToString = map[int]string{
 }
 
 // statusData is the network packet for the status message.
+//msgp:tuple StatusData
 type StatusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64

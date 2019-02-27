@@ -14,7 +14,7 @@ var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
 	Txs        map[types.Hash]types.Txi
-	TxsList    []types.Hash
+	TxsList    types.Hashes
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
 	txPool     og.ITxPool
@@ -62,7 +62,7 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs types.Txis, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Seq = seq
@@ -84,7 +84,7 @@ func (s *SyncBuffer) addTxs(txs []*types.Tx, seq *types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txs) error {
+func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txis) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
@@ -126,10 +126,10 @@ func (s *SyncBuffer) Get(hash types.Hash) types.Txi {
 
 }
 
-func (s *SyncBuffer) GetAllKeys() []types.Hash {
+func (s *SyncBuffer) GetAllKeys() types.Hashes {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var keys []types.Hash
+	var keys types.Hashes
 	for k := range s.Txs {
 		keys = append(keys, k)
 	}
@@ -213,7 +213,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 	}
 
 	inSeekingPool := map[types.Hash]int{}
-	seekingPool := []types.Hash{}
+	seekingPool := types.Hashes{}
 	for _, parentHash := range seq.Parents() {
 		seekingPool = append(seekingPool, parentHash)
 		// seekingPool.PushBack(parentHash)

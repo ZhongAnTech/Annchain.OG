@@ -9,34 +9,42 @@ import (
 //go:generate msgp
 
 // compress data ,for p2p  , small size
+//msgp:tuple RawTx
 type RawTx struct {
 	TxBase
 	To    Address
 	Value *math.BigInt
 }
 
+//msgp:tuple RawSequencer
 type RawSequencer struct {
 	TxBase
 }
 
+//msgp:tuple RawCampaign
 type RawCampaign struct {
 	TxBase
 	DkgPublicKey []byte
 	Vrf          VrfInfo
 }
 
+//msgp:tuple RawTermChange
 type RawTermChange struct {
 	TxBase
 	PkBls  []byte
 	SigSet map[Address][]byte
 }
 
+//msgp:tuple RawSequencers
 type RawSequencers []*RawSequencer
 
+//msgp:tuple RawCampaigns
 type RawCampaigns []*RawCampaign
 
+//msgp:tuple RawTermChanges
 type RawTermChanges []*RawTermChange
 
+//msgp:tuple RawTxs
 type RawTxs []*RawTx
 
 func (t *RawTx) Tx() *Tx {
@@ -243,4 +251,60 @@ func (r RawCampaigns) Txis() Txis {
 		cs = append(cs, c)
 	}
 	return cs
+}
+
+func (r *RawTxs) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *RawSequencers) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *RawCampaigns) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *RawTermChanges) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *Txs) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *Campaigns) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *TermChanges) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
+func (r *Sequencers) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

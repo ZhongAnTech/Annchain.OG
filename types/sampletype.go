@@ -20,7 +20,7 @@ type Foo struct {
 	Bar     string             `msg:"bar"`
 	Baz     float64            `msg:"baz"`
 	Address Address            `msg:"address"`
-	Parents []Hash             `msg:"parents"`
+	Parents Hashes             `msg:"parents"`
 	KV      map[string]float64 `msg:"kv"`
 	Seq     Sequencer          `msg:"seq"`
 	TxInner Tx                 `msg:"tx"`

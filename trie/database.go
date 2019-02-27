@@ -195,11 +195,11 @@ func (db *Database) secureKey(key []byte) []byte {
 // Nodes retrieves the hashes of all the nodes cached within the memory database.
 // This method is extremely expensive and should only be used to validate internal
 // states in test code.
-func (db *Database) Nodes() []types.Hash {
+func (db *Database) Nodes() types.Hashes {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	var hashes = make([]types.Hash, 0, len(db.nodes))
+	var hashes = make(types.Hashes, 0, len(db.nodes))
 	for hash := range db.nodes {
 		if hash != (types.Hash{}) { // Special case for "root" references/nodes
 			hashes = append(hashes, hash)

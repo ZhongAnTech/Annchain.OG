@@ -7,11 +7,13 @@ import (
 
 //go:generate msgp
 
+//msgp:tuple SequencerHeader
 type SequencerHeader struct {
 	Hash   Hash
 	Height uint64
 }
 
+//msgp:tuple SequencerHeaders
 type SequencerHeaders []*SequencerHeader
 
 func (s *SequencerHeader) SequencerId() uint64 {

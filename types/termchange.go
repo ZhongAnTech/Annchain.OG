@@ -19,6 +19,7 @@ type TermChange struct {
 	Issuer Address
 }
 
+//msgp:tuple TermChanges
 type TermChanges []*TermChange
 
 func (tc *TermChange) GetBase() *TxBase {

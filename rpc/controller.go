@@ -174,10 +174,10 @@ func (r *RpcController) Transactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
 			return
 		}
-		txs := r.Og.Dag.GetTxsByNumber(uint64(id))
+		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
-			Total int         `json:"total"`
-			Txs   []*types.Tx `json:"txs"`
+			Total int        `json:"total"`
+			Txs   types.Txis `json:"txs"`
 		}
 		if len(txs) != 0 {
 			txsResponse.Total = len(txs)

@@ -2,7 +2,6 @@ package performance
 
 import (
 	"github.com/annchain/OG/types"
-	"github.com/sirupsen/logrus"
 	"go.uber.org/atomic"
 	"time"
 )
@@ -40,36 +39,30 @@ func (t *TxCounter) loop() {
 			break
 		case tx := <-t.NewTxReceivedChan:
 			switch tx.GetType() {
-			case types.TxBaseTypeNormal:
-				t.TxReceived.Inc()
-			case types.TxBaseTypeCampaign:
-				t.TxReceived.Inc()
+
 			case types.TxBaseTypeSequencer:
 				t.SequencerReceived.Inc()
 			default:
-				logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
+				t.TxReceived.Inc()
+				//logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
 			}
 		case batch := <-t.BatchConfirmedChan:
 			for _, tx := range batch {
 				switch tx.GetType() {
-				case types.TxBaseTypeNormal:
-					t.TxConfirmed.Inc()
 				case types.TxBaseTypeSequencer:
 					t.SequencerConfirmed.Inc()
 				default:
-					logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
+					t.TxConfirmed.Inc()
+					//logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
 				}
 			}
 		case tx := <-t.NewTxGeneratedChan:
 			switch tx.GetType() {
-			case types.TxBaseTypeNormal:
-				t.TxGenerated.Inc()
 			case types.TxBaseTypeSequencer:
 				t.SequencerGenerated.Inc()
-			case types.TxBaseTypeCampaign:
-				t.TxGenerated.Inc()
 			default:
-				logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
+				t.TxGenerated.Inc()
+				//logrus.WithField("type", tx.GetType()).Debug("Unknown tx type")
 			}
 		}
 	}

@@ -128,9 +128,8 @@ func testRawEncHandshake(token []byte) error {
 
 }
 
-
 func TestCryptoSignature(t *testing.T) {
-	prv, _  := crypto.GenerateKey()
+	prv, _ := crypto.GenerateKey()
 	initNonce := make([]byte, shaLen)
 	_, err := rand.Read(initNonce)
 	if err != nil {
@@ -147,9 +146,9 @@ func TestCryptoSignature(t *testing.T) {
 	copy(msg.Signature[:], signature)
 	copy(msg.Nonce[:], initNonce)
 	//ok := crypto.VerifySignature(msg.InitiatorPubkey[:],msg.Nonce[:],msg.Signature[:])
-	res,err:= crypto.Ecrecover(msg.Nonce[:],msg.Signature[:])
-	log.Debug( hex.EncodeToString(res))
-	if err!=nil  {
-		t.Fatal("sig failed ",err, hex.EncodeToString(res))
+	res, err := crypto.Ecrecover(msg.Nonce[:], msg.Signature[:])
+	log.Debug(hex.EncodeToString(res))
+	if err != nil {
+		t.Fatal("sig failed ", err, hex.EncodeToString(res))
 	}
 }

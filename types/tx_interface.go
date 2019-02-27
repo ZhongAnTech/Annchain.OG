@@ -195,3 +195,53 @@ func (t Txis) Less(i, j int) bool {
 func (t Txis) Swap(i, j int) {
 	t[i], t[j] = t[j], t[i]
 }
+
+func (t Txis) ToTxs() (txs Txs, cps Campaigns, tcs TermChanges, seqs Sequencers) {
+	for _, txi := range t {
+		switch tx := txi.(type) {
+		case *Tx:
+			txs = append(txs, tx)
+		case *Campaign:
+			cps = append(cps, tx)
+		case *TermChange:
+			tcs = append(tcs, tx)
+		case *Sequencer:
+			seqs = append(seqs, tx)
+		}
+	}
+	if len(txs) == 0 {
+		txs = nil
+	}
+	if len(cps) == 0 {
+		cps = nil
+	}
+	if len(seqs) == 0 {
+		seqs = nil
+	}
+	return
+}
+
+func (t Txis) ToRaw() (txs RawTxs, cps RawCampaigns, tcs RawTermChanges, seqs RawSequencers) {
+	for _, txi := range t {
+		switch tx := txi.(type) {
+		case *Tx:
+			txs = append(txs, tx.RawTx())
+		case *Campaign:
+			cps = append(cps, tx.RawCampaign())
+		case *TermChange:
+			tcs = append(tcs, tx.RawTermChange())
+		case *Sequencer:
+			seqs = append(seqs, tx.RawSequencer())
+		}
+	}
+	if len(txs) == 0 {
+		txs = nil
+	}
+	if len(cps) == 0 {
+		cps = nil
+	}
+	if len(seqs) == 0 {
+		seqs = nil
+	}
+	return
+}

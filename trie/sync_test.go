@@ -115,7 +115,7 @@ func testIterativeSync(t *testing.T, batch int) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append([]types.Hash{}, sched.Missing(batch)...)
+	queue := append(types.Hashes{}, sched.Missing(batch)...)
 	for len(queue) > 0 {
 		results := make([]SyncResult, len(queue))
 		for i, hash := range queue {
@@ -148,7 +148,7 @@ func TestIterativeDelayedSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append([]types.Hash{}, sched.Missing(10000)...)
+	queue := append(types.Hashes{}, sched.Missing(10000)...)
 	for len(queue) > 0 {
 		// Sync only half of the scheduled nodes
 		results := make([]SyncResult, len(queue)/2+1)
@@ -274,7 +274,7 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append([]types.Hash{}, sched.Missing(0)...)
+	queue := append(types.Hashes{}, sched.Missing(0)...)
 	requested := make(map[types.Hash]struct{})
 
 	for len(queue) > 0 {
@@ -314,8 +314,8 @@ func TestIncompleteSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	added := []types.Hash{}
-	queue := append([]types.Hash{}, sched.Missing(1)...)
+	added := types.Hashes{}
+	queue := append(types.Hashes{}, sched.Missing(1)...)
 	for len(queue) > 0 {
 		// Fetch a batch of trie nodes
 		results := make([]SyncResult, len(queue))

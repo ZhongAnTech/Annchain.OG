@@ -22,7 +22,7 @@ func buildSeq(from types.Address, accountNonce uint64, id uint64) *types.Sequenc
 }
 
 func setParents(tx types.Txi, parents []types.Txi) {
-	tx.GetBase().ParentsHash = []types.Hash{}
+	tx.GetBase().ParentsHash = types.Hashes{}
 	for _, parent := range parents {
 		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetTxHash())
 	}

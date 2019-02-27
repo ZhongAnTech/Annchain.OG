@@ -32,7 +32,7 @@ type Log struct {
 	// address of the contract that generated the event
 	Address types.Address `json:"address" gencodec:"required"`
 	// list of topics provided by the contract.
-	Topics []types.Hash `json:"topics" gencodec:"required"`
+	Topics types.Hashes `json:"topics" gencodec:"required"`
 	// supplied by the contract, usually ABI-encoded
 	Data []byte `json:"data" gencodec:"required"`
 
@@ -63,13 +63,13 @@ type logMarshaling struct {
 
 type rlpLog struct {
 	Address types.Address
-	Topics  []types.Hash
+	Topics  types.Hashes
 	Data    []byte
 }
 
 type rlpStorageLog struct {
 	Address     types.Address
-	Topics      []types.Hash
+	Topics      types.Hashes
 	Data        []byte
 	BlockNumber uint64
 	TxHash      types.Hash

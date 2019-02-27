@@ -28,9 +28,9 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	cp := &types.Campaign{
 		TxBase: base,
 	}
-	if vrf:= as.GenerateVrf();vrf!=nil  {
+	if vrf := as.GenerateVrf(); vrf != nil {
 		cp.Vrf = *vrf
-	}else {
+	} else {
 		return nil
 	}
 	//cp.Vrf.PublicKey = pub TODO why
@@ -77,7 +77,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 
 //ProcessCampaign  , verify campaign
 func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
-	 if a.HasCampaign(cp) {
+	if a.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
@@ -93,9 +93,7 @@ func (a *AnnSensus) ProcessTermChange(tc *types.TermChange) error {
 	return nil
 }
 
-
-
-func (a *AnnSensus)HasCampaign(cp *types.Campaign) bool {
+func (a *AnnSensus) HasCampaign(cp *types.Campaign) bool {
 	_, ok := a.candidates[cp.Issuer]
 	if !ok {
 		_, ok = a.alsorans[cp.Issuer]

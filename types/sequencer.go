@@ -11,8 +11,8 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple Sequencers
 
+//msgp:tuple Sequencer
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
@@ -23,13 +23,14 @@ func (t *Sequencer) String() string {
 	return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
+//msgp:tuple Sequencers
 type Sequencers []*Sequencer
 
 func SampleSequencer() *Sequencer {
 	return &Sequencer{
 		TxBase: TxBase{
 			Height:       12,
-			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
+			ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
@@ -43,7 +44,7 @@ func RandomSequencer() *Sequencer {
 	return &Sequencer{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       id,
-		ParentsHash:  []Hash{randomHash(), randomHash()},
+		ParentsHash:  Hashes{randomHash(), randomHash()},
 		Type:         TxBaseTypeSequencer,
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),

@@ -227,7 +227,7 @@ func (p *peer) SendNodeData(data []byte) error {
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
-func (p *peer) RequestNodeData(hashes []types.Hash) error {
+func (p *peer) RequestNodeData(hashes types.Hashes) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
 	hashsStruct := types.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
@@ -247,15 +247,15 @@ func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 	hash := seqHash
 	msg := &types.MessageTxsRequest{
 		SeqHash:   &hash,
-		Id:        seqId,
+		Id:        &seqId,
 		RequestId: MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
 
-func (p *peer) RequestTxs(hashs []types.Hash) error {
+func (p *peer) RequestTxs(hashs types.Hashes) error {
 	msg := &types.MessageTxsRequest{
-		Hashes:    hashs,
+		Hashes:    &hashs,
 		RequestId: MsgCounter.Get(),
 	}
 
@@ -264,13 +264,13 @@ func (p *peer) RequestTxs(hashs []types.Hash) error {
 
 func (p *peer) RequestTxsById(seqId uint64) error {
 	msg := &types.MessageTxsRequest{
-		Id:        seqId,
+		Id:        &seqId,
 		RequestId: MsgCounter.Get(),
 	}
 	return p.sendRequest(MessageTypeTxsRequest, msg)
 }
 
-func (p *peer) RequestBodies(seqHashs []types.Hash) error {
+func (p *peer) RequestBodies(seqHashs types.Hashes) error {
 	msg := &types.MessageBodiesRequest{
 		SeqHashes: seqHashs,
 		RequestId: MsgCounter.Get(),
@@ -286,7 +286,7 @@ func (h *Hub) RequestOneHeader(peerId string, hash types.Hash) error {
 	return p.RequestOneHeader(hash)
 }
 
-func (h *Hub) RequestBodies(peerId string, hashs []types.Hash) error {
+func (h *Hub) RequestBodies(peerId string, hashs types.Hashes) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -313,7 +313,7 @@ func (p *peer) RequestOneHeader(hash types.Hash) error {
 func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error {
 	msg := &types.MessageHeaderRequest{
 		Origin: types.HashOrNumber{
-			Number: origin,
+			Number: &origin,
 		},
 		Amount:    uint64(amount),
 		Skip:      uint64(skip),

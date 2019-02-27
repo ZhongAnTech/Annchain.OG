@@ -86,18 +86,17 @@ func (t *rawTransport) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandsh
 }
 
 type RawHandshakeMsg struct {
-	Signature       [sigLen]byte
-	Nonce           [shaLen]byte
-	Version         uint
+	Signature [sigLen]byte
+	Nonce     [shaLen]byte
+	Version   uint
 }
-
 
 // RLPx v4 handshake response (defined in EIP-8).
 type RawHandshakeResponseMsg struct {
 	//RemotePubkey [pubLen]byte
-	Nonce        [shaLen]byte
+	Nonce [shaLen]byte
 	//Signature    [sigLen]byte
-	Version      uint
+	Version uint
 }
 
 // rawHandshake contains the state of the encryption handshake.
@@ -106,7 +105,6 @@ type rawHandshake struct {
 	remote               *ecies.PublicKey // remote-pubk
 	initNonce, respNonce []byte           // nonce
 }
-
 
 func initiatorRawencHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote *ecdsa.PublicKey) (err error) {
 	h := &rawHandshake{initiator: true, remote: ecies.ImportECDSAPublic(remote)}
@@ -137,8 +135,8 @@ func initiatorRawencHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote 
 		log.WithError(err).Debug("enc failed")
 		return err
 	}
-	head := make([]byte,3)
-	putInt24(uint32(len(enc)),head)
+	head := make([]byte, 3)
+	putInt24(uint32(len(enc)), head)
 	if _, err = conn.Write(head); err != nil {
 		log.WithError(err).Debug("write failed")
 		return err
@@ -161,19 +159,19 @@ func initiatorRawencHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote 
 }
 
 func readRawHandshakeMsgResp(msg *RawHandshakeResponseMsg, prv *ecdsa.PrivateKey, r io.Reader) error {
-	head := make([]byte,3)
-	if _, err := io.ReadFull(r,head); err != nil {
+	head := make([]byte, 3)
+	if _, err := io.ReadFull(r, head); err != nil {
 		log.WithError(err).Debug("read failed")
 		return err
 	}
 	size := readInt24(head)
-	if size==0 {
-			return fmt.Errorf("size error")
-		}
+	if size == 0 {
+		return fmt.Errorf("size error")
+	}
 
 	buf := make([]byte, size)
 	if n, err := io.ReadFull(r, buf); err != nil {
-		log.WithError(err).WithField("n ",n ).WithField("size" ,size).Debug("read failed")
+		log.WithError(err).WithField("n ", n).WithField("size", size).Debug("read failed")
 		return err
 	}
 	key := ecies.ImportECDSA(prv)
@@ -188,25 +186,25 @@ func readRawHandshakeMsgResp(msg *RawHandshakeResponseMsg, prv *ecdsa.PrivateKey
 }
 
 func readRawHandshakeMsg(msg *RawHandshakeMsg, prv *ecdsa.PrivateKey, r io.Reader) error {
-	head := make([]byte,3)
-	if _, err := io.ReadFull(r,head); err != nil {
+	head := make([]byte, 3)
+	if _, err := io.ReadFull(r, head); err != nil {
 		log.WithError(err).Debug("read failed")
 		return err
 	}
 	size := readInt24(head)
-	if size==0 {
+	if size == 0 {
 		return fmt.Errorf("size error")
 	}
 	buf := make([]byte, size)
 	if n, err := io.ReadFull(r, buf); err != nil {
-		log.WithError(err).WithField("n ",n ).WithField("size" ,size).Debug("read failed")
+		log.WithError(err).WithField("n ", n).WithField("size", size).Debug("read failed")
 		return err
 	}
 
 	key := ecies.ImportECDSA(prv)
 	dec, err := key.Decrypt(buf, nil, nil)
 	if err != nil {
-		log.WithField("len ",len(buf)).WithField("hex ", hex.EncodeToString(buf)).WithError(err).Debug("dec failed")
+		log.WithField("len ", len(buf)).WithField("hex ", hex.EncodeToString(buf)).WithError(err).Debug("dec failed")
 		return err
 	}
 	_, err = msg.UnmarshalMsg(dec)
@@ -221,10 +219,10 @@ func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.Pub
 		return nil, err
 	}
 	//log.WithField("nonce ", hex.EncodeToString(authMsg.Nonce[:])).WithField(
-		//"sig ", hex.EncodeToString(authMsg.Signature[:])).Trace("read msg")
-	rPub,err :=  crypto.Ecrecover( authMsg.Nonce[:], authMsg.Signature[:])
-	if err!= nil {
-		return nil, fmt.Errorf("sig invalid %v",err)
+	//"sig ", hex.EncodeToString(authMsg.Signature[:])).Trace("read msg")
+	rPub, err := crypto.Ecrecover(authMsg.Nonce[:], authMsg.Signature[:])
+	if err != nil {
+		return nil, fmt.Errorf("sig invalid %v", err)
 	}
 	h := new(rawHandshake)
 	rpub, err := importPublicKey(rPub[1:])
@@ -253,8 +251,8 @@ func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.Pub
 		log.WithError(err).Debug("enc failed")
 		return nil, err
 	}
-	head := make([]byte,3)
-	putInt24(uint32(len(enc)),head)
+	head := make([]byte, 3)
+	putInt24(uint32(len(enc)), head)
 	if _, err = conn.Write(head); err != nil {
 		return nil, err
 	}

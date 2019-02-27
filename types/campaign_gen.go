@@ -239,55 +239,38 @@ func (z Campaigns) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *VrfInfo) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Message":
-			z.Message, err = dc.ReadBytes(z.Message)
-			if err != nil {
-				return
-			}
-		case "Proof":
-			z.Proof, err = dc.ReadBytes(z.Proof)
-			if err != nil {
-				return
-			}
-		case "PublicKey":
-			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
-			if err != nil {
-				return
-			}
-		case "Vrf":
-			z.Vrf, err = dc.ReadBytes(z.Vrf)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	z.Message, err = dc.ReadBytes(z.Message)
+	if err != nil {
+		return
+	}
+	z.Proof, err = dc.ReadBytes(z.Proof)
+	if err != nil {
+		return
+	}
+	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	z.Vrf, err = dc.ReadBytes(z.Vrf)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *VrfInfo) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
-	// write "Message"
-	err = en.Append(0x84, 0xa7, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -295,26 +278,11 @@ func (z *VrfInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Proof"
-	err = en.Append(0xa5, 0x50, 0x72, 0x6f, 0x6f, 0x66)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes(z.Proof)
 	if err != nil {
 		return
 	}
-	// write "PublicKey"
-	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes(z.PublicKey)
-	if err != nil {
-		return
-	}
-	// write "Vrf"
-	err = en.Append(0xa3, 0x56, 0x72, 0x66)
 	if err != nil {
 		return
 	}
@@ -328,64 +296,41 @@ func (z *VrfInfo) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *VrfInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
-	// string "Message"
-	o = append(o, 0x84, 0xa7, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendBytes(o, z.Message)
-	// string "Proof"
-	o = append(o, 0xa5, 0x50, 0x72, 0x6f, 0x6f, 0x66)
 	o = msgp.AppendBytes(o, z.Proof)
-	// string "PublicKey"
-	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	o = msgp.AppendBytes(o, z.PublicKey)
-	// string "Vrf"
-	o = append(o, 0xa3, 0x56, 0x72, 0x66)
 	o = msgp.AppendBytes(o, z.Vrf)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *VrfInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Message":
-			z.Message, bts, err = msgp.ReadBytesBytes(bts, z.Message)
-			if err != nil {
-				return
-			}
-		case "Proof":
-			z.Proof, bts, err = msgp.ReadBytesBytes(bts, z.Proof)
-			if err != nil {
-				return
-			}
-		case "PublicKey":
-			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
-			if err != nil {
-				return
-			}
-		case "Vrf":
-			z.Vrf, bts, err = msgp.ReadBytesBytes(bts, z.Vrf)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	z.Message, bts, err = msgp.ReadBytesBytes(bts, z.Message)
+	if err != nil {
+		return
+	}
+	z.Proof, bts, err = msgp.ReadBytesBytes(bts, z.Proof)
+	if err != nil {
+		return
+	}
+	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+	if err != nil {
+		return
+	}
+	z.Vrf, bts, err = msgp.ReadBytesBytes(bts, z.Vrf)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -393,6 +338,6 @@ func (z *VrfInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *VrfInfo) Msgsize() (s int) {
-	s = 1 + 8 + msgp.BytesPrefixSize + len(z.Message) + 6 + msgp.BytesPrefixSize + len(z.Proof) + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 4 + msgp.BytesPrefixSize + len(z.Vrf)
+	s = 1 + msgp.BytesPrefixSize + len(z.Message) + msgp.BytesPrefixSize + len(z.Proof) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Vrf)
 	return
 }

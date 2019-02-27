@@ -24,7 +24,7 @@ func TestSerializer(t *testing.T) {
 		Bar:     "1234567890",               // 10 bytes
 		Baz:     12.34213432423,             // 8 bytes
 		Address: HexToAddress("0x11223344"), // 4 bytes
-		Parents: []Hash{
+		Parents: Hashes{
 			HexToHash("0x00667788"),
 			HexToHash("0xAA667788"),
 			HexToHash("0xBB667788"), // 20 bytes
@@ -38,7 +38,7 @@ func TestSerializer(t *testing.T) {
 		Seq: Sequencer{
 			TxBase: TxBase{
 				Height:       12,
-				ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
+				ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 				Type:         1,
 				AccountNonce: 234,
 			},
@@ -46,7 +46,7 @@ func TestSerializer(t *testing.T) {
 		TxInner: Tx{TxBase: TxBase{
 
 			Height:       12,
-			ParentsHash:  []Hash{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
+			ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 			Type:         1,
 			AccountNonce: 234,
 		},
@@ -83,7 +83,7 @@ func TestHasher(t *testing.T) {
 		Bar:     "1234567890",               // 10 bytes
 		Baz:     12.34213432423,             // 8 bytes
 		Address: HexToAddress("0x11223344"), // 4 bytes
-		Parents: []Hash{
+		Parents: Hashes{
 			HexToHash("0x00667788"),
 			HexToHash("0xAA667788"),
 			HexToHash("0xBB667788"), // 20 bytes

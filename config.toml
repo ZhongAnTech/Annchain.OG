@@ -79,9 +79,9 @@ algorithm = "secp256k1"
 [dag]
 consensus = "dpos"
 
-[annsunsus]
-campaign  = true
-partner_number =21
+[annsensus]
+campaign = true
+partner_number = 5
 threshold = 15
 
 

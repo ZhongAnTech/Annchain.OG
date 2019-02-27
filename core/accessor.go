@@ -301,7 +301,7 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		prefix = contentPrefixTermChg
 		data, err = tx.MarshalMsg(nil)
 	default:
-		return fmt.Errorf("unknown tx type, must be *Tx or *Sequencer")
+		return fmt.Errorf("unknown tx type, must be *Tx, *Sequencer, *Campaign, *TermChange")
 	}
 	if err != nil {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)

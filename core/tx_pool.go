@@ -1041,7 +1041,7 @@ func (t *txLookUp) Remove(h types.Hash, removeType hashOrderRemoveType) {
 func (t *txLookUp) remove(h types.Hash, removeType hashOrderRemoveType) {
 	switch removeType {
 	case noRemove:
-		log.Trace("no remove")
+		break
 	case removeFromFront:
 		for i, hash := range t.order {
 			if hash.Cmp(h) == 0 {

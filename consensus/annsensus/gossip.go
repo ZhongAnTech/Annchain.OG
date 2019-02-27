@@ -12,12 +12,16 @@ import (
 
 func (as *AnnSensus) gossipLoop() {
 	for {
+		if !as.isTermChanging() {
+			return
+		}
+
 		// TODO case dealing dkg
 		select {
-		case <-as.termChgSignal:
+		case <-as.termChgStartSignal:
 
-			err:= as.partner.GenerateDKGer()
-			if err!=nil {
+			err := as.partner.GenerateDKGer()
+			if err != nil {
 				log.WithError(err).Error("gen dkger fail")
 				continue
 			}
@@ -131,12 +135,12 @@ func (as *AnnSensus) gossipLoop() {
 			}
 			as.partner.responseNumber++
 			if as.partner.responseNumber > (as.partner.NbParticipants-1)*(as.partner.NbParticipants-1) {
-				log.Info("got response done")
 				jointPub, err := as.partner.RecoverPub()
 				if err != nil {
 					log.WithError(err).Warn("get recover pub key fail")
 				}
-				log.WithField("bls key ", jointPub).Info("joint pubkey ")
+				// send public key to changeTerm loop.
+				as.dkgPkCh <- jointPub
 
 			}
 			log.WithField("response number", as.partner.responseNumber).Trace("dkg")

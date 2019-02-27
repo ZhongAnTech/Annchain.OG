@@ -13,7 +13,7 @@ import (
 func (as *AnnSensus) gossipLoop() {
 	for {
 		if !as.isTermChanging() {
-			return
+			//return    why , if others sent dkg already ??
 		}
 
 		// TODO case dealing dkg

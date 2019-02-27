@@ -23,8 +23,10 @@ func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 	}
 }
 
-func (d *DummyDag) GetTxsByNumber(id uint64) types.Txs {
-	return nil
+func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
+	var txis types.Txis
+	 txis = append(txis,types.RandomTx(),types.RandomTx())
+	 return txis
 }
 
 func (d *DummyDag) LatestSequencer() *types.Sequencer {

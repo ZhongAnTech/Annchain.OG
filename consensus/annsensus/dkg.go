@@ -73,7 +73,7 @@ func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
 	partSec, partPub := genPartnerPair(partner)
 	// you should always keep MyPartSec safe. Do not share.
 	partner.MyPartSec = partSec
-	partner.PartPubs = append(partner.PartPubs, partPub)
+	//partner.PartPubs = append(partner.PartPubs, partPub)
 	as.partner = partner
 	as.partner.NbParticipants = as.NbParticipants
 	as.partner.Threshold = as.Threshold

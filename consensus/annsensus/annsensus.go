@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -27,20 +26,19 @@ type AnnSensus struct {
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
 
-
 	//receive consensus txs from pool ,for notifications
 	ConsensusTXConfirmed chan []types.Txi
 
-
-	// channels for receiving txs.
-	campsCh   chan []*types.Campaign
-	termchgCh chan *types.TermChange
+	// // channels for receiving txs.
+	// campsCh   chan []*types.Campaign
+	// termchgCh chan *types.TermChange
 
 	// signal channels
-	termChgSignal chan struct{}
-	dkgPkCh       chan kyber.Point
-	dkgReqCh      chan *types.MessageConsensusDkgDeal
-	dkgRespCh     chan *types.MessageConsensusDkgDealResponse
+	termChgStartSignal chan struct{}
+	termChgEndSignal   chan []*types.TermChange
+	dkgPkCh            chan kyber.Point
+	dkgReqCh           chan *types.MessageConsensusDkgDeal
+	dkgRespCh          chan *types.MessageConsensusDkgDealResponse
 
 	Hub            MessageSender // todo use interface later
 	Txpool         og.ITxPool
@@ -57,29 +55,30 @@ type AnnSensus struct {
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
 	return &AnnSensus{
-		close:          make(chan struct{}),
-		newTxHandlers:  []chan types.Txi{},
-		campsCh:        make(chan []*types.Campaign),
-		termchgCh:      make(chan *types.TermChange),
-		termChgSignal:  make(chan struct{}),
-		campaignFlag:   campaign,
-		candidates:      make(map[types.Address]*types.Campaign),
-		alsorans:make(map[types.Address]*types.Campaign),
-		NbParticipants: partnerNum,
-		Threshold:      threshold,
-		ConsensusTXConfirmed :make(chan []types.Txi),
+		close:         make(chan struct{}),
+		newTxHandlers: []chan types.Txi{},
+		// campsCh:              make(chan []*types.Campaign),
+		// termchgCh:            make(chan *types.TermChange),
+		termChgStartSignal:   make(chan struct{}),
+		termChgEndSignal:     make(chan []*types.TermChange),
+		campaignFlag:         campaign,
+		candidates:           make(map[types.Address]*types.Campaign),
+		alsorans:             make(map[types.Address]*types.Campaign),
+		NbParticipants:       partnerNum,
+		Threshold:            threshold,
+		ConsensusTXConfirmed: make(chan []types.Txi),
 	}
 }
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
+	log.Tracef("campaignFlag: %v", as.campaignFlag)
 	if as.campaignFlag {
 		as.ProdCampaignOn()
 		// TODO campaign gossip starts here?
 		go as.gossipLoop()
 	}
 	go as.loop()
-	// TODO
 }
 
 func (as *AnnSensus) Stop() {
@@ -137,8 +136,8 @@ func (as *AnnSensus) prodcampaign() {
 					c <- camp
 				}
 			}
-			//
-			as.doCamp = false
+
+			// as.doCamp = false
 		}
 	}
 }
@@ -157,7 +156,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		}
 		// TODO
 		// handle campaigns should not only add it into candidate list.
-		//as.candidates[c.Issuer] = c
+		// as.candidates[c.Issuer] = c
 		as.AddCampaignCandidates(c) //todo remove duplication here
 		if as.canChangeTerm() {
 			as.termchgLock.Lock()
@@ -198,20 +197,39 @@ func (as *AnnSensus) changeTerm() {
 	// TODO
 	// 1. start term change gossip
 
-	as.termChgSignal <- struct{}{}
+	as.termChgStartSignal <- struct{}{}
 
 	for {
 		select {
+		case <-as.close:
+			log.Info("got quit signal , annsensus termchansge stopped")
+			return
+
 		case pk := <-as.dkgPkCh:
+			log.Info("got a bls public key from dkg: %s", pk.String())
 			tc := as.genTermChg(pk)
 			if tc != nil {
 				for _, c := range as.newTxHandlers {
 					c <- tc
 				}
 			}
-		case <-as.close:
-			log.Info("got quit signal , annsensus termchansge stopped")
-			return
+			as.termchgLock.Lock()
+			as.termchgFlag = false
+			as.termchgLock.Unlock()
+
+			// TODO
+			// temporarily clear the candidates and alsorans, because there
+			// is no TermChange produced now.
+			as.candidates = make(map[types.Address]*types.Campaign)
+			as.alsorans = make(map[types.Address]*types.Campaign)
+
+		case tcs := <-as.termChgEndSignal:
+			// TODO
+			// handle TermChanges
+			if len(tcs) > 1 {
+				// TODO
+			}
+
 		}
 	}
 
@@ -226,11 +244,11 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
-	for _, cp:= range camps {
-		if cp ==nil {
+	for _, cp := range camps {
+		if cp == nil {
 			continue
 		}
-		if as.HasCampaign(cp){
+		if as.HasCampaign(cp) {
 			continue
 		}
 		as.alsorans[cp.Issuer] = cp
@@ -245,19 +263,19 @@ func (as *AnnSensus) loop() {
 			log.Info("got quit signal , annsensus loop stopped")
 			return
 
-		case camps := <-as.campsCh:
-			fmt.Println(camps)
-			// TODO
-			// case commit
+		// case camps := <-as.campsCh:
+		// 	fmt.Println(camps)
+		// 	// TODO
+		// 	// case commit
 
-		case termchg := <-as.termchgCh:
-			fmt.Println(termchg)
-			// TODO
-			// case start term change gossip
-			// dag sent campaigns and termchanges tx
+		// case termchg := <-as.termchgCh:
+		// 	fmt.Println(termchg)
+		// 	// TODO
+		// 	// case start term change gossip
+		// 	// dag sent campaigns and termchanges tx
 
 		case txs := <-as.ConsensusTXConfirmed:
-			log.WithField(" txs ",txs).Debug("got consensus txs")
+			log.WithField(" txs ", txs).Debug("got consensus txs")
 			var cps []*types.Campaign
 			var tcs []*types.TermChange
 			for _, tx := range txs {
@@ -269,6 +287,11 @@ func (as *AnnSensus) loop() {
 			}
 			if len(cps) > 0 {
 				as.commit(cps)
+				log.Info("already candidates: %d, alsorans: %d", len(as.candidates), len(as.alsorans))
+			}
+
+			if len(tcs) > 0 {
+
 			}
 
 		}

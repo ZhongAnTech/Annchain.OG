@@ -93,7 +93,7 @@ func (m *MessageSyncResponse) String() string {
 	//for _,i := range m.SequencerIndex {
 	//index = append(index ,fmt.Sprintf("%d",i))
 	//}
-	return fmt.Sprintf("txs: [%s], seqs: [%s] , cps: [%s],tcs :[%s],requestedId :%d", m.RawTxs.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s],requestedId :%d", m.RawTxs.String(), m.RequestedId)
 }
 
 //msgp:tuple MessageNewTx
@@ -234,7 +234,7 @@ type MessageTxsResponse struct {
 }
 
 func (m *MessageTxsResponse) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.String(), m.RawSequencer.String(), m.RequestedId)
+	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String(), m.RequestedId)
 }
 
 func (m *MessageTxsResponse) Hashes() Hashes {
@@ -276,7 +276,7 @@ func (m *MessageBodyData) ToTxis() Txis {
 }
 
 func (m *MessageBodyData) String() string {
-	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.Len(), m.RawSequencer.String())
+	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String())
 }
 
 // getBlockHeadersData represents a block header query.

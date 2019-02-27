@@ -69,10 +69,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
-	var txs types.RawTxs
-	var seqs types.RawSequencers
-	var cps types.RawCampaigns
-	var tcs types.RawTermChanges
+	var txs types.TxisMarshaler
 	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
@@ -114,43 +111,22 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 					if txi == nil {
 						txi = h.Og.Dag.GetTx(hash)
 					}
-					if txi == nil {
-						continue
-					}
-					switch tx := txi.(type) {
-					case *types.Tx:
-						txs = append(txs, tx.RawTx())
-					case *types.Campaign:
-						cps = append(cps, tx.RawCampaign())
-					case *types.TermChange:
-						tcs = append(tcs, tx.RawTermChange())
-					case *types.Sequencer:
-						seqs = append(seqs, tx.RawSequencer())
-						//index = append(index, uint32(len(txs)))
-					default:
-						panic(fmt.Sprintf("unkown type %v", tx))
-					}
+					txs.Append(txi)
 				}
 			}
 
 			// uint64(0) -2 >0
 			if height+2 <= ourHeight {
 				dagTxs := h.Og.Dag.GetTxisByNumber(height + 2)
-				rtxs, rcps, rtcs, _ := dagTxs.ToRaw()
+				rtxs := dagTxs.TxisMarshaler()
 				if rtxs != nil && len(rtxs) != 0 {
 					txs = append(txs, rtxs...)
 				}
-				if rcps != nil && len(rcps) != 0 {
-					cps = append(cps, rcps...)
-				}
-				if rtcs != nil && len(rtcs) != 0 {
-					tcs = append(tcs, rtcs...)
-				}
 				//index = append(index, uint32(len(txs)))
 				seq := h.Og.Dag.GetSequencerByHeight(height + 2)
-				seqs = append(seqs, seq.RawSequencer())
+				txs.Append(seq)
 			}
-			msgLog.WithField("len seqs", len(seqs)).WithField("len txs ", len(txs)+len(cps)+len(tcs)).Trace("will send txs after bloom filter")
+			msgLog.WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
 		}
 	} else if syncRequest.Hashes != nil && len(*syncRequest.Hashes) > 0 {
 		for _, hash := range *syncRequest.Hashes {
@@ -161,44 +137,20 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			if txi == nil {
 				continue
 			}
-			switch tx := txi.(type) {
-			case *types.Sequencer:
-				//index = append(index, uint32(len(txs)))
-				msgLog.Debug(tx)
-				seqs = append(seqs, tx.RawSequencer())
-			case *types.Tx:
-				txs = append(txs, tx.RawTx())
-			case *types.TermChange:
-				tcs = append(tcs, tx.RawTermChange())
-			case *types.Campaign:
-				cps = append(cps, tx.RawCampaign())
-			}
-
+			txs.Append(txi)
 		}
 	} else {
 		msgLog.Debug("empty MessageSyncRequest")
 		return
 	}
-	if len(txs) > 0 || len(seqs) > 0 || len(cps) > 0 || len(tcs) > 0 {
+	if len(txs) > 0 {
 		msgRes := types.MessageSyncResponse{
-			RawTxs:        &txs,
-			RawSequencers: &seqs,
+			RawTxs: &txs,
 			//SequencerIndex: index,
-			RawCampaigns:   &cps,
-			RawTermChanges: &tcs,
-			RequestedId:    syncRequest.RequestId,
+			RequestedId: syncRequest.RequestId,
 		}
 		if txs != nil && len(txs) != 0 {
 			msgRes.RawTxs = &txs
-		}
-		if cps != nil && len(cps) != 0 {
-			msgRes.RawCampaigns = &cps
-		}
-		if tcs != nil && len(tcs) != 0 {
-			msgRes.RawTermChanges = &tcs
-		}
-		if seqs != nil && len(seqs) != 0 {
-			msgRes.RawSequencers = &seqs
 		}
 		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &msgRes)
 	} else {
@@ -330,22 +282,13 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResponse) {
-	var rawTxs types.RawTxs
-	var rawCps types.RawCampaigns
-	var rawTcs types.RawTermChanges
+	var rawTxs types.TxisMarshaler
 	var txis types.Txis
-	if request.RawTermChanges != nil {
-		rawTcs = *request.RawTermChanges
-	}
-	if request.RawCampaigns != nil {
-		rawCps = *request.RawCampaigns
-	}
 	if request.RawTxs != nil {
 		rawTxs = *request.RawTxs
 	}
 	if request.RawSequencer != nil {
-		msgLog.WithField("len rawTx ", len(rawTxs)).WithField("len rawCp", len(rawCps)).WithField("len rawtcs",
-			len(rawTcs)).WithField("seq height", request.RawSequencer.Height).Trace(
+		msgLog.WithField("len rawTx ", len(rawTxs)).WithField("seq height", request.RawSequencer.Height).Trace(
 			"got response txs ")
 	} else {
 		msgLog.Warn("got nil sequencer")
@@ -357,16 +300,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 	if lseq.Number() < seq.Number() {
 		h.Og.TxBuffer.ReceivedNewTxChan <- seq
 		// <-ffchan.NewTimeoutSenderShort(h.Og.TxBuffer.ReceivedNewTxChan, seq, "HandleTxsResponse").C
-
-		for _, rawtx := range rawTxs {
-			txis = append(txis, rawtx.Tx())
-		}
-		for _, rawtx := range rawTcs {
-			txis = append(txis, rawtx.TermChange())
-		}
-		for _, rawtx := range rawCps {
-			txis = append(txis, rawtx.Campaign())
-		}
+		txis = rawTxs.Txis()
 		sort.Sort(txis)
 		for _, tx := range txis {
 			//todo add to txcache first
@@ -379,7 +313,6 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 
 func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsRequest, peerId string) {
 	var msgRes types.MessageTxsResponse
-
 	var seq *types.Sequencer
 	if msgReq.Id == nil {
 		i := uint64(0)
@@ -393,15 +326,9 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsReques
 	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs, cps, tcs, _ := txs.ToRaw()
+		rtxs := txs.TxisMarshaler()
 		if rtxs != nil && len(rtxs) != 0 {
 			msgRes.RawTxs = &rtxs
-		}
-		if cps != nil && len(cps) != 0 {
-			msgRes.RawCampaigns = &cps
-		}
-		if tcs != nil && len(tcs) != 0 {
-			msgRes.RawTermChanges = &tcs
 		}
 
 	} else {
@@ -470,15 +397,9 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodies
 		var body types.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs, cps, tcs, _ := txs.ToRaw()
+		rtxs := txs.TxisMarshaler()
 		if rtxs != nil && len(rtxs) != 0 {
 			body.RawTxs = &rtxs
-		}
-		if cps != nil && len(cps) != 0 {
-			body.RawCampaigns = &cps
-		}
-		if tcs != nil && len(tcs) != 0 {
-			body.RawTermChanges = &tcs
 		}
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)

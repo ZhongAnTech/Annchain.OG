@@ -169,3 +169,7 @@ func (t Txs) ToRawTxs() RawTxs {
 	}
 	return rawTxs
 }
+
+func (c *Tx) RawTxi() RawTxi {
+	return c.RawTx()
+}

@@ -103,3 +103,7 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 	}
 	return rawTs
 }
+
+func (c *TermChange) RawTxi() RawTxi {
+	return c.RawTermChange()
+}

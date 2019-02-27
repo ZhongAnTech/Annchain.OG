@@ -145,3 +145,7 @@ func (v *VrfInfo) String() string {
 	return fmt.Sprintf("Msg:%s, vrf :%s , proof :%s, pubKey :%s", hex.EncodeToString(v.Message), hex.EncodeToString(v.Vrf),
 		hex.EncodeToString(v.Proof), hex.EncodeToString(v.PublicKey))
 }
+
+func (c *Campaign) RawTxi() RawTxi {
+	return c.RawCampaign()
+}

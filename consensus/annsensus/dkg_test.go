@@ -51,6 +51,7 @@ func newtestHub(id int, peers []int, sendMsgToChan sendMsgToChanFunc, sendMsgByP
 }
 
 func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Message) {
+	var sent bool
 	for _, peer := range t.Peers {
 		tMsg := TestMsg{
 			MessageType: messageType,
@@ -58,7 +59,12 @@ func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Mes
 			From:        t.Id,
 		}
 		t.sendMsgToChan(peer, tMsg)
-		logrus.WithField("me ", t.Id).WithField("to peer ", peer).WithField("type ", messageType).Trace("send msg")
+		if !sent {
+			hash := tMsg.GetHash()
+			t.msgCache.Set(hash, struct{}{})
+			sent = true
+		}
+		//logrus.WithField("me ", t.Id).WithField("to peer ", peer).WithField("type ", messageType).Trace("send msg")
 	}
 }
 
@@ -69,10 +75,12 @@ func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Mess
 		From:        t.Id,
 	}
 	t.sendMsgByPubKey(anyNomousPubKey, tMsg)
+	hash := tMsg.GetHash()
+	t.msgCache.Set(hash, struct{}{})
 }
 
 func (t *TestHub) loop() {
-	elog := logrus.WithField("me ",t.Id)
+	elog := logrus.WithField("me ", t.Id)
 	for {
 		select {
 		case pMsg := <-t.OutMsg:
@@ -154,7 +162,7 @@ func TestDKGMain(t *testing.T) {
 			if bytes.Equal(Anns[j].MyPrivKey.PublicKey().Bytes, pub.Bytes) {
 				Anns[j].Hub.(*TestHub).OutMsg <- pMsg
 				logrus.WithField("from peer", msg.From).WithField("to peer ", j).WithField("type ",
-					msg.MessageType).Trace("send msg encr")
+					msg.MessageType).Trace("send msg enc")
 				return
 			}
 		}
@@ -181,7 +189,7 @@ func TestDKGMain(t *testing.T) {
 		as.Idag = &DummyDag{}
 		a.Hub = newtestHub(j, peers, sendMsgToChan, sendMsgByPubKey, as)
 		a.AnnSensus = as
-		logrus.WithField("addr ", a.MyPrivKey.PublicKey().Address().TerminalString()).Debug("gen hub ", a.Hub)
+		//logrus.WithField("addr ", a.MyPrivKey.PublicKey().Address().TerminalString()).Debug("gen hub ", a.Hub)
 		Anns = append(Anns, a)
 	}
 
@@ -209,9 +217,6 @@ func TestDKGMain(t *testing.T) {
 
 func (as *TestAnnSensus) Start() {
 	as.campaignFlag = false
-	logrus.Info("AnnSensus Start")
-	logrus.Tracef("campaignFlag: %v", as.campaignFlag)
-
 	as.AnnSensus.Start()
 	go as.Hub.(*TestHub).loop()
 	logrus.Info("started ann  ", as.Id)
@@ -220,7 +225,7 @@ func (as *TestAnnSensus) Start() {
 func (a *TestAnnSensus) Stop() {
 	a.AnnSensus.Stop()
 	a.Hub.(*TestHub).quit <- struct{}{}
-	logrus.Info("stopped ann  ", a.Id)
+	logrus.Info("stopped ann ", a.Id)
 }
 
 func (as *TestAnnSensus) GenCampaign() *types.Campaign {
@@ -236,16 +241,15 @@ func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 
 func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
 	cp.GetBase().PublicKey = as.MyPrivKey.PublicKey().Bytes
-	cp.GetBase().AccountNonce = uint64(as.Id*10)
+	cp.GetBase().AccountNonce = uint64(as.Id * 10)
 	cp.Issuer = as.MyPrivKey.PublicKey().Address()
 	s := crypto.NewSigner(as.cryptoType)
 	cp.GetBase().Signature = s.Sign(*as.MyPrivKey, cp.SignatureTargets()).Bytes
-	cp.GetBase().Weight = uint64(as.Id*100)
+	cp.GetBase().Weight = uint64(as.Id * 100)
 	cp.Height = uint64(as.Id)
 	cp.GetBase().Hash = cp.CalcTxHash()
 	return
 }
-
 
 func logInit() {
 

@@ -126,8 +126,8 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Error("generate dkg deal error")
 				continue
 			}
-			log.WithField("len deals", len(deals)).WithField("len partner",
-				len(d.partner.PartPubs)).WithField("deals", deals.TerminateString()).Trace("got deals")
+			//log.WithField("len deals", len(deals)).WithField("len partner",
+			//	len(d.partner.PartPubs)).WithField("deals", deals.TerminateString()).Trace("got deals")
 			for i, deal := range deals {
 				data, _ := deal.MarshalMsg(nil)
 				msg := &types.MessageConsensusDkgDeal{
@@ -139,11 +139,12 @@ func (d *Dkg) gossiploop() {
 					panic("address not found")
 				}
 				if *addr == d.ann.MyPrivKey.PublicKey().Address() {
-					//this is for me ,
+					//this is for me , skip myself
 					log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
-						deal.TerminateString()).Debug("send dkg deal to myself")
-					d.gossipReqCh <- msg
-					continue
+						deal.TerminateString()).Error("send dkg deal to myself")
+					panic("send dkg deal to myself")
+					//d.gossipReqCh <- msg
+					//continue
 				}
 				cp := d.ann.GetCandidate(*addr)
 				if cp == nil {
@@ -194,8 +195,7 @@ func (d *Dkg) gossiploop() {
 				log.WithField("deal ", request).WithError(err).Warn("  partner process error")
 				continue
 			}
-
-			response := types.MessageConsensusDkgDealResponse{
+			response := &types.MessageConsensusDkgDealResponse{
 				Data: respData,
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
@@ -203,9 +203,9 @@ func (d *Dkg) gossiploop() {
 			signer := crypto.NewSigner(d.ann.cryptoType)
 			response.Sinature = signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
 			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-			log.WithField("response ", response).Debug("will send response")
+			log.WithField("to request ", request).WithField("response ", response).Debug("will send response")
 			//broadcast response to all partner
-			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, &response)
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			//and sent to myself ? already processed inside dkg,skip myself
 
 		case response := <-d.gossipRespCh:
@@ -216,7 +216,7 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Warn("verify signature failed")
 				return
 			}
-			log.WithField("resp ", response).Trace("got response")
+			//log.WithField("resp ", response).Trace("got response")
 			//broadcast  continue
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			if !d.dkgOn {
@@ -227,13 +227,8 @@ func (d *Dkg) gossiploop() {
 			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 			addr := s.AddressFromPubKeyBytes(response.PublicKey)
 			if d.ann.GetCandidate(addr) == nil {
-				for _, v := range d.ann.Candidates() {
-					log.Trace(v.PublicKey)
-					log.WithField("pub ", response.PublicKey).Trace(v)
-				}
 				log.WithField("pub ", response.PublicKey).Trace("resp ")
-				log.WithField("id ", response.Id).WithField("deal ", response).Warn("not found  Campaign  for deal response")
-				panic(err)
+				log.WithField("id ", response.Id).WithField("deal ", response).Error("not found  Campaign  for deal response")
 				continue
 			}
 			_, ok := d.partner.addressIndex[addr]
@@ -242,12 +237,12 @@ func (d *Dkg) gossiploop() {
 					"not found  dkg  partner address  for deal")
 				continue
 			}
-			log.WithField("response ", resp).Trace("process response")
 			d.mu.RLock()
 			just, err := d.partner.Dkger.ProcessResponse(&resp)
 			if err != nil {
 				log.WithField("req ", response).WithField("rsp ",resp ).WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
 			} else {
+				log.WithField("response ", resp).Trace("process response ok")
 				d.partner.responseNumber++
 			}
 			if d.partner.responseNumber >= (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {

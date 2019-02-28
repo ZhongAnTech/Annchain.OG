@@ -433,7 +433,9 @@ type MessageConsensusDkgDealResponse struct {
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte
+	FromMyself bool  `msg:"-"`
 }
+
 
 func (m *MessageConsensusDkgDealResponse) String() string {
 	var pkstr string

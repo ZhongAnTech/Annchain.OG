@@ -43,8 +43,8 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.ann = ann
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
-	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal)
-	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse)
+	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal,100)
+	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse,100)
 	d.gossipStopChan = make(chan struct{})
 	d.dkgOn = dkgOn
 	if d.dkgOn {
@@ -205,9 +205,16 @@ func (d *Dkg) gossiploop() {
 			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 			log.WithField("response ", response).Debug("will send response")
 			//broadcast response to all partner
-			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			//and sent to myself ?
-			d.gossipRespCh <- response
+			toMyself := &types.MessageConsensusDkgDealResponse{
+				Data: respData,
+				Id:   request.Id,
+				FromMyself:true,
+			}
+			log.Trace("will send to myself")
+			d.gossipRespCh <- toMyself
+			log.Trace("sent to myself")
 
 		case response := <-d.gossipRespCh:
 
@@ -217,8 +224,11 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Warn("verify signature failed")
 				return
 			}
-			//broadcast  continue
-			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			log.WithField("isFromMyself",response.FromMyself ).WithField("resp ", response).Trace("got response")
+			//broadcast  continue if not from myself
+			if !response.FromMyself {
+				go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			}
 			if !d.dkgOn {
 				//not a consensus partner
 				log.Warn("why send to me")
@@ -256,7 +266,7 @@ func (d *Dkg) gossiploop() {
 				// send public key to changeTerm loop.
 				// TODO
 				// this channel may be changed later.
-				d.ann.dkgPkCh <- jointPub
+				//d.ann.dkgPkCh <- jointPub
 				log.WithField("bls key ", jointPub).Info("joint pubkey ")
 				continue
 

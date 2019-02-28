@@ -57,7 +57,7 @@ func NewtestHub(id int, peers []int, sendMsgToChan sendMsgToChanFunc, sendMsgByP
 	return &TestHub{
 		Id:              id,
 		Peers:           peers,
-		OutMsg:          make(chan TestMsg),
+		OutMsg:          make(chan TestMsg,100),
 		sendMsgToChan:   sendMsgToChan,
 		sendMsgByPubKey: sendMsgByPubKey,
 		quit:            make(chan struct{}),
@@ -85,7 +85,6 @@ func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Mess
 		from:        t.Id,
 	}
 	t.sendMsgByPubKey(anyNomousPubKey, tMsg)
-
 }
 
 func (t *TestHub) loop() {

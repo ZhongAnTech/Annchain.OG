@@ -81,9 +81,9 @@ func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
-	a.partner.PartPubs = append(a.partner.PartPubs, cp.GetDkgPublicKey())
+	a.dkg.partner.PartPubs = append(a.dkg.partner.PartPubs, cp.GetDkgPublicKey())
 	a.candidates[cp.Issuer] = cp
-	a.partner.addressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
+	a.dkg.partner.addressIndex[cp.Issuer] = len(a.dkg.partner.PartPubs) - 1
 
 	return nil
 }

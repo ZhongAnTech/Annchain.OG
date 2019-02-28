@@ -77,6 +77,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 
 //ProcessCampaign  , verify campaign
 func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
+	a.mu.RLock()
 	if a.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
@@ -84,7 +85,8 @@ func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 	a.dkg.partner.PartPubs = append(a.dkg.partner.PartPubs, cp.GetDkgPublicKey())
 	a.candidates[cp.Issuer] = cp
 	a.dkg.partner.addressIndex[cp.Issuer] = len(a.dkg.partner.PartPubs) - 1
-
+   // log.WithField("me ",a.id).WithField("add cp", cp ).Debug("added")
+	a.mu.RUnlock()
 	return nil
 }
 

@@ -53,6 +53,7 @@ type AnnSensus struct {
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
 	close       chan struct{}
+	id           int
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
@@ -170,7 +171,11 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		// TODO
 		// handle campaigns should not only add it into candidate list.
 		// as.candidates[c.Issuer] = c
-		as.AddCampaignCandidates(c) //todo remove duplication here
+		err:= as.AddCampaignCandidates(c) //todo remove duplication here
+		if err!=nil {
+			log.WithError(err).Debug("add campaign err")
+			continue
+		}
 		if as.canChangeTerm() {
 			as.termchgLock.Lock()
 			as.termchgFlag = true
@@ -256,6 +261,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
+	log.WithField("add also runs",camps ).Trace(camps)
 	for _, cp := range camps {
 		if cp == nil {
 			continue

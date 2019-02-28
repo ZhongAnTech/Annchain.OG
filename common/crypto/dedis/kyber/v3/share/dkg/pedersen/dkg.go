@@ -11,7 +11,6 @@ package dkg
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 
@@ -251,7 +250,6 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(len(deals), "dkg deal ", len(d.verifiers), d.canReceive)
 	dd := make(map[int]*Deal)
 	for i := range d.c.NewNodes {
 		distd := &Deal{
@@ -269,7 +267,6 @@ func (d *DistKeyGenerator) Deals() (map[int]*Deal, error) {
 		}
 
 		if i == int(d.nidx) && d.canReceive {
-			fmt.Println("dkg:our own deal ", i)
 			if _, ok := d.verifiers[uint32(d.nidx)]; ok {
 				// already processed our own deal
 				continue

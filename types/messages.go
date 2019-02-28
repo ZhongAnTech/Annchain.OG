@@ -418,7 +418,7 @@ func (m *MessageConsensusDkgDeal) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
-func (m *MessageConsensusDkgDeal) String() string {
+func (m  MessageConsensusDkgDeal) String() string {
 	var pkstr string
 	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:8])
@@ -433,11 +433,10 @@ type MessageConsensusDkgDealResponse struct {
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte
-	FromMyself bool  `msg:"-"`
 }
 
 
-func (m *MessageConsensusDkgDealResponse) String() string {
+func (m  MessageConsensusDkgDealResponse) String() string {
 	var pkstr string
 	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:8])

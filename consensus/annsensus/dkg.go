@@ -2,6 +2,10 @@ package annsensus
 
 import (
 	"bytes"
+	"fmt"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
@@ -24,9 +28,10 @@ type Dkg struct {
 	pk      []byte
 	partner *Partner
 
-	gossipStartCh chan struct{}
-	gossipReqCh   chan *types.MessageConsensusDkgDeal
-	gossipRespCh  chan *types.MessageConsensusDkgDealResponse
+	gossipStartCh  chan struct{}
+	gossipStopChan chan struct{}
+	gossipReqCh    chan *types.MessageConsensusDkgDeal
+	gossipRespCh   chan *types.MessageConsensusDkgDealResponse
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
@@ -40,22 +45,32 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal)
 	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse)
+	d.gossipStopChan = make(chan struct{})
+	d.dkgOn = dkgOn
+	if d.dkgOn {
+		d.GenerateDkg() //todo fix later
+	}
 
-	go d.gossiploop()
 	return d
 }
 
+func (d *Dkg) start() {
+	//TODO
+	log.Info("dkg start")
+	go d.gossiploop()
+}
+
+func (d *Dkg) stop() {
+	d.gossipStopChan <- struct{}{}
+	log.Info("dkg stop")
+}
+
 func (d *Dkg) GenerateDkg() {
-	p := d.partner
-
-	sec, pub := genPartnerPair(p)
-	p.MyPartSec = sec
-	p.PartPubs = []kyber.Point{pub}
-
+	sec, pub := genPartnerPair(d.partner)
+	d.partner.MyPartSec = sec
+	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-
 	d.pk = pk
-	d.partner = p
 }
 
 func (d *Dkg) PublicKey() []byte {
@@ -66,31 +81,33 @@ func (d *Dkg) StartGossip() {
 	d.gossipStartCh <- struct{}{}
 }
 
-func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
-	s := bn256.NewSuiteG2()
-	partner := NewPartner(s)
-	// partner generate pair for itself.
-	partSec, partPub := genPartnerPair(partner)
-	// you should always keep MyPartSec safe. Do not share.
-	partner.MyPartSec = partSec
-	//partner.PartPubs = append(partner.PartPubs, partPub)
-	as.partner = partner
-	as.partner.NbParticipants = as.NbParticipants
-	as.partner.Threshold = as.Threshold
-	log.WithField("my part pub ", partPub).Debug("dkg gen")
-	dkgPubkey, err := partPub.MarshalBinary()
-	if err != nil {
-		log.WithError(err).Error("marshal public key error")
-		panic(err)
-		return nil
-	}
-	return dkgPubkey
-
-}
-
 func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
 	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
 	return sc, p.Suite.Point().Mul(sc, nil)
+}
+
+type DealsMap map[int]*dkg.Deal
+
+func (t DealsMap) TerminateString() string {
+	if t == nil || len(t) == 0 {
+		return ""
+	}
+	var str []string
+	var keys []int
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		if v, ok := t[k]; ok {
+			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
+		}
+	}
+	return strings.Join(str, ",")
+}
+
+func (d *Dkg) getDeals() (DealsMap, error) {
+	return d.partner.Dkger.Deals()
 }
 
 func (d *Dkg) gossiploop() {
@@ -102,12 +119,13 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Error("gen dkger fail")
 				continue
 			}
-			deals, err := d.partner.Dkger.Deals()
+			deals, err := d.getDeals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
 				continue
 			}
-			log.WithField("deals", deals).WithField("len deals", len(deals)).Trace("got deals")
+			log.WithField("len deals", len(deals)).WithField("len partner",
+				len(d.partner.PartPubs)).WithField("deals", deals.TerminateString()).Trace("got deals")
 			for i, deal := range deals {
 				data, _ := deal.MarshalMsg(nil)
 				msg := &types.MessageConsensusDkgDeal{
@@ -120,6 +138,8 @@ func (d *Dkg) gossiploop() {
 				}
 				if *addr == d.ann.MyPrivKey.PublicKey().Address() {
 					//this is for me ,
+					log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
+						deal.TerminateString()).Debug("send dkg deal to myself")
 					d.gossipReqCh <- msg
 					continue
 				}
@@ -131,12 +151,14 @@ func (d *Dkg) gossiploop() {
 				msg.Sinature = s.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 				msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 				pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
-				log.WithField("deal", deal).Debug("send dkg deal to")
+				log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
+					deal.TerminateString()).Debug("send dkg deal to")
 				d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 			}
 
 		case request := <-d.gossipReqCh:
 
+			time.Sleep(10*time.Millisecond)  //this is for test
 			var deal dkg.Deal
 			_, err := deal.UnmarshalMsg(request.Data)
 			if err != nil {
@@ -199,6 +221,7 @@ func (d *Dkg) gossiploop() {
 			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			if !d.dkgOn {
 				//not a consensus partner
+				log.Warn("why send to me")
 				continue
 			}
 			var cp *types.Campaign
@@ -231,7 +254,7 @@ func (d *Dkg) gossiploop() {
 					continue
 				}
 				// send public key to changeTerm loop.
-				// TODO 
+				// TODO
 				// this channel may be changed later.
 				d.ann.dkgPkCh <- jointPub
 				log.WithField("bls key ", jointPub).Info("joint pubkey ")
@@ -239,7 +262,9 @@ func (d *Dkg) gossiploop() {
 
 			}
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
-
+		case <-d.gossipStopChan:
+			log.Info("got quit signal dkg gossip stopped")
+			return
 		}
 	}
 }

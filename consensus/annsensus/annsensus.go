@@ -39,13 +39,13 @@ type AnnSensus struct {
 	termChgStartSignal chan struct{}
 	termChgEndSignal   chan []*types.TermChange
 	dkgPkCh            chan kyber.Point
-	dkgReqCh           chan *types.MessageConsensusDkgDeal
-	dkgRespCh          chan *types.MessageConsensusDkgDealResponse
+	//dkgReqCh           chan *types.MessageConsensusDkgDeal
+	//dkgRespCh          chan *types.MessageConsensusDkgDealResponse
 
 	Hub            MessageSender // todo use interface later
 	Txpool         og.ITxPool
 	Idag           og.IDag
-	partner        *Partner // partner is for distributed key generate.
+	//partner        *Partner // partner is for distributed key generate.
 	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
 	NbParticipants int
@@ -80,14 +80,15 @@ func (as *AnnSensus) Start() {
 	if as.campaignFlag {
 		as.ProdCampaignOn()
 		// TODO campaign gossip starts here?
-		go as.gossipLoop()
 	}
+	as.dkg.start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
 	as.ProdCampaignOff()
+	as.dkg.stop()
 	close(as.close)
 }
 
@@ -139,9 +140,8 @@ func (as *AnnSensus) prodcampaign() {
 				return
 			}
 			// generate dkg partner and key pair.
-			pubKey := as.GenerateDkg()
 			// generate campaign.
-			camp := as.genCamp(pubKey)
+			camp := as.genCamp(as.dkg.pk)
 			// send camp
 			if camp != nil {
 				for _, c := range as.newTxHandlers {
@@ -209,8 +209,8 @@ func (as *AnnSensus) isTermChanging() bool {
 func (as *AnnSensus) changeTerm() {
 	// TODO
 	// 1. start term change gossip
-	as.termChgStartSignal <- struct{}{}
-
+	//as.termChgStartSignal <- struct{}{}
+	as.dkg.StartGossip()
 	for {
 		select {
 		case <-as.close:

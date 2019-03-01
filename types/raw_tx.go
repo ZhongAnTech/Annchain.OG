@@ -319,7 +319,7 @@ func (t *TxisMarshaler) Append(tx Txi) {
 		return
 	}
 	m := RawTxMarshaler{raw}
-	if t==nil {
+	if t == nil {
 		panic("t is nil ")
 	}
 	*t = append(*t, &m)

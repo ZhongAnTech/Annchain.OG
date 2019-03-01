@@ -1,6 +1,7 @@
 package annsensus
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
@@ -65,28 +66,45 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 
 	err = cp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
 	if err != nil {
-		log.WithError(err).Debug("dkg Public key  verify failed")
+		log.WithField("cp",cp).WithError(err).Debug("dkg Public key  verify failed")
+		return false
+	}
+	if cp.GetDkgPublicKey() ==nil {
+		log.WithField("cp",cp).WithField("data ", cp.PublicKey).Warn("dkgPub is nil")
 		return false
 	}
 	if a.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return false
 	}
+	log.WithField("cp ",cp ).Trace("verify ok ")
 	return true
 }
 
 //ProcessCampaign  , verify campaign
 func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 	a.mu.RLock()
+	defer a.mu.RUnlock()
 	if a.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
-	a.dkg.partner.PartPubs = append(a.dkg.partner.PartPubs, cp.GetDkgPublicKey())
+
+	pubkey:= cp.GetDkgPublicKey()
+	if pubkey!=nil {
+		a.dkg.mu.RLock()
+		a.dkg.partner.PartPubs = append(a.dkg.partner.PartPubs,pubkey)
+		if bytes.Equal(cp.PublicKey, a.MyPrivKey.PublicKey().Bytes) {
+			a.dkg.partner.Id = uint32(len(a.dkg.partner.PartPubs) - 1)
+		}
+		a.dkg.mu.RUnlock()
+	}else {
+		log.WithField("nil PartPubf for  campain",cp ).Warn("add campaign")
+		return  fmt.Errorf("pubkey is nil ")
+	}
 	a.candidates[cp.Issuer] = cp
 	a.dkg.partner.addressIndex[cp.Issuer] = len(a.dkg.partner.PartPubs) - 1
-   // log.WithField("me ",a.id).WithField("add cp", cp ).Debug("added")
-	a.mu.RUnlock()
+	// log.WithField("me ",a.id).WithField("add cp", cp ).Debug("added")
 	return nil
 }
 

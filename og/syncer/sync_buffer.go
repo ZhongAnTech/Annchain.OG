@@ -48,6 +48,7 @@ func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 		Txs:    make(map[types.Hash]types.Txi),
 		txPool: config.TxPool,
 		dag:    config.Dag,
+		Verifiers:config.Verifiers,
 	}
 	return s
 }
@@ -156,7 +157,7 @@ func (s *SyncBuffer) Handle() error {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handle fail")
 		return err
 	}
-
+	log.WithField("len ", len(s.Verifiers)).Debug("len sync buffer verifier")
 	for _, hash := range s.TxsList {
 		tx := s.Get(hash)
 		if tx == nil {

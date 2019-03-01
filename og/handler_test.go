@@ -23,7 +23,7 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		var body types.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
 		var txs types.Txis
-		for j:=0;j<3;j++ {
+		for j := 0; j < 3; j++ {
 			txs = append(txs, types.RandomTx())
 		}
 		rtxs := txs.TxisMarshaler()

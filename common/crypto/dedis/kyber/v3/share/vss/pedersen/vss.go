@@ -784,9 +784,9 @@ func (d *EncryptedDeal) String() string {
 	return fmt.Sprintf("encDeal-%x", d.Cipher[:])
 }
 
-func (d*EncryptedDeal)TerminateString() string {
+func (d *EncryptedDeal) TerminateString() string {
 	if d == nil {
 		return ""
 	}
-	return  fmt.Sprintf("encdeal-len-%d",len(d.Cipher))
+	return fmt.Sprintf("encdeal-len-%d", len(d.Cipher))
 }

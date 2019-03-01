@@ -13,6 +13,7 @@ import (
 var CryptoType = crypto.CryptoTypeSecp256k1
 
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
+	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDeal")
 		return
@@ -30,6 +31,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 }
 
 func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string) {
+	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDealResponse")
 		return

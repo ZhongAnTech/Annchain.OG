@@ -29,10 +29,6 @@ type AnnSensus struct {
 	//receive consensus txs from pool ,for notifications
 	ConsensusTXConfirmed chan []types.Txi
 
-	// // channels for receiving txs.
-	// campsCh   chan []*types.Campaign
-	// termchgCh chan *types.TermChange
-
 	dkg *Dkg
 
 	// signal channels
@@ -68,7 +64,8 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.NbParticipants = partnerNum
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
-    ann.cryptoType = cryptoType
+	ann.cryptoType = cryptoType
+
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
 
@@ -139,7 +136,13 @@ func (as *AnnSensus) prodcampaign() {
 				return
 			}
 			// generate dkg partner and key pair.
+
+			// delete this later
 			pubKey := as.GenerateDkg()
+
+			as.dkg.GenerateDkg()
+			pubKey = as.dkg.PublicKey()
+
 			// generate campaign.
 			camp := as.genCamp(pubKey)
 			// send camp
@@ -171,12 +174,16 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		// handle campaigns should not only add it into candidate list.
 		// as.candidates[c.Issuer] = c
 		as.AddCampaignCandidates(c) //todo remove duplication here
-		if as.canChangeTerm() {
-			as.termchgLock.Lock()
-			as.termchgFlag = true
-			as.termchgLock.Unlock()
-			as.changeTerm()
+		if !as.canChangeTerm() {
+			continue
 		}
+		as.SwitchTcFlagWithLock(true)
+
+		camps := []*types.Campaign{}
+		for _, camp := range as.candidates {
+			camps = append(camps, camp)
+		}
+		as.changeTerm(camps)
 
 	}
 
@@ -206,9 +213,9 @@ func (as *AnnSensus) isTermChanging() bool {
 	return changing
 }
 
-func (as *AnnSensus) changeTerm() {
-	// TODO
-	// 1. start term change gossip
+func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
+	// start term change gossip
+	as.dkg.loadCampaigns(camps)
 	as.termChgStartSignal <- struct{}{}
 
 	for {
@@ -225,9 +232,6 @@ func (as *AnnSensus) changeTerm() {
 					c <- tc
 				}
 			}
-			as.termchgLock.Lock()
-			as.termchgFlag = false
-			as.termchgLock.Unlock()
 
 			// TODO
 			// temporarily clear the candidates and alsorans, because there
@@ -251,6 +255,13 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 	// TODO
 
 	return nil
+}
+
+func (as *AnnSensus) SwitchTcFlagWithLock(flag bool) {
+	as.termchgLock.Lock()
+	defer as.termchgLock.Unlock()
+
+	as.termchgFlag = flag
 }
 
 // addAlsorans add a list of campaigns into alsoran list.

@@ -39,8 +39,8 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 }
 
 //consensus related verification
-func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
-	return true
+func (a *AnnSensus) VerifyTermChanges(tcs []*types.TermChange) (*types.TermChange, error) {
+	return nil, nil
 }
 
 //consensus related verification
@@ -86,11 +86,6 @@ func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 	a.dkg.partner.addressIndex[cp.Issuer] = len(a.dkg.partner.PartPubs) - 1
 	// log.WithField("me ",a.id).WithField("add cp", cp ).Debug("added")
 	a.mu.RUnlock()
-	return nil
-}
-
-//ProcessTermChange , verify termchange
-func (a *AnnSensus) ProcessTermChange(tc *types.TermChange) error {
 	return nil
 }
 

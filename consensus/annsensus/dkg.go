@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,11 +28,13 @@ type Dkg struct {
 	pk      []byte
 	partner *Partner
 
-	gossipStartCh  chan struct{}
-	gossipStopChan chan struct{}
-	gossipReqCh    chan *types.MessageConsensusDkgDeal
-	gossipRespCh   chan *types.MessageConsensusDkgDealResponse
-	mu             sync.RWMutex
+	gossipStartCh chan struct{}
+	gossipStopCh  chan struct{}
+	gossipReqCh   chan *types.MessageConsensusDkgDeal
+	gossipRespCh  chan *types.MessageConsensusDkgDealResponse
+	// gossipSigCh
+
+	mu sync.RWMutex
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
@@ -49,7 +50,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
 	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse, 100)
-	d.gossipStopChan = make(chan struct{})
+	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
 	if d.dkgOn {
 		d.GenerateDkg() //todo fix later
@@ -75,7 +76,7 @@ func (d *Dkg) start() {
 }
 
 func (d *Dkg) stop() {
-	d.gossipStopChan <- struct{}{}
+	d.gossipStopCh <- struct{}{}
 	log.Info("dkg stop")
 }
 
@@ -100,31 +101,6 @@ func (d *Dkg) loadCampaigns(camps []*types.Campaign) {
 		d.partner.PartPubs = append(d.partner.PartPubs, camp.GetDkgPublicKey())
 		d.partner.addressIndex[camp.Sender()] = len(d.partner.PartPubs) - 1
 	}
-}
-
-func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
-	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
-	return sc, p.Suite.Point().Mul(sc, nil)
-}
-
-type DealsMap map[int]*dkg.Deal
-
-func (t DealsMap) TerminateString() string {
-	if t == nil || len(t) == 0 {
-		return ""
-	}
-	var str []string
-	var keys []int
-	for k := range t {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	for _, k := range keys {
-		if v, ok := t[k]; ok {
-			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
-		}
-	}
-	return strings.Join(str, ",")
 }
 
 func (d *Dkg) getDeals() (DealsMap, error) {
@@ -198,17 +174,6 @@ func (d *Dkg) gossiploop() {
 			_, err := deal.UnmarshalMsg(request.Data)
 			if err != nil {
 				log.Warn("unmarshal failed failed")
-			}
-			var cp *types.Campaign
-			for _, v := range d.ann.Candidates() {
-				if bytes.Equal(v.PublicKey, request.PublicKey) {
-					cp = v
-					break
-				}
-			}
-			if cp == nil {
-				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
-				continue
 			}
 
 			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
@@ -299,7 +264,7 @@ func (d *Dkg) gossiploop() {
 			d.mu.RUnlock()
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
 
-		case <-d.gossipStopChan:
+		case <-d.gossipStopCh:
 			log := log.WithField("me ", d.ann.id)
 			log.Info("got quit signal dkg gossip stopped")
 			return
@@ -315,6 +280,31 @@ func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 		}
 	}
 	return nil
+}
+
+func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
+	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
+	return sc, p.Suite.Point().Mul(sc, nil)
+}
+
+type DealsMap map[int]*dkg.Deal
+
+func (t DealsMap) TerminateString() string {
+	if t == nil || len(t) == 0 {
+		return ""
+	}
+	var str []string
+	var keys []int
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		if v, ok := t[k]; ok {
+			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
+		}
+	}
+	return strings.Join(str, ",")
 }
 
 type Partner struct {

@@ -35,13 +35,13 @@ type AnnSensus struct {
 	termChgStartSignal chan struct{}
 	termChgEndSignal   chan []*types.TermChange
 	dkgPkCh            chan kyber.Point
-	dkgReqCh           chan *types.MessageConsensusDkgDeal
-	dkgRespCh          chan *types.MessageConsensusDkgDealResponse
+	//dkgReqCh           chan *types.MessageConsensusDkgDeal
+	//dkgRespCh          chan *types.MessageConsensusDkgDealResponse
 
-	Hub            MessageSender // todo use interface later
-	Txpool         og.ITxPool
-	Idag           og.IDag
-	partner        *Partner // partner is for distributed key generate.
+	Hub    MessageSender // todo use interface later
+	Txpool og.ITxPool
+	Idag   og.IDag
+	//partner        *Partner // partner is for distributed key generate.
 	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
 	NbParticipants int
@@ -49,6 +49,7 @@ type AnnSensus struct {
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
 	close       chan struct{}
+	id          int
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
@@ -77,14 +78,15 @@ func (as *AnnSensus) Start() {
 	if as.campaignFlag {
 		as.ProdCampaignOn()
 		// TODO campaign gossip starts here?
-		go as.gossipLoop()
 	}
+	as.dkg.start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
 	as.ProdCampaignOff()
+	as.dkg.stop()
 	close(as.close)
 }
 
@@ -136,15 +138,11 @@ func (as *AnnSensus) prodcampaign() {
 				return
 			}
 			// generate dkg partner and key pair.
-
-			// delete this later
-			pubKey := as.GenerateDkg()
-
 			as.dkg.GenerateDkg()
 			pubKey = as.dkg.PublicKey()
 
 			// generate campaign.
-			camp := as.genCamp(pubKey)
+			camp := as.genCamp(as.dkg.pk)
 			// send camp
 			if camp != nil {
 				for _, c := range as.newTxHandlers {
@@ -173,7 +171,11 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		// TODO
 		// handle campaigns should not only add it into candidate list.
 		// as.candidates[c.Issuer] = c
-		as.AddCampaignCandidates(c) //todo remove duplication here
+		err := as.AddCampaignCandidates(c) //todo remove duplication here
+		if err != nil {
+			log.WithError(err).Debug("add campaign err")
+			continue
+		}
 		if !as.canChangeTerm() {
 			continue
 		}
@@ -216,7 +218,7 @@ func (as *AnnSensus) isTermChanging() bool {
 func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 	// start term change gossip
 	as.dkg.loadCampaigns(camps)
-	as.termChgStartSignal <- struct{}{}
+	as.dkg.StartGossip()
 
 	for {
 		select {
@@ -267,6 +269,7 @@ func (as *AnnSensus) SwitchTcFlagWithLock(flag bool) {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
+	log.WithField("add also runs", camps).Trace(camps)
 	for _, cp := range camps {
 		if cp == nil {
 			continue

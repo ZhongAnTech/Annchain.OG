@@ -12,7 +12,6 @@ func TestAnnSensus_VrfVerify(t *testing.T) {
 		a := &AnnSensus{}
 		cp := &types.Campaign{}
 		a.Idag = &DummyDag{}
-		a.doCamp = true
 		vrf := a.GenerateVrf()
 		fmt.Println(vrf, i)
 		if vrf == nil {

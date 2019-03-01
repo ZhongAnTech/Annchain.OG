@@ -882,4 +882,3 @@ type ConfirmBatch struct {
 	Seq *types.Sequencer
 	Txs types.Txis
 }
-

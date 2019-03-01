@@ -45,10 +45,10 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:    make(map[types.Hash]types.Txi),
-		txPool: config.TxPool,
-		dag:    config.Dag,
-		Verifiers:config.Verifiers,
+		Txs:       make(map[types.Hash]types.Txi),
+		txPool:    config.TxPool,
+		dag:       config.Dag,
+		Verifiers: config.Verifiers,
 	}
 	return s
 }

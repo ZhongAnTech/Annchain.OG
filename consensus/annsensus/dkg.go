@@ -2,6 +2,11 @@ package annsensus
 
 import (
 	"bytes"
+	"fmt"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
@@ -24,9 +29,11 @@ type Dkg struct {
 	pk      []byte
 	partner *Partner
 
-	gossipStartCh chan struct{}
-	gossipReqCh   chan *types.MessageConsensusDkgDeal
-	gossipRespCh  chan *types.MessageConsensusDkgDealResponse
+	gossipStartCh  chan struct{}
+	gossipStopChan chan struct{}
+	gossipReqCh    chan *types.MessageConsensusDkgDeal
+	gossipRespCh   chan *types.MessageConsensusDkgDealResponse
+	mu             sync.RWMutex
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
@@ -40,10 +47,14 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dkgOn = dkgOn
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
-	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal)
-	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse)
+	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
+	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse, 100)
+	d.gossipStopChan = make(chan struct{})
+	d.dkgOn = dkgOn
+	if d.dkgOn {
+		d.GenerateDkg() //todo fix later
+	}
 
-	go d.gossiploop()
 	return d
 }
 
@@ -57,16 +68,23 @@ func (d *Dkg) Reset() {
 	d.pk = nil
 }
 
+func (d *Dkg) start() {
+	//TODO
+	log.Info("dkg start")
+	go d.gossiploop()
+}
+
+func (d *Dkg) stop() {
+	d.gossipStopChan <- struct{}{}
+	log.Info("dkg stop")
+}
+
 func (d *Dkg) GenerateDkg() {
-	p := d.partner
-
-	sec, pub := genPartnerPair(p)
-	p.MyPartSec = sec
-
+	sec, pub := genPartnerPair(d.partner)
+	d.partner.MyPartSec = sec
+	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-
 	d.pk = pk
-	d.partner = p
 }
 
 func (d *Dkg) PublicKey() []byte {
@@ -84,31 +102,33 @@ func (d *Dkg) loadCampaigns(camps []*types.Campaign) {
 	}
 }
 
-func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
-	s := bn256.NewSuiteG2()
-	partner := NewPartner(s)
-	// partner generate pair for itself.
-	partSec, partPub := genPartnerPair(partner)
-	// you should always keep MyPartSec safe. Do not share.
-	partner.MyPartSec = partSec
-	//partner.PartPubs = append(partner.PartPubs, partPub)
-	as.partner = partner
-	as.partner.NbParticipants = as.NbParticipants
-	as.partner.Threshold = as.Threshold
-	log.WithField("my part pub ", partPub).Debug("dkg gen")
-	dkgPubkey, err := partPub.MarshalBinary()
-	if err != nil {
-		log.WithError(err).Error("marshal public key error")
-		panic(err)
-		return nil
-	}
-	return dkgPubkey
-
-}
-
 func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
 	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
 	return sc, p.Suite.Point().Mul(sc, nil)
+}
+
+type DealsMap map[int]*dkg.Deal
+
+func (t DealsMap) TerminateString() string {
+	if t == nil || len(t) == 0 {
+		return ""
+	}
+	var str []string
+	var keys []int
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		if v, ok := t[k]; ok {
+			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
+		}
+	}
+	return strings.Join(str, ",")
+}
+
+func (d *Dkg) getDeals() (DealsMap, error) {
+	return d.partner.Dkger.Deals()
 }
 
 func (d *Dkg) gossiploop() {
@@ -121,17 +141,19 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
+			log := log.WithField("me ", d.ann.id)
 			err := d.partner.GenerateDKGer()
 			if err != nil {
 				log.WithError(err).Error("gen dkger fail")
 				continue
 			}
-			deals, err := d.partner.Dkger.Deals()
+			deals, err := d.getDeals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
 				continue
 			}
-			log.WithField("deals", deals).WithField("len deals", len(deals)).Trace("got deals")
+			//log.WithField("len deals", len(deals)).WithField("len partner",
+			//	len(d.partner.PartPubs)).WithField("deals", deals.TerminateString()).Trace("got deals")
 			for i, deal := range deals {
 				data, _ := deal.MarshalMsg(nil)
 				msg := &types.MessageConsensusDkgDeal{
@@ -143,9 +165,12 @@ func (d *Dkg) gossiploop() {
 					panic("address not found")
 				}
 				if *addr == d.ann.MyPrivKey.PublicKey().Address() {
-					//this is for me ,
-					d.gossipReqCh <- msg
-					continue
+					//this is for me , skip myself
+					log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
+						deal.TerminateString()).Error("send dkg deal to myself")
+					panic("send dkg deal to myself")
+					//d.gossipReqCh <- msg
+					//continue
 				}
 				cp := d.ann.GetCandidate(*addr)
 				if cp == nil {
@@ -155,7 +180,8 @@ func (d *Dkg) gossiploop() {
 				msg.Sinature = s.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 				msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 				pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
-				log.WithField("deal", deal).Debug("send dkg deal to")
+				log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
+					deal.TerminateString()).Debug("send dkg deal to")
 				d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 			}
 
@@ -166,6 +192,8 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
+			log := log.WithField("me ", d.ann.id)
+			time.Sleep(10 * time.Millisecond) //this is for test
 			var deal dkg.Deal
 			_, err := deal.UnmarshalMsg(request.Data)
 			if err != nil {
@@ -182,12 +210,21 @@ func (d *Dkg) gossiploop() {
 				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
 				continue
 			}
-			_, ok := d.partner.addressIndex[cp.Issuer]
-			if !ok {
-				log.WithField("deal ", request).Warn("not found  dkg  partner for deal")
+
+			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+			addr := s.AddressFromPubKeyBytes(request.PublicKey)
+			if d.ann.GetCandidate(addr) == nil {
+				log.WithField("pk ", request.Id).WithField("deal ", request).Warn("not found  campaign for deal")
 				continue
 			}
+			_, ok := d.partner.addressIndex[addr]
+			if !ok {
+				log.WithField("deal ", request).Warn("not found  dkg partner dress   for deal")
+				continue
+			}
+			d.mu.RLock()
 			responseDeal, err := d.partner.Dkger.ProcessDeal(&deal)
+			d.mu.RUnlock()
 			if err != nil {
 				log.WithField("deal ", request).WithError(err).Warn("  partner process error")
 				continue
@@ -197,74 +234,75 @@ func (d *Dkg) gossiploop() {
 				log.WithField("deal ", request).WithError(err).Warn("  partner process error")
 				continue
 			}
-
 			response := &types.MessageConsensusDkgDealResponse{
 				Data: respData,
-				Id:   request.Id,
+				//Id:   request.Id,
+				Id: og.MsgCounter.Get(),
 			}
 			signer := crypto.NewSigner(d.ann.cryptoType)
 			response.Sinature = signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
 			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-			log.WithField("response ", response).Debug("will send response")
+			log.WithField("to request ", request).WithField("response ", response).Debug("will send response")
 			//broadcast response to all partner
-			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
-			//and sent to myself ?
-			d.gossipRespCh <- response
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			//and sent to myself ? already processed inside dkg,skip myself
 
 		case response := <-d.gossipRespCh:
-
+			log := log.WithField("me ", d.ann.id)
 			var resp dkg.Response
 			_, err := resp.UnmarshalMsg(response.Data)
 			if err != nil {
 				log.WithError(err).Warn("verify signature failed")
 				return
 			}
+			//log.WithField("resp ", response).Trace("got response")
 			//broadcast  continue
-			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
-
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 			if !d.dkgOn {
 				//not a consensus partner
+				log.Warn("why send to me")
 				continue
 			}
-			var cp *types.Campaign
-			for _, v := range d.ann.Candidates() {
-				if bytes.Equal(v.PublicKey, response.PublicKey) {
-					cp = v
-					break
-				}
-			}
-			if cp == nil {
-				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
+			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+			addr := s.AddressFromPubKeyBytes(response.PublicKey)
+			if d.ann.GetCandidate(addr) == nil {
+				log.WithField("pub ", response.PublicKey).Trace("resp ")
+				log.WithField("id ", response.Id).WithField("deal ", response).Error("not found  Campaign  for deal response")
 				continue
 			}
-			_, ok := d.partner.addressIndex[cp.Issuer]
+			_, ok := d.partner.addressIndex[addr]
 			if !ok {
-				log.WithField("deal ", response).Warn("not found  dkg  partner for deal")
+				log.WithField("address ", addr.TerminalString()).WithField("deal ", response).Warn(
+					"not found  dkg  partner address  for deal")
 				continue
 			}
+			d.mu.RLock()
 			just, err := d.partner.Dkger.ProcessResponse(&resp)
 			if err != nil {
-				log.WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
-				continue
+				log.WithField("req ", response).WithField("rsp ", resp).WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
+			} else {
+				log.WithField("response ", resp).Trace("process response ok")
+				d.partner.responseNumber++
 			}
-			d.partner.responseNumber++
-			if d.partner.responseNumber >= (d.partner.NbParticipants)*(d.partner.NbParticipants) {
+			if d.partner.responseNumber >= (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
 				log.Info("got response done")
 				jointPub, err := d.partner.RecoverPub()
 				if err != nil {
 					log.WithError(err).Warn("get recover pub key fail")
-					continue
 				}
 				// send public key to changeTerm loop.
 				// TODO
 				// this channel may be changed later.
-				d.ann.dkgPkCh <- jointPub
+				//d.ann.dkgPkCh <- jointPub
 				log.WithField("bls key ", jointPub).Info("joint pubkey ")
-				continue
-
 			}
+			d.mu.RUnlock()
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
 
+		case <-d.gossipStopChan:
+			log := log.WithField("me ", d.ann.id)
+			log.Info("got quit signal dkg gossip stopped")
+			return
 		}
 	}
 }

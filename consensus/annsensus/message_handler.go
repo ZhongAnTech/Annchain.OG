@@ -25,7 +25,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 		log.Warn("verify signature failed")
 		return
 	}
-	a.dkgReqCh <- request
+	a.dkg.gossipReqCh <- request
 
 }
 
@@ -44,5 +44,5 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	}
 	log.Debug("response ok")
 
-	a.dkgRespCh <- request
+	a.dkg.gossipRespCh <- request
 }

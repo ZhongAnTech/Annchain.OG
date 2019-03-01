@@ -33,9 +33,11 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	p := NewPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
+	p.PartPubs = []kyber.Point{}
 
 	d := &Dkg{}
 	d.ann = ann
+	d.dkgOn = dkgOn
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal)
@@ -45,12 +47,21 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	return d
 }
 
+func (d *Dkg) Reset() {
+	p := NewPartner(bn256.NewSuiteG2())
+	p.NbParticipants = d.partner.NbParticipants
+	p.Threshold = d.partner.Threshold
+	p.PartPubs = []kyber.Point{}
+
+	d.partner = p
+	d.pk = nil
+}
+
 func (d *Dkg) GenerateDkg() {
 	p := d.partner
 
 	sec, pub := genPartnerPair(p)
 	p.MyPartSec = sec
-	p.PartPubs = []kyber.Point{pub}
 
 	pk, _ := pub.MarshalBinary()
 
@@ -64,6 +75,13 @@ func (d *Dkg) PublicKey() []byte {
 
 func (d *Dkg) StartGossip() {
 	d.gossipStartCh <- struct{}{}
+}
+
+func (d *Dkg) loadCampaigns(camps []*types.Campaign) {
+	for _, camp := range camps {
+		d.partner.PartPubs = append(d.partner.PartPubs, camp.GetDkgPublicKey())
+		d.partner.addressIndex[camp.Sender()] = len(d.partner.PartPubs) - 1
+	}
 }
 
 func (as *AnnSensus) GenerateDkg() (dkgPubkey []byte) {
@@ -97,6 +115,12 @@ func (d *Dkg) gossiploop() {
 	for {
 		select {
 		case <-d.gossipStartCh:
+			if !d.dkgOn {
+				//not a consensus partner
+				log.Warn("why send to me")
+				continue
+			}
+
 			err := d.partner.GenerateDKGer()
 			if err != nil {
 				log.WithError(err).Error("gen dkger fail")
@@ -136,16 +160,16 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case request := <-d.gossipReqCh:
+			if !d.dkgOn {
+				//not a consensus partner
+				log.Warn("why send to me")
+				continue
+			}
 
 			var deal dkg.Deal
 			_, err := deal.UnmarshalMsg(request.Data)
 			if err != nil {
 				log.Warn("unmarshal failed failed")
-			}
-			if !d.dkgOn {
-				//not a consensus partner
-				log.Warn("why send to me")
-				return
 			}
 			var cp *types.Campaign
 			for _, v := range d.ann.Candidates() {
@@ -197,6 +221,7 @@ func (d *Dkg) gossiploop() {
 			}
 			//broadcast  continue
 			d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+
 			if !d.dkgOn {
 				//not a consensus partner
 				continue
@@ -231,7 +256,7 @@ func (d *Dkg) gossiploop() {
 					continue
 				}
 				// send public key to changeTerm loop.
-				// TODO 
+				// TODO
 				// this channel may be changed later.
 				d.ann.dkgPkCh <- jointPub
 				log.WithField("bls key ", jointPub).Info("joint pubkey ")

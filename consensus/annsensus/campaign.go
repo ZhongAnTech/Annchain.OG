@@ -75,15 +75,17 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	return true
 }
 
-//ProcessCampaign  , verify campaign
 func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
 	if a.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
+	// TODO
+	// delete these code, because partner is moved to a.dkg
 	a.partner.PartPubs = append(a.partner.PartPubs, cp.GetDkgPublicKey())
-	a.candidates[cp.Issuer] = cp
 	a.partner.addressIndex[cp.Issuer] = len(a.partner.PartPubs) - 1
+
+	a.candidates[cp.Issuer] = cp
 
 	return nil
 }

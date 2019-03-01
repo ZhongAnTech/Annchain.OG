@@ -22,12 +22,11 @@ import (
 type Dkg struct {
 	ann *AnnSensus
 
-	dkgOn   bool
-	pk      []byte
-	partner *Partner
-
+	dkgOn             bool
+	pk                []byte
+	partner           *Partner
 	gossipStartCh     chan struct{}
-	gossipStopChan    chan struct{}
+	gossipStopCh      chan struct{}
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
 	gossipRespCh      chan *types.MessageConsensusDkgDealResponse
 	mu                sync.RWMutex
@@ -41,14 +40,16 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	p := NewPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
+	p.PartPubs = []kyber.Point{}
 
 	d := &Dkg{}
 	d.ann = ann
+	d.dkgOn = dkgOn
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
 	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse, 100)
-	d.gossipStopChan = make(chan struct{})
+	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
 	if d.dkgOn {
 		d.GenerateDkg() //todo fix later
@@ -60,6 +61,16 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	return d
 }
 
+func (d *Dkg) Reset() {
+	p := NewPartner(bn256.NewSuiteG2())
+	p.NbParticipants = d.partner.NbParticipants
+	p.Threshold = d.partner.Threshold
+	p.PartPubs = []kyber.Point{}
+
+	d.partner = p
+	d.pk = nil
+}
+
 func (d *Dkg) start() {
 	//TODO
 	log.Info("dkg start")
@@ -67,7 +78,7 @@ func (d *Dkg) start() {
 }
 
 func (d *Dkg) stop() {
-	d.gossipStopChan <- struct{}{}
+	d.gossipStopCh <- struct{}{}
 	log.Info("dkg stop")
 }
 
@@ -87,29 +98,11 @@ func (d *Dkg) StartGossip() {
 	d.gossipStartCh <- struct{}{}
 }
 
-func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
-	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
-	return sc, p.Suite.Point().Mul(sc, nil)
-}
-
-type DealsMap map[int]*dkg.Deal
-
-func (t DealsMap) TerminateString() string {
-	if t == nil || len(t) == 0 {
-		return ""
-	}
-	var str []string
-	var keys []int
-	for k := range t {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	for _, k := range keys {
-		if v, ok := t[k]; ok {
-			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
-		}
-	}
-	return strings.Join(str, ",")
+func (d *Dkg) loadCampaigns(camps []*types.Campaign) {
+	//for _, camp := range camps {
+	//	d.partner.PartPubs = append(d.partner.PartPubs, camp.GetDkgPublicKey())
+	//	d.partner.addressIndex[camp.Sender()] = len(d.partner.PartPubs) - 1
+	//}
 }
 
 func (d *Dkg) getDeals() (DealsMap, error) {
@@ -120,7 +113,12 @@ func (d *Dkg) gossiploop() {
 	for {
 		select {
 		case <-d.gossipStartCh:
-			log := log.WithField("me", d.ann.id)
+
+			if !d.dkgOn {
+				//not a consensus partner
+				log.Warn("why send to me")
+				continue
+			}
 			d.mu.RLock()
 			err := d.partner.GenerateDKGer()
 			d.mu.RUnlock()
@@ -128,6 +126,7 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Error("gen dkger fail")
 				continue
 			}
+			log := log.WithField("me", d.partner.Id)
 			deals, err := d.getDeals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
@@ -197,14 +196,14 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case request := <-d.gossipReqCh:
-			log := log.WithField("me", d.ann.id)
-			//time.Sleep(10 * time.Millisecond) //this is for test
 			if !d.dkgOn {
 				//not a consensus partner
 				log.Warn("why send to me")
-				return
+				continue
 			}
 
+			log := log.WithField("me ", d.partner.Id)
+			//time.Sleep(10 * time.Millisecond) //this is for test
 			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 			addr := s.AddressFromPubKeyBytes(request.PublicKey)
 			d.mu.RLock()
@@ -279,7 +278,8 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case response := <-d.gossipRespCh:
-			log := log.WithField("me", d.ann.id)
+
+			log := log.WithField("me", d.partner.Id)
 			var resp dkg.Response
 			_, err := resp.UnmarshalMsg(response.Data)
 			if err != nil {
@@ -354,7 +354,7 @@ func (d *Dkg) gossiploop() {
 			d.mu.RUnlock()
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
 
-		case <-d.gossipStopChan:
+		case <-d.gossipStopCh:
 			log := log.WithField("me ", d.ann.id)
 			log.Info("got quit signal dkg gossip stopped")
 			return
@@ -370,6 +370,31 @@ func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 		}
 	}
 	return nil
+}
+
+func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
+	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
+	return sc, p.Suite.Point().Mul(sc, nil)
+}
+
+type DealsMap map[int]*dkg.Deal
+
+func (t DealsMap) TerminateString() string {
+	if t == nil || len(t) == 0 {
+		return ""
+	}
+	var str []string
+	var keys []int
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		if v, ok := t[k]; ok {
+			str = append(str, fmt.Sprintf("key-%d-val-%s", k, v.TerminateString()))
+		}
+	}
+	return strings.Join(str, ",")
 }
 
 type Partner struct {

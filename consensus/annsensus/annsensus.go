@@ -2,7 +2,6 @@ package annsensus
 
 import (
 	"sync"
-	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
@@ -13,30 +12,25 @@ import (
 
 type AnnSensus struct {
 	cryptoType crypto.CryptoType
-	doCamp     bool // the switch of whether annsensus should produce campaign.
+
+	dkg *Dkg
 
 	campaignFlag bool
 	maxCamps     int
 	candidates   map[types.Address]*types.Campaign
 	alsorans     map[types.Address]*types.Campaign
-	//campaigns    map[types.Address]*types.Campaign // TODO replaced by candidates
+	// current senators to produce the sequencer.
+	senators map[types.Address]*Senator
 
-	termchgFlag bool
+	termchgFlag        bool
+	termChgStartSignal chan struct{}
+	termChgEndSignal   chan *types.TermChange
+	dkgPkCh            chan kyber.Point
 
 	// channels to send txs.
 	newTxHandlers []chan types.Txi
-
 	//receive consensus txs from pool ,for notifications
 	ConsensusTXConfirmed chan []types.Txi
-
-	dkg *Dkg
-
-	// signal channels
-	termChgStartSignal chan struct{}
-	termChgEndSignal   chan []*types.TermChange
-	dkgPkCh            chan kyber.Point
-	//dkgReqCh           chan *types.MessageConsensusDkgDeal
-	//dkgRespCh          chan *types.MessageConsensusDkgDealResponse
 
 	Hub    MessageSender // todo use interface later
 	Txpool og.ITxPool
@@ -48,8 +42,9 @@ type AnnSensus struct {
 
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
-	close       chan struct{}
-	id          int
+
+	close chan struct{}
+	id    int
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
@@ -58,7 +53,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.termChgStartSignal = make(chan struct{})
-	ann.termChgEndSignal = make(chan []*types.TermChange)
+	ann.termChgEndSignal = make(chan *types.TermChange)
 	ann.campaignFlag = campaign
 	ann.candidates = make(map[types.Address]*types.Campaign)
 	ann.alsorans = make(map[types.Address]*types.Campaign)
@@ -75,17 +70,14 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
-	if as.campaignFlag {
-		as.ProdCampaignOn()
-		// TODO campaign gossip starts here?
-	}
+
 	as.dkg.start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-	as.ProdCampaignOff()
+
 	as.dkg.stop()
 	close(as.close)
 }
@@ -115,51 +107,28 @@ func (as *AnnSensus) RegisterNewTxHandler(c chan types.Txi) {
 
 // ProdCampaignOn let annsensus start producing campaign.
 func (as *AnnSensus) ProdCampaignOn() {
-	as.doCamp = true
 	go as.prodcampaign()
-}
-
-// ProdCampaignOff let annsensus stop producing campaign.
-func (as *AnnSensus) ProdCampaignOff() {
-	as.doCamp = false
 }
 
 // campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
 func (as *AnnSensus) prodcampaign() {
-	// TODO
-	for {
-		select {
-		case <-as.close:
-			log.Info("campaign stopped due to annsensus closed")
-			return
-		case <-time.After(time.Second * 4):
-			if !as.doCamp {
-				log.Info("campaign stopped")
-				return
-			}
-			// generate dkg partner and key pair.
-			as.dkg.GenerateDkg()
-			pubKey = as.dkg.PublicKey()
+	as.dkg.GenerateDkg()
 
-			// generate campaign.
-			camp := as.genCamp(as.dkg.pk)
-			// send camp
-			if camp != nil {
-				for _, c := range as.newTxHandlers {
-					c <- camp
-				}
-			}
-
-			// as.doCamp = false
+	// generate campaign.
+	camp := as.genCamp(as.dkg.PublicKey())
+	// send camp
+	if camp != nil {
+		for _, c := range as.newTxHandlers {
+			c <- camp
 		}
 	}
+
 }
 
 // commit takes a list of campaigns as input and record these
 // camps' information It checks if the number of camps reaches
 // the threshold. If so, start term changing flow.
 func (as *AnnSensus) commit(camps []*types.Campaign) {
-	// TODO
 
 	for i, c := range camps {
 		if as.isTermChanging() {
@@ -185,7 +154,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		for _, camp := range as.candidates {
 			camps = append(camps, camp)
 		}
-		as.changeTerm(camps)
+		go as.changeTerm(camps)
 
 	}
 
@@ -228,24 +197,14 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 		case pk := <-as.dkgPkCh:
 			log.Info("got a bls public key from dkg: %s", pk.String())
-			tc := as.genTermChg(pk)
+
+			// TODO generate sigset in dkg gossip.
+			sigset := map[types.Address][]byte{}
+			tc := as.genTermChg(pk, sigset)
 			if tc != nil {
 				for _, c := range as.newTxHandlers {
 					c <- tc
 				}
-			}
-
-			// TODO
-			// temporarily clear the candidates and alsorans, because there
-			// is no TermChange produced now.
-			as.candidates = make(map[types.Address]*types.Campaign)
-			as.alsorans = make(map[types.Address]*types.Campaign)
-
-		case tcs := <-as.termChgEndSignal:
-			// TODO
-			// handle TermChanges
-			if len(tcs) > 1 {
-				// TODO
 			}
 
 		}
@@ -253,10 +212,40 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 }
 
-func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
+func (as *AnnSensus) ProcessTermChange(tc *types.TermChange) {
 	// TODO
+	// lock?
 
-	return nil
+	as.senators = make(map[types.Address]*Senator)
+	for addr, camp := range as.candidates {
+		s := newSenator(addr, camp.PublicKey, tc.PkBls)
+		as.senators[addr] = s
+	}
+
+	as.candidates = make(map[types.Address]*types.Campaign)
+	as.alsorans = make(map[types.Address]*types.Campaign)
+
+	as.SwitchTcFlagWithLock(false)
+}
+
+func (as *AnnSensus) genTermChg(pk kyber.Point, sigset map[types.Address][]byte) *types.TermChange {
+	base := types.TxBase{
+		Type: types.TxBaseTypeTermChange,
+	}
+	address := as.MyPrivKey.PublicKey().Address()
+
+	pkbls, err := pk.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+
+	tc := &types.TermChange{
+		TxBase: base,
+		Issuer: address,
+		PkBls:  pkbls,
+		SigSet: sigset,
+	}
+	return tc
 }
 
 func (as *AnnSensus) SwitchTcFlagWithLock(flag bool) {
@@ -289,17 +278,6 @@ func (as *AnnSensus) loop() {
 			log.Info("got quit signal , annsensus loop stopped")
 			return
 
-		// case camps := <-as.campsCh:
-		// 	fmt.Println(camps)
-		// 	// TODO
-		// 	// case commit
-
-		// case termchg := <-as.termchgCh:
-		// 	fmt.Println(termchg)
-		// 	// TODO
-		// 	// case start term change gossip
-		// 	// dag sent campaigns and termchanges tx
-
 		case txs := <-as.ConsensusTXConfirmed:
 			log.WithField(" txs ", txs).Debug("got consensus txs")
 			var cps []*types.Campaign
@@ -317,7 +295,14 @@ func (as *AnnSensus) loop() {
 			}
 
 			if len(tcs) > 0 {
-
+				tc, err := as.VerifyTermChanges(tcs)
+				if err != nil {
+					log.Errorf("the received termchanges are not correct.")
+				}
+				if !as.isTermChanging() {
+					continue
+				}
+				as.ProcessTermChange(tc)
 			}
 
 		}

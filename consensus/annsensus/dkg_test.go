@@ -80,7 +80,7 @@ func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Mess
 }
 
 func (t *TestHub) loop() {
-	elog := logrus.WithField("me ", t.Id)
+	elog := logrus.WithField("me", t.Id)
 	for {
 		select {
 		case pMsg := <-t.OutMsg:

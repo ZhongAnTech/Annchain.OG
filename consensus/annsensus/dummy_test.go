@@ -25,8 +25,8 @@ func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 
 func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
 	var txis types.Txis
-	 txis = append(txis,types.RandomTx(),types.RandomTx())
-	 return txis
+	txis = append(txis, types.RandomTx(), types.RandomTx())
+	return txis
 }
 
 func (d *DummyDag) LatestSequencer() *types.Sequencer {

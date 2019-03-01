@@ -5,8 +5,7 @@ import (
 	"github.com/annchain/OG/common/crypto/sha3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-
-	)
+)
 
 //go:generate msgp
 
@@ -17,12 +16,12 @@ type TestMsg struct {
 }
 
 func (t *TestMsg) GetHash() types.Hash {
-	from := byte(t.From)
+	//from := byte(t.From)
 	data, err := t.Message.MarshalMsg(nil)
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
-	data = append(data,from)
+	//data = append(data, from)
 	h := sha3.New256()
 	h.Write(data)
 	b := h.Sum(nil)

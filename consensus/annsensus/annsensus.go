@@ -1,14 +1,13 @@
 package annsensus
 
 import (
-	"sync"
-	"time"
-
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
+	"sync"
+	"time"
 )
 
 type AnnSensus struct {
@@ -28,6 +27,7 @@ type AnnSensus struct {
 
 	//receive consensus txs from pool ,for notifications
 	ConsensusTXConfirmed chan []types.Txi
+	//LatestSequencerChan   chan bool
 
 	// // channels for receiving txs.
 	// campsCh   chan []*types.Campaign
@@ -42,9 +42,9 @@ type AnnSensus struct {
 	//dkgReqCh           chan *types.MessageConsensusDkgDeal
 	//dkgRespCh          chan *types.MessageConsensusDkgDealResponse
 
-	Hub            MessageSender // todo use interface later
-	Txpool         og.ITxPool
-	Idag           og.IDag
+	Hub    MessageSender // todo use interface later
+	Txpool og.ITxPool
+	Idag   og.IDag
 	//partner        *Partner // partner is for distributed key generate.
 	MyPrivKey      *crypto.PrivateKey
 	Threshold      int
@@ -53,7 +53,7 @@ type AnnSensus struct {
 	mu          sync.RWMutex
 	termchgLock sync.RWMutex
 	close       chan struct{}
-	id           int
+	id          int
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
@@ -69,7 +69,8 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.NbParticipants = partnerNum
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
-    ann.cryptoType = cryptoType
+	//ann.LatestSequencerChan  = make(chan bool)
+	ann.cryptoType = cryptoType
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
 
@@ -136,6 +137,7 @@ func (as *AnnSensus) prodcampaign() {
 			log.Info("campaign stopped due to annsensus closed")
 			return
 		case <-time.After(time.Second * 4):
+
 			if !as.doCamp {
 				log.Info("campaign stopped")
 				return
@@ -150,7 +152,7 @@ func (as *AnnSensus) prodcampaign() {
 				}
 			}
 
-			// as.doCamp = false
+			as.doCamp = false
 		}
 	}
 }
@@ -171,8 +173,8 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		// TODO
 		// handle campaigns should not only add it into candidate list.
 		// as.candidates[c.Issuer] = c
-		err:= as.AddCampaignCandidates(c) //todo remove duplication here
-		if err!=nil {
+		err := as.AddCampaignCandidates(c) //todo remove duplication here
+		if err != nil {
 			log.WithError(err).Debug("add campaign err")
 			continue
 		}
@@ -261,7 +263,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point) *types.TermChange {
 // addAlsorans add a list of campaigns into alsoran list.
 func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
 	// TODO
-	log.WithField("add also runs",camps ).Trace(camps)
+	log.WithField("add also runs", camps).Trace(camps)
 	for _, cp := range camps {
 		if cp == nil {
 			continue

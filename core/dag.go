@@ -880,11 +880,6 @@ func (tc *txcached) add(tx types.Txi) {
 
 type ConfirmBatch struct {
 	Seq *types.Sequencer
-	Txs ConfirmTxs
+	Txs types.Txis
 }
 
-type ConfirmTxs []types.Txi
-
-func (c ConfirmTxs) Len() int           { return len(c) }
-func (c ConfirmTxs) Less(i, j int) bool { return c[i].GetWeight() < c[j].GetWeight() }
-func (c ConfirmTxs) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }

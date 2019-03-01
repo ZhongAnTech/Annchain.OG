@@ -476,7 +476,7 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
-	log.WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.Parents().String())
+	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.Parents().String())
 
 	te := &txEvent{
 		callbackChan: make(chan error),
@@ -747,7 +747,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
-	cTxs := ConfirmTxs{}
+	cTxs := types.Txis{}
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
 		cTxs = append(cTxs, txi)

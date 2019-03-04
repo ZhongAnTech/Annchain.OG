@@ -66,6 +66,7 @@ const (
 	MessageTypeTermChange
 	MessageTypeConsensusDkgDeal
 	MessageTypeConsensusDkgDealResponse
+	MessageTypeConsensusDkgSigSets
 
 	MessageTypeSecret
 
@@ -147,6 +148,9 @@ func (mt MessageType) String() string {
 		return "MessageTypeConsensusDkgDeal"
 	case MessageTypeConsensusDkgDealResponse:
 		return "MessageTypeConsensusDkgDealResponse"
+
+	case MessageTypeConsensusDkgSigSets:
+		return "MessageTypeDkgSigSets"
 
 	case MessageTypeSecret:
 		return "MessageTypeSecret"
@@ -525,6 +529,8 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = &types.MessageConsensusDkgDeal{}
 	case MessageTypeConsensusDkgDealResponse:
 		p.message = &types.MessageConsensusDkgDealResponse{}
+	case MessageTypeConsensusDkgSigSets:
+		p.message = &types.MessageConsensusDkgSigSets{}
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}

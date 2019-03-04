@@ -3,6 +3,7 @@ package annsensus
 import (
 	// "bytes"
 
+	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
 	// "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
 	// "github.com/annchain/OG/og"
@@ -47,4 +48,24 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	log.Debug("response ok")
 
 	a.dkg.gossipRespCh <- request
+}
+
+func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string) {
+	log := log.WithField("me", a.id)
+	if request == nil {
+		log.Warn("got nil MessageConsensusDkgSigSets")
+		return
+	}
+	log.WithField("data", request).WithField("from peer ", peerId).Debug("got dkg bls sigsets")
+	pk := crypto.PublicKeyFromBytes(CryptoType, request.PublicKey)
+	s := crypto.NewSigner(pk.Type)
+	ok := s.Verify(pk, crypto.SignatureFromBytes(CryptoType, request.Sinature), request.SignatureTargets())
+	if !ok {
+		log.WithField("pkbls ", hex.EncodeToString(request.PkBls)).WithField("pk ", hex.EncodeToString(request.PublicKey)).WithField(
+			"sig ", hex.EncodeToString(request.Sinature)).Warn("verify signature failed")
+		return
+	}
+	log.Debug("response ok")
+
+	a.dkg.gossipSigSetspCh <- request
 }

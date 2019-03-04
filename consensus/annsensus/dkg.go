@@ -1,7 +1,12 @@
 package annsensus
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
@@ -11,9 +16,6 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/tbls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	"sort"
-	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -30,13 +32,14 @@ type Dkg struct {
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
 	gossipRespCh      chan *types.MessageConsensusDkgDealResponse
 	gossipSigSetspCh  chan *types.MessageConsensusDkgSigSets
-	mu                sync.RWMutex
 	dealCache         map[types.Address]*types.MessageConsensusDkgDeal
 	dealResPonseCache map[types.Address][]*types.MessageConsensusDkgDealResponse
 	dealSigSetsCache  map[types.Address]*types.MessageConsensusDkgSigSets
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
 	blsSigSets        map[types.Address]*SigSets
 	ready             bool
+
+	mu sync.RWMutex
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
@@ -89,8 +92,9 @@ func (d *Dkg) stop() {
 }
 
 func (d *Dkg) GenerateDkg() {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	sec, pub := genPartnerPair(d.partner)
 	d.partner.MyPartSec = sec
 	//d.partner.PartPubs = []kyber.Point{pub}??
@@ -117,15 +121,29 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
+func (d *Dkg) AddPartner(c *types.Campaign, annPriv *crypto.PrivateKey) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
+	if bytes.Equal(c.PublicKey, annPriv.PublicKey().Bytes) {
+		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
+	}
+	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
+
+}
+
 func (d *Dkg) GenerateDKGer() error {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	return d.partner.GenerateDKGer()
 }
 
 func (d *Dkg) ProcesssDeal(dd *dkg.Deal) (resp *dkg.Response, err error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	return d.partner.Dkger.ProcessDeal(dd)
 }
 
@@ -447,8 +465,9 @@ func (d *Dkg) gossiploop() {
 }
 
 func (d *Dkg) ProcessResponse(resp *dkg.Response) (just *dkg.Justification, err error) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	return d.processResponse(resp)
 }
 
@@ -459,6 +478,7 @@ func (d *Dkg) processResponse(resp *dkg.Response) (just *dkg.Justification, err 
 func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+
 	for k, v := range d.partner.addressIndex {
 		if v == i {
 			return &k

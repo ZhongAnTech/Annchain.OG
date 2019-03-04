@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/annchain/OG/common/math"
@@ -38,28 +37,23 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	return cp
 }
 
-func (a *AnnSensus) AddCampaignCandidates(cp *types.Campaign) error {
+func (a *AnnSensus) AddCandidate(cp *types.Campaign) error {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if a.HasCampaign(cp) {
+
+	if a.term.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
 
 	pubkey := cp.GetDkgPublicKey()
-	if pubkey != nil {
-		a.dkg.mu.RLock()
-		a.dkg.partner.PartPubs = append(a.dkg.partner.PartPubs, pubkey)
-		if bytes.Equal(cp.PublicKey, a.MyPrivKey.PublicKey().Bytes) {
-			a.dkg.partner.Id = uint32(len(a.dkg.partner.PartPubs) - 1)
-		}
-		a.dkg.mu.RUnlock()
-	} else {
+	if pubkey == nil {
 		log.WithField("nil PartPubf for  campain", cp).Warn("add campaign")
 		return fmt.Errorf("pubkey is nil ")
 	}
-	a.candidates[cp.Issuer] = cp
-	a.dkg.partner.addressIndex[cp.Issuer] = len(a.dkg.partner.PartPubs) - 1
+
+	a.dkg.AddPartner(cp, a.MyPrivKey)
+	a.term.AddCandidate(cp)
 	// log.WithField("me ",a.id).WithField("add cp", cp ).Debug("added")
 	return nil
 }

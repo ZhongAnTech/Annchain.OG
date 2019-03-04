@@ -250,6 +250,9 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	if txi.GetType() == types.TxBaseTypeCampaign {
 		cp := txi.(*types.Campaign)
 		cp.Issuer = me.Address
+	} else if txi.GetType() == types.TxBaseTypeTermChange {
+		cp := txi.(*types.TermChange)
+		cp.Issuer = me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)
 	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).Bytes

@@ -35,7 +35,7 @@ type Dkg struct {
 	dealResPonseCache map[types.Address][]*types.MessageConsensusDkgDealResponse
 	dealSigSetsCache  map[types.Address]*types.MessageConsensusDkgSigSets
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
-	blsSigSets        map[types.Address]*SigSets
+	blsSigSets        map[types.Address]*types.SigSet
 	ready             bool
 	signer            crypto.Signer
 }
@@ -63,7 +63,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
 	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
-	d.blsSigSets = make(map[types.Address]*SigSets)
+	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
 	d.signer = crypto.NewSigner(d.ann.cryptoType)
 	return d
@@ -387,7 +387,7 @@ func (d *Dkg) gossiploop() {
 			msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, &msg)
 
-			d.addSigsets(d.ann.MyPrivKey.PublicKey().Address(), &SigSets{publicKey: msg.PublicKey, Signature: msg.Sinature})
+			d.addSigsets(d.ann.MyPrivKey.PublicKey().Address(), &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Sinature})
 			sigCaches := d.unhandledSigSets()
 			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets
@@ -430,7 +430,7 @@ func (d *Dkg) gossiploop() {
 				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.partner.jointPubKey).Warn("pk bls mismatch")
 				continue
 			}
-			d.addSigsets(addr, &SigSets{publicKey: response.PublicKey, Signature: response.Sinature})
+			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Sinature})
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough si sets")
@@ -454,9 +454,9 @@ func (d *Dkg) checkWatingResponse(resp *dkg.Response, response *types.MessageCon
 		resps = append(resps, response)
 		d.respWaitingCache[resp.Index] = resps
 		log.WithField("cached resps ", resps).Debug("cached")
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 func (d *Dkg) checkdealsResponseCache(addr types.Address, response *types.MessageConsensusDkgDealResponse) (ready bool) {
@@ -470,7 +470,7 @@ func (d *Dkg) checkdealsResponseCache(addr types.Address, response *types.Messag
 	return d.ready
 }
 
-func (d *Dkg) addSigsets(addr types.Address, sig *SigSets) {
+func (d *Dkg) addSigsets(addr types.Address, sig *types.SigSet) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	d.blsSigSets[addr] = sig

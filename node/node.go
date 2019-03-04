@@ -357,6 +357,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, annSensus)
 	m.ConsensusDkgDealHandler = annSensus
 	m.ConsensusDkgDealResponseHandler = annSensus
+	m.ConsensusDkgSigSetsHandler = annSensus
 
 	annSensus.Hub = hub
 	//TODO recover later
@@ -428,6 +429,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeTermChange] = m.RouteTermChange
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
+	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {

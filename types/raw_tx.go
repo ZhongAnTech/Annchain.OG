@@ -32,7 +32,7 @@ type RawCampaign struct {
 type RawTermChange struct {
 	TxBase
 	PkBls  []byte
-	SigSet map[Address][]byte
+	SigSet []*SigSet
 }
 
 //msgp:tuple RawSequencers

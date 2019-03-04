@@ -494,8 +494,8 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	err = z.TxBase.DecodeMsg(dc)
@@ -506,13 +506,40 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap(z.SigSet) >= int(zb0002) {
+		z.SigSet = (z.SigSet)[:zb0002]
+	} else {
+		z.SigSet = make([]*SigSet, zb0002)
+	}
+	for za0001 := range z.SigSet {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				return
+			}
+			z.SigSet[za0001] = nil
+		} else {
+			if z.SigSet[za0001] == nil {
+				z.SigSet[za0001] = new(SigSet)
+			}
+			err = z.SigSet[za0001].DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *RawTermChange) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -524,19 +551,47 @@ func (z *RawTermChange) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	err = en.WriteArrayHeader(uint32(len(z.SigSet)))
+	if err != nil {
+		return
+	}
+	for za0001 := range z.SigSet {
+		if z.SigSet[za0001] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = z.SigSet[za0001].EncodeMsg(en)
+			if err != nil {
+				return
+			}
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *RawTermChange) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 3
+	o = append(o, 0x93)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
 	o = msgp.AppendBytes(o, z.PkBls)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.SigSet)))
+	for za0001 := range z.SigSet {
+		if z.SigSet[za0001] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o, err = z.SigSet[za0001].MarshalMsg(o)
+			if err != nil {
+				return
+			}
+		}
+	}
 	return
 }
 
@@ -547,8 +602,8 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	bts, err = z.TxBase.UnmarshalMsg(bts)
@@ -559,13 +614,47 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap(z.SigSet) >= int(zb0002) {
+		z.SigSet = (z.SigSet)[:zb0002]
+	} else {
+		z.SigSet = make([]*SigSet, zb0002)
+	}
+	for za0001 := range z.SigSet {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			z.SigSet[za0001] = nil
+		} else {
+			if z.SigSet[za0001] == nil {
+				z.SigSet[za0001] = new(SigSet)
+			}
+			bts, err = z.SigSet[za0001].UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawTermChange) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.PkBls)
+	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.PkBls) + msgp.ArrayHeaderSize
+	for za0001 := range z.SigSet {
+		if z.SigSet[za0001] == nil {
+			s += msgp.NilSize
+		} else {
+			s += z.SigSet[za0001].Msgsize()
+		}
+	}
 	return
 }
 
@@ -592,20 +681,7 @@ func (z *RawTermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(RawTermChange)
 			}
-			var zb0003 uint32
-			zb0003, err = dc.ReadArrayHeader()
-			if err != nil {
-				return
-			}
-			if zb0003 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-				return
-			}
-			err = (*z)[zb0001].TxBase.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-			(*z)[zb0001].PkBls, err = dc.ReadBytes((*z)[zb0001].PkBls)
+			err = (*z)[zb0001].DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -620,23 +696,14 @@ func (z RawTermChanges) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	for zb0004 := range z {
-		if z[zb0004] == nil {
+	for zb0003 := range z {
+		if z[zb0003] == nil {
 			err = en.WriteNil()
 			if err != nil {
 				return
 			}
 		} else {
-			// array header, size 2
-			err = en.Append(0x92)
-			if err != nil {
-				return
-			}
-			err = z[zb0004].TxBase.EncodeMsg(en)
-			if err != nil {
-				return
-			}
-			err = en.WriteBytes(z[zb0004].PkBls)
+			err = z[zb0003].EncodeMsg(en)
 			if err != nil {
 				return
 			}
@@ -649,17 +716,14 @@ func (z RawTermChanges) EncodeMsg(en *msgp.Writer) (err error) {
 func (z RawTermChanges) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
-	for zb0004 := range z {
-		if z[zb0004] == nil {
+	for zb0003 := range z {
+		if z[zb0003] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			// array header, size 2
-			o = append(o, 0x92)
-			o, err = z[zb0004].TxBase.MarshalMsg(o)
+			o, err = z[zb0003].MarshalMsg(o)
 			if err != nil {
 				return
 			}
-			o = msgp.AppendBytes(o, z[zb0004].PkBls)
 		}
 	}
 	return
@@ -688,20 +752,7 @@ func (z *RawTermChanges) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(RawTermChange)
 			}
-			var zb0003 uint32
-			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			if zb0003 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-				return
-			}
-			bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-			(*z)[zb0001].PkBls, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].PkBls)
+			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -714,11 +765,11 @@ func (z *RawTermChanges) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z RawTermChanges) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
-	for zb0004 := range z {
-		if z[zb0004] == nil {
+	for zb0003 := range z {
+		if z[zb0003] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + z[zb0004].TxBase.Msgsize() + msgp.BytesPrefixSize + len(z[zb0004].PkBls)
+			s += z[zb0003].Msgsize()
 		}
 	}
 	return

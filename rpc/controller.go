@@ -424,7 +424,6 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	//TODO add transaction
 	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
 	return
 }

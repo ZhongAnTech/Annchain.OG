@@ -62,22 +62,22 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	og.NetworkId = config.NetworkId
 	og.CryptoType = config.CryptoType
-	db, derr := CreateDB()
-	if derr != nil {
-		return nil, derr
+	db, err := CreateDB()
+	if err != nil {
+		return nil, err
 	}
-	olddb, derr := GetOldDb()
-	if derr != nil {
-		return nil, derr
+	testDb, err := GetOldDb()
+	if err != nil {
+		return nil, err
 	}
-	dagconfig := core.DagConfig{}
-	statedbConfig := state.StateDBConfig{
+	dagConfig := core.DagConfig{}
+	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, derr = core.NewDag(dagconfig, statedbConfig, db, olddb, config.CryptoType)
-	if derr != nil {
-		return nil, derr
+	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, testDb, config.CryptoType)
+	if err != nil {
+		return nil, err
 	}
 
 	txpoolconfig := core.TxPoolConfig{
@@ -104,29 +104,10 @@ func NewOg(config OGConfig) (*Og, error) {
 	// }
 	seq := og.Dag.LatestSequencer()
 	if seq == nil {
-		return nil, fmt.Errorf("dag's latest sequencer is not initialized.")
+		return nil, fmt.Errorf("dag's latest sequencer is not initialized")
 	}
 	og.TxPool.Init(seq)
-
-	// Construct the different synchronisation mechanisms
-
-	//heighter := func() uint64 {
-	//	return og.Dag.LatestSequencer().Id
-	//}
-	//inserter := func(seq *types.Sequencer, txs types.Txs) error {
-	//	// If fast sync is running, deny importing weird blocks
-	//	//if og.fastSyncMode() {
-	//	//	logrus.WithField("number", seq.Number()).WithField("hash", seq.GetTxHash()).Warn("Discarded bad propagated sequencer")
-	//	//	return nil
-	//	//}
-	//	// Mark initial sync done on any fetcher import
-	//	og.TxBuffer.AddTxs(seq, txs)
-	//	return nil
-	//}
-	//og.fetcher = fetcher.New(og.GetSequencerByHash, heighter, inserter, og.Manager.Hub.RemovePeer)
-
-	// TODO
-	// account manager and protocol manager
+	// TODO account manager and protocol manager
 
 	return og, nil
 }
@@ -137,7 +118,7 @@ func (og *Og) Start() {
 	//// start sync handlers
 	//go og.syncer()
 	//go og.txsyncLoop()
-	go og.BrodcastLatestSequencer()
+	go og.BroadcastLatestSequencer()
 
 	logrus.Info("OG Started")
 }
@@ -191,8 +172,9 @@ func (og *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	}
 }
 
-// TODO: why this?
-func (og *Og) BrodcastLatestSequencer() {
+//BroadcastLatestSequencer  broadcast the newest sequencer header , seuqencer header is a network state , representing peer's height
+// other peers will know our height and know whether thy were updated and sync with the best height
+func (og *Og) BroadcastLatestSequencer() {
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:

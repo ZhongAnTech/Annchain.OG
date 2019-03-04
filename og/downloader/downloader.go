@@ -1149,7 +1149,6 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 
 	for _, result := range results {
 		log.WithField("len txs", len(result.Transactions)).WithField("seq", result.Sequencer).Debug("Inserting downloaded txs")
-		//todo  fix this
 		err := d.insertTxs(result.Sequencer, result.Transactions)
 		if err != nil {
 			return err

@@ -69,3 +69,4 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 
 	a.dkg.gossipSigSetspCh <- request
 }
+

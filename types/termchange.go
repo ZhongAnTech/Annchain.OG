@@ -64,7 +64,6 @@ func (tc *TermChange) Dump() string {
 }
 
 func (tc *TermChange) SignatureTargets() []byte {
-	// TODO
 	// add parents infornmation.
 	var buf bytes.Buffer
 

@@ -37,7 +37,6 @@ type Dag struct {
 	conf DagConfig
 
 	db ogdb.Database
-	// TODO
 	// oldDb is for test only, should be deleted later.
 	oldDb    ogdb.Database
 	accessor *Accessor

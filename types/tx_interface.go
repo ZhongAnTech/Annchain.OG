@@ -134,7 +134,7 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 	for _, ancestor := range t.ParentsHash {
 		panicIfError(binary.Write(&buf, binary.BigEndian, ancestor.Bytes))
 	}
-	// TODO do not use Height to calculate tx hash.
+	// do not use Height to calculate tx hash.
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.CalcMinedHash().Bytes))
 

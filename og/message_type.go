@@ -530,7 +530,7 @@ func (p *p2PMessage) Unmarshal() error {
 	case MessageTypeConsensusDkgDealResponse:
 		p.message = &types.MessageConsensusDkgDealResponse{}
 	case MessageTypeConsensusDkgSigSets:
-		p.message  = &types.MessageConsensusDkgSigSets{}
+		p.message = &types.MessageConsensusDkgSigSets{}
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}

@@ -400,7 +400,7 @@ func (m *MessageTermChange) String() string {
 
 //msgp:tuple MessageTypeDkgSigSets
 type MessageConsensusDkgSigSets struct {
-	PkBls []byte
+	PkBls     []byte
 	PublicKey []byte
 	Sinature  []byte
 }
@@ -414,14 +414,14 @@ type MessageConsensusDkgDeal struct {
 	Sinature  []byte
 }
 
-func (m*MessageConsensusDkgSigSets) SignatureTargets() []byte {
+func (m *MessageConsensusDkgSigSets) SignatureTargets() []byte {
 	var buf bytes.Buffer
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.PkBls))
 	return buf.Bytes()
 }
 
-func (m*MessageConsensusDkgSigSets)String()string{
-	return "dkgSigsets" + fmt.Sprintf( "len %d" ,len(m.PkBls))
+func (m *MessageConsensusDkgSigSets) String() string {
+	return "dkgSigsets" + fmt.Sprintf("len %d", len(m.PkBls))
 }
 
 func (m *MessageConsensusDkgDeal) SignatureTargets() []byte {

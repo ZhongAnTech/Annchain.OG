@@ -928,6 +928,144 @@ func (z *MessageConsensusDkgDealResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageConsensusDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "PkBls":
+			z.PkBls, err = dc.ReadBytes(z.PkBls)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, err = dc.ReadBytes(z.Sinature)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageConsensusDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
+	// write "PkBls"
+	err = en.Append(0x83, 0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PkBls)
+	if err != nil {
+		return
+	}
+	// write "PublicKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	// write "Sinature"
+	err = en.Append(0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Sinature)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageConsensusDkgSigSets) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 3
+	// string "PkBls"
+	o = append(o, 0x83, 0xa5, 0x50, 0x6b, 0x42, 0x6c, 0x73)
+	o = msgp.AppendBytes(o, z.PkBls)
+	// string "PublicKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.PublicKey)
+	// string "Sinature"
+	o = append(o, 0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Sinature)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageConsensusDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "PkBls":
+			z.PkBls, bts, err = msgp.ReadBytesBytes(bts, z.PkBls)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			if err != nil {
+				return
+			}
+		case "Sinature":
+			z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageConsensusDkgSigSets) Msgsize() (s int) {
+	s = 1 + 6 + msgp.BytesPrefixSize + len(z.PkBls) + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 9 + msgp.BytesPrefixSize + len(z.Sinature)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageControl) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

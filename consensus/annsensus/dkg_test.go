@@ -92,6 +92,9 @@ func (t *TestHub) loop() {
 			case og.MessageTypeConsensusDkgDealResponse:
 				msg.MessageType = pMsg.msgType
 				msg.Message = &types.MessageConsensusDkgDealResponse{}
+			case og.MessageTypeConsensusDkgSigSets:
+				msg.MessageType = pMsg.msgType
+				msg.Message = &types.MessageConsensusDkgSigSets{}
 			default:
 				elog.Warn(pMsg, " unkown meg type will panic ")
 				panic(pMsg)
@@ -102,30 +105,39 @@ func (t *TestHub) loop() {
 			}
 			time.Sleep(10 * time.Millisecond)
 			hash := msg.GetHash()
-			elog.WithField("msg ", msg).Debug("i got a msg")
 			switch msg.MessageType {
 			case og.MessageTypeConsensusDkgDeal:
 				request := msg.Message.(*types.MessageConsensusDkgDeal)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
-					elog.WithField("from ", msg.From).WithField("msg type",
-						msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
-						msg.GetHash()).Warn("duplicate dkg msg")
+					//elog.WithField("from ", msg.From).WithField("msg type",
+					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+					//	msg.GetHash()).Warn("duplicate dkg msg")
 					continue
 				}
 				go t.As.HandleConsensusDkgDeal(request, fmt.Sprintf("%d", msg.From))
 			case og.MessageTypeConsensusDkgDealResponse:
 				request := msg.Message.(*types.MessageConsensusDkgDealResponse)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
-					elog.WithField("from ", msg.From).WithField("msg type",
-						msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
-						msg.GetHash()).Warn("duplicate response  msg")
+					//elog.WithField("from ", msg.From).WithField("msg type",
+					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+					//	msg.GetHash()).Warn("duplicate response  msg")
 					continue
 				}
 				go t.As.HandleConsensusDkgDealResponse(request, fmt.Sprintf("%d", msg.From))
+			case og.MessageTypeConsensusDkgSigSets:
+				request := msg.Message.(*types.MessageConsensusDkgSigSets)
+				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
+					//elog.WithField("from ", msg.From).WithField("msg type",
+					//	msg.MessageType).WithField("msg ", len(request.PkBls)).WithField("hash ",
+					//	msg.GetHash()).Warn("duplicate response  msg")
+					continue
+				}
+				go t.As.HandleConsensusDkgSigSets(request, fmt.Sprintf("%d", msg.From))
 			default:
 				elog.Info("never come here , msg loop ")
 				return
 			}
+			elog.WithField("msg ", msg).Debug("i got a msg")
 			t.msgCache.Set(hash, struct{}{})
 		case <-t.quit:
 			elog.Debug("stopped")
@@ -149,7 +161,7 @@ func TestDKGMain(t *testing.T) {
 			resp = msg.Message.(*types.MessageConsensusDkgDealResponse)
 		}
 		logrus.WithField("me ", msg.From).WithField("to peer ", id).WithField("type ",
-			msg.MessageType).WithField("msg ", resp).Trace("send msg")
+			msg.MessageType).WithField("msg ", resp).WithField("len ", len(data)).Trace("send msg")
 		return
 	}
 	sendMsgByPubKey := func(pub *crypto.PublicKey, msg TestMsg) {

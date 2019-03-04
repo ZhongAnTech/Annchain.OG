@@ -279,6 +279,8 @@ func NewNode() *Node {
 		accountIds,
 		delegate,
 	)
+	// TODO
+	// set annsensus's private key to be coinbase.
 	annSensus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
 	annSensus.Idag = org.Dag
 	hub.SetEncryptionKey(annSensus.MyPrivKey)

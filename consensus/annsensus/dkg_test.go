@@ -3,14 +3,15 @@ package annsensus
 import (
 	"bytes"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 type TestAnnSensus struct {

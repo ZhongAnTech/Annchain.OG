@@ -27,6 +27,7 @@ type MessageRouter struct {
 	TermChangeHandler               TermChangeHandler
 	ConsensusDkgDealHandler         ConsensusDkgDealHandler
 	ConsensusDkgDealResponseHandler ConsensusDkgDealResponseHandler
+	ConsensusDkgSigSetsHandler      ConsensusDkgSigSetsHandler
 }
 
 type ManagerConfig struct {
@@ -111,6 +112,10 @@ type ConsensusDkgDealHandler interface {
 
 type ConsensusDkgDealResponseHandler interface {
 	HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string)
+}
+
+type ConsensusDkgSigSetsHandler interface {
+	HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string)
 }
 
 func (m *MessageRouter) Start() {
@@ -209,6 +214,10 @@ func (m *MessageRouter) RouteConsensusDkgDeal(msg *p2PMessage) {
 
 func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *p2PMessage) {
 	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.message.(*types.MessageConsensusDkgDealResponse), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteConsensusDkgSigSets(msg *p2PMessage) {
+	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.message.(*types.MessageConsensusDkgSigSets), msg.sourceID)
 }
 
 // BroadcastMessage send message to all peers

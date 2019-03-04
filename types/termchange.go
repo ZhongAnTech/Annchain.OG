@@ -10,13 +10,19 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple TermChange
 
+//msgp:tuple TermChange
 type TermChange struct {
 	TxBase
 	PkBls  []byte
-	SigSet map[Address][]byte
+	SigSet []*SigSet
 	Issuer Address
+}
+
+//msgp:tuple SigSet
+type SigSet struct {
+	PublicKey []byte
+	Signature []byte
 }
 
 //msgp:tuple TermChanges
@@ -48,8 +54,8 @@ func (tc *TermChange) Dump() string {
 		phashes = append(phashes, p.Hex())
 	}
 	var sigs []string
-	for k, v := range tc.SigSet {
-		sigs = append(sigs, fmt.Sprintf("[addr: %x, sig: %x]", k.ToBytes(), v))
+	for _, v := range tc.SigSet {
+		sigs = append(sigs, fmt.Sprintf("[pubkey: %x, sig: %x]", v.PublicKey, v.Signature))
 	}
 	return fmt.Sprintf("hash: %s, pHash: [%s], issuer: %s, nonce: %d , signatute: %s, pubkey %s ,"+
 		"PkBls: %x, sigs: [%s]", tc.Hash.Hex(),
@@ -64,12 +70,16 @@ func (tc *TermChange) SignatureTargets() []byte {
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, tc.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, tc.Issuer.Bytes))
-
+	panicIfError(binary.Write(&buf, binary.BigEndian, tc.PkBls))
+	for _, sig := range tc.SigSet {
+		panicIfError(binary.Write(&buf, binary.BigEndian, sig.PublicKey))
+		panicIfError(binary.Write(&buf, binary.BigEndian, sig.Signature))
+	}
 	return buf.Bytes()
 }
 
 func (tc *TermChange) String() string {
-	return fmt.Sprintf("%s-[%s]-termChange", tc.TxBase.String(), tc.Issuer.String())
+	return fmt.Sprintf("%s-[%.10s]-termChange", tc.TxBase.String(), tc.Issuer.String())
 }
 
 func (c TermChanges) String() string {

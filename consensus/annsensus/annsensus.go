@@ -204,9 +204,12 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 			sigs := as.dkg.blsSigSets
 			log.WithField("sig sets ", sigs).Info("got sigsets ")
-			continue //for test
+			//continue //for test case commit this
 			// TODO generate sigset in dkg gossip.
-			sigset := map[types.Address][]byte{}
+			sigset := []*types.SigSet{}
+			for _, sig := range sigs {
+				sigset = append(sigset, sig)
+			}
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {
 				continue
@@ -229,7 +232,7 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 func (as *AnnSensus) ProcessTermChange(tc *types.TermChange) {
 	// TODO
 	// lock?
-
+	log.Info("process termchange")
 	as.senators = make(map[types.Address]*Senator)
 	for addr, camp := range as.candidates {
 		s := newSenator(addr, camp.PublicKey, tc.PkBls)
@@ -242,7 +245,7 @@ func (as *AnnSensus) ProcessTermChange(tc *types.TermChange) {
 	as.SwitchTcFlagWithLock(false)
 }
 
-func (as *AnnSensus) genTermChg(pk kyber.Point, sigset map[types.Address][]byte) *types.TermChange {
+func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
 	base := types.TxBase{
 		Type: types.TxBaseTypeTermChange,
 	}
@@ -305,7 +308,7 @@ func (as *AnnSensus) loop() {
 
 		case <-time.After(time.Second * 6):
 			if !camp {
-				camp = false
+				camp = true
 				as.ProdCampaignOn()
 			}
 

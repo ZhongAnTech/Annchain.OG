@@ -83,12 +83,16 @@ func (d *Dkg) stop() {
 }
 
 func (d *Dkg) GenerateDkg() {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	sec, pub := genPartnerPair(d.partner)
 	d.partner.MyPartSec = sec
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.pk = pk
 }
+
+
 
 func (d *Dkg) PublicKey() []byte {
 	return d.pk
@@ -109,6 +113,30 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
+
+func (d*Dkg)GenerateDKGer()error {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.partner.GenerateDKGer()
+}
+
+
+func (d *Dkg)ProcesssDeal (dd *dkg.Deal) (resp *dkg.Response, err error){
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return  d.partner.Dkger.ProcessDeal(dd)
+}
+
+
+
+func (d*Dkg)checkAddress( addr types.Address) bool {
+	if d.ann.GetCandidate(addr) == nil {
+		return false
+	}
+	_, ok := d.partner.addressIndex[addr]
+	return  ok
+}
+
 func (d *Dkg) gossiploop() {
 	for {
 		select {
@@ -119,9 +147,7 @@ func (d *Dkg) gossiploop() {
 				log.Warn("why send to me")
 				continue
 			}
-			d.mu.RLock()
-			err := d.partner.GenerateDKGer()
-			d.mu.RUnlock()
+			err := d.GenerateDKGer()
 			if err != nil {
 				log.WithError(err).Error("gen dkger fail")
 				continue
@@ -307,15 +333,10 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 			d.mu.RUnlock()
-			if d.ann.GetCandidate(addr) == nil {
-				log.WithField("pub ", response.PublicKey).Trace("resp")
-				log.WithField("id ", response.Id).WithField("deal ", response).Error("not found  Campaign  for deal response")
-				continue
-			}
-			_, ok := d.partner.addressIndex[addr]
-			if !ok {
-				log.WithField("address ", addr.TerminalString()).WithField("deal ", response).Warn(
-					"not found  dkg  partner address  for deal")
+
+			if !d.checkAddress(addr) {
+				log.WithField("address ", addr.TerminalString()).WithField("resp ",response).WithField("deal ", response).Warn(
+					"not found  dkg  partner or campaign msg for address  of this  deal")
 				continue
 			}
 			d.mu.RLock()
@@ -331,28 +352,35 @@ func (d *Dkg) gossiploop() {
 			}
 			d.mu.RUnlock()
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
-			d.mu.RLock()
-			just, err := d.partner.Dkger.ProcessResponse(&resp)
+
+			just, err := d.ProcessResponse(&resp)
 			if err != nil {
 				log.WithField("req ", response).WithField("rsp ", resp).WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
-			} else {
-				log.WithField("response ", resp).Trace("process response ok")
-				d.partner.responseNumber++
+				continue
 			}
+			log.WithField("response ", resp).Trace("process response ok")
+			d.mu.RLock()
+			d.partner.responseNumber++
+			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
+			//will got  (n-1)*(n-1) response
 			if d.partner.responseNumber >= (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
 				log.Info("got response done")
 				jointPub, err := d.partner.RecoverPub()
+				d.mu.RUnlock()
 				if err != nil {
 					log.WithError(err).Warn("get recover pub key fail")
+					continue
 				}
 				// send public key to changeTerm loop.
 				// TODO
 				// this channel may be changed later.
-				//d.ann.dkgPkCh <- jointPub
 				log.WithField("bls key ", jointPub).Info("joint pubkey ")
+				d.ann.dkgPkCh <- jointPub
+
+				continue
 			}
 			d.mu.RUnlock()
-			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
+
 
 		case <-d.gossipStopCh:
 			log := log.WithField("me ", d.ann.id)
@@ -362,8 +390,21 @@ func (d *Dkg) gossiploop() {
 	}
 }
 
-func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 
+func (d *Dkg)ProcessResponse(resp *dkg.Response)( just *dkg.Justification ,err error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return  d.processResponse(resp)
+}
+
+
+func (d *Dkg)processResponse(resp *dkg.Response)( just *dkg.Justification ,err error) {
+	return  d.partner.Dkger.ProcessResponse(resp)
+}
+
+func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
+    d.mu.RLock()
+    defer  d.mu.RUnlock()
 	for k, v := range d.partner.addressIndex {
 		if v == i {
 			return &k

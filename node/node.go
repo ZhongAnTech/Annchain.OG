@@ -362,7 +362,7 @@ func NewNode() *Node {
 	m.ConsensusDkgSigSetsHandler = annSensus
 
 	annSensus.Hub = hub
-	//TODO recover later
+
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
 
 	pm.Register(org.TxPool)

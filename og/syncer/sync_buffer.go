@@ -164,12 +164,9 @@ func (s *SyncBuffer) Handle() error {
 			panic("never come here")
 		}
 		//if tx is already in txbool ,no need to verify again
-		// TODO: recover it if we need sync buffer again
 		if s.txPool.IsLocalHash(hash) {
 			continue
 		}
-		// temporary commit for testing
-		// TODO: Temporarily comment it out to test performance.
 		for _, verifier := range s.Verifiers {
 			if !verifier.Verify(tx) {
 				log.WithField("tx", tx).Warn("bad tx")
@@ -226,7 +223,6 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 
 		elder := s.Get(elderHash)
 		if elder == nil {
-			// TODO: recover it if we need sync buffer again
 			if s.txPool.IsLocalHash(elderHash) {
 				continue
 			}

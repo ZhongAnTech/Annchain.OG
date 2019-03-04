@@ -181,7 +181,7 @@ func TestDagPush(t *testing.T) {
 	}
 
 	txs := dag.GetTxisByNumber(seq.Height)
-	fmt.Println("txs", types.Txs(txs))
+	fmt.Println("txs", txs)
 
 	// TODO check addr balance
 

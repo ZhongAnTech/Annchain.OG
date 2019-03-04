@@ -218,8 +218,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Only txs that are obeying rules will be added to the graph.
 	b.knownCache.Remove(tx.GetTxHash())
 
-	// TODO
-	// add verifier for specific tx types. e.g. Campaign, TermChange.
+	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	for _, verifier := range b.verifiers {
 		if !verifier.Verify(tx) {
 			logrus.WithField("tx", tx).WithField("verifier", verifier.Name()).Warn("bad tx")
@@ -244,9 +243,6 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.IsKnownHash(tx.GetTxHash()) {
 		return
 	}
-	// not in tx buffer , a new tx , should broadcast
-
-	// TODO: Temporarily comment it out to test performance.
 	//if err := b.verifyTxFormat(tx); err != nil {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
 	//	return

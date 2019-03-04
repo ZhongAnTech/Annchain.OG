@@ -408,7 +408,6 @@ type MessageConsensusDkgSigSets struct {
 //msgp:tuple MessageConsensusDkgDeal
 type MessageConsensusDkgDeal struct {
 	Id uint32
-	//todo
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte
@@ -425,8 +424,6 @@ func (m *MessageConsensusDkgSigSets) String() string {
 }
 
 func (m *MessageConsensusDkgDeal) SignatureTargets() []byte {
-	// TODO
-
 	var buf bytes.Buffer
 	d := []byte(m.Data)
 	panicIfError(binary.Write(&buf, binary.BigEndian, d))
@@ -446,7 +443,6 @@ func (m MessageConsensusDkgDeal) String() string {
 //msgp:tuple MessageConsensusDkgDealResponse
 type MessageConsensusDkgDealResponse struct {
 	Id uint32
-	//todo
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte
@@ -461,8 +457,6 @@ func (m MessageConsensusDkgDealResponse) String() string {
 }
 
 func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {
-	// TODO
-
 	var buf bytes.Buffer
 	d := []byte(m.Data)
 	panicIfError(binary.Write(&buf, binary.BigEndian, d))

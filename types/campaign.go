@@ -65,7 +65,6 @@ func (c *Campaign) Dump() string {
 }
 
 func (c *Campaign) SignatureTargets() []byte {
-	// TODO
 	// add parents infornmation.
 	var buf bytes.Buffer
 

@@ -14,7 +14,8 @@ import (
 type AnnSensus struct {
 	cryptoType crypto.CryptoType
 
-	dkg *Dkg
+	dkg  *Dkg
+	term *Term
 
 	campaignFlag bool
 	maxCamps     int
@@ -59,8 +60,12 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
 	ann.cryptoType = cryptoType
 	ann.dkgPkCh = make(chan kyber.Point)
+
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
+
+	t := newTerm(0, partnerNum)
+	ann.term = t
 
 	return ann
 }
@@ -89,11 +94,11 @@ func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 }
 
 func (as *AnnSensus) GetCandidate(addr types.Address) *types.Campaign {
-	return as.candidates[addr]
+	return as.term.GetCandidate(addr)
 }
 
 func (as *AnnSensus) Candidates() map[types.Address]*types.Campaign {
-	return as.candidates
+	return as.term.Candidates()
 }
 
 // RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers. These
@@ -129,24 +134,24 @@ func (as *AnnSensus) prodcampaign() {
 func (as *AnnSensus) commit(camps []*types.Campaign) {
 
 	for i, c := range camps {
-		if as.isTermChanging() {
+		if as.term.Changing() {
 			// add those unsuccessful camps into alsoran list.
 			log.Debug("is termchanging ")
-			as.addAlsorans(camps[i:])
+			as.term.AddAlsorans(camps[i:])
 			return
 		}
 		// TODO
 		// handle campaigns should not only add it into candidate list.
 		// as.candidates[c.Issuer] = c
-		err := as.AddCampaignCandidates(c) //todo remove duplication here
+		err := as.AddCandidate(c) //todo remove duplication here
 		if err != nil {
 			log.WithError(err).Debug("add campaign err")
 			continue
 		}
-		if !as.canChangeTerm() {
+		if !as.term.CanChange() {
 			continue
 		}
-		as.SwitchTcFlagWithLock(true)
+		as.term.SwitchFlag(true)
 
 		camps := []*types.Campaign{}
 		for _, camp := range as.candidates {
@@ -264,21 +269,6 @@ func (as *AnnSensus) SwitchTcFlagWithLock(flag bool) {
 	as.termchgFlag = flag
 }
 
-// addAlsorans add a list of campaigns into alsoran list.
-func (as *AnnSensus) addAlsorans(camps []*types.Campaign) {
-	// TODO
-	log.WithField("add also runs", camps).Trace(camps)
-	for _, cp := range camps {
-		if cp == nil {
-			continue
-		}
-		if as.HasCampaign(cp) {
-			continue
-		}
-		as.alsorans[cp.Issuer] = cp
-	}
-}
-
 func (as *AnnSensus) loop() {
 	var camp bool
 	for {
@@ -307,10 +297,10 @@ func (as *AnnSensus) loop() {
 				if err != nil {
 					log.Errorf("the received termchanges are not correct.")
 				}
-				if !as.isTermChanging() {
+				if !as.term.Changing() {
 					continue
 				}
-				as.ProcessTermChange(tc)
+				as.term.ChangeTerm(tc)
 			}
 
 		case <-time.After(time.Second * 6):

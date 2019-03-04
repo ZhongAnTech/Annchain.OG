@@ -220,7 +220,7 @@ func TestDKGMain(t *testing.T) {
 		ann.ConsensusTXConfirmed <- cps
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 4)
 	for _, ann := range Anns {
 		ann.Stop()
 	}

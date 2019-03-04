@@ -37,6 +37,7 @@ type Dkg struct {
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
 	blsSigSets        map[types.Address]*SigSets
 	ready             bool
+	signer            crypto.Signer
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
@@ -64,6 +65,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
 	d.blsSigSets = make(map[types.Address]*SigSets)
 	d.ready = false
+	d.signer = crypto.NewSigner(d.ann.cryptoType)
 	return d
 }
 
@@ -137,7 +139,55 @@ func (d *Dkg) checkAddress(addr types.Address) bool {
 	return ok
 }
 
+func (d *Dkg) getUnhandled() ([]*types.MessageConsensusDkgDeal, []*types.MessageConsensusDkgDealResponse) {
+	var unhandledDeal []*types.MessageConsensusDkgDeal
+	var unhandledResponse []*types.MessageConsensusDkgDealResponse
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	for i := range d.dealCache {
+		unhandledDeal = append(unhandledDeal, d.dealCache[i])
+	}
+	for i := range d.dealResPonseCache {
+		unhandledResponse = append(unhandledResponse, d.dealResPonseCache[i]...)
+	}
+	if len(d.dealCache) == 0 {
+		d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
+	}
+	if len(d.dealResPonseCache) == 0 {
+		d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
+	}
+	return unhandledDeal, unhandledResponse
+}
+
+func (d *Dkg) sendUnhandledTochan(unhandledDeal []*types.MessageConsensusDkgDeal, unhandledResponse []*types.MessageConsensusDkgDealResponse) {
+	if len(unhandledDeal) != 0 || len(unhandledResponse) != 0 {
+		log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
+			"unhandledResponse", unhandledResponse).Debug("will process")
+
+		for _, v := range unhandledDeal {
+			d.gossipReqCh <- v
+		}
+		for _, v := range unhandledResponse {
+			d.gossipRespCh <- v
+		}
+		log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
+			"unhandledResponse", len(unhandledResponse)).Debug("processed ")
+	}
+}
+
+func (d *Dkg) unhandledSigSets() []*types.MessageConsensusDkgSigSets {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	var sigs []*types.MessageConsensusDkgSigSets
+	for _, v := range d.dealSigSetsCache {
+		sigs = append(sigs, v)
+	}
+	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
+	return sigs
+}
+
 func (d *Dkg) gossiploop() {
+	log := log.WithField("me", d.partner.Id)
 	for {
 		select {
 		case <-d.gossipStartCh:
@@ -152,28 +202,15 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Error("gen dkger fail")
 				continue
 			}
-			log := log.WithField("me", d.partner.Id)
+
 			deals, err := d.getDeals()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
 				continue
 			}
-			var unhandledDeal []*types.MessageConsensusDkgDeal
-			var unhandledResponse []*types.MessageConsensusDkgDealResponse
+			unhandledDeal, unhandledResponse := d.getUnhandled()
 			d.mu.RLock()
 			d.ready = true
-			for i := range d.dealCache {
-				unhandledDeal = append(unhandledDeal, d.dealCache[i])
-			}
-			for i := range d.dealResPonseCache {
-				unhandledResponse = append(unhandledResponse, d.dealResPonseCache[i]...)
-			}
-			if len(d.dealCache) == 0 {
-				d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
-			}
-			if len(d.dealResPonseCache) == 0 {
-				d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
-			}
 			d.mu.RUnlock()
 			//log.WithField("len deals", len(deals)).WithField("len partner",
 			//	len(d.partner.PartPubs)).WithField("deals", deals.TerminateString()).Trace("got deals")
@@ -192,34 +229,19 @@ func (d *Dkg) gossiploop() {
 					log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
 						deal.TerminateString()).Error("send dkg deal to myself")
 					panic("send dkg deal to myself")
-					//d.gossipReqCh <- msg
-					//continue
 				}
 				cp := d.ann.GetCandidate(*addr)
 				if cp == nil {
 					panic("campaign not found")
 				}
-				s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-				msg.Sinature = s.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
+				msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 				msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 				pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
 				log.WithField("to ", addr.TerminalString()).WithField("deal",
 					deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
 				d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 			}
-			if len(unhandledDeal) != 0 || len(unhandledResponse) != 0 {
-				log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
-					"unhandledResponse", unhandledResponse).Debug("will process")
-
-				for _, v := range unhandledDeal {
-					d.gossipReqCh <- v
-				}
-				for _, v := range unhandledResponse {
-					d.gossipRespCh <- v
-				}
-				log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
-					"unhandledResponse", len(unhandledResponse)).Debug("processed ")
-			}
+			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
 
 		case request := <-d.gossipReqCh:
 			if !d.dkgOn {
@@ -228,10 +250,7 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
-			log := log.WithField("me ", d.partner.Id)
-			//time.Sleep(10 * time.Millisecond) //this is for test
-			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-			addr := s.AddressFromPubKeyBytes(request.PublicKey)
+			addr := d.signer.AddressFromPubKeyBytes(request.PublicKey)
 			d.mu.RLock()
 			if !d.ready {
 				if oldDeal, ok := d.dealCache[addr]; ok {
@@ -281,8 +300,7 @@ func (d *Dkg) gossiploop() {
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
 			}
-			signer := crypto.NewSigner(d.ann.cryptoType)
-			response.Sinature = signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
+			response.Sinature = d.signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
 			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 			log.WithField("to request ", request).WithField("response ", response).Debug("will send response")
 			//broadcast response to all partner
@@ -305,7 +323,6 @@ func (d *Dkg) gossiploop() {
 
 		case response := <-d.gossipRespCh:
 
-			log := log.WithField("me", d.partner.Id)
 			var resp dkg.Response
 			_, err := resp.UnmarshalMsg(response.Data)
 			if err != nil {
@@ -320,37 +337,22 @@ func (d *Dkg) gossiploop() {
 				log.Warn("why send to me")
 				continue
 			}
-			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-			addr := s.AddressFromPubKeyBytes(response.PublicKey)
-			d.mu.RLock()
-			if !d.ready {
-				dkgResps, _ := d.dealResPonseCache[addr]
-				dkgResps = append(dkgResps, response)
-				d.dealResPonseCache[addr] = dkgResps
-				d.mu.RUnlock()
-				log.WithField("resp len", len(dkgResps)).WithField("response ",
-					resp).Debug("process later ,not ready yet")
+			addr := d.signer.AddressFromPubKeyBytes(response.PublicKey)
+			if !d.checkdealsResponseCache(addr, response) {
+				log.WithField("response ", resp).Debug("process later ,not ready yet")
 				continue
 			}
-			d.mu.RUnlock()
 
 			if !d.checkAddress(addr) {
 				log.WithField("address ", addr.TerminalString()).WithField("resp ", response).WithField("deal ", response).Warn(
 					"not found  dkg  partner or campaign msg for address  of this  deal")
 				continue
 			}
-			d.mu.RLock()
-			if v := d.partner.dealsIndex[resp.Index]; !v && resp.Index != d.partner.Id {
-				//if addr is my address , it  is not in the index list ,process them
+			if !d.checkWatingResponse(&resp, response) {
 				log.WithField("for index ", resp.Index).Debug("deal  not received yet")
-				resps, _ := d.respWaitingCache[resp.Index]
-				resps = append(resps, response)
-				d.respWaitingCache[resp.Index] = resps
-				log.WithField("cached resps ", resps).Debug("cached")
-				d.mu.RUnlock()
 				continue
 			}
-			d.mu.RUnlock()
+
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 
 			just, err := d.ProcessResponse(&resp)
@@ -381,19 +383,18 @@ func (d *Dkg) gossiploop() {
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
-			msg.Sinature = s.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
+			msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 			msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, &msg)
-			d.mu.RLock()
-			d.blsSigSets[d.ann.MyPrivKey.PublicKey().Address()] = &SigSets{publicKey: msg.PublicKey, Signature: msg.Sinature}
-			for _, sigSets := range d.dealSigSetsCache {
+
+			d.addSigsets(d.ann.MyPrivKey.PublicKey().Address(), &SigSets{publicKey: msg.PublicKey, Signature: msg.Sinature})
+			sigCaches := d.unhandledSigSets()
+			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets
 			}
-			d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
-			d.mu.RUnlock()
 
 		case response := <-d.gossipSigSetspCh:
-			log := log.WithField("me", d.partner.Id)
+
 			pkBls, err := bn256.UnmarshalBinaryPointG2(response.PkBls)
 			if err != nil {
 				log.WithError(err).Warn("verify signature failed")
@@ -429,9 +430,7 @@ func (d *Dkg) gossiploop() {
 				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.partner.jointPubKey).Warn("pk bls mismatch")
 				continue
 			}
-			d.mu.RLock()
-			d.blsSigSets[addr] = &SigSets{publicKey: response.PublicKey, Signature: response.Sinature}
-			d.mu.RUnlock()
+			d.addSigsets(addr, &SigSets{publicKey: response.PublicKey, Signature: response.Sinature})
 			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough si sets")
@@ -439,11 +438,44 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case <-d.gossipStopCh:
-			log := log.WithField("me ", d.ann.id)
+
 			log.Info("got quit signal dkg gossip stopped")
 			return
 		}
 	}
+}
+
+func (d *Dkg) checkWatingResponse(resp *dkg.Response, response *types.MessageConsensusDkgDealResponse) (ok bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if v := d.partner.dealsIndex[resp.Index]; !v && resp.Index != d.partner.Id {
+		//if addr is my address , it  is not in the index list ,process them
+		resps, _ := d.respWaitingCache[resp.Index]
+		resps = append(resps, response)
+		d.respWaitingCache[resp.Index] = resps
+		log.WithField("cached resps ", resps).Debug("cached")
+		return true
+	}
+	return false
+}
+
+func (d *Dkg) checkdealsResponseCache(addr types.Address, response *types.MessageConsensusDkgDealResponse) (ready bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if !d.ready {
+		dkgResps, _ := d.dealResPonseCache[addr]
+		dkgResps = append(dkgResps, response)
+		d.dealResPonseCache[addr] = dkgResps
+	}
+	return d.ready
+}
+
+func (d *Dkg) addSigsets(addr types.Address, sig *SigSets) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	d.blsSigSets[addr] = sig
+	return
+
 }
 
 func (d *Dkg) ProcessResponse(resp *dkg.Response) (just *dkg.Justification, err error) {

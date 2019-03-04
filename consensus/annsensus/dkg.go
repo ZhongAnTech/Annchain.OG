@@ -29,10 +29,13 @@ type Dkg struct {
 	gossipStopCh      chan struct{}
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
 	gossipRespCh      chan *types.MessageConsensusDkgDealResponse
+	gossipSigSetspCh  chan *types.MessageConsensusDkgSigSets
 	mu                sync.RWMutex
 	dealCache         map[types.Address]*types.MessageConsensusDkgDeal
 	dealResPonseCache map[types.Address][]*types.MessageConsensusDkgDealResponse
+	dealSigSetsCache  map[types.Address]*types.MessageConsensusDkgSigSets
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
+	blsSigSets        map[types.Address]*SigSets
 	ready             bool
 }
 
@@ -49,6 +52,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
 	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse, 100)
+	d.gossipSigSetspCh = make(chan *types.MessageConsensusDkgSigSets, 100)
 	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
 	if d.dkgOn {
@@ -57,6 +61,8 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
 	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
+	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
+	d.blsSigSets = make(map[types.Address]*SigSets)
 	d.ready = false
 	return d
 }
@@ -92,8 +98,6 @@ func (d *Dkg) GenerateDkg() {
 	d.pk = pk
 }
 
-
-
 func (d *Dkg) PublicKey() []byte {
 	return d.pk
 }
@@ -113,28 +117,24 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-
-func (d*Dkg)GenerateDKGer()error {
+func (d *Dkg) GenerateDKGer() error {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return d.partner.GenerateDKGer()
 }
 
-
-func (d *Dkg)ProcesssDeal (dd *dkg.Deal) (resp *dkg.Response, err error){
+func (d *Dkg) ProcesssDeal(dd *dkg.Deal) (resp *dkg.Response, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return  d.partner.Dkger.ProcessDeal(dd)
+	return d.partner.Dkger.ProcessDeal(dd)
 }
 
-
-
-func (d*Dkg)checkAddress( addr types.Address) bool {
+func (d *Dkg) checkAddress(addr types.Address) bool {
 	if d.ann.GetCandidate(addr) == nil {
 		return false
 	}
 	_, ok := d.partner.addressIndex[addr]
-	return  ok
+	return ok
 }
 
 func (d *Dkg) gossiploop() {
@@ -335,7 +335,7 @@ func (d *Dkg) gossiploop() {
 			d.mu.RUnlock()
 
 			if !d.checkAddress(addr) {
-				log.WithField("address ", addr.TerminalString()).WithField("resp ",response).WithField("deal ", response).Warn(
+				log.WithField("address ", addr.TerminalString()).WithField("resp ", response).WithField("deal ", response).Warn(
 					"not found  dkg  partner or campaign msg for address  of this  deal")
 				continue
 			}
@@ -363,24 +363,80 @@ func (d *Dkg) gossiploop() {
 			d.partner.responseNumber++
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
 			//will got  (n-1)*(n-1) response
-			if d.partner.responseNumber >= (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
-				log.Info("got response done")
-				jointPub, err := d.partner.RecoverPub()
+			if d.partner.responseNumber < (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
 				d.mu.RUnlock()
-				if err != nil {
-					log.WithError(err).Warn("get recover pub key fail")
-					continue
-				}
-				// send public key to changeTerm loop.
-				// TODO
-				// this channel may be changed later.
-				log.WithField("bls key ", jointPub).Info("joint pubkey ")
-				d.ann.dkgPkCh <- jointPub
+				continue
+			}
+			log.Info("got response done")
+			jointPub, err := d.partner.RecoverPub()
+			d.mu.RUnlock()
+			if err != nil {
+				log.WithError(err).Warn("get recover pub key fail")
+				continue
+			}
+			// send public key to changeTerm loop.
+			// TODO
+			// this channel may be changed later.
+			log.WithField("bls key ", jointPub).Info("joint pubkey ")
+			//d.ann.dkgPkCh <- jointPub
+			var msg types.MessageConsensusDkgSigSets
+			msg.PkBls, _ = jointPub.MarshalBinary()
+			msg.Sinature = s.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
+			msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, &msg)
+			d.mu.RLock()
+			d.blsSigSets[d.ann.MyPrivKey.PublicKey().Address()] = &SigSets{publicKey: msg.PublicKey, Signature: msg.Sinature}
+			for _, sigSets := range d.dealSigSetsCache {
+				d.gossipSigSetspCh <- sigSets
+			}
+			d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
+			d.mu.RUnlock()
 
+		case response := <-d.gossipSigSetspCh:
+			log := log.WithField("me", d.partner.Id)
+			pkBls, err := bn256.UnmarshalBinaryPointG2(response.PkBls)
+			if err != nil {
+				log.WithError(err).Warn("verify signature failed")
+				continue
+			}
+			//log.WithField("resp ", response).Trace("got response")
+			//broadcast  continue
+			if !d.dkgOn {
+				go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
+				//not a consensus partner
+				log.Warn("why send to me")
+				continue
+			}
+			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+			addr := s.AddressFromPubKeyBytes(response.PublicKey)
+			d.mu.RLock()
+			if !d.ready || d.partner.jointPubKey == nil {
+				if _, ok := d.dealSigSetsCache[addr]; !ok {
+					d.dealSigSetsCache[addr] = response
+				}
+				d.mu.RUnlock()
+				log.WithField("response ",
+					response).Debug("process later sigsets ,not ready yet")
 				continue
 			}
 			d.mu.RUnlock()
-
+			if !d.checkAddress(addr) {
+				log.WithField("address ", addr.TerminalString()).WithField("resp ", response).WithField("deal ", response).Warn(
+					"not found  dkg  partner or campaign msg for address  of this  deal")
+				continue
+			}
+			if !pkBls.Equal(d.partner.jointPubKey) {
+				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.partner.jointPubKey).Warn("pk bls mismatch")
+				continue
+			}
+			d.mu.RLock()
+			d.blsSigSets[addr] = &SigSets{publicKey: response.PublicKey, Signature: response.Sinature}
+			d.mu.RUnlock()
+			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
+			if len(d.blsSigSets) >= d.partner.NbParticipants {
+				log.Info("got enough si sets")
+				d.ann.dkgPkCh <- d.partner.jointPubKey
+			}
 
 		case <-d.gossipStopCh:
 			log := log.WithField("me ", d.ann.id)
@@ -390,21 +446,19 @@ func (d *Dkg) gossiploop() {
 	}
 }
 
-
-func (d *Dkg)ProcessResponse(resp *dkg.Response)( just *dkg.Justification ,err error) {
+func (d *Dkg) ProcessResponse(resp *dkg.Response) (just *dkg.Justification, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return  d.processResponse(resp)
+	return d.processResponse(resp)
 }
 
-
-func (d *Dkg)processResponse(resp *dkg.Response)( just *dkg.Justification ,err error) {
-	return  d.partner.Dkger.ProcessResponse(resp)
+func (d *Dkg) processResponse(resp *dkg.Response) (just *dkg.Justification, err error) {
+	return d.partner.Dkger.ProcessResponse(resp)
 }
 
 func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
-    d.mu.RLock()
-    defer  d.mu.RUnlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	for k, v := range d.partner.addressIndex {
 		if v == i {
 			return &k

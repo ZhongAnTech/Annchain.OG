@@ -58,7 +58,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
 	ann.cryptoType = cryptoType
-
+	ann.dkgPkCh = make(chan kyber.Point)
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
 
@@ -183,6 +183,7 @@ func (as *AnnSensus) isTermChanging() bool {
 }
 
 func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
+	log := log.WithField("me", as.id)
 	// start term change gossip
 	as.dkg.loadCampaigns(camps)
 	as.dkg.StartGossip()
@@ -196,6 +197,9 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 		case pk := <-as.dkgPkCh:
 			log.Info("got a bls public key from dkg: %s", pk.String())
 
+			sigs := as.dkg.blsSigSets
+			log.WithField("sig sets ", sigs).Info("got sigsets ")
+			continue //for test
 			// TODO generate sigset in dkg gossip.
 			sigset := map[types.Address][]byte{}
 			tc := as.genTermChg(pk, sigset)

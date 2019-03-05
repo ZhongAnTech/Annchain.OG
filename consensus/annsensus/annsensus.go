@@ -13,12 +13,12 @@ import (
 )
 
 type AnnSensus struct {
-	cryptoType crypto.CryptoType
+	id           int
+	campaignFlag bool
+	cryptoType   crypto.CryptoType
 
 	dkg  *Dkg
 	term *Term
-
-	campaignFlag bool
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
@@ -32,11 +32,9 @@ type AnnSensus struct {
 	Threshold      int
 	NbParticipants int
 
-	mu          sync.RWMutex
-	termchgLock sync.RWMutex
+	mu sync.RWMutex
 
 	close chan struct{}
-	id    int
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
@@ -161,8 +159,6 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 // AddCandidate adds campaign into annsensus if the campaign meets the
 // candidate requirements.
 func (as *AnnSensus) AddCandidate(cp *types.Campaign) error {
-	as.mu.RLock()
-	defer as.mu.RUnlock()
 
 	if as.term.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")

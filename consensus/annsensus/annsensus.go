@@ -190,7 +190,7 @@ func (as *AnnSensus) isTermChanging() bool {
 	return as.term.Changing()
 }
 
-// canChangeTerm returns true if the campaigns cached reaches the
+// canChangeTerm returns true if the candidates cached reaches the
 // term change requirments.
 func (as *AnnSensus) canChangeTerm() bool {
 	return as.term.CanChange()
@@ -233,7 +233,8 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 // pickTermChg picks a valid TermChange from a tc list.
 func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, error) {
-	// the term id should match.
+	// TODO:
+	// not implemented yet.
 
 	return nil, nil
 }
@@ -260,6 +261,8 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 func (as *AnnSensus) loop() {
 	var camp bool
+	newtermCh := make(chan struct{})
+
 	for {
 		select {
 		case <-as.close:
@@ -289,8 +292,21 @@ func (as *AnnSensus) loop() {
 				if !as.isTermChanging() {
 					continue
 				}
-				as.term.ChangeTerm(tc)
+				err = as.term.ChangeTerm(tc)
+				if err != nil {
+					log.Errorf("change term error: %v", err)
+					continue
+				}
+				newtermCh <- struct{}{}
 			}
+
+		case <-newtermCh:
+			// sequencer generate entry.
+
+			// TODO:
+			// 1. check if yourself is the miner.
+			// 2. produce raw_seq and broadcast into network.
+			// 3. start pbft until someone produce a seq with BLS sig.
 
 		case <-time.After(time.Second * 6):
 			if !camp {

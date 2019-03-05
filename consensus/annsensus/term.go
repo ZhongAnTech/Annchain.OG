@@ -119,11 +119,13 @@ func (t *Term) HasCampaign(c *types.Campaign) bool {
 }
 
 func (t *Term) hasCampaign(c *types.Campaign) bool {
-	_, ok := t.candidates[c.Issuer]
-	if !ok {
-		_, ok = t.alsorans[c.Issuer]
+	if _, exists := t.candidates[c.Issuer]; exists {
+		return true
 	}
-	return ok
+	if _, exists := t.alsorans[c.Issuer]; exists {
+		return true
+	}
+	return false
 }
 
 // CanChange returns true if the campaigns cached reaches the
@@ -132,7 +134,8 @@ func (t *Term) CanChange() bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	// TODO
+	// TODO:
+	// term change requirements are not enough now.
 	if len(t.candidates) == 0 {
 		return false
 	}

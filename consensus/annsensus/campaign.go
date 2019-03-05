@@ -36,11 +36,5 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 }
 
 func (a *AnnSensus) HasCampaign(cp *types.Campaign) bool {
-	if a.GetCandidate(cp.Issuer) != nil {
-		return true
-	}
-	if a.GetAlsoran(cp.Issuer) != nil {
-		return true
-	}
-	return false
+	return a.term.HasCampaign(cp)
 }

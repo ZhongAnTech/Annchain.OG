@@ -172,7 +172,8 @@ type Senator struct {
 	addr  types.Address
 	pk    []byte
 	blspk []byte
-	// TODO
+	// TODO:
+	// more variables?
 }
 
 func newSenator(addr types.Address, publickey, blspk []byte) *Senator {

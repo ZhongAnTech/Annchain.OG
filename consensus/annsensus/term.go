@@ -80,6 +80,20 @@ func (t *Term) AddCandidate(c *types.Campaign) {
 	t.candidates[c.Issuer] = c
 }
 
+func (t *Term) GetAlsoran(addr types.Address) *types.Campaign {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.alsorans[addr]
+}
+
+func (t *Term) Alsorans() map[types.Address]*types.Campaign {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.alsorans
+}
+
 func (t *Term) AddAlsorans(camps []*types.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

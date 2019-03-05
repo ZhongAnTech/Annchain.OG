@@ -1,6 +1,7 @@
 package annsensus
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,19 +19,10 @@ type AnnSensus struct {
 	term *Term
 
 	campaignFlag bool
-	maxCamps     int
-	candidates   map[types.Address]*types.Campaign
-	alsorans     map[types.Address]*types.Campaign
-	// current senators to produce the sequencer.
-	senators map[types.Address]*Senator
 
-	termchgFlag bool
-	dkgPkCh     chan kyber.Point
-
-	// channels to send txs.
-	newTxHandlers []chan types.Txi
-	// receiving consensus txs from dag confirm.
-	ConsensusTXConfirmed chan []types.Txi
+	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
+	newTxHandlers        []chan types.Txi // channels to send txs.
+	ConsensusTXConfirmed chan []types.Txi // receiving consensus txs from dag confirm.
 
 	Hub    MessageSender // todo use interface later
 	Txpool og.ITxPool
@@ -53,8 +45,6 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
-	ann.candidates = make(map[types.Address]*types.Campaign)
-	ann.alsorans = make(map[types.Address]*types.Campaign)
 	ann.NbParticipants = partnerNum
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
@@ -101,6 +91,14 @@ func (as *AnnSensus) Candidates() map[types.Address]*types.Campaign {
 	return as.term.Candidates()
 }
 
+func (as *AnnSensus) GetAlsoran(addr types.Address) *types.Campaign {
+	return as.term.GetAlsoran(addr)
+}
+
+func (as *AnnSensus) Alsorans() map[types.Address]*types.Campaign {
+	return as.term.Alsorans()
+}
+
 // RegisterNewTxHandler add a channel into AnnSensus.newTxHandlers. These
 // channels are responsible to process new txs produced by annsensus.
 func (as *AnnSensus) RegisterNewTxHandler(c chan types.Txi) {
@@ -134,57 +132,72 @@ func (as *AnnSensus) prodcampaign() {
 func (as *AnnSensus) commit(camps []*types.Campaign) {
 
 	for i, c := range camps {
-		if as.term.Changing() {
+		if as.isTermChanging() {
 			// add those unsuccessful camps into alsoran list.
 			log.Debug("is termchanging ")
-			as.term.AddAlsorans(camps[i:])
+			as.AddAlsorans(camps[i:])
 			return
 		}
-		// TODO
-		// handle campaigns should not only add it into candidate list.
-		// as.candidates[c.Issuer] = c
-		err := as.AddCandidate(c) //todo remove duplication here
+
+		err := as.AddCandidate(c)
 		if err != nil {
 			log.WithError(err).Debug("add campaign err")
 			continue
 		}
-		if !as.term.CanChange() {
+		if !as.canChangeTerm() {
 			continue
 		}
+		// start term changing.
 		as.term.SwitchFlag(true)
-
 		camps := []*types.Campaign{}
-		for _, camp := range as.candidates {
+		for _, camp := range as.Candidates() {
 			camps = append(camps, camp)
 		}
 		go as.changeTerm(camps)
 
 	}
+}
 
+// AddCandidate adds campaign into annsensus if the campaign meets the
+// candidate requirements.
+func (as *AnnSensus) AddCandidate(cp *types.Campaign) error {
+	as.mu.RLock()
+	defer as.mu.RUnlock()
+
+	if as.term.HasCampaign(cp) {
+		log.WithField("campaign", cp).Debug("duplicate campaign ")
+		return fmt.Errorf("duplicate ")
+	}
+
+	pubkey := cp.GetDkgPublicKey()
+	if pubkey == nil {
+		log.WithField("nil PartPubf for  campain", cp).Warn("add campaign")
+		return fmt.Errorf("pubkey is nil ")
+	}
+
+	as.dkg.AddPartner(cp, as.MyPrivKey)
+	as.term.AddCandidate(cp)
+	// log.WithField("me ",as.id).WithField("add cp", cp ).Debug("added")
+	return nil
+}
+
+// AddAlsorans adds a list of campaigns into annsensus as alsorans.
+// Campaigns will be regard as alsoran when current candidates cached
+// already reaches the term change requirements.
+func (as *AnnSensus) AddAlsorans(cps []*types.Campaign) {
+	as.term.AddAlsorans(cps)
+}
+
+// isTermChanging checks if the annsensus system is currently
+// changing its senators term.
+func (as *AnnSensus) isTermChanging() bool {
+	return as.term.Changing()
 }
 
 // canChangeTerm returns true if the campaigns cached reaches the
 // term change requirments.
 func (as *AnnSensus) canChangeTerm() bool {
-	// TODO
-
-	if len(as.candidates) == 0 {
-		return false
-	}
-	if len(as.candidates) < as.NbParticipants {
-		log.WithField("len ", len(as.candidates)).Debug("not enough campaigns , waiting")
-		return false
-	}
-
-	return true
-}
-
-func (as *AnnSensus) isTermChanging() bool {
-	as.termchgLock.RLock()
-	changing := as.termchgFlag
-	as.termchgLock.RUnlock()
-
-	return changing
+	return as.term.CanChange()
 }
 
 func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
@@ -229,22 +242,6 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 	return nil, nil
 }
 
-func (as *AnnSensus) ProcessTermChange(tc *types.TermChange) {
-	// TODO
-	// lock?
-	log.Info("process termchange")
-	as.senators = make(map[types.Address]*Senator)
-	for addr, camp := range as.candidates {
-		s := newSenator(addr, camp.PublicKey, tc.PkBls)
-		as.senators[addr] = s
-	}
-
-	as.candidates = make(map[types.Address]*types.Campaign)
-	as.alsorans = make(map[types.Address]*types.Campaign)
-
-	as.SwitchTcFlagWithLock(false)
-}
-
 func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
 	base := types.TxBase{
 		Type: types.TxBaseTypeTermChange,
@@ -263,13 +260,6 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 		SigSet: sigset,
 	}
 	return tc
-}
-
-func (as *AnnSensus) SwitchTcFlagWithLock(flag bool) {
-	as.termchgLock.Lock()
-	defer as.termchgLock.Unlock()
-
-	as.termchgFlag = flag
 }
 
 func (as *AnnSensus) loop() {
@@ -293,14 +283,14 @@ func (as *AnnSensus) loop() {
 			}
 			if len(cps) > 0 {
 				as.commit(cps)
-				log.Infof("already candidates: %d, alsorans: %d", len(as.candidates), len(as.alsorans))
+				log.Infof("already candidates: %d, alsorans: %d", len(as.Candidates()), len(as.Alsorans()))
 			}
 			if len(tcs) > 0 {
 				tc, err := as.pickTermChg(tcs)
 				if err != nil {
 					log.Errorf("the received termchanges are not correct.")
 				}
-				if !as.term.Changing() {
+				if !as.isTermChanging() {
 					continue
 				}
 				as.term.ChangeTerm(tc)

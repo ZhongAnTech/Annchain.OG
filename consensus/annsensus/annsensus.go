@@ -256,7 +256,10 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 func (as *AnnSensus) loop() {
 	var camp bool
+
+	// sequencer entry
 	newtermCh := make(chan struct{})
+	newtermCh <- struct{}{}
 
 	for {
 		select {

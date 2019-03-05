@@ -125,7 +125,7 @@ func (as *AnnSensus) prodcampaign() {
 }
 
 // commit takes a list of campaigns as input and record these
-// camps' information It checks if the number of camps reaches
+// camps' information. It checks if the number of camps reaches
 // the threshold. If so, start term changing flow.
 func (as *AnnSensus) commit(camps []*types.Campaign) {
 
@@ -278,6 +278,9 @@ func (as *AnnSensus) loop() {
 					tcs = append(tcs, tx.(*types.TermChange))
 				}
 			}
+			// TODO:
+			// here exists a bug:
+			// the isTermChanging check should be here not in commit()
 			if len(cps) > 0 {
 				as.commit(cps)
 				log.Infof("already candidates: %d, alsorans: %d", len(as.Candidates()), len(as.Alsorans()))
@@ -303,7 +306,7 @@ func (as *AnnSensus) loop() {
 
 			// TODO:
 			// 1. check if yourself is the miner.
-			// 2. produce raw_seq and broadcast into network.
+			// 2. produce raw_seq and broadcast it to network.
 			// 3. start pbft until someone produce a seq with BLS sig.
 
 		case <-time.After(time.Second * 6):

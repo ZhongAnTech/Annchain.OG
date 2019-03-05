@@ -211,14 +211,9 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 		case pk := <-as.dkgPkCh:
 			log.Info("got a bls public key from dkg: %s", pk.String())
 
-			sigs := as.dkg.blsSigSets
-			log.WithField("sig sets ", sigs).Info("got sigsets ")
+			sigset := as.dkg.GetBlsSigsets()
+			log.WithField("sig sets ", sigset).Info("got sigsets ")
 			//continue //for test case commit this
-			// TODO generate sigset in dkg gossip.
-			sigset := []*types.SigSet{}
-			for _, sig := range sigs {
-				sigset = append(sigset, sig)
-			}
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {
 				continue

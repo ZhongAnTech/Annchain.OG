@@ -267,6 +267,8 @@ func (as *AnnSensus) loop() {
 			log.Info("got quit signal , annsensus loop stopped")
 			return
 
+
+		//TODO sequencer generate a random seed ,use random seed to select candidate peers
 		case txs := <-as.ConsensusTXConfirmed:
 			log.WithField(" txs ", txs).Debug("got consensus txs")
 			var cps []*types.Campaign

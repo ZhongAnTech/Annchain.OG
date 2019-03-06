@@ -213,6 +213,7 @@ func TestDKGMain(t *testing.T) {
 	for _, ann := range Anns {
 		cps = append(cps, ann.GenCampaign())
 	}
+	logrus.Debug("gen camp ", cps)
 	for _, ann := range Anns {
 		ann.Start()
 	}

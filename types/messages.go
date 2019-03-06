@@ -407,7 +407,7 @@ type MessageConsensusDkgSigSets struct {
 
 //msgp:tuple MessageConsensusDkgDeal
 type MessageConsensusDkgDeal struct {
-	Id uint32
+	Id        uint32
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte
@@ -442,7 +442,7 @@ func (m MessageConsensusDkgDeal) String() string {
 
 //msgp:tuple MessageConsensusDkgDealResponse
 type MessageConsensusDkgDealResponse struct {
-	Id uint32
+	Id        uint32
 	Data      []byte
 	PublicKey []byte
 	Sinature  []byte

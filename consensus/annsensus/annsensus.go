@@ -209,7 +209,7 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 			return
 
 		case pk := <-as.dkgPkCh:
-			log.Info("got a bls public key from dkg: %s", pk.String())
+			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 
 			sigset := as.dkg.GetBlsSigsets()
 			log.WithField("sig sets ", sigset).Info("got sigsets ")
@@ -231,7 +231,7 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 	// TODO:
 	// not implemented yet.
 
-	return nil, nil
+	return tcs[0], nil
 }
 
 func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
@@ -259,14 +259,13 @@ func (as *AnnSensus) loop() {
 
 	// sequencer entry
 	newtermCh := make(chan struct{})
-	newtermCh <- struct{}{}
+	//newtermCh <- struct{}{}
 
 	for {
 		select {
 		case <-as.close:
 			log.Info("got quit signal , annsensus loop stopped")
 			return
-
 
 		//TODO sequencer generate a random seed ,use random seed to select candidate peers
 		case txs := <-as.ConsensusTXConfirmed:

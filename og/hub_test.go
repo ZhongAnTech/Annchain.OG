@@ -66,12 +66,27 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 	pk, sk, _ := s.RandomKeyPair()
 	m.Marshal()
 	logrus.Debug(len(m.data))
-	m.Encrypt(&pk)
+	err := m.Encrypt(&pk)
+	if err != nil {
+		t.Fatal(err)
+	}
 	logrus.Debug(len(m.data))
 	mm := p2PMessage{data: m.data, messageType: MessageTypeSecret}
-	err := mm.Decrypt(&sk)
-	logrus.Debug(len(mm.data), err)
+	ok := mm.checkRequiredSize()
+	logrus.Debug(ok)
+	ok = mm.maybeIsforMe(&pk)
+	if !ok {
+		t.Fatal(ok)
+	}
+	err = mm.Decrypt(&sk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logrus.Debug(len(mm.data))
 	err = mm.Unmarshal()
-	logrus.Debug(len(mm.data), err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logrus.Debug(len(mm.data))
 	logrus.Debug(mm, mm.message.String())
 }

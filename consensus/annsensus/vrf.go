@@ -16,7 +16,7 @@ func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
 		panic(err)
 	}
 	pk, _ := sk.Public()
-	_, data := as.GetProofData(0)
+	_, data := as.GetProofData(as.Idag.LatestSequencer().Height)
 	Vrf := sk.Compute(data)
 	ok := as.VrfCondition(Vrf)
 	if !ok {

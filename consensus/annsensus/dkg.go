@@ -131,8 +131,8 @@ func (d *Dkg) AddPartner(c *types.Campaign, annPriv *crypto.PrivateKey) {
 
 }
 
-func (d *Dkg)GetBlsSigsets() []*types.SigSet {
-	var sigset  []*types.SigSet
+func (d *Dkg) GetBlsSigsets() []*types.SigSet {
+	var sigset []*types.SigSet
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	for _, sig := range d.blsSigSets {
@@ -337,16 +337,24 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
-			response := &types.MessageConsensusDkgDealResponse{
+			response := types.MessageConsensusDkgDealResponse{
 				Data: respData,
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
 			}
 			response.Sinature = d.signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
 			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-			log.WithField("to request ", request).WithField("response ", response).Debug("will send response")
+			log.WithField("to request ", request).WithField("response ", &response).Debug("will send response")
 			//broadcast response to all partner
-			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
+			me := d.ann.MyPrivKey.PublicKey().Address()
+			for k, v := range d.ann.Candidates() {
+				if k == me {
+					continue
+				}
+				msgCopy := response
+				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
+				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
+			}
 			//and sent to myself ? already processed inside dkg,skip myself
 			d.ProcessWaitingResponse(&deal)
 
@@ -358,10 +366,7 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Warn("verify signature failed")
 				continue
 			}
-			//log.WithField("resp ", response).Trace("got response")
-			//broadcast  continue
 			if !d.dkgOn {
-				go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 				//not a consensus partner
 				log.Warn("why send to me")
 				continue
@@ -381,8 +386,6 @@ func (d *Dkg) gossiploop() {
 				log.WithField("for index ", resp.Index).Debug("deal  not received yet")
 				continue
 			}
-
-			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgDealResponse, response)
 
 			just, err := d.ProcessResponse(&resp)
 			if err != nil {
@@ -416,7 +419,15 @@ func (d *Dkg) gossiploop() {
 			msg.PkBls, _ = jointPub.MarshalBinary()
 			msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 			msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, &msg)
+			me := d.ann.MyPrivKey.PublicKey().Address()
+			for k, v := range d.ann.Candidates() {
+				if k == me {
+					continue
+				}
+				msgCopy := msg
+				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
+				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
+			}
 
 			d.addSigsets(d.ann.MyPrivKey.PublicKey().Address(), &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Sinature})
 			sigCaches := d.unhandledSigSets()
@@ -431,10 +442,7 @@ func (d *Dkg) gossiploop() {
 				log.WithError(err).Warn("verify signature failed")
 				continue
 			}
-			//log.WithField("resp ", response).Trace("got response")
-			//broadcast  continue
 			if !d.dkgOn {
-				go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
 				//not a consensus partner
 				log.Warn("why send to me")
 				continue
@@ -456,7 +464,7 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Sinature})
-			go d.ann.Hub.BroadcastMessage(og.MessageTypeConsensusDkgSigSets, response)
+
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
 				d.ann.dkgPkCh <- d.partner.jointPubKey

@@ -1,6 +1,7 @@
 package og
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -401,41 +402,66 @@ func (m *p2PMessage) Marshal() error {
 }
 
 func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {
-	if m.messageType == MessageTypeConsensusDkgDeal || m.messageType == MessageTypeConsensusDkgDealResponse {
-		b := make([]byte, 2)
-		//use one key for tx and sequencer
-		binary.BigEndian.PutUint16(b, uint16(m.messageType))
-		m.data = append(m.data, b[:]...)
-		m.encrypt = true
-		m.messageType = MessageTypeSecret
-		ct, err := pub.Encrypt(m.data)
-		if err != nil {
-			return err
-		}
-		m.data = ct
-
+	//if m.messageType == MessageTypeConsensusDkgDeal || m.messageType == MessageTypeConsensusDkgDealResponse {
+	b := make([]byte, 2)
+	//use one key for tx and sequencer
+	binary.BigEndian.PutUint16(b, uint16(m.messageType))
+	m.data = append(m.data, b[:]...)
+	m.encrypt = true
+	m.messageType = MessageTypeSecret
+	ct, err := pub.Encrypt(m.data)
+	if err != nil {
+		return err
 	}
+	m.data = ct
+	//add target
+	m.data = append(m.data, pub.Bytes[:3]...)
 	return nil
 }
 
-func (m *p2PMessage) Decrypt(priv *crypto.PrivateKey) error {
+func (m *p2PMessage) checkRequiredSize() bool {
 	if m.messageType == MessageTypeSecret {
-		msg, err := priv.Decrypt(m.data)
-		if err != nil {
-			return err
+		if len(m.data) < 3 {
+			return false
 		}
-		if len(msg) < 3 {
-			return fmt.Errorf("lengh error %d", len(msg))
-		}
-		b := make([]byte, 2)
-		copy(b, msg[len(msg)-2:])
-		mType := binary.BigEndian.Uint16(b)
-		m.messageType = MessageType(mType)
-		if !m.messageType.isValid() {
-			return fmt.Errorf("message type error %s", m.messageType.String())
-		}
-		m.data = msg[:len(msg)-2]
 	}
+	return true
+}
+
+func (m *p2PMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
+	if m.messageType != MessageTypeSecret {
+		panic("not a secret message")
+	}
+	//check target
+	target := m.data[len(m.data)-3:]
+	if !bytes.Equal(target, myPub.Bytes[:3]) {
+		//not four me
+		return false
+	}
+	return true
+}
+
+func (m *p2PMessage) Decrypt(priv *crypto.PrivateKey) error {
+	if m.messageType != MessageTypeSecret {
+		panic("not a secret message")
+	}
+	d := make([]byte, len(m.data)-3)
+	copy(d, m.data[:len(m.data)-3])
+	msg, err := priv.Decrypt(d)
+	if err != nil {
+		return err
+	}
+	if len(msg) < 3 {
+		return fmt.Errorf("lengh error %d", len(msg))
+	}
+	b := make([]byte, 2)
+	copy(b, msg[len(msg)-2:])
+	mType := binary.BigEndian.Uint16(b)
+	m.messageType = MessageType(mType)
+	if !m.messageType.isValid() {
+		return fmt.Errorf("message type error %s", m.messageType.String())
+	}
+	m.data = msg[:len(msg)-2]
 	return nil
 }
 

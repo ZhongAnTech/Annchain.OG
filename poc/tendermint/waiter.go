@@ -1,8 +1,9 @@
 package tendermint
 
 import (
-	"time"
 	"github.com/annchain/OG/ffchan"
+	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type WaiterContext interface {
@@ -28,8 +29,8 @@ type Waiter struct {
 
 func NewWaiter(callbackEventChannel chan *WaiterRequest) *Waiter {
 	return &Waiter{
-		requestChannel:      make(chan *WaiterRequest, 100),
-		contextChannel:      make(chan WaiterContext, 100),
+		requestChannel:      make(chan *WaiterRequest, 10),
+		contextChannel:      make(chan WaiterContext, 10),
 		quit:                make(chan bool),
 		callbackEventChanel: callbackEventChannel,
 	}
@@ -41,17 +42,43 @@ func (w *Waiter) StartEventLoop() {
 		select {
 		case <-w.quit:
 			break
-		case r := <-w.requestChannel:
+		case request := <-w.requestChannel:
 			// could be an updated request
 			// if it is really updated request,
-			if w.currentRequest != nil && !r.Context.Newer(w.currentRequest.Context) {
+			if w.currentRequest != nil && !request.Context.Newer(w.currentRequest.Context) {
 				continue
 			}
-			w.currentRequest = r
-			timer.Reset(r.WaitTime)
-		case r := <-w.contextChannel:
-			if w.currentRequest == nil || !r.Equal(w.currentRequest.Context) {
-				timer.Stop()
+			logrus.Trace("request is newer and we will reset")
+			w.currentRequest = request
+			if !timer.Stop() {
+				// drain the timer but do not use the method in document
+				// timer may already be consumed so use a select
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(request.WaitTime)
+		case latestContext := <-w.contextChannel:
+			if w.currentRequest == nil || !latestContext.Newer(w.currentRequest.Context) {
+				// a new state is updated, cancel all pending timeouts
+				if w.currentRequest != nil {
+					logrus.WithField("new", latestContext.(*TendermintContext).StepType).
+						WithField("old", w.currentRequest.Context.(*TendermintContext).StepType).
+						Debug("new state updated")
+				} else {
+					logrus.WithField("new", latestContext.(*TendermintContext).StepType).
+						WithField("old", nil).
+						Debug("new state updated")
+				}
+				if !timer.Stop() {
+					// drain the timer but do not use the method in document
+					// timer may already be consumed so use a select
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 			}
 		case <-timer.C:
 			// timeout, trigger callback
@@ -59,15 +86,16 @@ func (w *Waiter) StartEventLoop() {
 				ffchan.NewTimeoutSenderShort(w.callbackEventChanel, w.currentRequest, "waiterCallback")
 				//w.currentRequest.TimeoutCallback(w.currentRequest.Context)
 			}
-
 		}
 	}
 }
 
 func (w *Waiter) UpdateRequest(req *WaiterRequest) {
 	w.requestChannel <- req
+	//ffchan.NewTimeoutSenderShort(w.requestChannel, req, "waiterrequest")
 }
 
 func (w *Waiter) UpdateContext(context WaiterContext) {
 	w.contextChannel <- context
+	//ffchan.NewTimeoutSenderShort(w.contextChannel, context, "waitercontext")
 }

@@ -62,6 +62,7 @@ type Hub struct {
 	IsReceivedHash    func(hash types.Hash) bool
 	broadCastMode     uint8
 	encryptionPrivKey *crypto.PrivateKey
+	encryptionPubKey  *crypto.PublicKey
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -187,6 +188,7 @@ func NewHub(config *HubConfig) *Hub {
 
 func (h *Hub) SetEncryptionKey(priv *crypto.PrivateKey) {
 	h.encryptionPrivKey = priv
+	h.encryptionPubKey = priv.PublicKey()
 }
 
 func (h *Hub) newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -256,26 +258,29 @@ func (h *Hub) handleMsg(p *peer) error {
 	data, err := msg.GetPayLoad()
 	m := p2PMessage{messageType: MessageType(msg.Code), data: data, sourceID: p.id, version: p.version}
 	//log.Debug("start handle p2p messgae ",p2pMsg.messageType)
-	switch {
-	case m.messageType == StatusMsg:
+	switch m.messageType {
+	case StatusMsg:
 		// Handle the message depending on its contents
 
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
-	case m.messageType == MessageTypeDuplicate:
+	case MessageTypeDuplicate:
 		msgLog.WithField("got msg", MessageTypeDuplicate).WithField("peer ", p.String()).Info("set path to false")
 		if !p.SetOutPath(false) {
 			msgLog.WithField("got msg again ", MessageTypeDuplicate).WithField("peer ", p.String()).Warn("set path to false")
 		}
 		return nil
-	default:
-		//for incoming msg
-		if m.messageType == MessageTypeSecret {
-			m.calculateHash()
-			p.MarkMessage(m.messageType, *m.hash)
-			oldMsg := m
-			if duplicate := h.cacheMessage(&m); !duplicate {
+	case MessageTypeSecret:
+		if !m.checkRequiredSize() {
+			return fmt.Errorf("msg len error")
+		}
+		m.calculateHash()
+		p.MarkMessage(m.messageType, *m.hash)
+		oldMsg := m
+		if duplicate := h.cacheMessage(&m); !duplicate {
+			var isForMe bool
+			if isForMe = m.maybeIsforMe(h.encryptionPubKey); isForMe {
 				e := m.Decrypt(h.encryptionPrivKey)
 				if e == nil {
 					err = m.Unmarshal()
@@ -286,23 +291,24 @@ func (h *Hub) handleMsg(p *peer) error {
 					msgLog.WithField("type", m.messageType.String()).WithField("from", p.String()).WithField(
 						"Message", m.message.String()).WithField("len ", len(m.data)).Debug("received a message")
 					h.incoming <- &m
-					h.RelayMessage(&oldMsg)
-					return nil
 				} else {
 					log.WithError(e).Debug("this msg is not for me, will relay")
-					h.RelayMessage(&oldMsg)
-					return nil
+					isForMe = false
 				}
-
-			} else {
-				out, in := p.CheckPath()
-				log.WithField("type", m.messageType).WithField("size", len(m.data)).WithField(
-					"hash", m.hash).WithField("from ", p.String()).WithField("out ", out).WithField(
-					"in ", in).Debug("duplicate msg ,discard")
-
 			}
-			return nil
+			log.Debug("this msg is not for me, will relay")
+			h.RelayMessage(&oldMsg)
+
+		} else {
+			out, in := p.CheckPath()
+			log.WithField("type", m.messageType).WithField("size", len(m.data)).WithField(
+				"hash", m.hash).WithField("from ", p.String()).WithField("out ", out).WithField(
+				"in ", in).Debug("duplicate msg ,discard")
+
 		}
+		return nil
+	default:
+		//for incoming msg
 		err = m.Unmarshal()
 		if err != nil {
 			log.WithField("type ", m.messageType).WithError(err).Warn("handle msg error")

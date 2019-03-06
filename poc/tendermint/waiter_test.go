@@ -7,7 +7,7 @@ import (
 )
 
 func callback(w WaiterContext) {
-	fmt.Println(w.(*TendermintContext).Height)
+	fmt.Println(w.(*TendermintContext).HeightRound.Height)
 }
 
 func TestWait(t *testing.T) {
@@ -18,13 +18,18 @@ func TestWait(t *testing.T) {
 		WaitTime:        time.Second * 5,
 		TimeoutCallback: callback,
 		Context: &TendermintContext{
-			Height: 2,
-			Round:  3,
+			HeightRound:HeightRound{
+				Height: 2,
+				Round:  3,
+			},
+
 		},
 	})
 	w.UpdateContext(&TendermintContext{
-		Height: 3,
-		Round:  2,
+		HeightRound:HeightRound{
+			Height: 2,
+			Round:  3,
+		},
 	})
 
 	time.Sleep(time.Second * 100)

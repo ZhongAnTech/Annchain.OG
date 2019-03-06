@@ -92,8 +92,7 @@ func (s StringProposal) GetId() string {
 
 type BasicMessage struct {
 	SourceId int
-	Height   int
-	Round    int
+	HeightRound HeightRound
 }
 type MessageProposal struct {
 	BasicMessage
@@ -107,13 +106,11 @@ type MessageCommonVote struct {
 
 type ChangeStateEvent struct {
 	NewStepType StepType
-	Height      int
-	Round       int
+	HeightRound HeightRound
 }
 
 type TendermintContext struct {
-	Height   int
-	Round    int
+	HeightRound HeightRound
 	StepType StepType
 }
 
@@ -122,7 +119,7 @@ func (t *TendermintContext) Equal(w WaiterContext) bool {
 	if !ok {
 		return false
 	}
-	return t.Height == v.Height && t.Round == v.Round
+	return t.HeightRound == v.HeightRound
 }
 
 func (t *TendermintContext) Newer(w WaiterContext) bool {
@@ -130,5 +127,5 @@ func (t *TendermintContext) Newer(w WaiterContext) bool {
 	if !ok {
 		return false
 	}
-	return t.Height > v.Height || (v.Height == v.Height && t.Round == v.Round)
+	return t.HeightRound.Height > v.HeightRound.Height || t.HeightRound == v.HeightRound
 }

@@ -26,8 +26,8 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 			log.Warn("nil sig")
 			return false
 		}
-		pk := crypto.PublicKeyFromBytes(CryptoType, sig.PublicKey)
-		if !signer.Verify(pk, crypto.SignatureFromBytes(CryptoType, sig.Signature), t.PkBls) {
+		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
 			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
 			return false
 		}

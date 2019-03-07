@@ -3,6 +3,9 @@ package crypto
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/encrypt/ecies"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
+	"github.com/annchain/OG/poc/extra25519"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
@@ -63,11 +66,25 @@ func (s *SignerEd25519) Address(pubKey PublicKey) types.Address {
 }
 
 func (s *SignerEd25519) Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error) {
-	panic("not supported")
-	return nil, nil
+	//convert our pubkey key to kyber pubkey
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	pubKey, err := edwards25519.UnmarshalBinaryPoint(publicKey.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return ecies.Encrypt(suite, pubKey, m, suite.Hash)
 }
 
 func (s *SignerEd25519) Decrypt(p PrivateKey, ct []byte) (m []byte, err error) {
-	panic("not supported")
-	return nil, nil
+	//convert our priv key to kyber privkey
+	var edPrivKey [32]byte
+	var curvPrivKey [64]byte
+	copy(curvPrivKey[:], p.Bytes[:64])
+	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
+	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
+	if err != nil {
+		panic(err)
+	}
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	return ecies.Decrypt(suite, privateKey, ct, suite.Hash)
 }

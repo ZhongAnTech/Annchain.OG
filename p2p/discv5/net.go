@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
@@ -1250,7 +1250,7 @@ func (net *Network) checkTopicRegister(data *TopicRegister) (*Pong, error) {
 }
 
 func rlpHash(x msg.Message) (h types.Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	//rlp.Encode(hw, x)
 	d, _ := x.MarshalMsg(nil)
 	hw.Write(d)

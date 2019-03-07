@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/annchain/OG/common/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 	"github.com/tinylib/msgp/msgp"
 )
 

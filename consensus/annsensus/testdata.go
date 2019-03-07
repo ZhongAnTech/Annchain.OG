@@ -2,7 +2,7 @@ package annsensus
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 )

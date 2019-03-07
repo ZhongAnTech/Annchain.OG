@@ -20,7 +20,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/p2p/enr"
@@ -49,7 +49,7 @@ func SignV4(r *enr.Record, privkey *ecdsa.PrivateKey) error {
 	key := Secp256k1(privkey.PublicKey)
 	cpy.Set(&key)
 
-	h := sha3.NewKeccak256()
+	h := sha3.NewLegacyKeccak256()
 	list := msg.Messages(cpy.AppendElements(nil))
 	data, _ := list.MarshalMsg(nil)
 	h.Write(data)
@@ -71,7 +71,7 @@ func (V4ID) Verify(r *enr.Record, sig []byte) error {
 	} else if len(entry) != 33 {
 		return fmt.Errorf("invalid public key")
 	}
-	h := sha3.NewKeccak256()
+	h := sha3.NewLegacyKeccak256()
 	list := msg.Messages(r.AppendElements(nil))
 	data, _ := list.MarshalMsg(nil)
 	h.Write(data)

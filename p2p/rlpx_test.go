@@ -35,7 +35,7 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/ecies"
-	"github.com/annchain/OG/common/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -391,8 +391,8 @@ func TestRLPXFrameRW(t *testing.T) {
 	s1 := secrets{
 		AES:        aesSecret,
 		MAC:        macSecret,
-		EgressMAC:  sha3.NewKeccak256(),
-		IngressMAC: sha3.NewKeccak256(),
+		EgressMAC:  sh3.NewLagecyKeccak256()(),
+		IngressMAC: sha3.NewLegacyKeccak256(),
 	}
 	s1.EgressMAC.Write(egressMACinit)
 	s1.IngressMAC.Write(ingressMACinit)
@@ -401,8 +401,8 @@ func TestRLPXFrameRW(t *testing.T) {
 	s2 := secrets{
 		AES:        aesSecret,
 		MAC:        macSecret,
-		EgressMAC:  sha3.NewKeccak256(),
-		IngressMAC: sha3.NewKeccak256(),
+		EgressMAC:  sha3.NewLegacyKeccak256(),
+		IngressMAC: sha3.NewLegacyKeccak256(),
 	}
 	s2.EgressMAC.Write(ingressMACinit)
 	s2.IngressMAC.Write(egressMACinit)

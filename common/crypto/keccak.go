@@ -13,10 +13,10 @@ import (
 	"os"
 
 	"github.com/annchain/OG/common"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/btcsuite/btcd/btcec"
+	"golang.org/x/crypto/sha3"
 )
 
 var (

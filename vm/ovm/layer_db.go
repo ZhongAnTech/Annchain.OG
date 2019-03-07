@@ -7,9 +7,9 @@ import (
 
 	"fmt"
 
+	"errors"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/pkg/errors"
 	"math/big"
 	"strings"
 )

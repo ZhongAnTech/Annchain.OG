@@ -90,7 +90,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(mm.data))
-		dkgMsg:= mm.message.(*types.MessageConsensusDkgDeal)
+		dkgMsg := mm.message.(*types.MessageConsensusDkgDeal)
 		logrus.Debug(dkgMsg.Id," " ,string(dkgMsg.Data))
 		logrus.Debug(mm.message)
 	}

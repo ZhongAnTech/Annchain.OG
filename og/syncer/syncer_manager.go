@@ -88,7 +88,7 @@ func (s *SyncManager) Name() string {
 
 func NewSyncManager(config SyncManagerConfig, hub *og.Hub, NodeStatusDataProvider og.NodeStatusDataProvider) *SyncManager {
 	sm := &SyncManager{
-		Hub: hub,
+		Hub:                              hub,
 		NodeStatusDataProvider:           NodeStatusDataProvider,
 		CatchupSyncerWorkingStateChanged: make(chan CatchupSyncerStatus),
 		BootstrapNode:                    config.BootstrapNode,

@@ -56,7 +56,7 @@ func TestSh256(t *testing.T) {
 }
 
 func TestP2PMessage_Encrypt(t *testing.T) {
-	for i:=0;i<2;i++ {
+	for i := 0; i < 2; i++ {
 		logrus.SetLevel(logrus.TraceLevel)
 		msg := types.MessageConsensusDkgDeal{
 			Data: []byte("this is a test of og message"),
@@ -84,14 +84,14 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		logrus.Debug(len(mm.data),mm.messageType)
+		logrus.Debug(len(mm.data), mm.messageType)
 		err = mm.Unmarshal()
 		if err != nil {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(mm.data))
 		dkgMsg := mm.message.(*types.MessageConsensusDkgDeal)
-		logrus.Debug(dkgMsg.Id," " ,string(dkgMsg.Data))
+		logrus.Debug(dkgMsg.Id, " ", string(dkgMsg.Data))
 		logrus.Debug(mm.message)
 	}
 }

@@ -34,7 +34,7 @@ func (r *RpcController) syncStatus() SyncStatus {
 		CatchupSyncerStatus:      r.SyncerManager.CatchupSyncer.WorkState.String(),
 		CatchupSyncerEnabled:     r.SyncerManager.CatchupSyncer.Enabled,
 		IncrementalSyncerEnabled: r.SyncerManager.IncrementalSyncer.Enabled,
-		Height: r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
+		Height:                   r.SyncerManager.NodeStatusDataProvider.GetCurrentNodeStatus().CurrentId,
 	}
 
 	peerId, _, seqId, err := r.SyncerManager.Hub.BestPeerInfo()

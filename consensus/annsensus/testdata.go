@@ -2,9 +2,9 @@ package annsensus
 
 import (
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp

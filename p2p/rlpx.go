@@ -38,8 +38,8 @@ import (
 	"github.com/annchain/OG/common/bitutil"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/ecies"
-	"golang.org/x/crypto/sha3"
 	"github.com/golang/snappy"
+	"golang.org/x/crypto/sha3"
 )
 
 const (

@@ -20,10 +20,10 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/p2p/enr"
+	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp

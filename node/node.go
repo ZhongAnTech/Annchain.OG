@@ -118,9 +118,9 @@ func NewNode() *Node {
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
-		Verifiers: verifiers,
-		Dag:       org.Dag,
-		TxPool:    org.TxPool,
+		Verifiers:                        verifiers,
+		Dag:                              org.Dag,
+		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           20000,
 		NewTxQueueSize:                   1,
@@ -153,10 +153,10 @@ func NewNode() *Node {
 	syncManager.CatchupSyncer = &syncer.CatchupSyncer{
 		PeerProvider:           hub,
 		NodeStatusDataProvider: org,
-		Hub:           hub,
-		Downloader:    downloaderInstance,
-		SyncMode:      downloader.FullSync,
-		BootStrapNode: bootNode,
+		Hub:                    hub,
+		Downloader:             downloaderInstance,
+		SyncMode:               downloader.FullSync,
+		BootStrapNode:          bootNode,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance

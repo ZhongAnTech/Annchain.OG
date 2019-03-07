@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
 	vmtypes "github.com/annchain/OG/vm/types"
+	"golang.org/x/crypto/sha3"
 )
 
 var (

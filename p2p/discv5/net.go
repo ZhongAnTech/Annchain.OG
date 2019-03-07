@@ -26,10 +26,10 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/types"
+	"golang.org/x/crypto/sha3"
 )
 
 var (

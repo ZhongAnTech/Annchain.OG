@@ -21,8 +21,8 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/common"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/types"
+	"golang.org/x/crypto/sha3"
 )
 
 type hasher struct {

@@ -34,8 +34,8 @@ func NewPartner(s *bn256.Suite) *Partner {
 		Suite:                 s,
 		addressIndex:          make(map[types.Address]int),
 		SecretKeyContribution: make(map[types.Address]kyber.Scalar),
-		Resps:      make(map[types.Address]*dkg.Response),
-		dealsIndex: make(map[uint32]bool),
+		Resps:                 make(map[types.Address]*dkg.Response),
+		dealsIndex:            make(map[uint32]bool),
 	}
 }
 

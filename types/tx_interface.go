@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/crypto/sha3"
 	"github.com/tinylib/msgp/msgp"
+	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp

@@ -149,11 +149,11 @@ func (d *dummyVerifier) Name() string {
 func setup() *TxBuffer {
 	ver := new(dummyVerifier)
 	buffer := NewTxBuffer(TxBufferConfig{
-		Verifiers:              []Verifier{ver},
-		DependencyCacheMaxSize: 20,
-		TxPool:                 new(dummyTxPool),
-		Dag:                    new(dummyDag),
-		Syncer:                 new(dummySyncer),
+		Verifiers:                        []Verifier{ver},
+		DependencyCacheMaxSize:           20,
+		TxPool:                           new(dummyTxPool),
+		Dag:                              new(dummyDag),
+		Syncer:                           new(dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
 		KnownCacheMaxSize:                10000,

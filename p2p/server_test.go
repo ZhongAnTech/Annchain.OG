@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"golang.org/x/crypto/sha3"
 	"github.com/annchain/OG/p2p/enr"
 	"github.com/annchain/OG/p2p/onode"
+	"golang.org/x/crypto/sha3"
 )
 
 func init() {

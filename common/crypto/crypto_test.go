@@ -12,20 +12,24 @@ import (
 )
 
 func TestPublicKey_Encrypt(t *testing.T) {
-	s := SignerSecp256k1{}
-	pk, sk, _ := s.RandomKeyPair()
-	fmt.Println(pk.String())
-	fmt.Println(sk.String())
-	msg := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
-		"ufidurehfkkjfri566878798y5rejiodijfjioi;454646855455uiyrsduihfi54sdodoootoprew5468rre")
-	fmt.Println(string(msg))
-	fmt.Println(len(msg))
-	cf, err := pk.Encrypt(msg)
-	fmt.Println(len(cf), hex.EncodeToString(cf), err)
-	m, err := sk.Decrypt(cf)
-	fmt.Println(string(m), err)
-	if !bytes.Equal(m, msg) {
-		t.Fatal("encrypt or decrypt error")
+	for i := 0; i < 2; i++ {
+		cType := CryptoType(i)
+		fmt.Println(cType)
+		s := NewSigner(cType)
+		pk, sk, _ := s.RandomKeyPair()
+		fmt.Println("pk", pk.String())
+		fmt.Println("sk", sk.String())
+		msg := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
+			"ufidurehfkkjfri566878798y5rejiodijfjioi;454646855455uiyrsduihfi54sdodoootoprew5468rre")
+		fmt.Println(string(msg))
+		fmt.Println(len(msg))
+		cf, err := pk.Encrypt(msg)
+		fmt.Println(len(cf), hex.EncodeToString(cf), err)
+		m, err := sk.Decrypt(cf)
+		fmt.Println(string(m), err)
+		if !bytes.Equal(m, msg) {
+			t.Fatal("encrypt or decrypt error")
+		}
 	}
 }
 

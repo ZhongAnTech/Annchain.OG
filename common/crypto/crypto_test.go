@@ -76,101 +76,100 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	}
 }
 
-
 //tese signer benchmarks
 func TestBenchMarks(t *testing.T) {
 	type TestTx struct {
 		types.Txi
-		PlainData []byte
+		PlainData  []byte
 		CipherData []byte
 	}
-	var  txs []*TestTx
+	var txs []*TestTx
 	var Txlen = 40000
-	for i:=0;i<Txlen;i++ {
+	for i := 0; i < Txlen; i++ {
 		tx := types.RandomTx()
 		tx.Data = []byte("jhfffhhgfhgf46666856544563544535636568654864546546ewfjnfdjlfjldkjkflkjflkdsl;kfdfkjjkfsd;lsdl;kdfl;kjfjfsj;sd54645656854545435454")
-		testTx := TestTx{tx,tx.SignatureTargets(),nil}
-		txs = append(txs,&testTx)
+		testTx := TestTx{tx, tx.SignatureTargets(), nil}
+		txs = append(txs, &testTx)
 	}
-	signerSecp:= NewSigner(CryptoTypeSecp256k1)
-	pubkey,privKey,_:= signerSecp.RandomKeyPair()
-	signerEd:=NewSigner(CryptoTypeEd25519)
-	pubEd,privEd,_ := signerEd.RandomKeyPair()
-	start:= time.Now()
-	fmt.Println("number of tx ",Txlen)
-	for i, tx:= range txs {
-		txs[i].GetBase().Signature = signerSecp.Sign(privKey,tx.PlainData).Bytes
+	signerSecp := NewSigner(CryptoTypeSecp256k1)
+	pubkey, privKey, _ := signerSecp.RandomKeyPair()
+	signerEd := NewSigner(CryptoTypeEd25519)
+	pubEd, privEd, _ := signerEd.RandomKeyPair()
+	start := time.Now()
+	fmt.Println("number of tx ", Txlen)
+	for i, tx := range txs {
+		txs[i].GetBase().Signature = signerSecp.Sign(privKey, tx.PlainData).Bytes
 	}
 	second := time.Now()
-	fmt.Println(second.Sub(start),"for  secp256k1 sign"," pubKeyLen:", len(pubkey.Bytes),"len signatue:",
-		len(txs[0].GetBase().Signature),"len target:",len(txs[0].PlainData))
-	for i, tx:= range txs {
-		ok:= signerSecp.Verify(pubkey ,Signature{ signerSecp.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)
+	fmt.Println(second.Sub(start), "for  secp256k1 sign", " pubKeyLen:", len(pubkey.Bytes), "len signatue:",
+		len(txs[0].GetBase().Signature), "len target:", len(txs[0].PlainData))
+	for i, tx := range txs {
+		ok := signerSecp.Verify(pubkey, Signature{signerSecp.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)
 		if !ok {
-			t.Fatal(ok,i,tx)
+			t.Fatal(ok, i, tx)
 		}
 	}
-	third:= time.Now()
-	fmt.Println(third.Sub(second),"used for secp256k1 verify")
+	third := time.Now()
+	fmt.Println(third.Sub(second), "used for secp256k1 verify")
 
-	for i, tx:= range txs {
-		txs[i].GetBase().Signature = signerEd.Sign(privEd,tx.PlainData).Bytes
+	for i, tx := range txs {
+		txs[i].GetBase().Signature = signerEd.Sign(privEd, tx.PlainData).Bytes
 	}
 	four := time.Now()
-	fmt.Println(four.Sub(third),"for ed25519 sign"," pubKeyLen:", len(pubEd.Bytes),"len signatue:",
-		len(txs[0].GetBase().Signature),"len target:",len(txs[0].PlainData))
-	for i , tx:= range txs {
-		ok:= signerEd.Verify(pubEd ,Signature{ signerEd.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)
+	fmt.Println(four.Sub(third), "for ed25519 sign", " pubKeyLen:", len(pubEd.Bytes), "len signatue:",
+		len(txs[0].GetBase().Signature), "len target:", len(txs[0].PlainData))
+	for i, tx := range txs {
+		ok := signerEd.Verify(pubEd, Signature{signerEd.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)
 		if !ok {
-			t.Fatal(ok,i,tx)
+			t.Fatal(ok, i, tx)
 		}
 	}
 	five := time.Now()
-	fmt.Println(five.Sub(four),"used for ed25519 verify")
+	fmt.Println(five.Sub(four), "used for ed25519 verify")
 
-	for i, tx:= range txs {
+	for i, tx := range txs {
 		var err error
-		txs[i].CipherData,err = signerSecp.Encrypt(pubkey,tx.PlainData)
-		if err!=nil {
-			t.Fatal(err,i)
+		txs[i].CipherData, err = signerSecp.Encrypt(pubkey, tx.PlainData)
+		if err != nil {
+			t.Fatal(err, i)
 		}
 	}
 	fmt.Println()
 	six := time.Now()
-	fmt.Println(six.Sub(five),"for secp256k1 enc","len cipherdata:",len(txs[0].CipherData),"len plaindata:",len(txs[0].PlainData))
-	for i , tx:= range txs {
-		d, err:= signerSecp.Decrypt(privKey ,tx.CipherData)
-		if err!=nil  {
-			t.Fatal(err,i,tx)
+	fmt.Println(six.Sub(five), "for secp256k1 enc", "len cipherdata:", len(txs[0].CipherData), "len plaindata:", len(txs[0].PlainData))
+	for i, tx := range txs {
+		d, err := signerSecp.Decrypt(privKey, tx.CipherData)
+		if err != nil {
+			t.Fatal(err, i, tx)
 		}
 		if !bytes.Equal(d, tx.PlainData) {
-			t.Fatal(fmt.Sprintf("secp dec error , i %d got %v, want %v",i,d,tx.PlainData))
+			t.Fatal(fmt.Sprintf("secp dec error , i %d got %v, want %v", i, d, tx.PlainData))
 		}
 	}
-	seven:= time.Now()
-	fmt.Println(seven.Sub(six),"for secp256k1 dec")
-	for i, tx:= range txs {
+	seven := time.Now()
+	fmt.Println(seven.Sub(six), "for secp256k1 dec")
+	for i, tx := range txs {
 		var err error
-		txs[i].CipherData,err = signerEd.Encrypt(pubEd,tx.PlainData)
-		if err!=nil {
-			t.Fatal(err,i)
+		txs[i].CipherData, err = signerEd.Encrypt(pubEd, tx.PlainData)
+		if err != nil {
+			t.Fatal(err, i)
 		}
 	}
 	eight := time.Now()
-	kyberKey:= privEd.ToKyberEd25519PrivKey()
-	fmt.Println(eight.Sub(seven),"for ed25519 enc","len cipherdata:",len(txs[0].CipherData),"len plaindata:",len(txs[0].PlainData))
-	for i, tx:= range txs {
-		d, err:= kyberKey.Decrypt(tx.CipherData)
-		if err!=nil  {
-			t.Fatal(err,i,tx)
+	kyberKey := privEd.ToKyberEd25519PrivKey()
+	fmt.Println(eight.Sub(seven), "for ed25519 enc", "len cipherdata:", len(txs[0].CipherData), "len plaindata:", len(txs[0].PlainData))
+	for i, tx := range txs {
+		d, err := kyberKey.Decrypt(tx.CipherData)
+		if err != nil {
+			t.Fatal(err, i, tx)
 		}
 		if !bytes.Equal(d, tx.PlainData) {
-			t.Fatal(fmt.Sprintf("ed25519 dec error , i %d got %v, want %v",i,d,tx.PlainData))
+			t.Fatal(fmt.Sprintf("ed25519 dec error , i %d got %v, want %v", i, d, tx.PlainData))
 		}
 
 	}
-	nine  := time.Now()
-	fmt.Println(nine.Sub(eight),"for ed25519 dec")
+	nine := time.Now()
+	fmt.Println(nine.Sub(eight), "for ed25519 dec")
 }
 
 //=== RUN   TestBenchMarks

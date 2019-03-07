@@ -90,16 +90,15 @@ func (p *PrivateKey) Decrypt(ct []byte) (m []byte, err error) {
 }
 
 type KyberEd22519PrivKey struct {
-	PrivateKey	 kyber.Scalar
-	Suit         *edwards25519.SuiteEd25519
+	PrivateKey kyber.Scalar
+	Suit       *edwards25519.SuiteEd25519
 }
 
-
-func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte)(m []byte, err error) {
+func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte) (m []byte, err error) {
 	return ecies.Decrypt(p.Suit, p.PrivateKey, cipherText, p.Suit.Hash)
 }
 
-func (p*PrivateKey)ToKyberEd25519PrivKey()*KyberEd22519PrivKey {
+func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
 	var edPrivKey [32]byte
 	var curvPrivKey [64]byte
 	copy(curvPrivKey[:], p.Bytes[:64])
@@ -110,8 +109,8 @@ func (p*PrivateKey)ToKyberEd25519PrivKey()*KyberEd22519PrivKey {
 		panic(err)
 	}
 	return &KyberEd22519PrivKey{
-		PrivateKey:privateKey,
-		Suit:suite,
+		PrivateKey: privateKey,
+		Suit:       suite,
 	}
 }
 

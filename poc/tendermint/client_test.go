@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var BlockTime = time.Millisecond * 30
+var BlockTime = time.Millisecond * 20
 
 func init() {
 	Formatter := new(logrus.TextFormatter)
@@ -16,12 +16,13 @@ func init() {
 	Formatter.FullTimestamp = true
 
 	logrus.SetFormatter(Formatter)
+	logrus.SetLevel(logrus.InfoLevel)
 }
 
 func start(peers []Partner) {
 	for _, peer := range peers {
 		peer.SetPeers(peers)
-		peer.StartRound(0, 0)
+		peer.StartNewEra(0, 0)
 		go peer.EventLoop()
 	}
 	for {

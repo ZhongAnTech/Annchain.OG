@@ -265,7 +265,7 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
 		}
 		msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
 		msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-		pk := crypto.PublicKeyFromBytes(crypto.CryptoTypeSecp256k1, cp.PublicKey)
+		pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
 		log.WithField("to ", addr.TerminalString()).WithField("deal",
 			deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
 		d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
@@ -447,7 +447,7 @@ func (d *Dkg) gossiploop() {
 				log.Warn("why send to me")
 				continue
 			}
-			s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+			s := crypto.NewSigner(d.ann.cryptoType)
 			addr := s.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheSigSetsIfNotReady(addr, response) {
 				log.WithField("response ",

@@ -30,6 +30,11 @@ func NewByzantinePartner(nbParticipants int, id int, blockTime time.Duration, by
 	return p
 }
 
+func (p *ByzantinePartner) EventLoop() {
+	go p.send()
+	go p.receive()
+}
+
 // send is just for outgoing messages. It should not change any state of local tendermint
 func (p *ByzantinePartner) send() {
 	timer := time.NewTimer(time.Second * 7)
@@ -40,8 +45,18 @@ func (p *ByzantinePartner) send() {
 			break
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
-			p.dumpAll()
+			p.dumpAll("blocked reading outgoing(byzantine)")
 		case msg := <-p.OutgoingMessageChannel:
+			msg, tosend := p.doBadThings(msg)
+			if !tosend{
+				// don't send it
+				logrus.WithFields(logrus.Fields{
+					"IM---BAD": p.Id,
+					"from":     p.Id,
+					"msg":      msg.String(),
+				}).Info("Eat message")
+				continue
+			}
 			for _, peer := range p.Peers {
 				logrus.WithFields(logrus.Fields{
 					"IM---BAD": p.Id,

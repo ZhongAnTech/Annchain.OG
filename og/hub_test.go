@@ -56,37 +56,42 @@ func TestSh256(t *testing.T) {
 }
 
 func TestP2PMessage_Encrypt(t *testing.T) {
-	logrus.SetLevel(logrus.TraceLevel)
-	msg := types.MessageConsensusDkgDeal{
-		Data: []byte{0xa, 0x34},
-		Id:   12,
+	for i:=0;i<2;i++ {
+		logrus.SetLevel(logrus.TraceLevel)
+		msg := types.MessageConsensusDkgDeal{
+			Data: []byte("this is a test of og message"),
+			Id:   12,
+		}
+		m := p2PMessage{message: &msg, messageType: MessageTypeConsensusDkgDeal}
+		s := crypto.NewSigner(crypto.CryptoType(i))
+		fmt.Println(s.GetCryptoType())
+		pk, sk, _ := s.RandomKeyPair()
+		m.Marshal()
+		logrus.Debug(len(m.data))
+		err := m.Encrypt(&pk)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logrus.Debug(len(m.data))
+		mm := p2PMessage{data: m.data, messageType: MessageTypeSecret}
+		ok := mm.checkRequiredSize()
+		logrus.Debug(ok)
+		ok = mm.maybeIsforMe(&pk)
+		if !ok {
+			t.Fatal(ok)
+		}
+		err = mm.Decrypt(&sk)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logrus.Debug(len(mm.data),mm.messageType)
+		err = mm.Unmarshal()
+		if err != nil {
+			t.Fatal(err)
+		}
+		logrus.Debug(len(mm.data))
+		dkgMsg:= mm.message.(*types.MessageConsensusDkgDeal)
+		logrus.Debug(dkgMsg.Id," " ,string(dkgMsg.Data))
+		logrus.Debug(mm.message)
 	}
-	m := p2PMessage{message: &msg, messageType: MessageTypeConsensusDkgDeal}
-	s := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	pk, sk, _ := s.RandomKeyPair()
-	m.Marshal()
-	logrus.Debug(len(m.data))
-	err := m.Encrypt(&pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logrus.Debug(len(m.data))
-	mm := p2PMessage{data: m.data, messageType: MessageTypeSecret}
-	ok := mm.checkRequiredSize()
-	logrus.Debug(ok)
-	ok = mm.maybeIsforMe(&pk)
-	if !ok {
-		t.Fatal(ok)
-	}
-	err = mm.Decrypt(&sk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logrus.Debug(len(mm.data))
-	err = mm.Unmarshal()
-	if err != nil {
-		t.Fatal(err)
-	}
-	logrus.Debug(len(mm.data))
-	logrus.Debug(mm, mm.message.String())
 }

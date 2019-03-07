@@ -2,7 +2,11 @@ package crypto
 
 import (
 	"encoding/binary"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/encrypt/ecies"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/poc/extra25519"
 	"github.com/annchain/OG/types"
 )
 
@@ -83,6 +87,32 @@ func (p *PublicKey) Encrypt(m []byte) (ct []byte, err error) {
 func (p *PrivateKey) Decrypt(ct []byte) (m []byte, err error) {
 	s := NewSigner(p.Type)
 	return s.Decrypt(*p, ct)
+}
+
+type KyberEd22519PrivKey struct {
+	PrivateKey	 kyber.Scalar
+	Suit         *edwards25519.SuiteEd25519
+}
+
+
+func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte)(m []byte, err error) {
+	return ecies.Decrypt(p.Suit, p.PrivateKey, cipherText, p.Suit.Hash)
+}
+
+func (p*PrivateKey)ToKyberEd25519PrivKey()*KyberEd22519PrivKey {
+	var edPrivKey [32]byte
+	var curvPrivKey [64]byte
+	copy(curvPrivKey[:], p.Bytes[:64])
+	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
+	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
+	suite := edwards25519.NewBlakeSHA256Ed25519()
+	if err != nil {
+		panic(err)
+	}
+	return &KyberEd22519PrivKey{
+		PrivateKey:privateKey,
+		Suit:suite,
+	}
 }
 
 func (p *PublicKey) Address() types.Address {

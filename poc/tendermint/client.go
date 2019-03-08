@@ -576,7 +576,15 @@ func (p *DefaultPartner) dumpAll(reason string) {
 }
 
 func (p *DefaultPartner) WipeOldStates() {
-
+	var toRemove []HeightRound
+	for hr := range p.States {
+		if hr.IsBefore(p.CurrentHR) {
+			toRemove = append(toRemove, hr)
+		}
+	}
+	for _, hr := range toRemove{
+		delete(p.States, hr)
+	}
 }
 
 func (p *DefaultPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int) {

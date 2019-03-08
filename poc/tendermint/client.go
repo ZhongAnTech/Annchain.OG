@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+
 type Partner interface {
 	EventLoop()
 	StartNewEra(height int, round int)
@@ -130,7 +131,7 @@ func NewPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPar
 
 func (p *DefaultPartner) StartNewEra(height int, round int) {
 	hr := p.CurrentHR
-	if  height - hr.Height > 1{
+	if height-hr.Height > 1 {
 		logrus.WithField("height", height).Warn("height is much higher than current. Indicating packet loss or severe behind.")
 	}
 	hr.Height = height
@@ -142,7 +143,7 @@ func (p *DefaultPartner) StartNewEra(height int, round int) {
 		"newHR":     hr.String(),
 	}).Debug("Starting new round")
 
-	currState := p.initHeightRound(hr)
+	currState, _ := p.initHeightRound(hr)
 	// update partner height
 	p.CurrentHR = hr
 
@@ -223,15 +224,13 @@ func (p *DefaultPartner) receive() {
 
 // Proposer returns current round proposer. Now simply round robin
 func (p *DefaultPartner) Proposer(hr HeightRound) int {
-	//return 0
+	//return 3
 	return (hr.Height + hr.Round) % p.N
 }
 
 // GetValue generates the value requiring consensus
 func (p *DefaultPartner) GetValue() Proposal {
-	logrus.Info("sleep")
 	time.Sleep(p.blockTime)
-	logrus.Info("sleep end")
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
 	return StringProposal(v)
 }
@@ -503,17 +502,32 @@ func (p *DefaultPartner) checkRound(message *BasicMessage) (needHandle bool) {
 		if !ok {
 			// create one
 			// TODO: verify if someone is generating garbage height
-			state = p.initHeightRound(message.HeightRound)
-
+			d, c := p.initHeightRound(message.HeightRound)
+			state = d
+			if c != len(p.States){
+				panic("number not aligned")
+			}
 		}
 		state.Sources[message.SourceId] = true
-		logrus.Infof("%d's %s state is %+v", p.Id, p.CurrentHR.String(), state.Sources)
+		logrus.WithField("IM", p.Id).Tracef("Set source: %d at %s, %+v", message.SourceId, message.HeightRound.String(), state.Sources)
+		logrus.WithField("IM", p.Id).Tracef("%d's %s state is %+v, after receiving message %s from %d", p.Id, p.CurrentHR.String(), p.States[p.CurrentHR].Sources, message.HeightRound.String(), message.SourceId)
 
 		if len(state.Sources) >= p.F+1 {
 			p.dumpAll("New era received")
 			p.StartNewEra(message.HeightRound.Height, message.HeightRound.Round)
 		}
 	}
+	if message.HeightRound.IsAfterOrEqual(p.CurrentHR){
+		v, ok := p.States[message.HeightRound]
+		if !ok {
+			panic("why you are not here? " + message.HeightRound.String() + " " + p.CurrentHR.String())
+		}
+		_, ok = v.Sources[3]
+		if message.HeightRound.Round == 0 && ok {
+			panic("why 3 is here?")
+		}
+	}
+
 	return message.HeightRound.IsAfterOrEqual(p.CurrentHR)
 }
 
@@ -543,22 +557,22 @@ func (p *DefaultPartner) dumpVotes(votes []*MessageCommonVote) string {
 func (p *DefaultPartner) dumpAll(reason string) {
 	//return
 	state := p.States[p.CurrentHR]
-	logrus.WithField("IM", p.Id).WithField("reason", reason).Info("Dumping")
-	logrus.WithField("IM", p.Id).WithField("votes", "prevotes").Info(p.dumpVotes(state.PreVotes))
-	logrus.WithField("IM", p.Id).WithField("votes", "precommits").Info(p.dumpVotes(state.PreCommits))
-	logrus.WithField("IM", p.Id).WithField("step", state.Step.String()).Info("Step")
-	logrus.WithField("IM", p.Id).Info(fmt.Sprintf("%+v %d", state.Sources, len(state.Sources)))
+	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("reason", reason).Debug("Dumping")
+	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("votes", "prevotes").Debug(p.dumpVotes(state.PreVotes))
+	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("votes", "precommits").Debug(p.dumpVotes(state.PreCommits))
+	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("step", state.Step.String()).Debug("Step")
+	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).Debugf("%+v %d", state.Sources, len(state.Sources))
 }
 
 func (p *DefaultPartner) WipeOldStates() {
 
 }
 
-func (p *DefaultPartner) initHeightRound(hr HeightRound) *HeightRoundState {
+func (p *DefaultPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int){
 	// first check if there is previous message received
 	if _, ok := p.States[hr]; !ok {
 		// init one
 		p.States[hr] = NewHeightRoundState(p.N)
 	}
-	return p.States[hr]
+	return p.States[hr], len(p.States)
 }

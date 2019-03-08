@@ -8,7 +8,7 @@ import (
 
 type WaiterContext interface {
 	Equal(WaiterContext) bool
-	Newer(WaiterContext) bool
+	IsAfter(WaiterContext) bool
 }
 
 type WaiterRequest struct {
@@ -45,7 +45,8 @@ func (w *Waiter) StartEventLoop() {
 		case request := <-w.requestChannel:
 			// could be an updated request
 			// if it is really updated request,
-			if w.currentRequest != nil && !request.Context.Newer(w.currentRequest.Context) {
+			if w.currentRequest != nil && !request.Context.IsAfter(w.currentRequest.Context) {
+				// this request is before current waiting request, ignore.
 				continue
 			}
 			logrus.Trace("request is newer and we will reset")
@@ -60,7 +61,7 @@ func (w *Waiter) StartEventLoop() {
 			}
 			timer.Reset(request.WaitTime)
 		case latestContext := <-w.contextChannel:
-			if w.currentRequest == nil || !latestContext.Newer(w.currentRequest.Context) {
+			if w.currentRequest == nil || latestContext.IsAfter(w.currentRequest.Context) {
 				// a new state is updated, cancel all pending timeouts
 				if w.currentRequest != nil {
 					logrus.WithField("new", latestContext.(*TendermintContext).StepType).

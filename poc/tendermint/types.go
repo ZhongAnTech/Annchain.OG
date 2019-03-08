@@ -26,6 +26,10 @@ func (m StepType) String() string {
 	}
 }
 
+func (m StepType) IsAfter(o StepType) bool{
+	return m > o
+}
+
 type MessageType int
 
 func (m MessageType) String() string {
@@ -48,10 +52,9 @@ const (
 )
 
 const (
-	TimeoutPropose   = time.Duration(5) * time.Second
-	TimeoutPreVote   = time.Duration(5) * time.Second
-	TimeoutPreCommit = time.Duration(5) * time.Second
-	TimeoutDelta     = time.Duration(1) * time.Second
+	TimeoutPropose   = time.Duration(2) * time.Second
+	TimeoutPreVote   = time.Duration(2) * time.Second
+	TimeoutPreCommit = time.Duration(2) * time.Second
 )
 
 type ValueIdMatchType int
@@ -119,13 +122,13 @@ func (t *TendermintContext) Equal(w WaiterContext) bool {
 	if !ok {
 		return false
 	}
-	return t.HeightRound == v.HeightRound
+	return t.HeightRound == v.HeightRound && t.StepType == v.StepType
 }
 
-func (t *TendermintContext) Newer(w WaiterContext) bool {
+func (t *TendermintContext) IsAfter(w WaiterContext) bool {
 	v, ok := w.(*TendermintContext)
 	if !ok {
 		return false
 	}
-	return t.HeightRound.Height > v.HeightRound.Height || t.HeightRound == v.HeightRound
+	return t.HeightRound.IsAfter(v.HeightRound) || (t.HeightRound == v.HeightRound && t.StepType.IsAfter(v.StepType))
 }

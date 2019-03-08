@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-
+// Partner is a participant in the consensus.
 type Partner interface {
 	EventLoop()
 	StartNewEra(height int, round int)
@@ -26,6 +26,8 @@ type PartnerBase struct {
 	WaiterTimeoutChannel   chan *WaiterRequest
 }
 
+// HeightRound is the current progress of the consensus.
+// Height is the block height, round is the sub-progress if no consensus can be easily reached
 type HeightRound struct {
 	Height int
 	Round  int
@@ -34,14 +36,20 @@ type HeightRound struct {
 func (h *HeightRound) String() string {
 	return fmt.Sprintf("[%d-%d]", h.Height, h.Round)
 }
+
+// IsAfter judges whether self is a higher HeightRound
 func (h *HeightRound) IsAfter(o HeightRound) bool {
 	return h.Height > o.Height ||
 		(h.Height == o.Height && h.Round > o.Round)
 }
+
+// IsAfterOrEqual judges whether self is a higher or equal HeightRound
 func (h *HeightRound) IsAfterOrEqual(o HeightRound) bool {
 	return h.Height > o.Height ||
 		(h.Height == o.Height && h.Round >= o.Round)
 }
+
+// IsAfterOrEqual judges whether self is a lower HeightRound
 func (h *HeightRound) IsBefore(o HeightRound) bool {
 	return h.Height < o.Height ||
 		(h.Height == o.Height && h.Round < o.Round)
@@ -50,19 +58,19 @@ func (h *HeightRound) IsBefore(o HeightRound) bool {
 // HeightRoundState is the structure for each Height/Round
 // Always keep this state that is higher than current in Partner.States map in order not to miss future things
 type HeightRoundState struct {
-	MessageProposal                       *MessageProposal
+	MessageProposal                       *MessageProposal // the proposal received in this round
 	LockedValue                           Proposal
 	LockedRound                           int
 	ValidValue                            Proposal
 	ValidRound                            int
-	Decision                              interface{}
-	PreVotes                              []*MessageCommonVote
-	PreCommits                            []*MessageCommonVote
-	Sources                               map[int]bool // for line 55, who send future round so that I may advance?
-	StepTypeEqualPreVoteTriggered         bool         // for line 34
-	StepTypeEqualOrLargerPreVoteTriggered bool         // for line 36
-	StepTypeEqualPreCommitTriggered       bool         // for line 47
-	Step                                  StepType
+	Decision                              interface{}          // final decision of mine in this round
+	PreVotes                              []*MessageCommonVote // other peers' PreVotes
+	PreCommits                            []*MessageCommonVote // other peers' PreCommits
+	Sources                               map[int]bool         // for line 55, who send future round so that I may advance?
+	StepTypeEqualPreVoteTriggered         bool                 // for line 34, FIRST time trigger
+	StepTypeEqualOrLargerPreVoteTriggered bool                 // for line 36, FIRST time trigger
+	StepTypeEqualPreCommitTriggered       bool                 // for line 47, FIRST time trigger
+	Step                                  StepType             // current step in this round
 }
 
 func NewHeightRoundState(total int) *HeightRoundState {
@@ -79,15 +87,14 @@ func NewHeightRoundState(total int) *HeightRoundState {
 // Destroy and use a new one upon peers changing.
 type DefaultPartner struct {
 	PartnerBase
-	CurrentHR HeightRound
-	blockTime time.Duration
-	N         int // total number of participants
-	F         int // max number of Byzantines
-	Peers     []Partner
+	CurrentHR HeightRound   // Partner's current Height/Round
+	blockTime time.Duration // interval between proposal being generated
+	N         int           // total number of participants
+	F         int           // max number of Byzantines
+	Peers     []Partner     // All peers
 	quit      chan bool
-	waiter    *Waiter
-	States    map[HeightRound]*HeightRoundState // for line 55, round number -> count
-	// consider updating resetStatus() if you want to add things here
+	waiter    *Waiter                           // waiter for some state changes
+	States    map[HeightRound]*HeightRoundState // for line 55, record state for every HeightRound
 }
 
 func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
@@ -129,6 +136,7 @@ func NewPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPar
 	return p
 }
 
+// StartNewEra is called once height or round needs to be changed.
 func (p *DefaultPartner) StartNewEra(height int, round int) {
 	hr := p.CurrentHR
 	if height-hr.Height > 1 {
@@ -148,7 +156,7 @@ func (p *DefaultPartner) StartNewEra(height int, round int) {
 	p.CurrentHR = hr
 
 	p.WipeOldStates()
-	p.changeState(StepTypePropose)
+	p.changeStep(StepTypePropose)
 
 	if p.Id == p.Proposer(p.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Info("I'm the proposer")
@@ -196,7 +204,8 @@ func (p *DefaultPartner) send() {
 	}
 }
 
-// receive prevents concurrent issues by allowing only one channel to be read per loop
+// receive prevents concurrent state updates by allowing only one channel to be read per loop
+// Any action which involves state updates should be in this select clause
 func (p *DefaultPartner) receive() {
 	timer := time.NewTimer(time.Second * 7)
 	for {
@@ -235,6 +244,7 @@ func (p *DefaultPartner) GetValue() Proposal {
 	return StringProposal(v)
 }
 
+// Broadcast announce messages to all partners
 func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, content Proposal, validRound int) {
 	m := Message{
 		Type: messageType,
@@ -268,20 +278,25 @@ func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, cont
 	ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m, "")
 }
 
+// OnTimeoutPropose is the callback after staying too long on propose step
 func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePropose {
 		p.Broadcast(MessageTypePreVote, p.CurrentHR, nil, 0)
-		p.changeState(StepTypePreVote)
+		p.changeStep(StepTypePreVote)
 	}
 }
+
+// OnTimeoutPreVote is the callback after staying too long on prevote step
 func (p *DefaultPartner) OnTimeoutPreVote(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePreVote {
 		p.Broadcast(MessageTypePreCommit, p.CurrentHR, nil, 0)
-		p.changeState(StepTypePreCommit)
+		p.changeStep(StepTypePreCommit)
 	}
 }
+
+// OnTimeoutPreCommit is the callback after staying too long on precommit step
 func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR {
@@ -302,11 +317,11 @@ func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duratio
 }
 
 func (p *DefaultPartner) handleMessage(message Message) {
-	// state := p.States[p.CurrentHR]
 	switch message.Type {
 	case MessageTypeProposal:
 		msg := message.Payload.(MessageProposal)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+			// out-of-date messages, ignore
 			break
 		}
 		logrus.WithFields(logrus.Fields{
@@ -321,6 +336,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 	case MessageTypePreVote:
 		msg := message.Payload.(MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+			// out-of-date messages, ignore
 			break
 		}
 		p.States[msg.HeightRound].PreVotes[msg.SourceId] = &msg
@@ -335,6 +351,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 	case MessageTypePreCommit:
 		msg := message.Payload.(MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+			// out-of-date messages, ignore
 			break
 		}
 		p.States[msg.HeightRound].PreCommits[msg.SourceId] = &msg
@@ -361,7 +378,7 @@ func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
 		} else {
 			p.Broadcast(MessageTypePreVote, proposal.HeightRound, nil, 0)
 		}
-		p.changeState(StepTypePreVote)
+		p.changeStep(StepTypePreVote)
 	}
 
 	// rule line 28
@@ -373,7 +390,7 @@ func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
 			} else {
 				p.Broadcast(MessageTypePreVote, proposal.HeightRound, nil, 0)
 			}
-			p.changeState(StepTypePreVote)
+			p.changeStep(StepTypePreVote)
 		}
 	}
 }
@@ -400,7 +417,7 @@ func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
 				state.LockedValue = state.MessageProposal.Value
 				state.LockedRound = p.CurrentHR.Round
 				p.Broadcast(MessageTypePreCommit, vote.HeightRound, state.MessageProposal.Value, 0)
-				p.changeState(StepTypePreCommit)
+				p.changeStep(StepTypePreCommit)
 			}
 			state.ValidValue = state.MessageProposal.Value
 			state.ValidRound = p.CurrentHR.Round
@@ -411,7 +428,7 @@ func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
 	if count >= 2*p.F+1 && state.Step == StepTypePreVote {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Debug("prevote counter is more than 2f+1 #3")
 		p.Broadcast(MessageTypePreCommit, vote.HeightRound, nil, 0)
-		p.changeState(StepTypePreCommit)
+		p.changeStep(StepTypePreCommit)
 	}
 
 }
@@ -442,7 +459,8 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 
 }
 
-// check proposal validation
+// valid checks proposal validation
+// TODO: inject so that valid will call a function to validate the proposal
 func (p *DefaultPartner) valid(proposal Proposal) bool {
 	return true
 }
@@ -504,7 +522,7 @@ func (p *DefaultPartner) checkRound(message *BasicMessage) (needHandle bool) {
 			// TODO: verify if someone is generating garbage height
 			d, c := p.initHeightRound(message.HeightRound)
 			state = d
-			if c != len(p.States){
+			if c != len(p.States) {
 				panic("number not aligned")
 			}
 		}
@@ -517,21 +535,12 @@ func (p *DefaultPartner) checkRound(message *BasicMessage) (needHandle bool) {
 			p.StartNewEra(message.HeightRound.Height, message.HeightRound.Round)
 		}
 	}
-	if message.HeightRound.IsAfterOrEqual(p.CurrentHR){
-		v, ok := p.States[message.HeightRound]
-		if !ok {
-			panic("why you are not here? " + message.HeightRound.String() + " " + p.CurrentHR.String())
-		}
-		_, ok = v.Sources[3]
-		if message.HeightRound.Round == 0 && ok {
-			panic("why 3 is here?")
-		}
-	}
 
 	return message.HeightRound.IsAfterOrEqual(p.CurrentHR)
 }
 
-func (p *DefaultPartner) changeState(stepType StepType) {
+// changeStep updates the step and then notify the waiter.
+func (p *DefaultPartner) changeStep(stepType StepType) {
 	p.States[p.CurrentHR].Step = stepType
 	p.waiter.UpdateContext(&TendermintContext{
 		HeightRound: p.CurrentHR,
@@ -539,6 +548,7 @@ func (p *DefaultPartner) changeState(stepType StepType) {
 	})
 }
 
+// dumpVotes prints all current votes received
 func (p *DefaultPartner) dumpVotes(votes []*MessageCommonVote) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
@@ -554,6 +564,7 @@ func (p *DefaultPartner) dumpVotes(votes []*MessageCommonVote) string {
 	sb.WriteString("]")
 	return sb.String()
 }
+
 func (p *DefaultPartner) dumpAll(reason string) {
 	//return
 	state := p.States[p.CurrentHR]
@@ -568,7 +579,7 @@ func (p *DefaultPartner) WipeOldStates() {
 
 }
 
-func (p *DefaultPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int){
+func (p *DefaultPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int) {
 	// first check if there is previous message received
 	if _, ok := p.States[hr]; !ok {
 		// init one

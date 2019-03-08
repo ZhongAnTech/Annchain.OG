@@ -28,3 +28,4 @@ core/debug.test
 app/debug
 *.test
 core/state/debug.test
+/vm/compiler/

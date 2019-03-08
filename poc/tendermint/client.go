@@ -2,7 +2,6 @@ package tendermint
 
 import (
 	"fmt"
-	"github.com/annchain/OG/ffchan"
 	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
@@ -198,7 +197,11 @@ func (p *DefaultPartner) send() {
 					"to":   peer.GetId(),
 					"msg":  msg.String(),
 				}).Debug("Out")
-				ffchan.NewTimeoutSenderShort(peer.GetIncomingMessageChannel(), msg, "")
+				go func(targetPeer Partner) {
+					//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
+					//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
+					targetPeer.GetIncomingMessageChannel() <- msg
+				}(peer)
 			}
 		}
 	}
@@ -275,7 +278,8 @@ func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, cont
 			Idv:          idv,
 		}
 	}
-	ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m, "")
+	p.OutgoingMessageChannel <- m
+	//ffchan.NewTimeoutSenderShort(p.OutgoingMessageChannel, m, "")
 }
 
 // OnTimeoutPropose is the callback after staying too long on propose step
@@ -582,7 +586,7 @@ func (p *DefaultPartner) WipeOldStates() {
 			toRemove = append(toRemove, hr)
 		}
 	}
-	for _, hr := range toRemove{
+	for _, hr := range toRemove {
 		delete(p.States, hr)
 	}
 }

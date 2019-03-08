@@ -2,11 +2,13 @@ package tendermint
 
 import (
 	"github.com/sirupsen/logrus"
+	"net/http"
+	_ "net/http/pprof"
 	"testing"
 	"time"
 )
 
-var BlockTime = time.Millisecond * 20
+var BlockTime = time.Millisecond * 1
 
 func init() {
 	Formatter := new(logrus.TextFormatter)
@@ -17,6 +19,11 @@ func init() {
 
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.InfoLevel)
+
+	go func() {
+		logrus.Fatal(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 }
 
 func start(peers []Partner) {
@@ -31,7 +38,7 @@ func start(peers []Partner) {
 }
 
 func TestAllNonByzantine(t *testing.T) {
-	total := 4
+	total := 22
 	var peers []Partner
 	for i := 0; i < total; i++ {
 		peers = append(peers, NewPartner(total, i, BlockTime))
@@ -78,6 +85,24 @@ func TestByzantineNotOK(t *testing.T) {
 func TestBadByzantineOK(t *testing.T) {
 	total := 4
 	byzantines := 1
+	var peers []Partner
+	for i := 0; i < total-byzantines; i++ {
+		peers = append(peers, NewPartner(total, i, BlockTime))
+	}
+	for i := total - byzantines; i < total; i++ {
+		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
+			ByzantineFeatures{
+				BadPreCommit: true,
+				BadPreVote:   true,
+				BadProposal:  true,
+			}, ))
+	}
+	start(peers)
+}
+
+func TestManyBadByzantineOK(t *testing.T) {
+	total := 22
+	byzantines := 7
 	var peers []Partner
 	for i := 0; i < total-byzantines; i++ {
 		peers = append(peers, NewPartner(total, i, BlockTime))

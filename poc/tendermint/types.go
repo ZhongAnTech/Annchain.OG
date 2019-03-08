@@ -52,9 +52,9 @@ const (
 )
 
 const (
-	TimeoutPropose   = time.Duration(2) * time.Second
-	TimeoutPreVote   = time.Duration(2) * time.Second
-	TimeoutPreCommit = time.Duration(2) * time.Second
+	TimeoutPropose   = time.Duration(10) * time.Second
+	TimeoutPreVote   = time.Duration(10) * time.Second
+	TimeoutPreCommit = time.Duration(10) * time.Second
 )
 
 type ValueIdMatchType int

@@ -16,10 +16,12 @@ package msg_marshal
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"testing"
 )
 
 func TestPerson_MarshalMsg(t *testing.T) {
+
 	p := Person{
 		Name: "alice",
 		Age:  10,
@@ -42,4 +44,45 @@ func TestPerson_MarshalMsg(t *testing.T) {
 		t.Fail()
 	}
 	_ = t1
+}
+
+type fooInt struct {
+	a    int
+	name string
+}
+
+func (f fooInt) String() string {
+	fmt.Println("f1", f.a, f.name)
+	return fmt.Sprintf("a %d name %s", f.a, f.name)
+
+}
+
+type fooHash struct {
+	b   int
+	c   float64
+	foo *fooInt
+}
+
+func (f fooHash) String() string {
+	fmt.Println("f2", f.b, f.foo)
+	return fmt.Sprintf("f1 %s, b %d, c %f", f.foo, f.b, f.c)
+
+}
+
+//TestLogrus
+func TestLogrus(t *testing.T) {
+	var f1 fooInt
+	f1.a = 100
+	f1.name = " alice"
+	f2 := fooHash{
+		foo: &fooInt{
+			a:    56,
+			name: "bob",
+		},
+		b: 95,
+		c: 4.56,
+	}
+	logrus.SetLevel(logrus.WarnLevel)
+	logrus.Info(f1)
+	logrus.Info(f2.String())
 }

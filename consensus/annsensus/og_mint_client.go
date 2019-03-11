@@ -1,21 +1,26 @@
-package tendermint
+package annsensus
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
 
-// Partner is a participant in the consensus.
-type Partner interface {
+type BFTPartner interface {
 	EventLoop()
 	StartNewEra(height int, round int)
-	SetPeers(peers []Partner)
+	SetPeers(peers []BFTPartner)
 	GetIncomingMessageChannel() chan Message
 	GetOutgoingMessageChannel() chan Message
 	GetWaiterTimeoutChannel() chan *WaiterRequest
 	GetId() int
+	WaiterLoop()
+	GetPeers()(peer []BFTPartner)
+	SetProposalFunc(proposalFunc func() types.Proposal)
+	Stop()
 }
 
 type PartnerBase struct {
@@ -25,75 +30,56 @@ type PartnerBase struct {
 	WaiterTimeoutChannel   chan *WaiterRequest
 }
 
-// HeightRound is the current progress of the consensus.
-// Height is the block height, round is the sub-progress if no consensus can be easily reached
-type HeightRound struct {
-	Height int
-	Round  int
-}
-
-func (h *HeightRound) String() string {
-	return fmt.Sprintf("[%d-%d]", h.Height, h.Round)
-}
-
-// IsAfter judges whether self is a higher HeightRound
-func (h *HeightRound) IsAfter(o HeightRound) bool {
-	return h.Height > o.Height ||
-		(h.Height == o.Height && h.Round > o.Round)
-}
-
-// IsAfterOrEqual judges whether self is a higher or equal HeightRound
-func (h *HeightRound) IsAfterOrEqual(o HeightRound) bool {
-	return h.Height > o.Height ||
-		(h.Height == o.Height && h.Round >= o.Round)
-}
-
-// IsAfterOrEqual judges whether self is a lower HeightRound
-func (h *HeightRound) IsBefore(o HeightRound) bool {
-	return h.Height < o.Height ||
-		(h.Height == o.Height && h.Round < o.Round)
-}
-
 // HeightRoundState is the structure for each Height/Round
 // Always keep this state that is higher than current in Partner.States map in order not to miss future things
 type HeightRoundState struct {
-	MessageProposal                       *MessageProposal // the proposal received in this round
-	LockedValue                           Proposal
+	MessageProposal                       *types.MessageProposal // the proposal received in this round
+	LockedValue                           types.Proposal
 	LockedRound                           int
-	ValidValue                            Proposal
+	ValidValue                            types.Proposal
 	ValidRound                            int
-	Decision                              interface{}          // final decision of mine in this round
-	PreVotes                              []*MessageCommonVote // other peers' PreVotes
-	PreCommits                            []*MessageCommonVote // other peers' PreCommits
-	Sources                               map[int]bool         // for line 55, who send future round so that I may advance?
-	StepTypeEqualPreVoteTriggered         bool                 // for line 34, FIRST time trigger
-	StepTypeEqualOrLargerPreVoteTriggered bool                 // for line 36, FIRST time trigger
-	StepTypeEqualPreCommitTriggered       bool                 // for line 47, FIRST time trigger
-	Step                                  StepType             // current step in this round
+	Decision                              interface{}                // final decision of mine in this round
+	PreVotes                              []*types.MessageCommonVote // other peers' PreVotes
+	PreCommits                            []*types.MessageCommonVote // other peers' PreCommits
+	Sources                               map[int]bool               // for line 55, who send future round so that I may advance?
+	StepTypeEqualPreVoteTriggered         bool                       // for line 34, FIRST time trigger
+	StepTypeEqualOrLargerPreVoteTriggered bool                       // for line 36, FIRST time trigger
+	StepTypeEqualPreCommitTriggered       bool                       // for line 47, FIRST time trigger
+	Step                                  StepType                   // current step in this round
 }
 
 func NewHeightRoundState(total int) *HeightRoundState {
 	return &HeightRoundState{
 		LockedRound: -1,
 		ValidRound:  -1,
-		PreVotes:    make([]*MessageCommonVote, total),
-		PreCommits:  make([]*MessageCommonVote, total),
+		PreVotes:    make([]*types.MessageCommonVote, total),
+		PreCommits:  make([]*types.MessageCommonVote, total),
 		Sources:     make(map[int]bool),
 	}
 }
+
+func (p *DefaultPartner)GetPeers()[]BFTPartner {
+	return p.Peers
+}
+
 
 // DefaultPartner implements a Tendermint client according to "The latest gossip on BFT consensus"
 // Destroy and use a new one upon peers changing.
 type DefaultPartner struct {
 	PartnerBase
-	CurrentHR HeightRound   // Partner's current Height/Round
-	blockTime time.Duration // interval between proposal being generated
-	N         int           // total number of participants
-	F         int           // max number of Byzantines
-	Peers     []Partner     // All peers
-	quit      chan bool
-	waiter    *Waiter                           // waiter for some state changes
-	States    map[HeightRound]*HeightRoundState // for line 55, record state for every HeightRound
+
+	CurrentHR types.HeightRound
+
+	blockTime time.Duration
+	N         int // total number of participants
+	F         int // max number of Byzantines
+	Peers     []BFTPartner
+
+	quit         chan bool
+	waiter       *Waiter
+	proposalFunc func() types.Proposal
+	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
+	// consider updating resetStatus() if you want to add things here
 }
 
 func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
@@ -108,15 +94,25 @@ func (p *DefaultPartner) GetOutgoingMessageChannel() chan Message {
 	return p.OutgoingMessageChannel
 }
 
+func (P *DefaultPartner) SetProposalFunc(proposalFunc func() types.Proposal) {
+	P.proposalFunc = proposalFunc
+}
+
 func (p *DefaultPartner) GetId() int {
 	return p.Id
 }
 
-func (p *DefaultPartner) SetPeers(peers []Partner) {
+func (p *DefaultPartner) SetPeers(peers []BFTPartner) {
 	p.Peers = peers
 }
 
-func NewPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
+func (p *DefaultPartner) Stop() {
+	p.quit <- true
+	p.waiter.quit <- true
+	logrus.Info("stopped")
+}
+
+func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
 	p := &DefaultPartner{
 		N:         nbParticipants,
 		F:         (nbParticipants - 1) / 3,
@@ -128,11 +124,14 @@ func NewPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPar
 			WaiterTimeoutChannel:   make(chan *WaiterRequest, 10),
 		},
 		quit:   make(chan bool),
-		States: make(map[HeightRound]*HeightRoundState),
+		States: make(map[types.HeightRound]*HeightRoundState),
 	}
 	p.waiter = NewWaiter(p.GetWaiterTimeoutChannel())
-	go p.waiter.StartEventLoop()
 	return p
+}
+
+func (p *DefaultPartner) WaiterLoop() {
+	go p.waiter.StartEventLoop()
 }
 
 // StartNewEra is called once height or round needs to be changed.
@@ -159,14 +158,14 @@ func (p *DefaultPartner) StartNewEra(height int, round int) {
 
 	if p.Id == p.Proposer(p.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Info("I'm the proposer")
-		var proposal Proposal
+		var proposal types.Proposal
 		if currState.ValidValue != nil {
 			proposal = currState.ValidValue
 		} else {
 			proposal = p.GetValue()
 		}
 		// broadcast
-		p.Broadcast(MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
+		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {
 		p.WaitStepTimeout(StepTypePropose, TimeoutPropose, p.CurrentHR, p.OnTimeoutPropose)
 	}
@@ -188,21 +187,22 @@ func (p *DefaultPartner) send() {
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
 			p.dumpAll("blocked reading outgoing")
-		case msg := <-p.OutgoingMessageChannel:
-			for _, peer := range p.Peers {
-				logrus.WithFields(logrus.Fields{
-					"IM":   p.Id,
-					"hr":   p.CurrentHR.String(),
-					"from": p.Id,
-					"to":   peer.GetId(),
-					"msg":  msg.String(),
-				}).Debug("Out")
-				go func(targetPeer Partner) {
-					//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
-					//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
-					targetPeer.GetIncomingMessageChannel() <- msg
-				}(peer)
-			}
+		//case msg := <-p.OutgoingMessageChannel:
+		//	for _, peer := range p.Peers {
+		//		logrus.WithFields(logrus.Fields{
+		//			"IM":   p.Id,
+		//			"hr":   p.CurrentHR.String(),
+		//			"from": p.Id,
+		//			"to":   peer.GetId(),
+		//			"msg":  msg.String(),
+		//		}).Debug("Out")
+		//
+		//		go func(targetPeer BFTPartner) {
+		//			//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
+		//			//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
+		//			targetPeer.GetIncomingMessageChannel() <- msg
+		//		}(peer)
+		//	}
 		}
 	}
 }
@@ -235,45 +235,49 @@ func (p *DefaultPartner) receive() {
 }
 
 // Proposer returns current round proposer. Now simply round robin
-func (p *DefaultPartner) Proposer(hr HeightRound) int {
+func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 	//return 3
 	return (hr.Height + hr.Round) % p.N
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() Proposal {
+func (p *DefaultPartner) GetValue() types.Proposal {
 	time.Sleep(p.blockTime)
+	if p.proposalFunc != nil {
+		return p.proposalFunc()
+	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
-	return StringProposal(v)
+	s := types.StringProposal(v)
+	return &s
 }
 
 // Broadcast announce messages to all partners
-func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, content Proposal, validRound int) {
+func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRound, content types.Proposal, validRound int) {
 	m := Message{
 		Type: messageType,
 	}
-	basicMessage := BasicMessage{
+	basicMessage := types.BasicMessage{
 		HeightRound: hr,
 		SourceId:    p.Id,
 	}
-	idv := ""
+	var idv types.Hash
 	if content != nil {
 		idv = content.GetId()
 	}
 	switch messageType {
-	case MessageTypeProposal:
-		m.Payload = MessageProposal{
+	case og.MessageTypeProposal:
+		m.Payload = types.MessageProposal{
 			BasicMessage: basicMessage,
 			Value:        content,
 			ValidRound:   validRound,
 		}
-	case MessageTypePreVote:
-		m.Payload = MessageCommonVote{
+	case og.MessageTypePreVote:
+		m.Payload = types.MessageCommonVote{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
-	case MessageTypePreCommit:
-		m.Payload = MessageCommonVote{
+	case og.MessageTypePreCommit:
+		m.Payload = types.MessageCommonVote{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
@@ -286,7 +290,7 @@ func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, cont
 func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePropose {
-		p.Broadcast(MessageTypePreVote, p.CurrentHR, nil, 0)
+		p.Broadcast(og.MessageTypePreVote, p.CurrentHR, nil, 0)
 		p.changeStep(StepTypePreVote)
 	}
 }
@@ -295,7 +299,7 @@ func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
 func (p *DefaultPartner) OnTimeoutPreVote(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePreVote {
-		p.Broadcast(MessageTypePreCommit, p.CurrentHR, nil, 0)
+		p.Broadcast(og.MessageTypePreCommit, p.CurrentHR, nil, 0)
 		p.changeStep(StepTypePreCommit)
 	}
 }
@@ -309,7 +313,7 @@ func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 }
 
 // WaitStepTimeout waits for a centain time if stepType stays too long
-func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, hr HeightRound, timeoutCallback func(WaiterContext)) {
+func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, hr types.HeightRound, timeoutCallback func(WaiterContext)) {
 	p.waiter.UpdateRequest(&WaiterRequest{
 		WaitTime:        timeout,
 		TimeoutCallback: timeoutCallback,
@@ -322,8 +326,8 @@ func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duratio
 
 func (p *DefaultPartner) handleMessage(message Message) {
 	switch message.Type {
-	case MessageTypeProposal:
-		msg := message.Payload.(MessageProposal)
+	case og.MessageTypeProposal:
+		msg := message.Payload.(types.MessageProposal)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -337,8 +341,8 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"value":  msg.Value,
 		}).Debug("In")
 		p.handleProposal(&msg)
-	case MessageTypePreVote:
-		msg := message.Payload.(MessageCommonVote)
+	case og.MessageTypePreVote:
+		msg := message.Payload.(types.MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -352,8 +356,8 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
 		p.handlePreVote(&msg)
-	case MessageTypePreCommit:
-		msg := message.Payload.(MessageCommonVote)
+	case og.MessageTypePreCommit:
+		msg := message.Payload.(types.MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -369,7 +373,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		p.handlePreCommit(&msg)
 	}
 }
-func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
+func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
 	state, ok := p.States[proposal.HeightRound]
 	if !ok {
 		panic("must exists")
@@ -378,29 +382,29 @@ func (p *DefaultPartner) handleProposal(proposal *MessageProposal) {
 	// rule line 22
 	if state.Step == StepTypePropose {
 		if p.valid(proposal.Value) && (state.LockedRound == -1 || state.LockedValue.Equal(proposal.Value)) {
-			p.Broadcast(MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+			p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 		} else {
-			p.Broadcast(MessageTypePreVote, proposal.HeightRound, nil, 0)
+			p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, nil, 0)
 		}
 		p.changeStep(StepTypePreVote)
 	}
 
 	// rule line 28
-	count := p.count(MessageTypePreVote, proposal.HeightRound.Height, proposal.ValidRound, MatchTypeByValue, proposal.Value.GetId())
+	count := p.count(og.MessageTypePreVote, proposal.HeightRound.Height, proposal.ValidRound, MatchTypeByValue, proposal.Value.GetId())
 	if count >= 2*p.F+1 {
 		if state.Step == StepTypePropose && (proposal.ValidRound >= 0 && proposal.ValidRound < p.CurrentHR.Round) {
 			if p.valid(proposal.Value) && (state.LockedRound <= proposal.ValidRound || state.LockedValue.Equal(proposal.Value)) {
-				p.Broadcast(MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+				p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 			} else {
-				p.Broadcast(MessageTypePreVote, proposal.HeightRound, nil, 0)
+				p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, nil, 0)
 			}
 			p.changeStep(StepTypePreVote)
 		}
 	}
 }
-func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
+func (p *DefaultPartner) handlePreVote(vote *types.MessageCommonVote) {
 	// rule line 34
-	count := p.count(MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, "")
+	count := p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, types.Hash{})
 	state, ok := p.States[vote.HeightRound]
 	if !ok {
 		panic("should exists: " + vote.HeightRound.String())
@@ -420,7 +424,7 @@ func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
 			if state.Step == StepTypePreVote {
 				state.LockedValue = state.MessageProposal.Value
 				state.LockedRound = p.CurrentHR.Round
-				p.Broadcast(MessageTypePreCommit, vote.HeightRound, state.MessageProposal.Value, 0)
+				p.Broadcast(og.MessageTypePreCommit, vote.HeightRound, state.MessageProposal.Value, 0)
 				p.changeStep(StepTypePreCommit)
 			}
 			state.ValidValue = state.MessageProposal.Value
@@ -428,17 +432,17 @@ func (p *DefaultPartner) handlePreVote(vote *MessageCommonVote) {
 		}
 	}
 	// rule line 44
-	count = p.count(MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeNil, "")
+	count = p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeNil, types.Hash{})
 	if count >= 2*p.F+1 && state.Step == StepTypePreVote {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Debug("prevote counter is more than 2f+1 #3")
-		p.Broadcast(MessageTypePreCommit, vote.HeightRound, nil, 0)
+		p.Broadcast(og.MessageTypePreCommit, vote.HeightRound, nil, 0)
 		p.changeStep(StepTypePreCommit)
 	}
 
 }
-func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
+func (p *DefaultPartner) handlePreCommit(commit *types.MessageCommonVote) {
 	// rule line 47
-	count := p.count(MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, "")
+	count := p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, types.Hash{})
 	state := p.States[commit.HeightRound]
 	if count >= 2*p.F+1 && !state.StepTypeEqualPreCommitTriggered {
 		state.StepTypeEqualPreCommitTriggered = true
@@ -446,7 +450,7 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 	}
 	// rule line 49
 	if state.MessageProposal != nil {
-		count = p.count(MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
+		count = p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
 		if count >= 2*p.F+1 {
 			if state.Decision == nil {
 				// output decision
@@ -465,15 +469,15 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 
 // valid checks proposal validation
 // TODO: inject so that valid will call a function to validate the proposal
-func (p *DefaultPartner) valid(proposal Proposal) bool {
+func (p *DefaultPartner) valid(proposal types.Proposal) bool {
 	return true
 }
 
 // count votes and commits from others.
-func (p *DefaultPartner) count(messageType MessageType, height int, validRound int, valueIdMatchType ValueIdMatchType, valueId string) int {
+func (p *DefaultPartner) count(messageType og.MessageType, height int, validRound int, valueIdMatchType ValueIdMatchType, valueId types.Hash) int {
 	counter := 0
-	var target []*MessageCommonVote
-	state, ok := p.States[HeightRound{
+	var target []*types.MessageCommonVote
+	state, ok := p.States[types.HeightRound{
 		Height: height,
 		Round:  validRound,
 	}]
@@ -481,9 +485,9 @@ func (p *DefaultPartner) count(messageType MessageType, height int, validRound i
 		return 0
 	}
 	switch messageType {
-	case MessageTypePreVote:
+	case og.MessageTypePreVote:
 		target = state.PreVotes
-	case MessageTypePreCommit:
+	case og.MessageTypePreCommit:
 		target = state.PreCommits
 	default:
 		target = nil
@@ -502,7 +506,7 @@ func (p *DefaultPartner) count(messageType MessageType, height int, validRound i
 				counter++
 			}
 		case MatchTypeNil:
-			if m.Idv == "" {
+			if m.Idv.Empty() {
 				counter++
 			}
 		case MatchTypeAny:
@@ -510,13 +514,13 @@ func (p *DefaultPartner) count(messageType MessageType, height int, validRound i
 		}
 	}
 	logrus.WithField("IM", p.Id).
-		Debugf("Counting: [%d] %s H:%d VR:%d MT:%d", counter, messageType.String(), height, validRound, valueIdMatchType)
+		Debugf("Counting: [%d] %s %d %d %d", counter, messageType.String(), height, validRound, valueIdMatchType)
 	return counter
 }
 
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
-func (p *DefaultPartner) checkRound(message *BasicMessage) (needHandle bool) {
+func (p *DefaultPartner) checkRound(message *types.BasicMessage) (needHandle bool) {
 	// rule line 55
 	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
 	if message.HeightRound.IsAfter(p.CurrentHR) {
@@ -553,7 +557,7 @@ func (p *DefaultPartner) changeStep(stepType StepType) {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultPartner) dumpVotes(votes []*MessageCommonVote) string {
+func (p *DefaultPartner) dumpVotes(votes []*types.MessageCommonVote) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -580,7 +584,7 @@ func (p *DefaultPartner) dumpAll(reason string) {
 }
 
 func (p *DefaultPartner) WipeOldStates() {
-	var toRemove []HeightRound
+	var toRemove []types.HeightRound
 	for hr := range p.States {
 		if hr.IsBefore(p.CurrentHR) {
 			toRemove = append(toRemove, hr)
@@ -591,7 +595,7 @@ func (p *DefaultPartner) WipeOldStates() {
 	}
 }
 
-func (p *DefaultPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int) {
+func (p *DefaultPartner) initHeightRound(hr types.HeightRound) (*HeightRoundState, int) {
 	// first check if there is previous message received
 	if _, ok := p.States[hr]; !ok {
 		// init one

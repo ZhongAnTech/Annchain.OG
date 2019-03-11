@@ -16,6 +16,7 @@ package annsensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/account"
 	"testing"
 	"time"
 
@@ -185,7 +186,7 @@ func TestDKGMain(t *testing.T) {
 		}
 		pMsg := p2pMsg{data: data, msgType: msg.MessageType}
 		for j := 0; j < 4; j++ {
-			if bytes.Equal(Anns[j].MyPrivKey.PublicKey().Bytes, pub.Bytes) {
+			if bytes.Equal(Anns[j].MyAccount.PublicKey.Bytes, pub.Bytes) {
 				Anns[j].Hub.(*TestHub).OutMsg <- pMsg
 				logrus.WithField("from peer", msg.From).WithField("to peer ", j).WithField("type ",
 					msg.MessageType).Trace("send msg enc")
@@ -210,8 +211,13 @@ func TestDKGMain(t *testing.T) {
 			}
 			peers = append(peers, k)
 		}
-		_, priv, _ := crypto.NewSigner(crypto.CryptoTypeSecp256k1).RandomKeyPair()
-		as.MyPrivKey = &priv
+		pub, priv, _ := crypto.NewSigner(crypto.CryptoTypeSecp256k1).RandomKeyPair()
+		as.MyAccount = &account.SampleAccount{
+			PrivateKey: priv,
+			PublicKey:  pub,
+			Address:    pub.Address(),
+			Id:         j,
+		}
 		as.Idag = &DummyDag{}
 		a.Hub = newtestHub(j, peers, sendMsgToChan, sendMsgByPubKey, as)
 		a.AnnSensus = as
@@ -267,11 +273,11 @@ func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 }
 
 func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
-	cp.GetBase().PublicKey = as.MyPrivKey.PublicKey().Bytes
+	cp.GetBase().PublicKey = as.MyAccount.PublicKey.Bytes
 	cp.GetBase().AccountNonce = uint64(as.Id * 10)
-	cp.Issuer = as.MyPrivKey.PublicKey().Address()
+	cp.Issuer = as.MyAccount.Address
 	s := crypto.NewSigner(as.cryptoType)
-	cp.GetBase().Signature = s.Sign(*as.MyPrivKey, cp.SignatureTargets()).Bytes
+	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
 	cp.GetBase().Weight = uint64(as.Id * 100)
 	cp.Height = uint64(as.Id)
 	cp.GetBase().Hash = cp.CalcTxHash()

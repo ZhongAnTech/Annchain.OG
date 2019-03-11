@@ -1,9 +1,9 @@
 package tendermint
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 )
 
 func callback(w WaiterContext) {
@@ -18,15 +18,14 @@ func TestWait(t *testing.T) {
 		WaitTime:        time.Second * 5,
 		TimeoutCallback: callback,
 		Context: &TendermintContext{
-			HeightRound:HeightRound{
+			HeightRound: HeightRound{
 				Height: 2,
 				Round:  3,
 			},
-
 		},
 	})
 	w.UpdateContext(&TendermintContext{
-		HeightRound:HeightRound{
+		HeightRound: HeightRound{
 			Height: 2,
 			Round:  3,
 		},

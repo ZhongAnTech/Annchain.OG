@@ -67,10 +67,11 @@ func TestRandomTx(t *testing.T) {
 
 func TestHash_Cmp(t *testing.T) {
 	m := MessageTxsResponse{}
-	var rawTxs RawTxs
+	var rawTxs TxisMarshaler
 	for i := 0; i < 10000; i++ {
 		tx := RandomTx()
-		rawTxs = append(rawTxs, tx.RawTx())
+		rawTxMarshaler := &RawTxMarshaler{tx.RawTx()}
+		rawTxs = append(rawTxs, rawTxMarshaler)
 	}
 	m.RawTxs = &rawTxs
 	data1, _ := m.MarshalMsg(nil)

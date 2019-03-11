@@ -289,7 +289,7 @@ func (m *MessageBodyData) ToTxis() Txis {
 }
 
 func (m *MessageBodyData) String() string {
-	return fmt.Sprintf("txs: [%d], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String())
+	return fmt.Sprintf("txs: [%s], Sequencer: %s", m.RawTxs.String(), m.RawSequencer.String())
 }
 
 // getBlockHeadersData represents a block header query.

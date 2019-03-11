@@ -29,8 +29,7 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	base := types.TxBase{
 		Type: types.TxBaseTypeCampaign,
 	}
-	address := as.MyPrivKey.PublicKey().Address()
-	balance := as.Idag.GetBalance(address)
+	balance := as.Idag.GetBalance(as.MyAccount.Address)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
 		log.Debug("not enough balance to gen campaign")
 		return nil

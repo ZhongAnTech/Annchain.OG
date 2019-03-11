@@ -78,11 +78,17 @@ const (
 	//for consensus
 	MessageTypeCampaign
 	MessageTypeTermChange
+
+	//for consensus dkg
 	MessageTypeConsensusDkgDeal
 	MessageTypeConsensusDkgDealResponse
 	MessageTypeConsensusDkgSigSets
 
-	MessageTypeSecret
+	MessageTypeSecret //encrypted message
+
+	MessageTypeProposal
+	MessageTypePreVote
+	MessageTypePreCommit
 
 	MessageTypeOg01Length //og01 length
 
@@ -168,6 +174,13 @@ func (mt MessageType) String() string {
 
 	case MessageTypeSecret:
 		return "MessageTypeSecret"
+
+	case MessageTypeProposal:
+		return "MessageTypeProposal"
+	case MessageTypePreVote:
+		return "MessageTypePreVote"
+	case MessageTypePreCommit:
+		return "MessageTypePreCommit"
 
 	case MessageTypeOg01Length: //og01 length
 		return "MessageTypeOg01Length"
@@ -322,60 +335,6 @@ func MsgCountInit() {
 	MsgCounter = &MessageCounter{
 		requestId: 1,
 	}
-}
-
-func (p *p2PMessage) GetMessage() error {
-	switch p.messageType {
-	case MessageTypePing:
-		p.message = &types.MessagePing{}
-	case MessageTypePong:
-		p.message = &types.MessagePong{}
-	case MessageTypeFetchByHashRequest:
-		p.message = &types.MessageSyncRequest{}
-	case MessageTypeFetchByHashResponse:
-		p.message = &types.MessageSyncResponse{}
-	case MessageTypeNewTx:
-		p.message = &types.MessageNewTx{}
-	case MessageTypeNewSequencer:
-		p.message = &types.MessageNewSequencer{}
-	case MessageTypeNewTxs:
-		p.message = &types.MessageNewTxs{}
-	case MessageTypeSequencerHeader:
-		p.message = &types.MessageSequencerHeader{}
-
-	case MessageTypeBodiesRequest:
-		p.message = &types.MessageBodiesRequest{}
-	case MessageTypeBodiesResponse:
-		p.message = &types.MessageBodiesResponse{}
-
-	case MessageTypeTxsRequest:
-		p.message = &types.MessageTxsRequest{}
-	case MessageTypeTxsResponse:
-		p.message = &types.MessageTxsResponse{}
-	case MessageTypeHeaderRequest:
-		p.message = &types.MessageHeaderRequest{}
-	case MessageTypeHeaderResponse:
-		p.message = &types.MessageHeaderResponse{}
-	case MessageTypeDuplicate:
-		var dup types.MessageDuplicate
-		p.message = &dup
-	case MessageTypeGetMsg:
-		p.message = &types.MessageGetMsg{}
-	case MessageTypeControl:
-		p.message = &types.MessageControl{}
-	case MessageTypeCampaign:
-		p.message = &types.MessageCampaign{}
-	case MessageTypeTermChange:
-		p.message = &types.MessageTermChange{}
-	case MessageTypeConsensusDkgDeal:
-		p.message = &types.MessageConsensusDkgDeal{}
-	case MessageTypeConsensusDkgDealResponse:
-		p.message = &types.MessageConsensusDkgDealResponse{}
-
-	default:
-		return fmt.Errorf("unkown mssage type %v ", p.messageType)
-	}
-	return nil
 }
 
 func (p *p2PMessage) GetMarkHashes() types.Hashes {
@@ -570,6 +529,13 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = &types.MessageConsensusDkgDealResponse{}
 	case MessageTypeConsensusDkgSigSets:
 		p.message = &types.MessageConsensusDkgSigSets{}
+	case MessageTypeProposal:
+		p.message = &types.MessageProposal{}
+	case MessageTypePreVote:
+		p.message = &types.MessageCommonVote{}
+	case MessageTypePreCommit:
+		p.message = &types.MessageCommonVote{}
+
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}

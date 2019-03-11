@@ -1,7 +1,9 @@
-package tendermint
+package annsensus
 
 import (
 	"github.com/annchain/OG/ffchan"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -24,7 +26,7 @@ type ByzantinePartner struct {
 
 func NewByzantinePartner(nbParticipants int, id int, blockTime time.Duration, byzantineFeatures ByzantineFeatures) *ByzantinePartner {
 	p := &ByzantinePartner{
-		DefaultPartner:    NewPartner(nbParticipants, id, blockTime),
+		DefaultPartner:    NewBFTPartner(nbParticipants, id, blockTime),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return p
@@ -69,32 +71,33 @@ func (p *ByzantinePartner) send() {
 		}
 	}
 }
+
 func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toSend bool) {
 	updatedMessage = msg
 	toSend = true
 	switch msg.Type {
-	case MessageTypeProposal:
+	case og.MessageTypeProposal:
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
-			v := updatedMessage.Payload.(MessageProposal)
+			v := updatedMessage.Payload.(types.MessageProposal)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
 
-	case MessageTypePreVote:
+	case og.MessageTypePreVote:
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
-			v := updatedMessage.Payload.(MessageCommonVote)
+			v := updatedMessage.Payload.(types.MessageCommonVote)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
-	case MessageTypePreCommit:
+	case og.MessageTypePreCommit:
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {
-			v := updatedMessage.Payload.(MessageCommonVote)
+			v := updatedMessage.Payload.(types.MessageCommonVote)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}

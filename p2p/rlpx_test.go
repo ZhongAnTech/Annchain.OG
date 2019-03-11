@@ -391,7 +391,7 @@ func TestRLPXFrameRW(t *testing.T) {
 	s1 := secrets{
 		AES:        aesSecret,
 		MAC:        macSecret,
-		EgressMAC:  sh3.NewLagecyKeccak256()(),
+		EgressMAC:  sha3.NewLagecyKeccak256()(),
 		IngressMAC: sha3.NewLegacyKeccak256(),
 	}
 	s1.EgressMAC.Write(egressMACinit)

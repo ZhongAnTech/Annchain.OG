@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Partner struct {
+type DKGPartner struct {
 	Id                    uint32
 	PartPubs              []kyber.Point
 	MyPartSec             kyber.Scalar
@@ -42,8 +42,8 @@ type Partner struct {
 	SigShares             [][]byte
 }
 
-func NewPartner(s *bn256.Suite) *Partner {
-	return &Partner{
+func NewDKGPartner(s *bn256.Suite) *DKGPartner {
+	return &DKGPartner{
 		Suite:                 s,
 		addressIndex:          make(map[types.Address]int),
 		SecretKeyContribution: make(map[types.Address]kyber.Scalar),
@@ -52,12 +52,12 @@ func NewPartner(s *bn256.Suite) *Partner {
 	}
 }
 
-func genPartnerPair(p *Partner) (kyber.Scalar, kyber.Point) {
+func genPartnerPair(p *DKGPartner) (kyber.Scalar, kyber.Point) {
 	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
 	return sc, p.Suite.Point().Mul(sc, nil)
 }
 
-func (p *Partner) GenerateDKGer() error {
+func (p *DKGPartner) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
 	log.WithField(" len ", len(p.PartPubs)).Debug("my part pbus")
 	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
@@ -69,7 +69,7 @@ func (p *Partner) GenerateDKGer() error {
 	return nil
 }
 
-func (p *Partner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
+func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	if err != nil {
 		return
@@ -86,7 +86,7 @@ func (p *Partner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	return
 }
 
-func (p *Partner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
+func (p *DKGPartner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	if err != nil {
 		return
@@ -95,14 +95,14 @@ func (p *Partner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	return
 }
 
-func (p *Partner) RecoverSig(msg []byte) (jointSig []byte, err error) {
+func (p *DKGPartner) RecoverSig(msg []byte) (jointSig []byte, err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
 	jointSig, err = tbls.Recover(p.Suite, pubPoly, msg, p.SigShares, p.Threshold, p.NbParticipants)
 	return
 }
 
-func (p *Partner) RecoverPub() (jointPubKey kyber.Point, err error) {
+func (p *DKGPartner) RecoverPub() (jointPubKey kyber.Point, err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	if err != nil {
 		return
@@ -113,7 +113,7 @@ func (p *Partner) RecoverPub() (jointPubKey kyber.Point, err error) {
 	return
 }
 
-func (p *Partner) Sig(msg []byte) (partSig []byte, err error) {
+func (p *DKGPartner) Sig(msg []byte) (partSig []byte, err error) {
 	dks, err := p.Dkger.DistKeyShare()
 	if err != nil {
 		return

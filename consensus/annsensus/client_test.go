@@ -1,9 +1,8 @@
-package tendermint
+package annsensus
 
 import (
+	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	_ "net/http/pprof"
 	"testing"
 	"time"
 )
@@ -16,32 +15,31 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-
+	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetFormatter(Formatter)
-	logrus.SetLevel(logrus.InfoLevel)
-
-	go func() {
-		logrus.Fatal(http.ListenAndServe("localhost:6060", nil))
-	}()
-
+	filenameHook := filename.NewHook()
+	filenameHook.Field = "line"
+	logrus.AddHook(filenameHook)
 }
 
-func start(peers []Partner) {
+func start(peers []BFTPartner) {
 	for _, peer := range peers {
 		peer.SetPeers(peers)
 		peer.StartNewEra(0, 0)
+		go peer.WaiterLoop()
 		go peer.EventLoop()
 	}
 	for {
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 5)
+		return
 	}
 }
 
 func TestAllNonByzantine(t *testing.T) {
 	total := 22
-	var peers []Partner
+	var peers []BFTPartner
 	for i := 0; i < total; i++ {
-		peers = append(peers, NewPartner(total, i, BlockTime))
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
 	start(peers)
 }
@@ -49,9 +47,9 @@ func TestAllNonByzantine(t *testing.T) {
 func TestByzantineButOK(t *testing.T) {
 	total := 4
 	byzantines := 1
-	var peers []Partner
+	var peers []BFTPartner
 	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewPartner(total, i, BlockTime))
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
 	for i := total - byzantines; i < total; i++ {
 		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
@@ -67,9 +65,9 @@ func TestByzantineButOK(t *testing.T) {
 func TestByzantineNotOK(t *testing.T) {
 	total := 4
 	byzantines := 2
-	var peers []Partner
+	var peers []BFTPartner
 	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewPartner(total, i, BlockTime))
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
 	for i := total - byzantines; i < total; i++ {
 		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
@@ -85,9 +83,9 @@ func TestByzantineNotOK(t *testing.T) {
 func TestBadByzantineOK(t *testing.T) {
 	total := 4
 	byzantines := 1
-	var peers []Partner
+	var peers []BFTPartner
 	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewPartner(total, i, BlockTime))
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
 	for i := total - byzantines; i < total; i++ {
 		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
@@ -103,9 +101,9 @@ func TestBadByzantineOK(t *testing.T) {
 func TestManyBadByzantineOK(t *testing.T) {
 	total := 22
 	byzantines := 7
-	var peers []Partner
+	var peers []BFTPartner
 	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewPartner(total, i, BlockTime))
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
 	for i := total - byzantines; i < total; i++ {
 		peers = append(peers, NewByzantinePartner(total, i, BlockTime,

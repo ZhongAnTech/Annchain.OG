@@ -27,20 +27,20 @@ func TestRawTx_Tx(t *testing.T) {
 	}
 	fmt.Println(len(data))
 
-	var txms []TxMarshaler
+	var txms []RawTxMarshaler
 	for i := 0; i < 100; i++ {
-		var txm TxMarshaler
+		var txm RawTxMarshaler
 		if i%2 == 0 {
-			txm.Txi = RandomSequencer()
+			txm.RawTxi = RandomSequencer().RawTxi()
 		} else {
-			txm.Txi = RandomTx()
+			txm.RawTxi = RandomTx().RawTxi()
 		}
 		data, _ = txm.MarshalMsg(data)
 		txms = append(txms, txm)
 	}
 	fmt.Println(len(data))
 	for i := 0; i < 100; i++ {
-		var txm TxMarshaler
+		var txm RawTxMarshaler
 		var err error
 		data, err = txm.UnmarshalMsg(data)
 		if err != nil {

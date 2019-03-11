@@ -35,7 +35,7 @@ type Dkg struct {
 
 	dkgOn             bool
 	pk                []byte
-	partner           *Partner
+	partner           *DKGPartner
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
@@ -53,7 +53,7 @@ type Dkg struct {
 }
 
 func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
-	p := NewPartner(bn256.NewSuiteG2())
+	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
 	p.PartPubs = []kyber.Point{}
@@ -82,7 +82,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 }
 
 func (d *Dkg) Reset() {
-	p := NewPartner(bn256.NewSuiteG2())
+	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
@@ -132,12 +132,12 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-func (d *Dkg) AddPartner(c *types.Campaign, annPriv *crypto.PrivateKey) {
+func (d *Dkg) AddPartner(c *types.Campaign, myPubKey *crypto.PublicKey) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
-	if bytes.Equal(c.PublicKey, annPriv.PublicKey().Bytes) {
+	if bytes.Equal(c.PublicKey, myPubKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
 	}
 	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
@@ -265,7 +265,7 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
 		if addr == nil {
 			panic("address not found")
 		}
-		if *addr == d.ann.MyPrivKey.PublicKey().Address() {
+		if *addr == d.ann.MyAccount.Address {
 			//this is for me , skip myself
 			log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
 				deal.TerminateString()).Error("send dkg deal to myself")
@@ -276,8 +276,8 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
 		if cp == nil {
 			panic("campaign not found")
 		}
-		msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
-		msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
+		msg.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+		msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
 		pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
 		log.WithField("to ", addr.TerminalString()).WithField("deal",
 			deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
@@ -355,13 +355,13 @@ func (d *Dkg) gossiploop() {
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
 			}
-			response.Sinature = d.signer.Sign(*d.ann.MyPrivKey, response.SignatureTargets()).Bytes
-			response.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
+			response.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, response.SignatureTargets()).Bytes
+			response.PublicKey = d.ann.MyAccount.PublicKey.Bytes
 			log.WithField("to request ", request).WithField("response ", &response).Debug("will send response")
 			//broadcast response to all partner
-			me := d.ann.MyPrivKey.PublicKey().Address()
+
 			for k, v := range d.ann.Candidates() {
-				if k == me {
+				if k == d.ann.MyAccount.Address {
 					continue
 				}
 				msgCopy := response
@@ -430,11 +430,11 @@ func (d *Dkg) gossiploop() {
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
-			msg.Sinature = d.signer.Sign(*d.ann.MyPrivKey, msg.SignatureTargets()).Bytes
-			msg.PublicKey = d.ann.MyPrivKey.PublicKey().Bytes
-			me := d.ann.MyPrivKey.PublicKey().Address()
+			msg.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+			msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
+
 			for k, v := range d.ann.Candidates() {
-				if k == me {
+				if k == d.ann.MyAccount.Address {
 					continue
 				}
 				msgCopy := msg
@@ -442,7 +442,7 @@ func (d *Dkg) gossiploop() {
 				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
 			}
 
-			d.addSigsets(d.ann.MyPrivKey.PublicKey().Address(), &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Sinature})
+			d.addSigsets(d.ann.MyAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Sinature})
 			sigCaches := d.unhandledSigSets()
 			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets

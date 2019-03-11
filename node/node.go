@@ -88,10 +88,6 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
-	campaign := viper.GetBool("annsensus.campaign")
-	partnerNum := viper.GetInt("annsensus.partner_number")
-	threshold := viper.GetInt("annsensus.threshold")
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold)
 
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
@@ -122,11 +118,7 @@ func NewNode() *Node {
 		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
-	consensusVerifier := &og.ConsensusVerifier{
-		VerifyTermChange: annSensus.VerifyTermChange,
-		VerifySequencer:  annSensus.VerifySequencer,
-		VerifyCampaign:   annSensus.VerifyCampaign,
-	}
+	consensusVerifier := &og.ConsensusVerifier{}
 
 	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
 
@@ -283,6 +275,20 @@ func NewNode() *Node {
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
 	}
+	campaign := viper.GetBool("annsensus.campaign")
+	partnerNum := viper.GetInt("annsensus.partner_number")
+	threshold := viper.GetInt("annsensus.threshold")
+	sequencerTime := viper.GetInt("annsensus.sequencerTime")
+	if sequencerTime == 0 {
+		sequencerTime = 2500
+	}
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, time.Millisecond*time.Duration(sequencerTime),
+		autoClientManager.JudgeNonce, txCreator)
+	*consensusVerifier = og.ConsensusVerifier{
+		VerifyTermChange: annSensus.VerifyTermChange,
+		VerifySequencer:  annSensus.VerifySequencer,
+		VerifyCampaign:   annSensus.VerifyCampaign,
+	}
 	// TODO
 	// RegisterNewTxHandler is not for AnnSensus sending txs out.
 	// Not suitable to be used here.
@@ -294,9 +300,9 @@ func NewNode() *Node {
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
-	annSensus.MyPrivKey = &autoClientManager.SampleAccounts[accountIds[0]].PrivateKey
+	annSensus.MyAccount = autoClientManager.SampleAccounts[accountIds[0]+100]
 	annSensus.Idag = org.Dag
-	hub.SetEncryptionKey(annSensus.MyPrivKey)
+	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)

@@ -30,13 +30,14 @@ type AutoClientManager struct {
 	quit                   chan bool
 	wg                     sync.WaitGroup
 	RegisterReceiver       func(c chan types.Txi)
+	delegate               *Delegate
 }
 
 func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)
-
+	m.delegate = delegate
 	// to make sure we have only one sequencer
 	sequencers := 1
 	for _, accountIndex := range accountIndices {
@@ -150,4 +151,20 @@ func (c *AutoClientManager) eventLoop() {
 
 	}
 
+}
+
+func (a *AutoClientManager) JudgeNonce(me *account.SampleAccount) uint64 {
+
+	var n uint64
+	//NonceSelfDiscipline
+	// fetch from db every time
+	n, err := a.delegate.GetLatestAccountNonce(me.Address)
+	me.SetNonce(n)
+	if err != nil {
+		// not exists, set to 0
+		return 0
+	} else {
+		n, _ = me.ConsumeNonce()
+		return n
+	}
 }

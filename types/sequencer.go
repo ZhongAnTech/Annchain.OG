@@ -72,7 +72,10 @@ func (t *Sequencer) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
-
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
+	for _, parent := range t.Parents() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, parent.Bytes))
+	}
 	return buf.Bytes()
 }
 

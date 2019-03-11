@@ -15,6 +15,7 @@ package annsensus
 
 import (
 	"fmt"
+	"github.com/annchain/OG/account"
 	"sync"
 	"time"
 
@@ -32,6 +33,7 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
+	bft  *OgMint
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
@@ -41,7 +43,7 @@ type AnnSensus struct {
 	Txpool og.ITxPool
 	Idag   og.IDag
 
-	MyPrivKey      *crypto.PrivateKey
+	MyAccount      *account.SampleAccount
 	Threshold      int
 	NbParticipants int
 
@@ -50,7 +52,8 @@ type AnnSensus struct {
 	close chan struct{}
 }
 
-func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int) *AnnSensus {
+func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int, sequencerTime time.Duration,
+	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator) *AnnSensus {
 	ann := &AnnSensus{}
 
 	ann.close = make(chan struct{})
@@ -67,7 +70,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 
 	t := newTerm(0, partnerNum)
 	ann.term = t
-
+	ann.bft = NewOgMint(partnerNum, 0, sequencerTime, judgeNonce, txcreator)
 	return ann
 }
 
@@ -75,12 +78,13 @@ func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
 
 	as.dkg.start()
+	as.bft.Start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-
+	as.bft.Stop()
 	as.dkg.stop()
 	close(as.close)
 }
@@ -184,7 +188,7 @@ func (as *AnnSensus) AddCandidate(cp *types.Campaign) error {
 		return fmt.Errorf("pubkey is nil ")
 	}
 
-	as.dkg.AddPartner(cp, as.MyPrivKey)
+	as.dkg.AddPartner(cp, &as.MyAccount.PublicKey)
 	as.term.AddCandidate(cp)
 	// log.WithField("me ",as.id).WithField("add cp", cp ).Debug("added")
 	return nil
@@ -251,7 +255,6 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 	base := types.TxBase{
 		Type: types.TxBaseTypeTermChange,
 	}
-	address := as.MyPrivKey.PublicKey().Address()
 
 	pkbls, err := pk.MarshalBinary()
 	if err != nil {
@@ -260,7 +263,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 	tc := &types.TermChange{
 		TxBase: base,
-		Issuer: address,
+		Issuer: as.MyAccount.Address,
 		PkBls:  pkbls,
 		SigSet: sigset,
 	}

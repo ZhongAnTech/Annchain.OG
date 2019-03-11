@@ -41,6 +41,10 @@ type MessageRouter struct {
 	ConsensusDkgDealHandler         ConsensusDkgDealHandler
 	ConsensusDkgDealResponseHandler ConsensusDkgDealResponseHandler
 	ConsensusDkgSigSetsHandler      ConsensusDkgSigSetsHandler
+	ConsensusProposalHandler       ConsensusProposalHandler
+	ConsensusPreVoteHandler      ConsensusPreVoteHandler
+	ConsensusPreCommitHandler ConsensusPreCommitHandler
+
 }
 
 type ManagerConfig struct {
@@ -130,6 +134,20 @@ type ConsensusDkgDealResponseHandler interface {
 type ConsensusDkgSigSetsHandler interface {
 	HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string)
 }
+
+type ConsensusPreVoteHandler interface {
+	HandleConsensusPreVote (request *types.MessageCommonVote, peerId string )
+}
+
+type ConsensusPreCommitHandler interface {
+	HandleConsensusPreCommit (request *types.MessageCommonVote, peerId string )
+}
+
+type ConsensusProposalHandler interface {
+	HandleConsensusProposal (request *types.MessageProposal, peerId string )
+}
+
+
 
 func (m *MessageRouter) Start() {
 	m.Hub.BroadcastMessage(MessageTypePing, &types.MessagePing{Data: []byte{}})
@@ -231,6 +249,17 @@ func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *p2PMessage) {
 
 func (m *MessageRouter) RouteConsensusDkgSigSets(msg *p2PMessage) {
 	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.message.(*types.MessageConsensusDkgSigSets), msg.sourceID)
+}
+
+func (m*MessageRouter)RouteConsensusProposal(msg *p2PMessage) {
+	m.ConsensusProposalHandler.HandleConsensusProposal(msg.message.(*types.MessageProposal),msg.sourceID)
+}
+
+func (m*MessageRouter)RouteConsensusPreVote(msg *p2PMessage) {
+	m.ConsensusPreVoteHandler.HandleConsensusPreVote(msg.message.(*types.MessageCommonVote),msg.sourceID)
+}
+func (m*MessageRouter)RouteConsensusPreCommit(msg *p2PMessage) {
+	m.ConsensusPreCommitHandler.HandleConsensusPreCommit(msg.message.(*types.MessageCommonVote),msg.sourceID)
 }
 
 // BroadcastMessage send message to all peers

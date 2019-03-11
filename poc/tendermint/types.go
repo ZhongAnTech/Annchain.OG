@@ -8,7 +8,7 @@ import (
 type StepType int
 
 const (
-	StepTypePropose   StepType = iota
+	StepTypePropose StepType = iota
 	StepTypePreVote
 	StepTypePreCommit
 )
@@ -26,7 +26,7 @@ func (m StepType) String() string {
 	}
 }
 
-func (m StepType) IsAfter(o StepType) bool{
+func (m StepType) IsAfter(o StepType) bool {
 	return m > o
 }
 
@@ -46,7 +46,7 @@ func (m MessageType) String() string {
 }
 
 const (
-	MessageTypeProposal  MessageType = iota
+	MessageTypeProposal MessageType = iota
 	MessageTypePreVote
 	MessageTypePreCommit
 )
@@ -60,7 +60,7 @@ const (
 type ValueIdMatchType int
 
 const (
-	MatchTypeAny     ValueIdMatchType = iota
+	MatchTypeAny ValueIdMatchType = iota
 	MatchTypeByValue
 	MatchTypeNil
 )
@@ -94,7 +94,7 @@ func (s StringProposal) GetId() string {
 }
 
 type BasicMessage struct {
-	SourceId int
+	SourceId    int
 	HeightRound HeightRound
 }
 type MessageProposal struct {
@@ -114,7 +114,7 @@ type ChangeStateEvent struct {
 
 type TendermintContext struct {
 	HeightRound HeightRound
-	StepType StepType
+	StepType    StepType
 }
 
 func (t *TendermintContext) Equal(w WaiterContext) bool {

@@ -278,3 +278,62 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 	}).Debugf("total time for mining")
 	return true
 }
+
+func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey) (seq *types.Sequencer) {
+	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
+	//for sequencer no mined nonce
+	// record the mining times.
+	connectionTries := 0
+	timeStart := time.Now()
+	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
+	// pick up parents.
+	var ok bool
+	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
+		parents := m.TipGenerator.GetRandomTips(2)
+
+		//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
+		if len(parents) == 0 {
+			// Impossible. At least genesis is there
+			logrus.Warn("at least genesis is there. Wait for loading")
+			time.Sleep(time.Second * 2)
+			continue
+		}
+		parentHashes := make(types.Hashes, len(parents))
+		for i, parent := range parents {
+			parentHashes[i] = parent.GetTxHash()
+		}
+
+		//calculate weight
+		tx.GetBase().Weight = tx.CalculateWeight(parents)
+		tx.GetBase().ParentsHash = parentHashes
+		// verify if the hash of the structure meet the standard.
+		logrus.WithField("id ", tx.GetHeight()).WithField("parent", tx.Parents()).Trace("new tx connected")
+		//ok = m.validateGraphStructure(parents)
+		ok = m.GraphVerifier.Verify(tx)
+		if !ok {
+			logrus.Debug("NOT OK")
+			logrus.WithFields(logrus.Fields{
+				"tx": tx,
+				"ok": ok,
+			}).Trace("validate graph structure for tx being connected")
+			continue
+		} else {
+			//calculate signatrue
+			tx.GetBase().Signature = m.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Hash = tx.CalcTxHash()
+			break
+		}
+	}
+	if ok {
+		logrus.WithFields(logrus.Fields{
+			"elapsedns":  time.Since(timeStart).Nanoseconds(),
+			"re-connect": connectionTries,
+		}).Tracef("total time for mining")
+		return tx.(*types.Sequencer)
+	}
+	logrus.WithFields(logrus.Fields{
+		"elapsedns":  time.Since(timeStart).Nanoseconds(),
+		"re-connect": connectionTries,
+	}).Warnf("generate sequencer failed")
+	return nil
+}

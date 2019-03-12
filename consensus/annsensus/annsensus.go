@@ -15,9 +15,10 @@ package annsensus
 
 import (
 	"fmt"
-	"github.com/annchain/OG/account"
 	"sync"
 	"time"
+
+	"github.com/annchain/OG/account"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
@@ -33,7 +34,7 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
-	bft  *OgMint
+	bft  *OgMint // TODO change OgMint name
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
@@ -245,10 +246,17 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 // pickTermChg picks a valid TermChange from a tc list.
 func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, error) {
-	// TODO:
-	// not implemented yet.
+	var niceTc *types.TermChange
+	for _, tc := range tcs {
+		if niceTc != nil && niceTc.IsSameTermInfo(tc) {
+			continue
+		}
+		if tc.TermID == as.term.ID()+1 {
+			niceTc = tc
+		}
+	}
 
-	return tcs[0], nil
+	return niceTc, nil
 }
 
 func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
@@ -263,6 +271,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 	tc := &types.TermChange{
 		TxBase: base,
+		TermID: as.term.ID(),
 		Issuer: as.MyAccount.Address,
 		PkBls:  pkbls,
 		SigSet: sigset,

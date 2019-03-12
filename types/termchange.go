@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 )
 
@@ -27,6 +28,7 @@ import (
 //msgp:tuple TermChange
 type TermChange struct {
 	TxBase
+	TermID uint64
 	PkBls  []byte
 	SigSet []*SigSet
 	Issuer Address
@@ -59,6 +61,40 @@ func (tc *TermChange) Compare(tx Txi) bool {
 	default:
 		return false
 	}
+}
+
+func (tc *TermChange) IsSameTermInfo(ctc *TermChange) bool {
+	// compare term id.
+	if tc.TermID != ctc.TermID {
+		return false
+	}
+	// compare bls public key.
+	if !common.IsSameBytes(tc.PkBls, ctc.PkBls) {
+		return false
+	}
+	// compare sigset
+	if len(tc.SigSet) != len(ctc.SigSet) {
+		return false
+	}
+	oTcMap := map[string][]byte{}
+	cTcMap := map[string][]byte{}
+	for i := range tc.SigSet {
+		oss := tc.SigSet[i]
+		oTcMap[common.Bytes2Hex(oss.PublicKey)] = oss.Signature
+		css := ctc.SigSet[i]
+		cTcMap[common.Bytes2Hex(css.PublicKey)] = css.Signature
+	}
+	for pk, os := range oTcMap {
+		cs := cTcMap[pk]
+		if cs == nil {
+			return false
+		}
+		if !common.IsSameBytes(os, cs) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (tc *TermChange) Dump() string {
@@ -108,6 +144,7 @@ func (c *TermChange) RawTermChange() *RawTermChange {
 	}
 	rc := &RawTermChange{
 		TxBase: c.TxBase,
+		TermId: c.TermID,
 		PkBls:  c.PkBls,
 		SigSet: c.SigSet,
 	}
@@ -118,12 +155,12 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawTs RawTermChanges
+	var rawTcs RawTermChanges
 	for _, v := range cs {
-		rasSeq := v.RawTermChange()
-		rawTs = append(rawTs, rasSeq)
+		rawTc := v.RawTermChange()
+		rawTcs = append(rawTcs, rawTc)
 	}
-	return rawTs
+	return rawTcs
 }
 
 func (c *TermChange) RawTxi() RawTxi {

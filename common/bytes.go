@@ -127,3 +127,20 @@ func LeftPadBytes(slice []byte, l int) []byte {
 
 	return padded
 }
+
+// IsSameBytes compares two byte slice. Return true if they are the
+// same, otherwise false.
+func IsSameBytes(s, t []byte) bool {
+	if (s == nil) != (t == nil) {
+		return false
+	}
+	if len(s) != len(t) {
+		return false
+	}
+	for i := range s {
+		if s[i] != t[i] {
+			return false
+		}
+	}
+	return true
+}

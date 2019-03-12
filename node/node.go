@@ -282,8 +282,9 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 2500
 	}
+	genesisAccounts := parserGenesisAccounts(signer,viper.GetString("annsensus.genesis"))
 	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator, verifiers)
+		autoClientManager.JudgeNonce, txCreator, verifiers,genesisAccounts)
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,
 		VerifySequencer:  annSensus.VerifySequencer,
@@ -335,7 +336,6 @@ func NewNode() *Node {
 
 	var p2pServer *p2p.Server
 	if viper.GetBool("p2p.enabled") {
-		// TODO: Merge private key loading. All keys should be stored at just one place.
 		privKey := getNodePrivKey()
 		p2pServer = NewP2PServer(privKey)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)

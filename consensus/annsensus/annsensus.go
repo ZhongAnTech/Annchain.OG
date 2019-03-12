@@ -14,9 +14,11 @@
 package annsensus
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/annchain/OG/account"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
@@ -49,13 +51,22 @@ type AnnSensus struct {
 
 	mu sync.RWMutex
 
-	close chan struct{}
+	close            chan struct{}
+	genesisAccounts  []crypto.PublicKey
+	isGenesisPartner bool
+	genesisBftIsRunning uint32
+	UpdateEvent chan bool // syner update event
+	newtermCh chan struct{}
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator, Verifiers []og.Verifier) *AnnSensus {
+	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator,
+	Verifiers []og.Verifier, genesisAccounts []crypto.PublicKey) *AnnSensus {
+	if len(genesisAccounts) < partnerNum {
+		panic("need more account")
+	}
+	var myId int
 	ann := &AnnSensus{}
-
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
@@ -64,13 +75,21 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
 	ann.cryptoType = cryptoType
 	ann.dkgPkCh = make(chan kyber.Point)
-
+	ann.UpdateEvent = make(chan bool)
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
-
+	ann.genesisAccounts = genesisAccounts
+	for id, pk := range ann.genesisAccounts {
+		if bytes.Equal(pk.Bytes, ann.MyAccount.PublicKey.Bytes) {
+			log.WithField("my id ", id).Info("i am a genesis partner")
+			myId = id
+		}
+	}
 	t := newTerm(0, partnerNum)
 	ann.term = t
-	ann.pbft = NewPBFT(partnerNum, 0, sequencerTime, judgeNonce, txcreator, Verifiers)
+	ann.pbft = NewPBFT(partnerNum, myId, sequencerTime, judgeNonce, txcreator, Verifiers)
+	ann.newtermCh = make(chan struct{})
+
 	return ann
 }
 
@@ -227,7 +246,10 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 
 		case pk := <-as.dkgPkCh:
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
-
+			if  atomic.LoadUint32(&as.genesisBftIsRunning) ==1 {
+				as.newtermCh<- struct{}{}
+				continue
+			}
 			sigset := as.dkg.GetBlsSigsets()
 			log.WithField("sig sets ", sigset).Info("got sigsets ")
 			//continue //for test case commit this
@@ -274,8 +296,6 @@ func (as *AnnSensus) loop() {
 	var camp bool
 
 	// sequencer entry
-	newtermCh := make(chan struct{})
-	//newtermCh <- struct{}{}
 
 	for {
 		select {
@@ -315,22 +335,43 @@ func (as *AnnSensus) loop() {
 					log.Errorf("change term error: %v", err)
 					continue
 				}
-				newtermCh <- struct{}{}
+				as.newtermCh <- struct{}{}
 			}
 
-		case <-newtermCh:
+		case <-as.newtermCh:
 			// sequencer generate entry.
 
 			// TODO:
 			// 1. check if yourself is the miner.
 			// 2. produce raw_seq and broadcast it to network.
 			// 3. start pbft until someone produce a seq with BLS sig.
+            log.Info("got newtermcahneg signal")
+			as.pbft.startBftChan <- true
 
 		case <-time.After(time.Second * 6):
 			if !camp {
 				camp = true
 				as.ProdCampaignOn()
 			}
+		case isUptoDate :=<-as.UpdateEvent:
+			log.WithField("v ",isUptoDate).Info("get isUptoDate event")
+		    if isUptoDate && as.Idag.LatestSequencer().Height ==0 && as.isGenesisPartner {
+		    	//should participate in genesis  bft process
+		    	if !as.dkg.dkgOn {
+		    		as.dkg.dkgOn = true
+		    		atomic.StoreUint32(&as.genesisBftIsRunning,1)
+		    		var peers []BFTPartner
+		    		for i, pk := range as.genesisAccounts {
+		    			if i==as.id{
+		    				continue
+						}
+		    			//the third param is not used in peer
+		    			peers = append(peers, NewOgBftPeer(pk,as.NbParticipants,i,time.Second))
+					}
+		    		as.pbft.BFTPartner.SetPeers(peers)
+				}
+			}
+			//
 
 		}
 	}

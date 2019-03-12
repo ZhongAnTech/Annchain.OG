@@ -22,6 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//HandleConsensusDkgDeal
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
 	log := log.WithField("me", a.id)
 	if request == nil {
@@ -31,7 +32,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 	log.WithField("dkg data", request).WithField("from peer ", peerId).Debug("got dkg")
 	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
 	s := crypto.NewSigner(pk.Type)
-	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Sinature), request.SignatureTargets())
+	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
 		log.Warn("verify signature failed")
 		return
@@ -40,6 +41,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 
 }
 
+//HandleConsensusDkgDealResponse
 func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string) {
 	log := log.WithField("me", a.id)
 	if request == nil {
@@ -49,7 +51,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	log.WithField("dkg response data", request).WithField("from peer ", peerId).Debug("got dkg response")
 	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
 	s := crypto.NewSigner(pk.Type)
-	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Sinature), request.SignatureTargets())
+	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
 		log.Warn("verify signature failed")
 		return
@@ -59,6 +61,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	a.dkg.gossipRespCh <- request
 }
 
+//HandleConsensusDkgSigSets
 func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string) {
 	log := log.WithField("me", a.id)
 	if request == nil {
@@ -68,10 +71,10 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got dkg bls sigsets")
 	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
 	s := crypto.NewSigner(pk.Type)
-	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Sinature), request.SignatureTargets())
+	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
 		log.WithField("pkbls ", hex.EncodeToString(request.PkBls)).WithField("pk ", hex.EncodeToString(request.PublicKey)).WithField(
-			"sig ", hex.EncodeToString(request.Sinature)).Warn("verify signature failed")
+			"sig ", hex.EncodeToString(request.Signature)).Warn("verify signature failed")
 		return
 	}
 	log.Debug("response ok")
@@ -79,39 +82,45 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 	a.dkg.gossipSigSetspCh <- request
 }
 
-
-func (a *AnnSensus)HandleConsensusProposal(request *types.MessageProposal, peerId string ) {
+//HandleConsensusProposal
+func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peerId string) {
 	log := log.WithField("me", a.id)
-	if request == nil || request.Value ==nil {
+	if request == nil || request.Value == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
+
+	switch msg := request.Value.(type) {
+	case *types.SequencerProposal:
+	default:
+		log.WithField("request ", msg).Warn("unsupported proposal type")
+		return
+	}
 	msg := request.Value.(*types.SequencerProposal)
-	seq := msg.Sequencer()
+	seq := msg.Sequencer
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft proposal data")
-	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+	pk := crypto.PublicKeyFromBytes(a.cryptoType, msg.PublicKey)
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
-			log.WithField("request ",request).Warn("verify MessageProposal  signature failed")
+		log.WithField("request ", request).Warn("verify MessageProposal  signature failed")
 		return
 	}
-
-	ok  = s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, seq.TxBase.Signature), seq.SignatureTargets())
-	if !ok {
-		log.WithField("seq ",seq).Warn("verify sequencer  signature failed")
+	if !a.pbft.verifyProposal(request, pk) {
+		log.WithField("seq ", seq).Warn("verify raw seq fail")
 		return
 	}
 	log.Debug("response ok")
-	m:= Message{
-		Type: og.MessageTypeProposal,
-		Payload:request,
+	m := Message{
+		Type:    og.MessageTypeProposal,
+		Payload: request,
 	}
-	a.bft.GetIncomingMessageChannel() <-m
+	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }
 
-func (a *AnnSensus)HandleConsensusPreVote(request *types.MessageCommonVote, peerId string ) {
+//HandleConsensusPreVote
+func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId string) {
 	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -122,18 +131,24 @@ func (a *AnnSensus)HandleConsensusPreVote(request *types.MessageCommonVote, peer
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
-		log.WithField("request ",request).Warn("verify signature failed")
+		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
-	m:= Message{
-		Type: og.MessageTypePreVote,
-		Payload:request,
+	if !a.pbft.verifyIsPartNer(pk, int(request.SourceId)) {
+		log.WithField("request ", request).Warn("verify signature failed")
+		return
 	}
-	a.bft.GetIncomingMessageChannel() <-m
+
+	m := Message{
+		Type:    og.MessageTypePreVote,
+		Payload: request,
+	}
+	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }
 
-func (a *AnnSensus)HandleConsensusPreCommit(request *types.MessageCommonVote, peerId string ) {
+//HandleConsensusPreCommit
+func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, peerId string) {
 	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -144,13 +159,18 @@ func (a *AnnSensus)HandleConsensusPreCommit(request *types.MessageCommonVote, pe
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
-		log.WithField("request ",request).Warn("verify signature failed")
+		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
-	m:= Message{
-		Type: og.MessageTypePreCommit,
-		Payload:request,
+
+	if !a.pbft.verifyIsPartNer(pk, int(request.SourceId)) {
+		log.WithField("request ", request).Warn("verify signature failed")
+		return
 	}
-	a.bft.GetIncomingMessageChannel() <-m
+	m := Message{
+		Type:    og.MessageTypePreCommit,
+		Payload: request,
+	}
+	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }

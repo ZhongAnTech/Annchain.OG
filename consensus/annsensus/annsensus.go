@@ -33,7 +33,7 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
-	bft  *OgMint
+	pbft *PBFT
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
@@ -53,7 +53,7 @@ type AnnSensus struct {
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator) *AnnSensus {
+	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator, Verifiers []og.Verifier) *AnnSensus {
 	ann := &AnnSensus{}
 
 	ann.close = make(chan struct{})
@@ -70,7 +70,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 
 	t := newTerm(0, partnerNum)
 	ann.term = t
-	ann.bft = NewOgMint(partnerNum, 0, sequencerTime, judgeNonce, txcreator)
+	ann.pbft = NewPBFT(partnerNum, 0, sequencerTime, judgeNonce, txcreator, Verifiers)
 	return ann
 }
 
@@ -78,13 +78,13 @@ func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
 
 	as.dkg.start()
-	as.bft.Start()
+	as.pbft.Start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-	as.bft.Stop()
+	as.pbft.Stop()
 	as.dkg.stop()
 	close(as.close)
 }

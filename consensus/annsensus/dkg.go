@@ -24,6 +24,8 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 
@@ -276,7 +278,7 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
 		if cp == nil {
 			panic("campaign not found")
 		}
-		msg.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
 		msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
 		pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
 		log.WithField("to ", addr.TerminalString()).WithField("deal",
@@ -344,6 +346,10 @@ func (d *Dkg) gossiploop() {
 				log.WithField("deal ", request).WithError(err).Warn("deal process error")
 				continue
 			}
+			if responseDeal.Response.Status != vss.StatusApproval {
+				log.WithField("deal ", request).WithError(err).Warn("deal process not StatusApproval")
+				continue
+			}
 			respData, err := responseDeal.MarshalMsg(nil)
 			if err != nil {
 				log.WithField("deal ", request).WithError(err).Warn("deal process error")
@@ -355,7 +361,7 @@ func (d *Dkg) gossiploop() {
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
 			}
-			response.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, response.SignatureTargets()).Bytes
+			response.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, response.SignatureTargets()).Bytes
 			response.PublicKey = d.ann.MyAccount.PublicKey.Bytes
 			log.WithField("to request ", request).WithField("response ", &response).Debug("will send response")
 			//broadcast response to all partner
@@ -430,7 +436,7 @@ func (d *Dkg) gossiploop() {
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
-			msg.Sinature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+			msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
 			msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
 
 			for k, v := range d.ann.Candidates() {
@@ -442,7 +448,7 @@ func (d *Dkg) gossiploop() {
 				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
 			}
 
-			d.addSigsets(d.ann.MyAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Sinature})
+			d.addSigsets(d.ann.MyAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})
 			sigCaches := d.unhandledSigSets()
 			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets
@@ -476,7 +482,7 @@ func (d *Dkg) gossiploop() {
 				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.partner.jointPubKey).Warn("pk bls mismatch")
 				continue
 			}
-			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Sinature})
+			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Signature})
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
@@ -594,4 +600,20 @@ func (t DealsMap) TerminateString() string {
 		}
 	}
 	return strings.Join(str, ",")
+}
+
+func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
+	pubKey, err := bn256.UnmarshalBinaryPointG2(jointPub)
+	if err != nil {
+		log.WithError(err).Warn("unmarshal join pubkey error")
+		return false
+	}
+	err = bls.Verify(d.partner.Suite, pubKey, msg, sig)
+	if err != nil {
+		log.WithError(err).Warn("unmarshal join pubkey error")
+		return false
+	}
+	return true
+	//todo how to verify when term change
+	// d.partner.jointPubKey
 }

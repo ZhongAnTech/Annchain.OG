@@ -283,7 +283,7 @@ func NewNode() *Node {
 		sequencerTime = 2500
 	}
 	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator)
+		autoClientManager.JudgeNonce, txCreator, verifiers)
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,
 		VerifySequencer:  annSensus.VerifySequencer,
@@ -379,7 +379,9 @@ func NewNode() *Node {
 	m.ConsensusDkgDealHandler = annSensus
 	m.ConsensusDkgDealResponseHandler = annSensus
 	m.ConsensusDkgSigSetsHandler = annSensus
-
+	m.ConsensusProposalHandler = annSensus
+	m.ConsensusPreCommitHandler = annSensus
+	m.ConsensusPreVoteHandler = annSensus
 	annSensus.Hub = hub
 
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
@@ -451,6 +453,9 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
+	hub.CallbackRegistry[og.MessageTypeProposal] = m.RouteConsensusProposal
+	hub.CallbackRegistry[og.MessageTypePreVote] = m.RouteConsensusPreVote
+	hub.CallbackRegistry[og.MessageTypePreCommit] = m.RouteConsensusPreCommit
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {

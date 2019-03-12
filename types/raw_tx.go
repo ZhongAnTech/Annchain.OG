@@ -15,8 +15,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/math"
 	"strings"
+
+	"github.com/annchain/OG/common/math"
 )
 
 //go:generate msgp
@@ -44,6 +45,7 @@ type RawCampaign struct {
 //msgp:tuple RawTermChange
 type RawTermChange struct {
 	TxBase
+	TermId uint64
 	PkBls  []byte
 	SigSet []*SigSet
 }

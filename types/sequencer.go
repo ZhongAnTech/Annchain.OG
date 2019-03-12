@@ -54,14 +54,15 @@ func SampleSequencer() *Sequencer {
 func RandomSequencer() *Sequencer {
 	id := uint64(rand.Int63n(1000))
 
-	return &Sequencer{TxBase: TxBase{
-		Hash:         randomHash(),
-		Height:       id,
-		ParentsHash:  Hashes{randomHash(), randomHash()},
-		Type:         TxBaseTypeSequencer,
-		AccountNonce: uint64(rand.Int63n(50000)),
-		Weight:       uint64(rand.Int31n(2000)),
-	},
+	return &Sequencer{
+		TxBase: TxBase{
+			Hash:         randomHash(),
+			Height:       id,
+			ParentsHash:  Hashes{randomHash(), randomHash()},
+			Type:         TxBaseTypeSequencer,
+			AccountNonce: uint64(rand.Int63n(50000)),
+			Weight:       uint64(rand.Int31n(2000)),
+		},
 		Issuer: randomAddress(),
 	}
 }

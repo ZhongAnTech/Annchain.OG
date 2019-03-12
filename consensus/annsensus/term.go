@@ -172,8 +172,12 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 
 	t.candidates = make(map[types.Address]*types.Campaign)
 	t.alsorans = make(map[types.Address]*types.Campaign)
-	t.senators = snts
 
+	formerSnts := t.senators
+	t.formerSentors[t.id] = formerSnts
+	
+	t.senators = snts
+	
 	// TODO
 	// 1. update id.
 	// 2. process alsorans.

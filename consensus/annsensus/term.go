@@ -199,3 +199,12 @@ func newSenator(addr types.Address, publickey, blspk []byte) *Senator {
 }
 
 type Senators map[types.Address]*Senator
+
+func (t *Term) GetSenater(address types.Address) *Senator {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	if v, ok := t.senators[address]; ok {
+		return v
+	}
+	return nil
+}

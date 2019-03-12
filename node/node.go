@@ -282,8 +282,9 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 2500
 	}
+	genesisAccounts := parserGenesisAccounts(signer,viper.GetString("annsensus.genesis"))
 	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator)
+		autoClientManager.JudgeNonce, txCreator, verifiers,genesisAccounts)
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,
 		VerifySequencer:  annSensus.VerifySequencer,
@@ -335,7 +336,6 @@ func NewNode() *Node {
 
 	var p2pServer *p2p.Server
 	if viper.GetBool("p2p.enabled") {
-		// TODO: Merge private key loading. All keys should be stored at just one place.
 		privKey := getNodePrivKey()
 		p2pServer = NewP2PServer(privKey)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
@@ -379,7 +379,9 @@ func NewNode() *Node {
 	m.ConsensusDkgDealHandler = annSensus
 	m.ConsensusDkgDealResponseHandler = annSensus
 	m.ConsensusDkgSigSetsHandler = annSensus
-
+	m.ConsensusProposalHandler = annSensus
+	m.ConsensusPreCommitHandler = annSensus
+	m.ConsensusPreVoteHandler = annSensus
 	annSensus.Hub = hub
 
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
@@ -451,6 +453,9 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
+	hub.CallbackRegistry[og.MessageTypeProposal] = m.RouteConsensusProposal
+	hub.CallbackRegistry[og.MessageTypePreVote] = m.RouteConsensusPreVote
+	hub.CallbackRegistry[og.MessageTypePreCommit] = m.RouteConsensusPreCommit
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {

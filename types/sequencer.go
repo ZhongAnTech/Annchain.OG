@@ -29,11 +29,19 @@ import (
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
-	Issuer Address
+	Issuer        Address
+	BlsJointSig   []byte
+	BlsJoinPubKey []byte
 }
 
 func (t *Sequencer) String() string {
 	return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+}
+
+//msgp:tuple BlsSigSet
+type BlsSigSet struct {
+	PublicKey    []byte
+	BlsSignature []byte
 }
 
 //msgp:tuple Sequencers
@@ -70,6 +78,7 @@ func RandomSequencer() *Sequencer {
 func (t *Sequencer) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.BlsJoinPubKey))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
@@ -127,7 +136,9 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		return nil
 	}
 	return &RawSequencer{
-		TxBase: s.TxBase,
+		TxBase:        s.TxBase,
+		BlsJointSig:   s.BlsJointSig,
+		BlsJoinPubKey: s.BlsJoinPubKey,
 	}
 }
 

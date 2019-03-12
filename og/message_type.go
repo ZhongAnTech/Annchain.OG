@@ -532,9 +532,9 @@ func (p *p2PMessage) Unmarshal() error {
 	case MessageTypeProposal:
 		p.message = &types.MessageProposal{}
 	case MessageTypePreVote:
-		p.message = &types.MessageCommonVote{}
+		p.message = &types.MessagePreVote{}
 	case MessageTypePreCommit:
-		p.message = &types.MessageCommonVote{}
+		p.message = &types.MessagePreCommit{}
 
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)

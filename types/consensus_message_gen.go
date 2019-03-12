@@ -17,7 +17,7 @@ func (z *BasicMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.SourceId, err = dc.ReadInt()
+	z.SourceId, err = dc.ReadUint16()
 	if err != nil {
 		return
 	}
@@ -30,7 +30,7 @@ func (z *BasicMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
 		return
 	}
-	z.HeightRound.Height, err = dc.ReadInt()
+	z.HeightRound.Height, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -48,7 +48,7 @@ func (z *BasicMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.SourceId)
+	err = en.WriteUint16(z.SourceId)
 	if err != nil {
 		return
 	}
@@ -57,7 +57,7 @@ func (z *BasicMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.HeightRound.Height)
+	err = en.WriteUint64(z.HeightRound.Height)
 	if err != nil {
 		return
 	}
@@ -73,10 +73,10 @@ func (z *BasicMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.SourceId)
+	o = msgp.AppendUint16(o, z.SourceId)
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.HeightRound.Height)
+	o = msgp.AppendUint64(o, z.HeightRound.Height)
 	o = msgp.AppendInt(o, z.HeightRound.Round)
 	return
 }
@@ -92,7 +92,7 @@ func (z *BasicMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.SourceId, bts, err = msgp.ReadIntBytes(bts)
+	z.SourceId, bts, err = msgp.ReadUint16Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -105,7 +105,7 @@ func (z *BasicMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
 		return
 	}
-	z.HeightRound.Height, bts, err = msgp.ReadIntBytes(bts)
+	z.HeightRound.Height, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -119,7 +119,7 @@ func (z *BasicMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *BasicMessage) Msgsize() (s int) {
-	s = 1 + msgp.IntSize + 1 + msgp.IntSize + msgp.IntSize
+	s = 1 + msgp.Uint16Size + 1 + msgp.Uint64Size + msgp.IntSize
 	return
 }
 
@@ -134,7 +134,7 @@ func (z *HeightRound) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Height, err = dc.ReadInt()
+	z.Height, err = dc.ReadUint64()
 	if err != nil {
 		return
 	}
@@ -152,7 +152,7 @@ func (z HeightRound) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Height)
+	err = en.WriteUint64(z.Height)
 	if err != nil {
 		return
 	}
@@ -168,7 +168,7 @@ func (z HeightRound) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.Height)
+	o = msgp.AppendUint64(o, z.Height)
 	o = msgp.AppendInt(o, z.Round)
 	return
 }
@@ -184,7 +184,7 @@ func (z *HeightRound) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Height, bts, err = msgp.ReadIntBytes(bts)
+	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
 		return
 	}
@@ -198,75 +198,108 @@ func (z *HeightRound) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z HeightRound) Msgsize() (s int) {
-	s = 1 + msgp.IntSize + msgp.IntSize
+	s = 1 + msgp.Uint64Size + msgp.IntSize
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *MessageCommonVote) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *MessagePreCommit) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
+	zb0001, err = dc.ReadMapHeader()
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
-		return
-	}
-	var zb0002 uint32
-	zb0002, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.BasicMessage.SourceId, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.BasicMessage.HeightRound.Height, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	z.BasicMessage.HeightRound.Round, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	err = z.Idv.DecodeMsg(dc)
-	if err != nil {
-		return
-	}
-	z.Signature, err = dc.ReadBytes(z.Signature)
-	if err != nil {
-		return
-	}
-	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
-	if err != nil {
-		return
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "BasicMessage":
+			var zb0002 uint32
+			zb0002, err = dc.ReadArrayHeader()
+			if err != nil {
+				return
+			}
+			if zb0002 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+				return
+			}
+			z.BasicMessage.SourceId, err = dc.ReadUint16()
+			if err != nil {
+				return
+			}
+			var zb0003 uint32
+			zb0003, err = dc.ReadArrayHeader()
+			if err != nil {
+				return
+			}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			z.BasicMessage.HeightRound.Height, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+			z.BasicMessage.HeightRound.Round, err = dc.ReadInt()
+			if err != nil {
+				return
+			}
+		case "Idv":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					return
+				}
+				z.Idv = nil
+			} else {
+				if z.Idv == nil {
+					z.Idv = new(Hash)
+				}
+				err = z.Idv.DecodeMsg(dc)
+				if err != nil {
+					return
+				}
+			}
+		case "BlsSignature":
+			z.BlsSignature, err = dc.ReadBytes(z.BlsSignature)
+			if err != nil {
+				return
+			}
+		case "Signature":
+			z.Signature, err = dc.ReadBytes(z.Signature)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *MessageCommonVote) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
+func (z *MessagePreCommit) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 5
+	// write "BasicMessage"
 	// array header, size 2
-	err = en.Append(0x94, 0x92)
+	err = en.Append(0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x92)
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.BasicMessage.SourceId)
+	err = en.WriteUint16(z.BasicMessage.SourceId)
 	if err != nil {
 		return
 	}
@@ -275,7 +308,7 @@ func (z *MessageCommonVote) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.BasicMessage.HeightRound.Height)
+	err = en.WriteUint64(z.BasicMessage.HeightRound.Height)
 	if err != nil {
 		return
 	}
@@ -283,11 +316,42 @@ func (z *MessageCommonVote) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Idv.EncodeMsg(en)
+	// write "Idv"
+	err = en.Append(0xa3, 0x49, 0x64, 0x76)
+	if err != nil {
+		return
+	}
+	if z.Idv == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Idv.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	// write "BlsSignature"
+	err = en.Append(0xac, 0x42, 0x6c, 0x73, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.BlsSignature)
+	if err != nil {
+		return
+	}
+	// write "Signature"
+	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteBytes(z.Signature)
+	if err != nil {
+		return
+	}
+	// write "PublicKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	if err != nil {
 		return
 	}
@@ -299,85 +363,342 @@ func (z *MessageCommonVote) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *MessageCommonVote) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *MessagePreCommit) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
+	// map header, size 5
+	// string "BasicMessage"
 	// array header, size 2
-	o = append(o, 0x94, 0x92)
-	o = msgp.AppendInt(o, z.BasicMessage.SourceId)
+	o = append(o, 0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x92)
+	o = msgp.AppendUint16(o, z.BasicMessage.SourceId)
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.BasicMessage.HeightRound.Height)
+	o = msgp.AppendUint64(o, z.BasicMessage.HeightRound.Height)
 	o = msgp.AppendInt(o, z.BasicMessage.HeightRound.Round)
-	o, err = z.Idv.MarshalMsg(o)
-	if err != nil {
-		return
+	// string "Idv"
+	o = append(o, 0xa3, 0x49, 0x64, 0x76)
+	if z.Idv == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Idv.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
+	// string "BlsSignature"
+	o = append(o, 0xac, 0x42, 0x6c, 0x73, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.BlsSignature)
+	// string "Signature"
+	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	o = msgp.AppendBytes(o, z.Signature)
+	// string "PublicKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	o = msgp.AppendBytes(o, z.PublicKey)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *MessageCommonVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *MessagePreCommit) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
-		return
-	}
-	var zb0002 uint32
-	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.BasicMessage.SourceId, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.BasicMessage.HeightRound.Height, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	z.BasicMessage.HeightRound.Round, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.Idv.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
-	if err != nil {
-		return
-	}
-	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
-	if err != nil {
-		return
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "BasicMessage":
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			if zb0002 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+				return
+			}
+			z.BasicMessage.SourceId, bts, err = msgp.ReadUint16Bytes(bts)
+			if err != nil {
+				return
+			}
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			z.BasicMessage.HeightRound.Height, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+			z.BasicMessage.HeightRound.Round, bts, err = msgp.ReadIntBytes(bts)
+			if err != nil {
+				return
+			}
+		case "Idv":
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.Idv = nil
+			} else {
+				if z.Idv == nil {
+					z.Idv = new(Hash)
+				}
+				bts, err = z.Idv.UnmarshalMsg(bts)
+				if err != nil {
+					return
+				}
+			}
+		case "BlsSignature":
+			z.BlsSignature, bts, err = msgp.ReadBytesBytes(bts, z.BlsSignature)
+			if err != nil {
+				return
+			}
+		case "Signature":
+			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
 	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *MessageCommonVote) Msgsize() (s int) {
-	s = 1 + 1 + msgp.IntSize + 1 + msgp.IntSize + msgp.IntSize + z.Idv.Msgsize() + msgp.BytesPrefixSize + len(z.Signature) + msgp.BytesPrefixSize + len(z.PublicKey)
+func (z *MessagePreCommit) Msgsize() (s int) {
+	s = 1 + 13 + 1 + msgp.Uint16Size + 1 + msgp.Uint64Size + msgp.IntSize + 4
+	if z.Idv == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Idv.Msgsize()
+	}
+	s += 13 + msgp.BytesPrefixSize + len(z.BlsSignature) + 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.BytesPrefixSize + len(z.PublicKey)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *MessagePreVote) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "BasicMessage":
+			err = z.BasicMessage.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "Idv":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					return
+				}
+				z.Idv = nil
+			} else {
+				if z.Idv == nil {
+					z.Idv = new(Hash)
+				}
+				err = z.Idv.DecodeMsg(dc)
+				if err != nil {
+					return
+				}
+			}
+		case "Signature":
+			z.Signature, err = dc.ReadBytes(z.Signature)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 4
+	// write "BasicMessage"
+	err = en.Append(0x84, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	if err != nil {
+		return
+	}
+	err = z.BasicMessage.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "Idv"
+	err = en.Append(0xa3, 0x49, 0x64, 0x76)
+	if err != nil {
+		return
+	}
+	if z.Idv == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Idv.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	// write "Signature"
+	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Signature)
+	if err != nil {
+		return
+	}
+	// write "PublicKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessagePreVote) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 4
+	// string "BasicMessage"
+	o = append(o, 0x84, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	o, err = z.BasicMessage.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "Idv"
+	o = append(o, 0xa3, 0x49, 0x64, 0x76)
+	if z.Idv == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Idv.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	// string "Signature"
+	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Signature)
+	// string "PublicKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.PublicKey)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessagePreVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "BasicMessage":
+			bts, err = z.BasicMessage.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "Idv":
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.Idv = nil
+			} else {
+				if z.Idv == nil {
+					z.Idv = new(Hash)
+				}
+				bts, err = z.Idv.UnmarshalMsg(bts)
+				if err != nil {
+					return
+				}
+			}
+		case "Signature":
+			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessagePreVote) Msgsize() (s int) {
+	s = 1 + 13 + z.BasicMessage.Msgsize() + 4
+	if z.Idv == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Idv.Msgsize()
+	}
+	s += 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.BytesPrefixSize + len(z.PublicKey)
 	return
 }
 
@@ -388,37 +709,11 @@ func (z *MessageProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	var zb0002 uint32
-	zb0002, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.BasicMessage.SourceId, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.BasicMessage.HeightRound.Height, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	z.BasicMessage.HeightRound.Round, err = dc.ReadInt()
+	err = z.BasicMessage.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -427,10 +722,6 @@ func (z *MessageProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	z.ValidRound, err = dc.ReadInt()
-	if err != nil {
-		return
-	}
-	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
 	if err != nil {
 		return
 	}
@@ -443,26 +734,12 @@ func (z *MessageProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageProposal) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 5
-	// array header, size 2
-	err = en.Append(0x95, 0x92)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.BasicMessage.SourceId)
-	if err != nil {
-		return
-	}
-	// array header, size 2
-	err = en.Append(0x92)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.BasicMessage.HeightRound.Height)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.BasicMessage.HeightRound.Round)
+	err = z.BasicMessage.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -471,10 +748,6 @@ func (z *MessageProposal) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	err = en.WriteInt(z.ValidRound)
-	if err != nil {
-		return
-	}
-	err = en.WriteBytes(z.PublicKey)
 	if err != nil {
 		return
 	}
@@ -488,20 +761,17 @@ func (z *MessageProposal) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageProposal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	// array header, size 2
-	o = append(o, 0x95, 0x92)
-	o = msgp.AppendInt(o, z.BasicMessage.SourceId)
-	// array header, size 2
-	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.BasicMessage.HeightRound.Height)
-	o = msgp.AppendInt(o, z.BasicMessage.HeightRound.Round)
+	// array header, size 4
+	o = append(o, 0x94)
+	o, err = z.BasicMessage.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	o, err = z.Value.MarshalMsg(o)
 	if err != nil {
 		return
 	}
 	o = msgp.AppendInt(o, z.ValidRound)
-	o = msgp.AppendBytes(o, z.PublicKey)
 	o = msgp.AppendBytes(o, z.Signature)
 	return
 }
@@ -513,37 +783,11 @@ func (z *MessageProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	var zb0002 uint32
-	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.BasicMessage.SourceId, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.BasicMessage.HeightRound.Height, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	z.BasicMessage.HeightRound.Round, bts, err = msgp.ReadIntBytes(bts)
+	bts, err = z.BasicMessage.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -552,10 +796,6 @@ func (z *MessageProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	z.ValidRound, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		return
-	}
-	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
 	if err != nil {
 		return
 	}
@@ -569,7 +809,7 @@ func (z *MessageProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageProposal) Msgsize() (s int) {
-	s = 1 + 1 + msgp.IntSize + 1 + msgp.IntSize + msgp.IntSize + z.Value.Msgsize() + msgp.IntSize + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature)
+	s = 1 + z.BasicMessage.Msgsize() + z.Value.Msgsize() + msgp.IntSize + msgp.BytesPrefixSize + len(z.Signature)
 	return
 }
 
@@ -589,13 +829,8 @@ func (z *SequencerProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "RawSequencer":
-			err = z.RawSequencer.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "BlsSignature":
-			z.BlsSignature, err = dc.ReadBytes(z.BlsSignature)
+		case "Sequencer":
+			err = z.Sequencer.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -611,22 +846,13 @@ func (z *SequencerProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *SequencerProposal) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "RawSequencer"
-	err = en.Append(0x82, 0xac, 0x52, 0x61, 0x77, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	// map header, size 1
+	// write "Sequencer"
+	err = en.Append(0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
 	if err != nil {
 		return
 	}
-	err = z.RawSequencer.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "BlsSignature"
-	err = en.Append(0xac, 0x42, 0x6c, 0x73, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	if err != nil {
-		return
-	}
-	err = en.WriteBytes(z.BlsSignature)
+	err = z.Sequencer.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -636,16 +862,13 @@ func (z *SequencerProposal) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *SequencerProposal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "RawSequencer"
-	o = append(o, 0x82, 0xac, 0x52, 0x61, 0x77, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
-	o, err = z.RawSequencer.MarshalMsg(o)
+	// map header, size 1
+	// string "Sequencer"
+	o = append(o, 0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	o, err = z.Sequencer.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "BlsSignature"
-	o = append(o, 0xac, 0x42, 0x6c, 0x73, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.BlsSignature)
 	return
 }
 
@@ -665,13 +888,8 @@ func (z *SequencerProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "RawSequencer":
-			bts, err = z.RawSequencer.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "BlsSignature":
-			z.BlsSignature, bts, err = msgp.ReadBytesBytes(bts, z.BlsSignature)
+		case "Sequencer":
+			bts, err = z.Sequencer.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -688,7 +906,7 @@ func (z *SequencerProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *SequencerProposal) Msgsize() (s int) {
-	s = 1 + 13 + z.RawSequencer.Msgsize() + 13 + msgp.BytesPrefixSize + len(z.BlsSignature)
+	s = 1 + 10 + z.Sequencer.Msgsize()
 	return
 }
 

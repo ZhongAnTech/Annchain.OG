@@ -415,7 +415,7 @@ func (m *MessageTermChange) String() string {
 type MessageConsensusDkgSigSets struct {
 	PkBls     []byte
 	PublicKey []byte
-	Sinature  []byte
+	Signature []byte
 }
 
 //msgp:tuple MessageConsensusDkgDeal
@@ -423,7 +423,7 @@ type MessageConsensusDkgDeal struct {
 	Id        uint32
 	Data      []byte
 	PublicKey []byte
-	Sinature  []byte
+	Signature []byte
 }
 
 func (m *MessageConsensusDkgSigSets) SignatureTargets() []byte {
@@ -458,7 +458,7 @@ type MessageConsensusDkgDealResponse struct {
 	Id        uint32
 	Data      []byte
 	PublicKey []byte
-	Sinature  []byte
+	Signature []byte
 }
 
 func (m MessageConsensusDkgDealResponse) String() string {

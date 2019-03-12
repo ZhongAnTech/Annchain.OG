@@ -235,8 +235,8 @@ func BenchmarkDecodeHeightRound(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageCommonVote(t *testing.T) {
-	v := MessageCommonVote{}
+func TestMarshalUnmarshalMessagePreCommit(t *testing.T) {
+	v := MessagePreCommit{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -258,8 +258,8 @@ func TestMarshalUnmarshalMessageCommonVote(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageCommonVote(b *testing.B) {
-	v := MessageCommonVote{}
+func BenchmarkMarshalMsgMessagePreCommit(b *testing.B) {
+	v := MessagePreCommit{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -267,8 +267,8 @@ func BenchmarkMarshalMsgMessageCommonVote(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageCommonVote(b *testing.B) {
-	v := MessageCommonVote{}
+func BenchmarkAppendMsgMessagePreCommit(b *testing.B) {
+	v := MessagePreCommit{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -279,8 +279,8 @@ func BenchmarkAppendMsgMessageCommonVote(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageCommonVote(b *testing.B) {
-	v := MessageCommonVote{}
+func BenchmarkUnmarshalMessagePreCommit(b *testing.B) {
+	v := MessagePreCommit{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -293,8 +293,8 @@ func BenchmarkUnmarshalMessageCommonVote(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageCommonVote(t *testing.T) {
-	v := MessageCommonVote{}
+func TestEncodeDecodeMessagePreCommit(t *testing.T) {
+	v := MessagePreCommit{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -303,7 +303,7 @@ func TestEncodeDecodeMessageCommonVote(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := MessageCommonVote{}
+	vn := MessagePreCommit{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -317,8 +317,8 @@ func TestEncodeDecodeMessageCommonVote(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageCommonVote(b *testing.B) {
-	v := MessageCommonVote{}
+func BenchmarkEncodeMessagePreCommit(b *testing.B) {
+	v := MessagePreCommit{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -331,8 +331,121 @@ func BenchmarkEncodeMessageCommonVote(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageCommonVote(b *testing.B) {
-	v := MessageCommonVote{}
+func BenchmarkDecodeMessagePreCommit(b *testing.B) {
+	v := MessagePreCommit{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+	dc := msgp.NewReader(rd)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := v.DecodeMsg(dc)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestMarshalUnmarshalMessagePreVote(t *testing.T) {
+	v := MessagePreVote{}
+	bts, err := v.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := v.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
+	left, err = msgp.Skip(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+	}
+}
+
+func BenchmarkMarshalMsgMessagePreVote(b *testing.B) {
+	v := MessagePreVote{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.MarshalMsg(nil)
+	}
+}
+
+func BenchmarkAppendMsgMessagePreVote(b *testing.B) {
+	v := MessagePreVote{}
+	bts := make([]byte, 0, v.Msgsize())
+	bts, _ = v.MarshalMsg(bts[0:0])
+	b.SetBytes(int64(len(bts)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bts, _ = v.MarshalMsg(bts[0:0])
+	}
+}
+
+func BenchmarkUnmarshalMessagePreVote(b *testing.B) {
+	v := MessagePreVote{}
+	bts, _ := v.MarshalMsg(nil)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bts)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := v.UnmarshalMsg(bts)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestEncodeDecodeMessagePreVote(t *testing.T) {
+	v := MessagePreVote{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+
+	m := v.Msgsize()
+	if buf.Len() > m {
+		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+	}
+
+	vn := MessagePreVote{}
+	err := msgp.Decode(&buf, &vn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf.Reset()
+	msgp.Encode(&buf, &v)
+	err = msgp.NewReader(&buf).Skip()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkEncodeMessagePreVote(b *testing.B) {
+	v := MessagePreVote{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	en := msgp.NewWriter(msgp.Nowhere)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.EncodeMsg(en)
+	}
+	en.Flush()
+}
+
+func BenchmarkDecodeMessagePreVote(b *testing.B) {
+	v := MessagePreVote{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

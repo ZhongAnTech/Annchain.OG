@@ -12,33 +12,3 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package annsensus
-
-import (
-	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/hexutil"
-	"testing"
-	"time"
-)
-
-func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(1, true, 5, 4, time.Second,
-		nil, nil, nil,nil)
-	pk := as.dkg.pk
-	fmt.Println(hexutil.Encode(pk))
-	point, err := bn256.UnmarshalBinaryPointG2(pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(point)
-}
-
-
-func TestNewDKGPartner(t *testing.T) {
-	var ann AnnSensus
-	for i:=0;i<4;i++ {
-		d:= newDkg(&ann,true,4,4,)
-		fmt.Println(hexutil.Encode(d.pk))
-	}
-
-}

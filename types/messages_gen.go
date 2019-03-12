@@ -740,7 +740,7 @@ func (z *MessageConsensusDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.Sinature, err = dc.ReadBytes(z.Sinature)
+	z.Signature, err = dc.ReadBytes(z.Signature)
 	if err != nil {
 		return
 	}
@@ -766,7 +766,7 @@ func (z *MessageConsensusDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Sinature)
+	err = en.WriteBytes(z.Signature)
 	if err != nil {
 		return
 	}
@@ -781,7 +781,7 @@ func (z *MessageConsensusDkgDeal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendUint32(o, z.Id)
 	o = msgp.AppendBytes(o, z.Data)
 	o = msgp.AppendBytes(o, z.PublicKey)
-	o = msgp.AppendBytes(o, z.Sinature)
+	o = msgp.AppendBytes(o, z.Signature)
 	return
 }
 
@@ -808,7 +808,7 @@ func (z *MessageConsensusDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error)
 	if err != nil {
 		return
 	}
-	z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
 	if err != nil {
 		return
 	}
@@ -818,7 +818,7 @@ func (z *MessageConsensusDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error)
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageConsensusDkgDeal) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Sinature)
+	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature)
 	return
 }
 
@@ -845,7 +845,7 @@ func (z *MessageConsensusDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error)
 	if err != nil {
 		return
 	}
-	z.Sinature, err = dc.ReadBytes(z.Sinature)
+	z.Signature, err = dc.ReadBytes(z.Signature)
 	if err != nil {
 		return
 	}
@@ -871,7 +871,7 @@ func (z *MessageConsensusDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Sinature)
+	err = en.WriteBytes(z.Signature)
 	if err != nil {
 		return
 	}
@@ -886,7 +886,7 @@ func (z *MessageConsensusDkgDealResponse) MarshalMsg(b []byte) (o []byte, err er
 	o = msgp.AppendUint32(o, z.Id)
 	o = msgp.AppendBytes(o, z.Data)
 	o = msgp.AppendBytes(o, z.PublicKey)
-	o = msgp.AppendBytes(o, z.Sinature)
+	o = msgp.AppendBytes(o, z.Signature)
 	return
 }
 
@@ -913,7 +913,7 @@ func (z *MessageConsensusDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, er
 	if err != nil {
 		return
 	}
-	z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
 	if err != nil {
 		return
 	}
@@ -923,7 +923,7 @@ func (z *MessageConsensusDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, er
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageConsensusDkgDealResponse) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Sinature)
+	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature)
 	return
 }
 
@@ -953,8 +953,8 @@ func (z *MessageConsensusDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "Sinature":
-			z.Sinature, err = dc.ReadBytes(z.Sinature)
+		case "Signature":
+			z.Signature, err = dc.ReadBytes(z.Signature)
 			if err != nil {
 				return
 			}
@@ -989,12 +989,12 @@ func (z *MessageConsensusDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Sinature"
-	err = en.Append(0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	// write "Signature"
+	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Sinature)
+	err = en.WriteBytes(z.Signature)
 	if err != nil {
 		return
 	}
@@ -1011,9 +1011,9 @@ func (z *MessageConsensusDkgSigSets) MarshalMsg(b []byte) (o []byte, err error) 
 	// string "PublicKey"
 	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	o = msgp.AppendBytes(o, z.PublicKey)
-	// string "Sinature"
-	o = append(o, 0xa8, 0x53, 0x69, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.Sinature)
+	// string "Signature"
+	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Signature)
 	return
 }
 
@@ -1043,8 +1043,8 @@ func (z *MessageConsensusDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err err
 			if err != nil {
 				return
 			}
-		case "Sinature":
-			z.Sinature, bts, err = msgp.ReadBytesBytes(bts, z.Sinature)
+		case "Signature":
+			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
 			if err != nil {
 				return
 			}
@@ -1061,7 +1061,7 @@ func (z *MessageConsensusDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err err
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageConsensusDkgSigSets) Msgsize() (s int) {
-	s = 1 + 6 + msgp.BytesPrefixSize + len(z.PkBls) + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 9 + msgp.BytesPrefixSize + len(z.Sinature)
+	s = 1 + 6 + msgp.BytesPrefixSize + len(z.PkBls) + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 10 + msgp.BytesPrefixSize + len(z.Signature)
 	return
 }
 

@@ -51,6 +51,15 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 
 // consensus related verification
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
+	if senator := a.term.GetSenater(seq.Issuer); senator != nil {
+		log.Warn("not found senator for address")
+		return false
+	}
+	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJoinPubKey)
+	if !ok {
+		return false
+	}
+	//TODO more consensus verifications
 	return true
 }
 

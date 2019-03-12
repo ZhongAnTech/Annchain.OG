@@ -1,7 +1,21 @@
+// Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package annsensus
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -15,12 +29,13 @@ import (
 //PBFT is og sequencer consensus system based on PBFT consensus
 type PBFT struct {
 	BFTPartner       *OGBFTPartner
-	startProposeChan chan bool
+	startBftChan chan bool
+	stopBft    chan bool
 	resetChan        chan bool
 	mu               sync.RWMutex
 	quit             chan bool
 	ann              *AnnSensus
-	c                *og.TxCreator
+	creator                *og.TxCreator
 	JudgeNonce       func(account *account.SampleAccount) uint64
 	decisionCh       chan *HeightRoundState
 	Verifiers        []og.Verifier
@@ -32,6 +47,17 @@ type OGBFTPartner struct {
 	Address   types.Address
 }
 
+
+func NewOgBftPeer(pk crypto.PublicKey,nbParticipants, Id int ,  sequencerTime time.Duration)*OGBFTPartner{
+	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
+	bft := &OGBFTPartner{
+		BFTPartner: p,
+		PublicKey:pk,
+		Address: pk.Address(),
+	}
+	return bft
+}
+
 func NewPBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonce func(me *account.SampleAccount) uint64,
 	txcreator *og.TxCreator, Verifiers []og.Verifier) *PBFT {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
@@ -41,10 +67,10 @@ func NewPBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonce
 	om := &PBFT{
 		BFTPartner:       bft,
 		quit:             make(chan bool),
-		startProposeChan: make(chan bool),
+		startBftChan: make(chan bool),
 		resetChan:        make(chan bool),
 		decisionCh:       make(chan *HeightRoundState),
-		c:                txcreator,
+		creator:                txcreator,
 	}
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
 	om.JudgeNonce = judgeNonce
@@ -102,7 +128,7 @@ func (t *PBFT) loop() {
 		select {
 		case <-t.quit:
 			log.Info("got quit signal, PBFT loop")
-		case <-t.startProposeChan:
+		case <-t.startBftChan:
 			go t.BFTPartner.StartNewEra(0, 0)
 
 		case msg := <-t.BFTPartner.GetOutgoingMessageChannel():
@@ -160,6 +186,9 @@ func (t *PBFT) loop() {
 				continue
 			}
 			t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
+
+			case <-t.resetChan:
+
 		}
 
 	}
@@ -168,7 +197,7 @@ func (t *PBFT) loop() {
 func (t *PBFT) ProduceProposal() types.Proposal {
 	me := t.ann.MyAccount
 	nonce := t.JudgeNonce(me)
-	seq := t.c.GenerateSequencer(me.Address, t.ann.Idag.LatestSequencer().Height, nonce, &me.PrivateKey)
+	seq := t.creator.GenerateSequencer(me.Address, t.ann.Idag.LatestSequencer().Height, nonce, &me.PrivateKey)
 	if seq == nil {
 		logrus.Warn("gen sequencer failed")
 		panic("gen sequencer failed")
@@ -221,3 +250,13 @@ func (t *PBFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bo
 //func (t*PBFT)VerifyPreCommit(msg *types.MessagePreCommit ) bool{
 // return true
 //}
+
+
+//calculate seed
+func CalculateRandomSeed(jointSig []byte) []byte {
+	//TODO
+	h := sha256.New()
+	h.Write(jointSig)
+    seed := h.Sum(nil)
+    return seed
+}

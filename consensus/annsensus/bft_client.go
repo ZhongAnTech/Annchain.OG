@@ -286,9 +286,13 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
-	var idv *types.Hash
+	var idv types.Hash
 	if content != nil {
-		idv = content.GetId()
+		 cIdv := content.GetId()
+		 if cIdv!=nil {
+			 idv = *cIdv
+		 }
+
 	}
 	switch messageType {
 	case og.MessageTypeProposal:
@@ -300,12 +304,12 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 	case og.MessageTypePreVote:
 		m.Payload = &types.MessagePreVote{
 			BasicMessage: basicMessage,
-			Idv:          idv,
+			Idv:          &idv,
 		}
 	case og.MessageTypePreCommit:
 		m.Payload = &types.MessagePreCommit{
 			BasicMessage: basicMessage,
-			Idv:          idv,
+			Idv:          &idv,
 		}
 	}
 	p.OutgoingMessageChannel <- m
@@ -420,6 +424,12 @@ func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
 		panic("must exists")
 	}
 	state.MessageProposal = proposal
+	//if this is proposed by me , send precommit
+	if proposal.SourceId == uint16(p.Id)  {
+		p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+		p.changeStep(StepTypePreVote)
+		return
+	}
 	// rule line 22
 	if state.Step == StepTypePropose {
 		if p.valid(proposal.Value) && (state.LockedRound == -1 || state.LockedValue.Equal(proposal.Value)) {

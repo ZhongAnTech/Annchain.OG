@@ -180,6 +180,24 @@ func (d *Dkg) CheckAddress(addr types.Address) bool {
 	return ok
 }
 
+func (d *Dkg) SendGenesisPublicKey() {
+	for i := 0; i < len(d.ann.genesisAccounts); i++ {
+		msg := &types.MessageConsensusDkgGenesisPublicKey{
+			DkgPublicKey: d.pk,
+			PublicKey:    d.ann.MyAccount.PublicKey.Bytes,
+		}
+		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+		if i == d.ann.id {
+			log.Tracef("escape me %d ", d.ann.id)
+			//myself
+			d.ann.genesisPkChan <- msg
+			continue
+		}
+		d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgGenesisPublicKey, msg, &d.ann.genesisAccounts[i])
+		log.WithField("msg ", msg).WithField("peer ", i).Debug("send pk to ")
+	}
+}
+
 func (d *Dkg) getUnhandled() ([]*types.MessageConsensusDkgDeal, []*types.MessageConsensusDkgDealResponse) {
 	var unhandledDeal []*types.MessageConsensusDkgDeal
 	var unhandledResponse []*types.MessageConsensusDkgDealResponse
@@ -293,7 +311,7 @@ func (d *Dkg) gossiploop() {
 	for {
 		select {
 		case <-d.gossipStartCh:
-
+			log.Debug("gossip dkg started")
 			if !d.dkgOn {
 				//i am not a consensus partner
 				log.Warn("why send to me")
@@ -315,6 +333,7 @@ func (d *Dkg) gossiploop() {
 			//dkg is ready now, can process dkg msg
 			d.ready = true
 			d.mu.RUnlock()
+			log.Debug()
 			d.sendDealsToCorrespondingPartner(deals)
 			//process unhandled(cached) dkg msg
 			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
@@ -418,7 +437,6 @@ func (d *Dkg) gossiploop() {
 			log.WithField("response number", d.partner.responseNumber).Trace("dkg")
 			//will got  (n-1)*(n-1) response
 			if d.partner.responseNumber < (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
-
 				continue
 			}
 			log.Info("got response done")

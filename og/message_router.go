@@ -19,31 +19,32 @@ import (
 
 // MessageRouter is a bridge between hub and components
 type MessageRouter struct {
-	Hub                             *Hub
-	PingHandler                     PingHandler
-	PongHandler                     PongHandler
-	FetchByHashRequestHandler       FetchByHashHandlerRequest
-	FetchByHashResponseHandler      FetchByHashResponseHandler
-	NewTxHandler                    NewTxHandler
-	NewTxsHandler                   NewTxsHandler
-	NewSequencerHandler             NewSequencerHandler
-	GetMsgHandler                   GetMsgHandler
-	ControlMsgHandler               ControlMsgHandler
-	SequencerHeaderHandler          SequencerHeaderHandler
-	BodiesRequestHandler            BodiesRequestHandler
-	BodiesResponseHandler           BodiesResponseHandler
-	TxsRequestHandler               TxsRequestHandler
-	TxsResponseHandler              TxsResponseHandler
-	HeaderRequestHandler            HeaderRequestHandler
-	HeaderResponseHandler           HeaderResponseHandler
-	CampaignHandler                 CampaignHandler
-	TermChangeHandler               TermChangeHandler
-	ConsensusDkgDealHandler         ConsensusDkgDealHandler
-	ConsensusDkgDealResponseHandler ConsensusDkgDealResponseHandler
-	ConsensusDkgSigSetsHandler      ConsensusDkgSigSetsHandler
-	ConsensusProposalHandler        ConsensusProposalHandler
-	ConsensusPreVoteHandler         ConsensusPreVoteHandler
-	ConsensusPreCommitHandler       ConsensusPreCommitHandler
+	Hub                                 *Hub
+	PingHandler                         PingHandler
+	PongHandler                         PongHandler
+	FetchByHashRequestHandler           FetchByHashHandlerRequest
+	FetchByHashResponseHandler          FetchByHashResponseHandler
+	NewTxHandler                        NewTxHandler
+	NewTxsHandler                       NewTxsHandler
+	NewSequencerHandler                 NewSequencerHandler
+	GetMsgHandler                       GetMsgHandler
+	ControlMsgHandler                   ControlMsgHandler
+	SequencerHeaderHandler              SequencerHeaderHandler
+	BodiesRequestHandler                BodiesRequestHandler
+	BodiesResponseHandler               BodiesResponseHandler
+	TxsRequestHandler                   TxsRequestHandler
+	TxsResponseHandler                  TxsResponseHandler
+	HeaderRequestHandler                HeaderRequestHandler
+	HeaderResponseHandler               HeaderResponseHandler
+	CampaignHandler                     CampaignHandler
+	TermChangeHandler                   TermChangeHandler
+	ConsensusDkgDealHandler             ConsensusDkgDealHandler
+	ConsensusDkgDealResponseHandler     ConsensusDkgDealResponseHandler
+	ConsensusDkgSigSetsHandler          ConsensusDkgSigSetsHandler
+	ConsensusDkgGenesisPublicKeyHandler ConsensusDkgGenesisPublicKeyHandler
+	ConsensusProposalHandler            ConsensusProposalHandler
+	ConsensusPreVoteHandler             ConsensusPreVoteHandler
+	ConsensusPreCommitHandler           ConsensusPreCommitHandler
 }
 
 type ManagerConfig struct {
@@ -134,6 +135,9 @@ type ConsensusDkgSigSetsHandler interface {
 	HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string)
 }
 
+type ConsensusDkgGenesisPublicKeyHandler interface {
+	HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string)
+}
 type ConsensusPreVoteHandler interface {
 	HandleConsensusPreVote(request *types.MessagePreVote, peerId string)
 }
@@ -246,6 +250,10 @@ func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *p2PMessage) {
 
 func (m *MessageRouter) RouteConsensusDkgSigSets(msg *p2PMessage) {
 	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.message.(*types.MessageConsensusDkgSigSets), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *p2PMessage) {
+	m.ConsensusDkgGenesisPublicKeyHandler.HandleConsensusDkgGenesisPublicKey(msg.message.(*types.MessageConsensusDkgGenesisPublicKey), msg.sourceID)
 }
 
 func (m *MessageRouter) RouteConsensusProposal(msg *p2PMessage) {

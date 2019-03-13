@@ -38,7 +38,7 @@ func start(peers []Partner) {
 }
 
 func TestAllNonByzantine(t *testing.T) {
-	total := 22
+	total := 5
 	var peers []Partner
 	for i := 0; i < total; i++ {
 		peers = append(peers, NewPartner(total, i, BlockTime))

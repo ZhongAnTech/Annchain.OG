@@ -17,10 +17,32 @@ import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
+	"sync/atomic"
 
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
+
+func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string) {
+	log := log.WithField("me", a.id)
+	if request == nil {
+		log.Warn("got nil MessageConsensusDkgGenesisPublicKey")
+		return
+	}
+	if atomic.LoadUint32(&a.genesisBftIsRunning) == 0 {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("i am not participant in genesis bft")
+		return
+	}
+	log.WithField("dkg data", request).WithField("from peer ", peerId).Debug("got genesis pub key")
+	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+	s := crypto.NewSigner(pk.Type)
+	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+	if !ok {
+		log.Warn("verify signature failed")
+		return
+	}
+	a.genesisPkChan <- request
+}
 
 //HandleConsensusDkgDeal
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
@@ -135,7 +157,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 		return
 	}
 	if !a.pbft.verifyIsPartNer(pk, int(request.SourceId)) {
-		log.WithField("request ", request).Warn("verify signature failed")
+		log.WithField("request ", request).Warn("verify partner failed")
 		return
 	}
 

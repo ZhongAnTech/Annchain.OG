@@ -418,6 +418,21 @@ type MessageConsensusDkgSigSets struct {
 	Signature []byte
 }
 
+//msgp:MessageConsensusDkgGenesisPublicKey
+type MessageConsensusDkgGenesisPublicKey struct {
+	DkgPublicKey []byte
+	PublicKey    []byte
+	Signature    []byte
+}
+
+func (m *MessageConsensusDkgGenesisPublicKey) SignatureTargets() []byte {
+	return m.DkgPublicKey
+}
+
+func (m *MessageConsensusDkgGenesisPublicKey) String() string {
+	return fmt.Sprintf("kgGenesisPublicKey  len %d ", len(m.DkgPublicKey))
+}
+
 //msgp:tuple MessageConsensusDkgDeal
 type MessageConsensusDkgDeal struct {
 	Id        uint32

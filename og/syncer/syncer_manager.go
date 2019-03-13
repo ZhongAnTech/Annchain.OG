@@ -21,7 +21,7 @@ import (
 type SyncManagerConfig struct {
 	Mode           downloader.SyncMode
 	BootstrapNode  bool
-	ForceSyncCycle uint //millisecends
+	ForceSyncCycle uint //milliseconds
 }
 
 type SyncStatus int

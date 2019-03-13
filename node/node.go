@@ -31,7 +31,6 @@ import (
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 
-	"github.com/annchain/OG/consensus/dpos"
 	"github.com/annchain/OG/core"
 
 	miner2 "github.com/annchain/OG/og/miner"
@@ -270,11 +269,8 @@ func NewNode() *Node {
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+	genesisAccounts := parserGenesisAccounts(signer, viper.GetString("annsensus.genesis_pk"))
 
-	autoClientManager := &AutoClientManager{
-		SampleAccounts:         core.GetSampleAccounts(cryptoType),
-		NodeStatusDataProvider: org,
-	}
 	campaign := viper.GetBool("annsensus.campaign")
 	partnerNum := viper.GetInt("annsensus.partner_number")
 	threshold := viper.GetInt("annsensus.threshold")
@@ -282,14 +278,12 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 2500
 	}
-	genesisAccounts := parserGenesisAccounts(signer,viper.GetString("annsensus.genesis"))
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator, verifiers,genesisAccounts)
-	*consensusVerifier = og.ConsensusVerifier{
-		VerifyTermChange: annSensus.VerifyTermChange,
-		VerifySequencer:  annSensus.VerifySequencer,
-		VerifyCampaign:   annSensus.VerifyCampaign,
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts)
+	autoClientManager := &AutoClientManager{
+		SampleAccounts:         core.GetSampleAccounts(cryptoType),
+		NodeStatusDataProvider: org,
 	}
+
 	// TODO
 	// RegisterNewTxHandler is not for AnnSensus sending txs out.
 	// Not suitable to be used here.
@@ -301,28 +295,37 @@ func NewNode() *Node {
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
-	annSensus.MyAccount = autoClientManager.SampleAccounts[accountIds[0]+100]
+	myAccount := autoClientManager.SampleAccounts[accountIds[0]+100]
+
+	*consensusVerifier = og.ConsensusVerifier{
+		VerifyTermChange: annSensus.VerifyTermChange,
+		VerifySequencer:  annSensus.VerifySequencer,
+		VerifyCampaign:   annSensus.VerifyCampaign,
+	}
+
+	annSensus.InitBFt(myAccount, time.Millisecond*time.Duration(sequencerTime),
+		autoClientManager.JudgeNonce, txCreator, verifiers)
+	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
-	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
-	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
+	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener, annSensus.UpdateEvent)
+	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener, annSensus.NewPeerConnectedEventListener)
 	//init msg requst id
 	og.MsgCountInit()
-	switch viper.GetString("consensus") {
-	case "dpos":
-		//todo
-		consensus := dpos.NewDpos(org.Dag, &types.Address{})
-		n.Components = append(n.Components, consensus)
-	case "pos":
-		//todo
-	case "pow":
-		//todo
-	default:
-		panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
-	}
+	//switch viper.GetString("consensus") {
+	//case "dpos":
+	//	//todo
+	//	consensus := dpos.NewDpos(org.Dag, &types.Address{})
+	//	n.Components = append(n.Components, consensus)
+	//case "pos":
+	//	//todo
+	//case "pow":
+	//	//todo
+	//default:
+	//	panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
+	//}
 	//init msg requst id
-	og.MsgCountInit()
 
 	// DataLoader
 	dataLoader := &og.DataLoader{
@@ -382,6 +385,7 @@ func NewNode() *Node {
 	m.ConsensusProposalHandler = annSensus
 	m.ConsensusPreCommitHandler = annSensus
 	m.ConsensusPreVoteHandler = annSensus
+	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
 	annSensus.Hub = hub
 
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
@@ -453,6 +457,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
+	hub.CallbackRegistry[og.MessageTypeConsensusDkgGenesisPublicKey] = m.RouteConsensusDkgGenesisPublicKey
 	hub.CallbackRegistry[og.MessageTypeProposal] = m.RouteConsensusProposal
 	hub.CallbackRegistry[og.MessageTypePreVote] = m.RouteConsensusPreVote
 	hub.CallbackRegistry[og.MessageTypePreCommit] = m.RouteConsensusPreCommit

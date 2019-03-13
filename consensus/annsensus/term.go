@@ -175,9 +175,9 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 
 	formerSnts := t.senators
 	t.formerSentors[t.id] = formerSnts
-	
+
 	t.senators = snts
-	
+
 	// TODO
 	// 1. update id.
 	// 2. process alsorans.

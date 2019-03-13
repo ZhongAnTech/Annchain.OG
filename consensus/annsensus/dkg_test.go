@@ -198,8 +198,8 @@ func TestDKGMain(t *testing.T) {
 	}
 
 	for j := 0; j < 4; j++ {
-		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4, 4, time.Second,
-			nil, nil, nil,nil)
+		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4,
+			4, nil)
 		as.id = j
 		a := TestAnnSensus{
 			Id:        j,

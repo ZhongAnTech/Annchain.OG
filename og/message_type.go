@@ -84,6 +84,8 @@ const (
 	MessageTypeConsensusDkgDealResponse
 	MessageTypeConsensusDkgSigSets
 
+	MessageTypeConsensusDkgGenesisPublicKey
+
 	MessageTypeSecret //encrypted message
 
 	MessageTypeProposal
@@ -171,6 +173,9 @@ func (mt MessageType) String() string {
 
 	case MessageTypeConsensusDkgSigSets:
 		return "MessageTypeDkgSigSets"
+
+	case MessageTypeConsensusDkgGenesisPublicKey:
+		return "MessageTypeConsensusDkgGenesisPublicKey"
 
 	case MessageTypeSecret:
 		return "MessageTypeSecret"
@@ -529,8 +534,12 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = &types.MessageConsensusDkgDealResponse{}
 	case MessageTypeConsensusDkgSigSets:
 		p.message = &types.MessageConsensusDkgSigSets{}
+	case MessageTypeConsensusDkgGenesisPublicKey:
+		p.message = &types.MessageConsensusDkgGenesisPublicKey{}
 	case MessageTypeProposal:
-		p.message = &types.MessageProposal{}
+		p.message = &types.MessageProposal{
+			Value: &types.SequencerProposal{},
+		}
 	case MessageTypePreVote:
 		p.message = &types.MessagePreVote{}
 	case MessageTypePreCommit:

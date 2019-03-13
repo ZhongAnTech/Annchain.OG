@@ -128,7 +128,7 @@ func (m *MessagePreVote) SignatureTargets() []byte {
 		panicIfError(binary.Write(&buf, binary.BigEndian, m.Idv.Bytes))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Round))
+	panicIfError(binary.Write(&buf, binary.BigEndian, uint64(m.HeightRound.Round)))
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.SourceId))
 	return buf.Bytes()
 }
@@ -145,7 +145,7 @@ func (m *MessagePreCommit) BlsSignatureTargets() []byte {
 		panicIfError(binary.Write(&buf, binary.BigEndian, m.Idv.Bytes))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Round))
+	panicIfError(binary.Write(&buf, binary.BigEndian, uint64(m.HeightRound.Round)))
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.SourceId))
 	return buf.Bytes()
 }
@@ -156,8 +156,8 @@ func (m *MessageProposal) SignatureTargets() []byte {
 		panicIfError(binary.Write(&buf, binary.BigEndian, idv.Bytes))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Height))
-	panicIfError(binary.Write(&buf, binary.BigEndian, m.HeightRound.Round))
-	panicIfError(binary.Write(&buf, binary.BigEndian, m.ValidRound))
+	panicIfError(binary.Write(&buf, binary.BigEndian, uint64(m.HeightRound.Round)))
+	panicIfError(binary.Write(&buf, binary.BigEndian, uint64(m.ValidRound)))
 	panicIfError(binary.Write(&buf, binary.BigEndian, m.SourceId))
 	return buf.Bytes()
 }

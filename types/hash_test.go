@@ -23,6 +23,7 @@ func TestHash(t *testing.T) {
 	var emHash Hash
 	var nHash Hash
 	nHash = HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
+	mHash := HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
 	if !emHash.Empty() {
 		t.Fatalf("fail")
 	}
@@ -31,4 +32,12 @@ func TestHash(t *testing.T) {
 	}
 	hashes := Hashes{nHash, emHash}
 	fmt.Println(hashes.String())
+	pHash := &nHash
+	p2hash := &mHash
+	if nHash != mHash {
+		t.Fatal("should equal")
+	}
+	if pHash == p2hash {
+		t.Fatal("should not  equal")
+	}
 }

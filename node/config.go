@@ -161,17 +161,15 @@ func parserV5Nodes(nodeString string) []*discv5.Node {
 	return nodes
 }
 
-
-func parserGenesisAccounts (signer crypto.Signer, pubkeys string)  []crypto.PublicKey {
-    pubkeyList  := strings.Split(pubkeys, ";")
-    var account []crypto.PublicKey
-    for _, pubKeyStr:= range pubkeyList {
-		pubKey,err := crypto.PublicKeyFromString(pubKeyStr)
-		if err!=nil {
+func parserGenesisAccounts(signer crypto.Signer, pubkeys string) []crypto.PublicKey {
+	pubkeyList := strings.Split(pubkeys, ";")
+	var account []crypto.PublicKey
+	for _, pubKeyStr := range pubkeyList {
+		pubKey, err := crypto.PublicKeyFromString(pubKeyStr)
+		if err != nil {
 			panic(err)
 		}
-		account = append(account,pubKey)
+		account = append(account, pubKey)
 	}
-   return  account
+	return account
 }
-

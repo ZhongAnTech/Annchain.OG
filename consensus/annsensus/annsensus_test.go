@@ -18,12 +18,11 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/hexutil"
 	"testing"
-	"time"
 )
 
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(1, true, 5, 4, time.Second,
-		nil, nil, nil,nil)
+	var as = NewAnnSensus(1, true, 5, 4,
+		nil)
 	pk := as.dkg.pk
 	fmt.Println(hexutil.Encode(pk))
 	point, err := bn256.UnmarshalBinaryPointG2(pk)
@@ -33,12 +32,12 @@ func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
 	fmt.Println(point)
 }
 
-
 func TestNewDKGPartner(t *testing.T) {
 	var ann AnnSensus
-	for i:=0;i<4;i++ {
-		d:= newDkg(&ann,true,4,4,)
+	for i := 0; i < 4; i++ {
+		d := newDkg(&ann, true, 4, 4)
 		fmt.Println(hexutil.Encode(d.pk))
+		fmt.Println(d.partner.MyPartSec)
 	}
 
 }

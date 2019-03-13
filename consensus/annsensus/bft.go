@@ -28,17 +28,17 @@ import (
 
 //PBFT is og sequencer consensus system based on PBFT consensus
 type PBFT struct {
-	BFTPartner       *OGBFTPartner
+	BFTPartner   *OGBFTPartner
 	startBftChan chan bool
-	stopBft    chan bool
-	resetChan        chan bool
-	mu               sync.RWMutex
-	quit             chan bool
-	ann              *AnnSensus
-	creator                *og.TxCreator
-	JudgeNonce       func(account *account.SampleAccount) uint64
-	decisionCh       chan *HeightRoundState
-	Verifiers        []og.Verifier
+	stopBft      chan bool
+	resetChan    chan bool
+	mu           sync.RWMutex
+	quit         chan bool
+	ann          *AnnSensus
+	creator      *og.TxCreator
+	JudgeNonce   func(account *account.SampleAccount) uint64
+	decisionCh   chan *HeightRoundState
+	Verifiers    []og.Verifier
 }
 
 type OGBFTPartner struct {
@@ -47,35 +47,35 @@ type OGBFTPartner struct {
 	Address   types.Address
 }
 
-
-func NewOgBftPeer(pk crypto.PublicKey,nbParticipants, Id int ,  sequencerTime time.Duration)*OGBFTPartner{
+func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime time.Duration) *OGBFTPartner {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
 		BFTPartner: p,
-		PublicKey:pk,
-		Address: pk.Address(),
+		PublicKey:  pk,
+		Address:    pk.Address(),
 	}
 	return bft
 }
 
-func NewPBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonce func(me *account.SampleAccount) uint64,
+func NewPBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Duration, judgeNonce func(me *account.SampleAccount) uint64,
 	txcreator *og.TxCreator, Verifiers []og.Verifier) *PBFT {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
 		BFTPartner: p,
 	}
 	om := &PBFT{
-		BFTPartner:       bft,
-		quit:             make(chan bool),
+		BFTPartner:   bft,
+		quit:         make(chan bool),
 		startBftChan: make(chan bool),
-		resetChan:        make(chan bool),
-		decisionCh:       make(chan *HeightRoundState),
-		creator:                txcreator,
+		resetChan:    make(chan bool),
+		decisionCh:   make(chan *HeightRoundState),
+		creator:      txcreator,
 	}
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
 	om.JudgeNonce = judgeNonce
 	bft.RegisterDecisionReceive(om.decisionCh)
 	om.Verifiers = Verifiers
+	om.ann = ann
 	return om
 }
 
@@ -97,14 +97,16 @@ func (t *PBFT) Stop() {
 }
 
 func (t *PBFT) sendToPartners(msgType og.MessageType, request types.Message) {
-	peers := t.BFTPartner.GetPeers
-	for _, peer := range peers() {
+	inChan := t.BFTPartner.GetIncomingMessageChannel()
+	peers := t.BFTPartner.GetPeers()
+	for _, peer := range peers {
 		logrus.WithFields(logrus.Fields{
 			"IM":  t.BFTPartner.GetId(),
 			"to":  peer.GetId(),
+			"type":msgType.String(),
 			"msg": request.String(),
 		}).Debug("Out")
-		bftPeer := peer.(OGBFTPartner)
+		bftPeer := peer.(*OGBFTPartner)
 		if peer.GetId() == t.BFTPartner.GetId() {
 			//it is for me
 			go func() {
@@ -112,16 +114,18 @@ func (t *PBFT) sendToPartners(msgType og.MessageType, request types.Message) {
 					Type:    msgType,
 					Payload: request,
 				}
-				t.BFTPartner.GetIncomingMessageChannel() <- msg
+				inChan <- msg
 			}()
 			continue
 		}
 		//send to others
+		logrus.WithField("msg ",request).Debug("send msg ")
 		t.ann.Hub.SendToAnynomous(msgType, request, &bftPeer.PublicKey)
 	}
 }
 
 func (t *PBFT) loop() {
+	outCh := t.BFTPartner.GetOutgoingMessageChannel()
 	signer := crypto.NewSigner(t.ann.cryptoType)
 	log := logrus.WithField("me", t.BFTPartner.GetId())
 	for {
@@ -131,7 +135,8 @@ func (t *PBFT) loop() {
 		case <-t.startBftChan:
 			go t.BFTPartner.StartNewEra(0, 0)
 
-		case msg := <-t.BFTPartner.GetOutgoingMessageChannel():
+		case msg := <-outCh:
+			log.Tracef("got msg %v", msg)
 			switch msg.Type {
 			case og.MessageTypeProposal:
 				proposal := msg.Payload.(*types.MessageProposal)
@@ -187,7 +192,7 @@ func (t *PBFT) loop() {
 			}
 			t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 
-			case <-t.resetChan:
+		case <-t.resetChan:
 
 		}
 
@@ -197,7 +202,8 @@ func (t *PBFT) loop() {
 func (t *PBFT) ProduceProposal() types.Proposal {
 	me := t.ann.MyAccount
 	nonce := t.JudgeNonce(me)
-	seq := t.creator.GenerateSequencer(me.Address, t.ann.Idag.LatestSequencer().Height, nonce, &me.PrivateKey)
+	logrus.WithField(" nonce ", nonce).Debug("gen seq")
+	seq := t.creator.GenerateSequencer(me.Address, t.ann.Idag.LatestSequencer().Height+1, nonce, &me.PrivateKey)
 	if seq == nil {
 		logrus.Warn("gen sequencer failed")
 		panic("gen sequencer failed")
@@ -233,12 +239,14 @@ func (t *PBFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.Pub
 func (t *PBFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
 	peers := t.BFTPartner.GetPeers()
 	if sourcePartner < 0 || sourcePartner >= len(peers) {
+		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Debug("sourceId error")
 		return false
 	}
-	partner := peers[sourcePartner].(OGBFTPartner)
+	partner := peers[sourcePartner].(*OGBFTPartner)
 	if bytes.Equal(partner.PublicKey.Bytes, publicKey.Bytes) {
 		return true
 	}
+	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
 	return false
 
 }
@@ -251,12 +259,11 @@ func (t *PBFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bo
 // return true
 //}
 
-
 //calculate seed
 func CalculateRandomSeed(jointSig []byte) []byte {
 	//TODO
 	h := sha256.New()
 	h.Write(jointSig)
-    seed := h.Sum(nil)
-    return seed
+	seed := h.Sum(nil)
+	return seed
 }

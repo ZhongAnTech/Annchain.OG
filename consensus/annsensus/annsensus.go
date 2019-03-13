@@ -16,11 +16,12 @@ package annsensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/annchain/OG/account"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
@@ -52,21 +53,21 @@ type AnnSensus struct {
 
 	mu sync.RWMutex
 
-	close               chan struct{}
-	genesisAccounts     []crypto.PublicKey
-	isGenesisPartner    bool
-	genesisBftIsRunning uint32
-	UpdateEvent         chan bool // syner update event
-	newtermCh           chan struct{}
+	close                         chan struct{}
+	genesisAccounts               []crypto.PublicKey
+	isGenesisPartner              bool
+	genesisBftIsRunning           uint32
+	UpdateEvent                   chan bool // syner update event
+	newtermCh                     chan struct{}
+	genesisPkChan                 chan *types.MessageConsensusDkgGenesisPublicKey
+	NewPeerConnectedEventListener chan string
 }
 
-func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator,
-	Verifiers []og.Verifier, genesisAccounts []crypto.PublicKey) *AnnSensus {
+func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
+	genesisAccounts []crypto.PublicKey) *AnnSensus {
 	if len(genesisAccounts) < partnerNum {
 		panic("need more account")
 	}
-	var myId int
 	ann := &AnnSensus{}
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
@@ -80,18 +81,26 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	dkg := newDkg(ann, campaign, partnerNum, threshold)
 	ann.dkg = dkg
 	ann.genesisAccounts = genesisAccounts
-	for id, pk := range ann.genesisAccounts {
-		if bytes.Equal(pk.Bytes, ann.MyAccount.PublicKey.Bytes) {
-			log.WithField("my id ", id).Info("i am a genesis partner")
-			myId = id
-		}
-	}
 	t := newTerm(0, partnerNum)
 	ann.term = t
-	ann.pbft = NewPBFT(partnerNum, myId, sequencerTime, judgeNonce, txcreator, Verifiers)
 	ann.newtermCh = make(chan struct{})
-
+	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
+	ann.NewPeerConnectedEventListener = make(chan string)
+	log.WithField("nbartner ", ann.NbParticipants).Info("new ann")
 	return ann
+}
+
+func (as *AnnSensus) InitBFt(myAccount *account.SampleAccount, sequencerTime time.Duration,
+	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator, Verifiers []og.Verifier) {
+	as.MyAccount = myAccount
+	for id, pk := range as.genesisAccounts {
+		if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
+			as.isGenesisPartner = true
+			as.id = id
+			log.WithField("my id ", as.id).Info("i am a genesis partner")
+		}
+	}
+	as.pbft = NewPBFT(as, as.NbParticipants, as.id, sequencerTime, judgeNonce, txcreator, Verifiers)
 }
 
 func (as *AnnSensus) Start() {
@@ -188,6 +197,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		for _, camp := range as.Candidates() {
 			camps = append(camps, camp)
 		}
+		log.Debug("will termchange")
 		go as.changeTerm(camps)
 
 	}
@@ -248,7 +258,10 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 		case pk := <-as.dkgPkCh:
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			if atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
-				as.newtermCh <- struct{}{}
+				go func() {
+					as.newtermCh <- struct{}{}
+				}()
+				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
 				continue
 			}
 			sigset := as.dkg.GetBlsSigsets()
@@ -302,9 +315,13 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 }
 
 func (as *AnnSensus) loop() {
-	var camp bool
+	//var camp bool
 
 	// sequencer entry
+	var genesisCamps = make(map[int]*types.Campaign)
+	var peerNum int
+	var initDone bool
+	var lastheight uint64
 
 	for {
 		select {
@@ -357,30 +374,85 @@ func (as *AnnSensus) loop() {
 			log.Info("got newtermcahneg signal")
 			as.pbft.startBftChan <- true
 
-		case <-time.After(time.Second * 6):
-			if !camp {
-				camp = true
+		case <-time.After(time.Millisecond * 300):
+			height := as.Idag.LatestSequencer().Height
+			if height <= lastheight {
+				//should updated
+				continue
+			}
+			lastheight = height
+			if height > 2 && height%15 == 0 {
+				//may i send campaign ?
 				as.ProdCampaignOn()
 			}
+
 		case isUptoDate := <-as.UpdateEvent:
-			log.WithField("v ", isUptoDate).Info("get isUptoDate event")
-			if isUptoDate && as.Idag.LatestSequencer().Height == 0 && as.isGenesisPartner {
+			height := as.Idag.LatestSequencer().Height
+			log.WithField("height ", height).WithField("v ", isUptoDate).Info("get isUptoDate event")
+			if isUptoDate && height == 0 && as.isGenesisPartner {
+				log.Debug("add bft partners")
 				//should participate in genesis  bft process
 				if !as.dkg.dkgOn {
 					as.dkg.dkgOn = true
-					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
-					var peers []BFTPartner
-					for i, pk := range as.genesisAccounts {
-						if i == as.id {
-							continue
-						}
-						//the third param is not used in peer
-						peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
-					}
-					as.pbft.BFTPartner.SetPeers(peers)
 				}
+				atomic.StoreUint32(&as.genesisBftIsRunning, 1)
+				var peers []BFTPartner
+				for i, pk := range as.genesisAccounts {
+					if i == as.id {
+						//continue
+					}
+					//the third param is not used in peer
+					peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
+				}
+				as.pbft.BFTPartner.SetPeers(peers)
+			}
+		case <-as.NewPeerConnectedEventListener:
+			if initDone {
+				continue
+			}
+			peerNum++
+			log.WithField("num ", peerNum).Debug("peer num ")
+			if peerNum == as.NbParticipants-1 && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
+				log.Info("start dkg genesis consensus")
+				go func() {
+					as.dkg.SendGenesisPublicKey()
+				}()
+				initDone = true
 			}
 			//
+		case pkMsg := <-as.genesisPkChan:
+			id := -1
+			for i, pk := range as.genesisAccounts {
+				if bytes.Equal(pkMsg.PublicKey, pk.Bytes) {
+					id = i
+					break
+				}
+			}
+			if id < 0 {
+				log.Warn("not valid genesis pk")
+				continue
+			}
+			cp := &types.Campaign{
+				DkgPublicKey: pkMsg.DkgPublicKey,
+				Issuer:       as.genesisAccounts[id].Address(),
+				TxBase: types.TxBase{
+					PublicKey: pkMsg.PublicKey,
+				},
+			}
+			err := cp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
+			if err != nil {
+				log.WithError(err).Warn("unmarshal error")
+				continue
+			}
+			//keep order
+			genesisCamps[id] = cp
+			if len(genesisCamps) == as.NbParticipants {
+				var genesisCampList []*types.Campaign
+				for id := 0; id < len(genesisCamps); id++ {
+					genesisCampList = append(genesisCampList, genesisCamps[id])
+				}
+				go as.commit(genesisCampList)
+			}
 
 		}
 	}

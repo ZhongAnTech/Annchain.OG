@@ -43,13 +43,13 @@ func start(peers []BFTPartner) {
 		go peer.EventLoop()
 	}
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 10)
 		return
 	}
 }
 
 func TestAllNonByzantine(t *testing.T) {
-	total := 22
+	total := 4
 	var peers []BFTPartner
 	for i := 0; i < total; i++ {
 		peers = append(peers, NewBFTPartner(total, i, BlockTime))

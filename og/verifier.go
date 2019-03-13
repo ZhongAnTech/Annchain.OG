@@ -274,6 +274,8 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 		previousSeq = ptx
 		ok = true
 		return
+	} else {
+		logrus.Debug(ptx, currentSeq.Height-1)
 	}
 
 	return
@@ -337,6 +339,10 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		seq := txi.(*types.Sequencer)
 		// to check if there is a lower seq height in the path behind
 		_, ok := v.getPreviousSequencer(seq)
+		if !ok {
+			logrus.WithField("tx", txi).Debug("previous seq not found")
+		}
+
 		return ok
 	default:
 	}

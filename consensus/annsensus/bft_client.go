@@ -184,6 +184,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		} else {
 			proposal = p.GetValue()
 		}
+		logrus.WithField("proposal ", proposal).Info("new proposal")
 		// broadcast
 		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {
@@ -207,22 +208,22 @@ func (p *DefaultPartner) send() {
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
 			p.dumpAll("blocked reading outgoing")
-			//case msg := <-p.OutgoingMessageChannel:
-			//	for _, peer := range p.Peers {
-			//		logrus.WithFields(logrus.Fields{
-			//			"IM":   p.Id,
-			//			"hr":   p.CurrentHR.String(),
-			//			"from": p.Id,
-			//			"to":   peer.GetId(),
-			//			"msg":  msg.String(),
-			//		}).Debug("Out")
-			//
-			//		go func(targetPeer BFTPartner) {
-			//			//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
-			//			//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
-			//			targetPeer.GetIncomingMessageChannel() <- msg
-			//		}(peer)
-			//	}
+		case msg := <-p.OutgoingMessageChannel:
+			for _, peer := range p.Peers {
+				logrus.WithFields(logrus.Fields{
+					"IM":   p.Id,
+					"hr":   p.CurrentHR.String(),
+					"from": p.Id,
+					"to":   peer.GetId(),
+					"msg":  msg.String(),
+				}).Debug("Out")
+
+				go func(targetPeer BFTPartner) {
+					//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
+					//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
+					targetPeer.GetIncomingMessageChannel() <- msg
+				}(peer)
+			}
 		}
 	}
 }
@@ -266,10 +267,13 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 func (p *DefaultPartner) GetValue() types.Proposal {
 	time.Sleep(p.blockTime)
 	if p.proposalFunc != nil {
-		return p.proposalFunc()
+		pro := p.proposalFunc()
+		logrus.WithField("proposal ", pro).Debug("proposal gen ")
+		return pro
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
 	s := types.StringProposal(v)
+	logrus.WithField("proposal ", s).Debug("proposal gen ")
 	return &s
 }
 
@@ -288,18 +292,18 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 	}
 	switch messageType {
 	case og.MessageTypeProposal:
-		m.Payload = types.MessageProposal{
+		m.Payload = &types.MessageProposal{
 			BasicMessage: basicMessage,
 			Value:        content,
 			ValidRound:   validRound,
 		}
 	case og.MessageTypePreVote:
-		m.Payload = types.MessagePreVote{
+		m.Payload = &types.MessagePreVote{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
 	case og.MessageTypePreCommit:
-		m.Payload = types.MessagePreCommit{
+		m.Payload = &types.MessagePreCommit{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
@@ -349,7 +353,12 @@ func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duratio
 func (p *DefaultPartner) handleMessage(message Message) {
 	switch message.Type {
 	case og.MessageTypeProposal:
-		msg := message.Payload.(types.MessageProposal)
+		switch message.Payload.(type) {
+		case *types.MessageProposal:
+		default:
+			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+		}
+		msg := message.Payload.(*types.MessageProposal)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -362,14 +371,19 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"fromHr": msg.HeightRound.String(),
 			"value":  msg.Value,
 		}).Debug("In")
-		p.handleProposal(&msg)
+		p.handleProposal(msg)
 	case og.MessageTypePreVote:
-		msg := message.Payload.(types.MessagePreVote)
+		switch message.Payload.(type) {
+		case *types.MessagePreVote:
+		default:
+			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+		}
+		msg := message.Payload.(*types.MessagePreVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
-		p.States[msg.HeightRound].PreVotes[msg.SourceId] = &msg
+		p.States[msg.HeightRound].PreVotes[msg.SourceId] = msg
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.CurrentHR.String(),
@@ -377,14 +391,19 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"from":   msg.SourceId,
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
-		p.handlePreVote(&msg)
+		p.handlePreVote(msg)
 	case og.MessageTypePreCommit:
-		msg := message.Payload.(types.MessagePreCommit)
+		switch message.Payload.(type) {
+		case *types.MessagePreCommit:
+		default:
+			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+		}
+		msg := message.Payload.(*types.MessagePreCommit)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
-		p.States[msg.HeightRound].PreCommits[msg.SourceId] = &msg
+		p.States[msg.HeightRound].PreCommits[msg.SourceId] = msg
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.CurrentHR.String(),
@@ -392,7 +411,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"from":   msg.SourceId,
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
-		p.handlePreCommit(&msg)
+		p.handlePreCommit(msg)
 	}
 }
 func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
@@ -544,11 +563,15 @@ func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validR
 			}
 			switch valueIdMatchType {
 			case MatchTypeByValue:
-				if m.Idv == valueId {
+				if m.Idv == nil {
+					if valueId == nil {
+						counter++
+					}
+				} else if valueId != nil && *valueId == *m.Idv {
 					counter++
 				}
 			case MatchTypeNil:
-				if m.Idv.Empty() {
+				if m.Idv == nil {
 					counter++
 				}
 			case MatchTypeAny:
@@ -558,9 +581,8 @@ func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validR
 	default:
 		//panic("not implemented")
 	}
-
 	logrus.WithField("IM", p.Id).
-		Debugf("Counting: [%d] %s %d %d %d", counter, messageType.String(), height, validRound, valueIdMatchType)
+		Debugf("Counting: [%d] %s H:%d VR:%d MT:%d", counter, messageType.String(), height, validRound, valueIdMatchType)
 	return counter
 }
 
@@ -639,6 +661,10 @@ func (p *DefaultPartner) dumpCommits(votes []*types.MessagePreCommit) string {
 func (p *DefaultPartner) dumpAll(reason string) {
 	//return
 	state := p.States[p.CurrentHR]
+	if state == nil {
+		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("reason", reason).Debug("Dumping nil state")
+		return
+	}
 	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("reason", reason).Debug("Dumping")
 	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("votes", "prevotes").Debug(p.dumpVotes(state.PreVotes))
 	logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR).WithField("votes", "precommits").Debug(p.dumpCommits(state.PreCommits))

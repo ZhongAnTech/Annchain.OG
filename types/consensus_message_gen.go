@@ -219,33 +219,7 @@ func (z *MessagePreCommit) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "BasicMessage":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				return
-			}
-			if zb0002 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-				return
-			}
-			z.BasicMessage.SourceId, err = dc.ReadUint16()
-			if err != nil {
-				return
-			}
-			var zb0003 uint32
-			zb0003, err = dc.ReadArrayHeader()
-			if err != nil {
-				return
-			}
-			if zb0003 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-				return
-			}
-			z.BasicMessage.HeightRound.Height, err = dc.ReadUint64()
-			if err != nil {
-				return
-			}
-			z.BasicMessage.HeightRound.Round, err = dc.ReadInt()
+			err = z.BasicMessage.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -294,25 +268,11 @@ func (z *MessagePreCommit) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z *MessagePreCommit) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 5
 	// write "BasicMessage"
-	// array header, size 2
-	err = en.Append(0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x92)
+	err = en.Append(0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(z.BasicMessage.SourceId)
-	if err != nil {
-		return
-	}
-	// array header, size 2
-	err = en.Append(0x92)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint64(z.BasicMessage.HeightRound.Height)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.BasicMessage.HeightRound.Round)
+	err = z.BasicMessage.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -367,13 +327,11 @@ func (z *MessagePreCommit) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 5
 	// string "BasicMessage"
-	// array header, size 2
-	o = append(o, 0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x92)
-	o = msgp.AppendUint16(o, z.BasicMessage.SourceId)
-	// array header, size 2
-	o = append(o, 0x92)
-	o = msgp.AppendUint64(o, z.BasicMessage.HeightRound.Height)
-	o = msgp.AppendInt(o, z.BasicMessage.HeightRound.Round)
+	o = append(o, 0x85, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	o, err = z.BasicMessage.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "Idv"
 	o = append(o, 0xa3, 0x49, 0x64, 0x76)
 	if z.Idv == nil {
@@ -413,33 +371,7 @@ func (z *MessagePreCommit) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "BasicMessage":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			if zb0002 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-				return
-			}
-			z.BasicMessage.SourceId, bts, err = msgp.ReadUint16Bytes(bts)
-			if err != nil {
-				return
-			}
-			var zb0003 uint32
-			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			if zb0003 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-				return
-			}
-			z.BasicMessage.HeightRound.Height, bts, err = msgp.ReadUint64Bytes(bts)
-			if err != nil {
-				return
-			}
-			z.BasicMessage.HeightRound.Round, bts, err = msgp.ReadIntBytes(bts)
+			bts, err = z.BasicMessage.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -487,7 +419,7 @@ func (z *MessagePreCommit) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessagePreCommit) Msgsize() (s int) {
-	s = 1 + 13 + 1 + msgp.Uint16Size + 1 + msgp.Uint64Size + msgp.IntSize + 4
+	s = 1 + 13 + z.BasicMessage.Msgsize() + 4
 	if z.Idv == nil {
 		s += msgp.NilSize
 	} else {

@@ -24,7 +24,7 @@ type Term struct {
 	flag          bool
 	partsNum      int
 	senators      Senators
-	formerSentors map[uint64]Senators
+	formerSenators map[uint64]Senators
 	candidates    map[types.Address]*types.Campaign
 	alsorans      map[types.Address]*types.Campaign
 
@@ -37,7 +37,7 @@ func newTerm(id uint64, pn int) *Term {
 		flag:          false,
 		partsNum:      pn,
 		senators:      make(Senators),
-		formerSentors: make(map[uint64]Senators),
+		formerSenators: make(map[uint64]Senators),
 		candidates:    make(map[types.Address]*types.Campaign),
 		alsorans:      make(map[types.Address]*types.Campaign),
 	}
@@ -173,7 +173,7 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 	t.alsorans = make(map[types.Address]*types.Campaign)
 
 	formerSnts := t.senators
-	t.formerSentors[t.id] = formerSnts
+	t.formerSenators[t.id] = formerSnts
 
 	t.senators = snts
 

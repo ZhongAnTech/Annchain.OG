@@ -29,10 +29,10 @@ import (
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
-	Issuer        Address
-	BlsJointSig   []byte
+	Issuer         Address
+	BlsJointSig    []byte
 	BlsJointPubKey []byte
-	Proposing       bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
 func (t *Sequencer) String() string {
@@ -137,8 +137,8 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		return nil
 	}
 	return &RawSequencer{
-		TxBase:        s.TxBase,
-		BlsJointSig:   s.BlsJointSig,
+		TxBase:         s.TxBase,
+		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
 	}
 }

@@ -55,10 +55,10 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		return false
 	}
 	if seq.Proposing {
-		log.WithField("hash ",seq.GetTxHash()).Debug("proposing seq")
+		log.WithField("hash ", seq.GetTxHash()).Debug("proposing seq")
 		return true
 	}
-	log.WithField("hash ",seq.GetTxHash()).Debug("normal seq seq")
+	log.WithField("hash ", seq.GetTxHash()).Debug("normal seq seq")
 	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey)
 	if !ok {
 		return false

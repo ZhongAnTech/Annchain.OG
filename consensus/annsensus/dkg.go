@@ -29,14 +29,13 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-
 )
 
 type Dkg struct {
 	ann *AnnSensus
 
 	dkgOn             bool
-	pk                []byte
+	myPublicKey                []byte
 	partner           *DKGPartner
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}
@@ -90,7 +89,7 @@ func (d *Dkg) Reset() {
 	p.PartPubs = []kyber.Point{}
 
 	d.partner = p
-	d.pk = nil
+	d.myPublicKey = nil
 }
 
 func (d *Dkg) start() {
@@ -112,11 +111,11 @@ func (d *Dkg) GenerateDkg() {
 	d.partner.MyPartSec = sec
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-	d.pk = pk
+	d.myPublicKey = pk
 }
 
 func (d *Dkg) PublicKey() []byte {
-	return d.pk
+	return d.myPublicKey
 }
 
 func (d *Dkg) StartGossip() {
@@ -183,7 +182,7 @@ func (d *Dkg) CheckAddress(addr types.Address) bool {
 func (d *Dkg) SendGenesisPublicKey() {
 	for i := 0; i < len(d.ann.genesisAccounts); i++ {
 		msg := &types.MessageConsensusDkgGenesisPublicKey{
-			DkgPublicKey: d.pk,
+			DkgPublicKey: d.myPublicKey,
 			PublicKey:    d.ann.MyAccount.PublicKey.Bytes,
 		}
 		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
@@ -626,13 +625,13 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 		log.WithError(err).Warn("unmarshal join pubkey error")
 		return false
 	}
-	if  !pubKey.Equal(d.partner.jointPubKey) {
+	if !pubKey.Equal(d.partner.jointPubKey) {
 		log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.partner.jointPubKey).Warn("different")
 		return false
 	}
 	err = bls.Verify(d.partner.Suite, pubKey, msg, sig)
 	if err != nil {
-		log.WithField("sig ", hex.EncodeToString(sig)).WithField("s ",d.partner.Suite).WithField("pk",pubKey ).WithError(err).Warn("bls verify error")
+		log.WithField("sig ", hex.EncodeToString(sig)).WithField("s ", d.partner.Suite).WithField("pk", pubKey).WithError(err).Warn("bls verify error")
 		return false
 	}
 	return true

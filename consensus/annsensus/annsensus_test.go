@@ -34,8 +34,8 @@ func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
 
 func TestNewDKGPartner(t *testing.T) {
 
-	for j:=0;j<22;j++ {
-		fmt.Println(j,j*2/3+1)
+	for j := 0; j < 22; j++ {
+		fmt.Println(j, j*2/3+1)
 	}
 	var ann AnnSensus
 	for i := 0; i < 4; i++ {
@@ -45,4 +45,3 @@ func TestNewDKGPartner(t *testing.T) {
 	}
 
 }
-

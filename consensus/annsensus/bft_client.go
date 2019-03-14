@@ -74,7 +74,6 @@ func NewHeightRoundState(total int) *HeightRoundState {
 	}
 }
 
-
 func (p *DefaultPartner) GetPeers() []BFTPartner {
 	return p.Peers
 }
@@ -291,10 +290,10 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 	}
 	var idv types.Hash
 	if content != nil {
-		 cIdv := content.GetId()
-		 if cIdv!=nil {
-			 idv = *cIdv
-		 }
+		cIdv := content.GetId()
+		if cIdv != nil {
+			idv = *cIdv
+		}
 
 	}
 	switch messageType {
@@ -410,7 +409,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			// out-of-date messages, ignore
 			break
 		}
-		perC:= *msg
+		perC := *msg
 		p.States[msg.HeightRound].PreCommits[msg.SourceId] = &perC
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
@@ -517,10 +516,9 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 					"value": state.MessageProposal.Value,
 				}).Info("Decision")
 				//send the decision to upper client to process
-			      go func() {
-					  p.decisionChan <- state
-				  }()
-
+				go func() {
+					p.decisionChan <- state
+				}()
 
 				p.StartNewEra(p.CurrentHR.Height+1, 0)
 			}

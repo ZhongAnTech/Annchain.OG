@@ -33,7 +33,7 @@ type RawTx struct {
 //msgp:tuple RawSequencer
 type RawSequencer struct {
 	TxBase
-	BlsJointSig   []byte
+	BlsJointSig    []byte
 	BlsJointPubKey []byte
 }
 
@@ -84,9 +84,9 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		return nil
 	}
 	tx := &Sequencer{
-		TxBase:        t.TxBase,
+		TxBase:         t.TxBase,
 		BlsJointPubKey: t.BlsJointPubKey,
-		BlsJointSig:   t.BlsJointSig,
+		BlsJointSig:    t.BlsJointSig,
 	}
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx

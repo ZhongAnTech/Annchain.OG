@@ -123,7 +123,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
-		log.WithField("pub ",seq.PublicKey[0:5]).WithField("sig ", hex.EncodeToString( request.Signature)).WithField("request ", request).Warn("verify MessageProposal  signature failed")
+		log.WithField("pub ", seq.PublicKey[0:5]).WithField("sig ", hex.EncodeToString(request.Signature)).WithField("request ", request).Warn("verify MessageProposal  signature failed")
 		return
 	}
 	seq.Proposing = true

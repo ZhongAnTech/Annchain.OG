@@ -20,26 +20,26 @@ import (
 )
 
 type Term struct {
-	id            uint64
-	flag          bool
-	partsNum      int
-	senators      Senators
+	id             uint64
+	flag           bool
+	partsNum       int
+	senators       Senators
 	formerSenators map[uint64]Senators
-	candidates    map[types.Address]*types.Campaign
-	alsorans      map[types.Address]*types.Campaign
+	candidates     map[types.Address]*types.Campaign
+	alsorans       map[types.Address]*types.Campaign
 
 	mu sync.RWMutex
 }
 
 func newTerm(id uint64, pn int) *Term {
 	return &Term{
-		id:            id,
-		flag:          false,
-		partsNum:      pn,
-		senators:      make(Senators),
+		id:             id,
+		flag:           false,
+		partsNum:       pn,
+		senators:       make(Senators),
 		formerSenators: make(map[uint64]Senators),
-		candidates:    make(map[types.Address]*types.Campaign),
-		alsorans:      make(map[types.Address]*types.Campaign),
+		candidates:     make(map[types.Address]*types.Campaign),
+		alsorans:       make(map[types.Address]*types.Campaign),
 	}
 }
 

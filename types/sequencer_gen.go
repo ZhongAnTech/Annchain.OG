@@ -108,7 +108,7 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.BlsJoinPubKey, err = dc.ReadBytes(z.BlsJoinPubKey)
+	z.BlsJointPubKey, err = dc.ReadBytes(z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -134,7 +134,7 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.BlsJoinPubKey)
+	err = en.WriteBytes(z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -155,7 +155,7 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 		return
 	}
 	o = msgp.AppendBytes(o, z.BlsJointSig)
-	o = msgp.AppendBytes(o, z.BlsJoinPubKey)
+	o = msgp.AppendBytes(o, z.BlsJointPubKey)
 	return
 }
 
@@ -182,7 +182,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.BlsJoinPubKey, bts, err = msgp.ReadBytesBytes(bts, z.BlsJoinPubKey)
+	z.BlsJointPubKey, bts, err = msgp.ReadBytesBytes(bts, z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -192,7 +192,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + z.Issuer.Msgsize() + msgp.BytesPrefixSize + len(z.BlsJointSig) + msgp.BytesPrefixSize + len(z.BlsJoinPubKey)
+	s = 1 + z.TxBase.Msgsize() + z.Issuer.Msgsize() + msgp.BytesPrefixSize + len(z.BlsJointSig) + msgp.BytesPrefixSize + len(z.BlsJointPubKey)
 	return
 }
 

@@ -74,6 +74,7 @@ func NewHeightRoundState(total int) *HeightRoundState {
 	}
 }
 
+
 func (p *DefaultPartner) GetPeers() []BFTPartner {
 	return p.Peers
 }
@@ -96,6 +97,8 @@ type DefaultPartner struct {
 	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
 	decisionChan chan *HeightRoundState
 	// consider updating resetStatus() if you want to add things here
+
+	testFlag bool
 }
 
 func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
@@ -407,7 +410,8 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			// out-of-date messages, ignore
 			break
 		}
-		p.States[msg.HeightRound].PreCommits[msg.SourceId] = msg
+		perC:= *msg
+		p.States[msg.HeightRound].PreCommits[msg.SourceId] = &perC
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.CurrentHR.String(),
@@ -424,12 +428,12 @@ func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
 		panic("must exists")
 	}
 	state.MessageProposal = proposal
-	//if this is proposed by me , send precommit
-	if proposal.SourceId == uint16(p.Id)  {
-		p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
-		p.changeStep(StepTypePreVote)
-		return
-	}
+	////if this is proposed by me , send precommit
+	//if proposal.SourceId == uint16(p.Id)  {
+	//	p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+	//	p.changeStep(StepTypePreVote)
+	//	return
+	//}
 	// rule line 22
 	if state.Step == StepTypePropose {
 		if p.valid(proposal.Value) && (state.LockedRound == -1 || state.LockedValue.Equal(proposal.Value)) {
@@ -512,7 +516,12 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 					"hr":    p.CurrentHR.String(),
 					"value": state.MessageProposal.Value,
 				}).Info("Decision")
-				p.decisionChan <- state
+				//send the decision to upper client to process
+			      go func() {
+					  p.decisionChan <- state
+				  }()
+
+
 				p.StartNewEra(p.CurrentHR.Height+1, 0)
 			}
 		}

@@ -28,7 +28,7 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(Formatter)
 	filenameHook := filename.NewHook()
 	filenameHook.Field = "line"

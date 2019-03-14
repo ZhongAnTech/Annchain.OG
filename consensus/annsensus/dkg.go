@@ -15,6 +15,7 @@ package annsensus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,7 +30,6 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 
-	log "github.com/sirupsen/logrus"
 )
 
 type Dkg struct {
@@ -626,9 +626,13 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 		log.WithError(err).Warn("unmarshal join pubkey error")
 		return false
 	}
+	if  !pubKey.Equal(d.partner.jointPubKey) {
+		log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.partner.jointPubKey).Warn("different")
+		return false
+	}
 	err = bls.Verify(d.partner.Suite, pubKey, msg, sig)
 	if err != nil {
-		log.WithError(err).Warn("unmarshal join pubkey error")
+		log.WithField("sig ", hex.EncodeToString(sig)).WithField("s ",d.partner.Suite).WithField("pk",pubKey ).WithError(err).Warn("bls verify error")
 		return false
 	}
 	return true

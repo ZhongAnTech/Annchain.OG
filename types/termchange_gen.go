@@ -11,7 +11,6 @@ func (z *SigSet) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 2 {
@@ -20,12 +19,10 @@ func (z *SigSet) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
 	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	z.Signature, err = dc.ReadBytes(z.Signature)
 	if err != nil {
-		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	return
@@ -40,12 +37,10 @@ func (z *SigSet) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteBytes(z.PublicKey)
 	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	err = en.WriteBytes(z.Signature)
 	if err != nil {
-		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	return
@@ -66,7 +61,6 @@ func (z *SigSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 2 {
@@ -75,12 +69,10 @@ func (z *SigSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
 	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
 	if err != nil {
-		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	o = bts
@@ -98,7 +90,6 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 5 {
@@ -107,23 +98,19 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	err = z.TxBase.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	z.TermID, err = dc.ReadUint64()
 	if err != nil {
-		err = msgp.WrapError(err, "TermID")
 		return
 	}
 	z.PkBls, err = dc.ReadBytes(z.PkBls)
 	if err != nil {
-		err = msgp.WrapError(err, "PkBls")
 		return
 	}
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
-		err = msgp.WrapError(err, "SigSet")
 		return
 	}
 	if cap(z.SigSet) >= int(zb0002) {
@@ -135,7 +122,6 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001)
 				return
 			}
 			z.SigSet[za0001] = nil
@@ -146,7 +132,6 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			var zb0003 uint32
 			zb0003, err = dc.ReadArrayHeader()
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001)
 				return
 			}
 			if zb0003 != 2 {
@@ -155,19 +140,16 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 			z.SigSet[za0001].PublicKey, err = dc.ReadBytes(z.SigSet[za0001].PublicKey)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "PublicKey")
 				return
 			}
 			z.SigSet[za0001].Signature, err = dc.ReadBytes(z.SigSet[za0001].Signature)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "Signature")
 				return
 			}
 		}
 	}
 	err = z.Issuer.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "Issuer")
 		return
 	}
 	return
@@ -182,22 +164,18 @@ func (z *TermChange) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = z.TxBase.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	err = en.WriteUint64(z.TermID)
 	if err != nil {
-		err = msgp.WrapError(err, "TermID")
 		return
 	}
 	err = en.WriteBytes(z.PkBls)
 	if err != nil {
-		err = msgp.WrapError(err, "PkBls")
 		return
 	}
 	err = en.WriteArrayHeader(uint32(len(z.SigSet)))
 	if err != nil {
-		err = msgp.WrapError(err, "SigSet")
 		return
 	}
 	for za0001 := range z.SigSet {
@@ -214,19 +192,16 @@ func (z *TermChange) EncodeMsg(en *msgp.Writer) (err error) {
 			}
 			err = en.WriteBytes(z.SigSet[za0001].PublicKey)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "PublicKey")
 				return
 			}
 			err = en.WriteBytes(z.SigSet[za0001].Signature)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "Signature")
 				return
 			}
 		}
 	}
 	err = z.Issuer.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "Issuer")
 		return
 	}
 	return
@@ -239,7 +214,6 @@ func (z *TermChange) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x95)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	o = msgp.AppendUint64(o, z.TermID)
@@ -257,7 +231,6 @@ func (z *TermChange) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o, err = z.Issuer.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "Issuer")
 		return
 	}
 	return
@@ -268,7 +241,6 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 5 {
@@ -277,23 +249,19 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	bts, err = z.TxBase.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	z.TermID, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermID")
 		return
 	}
 	z.PkBls, bts, err = msgp.ReadBytesBytes(bts, z.PkBls)
 	if err != nil {
-		err = msgp.WrapError(err, "PkBls")
 		return
 	}
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "SigSet")
 		return
 	}
 	if cap(z.SigSet) >= int(zb0002) {
@@ -315,7 +283,6 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			var zb0003 uint32
 			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001)
 				return
 			}
 			if zb0003 != 2 {
@@ -324,19 +291,16 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 			z.SigSet[za0001].PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.SigSet[za0001].PublicKey)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "PublicKey")
 				return
 			}
 			z.SigSet[za0001].Signature, bts, err = msgp.ReadBytesBytes(bts, z.SigSet[za0001].Signature)
 			if err != nil {
-				err = msgp.WrapError(err, "SigSet", za0001, "Signature")
 				return
 			}
 		}
 	}
 	bts, err = z.Issuer.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Issuer")
 		return
 	}
 	o = bts
@@ -362,7 +326,6 @@ func (z *TermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -374,7 +337,6 @@ func (z *TermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
-				err = msgp.WrapError(err, zb0001)
 				return
 			}
 			(*z)[zb0001] = nil
@@ -384,7 +346,6 @@ func (z *TermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 			err = (*z)[zb0001].DecodeMsg(dc)
 			if err != nil {
-				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}
@@ -396,7 +357,6 @@ func (z *TermChanges) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z TermChanges) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	for zb0003 := range z {
@@ -408,7 +368,6 @@ func (z TermChanges) EncodeMsg(en *msgp.Writer) (err error) {
 		} else {
 			err = z[zb0003].EncodeMsg(en)
 			if err != nil {
-				err = msgp.WrapError(err, zb0003)
 				return
 			}
 		}
@@ -426,7 +385,6 @@ func (z TermChanges) MarshalMsg(b []byte) (o []byte, err error) {
 		} else {
 			o, err = z[zb0003].MarshalMsg(o)
 			if err != nil {
-				err = msgp.WrapError(err, zb0003)
 				return
 			}
 		}
@@ -439,7 +397,6 @@ func (z *TermChanges) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -460,7 +417,6 @@ func (z *TermChanges) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 			if err != nil {
-				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}

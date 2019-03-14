@@ -20,7 +20,6 @@ import (
 	"sync/atomic"
 
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string) {
@@ -118,26 +117,29 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 		log.WithField("request ", msg).Warn("unsupported proposal type")
 		return
 	}
-	msg := request.Value.(*types.SequencerProposal)
-	seq := msg.Sequencer
+	seq := request.Value.(*types.SequencerProposal).Sequencer
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft proposal data")
-	pk := crypto.PublicKeyFromBytes(a.cryptoType, msg.PublicKey)
+	pk := crypto.PublicKeyFromBytes(a.cryptoType, seq.PublicKey)
 	s := crypto.NewSigner(pk.Type)
 	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 	if !ok {
-		log.WithField("request ", request).Warn("verify MessageProposal  signature failed")
+		log.WithField("pub ",seq.PublicKey[0:5]).WithField("sig ", hex.EncodeToString( request.Signature)).WithField("request ", request).Warn("verify MessageProposal  signature failed")
 		return
 	}
-	if !a.pbft.verifyProposal(request, pk) {
+	seq.Proposing = true
+	if !a.bft.verifyProposal(request, pk) {
 		log.WithField("seq ", seq).Warn("verify raw seq fail")
 		return
 	}
+	//cache them and sent to buffer to verify
+	a.bft.proposalCache[seq.GetTxHash()] = request
+	a.HandleNewTxi(&seq)
 	log.Debug("response ok")
-	m := Message{
-		Type:    og.MessageTypeProposal,
-		Payload: request,
-	}
-	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
+	//m := Message{
+	//	Type:    og.MessageTypeProposal,
+	//	Payload: request,
+	//}
+	//a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }
 
@@ -156,7 +158,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
-	if !a.pbft.verifyIsPartNer(pk, int(request.SourceId)) {
+	if !a.bft.verifyIsPartNer(pk, int(request.SourceId)) {
 		log.WithField("request ", request).Warn("verify partner failed")
 		return
 	}
@@ -165,7 +167,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 		Type:    og.MessageTypePreVote,
 		Payload: request,
 	}
-	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
+	a.bft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }
 
@@ -185,7 +187,7 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 		return
 	}
 
-	if !a.pbft.verifyIsPartNer(pk, int(request.SourceId)) {
+	if !a.bft.verifyIsPartNer(pk, int(request.SourceId)) {
 		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
@@ -193,6 +195,6 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 		Type:    og.MessageTypePreCommit,
 		Payload: request,
 	}
-	a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
+	a.bft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }

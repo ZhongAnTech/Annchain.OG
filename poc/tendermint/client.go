@@ -227,7 +227,7 @@ func (p *DefaultPartner) receive() {
 			v.TimeoutCallback(v.Context)
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading incoming")
-			p.dumpAll("blocked reading incoming")
+			//p.dumpAll("blocked reading incoming")
 		case msg := <-p.IncomingMessageChannel:
 			p.handleMessage(msg)
 		}
@@ -456,6 +456,7 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 					"hr":    p.CurrentHR.String(),
 					"value": state.MessageProposal.Value,
 				}).Info("Decision")
+
 				p.StartNewEra(p.CurrentHR.Height+1, 0)
 			}
 		}

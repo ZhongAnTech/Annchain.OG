@@ -45,7 +45,7 @@ type Proposal interface {
 	GetId() *Hash
 	msg.Message
 	String() string
-	Copy()Proposal
+	Copy() Proposal
 }
 
 //StringProposal is for test
@@ -59,7 +59,7 @@ func (s StringProposal) Equal(o Proposal) bool {
 	return s == *v
 }
 
-func (s StringProposal)Copy ()Proposal {
+func (s StringProposal) Copy() Proposal {
 	var r StringProposal
 	r = s
 	return &r
@@ -97,11 +97,11 @@ type MessageProposal struct {
 	Signature []byte
 }
 
-func (m  MessageProposal)Copy()*MessageProposal {
+func (m MessageProposal) Copy() *MessageProposal {
 	var r MessageProposal
 	r = m
 	r.Value = m.Value.Copy()
-	return  &r
+	return &r
 }
 
 //msgp:tuple MessageCommonVote
@@ -195,9 +195,8 @@ func (s SequencerProposal) GetId() *Hash {
 	return &hash
 }
 
-
-func (s SequencerProposal)Copy()Proposal {
+func (s SequencerProposal) Copy() Proposal {
 	var r SequencerProposal
-	r =s
+	r = s
 	return &r
 }

@@ -28,16 +28,15 @@ import (
 
 //BFT is og sequencer consensus system based on BFT consensus
 type BFT struct {
-	BFTPartner    *OGBFTPartner
-	startBftChan  chan bool
-	stoBFT       chan bool
-	resetChan     chan bool
-	mu            sync.RWMutex
-	quit          chan bool
-	ann           *AnnSensus
-	creator       *og.TxCreator
-	JudgeNonce    func(account *account.SampleAccount) uint64
-	decisionCh    chan *HeightRoundState
+	BFTPartner   *OGBFTPartner
+	startBftChan chan bool
+	resetChan    chan bool
+	mu           sync.RWMutex
+	quit         chan bool
+	ann          *AnnSensus
+	creator      *og.TxCreator
+	JudgeNonceFunction   func(account *account.SampleAccount) uint64
+	decisionChan   chan *HeightRoundState
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
 }
@@ -53,7 +52,6 @@ func (p *OGBFTPartner) EventLoop() {
 	go p.BFTPartner.(*DefaultPartner).receive()
 }
 
-
 func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime time.Duration) *OGBFTPartner {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
@@ -64,7 +62,7 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	return bft
 }
 
-func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Duration, judgeNonce func(me *account.SampleAccount) uint64,
+func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
 	txCreator *og.TxCreator) *BFT {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
@@ -75,13 +73,13 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 		quit:          make(chan bool),
 		startBftChan:  make(chan bool),
 		resetChan:     make(chan bool),
-		decisionCh:    make(chan *HeightRoundState),
+		decisionChan:    make(chan *HeightRoundState),
 		creator:       txCreator,
 		proposalCache: make(map[types.Hash]*types.MessageProposal),
 	}
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
-	om.JudgeNonce = judgeNonce
-	bft.RegisterDecisionReceive(om.decisionCh)
+	om.JudgeNonceFunction = judgeNonceFunction
+	bft.RegisterDecisionReceive(om.decisionChan)
 	om.ann = ann
 	return om
 }
@@ -172,7 +170,7 @@ func (t *BFT) loop() {
 				panic("never come here unknown type")
 			}
 
-		case state := <-t.decisionCh:
+		case state := <-t.decisionChan:
 			//set nil first
 			t.ann.dkg.partner.SigShares = nil
 			sequencerProposal := state.Decision.(*types.SequencerProposal)
@@ -182,12 +180,12 @@ func (t *BFT) loop() {
 				//	BlsSignature: commit.BlsSignature,
 				//}
 				//blsSigsets = append(blsSigsets, blsSig)
-				if commit==nil {
-					log.WithField("i ", i).Debug("commit is nil" )
+				if commit == nil {
+					log.WithField("i ", i).Debug("commit is nil")
 					continue
 				}
-				log.WithField("len ",len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
-				log.Debug("commit ",commit)
+				log.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
+				log.Debug("commit ", commit)
 				t.ann.dkg.partner.SigShares = append(t.ann.dkg.partner.SigShares, commit.BlsSignature)
 			}
 			jointSig, err := t.ann.dkg.partner.RecoverSig(sequencerProposal.GetId().ToBytes())
@@ -209,7 +207,7 @@ func (t *BFT) loop() {
 			}
 			sequencerProposal.BlsJointSig = jointSig
 			//seq.BlsJointPubKey = blsPub
-			t.ann.OnSelfGenTxi<-&sequencerProposal.Sequencer
+			t.ann.OnSelfGenTxi <- &sequencerProposal.Sequencer
 			//t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-t.resetChan:
@@ -221,7 +219,7 @@ func (t *BFT) loop() {
 
 func (t *BFT) ProduceProposal() types.Proposal {
 	me := t.ann.MyAccount
-	nonce := t.JudgeNonce(me)
+	nonce := t.JudgeNonceFunction(me)
 	logrus.WithField(" nonce ", nonce).Debug("gen seq")
 	blsPub, err := t.ann.dkg.partner.jointPubKey.MarshalBinary()
 	if err != nil {
@@ -277,13 +275,6 @@ func (t *BFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) boo
 
 }
 
-//func (t*BFT)VerifyPrevote( msg *types.MessagePreVote) bool{
-//  return true
-//}
-//
-//func (t*BFT)VerifyPreCommit(msg *types.MessagePreCommit ) bool{
-// return true
-//}
 
 //calculate seed
 func CalculateRandomSeed(jointSig []byte) []byte {

@@ -298,9 +298,8 @@ func logInit() {
 	logrus.AddHook(filenameHook)
 }
 
-
 func TestDkg_VerifyBlsSig(t *testing.T) {
-	seq  :=types.RandomSequencer()
+	seq := types.RandomSequencer()
 	fmt.Println(seq.GetTxHash().Hex())
 	seq.BlsJointPubKey = []byte{}
 }

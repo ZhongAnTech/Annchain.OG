@@ -364,13 +364,13 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
-	if tx.GetType() ==types.TxBaseTypeSequencer {
-		seq:= tx.(*types.Sequencer)
+	if tx.GetType() == types.TxBaseTypeSequencer {
+		seq := tx.(*types.Sequencer)
 		if seq.Proposing {
-			go func () {
-				b.OnProposalSeqCh <-seq.GetTxHash()
+			go func() {
+				b.OnProposalSeqCh <- seq.GetTxHash()
 			}()
-           logrus.WithField("seq ",seq).Debug("is a proposiong seq ")
+			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
 			return
 		}
 	}
@@ -514,10 +514,10 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
-		if tx.GetType() == types.TxBaseTypeSequencer{
-			seq:= tx.(*types.Sequencer)
+		if tx.GetType() == types.TxBaseTypeSequencer {
+			seq := tx.(*types.Sequencer)
 			//proposing seq
-			if seq.Proposing{
+			if seq.Proposing {
 				return allFetched
 			}
 		}

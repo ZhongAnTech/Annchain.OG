@@ -1,5 +1,3 @@
-
-
 // Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var log  *logrus.Logger
+var log *logrus.Logger
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
 	log = mylog.InitLogger(logger, logdir, "og_ann.log")

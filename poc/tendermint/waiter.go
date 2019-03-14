@@ -49,7 +49,7 @@ func (w *Waiter) StartEventLoop() {
 				// this request is before current waiting request, ignore.
 				continue
 			}
-			logrus.WithField("request ",request ).Trace("request is newer and we will reset")
+			logrus.WithField("request ", request).Trace("request is newer and we will reset")
 			w.currentRequest = request
 			if !timer.Stop() {
 				// drain the timer but do not use the method in document

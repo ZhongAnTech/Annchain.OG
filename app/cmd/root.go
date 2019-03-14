@@ -229,7 +229,7 @@ func initLogger() {
 	p2p.InitLoggers(logger, logdir)
 	og.InitLoggers(logger, logdir)
 	syncer.InitLoggers(logger, logdir)
-	annsensus.InitLoggers(logger,logdir)
+	annsensus.InitLoggers(logger, logdir)
 
 }
 

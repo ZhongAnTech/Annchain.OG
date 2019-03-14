@@ -36,7 +36,7 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
-	bft *BFT      // tendermint
+	bft  *BFT // tendermint
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
@@ -57,7 +57,7 @@ type AnnSensus struct {
 	isGenesisPartner              bool
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
-	newTermChan                     chan struct{}
+	newTermChan                   chan struct{}
 	genesisPkChan                 chan *types.MessageConsensusDkgGenesisPublicKey
 	NewPeerConnectedEventListener chan string
 	ProposalSeqCh                 chan types.Hash
@@ -65,8 +65,8 @@ type AnnSensus struct {
 	OnSelfGenTxi                  chan types.Txi
 }
 
-func Maj23( n int ) int {
-	return 2*n/3+1
+func Maj23(n int) int {
+	return 2*n/3 + 1
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
@@ -84,7 +84,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.cryptoType = cryptoType
 	ann.dkgPkCh = make(chan kyber.Point)
 	ann.UpdateEvent = make(chan bool)
-	dkg := newDkg(ann, campaign, partnerNum,Maj23(partnerNum))
+	dkg := newDkg(ann, campaign, partnerNum, Maj23(partnerNum))
 	ann.dkg = dkg
 	ann.genesisAccounts = genesisAccounts
 	t := newTerm(0, partnerNum)

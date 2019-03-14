@@ -17,7 +17,6 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type Term struct {

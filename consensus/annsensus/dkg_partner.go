@@ -22,7 +22,6 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/tbls"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type DKGPartner struct {

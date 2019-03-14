@@ -27,7 +27,6 @@ import (
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type AnnSensus struct {
@@ -37,13 +36,13 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
-	pbft *PBFT
+	bft *BFT      // tendermint
 
 	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
 	ConsensusTXConfirmed chan []types.Txi // receiving consensus txs from dag confirm.
 
-	Hub    MessageSender // todo use interface later
+	Hub    MessageSender
 	Txpool og.ITxPool
 	Idag   og.IDag
 
@@ -58,9 +57,16 @@ type AnnSensus struct {
 	isGenesisPartner              bool
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
-	newtermCh                     chan struct{}
+	newTermChan                     chan struct{}
 	genesisPkChan                 chan *types.MessageConsensusDkgGenesisPublicKey
 	NewPeerConnectedEventListener chan string
+	ProposalSeqCh                 chan types.Hash
+	HandleNewTxi                  func(tx types.Txi)
+	OnSelfGenTxi                  chan types.Txi
+}
+
+func Maj23( n int ) int {
+	return 2*n/3+1
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
@@ -78,20 +84,21 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.cryptoType = cryptoType
 	ann.dkgPkCh = make(chan kyber.Point)
 	ann.UpdateEvent = make(chan bool)
-	dkg := newDkg(ann, campaign, partnerNum, threshold)
+	dkg := newDkg(ann, campaign, partnerNum,Maj23(partnerNum))
 	ann.dkg = dkg
 	ann.genesisAccounts = genesisAccounts
 	t := newTerm(0, partnerNum)
 	ann.term = t
-	ann.newtermCh = make(chan struct{})
+	ann.newTermChan = make(chan struct{})
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
 	ann.NewPeerConnectedEventListener = make(chan string)
+	ann.ProposalSeqCh = make(chan types.Hash)
 	log.WithField("nbartner ", ann.NbParticipants).Info("new ann")
 	return ann
 }
 
-func (as *AnnSensus) InitBFt(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txcreator *og.TxCreator, Verifiers []og.Verifier) {
+func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
+	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator) {
 	as.MyAccount = myAccount
 	for id, pk := range as.genesisAccounts {
 		if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
@@ -100,20 +107,20 @@ func (as *AnnSensus) InitBFt(myAccount *account.SampleAccount, sequencerTime tim
 			log.WithField("my id ", as.id).Info("i am a genesis partner")
 		}
 	}
-	as.pbft = NewPBFT(as, as.NbParticipants, as.id, sequencerTime, judgeNonce, txcreator, Verifiers)
+	as.bft = NewBFT(as, as.NbParticipants, as.id, sequencerTime, judgeNonce, txCreator)
 }
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
 
 	as.dkg.start()
-	as.pbft.Start()
+	as.bft.Start()
 	go as.loop()
 }
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus Stop")
-	as.pbft.Stop()
+	as.bft.Stop()
 	as.dkg.stop()
 	close(as.close)
 }
@@ -259,7 +266,7 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			if atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				go func() {
-					as.newtermCh <- struct{}{}
+					as.newTermChan <- struct{}{}
 				}()
 				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
 				continue
@@ -294,6 +301,7 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 	return niceTc, nil
 }
 
+//genTermChg
 func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
 	base := types.TxBase{
 		Type: types.TxBaseTypeTermChange,
@@ -361,10 +369,10 @@ func (as *AnnSensus) loop() {
 					log.Errorf("change term error: %v", err)
 					continue
 				}
-				as.newtermCh <- struct{}{}
+				as.newTermChan <- struct{}{}
 			}
 
-		case <-as.newtermCh:
+		case <-as.newTermChan:
 			// sequencer generate entry.
 
 			// TODO:
@@ -372,7 +380,7 @@ func (as *AnnSensus) loop() {
 			// 2. produce raw_seq and broadcast it to network.
 			// 3. start pbft until someone produce a seq with BLS sig.
 			log.Info("got newtermcahneg signal")
-			as.pbft.startBftChan <- true
+			as.bft.startBftChan <- true
 
 		case <-time.After(time.Millisecond * 300):
 			height := as.Idag.LatestSequencer().Height
@@ -404,7 +412,7 @@ func (as *AnnSensus) loop() {
 					//the third param is not used in peer
 					peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
 				}
-				as.pbft.BFTPartner.SetPeers(peers)
+				as.bft.BFTPartner.SetPeers(peers)
 			}
 		case <-as.NewPeerConnectedEventListener:
 			if initDone {
@@ -452,6 +460,19 @@ func (as *AnnSensus) loop() {
 					genesisCampList = append(genesisCampList, genesisCamps[id])
 				}
 				go as.commit(genesisCampList)
+			}
+
+		case hash := <-as.ProposalSeqCh:
+			log.WithField("hash ", hash.TerminalString()).Debug("got proposal seq hash")
+			request := as.bft.proposalCache[hash]
+			if request != nil {
+				delete(as.bft.proposalCache, hash)
+				m := Message{
+					Type:    og.MessageTypeProposal,
+					Payload: request,
+				}
+				as.bft.BFTPartner.GetIncomingMessageChannel() <- m
+
 			}
 
 		}

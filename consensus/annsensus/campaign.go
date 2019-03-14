@@ -16,7 +16,6 @@ package annsensus
 import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 var campaigningMinBalance = math.NewBigInt(1000)

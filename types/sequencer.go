@@ -31,7 +31,8 @@ type Sequencer struct {
 	TxBase
 	Issuer        Address
 	BlsJointSig   []byte
-	BlsJoinPubKey []byte
+	BlsJointPubKey []byte
+	Proposing       bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
 func (t *Sequencer) String() string {
@@ -78,7 +79,7 @@ func RandomSequencer() *Sequencer {
 func (t *Sequencer) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.BlsJoinPubKey))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.BlsJointPubKey))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
@@ -138,7 +139,7 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 	return &RawSequencer{
 		TxBase:        s.TxBase,
 		BlsJointSig:   s.BlsJointSig,
-		BlsJoinPubKey: s.BlsJoinPubKey,
+		BlsJointPubKey: s.BlsJointPubKey,
 	}
 }
 

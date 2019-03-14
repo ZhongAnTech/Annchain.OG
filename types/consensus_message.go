@@ -45,6 +45,7 @@ type Proposal interface {
 	GetId() *Hash
 	msg.Message
 	String() string
+	Copy()Proposal
 }
 
 //StringProposal is for test
@@ -56,6 +57,12 @@ func (s StringProposal) Equal(o Proposal) bool {
 		return false
 	}
 	return s == *v
+}
+
+func (s StringProposal)Copy ()Proposal {
+	var r StringProposal
+	r = s
+	return &r
 }
 
 func (s StringProposal) GetId() *Hash {
@@ -88,6 +95,13 @@ type MessageProposal struct {
 	ValidRound int
 	//PublicKey  []byte
 	Signature []byte
+}
+
+func (m  MessageProposal)Copy()*MessageProposal {
+	var r MessageProposal
+	r = m
+	r.Value = m.Value.Copy()
+	return  &r
 }
 
 //msgp:tuple MessageCommonVote
@@ -179,4 +193,11 @@ func (s SequencerProposal) GetId() *Hash {
 	var hash Hash
 	hash.MustSetBytes(s.GetTxHash().ToBytes(), PaddingNone)
 	return &hash
+}
+
+
+func (s SequencerProposal)Copy()Proposal {
+	var r SequencerProposal
+	r =s
+	return &r
 }

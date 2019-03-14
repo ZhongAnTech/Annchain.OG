@@ -160,7 +160,7 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, accountNonce uint64) types.Txi {
+func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, accountNonce uint64) *types.Sequencer {
 	tx := types.Sequencer{
 		Issuer: issuer,
 		TxBase: types.TxBase{
@@ -279,10 +279,13 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 	return true
 }
 
-func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey) (seq *types.Sequencer) {
+func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *types.Sequencer) {
 	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
+	tx.GetBase().PublicKey = m.Signer.PubKey(*privateKey).Bytes
+	tx.BlsJointPubKey = blsPubKey
+	tx.Proposing = true
 	connectionTries := 0
 	timeStart := time.Now()
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
@@ -329,7 +332,7 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 			"elapsedns":  time.Since(timeStart).Nanoseconds(),
 			"re-connect": connectionTries,
 		}).Tracef("total time for mining")
-		return tx.(*types.Sequencer)
+		return tx
 	}
 	logrus.WithFields(logrus.Fields{
 		"elapsedns":  time.Since(timeStart).Nanoseconds(),

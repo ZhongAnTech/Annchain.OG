@@ -26,7 +26,6 @@ import (
 )
 
 //go:generate msgp
-//msgp:tuple p2PMessage
 
 const (
 	OG01 = 01

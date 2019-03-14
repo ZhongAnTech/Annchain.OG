@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	TimeoutPropose   = time.Duration(5) * time.Second
-	TimeoutPreVote   = time.Duration(5) * time.Second
-	TimeoutPreCommit = time.Duration(5) * time.Second
+	TimeoutPropose   = time.Duration(8) * time.Second
+	TimeoutPreVote   = time.Duration(8) * time.Second
+	TimeoutPreCommit = time.Duration(8) * time.Second
 	TimeoutDelta     = time.Duration(1) * time.Second
 )
 

@@ -295,7 +295,7 @@ func (z *RawSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.BlsJoinPubKey, err = dc.ReadBytes(z.BlsJoinPubKey)
+	z.BlsJointPubKey, err = dc.ReadBytes(z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -317,7 +317,7 @@ func (z *RawSequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.BlsJoinPubKey)
+	err = en.WriteBytes(z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -334,7 +334,7 @@ func (z *RawSequencer) MarshalMsg(b []byte) (o []byte, err error) {
 		return
 	}
 	o = msgp.AppendBytes(o, z.BlsJointSig)
-	o = msgp.AppendBytes(o, z.BlsJoinPubKey)
+	o = msgp.AppendBytes(o, z.BlsJointPubKey)
 	return
 }
 
@@ -357,7 +357,7 @@ func (z *RawSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.BlsJoinPubKey, bts, err = msgp.ReadBytesBytes(bts, z.BlsJoinPubKey)
+	z.BlsJointPubKey, bts, err = msgp.ReadBytesBytes(bts, z.BlsJointPubKey)
 	if err != nil {
 		return
 	}
@@ -367,7 +367,7 @@ func (z *RawSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawSequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.BlsJointSig) + msgp.BytesPrefixSize + len(z.BlsJoinPubKey)
+	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.BlsJointSig) + msgp.BytesPrefixSize + len(z.BlsJointPubKey)
 	return
 }
 
@@ -411,7 +411,7 @@ func (z *RawSequencers) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-			(*z)[zb0001].BlsJoinPubKey, err = dc.ReadBytes((*z)[zb0001].BlsJoinPubKey)
+			(*z)[zb0001].BlsJointPubKey, err = dc.ReadBytes((*z)[zb0001].BlsJointPubKey)
 			if err != nil {
 				return
 			}
@@ -446,7 +446,7 @@ func (z RawSequencers) EncodeMsg(en *msgp.Writer) (err error) {
 			if err != nil {
 				return
 			}
-			err = en.WriteBytes(z[zb0004].BlsJoinPubKey)
+			err = en.WriteBytes(z[zb0004].BlsJointPubKey)
 			if err != nil {
 				return
 			}
@@ -470,7 +470,7 @@ func (z RawSequencers) MarshalMsg(b []byte) (o []byte, err error) {
 				return
 			}
 			o = msgp.AppendBytes(o, z[zb0004].BlsJointSig)
-			o = msgp.AppendBytes(o, z[zb0004].BlsJoinPubKey)
+			o = msgp.AppendBytes(o, z[zb0004].BlsJointPubKey)
 		}
 	}
 	return
@@ -516,7 +516,7 @@ func (z *RawSequencers) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-			(*z)[zb0001].BlsJoinPubKey, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].BlsJoinPubKey)
+			(*z)[zb0001].BlsJointPubKey, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].BlsJointPubKey)
 			if err != nil {
 				return
 			}
@@ -533,7 +533,7 @@ func (z RawSequencers) Msgsize() (s int) {
 		if z[zb0004] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + z[zb0004].TxBase.Msgsize() + msgp.BytesPrefixSize + len(z[zb0004].BlsJointSig) + msgp.BytesPrefixSize + len(z[zb0004].BlsJoinPubKey)
+			s += 1 + z[zb0004].TxBase.Msgsize() + msgp.BytesPrefixSize + len(z[zb0004].BlsJointSig) + msgp.BytesPrefixSize + len(z[zb0004].BlsJointPubKey)
 		}
 	}
 	return

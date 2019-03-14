@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
@@ -228,6 +229,7 @@ func initLogger() {
 	p2p.InitLoggers(logger, logdir)
 	og.InitLoggers(logger, logdir)
 	syncer.InitLoggers(logger, logdir)
+	annsensus.InitLoggers(logger,logdir)
 
 }
 

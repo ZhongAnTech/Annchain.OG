@@ -276,7 +276,7 @@ func NewNode() *Node {
 	threshold := viper.GetInt("annsensus.threshold")
 	sequencerTime := viper.GetInt("annsensus.sequencerTime")
 	if sequencerTime == 0 {
-		sequencerTime = 2500
+		sequencerTime = 3000
 	}
 	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts)
 	autoClientManager := &AutoClientManager{
@@ -303,8 +303,8 @@ func NewNode() *Node {
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
 
-	annSensus.InitBFt(myAccount, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator, verifiers)
+	annSensus.InitAccount(myAccount, time.Millisecond*time.Duration(sequencerTime),
+		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
@@ -387,6 +387,9 @@ func NewNode() *Node {
 	m.ConsensusPreVoteHandler = annSensus
 	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
 	annSensus.Hub = hub
+	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
+	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqCh
+	annSensus.OnSelfGenTxi = txBuffer.SelfGeneratedNewTxChan
 
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
 

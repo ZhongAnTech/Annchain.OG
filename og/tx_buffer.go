@@ -81,6 +81,7 @@ type TxBuffer struct {
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
+	OnProposalSeqCh        chan types.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
 }
@@ -363,6 +364,17 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+	if tx.GetType() ==types.TxBaseTypeSequencer {
+		seq:= tx.(*types.Sequencer)
+		if seq.Proposing {
+			go func () {
+				b.OnProposalSeqCh <-seq.GetTxHash()
+			}()
+           logrus.WithField("seq ",seq).Debug("is a proposiong seq ")
+			return
+		}
+	}
+
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	//children := b.children.GetAndRemove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
@@ -502,6 +514,13 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
+		if tx.GetType() == types.TxBaseTypeSequencer{
+			seq:= tx.(*types.Sequencer)
+			//proposing seq
+			if seq.Proposing{
+				return allFetched
+			}
+		}
 		b.updateDependencyMap(tx.GetTxHash(), tx)
 	}
 	return allFetched

@@ -18,7 +18,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	log "github.com/sirupsen/logrus"
 )
 
 // consensus related verification
@@ -55,7 +54,12 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		log.Warn("not found senator for address")
 		return false
 	}
-	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJoinPubKey)
+	if seq.Proposing {
+		log.WithField("hash ",seq.GetTxHash()).Debug("proposing seq")
+		return true
+	}
+	log.WithField("hash ",seq.GetTxHash()).Debug("normal seq seq")
+	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey)
 	if !ok {
 		return false
 	}

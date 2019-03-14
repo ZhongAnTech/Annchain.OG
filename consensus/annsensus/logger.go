@@ -1,3 +1,5 @@
+
+
 // Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,35 +16,13 @@
 package annsensus
 
 import (
-	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/hexutil"
-	"testing"
+	"github.com/annchain/OG/mylog"
+	"github.com/sirupsen/logrus"
 )
 
-func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(1, true, 5, 4,
-		nil)
-	pk := as.dkg.pk
-	fmt.Println(hexutil.Encode(pk))
-	point, err := bn256.UnmarshalBinaryPointG2(pk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(point)
+var log  *logrus.Logger
+
+func InitLoggers(logger *logrus.Logger, logdir string) {
+	log = mylog.InitLogger(logger, logdir, "og_ann.log")
+	logrus.Debug("message logger initialized.")
 }
-
-func TestNewDKGPartner(t *testing.T) {
-
-	for j:=0;j<22;j++ {
-		fmt.Println(j,j*2/3+1)
-	}
-	var ann AnnSensus
-	for i := 0; i < 4; i++ {
-		d := newDkg(&ann, true, 4, 4)
-		fmt.Println(hexutil.Encode(d.pk))
-		fmt.Println(d.partner.MyPartSec)
-	}
-
-}
-

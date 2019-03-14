@@ -35,7 +35,7 @@ type Dkg struct {
 	ann *AnnSensus
 
 	dkgOn             bool
-	myPublicKey                []byte
+	myPublicKey       []byte
 	partner           *DKGPartner
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}

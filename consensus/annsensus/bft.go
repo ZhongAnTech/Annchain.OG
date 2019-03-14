@@ -28,15 +28,15 @@ import (
 
 //BFT is og sequencer consensus system based on BFT consensus
 type BFT struct {
-	BFTPartner   *OGBFTPartner
-	startBftChan chan bool
-	resetChan    chan bool
-	mu           sync.RWMutex
-	quit         chan bool
-	ann          *AnnSensus
-	creator      *og.TxCreator
-	JudgeNonceFunction   func(account *account.SampleAccount) uint64
-	decisionChan   chan *HeightRoundState
+	BFTPartner         *OGBFTPartner
+	startBftChan       chan bool
+	resetChan          chan bool
+	mu                 sync.RWMutex
+	quit               chan bool
+	ann                *AnnSensus
+	creator            *og.TxCreator
+	JudgeNonceFunction func(account *account.SampleAccount) uint64
+	decisionChan       chan *HeightRoundState
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
 }
@@ -73,7 +73,7 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 		quit:          make(chan bool),
 		startBftChan:  make(chan bool),
 		resetChan:     make(chan bool),
-		decisionChan:    make(chan *HeightRoundState),
+		decisionChan:  make(chan *HeightRoundState),
 		creator:       txCreator,
 		proposalCache: make(map[types.Hash]*types.MessageProposal),
 	}
@@ -274,7 +274,6 @@ func (t *BFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) boo
 	return false
 
 }
-
 
 //calculate seed
 func CalculateRandomSeed(jointSig []byte) []byte {

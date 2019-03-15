@@ -16,7 +16,6 @@ package annsensus
 import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"math/rand"
 )
 
 type DummyDag struct {
@@ -43,9 +42,7 @@ func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
 }
 
 func (d *DummyDag) LatestSequencer() *types.Sequencer {
-	return &types.Sequencer{
-		TxBase: types.TxBase{Height: rand.Uint64()},
-	}
+	return types.RandomSequencer()
 }
 
 func (d *DummyDag) GetSequencer(hash types.Hash, id uint64) *types.Sequencer {

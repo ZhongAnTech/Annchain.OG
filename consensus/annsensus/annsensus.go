@@ -36,9 +36,9 @@ type AnnSensus struct {
 
 	dkg  *Dkg
 	term *Term
-	bft  *BFT // tendermint
+	bft  *BFT // tendermint protocal
 
-	dkgPkCh              chan kyber.Point // channel for receiving dkg response.
+	dkgPulicKeyChan      chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
 	ConsensusTXConfirmed chan []types.Txi // receiving consensus txs from dag confirm.
 
@@ -60,9 +60,11 @@ type AnnSensus struct {
 	newTermChan                   chan struct{}
 	genesisPkChan                 chan *types.MessageConsensusDkgGenesisPublicKey
 	NewPeerConnectedEventListener chan string
-	ProposalSeqCh                 chan types.Hash
+	ProposalSeqChan               chan types.Hash
 	HandleNewTxi                  func(tx types.Txi)
 	OnSelfGenTxi                  chan types.Txi
+	TxEnable                      bool
+	NewLatestSequencer            chan bool
 }
 
 func Maj23(n int) int {
@@ -82,7 +84,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
 	ann.cryptoType = cryptoType
-	ann.dkgPkCh = make(chan kyber.Point)
+	ann.dkgPulicKeyChan = make(chan kyber.Point)
 	ann.UpdateEvent = make(chan bool)
 	dkg := newDkg(ann, campaign, partnerNum, Maj23(partnerNum))
 	ann.dkg = dkg
@@ -92,8 +94,9 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.newTermChan = make(chan struct{})
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
 	ann.NewPeerConnectedEventListener = make(chan string)
-	ann.ProposalSeqCh = make(chan types.Hash)
-	log.WithField("nbartner ", ann.NbParticipants).Info("new ann")
+	ann.ProposalSeqChan = make(chan types.Hash)
+	ann.NewLatestSequencer = make(chan bool)
+	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 	return ann
 }
 
@@ -163,10 +166,10 @@ func (as *AnnSensus) ProdCampaignOn() {
 
 // campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
 func (as *AnnSensus) prodcampaign() {
-	as.dkg.GenerateDkg()
-
+	//generate new dkg public key foe every campaign
+	candidatePublicKey := as.dkg.GenerateDkg()
 	// generate campaign.
-	camp := as.genCamp(as.dkg.PublicKey())
+	camp := as.genCamp(candidatePublicKey)
 	if camp == nil {
 		return
 	}
@@ -190,7 +193,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 			return
 		}
 
-		err := as.AddCandidate(c)
+		err := as.AddCampaign(c)
 		if err != nil {
 			log.WithError(err).Debug("add campaign err")
 			continue
@@ -205,14 +208,14 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 			camps = append(camps, camp)
 		}
 		log.Debug("will termchange")
-		go as.changeTerm(camps)
+		go as.changeTerm()
 
 	}
 }
 
 // AddCandidate adds campaign into annsensus if the campaign meets the
 // candidate requirements.
-func (as *AnnSensus) AddCandidate(cp *types.Campaign) error {
+func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 
 	if as.term.HasCampaign(cp) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
@@ -225,9 +228,9 @@ func (as *AnnSensus) AddCandidate(cp *types.Campaign) error {
 		return fmt.Errorf("pubkey is nil ")
 	}
 
-	as.dkg.AddPartner(cp, &as.MyAccount.PublicKey)
-	as.term.AddCandidate(cp)
-	// log.WithField("me ",as.id).WithField("add cp", cp ).Debug("added")
+	//as.dkg.AddPartner(cp, &as.MyAccount.PublicKey)
+	as.term.AddCampaign(cp)
+	log.WithField("me ", as.id).WithField("add cp", cp).Debug("added")
 	return nil
 }
 
@@ -247,13 +250,18 @@ func (as *AnnSensus) isTermChanging() bool {
 // canChangeTerm returns true if the candidates cached reaches the
 // term change requirments.
 func (as *AnnSensus) canChangeTerm() bool {
-	return as.term.CanChange()
+	return as.term.CanChange(as.Idag.LatestSequencer().Height)
 }
 
-func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
+func (as *AnnSensus) changeTerm() {
 	log := log.WithField("me", as.id)
 	// start term change gossip
-	as.dkg.loadCampaigns(camps)
+	as.dkg.Reset()
+	as.dkg.SelectCandidates()
+	if !as.dkg.isValidPartner {
+		log.Debug("i am not a lucky dkg partner quit")
+		return
+	}
 	as.dkg.StartGossip()
 
 	for {
@@ -262,7 +270,7 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 			log.Info("got quit signal , annsensus termchange stopped")
 			return
 
-		case pk := <-as.dkgPkCh:
+		case pk := <-as.dkgPulicKeyChan:
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			if atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				go func() {
@@ -271,6 +279,9 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
 				continue
 			}
+			//after dkg  gossip finished, set term change flag
+			//term change is finifhed
+			as.term.SwitchFlag(false)
 			sigset := as.dkg.GetBlsSigsets()
 			log.WithField("sig sets ", sigset).Info("got sigsets ")
 			//continue //for test case commit this
@@ -329,7 +340,8 @@ func (as *AnnSensus) loop() {
 	var genesisCamps = make(map[int]*types.Campaign)
 	var peerNum int
 	var initDone bool
-	var lastheight uint64
+	var lastHeight uint64
+	var termId uint64
 
 	for {
 		select {
@@ -360,16 +372,21 @@ func (as *AnnSensus) loop() {
 				tc, err := as.pickTermChg(tcs)
 				if err != nil {
 					log.Errorf("the received termchanges are not correct.")
+					continue
 				}
 				if !as.isTermChanging() {
 					continue
 				}
-				err = as.term.ChangeTerm(tc)
+				err = as.term.ChangeTerm(tc, as.Idag.LatestSequencer().Height)
 				if err != nil {
 					log.Errorf("change term error: %v", err)
 					continue
 				}
-				as.newTermChan <- struct{}{}
+				//send the signal if i am a partner of consensus nodes
+				if as.dkg.isValidPartner {
+					as.newTermChan <- struct{}{}
+				}
+
 			}
 
 		case <-as.newTermChan:
@@ -382,19 +399,29 @@ func (as *AnnSensus) loop() {
 			log.Info("got newtermcahneg signal")
 			as.bft.startBftChan <- true
 
-		case <-time.After(time.Millisecond * 300):
+		case <-as.NewLatestSequencer:
+			if !as.campaignFlag {
+				continue
+			}
 			height := as.Idag.LatestSequencer().Height
-			if height <= lastheight {
+			if height <= lastHeight {
 				//should updated
 				continue
 			}
-			lastheight = height
-			if height > 2 && height%15 == 0 {
+			if termId < as.term.ID() {
+				termId = as.term.ID()
 				//may i send campaign ?
-				as.ProdCampaignOn()
+				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
+				go as.ProdCampaignOn()
+			}
+			lastHeight = height
+			//if as.term.startedHeight
+			if !as.isTermChanging() && height > 2 && (height-1)%uint64(as.NbParticipants+2) == 0 {
+
 			}
 
 		case isUptoDate := <-as.UpdateEvent:
+			as.TxEnable = isUptoDate
 			height := as.Idag.LatestSequencer().Height
 			log.WithField("height ", height).WithField("v ", isUptoDate).Info("get isUptoDate event")
 			if isUptoDate && height == 0 && as.isGenesisPartner {
@@ -462,7 +489,7 @@ func (as *AnnSensus) loop() {
 				go as.commit(genesisCampList)
 			}
 
-		case hash := <-as.ProposalSeqCh:
+		case hash := <-as.ProposalSeqChan:
 			log.WithField("hash ", hash.TerminalString()).Debug("got proposal seq hash")
 			request := as.bft.proposalCache[hash]
 			if request != nil {

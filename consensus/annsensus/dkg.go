@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	"sort"
 	"strings"
 	"sync"
@@ -33,10 +34,11 @@ import (
 
 type Dkg struct {
 	ann *AnnSensus
-
+    TermId            int
 	dkgOn             bool
 	myPublicKey       []byte
 	partner           *DKGPartner
+	formerPartner       *DKGPartner   //used for case : partner reset , but bft is still generating sequencer
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
@@ -48,6 +50,7 @@ type Dkg struct {
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
 	blsSigSets        map[types.Address]*types.SigSet
 	ready             bool
+	isValidPartner    bool
 
 	mu     sync.RWMutex
 	signer crypto.Signer
@@ -71,6 +74,8 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dkgOn = dkgOn
 	if d.dkgOn {
 		d.GenerateDkg() //todo fix later
+		d.myPublicKey = d.partner.CandidatePublicKey
+		d.partner.MyPartSec = d.partner.CandidatePartSec
 	}
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
@@ -78,19 +83,36 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
+	d.isValidPartner = false
 	d.signer = crypto.NewSigner(d.ann.cryptoType)
 	return d
 }
 
 func (d *Dkg) Reset() {
+
+	d.mu.RLock()
+	defer d.mu.Unlock()
+	partSec:= d.partner.CandidatePartSec
+	pubKey := d.partner.CandidatePublicKey
+	d.formerPartner = d.partner
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
-
+	p.MyPartSec = partSec
+    d.dkgOn = false
 	d.partner = p
-	d.myPublicKey = nil
+	d.myPublicKey = pubKey
+	d.TermId++
+	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
+	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
+	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
+	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
+	d.blsSigSets = make(map[types.Address]*types.SigSet)
+	d.ready = false
 }
+
+
 
 func (d *Dkg) start() {
 	//TODO
@@ -103,17 +125,19 @@ func (d *Dkg) stop() {
 	log.Info("dkg stop")
 }
 
-func (d *Dkg) GenerateDkg() {
+func (d *Dkg) GenerateDkg()  []byte  {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	sec, pub := genPartnerPair(d.partner)
-	d.partner.MyPartSec = sec
+	d.partner.CandidatePartSec = sec
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-	d.myPublicKey = pk
+	d.partner.CandidatePublicKey = pk
+	return  pk
 }
 
+//PublicKey current pk
 func (d *Dkg) PublicKey() []byte {
 	return d.myPublicKey
 }
@@ -122,7 +146,93 @@ func (d *Dkg) StartGossip() {
 	d.gossipStartCh <- struct{}{}
 }
 
-func (d *Dkg) loadCampaigns(camps []*types.Campaign) {
+type VrfSelection struct {
+	addr   types.Address
+	Vrf    hexutil.Bytes
+	XORVRF hexutil.Bytes
+	Id     int //for test
+}
+
+type VrfSelections []VrfSelection
+
+func (a VrfSelections) Len() int      { return len(a) }
+func (a VrfSelections) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a VrfSelections) Less(i, j int) bool {
+	return hexutil.Encode(a[i].XORVRF) < hexutil.Encode(a[j].XORVRF)
+}
+
+func (v VrfSelection) String() string {
+	return fmt.Sprintf("id-%d-a-%s-v-%s-xor-%s", v.Id, hexutil.Encode(v.addr.Bytes[:4]), hexutil.Encode(v.Vrf[:4]), hexutil.Encode(v.XORVRF[:4]))
+}
+
+// XOR takes two byte slices, XORs them together, returns the resulting slice.
+func XOR(a, b []byte) []byte {
+	c := make([]byte, len(a))
+	for i := 0; i < len(a); i++ {
+		c[i] = a[i] ^ b[i]
+	}
+	return c
+}
+
+func (d *Dkg) SelectCandidates() {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	seq := d.ann.Idag.LatestSequencer()
+
+	if len(d.ann.term.campaigns) == d.ann.NbParticipants {
+		log.Debug("campaign number is equal to participant number ,all will be senator")
+	}
+	if len(d.ann.term.campaigns) < d.ann.NbParticipants {
+		panic("never come here , programmer error")
+	}
+	randomSeed := CalculateRandomSeed(seq.BlsJointSig)
+	log.WithField("rand seed ", hexutil.Encode(randomSeed)).Debug("generated")
+	var vrfSelections VrfSelections
+	var j int
+	d.ann.term.mu.RLock()
+	for addr, cp := range d.ann.term.campaigns {
+		vrfSelect := VrfSelection{
+			addr:   addr,
+			Vrf:    cp.Vrf.Vrf,
+			XORVRF: XOR(cp.Vrf.Vrf, randomSeed),
+			Id:     j,
+		}
+		j++
+		vrfSelections = append(vrfSelections, vrfSelect)
+	}
+	d.ann.term.mu.RUnlock()
+	log.Debugf("we have %d capmpaigns, select %d of them ")
+	for j, v := range vrfSelections {
+		log.WithField("v", v).WithField(" j ", j).Trace("before sort")
+	}
+	//log.Trace(vrfSelections)
+	sort.Sort(vrfSelections)
+	for j, v := range vrfSelections {
+		if j == d.ann.NbParticipants {
+			break
+		}
+		cp := d.ann.term.GetCampaign(v.addr)
+		if cp == nil {
+			panic("cp is nil")
+		}
+		d.ann.term.AddCandidate(cp)
+		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
+		if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
+			log.Debug("congratulation i am a partner of dkg ")
+			d.isValidPartner = true
+		}
+		//add here with sorted
+		d.addPartner(cp)
+	}
+	if !d.isValidPartner {
+		log.Debug("unfortunately  i am not a partner of dkg ")
+	}else {
+		d.dkgOn = true
+		d.GenerateDkg()
+	}
+
+	//log.Debug(vrfSelections)
+
 	//for _, camp := range camps {
 	//	d.partner.PartPubs = append(d.partner.PartPubs, camp.GetDkgPublicKey())
 	//	d.partner.addressIndex[camp.Sender()] = len(d.partner.PartPubs) - 1
@@ -133,16 +243,20 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-func (d *Dkg) AddPartner(c *types.Campaign, myPubKey *crypto.PublicKey) {
+func (d *Dkg) AddPartner(c *types.Campaign) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	 d.addPartner(c)
+	return
 
+}
+
+func (d *Dkg) addPartner(c *types.Campaign) {
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
-	if bytes.Equal(c.PublicKey, myPubKey.Bytes) {
+	if bytes.Equal(c.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
 	}
 	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
-
 }
 
 func (d *Dkg) GetBlsSigsets() []*types.SigSet {
@@ -503,7 +617,7 @@ func (d *Dkg) gossiploop() {
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
-				d.ann.dkgPkCh <- d.partner.jointPubKey
+				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
 			}
 
 		case <-d.gossipStopCh:
@@ -637,4 +751,42 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 	return true
 	//todo how to verify when term change
 	// d.partner.jointPubKey
+}
+
+
+func (d *Dkg)RecoverAndVerifySignature(sigShares [][]byte, msg []byte , dkgTermId int) (jointSig []byte, err error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	partner := d.partner
+	//if the term id is small ,use former partner to verify
+	if dkgTermId < d.TermId {
+		partner = d.formerPartner
+	}
+	partner.SigShares = sigShares
+	defer func () {
+		partner.SigShares = nil
+	} ()
+	jointSig, err = partner.RecoverSig(msg)
+	if err != nil {
+		log.Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
+			partner.Id, len(partner.SigShares), err)
+		return nil, err
+	}
+	log.Debugf("threshold signature from partner %d: %s\n", partner.Id, hexutil.Encode(jointSig))
+	// verify if JointSig meets the JointPubkey
+	err = partner.VerifyByDksPublic(msg, jointSig)
+	if err != nil {
+		log.WithError(err).Warnf("joinsig verify failed ")
+		return  nil, err
+	}
+
+		// verify if JointSig meets the JointPubkey
+		err = partner.VerifyByPubPoly(msg, jointSig)
+	if err != nil {
+		log.WithError(err).Warnf("joinsig verify failed ")
+		return  nil, err
+	}
+		return  jointSig,nil
+
+
 }

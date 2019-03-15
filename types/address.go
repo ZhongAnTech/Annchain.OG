@@ -80,6 +80,10 @@ func (h Address) TerminalString() string {
 	return fmt.Sprintf("%x…%x", h.Bytes[:3], h.Bytes[len(h.Bytes)-3:])
 }
 
+func (h Address) ShortString() string {
+	return hexutil.Encode(h.Bytes[:8])
+}
+
 // String implements the stringer interface and is used also by the logger when
 // doing full logging into a file.
 func (h Address) String() string {

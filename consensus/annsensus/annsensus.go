@@ -203,10 +203,6 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		}
 		// start term changing.
 		as.term.SwitchFlag(true)
-		camps := []*types.Campaign{}
-		for _, camp := range as.Candidates() {
-			camps = append(camps, camp)
-		}
 		log.Debug("will termchange")
 		go as.changeTerm()
 
@@ -250,7 +246,8 @@ func (as *AnnSensus) isTermChanging() bool {
 // canChangeTerm returns true if the candidates cached reaches the
 // term change requirments.
 func (as *AnnSensus) canChangeTerm() bool {
-	return as.term.CanChange(as.Idag.LatestSequencer().Height)
+	ok := as.term.CanChange(as.Idag.LatestSequencer().Height, atomic.LoadUint32(&as.genesisBftIsRunning) == 1)
+	return ok
 }
 
 func (as *AnnSensus) changeTerm() {
@@ -400,6 +397,17 @@ func (as *AnnSensus) loop() {
 			as.bft.startBftChan <- true
 
 		case <-as.NewLatestSequencer:
+
+			if !as.isTermChanging() {
+				if !as.canChangeTerm() {
+					continue
+				}
+				// start term changing.
+				as.term.SwitchFlag(true)
+				log.Debug("will termchange")
+				go as.changeTerm()
+			}
+
 			if !as.campaignFlag {
 				continue
 			}

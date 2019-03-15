@@ -91,7 +91,7 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 func (d *Dkg) Reset() {
 
 	d.mu.RLock()
-	defer d.mu.Unlock()
+	defer d.mu.RUnlock()
 	partSec := d.partner.CandidatePartSec
 	pubKey := d.partner.CandidatePublicKey
 	d.formerPartner = d.partner
@@ -179,6 +179,24 @@ func (d *Dkg) SelectCandidates() {
 
 	if len(d.ann.term.campaigns) == d.ann.NbParticipants {
 		log.Debug("campaign number is equal to participant number ,all will be senator")
+		var txs types.Txis
+		for _, cp := range d.ann.term.campaigns {
+			if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
+				d.isValidPartner = true
+			}
+			txs = append(txs, cp)
+		}
+		sort.Sort(txs)
+		for _, tx := range txs {
+			cp := tx.(*types.Campaign)
+			d.ann.term.AddCandidate(cp)
+			if d.isValidPartner {
+				d.addPartner(cp)
+				d.dkgOn = true
+				d.GenerateDkg()
+			}
+		}
+		return
 	}
 	if len(d.ann.term.campaigns) < d.ann.NbParticipants {
 		panic("never come here , programmer error")
@@ -199,7 +217,7 @@ func (d *Dkg) SelectCandidates() {
 		vrfSelections = append(vrfSelections, vrfSelect)
 	}
 	d.ann.term.mu.RUnlock()
-	log.Debugf("we have %d capmpaigns, select %d of them ")
+	log.Debugf("we have %d capmpaigns, select %d of them ", len(d.ann.term.campaigns), d.ann.NbParticipants)
 	for j, v := range vrfSelections {
 		log.WithField("v", v).WithField(" j ", j).Trace("before sort")
 	}
@@ -224,6 +242,7 @@ func (d *Dkg) SelectCandidates() {
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
+
 	} else {
 		d.dkgOn = true
 		d.GenerateDkg()

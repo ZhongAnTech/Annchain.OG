@@ -168,24 +168,25 @@ func (t *Term) hasCampaign(c *types.Campaign) bool {
 
 // CanChange returns true if the campaigns cached reaches the
 // term change requirments.
-func (t *Term) CanChange(lastHeight uint64) bool {
+func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	// TODO:
 	// term change requirements are not enough now.
-	if len(t.candidates) == 0 {
+	if len(t.campaigns) == 0 {
 		return false
 	}
-	if len(t.candidates) < t.partsNum {
-		log.WithField("len ", len(t.candidates)).Debug("not enough campaigns , waiting")
+	if len(t.campaigns) < t.partsNum {
+		log.WithField("len ", len(t.campaigns)).Debug("not enough campaigns , waiting")
 		return false
 	}
-
-	if lastHeight-t.startedHeight < uint64(t.partsNum*3+2) {
+	if isGenesis {
 		return true
 	}
-
+	if lastHeight-t.startedHeight < uint64(t.partsNum*3+2) {
+		return false
+	}
 	return true
 }
 

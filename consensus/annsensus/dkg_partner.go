@@ -29,7 +29,7 @@ type DKGPartner struct {
 	PartPubs              []kyber.Point
 	MyPartSec             kyber.Scalar
 	CandidatePartSec      kyber.Scalar
-	CandidatePublicKey           []byte
+	CandidatePublicKey    []byte
 	addressIndex          map[types.Address]int
 	SecretKeyContribution map[types.Address]kyber.Scalar
 	Suite                 *bn256.Suite

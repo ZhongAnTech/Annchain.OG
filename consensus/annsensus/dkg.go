@@ -33,12 +33,12 @@ import (
 )
 
 type Dkg struct {
-	ann *AnnSensus
-    TermId            int
+	ann               *AnnSensus
+	TermId            int
 	dkgOn             bool
 	myPublicKey       []byte
 	partner           *DKGPartner
-	formerPartner       *DKGPartner   //used for case : partner reset , but bft is still generating sequencer
+	formerPartner     *DKGPartner //used for case : partner reset , but bft is still generating sequencer
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}
 	gossipReqCh       chan *types.MessageConsensusDkgDeal
@@ -92,7 +92,7 @@ func (d *Dkg) Reset() {
 
 	d.mu.RLock()
 	defer d.mu.Unlock()
-	partSec:= d.partner.CandidatePartSec
+	partSec := d.partner.CandidatePartSec
 	pubKey := d.partner.CandidatePublicKey
 	d.formerPartner = d.partner
 	p := NewDKGPartner(bn256.NewSuiteG2())
@@ -100,7 +100,7 @@ func (d *Dkg) Reset() {
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
 	p.MyPartSec = partSec
-    d.dkgOn = false
+	d.dkgOn = false
 	d.partner = p
 	d.myPublicKey = pubKey
 	d.TermId++
@@ -111,8 +111,6 @@ func (d *Dkg) Reset() {
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
 }
-
-
 
 func (d *Dkg) start() {
 	//TODO
@@ -125,7 +123,7 @@ func (d *Dkg) stop() {
 	log.Info("dkg stop")
 }
 
-func (d *Dkg) GenerateDkg()  []byte  {
+func (d *Dkg) GenerateDkg() []byte {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -134,7 +132,7 @@ func (d *Dkg) GenerateDkg()  []byte  {
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = pk
-	return  pk
+	return pk
 }
 
 //PublicKey current pk
@@ -226,7 +224,7 @@ func (d *Dkg) SelectCandidates() {
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
-	}else {
+	} else {
 		d.dkgOn = true
 		d.GenerateDkg()
 	}
@@ -246,7 +244,7 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 func (d *Dkg) AddPartner(c *types.Campaign) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	 d.addPartner(c)
+	d.addPartner(c)
 	return
 
 }
@@ -753,8 +751,7 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 	// d.partner.jointPubKey
 }
 
-
-func (d *Dkg)RecoverAndVerifySignature(sigShares [][]byte, msg []byte , dkgTermId int) (jointSig []byte, err error) {
+func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId int) (jointSig []byte, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	partner := d.partner
@@ -763,9 +760,9 @@ func (d *Dkg)RecoverAndVerifySignature(sigShares [][]byte, msg []byte , dkgTermI
 		partner = d.formerPartner
 	}
 	partner.SigShares = sigShares
-	defer func () {
+	defer func() {
 		partner.SigShares = nil
-	} ()
+	}()
 	jointSig, err = partner.RecoverSig(msg)
 	if err != nil {
 		log.Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
@@ -777,16 +774,15 @@ func (d *Dkg)RecoverAndVerifySignature(sigShares [][]byte, msg []byte , dkgTermI
 	err = partner.VerifyByDksPublic(msg, jointSig)
 	if err != nil {
 		log.WithError(err).Warnf("joinsig verify failed ")
-		return  nil, err
+		return nil, err
 	}
 
-		// verify if JointSig meets the JointPubkey
-		err = partner.VerifyByPubPoly(msg, jointSig)
+	// verify if JointSig meets the JointPubkey
+	err = partner.VerifyByPubPoly(msg, jointSig)
 	if err != nil {
 		log.WithError(err).Warnf("joinsig verify failed ")
-		return  nil, err
+		return nil, err
 	}
-		return  jointSig,nil
-
+	return jointSig, nil
 
 }

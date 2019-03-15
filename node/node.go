@@ -388,9 +388,9 @@ func NewNode() *Node {
 	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
 	annSensus.Hub = hub
 	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
-	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqCh
+	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
 	annSensus.OnSelfGenTxi = txBuffer.SelfGeneratedNewTxChan
-
+	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
 
 	pm.Register(org.TxPool)

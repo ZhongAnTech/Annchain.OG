@@ -264,7 +264,7 @@ func (a *TestAnnSensus) Stop() {
 
 func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 	// generate campaign.
-	camp := as.genCamp(as.dkg.pk)
+	camp := as.genCamp(as.dkg.PublicKey())
 	as.newCampaign(camp)
 	ok := as.VerifyCampaign(camp)
 	if !ok {
@@ -296,10 +296,35 @@ func logInit() {
 	filenameHook := filename.NewHook()
 	filenameHook.Field = "line"
 	logrus.AddHook(filenameHook)
+	log = logrus.StandardLogger()
 }
 
 func TestDkg_VerifyBlsSig(t *testing.T) {
 	seq := types.RandomSequencer()
 	fmt.Println(seq.GetTxHash().Hex())
 	seq.BlsJointPubKey = []byte{}
+}
+
+func TestVrfSelections_Le(t *testing.T) {
+	logInit()
+	ann := AnnSensus{
+		Idag:           &DummyDag{},
+		NbParticipants: 4,
+	}
+	d := newDkg(&ann, true, 4, 3)
+	tm := newTerm(1, 21)
+	ann.term = tm
+	ann.dkg = d
+	for i := 0; i < 21; i++ {
+		h := types.RandomHash()
+		cp := types.Campaign{
+			Vrf: types.VrfInfo{
+				Vrf: h.Bytes[:],
+			},
+			Issuer: types.RandomAddress(),
+		}
+		tm.campaigns[cp.Issuer] = &cp
+	}
+	d.SelectCandidates()
+	return
 }

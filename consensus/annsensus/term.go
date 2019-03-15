@@ -20,15 +20,18 @@ import (
 )
 
 type Term struct {
-	id             uint64
-	flag           bool
-	partsNum       int
-	senators       Senators
-	formerSenators map[uint64]Senators
-	candidates     map[types.Address]*types.Campaign
-	alsorans       map[types.Address]*types.Campaign
-
-	mu sync.RWMutex
+	id                     uint64
+	flag                   bool
+	partsNum               int
+	senators               Senators
+	formerSenators         map[uint64]Senators
+	candidates             map[types.Address]*types.Campaign
+	alsorans               map[types.Address]*types.Campaign
+	campaigns              map[types.Address]*types.Campaign
+	startedHeight          uint64
+	generateCampaignHeight uint64
+	newTerm                bool
+	mu                     sync.RWMutex
 }
 
 func newTerm(id uint64, pn int) *Term {
@@ -40,6 +43,7 @@ func newTerm(id uint64, pn int) *Term {
 		formerSenators: make(map[uint64]Senators),
 		candidates:     make(map[types.Address]*types.Campaign),
 		alsorans:       make(map[types.Address]*types.Campaign),
+		campaigns:      make(map[types.Address]*types.Campaign),
 	}
 }
 
@@ -60,8 +64,13 @@ func (t *Term) UpdateID(id uint64) {
 func (t *Term) SwitchFlag(flag bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-
 	t.flag = flag
+}
+
+func (t *Term) SetStartedHeight(h uint64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.startedHeight = h
 }
 
 func (t *Term) Changing() bool {
@@ -90,6 +99,20 @@ func (t *Term) AddCandidate(c *types.Campaign) {
 	defer t.mu.Unlock()
 
 	t.candidates[c.Issuer] = c
+}
+
+func (t *Term) AddCampaign(c *types.Campaign) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.campaigns[c.Issuer] = c
+}
+
+func (t *Term) GetCampaign(addr types.Address) *types.Campaign {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.campaigns[addr]
 }
 
 func (t *Term) GetAlsoran(addr types.Address) *types.Campaign {
@@ -134,6 +157,9 @@ func (t *Term) hasCampaign(c *types.Campaign) bool {
 	if _, exists := t.candidates[c.Issuer]; exists {
 		return true
 	}
+	if _, exists := t.campaigns[c.Issuer]; exists {
+		return true
+	}
 	if _, exists := t.alsorans[c.Issuer]; exists {
 		return true
 	}
@@ -142,7 +168,7 @@ func (t *Term) hasCampaign(c *types.Campaign) bool {
 
 // CanChange returns true if the campaigns cached reaches the
 // term change requirments.
-func (t *Term) CanChange() bool {
+func (t *Term) CanChange(lastHeight uint64) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -156,10 +182,14 @@ func (t *Term) CanChange() bool {
 		return false
 	}
 
+	if lastHeight-t.startedHeight < uint64(t.partsNum*3+2) {
+		return true
+	}
+
 	return true
 }
 
-func (t *Term) ChangeTerm(tc *types.TermChange) error {
+func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -180,14 +210,18 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 	// TODO
 	// 1. update id.
 	// 2. process alsorans.
+	t.id++
+	t.startedHeight = lastHeight
 
 	return nil
 }
 
 type Senator struct {
-	addr  types.Address
-	pk    []byte
-	blspk []byte
+	addr         types.Address
+	pk           []byte
+	blspk        []byte
+	Id           int
+	CampaignHash types.Hash
 	// TODO:
 	// more variables?
 }

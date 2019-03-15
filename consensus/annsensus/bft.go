@@ -39,6 +39,7 @@ type BFT struct {
 	decisionChan       chan *HeightRoundState
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
+	DKGTermId          int
 }
 
 //OGBFTPartner implements BFTPartner
@@ -172,7 +173,7 @@ func (t *BFT) loop() {
 
 		case state := <-t.decisionChan:
 			//set nil first
-			t.ann.dkg.partner.SigShares = nil
+			var  sigShares [][]byte
 			sequencerProposal := state.Decision.(*types.SequencerProposal)
 			for i, commit := range state.PreCommits {
 				//blsSig := &types.BlsSigSet{
@@ -186,21 +187,9 @@ func (t *BFT) loop() {
 				}
 				log.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
 				log.Debug("commit ", commit)
-				t.ann.dkg.partner.SigShares = append(t.ann.dkg.partner.SigShares, commit.BlsSignature)
+				sigShares = append(sigShares, commit.BlsSignature)
 			}
-			jointSig, err := t.ann.dkg.partner.RecoverSig(sequencerProposal.GetId().ToBytes())
-			if err != nil {
-				log.Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
-					t.ann.dkg.partner.Id, len(t.ann.dkg.partner.SigShares), err)
-				continue
-			}
-			log.Debugf("threshold signature from partner %d: %s\n", t.ann.dkg.partner.Id, hexutil.Encode(jointSig))
-			// verify if JointSig meets the JointPubkey
-			err = t.ann.dkg.partner.VerifyByDksPublic(sequencerProposal.GetId().ToBytes(), jointSig)
-			if err == nil {
-				// verify if JointSig meets the JointPubkey
-				err = t.ann.dkg.partner.VerifyByPubPoly(sequencerProposal.GetId().ToBytes(), jointSig)
-			}
+			jointSig, err := t.ann.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), t.DKGTermId)
 			if err != nil {
 				log.WithError(err).Warnf("joinsig verify failed ")
 				continue

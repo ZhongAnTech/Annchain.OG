@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/dedis/kyber/util/random"
 	"math/rand"
 	"strings"
 
@@ -62,8 +63,8 @@ func SampleSequencer() *Sequencer {
 
 func RandomSequencer() *Sequencer {
 	id := uint64(rand.Int63n(1000))
-
-	return &Sequencer{
+	r := random.New()
+	seq := &Sequencer{
 		TxBase: TxBase{
 			Hash:         randomHash(),
 			Height:       id,
@@ -74,6 +75,11 @@ func RandomSequencer() *Sequencer {
 		},
 		Issuer: randomAddress(),
 	}
+	seq.BlsJointSig = make([]byte, 64)
+	seq.BlsJointPubKey = make([]byte, 128)
+	random.Bytes(seq.BlsJointPubKey, r)
+	random.Bytes(seq.BlsJointSig, r)
+	return seq
 }
 
 func (t *Sequencer) SignatureTargets() []byte {

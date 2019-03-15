@@ -39,7 +39,7 @@ type BFT struct {
 	decisionChan       chan *HeightRoundState
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
-	DKGTermId          int
+	DKGTermId     int
 }
 
 //OGBFTPartner implements BFTPartner
@@ -173,7 +173,7 @@ func (t *BFT) loop() {
 
 		case state := <-t.decisionChan:
 			//set nil first
-			var  sigShares [][]byte
+			var sigShares [][]byte
 			sequencerProposal := state.Decision.(*types.SequencerProposal)
 			for i, commit := range state.PreCommits {
 				//blsSig := &types.BlsSigSet{

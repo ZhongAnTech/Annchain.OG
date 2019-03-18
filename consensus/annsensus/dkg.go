@@ -24,8 +24,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
+	dkg "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
+	vss "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -438,7 +438,7 @@ func (d *Dkg) gossiploop() {
 			if d.partner.responseNumber < (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
 				continue
 			}
-			log.Info("got response done")
+			log.Debug("got response done")
 			d.mu.RLock()
 			jointPub, err := d.partner.RecoverPub()
 			d.mu.RUnlock()
@@ -449,7 +449,7 @@ func (d *Dkg) gossiploop() {
 			// send public key to changeTerm loop.
 			// TODO
 			// this channel may be changed later.
-			log.WithField("bls key ", jointPub).Info("joint pubkey ")
+			log.WithField("bls key ", jointPub).Trace("joint pubkey ")
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
@@ -502,12 +502,12 @@ func (d *Dkg) gossiploop() {
 			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Signature})
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
-				log.Info("got enough sig sets")
+				log.Trace("got enough sig sets")
 				d.ann.dkgPkCh <- d.partner.jointPubKey
 			}
 
 		case <-d.gossipStopCh:
-			log.Info("got quit signal dkg gossip stopped")
+			log.Trace("got quit signal dkg gossip stopped")
 			return
 		}
 	}

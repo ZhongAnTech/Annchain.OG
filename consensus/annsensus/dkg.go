@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
 	"sync"
@@ -110,6 +111,7 @@ func (d *Dkg) Reset() {
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
+	log.WithField("termId ", d.TermId).Debug("dkg will reset")
 }
 
 func (d *Dkg) start() {
@@ -123,16 +125,24 @@ func (d *Dkg) stop() {
 	log.Info("dkg stop")
 }
 
-func (d *Dkg) GenerateDkg() []byte {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
+func (d *Dkg) generateDkg() []byte {
 	sec, pub := genPartnerPair(d.partner)
 	d.partner.CandidatePartSec = sec
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = pk
+	log.WithField("sk ",sec).Trace("gen dkg ")
 	return pk
+}
+
+func (d *Dkg) log() *logrus.Entry {
+	return log.WithField("me ", d.partner.Id)
+}
+
+func (d *Dkg) GenerateDkg() []byte {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.generateDkg()
 }
 
 //PublicKey current pk
@@ -176,25 +186,29 @@ func (d *Dkg) SelectCandidates() {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	seq := d.ann.Idag.LatestSequencer()
-
+	log := d.log()
 	if len(d.ann.term.campaigns) == d.ann.NbParticipants {
 		log.Debug("campaign number is equal to participant number ,all will be senator")
 		var txs types.Txis
 		for _, cp := range d.ann.term.campaigns {
 			if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
 				d.isValidPartner = true
+				d.dkgOn = true
 			}
 			txs = append(txs, cp)
 		}
 		sort.Sort(txs)
 		for _, tx := range txs {
 			cp := tx.(*types.Campaign)
-			d.ann.term.AddCandidate(cp)
+			publicKey := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
+			d.ann.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
 				d.addPartner(cp)
-				d.dkgOn = true
-				d.GenerateDkg()
 			}
+		}
+		if d.isValidPartner {
+			//d.generateDkg()
+			log.Debug("you are lucky one")
 		}
 		return
 	}
@@ -231,7 +245,8 @@ func (d *Dkg) SelectCandidates() {
 		if cp == nil {
 			panic("cp is nil")
 		}
-		d.ann.term.AddCandidate(cp)
+		publicKey := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
+		d.ann.term.AddCandidate(cp, publicKey)
 		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
 		if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
 			log.Debug("congratulation i am a partner of dkg ")
@@ -242,10 +257,9 @@ func (d *Dkg) SelectCandidates() {
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
-
 	} else {
 		d.dkgOn = true
-		d.GenerateDkg()
+		//d.generateDkg()
 	}
 
 	//log.Debug(vrfSelections)
@@ -272,6 +286,7 @@ func (d *Dkg) addPartner(c *types.Campaign) {
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
 	if bytes.Equal(c.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
+		log.WithField("id ", d.partner.Id).Trace("my id")
 	}
 	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
 }
@@ -311,20 +326,21 @@ func (d *Dkg) CheckAddress(addr types.Address) bool {
 }
 
 func (d *Dkg) SendGenesisPublicKey() {
+	log := d.log()
 	for i := 0; i < len(d.ann.genesisAccounts); i++ {
 		msg := &types.MessageConsensusDkgGenesisPublicKey{
 			DkgPublicKey: d.myPublicKey,
 			PublicKey:    d.ann.MyAccount.PublicKey.Bytes,
 		}
 		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
-		if i == d.ann.id {
-			log.Tracef("escape me %d ", d.ann.id)
+		if uint32(i) == d.partner.Id {
+			log.Tracef("escape me %d ", d.partner.Id)
 			//myself
 			d.ann.genesisPkChan <- msg
 			continue
 		}
 		d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgGenesisPublicKey, msg, &d.ann.genesisAccounts[i])
-		log.WithField("msg ", msg).WithField("peer ", i).Debug("send pk to ")
+		log.WithField("msg ", msg).WithField("peer ", i).Debug("send genesis pk to ")
 	}
 }
 
@@ -436,11 +452,15 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
 	return
 }
 
+func (d *Dkg) GetId() uint32 {
+	return d.partner.Id
+}
+
 func (d *Dkg) gossiploop() {
-	log := log.WithField("me", d.partner.Id)
 	for {
 		select {
 		case <-d.gossipStartCh:
+			log := d.log()
 			log.Debug("gossip dkg started")
 			if !d.dkgOn {
 				//i am not a consensus partner
@@ -463,12 +483,13 @@ func (d *Dkg) gossiploop() {
 			//dkg is ready now, can process dkg msg
 			d.ready = true
 			d.mu.RUnlock()
-			log.Debug()
+			log.Debug("dkg is ready")
 			d.sendDealsToCorrespondingPartner(deals)
 			//process unhandled(cached) dkg msg
 			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
 
 		case request := <-d.gossipReqCh:
+			log := d.log()
 			if !d.dkgOn {
 				//not a consensus partner
 				log.Warn("why send to me")
@@ -527,7 +548,7 @@ func (d *Dkg) gossiploop() {
 			d.ProcessWaitingResponse(&deal)
 
 		case response := <-d.gossipRespCh:
-
+			log := d.log()
 			var resp dkg.Response
 			_, err := resp.UnmarshalMsg(response.Data)
 			if err != nil {
@@ -603,7 +624,7 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case response := <-d.gossipSigSetspCh:
-
+			log := d.log()
 			pkBls, err := bn256.UnmarshalBinaryPointG2(response.PkBls)
 			if err != nil {
 				log.WithError(err).Warn("verify signature failed")
@@ -638,6 +659,7 @@ func (d *Dkg) gossiploop() {
 			}
 
 		case <-d.gossipStopCh:
+			log := d.log()
 			log.Info("got quit signal dkg gossip stopped")
 			return
 		}
@@ -646,6 +668,7 @@ func (d *Dkg) gossiploop() {
 
 //CacheResponseIfDealNotReceived
 func (d *Dkg) CacheResponseIfDealNotReceived(resp *dkg.Response, response *types.MessageConsensusDkgDealResponse) (ok bool) {
+	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if v := d.partner.dealsIndex[resp.Index]; !v && resp.Index != d.partner.Id {
@@ -673,6 +696,7 @@ func (d *Dkg) CacheResponseIfNotReady(addr types.Address, response *types.Messag
 
 //CacheDealsIfNotReady check whether dkg is ready, not ready  cache the dkg deal
 func (d *Dkg) CacheDealsIfNotReady(addr types.Address, request *types.MessageConsensusDkgDeal) (ready bool) {
+	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if !d.ready {
@@ -730,6 +754,12 @@ func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 	return nil
 }
 
+func (d *Dkg) GetAddresIndex() map[types.Address]int {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.partner.addressIndex
+}
+
 type DealsMap map[int]*dkg.Deal
 
 func (t DealsMap) TerminateString() string {
@@ -751,6 +781,7 @@ func (t DealsMap) TerminateString() string {
 }
 
 func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
+	log := d.log()
 	pubKey, err := bn256.UnmarshalBinaryPointG2(jointPub)
 	if err != nil {
 		log.WithError(err).Warn("unmarshal join pubkey error")
@@ -770,13 +801,33 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 	// d.partner.jointPubKey
 }
 
+func (d *Dkg)Sign(msg []byte , termId int)(partSig [] byte, err error) {
+	 partner := d.partner
+	if termId  < d.TermId {
+		partner = d.formerPartner
+		log.Trace("use former partner to sign")
+	}
+	 return  partner.Sig(msg)
+}
+
+func (d *Dkg)GetJoinPublicKey(termId int) kyber.Point {
+	partner := d.partner
+	if termId  < d.TermId {
+		partner = d.formerPartner
+		log.Trace("use former partner to sign")
+	}
+	return  partner.jointPubKey
+}
+
 func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId int) (jointSig []byte, err error) {
+	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	partner := d.partner
 	//if the term id is small ,use former partner to verify
 	if dkgTermId < d.TermId {
 		partner = d.formerPartner
+		log.Debug("use former id")
 	}
 	partner.SigShares = sigShares
 	defer func() {

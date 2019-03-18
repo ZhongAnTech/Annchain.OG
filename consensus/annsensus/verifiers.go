@@ -50,8 +50,8 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 
 // consensus related verification
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
-	if senator := a.term.GetSenater(seq.Issuer); senator != nil {
-		log.Warn("not found senator for address")
+	if senator := a.term.GetSenator(seq.Issuer); senator == nil {
+		log.WithField("address ", seq.Issuer.ShortString()).Warn("not found senator for address")
 		return false
 	}
 	if seq.Proposing {

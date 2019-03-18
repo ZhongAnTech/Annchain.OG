@@ -33,7 +33,7 @@ type AutoClientManager struct {
 	delegate               *Delegate
 }
 
-func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
+func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinBaseId int ) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)
@@ -81,7 +81,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate) {
 		client := &AutoClient{
 			Delegate:             delegate,
 			SampleAccounts:       m.SampleAccounts,
-			MyAccountIndex:       accountIndices[0],
+			MyAccountIndex:       coinBaseId,
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),

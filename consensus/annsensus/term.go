@@ -14,6 +14,7 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/common/crypto"
 	"sync"
 
 	"github.com/annchain/OG/types"
@@ -26,6 +27,8 @@ type Term struct {
 	senators               Senators
 	formerSenators         map[uint64]Senators
 	candidates             map[types.Address]*types.Campaign
+	PublicKeys             []crypto.PublicKey
+	formerPublicKeys       []crypto.PublicKey
 	alsorans               map[types.Address]*types.Campaign
 	campaigns              map[types.Address]*types.Campaign
 	startedHeight          uint64
@@ -94,11 +97,12 @@ func (t *Term) Candidates() map[types.Address]*types.Campaign {
 	return t.candidates
 }
 
-func (t *Term) AddCandidate(c *types.Campaign) {
+func (t *Term) AddCandidate(c *types.Campaign, publicKey crypto.PublicKey) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.candidates[c.Issuer] = c
+	t.PublicKeys = append(t.PublicKeys, publicKey)
 }
 
 func (t *Term) AddCampaign(c *types.Campaign) {
@@ -169,6 +173,9 @@ func (t *Term) hasCampaign(c *types.Campaign) bool {
 // CanChange returns true if the campaigns cached reaches the
 // term change requirments.
 func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
+	//TODO change this in future , make more slower
+	var a = 1
+	var b = 0
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -184,7 +191,7 @@ func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 	if isGenesis {
 		return true
 	}
-	if lastHeight-t.startedHeight < uint64(t.partsNum*3+2) {
+	if lastHeight-t.startedHeight < uint64(t.partsNum*a+b) {
 		return false
 	}
 	return true
@@ -199,9 +206,12 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 		s := newSenator(addr, c.PublicKey, tc.PkBls)
 		snts[addr] = s
 	}
+	t.formerPublicKeys = t.PublicKeys
 
 	t.candidates = make(map[types.Address]*types.Campaign)
 	t.alsorans = make(map[types.Address]*types.Campaign)
+	t.campaigns = make(map[types.Address]*types.Campaign)
+	t.PublicKeys = nil
 
 	formerSnts := t.senators
 	t.formerSenators[t.id] = formerSnts
@@ -213,6 +223,7 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 	// 2. process alsorans.
 	t.id++
 	t.startedHeight = lastHeight
+	log.WithField("startedHeight",t.startedHeight).WithField("len senators ", len(t.senators)).WithField("id ", t.id).Info("term changed , id updated")
 
 	return nil
 }
@@ -238,7 +249,7 @@ func newSenator(addr types.Address, publickey, blspk []byte) *Senator {
 
 type Senators map[types.Address]*Senator
 
-func (t *Term) GetSenater(address types.Address) *Senator {
+func (t *Term) GetSenator(address types.Address) *Senator {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	if v, ok := t.senators[address]; ok {

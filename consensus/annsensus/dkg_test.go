@@ -200,7 +200,7 @@ func TestDKGMain(t *testing.T) {
 	for j := 0; j < 4; j++ {
 		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4,
 			4, nil)
-		as.id = j
+		//as.id = j
 		a := TestAnnSensus{
 			Id:        j,
 			AnnSensus: as,
@@ -327,4 +327,28 @@ func TestVrfSelections_Le(t *testing.T) {
 	}
 	d.SelectCandidates()
 	return
+}
+
+func TestDKgLog(t *testing.T) {
+	logInit()
+	var d *Dkg
+	d = newDkg(&AnnSensus{}, true, 4, 3)
+	log := log.WithField("me", d.GetId())
+	log.Debug("hi")
+	d.partner.Id = 10
+	log.Info("hi hi")
+}
+
+
+func TestReset (t *testing.T) {
+	logInit()
+	d:= newDkg(&AnnSensus{},true,4,3)
+	log.Debug("sk ",d.partner.MyPartSec)
+	d.Reset()
+	log.Debug("sk ",d.partner.MyPartSec)
+	d.GenerateDkg()
+	log.Debug("sk ",d.partner.MyPartSec)
+	d.Reset()
+	log.Debug("sk ",d.partner.MyPartSec)
+
 }

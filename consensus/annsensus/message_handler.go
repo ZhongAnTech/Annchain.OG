@@ -23,7 +23,7 @@ import (
 )
 
 func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgGenesisPublicKey")
 		return
@@ -45,7 +45,7 @@ func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageCon
 
 //HandleConsensusDkgDeal
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDeal")
 		return
@@ -64,7 +64,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 
 //HandleConsensusDkgDealResponse
 func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDealResponse")
 		return
@@ -84,7 +84,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 
 //HandleConsensusDkgSigSets
 func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
@@ -105,7 +105,7 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 
 //HandleConsensusProposal
 func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil || request.Value == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
@@ -145,7 +145,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 
 //HandleConsensusPreVote
 func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
@@ -173,7 +173,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 
 //HandleConsensusPreCommit
 func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, peerId string) {
-	log := log.WithField("me", a.id)
+	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return

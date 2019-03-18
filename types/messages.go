@@ -430,7 +430,7 @@ func (m *MessageConsensusDkgGenesisPublicKey) SignatureTargets() []byte {
 }
 
 func (m *MessageConsensusDkgGenesisPublicKey) String() string {
-	return fmt.Sprintf("kgGenesisPublicKey  len %d ", len(m.DkgPublicKey))
+	return fmt.Sprintf("DkgGenesisPublicKey  len %d ", len(m.DkgPublicKey))
 }
 
 //msgp:tuple MessageConsensusDkgDeal

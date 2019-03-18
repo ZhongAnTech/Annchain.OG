@@ -25,6 +25,7 @@ import (
 
 type BFTPartner interface {
 	EventLoop()
+	RestartNewAre()
 	StartNewEra(height uint64, round int)
 	SetPeers(peers []BFTPartner)
 	GetIncomingMessageChannel() chan Message
@@ -34,9 +35,10 @@ type BFTPartner interface {
 	Proposer(hr types.HeightRound) int
 	WaiterLoop()
 	GetPeers() (peer []BFTPartner)
-	SetProposalFunc(proposalFunc func() types.Proposal)
+	SetProposalFunc(proposalFunc func() (types.Proposal, uint64))
 	Stop()
-	RegisterDecisionReceive(ch chan *HeightRoundState)
+	RegisterDecisionReceiveFunc( decisionFunc func (state *HeightRoundState) error)
+	Reset(nbParticipants int, id int)
 }
 
 type PartnerBase struct {
@@ -92,9 +94,9 @@ type DefaultPartner struct {
 
 	quit         chan bool
 	waiter       *Waiter
-	proposalFunc func() types.Proposal
+	proposalFunc func() (types.Proposal , uint64)
 	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
-	decisionChan chan *HeightRoundState
+	decisionFunc func (state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
 	testFlag bool
@@ -104,8 +106,8 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 	return p.WaiterTimeoutChannel
 }
 
-func (p *DefaultPartner) RegisterDecisionReceive(ch chan *HeightRoundState) {
-	p.decisionChan = ch
+func (p *DefaultPartner) RegisterDecisionReceiveFunc( decisionFunc func (state *HeightRoundState) error) {
+	p.decisionFunc = decisionFunc
 }
 
 func (p *DefaultPartner) GetIncomingMessageChannel() chan Message {
@@ -116,7 +118,7 @@ func (p *DefaultPartner) GetOutgoingMessageChannel() chan Message {
 	return p.OutgoingMessageChannel
 }
 
-func (P *DefaultPartner) SetProposalFunc(proposalFunc func() types.Proposal) {
+func (P *DefaultPartner) SetProposalFunc(proposalFunc func() (types.Proposal, uint64)) {
 	P.proposalFunc = proposalFunc
 }
 
@@ -152,6 +154,31 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 	return p
 }
 
+func (p *DefaultPartner) Reset(nbParticipants int, id int) {
+	p.N = nbParticipants
+	p.F = (nbParticipants - 1) / 3
+	p.Id = id
+	return
+
+}
+
+func (p *DefaultPartner) RestartNewAre() {
+	s := p.States[p.CurrentHR]
+	if s != nil {
+		if s.Decision != nil {
+			//p.States = make(map[types.HeightRound]*HeightRoundState)
+			p.StartNewEra(p.CurrentHR.Height+1, 0)
+			return
+		}
+		p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
+		return
+	}
+	//p.States = make(map[types.HeightRound]*HeightRoundState)
+	p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round)
+	return
+
+}
+
 func (p *DefaultPartner) WaiterLoop() {
 	go p.waiter.StartEventLoop()
 }
@@ -181,10 +208,15 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 	if p.Id == p.Proposer(p.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Info("I'm the proposer")
 		var proposal types.Proposal
+		var validHeight uint64
 		if currState.ValidValue != nil {
 			proposal = currState.ValidValue
 		} else {
-			proposal = p.GetValue()
+			proposal, validHeight = p.GetValue()
+		}
+		if validHeight!= p.CurrentHR.Height {
+			//TODO
+			log.WithField("height",p.CurrentHR).WithField("valid height ",validHeight).Warn("height mismatch //TODO")
 		}
 		logrus.WithField("proposal ", proposal).Info("new proposal")
 		// broadcast
@@ -266,17 +298,17 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() types.Proposal {
+func (p *DefaultPartner) GetValue() (types.Proposal, uint64 ){
 	time.Sleep(p.blockTime)
 	if p.proposalFunc != nil {
-		pro := p.proposalFunc()
+		pro ,validHeight := p.proposalFunc()
 		logrus.WithField("proposal ", pro).Debug("proposal gen ")
-		return pro
+		return pro,validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
 	s := types.StringProposal(v)
 	logrus.WithField("proposal ", s).Debug("proposal gen ")
-	return &s
+	return &s, p.CurrentHR.Height
 }
 
 // Broadcast announce messages to all partners
@@ -516,11 +548,13 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 					"value": state.MessageProposal.Value,
 				}).Info("Decision")
 				//send the decision to upper client to process
-				go func() {
-					p.decisionChan <- state
-				}()
-
-				p.StartNewEra(p.CurrentHR.Height+1, 0)
+				err := p.decisionFunc(state)
+				if err!=nil {
+					log.WithError(err).Warn("commit decision error")
+					p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
+				}else {
+					p.StartNewEra(p.CurrentHR.Height+1, 0)
+				}
 			}
 		}
 	}

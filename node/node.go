@@ -289,13 +289,15 @@ func NewNode() *Node {
 	// Not suitable to be used here.
 	autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
+	coinBaseId:= accountIds[0]+100
 	autoClientManager.Init(
 		accountIds,
 		delegate,
+		coinBaseId,
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
-	myAccount := autoClientManager.SampleAccounts[accountIds[0]+100]
+	myAccount := autoClientManager.SampleAccounts[coinBaseId]
 
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,

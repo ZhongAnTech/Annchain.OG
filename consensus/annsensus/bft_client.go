@@ -16,11 +16,12 @@ package annsensus
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
 
 type BFTPartner interface {
@@ -179,14 +180,14 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 	p.changeStep(StepTypePropose)
 
 	if p.Id == p.Proposer(p.CurrentHR) {
-		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Info("I'm the proposer")
+		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Trace("I'm the proposer")
 		var proposal types.Proposal
 		if currState.ValidValue != nil {
 			proposal = currState.ValidValue
 		} else {
 			proposal = p.GetValue()
 		}
-		logrus.WithField("proposal ", proposal).Info("new proposal")
+		logrus.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
 		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {

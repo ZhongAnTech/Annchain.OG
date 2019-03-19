@@ -329,7 +329,7 @@ func (as *AnnSensus) loop() {
 	var genesisCamps = make(map[int]*types.Campaign)
 	var peerNum int
 	var initDone bool
-	var lastheight uint64
+	//var lastheight uint64
 
 	for {
 		select {
@@ -381,18 +381,18 @@ func (as *AnnSensus) loop() {
 			// 3. start pbft until someone produce a seq with BLS sig.
 			log.Info("got newtermcahneg signal")
 			as.bft.startBftChan <- true
-
-		case <-time.After(time.Millisecond * 300):
-			height := as.Idag.LatestSequencer().Height
-			if height <= lastheight {
-				//should updated
-				continue
-			}
-			lastheight = height
-			if height > 2 && height%15 == 0 {
-				//may i send campaign ?
-				as.ProdCampaignOn()
-			}
+		//
+		//case <-time.After(time.Millisecond * 300):
+		//	height := as.Idag.LatestSequencer().Height
+		//	if height <= lastheight {
+		//		//should updated
+		//		continue
+		//	}
+		//	lastheight = height
+		//	if height > 2 && height%15 == 0 {
+		//		//may i send campaign ?
+		//		as.ProdCampaignOn()
+		//	}
 
 		case isUptoDate := <-as.UpdateEvent:
 			height := as.Idag.LatestSequencer().Height

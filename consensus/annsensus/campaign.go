@@ -46,6 +46,6 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	return cp
 }
 
-func (a *AnnSensus) HasCampaign(cp *types.Campaign) bool {
-	return a.term.HasCampaign(cp)
+func (a *AnnSensus) HasCampaign(address types.Address) bool {
+	return a.term.HasCampaign(address)
 }

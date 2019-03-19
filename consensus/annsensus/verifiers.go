@@ -59,7 +59,7 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		return true
 	}
 	log.WithField("hash ", seq.GetTxHash()).Debug("normal seq seq")
-	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey)
+	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey, a.bft.DKGTermId)
 	if !ok {
 		return false
 	}
@@ -91,7 +91,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 		log.WithField("cp", cp).WithField("data ", cp.PublicKey).Warn("dkgPub is nil")
 		return false
 	}
-	if a.HasCampaign(cp) {
+	if a.HasCampaign(cp.Issuer) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return false
 	}

@@ -763,7 +763,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	cTxs := types.Txis{}
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
-		cTxs = append(cTxs, txi)
+		if txi.GetType() != types.TxBaseTypeSequencer {
+			cTxs = append(cTxs, txi)
+		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {

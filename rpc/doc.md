@@ -325,6 +325,7 @@ Send new transaction to OG.
 | from | hex string | 是 |
 | to | hex string | 否 | 创建合约时可以置空
 | value | int string | 是 | 不转账时填0
+| crypto_type | string | 是 | secp256k1 或者 ed25519
 | signature | hex string | 是 |
 | pubkey | hex string | 是 |
 | data | hex string | 否 | 
@@ -336,8 +337,9 @@ Send new transaction to OG.
     "from": "0x889e0b36dc6f2c06eb68d9c5f53434e4c42c8d19",
     "to": "0x473c176c84213626588c4d2d7724b9524aaf6f3d",
     "value": "0",
+    "crypto_type": "secp256k1", 
     "signature": "0x421001d20e2dbbd13...",
-    "pubkey": "0x0104249f001e59783eb10f1...",
+    "pubkey": "0x04249f001e59783eb10f1...",
     "data": "0x5682aec..."
 }
 ```

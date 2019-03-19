@@ -17,13 +17,14 @@ import (
 	"fmt"
 	"time"
 
+	"math/rand"
+	"sync"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"math/rand"
-	"sync"
 )
 
 type TipGenerator interface {
@@ -178,6 +179,7 @@ func (m *TxCreator) NewSignedSequencer(issuer types.Address, height uint64, acco
 	}
 	tx := m.NewUnsignedSequencer(issuer, height, accountNonce)
 	// do sign work
+	logrus.Tracef("seq before sign, the sign type is: %s", m.Signer.GetCryptoType().String())
 	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
 	tx.GetBase().PublicKey = m.Signer.PubKey(privateKey).Bytes

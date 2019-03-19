@@ -223,7 +223,7 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 	// 2. process alsorans.
 	t.id++
 	t.startedHeight = lastHeight
-	log.WithField("startedHeight",t.startedHeight).WithField("len senators ", len(t.senators)).WithField("id ", t.id).Info("term changed , id updated")
+	log.WithField("startedHeight", t.startedHeight).WithField("len senators ", len(t.senators)).WithField("id ", t.id).Info("term changed , id updated")
 
 	return nil
 }

@@ -33,7 +33,7 @@ type AutoClientManager struct {
 	delegate               *Delegate
 }
 
-func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinBaseId int ) {
+func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinBaseId int) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)

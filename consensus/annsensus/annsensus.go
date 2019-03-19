@@ -350,6 +350,7 @@ func (as *AnnSensus) loop() {
 	var lastHeight uint64
 	var termId uint64
 	var genesisPublickeyProcessFinished bool
+	var sentCampaign uint64
 
 	for {
 		select {
@@ -364,7 +365,13 @@ func (as *AnnSensus) loop() {
 			var tcs []*types.TermChange
 			for _, tx := range txs {
 				if tx.GetType() == types.TxBaseTypeCampaign {
-					cps = append(cps, tx.(*types.Campaign))
+					cp:= tx.(*types.Campaign)
+					cps = append(cps, cp)
+					if  bytes.Equal(cp.Issuer.Bytes[:] , as.MyAccount.Address.Bytes[:]) {
+						if sentCampaign >0 {
+							sentCampaign = 0
+						}
+					}
 				} else if tx.GetType() == types.TxBaseTypeTermChange {
 					tcs = append(tcs, tx.(*types.TermChange))
 				}
@@ -393,9 +400,9 @@ func (as *AnnSensus) loop() {
 				}
 				//send the signal if i am a partner of consensus nodes
 				if as.dkg.isValidPartner {
-					go func () {
+					go func() {
 						as.newTermChan <- true
-					} ()
+					}()
 				} else {
 					log.Debug("is not a valid partner")
 				}
@@ -416,7 +423,7 @@ func (as *AnnSensus) loop() {
 		case <-as.NewLatestSequencer:
 
 			if !as.isTermChanging() {
-				if as.canChangeTerm()  {
+				if as.canChangeTerm() {
 					// start term changing.
 					as.term.SwitchFlag(true)
 					log.Debug("will termChange")
@@ -434,6 +441,13 @@ func (as *AnnSensus) loop() {
 				//should updated
 				continue
 			}
+			if sentCampaign < height+2 {
+				//we sent campaign but did't receive them
+				//sent again
+				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
+				as.ProduceCampaignOn()
+				sentCampaign = height
+			}
 			//if term id is updated , we can produce campaign tx
 			lastHeight = height
 			if termId < as.term.ID() {
@@ -441,6 +455,7 @@ func (as *AnnSensus) loop() {
 				//may i send campaign ?
 				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
 				as.ProduceCampaignOn()
+				sentCampaign = height
 			}
 
 		case isUptoDate := <-as.UpdateEvent:

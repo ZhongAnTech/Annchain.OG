@@ -2,11 +2,12 @@ package account
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"testing"
 )
 
 func TestSignature(t *testing.T) {
@@ -27,6 +28,15 @@ func TestSignature(t *testing.T) {
 	fmt.Println(hexutil.Encode(beforeSign))
 	sig := signer.Sign(acc.PrivateKey, tx.SignatureTargets())
 	fmt.Println(hexutil.Encode(sig.Bytes))
+}
+
+func TestSampleAccounts(t *testing.T) {
+	MaxAccountCount := 255
+	for i := 0; i < MaxAccountCount; i++ {
+		acc := NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
+		fmt.Println(fmt.Sprintf("account address: %s, pubkey: %s, privkey: %s", acc.Address.String(), acc.PublicKey.String(), acc.PrivateKey.String()))
+	}
+
 }
 
 // time="2018-11-07T15:26:07+08:00" level=info msg="Sample Account" add=0x0b5d53f433b7e4a4f853a01e987f977497dda262 priv=0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F00

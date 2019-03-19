@@ -16,6 +16,7 @@ package crypto
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
@@ -56,7 +57,8 @@ func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
 }
 
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
-	sig := (signature.Bytes)[:len(signature.Bytes)-1]
+	signature = s.DealRecoverID(signature)
+	sig := signature.Bytes
 	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
 }
 
@@ -87,4 +89,14 @@ func (s *SignerSecp256k1) Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
 	prive, err := ToECDSA(p.Bytes)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	return ecisesPriv.Decrypt(ct, nil, nil)
+}
+
+const sigLength int = 64
+
+func (s *SignerSecp256k1) DealRecoverID(sig Signature) Signature {
+	l := len(sig.Bytes)
+	if l == sigLength+1 {
+		sig.Bytes = sig.Bytes[:l-1]
+	}
+	return sig
 }

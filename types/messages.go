@@ -416,6 +416,7 @@ type MessageConsensusDkgSigSets struct {
 	PkBls     []byte
 	PublicKey []byte
 	Signature []byte
+	TermId    uint64
 }
 
 //msgp:MessageConsensusDkgGenesisPublicKey
@@ -423,6 +424,7 @@ type MessageConsensusDkgGenesisPublicKey struct {
 	DkgPublicKey []byte
 	PublicKey    []byte
 	Signature    []byte
+	TermId    uint64
 }
 
 func (m *MessageConsensusDkgGenesisPublicKey) SignatureTargets() []byte {
@@ -439,6 +441,7 @@ type MessageConsensusDkgDeal struct {
 	Data      []byte
 	PublicKey []byte
 	Signature []byte
+	TermId    uint64
 }
 
 func (m *MessageConsensusDkgSigSets) SignatureTargets() []byte {
@@ -465,7 +468,7 @@ func (m MessageConsensusDkgDeal) String() string {
 	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:5])
 	}
-	return "dkg " + fmt.Sprintf(" id %d , len %d ", m.Id, len(m.Data)) + " pk-" + pkstr
+	return "dkg " + fmt.Sprintf(" id %d , len %d  tid %d", m.Id, len(m.Data), m.TermId) + " pk-" + pkstr
 }
 
 //msgp:tuple MessageConsensusDkgDealResponse
@@ -474,6 +477,7 @@ type MessageConsensusDkgDealResponse struct {
 	Data      []byte
 	PublicKey []byte
 	Signature []byte
+	TermId    uint64
 }
 
 func (m MessageConsensusDkgDealResponse) String() string {
@@ -481,7 +485,7 @@ func (m MessageConsensusDkgDealResponse) String() string {
 	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:5])
 	}
-	return "dkgresponse " + fmt.Sprintf(" id %d , len %d ", m.Id, len(m.Data)) + " pk-" + pkstr
+	return "dkgresponse " + fmt.Sprintf(" id %d , len %d  tid %d", m.Id, len(m.Data) ,m.TermId) + " pk-" + pkstr
 }
 
 func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {

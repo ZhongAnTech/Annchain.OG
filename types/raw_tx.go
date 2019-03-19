@@ -205,6 +205,7 @@ func (r *RawTermChange) TermChange() *TermChange {
 		TxBase: r.TxBase,
 		PkBls:  r.PkBls,
 		SigSet: r.SigSet,
+		TermID:r.TermId,
 	}
 	t.Issuer = Signer.AddressFromPubKeyBytes(r.PublicKey)
 	return t

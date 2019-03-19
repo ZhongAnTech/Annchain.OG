@@ -15,6 +15,7 @@ package annsensus
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
@@ -171,6 +172,10 @@ func (as *AnnSensus) ProduceCampaignOn() {
 
 // campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
 func (as *AnnSensus) produceCampaign() {
+	if as.term.HasCampaign(as.MyAccount.Address) {
+		log.Debug("has campaign ")
+		return
+	}
 	//generate new dkg public key for every campaign
 	candidatePublicKey := as.dkg.GenerateDkg()
 	// generate campaign.
@@ -218,7 +223,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 // candidate requirements.
 func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 
-	if as.term.HasCampaign(cp) {
+	if as.term.HasCampaign(cp.Issuer) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
@@ -265,7 +270,12 @@ func (as *AnnSensus) termChangeLoop() {
 			return
 		case <-as.startTermChange:
 			log := as.dkg.log()
-			as.dkg.Reset()
+			cp:= as.term.GetCampaign(as.MyAccount.Address)
+			var myDkgPublickey []byte
+			if cp!=nil {
+				myDkgPublickey = cp.DkgPublicKey
+			}
+			as.dkg.Reset(myDkgPublickey)
 			as.dkg.SelectCandidates()
 			if !as.dkg.isValidPartner {
 				log.Debug("i am not a lucky dkg partner quit")
@@ -315,7 +325,10 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 			niceTc = tc
 		}
 	}
-
+	if niceTc ==nil {
+		log.WithField("term id ",as.term.ID()).Warn("pic fail")
+		return nil, errors.New("not found")
+	}
 	return niceTc, nil
 }
 
@@ -365,10 +378,10 @@ func (as *AnnSensus) loop() {
 			var tcs []*types.TermChange
 			for _, tx := range txs {
 				if tx.GetType() == types.TxBaseTypeCampaign {
-					cp:= tx.(*types.Campaign)
+					cp := tx.(*types.Campaign)
 					cps = append(cps, cp)
-					if  bytes.Equal(cp.Issuer.Bytes[:] , as.MyAccount.Address.Bytes[:]) {
-						if sentCampaign >0 {
+					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
+						if sentCampaign > 0 {
 							sentCampaign = 0
 						}
 					}
@@ -441,7 +454,7 @@ func (as *AnnSensus) loop() {
 				//should updated
 				continue
 			}
-			if sentCampaign < height+2 {
+			if sentCampaign < height+2 && sentCampaign > 0 {
 				//we sent campaign but did't receive them
 				//sent again
 				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
@@ -453,6 +466,9 @@ func (as *AnnSensus) loop() {
 			if termId < as.term.ID() {
 				termId = as.term.ID()
 				//may i send campaign ?
+				if sentCampaign == height{
+					continue
+				}
 				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
 				as.ProduceCampaignOn()
 				sentCampaign = height

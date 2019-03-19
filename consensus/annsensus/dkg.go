@@ -75,8 +75,8 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.dkgOn = dkgOn
 	if d.dkgOn {
 		d.GenerateDkg() //todo fix later
-		d.myPublicKey = d.partner.CandidatePublicKey
-		d.partner.MyPartSec = d.partner.CandidatePartSec
+		d.myPublicKey = d.partner.CandidatePublicKey[0]
+		d.partner.MyPartSec = d.partner.CandidatePartSec[0]
 	}
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
@@ -89,21 +89,32 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	return d
 }
 
-func (d *Dkg) Reset() {
+func (d *Dkg) Reset(myDkgPublicKey []byte) {
 
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	partSec := d.partner.CandidatePartSec
-	pubKey := d.partner.CandidatePublicKey
+	partSecs := d.partner.CandidatePartSec
+	pubKeys := d.partner.CandidatePublicKey
 	d.formerPartner = d.partner
+	d.formerPartner.CandidatePartSec = nil
+	d.formerPartner.CandidatePublicKey = nil
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
-	p.MyPartSec = partSec
+	index := 0
+	if len(myDkgPublicKey)!=0 {
+		for i, pubKeys := range pubKeys{
+			if bytes.Equal(pubKeys,myDkgPublicKey ) {
+				index = i
+			}
+		}
+	}
+	log.WithField("index ",index).WithField("sk ",partSecs[index]).Trace("reset with sk")
+	p.MyPartSec = partSecs[index]
 	d.dkgOn = false
 	d.partner = p
-	d.myPublicKey = pubKey
+	d.myPublicKey = pubKeys[index]
 	d.TermId++
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
@@ -127,11 +138,11 @@ func (d *Dkg) stop() {
 
 func (d *Dkg) generateDkg() []byte {
 	sec, pub := genPartnerPair(d.partner)
-	d.partner.CandidatePartSec = sec
+	d.partner.CandidatePartSec = append(d.partner.CandidatePartSec,sec)
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-	d.partner.CandidatePublicKey = pk
-	log.WithField("sk ", sec).Trace("gen dkg ")
+	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey,pk)
+	log.WithField("pk ", pub).WithField("sk ", sec).Trace("gen dkg ")
 	return pk
 }
 
@@ -418,7 +429,7 @@ func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
 	}
 }
 
-func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap) {
+func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap , termId int ) {
 	//for generating deals, we use n partPubs, including our partPub. it generates  n-1 deals, excluding our own deal
 	//skip myself
 	for i, deal := range deals {
@@ -469,11 +480,13 @@ func (d *Dkg) gossiploop() {
 			}
 			err := d.GenerateDKGer()
 			if err != nil {
-				log.WithError(err).Error("gen dkger fail")
+				log.WithField("sk ",d.partner.MyPartSec ).WithField("part pubs ", d.partner.PartPubs).WithError(err).Error("gen dkger fail")
 				continue
 			}
-
+            d.mu.RLock()
 			deals, err := d.getDeals()
+			termid:= d.TermId
+			d.mu.RUnlock()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
 				continue
@@ -484,7 +497,7 @@ func (d *Dkg) gossiploop() {
 			d.ready = true
 			d.mu.RUnlock()
 			log.Debug("dkg is ready")
-			d.sendDealsToCorrespondingPartner(deals)
+			d.sendDealsToCorrespondingPartner(deals,termid)
 			//process unhandled(cached) dkg msg
 			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
 
@@ -656,7 +669,9 @@ func (d *Dkg) gossiploop() {
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
 				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
+				d.ready = false
 			}
+
 
 		case <-d.gossipStopCh:
 			log := d.log()
@@ -780,12 +795,24 @@ func (t DealsMap) TerminateString() string {
 	return strings.Join(str, ",")
 }
 
-func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
+func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId int) bool {
 	log := d.log()
 	pubKey, err := bn256.UnmarshalBinaryPointG2(jointPub)
 	if err != nil {
 		log.WithError(err).Warn("unmarshal join pubkey error")
 		return false
+	}
+	if termId < d.TermId {
+		if !pubKey.Equal(d.formerPartner.jointPubKey) {
+			log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.partner.jointPubKey).Warn("different")
+			return false
+		}
+		err = bls.Verify(d.formerPartner.Suite, pubKey, msg, sig)
+		if err != nil {
+			log.WithField("sig ", hex.EncodeToString(sig)).WithField("s ", d.partner.Suite).WithField("pk", pubKey).WithError(err).Warn("bls verify error")
+			return false
+		}
+		return true
 	}
 	if !pubKey.Equal(d.partner.jointPubKey) {
 		log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.partner.jointPubKey).Warn("different")

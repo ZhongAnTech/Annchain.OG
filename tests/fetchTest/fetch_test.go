@@ -98,3 +98,26 @@ func calculate(remote, local uint64) (int64, int) {
 	}
 	return from, count
 }
+
+
+func TestUint (t *testing.T){
+	floor, ceil := int64(-1), uint64(50)
+	height:= uint64(50)
+	// Request the topmost blocks to short circuit binary ancestor lookup
+	head := ceil
+	if head > height {
+		head = height
+	}
+	from := int64(head) - int64(192)
+	fmt.Println(uint64(from),from)
+	if from < 0 {
+		from = 0
+	}
+	// Span out with 15 block gaps into the future to catch bad head reports
+	limit := 2 * 192 / 16
+	count := 1 + int((int64(ceil)-from)/16)
+	if count > limit {
+		count = limit
+	}
+	fmt.Println(uint64(from), count, 15, false,floor)
+}

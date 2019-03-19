@@ -143,28 +143,28 @@ func (t *Term) AddAlsorans(camps []*types.Campaign) {
 		}
 		// TODO
 		// this check is not proper enough, try optimize it.
-		if t.hasCampaign(c) {
+		if t.hasCampaign(c.Issuer) {
 			continue
 		}
 		t.alsorans[c.Issuer] = c
 	}
 }
 
-func (t *Term) HasCampaign(c *types.Campaign) bool {
+func (t *Term) HasCampaign(address types.Address) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	return t.hasCampaign(c)
+	return t.hasCampaign(address)
 }
 
-func (t *Term) hasCampaign(c *types.Campaign) bool {
-	if _, exists := t.candidates[c.Issuer]; exists {
+func (t *Term) hasCampaign(address types.Address) bool {
+	if _, exists := t.candidates[address]; exists {
 		return true
 	}
-	if _, exists := t.campaigns[c.Issuer]; exists {
+	if _, exists := t.campaigns[address]; exists {
 		return true
 	}
-	if _, exists := t.alsorans[c.Issuer]; exists {
+	if _, exists := t.alsorans[address]; exists {
 		return true
 	}
 	return false

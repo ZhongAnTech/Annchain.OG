@@ -339,16 +339,15 @@ func TestDKgLog(t *testing.T) {
 	log.Info("hi hi")
 }
 
-
-func TestReset (t *testing.T) {
+func TestReset(t *testing.T) {
 	logInit()
-	d:= newDkg(&AnnSensus{},true,4,3)
-	log.Debug("sk ",d.partner.MyPartSec)
+	d := newDkg(&AnnSensus{}, true, 4, 3)
+	log.Debug("sk ", d.partner.MyPartSec)
 	d.Reset()
-	log.Debug("sk ",d.partner.MyPartSec)
+	log.Debug("sk ", d.partner.MyPartSec)
 	d.GenerateDkg()
-	log.Debug("sk ",d.partner.MyPartSec)
+	log.Debug("sk ", d.partner.MyPartSec)
 	d.Reset()
-	log.Debug("sk ",d.partner.MyPartSec)
+	log.Debug("sk ", d.partner.MyPartSec)
 
 }

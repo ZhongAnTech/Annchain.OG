@@ -131,7 +131,7 @@ func (d *Dkg) generateDkg() []byte {
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = pk
-	log.WithField("sk ",sec).Trace("gen dkg ")
+	log.WithField("sk ", sec).Trace("gen dkg ")
 	return pk
 }
 
@@ -801,22 +801,22 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte) bool {
 	// d.partner.jointPubKey
 }
 
-func (d *Dkg)Sign(msg []byte , termId int)(partSig [] byte, err error) {
-	 partner := d.partner
-	if termId  < d.TermId {
+func (d *Dkg) Sign(msg []byte, termId int) (partSig []byte, err error) {
+	partner := d.partner
+	if termId < d.TermId {
 		partner = d.formerPartner
 		log.Trace("use former partner to sign")
 	}
-	 return  partner.Sig(msg)
+	return partner.Sig(msg)
 }
 
-func (d *Dkg)GetJoinPublicKey(termId int) kyber.Point {
+func (d *Dkg) GetJoinPublicKey(termId int) kyber.Point {
 	partner := d.partner
-	if termId  < d.TermId {
+	if termId < d.TermId {
 		partner = d.formerPartner
 		log.Trace("use former partner to sign")
 	}
-	return  partner.jointPubKey
+	return partner.jointPubKey
 }
 
 func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId int) (jointSig []byte, err error) {

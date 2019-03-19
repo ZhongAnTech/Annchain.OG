@@ -94,7 +94,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	b.DKGTermId = TermId
-	log.WithField("term Id ",TermId).Debug("bft will reset")
+	log.WithField("term Id ", TermId).Debug("bft will reset")
 	var peers []BFTPartner
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
@@ -177,7 +177,7 @@ func (t *BFT) loop() {
 			case og.MessageTypePreCommit:
 				preCommit := msg.Payload.(*types.MessagePreCommit)
 				if preCommit.Idv != nil {
-					log.WithField("dkg id ",t.ann.dkg.partner.Id).WithField("term id ",t.DKGTermId).Debug("signed ")
+					log.WithField("dkg id ", t.ann.dkg.partner.Id).WithField("term id ", t.DKGTermId).Debug("signed ")
 					sig, err := t.ann.dkg.Sign(preCommit.Idv.ToBytes(), t.DKGTermId)
 					if err != nil {
 						log.WithError(err).Error("sign error")
@@ -193,7 +193,7 @@ func (t *BFT) loop() {
 			}
 
 		case decision := <-t.decisionChan:
-			state:= decision.state
+			state := decision.state
 			//set nil first
 			var sigShares [][]byte
 			sequencerProposal := state.Decision.(*types.SequencerProposal)
@@ -214,10 +214,10 @@ func (t *BFT) loop() {
 			jointSig, err := t.ann.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), t.DKGTermId)
 			if err != nil {
 				log.WithField("termId ", t.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
-				decision.callbackChan <-err
+				decision.callbackChan <- err
 				continue
-			}else {
-				decision.callbackChan <-nil
+			} else {
+				decision.callbackChan <- nil
 			}
 			sequencerProposal.BlsJointSig = jointSig
 			//seq.BlsJointPubKey = blsPub
@@ -233,15 +233,15 @@ func (t *BFT) loop() {
 
 type commitDecision struct {
 	callbackChan chan error
-	state *HeightRoundState
+	state        *HeightRoundState
 }
 
 func (t *BFT) commitDecision(state *HeightRoundState) error {
-	commit:= commitDecision{
-		state:state,
+	commit := commitDecision{
+		state:        state,
 		callbackChan: make(chan error),
 	}
-	t.decisionChan <-&commit
+	t.decisionChan <- &commit
 	// waiting for callback
 	select {
 	case err := <-commit.callbackChan:
@@ -252,7 +252,6 @@ func (t *BFT) commitDecision(state *HeightRoundState) error {
 	log.Trace("commit success")
 	return nil
 }
-
 
 func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 	me := t.ann.MyAccount
@@ -271,7 +270,7 @@ func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 	proposal := types.SequencerProposal{
 		Sequencer: *seq,
 	}
-	return &proposal,seq.Height
+	return &proposal, seq.Height
 }
 
 func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.PublicKey) bool {

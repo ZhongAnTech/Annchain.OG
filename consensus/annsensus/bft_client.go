@@ -37,7 +37,7 @@ type BFTPartner interface {
 	GetPeers() (peer []BFTPartner)
 	SetProposalFunc(proposalFunc func() (types.Proposal, uint64))
 	Stop()
-	RegisterDecisionReceiveFunc( decisionFunc func (state *HeightRoundState) error)
+	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
 }
 
@@ -94,9 +94,9 @@ type DefaultPartner struct {
 
 	quit         chan bool
 	waiter       *Waiter
-	proposalFunc func() (types.Proposal , uint64)
+	proposalFunc func() (types.Proposal, uint64)
 	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
-	decisionFunc func (state *HeightRoundState) error
+	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
 	testFlag bool
@@ -106,7 +106,7 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 	return p.WaiterTimeoutChannel
 }
 
-func (p *DefaultPartner) RegisterDecisionReceiveFunc( decisionFunc func (state *HeightRoundState) error) {
+func (p *DefaultPartner) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
 	p.decisionFunc = decisionFunc
 }
 
@@ -214,9 +214,9 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		} else {
 			proposal, validHeight = p.GetValue()
 		}
-		if validHeight!= p.CurrentHR.Height {
+		if validHeight != p.CurrentHR.Height {
 			//TODO
-			log.WithField("height",p.CurrentHR).WithField("valid height ",validHeight).Warn("height mismatch //TODO")
+			log.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
 		}
 		logrus.WithField("proposal ", proposal).Info("new proposal")
 		// broadcast
@@ -298,12 +298,12 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() (types.Proposal, uint64 ){
+func (p *DefaultPartner) GetValue() (types.Proposal, uint64) {
 	time.Sleep(p.blockTime)
 	if p.proposalFunc != nil {
-		pro ,validHeight := p.proposalFunc()
+		pro, validHeight := p.proposalFunc()
 		logrus.WithField("proposal ", pro).Debug("proposal gen ")
-		return pro,validHeight
+		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
 	s := types.StringProposal(v)
@@ -549,10 +549,10 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 				}).Info("Decision")
 				//send the decision to upper client to process
 				err := p.decisionFunc(state)
-				if err!=nil {
+				if err != nil {
 					log.WithError(err).Warn("commit decision error")
 					p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
-				}else {
+				} else {
 					p.StartNewEra(p.CurrentHR.Height+1, 0)
 				}
 			}

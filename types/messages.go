@@ -315,7 +315,7 @@ type HashOrNumber struct {
 
 func (m *HashOrNumber) String() string {
 	if m.Hash == nil {
-		return fmt.Sprintf("hash: nil, number : %d", m.Number)
+		return fmt.Sprintf("hash: nil, number : %d ", *m.Number)
 	}
 	return fmt.Sprintf("hash: %s, number : %d", m.Hash.String(), m.Number)
 }

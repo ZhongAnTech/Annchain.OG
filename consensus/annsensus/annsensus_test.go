@@ -23,7 +23,7 @@ import (
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
 	var as = NewAnnSensus(1, true, 5, 4,
 		nil)
-	pk := as.dkg.pk
+	pk := as.dkg.PublicKey()
 	fmt.Println(hexutil.Encode(pk))
 	point, err := bn256.UnmarshalBinaryPointG2(pk)
 	if err != nil {
@@ -40,7 +40,7 @@ func TestNewDKGPartner(t *testing.T) {
 	var ann AnnSensus
 	for i := 0; i < 4; i++ {
 		d := newDkg(&ann, true, 4, 4)
-		fmt.Println(hexutil.Encode(d.pk))
+		fmt.Println(hexutil.Encode(d.PublicKey()))
 		fmt.Println(d.partner.MyPartSec)
 	}
 

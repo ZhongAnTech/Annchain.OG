@@ -574,7 +574,9 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.WithField("tx", tx).Tracef("finished commit tx")
+	// TODO delete this line later.
+	tStatus := pool.getStatus(tx.GetTxHash())
+	log.WithField("tx", tx).WithField("status", tStatus.String()).Tracef("finished commit tx")
 	return nil
 }
 
@@ -856,7 +858,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 	txsInPool := []types.Txi{}
 	// remove elders from pool
 	for elserHash := range elders {
-		pool.txLookup.remove(elserHash, noRemove)
+		pool.txLookup.removeTxFromMapOnly(elserHash)
 	}
 
 	for _, hash := range pool.txLookup.getorder() {

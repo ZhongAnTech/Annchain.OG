@@ -36,7 +36,6 @@ func TestSampleAccounts(t *testing.T) {
 		acc := NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
 		fmt.Println(fmt.Sprintf("account address: %s, pubkey: %s, privkey: %s", acc.Address.String(), acc.PublicKey.String(), acc.PrivateKey.String()))
 	}
-
 }
 
 // time="2018-11-07T15:26:07+08:00" level=info msg="Sample Account" add=0x0b5d53f433b7e4a4f853a01e987f977497dda262 priv=0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F00

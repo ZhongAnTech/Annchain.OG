@@ -15,6 +15,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/annchain/OG/account"
 	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
@@ -80,6 +81,7 @@ func NewNode() *Node {
 		og.OGConfig{
 			NetworkId:  uint64(networkId),
 			CryptoType: cryptoType,
+			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
 
@@ -295,7 +297,6 @@ func NewNode() *Node {
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
-	myAccount := autoClientManager.SampleAccounts[accountIds[0]+100]
 
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,
@@ -303,7 +304,7 @@ func NewNode() *Node {
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
 
-	annSensus.InitAccount(myAccount, time.Millisecond*time.Duration(sequencerTime),
+	annSensus.InitAccount(account.NewAccount(org.Dag.MyScretKey), time.Millisecond*time.Duration(sequencerTime),
 		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag

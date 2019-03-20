@@ -58,6 +58,7 @@ func (og *Og) GetHeight() uint64 {
 type OGConfig struct {
 	NetworkId  uint64
 	CryptoType crypto.CryptoType
+	GenesisPath   string
 }
 
 func DefaultOGConfig() OGConfig {
@@ -79,16 +80,16 @@ func NewOg(config OGConfig) (*Og, error) {
 	if err != nil {
 		return nil, err
 	}
-	testDb, err := GetOldDb()
-	if err != nil {
-		return nil, err
-	}
-	dagConfig := core.DagConfig{}
+	//testDb, err := GetOldDb()
+	//if err != nil {
+	//	return nil, err
+	//}
+	dagConfig := core.DagConfig{GenesisPath: config.GenesisPath}
 	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, testDb, config.CryptoType)
+	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, nil, config.CryptoType)
 	if err != nil {
 		return nil, err
 	}

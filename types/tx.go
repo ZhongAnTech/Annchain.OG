@@ -102,6 +102,8 @@ func RandomTx() *Tx {
 }
 
 func (t *Tx) SignatureTargets() []byte {
+	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
+
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
@@ -146,10 +148,10 @@ func (t *Tx) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("hash %s pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey %s ,"+
-		"height %d ,mined Nonce %v type %v weight %d", t.Hash.Hex(),
+	return fmt.Sprintf("hash %s, pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey: %s ,"+
+		"height: %d , mined Nonce: %v, type: %v, weight: %d, data: %x", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight)
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight, t.Data)
 }
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {

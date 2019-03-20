@@ -68,7 +68,6 @@ type Dag struct {
 
 	wg         sync.WaitGroup
 	mu         sync.RWMutex
-	MyScretKey string
 }
 
 func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database, cryptoType crypto.CryptoType) (*Dag, error) {
@@ -94,13 +93,10 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 
 	if !restart {
 		// TODO use config to load the genesis
-		seq, balance, sk := DefaultGenesis(cryptoType, conf.GenesisPath)
+		seq, balance := DefaultGenesis(cryptoType, conf.GenesisPath)
 		if err := dag.Init(seq, balance); err != nil {
 			return nil, err
 		}
-		dag.MyScretKey = sk
-	} else {
-		dag.MyScretKey = GetMySecretKey(cryptoType, conf.GenesisPath)
 	}
 	return dag, nil
 }

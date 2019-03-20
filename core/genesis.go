@@ -31,7 +31,7 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Sequencer, map[types.Address]*math.BigInt, string) {
+func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Sequencer, map[types.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
@@ -57,7 +57,7 @@ func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Se
 	hash.MustSetBytes(sum, types.PaddingNone)
 	seq.SetHash(hash)
 
-	return seq.(*types.Sequencer), balance, accounts.MySecretKey
+	return seq.(*types.Sequencer), balance
 }
 
 type Account struct {
@@ -67,14 +67,7 @@ type Account struct {
 }
 
 type GenesisAccounts struct {
-	MySecretKey string    `json:"my_secret_key"`
 	Accounts    []Account `json:"accounts"`
-}
-
-func GetMySecretKey(cryptoType crypto.CryptoType, genesisPath string) string {
-	accounts := GetGenesisAccounts(cryptoType, genesisPath)
-	return accounts.MySecretKey
-
 }
 
 func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *GenesisAccounts {

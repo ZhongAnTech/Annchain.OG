@@ -20,12 +20,10 @@ type Account struct {
 }
 
 type genesis struct {
-	MySecretKey string          `json:"my_secret_key"`
 	Accounts    []PublicAccount `json:"accounts"`
 }
 
 type secretGenesis struct {
-	MySecretKey string    `json:"my_secret_key"`
 	Accounts    []Account `json:"accounts"`
 }
 
@@ -54,8 +52,6 @@ func TestAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ge.MySecretKey = priv.String()
-	se.MySecretKey = priv.String()
 	data, err := json.MarshalIndent(ge, "", "\t")
 	if err != nil {
 		t.Fatal(err)

@@ -303,8 +303,7 @@ func NewNode() *Node {
 		VerifySequencer:  annSensus.VerifySequencer,
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
-
-	annSensus.InitAccount(account.NewAccount(org.Dag.MyScretKey), time.Millisecond*time.Duration(sequencerTime),
+	annSensus.InitAccount(account.NewAccount( viper.GetString("dag.my_private_key")), time.Millisecond*time.Duration(sequencerTime),
 		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag
@@ -314,19 +313,6 @@ func NewNode() *Node {
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener, annSensus.NewPeerConnectedEventListener)
 	//init msg requst id
 	og.MsgCountInit()
-	//switch viper.GetString("consensus") {
-	//case "dpos":
-	//	//todo
-	//	consensus := dpos.NewDpos(org.Dag, &types.Address{})
-	//	n.Components = append(n.Components, consensus)
-	//case "pos":
-	//	//todo
-	//case "pow":
-	//	//todo
-	//default:
-	//	panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
-	//}
-	//init msg requst id
 
 	// DataLoader
 	dataLoader := &og.DataLoader{

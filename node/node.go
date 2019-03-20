@@ -79,8 +79,8 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			NetworkId:  uint64(networkId),
-			CryptoType: cryptoType,
+			NetworkId:   uint64(networkId),
+			CryptoType:  cryptoType,
 			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)

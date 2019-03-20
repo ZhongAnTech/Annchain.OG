@@ -15,6 +15,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -25,7 +26,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
-	"crypto/sha256"
 	"path/filepath"
 )
 
@@ -43,13 +43,13 @@ func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Se
 	addr := types.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance := map[types.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
-	accounts := GetGenesisAccounts(cryptoType,genesisPath)
+	accounts := GetGenesisAccounts(cryptoType, genesisPath)
 	//accounts := GetSampleAccounts(cryptoType)
 	var buf bytes.Buffer
 	for i := 0; i < len(accounts.Accounts); i++ {
-		balance[accounts.Accounts[i].address] = math.NewBigInt(int64( accounts.Accounts[i].Balance))
-		binary.Write(&buf,binary.BigEndian,accounts.Accounts[i].Address)
-		binary.Write(&buf,binary.BigEndian,accounts.Accounts[i].Address)
+		balance[accounts.Accounts[i].address] = math.NewBigInt(int64(accounts.Accounts[i].Balance))
+		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
+		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
 	}
 	h := sha256.New()
 	h.Write(buf.Bytes())
@@ -60,52 +60,47 @@ func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Se
 	return seq.(*types.Sequencer), balance, accounts.MySecretKey
 }
 
-
 type Account struct {
-	address    types.Address `json:"-"`
-	Address    string `json:"address"`
-	Balance    uint64 `json:"balance"`
+	address types.Address `json:"-"`
+	Address string        `json:"address"`
+	Balance uint64        `json:"balance"`
 }
-
 
 type GenesisAccounts struct {
-	MySecretKey   string `json:"my_secret_key"`
-	Accounts []Account `json:"accounts"`
+	MySecretKey string    `json:"my_secret_key"`
+	Accounts    []Account `json:"accounts"`
 }
 
-
-func GetMySecretKey(cryptoType crypto.CryptoType, genesisPath string) string  {
-	accounts := GetGenesisAccounts(cryptoType,genesisPath)
-	 return  accounts.MySecretKey
+func GetMySecretKey(cryptoType crypto.CryptoType, genesisPath string) string {
+	accounts := GetGenesisAccounts(cryptoType, genesisPath)
+	return accounts.MySecretKey
 
 }
 
-func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *GenesisAccounts{
+func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *GenesisAccounts {
 	absPath, err := filepath.Abs(genesisPath)
-	if err!=nil {
-		panic(fmt.Sprintf("Error on parsing config file path: %s %v err", absPath,err))
+	if err != nil {
+		panic(fmt.Sprintf("Error on parsing config file path: %s %v err", absPath, err))
 	}
-	data , err:= ioutil.ReadFile(absPath)
-	if err!=nil {
+	data, err := ioutil.ReadFile(absPath)
+	if err != nil {
 		panic(err)
 	}
 	var accounts GenesisAccounts
-	err = json.Unmarshal(data,&accounts)
-	if err!=nil {
+	err = json.Unmarshal(data, &accounts)
+	if err != nil {
 		panic(err)
 	}
-	for i:=0;i<len(accounts.Accounts);i++ {
-         addr,err:= types.StringToAddress(accounts.Accounts[i].Address)
-         if err!=nil {
-         	panic(err)
-		 }
+	for i := 0; i < len(accounts.Accounts); i++ {
+		addr, err := types.StringToAddress(accounts.Accounts[i].Address)
+		if err != nil {
+			panic(err)
+		}
 		accounts.Accounts[i].address = addr
 	}
-	return  &accounts
+	return &accounts
 
 }
-
-
 
 func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
 	var accounts []*account.SampleAccount

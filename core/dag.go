@@ -44,8 +44,8 @@ var (
 	DefaultCoinbase = types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
-type DagConfig struct{
-	GenesisPath   string
+type DagConfig struct {
+	GenesisPath string
 }
 
 type Dag struct {
@@ -66,8 +66,8 @@ type Dag struct {
 
 	close chan struct{}
 
-	wg sync.WaitGroup
-	mu sync.RWMutex
+	wg         sync.WaitGroup
+	mu         sync.RWMutex
 	MyScretKey string
 }
 
@@ -100,7 +100,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		}
 		dag.MyScretKey = sk
 	} else {
-		dag.MyScretKey = GetMySecretKey(cryptoType ,conf.GenesisPath)
+		dag.MyScretKey = GetMySecretKey(cryptoType, conf.GenesisPath)
 	}
 	return dag, nil
 }

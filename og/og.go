@@ -56,9 +56,9 @@ func (og *Og) GetHeight() uint64 {
 }
 
 type OGConfig struct {
-	NetworkId  uint64
-	CryptoType crypto.CryptoType
-	GenesisPath   string
+	NetworkId   uint64
+	CryptoType  crypto.CryptoType
+	GenesisPath string
 }
 
 func DefaultOGConfig() OGConfig {

@@ -1,0 +1,33 @@
+{
+	"my_secret_key": "0x0127d85e56d9d6a54d11c1da6bd64bf13ff07dd3601ca540580250cf10c58f9150",
+	"accounts": [
+		{
+			"address": "0x0a0c1e9b9855df3963e34de0ca854809950247db",
+			"balance": 1000000
+		},
+		{
+			"address": "0x9dc063572a7fe6643d15ae98ccc141fead4a9776",
+			"balance": 1000000
+		},
+		{
+			"address": "0x821601feb222e298fa0db3c742514d6014e8b9b7",
+			"balance": 1000000
+		},
+		{
+			"address": "0x3fcaf0ca677a9669a63a6427387f421712a25adb",
+			"balance": 1000000
+		},
+		{
+			"address": "0x65404a0c69c9f855e9867d83546f47bdaa8ec2dc",
+			"balance": 1000000
+		},
+		{
+			"address": "0x2edde3173b8d615917b3f32f18b62ada0fa25b98",
+			"balance": 1000000
+		},
+		{
+			"address": "0x8ee74bec8089b87406b551b8c6d1f8a72a23e21a",
+			"balance": 1000000
+		}
+	]
+}

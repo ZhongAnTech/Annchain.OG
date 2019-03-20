@@ -16,6 +16,7 @@ type SampleAccount struct {
 	nonce       atomic.Uint64
 	nonceInited bool
 	mu          sync.RWMutex
+	InitBalance uint64
 }
 
 func NewAccount(privateKeyHex string) *SampleAccount {

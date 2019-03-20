@@ -44,7 +44,9 @@ var (
 	DefaultCoinbase = types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
-type DagConfig struct{}
+type DagConfig struct{
+	GenesisPath   string
+}
 
 type Dag struct {
 	conf DagConfig
@@ -66,6 +68,7 @@ type Dag struct {
 
 	wg sync.WaitGroup
 	mu sync.RWMutex
+	MyScretKey string
 }
 
 func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database, cryptoType crypto.CryptoType) (*Dag, error) {
@@ -91,12 +94,14 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 
 	if !restart {
 		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis(cryptoType)
+		seq, balance, sk := DefaultGenesis(cryptoType, conf.GenesisPath)
 		if err := dag.Init(seq, balance); err != nil {
 			return nil, err
 		}
+		dag.MyScretKey = sk
+	} else {
+		dag.MyScretKey = GetMySecretKey(cryptoType ,conf.GenesisPath)
 	}
-
 	return dag, nil
 }
 

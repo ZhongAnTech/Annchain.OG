@@ -92,14 +92,10 @@ func (b *BloomFilterFireStatus) check() bool {
 //sendBloomFilter , avoid sending blomm filter frequently ,wait until got response of bloom filter or timeout
 
 func (m *IncrementalSyncer) sendBloomFilter(childhash types.Hash) {
-	m.bloomFilterStatus.mu.Lock()
-	if !m.bloomFilterStatus.check() {
+	if !m.bloomFilterStatus.Check() {
 		log.Debug("bloom filter request is pending")
 		return
 	}
-	requestId := og.MsgCounter.Get()
-	m.bloomFilterStatus.set(requestId)
-	m.bloomFilterStatus.mu.Unlock()
 	req := types.MessageSyncRequest{
 		Filter:    types.NewDefaultBloomFilter(),
 		RequestId: og.MsgCounter.Get(),

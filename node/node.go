@@ -377,6 +377,8 @@ func NewNode() *Node {
 	m.ConsensusPreCommitHandler = annSensus
 	m.ConsensusPreVoteHandler = annSensus
 	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
+	m.TermChangeResponseHandler = annSensus
+	m.TermChangeRequestHandler = annSensus
 	annSensus.Hub = hub
 	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
 	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqCh
@@ -455,6 +457,9 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeProposal] = m.RouteConsensusProposal
 	hub.CallbackRegistry[og.MessageTypePreVote] = m.RouteConsensusPreVote
 	hub.CallbackRegistry[og.MessageTypePreCommit] = m.RouteConsensusPreCommit
+
+	hub.CallbackRegistry[og.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
+	hub.CallbackRegistry[og.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {

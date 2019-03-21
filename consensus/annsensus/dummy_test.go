@@ -61,7 +61,7 @@ func (d *DummyDag) Genesis() *types.Sequencer {
 	}
 }
 
-func (d *DummyDag) GetHeight() uint64{
+func (d *DummyDag) GetHeight() uint64 {
 	return 0
 }
 

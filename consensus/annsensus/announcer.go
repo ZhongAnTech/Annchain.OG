@@ -22,4 +22,5 @@ import (
 type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
 	SendToAnynomous(messageType og.MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey)
+	SendToPeer(peerId string, messageType og.MessageType, msg types.Message) error
 }

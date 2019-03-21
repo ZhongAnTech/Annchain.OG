@@ -64,6 +64,7 @@ type AnnSensus struct {
 	HandleNewTxi                  func(tx types.Txi)
 	OnSelfGenTxi                  chan types.Txi
 	ConfigFilePath                string
+	termChangeChan                chan *types.TermChange
 }
 
 func Maj23(n int) int {
@@ -95,7 +96,8 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.NewPeerConnectedEventListener = make(chan string)
 	ann.ProposalSeqCh = make(chan types.Hash)
 	ann.ConfigFilePath = configFile
-	log.WithField("nbartner ", ann.NbParticipants).Info("new ann")
+	ann.termChangeChan = make(chan *types.TermChange)
+	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
 	return ann
 }
 
@@ -110,6 +112,7 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 		}
 	}
 	as.bft = NewBFT(as, as.NbParticipants, as.id, sequencerTime, judgeNonce, txCreator)
+	as.addBftPartner()
 }
 
 func (as *AnnSensus) Start() {
@@ -267,10 +270,15 @@ func (as *AnnSensus) changeTerm(camps []*types.Campaign) {
 		case pk := <-as.dkgPkCh:
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			if atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
+				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
+				sigset := as.dkg.GetBlsSigsets()
+				log.WithField("sig sets ", sigset).Info("got sigsets ")
+				//continue //for test case commit this
+				tc := as.genTermChg(pk, sigset)
+				as.term.ChangeTerm(tc)
 				go func() {
 					as.newTermChan <- struct{}{}
 				}()
-				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
 				continue
 			}
 			sigset := as.dkg.GetBlsSigsets()
@@ -316,12 +324,39 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 	tc := &types.TermChange{
 		TxBase: base,
-		TermID: as.term.ID(),
+		TermID: as.term.ID() + 1,
 		Issuer: as.MyAccount.Address,
 		PkBls:  pkbls,
 		SigSet: sigset,
 	}
 	return tc
+}
+
+func (as *AnnSensus) addGenesisCampaigns() {
+	for _, pk := range as.genesisAccounts {
+		cp := types.Campaign{
+			Issuer: pk.Address(),
+		}
+		as.term.AddCandidate(&cp)
+	}
+}
+
+func (as *AnnSensus) addBftPartner() {
+	log.Debug("add bft partners")
+	//should participate in genesis  bft process
+	if !as.dkg.dkgOn {
+		as.dkg.dkgOn = true
+	}
+
+	var peers []BFTPartner
+	for i, pk := range as.genesisAccounts {
+		if i == as.id {
+			//continue
+		}
+		//the third param is not used in peer
+		peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
+	}
+	as.bft.BFTPartner.SetPeers(peers)
 }
 
 func (as *AnnSensus) loop() {
@@ -331,6 +366,7 @@ func (as *AnnSensus) loop() {
 	var genesisCamps = make(map[int]*types.Campaign)
 	var peerNum int
 	var initDone bool
+	var eventInit bool
 	//var lastheight uint64
 
 	for {
@@ -400,39 +436,62 @@ func (as *AnnSensus) loop() {
 		case isUptoDate := <-as.UpdateEvent:
 			height := as.Idag.LatestSequencer().Height
 			log.WithField("height ", height).WithField("v ", isUptoDate).Info("get isUptoDate event")
-			if isUptoDate && as.isGenesisPartner {
-				if height == 0 {
+			if eventInit {
+				continue
+			}
+
+			if as.isGenesisPartner {
+				//participate in bft process
+				if height == 0 && isUptoDate {
 					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
-				} else {
+					//wait until connect enought peers
+					eventInit = true
+					continue
+				}
+				//in this case  , node is a genesis partner, load data
+				if as.dkg.partner.jointPubKey == nil {
 					//load consensus data
-					_, err := as.LoadConSensusData()
+					config, err := as.LoadConsensusData()
 					if err != nil {
 						log.WithError(err).Error("load error")
-						continue
+						panic(err)
 					}
+					as.SetConfig(config)
+					log.Debug("will set config")
+					as.addGenesisCampaigns()
+					tc := as.genTermChg(as.dkg.partner.jointPubKey, nil)
+					as.term.ChangeTerm(tc)
+				}
+				if isUptoDate {
+					//after updated , start bft process, skip bfd gossip
+					log.Debug("start bft")
+					eventInit = true
 					go func() {
-						time.Sleep(300 * time.Millisecond)
-						log.Debug("sent joint pk")
 						as.newTermChan <- struct{}{}
 					}()
-				}
-				log.Debug("add bft partners")
-				//should participate in genesis  bft process
-				if !as.dkg.dkgOn {
-					as.dkg.dkgOn = true
-				}
 
-				var peers []BFTPartner
-				for i, pk := range as.genesisAccounts {
-					if i == as.id {
-						//continue
-					}
-					//the third param is not used in peer
-					peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
 				}
-				as.bft.BFTPartner.SetPeers(peers)
+			} else {
+				//not a consensus partner , obtain dkg public key from network
+				//
+				if as.term.started {
+					eventInit = true
+					continue
+				}
+				msg := types.MessageTermChangeRequest{
+					Id: og.MsgCounter.Get(),
+				}
+				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
 			}
+
 		case <-as.NewPeerConnectedEventListener:
+
+			if !as.isGenesisPartner && !eventInit {
+				msg := types.MessageTermChangeRequest{
+					Id: og.MsgCounter.Get(),
+				}
+				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
+			}
 			if initDone {
 				continue
 			}
@@ -445,6 +504,18 @@ func (as *AnnSensus) loop() {
 				}()
 				initDone = true
 			}
+
+		case tc := <-as.termChangeChan:
+			pk, err := bn256.UnmarshalBinaryPointG2(tc.PkBls)
+			if err != nil {
+				log.WithError(err).Warn("unmarshal failed dkg joint public key")
+				continue
+			}
+			as.dkg.partner.jointPubKey = pk
+			eventInit = true
+			as.addGenesisCampaigns()
+			as.term.ChangeTerm(tc)
+
 			//
 		case pkMsg := <-as.genesisPkChan:
 			id := -1

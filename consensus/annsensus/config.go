@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/mod"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/OG/types"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +18,8 @@ import (
 type AnnSensusConfig struct {
 	DKgSecretKey      []byte `json:"d_kg_secret_key"`
 	DKgJointPublicKey []byte `json:"d_kg_joint_public_key"`
+	jointPubKey       kyber.Point
+	secretKey         kyber.Scalar
 	keyShare          *dkg.DistKeyShare
 	CommitLen         []int  `json:"commit_len"`
 	PolyLen           []int  `json:"poly_len"`
@@ -23,6 +27,7 @@ type AnnSensusConfig struct {
 	PrivPolyData      []byte `json:"priv_poly_data"`
 	ShareData         []byte `json:"share_data"`
 	PartnerId         uint32 `json:"partner_id"`
+	SigSets           map[types.Address]*types.SigSet
 }
 
 func (c AnnSensusConfig) String() string {
@@ -53,7 +58,6 @@ func (a *AnnSensus) SaveConsensusData() error {
 		}
 		config.PrivPolyData = append(config.PrivPolyData, data...)
 		config.PolyLen = append(config.PolyLen, len(data))
-
 	}
 
 	data, err := json.MarshalIndent(config.keyShare.Share, "", "\t")
@@ -62,6 +66,7 @@ func (a *AnnSensus) SaveConsensusData() error {
 	}
 
 	config.ShareData = data
+
 	data, err = json.MarshalIndent(config, "", "\t")
 	if err != nil {
 		panic(err)
@@ -93,35 +98,36 @@ func (a *AnnSensus) generateConfig() AnnSensusConfig {
 	}
 	config.DKgSecretKey = sk
 	config.PartnerId = a.dkg.partner.Id
+	config.SigSets = a.dkg.blsSigSets
 	return config
 }
 
-func (a *AnnSensus) LoadConSensusData() (*AnnSensusConfig, error) {
+func (a *AnnSensus) LoadConsensusData() (*AnnSensusConfig, error) {
 	suit := bn256.NewSuiteG2()
 	var config AnnSensusConfig
 	keyShare := dkg.DistKeyShare{}
 
 	absPath, err := filepath.Abs(a.ConfigFilePath)
 	if err != nil {
-		panic(fmt.Sprintf("Error on parsing config file path: %s %v err", absPath, err))
+		return nil, fmt.Errorf("error on parsing config file path: %s %v", absPath, err)
 	}
 	data, err := ioutil.ReadFile(absPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	var k int
 	for i := 0; i < len(config.CommitLen); i++ {
-
 		data := make([]byte, config.CommitLen[i])
 		copy(data, config.CommitsData[k:k+config.CommitLen[i]])
 		k += config.CommitLen[i]
 		q, err := bn256.UnmarshalBinaryPointG2(data)
 		if err != nil {
 			log.WithError(err).Error("unmarshal key share Commits error")
+			return nil, err
 		}
 		keyShare.Commits = append(keyShare.Commits, q)
 	}
@@ -135,6 +141,7 @@ func (a *AnnSensus) LoadConSensusData() (*AnnSensusConfig, error) {
 		err = s.UnmarshalBinary(data)
 		if err != nil {
 			log.WithError(err).Error("unmarshal key share Commits error")
+			return nil, err
 		}
 		keyShare.PrivatePoly = append(keyShare.PrivatePoly, s)
 	}
@@ -146,25 +153,38 @@ func (a *AnnSensus) LoadConSensusData() (*AnnSensusConfig, error) {
 	err = json.Unmarshal(config.ShareData, keyShare.Share)
 	if err != nil {
 		log.WithError(err).Error("unmarshal PrivatePoly  error")
+		return nil, err
 	}
 
 	if err != nil {
 		log.WithError(err).Error("unmarshal key share key error")
 	} else {
 		config.keyShare = &keyShare
-		a.dkg.partner.KeyShare = config.keyShare
+
 	}
 	q, err := bn256.UnmarshalBinaryPointG2(config.DKgJointPublicKey)
 	if err != nil {
 		log.WithError(err).Error("unmarshal public key error")
+		return nil, err
 	}
-	a.dkg.partner.jointPubKey = q
+	config.jointPubKey = q
 	g := suit.Scalar()
 	err = g.UnmarshalBinary(config.DKgSecretKey)
 	if err != nil {
 		log.WithError(err).Error("unmarshal sk  error")
+		return nil, err
 	}
-	a.dkg.partner.MyPartSec = g
-	a.dkg.partner.Id = config.PartnerId
+	config.secretKey = g
 	return &config, nil
+}
+
+func (a *AnnSensus) SetConfig(config *AnnSensusConfig) {
+	a.dkg.partner.KeyShare = config.keyShare
+	a.dkg.dkgOn = true
+	a.dkg.ready = true
+	a.dkg.partner.MyPartSec = config.secretKey
+	a.dkg.partner.jointPubKey = config.jointPubKey
+	a.dkg.partner.Id = config.PartnerId
+	a.dkg.blsSigSets = config.SigSets
+
 }

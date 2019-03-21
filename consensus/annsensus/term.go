@@ -28,7 +28,9 @@ type Term struct {
 	candidates     map[types.Address]*types.Campaign
 	alsorans       map[types.Address]*types.Campaign
 
-	mu sync.RWMutex
+	mu                sync.RWMutex
+	currentTermChange *types.TermChange
+	started           bool
 }
 
 func newTerm(id uint64, pn int) *Term {
@@ -168,7 +170,7 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 		s := newSenator(addr, c.PublicKey, tc.PkBls)
 		snts[addr] = s
 	}
-
+	t.currentTermChange = tc
 	t.candidates = make(map[types.Address]*types.Campaign)
 	t.alsorans = make(map[types.Address]*types.Campaign)
 
@@ -176,10 +178,12 @@ func (t *Term) ChangeTerm(tc *types.TermChange) error {
 	t.formerSenators[t.id] = formerSnts
 
 	t.senators = snts
+	t.started = true
 
 	// TODO
 	// 1. update id.
 	// 2. process alsorans.
+	log.Debug("term changed")
 
 	return nil
 }

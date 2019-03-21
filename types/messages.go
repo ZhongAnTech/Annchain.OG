@@ -411,6 +411,25 @@ func (m *MessageTermChange) String() string {
 	return m.RawTermChange.String()
 }
 
+//msgp:tuple MessageTermChangeResponse
+type MessageTermChangeResponse struct {
+	TermChange *TermChange
+	Id         uint32
+}
+
+//msgp:tuple MessageTermChangeRequest
+type MessageTermChangeRequest struct {
+	Id uint32
+}
+
+func (m MessageTermChangeResponse) String() string {
+	return fmt.Sprintf("requst id %d , %v ", m.Id, m.TermChange)
+}
+
+func (m MessageTermChangeRequest) String() string {
+	return fmt.Sprintf("requst id %d ", m.Id)
+}
+
 //msgp:tuple MessageTypeDkgSigSets
 type MessageConsensusDkgSigSets struct {
 	PkBls     []byte

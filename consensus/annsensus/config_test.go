@@ -46,6 +46,6 @@ func TestAnnSensus_SaveConsensusData(t *testing.T) {
 	d.partner.MyPartSec = genScaler(suite)
 	fmt.Println(ann.generateConfig())
 	ann.SaveConsensusData()
-	config, _ := ann.LoadConSensusData()
+	config, _ := ann.LoadConsensusData()
 	fmt.Println(config)
 }

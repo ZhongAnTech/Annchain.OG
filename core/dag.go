@@ -232,7 +232,7 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 }
 
 //GetHeight get cuurent height
-func (dag *Dag)GetHeight()uint64 {
+func (dag *Dag) GetHeight() uint64 {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 

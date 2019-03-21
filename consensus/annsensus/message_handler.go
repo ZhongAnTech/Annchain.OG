@@ -211,3 +211,53 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 	a.bft.BFTPartner.GetIncomingMessageChannel() <- m
 
 }
+
+func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequest, peerId string) {
+	log := log.WithField("me", a.id)
+	if request == nil {
+		log.Warn("got nil MessageConsensusDkgSigSets")
+		return
+	}
+	if !a.term.started {
+		log.Debug("term change  not started yet")
+		return
+	}
+	s := crypto.NewSigner(a.cryptoType)
+	tc := a.term.currentTermChange
+	tc.GetBase().PublicKey = a.MyAccount.PublicKey.Bytes
+	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).Bytes
+	tc.GetBase().Hash = tc.CalcTxHash()
+	msg := &types.MessageTermChangeResponse{
+		TermChange: tc,
+	}
+	a.Hub.SendToPeer(peerId, og.MessageTypeTermChangeResponse, msg)
+
+	log.WithField("data", msg).WithField("to  peer ", peerId).Debug("send term change")
+}
+
+func (a *AnnSensus) HandleTermChangeResponse(response *types.MessageTermChangeResponse, peerId string) {
+	if response == nil || response.TermChange == nil {
+		log.Warn("got nil MessageConsensusDkgSigSets")
+		return
+	}
+	if a.term.started {
+		log.Debug("term change  already stated")
+		return
+	}
+	tc := response.TermChange
+	log.WithField("data", response).WithField("from  peer ", peerId).Debug("got term chan")
+	s := crypto.NewSigner(a.cryptoType)
+
+	pk := crypto.PublicKeyFromBytes(a.cryptoType, tc.PublicKey)
+
+	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, tc.Signature), tc.SignatureTargets())
+	if !ok {
+		log.WithField("request ", response).Warn("verify signature failed")
+		return
+	}
+	if !a.VerifyRequestedTermChange(tc) {
+		log.WithField("request ", response).Warn("verify term change  failed")
+		return
+	}
+	a.termChangeChan <- tc
+}

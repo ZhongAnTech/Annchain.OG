@@ -14,10 +14,11 @@
 package annsensus
 
 import (
-	"github.com/annchain/OG/types"
-
+	"bytes"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/types"
+	"time"
 )
 
 // consensus related verification
@@ -50,7 +51,7 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 
 // consensus related verification
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
-	if senator := a.term.GetSenater(seq.Issuer); senator != nil {
+	if senator := a.term.GetSenater(seq.Issuer); senator == nil {
 		log.Warn("not found senator for address")
 		return false
 	}
@@ -59,6 +60,27 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		return true
 	}
 	log.WithField("hash ", seq.GetTxHash()).Debug("normal seq seq")
+	if !a.term.started {
+		if seq.Height > 1 {
+			log.Warn("dkg is not ready yet")
+			return false
+		}
+		//wait 2 second
+		for {
+			select {
+			case <-time.After(50 * time.Millisecond):
+				if a.term.started {
+					break
+				}
+			case <-a.close:
+				return false
+			case <-time.After(2 * time.Second):
+				log.Warn("dkg is not ready yet")
+				return false
+			}
+		}
+
+	}
 	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey)
 	if !ok {
 		return false
@@ -96,5 +118,38 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 		return false
 	}
 	log.WithField("cp ", cp).Trace("verify ok ")
+	return true
+}
+
+func (a *AnnSensus) VerifyRequestedTermChange(t *types.TermChange) bool {
+
+	if len(t.SigSet) < a.dkg.partner.NbParticipants {
+		log.WithField("len ", len(t.SigSet)).WithField("need ",
+			a.dkg.partner.NbParticipants).Warn("not enough sigsets")
+		return false
+	}
+	signer := crypto.NewSigner(a.cryptoType)
+	for _, sig := range t.SigSet {
+		if sig == nil {
+			log.Warn("nil sig")
+			return false
+		}
+		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+		var ok bool
+		for _, gPk := range a.genesisAccounts {
+			if bytes.Equal(pk.Bytes, gPk.Bytes) {
+				ok = true
+			}
+		}
+		if !ok {
+			log.WithField("pk ", pk).Warn("not a consensus participater")
+			return false
+		}
+		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
+			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
+			return false
+		}
+	}
+	log.WithField("tc ", t).Trace("verify ok ")
 	return true
 }

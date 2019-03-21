@@ -45,6 +45,8 @@ type MessageRouter struct {
 	ConsensusProposalHandler            ConsensusProposalHandler
 	ConsensusPreVoteHandler             ConsensusPreVoteHandler
 	ConsensusPreCommitHandler           ConsensusPreCommitHandler
+	TermChangeRequestHandler            TermChangeRequestHandler
+	TermChangeResponseHandler           TermChangeResponseHandler
 }
 
 type ManagerConfig struct {
@@ -148,6 +150,13 @@ type ConsensusPreCommitHandler interface {
 
 type ConsensusProposalHandler interface {
 	HandleConsensusProposal(request *types.MessageProposal, peerId string)
+}
+
+type TermChangeRequestHandler interface {
+	HandleTermChangeRequest(request *types.MessageTermChangeRequest, peerId string)
+}
+type TermChangeResponseHandler interface {
+	HandleTermChangeResponse(request *types.MessageTermChangeResponse, peerId string)
 }
 
 func (m *MessageRouter) Start() {
@@ -265,6 +274,14 @@ func (m *MessageRouter) RouteConsensusPreVote(msg *p2PMessage) {
 }
 func (m *MessageRouter) RouteConsensusPreCommit(msg *p2PMessage) {
 	m.ConsensusPreCommitHandler.HandleConsensusPreCommit(msg.message.(*types.MessagePreCommit), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteTermChangeRequest(msg *p2PMessage) {
+	m.TermChangeRequestHandler.HandleTermChangeRequest(msg.message.(*types.MessageTermChangeRequest), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteTermChangeResponse(msg *p2PMessage) {
+	m.TermChangeResponseHandler.HandleTermChangeResponse(msg.message.(*types.MessageTermChangeResponse), msg.sourceID)
 }
 
 // BroadcastMessage send message to all peers

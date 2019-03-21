@@ -2809,6 +2809,193 @@ func (z *MessageTermChange) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageTermChangeRequest) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Id, err = dc.ReadUint32()
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z MessageTermChangeRequest) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.Id)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z MessageTermChangeRequest) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	o = msgp.AppendUint32(o, z.Id)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageTermChangeRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z MessageTermChangeRequest) Msgsize() (s int) {
+	s = 1 + msgp.Uint32Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *MessageTermChangeResponse) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.TermChange = nil
+	} else {
+		if z.TermChange == nil {
+			z.TermChange = new(TermChange)
+		}
+		err = z.TermChange.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	z.Id, err = dc.ReadUint32()
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageTermChangeResponse) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 2
+	err = en.Append(0x92)
+	if err != nil {
+		return
+	}
+	if z.TermChange == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.TermChange.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	err = en.WriteUint32(z.Id)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageTermChangeResponse) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 2
+	o = append(o, 0x92)
+	if z.TermChange == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.TermChange.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	o = msgp.AppendUint32(o, z.Id)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageTermChangeResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.TermChange = nil
+	} else {
+		if z.TermChange == nil {
+			z.TermChange = new(TermChange)
+		}
+		bts, err = z.TermChange.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageTermChangeResponse) Msgsize() (s int) {
+	s = 1
+	if z.TermChange == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.TermChange.Msgsize()
+	}
+	s += msgp.Uint32Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageTxsRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

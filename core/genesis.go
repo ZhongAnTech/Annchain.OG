@@ -67,7 +67,7 @@ type Account struct {
 }
 
 type GenesisAccounts struct {
-	Accounts    []Account `json:"accounts"`
+	Accounts []Account `json:"accounts"`
 }
 
 func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *GenesisAccounts {

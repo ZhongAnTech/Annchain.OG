@@ -20,11 +20,11 @@ type Account struct {
 }
 
 type genesis struct {
-	Accounts    []PublicAccount `json:"accounts"`
+	Accounts []PublicAccount `json:"accounts"`
 }
 
 type secretGenesis struct {
-	Accounts    []Account `json:"accounts"`
+	Accounts []Account `json:"accounts"`
 }
 
 func TestAccount(t *testing.T) {
@@ -48,10 +48,7 @@ func TestAccount(t *testing.T) {
 		se.Accounts = append(se.Accounts, account)
 		ge.Accounts = append(ge.Accounts, publicAccount)
 	}
-	_, priv, err := signer.RandomKeyPair()
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	data, err := json.MarshalIndent(ge, "", "\t")
 	if err != nil {
 		t.Fatal(err)

@@ -503,6 +503,10 @@ func (d *Dkg) gossiploop() {
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Trace("got enough sig sets")
+				d.partner.KeyShare, err = d.partner.Dkger.DistKeyShare()
+				if err != nil {
+					log.WithError(err).Error("key share err")
+				}
 				d.ann.dkgPkCh <- d.partner.jointPubKey
 			}
 

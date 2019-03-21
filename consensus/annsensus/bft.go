@@ -39,6 +39,7 @@ type BFT struct {
 	decisionChan       chan *HeightRoundState
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
+	started       bool
 }
 
 //OGBFTPartner implements BFTPartner
@@ -133,13 +134,16 @@ func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
 func (t *BFT) loop() {
 	outCh := t.BFTPartner.GetOutgoingMessageChannel()
 	signer := crypto.NewSigner(t.ann.cryptoType)
-	log := logrus.WithField("me", t.BFTPartner.GetId())
+	log := log.WithField("me", t.BFTPartner.GetId())
 	for {
 		select {
 		case <-t.quit:
 			log.Info("got quit signal, BFT loop")
 		case <-t.startBftChan:
-			go t.BFTPartner.StartNewEra(0, 0)
+			if !t.started {
+				go t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
+			}
+			t.started = true
 
 		case msg := <-outCh:
 			log.Tracef("got msg %v", msg)

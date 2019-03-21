@@ -199,7 +199,7 @@ func TestDKGMain(t *testing.T) {
 
 	for j := 0; j < 4; j++ {
 		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4,
-			4, nil)
+			4, nil, "test.json")
 		as.id = j
 		a := TestAnnSensus{
 			Id:        j,
@@ -264,7 +264,7 @@ func (a *TestAnnSensus) Stop() {
 
 func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 	// generate campaign.
-	camp := as.genCamp(as.dkg.pk)
+	camp := as.genCamp(as.dkg.PublicKey())
 	as.newCampaign(camp)
 	ok := as.VerifyCampaign(camp)
 	if !ok {
@@ -296,6 +296,7 @@ func logInit() {
 	filenameHook := filename.NewHook()
 	filenameHook.Field = "line"
 	logrus.AddHook(filenameHook)
+	log = logrus.StandardLogger()
 }
 
 func TestDkg_VerifyBlsSig(t *testing.T) {

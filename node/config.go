@@ -35,7 +35,6 @@ const (
 	defaultNetworkId  = 1
 )
 
-
 func getNodePrivKey() *ecdsa.PrivateKey {
 	nodeKey := viper.GetString("p2p.node_key")
 	if nodeKey != "" {

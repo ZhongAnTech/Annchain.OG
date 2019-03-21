@@ -280,7 +280,11 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 3000
 	}
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts)
+	consensFilePath := viper.GetString("annsensus.consensus_path")
+	if consensFilePath == "" {
+		panic("need path")
+	}
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
@@ -303,7 +307,7 @@ func NewNode() *Node {
 		VerifySequencer:  annSensus.VerifySequencer,
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
-	annSensus.InitAccount(account.NewAccount( viper.GetString("dag.my_private_key")), time.Millisecond*time.Duration(sequencerTime),
+	annSensus.InitAccount(account.NewAccount(viper.GetString("dag.my_private_key")), time.Millisecond*time.Duration(sequencerTime),
 		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag

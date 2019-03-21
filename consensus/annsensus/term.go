@@ -20,10 +20,10 @@ import (
 )
 
 type Term struct {
-	id             uint64   `json:"id"`
-	flag           bool      
+	id             uint64 `json:"id"`
+	flag           bool
 	partsNum       int
-	senators       Senators  `json:"senators"`
+	senators       Senators            `json:"senators"`
 	formerSenators map[uint64]Senators `json:"former_senators"`
 	candidates     map[types.Address]*types.Campaign
 	alsorans       map[types.Address]*types.Campaign

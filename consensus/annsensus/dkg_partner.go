@@ -72,7 +72,7 @@ func (p *DKGPartner) GenerateDKGer() error {
 
 func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	dks := p.KeyShare
-	if dks ==nil {
+	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
 		if err != nil {
 			return
@@ -92,7 +92,7 @@ func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 
 func (p *DKGPartner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	dks := p.KeyShare
-	if dks ==nil {
+	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
 		if err != nil {
 			return
@@ -107,7 +107,7 @@ func (p *DKGPartner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 
 func (p *DKGPartner) RecoverSig(msg []byte) (jointSig []byte, err error) {
 	dks := p.KeyShare
-	if dks ==nil {
+	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
 		if err != nil {
 			return
@@ -120,7 +120,7 @@ func (p *DKGPartner) RecoverSig(msg []byte) (jointSig []byte, err error) {
 
 func (p *DKGPartner) RecoverPub() (jointPubKey kyber.Point, err error) {
 	dks := p.KeyShare
-	if dks ==nil {
+	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
 		if err != nil {
 			return
@@ -137,7 +137,7 @@ func (p *DKGPartner) RecoverPub() (jointPubKey kyber.Point, err error) {
 
 func (p *DKGPartner) Sig(msg []byte) (partSig []byte, err error) {
 	dks := p.KeyShare
-	if dks ==nil {
+	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
 		if err != nil {
 			return

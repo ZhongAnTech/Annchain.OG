@@ -161,7 +161,7 @@ func (t *Tx) RawTx() *RawTx {
 		TxBase: t.TxBase,
 		To:     t.To,
 		Value:  t.Value,
-		Data: t.Data,
+		Data:   t.Data,
 	}
 	return rawTx
 }

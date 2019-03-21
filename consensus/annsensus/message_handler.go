@@ -110,7 +110,10 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
-
+	if !a.bft.started {
+		log.Debug("bft not started yet")
+		return
+	}
 	switch msg := request.Value.(type) {
 	case *types.SequencerProposal:
 	default:
@@ -127,6 +130,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 		return
 	}
 	seq.Proposing = true
+
 	if !a.bft.verifyProposal(request, pk) {
 		log.WithField("seq ", seq).Warn("verify raw seq fail")
 		return
@@ -148,6 +152,10 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
+		return
+	}
+	if !a.bft.started {
+		log.Debug("bft not started yet")
 		return
 	}
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft PreVote data")
@@ -176,6 +184,11 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 	log := log.WithField("me", a.id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
+		return
+	}
+
+	if !a.bft.started {
+		log.Debug("bft not started yet")
 		return
 	}
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft PreCommit data")

@@ -63,6 +63,7 @@ type AnnSensus struct {
 	ProposalSeqCh                 chan types.Hash
 	HandleNewTxi                  func(tx types.Txi)
 	OnSelfGenTxi                  chan types.Txi
+	ConfigFilePath                string
 }
 
 func Maj23(n int) int {
@@ -70,7 +71,7 @@ func Maj23(n int) int {
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
-	genesisAccounts []crypto.PublicKey) *AnnSensus {
+	genesisAccounts []crypto.PublicKey, configFile string) *AnnSensus {
 	if len(genesisAccounts) < partnerNum {
 		panic("need more account")
 	}
@@ -93,6 +94,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
 	ann.NewPeerConnectedEventListener = make(chan string)
 	ann.ProposalSeqCh = make(chan types.Hash)
+	ann.ConfigFilePath = configFile
 	log.WithField("nbartner ", ann.NbParticipants).Info("new ann")
 	return ann
 }
@@ -380,6 +382,7 @@ func (as *AnnSensus) loop() {
 			// 2. produce raw_seq and broadcast it to network.
 			// 3. start pbft until someone produce a seq with BLS sig.
 			log.Info("got newtermcahneg signal")
+			as.SaveConsensusData()
 			as.bft.startBftChan <- true
 		//
 		//case <-time.After(time.Millisecond * 300):
@@ -397,13 +400,28 @@ func (as *AnnSensus) loop() {
 		case isUptoDate := <-as.UpdateEvent:
 			height := as.Idag.LatestSequencer().Height
 			log.WithField("height ", height).WithField("v ", isUptoDate).Info("get isUptoDate event")
-			if isUptoDate && height == 0 && as.isGenesisPartner {
+			if isUptoDate && as.isGenesisPartner {
+				if height == 0 {
+					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
+				} else {
+					//load consensus data
+					_, err := as.LoadConSensusData()
+					if err != nil {
+						log.WithError(err).Error("load error")
+						continue
+					}
+					go func() {
+						time.Sleep(300 * time.Millisecond)
+						log.Debug("sent joint pk")
+						as.newTermChan <- struct{}{}
+					}()
+				}
 				log.Debug("add bft partners")
 				//should participate in genesis  bft process
 				if !as.dkg.dkgOn {
 					as.dkg.dkgOn = true
 				}
-				atomic.StoreUint32(&as.genesisBftIsRunning, 1)
+
 				var peers []BFTPartner
 				for i, pk := range as.genesisAccounts {
 					if i == as.id {

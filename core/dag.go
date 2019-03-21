@@ -66,8 +66,8 @@ type Dag struct {
 
 	close chan struct{}
 
-	wg         sync.WaitGroup
-	mu         sync.RWMutex
+	wg sync.WaitGroup
+	mu sync.RWMutex
 }
 
 func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database, cryptoType crypto.CryptoType) (*Dag, error) {
@@ -229,6 +229,14 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	defer dag.mu.RUnlock()
 
 	return dag.latestSequencer
+}
+
+//GetHeight get cuurent height
+func (dag *Dag)GetHeight()uint64 {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.latestSequencer.Height
 }
 
 // Accessor returns the db accessor of dag

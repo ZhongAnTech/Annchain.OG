@@ -83,6 +83,10 @@ func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Mes
 	}
 }
 
+func (t *TestHub) SendToPeer(peerId string, messageType og.MessageType, msg types.Message) error {
+	return nil
+}
+
 func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Message, anyNomousPubKey *crypto.PublicKey) {
 	tMsg := TestMsg{
 		MessageType: messageType,
@@ -199,8 +203,7 @@ func TestDKGMain(t *testing.T) {
 
 	for j := 0; j < 4; j++ {
 		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4,
-			4, nil)
-		//as.id = j
+			4, nil, "test.json")
 		a := TestAnnSensus{
 			Id:        j,
 			AnnSensus: as,
@@ -343,11 +346,11 @@ func TestReset(t *testing.T) {
 	logInit()
 	d := newDkg(&AnnSensus{}, true, 4, 3)
 	log.Debug("sk ", d.partner.MyPartSec)
-	d.Reset()
+	d.Reset(nil)
 	log.Debug("sk ", d.partner.MyPartSec)
 	d.GenerateDkg()
 	log.Debug("sk ", d.partner.MyPartSec)
-	d.Reset()
+	d.Reset(nil)
 	log.Debug("sk ", d.partner.MyPartSec)
 
 }

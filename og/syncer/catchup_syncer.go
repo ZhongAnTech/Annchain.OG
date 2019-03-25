@@ -84,6 +84,9 @@ type CatchupSyncer struct {
 	mu                            sync.RWMutex
 	BootStrapNode                 bool
 	currentBestHeight             uint64 //maybe incorect
+
+	initFlag  bool
+	peerAdded bool
 }
 
 func (c *CatchupSyncer) Init() {
@@ -147,9 +150,9 @@ func (c *CatchupSyncer) loopSync() {
 			log.Info("CatchupSyncer loopSync received quit message. Quitting...")
 			return
 		case peer := <-c.NewPeerConnectedEventListener:
+			c.peerAdded = true
 			log.WithField("peer", peer).Info("new peer connected")
 			if !c.Enabled {
-
 				log.Debug("catchupSyncer not enabled")
 				continue
 			}
@@ -214,7 +217,12 @@ func (c *CatchupSyncer) syncToLatest() error {
 	// must sync to latest at the beginning
 	var diff uint64 = 0
 	for !c.isUpToDate(diff) {
-		c.NotifyWorkingStateChanged(Started)
+		if !c.initFlag && c.peerAdded {
+			c.NotifyWorkingStateChanged(Started, true)
+			c.initFlag = true
+		} else {
+			c.NotifyWorkingStateChanged(Started, false)
+		}
 		diff = stopSyncHeightDiffThreashold
 
 		bpId, bpHash, seqId, err := c.PeerProvider.BestPeerInfo()
@@ -239,7 +247,7 @@ func (c *CatchupSyncer) syncToLatest() error {
 		//	return err
 		//}
 	}
-	c.NotifyWorkingStateChanged(Stopped)
+	c.NotifyWorkingStateChanged(Stopped, false)
 	// allow a maximum of startSyncHeightDiffThreashold behind
 	diff = startSyncHeightDiffThreashold
 	return nil
@@ -279,10 +287,10 @@ func (c *CatchupSyncer) eventLoop() {
 }
 
 //NotifyWorkingStateChanged if starts status is true ,stops status is  false
-func (c *CatchupSyncer) NotifyWorkingStateChanged(status CatchupSyncerStatus) {
+func (c *CatchupSyncer) NotifyWorkingStateChanged(status CatchupSyncerStatus, force bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.WorkState == status {
+	if c.WorkState == status && !force {
 		return
 	}
 	c.WorkState = status

@@ -85,6 +85,9 @@ const (
 
 	MessageTypeConsensusDkgGenesisPublicKey
 
+	MessageTypeTermChangeRequest
+	MessageTypeTermChangeResponse
+
 	MessageTypeSecret //encrypted message
 
 	MessageTypeProposal
@@ -175,7 +178,10 @@ func (mt MessageType) String() string {
 
 	case MessageTypeConsensusDkgGenesisPublicKey:
 		return "MessageTypeConsensusDkgGenesisPublicKey"
-
+	case MessageTypeTermChangeRequest:
+		return "MessageTypeTermChangeRequest"
+	case MessageTypeTermChangeResponse:
+		return "MessageTypeTermChangeResponse"
 	case MessageTypeSecret:
 		return "MessageTypeSecret"
 
@@ -256,6 +262,8 @@ func (m *p2PMessage) calculateHash() {
 		data = append(data, []byte(m.sourceID+"txs")...)
 	case MessageTypeBodiesRequest:
 		data = append(data, []byte(m.sourceID+"bq")...)
+	case MessageTypeTermChangeRequest:
+		data = append(data, []byte(m.sourceID+"tq")...)
 	case MessageTypeFetchByHashRequest:
 		data = append(data, []byte(m.sourceID+"fe")...)
 	case MessageTypeHeaderRequest:
@@ -535,6 +543,12 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = &types.MessageConsensusDkgSigSets{}
 	case MessageTypeConsensusDkgGenesisPublicKey:
 		p.message = &types.MessageConsensusDkgGenesisPublicKey{}
+
+	case MessageTypeTermChangeResponse:
+		p.message = &types.MessageTermChangeResponse{}
+	case MessageTypeTermChangeRequest:
+		p.message = &types.MessageTermChangeRequest{}
+
 	case MessageTypeProposal:
 		p.message = &types.MessageProposal{
 			Value: &types.SequencerProposal{},

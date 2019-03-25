@@ -16,18 +16,20 @@ package og
 import (
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
-	"math/big"
+
+	"sync"
+	"time"
 
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/bluele/gcache"
-	"sync"
-	"time"
 )
 
 const (
@@ -279,7 +281,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 		// Block header query, collect the requested headers and reply
 	case MessageTypeDuplicate:
-		msgLog.WithField("got msg", MessageTypeDuplicate).WithField("peer ", p.String()).Info("set path to false")
+		msgLog.WithField("got msg", MessageTypeDuplicate).WithField("peer ", p.String()).Trace("set path to false")
 		if !p.SetOutPath(false) {
 			msgLog.WithField("got msg again ", MessageTypeDuplicate).WithField("peer ", p.String()).Warn("set path to false")
 		}
@@ -798,7 +800,7 @@ func (h *Hub) receiveMessage(msg *p2PMessage) {
 	if msg.messageType == MessageTypeGetMsg {
 		peer := h.peers.Peer(msg.sourceID)
 		if peer != nil {
-			msgLog.WithField("msg", msg.message.String()).WithField("peer ", peer.String()).Info("set path to true")
+			msgLog.WithField("msg", msg.message.String()).WithField("peer ", peer.String()).Trace("set path to true")
 			peer.SetOutPath(true)
 		}
 	}

@@ -26,8 +26,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
+	dkg "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
+	vss "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -103,14 +103,14 @@ func (d *Dkg) Reset(myDkgPublicKey []byte) {
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
 	index := 0
-	if len(myDkgPublicKey)!=0 {
-		for i, pubKeys := range pubKeys{
-			if bytes.Equal(pubKeys,myDkgPublicKey ) {
+	if len(myDkgPublicKey) != 0 {
+		for i, pubKeys := range pubKeys {
+			if bytes.Equal(pubKeys, myDkgPublicKey) {
 				index = i
 			}
 		}
 	}
-	log.WithField("index ",index).WithField("sk ",partSecs[index]).Trace("reset with sk")
+	log.WithField("index ", index).WithField("sk ", partSecs[index]).Trace("reset with sk")
 	p.MyPartSec = partSecs[index]
 	d.dkgOn = false
 	d.partner = p
@@ -138,10 +138,10 @@ func (d *Dkg) stop() {
 
 func (d *Dkg) generateDkg() []byte {
 	sec, pub := genPartnerPair(d.partner)
-	d.partner.CandidatePartSec = append(d.partner.CandidatePartSec,sec)
+	d.partner.CandidatePartSec = append(d.partner.CandidatePartSec, sec)
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
-	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey,pk)
+	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey, pk)
 	log.WithField("pk ", pub).WithField("sk ", sec).Trace("gen dkg ")
 	return pk
 }
@@ -429,7 +429,7 @@ func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
 	}
 }
 
-func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap , termId int ) {
+func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 	//for generating deals, we use n partPubs, including our partPub. it generates  n-1 deals, excluding our own deal
 	//skip myself
 	for i, deal := range deals {
@@ -480,12 +480,12 @@ func (d *Dkg) gossiploop() {
 			}
 			err := d.GenerateDKGer()
 			if err != nil {
-				log.WithField("sk ",d.partner.MyPartSec ).WithField("part pubs ", d.partner.PartPubs).WithError(err).Error("gen dkger fail")
+				log.WithField("sk ", d.partner.MyPartSec).WithField("part pubs ", d.partner.PartPubs).WithError(err).Error("gen dkger fail")
 				continue
 			}
-            d.mu.RLock()
+			d.mu.RLock()
 			deals, err := d.getDeals()
-			termid:= d.TermId
+			termid := d.TermId
 			d.mu.RUnlock()
 			if err != nil {
 				log.WithError(err).Error("generate dkg deal error")
@@ -497,7 +497,7 @@ func (d *Dkg) gossiploop() {
 			d.ready = true
 			d.mu.RUnlock()
 			log.Debug("dkg is ready")
-			d.sendDealsToCorrespondingPartner(deals,termid)
+			d.sendDealsToCorrespondingPartner(deals, termid)
 			//process unhandled(cached) dkg msg
 			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
 
@@ -603,7 +603,7 @@ func (d *Dkg) gossiploop() {
 			if d.partner.responseNumber < (d.partner.NbParticipants-1)*(d.partner.NbParticipants-1) {
 				continue
 			}
-			log.Info("got response done")
+			log.Debug("got response done")
 			d.mu.RLock()
 			jointPub, err := d.partner.RecoverPub()
 			d.mu.RUnlock()
@@ -614,7 +614,7 @@ func (d *Dkg) gossiploop() {
 			// send public key to changeTerm loop.
 			// TODO
 			// this channel may be changed later.
-			log.WithField("bls key ", jointPub).Info("joint pubkey ")
+			log.WithField("bls key ", jointPub).Trace("joint pubkey ")
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
@@ -669,13 +669,17 @@ func (d *Dkg) gossiploop() {
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
 				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
+				d.partner.KeyShare, err = d.partner.Dkger.DistKeyShare()
+				if err != nil {
+					log.WithError(err).Error("key share err")
+				}
 				d.ready = false
 			}
-
 
 		case <-d.gossipStopCh:
 			log := d.log()
 			log.Info("got quit signal dkg gossip stopped")
+
 			return
 		}
 	}

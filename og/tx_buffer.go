@@ -60,6 +60,7 @@ type IDag interface {
 	LatestSequencer() *types.Sequencer
 	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
 	Genesis() *types.Sequencer
+	GetHeight() uint64
 	GetSequencerByHash(hash types.Hash) *types.Sequencer
 	GetBalance(addr types.Address) *math.BigInt
 }

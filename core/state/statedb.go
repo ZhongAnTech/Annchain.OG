@@ -451,7 +451,6 @@ func (sd *StateDB) ForEachStorage(addr types.Address, f func(key, value types.Ha
 
 // laodState loads a state from current trie.
 func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
-	log.Tracef("before TryGet, with addr: %s, input hex: %x, input bytes: %v", addr.Hex(), addr.ToBytes(), addr.ToBytes())
 	data, err := sd.trie.TryGet(addr.ToBytes())
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
@@ -532,7 +531,6 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}
-		log.Debugf("committed state addr: %s, nonce: %d", addr.String(), state.GetNonce())
 		delete(sd.dirtyset, addr)
 	}
 	// commit current trie into triedb.

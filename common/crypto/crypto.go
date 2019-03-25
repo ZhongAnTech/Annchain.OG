@@ -15,6 +15,8 @@ package crypto
 
 import (
 	"encoding/binary"
+	"fmt"
+
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/encrypt/ecies"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
@@ -29,6 +31,11 @@ const (
 	CryptoTypeEd25519 CryptoType = iota
 	CryptoTypeSecp256k1
 )
+
+var CryptoNameMap = map[string]CryptoType{
+	"secp256k1": CryptoTypeSecp256k1,
+	"ed25519":   CryptoTypeEd25519,
+}
 
 type PrivateKey struct {
 	Type  CryptoType
@@ -75,6 +82,23 @@ func PublicKeyFromString(value string) (pub PublicKey, err error) {
 	pub = PublicKey{
 		Type:  CryptoType(bytes[0]),
 		Bytes: bytes[1:],
+	}
+	return
+}
+
+func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err error) {
+	cryptoType, ok := CryptoNameMap[ct]
+	if !ok {
+		err = fmt.Errorf("unknown crypto type: %s", ct)
+		return
+	}
+	pk, err := hexutil.Decode(pkstr)
+	if err != nil {
+		return
+	}
+	pub = PublicKey{
+		Type:  cryptoType,
+		Bytes: pk,
 	}
 	return
 }

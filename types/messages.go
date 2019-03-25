@@ -443,7 +443,7 @@ type MessageConsensusDkgGenesisPublicKey struct {
 	DkgPublicKey []byte
 	PublicKey    []byte
 	Signature    []byte
-	TermId    uint64
+	TermId       uint64
 }
 
 func (m *MessageConsensusDkgGenesisPublicKey) SignatureTargets() []byte {
@@ -504,7 +504,7 @@ func (m MessageConsensusDkgDealResponse) String() string {
 	if len(m.PublicKey) > 10 {
 		pkstr = hexutil.Encode(m.PublicKey[:5])
 	}
-	return "dkgresponse " + fmt.Sprintf(" id %d , len %d  tid %d", m.Id, len(m.Data) ,m.TermId) + " pk-" + pkstr
+	return "dkgresponse " + fmt.Sprintf(" id %d , len %d  tid %d", m.Id, len(m.Data), m.TermId) + " pk-" + pkstr
 }
 
 func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {

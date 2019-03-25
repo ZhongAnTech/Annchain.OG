@@ -127,7 +127,7 @@ func (tc *TermChange) SignatureTargets() []byte {
 }
 
 func (tc *TermChange) String() string {
-	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", tc.TxBase.String(), tc.Issuer.String(),tc.TermID)
+	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", tc.TxBase.String(), tc.Issuer.String(), tc.TermID)
 }
 
 func (c TermChanges) String() string {

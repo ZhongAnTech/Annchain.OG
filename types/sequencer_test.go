@@ -15,6 +15,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/annchain/OG/common/math"
 
 	"encoding/hex"
@@ -70,4 +71,15 @@ func TestSequencerRawSize(t *testing.T) {
 	}
 
 	fmt.Println(hex.Dump(bts))
+}
+
+func TestSequencerSecpSign(t *testing.T) {
+	t.Parallel()
+
+	seq := Sequencer{}
+	seq.Issuer = HexToAddress("7349f7a6f622378d5fb0e2c16b9d4a3e5237c187")
+	seq.Height = 221
+
+	// signer := crypto.SignerSecp256k1{}
+
 }

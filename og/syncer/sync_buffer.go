@@ -203,8 +203,16 @@ func (s *SyncBuffer) Handle() error {
 out:
 	if err == nil {
 		log.WithField("id", s.Seq).Trace("before add seq")
-		err = s.txPool.AddRemoteTx(s.Seq, false)
-		log.WithField("id", s.Seq).Trace("after add seq")
+		for _, verifier := range s.Verifiers {
+			if !verifier.Verify(s.Seq) {
+				log.WithField("tx", s.Seq).Warn("bad seq")
+				err = errors.New("bad seq format")
+			}
+		}
+		if err == nil {
+			err = s.txPool.AddRemoteTx(s.Seq, false)
+			log.WithField("id", s.Seq).Trace("after add seq")
+		}
 	}
 	if err != nil {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")

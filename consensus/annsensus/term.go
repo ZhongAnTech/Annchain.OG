@@ -21,11 +21,11 @@ import (
 )
 
 type Term struct {
-	id                     uint64
+	id                     uint64 `json:"id"`
 	flag                   bool
 	partsNum               int
-	senators               Senators
-	formerSenators         map[uint64]Senators
+	senators               Senators            `json:"senators"`
+	formerSenators         map[uint64]Senators `json:"former_senators"`
 	candidates             map[types.Address]*types.Campaign
 	PublicKeys             []crypto.PublicKey
 	formerPublicKeys       []crypto.PublicKey
@@ -34,7 +34,11 @@ type Term struct {
 	startedHeight          uint64
 	generateCampaignHeight uint64
 	newTerm                bool
-	mu                     sync.RWMutex
+
+	mu                sync.RWMutex
+	currentTermChange *types.TermChange
+	genesisTermChange *types.TermChange
+	started           bool
 }
 
 func newTerm(id uint64, pn int) *Term {
@@ -206,7 +210,13 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 		s := newSenator(addr, c.PublicKey, tc.PkBls)
 		snts[addr] = s
 	}
+
 	t.formerPublicKeys = t.PublicKeys
+	if t.id == 0 {
+		t.genesisTermChange = tc
+	}
+
+	t.currentTermChange = tc
 
 	t.candidates = make(map[types.Address]*types.Campaign)
 	t.alsorans = make(map[types.Address]*types.Campaign)
@@ -217,10 +227,12 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 	t.formerSenators[t.id] = formerSnts
 
 	t.senators = snts
+	t.started = true
 
 	// TODO
 	// 1. update id.
 	// 2. process alsorans.
+
 	t.id++
 	t.startedHeight = lastHeight
 	log.WithField("startedHeight", t.startedHeight).WithField("len senators ", len(t.senators)).WithField("id ", t.id).Info("term changed , id updated")

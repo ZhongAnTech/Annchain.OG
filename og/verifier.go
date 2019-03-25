@@ -298,8 +298,6 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on weight")
 		return
 	}
-	logrus.WithField("tx", txi).Tracef("before verifyA3")
-
 	if ok = v.verifyA3(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on graph A3")
 		return

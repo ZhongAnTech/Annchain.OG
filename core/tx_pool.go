@@ -574,7 +574,9 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
-	log.WithField("tx", tx).Tracef("finished commit tx")
+	// TODO delete this line later.
+	tStatus := pool.getStatus(tx.GetTxHash())
+	log.WithField("tx", tx).WithField("status", tStatus.String()).Tracef("finished commit tx")
 	return nil
 }
 
@@ -763,7 +765,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	cTxs := types.Txis{}
 	batch := map[types.Address]*BatchDetail{}
 	for _, txi := range elders {
-		cTxs = append(cTxs, txi)
+		if txi.GetType() != types.TxBaseTypeSequencer {
+			cTxs = append(cTxs, txi)
+		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
@@ -854,7 +858,7 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 	txsInPool := []types.Txi{}
 	// remove elders from pool
 	for elserHash := range elders {
-		pool.txLookup.remove(elserHash, noRemove)
+		pool.txLookup.removeTxFromMapOnly(elserHash)
 	}
 
 	for _, hash := range pool.txLookup.getorder() {

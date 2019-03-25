@@ -1,0 +1,32 @@
+{
+	"accounts": [
+		{
+			"address": "0x6f0430ce24435d78636383a276abc852bc196e2b",
+			"balance": 1000000
+		},
+		{
+			"address": "0xa8f454fd484f934ac2db095aea887660d2835ca9",
+			"balance": 1000000
+		},
+		{
+			"address": "0x9057c0effd5de2c0cebbe4d3182824e6f37d556a",
+			"balance": 1000000
+		},
+		{
+			"address": "0x51ebae9ebc49b7a93cf77c470071b87f250b6eb9",
+			"balance": 1000000
+		},
+		{
+			"address": "0x5acf81328de254734c29e68176228c4ab21fa236",
+			"balance": 1000000
+		},
+		{
+			"address": "0xe2bf4b8255f56662fcdc245d5e75f899219bb8b9",
+			"balance": 1000000
+		},
+		{
+			"address": "0x253c1a6191937a9c4f0b7c6d66eec228bbb4b479",
+			"balance": 1000000
+		}
+	]
+}

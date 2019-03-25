@@ -315,7 +315,7 @@ type HashOrNumber struct {
 
 func (m *HashOrNumber) String() string {
 	if m.Hash == nil {
-		return fmt.Sprintf("hash: nil, number : %d", m.Number)
+		return fmt.Sprintf("hash: nil, number : %d ", *m.Number)
 	}
 	return fmt.Sprintf("hash: %s, number : %d", m.Hash.String(), m.Number)
 }
@@ -409,6 +409,25 @@ type MessageTermChange struct {
 
 func (m *MessageTermChange) String() string {
 	return m.RawTermChange.String()
+}
+
+//msgp:tuple MessageTermChangeResponse
+type MessageTermChangeResponse struct {
+	TermChange *TermChange
+	Id         uint32
+}
+
+//msgp:tuple MessageTermChangeRequest
+type MessageTermChangeRequest struct {
+	Id uint32
+}
+
+func (m MessageTermChangeResponse) String() string {
+	return fmt.Sprintf("requst id %d , %v ", m.Id, m.TermChange)
+}
+
+func (m MessageTermChangeRequest) String() string {
+	return fmt.Sprintf("requst id %d ", m.Id)
 }
 
 //msgp:tuple MessageTypeDkgSigSets

@@ -41,6 +41,7 @@ type DKGPartner struct {
 	jointPubKey           kyber.Point
 	responseNumber        int
 	SigShares             [][]byte
+	KeyShare              *dkg.DistKeyShare
 }
 
 func NewDKGPartner(s *bn256.Suite) *DKGPartner {
@@ -67,13 +68,17 @@ func (p *DKGPartner) GenerateDKGer() error {
 		return err
 	}
 	p.Dkger = dkger
+	p.KeyShare = nil
 	return nil
 }
 
 func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
-	dks, err := p.Dkger.DistKeyShare()
-	if err != nil {
-		return
+	dks := p.KeyShare
+	if dks == nil {
+		dks, err = p.Dkger.DistKeyShare()
+		if err != nil {
+			return
+		}
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
 	if pubPoly.Commit() != dks.Public() {
@@ -88,7 +93,13 @@ func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 }
 
 func (p *DKGPartner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
-	dks, err := p.Dkger.DistKeyShare()
+	dks := p.KeyShare
+	if dks == nil {
+		dks, err = p.Dkger.DistKeyShare()
+		if err != nil {
+			return
+		}
+	}
 	if err != nil {
 		return
 	}
@@ -97,14 +108,26 @@ func (p *DKGPartner) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 }
 
 func (p *DKGPartner) RecoverSig(msg []byte) (jointSig []byte, err error) {
-	dks, err := p.Dkger.DistKeyShare()
+	dks := p.KeyShare
+	if dks == nil {
+		dks, err = p.Dkger.DistKeyShare()
+		if err != nil {
+			return
+		}
+	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
 	jointSig, err = tbls.Recover(p.Suite, pubPoly, msg, p.SigShares, p.Threshold, p.NbParticipants)
 	return
 }
 
 func (p *DKGPartner) RecoverPub() (jointPubKey kyber.Point, err error) {
-	dks, err := p.Dkger.DistKeyShare()
+	dks := p.KeyShare
+	if dks == nil {
+		dks, err = p.Dkger.DistKeyShare()
+		if err != nil {
+			return
+		}
+	}
 	if err != nil {
 		return
 	}
@@ -115,7 +138,13 @@ func (p *DKGPartner) RecoverPub() (jointPubKey kyber.Point, err error) {
 }
 
 func (p *DKGPartner) Sig(msg []byte) (partSig []byte, err error) {
-	dks, err := p.Dkger.DistKeyShare()
+	dks := p.KeyShare
+	if dks == nil {
+		dks, err = p.Dkger.DistKeyShare()
+		if err != nil {
+			return
+		}
+	}
 	if err != nil {
 		return
 	}

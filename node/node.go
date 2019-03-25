@@ -15,6 +15,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/annchain/OG/account"
 	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
@@ -78,8 +79,9 @@ func NewNode() *Node {
 
 	org, err := og.NewOg(
 		og.OGConfig{
-			NetworkId:  uint64(networkId),
-			CryptoType: cryptoType,
+			NetworkId:   uint64(networkId),
+			CryptoType:  cryptoType,
+			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
 
@@ -278,7 +280,11 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 3000
 	}
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts)
+	consensFilePath := viper.GetString("annsensus.consensus_path")
+	if consensFilePath == "" {
+		panic("need path")
+	}
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
@@ -297,15 +303,13 @@ func NewNode() *Node {
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
-	myAccount := autoClientManager.SampleAccounts[coinBaseId]
 
 	*consensusVerifier = og.ConsensusVerifier{
 		VerifyTermChange: annSensus.VerifyTermChange,
 		VerifySequencer:  annSensus.VerifySequencer,
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
-
-	annSensus.InitAccount(myAccount, time.Millisecond*time.Duration(sequencerTime),
+	annSensus.InitAccount(account.NewAccount(viper.GetString("dag.my_private_key")), time.Millisecond*time.Duration(sequencerTime),
 		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag
@@ -315,19 +319,6 @@ func NewNode() *Node {
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener, annSensus.NewPeerConnectedEventListener)
 	//init msg requst id
 	og.MsgCountInit()
-	//switch viper.GetString("consensus") {
-	//case "dpos":
-	//	//todo
-	//	consensus := dpos.NewDpos(org.Dag, &types.Address{})
-	//	n.Components = append(n.Components, consensus)
-	//case "pos":
-	//	//todo
-	//case "pow":
-	//	//todo
-	//default:
-	//	panic("Unknown consensus algorithm: " + viper.GetString("consensus"))
-	//}
-	//init msg requst id
 
 	// DataLoader
 	dataLoader := &og.DataLoader{
@@ -388,6 +379,8 @@ func NewNode() *Node {
 	m.ConsensusPreCommitHandler = annSensus
 	m.ConsensusPreVoteHandler = annSensus
 	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
+	m.TermChangeResponseHandler = annSensus
+	m.TermChangeRequestHandler = annSensus
 	annSensus.Hub = hub
 	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
 	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
@@ -466,6 +459,9 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeProposal] = m.RouteConsensusProposal
 	hub.CallbackRegistry[og.MessageTypePreVote] = m.RouteConsensusPreVote
 	hub.CallbackRegistry[og.MessageTypePreCommit] = m.RouteConsensusPreCommit
+
+	hub.CallbackRegistry[og.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
+	hub.CallbackRegistry[og.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {

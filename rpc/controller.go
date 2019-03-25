@@ -23,7 +23,6 @@ import (
 
 	"github.com/annchain/OG/common"
 
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -70,13 +69,14 @@ type SequenceRequester interface {
 
 //NewTxrequest for RPC request
 type NewTxRequest struct {
-	Nonce     string `json:"nonce"`
-	From      string `json:"from"`
-	To        string `json:"to"`
-	Value     string `json:"value"`
-	Data      string `json:"data"`
-	Signature string `json:"signature"`
-	Pubkey    string `json:"pubkey"`
+	Nonce      string `json:"nonce"`
+	From       string `json:"from"`
+	To         string `json:"to"`
+	Value      string `json:"value"`
+	Data       string `json:"data"`
+	CryptoType string `json:"crypto_type"`
+	Signature  string `json:"signature"`
+	Pubkey     string `json:"pubkey"`
 }
 
 //NewAccountRequest for RPC request
@@ -407,13 +407,13 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	signature, err := hexutil.Decode(txReq.Signature)
-	if err != nil {
+	signature := common.FromHex(txReq.Signature)
+	if signature == nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 		return
 	}
 
-	pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
+	pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error"), nil)
 		return

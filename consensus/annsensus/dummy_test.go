@@ -58,6 +58,10 @@ func (d *DummyDag) Genesis() *types.Sequencer {
 	}
 }
 
+func (d *DummyDag) GetHeight() uint64 {
+	return 0
+}
+
 func (d *DummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 	return nil
 }

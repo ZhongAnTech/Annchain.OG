@@ -133,9 +133,16 @@ func (t *Sequencer) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height :%d , nonce : %d , signatute : %s, pubkey %s",
-		strings.Join(phashes, " ,"), t.Issuer.Hex(), t.Height,
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey))
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s",
+		strings.Join(phashes, " ,"),
+		t.Issuer.Hex(),
+		t.Height,
+		t.Weight,
+		t.AccountNonce,
+		t.BlsJointPubKey,
+		hexutil.Encode(t.PublicKey),
+		hexutil.Encode(t.Signature),
+	)
 }
 
 func (s *Sequencer) RawSequencer() *RawSequencer {

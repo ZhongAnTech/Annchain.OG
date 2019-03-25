@@ -44,7 +44,9 @@ var (
 	DefaultCoinbase = types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
-type DagConfig struct{}
+type DagConfig struct {
+	GenesisPath string
+}
 
 type Dag struct {
 	conf DagConfig
@@ -91,12 +93,11 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 
 	if !restart {
 		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis(cryptoType)
+		seq, balance := DefaultGenesis(cryptoType, conf.GenesisPath)
 		if err := dag.Init(seq, balance); err != nil {
 			return nil, err
 		}
 	}
-
 	return dag, nil
 }
 
@@ -177,6 +178,11 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 
 	// init genesis balance
 	for addr, value := range genesisBalance {
+		tx := &types.Tx{}
+		tx.From = emptyAddress
+		tx.Value = value
+		dag.WriteTransaction(dbBatch, tx)
+
 		dag.statedb.SetBalance(addr, value)
 	}
 
@@ -223,6 +229,14 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	defer dag.mu.RUnlock()
 
 	return dag.latestSequencer
+}
+
+//GetHeight get cuurent height
+func (dag *Dag) GetHeight() uint64 {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.latestSequencer.Height
 }
 
 // Accessor returns the db accessor of dag
@@ -668,7 +682,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// send consensus related txs.
 	if len(consTxs) != 0 {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		dag.OnConsensusTXConfirmed <- consTxs
+		//comment for release gy version
+		//dag.OnConsensusTXConfirmed <- consTxs
 		log.WithField("txs ", consTxs).Trace("sent consensus txs")
 	}
 

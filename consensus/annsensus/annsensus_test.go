@@ -22,7 +22,9 @@ import (
 
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
 	var as = NewAnnSensus(1, true, 5, 4,
-		nil)
+
+		nil, "test.json")
+
 	pk := as.dkg.PublicKey()
 	fmt.Println(hexutil.Encode(pk))
 	point, err := bn256.UnmarshalBinaryPointG2(pk)

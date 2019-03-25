@@ -28,6 +28,7 @@ type RawTx struct {
 	TxBase
 	To    Address
 	Value *math.BigInt
+	Data  []byte
 }
 
 //msgp:tuple RawSequencer
@@ -74,6 +75,7 @@ func (t *RawTx) Tx() *Tx {
 		TxBase: t.TxBase,
 		To:     t.To,
 		Value:  t.Value,
+		Data:   t.Data,
 	}
 	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx

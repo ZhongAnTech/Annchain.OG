@@ -213,7 +213,7 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 }
 
 func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequest, peerId string) {
-	log := log.WithField("me", a.id)
+	log := log.WithField("me", a.dkg.partner.Id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
@@ -223,7 +223,9 @@ func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequ
 		return
 	}
 	s := crypto.NewSigner(a.cryptoType)
-	tc := a.term.currentTermChange
+
+	//send  genesis term change
+	tc := a.term.genesisTermChange
 	tc.GetBase().PublicKey = a.MyAccount.PublicKey.Bytes
 	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).Bytes
 	tc.GetBase().Hash = tc.CalcTxHash()

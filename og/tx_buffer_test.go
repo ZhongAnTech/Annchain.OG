@@ -29,6 +29,10 @@ type dummyDag struct {
 	dmap map[types.Hash]types.Txi
 }
 
+func (d *dummyDag) GetHeight() uint64 {
+	return 0
+}
+
 func (d *dummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 	return nil
 }

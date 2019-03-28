@@ -215,16 +215,16 @@ func (mt MessageType) Code() p2p.MsgCodeType {
 }
 
 type p2PMessage struct {
-	messageType  MessageType
-	data         []byte
-	hash         *types.Hash //inner use to avoid resend a message to the same peer
-	sourceID     string      // the source that this message  coming from , outgoing if it is nil
-	sendingType  SendingType //sending type
-	version      int         // peer version.
-	message      types.Message
-	sourceHash   *types.Hash
-	marshalState bool
-	encrypt      bool
+	messageType    MessageType
+	data           []byte
+	hash           *types.Hash //inner use to avoid resend a message to the same peer
+	sourceID       string      // the source that this message  coming from , outgoing if it is nil
+	sendingType    SendingType //sending type
+	version        int         // peer version.
+	message        types.Message
+	sourceHash     *types.Hash
+	marshalState   bool
+	disableEncrypt bool
 }
 
 func (m *p2PMessage) calculateHash() {
@@ -385,13 +385,23 @@ func (m *p2PMessage) Marshal() error {
 	return err
 }
 
+func (m *p2PMessage) appendGossipTarget(pub *crypto.PublicKey) error {
+	b := make([]byte, 2)
+	//use one key for tx and sequencer
+	binary.BigEndian.PutUint16(b, uint16(m.messageType))
+	m.data = append(m.data, b[:]...)
+	m.disableEncrypt = true
+	m.data = append(m.data, pub.Bytes[:8]...)
+	m.messageType = MessageTypeSecret
+	return  nil
+}
+
 func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {
 	//if m.messageType == MessageTypeConsensusDkgDeal || m.messageType == MessageTypeConsensusDkgDealResponse {
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
 	binary.BigEndian.PutUint16(b, uint16(m.messageType))
 	m.data = append(m.data, b[:]...)
-	m.encrypt = true
 	m.messageType = MessageTypeSecret
 	ct, err := pub.Encrypt(m.data)
 	if err != nil {
@@ -405,6 +415,11 @@ func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {
 
 func (m *p2PMessage) checkRequiredSize() bool {
 	if m.messageType == MessageTypeSecret {
+		if m.disableEncrypt {
+			if len(m.data) < 8 {
+				return false
+			}
+		}
 		if len(m.data) < 3 {
 			return false
 		}
@@ -417,12 +432,37 @@ func (m *p2PMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
 		panic("not a secret message")
 	}
 	//check target
+	if m.disableEncrypt {
+		target := m.data[len(m.data)-8:]
+		if !bytes.Equal(target, myPub.Bytes[:8]) {
+			//not four me
+			return false
+		}
+		return true
+	}
 	target := m.data[len(m.data)-3:]
 	if !bytes.Equal(target, myPub.Bytes[:3]) {
 		//not four me
 		return false
 	}
 	return true
+}
+
+func (m *p2PMessage) removeGossipTarget() error {
+	msg := make([]byte, len(m.data)-8)
+	copy(msg, m.data[:len(m.data)-8])
+	if len(msg) < 3 {
+		return fmt.Errorf("lengh error %d", len(msg))
+	}
+	b := make([]byte, 2)
+	copy(b, msg[len(msg)-2:])
+	mType := binary.BigEndian.Uint16(b)
+	m.messageType = MessageType(mType)
+	if !m.messageType.isValid() {
+		return fmt.Errorf("message type error %s", m.messageType.String())
+	}
+	m.data = msg[:len(msg)-2]
+	return nil
 }
 
 func (m *p2PMessage) Decrypt(priv *crypto.PrivateKey) error {

@@ -39,7 +39,7 @@ var (
 func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	var (
 		db               = ogdb.NewMemDatabase()
-		genesis, balance = core.DefaultGenesis(0)
+		genesis, balance = core.DefaultGenesis(0, "genesis.json")
 		config           = core.DagConfig{}
 		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil, crypto.CryptoTypeSecp256k1)
 	)

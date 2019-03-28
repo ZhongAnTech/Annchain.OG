@@ -157,6 +157,7 @@ func (c *AutoClient) Start() {
 
 func (c *AutoClient) Stop() {
 	c.quit <- true
+	c.Delegate.TxCreator.Stop()
 	c.wg.Wait()
 }
 

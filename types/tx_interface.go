@@ -79,7 +79,11 @@ type Txi interface {
 	CalcMinedHash() Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
-	// implemented by each tx type
+	SetInValid(b bool )
+	InValid() bool
+
+
+// implemented by each tx type
 	GetBase() *TxBase
 	Sender() Address
 	Dump() string             // For logger dump
@@ -107,6 +111,15 @@ type TxBase struct {
 	Signature    []byte
 	MineNonce    uint64
 	Weight       uint64
+	inValid      bool
+}
+
+func (t *TxBase)SetInValid(b bool ) {
+	t.inValid = b
+}
+
+func (t *TxBase)InValid() bool {
+	return t.inValid
 }
 
 func (t *TxBase) GetType() TxBaseType {

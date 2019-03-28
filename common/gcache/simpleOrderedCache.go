@@ -165,7 +165,7 @@ func (c *SimpleOrderedCache) enQueueBatch(keys []interface{}, values []interface
 					evicted = true
 				}
 				if len(c.items) >= c.size {
-					err =  ReachedMaxSizeErr
+					err = ReachedMaxSizeErr
 				}
 			}
 			item = &simpleItem{
@@ -382,7 +382,7 @@ func (c *SimpleOrderedCache) addFrontBatch(keys []interface{}, values []interfac
 					evicted = true
 				}
 				if len(c.items) >= c.size {
-					err =  ReachedMaxSizeErr
+					err = ReachedMaxSizeErr
 					break
 				}
 			}

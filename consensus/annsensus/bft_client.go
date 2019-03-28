@@ -37,7 +37,7 @@ type BFTPartner interface {
 	GetPeers() (peer []BFTPartner)
 	SetProposalFunc(proposalFunc func() types.Proposal)
 	Stop()
-	RegisterDecisionReceive(ch chan *HeightRoundState)
+	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 }
 
 type PartnerBase struct {
@@ -95,7 +95,7 @@ type DefaultPartner struct {
 	waiter       *Waiter
 	proposalFunc func() types.Proposal
 	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
-	decisionChan chan *HeightRoundState
+	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
 	testFlag bool
@@ -105,8 +105,8 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 	return p.WaiterTimeoutChannel
 }
 
-func (p *DefaultPartner) RegisterDecisionReceive(ch chan *HeightRoundState) {
-	p.decisionChan = ch
+func (p *DefaultPartner) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
+	p.decisionFunc = decisionFunc
 }
 
 func (p *DefaultPartner) GetIncomingMessageChannel() chan Message {
@@ -527,11 +527,13 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 					"value": state.MessageProposal.Value,
 				}).Info("Decision")
 				//send the decision to upper client to process
-				go func() {
-					p.decisionChan <- state
-				}()
-
-				p.StartNewEra(p.CurrentHR.Height+1, 0)
+				err := p.decisionFunc(state)
+				if err != nil {
+					log.WithError(err).Warn("commit decision error")
+					p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
+				} else {
+					p.StartNewEra(p.CurrentHR.Height+1, 0)
+				}
 			}
 		}
 	}

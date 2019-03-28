@@ -36,10 +36,15 @@ type BFT struct {
 	ann                *AnnSensus
 	creator            *og.TxCreator
 	JudgeNonceFunction func(account *account.SampleAccount) uint64
-	decisionChan       chan *HeightRoundState
+	decisionChan       chan *commitDecision
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
 	started       bool
+}
+
+type commitDecision struct {
+	callbackChan chan error
+	state        *HeightRoundState
 }
 
 //OGBFTPartner implements BFTPartner
@@ -74,13 +79,13 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 		quit:          make(chan bool),
 		startBftChan:  make(chan bool),
 		resetChan:     make(chan bool),
-		decisionChan:  make(chan *HeightRoundState),
+		decisionChan:  make(chan *commitDecision),
 		creator:       txCreator,
 		proposalCache: make(map[types.Hash]*types.MessageProposal),
 	}
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
 	om.JudgeNonceFunction = judgeNonceFunction
-	bft.RegisterDecisionReceive(om.decisionChan)
+	bft.RegisterDecisionReceiveFunc(om.commitDecision)
 	om.ann = ann
 	return om
 }
@@ -100,6 +105,23 @@ func (t *BFT) Stop() {
 	t.BFTPartner.Stop()
 	t.quit <- true
 	logrus.Info("BFT stopped")
+}
+
+func (t *BFT) commitDecision(state *HeightRoundState) error {
+	commit := commitDecision{
+		state:        state,
+		callbackChan: make(chan error),
+	}
+	t.decisionChan <- &commit
+	// waiting for callback
+	select {
+	case err := <-commit.callbackChan:
+		if err != nil {
+			return err
+		}
+	}
+	log.Trace("commit success")
+	return nil
 }
 
 func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
@@ -174,7 +196,8 @@ func (t *BFT) loop() {
 				panic("never come here unknown type")
 			}
 
-		case state := <-t.decisionChan:
+		case decision := <-t.decisionChan:
+			state := decision.state
 			//set nil first
 			t.ann.dkg.partner.SigShares = nil
 			sequencerProposal := state.Decision.(*types.SequencerProposal)
@@ -196,6 +219,7 @@ func (t *BFT) loop() {
 			if err != nil {
 				log.Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
 					t.ann.dkg.partner.Id, len(t.ann.dkg.partner.SigShares), err)
+				decision.callbackChan <- err
 				continue
 			}
 			log.Debugf("threshold signature from partner %d: %s\n", t.ann.dkg.partner.Id, hexutil.Encode(jointSig))
@@ -207,8 +231,10 @@ func (t *BFT) loop() {
 			}
 			if err != nil {
 				log.WithError(err).Warnf("joinsig verify failed ")
+				decision.callbackChan <- err
 				continue
 			}
+			decision.callbackChan <- nil
 			sequencerProposal.BlsJointSig = jointSig
 			//seq.BlsJointPubKey = blsPub
 			t.ann.OnSelfGenTxi <- &sequencerProposal.Sequencer

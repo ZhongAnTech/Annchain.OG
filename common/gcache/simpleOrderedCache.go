@@ -139,13 +139,13 @@ func (c *SimpleOrderedCache) enQueueBatch(keys []interface{}, values []interface
 	evicted := false
 	var insertKeys []interface{}
 	var insertValues []interface{}
+	var err error
 	for i, key := range keys {
 		value := values[i]
-		var err error
 		if c.serializeFunc != nil {
 			value, err = c.serializeFunc(key, value)
 			if err != nil {
-				return err
+				break
 			}
 		}
 
@@ -165,7 +165,7 @@ func (c *SimpleOrderedCache) enQueueBatch(keys []interface{}, values []interface
 					evicted = true
 				}
 				if len(c.items) >= c.size {
-					return ReachedMaxSizeErr
+					err =  ReachedMaxSizeErr
 				}
 			}
 			item = &simpleItem{
@@ -193,7 +193,7 @@ func (c *SimpleOrderedCache) enQueueBatch(keys []interface{}, values []interface
 	if c.searchCmpFunc != nil {
 		c.insertKeys(insertKeys, insertValues, len(c.orderedKeys))
 	}
-	return nil
+	return err
 }
 
 //insertKeys  required  keys and values are sorted , otherwise never call this function
@@ -356,13 +356,13 @@ func (c *SimpleOrderedCache) addFrontBatch(keys []interface{}, values []interfac
 	evicted := false
 	var insertKeys []interface{}
 	var insertValues []interface{}
+	var err error
 	for i, key := range keys {
 		value := values[i]
-		var err error
 		if c.serializeFunc != nil {
 			value, err = c.serializeFunc(key, value)
 			if err != nil {
-				return err
+				break
 			}
 		}
 
@@ -382,7 +382,8 @@ func (c *SimpleOrderedCache) addFrontBatch(keys []interface{}, values []interfac
 					evicted = true
 				}
 				if len(c.items) >= c.size {
-					return ReachedMaxSizeErr
+					err =  ReachedMaxSizeErr
+					break
 				}
 			}
 			item = &simpleItem{
@@ -406,12 +407,13 @@ func (c *SimpleOrderedCache) addFrontBatch(keys []interface{}, values []interfac
 			c.addedFunc(key, value)
 		}
 	}
+
 	if c.searchCmpFunc != nil {
 		c.insertKeys(insertKeys, insertValues, 0)
 	} else {
 		c.orderedKeys = append(insertKeys, c.orderedKeys...)
 	}
-	return nil
+	return err
 }
 
 // Get a value from cache pool using key if it exists.

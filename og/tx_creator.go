@@ -48,26 +48,37 @@ func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenera
 	}
 }
 
-func (f *FIFOTipGenerator)validation() {
+func (f *FIFOTipGenerator) validation() {
+	var k int
 	for i := 0; i < f.maxCacheSize; i++ {
 		if f.fifoRing[i] == nil {
+			if f.fifoRingPos > i {
+				f.fifoRingPos = i
+			}
 			break
 		}
 		//if the tx is became fatal tx ,remove it from tips
 		if f.fifoRing[i].InValid() {
 			logrus.WithField("tx ", f.fifoRing[i]).Debug("found invalid tx")
-			if f.fifoRingPos > 0 {
-				if f.fifoRingPos -1 == i {
-					f.fifoRing[i] =nil
-				}else if f.fifoRingPos -1 > i{
-					f.fifoRing[i] = f.fifoRing[f.fifoRingPos-1]
-				}else {
-					break
+			if !f.fifoRingFull {
+				if f.fifoRingPos > 0 {
+					if f.fifoRingPos-1 == i {
+						f.fifoRing[i] = nil
+					} else if f.fifoRingPos-1 > i {
+						f.fifoRing[i] = f.fifoRing[f.fifoRingPos-1]
+					} else {
+						f.fifoRing[i] = nil
+						break
+					}
+					f.fifoRingPos--
 				}
-				f.fifoRingPos--
+			} else {
+				f.fifoRing[i] = f.fifoRing[f.maxCacheSize-k-1]
+				f.fifoRing[f.maxCacheSize-k-1] = nil
+				i--
+				k++
+				f.fifoRingFull = false
 			}
-			//f.fifoRing[i] = f.fifoRing[f.maxCacheSize-k-1]
-			//f.fifoRing[f.fifoRingPos-k-1] = nil
 		}
 	}
 }
@@ -132,10 +143,10 @@ type TxCreator struct {
 	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
 	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 	GraphVerifier      Verifier     // To verify the graph structure
-	quit bool
+	quit               bool
 }
 
-func (t *TxCreator)Stop() {
+func (t *TxCreator) Stop() {
 	t.quit = true
 }
 
@@ -274,6 +285,10 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 	defer close(respChan)
 	done := false
 	for !done {
+		if m.quit {
+			logrus.Info("got quit signal")
+			return true
+		}
 		mineCount++
 		go m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
 		select {
@@ -301,6 +316,9 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 					done = true
 					break
 				}
+			}
+			if mineCount > 1 {
+				return false
 			}
 		case <-time.NewTimer(time.Minute * 5).C:
 			return false

@@ -79,11 +79,10 @@ type Txi interface {
 	CalcMinedHash() Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
-	SetInValid(b bool )
+	SetInValid(b bool)
 	InValid() bool
 
-
-// implemented by each tx type
+	// implemented by each tx type
 	GetBase() *TxBase
 	Sender() Address
 	Dump() string             // For logger dump
@@ -114,11 +113,11 @@ type TxBase struct {
 	inValid      bool
 }
 
-func (t *TxBase)SetInValid(b bool ) {
+func (t *TxBase) SetInValid(b bool) {
 	t.inValid = b
 }
 
-func (t *TxBase)InValid() bool {
+func (t *TxBase) InValid() bool {
 	return t.inValid
 }
 

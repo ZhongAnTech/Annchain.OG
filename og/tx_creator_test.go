@@ -137,7 +137,7 @@ func TestBuildDag(t *testing.T) {
 
 func TestNewFIFOTIpGenerator(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	f:= NewFIFOTIpGenerator( &dummyTxPoolRandomTx{}, 15)
+	f := NewFIFOTIpGenerator(&dummyTxPoolRandomTx{}, 15)
 	fmt.Println(f.fifoRing)
 	f.GetRandomTips(3)
 	fmt.Println(f.fifoRing)
@@ -148,4 +148,12 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 	fmt.Println(f.fifoRing)
 	f.GetRandomTips(2)
 	fmt.Println(f.fifoRing)
+}
+
+func TestSlice(t *testing.T) {
+	parents := []types.Txis{}
+	parentHashes := make(types.Hashes, len(parents))
+	for i, parent := range parents {
+		parentHashes[i] = parent.GetTxHash()
+	}
 }

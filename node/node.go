@@ -100,7 +100,7 @@ func NewNode() *Node {
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
 		BroadCastMode:                 feedBack,
-		DisableEncryptGossip:  viper.GetBool("hub.disable_encrypt_gossip"),
+		DisableEncryptGossip:          viper.GetBool("hub.disable_encrypt_gossip"),
 	})
 
 	hub.StatusDataProvider = org

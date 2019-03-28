@@ -393,7 +393,7 @@ func (m *p2PMessage) appendGossipTarget(pub *crypto.PublicKey) error {
 	m.disableEncrypt = true
 	m.data = append(m.data, pub.Bytes[:8]...)
 	m.messageType = MessageTypeSecret
-	return  nil
+	return nil
 }
 
 func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {

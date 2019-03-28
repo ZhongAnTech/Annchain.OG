@@ -73,12 +73,12 @@ type Hub struct {
 	Downloader         *downloader.Downloader
 	Fetcher            *fetcher.Fetcher
 
-	NodeInfo          func() *p2p.NodeInfo
-	IsReceivedHash    func(hash types.Hash) bool
-	broadCastMode     uint8
-	encryptionPrivKey *crypto.PrivateKey
-	encryptionPubKey  *crypto.PublicKey
-	disableEncryptGossip  bool
+	NodeInfo             func() *p2p.NodeInfo
+	IsReceivedHash       func(hash types.Hash) bool
+	broadCastMode        uint8
+	encryptionPrivKey    *crypto.PrivateKey
+	encryptionPubKey     *crypto.PublicKey
+	disableEncryptGossip bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -119,7 +119,7 @@ type HubConfig struct {
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
 	BroadCastMode                 uint8
-	DisableEncryptGossip         bool
+	DisableEncryptGossip          bool
 }
 
 const (
@@ -135,7 +135,7 @@ func DefaultHubConfig() HubConfig {
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
 		BroadCastMode:                 NormalMode,
-		DisableEncryptGossip         :false,
+		DisableEncryptGossip:          false,
 	}
 	return config
 }
@@ -291,7 +291,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 		return nil
 	case MessageTypeSecret:
-		if h.disableEncryptGossip{
+		if h.disableEncryptGossip {
 			m.disableEncrypt = true
 		}
 		if !m.checkRequiredSize() {
@@ -308,7 +308,7 @@ func (h *Hub) handleMsg(p *peer) error {
 				//else decrypt
 				if h.disableEncryptGossip {
 					e = m.removeGossipTarget()
-				}else {
+				} else {
 					e = m.Decrypt(h.encryptionPrivKey)
 				}
 				if e == nil {
@@ -567,7 +567,7 @@ func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNom
 	log.WithField("size before enc", len(msgOut.data))
 	if h.disableEncryptGossip {
 		err = msgOut.appendGossipTarget(anyNomousPubKey)
-	}else {
+	} else {
 		err = msgOut.Encrypt(anyNomousPubKey)
 	}
 	if err != nil {

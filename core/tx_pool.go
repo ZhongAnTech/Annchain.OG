@@ -533,7 +533,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	if txquality == TxQualityIsFatal {
 		pool.remove(tx, removeFromEnd)
 		tx.SetInValid(true)
-		log.WithField("tx ",tx).Debug("set invalid ")
+		log.WithField("tx ", tx).Debug("set invalid ")
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
@@ -889,8 +889,8 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 			status: TxStatusQueue,
 		}
 		pool.txLookup.Add(txEnv)
-		e:= pool.commit(tx)
-		if e!=nil {
+		e := pool.commit(tx)
+		if e != nil {
 			log.WithField("tx ", tx).WithError(e).Debug("rejudge error")
 		}
 	}

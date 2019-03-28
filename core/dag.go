@@ -289,6 +289,9 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
+	if dag.oldDb == nil {
+		return nil
+	}
 	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil

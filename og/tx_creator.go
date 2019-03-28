@@ -48,10 +48,36 @@ func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenera
 	}
 }
 
+func (f *FIFOTipGenerator)validation() {
+	for i := 0; i < f.maxCacheSize; i++ {
+		if f.fifoRing[i] == nil {
+			break
+		}
+		//if the tx is became fatal tx ,remove it from tips
+		if f.fifoRing[i].InValid() {
+			logrus.WithField("tx ", f.fifoRing[i]).Debug("found invalid tx")
+			if f.fifoRingPos > 0 {
+				if f.fifoRingPos -1 == i {
+					f.fifoRing[i] =nil
+				}else if f.fifoRingPos -1 > i{
+					f.fifoRing[i] = f.fifoRing[f.fifoRingPos-1]
+				}else {
+					break
+				}
+				f.fifoRingPos--
+			}
+			//f.fifoRing[i] = f.fifoRing[f.maxCacheSize-k-1]
+			//f.fifoRing[f.fifoRingPos-k-1] = nil
+		}
+	}
+}
+
 func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	upstreamTips := f.upstream.GetRandomTips(n)
+	//checkValidation
+	f.validation()
 	// update fifoRing
 	for _, upstreamTip := range upstreamTips {
 		duplicated := false
@@ -106,6 +132,11 @@ type TxCreator struct {
 	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
 	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 	GraphVerifier      Verifier     // To verify the graph structure
+	quit bool
+}
+
+func (t *TxCreator)Stop() {
+	t.quit = true
 }
 
 func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64) types.Txi {
@@ -203,7 +234,6 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
 	}
-
 	//calculate weight
 	tx.GetBase().Weight = tx.CalculateWeight(parents)
 
@@ -252,6 +282,10 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
+				if m.quit {
+					logrus.Info("got quit signal")
+					return true
+				}
 				connectionTries++
 				txs := m.TipGenerator.GetRandomTips(2)
 
@@ -294,13 +328,17 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	// pick up parents.
 	var ok bool
 	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
+		if m.quit {
+			logrus.Info("got quit signal")
+			return tx
+		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
 		//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
 		if len(parents) == 0 {
 			// Impossible. At least genesis is there
 			logrus.Warn("at least genesis is there. Wait for loading")
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 1)
 			continue
 		}
 		parentHashes := make(types.Hashes, len(parents))

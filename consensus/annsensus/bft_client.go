@@ -183,9 +183,16 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Trace("I'm the proposer")
 		var proposal types.Proposal
 		if currState.ValidValue != nil {
+			log.WithField("hr ", hr).Trace("will got valid value")
 			proposal = currState.ValidValue
 		} else {
-			proposal = p.GetValue()
+			if round == 0 {
+				log.WithField("hr ", hr).Trace("will got new height value")
+				proposal = p.GetValue(true)
+			} else {
+				log.WithField("hr ", hr).Trace("will got new round value")
+				proposal = p.GetValue(false)
+			}
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
@@ -267,8 +274,11 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() types.Proposal {
-	time.Sleep(p.blockTime)
+func (p *DefaultPartner) GetValue(newBlock bool) types.Proposal {
+	//don't sleep for the same height new round
+	if newBlock {
+		time.Sleep(p.blockTime)
+	}
 	if p.proposalFunc != nil {
 		pro := p.proposalFunc()
 		logrus.WithField("proposal ", pro).Debug("proposal gen ")

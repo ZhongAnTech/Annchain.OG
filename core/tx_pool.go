@@ -620,6 +620,36 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		return TxQualityIsFatal
 	}
 
+
+	latestNonce ,e :=  pool.flows.GetLatestNonce(tx.Sender())
+
+	if e ==nil {
+		if tx.GetNonce() != latestNonce+1 {
+			log.WithField("shoud be " ,latestNonce+1).WithField("tx", tx).Error("nonce err")
+			return  TxQualityIsFatal
+		}
+	}else {
+		latestNonce ,nErr := pool.dag.GetLatestNonce(tx.Sender())
+		if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
+			log.Errorf("get latest nonce err: %v", nErr)
+			return TxQualityIsFatal
+		}
+		if nErr == types.ErrNonceNotExist {
+			if tx.GetNonce() != uint64(0) {
+				log.Warnf("nonce %d is not zero when there is no nonce in db, tx: %s", tx.GetNonce(), tx)
+				return  TxQualityIsFatal
+			}
+		} else {
+			log.WithField("nErr", nErr).Trace("in verifyNonce with ")
+
+			if tx.GetNonce() != latestNonce+1 {
+				log.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", tx.GetNonce(), latestNonce, tx)
+				return TxQualityIsFatal
+			}
+		}
+	}
+
+
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
 	if stateFrom == nil {

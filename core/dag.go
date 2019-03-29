@@ -179,8 +179,10 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	// init genesis balance
 	for addr, value := range genesisBalance {
 		tx := &types.Tx{}
-		tx.From = emptyAddress
+		tx.From = addr
 		tx.Value = value
+		tx.Type = types.TxBaseTypeNormal
+		tx.GetBase().Hash = tx.CalcTxHash()
 		dag.WriteTransaction(dbBatch, tx)
 
 		dag.statedb.SetBalance(addr, value)

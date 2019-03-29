@@ -55,6 +55,7 @@ type AutoClient struct {
 	wg sync.WaitGroup
 
 	nonceLock sync.RWMutex
+	txLock    sync.RWMutex
 	NewRawTx  chan types.Txi
 }
 
@@ -236,6 +237,8 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		}
 		firstTx = true
 	}
+	c.txLock.RLock()
+	defer c.txLock.RUnlock()
 
 	tx, err := c.Delegate.GenerateTx(TxRequest{
 		AddrFrom:   me.Address,

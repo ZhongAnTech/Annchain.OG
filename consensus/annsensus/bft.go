@@ -251,7 +251,7 @@ func (t *BFT) loop() {
 			} else {
 				decision.callbackChan <- nil
 			}
-			
+
 			sequencerProposal.BlsJointSig = jointSig
 			log.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub

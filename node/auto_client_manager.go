@@ -33,7 +33,7 @@ type AutoClientManager struct {
 	delegate               *Delegate
 }
 
-func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinBaseId int) {
+func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinBaseAccount *account.SampleAccount) {
 	m.Clients = []*AutoClient{}
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)
@@ -43,8 +43,9 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 	for _, accountIndex := range accountIndices {
 		client := &AutoClient{
 			Delegate:             delegate,
-			SampleAccounts:       m.SampleAccounts,
-			MyAccountIndex:       accountIndex,
+			SampleAccounts: m.SampleAccounts,
+			MyIndex:accountIndex,
+			MyAccount:            m.SampleAccounts[accountIndex],
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
@@ -63,8 +64,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,
-			SampleAccounts:       m.SampleAccounts,
-			MyAccountIndex:       0,
+			SampleAccounts: m.SampleAccounts,
+			MyAccount:            m.SampleAccounts[0],
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
@@ -81,7 +82,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		client := &AutoClient{
 			Delegate:             delegate,
 			SampleAccounts:       m.SampleAccounts,
-			MyAccountIndex:       coinBaseId,
+			MyAccount:            coinBaseAccount,
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
 			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),

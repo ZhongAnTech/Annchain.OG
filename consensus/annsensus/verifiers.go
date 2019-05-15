@@ -97,7 +97,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	//check balance
 	balance := a.Idag.GetBalance(cp.Issuer)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
-		log.Warn("your balance is not enough to generate campaign")
+		log.WithField("addr ", cp.Issuer).Warn("your balance is not enough to generate campaign")
 		return false
 	}
 

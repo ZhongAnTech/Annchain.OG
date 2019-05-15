@@ -35,7 +35,8 @@ const (
 
 type AutoClient struct {
 	SampleAccounts       []*account.SampleAccount
-	MyAccountIndex       int
+	MyIndex       int //only for debug
+	MyAccount            *account.SampleAccount  //if MyAccount is
 	SequencerIntervalUs  int
 	TxIntervalUs         int
 	IntervalMode         string
@@ -175,7 +176,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 	defer c.nonceLock.Unlock()
 
 	var n uint64
-	me := c.SampleAccounts[c.MyAccountIndex]
+	me := c.MyAccount
 	if c.NonceSelfDiscipline {
 		n, err := me.ConsumeNonce()
 		if err == nil {
@@ -223,7 +224,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		return false
 	}
 
-	me := c.SampleAccounts[c.MyAccountIndex]
+	me := c.MyAccount
 	if !firstTx {
 		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
 		if txi != nil {
@@ -252,7 +253,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		return false
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
-		WithField("id", c.MyAccountIndex).Trace("Generated tx")
+		WithField("id", c.MyIndex).Trace("Generated tx")
 	c.Delegate.Announce(tx)
 	return true
 }
@@ -261,7 +262,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	if !c.CampainEnable {
 		return false
 	}
-	me := c.SampleAccounts[c.MyAccountIndex]
+	me := c.MyAccount
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
 	if txi.GetType() == types.TxBaseTypeCampaign {
@@ -279,7 +280,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	}
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
-		WithField("id", c.MyAccountIndex).Trace("Generated tx")
+		WithField("id", c.MyIndex).Trace("Generated txi")
 	c.Delegate.Announce(txi)
 	return true
 }
@@ -288,7 +289,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	if !force && !c.AutoSequencerEnabled {
 		return false
 	}
-	me := c.SampleAccounts[c.MyAccountIndex]
+	me := c.MyAccount
 	if !firstTx {
 		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
 		if txi != nil {
@@ -308,7 +309,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
-		WithField("id", c.MyAccountIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
+		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
 	c.Delegate.Announce(seq)
 	return true
 }

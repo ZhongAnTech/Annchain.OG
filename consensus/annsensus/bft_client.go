@@ -40,6 +40,7 @@ type BFTPartner interface {
 	Stop()
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
+
 }
 
 type PartnerBase struct {
@@ -211,13 +212,20 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		var proposal types.Proposal
 		var validHeight uint64
 		if currState.ValidValue != nil {
+			log.WithField("hr ", hr).Trace("will got valid value")
 			proposal = currState.ValidValue
 		} else {
-			proposal, validHeight = p.GetValue()
-		}
-		if validHeight != p.CurrentHR.Height {
-			//TODO
-			log.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
+			if round == 0 {
+				log.WithField("hr ", hr).Trace("will got new height value")
+				proposal,validHeight  = p.GetValue(true)
+			} else {
+				log.WithField("hr ", hr).Trace("will got new round value")
+				proposal,validHeight = p.GetValue(false)
+			}
+			if validHeight != p.CurrentHR.Height {
+				//TODO
+				log.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
+			}
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
@@ -299,8 +307,11 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue() (types.Proposal, uint64) {
-	time.Sleep(p.blockTime)
+func (p *DefaultPartner) GetValue(newBlock bool) (types.Proposal, uint64) {
+	//don't sleep for the same height new round
+	if newBlock {
+		time.Sleep(p.blockTime)
+	}
 	if p.proposalFunc != nil {
 		pro, validHeight := p.proposalFunc()
 		logrus.WithField("proposal ", pro).Debug("proposal gen ")

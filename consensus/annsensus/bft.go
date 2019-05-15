@@ -46,6 +46,11 @@ type BFT struct {
 	started bool
 }
 
+type commitDecision struct {
+	callbackChan chan error
+	state        *HeightRoundState
+}
+
 //OGBFTPartner implements BFTPartner
 type OGBFTPartner struct {
 	BFTPartner
@@ -85,6 +90,7 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
 	om.JudgeNonceFunction = judgeNonceFunction
 	om.sequencerTime = sequencerTime
+
 	bft.RegisterDecisionReceiveFunc(om.commitDecision)
 	om.ann = ann
 	return om
@@ -123,6 +129,23 @@ func (t *BFT) Stop() {
 	t.BFTPartner.Stop()
 	t.quit <- true
 	logrus.Info("BFT stopped")
+}
+
+func (t *BFT) commitDecision(state *HeightRoundState) error {
+	commit := commitDecision{
+		state:        state,
+		callbackChan: make(chan error),
+	}
+	t.decisionChan <- &commit
+	// waiting for callback
+	select {
+	case err := <-commit.callbackChan:
+		if err != nil {
+			return err
+		}
+	}
+	log.Trace("commit success")
+	return nil
 }
 
 func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
@@ -219,12 +242,15 @@ func (t *BFT) loop() {
 			}
 			jointSig, err := t.ann.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), t.DKGTermId)
 			if err != nil {
+
 				log.WithField("termId ", t.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
+
 				decision.callbackChan <- err
 				continue
 			} else {
 				decision.callbackChan <- nil
 			}
+			decision.callbackChan <- nil
 			sequencerProposal.BlsJointSig = jointSig
 			//seq.BlsJointPubKey = blsPub
 			t.ann.OnSelfGenTxi <- &sequencerProposal.Sequencer
@@ -237,27 +263,6 @@ func (t *BFT) loop() {
 	}
 }
 
-type commitDecision struct {
-	callbackChan chan error
-	state        *HeightRoundState
-}
-
-func (t *BFT) commitDecision(state *HeightRoundState) error {
-	commit := commitDecision{
-		state:        state,
-		callbackChan: make(chan error),
-	}
-	t.decisionChan <- &commit
-	// waiting for callback
-	select {
-	case err := <-commit.callbackChan:
-		if err != nil {
-			return err
-		}
-	}
-	log.Trace("commit success")
-	return nil
-}
 
 func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 	me := t.ann.MyAccount

@@ -79,6 +79,9 @@ type Txi interface {
 	CalcMinedHash() Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
+	SetInValid(b bool)
+	InValid() bool
+
 	// implemented by each tx type
 	GetBase() *TxBase
 	Sender() Address
@@ -107,6 +110,15 @@ type TxBase struct {
 	Signature    []byte
 	MineNonce    uint64
 	Weight       uint64
+	inValid      bool
+}
+
+func (t *TxBase) SetInValid(b bool) {
+	t.inValid = b
+}
+
+func (t *TxBase) InValid() bool {
+	return t.inValid
 }
 
 func (t *TxBase) GetType() TxBaseType {
@@ -201,6 +213,12 @@ func (t Txis) Less(i, j int) bool {
 	if t[i].GetWeight() > t[j].GetWeight() {
 		return false
 	}
+	if t[i].GetNonce()  < t[j].GetNonce() {
+		return  true
+	}
+	if t[i].GetNonce() < t[j].GetNonce() {
+		return  false
+	}
 	if t[i].GetTxHash().Cmp(t[j].GetTxHash()) < 0 {
 		return true
 	}
@@ -264,6 +282,9 @@ func (t Txis) ToRaw() (txs RawTxs, cps RawCampaigns, tcs RawTermChanges, seqs Ra
 func (t Txis) RawTxis() RawTxis {
 	var txs RawTxis
 	for _, tx := range t {
+		if tx==nil {
+			continue
+		}
 		txs = append(txs, tx.RawTxi())
 	}
 	if len(txs) == 0 {

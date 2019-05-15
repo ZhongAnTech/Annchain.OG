@@ -89,6 +89,10 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	return d
 }
 
+func (d *Dkg)SetId( id int ) {
+	d.partner.Id =  uint32(id)
+}
+
 func (d *Dkg) Reset(myDkgPublicKey []byte) {
 
 	d.mu.RLock()

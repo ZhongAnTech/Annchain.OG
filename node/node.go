@@ -89,14 +89,18 @@ func NewNode() *Node {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
-
+	feedBack := og.FeedBackMode
+	if viper.GetBool("hub.disable_feedback") == true {
+		feedBack = og.NormalMode
+	}
 	hub := og.NewHub(&og.HubConfig{
 		OutgoingBufferSize:            viper.GetInt("hub.outgoing_buffer_size"),
 		IncomingBufferSize:            viper.GetInt("hub.incoming_buffer_size"),
 		MessageCacheExpirationSeconds: viper.GetInt("hub.message_cache_expiration_seconds"),
 		MessageCacheMaxSize:           viper.GetInt("hub.message_cache_max_size"),
 		MaxPeers:                      maxPeers,
-		BroadCastMode:                 og.FeedBackMode,
+		BroadCastMode:                 feedBack,
+		DisableEncryptGossip:          viper.GetBool("hub.disable_encrypt_gossip"),
 	})
 
 	hub.StatusDataProvider = org

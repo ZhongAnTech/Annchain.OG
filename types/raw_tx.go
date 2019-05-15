@@ -336,6 +336,9 @@ func (r *Sequencers) Len() int {
 type TxisMarshaler []*RawTxMarshaler
 
 func (t *TxisMarshaler) Append(tx Txi) {
+	if tx==nil {
+		return
+	}
 	raw := tx.RawTxi()
 	if raw == nil {
 		return

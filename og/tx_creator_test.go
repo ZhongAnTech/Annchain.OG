@@ -14,6 +14,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
@@ -131,5 +132,28 @@ func TestBuildDag(t *testing.T) {
 		if ok := txc.SealTx(txs[i]); ok {
 			pool.Add(txs[i])
 		}
+	}
+}
+
+func TestNewFIFOTIpGenerator(t *testing.T) {
+	logrus.SetLevel(logrus.TraceLevel)
+	f := NewFIFOTIpGenerator(&dummyTxPoolRandomTx{}, 15)
+	fmt.Println(f.fifoRing)
+	f.GetRandomTips(3)
+	fmt.Println(f.fifoRing)
+	fmt.Println(f.fifoRingPos)
+	f.fifoRing[2].SetInValid(true)
+	f.validation()
+	fmt.Println(f.fifoRingPos)
+	fmt.Println(f.fifoRing)
+	f.GetRandomTips(2)
+	fmt.Println(f.fifoRing)
+}
+
+func TestSlice(t *testing.T) {
+	parents := []types.Txis{}
+	parentHashes := make(types.Hashes, len(parents))
+	for i, parent := range parents {
+		parentHashes[i] = parent.GetTxHash()
 	}
 }

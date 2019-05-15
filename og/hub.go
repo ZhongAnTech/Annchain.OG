@@ -73,11 +73,12 @@ type Hub struct {
 	Downloader         *downloader.Downloader
 	Fetcher            *fetcher.Fetcher
 
-	NodeInfo          func() *p2p.NodeInfo
-	IsReceivedHash    func(hash types.Hash) bool
-	broadCastMode     uint8
-	encryptionPrivKey *crypto.PrivateKey
-	encryptionPubKey  *crypto.PublicKey
+	NodeInfo             func() *p2p.NodeInfo
+	IsReceivedHash       func(hash types.Hash) bool
+	broadCastMode        uint8
+	encryptionPrivKey    *crypto.PrivateKey
+	encryptionPubKey     *crypto.PublicKey
+	disableEncryptGossip bool
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -118,6 +119,7 @@ type HubConfig struct {
 	MessageCacheExpirationSeconds int
 	MaxPeers                      int
 	BroadCastMode                 uint8
+	DisableEncryptGossip          bool
 }
 
 const (
@@ -127,12 +129,13 @@ const (
 
 func DefaultHubConfig() HubConfig {
 	config := HubConfig{
-		OutgoingBufferSize:            10,
-		IncomingBufferSize:            10,
+		OutgoingBufferSize:            40,
+		IncomingBufferSize:            40,
 		MessageCacheMaxSize:           60,
 		MessageCacheExpirationSeconds: 3000,
 		MaxPeers:                      50,
 		BroadCastMode:                 NormalMode,
+		DisableEncryptGossip:          false,
 	}
 	return config
 }
@@ -151,6 +154,7 @@ func (h *Hub) Init(config *HubConfig) {
 	h.CallbackRegistry = make(map[MessageType]func(*p2PMessage))
 	h.CallbackRegistryOG02 = make(map[MessageType]func(*p2PMessage))
 	h.broadCastMode = config.BroadCastMode
+	h.disableEncryptGossip = config.DisableEncryptGossip
 }
 
 func NewHub(config *HubConfig) *Hub {
@@ -235,7 +239,7 @@ func (h *Hub) handle(p *peer) error {
 		return err
 	}
 
-	log.Debug("register peer localy")
+	log.Debug("register peer locally")
 
 	defer h.RemovePeer(p.id)
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
@@ -272,7 +276,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
 	m := p2PMessage{messageType: MessageType(msg.Code), data: data, sourceID: p.id, version: p.version}
-	//log.Debug("start handle p2p messgae ",p2pMsg.messageType)
+	//log.Debug("start handle p2p message ",p2pMsg.messageType)
 	switch m.messageType {
 	case StatusMsg:
 		// Handle the message depending on its contents
@@ -287,6 +291,9 @@ func (h *Hub) handleMsg(p *peer) error {
 		}
 		return nil
 	case MessageTypeSecret:
+		if h.disableEncryptGossip {
+			m.disableEncrypt = true
+		}
 		if !m.checkRequiredSize() {
 			return fmt.Errorf("msg len error")
 		}
@@ -296,7 +303,14 @@ func (h *Hub) handleMsg(p *peer) error {
 		if duplicate := h.cacheMessage(&m); !duplicate {
 			var isForMe bool
 			if isForMe = m.maybeIsforMe(h.encryptionPubKey); isForMe {
-				e := m.Decrypt(h.encryptionPrivKey)
+				var e error
+				//if encryption  gossip is disabled , just check the target
+				//else decrypt
+				if h.disableEncryptGossip {
+					e = m.removeGossipTarget()
+				} else {
+					e = m.Decrypt(h.encryptionPrivKey)
+				}
 				if e == nil {
 					err = m.Unmarshal()
 					if err != nil {
@@ -430,18 +444,19 @@ func (h *Hub) loopSend() {
 	for {
 		select {
 		case m := <-h.outgoing:
+			//bug fix , don't use go routine to send here
 			// start a new routine in order not to block other communications
 			switch m.sendingType {
 			case sendingTypeBroacast:
-				go h.broadcastMessage(m)
+				h.broadcastMessage(m)
 			case sendingTypeMulticast:
-				go h.multicastMessage(m)
+				h.multicastMessage(m)
 			case sendingTypeMulticastToSource:
 				h.multicastMessageToSource(m)
 			case sendingTypeBroacastWithFilter:
-				go h.broadcastMessage(m)
+				h.broadcastMessage(m)
 			case sendingTypeBroacastWithLink:
-				go h.broadcastMessageWithLink(m)
+				h.broadcastMessageWithLink(m)
 
 			default:
 				log.WithField("type ", m.sendingType).Error("unknown sending  type")
@@ -459,7 +474,8 @@ func (h *Hub) loopReceive() {
 		select {
 		case m := <-h.incoming:
 			// start a new routine in order not to block other communications
-			go h.receiveMessage(m)
+			// bug fix ; don't use go routine
+			h.receiveMessage(m)
 		case <-h.quit:
 			log.Info("Hub-loopReceive received quit message. Quitting...")
 			return
@@ -540,13 +556,20 @@ func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 //sned
 func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
+	if h.disableEncryptGossip {
+		msgOut.disableEncrypt = true
+	}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message init msg  err")
 		return
 	}
 	log.WithField("size before enc", len(msgOut.data))
-	err = msgOut.Encrypt(anyNomousPubKey)
+	if h.disableEncryptGossip {
+		err = msgOut.appendGossipTarget(anyNomousPubKey)
+	} else {
+		err = msgOut.Encrypt(anyNomousPubKey)
+	}
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message encrypt msg  err")
 		return

@@ -288,6 +288,7 @@ func (pool *TxPool) GetStatus(hash types.Hash) TxStatus {
 
 	return pool.getStatus(hash)
 }
+
 func (pool *TxPool) getStatus(hash types.Hash) TxStatus {
 	return pool.txLookup.Status(hash)
 }
@@ -531,6 +532,8 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	txquality := pool.isBadTx(tx)
 	if txquality == TxQualityIsFatal {
 		pool.remove(tx, removeFromEnd)
+		tx.SetInValid(true)
+		log.WithField("tx ", tx).Debug("set invalid ")
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
 	}
 	if txquality == TxQualityIsBad {
@@ -616,6 +619,36 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		log.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in dag")
 		return TxQualityIsFatal
 	}
+
+
+	latestNonce ,e :=  pool.flows.GetLatestNonce(tx.Sender())
+
+	if e ==nil {
+		if tx.GetNonce() != latestNonce+1 {
+			log.WithField("shoud be " ,latestNonce+1).WithField("tx", tx).Error("nonce err")
+			return  TxQualityIsFatal
+		}
+	}else {
+		latestNonce ,nErr := pool.dag.GetLatestNonce(tx.Sender())
+		if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
+			log.Errorf("get latest nonce err: %v", nErr)
+			return TxQualityIsFatal
+		}
+		if nErr == types.ErrNonceNotExist {
+			if tx.GetNonce() != uint64(0) {
+				log.Warnf("nonce %d is not zero when there is no nonce in db, tx: %s", tx.GetNonce(), tx)
+				return  TxQualityIsFatal
+			}
+		} else {
+			log.WithField("nErr", nErr).Trace("in verifyNonce with ")
+
+			if tx.GetNonce() != latestNonce+1 {
+				log.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", tx.GetNonce(), latestNonce, tx)
+				return TxQualityIsFatal
+			}
+		}
+	}
+
 
 	// check if the tx itself has no conflicts with local ledger
 	stateFrom := pool.flows.GetBalanceState(tx.Sender())
@@ -886,7 +919,10 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 			status: TxStatusQueue,
 		}
 		pool.txLookup.Add(txEnv)
-		pool.commit(tx)
+		e := pool.commit(tx)
+		if e != nil {
+			log.WithField("tx ", tx).WithError(e).Debug("rejudge error")
+		}
 	}
 }
 
@@ -1153,6 +1189,7 @@ func (t *txLookUp) Stats() (int, int, int) {
 
 	return t.stats()
 }
+
 func (t *txLookUp) stats() (int, int, int) {
 	tips, badtx, pending := 0, 0, 0
 	for _, v := range t.txs {
@@ -1174,6 +1211,7 @@ func (t *txLookUp) Status(h types.Hash) TxStatus {
 
 	return t.status(h)
 }
+
 func (t *txLookUp) status(h types.Hash) TxStatus {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.status
@@ -1188,6 +1226,7 @@ func (t *txLookUp) SwitchStatus(h types.Hash, status TxStatus) {
 
 	t.switchstatus(h, status)
 }
+
 func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status

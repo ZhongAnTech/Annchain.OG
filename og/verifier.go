@@ -166,7 +166,7 @@ func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archi
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool or in dag
 func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
-	if currentTx.GetNonce() <= 1 {
+	if currentTx.GetNonce() == 0 {
 		ok = true
 		return
 	}

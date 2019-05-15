@@ -179,8 +179,10 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	// init genesis balance
 	for addr, value := range genesisBalance {
 		tx := &types.Tx{}
-		tx.From = emptyAddress
+		tx.From = addr
 		tx.Value = value
+		tx.Type = types.TxBaseTypeNormal
+		tx.GetBase().Hash = tx.CalcTxHash()
 		dag.WriteTransaction(dbBatch, tx)
 
 		dag.statedb.SetBalance(addr, value)
@@ -289,6 +291,9 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
+	if dag.oldDb == nil {
+		return nil
+	}
 	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil

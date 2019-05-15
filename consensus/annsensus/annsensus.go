@@ -124,6 +124,7 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 			log.WithField("my id ", id).Info("i am a genesis partner")
 		}
 	}
+	as.dkg.SetId(myId)
 	as.bft = NewBFT(as, as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator)
 	as.addBftPartner()
 }

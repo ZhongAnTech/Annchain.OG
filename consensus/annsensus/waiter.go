@@ -54,7 +54,8 @@ func (w *Waiter) StartEventLoop() {
 	for {
 		select {
 		case <-w.quit:
-			break
+			log.Info("got quit msg , will stop event loop")
+			return
 		case request := <-w.requestChannel:
 			// could be an updated request
 			// if it is really updated request,

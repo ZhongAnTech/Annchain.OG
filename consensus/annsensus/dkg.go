@@ -137,7 +137,7 @@ func (d *Dkg) start() {
 
 func (d *Dkg) stop() {
 	d.gossipStopCh <- struct{}{}
-	log.Info("dkg stop")
+	log.Info("dkg stoped")
 }
 
 func (d *Dkg) generateDkg() []byte {
@@ -672,18 +672,17 @@ func (d *Dkg) gossiploop() {
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
-				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
 				d.partner.KeyShare, err = d.partner.Dkger.DistKeyShare()
 				if err != nil {
 					log.WithError(err).Error("key share err")
 				}
+				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
 				d.ready = false
 			}
 
 		case <-d.gossipStopCh:
 			log := d.log()
 			log.Info("got quit signal dkg gossip stopped")
-
 			return
 		}
 	}

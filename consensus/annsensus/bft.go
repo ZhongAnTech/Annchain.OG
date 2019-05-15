@@ -126,6 +126,7 @@ func (t *BFT) SetPeers() {
 }
 
 func (t *BFT) Stop() {
+	log.Info("BFT will stop")
 	t.BFTPartner.Stop()
 	t.quit <- true
 	logrus.Info("BFT stopped")
@@ -185,6 +186,7 @@ func (t *BFT) loop() {
 		select {
 		case <-t.quit:
 			log.Info("got quit signal, BFT loop")
+			return
 		case <-t.startBftChan:
 			if !t.started {
 				go t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
@@ -242,7 +244,6 @@ func (t *BFT) loop() {
 			}
 			jointSig, err := t.ann.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), t.DKGTermId)
 			if err != nil {
-
 				log.WithField("termId ", t.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
 
 				decision.callbackChan <- err
@@ -250,14 +251,15 @@ func (t *BFT) loop() {
 			} else {
 				decision.callbackChan <- nil
 			}
-			decision.callbackChan <- nil
+			
 			sequencerProposal.BlsJointSig = jointSig
+			log.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub
 			t.ann.OnSelfGenTxi <- &sequencerProposal.Sequencer
 			//t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-t.resetChan:
-
+            //todo
 		}
 
 	}

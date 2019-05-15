@@ -135,7 +135,7 @@ func (p *DefaultPartner) SetPeers(peers []BFTPartner) {
 func (p *DefaultPartner) Stop() {
 	p.quit <- true
 	p.waiter.quit <- true
-	logrus.Info("stopped")
+	log.Info("default partner stopped")
 }
 
 func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
@@ -194,7 +194,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 	hr.Height = height
 	hr.Round = round
 
-	logrus.WithFields(logrus.Fields{
+	log.WithFields(logrus.Fields{
 		"IM":        p.Id,
 		"currentHR": p.CurrentHR.String(),
 		"newHR":     hr.String(),
@@ -227,7 +227,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 				log.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
 			}
 		}
-		logrus.WithField("proposal ", proposal).Trace("new proposal")
+		log.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
 		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {
@@ -247,7 +247,8 @@ func (p *DefaultPartner) send() {
 		timer.Reset(time.Second * 7)
 		select {
 		case <-p.quit:
-			break
+			log.Info("got quit msg , bft partner send routine will stop")
+			return
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
 			p.dumpAll("blocked reading outgoing")
@@ -279,7 +280,8 @@ func (p *DefaultPartner) receive() {
 		timer.Reset(time.Second * 7)
 		select {
 		case <-p.quit:
-			break
+			log.Info("got quit msg , bft partner receive routine will stop")
+			return
 		case v := <-p.WaiterTimeoutChannel:
 			context := v.Context.(*TendermintContext)
 			logrus.WithFields(logrus.Fields{

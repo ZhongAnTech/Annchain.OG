@@ -139,7 +139,7 @@ func (as *AnnSensus) Start() {
 }
 
 func (as *AnnSensus) Stop() {
-	log.Info("AnnSensus Stop")
+	log.Info("AnnSensus will Stop")
 	as.bft.Stop()
 	as.dkg.stop()
 	close(as.close)

@@ -299,11 +299,12 @@ func NewNode() *Node {
 	// Not suitable to be used here.
 	autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
-	coinBaseId := accountIds[0] + 100
+	//coinBaseId := accountIds[0] + 100
+	myAcount := account.NewAccount(viper.GetString("dag.my_private_key"))
 	autoClientManager.Init(
 		accountIds,
 		delegate,
-		coinBaseId,
+		myAcount,
 	)
 	// TODO
 	// set annsensus's private key to be coinbase.
@@ -313,7 +314,7 @@ func NewNode() *Node {
 		VerifySequencer:  annSensus.VerifySequencer,
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
-	annSensus.InitAccount(account.NewAccount(viper.GetString("dag.my_private_key")), time.Millisecond*time.Duration(sequencerTime),
+	annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
 		autoClientManager.JudgeNonce, txCreator)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	annSensus.Idag = org.Dag

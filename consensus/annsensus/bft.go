@@ -112,8 +112,10 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.DKGTermId = TermId
 	log.WithField("term Id ", TermId).Debug("bft will reset")
 	var peers []BFTPartner
+	b.BFTPartner.PeersInfo = nil
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
+		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo,PeerInfo{Address: pk.Address() ,PublicKey:pk})
 		peers = append(peers, NewOgBftPeer(pk, b.ann.NbParticipants, i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)

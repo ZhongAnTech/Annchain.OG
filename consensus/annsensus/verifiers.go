@@ -118,7 +118,8 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	}
 	if a.HasCampaign(cp.Issuer) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
-		return false
+		//todo  if a node dose not cacht up yet  returning false will cause fail
+		//return false
 	}
 	log.WithField("cp ", cp).Trace("verify ok ")
 	return true

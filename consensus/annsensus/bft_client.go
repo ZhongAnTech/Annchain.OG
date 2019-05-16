@@ -40,7 +40,6 @@ type BFTPartner interface {
 	Stop()
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
-
 }
 
 type PartnerBase struct {
@@ -217,10 +216,10 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		} else {
 			if round == 0 {
 				log.WithField("hr ", hr).Trace("will got new height value")
-				proposal,validHeight  = p.GetValue(true)
+				proposal, validHeight = p.GetValue(true)
 			} else {
 				log.WithField("hr ", hr).Trace("will got new round value")
-				proposal,validHeight = p.GetValue(false)
+				proposal, validHeight = p.GetValue(false)
 			}
 			if validHeight != p.CurrentHR.Height {
 				//TODO

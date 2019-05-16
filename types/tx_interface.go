@@ -213,11 +213,11 @@ func (t Txis) Less(i, j int) bool {
 	if t[i].GetWeight() > t[j].GetWeight() {
 		return false
 	}
-	if t[i].GetNonce()  < t[j].GetNonce() {
-		return  true
+	if t[i].GetNonce() < t[j].GetNonce() {
+		return true
 	}
 	if t[i].GetNonce() < t[j].GetNonce() {
-		return  false
+		return false
 	}
 	if t[i].GetTxHash().Cmp(t[j].GetTxHash()) < 0 {
 		return true
@@ -282,7 +282,7 @@ func (t Txis) ToRaw() (txs RawTxs, cps RawCampaigns, tcs RawTermChanges, seqs Ra
 func (t Txis) RawTxis() RawTxis {
 	var txs RawTxis
 	for _, tx := range t {
-		if tx==nil {
+		if tx == nil {
 			continue
 		}
 		txs = append(txs, tx.RawTxi())

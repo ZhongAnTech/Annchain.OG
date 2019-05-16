@@ -35,8 +35,8 @@ const (
 
 type AutoClient struct {
 	SampleAccounts       []*account.SampleAccount
-	MyIndex       int //only for debug
-	MyAccount            *account.SampleAccount  //if MyAccount is
+	MyIndex              int                    //only for debug
+	MyAccount            *account.SampleAccount //if MyAccount is
 	SequencerIntervalUs  int
 	TxIntervalUs         int
 	IntervalMode         string

@@ -15,7 +15,9 @@ package rpc
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/consensus/annsensus"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,6 +47,7 @@ type RpcController struct {
 	PerformanceMonitor *performance.PerformanceMonitor
 	AutoTxCli          AutoTxClient
 	NewRequestChan     chan types.TxBaseType
+	AnnSensus          *annsensus.AnnSensus
 }
 
 //NodeStatus
@@ -533,6 +536,20 @@ func (r *RpcController) QueryShare(c *gin.Context) {
 func (r *RpcController) ContractPayload(c *gin.Context) {
 	Response(c, http.StatusOK, nil, "not implemented yet")
 	return
+}
+
+type Consensus struct {
+	Dkg *annsensus.DKGInfo `json:"dkg"`
+	Bft *annsensus.BFTInfo `json:"bft"`
+}
+
+func (r *RpcController) ConStatus(c *gin.Context) {
+	var con Consensus
+	con.Dkg, con.Bft = r.AnnSensus.GetDkgBftInfo()
+	data, err := json.MarshalIndent(con, "", "/t")
+	logrus.Debug(data, err, con)
+	cors(c)
+	Response(c, http.StatusOK, nil, con)
 }
 
 type ReceiptResponse struct {

@@ -354,6 +354,7 @@ func NewNode() *Node {
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 		rpcServer.C.SyncerManager = syncManager
 		rpcServer.C.AutoTxCli = autoClientManager
+		rpcServer.C.AnnSensus = annSensus
 		rpcServer.C.PerformanceMonitor = pm
 	}
 

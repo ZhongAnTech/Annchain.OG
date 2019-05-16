@@ -89,8 +89,8 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	return d
 }
 
-func (d *Dkg)SetId( id int ) {
-	d.partner.Id =  uint32(id)
+func (d *Dkg) SetId(id int) {
+	d.partner.Id = uint32(id)
 }
 
 func (d *Dkg) Reset(myDkgPublicKey []byte) {
@@ -213,6 +213,7 @@ func (d *Dkg) SelectCandidates() {
 			txs = append(txs, cp)
 		}
 		sort.Sort(txs)
+		log.WithField("txs ", txs).Debug("lucky cps")
 		for _, tx := range txs {
 			cp := tx.(*types.Campaign)
 			publicKey := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
@@ -252,6 +253,7 @@ func (d *Dkg) SelectCandidates() {
 	}
 	//log.Trace(vrfSelections)
 	sort.Sort(vrfSelections)
+	log.WithField("txs ", vrfSelections).Debug("lucky cps")
 	for j, v := range vrfSelections {
 		if j == d.ann.NbParticipants {
 			break

@@ -687,8 +687,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// send consensus related txs.
 	if len(consTxs) != 0 {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		//comment for release gy version
-		//dag.OnConsensusTXConfirmed <- consTxs
+		dag.OnConsensusTXConfirmed <- consTxs
 		log.WithField("txs ", consTxs).Trace("sent consensus txs")
 	}
 

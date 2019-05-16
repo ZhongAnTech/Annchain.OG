@@ -43,8 +43,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 	for _, accountIndex := range accountIndices {
 		client := &AutoClient{
 			Delegate:             delegate,
-			SampleAccounts: m.SampleAccounts,
-			MyIndex:accountIndex,
+			SampleAccounts:       m.SampleAccounts,
+			MyIndex:              accountIndex,
 			MyAccount:            m.SampleAccounts[accountIndex],
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
@@ -64,7 +64,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,
-			SampleAccounts: m.SampleAccounts,
+			SampleAccounts:       m.SampleAccounts,
 			MyAccount:            m.SampleAccounts[0],
 			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
 			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),

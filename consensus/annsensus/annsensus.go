@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-
 	"sync"
 	"sync/atomic"
 	"time"
@@ -217,7 +216,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 		err := as.AddCampaign(c)
 		if err != nil {
 			log.WithError(err).Debug("add campaign err")
-			continue
+			//continue
 		}
 		if !as.canChangeTerm() {
 			continue
@@ -332,6 +331,9 @@ func (as *AnnSensus) termChangeLoop() {
 
 // pickTermChg picks a valid TermChange from a tc list.
 func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, error) {
+	if len(tcs) == 0 {
+		return nil, errors.New("nil tcs")
+	}
 	var niceTc *types.TermChange
 	for _, tc := range tcs {
 		if niceTc != nil && niceTc.IsSameTermInfo(tc) {
@@ -342,7 +344,7 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 		}
 	}
 	if niceTc == nil {
-		log.WithField("term id ", as.term.ID()).Warn("pic fail")
+		log.WithField("tc term id ", tcs[0].TermID).WithField("term id ", as.term.ID()).Warn("pic fail")
 		return nil, errors.New("not found")
 	}
 	return niceTc, nil
@@ -683,4 +685,41 @@ func (as *AnnSensus) loop() {
 		}
 	}
 
+}
+
+type DKGInfo struct {
+	TermId             int                   `json:"term_id"`
+	Id                 uint32                `json:"id"`
+	PartPubs           []kyber.Point         `json:"part_pubs"`
+	MyPartSec          kyber.Scalar          `json:"my_part_sec"`
+	CandidatePartSec   []kyber.Scalar        `json:"candidate_part_sec"`
+	CandidatePublicKey [][]byte              `json:"candidate_public_key"`
+	AddressIndex       map[types.Address]int `json:"address_index"`
+}
+
+type BFTInfo struct {
+	BFTPartner    PeerInfo      `json:"bft_partner"`
+	DKGTermId     int           `json:"dkg_term_id"`
+	SequencerTime time.Duration `json:"sequencer_time"`
+	Partners      []PeerInfo    `json:"partners"`
+}
+
+func (a *AnnSensus) GetDkgBftInfo() (*DKGInfo, *BFTInfo) {
+	dkgInfo := DKGInfo{
+		TermId:             a.dkg.TermId,
+		Id:                 a.dkg.partner.Id,
+		PartPubs:           a.dkg.partner.PartPubs,
+		MyPartSec:          a.dkg.partner.MyPartSec,
+		CandidatePublicKey: a.dkg.partner.CandidatePublicKey,
+		CandidatePartSec:   a.dkg.partner.CandidatePartSec,
+		AddressIndex:       a.dkg.partner.addressIndex,
+	}
+
+	bftInfo := BFTInfo{
+		BFTPartner:    a.bft.BFTPartner.PeerInfo,
+		Partners:      a.bft.BFTPartner.PeersInfo,
+		DKGTermId:     a.bft.DKGTermId,
+		SequencerTime: a.bft.SequencerTime,
+	}
+	return &dkgInfo, &bftInfo
 }

@@ -28,7 +28,7 @@ import (
 
 //BFT is og sequencer consensus system based on BFT consensus
 type BFT struct {
-	BFTPartner         *OGBFTPartner
+	BFTPartner         *OGBFTPartner `json:"bft_partner"`
 	startBftChan       chan bool
 	resetChan          chan bool
 	mu                 sync.RWMutex
@@ -40,8 +40,8 @@ type BFT struct {
 	//Verifiers     []og.Verifier
 	proposalCache map[types.Hash]*types.MessageProposal
 
-	DKGTermId     int
-	sequencerTime time.Duration
+	DKGTermId     int           `json:"dkg_term_id"`
+	SequencerTime time.Duration `json:"sequencer_time"`
 
 	started bool
 }
@@ -54,8 +54,13 @@ type commitDecision struct {
 //OGBFTPartner implements BFTPartner
 type OGBFTPartner struct {
 	BFTPartner
-	PublicKey crypto.PublicKey
-	Address   types.Address
+	PeerInfo
+	PeersInfo []PeerInfo `json:"peers_info"`
+}
+
+type PeerInfo struct {
+	PublicKey crypto.PublicKey `json:"public_key"`
+	Address   types.Address    `json:"address"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
@@ -66,8 +71,10 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
 		BFTPartner: p,
-		PublicKey:  pk,
-		Address:    pk.Address(),
+		PeerInfo: PeerInfo{
+			PublicKey: pk,
+			Address:   pk.Address(),
+		},
 	}
 	return bft
 }
@@ -89,7 +96,7 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 	}
 	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
 	om.JudgeNonceFunction = judgeNonceFunction
-	om.sequencerTime = sequencerTime
+	om.SequencerTime = sequencerTime
 
 	bft.RegisterDecisionReceiveFunc(om.commitDecision)
 	om.ann = ann
@@ -259,12 +266,11 @@ func (t *BFT) loop() {
 			//t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-t.resetChan:
-            //todo
+			//todo
 		}
 
 	}
 }
-
 
 func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 	me := t.ann.MyAccount

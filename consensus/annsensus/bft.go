@@ -115,7 +115,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.BFTPartner.PeersInfo = nil
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
-		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo,PeerInfo{Address: pk.Address() ,PublicKey:pk})
+		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk})
 		peers = append(peers, NewOgBftPeer(pk, b.ann.NbParticipants, i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)

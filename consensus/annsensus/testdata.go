@@ -25,7 +25,7 @@ import (
 type TestMsg struct {
 	Message     types.Message
 	MessageType og.MessageType
-	From        int
+	From        types.Address
 }
 
 func (t *TestMsg) GetHash() types.Hash {
@@ -44,5 +44,5 @@ func (t *TestMsg) GetHash() types.Hash {
 }
 
 func (t TestMsg) String() {
-	fmt.Sprintf("from %d, type %s, msg %s", t.From, t.MessageType, t.Message)
+	fmt.Sprintf("from %s, type %s, msg %s", t.From.String(), t.MessageType, t.Message)
 }

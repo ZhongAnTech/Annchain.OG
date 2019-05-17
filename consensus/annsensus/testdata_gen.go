@@ -33,7 +33,7 @@ func (z *TestMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "From":
-			z.From, err = dc.ReadInt()
+			err = z.From.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -73,7 +73,7 @@ func (z *TestMsg) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.From)
+	err = z.From.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -98,7 +98,10 @@ func (z *TestMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "From"
 	o = append(o, 0xa4, 0x46, 0x72, 0x6f, 0x6d)
-	o = msgp.AppendInt(o, z.From)
+	o, err = z.From.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -129,7 +132,7 @@ func (z *TestMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "From":
-			z.From, bts, err = msgp.ReadIntBytes(bts)
+			bts, err = z.From.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -146,6 +149,6 @@ func (z *TestMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TestMsg) Msgsize() (s int) {
-	s = 1 + 8 + z.Message.Msgsize() + 12 + z.MessageType.Msgsize() + 5 + msgp.IntSize
+	s = 1 + 8 + z.Message.Msgsize() + 12 + z.MessageType.Msgsize() + 5 + z.From.Msgsize()
 	return
 }

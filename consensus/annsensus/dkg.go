@@ -114,6 +114,9 @@ func (d *Dkg) Reset(myDkgPublicKey []byte) {
 			}
 		}
 	}
+	if index >= len(partSecs) {
+		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myDkgPublicKey) ))
+	}
 	log.WithField("index ", index).WithField("sk ", partSecs[index]).Trace("reset with sk")
 	p.MyPartSec = partSecs[index]
 	d.dkgOn = false
@@ -305,6 +308,7 @@ func (d *Dkg) addPartner(c *types.Campaign) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
 		log.WithField("id ", d.partner.Id).Trace("my id")
 	}
+	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
 }
 
@@ -470,6 +474,9 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 }
 
 func (d *Dkg) GetId() uint32 {
+	if d.partner==nil {
+		return  0
+	}
 	return d.partner.Id
 }
 

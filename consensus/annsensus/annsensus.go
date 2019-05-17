@@ -234,7 +234,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 
 	if as.term.HasCampaign(cp.Issuer) {
-		log.WithField("campaign", cp).Debug("duplicate campaign ")
+		log.WithField("id ",as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
 
@@ -626,7 +626,7 @@ func (as *AnnSensus) loop() {
 			}
 			as.dkg.partner.jointPubKey = pk
 			eventInit = true
-			as.addGenesisCampaigns()
+			//as.addGenesisCampaigns()
 			as.term.ChangeTerm(tc, as.Idag.GetHeight())
 
 			//

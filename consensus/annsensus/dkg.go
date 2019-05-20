@@ -93,7 +93,10 @@ func (d *Dkg) SetId(id int) {
 	d.partner.Id = uint32(id)
 }
 
-func (d *Dkg) Reset(myDkgPublicKey []byte) {
+func (d *Dkg) Reset(myCampaign *types.Campaign) {
+	if myCampaign ==nil  {
+		panic("nil campagin")
+	}
 
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -106,26 +109,34 @@ func (d *Dkg) Reset(myDkgPublicKey []byte) {
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
-	index := 0
-	if len(myDkgPublicKey) != 0 {
+	index := -1
+	if len( myCampaign.DkgPublicKey)!= 0 {
 		for i, pubKeys := range pubKeys {
-			if bytes.Equal(pubKeys, myDkgPublicKey) {
+			if bytes.Equal(pubKeys, myCampaign.DkgPublicKey) {
 				index = i
 			}
 		}
 	}
+	if index < 0 {
+		log.WithField("cp ", myCampaign).Warn("pk not found")
+		index = 0
+		panic(fmt.Sprintf( "fix this, pk not found  %s ",myCampaign))
+	}
 	if index >= len(partSecs) {
-		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myDkgPublicKey) ))
+		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myCampaign.DkgPublicKey) ))
 	}
 	log.WithField("index ", index).WithField("sk ", partSecs[index]).Trace("reset with sk")
 	p.MyPartSec = partSecs[index]
+	p.CandidatePartSec = append(p.CandidatePartSec,partSecs[index+1:]...)
 	d.dkgOn = false
 	d.partner = p
 	d.myPublicKey = pubKeys[index]
+	p.CandidatePublicKey = append(p.CandidatePublicKey,pubKeys[index+1:]...)
 	d.TermId++
-	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
-	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
-	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
+
+	//d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
+	//d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
+	//d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
@@ -149,7 +160,7 @@ func (d *Dkg) generateDkg() []byte {
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey, pk)
-	log.WithField("pk ", pub).WithField("sk ", sec).Trace("gen dkg ")
+	log.WithField("pk ", pub).WithField("sk ", sec).Debug("gen dkg ")
 	return pk
 }
 
@@ -540,7 +551,6 @@ func (d *Dkg) gossiploop() {
 			responseDeal, err := d.ProcessDeal(&deal)
 			if err != nil {
 				log.WithField("from address ", addr.TerminalString()).WithField("deal ", request).WithError(err).Warn("deal process error")
-				panic(err)
 				continue
 			}
 			if responseDeal.Response.Status != vss.StatusApproval {
@@ -606,7 +616,6 @@ func (d *Dkg) gossiploop() {
 			just, err := d.ProcessResponse(&resp)
 			if err != nil {
 				log.WithField("req ", response).WithField("rsp ", resp).WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
-				panic(err)
 				continue
 			}
 			log.WithField("response ", resp).Trace("process response ok")
@@ -689,6 +698,8 @@ func (d *Dkg) gossiploop() {
 				}
 				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
 				d.ready = false
+				d.clearCache()
+
 			}
 
 		case <-d.gossipStopCh:
@@ -697,6 +708,12 @@ func (d *Dkg) gossiploop() {
 			return
 		}
 	}
+}
+
+func (d *Dkg)clearCache() {
+	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
+	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
+	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
 }
 
 //CacheResponseIfDealNotReceived
@@ -872,7 +889,7 @@ func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermI
 	//if the term id is small ,use former partner to verify
 	if dkgTermId < d.TermId {
 		partner = d.formerPartner
-		log.Debug("use former id")
+		log.Trace("use former id")
 	}
 	partner.SigShares = sigShares
 	defer func() {

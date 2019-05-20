@@ -301,6 +301,7 @@ func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.Publ
 		logrus.Warn("not your turn")
 		return false
 	}
+
 	if !t.verifyIsPartNer(pubkey, int(id)) {
 		logrus.Warn("verify pubkey error")
 		return false

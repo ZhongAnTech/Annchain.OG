@@ -15,7 +15,6 @@ package rpc
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
 	"net/http"
@@ -546,8 +545,6 @@ type Consensus struct {
 func (r *RpcController) ConStatus(c *gin.Context) {
 	var con Consensus
 	con.Dkg, con.Bft = r.AnnSensus.GetDkgBftInfo()
-	data, err := json.MarshalIndent(con, "", "/t")
-	logrus.Debug(data, err, con)
 	cors(c)
 	Response(c, http.StatusOK, nil, con)
 }

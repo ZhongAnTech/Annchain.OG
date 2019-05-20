@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/common/hexutil"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -177,26 +178,30 @@ func (as *AnnSensus) RegisterNewTxHandler(c chan types.Txi) {
 
 // ProdCampaignOn let annsensus start producing campaign.
 func (as *AnnSensus) ProduceCampaignOn() {
-	go as.produceCampaign()
+	as.produceCampaign()
 }
 
 // campaign continuously generate camp tx until AnnSensus.CampaingnOff is called.
 func (as *AnnSensus) produceCampaign() {
+	//generate new dkg public key for every campaign
 	if as.term.HasCampaign(as.MyAccount.Address) {
-		log.Debug("has campaign ")
+		log.WithField("als" ,as.term.alsorans).WithField("cps " ,as.term.campaigns).WithField("candidates", as.term.candidates).Debug("has campaign ")
 		return
 	}
-	//generate new dkg public key for every campaign
 	candidatePublicKey := as.dkg.GenerateDkg()
 	// generate campaign.
 	camp := as.genCamp(candidatePublicKey)
 	if camp == nil {
+		log.Warn("gen camp fail")
 		return
 	}
+	log.WithField("pk ", hexutil.Encode(candidatePublicKey[:5])).WithField("cp ",camp).Debug("gen campaign")
 	// send camp
-	for _, c := range as.newTxHandlers {
-		c <- camp
-	}
+	go func (){
+		for _, c := range as.newTxHandlers {
+			c <- camp
+		}
+	}()
 
 }
 
@@ -282,11 +287,7 @@ func (as *AnnSensus) termChangeLoop() {
 		case <-as.startTermChange:
 			log := as.dkg.log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
-			var myDkgPublickey []byte
-			if cp != nil {
-				myDkgPublickey = cp.DkgPublicKey
-			}
-			as.dkg.Reset(myDkgPublickey)
+			as.dkg.Reset(cp )
 			as.dkg.SelectCandidates()
 			if !as.dkg.isValidPartner {
 				log.Debug("i am not a lucky dkg partner quit")
@@ -307,6 +308,7 @@ func (as *AnnSensus) termChangeLoop() {
 			//continue //for test case commit this
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {
+				log.Warn("tc is nil")
 				continue
 			}
 			if atomic.CompareAndSwapUint32(&as.genesisBftIsRunning, 1, 0) {
@@ -431,6 +433,7 @@ func (as *AnnSensus) loop() {
 					cps = append(cps, cp)
 					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
 						if sentCampaign > 0 {
+							log.Debug("i sent a campaign")
 							sentCampaign = 0
 						}
 					}
@@ -441,24 +444,21 @@ func (as *AnnSensus) loop() {
 			// TODO:
 			// here exists a bug:
 			// the isTermChanging check should be here not in commit()
-			if len(cps) > 0 {
-				as.commit(cps)
-				log.Infof("already candidates: %d, alsorans: %d", len(as.Candidates()), len(as.Alsorans()))
-			}
+
 			if len(tcs) > 0 {
 				tc, err := as.pickTermChg(tcs)
 				if err != nil {
-					log.Errorf("the received termchanges are not correct.")
-					continue
+					log.Errorf("the received termChanges are not correct.")
+					goto HandleCampaign
 				}
 				if as.isTermChanging() {
 					log.Debug("is term changing")
-					continue
+					goto HandleCampaign
 				}
 				err = as.term.ChangeTerm(tc, as.Idag.LatestSequencer().Height)
 				if err != nil {
 					log.Errorf("change term error: %v", err)
-					continue
+					goto HandleCampaign
 				}
 				//send the signal if i am a partner of consensus nodes
 				if as.dkg.isValidPartner {
@@ -469,6 +469,12 @@ func (as *AnnSensus) loop() {
 					log.Debug("is not a valid partner")
 				}
 
+			}
+			HandleCampaign:
+			//handle term change should be after handling campaign
+			if len(cps) > 0 {
+				as.commit(cps)
+				log.Infof("already candidates: %d, alsorans: %d", len(as.Candidates()), len(as.Alsorans()))
 			}
 
 		case <-as.newTermChan:
@@ -481,7 +487,6 @@ func (as *AnnSensus) loop() {
 			log.Info("got newTermChange signal")
 			as.bft.Reset(as.dkg.TermId, as.term.formerPublicKeys, int(as.dkg.partner.Id))
 			// 3. start pbft until someone produce a seq with BLS sig.
-			log.Info("got newtermcahneg signal")
 			//TODO how to save consensus data
 			if as.dkg.TermId == 1 {
 			}
@@ -509,9 +514,7 @@ func (as *AnnSensus) loop() {
 					// start term changing.
 					as.term.SwitchFlag(true)
 					log.Debug("will termChange")
-					go func() {
-						as.startTermChange <- true
-					}()
+					as.startTermChange <- true
 				}
 			}
 
@@ -538,7 +541,7 @@ func (as *AnnSensus) loop() {
 				if sentCampaign == height {
 					continue
 				}
-				log.WithField("in term ", as.term.ID()).Debug("will generate campaign")
+				log.WithField("in term ", as.term.ID()).Debug("will generate campaign in new term")
 				as.ProduceCampaignOn()
 				sentCampaign = height
 			}

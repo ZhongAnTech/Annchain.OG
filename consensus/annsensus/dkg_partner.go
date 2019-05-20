@@ -87,7 +87,7 @@ func (p *DKGPartner) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	}
 
 	err = bls.Verify(p.Suite, pubPoly.Commit(), msg, sig)
-	log.Debugf(" pubPolyCommit [%s] dksPublic [%s] dksCommitments [%s]\n",
+	log.Tracef(" pubPolyCommit [%s] dksPublic [%s] dksCommitments [%s]\n",
 		pubPoly.Commit(), dks.Public(), dks.Commitments())
 	return
 }

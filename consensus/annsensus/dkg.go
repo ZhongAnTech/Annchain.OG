@@ -539,7 +539,8 @@ func (d *Dkg) gossiploop() {
 			}
 			responseDeal, err := d.ProcessDeal(&deal)
 			if err != nil {
-				log.WithField("deal ", request).WithError(err).Warn("deal process error")
+				log.WithField("from address ", addr.TerminalString()).WithField("deal ", request).WithError(err).Warn("deal process error")
+				panic(err)
 				continue
 			}
 			if responseDeal.Response.Status != vss.StatusApproval {
@@ -548,7 +549,7 @@ func (d *Dkg) gossiploop() {
 			}
 			respData, err := responseDeal.MarshalMsg(nil)
 			if err != nil {
-				log.WithField("deal ", request).WithError(err).Warn("deal process error")
+				log.WithField("deal ", request).WithError(err).Warn("deal process marshal error")
 				continue
 			}
 
@@ -598,13 +599,14 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 			if !d.CacheResponseIfDealNotReceived(&resp, response) {
-				log.WithField("for index ", resp.Index).Debug("deal  not received yet")
+				log.WithField("addr ",addr.TerminalString()).WithField("for index ", resp.Index).Debug("deal  not received yet")
 				continue
 			}
 
 			just, err := d.ProcessResponse(&resp)
 			if err != nil {
 				log.WithField("req ", response).WithField("rsp ", resp).WithField("just ", just).WithError(err).Warn("ProcessResponse failed")
+				panic(err)
 				continue
 			}
 			log.WithField("response ", resp).Trace("process response ok")
@@ -882,7 +884,7 @@ func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermI
 			partner.Id, len(partner.SigShares), err)
 		return nil, err
 	}
-	log.Debugf("threshold signature from partner %d: %s\n", partner.Id, hexutil.Encode(jointSig))
+	log.Tracef("threshold signature from partner %d: %s\n", partner.Id, hexutil.Encode(jointSig))
 	// verify if JointSig meets the JointPubkey
 	err = partner.VerifyByDksPublic(msg, jointSig)
 	if err != nil {

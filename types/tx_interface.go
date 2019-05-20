@@ -216,7 +216,7 @@ func (t Txis) Less(i, j int) bool {
 	if t[i].GetNonce() < t[j].GetNonce() {
 		return true
 	}
-	if t[i].GetNonce() < t[j].GetNonce() {
+	if t[i].GetNonce() > t[j].GetNonce() {
 		return false
 	}
 	if t[i].GetTxHash().Cmp(t[j].GetTxHash()) < 0 {

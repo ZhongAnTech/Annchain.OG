@@ -153,7 +153,7 @@ func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
 	cp.Issuer = as.MyAccount.Address
 	s := crypto.NewSigner(as.cryptoType)
 	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
-	cp.GetBase().Weight = uint64(rand.Int31n(100))
+	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 +3)
 	cp.Height = uint64(as.dkg.TermId + 3)
 	cp.GetBase().Hash = cp.CalcTxHash()
 	return
@@ -308,7 +308,7 @@ func TestDKGMain(t *testing.T) {
 		a.Hub = newtestHub(accounts[j].Address, peers, sendMsgToChan, sendMsgByPubKey, &a)
 		a.AnnSensus = as
 		a.Address = accounts[j].Address
-		logrus.WithField("addr ", a.Address.TerminalString()).WithField("gen hub ", a.Hub).WithField("dkg ",as.dkg).Debug("done")
+		logrus.WithField("addr ", a.Address.TerminalString()).Debug("gen hub done")
 		Anns = append(Anns, a)
 	}
 

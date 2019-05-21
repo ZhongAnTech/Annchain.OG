@@ -278,6 +278,7 @@ func NewNode() *Node {
 	genesisAccounts := parserGenesisAccounts(signer, viper.GetString("annsensus.genesis_pk"))
 
 	campaign := viper.GetBool("annsensus.campaign")
+	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")
 	threshold := viper.GetInt("annsensus.threshold")
 	sequencerTime := viper.GetInt("annsensus.sequencerTime")
@@ -288,7 +289,7 @@ func NewNode() *Node {
 	if consensFilePath == "" {
 		panic("need path")
 	}
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath)
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath,disableTermChange)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,

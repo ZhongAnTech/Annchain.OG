@@ -110,6 +110,136 @@ Get information of the peers.
 ```
 ---
 
+## **node monitor**
+Get Node Status , neighbor status , sync status ,and tps information ,used for testing
+
+**URL**:
+```
+/monitor
+```
+**Method**: GET
+
+**请求参数**:  
+无
+
+**请求示例**：
+> /monitor
+**返回示例**:
+```json
+{
+	"data": {
+		"port": "11301",
+		"short_id": "5140035b59e10b55",
+		"peers": [
+			{
+				"addr": "127.0.0.1:11331",
+				"short_id": "7fafa309e4c0d55c",
+				"link": true
+			},
+			{
+				"addr": "127.0.0.1:11311",
+				"short_id": "59562991b0166817",
+				"link": false
+			},
+			{
+				"addr": "127.0.0.1:11321",
+				"short_id": "c418f71a4cbd8989",
+				"link": true
+			}
+		],
+		"seq_id": 650,
+		"tps": {
+			"num": 0,
+			"tx_num": 0,
+			"duration": 12.278686557
+		},
+		"status": {
+			"id": "5140035b59e10b55",
+			"syncMode": "SyncStatusIncremental",
+			"catchupSyncerStatus": "CSSStopped",
+			"catchupSyncerEnabled": true,
+			"incrementalSyncerEnabled": true,
+			"height": 650,
+			"latestHeight": 650,
+			"bestPeer": "59562991b0166817",
+			"error": "",
+			"txid": 0
+		}
+	},
+	"message": ""
+}
+```
+---
+
+
+## **consensus status**
+Get Node consensus status
+
+**URL**:
+```
+/consensus
+```
+**Method**: GET
+
+**请求参数**:  
+无
+
+**请求示例**：
+> /consensus
+**返回示例**:
+```json
+{
+data: {
+dkg: {
+term_id: 1,
+id: 0,
+part_pubs: [
+{ },
+{ },
+{ },
+{ }
+],
+candidate_public_key: [
+"LtgUTq4we+nS6PdRxU0IydGhRH1QWTaNI3jGl+DsqOhJW5Z4ajZ4/N3QNdS3Vn+9Sh8NJ5DukYLUNomeilPOzURw+oILObS98dCHacmgwcTErZ4oCyGQFE2W0zJKBxnOjhU31h2ktiejkrsyHhP2DgVry9Fuh1vtyoghQxh69Gk="
+],
+address_index: {
+0x2dfdf4039dccec33e2d8665402d4a8b630f4af5c: 1,
+0x49e52b4ed3b826283722eca606ddb05a435cd8fd: 0,
+0x9c2c02d8bbf82b95b4abcf6e9242a2fe218c1df9: 2,
+0xf369c9cf16ec32471bac2e25a5bf393ca589c03a: 3
+}
+},
+bft: {
+bft_partner: {
+address: "0x49e52b4ed3b826283722eca606ddb05a435cd8fd",
+public_key: "BMpJJKyicaB6xXEQ9eTvrOf8rLKC60RIcQF6dE23T0i8AKfeFCYU1TauItSzt1fySBWSd5fq5q7KVSYK3WtaJPk="
+},
+dkg_term_id: 1,
+sequencer_time: 3000000000,
+partners: [
+{
+address: "0x49e52b4ed3b826283722eca606ddb05a435cd8fd",
+public_key: "BMpJJKyicaB6xXEQ9eTvrOf8rLKC60RIcQF6dE23T0i8AKfeFCYU1TauItSzt1fySBWSd5fq5q7KVSYK3WtaJPk="
+},
+{
+address: "0x2dfdf4039dccec33e2d8665402d4a8b630f4af5c",
+public_key: "BEjOkJFkGpvgRnFWCjNjuBD9kOXSOHZht+ovV61EH2/FWv8G5e6P/eE5liFB/Jo62P4KDiMKNv7hI6MBWTRMbk8="
+},
+{
+address: "0x9c2c02d8bbf82b95b4abcf6e9242a2fe218c1df9",
+public_key: "BAYJ7t/joFHtgVxiVYEwdPQbNav+NrM7qH06I/MAUxTv6VRnyBdbtyeBCr6VU1CaIrDY97HSuddS1QM2liQkH3k="
+},
+{
+address: "0xf369c9cf16ec32471bac2e25a5bf393ca589c03a",
+public_key: "BGXA1DvmRPfYO00p5XhGOKvoAodJD2oamMvhxfKkblmiUfHqgAQ0xcWWbZ0r7IG42Vp2VWTTzNetlTsP3sdGeQg="
+}
+]
+}
+},
+message: ""
+}
+```
+
 ## **Query Transaction**
 Get transaction from og node. 
 

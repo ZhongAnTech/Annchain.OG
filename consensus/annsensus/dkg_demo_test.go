@@ -22,31 +22,29 @@ type TestAnnSensus struct {
 }
 
 type AId struct {
-
 	Address types.Address
-	dkgId int
+	dkgId   int
 }
 
-func (a AId)String()string{
-	return  fmt.Sprintf("add %s  dkgId %d",a.Address.TerminalString(),a.dkgId)
+func (a AId) String() string {
+	return fmt.Sprintf("add %s  dkgId %d", a.Address.TerminalString(), a.dkgId)
 }
 
-func (a * TestAnnSensus)Aid()AId{
-	return AId {
-		Address:a.Address,
-		dkgId: int( a.dkg.GetId()),
+func (a *TestAnnSensus) Aid() AId {
+	return AId{
+		Address: a.Address,
+		dkgId:   int(a.dkg.GetId()),
 	}
 }
 
-func GetAnn (anns []TestAnnSensus, Addr types.Address) *TestAnnSensus {
-	for i, ann := range  anns{
+func GetAnn(anns []TestAnnSensus, Addr types.Address) *TestAnnSensus {
+	for i, ann := range anns {
 		if bytes.Equal(ann.Address.ToBytes(), Addr.ToBytes()) {
 			return &anns[i]
 		}
 	}
 	panic("not found")
 }
-
 
 type p2pMsg struct {
 	data    []byte
@@ -64,7 +62,7 @@ type TestHub struct {
 	msgCache        gcache.Cache
 }
 
-type sendMsgToChanFunc func(addr  types.Address, mdg TestMsg)
+type sendMsgToChanFunc func(addr types.Address, mdg TestMsg)
 type sendMsgByPubKeyFunc func(pub *crypto.PublicKey, msg TestMsg)
 
 func newtestHub(id types.Address, peers []types.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
@@ -137,7 +135,7 @@ func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 
 	as.newCampaign(camp)
 	err := camp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	//ok := as.VerifyCampaign(camp)
@@ -153,7 +151,7 @@ func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
 	cp.Issuer = as.MyAccount.Address
 	s := crypto.NewSigner(as.cryptoType)
 	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
-	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 +3)
+	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 + 3)
 	cp.Height = uint64(as.dkg.TermId + 3)
 	cp.GetBase().Hash = cp.CalcTxHash()
 	return
@@ -173,7 +171,7 @@ func logInit() {
 	log = logrus.StandardLogger()
 }
 func (t *TestHub) loop() {
-	elog := logrus.WithField("me", t.Id).WithField("aid ",t.As.Aid().String())
+	elog := logrus.WithField("me", t.Id).WithField("aid ", t.As.Aid().String())
 	for {
 		select {
 		case pMsg := <-t.OutMsg:
@@ -248,7 +246,7 @@ func TestDKGMain(t *testing.T) {
 			panic(err)
 		}
 		pMsg := p2pMsg{data: data, msgType: msg.MessageType}
-		ann:=GetAnn(Anns,addr)
+		ann := GetAnn(Anns, addr)
 		ann.Hub.(*TestHub).OutMsg <- pMsg
 		var resp *types.MessageConsensusDkgDealResponse
 		if msg.MessageType == og.MessageTypeConsensusDkgDealResponse {
@@ -319,12 +317,12 @@ func TestDKGMain(t *testing.T) {
 		Anns[i].Start()
 	}
 	time.Sleep(20 * time.Millisecond)
-	var  num int
+	var num int
 	for {
 		select {
 		case <-time.After(time.Second * 5):
 			num++
-			if num>10{
+			if num > 10 {
 				return
 			}
 			var cps types.Txis
@@ -333,8 +331,8 @@ func TestDKGMain(t *testing.T) {
 			}
 			logrus.Debug("gen camp ", cps)
 			for i := range Anns {
-				go func(i int ) {
-					log.WithField("i ",i).WithField("ann ",Anns[i].dkg.GetId()).Debug("new term start")
+				go func(i int) {
+					log.WithField("i ", i).WithField("ann ", Anns[i].dkg.GetId()).Debug("new term start")
 					Anns[i].ConsensusTXConfirmed <- cps
 				}(i)
 			}
@@ -368,12 +366,8 @@ func (as *TestAnnSensus) loop() {
 		case <-as.startTermChange:
 			log := as.dkg.log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
-			var myDkgPublickey []byte
-			if cp != nil {
-				myDkgPublickey = cp.DkgPublicKey
-			}
-			log.WithField("cp ",cp).Debug("will reset with cp")
-			as.dkg.Reset(myDkgPublickey)
+			log.WithField("cp ", cp).Debug("will reset with cp")
+			as.dkg.Reset(cp)
 			as.dkg.SelectCandidates()
 			if !as.dkg.isValidPartner {
 				log.Debug("i am not a lucky dkg partner quit")
@@ -436,7 +430,7 @@ func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
 	// start term changing.
 	as.term.SwitchFlag(true)
 	log.Debug("will term Change")
-	go func (){
+	go func() {
 		as.startTermChange <- true
 	}()
 

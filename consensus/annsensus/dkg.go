@@ -94,7 +94,7 @@ func (d *Dkg) SetId(id int) {
 }
 
 func (d *Dkg) Reset(myCampaign *types.Campaign) {
-	if myCampaign ==nil  {
+	if myCampaign == nil {
 		panic("nil campagin")
 	}
 
@@ -110,7 +110,7 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
 	index := -1
-	if len( myCampaign.DkgPublicKey)!= 0 {
+	if len(myCampaign.DkgPublicKey) != 0 {
 		for i, pubKeys := range pubKeys {
 			if bytes.Equal(pubKeys, myCampaign.DkgPublicKey) {
 				index = i
@@ -118,20 +118,20 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 		}
 	}
 	if index < 0 {
-		log.WithField("cp ", myCampaign).Warn("pk not found")
+		log.WithField("cp ", myCampaign).WithField(" pks ", d.partner.CandidatePublicKey).Warn("pk not found")
 		index = 0
-		panic(fmt.Sprintf( "fix this, pk not found  %s ",myCampaign))
+		panic(fmt.Sprintf("fix this, pk not found  %s ", myCampaign))
 	}
 	if index >= len(partSecs) {
-		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myCampaign.DkgPublicKey) ))
+		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myCampaign.DkgPublicKey)))
 	}
-	log.WithField("index ", index).WithField("sk ", partSecs[index]).Trace("reset with sk")
+	log.WithField("cp ", myCampaign).WithField("index ", index).WithField("sk ", partSecs[index]).Debug("reset with sk")
 	p.MyPartSec = partSecs[index]
-	p.CandidatePartSec = append(p.CandidatePartSec,partSecs[index+1:]...)
+	p.CandidatePartSec = append(p.CandidatePartSec, partSecs[index:]...)
 	d.dkgOn = false
 	d.partner = p
 	d.myPublicKey = pubKeys[index]
-	p.CandidatePublicKey = append(p.CandidatePublicKey,pubKeys[index+1:]...)
+	p.CandidatePublicKey = append(p.CandidatePublicKey, pubKeys[index:]...)
 	d.TermId++
 
 	//d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
@@ -140,7 +140,7 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
-	log.WithField("termId ", d.TermId).Debug("dkg will reset")
+	log.WithField("len candidate pk ", len(d.partner.CandidatePublicKey)).WithField("termId ", d.TermId).Debug("dkg will reset")
 }
 
 func (d *Dkg) start() {
@@ -160,7 +160,7 @@ func (d *Dkg) generateDkg() []byte {
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey, pk)
-	log.WithField("pk ", pub).WithField("sk ", sec).Debug("gen dkg ")
+	log.WithField("pk ", hexutil.Encode(pk[:5])).WithField("len pk ", len(d.partner.CandidatePublicKey)).WithField("sk ", sec).Debug("gen dkg ")
 	return pk
 }
 
@@ -214,6 +214,10 @@ func XOR(a, b []byte) []byte {
 func (d *Dkg) SelectCandidates() {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	defer func() {
+		//set nil after select
+		d.ann.term.campaigns = nil
+	}()
 	seq := d.ann.Idag.LatestSequencer()
 	log := d.log()
 	if len(d.ann.term.campaigns) == d.ann.NbParticipants {
@@ -485,8 +489,8 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 }
 
 func (d *Dkg) GetId() uint32 {
-	if d.partner==nil {
-		return  0
+	if d.partner == nil {
+		return 0
 	}
 	return d.partner.Id
 }
@@ -609,7 +613,7 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 			if !d.CacheResponseIfDealNotReceived(&resp, response) {
-				log.WithField("addr ",addr.TerminalString()).WithField("for index ", resp.Index).Debug("deal  not received yet")
+				log.WithField("addr ", addr.TerminalString()).WithField("for index ", resp.Index).Debug("deal  not received yet")
 				continue
 			}
 
@@ -710,7 +714,7 @@ func (d *Dkg) gossiploop() {
 	}
 }
 
-func (d *Dkg)clearCache() {
+func (d *Dkg) clearCache() {
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
 	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)

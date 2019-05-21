@@ -26,8 +26,8 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	//as.doCamp = false
 	// TODO
 	base := types.TxBase{
-		Type: types.TxBaseTypeCampaign,
-		PublicKey:as.MyAccount.PublicKey.Bytes[:],
+		Type:      types.TxBaseTypeCampaign,
+		PublicKey: as.MyAccount.PublicKey.Bytes[:],
 	}
 	balance := as.Idag.GetBalance(as.MyAccount.Address)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
@@ -36,7 +36,7 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	}
 	cp := &types.Campaign{
 		TxBase: base,
-		Issuer:as.MyAccount.Address,
+		Issuer: as.MyAccount.Address,
 	}
 	if vrf := as.GenerateVrf(); vrf != nil {
 		cp.Vrf = *vrf

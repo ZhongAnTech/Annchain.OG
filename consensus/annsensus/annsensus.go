@@ -69,8 +69,9 @@ type AnnSensus struct {
 	TxEnable           bool
 	NewLatestSequencer chan bool
 
-	ConfigFilePath string
-	termChangeChan chan *types.TermChange
+	ConfigFilePath    string
+	termChangeChan    chan *types.TermChange
+	currentTermChange *types.TermChange
 }
 
 func Maj23(n int) int {
@@ -185,7 +186,7 @@ func (as *AnnSensus) ProduceCampaignOn() {
 func (as *AnnSensus) produceCampaign() {
 	//generate new dkg public key for every campaign
 	if as.term.HasCampaign(as.MyAccount.Address) {
-		log.WithField("als" ,as.term.alsorans).WithField("cps " ,as.term.campaigns).WithField("candidates", as.term.candidates).Debug("has campaign ")
+		log.WithField("als", as.term.alsorans).WithField("cps ", as.term.campaigns).WithField("candidates", as.term.candidates).Debug("has campaign ")
 		return
 	}
 	candidatePublicKey := as.dkg.GenerateDkg()
@@ -195,9 +196,9 @@ func (as *AnnSensus) produceCampaign() {
 		log.Warn("gen camp fail")
 		return
 	}
-	log.WithField("pk ", hexutil.Encode(candidatePublicKey[:5])).WithField("cp ",camp).Debug("gen campaign")
+	log.WithField("pk ", hexutil.Encode(candidatePublicKey[:5])).WithField("cp ", camp).Debug("gen campaign")
 	// send camp
-	go func (){
+	go func() {
 		for _, c := range as.newTxHandlers {
 			c <- camp
 		}
@@ -239,7 +240,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 
 	if as.term.HasCampaign(cp.Issuer) {
-		log.WithField("id ",as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
+		log.WithField("id ", as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
 
@@ -287,11 +288,10 @@ func (as *AnnSensus) termChangeLoop() {
 		case <-as.startTermChange:
 			log := as.dkg.log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
-			as.dkg.Reset(cp )
+			as.dkg.Reset(cp)
 			as.dkg.SelectCandidates()
 			if !as.dkg.isValidPartner {
 				log.Debug("i am not a lucky dkg partner quit")
-
 				continue
 			}
 			log.Debug("start dkg gossip")
@@ -308,7 +308,7 @@ func (as *AnnSensus) termChangeLoop() {
 			//continue //for test case commit this
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {
-				log.Warn("tc is nil")
+				log.Error("tc is nil")
 				continue
 			}
 			if atomic.CompareAndSwapUint32(&as.genesisBftIsRunning, 1, 0) {
@@ -322,10 +322,12 @@ func (as *AnnSensus) termChangeLoop() {
 
 				continue
 			}
-
-			for _, c := range as.newTxHandlers {
-				c <- tc
-			}
+			//save the tc and sent it in next sequencer
+			//may be it is a solution for the bug :
+			//while syncing with bloom filter
+			as.mu.RLock()
+			as.currentTermChange = tc
+			as.mu.RUnlock()
 		}
 	}
 
@@ -470,7 +472,7 @@ func (as *AnnSensus) loop() {
 				}
 
 			}
-			HandleCampaign:
+		HandleCampaign:
 			//handle term change should be after handling campaign
 			if len(cps) > 0 {
 				as.commit(cps)
@@ -508,6 +510,16 @@ func (as *AnnSensus) loop() {
 		//	}
 
 		case <-as.NewLatestSequencer:
+			var tc *types.TermChange
+			as.mu.RLock()
+			tc = as.currentTermChange
+			as.currentTermChange = nil
+			as.mu.RUnlock()
+			if tc != nil {
+				for _, c := range as.newTxHandlers {
+					c <- tc
+				}
+			}
 
 			if !as.isTermChanging() {
 				if as.canChangeTerm() {
@@ -621,6 +633,7 @@ func (as *AnnSensus) loop() {
 				initDone = true
 			}
 
+			//for genesis consensus , obtain tc from network
 		case tc := <-as.termChangeChan:
 			pk, err := bn256.UnmarshalBinaryPointG2(tc.PkBls)
 			if err != nil {

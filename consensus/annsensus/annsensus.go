@@ -72,6 +72,7 @@ type AnnSensus struct {
 	ConfigFilePath    string
 	termChangeChan    chan *types.TermChange
 	currentTermChange *types.TermChange
+	disableTermChange bool
 }
 
 func Maj23(n int) int {
@@ -79,7 +80,7 @@ func Maj23(n int) int {
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
-	genesisAccounts []crypto.PublicKey, configFile string) *AnnSensus {
+	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool ) *AnnSensus {
 	if len(genesisAccounts) < partnerNum {
 		panic("need more account")
 	}
@@ -110,6 +111,7 @@ func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, thres
 	ann.ConfigFilePath = configFile
 	ann.termChangeChan = make(chan *types.TermChange)
 	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
+	ann.disableTermChange = disableTermChange
 
 	return ann
 }
@@ -427,6 +429,10 @@ func (as *AnnSensus) loop() {
 		//TODO sequencer generate a random seed ,use random seed to select candidate peers
 		case txs := <-as.ConsensusTXConfirmed:
 			log.WithField(" txs ", txs).Debug("got consensus txs")
+		    if as.disableTermChange {
+		    	log.Debug("term change is disabled , quiting")
+		    	continue
+			}
 			var cps []*types.Campaign
 			var tcs []*types.TermChange
 			for _, tx := range txs {
@@ -530,7 +536,7 @@ func (as *AnnSensus) loop() {
 				}
 			}
 
-			if !as.campaignFlag {
+			if !as.campaignFlag || as.disableTermChange {
 				continue
 			}
 			height := as.Idag.LatestSequencer().Height

@@ -395,9 +395,6 @@ func (as *AnnSensus) addBftPartner() {
 
 	var peers []BFTPartner
 	for i, pk := range as.genesisAccounts {
-		//if i == as.id {
-		//continue
-		//}
 		//the third param is not used in peer
 		peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
 	}
@@ -713,8 +710,8 @@ type DKGInfo struct {
 	TermId             int                   `json:"term_id"`
 	Id                 uint32                `json:"id"`
 	PartPubs           []kyber.Point         `json:"part_pubs"`
-	MyPartSec          kyber.Scalar          `json:"my_part_sec"`
-	CandidatePartSec   []kyber.Scalar        `json:"candidate_part_sec"`
+	MyPartSec          kyber.Scalar          `json:"-"`
+	CandidatePartSec   []kyber.Scalar        `json:"-"`
 	CandidatePublicKey [][]byte              `json:"candidate_public_key"`
 	AddressIndex       map[types.Address]int `json:"address_index"`
 }

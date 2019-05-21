@@ -59,8 +59,9 @@ type OGBFTPartner struct {
 }
 
 type PeerInfo struct {
-	PublicKey crypto.PublicKey `json:"public_key"`
+	PublicKey crypto.PublicKey `json:"-"`
 	Address   types.Address    `json:"address"`
+	PublicKeyBytes []byte      `json:"public_key"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
@@ -74,6 +75,7 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 		PeerInfo: PeerInfo{
 			PublicKey: pk,
 			Address:   pk.Address(),
+			PublicKeyBytes: pk.Bytes[:],
 		},
 	}
 	return bft
@@ -84,6 +86,11 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
 		BFTPartner: p,
+		PeerInfo:PeerInfo{
+			PublicKey:ann.MyAccount.PublicKey,
+			PublicKeyBytes:ann.MyAccount.PublicKey.Bytes[:],
+			Address:ann.MyAccount.Address,
+		},
 	}
 	om := &BFT{
 		BFTPartner:    bft,
@@ -114,7 +121,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.BFTPartner.PeersInfo = nil
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
-		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk})
+		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk, PublicKeyBytes:pk.Bytes[:]})
 		peers = append(peers, NewOgBftPeer(pk, b.ann.NbParticipants, i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)

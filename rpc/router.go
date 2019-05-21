@@ -62,7 +62,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("monitor", rpc.Monitor)
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
-	router.GET("conStatus", rpc.ConStatus)
+	router.GET("consensus", rpc.ConStatus)
 	return router
 
 }
@@ -81,7 +81,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"genesis":       "",
 		"sync_status":   "",
 		"performance":   "",
-		"conStatus":     "",
+		"consensus":     "",
 		"monitor":       "",
 		"tps":           "",
 

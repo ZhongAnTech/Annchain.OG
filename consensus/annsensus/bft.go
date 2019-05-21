@@ -110,7 +110,6 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	b.DKGTermId = TermId
-	log.WithField("term Id ", TermId).Debug("bft will reset")
 	var peers []BFTPartner
 	b.BFTPartner.PeersInfo = nil
 	for i, pk := range peersPublicKey {
@@ -120,6 +119,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)
 	b.BFTPartner.SetPeers(peers)
+	log.WithField("len pks ", len(peersPublicKey)).WithField("len peers ", len(peers)).WithField("my id ", myId).WithField("with peers ", peers).WithField("term Id ", TermId).Debug("bft will reset")
 	//TODO immediately change round ?
 }
 
@@ -208,11 +208,13 @@ func (t *BFT) loop() {
 			case og.MessageTypeProposal:
 				proposal := msg.Payload.(*types.MessageProposal)
 				proposal.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, proposal.SignatureTargets()).Bytes
+				proposal.TermId = uint32(t.DKGTermId)
 				t.sendToPartners(msg.Type, proposal)
 			case og.MessageTypePreVote:
 				prevote := msg.Payload.(*types.MessagePreVote)
 				prevote.PublicKey = t.ann.MyAccount.PublicKey.Bytes
 				prevote.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, prevote.SignatureTargets()).Bytes
+				prevote.TermId = uint32(t.DKGTermId)
 				t.sendToPartners(msg.Type, prevote)
 			case og.MessageTypePreCommit:
 				preCommit := msg.Payload.(*types.MessagePreCommit)
@@ -227,6 +229,7 @@ func (t *BFT) loop() {
 				}
 				preCommit.PublicKey = t.ann.MyAccount.PublicKey.Bytes
 				preCommit.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
+				preCommit.TermId = uint32(t.DKGTermId)
 				t.sendToPartners(msg.Type, preCommit)
 			default:
 				panic("never come here unknown type")
@@ -298,6 +301,10 @@ func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.Publ
 	h := proposal.BasicMessage.HeightRound
 	id := t.BFTPartner.Proposer(h)
 	if uint16(id) != proposal.SourceId {
+		if proposal.BasicMessage.TermId == uint32(t.DKGTermId)-1 {
+			//former term message
+			//TODO optimize in the future
+		}
 		logrus.Warn("not your turn")
 		return false
 	}

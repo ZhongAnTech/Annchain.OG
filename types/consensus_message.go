@@ -86,6 +86,7 @@ type SequencerProposal struct {
 type BasicMessage struct {
 	SourceId    uint16
 	HeightRound HeightRound
+	TermId      uint32
 }
 
 //msgp:tuple MessageProposal

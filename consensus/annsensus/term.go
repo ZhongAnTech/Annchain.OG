@@ -161,7 +161,6 @@ func (t *Term) HasCampaign(address types.Address) bool {
 	return t.hasCampaign(address)
 }
 
-
 func (t *Term) hasCampaign(address types.Address) bool {
 	if _, exists := t.candidates[address]; exists {
 		log.Debug("exist in candidates ")
@@ -197,6 +196,7 @@ func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 		return false
 	}
 	if isGenesis {
+		log.Debug("is genesis consensus, change term")
 		return true
 	}
 	if lastHeight-t.startedHeight < uint64(t.partsNum*a+b) {
@@ -240,7 +240,7 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 	t.id++
 	t.startedHeight = lastHeight
 	log.WithField("startedHeight", t.startedHeight).WithField("len senators ", len(t.senators)).WithField("id ", t.id).Info("term changed , id updated")
-
+	t.flag = false
 	return nil
 }
 

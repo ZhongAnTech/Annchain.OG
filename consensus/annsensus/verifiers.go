@@ -25,7 +25,7 @@ import (
 func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 	//check balance
 	if a.GetCandidate(t.Issuer) == nil {
-		log.WithField("addr ", t.Issuer.TerminalString()).Warn("not found  campaign for tearmchange")
+		log.WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
 		return false
 	}
 	if len(t.SigSet) < a.dkg.partner.NbParticipants {

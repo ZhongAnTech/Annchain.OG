@@ -120,31 +120,34 @@ func nonce(addr string) (int, error) {
 }
 
 func TestSendTx(t *testing.T) {
-	sendTx("secp256k1")
+	err:= sendTx("secp256k1")
+	if err!=nil {
+		t.Fatal(err)
+	}
 }
 
-func sendTx(algorithm string) {
+func sendTx(algorithm string) error {
 	priv1, pub1, addr1, err := newAccount(algorithm)
 	if err != nil {
-		return
+		return err
 	}
 
 	_, _, addr2, err := newAccount(algorithm)
 	if err != nil {
-		return
+		return err
 	}
 
 	fromPriv, err := crypto.PrivateKeyFromString(priv1)
 	if err != nil {
-		return
+		return err
 	}
 	fromPub, err := crypto.PublicKeyFromString(pub1)
 	if err != nil {
-		return
+		return err
 	}
 	fromAddr, err := types.StringToAddress(addr1)
 	if err != nil {
-		return
+		return err
 	}
 	toAddr, err := types.StringToAddress(addr2)
 
@@ -174,20 +177,22 @@ func sendTx(algorithm string) {
 			"to":        tx.To.String(),
 			"value":     fmt.Sprintf("%d", tx.Value.GetInt64()),
 			"signature": hexutil.Encode(signature.Bytes),
-			"pubkey":    fromPub.PublicKeyToString(),
+			"pubkey":    fromPub.String(),
 		}
 
-		jsonData, err := json.Marshal(newTxData)
+		jsonData, err := json.MarshalIndent(newTxData,"","\t")
 		if err != nil {
-			return
+			return err
 		}
+		fmt.Println(string(jsonData))
 		resp, err := http.Post(ROOT+PATH_NEW_TX, "appliaction/json", bytes.NewBuffer(jsonData))
 		if err != nil {
-			return
+			return err
 		}
 		defer resp.Body.Close()
 		io.Copy(os.Stdout, resp.Body)
 		time.Sleep(time.Millisecond * 100)
 	}
+	return nil
 
 }

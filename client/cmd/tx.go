@@ -14,8 +14,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
@@ -49,9 +51,11 @@ type NewTxRequest struct {
 	Nonce     string `json:"nonce"`
 	From      string `json:"from"`
 	To        string `json:"to"`
+	Data       string `json:"data"`
 	Value     string `json:"value"`
 	Signature string `json:"signature"`
 	Pubkey    string `json:"pubkey"`
+	CryptoType string `json:"crypto_type"`
 }
 
 func newTx(cmd *cobra.Command, args []string) {
@@ -77,6 +81,7 @@ func newTx(cmd *cobra.Command, args []string) {
 		Value: math.NewBigInt(value),
 		To:    toAddr,
 		From:  from,
+		Data:  common.FromHex(payload),
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
@@ -88,6 +93,7 @@ func newTx(cmd *cobra.Command, args []string) {
 		Nonce:     fmt.Sprintf("%d", tx.AccountNonce),
 		From:      tx.From.Hex(),
 		To:        to,
+		Data :      payload,
 		Value:     tx.Value.String(),
 		Signature: hexutil.Encode(signature.Bytes),
 		Pubkey:    pubKey.String(),
@@ -97,6 +103,10 @@ func newTx(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(fmt.Errorf("encode tx errror %v", err))
 	}
+
+	 d,_:= json.MarshalIndent(&txReq,"","\t")
+	 fmt.Println(string(d))
+
 	str, err := req.String()
 	if err != nil {
 		fmt.Println(err)

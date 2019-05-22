@@ -417,7 +417,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
 	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error"), nil)
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v",err), nil)
 		return
 	}
 

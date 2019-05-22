@@ -1,0 +1,62 @@
+# For a quick start check out our HTTP Requests collection (Tools|HTTP Client|Open HTTP Requests Collection).
+#
+# Following HTTP Request Live Templates are available:
+# * 'gtrp' and 'gtr' create a GET request with or without query parameters;
+# * 'ptr' and 'ptrp' create a POST request with a simple or parameter-like body;
+# * 'mptr' and 'fptr' create a POST request to submit a form with a text or file field (multipart/form-data);
+
+###
+
+GET http://172.28.152.101:11300
+
+###
+
+GET http://172.28.152.101:11300/monitor
+
+###
+
+GET http://172.28.152.101:11300/sequencer
+
+###
+
+GET  http://172.28.152.101:11300/transactions?seq_id=49
+
+###
+
+#send contract
+POST  http://172.28.152.101:11300/new_transaction
+
+{
+        "nonce": "0",
+        "from": "0xe4ba061d147ca31e2dc3f4cdd4b4f6aad272ed98",
+        "to": "",
+        "data": "0x6060604052341561000c57fe5b60405160208061013a833981016040528080519060200190919050505b806000819055505b505b60f9806100416000396000f30060606040526000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680633fa4f24514604e57806360fe47b11460715780636d4ce63c14608e575bfe5b3415605557fe5b605b60b1565b6040518082815260200191505060405180910390f35b3415607857fe5b608c600480803590602001909190505060b7565b005b3415609557fe5b609b60c2565b6040518082815260200191505060405180910390f35b60005481565b806000819055505b50565b600060005490505b905600a165627a7a72305820208c8101070c8ba5a9b32db2bf4b8062a9ba50bc2869c39ac2297938756540e80029",
+        "value": "0",
+        "signature": "0xdc62a6c20f927c897cd1da4d8c5511172cd3bbd54d3d9fce28a0a2e8d327493b3951a841fb2eb7e9ef3d660fbd149b0f42d6a6a18dea2aba42396bf5d2a21ad400",
+        "pubkey": "0x042db8fe638b77ff7bdb683145c6e0a70563e056612f1145e1e7b56dbb42f116752b9e2ad69838734e03d2f4bf9df454dfe6ea2062f0961b12e008300a3a1e0cf2",
+        "crypto_type":"secp256k1"
+}
+
+###
+#query confirm status
+GET http://172.28.152.101:11300/confirm?hash=0xe746cce170af4d331c64f9b9fc4f3563aa5177532e4da4757ec1bedb02df73fc
+
+###
+#query transaction
+GET   http://172.28.152.101:11300/transaction?hash=0xe746cce170af4d331c64f9b9fc4f3563aa5177532e4da4757ec1bedb02df73fc
+
+###
+#query receipt
+GET http://172.28.152.101:11300/query_receipt?hash=0xe746cce170af4d331c64f9b9fc4f3563aa5177532e4da4757ec1bedb02df73fc
+
+#Response:
+# {
+#data: {
+#tx_hash: "0xe746cce170af4d331c64f9b9fc4f3563aa5177532e4da4757ec1bedb02df73fc",
+#status: 1,
+#result: "",
+#contract_address: "0x8b7d3ce93c4c59267510d7542598b163b306a0c6"
+#},
+#message: ""
+#}
+

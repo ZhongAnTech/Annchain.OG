@@ -121,7 +121,7 @@ func (sd *StateDB) CreateAccount(addr types.Address) {
 		})
 	}
 	sd.states[addr] = newstate
-	sd.beats[addr] = time.Now()
+	// sd.beats[addr] = time.Now()
 
 }
 
@@ -239,7 +239,7 @@ func (sd *StateDB) deleteStateObject(addr types.Address) error {
 	}
 	delete(sd.states, addr)
 	delete(sd.dirtyset, addr)
-	delete(sd.beats, addr)
+	// delete(sd.beats, addr)
 	return nil
 }
 
@@ -494,7 +494,7 @@ func (sd *StateDB) purge() {
 
 // refreshbeat update the beat time of an address.
 func (sd *StateDB) refreshbeat(addr types.Address) {
-	sd.beats[addr] = time.Now()
+	// sd.beats[addr] = time.Now()
 }
 
 // Commit tries to save dirty data to memory trie db.

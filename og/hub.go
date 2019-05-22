@@ -314,6 +314,8 @@ func (h *Hub) handleMsg(p *peer) error {
 				if e == nil {
 					err = m.Unmarshal()
 					if err != nil {
+						// TODO delete
+						log.Errorf("MessageTypeConsensusDkgDeal error msg: %x", m.data)
 						log.WithField("type ", m.messageType).WithError(err).Warn("handle msg error")
 						return err
 					}
@@ -559,10 +561,18 @@ func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNom
 	if h.disableEncryptGossip {
 		msgOut.disableEncrypt = true
 	}
+	// TODO delete
+	if messageType == MessageTypeConsensusDkgDeal {
+		log.Warnf("MessageTypeConsensusDkgDeal message before mashal: %s", msg)
+	}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message init msg  err")
 		return
+	}
+	// TODO delete
+	if messageType == MessageTypeConsensusDkgDeal {
+		log.Warnf("MessageTypeConsensusDkgDeal message after mashal: %x", msgOut.data)
 	}
 	log.WithField("size before enc", len(msgOut.data))
 	if h.disableEncryptGossip {

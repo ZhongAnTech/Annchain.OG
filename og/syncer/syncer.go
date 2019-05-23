@@ -70,7 +70,7 @@ func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"acquireTxQueue":          len(m.acquireTxQueue),
 		"bufferedIncomingTxCache": m.bufferedIncomingTxCache.Len(),
-		"firedTxCache":            m.firedTxCache.Len(),
+		"firedTxCache":            m.firedTxCache.Len(true),
 	}
 }
 
@@ -393,7 +393,7 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 */
 
 func (m *IncrementalSyncer) repickHashes() types.Hashes {
-	maps := m.firedTxCache.GetALL()
+	maps := m.firedTxCache.GetALL(true)
 	duration := time.Duration(time.Second * 10)
 	var result types.Hashes
 	for ik, iv := range maps {

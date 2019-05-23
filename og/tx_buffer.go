@@ -147,7 +147,7 @@ func (c *childrenCache) Remove(parent types.Hash) bool {
 }
 
 func (c *childrenCache) Len() int {
-	return c.cache.Len()
+	return c.cache.Len(true)
 }
 
 func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
@@ -155,8 +155,8 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 		"selfGeneratedNewTxChan": len(b.SelfGeneratedNewTxChan),
 		"receivedNewTxChan":      len(b.ReceivedNewTxChan),
 		"receivedNewTxsChan":     len(b.ReceivedNewTxsChan),
-		"dependencyCache":        b.dependencyCache.Len(),
-		"knownCache":             b.knownCache.Len(),
+		"dependencyCache":        b.dependencyCache.Len(true),
+		"knownCache":             b.knownCache.Len(true),
 		"txAddedToPoolChan":      len(b.txAddedToPoolChan),
 		//"childrenCache": b.children.Len(),
 	}

@@ -86,7 +86,7 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 		"outgoing":     len(h.outgoing),
 		"incoming":     len(h.incoming),
 		"newPeerCh":    len(h.newPeerCh),
-		"messageCache": h.messageCache.Len(),
+		"messageCache": h.messageCache.Len(true),
 	}
 	peers := h.peers.Peers()
 	for _, p := range peers {

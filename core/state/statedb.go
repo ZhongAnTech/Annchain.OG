@@ -528,6 +528,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
+		log.Tracef("Panic debug, statdb commit, addr: %x, data: %x", addr.ToBytes(), data)
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}

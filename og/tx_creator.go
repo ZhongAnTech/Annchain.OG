@@ -181,7 +181,7 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 	tx.GetBase().Signature = sig.Bytes
 	tx.GetBase().PublicKey = pubkey.Bytes
 
-	if ok := m.SealTx(tx,nil); !ok {
+	if ok := m.SealTx(tx, nil); !ok {
 		logrus.Warn("failed to seal tx")
 		err = fmt.Errorf("failed to seal tx")
 		return
@@ -261,14 +261,14 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
 			logrus.Debug("NOT OK")
-			return  txRet  , ok
+			return txRet, ok
 		}
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,
 		}).Trace("validate graph structure for tx being connected")
 
-		if tx.GetType() ==types.TxBaseTypeSequencer {
+		if tx.GetType() == types.TxBaseTypeSequencer {
 			tx.GetBase().Signature = m.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 		}
@@ -323,7 +323,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 					continue
 				}
 
-				if _, ok := m.tryConnect(tx, txs,priveKey); ok {
+				if _, ok := m.tryConnect(tx, txs, priveKey); ok {
 					done = true
 					break
 				}

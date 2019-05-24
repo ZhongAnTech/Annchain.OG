@@ -43,7 +43,7 @@ type Delegate struct {
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey)
 
-	if ok := c.TxCreator.SealTx(tx,nil); !ok {
+	if ok := c.TxCreator.SealTx(tx, nil); !ok {
 		logrus.Warn("delegate failed to seal tx")
 		err = fmt.Errorf("delegate failed to seal tx")
 		return

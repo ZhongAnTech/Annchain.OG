@@ -24,8 +24,8 @@ import (
 // consensus related verification
 func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 	if a.disable {
-		log.WithField("t ",t).Warn("annsensus disabled ")
-		return  true
+		log.WithField("t ", t).Warn("annsensus disabled ")
+		return true
 	}
 	//check balance
 	if a.GetCandidate(t.Issuer) == nil {
@@ -57,8 +57,8 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 
 	if a.disable {
-		log.WithField("seq ",seq).Warn("annsensus disabled ")
-		return  true
+		log.WithField("seq ", seq).Warn("annsensus disabled ")
+		return true
 	}
 
 	if senator := a.term.GetSenator(seq.Issuer); senator == nil {
@@ -105,8 +105,8 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 
 	if a.disable {
-		log.WithField("cp ",cp).Warn("annsensus disabled ")
-		return  true
+		log.WithField("cp ", cp).Warn("annsensus disabled ")
+		return true
 	}
 
 	//check balance
@@ -143,8 +143,8 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 func (a *AnnSensus) VerifyRequestedTermChange(t *types.TermChange) bool {
 
 	if a.disable {
-		log.WithField("t ",t).Warn("annsensus disabled ")
-		return  true
+		log.WithField("t ", t).Warn("annsensus disabled ")
+		return true
 	}
 
 	if len(t.SigSet) < a.dkg.partner.NbParticipants {

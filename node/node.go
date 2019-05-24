@@ -277,7 +277,7 @@ func NewNode() *Node {
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
 	genesisAccounts := parserGenesisAccounts(signer, viper.GetString("annsensus.genesis_pk"))
 
-	disableConsensus  := viper.GetBool("annsensus.disable")
+	disableConsensus := viper.GetBool("annsensus.disable")
 	campaign := viper.GetBool("annsensus.campaign")
 	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")
@@ -323,7 +323,16 @@ func NewNode() *Node {
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener, annSensus.UpdateEvent)
-	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener, annSensus.NewPeerConnectedEventListener)
+	if disableConsensus {
+		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,
+			syncManager.CatchupSyncer.NewPeerConnectedEventListener,
+		)
+	} else {
+		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,
+			syncManager.CatchupSyncer.NewPeerConnectedEventListener,
+			annSensus.NewPeerConnectedEventListener)
+	}
+
 	//init msg requst id
 	og.MsgCountInit()
 
@@ -377,7 +386,9 @@ func NewNode() *Node {
 	n.Components = append(n.Components, txCounter)
 
 	//
-	org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
+	if !disableConsensus {
+		org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
+	}
 
 	n.Components = append(n.Components, annSensus)
 	m.ConsensusDkgDealHandler = annSensus

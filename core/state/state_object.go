@@ -206,6 +206,7 @@ func (s *StateObject) updateTrie(db Database) {
 			delete(s.committedStorage, key)
 			continue
 		}
+		log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
 		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
 		if err != nil {
 			s.setError(err)

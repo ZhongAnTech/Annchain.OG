@@ -199,8 +199,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 
 func (b *TxBuffer) Start() {
 	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan, "b.txAddedToPoolChan", false)
-	goroutine.NewRoutine(b.loop)
-	goroutine.NewRoutine(b.releasedTxCacheLoop)
+	goroutine.New(b.loop)
+	goroutine.New(b.releasedTxCacheLoop)
 }
 
 func (b *TxBuffer) Stop() {
@@ -369,10 +369,10 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		seq := tx.(*types.Sequencer)
 		if seq.Proposing {
-			function := func()() {
+			function := func() {
 				b.OnProposalSeqCh <- seq.GetTxHash()
 			}
-			goroutine.NewRoutine(function)
+			goroutine.New(function)
 			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
 			return
 		}
@@ -480,7 +480,7 @@ func (b *TxBuffer) tryResolve(tx types.Txi) {
 }
 
 // buildDependencies examines if all ancestors are in our local cache.
-// If not, go fetch it and record it in the map for future reference
+// If not, goto fetch it and record it in the map for future reference
 // Returns true if all ancestors are local now.
 func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true

@@ -90,7 +90,7 @@ func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, err
 		close:    make(chan struct{}),
 	}
 
-	goroutine.NewRoutine(sd.loop)
+	goroutine.New(sd.loop)
 	return sd, nil
 }
 

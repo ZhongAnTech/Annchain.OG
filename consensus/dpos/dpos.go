@@ -27,7 +27,7 @@ func NewDpos(dag consensus.IDag, addr *types.Address) *Dpos {
 // Start start dpos service.
 func (d *Dpos) Start() {
 	log.Info("Starting Dpos ...")
-	goroutine.NewRoutine(d.loop,true)
+	goroutine.New(d.loop)
 }
 
 // Stop stop dpos service.

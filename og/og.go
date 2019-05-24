@@ -131,9 +131,9 @@ func (og *Og) Start() {
 	og.Dag.Start()
 	og.TxPool.Start()
 	//// start sync handlers
-	//go og.syncer()
-	//go og.txsyncLoop()
-	goroutine.NewRoutine( og.BroadcastLatestSequencer)
+	//goroutine.New( og.syncer)
+	//goroutine.New(og.txsyncLoop)
+	goroutine.New(og.BroadcastLatestSequencer)
 
 	logrus.Info("OG Started")
 }
@@ -199,10 +199,10 @@ func (og *Og) BroadcastLatestSequencer() {
 			number := seq.Number()
 			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
-			function := func ()(){
+			function := func() {
 				og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 			}
-			goroutine.NewRoutine(function)
+			goroutine.New(function)
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return

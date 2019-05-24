@@ -236,9 +236,9 @@ func initLogger() {
 }
 
 func startPerformanceMonitor() {
-	function :=  func() {
+	function := func() {
 		logrus.WithField("port", viper.GetString("profiling.port")).Info("Performance monitor started")
 		log.Println(http.ListenAndServe("0.0.0.0:"+viper.GetString("profiling.port"), nil))
 	}
-	goroutine.NewRoutine(function)
+	goroutine.New(function)
 }

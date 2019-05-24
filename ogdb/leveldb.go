@@ -18,6 +18,7 @@ package ogdb
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"strconv"
 	"strings"
 	"sync"
@@ -175,7 +176,9 @@ func (db *LevelDB) Meter(prefix string) {
 	db.quitChan = make(chan chan error)
 	db.quitLock.Unlock()
 
-	go db.meter(3 * time.Second)
+	goroutine.New(func() {
+		db.meter(3 * time.Second)
+	})
 }
 
 // meter periodically retrieves internal leveldb counters and reports them to

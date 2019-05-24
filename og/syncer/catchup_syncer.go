@@ -14,6 +14,7 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"sync"
 	"time"
 
@@ -97,8 +98,8 @@ func (c *CatchupSyncer) Init() {
 }
 
 func (c *CatchupSyncer) Start() {
-	go c.eventLoop()
-	go c.loopSync()
+	goroutine.New(c.eventLoop)
+	goroutine.New(c.loopSync)
 }
 
 func (c *CatchupSyncer) Stop() {
@@ -156,13 +157,17 @@ func (c *CatchupSyncer) loopSync() {
 				log.Debug("catchupSyncer not enabled")
 				continue
 			}
-			go c.syncToLatest()
+			goroutine.New(func() {
+				c.syncToLatest()
+			})
 		case <-time.After(SyncerCheckTime):
 			if !c.Enabled {
 				log.Debug("catchup syncer not enabled")
 				continue
 			}
-			go c.syncToLatest()
+			goroutine.New(func() {
+				c.syncToLatest()
+			})
 		}
 
 	}
@@ -264,7 +269,6 @@ func (c *CatchupSyncer) notifyProgress() {
 		// scenario will most often crop up in private and hackathon networks with
 		// degenerate connectivity, but it should be healthy for the mainnet too to
 		// more reliably update peers or the local TD state.
-		//go h.BroadcastBlock(head, false)
 		hash := nodeStatus.CurrentBlock
 		msg := types.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentId}
 		data, _ := msg.MarshalMsg(nil)

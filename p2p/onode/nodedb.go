@@ -21,6 +21,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/p2p/enr"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -248,7 +249,7 @@ func (db *DB) DeleteNode(id ID) error {
 // convergence, it's simpler to "ensure" the correct state when an appropriate
 // condition occurs (i.e. a successful bonding), and discard further events.
 func (db *DB) ensureExpirer() {
-	db.runner.Do(func() { go db.expirer() })
+	db.runner.Do(func() { goroutine.New(db.expirer) })
 }
 
 // expirer should be started in a go routine, and is responsible for looping ad

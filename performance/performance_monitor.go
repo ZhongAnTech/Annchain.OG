@@ -35,7 +35,7 @@ func (p *PerformanceMonitor) Register(holder PerformanceReporter) {
 }
 
 func (p *PerformanceMonitor) Start() {
-	goroutine.NewRoutine( func() {
+	goroutine.New(func() {
 		p.quit = false
 		//runtime.SetBlockProfileRate(1)
 
@@ -64,6 +64,6 @@ func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	}
 	// add additional fields
 	data["goroutines"] = runtime.NumGoroutine()
-    data["goroutineNUmbers"] = goroutine.GetGoRoutineNum()
+	data["goroutineNUmbers"] = goroutine.GetGoRoutineNum()
 	return data
 }

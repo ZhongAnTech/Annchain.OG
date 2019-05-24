@@ -289,7 +289,7 @@ func NewNode() *Node {
 	if consensFilePath == "" {
 		panic("need path")
 	}
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath,disableTermChange)
+	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,

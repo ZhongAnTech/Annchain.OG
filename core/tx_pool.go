@@ -15,6 +15,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -173,7 +174,7 @@ type txEnvelope struct {
 // Start begin the txpool sevices
 func (pool *TxPool) Start() {
 	log.Infof("TxPool Start")
-	go pool.loop()
+	goroutine.New(pool.loop)
 }
 
 // Stop stops all the txpool sevices

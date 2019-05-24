@@ -16,6 +16,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -50,12 +51,12 @@ func NewRpcServer(port string) *RpcServer {
 
 func (srv *RpcServer) Start() {
 	logrus.Infof("listening Http on %s", srv.port)
-	go func() {
+	goroutine.New(func() {
 		// service connections
 		if err := srv.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logrus.WithError(err).Fatalf("error in Http server")
 		}
-	}()
+	})
 }
 
 func (srv *RpcServer) Stop() {

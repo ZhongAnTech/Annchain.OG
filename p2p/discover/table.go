@@ -27,6 +27,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	mrand "math/rand"
 	"net"
@@ -121,7 +122,7 @@ func newTable(t transport, db *onode.DB, bootnodes []*onode.Node) (*Table, error
 	tab.seedRand()
 	tab.loadSeedNodes()
 
-	go tab.loop()
+	goroutine.New(tab.loop)
 	return tab, nil
 }
 
@@ -284,7 +285,9 @@ func (tab *Table) lookup(targetKey EncPubkey, refreshIfEmpty bool) []*node {
 			if !asked[n.ID()] {
 				asked[n.ID()] = true
 				pendingQueries++
-				go tab.findnode(n, targetKey, reply)
+				goroutine.New(func() {
+					tab.findnode(n, targetKey, reply)
+				})
 			}
 		}
 		if pendingQueries == 0 {
@@ -353,7 +356,9 @@ func (tab *Table) loop() {
 	defer copyNodes.Stop()
 
 	// Start initial refresh.
-	go tab.doRefresh(refreshDone)
+	goroutine.New(func() {
+		tab.doRefresh(refreshDone)
+	})
 
 loop:
 	for {
@@ -362,13 +367,17 @@ loop:
 			tab.seedRand()
 			if refreshDone == nil {
 				refreshDone = make(chan struct{})
-				go tab.doRefresh(refreshDone)
+				goroutine.New(func() {
+					tab.doRefresh(refreshDone)
+				})
 			}
 		case req := <-tab.refreshReq:
 			waiting = append(waiting, req)
 			if refreshDone == nil {
 				refreshDone = make(chan struct{})
-				go tab.doRefresh(refreshDone)
+				goroutine.New(func() {
+					tab.doRefresh(refreshDone)
+				})
 			}
 		case <-refreshDone:
 			for _, ch := range waiting {
@@ -377,12 +386,14 @@ loop:
 			waiting, refreshDone = nil, nil
 		case <-revalidate.C:
 			revalidateDone = make(chan struct{})
-			go tab.doRevalidate(revalidateDone)
+			goroutine.New(func() {
+				tab.doRevalidate(revalidateDone)
+			})
 		case <-revalidateDone:
 			revalidate.Reset(tab.nextRevalidateTime())
 			revalidateDone = nil
 		case <-copyNodes.C:
-			go tab.copyLiveNodes()
+			goroutine.New(tab.copyLiveNodes)
 		case <-tab.closeReq:
 			break loop
 		}

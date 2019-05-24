@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -281,8 +282,10 @@ func newUDP(c conn, ln *onode.LocalNode, cfg Config) (*Table, *udp, error) {
 	udp.tab = tab
 
 	udp.wg.Add(2)
-	go udp.loop()
-	go udp.readLoop(cfg.Unhandled)
+	goroutine.New(udp.loop)
+	goroutine.New(func() {
+		udp.readLoop(cfg.Unhandled)
+	})
 	return udp.tab, udp, nil
 }
 
@@ -491,7 +494,7 @@ func (t *udp) loop() {
 			if contTimeouts > ntpFailureThreshold {
 				if time.Since(ntpWarnTime) >= ntpWarningCooldown {
 					ntpWarnTime = time.Now()
-					go checkClockDrift()
+					goroutine.New(checkClockDrift)
 				}
 				contTimeouts = 0
 			}

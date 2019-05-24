@@ -120,8 +120,8 @@ func nonce(addr string) (int, error) {
 }
 
 func TestSendTx(t *testing.T) {
-	err:= sendTx("secp256k1")
-	if err!=nil {
+	err := sendTx("secp256k1")
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -180,7 +180,7 @@ func sendTx(algorithm string) error {
 			"pubkey":    fromPub.String(),
 		}
 
-		jsonData, err := json.MarshalIndent(newTxData,"","\t")
+		jsonData, err := json.MarshalIndent(newTxData, "", "\t")
 		if err != nil {
 			return err
 		}

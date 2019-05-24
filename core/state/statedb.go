@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"sync"
 	"time"
 
@@ -89,7 +90,7 @@ func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, err
 		close:    make(chan struct{}),
 	}
 
-	go sd.loop()
+	goroutine.NewRoutine(sd.loop)
 	return sd, nil
 }
 

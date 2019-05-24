@@ -47,7 +47,6 @@ var runCmd = &cobra.Command{
 		node.Start()
 
 		// prevent sudden stop. Do your clean up here
-
 		var gracefulStop = make(chan os.Signal)
 
 		signal.Notify(gracefulStop, syscall.SIGTERM)

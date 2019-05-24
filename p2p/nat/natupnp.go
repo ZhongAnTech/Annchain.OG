@@ -19,6 +19,7 @@ package nat
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"net"
 	"strings"
 	"time"
@@ -102,27 +103,33 @@ func (n *upnp) String() string {
 func discoverUPnP() Interface {
 	found := make(chan *upnp, 2)
 	// IGDv1
-	go discover(found, internetgateway1.URN_WANConnectionDevice_1, func(dev *goupnp.RootDevice, sc goupnp.ServiceClient) *upnp {
-		switch sc.Service.ServiceType {
-		case internetgateway1.URN_WANIPConnection_1:
-			return &upnp{dev, "IGDv1-IP1", &internetgateway1.WANIPConnection1{ServiceClient: sc}}
-		case internetgateway1.URN_WANPPPConnection_1:
-			return &upnp{dev, "IGDv1-PPP1", &internetgateway1.WANPPPConnection1{ServiceClient: sc}}
-		}
-		return nil
-	})
+	funcV1 := func() {
+		discover(found, internetgateway1.URN_WANConnectionDevice_1, func(dev *goupnp.RootDevice, sc goupnp.ServiceClient) *upnp {
+			switch sc.Service.ServiceType {
+			case internetgateway1.URN_WANIPConnection_1:
+				return &upnp{dev, "IGDv1-IP1", &internetgateway1.WANIPConnection1{ServiceClient: sc}}
+			case internetgateway1.URN_WANPPPConnection_1:
+				return &upnp{dev, "IGDv1-PPP1", &internetgateway1.WANPPPConnection1{ServiceClient: sc}}
+			}
+			return nil
+		})
+	}
+	goroutine.NewRoutine(funcV1)
 	// IGDv2
-	go discover(found, internetgateway2.URN_WANConnectionDevice_2, func(dev *goupnp.RootDevice, sc goupnp.ServiceClient) *upnp {
-		switch sc.Service.ServiceType {
-		case internetgateway2.URN_WANIPConnection_1:
-			return &upnp{dev, "IGDv2-IP1", &internetgateway2.WANIPConnection1{ServiceClient: sc}}
-		case internetgateway2.URN_WANIPConnection_2:
-			return &upnp{dev, "IGDv2-IP2", &internetgateway2.WANIPConnection2{ServiceClient: sc}}
-		case internetgateway2.URN_WANPPPConnection_1:
-			return &upnp{dev, "IGDv2-PPP1", &internetgateway2.WANPPPConnection1{ServiceClient: sc}}
-		}
-		return nil
-	})
+	funcV2 := func() {
+		discover(found, internetgateway2.URN_WANConnectionDevice_2, func(dev *goupnp.RootDevice, sc goupnp.ServiceClient) *upnp {
+			switch sc.Service.ServiceType {
+			case internetgateway2.URN_WANIPConnection_1:
+				return &upnp{dev, "IGDv2-IP1", &internetgateway2.WANIPConnection1{ServiceClient: sc}}
+			case internetgateway2.URN_WANIPConnection_2:
+				return &upnp{dev, "IGDv2-IP2", &internetgateway2.WANIPConnection2{ServiceClient: sc}}
+			case internetgateway2.URN_WANPPPConnection_1:
+				return &upnp{dev, "IGDv2-PPP1", &internetgateway2.WANPPPConnection1{ServiceClient: sc}}
+			}
+			return nil
+		})
+	}
+	goroutine.NewRoutine(funcV2)
 	for i := 0; i < cap(found); i++ {
 		if c := <-found; c != nil {
 			return c

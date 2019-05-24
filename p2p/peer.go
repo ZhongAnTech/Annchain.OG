@@ -19,6 +19,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/p2p/enr"
 	"io"
 	"net"
@@ -182,8 +183,9 @@ func (p *Peer) run() (remoteRequested bool, err error) {
 		reason     DiscReason // sent to the peer
 	)
 	p.wg.Add(2)
-	go p.readLoop(readErr)
-	go p.pingLoop()
+	readFunction := func() { p.readLoop(readErr)}
+	goroutine.NewRoutine(readFunction)
+	goroutine.NewRoutine( p.pingLoop )
 
 	// Start all protocol handlers.
 	writeStart <- struct{}{}
@@ -262,7 +264,8 @@ func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
 		msg.Discard()
-		go Send(p.rw, pongMsg, nil)
+		sendFunc := func() { Send(p.rw, pongMsg, nil)}
+		goroutine.NewRoutine(sendFunc)
 	case msg.Code == discMsg:
 		var reason DiscReason
 		// This is the last message. We don't need to discard or
@@ -341,7 +344,7 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 			}
 		*/
 		log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
-		go func() {
+		runFunc :=  func() {
 			err := proto.Run(p, rw)
 			if err == nil {
 				log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
@@ -351,7 +354,8 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 			}
 			p.protoErr <- err
 			p.wg.Done()
-		}()
+		}
+		goroutine.NewRoutine(runFunc)
 	}
 }
 

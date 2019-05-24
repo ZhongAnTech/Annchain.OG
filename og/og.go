@@ -15,6 +15,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
@@ -132,7 +133,7 @@ func (og *Og) Start() {
 	//// start sync handlers
 	//go og.syncer()
 	//go og.txsyncLoop()
-	go og.BroadcastLatestSequencer()
+	goroutine.NewRoutine( og.BroadcastLatestSequencer)
 
 	logrus.Info("OG Started")
 }
@@ -198,7 +199,10 @@ func (og *Og) BroadcastLatestSequencer() {
 			number := seq.Number()
 			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
-			go og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
+			function := func ()(){
+				og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
+			}
+			goroutine.NewRoutine(function)
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return

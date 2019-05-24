@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -144,8 +145,8 @@ func NewServer(addr string) *Server {
 }
 
 func (s *Server) Start() {
-	go s.Serve()
-	go s.WatchNewTxs()
+	goroutine.NewRoutine(s.Serve)
+	goroutine.NewRoutine(s.WatchNewTxs)
 }
 
 func (s *Server) Stop() {

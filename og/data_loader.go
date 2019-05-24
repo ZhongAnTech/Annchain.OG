@@ -14,6 +14,7 @@
 package og
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/types"
@@ -26,7 +27,7 @@ type DataLoader struct {
 }
 
 func (d *DataLoader) Start() {
-	go d.LoadLocalData()
+	goroutine.NewRoutine( d.LoadLocalData)
 }
 
 func (d *DataLoader) Stop() {

@@ -20,6 +20,7 @@ package nat
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"net"
 	"strings"
 	"sync"
@@ -148,8 +149,8 @@ func Any() Interface {
 	// Internet-class address. Return ExtIP in this case.
 	return startautodisc("UPnP or NAT-PMP", func() Interface {
 		found := make(chan Interface, 2)
-		go func() { found <- discoverUPnP() }()
-		go func() { found <- discoverPMP() }()
+		goroutine.NewRoutine( func() { found <- discoverUPnP() })
+		goroutine.NewRoutine( func() { found <- discoverPMP() })
 		for i := 0; i < cap(found); i++ {
 			if c := <-found; c != nil {
 				return c

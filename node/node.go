@@ -277,6 +277,7 @@ func NewNode() *Node {
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
 	genesisAccounts := parserGenesisAccounts(signer, viper.GetString("annsensus.genesis_pk"))
 
+	disableConsensus  := viper.GetBool("annsensus.disable")
 	campaign := viper.GetBool("annsensus.campaign")
 	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")
@@ -289,7 +290,7 @@ func NewNode() *Node {
 	if consensFilePath == "" {
 		panic("need path")
 	}
-	annSensus := annsensus.NewAnnSensus(cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
+	annSensus := annsensus.NewAnnSensus(disableConsensus, cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,
@@ -392,7 +393,10 @@ func NewNode() *Node {
 	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
 	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
 	annSensus.OnSelfGenTxi = txBuffer.SelfGeneratedNewTxChan
-	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
+	if !disableConsensus {
+		org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
+	}
+
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
 
 	pm.Register(org.TxPool)

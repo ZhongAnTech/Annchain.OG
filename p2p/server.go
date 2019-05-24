@@ -795,6 +795,7 @@ running:
 	// Terminate discovery. If there is a running lookup it will terminate soon.
 	if srv.ntab != nil {
 		srv.ntab.Close()
+		log.Debug("ntab close")
 	}
 	if srv.DiscV5 != nil {
 		srv.DiscV5.Close()

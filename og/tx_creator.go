@@ -181,7 +181,7 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 	tx.GetBase().Signature = sig.Bytes
 	tx.GetBase().PublicKey = pubkey.Bytes
 
-	if ok := m.SealTx(tx); !ok {
+	if ok := m.SealTx(tx,nil); !ok {
 		logrus.Warn("failed to seal tx")
 		err = fmt.Errorf("failed to seal tx")
 		return
@@ -241,7 +241,7 @@ func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 	return
 }
 
-func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.Txi, ok bool) {
+func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
 	parentHashes := make(types.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
@@ -261,11 +261,18 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
 			logrus.Debug("NOT OK")
+			return  txRet  , ok
 		}
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,
 		}).Trace("validate graph structure for tx being connected")
+
+		if tx.GetType() ==types.TxBaseTypeSequencer {
+			tx.GetBase().Signature = m.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Hash = tx.CalcTxHash()
+		}
+
 		return txRet, ok
 	} else {
 		//logrus.Debugf("Failed to connected %s %s", hash.Hex(), m.MaxTxHash.Hex())
@@ -275,7 +282,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi) (txRet types.T
 
 // SealTx do mining first, then pick up parents from tx pool which could leads to a proper hash.
 // If there is no proper parents, Mine again.
-func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
+func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) {
 	// record the mining times.
 	mineCount := 0
 	connectionTries := 0
@@ -316,7 +323,7 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 					continue
 				}
 
-				if _, ok := m.tryConnect(tx, txs); ok {
+				if _, ok := m.tryConnect(tx, txs,priveKey); ok {
 					done = true
 					break
 				}

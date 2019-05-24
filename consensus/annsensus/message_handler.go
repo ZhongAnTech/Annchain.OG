@@ -23,6 +23,10 @@ import (
 )
 
 func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgGenesisPublicKey")
@@ -45,6 +49,10 @@ func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageCon
 
 //HandleConsensusDkgDeal
 func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDeal")
@@ -64,6 +72,10 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 
 //HandleConsensusDkgDealResponse
 func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDealResponse")
@@ -84,6 +96,10 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 
 //HandleConsensusDkgSigSets
 func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -105,6 +121,10 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 
 //HandleConsensusProposal
 func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil || request.Value == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -149,6 +169,10 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 
 //HandleConsensusPreVote
 func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -181,6 +205,10 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 
 //HandleConsensusPreCommit
 func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := a.dkg.log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -213,6 +241,10 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 }
 
 func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequest, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
+		return
+	}
 	log := log.WithField("me", a.dkg.partner.Id)
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
@@ -238,6 +270,10 @@ func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequ
 }
 
 func (a *AnnSensus) HandleTermChangeResponse(response *types.MessageTermChangeResponse, peerId string) {
+	if a.disable {
+		log.WithField("from ", peerId).WithField("response ", response).Warn("annsensus disabled")
+		return
+	}
 	if response == nil || response.TermChange == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return

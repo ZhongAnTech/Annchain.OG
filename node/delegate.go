@@ -43,7 +43,7 @@ type Delegate struct {
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey)
 
-	if ok := c.TxCreator.SealTx(tx); !ok {
+	if ok := c.TxCreator.SealTx(tx,nil); !ok {
 		logrus.Warn("delegate failed to seal tx")
 		err = fmt.Errorf("delegate failed to seal tx")
 		return
@@ -62,7 +62,7 @@ type SeqRequest struct {
 func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
 	seq = c.TxCreator.NewSignedSequencer(r.Issuer, r.Height, r.Nonce, r.PrivateKey)
 	logrus.WithField("seq", seq).Infof("sequencer generated")
-	if ok := c.TxCreator.SealTx(seq); !ok {
+	if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
 		logrus.Warn("delegate failed to seal seq")
 		err = fmt.Errorf("delegate failed to seal seq")
 		return

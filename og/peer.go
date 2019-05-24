@@ -16,6 +16,7 @@ package og
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"math/rand"
 	"sync"
 	"time"
@@ -401,7 +402,7 @@ func (ps *peerSet) Register(p *peer) error {
 		return errAlreadyRegistered
 	}
 	ps.peers[p.id] = p
-	go p.broadcast()
+	goroutine.NewRoutine( p.broadcast)
 
 	return nil
 }
@@ -580,7 +581,7 @@ func (p *peer) Handshake(network uint64, head types.Hash, seqId uint64, genesis 
 	errc := make(chan error, 2)
 	var status StatusData // safe to read after two values have been received from errc
 
-	go func() {
+	sendStatusFunc:= func()() {
 		s := StatusData{
 			ProtocolVersion: uint32(p.version),
 			NetworkId:       network,
@@ -590,10 +591,12 @@ func (p *peer) Handshake(network uint64, head types.Hash, seqId uint64, genesis 
 		}
 		data, _ := s.MarshalMsg(nil)
 		errc <- p2p.Send(p.rw, p2p.MsgCodeType(StatusMsg), data)
-	}()
-	go func() {
+	}
+	goroutine.NewRoutine(sendStatusFunc)
+	readFunc :=func()() {
 		errc <- p.readStatus(network, &status, genesis)
-	}()
+	}
+	goroutine.NewRoutine( readFunc)
 	timeout := time.NewTimer(handshakeTimeout)
 	defer timeout.Stop()
 	for i := 0; i < 2; i++ {

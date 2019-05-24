@@ -16,6 +16,7 @@ package annsensus
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"strings"
 	"time"
 
@@ -181,7 +182,7 @@ func (p *DefaultPartner) RestartNewAre() {
 }
 
 func (p *DefaultPartner) WaiterLoop() {
-	go p.waiter.StartEventLoop()
+	goroutine.NewRoutine( p.waiter.StartEventLoop)
 }
 
 // StartNewEra is called once height or round needs to be changed.

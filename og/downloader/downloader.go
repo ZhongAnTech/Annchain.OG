@@ -16,6 +16,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -153,7 +154,7 @@ func New(mode SyncMode, dag IDag, dropPeer peerDropFn, insertTxs insertTxsFn) *D
 		quitCh:        make(chan struct{}),
 		stateCh:       make(chan dataPack),
 	}
-	go dl.qosTuner()
+	goroutine.NewRoutine(dl.qosTuner)
 	return dl
 }
 
@@ -360,7 +361,8 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 	d.cancelWg.Add(len(fetchers))
 	for _, fn := range fetchers {
 		fn := fn
-		go func() { defer d.cancelWg.Done(); errc <- fn() }()
+		function := func() { defer d.cancelWg.Done(); errc <- fn() }
+		goroutine.NewRoutine(function)
 	}
 	// Wait for the first error, then terminate the others.
 	var err error
@@ -430,7 +432,8 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.SequencerHeader, err
 
 	// Request the advertised remote head block and wait for the response
 	head, _ := p.peer.Head()
-	go p.peer.RequestHeadersByHash(head, 1, 0, false)
+	function := func() { p.peer.RequestHeadersByHash(head, 1, 0, false)}
+	goroutine.NewRoutine(function)
 
 	ttl := d.requestTTL()
 	timeout := time.After(ttl)
@@ -500,7 +503,8 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 	if count > limit {
 		count = limit
 	}
-	go p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)
+	function := func() { p.peer.RequestHeadersByNumber(uint64(from), count, 15, false)}
+	goroutine.NewRoutine(function)
 
 	// Wait for the remote response to the head fetch
 	number, hash := uint64(0), types.Hash{}
@@ -584,7 +588,8 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 		ttl := d.requestTTL()
 		timeout := time.After(ttl)
 
-		go p.peer.RequestHeadersByNumber(check, 1, 0, false)
+		function := func() { p.peer.RequestHeadersByNumber(check, 1, 0, false)}
+		goroutine.NewRoutine(function)
 
 		// Wait until a reply arrives to this request
 		for arrived := false; !arrived; {
@@ -664,10 +669,18 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 
 		if skeleton {
 			log.WithField("count", MaxHeaderFetch).WithField("from", from).Trace("Fetching skeleton headers")
-			go p.peer.RequestHeadersByNumber(from+uint64(MaxHeaderFetch)-1, MaxSkeletonSize, MaxHeaderFetch-1, false)
+			function := func() {
+				p.peer.RequestHeadersByNumber(from+uint64(MaxHeaderFetch)-1,
+					MaxSkeletonSize, MaxHeaderFetch-1, false)
+			}
+			goroutine.NewRoutine(function)
 		} else {
 			log.WithField("count", MaxHeaderFetch).WithField("from", from).Trace("Fetching full headers")
-			go p.peer.RequestHeadersByNumber(from, MaxHeaderFetch, 0, false)
+			function := func() {
+				p.peer.RequestHeadersByNumber(from, MaxHeaderFetch, 0, false)
+
+			}
+			goroutine.NewRoutine(function)
 		}
 
 	}

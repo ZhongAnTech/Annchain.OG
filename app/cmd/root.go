@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
@@ -72,8 +73,9 @@ func DumpStack() {
 		nerr := ioutil.WriteFile(dumpName, buf.Bytes(), 0644)
 		if nerr != nil {
 			fmt.Println("write dump file error", nerr)
-			fmt.Println(buf.Bytes())
+			fmt.Println(buf.String())
 		}
+		logrus.WithField("stack ", buf.String()).Error("panic")
 	}
 }
 
@@ -234,8 +236,9 @@ func initLogger() {
 }
 
 func startPerformanceMonitor() {
-	go func() {
+	function :=  func() {
 		logrus.WithField("port", viper.GetString("profiling.port")).Info("Performance monitor started")
 		log.Println(http.ListenAndServe("0.0.0.0:"+viper.GetString("profiling.port"), nil))
-	}()
+	}
+	goroutine.NewRoutine(function)
 }

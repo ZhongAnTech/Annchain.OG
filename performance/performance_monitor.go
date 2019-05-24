@@ -14,6 +14,7 @@
 package performance
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"time"
@@ -34,7 +35,7 @@ func (p *PerformanceMonitor) Register(holder PerformanceReporter) {
 }
 
 func (p *PerformanceMonitor) Start() {
-	go func() {
+	goroutine.NewRoutine( func() {
 		p.quit = false
 		//runtime.SetBlockProfileRate(1)
 
@@ -45,7 +46,7 @@ func (p *PerformanceMonitor) Start() {
 
 			time.Sleep(time.Second * 5)
 		}
-	}()
+	})
 }
 
 func (p *PerformanceMonitor) Stop() {
@@ -63,6 +64,6 @@ func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	}
 	// add additional fields
 	data["goroutines"] = runtime.NumGoroutine()
-
+    data["goroutineNUmbers"] = goroutine.GetGoRoutineNum()
 	return data
 }

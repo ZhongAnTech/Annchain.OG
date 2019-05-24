@@ -27,6 +27,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -150,7 +151,8 @@ func (t *rlpx) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err
 	// as the error so it can be tracked elsewhere.
 	werr := make(chan error, 1)
 	b, _ := our.MarshalMsg(nil)
-	go func() { werr <- Send(t.rw, handshakeMsg, b) }()
+	sendFunc :=  func() { werr <- Send(t.rw, handshakeMsg, b) }
+	goroutine.NewRoutine(sendFunc)
 	if their, err = readProtocolHandshake(t.rw, our); err != nil {
 		<-werr // make sure the write terminates too
 		return nil, err

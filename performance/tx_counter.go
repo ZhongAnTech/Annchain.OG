@@ -14,6 +14,7 @@
 package performance
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types"
 	"go.uber.org/atomic"
 	"time"
@@ -82,7 +83,7 @@ func (t *TxCounter) loop() {
 }
 
 func (t *TxCounter) Start() {
-	go t.loop()
+	goroutine.NewRoutine(t.loop)
 }
 
 func (t *TxCounter) Stop() {

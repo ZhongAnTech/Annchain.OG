@@ -15,6 +15,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"time"
 
 	"math/rand"
@@ -290,7 +291,10 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			return true
 		}
 		mineCount++
-		go m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+		function:= func()() {
+			m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+		}
+		goroutine.NewRoutine(function)
 		select {
 		case minedNonce = <-respChan:
 			tx.GetBase().MineNonce = minedNonce // Actually, this value is already set during mining.

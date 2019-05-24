@@ -22,6 +22,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -127,8 +128,8 @@ func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 	p.headerStarted = time.Now()
 
 	// Issue the header retrieval request (absolut upwards without gaps)
-	go p.peer.RequestHeadersByNumber(from, count, 0, false)
-
+	function := func() { p.peer.RequestHeadersByNumber(from, count, 0, false)}
+    goroutine.NewRoutine(function)
 	return nil
 }
 
@@ -149,7 +150,8 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.GetHash())
 	}
-	go p.peer.RequestBodies(hashes)
+	function := func() { p.peer.RequestBodies(hashes)}
+	goroutine.NewRoutine(function)
 
 	return nil
 }
@@ -166,7 +168,8 @@ func (p *peerConnection) FetchNodeData(hashes types.Hashes) error {
 	}
 	p.stateStarted = time.Now()
 
-	go p.peer.RequestNodeData(hashes)
+	function := func() {  p.peer.RequestNodeData(hashes)}
+	goroutine.NewRoutine(function)
 
 	return nil
 }

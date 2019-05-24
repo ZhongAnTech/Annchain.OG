@@ -1,6 +1,7 @@
 package dpos
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ func NewDpos(dag consensus.IDag, addr *types.Address) *Dpos {
 // Start start dpos service.
 func (d *Dpos) Start() {
 	log.Info("Starting Dpos ...")
-	go d.loop()
+	goroutine.NewRoutine(d.loop,true)
 }
 
 // Stop stop dpos service.

@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -65,7 +66,10 @@ type PeerInfo struct {
 }
 
 func (p *OGBFTPartner) EventLoop() {
-	go p.BFTPartner.(*DefaultPartner).receive()
+	loop:= func() {
+		p.BFTPartner.(*DefaultPartner).receive()
+	}
+	goroutine.NewRoutine(loop)
 }
 
 func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime time.Duration) *OGBFTPartner {
@@ -131,9 +135,9 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 }
 
 func (t *BFT) Start() {
-	go t.BFTPartner.WaiterLoop()
-	go t.BFTPartner.EventLoop()
-	go t.loop()
+	goroutine.NewRoutine(  t.BFTPartner.WaiterLoop)
+	goroutine.NewRoutine(  t.BFTPartner.EventLoop)
+	goroutine.NewRoutine(  t.loop)
 	logrus.Info("BFT started")
 }
 
@@ -178,14 +182,15 @@ func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
 		bftPeer := peer.(*OGBFTPartner)
 		if peer.GetId() == t.BFTPartner.GetId() {
 			//it is for me
-			go func() {
+			goroutine.NewRoutine(
+				func() {
 				time.Sleep(10 * time.Millisecond)
 				msg := Message{
 					Type:    msgType,
 					Payload: request,
 				}
 				inChan <- msg
-			}()
+			})
 			continue
 		}
 		//send to others
@@ -205,7 +210,10 @@ func (t *BFT) loop() {
 			return
 		case <-t.startBftChan:
 			if !t.started {
-				go t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
+				goroutine.NewRoutine(func() {
+
+					t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
+				})
 			}
 			t.started = true
 

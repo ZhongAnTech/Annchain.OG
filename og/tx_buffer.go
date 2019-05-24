@@ -14,6 +14,7 @@
 package og
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"sort"
 	"sync"
@@ -198,8 +199,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 
 func (b *TxBuffer) Start() {
 	b.txPool.RegisterOnNewTxReceived(b.txAddedToPoolChan, "b.txAddedToPoolChan", false)
-	go b.loop()
-	go b.releasedTxCacheLoop()
+	goroutine.NewRoutine(b.loop)
+	goroutine.NewRoutine(b.releasedTxCacheLoop)
 }
 
 func (b *TxBuffer) Stop() {
@@ -368,9 +369,10 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		seq := tx.(*types.Sequencer)
 		if seq.Proposing {
-			go func() {
+			function := func()() {
 				b.OnProposalSeqCh <- seq.GetTxHash()
-			}()
+			}
+			goroutine.NewRoutine(function)
 			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
 			return
 		}

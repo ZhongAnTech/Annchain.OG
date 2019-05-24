@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/sirupsen/logrus"
 	"sort"
@@ -583,7 +584,9 @@ func (d *Dkg) gossiploop() {
 				}
 				msgCopy := response
 				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
-				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
+				goroutine.NewRoutine(func() {
+					d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
+				})
 			}
 			//and sent to myself ? already processed inside dkg,skip myself
 			d.ProcessWaitingResponse(&deal)

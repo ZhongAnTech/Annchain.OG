@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"sort"
@@ -475,7 +476,8 @@ func (srv *Server) start() (err error) {
 	dynPeers := srv.maxDialedConns()
 	dialer := newDialState(srv.localnode.ID(), srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict)
 	srv.loopWG.Add(1)
-	go srv.run(dialer)
+	function := func() { srv.run(dialer)}
+	goroutine.NewRoutine(function)
 	return nil
 }
 
@@ -515,12 +517,13 @@ func (srv *Server) setupLocalNode() error {
 		// Ask the router about the IP. This takes a while and blocks startup,
 		// do it in the background.
 		srv.loopWG.Add(1)
-		go func() {
+		function :=  func() {
 			defer srv.loopWG.Done()
 			if ip, err := srv.NAT.ExternalIP(); err == nil {
 				srv.localnode.SetStaticIP(ip)
 			}
-		}()
+		}
+		goroutine.NewRoutine(function)
 	}
 	return nil
 }
@@ -542,7 +545,8 @@ func (srv *Server) setupDiscovery() error {
 	log.WithField("addr", realaddr).Debug("UDP listener up")
 	if srv.NAT != nil {
 		if !realaddr.IP.IsLoopback() {
-			go nat.Map(srv.NAT, srv.quit, "udp", realaddr.Port, realaddr.Port, "og discovery")
+			function := func() { nat.Map(srv.NAT, srv.quit, "udp", realaddr.Port, realaddr.Port, "og discovery")}
+			goroutine.NewRoutine(function)
 		}
 	}
 	srv.localnode.SetFallbackUDP(realaddr.Port)
@@ -600,15 +604,16 @@ func (srv *Server) setupListening() error {
 	srv.localnode.Set(&tcp)
 
 	srv.loopWG.Add(1)
-	go srv.listenLoop()
+	goroutine.NewRoutine( srv.listenLoop)
 
 	// Map the TCP listening port if NAT is configured.
 	if !laddr.IP.IsLoopback() && srv.NAT != nil {
 		srv.loopWG.Add(1)
-		go func() {
+		function :=  func() {
 			nat.Map(srv.NAT, srv.quit, "tcp", laddr.Port, laddr.Port, "ethereum p2p")
 			srv.loopWG.Done()
-		}()
+		}
+		goroutine.NewRoutine(function)
 	}
 	return nil
 }
@@ -654,7 +659,8 @@ func (srv *Server) run(dialstate dialer) {
 		for ; len(runningTasks) < maxActiveDialTasks && i < len(ts); i++ {
 			t := ts[i]
 			log.WithField("task", t).Trace("New dial task")
-			go func() { t.Do(srv); taskdone <- t }()
+			function :=  func() { t.Do(srv); taskdone <- t }
+			goroutine.NewRoutine(function)
 			runningTasks = append(runningTasks, t)
 		}
 		return ts[i:]
@@ -755,7 +761,9 @@ running:
 				name := truncateName(c.name)
 				log.WithFields(logrus.Fields{"name": name, "addr": c.fd.RemoteAddr(), "peers": len(peers) + 1}).
 					Debug("Adding p2p peer")
-				go srv.runPeer(p)
+				function := func() { srv.runPeer(p)}
+				goroutine.NewRoutine(function)
+
 				peers[c.node.ID()] = p
 				if p.Inbound() {
 					inboundCount++
@@ -899,10 +907,11 @@ func (srv *Server) listenLoop() {
 		}
 		fd = newMeteredConn(fd, true, ip)
 		log.WithField("addr", fd.RemoteAddr()).Trace("Accepted connection")
-		go func() {
+		function :=  func() {
 			srv.SetupConn(fd, inboundConn, nil)
 			slots <- struct{}{}
-		}()
+		}
+		goroutine.NewRoutine(function)
 	}
 
 }

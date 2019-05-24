@@ -74,18 +74,21 @@ type AnnSensus struct {
 	termChangeChan    chan *types.TermChange
 	currentTermChange *types.TermChange
 	disableTermChange bool
+	disable bool
 }
 
 func Maj23(n int) int {
 	return 2*n/3 + 1
 }
 
-func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
+func NewAnnSensus(disableConsensus bool , cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
-	if len(genesisAccounts) < partnerNum {
+	ann := &AnnSensus{}
+	ann.disable = disableConsensus
+	if len(genesisAccounts) < partnerNum && !disableConsensus {
 		panic("need more account")
 	}
-	ann := &AnnSensus{}
+
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
@@ -135,7 +138,10 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
-
+    if as.disable {
+		log.Warn("annsensus disabled")
+		return
+	}
 	as.dkg.start()
 	as.bft.Start()
 	goroutine.New(as.loop)
@@ -144,6 +150,9 @@ func (as *AnnSensus) Start() {
 
 func (as *AnnSensus) Stop() {
 	log.Info("AnnSensus will Stop")
+	if as.disable {
+		return
+	}
 	as.bft.Stop()
 	as.dkg.stop()
 	close(as.close)

@@ -23,6 +23,10 @@ import (
 
 // consensus related verification
 func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
+	if a.disable {
+		log.WithField("t ",t).Warn("annsensus disabled ")
+		return  true
+	}
 	//check balance
 	if a.GetCandidate(t.Issuer) == nil {
 		log.WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
@@ -51,6 +55,11 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 
 // consensus related verification
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
+
+	if a.disable {
+		log.WithField("seq ",seq).Warn("annsensus disabled ")
+		return  true
+	}
 
 	if senator := a.term.GetSenator(seq.Issuer); senator == nil {
 		log.WithField("address ", seq.Issuer.ShortString()).Warn("not found senator for address")
@@ -94,6 +103,12 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 
 // consensus related verification
 func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
+
+	if a.disable {
+		log.WithField("cp ",cp).Warn("annsensus disabled ")
+		return  true
+	}
+
 	//check balance
 	balance := a.Idag.GetBalance(cp.Issuer)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
@@ -126,6 +141,11 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 }
 
 func (a *AnnSensus) VerifyRequestedTermChange(t *types.TermChange) bool {
+
+	if a.disable {
+		log.WithField("t ",t).Warn("annsensus disabled ")
+		return  true
+	}
 
 	if len(t.SigSet) < a.dkg.partner.NbParticipants {
 		log.WithField("len ", len(t.SigSet)).WithField("need ",

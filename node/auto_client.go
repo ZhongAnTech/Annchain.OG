@@ -103,7 +103,7 @@ func (c *AutoClient) loop() {
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Microsecond * time.Duration(c.SequencerIntervalUs))
-
+     logrus.Debug(c.SequencerIntervalUs , "  seq duration")
 	if !c.AutoTxEnabled {
 		timerTx.Stop()
 	}
@@ -275,7 +275,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)
 	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).Bytes
-	if ok := c.Delegate.TxCreator.SealTx(txi); !ok {
+	if ok := c.Delegate.TxCreator.SealTx(txi, &me.PrivateKey); !ok {
 		logrus.Warn("delegate failed to seal tx")
 		return false
 	}

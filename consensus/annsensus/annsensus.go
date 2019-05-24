@@ -74,14 +74,14 @@ type AnnSensus struct {
 	termChangeChan    chan *types.TermChange
 	currentTermChange *types.TermChange
 	disableTermChange bool
-	disable bool
+	disable           bool
 }
 
 func Maj23(n int) int {
 	return 2*n/3 + 1
 }
 
-func NewAnnSensus(disableConsensus bool , cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
+func NewAnnSensus(disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
@@ -138,7 +138,7 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 
 func (as *AnnSensus) Start() {
 	log.Info("AnnSensus Start")
-    if as.disable {
+	if as.disable {
 		log.Warn("annsensus disabled")
 		return
 	}

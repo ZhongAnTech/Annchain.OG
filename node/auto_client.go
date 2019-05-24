@@ -103,7 +103,7 @@ func (c *AutoClient) loop() {
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Microsecond * time.Duration(c.SequencerIntervalUs))
-     logrus.Debug(c.SequencerIntervalUs , "  seq duration")
+	logrus.Debug(c.SequencerIntervalUs, "  seq duration")
 	if !c.AutoTxEnabled {
 		timerTx.Stop()
 	}

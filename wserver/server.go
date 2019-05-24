@@ -145,8 +145,8 @@ func NewServer(addr string) *Server {
 }
 
 func (s *Server) Start() {
-	goroutine.NewRoutine(s.Serve)
-	goroutine.NewRoutine(s.WatchNewTxs)
+	goroutine.New(s.Serve)
+	goroutine.New(s.WatchNewTxs)
 }
 
 func (s *Server) Stop() {

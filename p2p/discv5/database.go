@@ -24,6 +24,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"os"
 	"sync"
 	"time"
@@ -230,7 +231,7 @@ func (db *nodeDB) deleteNode(id NodeID) error {
 // convergence, it's simpler to "ensure" the correct state when an appropriate
 // condition occurs (i.e. a successful bonding), and discard further events.
 func (db *nodeDB) ensureExpirer() {
-	db.runner.Do(func() { go db.expirer() })
+	db.runner.Do(func() { goroutine.New(db.expirer) })
 }
 
 // expirer should be started in a go routine, and is responsible for looping ad

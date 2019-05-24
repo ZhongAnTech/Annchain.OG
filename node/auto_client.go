@@ -16,6 +16,7 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/goroutine"
 	"math/rand"
 	"sync"
 	"time"
@@ -154,7 +155,7 @@ func (c *AutoClient) loop() {
 }
 
 func (c *AutoClient) Start() {
-	go c.loop()
+	goroutine.New(c.loop)
 }
 
 func (c *AutoClient) Stop() {

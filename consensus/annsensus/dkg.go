@@ -147,7 +147,7 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 func (d *Dkg) start() {
 	//TODO
 	log.Info("dkg start")
-	go d.gossiploop()
+	goroutine.New(d.gossiploop)
 }
 
 func (d *Dkg) stop() {
@@ -584,7 +584,7 @@ func (d *Dkg) gossiploop() {
 				}
 				msgCopy := response
 				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
-				goroutine.NewRoutine(func() {
+				goroutine.New(func() {
 					d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
 				})
 			}
@@ -658,7 +658,9 @@ func (d *Dkg) gossiploop() {
 				}
 				msgCopy := msg
 				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
-				go d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
+				goroutine.New(func() {
+					d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
+				})
 			}
 
 			d.addSigsets(d.ann.MyAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})

@@ -415,13 +415,13 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	if txReq.CryptoType ==""{
+	if txReq.CryptoType == "" {
 		pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
 		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v",err), nil)
+			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
 			return
 		}
-	}else {
+	} else {
 
 		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
 		if err != nil {

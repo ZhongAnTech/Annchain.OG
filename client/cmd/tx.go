@@ -48,13 +48,13 @@ func txInit() {
 
 //NewTxrequest for RPC request
 type NewTxRequest struct {
-	Nonce     string `json:"nonce"`
-	From      string `json:"from"`
-	To        string `json:"to"`
+	Nonce      string `json:"nonce"`
+	From       string `json:"from"`
+	To         string `json:"to"`
 	Data       string `json:"data"`
-	Value     string `json:"value"`
-	Signature string `json:"signature"`
-	Pubkey    string `json:"pubkey"`
+	Value      string `json:"value"`
+	Signature  string `json:"signature"`
+	Pubkey     string `json:"pubkey"`
 	CryptoType string `json:"crypto_type"`
 }
 
@@ -93,7 +93,7 @@ func newTx(cmd *cobra.Command, args []string) {
 		Nonce:     fmt.Sprintf("%d", tx.AccountNonce),
 		From:      tx.From.Hex(),
 		To:        to,
-		Data :      payload,
+		Data:      payload,
 		Value:     tx.Value.String(),
 		Signature: hexutil.Encode(signature.Bytes),
 		Pubkey:    pubKey.String(),
@@ -104,8 +104,8 @@ func newTx(cmd *cobra.Command, args []string) {
 		panic(fmt.Errorf("encode tx errror %v", err))
 	}
 
-	 d,_:= json.MarshalIndent(&txReq,"","\t")
-	 fmt.Println(string(d))
+	d, _ := json.MarshalIndent(&txReq, "", "\t")
+	fmt.Println(string(d))
 
 	str, err := req.String()
 	if err != nil {

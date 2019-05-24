@@ -108,7 +108,7 @@ func DefaultDagConfig() DagConfig {
 func (dag *Dag) Start() {
 	log.Infof("Dag Start")
 
-	// go dag.loop()
+	//goroutine.New(dag.loop)
 }
 
 func (dag *Dag) Stop() {

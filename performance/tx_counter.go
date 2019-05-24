@@ -83,7 +83,7 @@ func (t *TxCounter) loop() {
 }
 
 func (t *TxCounter) Start() {
-	goroutine.NewRoutine(t.loop)
+	goroutine.New(t.loop)
 }
 
 func (t *TxCounter) Stop() {

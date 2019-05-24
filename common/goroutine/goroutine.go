@@ -10,31 +10,31 @@ import (
 	"time"
 )
 
-var globalGoRoutineNum  int32
+var globalGoRoutineNum int32
 
 var calculateGoroutineNum = false
 
-func GetGoRoutineNum ()int32 {
-	return  atomic.LoadInt32(&globalGoRoutineNum)
+func GetGoRoutineNum() int32 {
+	return atomic.LoadInt32(&globalGoRoutineNum)
 }
 
- func NewRoutine (handler func () ) {
- 	//todo we can handle goroutine num here
- 	if calculateGoroutineNum {
+func New(function func()) {
+	//todo we can handle goroutine num here
+	if calculateGoroutineNum {
 		atomic.AddInt32(&globalGoRoutineNum, 1)
 	}
- 	go func (){
- 		if calculateGoroutineNum {
+	go func() {
+		if calculateGoroutineNum {
 			defer atomic.AddInt32(&globalGoRoutineNum, -1)
 		}
 		defer DumpStack(true)
-		handler()
+		function()
 	}()
 }
 
-func RoutineWithRercover (handler func ()) {
+func WithRecover(handler func()) {
 	//todo we can handle goroutine num here
-	go func (){
+	go func() {
 		defer DumpStack(false)
 		handler()
 	}()

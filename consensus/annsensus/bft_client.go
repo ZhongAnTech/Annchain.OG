@@ -182,7 +182,7 @@ func (p *DefaultPartner) RestartNewAre() {
 }
 
 func (p *DefaultPartner) WaiterLoop() {
-	goroutine.NewRoutine( p.waiter.StartEventLoop)
+	goroutine.New(p.waiter.StartEventLoop)
 }
 
 // StartNewEra is called once height or round needs to be changed.
@@ -236,8 +236,8 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 }
 
 func (p *DefaultPartner) EventLoop() {
-	go p.send()
-	go p.receive()
+	goroutine.New(p.send)
+	goroutine.New(p.receive)
 }
 
 // send is just for outgoing messages. It should not change any state of local tendermint
@@ -261,12 +261,14 @@ func (p *DefaultPartner) send() {
 					"to":   peer.GetId(),
 					"msg":  msg.String(),
 				}).Debug("Out")
-
-				go func(targetPeer BFTPartner) {
+				//todo may be  bug
+				targetPeer := peer
+				goroutine.New(func() {
 					//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
 					//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
 					targetPeer.GetIncomingMessageChannel() <- msg
-				}(peer)
+				})
+
 			}
 		}
 	}

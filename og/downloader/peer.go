@@ -128,8 +128,8 @@ func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 	p.headerStarted = time.Now()
 
 	// Issue the header retrieval request (absolut upwards without gaps)
-	function := func() { p.peer.RequestHeadersByNumber(from, count, 0, false)}
-    goroutine.NewRoutine(function)
+	function := func() { p.peer.RequestHeadersByNumber(from, count, 0, false) }
+	goroutine.New(function)
 	return nil
 }
 
@@ -150,8 +150,8 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.GetHash())
 	}
-	function := func() { p.peer.RequestBodies(hashes)}
-	goroutine.NewRoutine(function)
+	function := func() { p.peer.RequestBodies(hashes) }
+	goroutine.New(function)
 
 	return nil
 }
@@ -168,8 +168,8 @@ func (p *peerConnection) FetchNodeData(hashes types.Hashes) error {
 	}
 	p.stateStarted = time.Now()
 
-	function := func() {  p.peer.RequestNodeData(hashes)}
-	goroutine.NewRoutine(function)
+	function := func() { p.peer.RequestNodeData(hashes) }
+	goroutine.New(function)
 
 	return nil
 }

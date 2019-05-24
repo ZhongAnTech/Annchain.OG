@@ -14,6 +14,7 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"sync"
 	"time"
 
@@ -116,9 +117,9 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, get
 }
 
 func (m *IncrementalSyncer) Start() {
-	go m.eventLoop()
-	go m.loopSync()
-	go m.txNotifyLoop()
+	goroutine.New(m.eventLoop)
+	goroutine.New(m.loopSync)
+	goroutine.New(m.txNotifyLoop)
 }
 
 func (m *IncrementalSyncer) Stop() {
@@ -287,7 +288,9 @@ func (m *IncrementalSyncer) Enqueue(phash *types.Hash, childHash types.Hash, sen
 		}
 		m.acquireTxDuplicateCache.Set(hash, childHash)
 		if sendBloomfilter {
-			go m.sendBloomFilter(childHash)
+			goroutine.New(func() {
+				m.sendBloomFilter(childHash)
+			})
 		}
 	}
 	m.acquireTxQueue <- phash
@@ -312,7 +315,7 @@ func (m *IncrementalSyncer) eventLoop() {
 			m.notifyTxEvent <- true
 			//if !old && v {
 		// changed from disable to enable.
-		//go m.notifyAllCachedTxs()
+		//goroutine.New( m.notifyAllCachedTxs )
 		//}
 		//notify txs from cached first and enable to receive new tx from p2p
 
@@ -328,12 +331,12 @@ func (m *IncrementalSyncer) txNotifyLoop() {
 	for {
 		select {
 		case <-time.After(20 * time.Microsecond):
-			go m.notifyNewTxi()
+			goroutine.New(m.notifyNewTxi)
 		case <-m.notifyTxEvent:
-			go m.notifyNewTxi()
+			goroutine.New(m.notifyNewTxi)
 		case <-m.NewLatestSequencerCh:
 			log.Debug("sequencer updated")
-			go m.RemoveConfirmedFromCache()
+			goroutine.New(m.RemoveConfirmedFromCache)
 		case <-m.quitNotifyEvent:
 			m.Enabled = false
 			log.Info("incremental syncer txNotifyLoop received quit message. Quitting...")

@@ -27,7 +27,7 @@ type DataLoader struct {
 }
 
 func (d *DataLoader) Start() {
-	goroutine.NewRoutine( d.LoadLocalData)
+	goroutine.New(d.LoadLocalData)
 }
 
 func (d *DataLoader) Stop() {

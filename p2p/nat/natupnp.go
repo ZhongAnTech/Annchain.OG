@@ -114,7 +114,7 @@ func discoverUPnP() Interface {
 			return nil
 		})
 	}
-	goroutine.NewRoutine(funcV1)
+	goroutine.New(funcV1)
 	// IGDv2
 	funcV2 := func() {
 		discover(found, internetgateway2.URN_WANConnectionDevice_2, func(dev *goupnp.RootDevice, sc goupnp.ServiceClient) *upnp {
@@ -129,7 +129,7 @@ func discoverUPnP() Interface {
 			return nil
 		})
 	}
-	goroutine.NewRoutine(funcV2)
+	goroutine.New(funcV2)
 	for i := 0; i < cap(found); i++ {
 		if c := <-found; c != nil {
 			return c

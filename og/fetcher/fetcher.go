@@ -163,7 +163,7 @@ func New(getsequencer sequencerRetrievalFn, chainHeight chainHeightFn, insertCha
 // Start boots up the announcement based synchroniser, accepting and processing
 // hash notifications and sequencer fetches until termination requested.
 func (f *Fetcher) Start() {
-	goroutine.NewRoutine(f.loop)
+	goroutine.New(f.loop)
 }
 
 // Stop terminates the announcement based synchroniser, canceling all pending
@@ -379,7 +379,7 @@ func (f *Fetcher) loop() {
 
 				// Create a closure of the fetch and schedule in on a new thread
 				fetchHeader, hashes := f.fetching[hashes[0]].fetchHeader, hashes
-				function:= func()() {
+				function := func() {
 					defer goroutine.DumpStack(true)
 					if f.fetchingHook != nil {
 						f.fetchingHook(hashes)
@@ -389,7 +389,7 @@ func (f *Fetcher) loop() {
 						fetchHeader(peer, hash) // Suboptimal, but protocol doesn't allow batch header retrievals
 					}
 				}
-				goroutine.NewRoutine(function)
+				goroutine.New(function)
 			}
 			// Schedule the next fetch if sequencers are still pending
 			f.rescheduleFetch(fetchTimer)
@@ -419,8 +419,8 @@ func (f *Fetcher) loop() {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
-				function := func()(){ f.completing[hashes[0]].fetchBodies(peer, hashes)}
-				goroutine.NewRoutine(function)
+				function := func() { f.completing[hashes[0]].fetchBodies(peer, hashes) }
+				goroutine.New(function)
 			}
 			// Schedule the next fetch if sequencers are still pending
 			f.rescheduleComplete(completeTimer)
@@ -600,7 +600,7 @@ func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs types.Txis
 	// Run the import on a new thread
 	log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(
 		"hash", hash).Debug("Importing propagated sequencer")
-	function := func()() {
+	function := func() {
 		defer func() { f.done <- hash }()
 
 		// Run the actual import and log any issues
@@ -615,7 +615,7 @@ func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs types.Txis
 			f.importedHook(sequencer)
 		}
 	}
-	goroutine.NewRoutine(function)
+	goroutine.New(function)
 }
 
 // forgetHash removes all traces of a sequencer announcement from the fetcher's

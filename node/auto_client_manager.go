@@ -15,6 +15,7 @@ package node
 
 import (
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -112,7 +113,7 @@ func (m *AutoClientManager) Start() {
 		client.Start()
 	}
 	m.wg.Add(1)
-	go m.eventLoop()
+	goroutine.New(m.eventLoop)
 }
 
 func (m *AutoClientManager) Stop() {

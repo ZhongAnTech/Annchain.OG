@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/msg"
 	"net"
 	"time"
@@ -164,7 +165,7 @@ func newNetwork(conn transport, ourPubkey ecdsa.PublicKey, dbPath string, netres
 		topicSearchReq:   make(chan topicSearchReq),
 		nodes:            make(map[NodeID]*Node),
 	}
-	go net.loop()
+	goroutine.New(net.loop)
 	return net, nil
 }
 
@@ -504,7 +505,7 @@ loop:
 			} else {
 				topicRegisterLookupDone = make(chan []*Node)
 				target := topicRegisterLookupTarget.target
-				go func() { topicRegisterLookupDone <- net.lookup(target, false) }()
+				goroutine.New(func() { topicRegisterLookupDone <- net.lookup(target, false) })
 			}
 
 		case <-nextRegisterTime:
@@ -543,17 +544,17 @@ loop:
 			if activeSearchCount < maxSearchCount {
 				activeSearchCount++
 				target := net.ticketStore.nextSearchLookup(topic)
-				go func() {
+				goroutine.New(func() {
 					nodes := net.lookup(target.target, false)
 					topicSearchLookupDone <- topicSearchResult{target: target, nodes: nodes}
-				}()
+				})
 			}
 			period := searchInfo[topic].period
 			if period != time.Duration(0) {
-				go func() {
+				goroutine.New(func() {
 					time.Sleep(period)
 					topicSearch <- topic
-				}()
+				})
 			}
 
 		case res := <-topicSearchLookupDone:
@@ -613,10 +614,10 @@ loop:
 			}
 		case <-bucketRefreshTimer.C:
 			target := net.tab.chooseBucketRefreshTarget()
-			go func() {
+			goroutine.New(func() {
 				net.lookup(target, false)
 				bucketRefreshTimer.Reset(bucketRefreshInterval)
-			}()
+			})
 		case newNursery := <-net.refreshReq:
 			log.Trace("<-net.refreshReq")
 			if newNursery != nil {
@@ -633,11 +634,11 @@ loop:
 				refreshDone = nil
 				list := searchReqWhenRefreshDone
 				searchReqWhenRefreshDone = nil
-				go func() {
+				goroutine.New(func() {
 					for _, req := range list {
 						net.topicSearchReq <- req
 					}
-				}()
+				})
 			} else {
 				refreshDone = make(chan struct{})
 				net.refresh(refreshDone)
@@ -698,10 +699,10 @@ func (net *Network) refresh(done chan<- struct{}) {
 		net.tab.add(n)
 	}
 	// Start self lookup to fill up the buckets.
-	go func() {
+	goroutine.New(func() {
 		net.Lookup(net.tab.self.ID)
 		close(done)
-	}()
+	})
 }
 
 // Node Interning.

@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"net"
 	"time"
 
@@ -257,7 +258,7 @@ func ListenUDP(priv *ecdsa.PrivateKey, conn conn, nodeDBPath string, netrestrict
 	}
 	log.WithField("net", net.tab.self).Info("UDP listener up")
 	transport.net = net
-	go transport.readLoop()
+	goroutine.New(transport.readLoop)
 	return net, nil
 }
 

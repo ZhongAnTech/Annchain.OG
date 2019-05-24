@@ -14,6 +14,7 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
 )
@@ -80,16 +81,17 @@ func (s *SyncManager) Start() {
 
 	s.CatchupSyncer.Start()
 	s.IncrementalSyncer.Start()
-	go s.loopSync()
-	go func() {
-		// if BootstrapNode  just accept txs
-		if s.BootstrapNode {
-			s.CatchupSyncer.NotifyWorkingStateChanged(Stopped, false)
-		} else {
-			//default if false ' don't send again
-			//s.NotifyUpToDateEvent(false)
-		}
-	}()
+	goroutine.New(s.loopSync)
+	goroutine.New(
+		func() {
+			// if BootstrapNode  just accept txs
+			if s.BootstrapNode {
+				s.CatchupSyncer.NotifyWorkingStateChanged(Stopped, false)
+			} else {
+				//default if false ' don't send again
+				//s.NotifyUpToDateEvent(false)
+			}
+		})
 }
 
 func (s *SyncManager) Stop() {

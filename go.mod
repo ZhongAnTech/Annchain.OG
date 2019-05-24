@@ -15,6 +15,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/huin/goupnp v1.0.0
+	github.com/influxdata/influxdb v1.7.6
 	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect

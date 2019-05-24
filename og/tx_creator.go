@@ -291,10 +291,10 @@ func (m *TxCreator) SealTx(tx types.Txi) (ok bool) {
 			return true
 		}
 		mineCount++
-		function:= func()() {
+		function := func() {
 			m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
 		}
-		goroutine.NewRoutine(function)
+		goroutine.New(function)
 		select {
 		case minedNonce = <-respChan:
 			tx.GetBase().MineNonce = minedNonce // Actually, this value is already set during mining.

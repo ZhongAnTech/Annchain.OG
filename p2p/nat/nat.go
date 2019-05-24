@@ -149,8 +149,8 @@ func Any() Interface {
 	// Internet-class address. Return ExtIP in this case.
 	return startautodisc("UPnP or NAT-PMP", func() Interface {
 		found := make(chan Interface, 2)
-		goroutine.NewRoutine( func() { found <- discoverUPnP() })
-		goroutine.NewRoutine( func() { found <- discoverPMP() })
+		goroutine.New(func() { found <- discoverUPnP() })
+		goroutine.New(func() { found <- discoverPMP() })
 		for i := 0; i < cap(found); i++ {
 			if c := <-found; c != nil {
 				return c

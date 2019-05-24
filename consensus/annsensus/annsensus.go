@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"sync"
 	"sync/atomic"
@@ -80,7 +81,7 @@ func Maj23(n int) int {
 }
 
 func NewAnnSensus(cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
-	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool ) *AnnSensus {
+	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	if len(genesisAccounts) < partnerNum {
 		panic("need more account")
 	}
@@ -137,8 +138,8 @@ func (as *AnnSensus) Start() {
 
 	as.dkg.start()
 	as.bft.Start()
-	go as.loop()
-	go as.termChangeLoop()
+	goroutine.New(as.loop)
+	goroutine.New(as.termChangeLoop)
 }
 
 func (as *AnnSensus) Stop() {
@@ -200,11 +201,11 @@ func (as *AnnSensus) produceCampaign() {
 	}
 	log.WithField("pk ", hexutil.Encode(candidatePublicKey[:5])).WithField("cp ", camp).Debug("gen campaign")
 	// send camp
-	go func() {
+	goroutine.New(func() {
 		for _, c := range as.newTxHandlers {
 			c <- camp
 		}
-	}()
+	})
 
 }
 
@@ -297,7 +298,7 @@ func (as *AnnSensus) termChangeLoop() {
 				continue
 			}
 			log.Debug("start dkg gossip")
-			go as.dkg.StartGossip()
+			goroutine.New(as.dkg.StartGossip)
 
 		case pk := <-as.dkgPulicKeyChan:
 			log := as.dkg.log()
@@ -315,11 +316,11 @@ func (as *AnnSensus) termChangeLoop() {
 			}
 			if atomic.CompareAndSwapUint32(&as.genesisBftIsRunning, 1, 0) {
 				as.term.ChangeTerm(tc, as.Idag.GetHeight())
-				go func() {
+				goroutine.New(func() {
 					as.newTermChan <- true
 					//as.newTermChan <- struct{}{}
 					//as.ConsensusTXConfirmed <- types.Txis{tc}
-				}()
+				})
 				atomic.StoreUint32(&as.genesisBftIsRunning, 0)
 
 				continue
@@ -426,9 +427,9 @@ func (as *AnnSensus) loop() {
 		//TODO sequencer generate a random seed ,use random seed to select candidate peers
 		case txs := <-as.ConsensusTXConfirmed:
 			log.WithField(" txs ", txs).Debug("got consensus txs")
-		    if as.disableTermChange {
-		    	log.Debug("term change is disabled , quiting")
-		    	continue
+			if as.disableTermChange {
+				log.Debug("term change is disabled , quiting")
+				continue
 			}
 			var cps []*types.Campaign
 			var tcs []*types.TermChange
@@ -467,9 +468,9 @@ func (as *AnnSensus) loop() {
 				}
 				//send the signal if i am a partner of consensus nodes
 				if as.dkg.isValidPartner {
-					go func() {
+					goroutine.New(func() {
 						as.newTermChan <- true
-					}()
+					})
 				} else {
 					log.Debug("is not a valid partner")
 				}
@@ -596,9 +597,9 @@ func (as *AnnSensus) loop() {
 					log.Debug("start bft")
 					eventInit = true
 					//TODO  newTermChange if we got new Termchange
-					//go func() {
+					//goroutine.New (func() {
 					//	as.newTermChan <- true
-					//}()
+					//})
 
 				}
 			} else {
@@ -630,9 +631,9 @@ func (as *AnnSensus) loop() {
 			log.WithField("num ", peerNum).Debug("peer num ")
 			if peerNum == as.NbParticipants-1 && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")
-				go func() {
+				goroutine.New(func() {
 					as.dkg.SendGenesisPublicKey()
-				}()
+				})
 				initDone = true
 			}
 
@@ -684,7 +685,9 @@ func (as *AnnSensus) loop() {
 			as.mu.RUnlock()
 			log.WithField("id ", id).Debug("got geneis pk")
 			if len(genesisCamps) == as.NbParticipants {
-				go as.commit(genesisCamps)
+				goroutine.New(func() {
+					as.commit(genesisCamps)
+				})
 				genesisPublickeyProcessFinished = true
 			}
 

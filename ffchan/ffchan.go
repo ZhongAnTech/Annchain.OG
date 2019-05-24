@@ -14,6 +14,7 @@
 package ffchan
 
 import (
+	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	"reflect"
 	"time"
@@ -40,14 +41,14 @@ func NewTimeoutSender(channel interface{}, val interface{}, groupName string, ti
 		C:         make(chan bool),
 	}
 	c := make(chan struct{})
-	go func() {
+	goroutine.New(func() {
 		defer close(c)
 		vChan := reflect.ValueOf(t.channel)
 		vVal := reflect.ValueOf(t.val)
 		vChan.Send(vVal)
-	}()
+	})
 
-	go func() {
+	goroutine.New(func() {
 		start := time.Now()
 	loop:
 		for {
@@ -65,7 +66,7 @@ func NewTimeoutSender(channel interface{}, val interface{}, groupName string, ti
 				}
 			}
 		}
-	}()
+	})
 
 	return t
 }

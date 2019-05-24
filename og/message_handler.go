@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/goroutine"
 	"sort"
 	"sync/atomic"
 
@@ -564,7 +565,9 @@ func (h *IncomingMessageHandler) loop() {
 						hash := k
 						msg := &types.MessageGetMsg{Hash: &hash}
 						msgLog.WithField("hash ", k).Debug("send GetTx msg")
-						go h.Hub.SendGetMsg(item.sourceId, msg)
+						goroutine.New(func() {
+							h.Hub.SendGetMsg(item.sourceId, msg)
+						})
 						c.remove(k)
 					}
 				}
@@ -650,12 +653,13 @@ func (h *IncomingMessageHandler) HandleControlMsg(req *types.MessageControl, sou
 }
 
 func (m *IncomingMessageHandler) Start() {
-	go m.loop()
+	goroutine.New(m.loop)
 	msgLog.Info("message handler started")
 }
 
 func (m *IncomingMessageHandler) Stop() {
 	m.quit <- struct{}{}
+	msgLog.Info("message handler stopped")
 }
 
 func (m *IncomingMessageHandler) Name() string {

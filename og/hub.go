@@ -402,9 +402,9 @@ func (h *Hub) RemovePeer(id string) {
 
 func (h *Hub) Start() {
 	h.Fetcher.Start()
-	goroutine.NewRoutine(h.loopSend)
-	goroutine.NewRoutine(h.loopReceive)
-	goroutine.NewRoutine(h.loopNotify)
+	goroutine.New(h.loopSend)
+	goroutine.New(h.loopReceive)
+	goroutine.New(h.loopNotify)
 }
 
 func (h *Hub) Stop() {
@@ -811,7 +811,6 @@ func (h *Hub) getMsgFromCache(m MessageType, hash types.Hash) []string {
 	}
 	return nil
 }
-
 
 func (h *Hub) receiveMessage(msg *p2PMessage) {
 	// route to specific callbacks according to the registry.

@@ -60,16 +60,16 @@ type OGBFTPartner struct {
 }
 
 type PeerInfo struct {
-	PublicKey crypto.PublicKey `json:"-"`
-	Address   types.Address    `json:"address"`
-	PublicKeyBytes []byte      `json:"public_key"`
+	PublicKey      crypto.PublicKey `json:"-"`
+	Address        types.Address    `json:"address"`
+	PublicKeyBytes []byte           `json:"public_key"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
-	loop:= func() {
+	loop := func() {
 		p.BFTPartner.(*DefaultPartner).receive()
 	}
-	goroutine.NewRoutine(loop)
+	goroutine.New(loop)
 }
 
 func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime time.Duration) *OGBFTPartner {
@@ -77,8 +77,8 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	bft := &OGBFTPartner{
 		BFTPartner: p,
 		PeerInfo: PeerInfo{
-			PublicKey: pk,
-			Address:   pk.Address(),
+			PublicKey:      pk,
+			Address:        pk.Address(),
 			PublicKeyBytes: pk.Bytes[:],
 		},
 	}
@@ -90,10 +90,10 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
 		BFTPartner: p,
-		PeerInfo:PeerInfo{
-			PublicKey:ann.MyAccount.PublicKey,
-			PublicKeyBytes:ann.MyAccount.PublicKey.Bytes[:],
-			Address:ann.MyAccount.Address,
+		PeerInfo: PeerInfo{
+			PublicKey:      ann.MyAccount.PublicKey,
+			PublicKeyBytes: ann.MyAccount.PublicKey.Bytes[:],
+			Address:        ann.MyAccount.Address,
 		},
 	}
 	om := &BFT{
@@ -125,7 +125,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	b.BFTPartner.PeersInfo = nil
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
-		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk, PublicKeyBytes:pk.Bytes[:]})
+		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk, PublicKeyBytes: pk.Bytes[:]})
 		peers = append(peers, NewOgBftPeer(pk, b.ann.NbParticipants, i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)
@@ -135,9 +135,9 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 }
 
 func (t *BFT) Start() {
-	goroutine.NewRoutine(  t.BFTPartner.WaiterLoop)
-	goroutine.NewRoutine(  t.BFTPartner.EventLoop)
-	goroutine.NewRoutine(  t.loop)
+	goroutine.New(t.BFTPartner.WaiterLoop)
+	goroutine.New(t.BFTPartner.EventLoop)
+	goroutine.New(t.loop)
 	logrus.Info("BFT started")
 }
 
@@ -182,15 +182,15 @@ func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
 		bftPeer := peer.(*OGBFTPartner)
 		if peer.GetId() == t.BFTPartner.GetId() {
 			//it is for me
-			goroutine.NewRoutine(
+			goroutine.New(
 				func() {
-				time.Sleep(10 * time.Millisecond)
-				msg := Message{
-					Type:    msgType,
-					Payload: request,
-				}
-				inChan <- msg
-			})
+					time.Sleep(10 * time.Millisecond)
+					msg := Message{
+						Type:    msgType,
+						Payload: request,
+					}
+					inChan <- msg
+				})
 			continue
 		}
 		//send to others
@@ -210,7 +210,7 @@ func (t *BFT) loop() {
 			return
 		case <-t.startBftChan:
 			if !t.started {
-				goroutine.NewRoutine(func() {
+				goroutine.New(func() {
 
 					t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
 				})

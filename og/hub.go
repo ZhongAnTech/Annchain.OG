@@ -561,20 +561,12 @@ func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNom
 	if h.disableEncryptGossip {
 		msgOut.disableEncrypt = true
 	}
-	// TODO delete
-	if messageType == MessageTypeConsensusDkgDeal {
-		log.Warnf("MessageTypeConsensusDkgDeal message before mashal: %s", msg)
-	}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message init msg  err")
 		return
 	}
-	// TODO delete
-	if messageType == MessageTypeConsensusDkgDeal {
-		log.Warnf("MessageTypeConsensusDkgDeal message after mashal: %x", msgOut.data)
-	}
-	log.WithField("size before enc", len(msgOut.data))
+	beforeEncSize := len(msgOut.data)
 	if h.disableEncryptGossip {
 		err = msgOut.appendGossipTarget(anyNomousPubKey)
 	} else {
@@ -585,8 +577,7 @@ func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNom
 		return
 	}
 	msgOut.calculateHash()
-	log.WithField("size after enc", len(msgOut.data))
-	msgLog.WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("SendToAnynomous message")
+	msgLog.WithField("before enc size ", beforeEncSize).WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("SendToAnynomous message")
 	h.outgoing <- msgOut
 
 }

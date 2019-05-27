@@ -105,6 +105,8 @@ func (t *SecureTrie) Update(key, value []byte) {
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *SecureTrie) TryUpdate(key, value []byte) error {
 	hk := t.hashKey(key)
+
+	log.Tracef("Panic debug, Update, key: %x, value: %x", hk, value)
 	err := t.trie.TryUpdate(hk, value)
 	if err != nil {
 		return err

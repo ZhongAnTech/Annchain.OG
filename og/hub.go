@@ -556,7 +556,7 @@ func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 	h.outgoing <- msgOut
 }
 
-//sned
+//SendToAnynomous send msg by  Anynomous
 func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
 	if h.disableEncryptGossip {

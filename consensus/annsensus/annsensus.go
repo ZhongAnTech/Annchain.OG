@@ -683,6 +683,10 @@ func (as *AnnSensus) loop() {
 				log.WithError(err).Warn("unmarshal failed dkg joint public key")
 				continue
 			}
+			if  as.addedGenesisCampaign {
+				log.Debug("one term change is enough")
+				continue
+			}
 			as.dkg.partner.jointPubKey = pk
 			eventInit = true
 			as.addGenesisCampaigns()

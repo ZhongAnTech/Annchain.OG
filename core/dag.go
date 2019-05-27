@@ -684,14 +684,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.latestSequencer = batch.Seq
 
-	// send consensus related txs.
-	if len(consTxs) != 0 {
-		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		if dag.OnConsensusTXConfirmed != nil {
-			dag.OnConsensusTXConfirmed <- consTxs
-		}
-		log.WithField("txs ", consTxs).Trace("sent consensus txs")
-	}
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
 
@@ -703,6 +695,16 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.writeConfirmTime(&cf)
 
+	// send consensus related txs.
+	if len(consTxs) != 0 {
+		log.WithField("txs ", consTxs).Trace("sending consensus txs")
+		go func() {
+			if dag.OnConsensusTXConfirmed != nil {
+				dag.OnConsensusTXConfirmed <- consTxs
+			}
+			log.WithField("txs ", consTxs).Trace("sent consensus txs")
+		}()
+	}
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 

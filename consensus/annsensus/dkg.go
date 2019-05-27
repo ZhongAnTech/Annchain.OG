@@ -96,7 +96,7 @@ func (d *Dkg) SetId(id int) {
 
 func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	if myCampaign == nil {
-		panic("nil campagin")
+		log.Warn("nil campagin,  i am not a dkg partner")
 	}
 
 	d.mu.RLock()
@@ -110,29 +110,33 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
-	index := -1
-	if len(myCampaign.DkgPublicKey) != 0 {
-		for i, pubKeys := range pubKeys {
-			if bytes.Equal(pubKeys, myCampaign.DkgPublicKey) {
-				index = i
+	if myCampaign!=nil {
+		index := -1
+		if len(myCampaign.DkgPublicKey) != 0 {
+			for i, pubKeys := range pubKeys {
+				if bytes.Equal(pubKeys, myCampaign.DkgPublicKey) {
+					index = i
+				}
 			}
 		}
+		if index < 0 {
+			log.WithField("cp ", myCampaign).WithField(" pks ", d.partner.CandidatePublicKey).Warn("pk not found")
+			index = 0
+			panic(fmt.Sprintf("fix this, pk not found  %s ", myCampaign))
+		}
+		if index >= len(partSecs) {
+			panic(fmt.Sprint(index, partSecs, hexutil.Encode(myCampaign.DkgPublicKey)))
+		}
+		log.WithField("cp ", myCampaign).WithField("index ", index).WithField("sk ", partSecs[index]).Debug("reset with sk")
+		p.MyPartSec = partSecs[index]
+		p.CandidatePartSec = append(p.CandidatePartSec, partSecs[index:]...)
+		d.myPublicKey = pubKeys[index]
+		p.CandidatePublicKey = append(p.CandidatePublicKey, pubKeys[index:]...)
+	}else {
+		//
 	}
-	if index < 0 {
-		log.WithField("cp ", myCampaign).WithField(" pks ", d.partner.CandidatePublicKey).Warn("pk not found")
-		index = 0
-		panic(fmt.Sprintf("fix this, pk not found  %s ", myCampaign))
-	}
-	if index >= len(partSecs) {
-		panic(fmt.Sprint(index, partSecs, hexutil.Encode(myCampaign.DkgPublicKey)))
-	}
-	log.WithField("cp ", myCampaign).WithField("index ", index).WithField("sk ", partSecs[index]).Debug("reset with sk")
-	p.MyPartSec = partSecs[index]
-	p.CandidatePartSec = append(p.CandidatePartSec, partSecs[index:]...)
 	d.dkgOn = false
 	d.partner = p
-	d.myPublicKey = pubKeys[index]
-	p.CandidatePublicKey = append(p.CandidatePublicKey, pubKeys[index:]...)
 	d.TermId++
 
 	//d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
@@ -848,7 +852,7 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId int) 
 	}
 	if termId < d.TermId {
 		if !pubKey.Equal(d.formerPartner.jointPubKey) {
-			log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.partner.jointPubKey).Warn("different")
+			log.WithField("termId ", termId).WithField("seq pk ", pubKey).WithField("our joint pk ", d.formerPartner.jointPubKey).Warn("different")
 			return false
 		}
 		err = bls.Verify(d.formerPartner.Suite, pubKey, msg, sig)
@@ -868,7 +872,7 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId int) 
 		return false
 	}
 	return true
-	//todo how to verify when term change
+	//Todo how to verify when term change
 	// d.partner.jointPubKey
 }
 

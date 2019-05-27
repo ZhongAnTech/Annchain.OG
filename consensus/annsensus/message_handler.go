@@ -152,7 +152,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 	seq.Proposing = true
 
 	if !a.bft.verifyProposal(request, pk) {
-		log.WithField("seq ", seq).Warn("verify raw seq fail")
+		log.WithField("seq ", request).Warn("verify raw seq fail")
 		return
 	}
 	//cache them and sent to buffer to verify

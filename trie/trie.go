@@ -216,6 +216,7 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 }
 
 func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error) {
+	log.Tracef("Panic debug, start insert, prefix: %x, key: %x", prefix, key)
 	if len(key) == 0 {
 		if v, ok := n.(ValueNode); ok {
 			return !bytes.Equal(v, value.(ValueNode)), value, nil
@@ -224,6 +225,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 	}
 	switch n := n.(type) {
 	case *ShortNode:
+		log.Tracef("Panic debug, insert meet Shortnode, shortnode key: %x, key: %x", n.Key, key)
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
@@ -255,6 +257,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		return true, sn, nil
 
 	case *FullNode:
+		log.Tracef("Panic debug, insert meet FullNode, key: %x", key)
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
@@ -265,6 +268,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		return true, n, nil
 
 	case nil:
+		log.Tracef("Panic debug, insert meet nil, key: %x", key)
 		sn := &ShortNode{key, value, t.newFlag()}
 		return true, sn, nil
 
@@ -272,6 +276,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		// We've hit a part of the trie that isn't loaded yet. Load
 		// the node and insert into it. This leaves all child nodes on
 		// the path to the value in the trie.
+		log.Tracef("Panic debug, insert meet HashNode, key: %x", key)
 		rn, err := t.resolveHash(n, prefix)
 		if err != nil {
 			return false, nil, err

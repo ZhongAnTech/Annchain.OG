@@ -122,7 +122,7 @@ func (sd *StateDB) CreateAccount(addr types.Address) {
 		})
 	}
 	sd.states[addr] = newstate
-	sd.beats[addr] = time.Now()
+	// sd.beats[addr] = time.Now()
 
 }
 
@@ -240,7 +240,7 @@ func (sd *StateDB) deleteStateObject(addr types.Address) error {
 	}
 	delete(sd.states, addr)
 	delete(sd.dirtyset, addr)
-	delete(sd.beats, addr)
+	// delete(sd.beats, addr)
 	return nil
 }
 
@@ -495,7 +495,7 @@ func (sd *StateDB) purge() {
 
 // refreshbeat update the beat time of an address.
 func (sd *StateDB) refreshbeat(addr types.Address) {
-	sd.beats[addr] = time.Now()
+	// sd.beats[addr] = time.Now()
 }
 
 // Commit tries to save dirty data to memory trie db.
@@ -529,6 +529,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
+		log.Tracef("Panic debug, statdb commit, addr: %x, data: %x", addr.ToBytes(), data)
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}

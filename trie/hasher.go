@@ -23,6 +23,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {
@@ -75,6 +77,9 @@ func returnHasherToPool(h *hasher) {
 // hash collapses a node down into a hash node, also returning a copy of the
 // original node initialized with the computed hash to replace the original one.
 func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
+
+	log.Tracef("Panic debug, start hash node: %s", n.String())
+
 	// If we're not storing the node, just hashing, use available cached data
 	if hash, dirty := n.cache(); hash != nil {
 		if db == nil {
@@ -99,6 +104,9 @@ func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 	if err != nil {
 		return HashNode{}, n, err
 	}
+
+	log.Tracef("Panic debug, hashed the node: %s", hashed.String())
+
 	// Cache the hash of the node for later reuse and remove
 	// the dirty flag in commit mode. It's fine to assign these values directly
 	// without copying the node first because hashChildren copies it.
@@ -137,9 +145,11 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 				return original, original, err
 			}
 		}
-		if collapsed.Val == nil {
-			collapsed.Val = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
-		}
+		// OG version of trie use msgp encoding, and it can handle nil node.
+		// Commend these lines
+		// if collapsed.Val == nil {
+		// 	collapsed.Val = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
+		// }
 		return collapsed, cached, nil
 
 	case *FullNode:
@@ -152,13 +162,18 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 				if err != nil {
 					return original, original, err
 				}
-			} else {
-				collapsed.Children[i] = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
 			}
+			// OG version of trie use msgp encoding, and it can handle nil node.
+			// Commend these lines
+			// else {
+			// 	collapsed.Children[i] = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
+			// }
 		}
 		cached.Children[16] = n.Children[16]
 		if collapsed.Children[16] == nil {
-			collapsed.Children[16] = ValueNode(nil)
+			// OG version of trie use msgp encoding, and it can handle nil node.
+			// Commend these lines
+			// collapsed.Children[16] = ValueNode(nil)
 		}
 		return collapsed, cached, nil
 

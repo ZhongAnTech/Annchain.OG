@@ -28,9 +28,14 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 		return true
 	}
 	//check balance
-	if a.GetCandidate(t.Issuer) == nil {
-		log.WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
-		return false
+	if t.TermID <= a.term.ID()  {
+		//small term id senstors will be dropped , just verify format and bls keys
+		log.Debug("small term id ")
+	}else {
+		if a.GetCandidate(t.Issuer) == nil {
+			log.WithField("candidates ", a.term.candidates).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
+			return false
+		}
 	}
 	if len(t.SigSet) < a.dkg.partner.NbParticipants {
 		log.WithField("len ", len(t.SigSet)).WithField("need ",
@@ -51,6 +56,7 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 	}
 	log.WithField("tc ", t).Trace("verify ok ")
 	return true
+
 }
 
 // consensus related verification
@@ -66,10 +72,10 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		return false
 	}
 	if seq.Proposing {
-		log.WithField("hash ", seq.GetTxHash()).Debug("proposing seq")
+		log.WithField("hash ", seq).Debug("proposing seq")
 		return true
 	}
-	log.WithField("hash ", seq.GetTxHash()).Debug("normal seq seq")
+	log.WithField("hash ", seq).Debug("normal seq")
 
 	if !a.term.started {
 		if seq.Height > 1 {

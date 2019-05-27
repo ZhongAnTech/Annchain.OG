@@ -216,6 +216,7 @@ out:
 	}
 	if err != nil {
 		log.WithField("seq ", s.Seq).WithError(err).Warn("handel fail")
+		//panic("handle fail for test")
 	} else {
 		log.WithField("txs len", count).WithField("seq ", s.Seq).Debug("handle txs done")
 

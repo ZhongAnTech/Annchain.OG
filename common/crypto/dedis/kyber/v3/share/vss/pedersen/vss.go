@@ -776,17 +776,3 @@ func (j *Justification) Hash(s Suite) []byte {
 	_, _ = h.Write(buff)
 	return h.Sum(nil)
 }
-
-func (d *EncryptedDeal) String() string {
-	if d == nil {
-		return ""
-	}
-	return fmt.Sprintf("encDeal-%x", d.Cipher[:])
-}
-
-func (d *EncryptedDeal) TerminateString() string {
-	if d == nil {
-		return ""
-	}
-	return fmt.Sprintf("encdeal-len-%d", len(d.Cipher))
-}

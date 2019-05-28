@@ -166,23 +166,6 @@ func (p *pointG1) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func UnmarshalBinaryPointG1(buf []byte) (q kyber.Point, err error) {
-	var p pointG1
-	err = p.UnmarshalBinary(buf)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func UnmarshalBinaryPointG2(buf []byte) (q kyber.Point, err error) {
-	var p pointG2
-	err = p.UnmarshalBinary(buf)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
 
 func (p *pointG1) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
@@ -375,23 +358,6 @@ func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 	return n, p.UnmarshalBinary(buf)
 }
 
-func UnmarshalFromPointG2(r io.Reader) (kyber.Point, int, error) {
-	var p pointG2
-	n, err := p.UnmarshalFrom(r)
-	if err != nil {
-		return nil, n, err
-	}
-	return &p, n, nil
-}
-
-func UnmarshalFromPointG1(r io.Reader) (kyber.Point, int, error) {
-	var p pointG1
-	n, err := p.UnmarshalFrom(r)
-	if err != nil {
-		return nil, n, err
-	}
-	return &p, n, nil
-}
 
 func (p *pointG2) MarshalSize() int {
 	return 4 * p.ElementSize()

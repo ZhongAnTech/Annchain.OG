@@ -70,12 +70,12 @@ type AnnSensus struct {
 	TxEnable           bool
 	NewLatestSequencer chan bool
 
-	ConfigFilePath    string
-	termChangeChan    chan *types.TermChange
-	currentTermChange *types.TermChange
-	disableTermChange bool
-	disable           bool
-	addedGenesisCampaign  bool
+	ConfigFilePath       string
+	termChangeChan       chan *types.TermChange
+	currentTermChange    *types.TermChange
+	disableTermChange    bool
+	disable              bool
+	addedGenesisCampaign bool
 }
 
 func Maj23(n int) int {
@@ -301,7 +301,7 @@ func (as *AnnSensus) termChangeLoop() {
 		case <-as.startTermChange:
 			log := as.dkg.log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
-			if cp ==nil {
+			if cp == nil {
 				log.Warn("cannot found campaign, i ma not a partner , no dkg gossip")
 			}
 			as.dkg.Reset(cp)
@@ -394,19 +394,19 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 
 func (as *AnnSensus) addGenesisCampaigns() {
 	as.mu.RLock()
-	if  as.addedGenesisCampaign {
+	if as.addedGenesisCampaign {
 		as.mu.RUnlock()
 		log.Info("already added genesis campaign")
 		return
 	}
 	as.addedGenesisCampaign = true
 	as.mu.RUnlock()
-		for _, pk := range as.genesisAccounts {
-			cp := types.Campaign{
-				Issuer: pk.Address(),
-			}
-			as.term.AddCandidate(&cp, pk)
+	for _, pk := range as.genesisAccounts {
+		cp := types.Campaign{
+			Issuer: pk.Address(),
 		}
+		as.term.AddCandidate(&cp, pk)
+	}
 }
 
 func (as *AnnSensus) addBftPartner() {
@@ -499,9 +499,9 @@ func (as *AnnSensus) loop() {
 				}
 				//send the signal if i am a partner of consensus nodes
 				//if as.dkg.isValidPartner {
-					goroutine.New(func() {
-						as.newTermChan <- true
-					})
+				goroutine.New(func() {
+					as.newTermChan <- true
+				})
 				//} else {
 				//	log.Debug("is not a valid partner")
 				//}
@@ -531,10 +531,9 @@ func (as *AnnSensus) loop() {
 			if as.dkg.isValidPartner {
 				as.SaveConsensusData()
 				as.bft.startBftChan <- true
-			}else {
+			} else {
 				log.Debug("is not a valid partner")
 			}
-
 
 		//
 		//case <-time.After(time.Millisecond * 300):
@@ -676,14 +675,14 @@ func (as *AnnSensus) loop() {
 			//for genesis consensus , obtain tc from network
 		case tc := <-as.termChangeChan:
 			if eventInit {
-				log.WithField("tc ",tc).Warn("already handle genesis tc")
+				log.WithField("tc ", tc).Warn("already handle genesis tc")
 			}
 			pk, err := bn256.UnmarshalBinaryPointG2(tc.PkBls)
 			if err != nil {
 				log.WithError(err).Warn("unmarshal failed dkg joint public key")
 				continue
 			}
-			if  as.addedGenesisCampaign {
+			if as.addedGenesisCampaign {
 				log.Debug("one term change is enough")
 				continue
 			}
@@ -719,7 +718,7 @@ func (as *AnnSensus) loop() {
 			}
 			err := cp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
 			if err != nil {
-				log.WithField("pk data ", hexutil.Encode( cp.DkgPublicKey)).WithError(err).Warn("unmarshal error")
+				log.WithField("pk data ", hexutil.Encode(cp.DkgPublicKey)).WithError(err).Warn("unmarshal error")
 				continue
 			}
 

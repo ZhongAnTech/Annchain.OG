@@ -28,10 +28,10 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 		return true
 	}
 	//check balance
-	if t.TermID <= a.term.ID()  {
+	if t.TermID <= a.term.ID() {
 		//small term id senstors will be dropped , just verify format and bls keys
 		log.Debug("small term id ")
-	}else {
+	} else {
 		if a.GetCandidate(t.Issuer) == nil {
 			log.WithField("candidates ", a.term.candidates).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
 			return false

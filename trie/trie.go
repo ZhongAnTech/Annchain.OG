@@ -276,6 +276,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		// We've hit a part of the trie that isn't loaded yet. Load
 		// the node and insert into it. This leaves all child nodes on
 		// the path to the value in the trie.
+
 		log.Tracef("Panic debug, insert meet HashNode, key: %x", key)
 		rn, err := t.resolveHash(n, prefix)
 		if err != nil {

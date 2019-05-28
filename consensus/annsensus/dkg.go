@@ -110,7 +110,7 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
 	p.PartPubs = []kyber.Point{}
-	if myCampaign!=nil {
+	if myCampaign != nil {
 		index := -1
 		if len(myCampaign.DkgPublicKey) != 0 {
 			for i, pubKeys := range pubKeys {
@@ -132,7 +132,7 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 		p.CandidatePartSec = append(p.CandidatePartSec, partSecs[index:]...)
 		d.myPublicKey = pubKeys[index]
 		p.CandidatePublicKey = append(p.CandidatePublicKey, pubKeys[index:]...)
-	}else {
+	} else {
 		//
 	}
 	d.dkgOn = false

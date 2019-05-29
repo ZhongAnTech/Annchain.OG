@@ -123,6 +123,9 @@ func panicIfError(err error, message string) {
 	}
 }
 
+
+
+
 // initLogger uses viper to get the log path and level. It should be called by all other commands
 func initLogger() {
 	logdir := viper.GetString("log.log_dir")
@@ -130,25 +133,26 @@ func initLogger() {
 
 	var writer io.Writer
 
+
 	if logdir != "" {
 		folderPath, err := filepath.Abs(logdir)
 		panicIfError(err, fmt.Sprintf("Error on parsing log path: %s", logdir))
 
-		abspath, err := filepath.Abs(path.Join(logdir, "run.log"))
+		abspath, err := filepath.Abs(path.Join(logdir, "run"))
 		panicIfError(err, fmt.Sprintf("Error on parsing log file path: %s", logdir))
 
 		err = os.MkdirAll(folderPath, os.ModePerm)
 		panicIfError(err, fmt.Sprintf("Error on creating log dir: %s", folderPath))
 
-		logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
-
 		if stdout {
+			logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
+			abspath +=".log"
 			fmt.Println("Will be logged to stdout and ", abspath)
 			writer = io.MultiWriter(os.Stdout, logFile)
 		} else {
-			fmt.Println("Will be logged to ", abspath)
-			writer = logFile
+			fmt.Println("Will be logged to ", abspath+".log")
+			writer = mylog.RotateLog(abspath)
 		}
 	} else {
 		// stdout only
@@ -198,24 +202,24 @@ func initLogger() {
 	}
 	byLevel := viper.GetBool("multifile_by_level")
 	if byLevel && logdir != "" {
-		panicLog, _ := filepath.Abs(path.Join(logdir, "panic.log"))
+		panicLog, _ := filepath.Abs(path.Join(logdir, "panic"))
 		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal.log"))
 		warnLog, _ := filepath.Abs(path.Join(logdir, "warn.log"))
 		errorLog, _ := filepath.Abs(path.Join(logdir, "error.log"))
 		infoLog, _ := filepath.Abs(path.Join(logdir, "info.log"))
 		debugLog, _ := filepath.Abs(path.Join(logdir, "debug.log"))
 		traceLog, _ := filepath.Abs(path.Join(logdir, "trace.log"))
-		pathMap := lfshook.PathMap{
-			logrus.PanicLevel: panicLog,
-			logrus.FatalLevel: fatalLog,
-			logrus.WarnLevel:  warnLog,
-			logrus.ErrorLevel: errorLog,
-			logrus.InfoLevel:  infoLog,
-			logrus.DebugLevel: debugLog,
-			logrus.TraceLevel: traceLog,
+		writerMap := lfshook.WriterMap{
+			logrus.PanicLevel: mylog.RotateLog(panicLog),
+			logrus.FatalLevel: mylog.RotateLog(fatalLog),
+			logrus.WarnLevel:  mylog.RotateLog(warnLog),
+			logrus.ErrorLevel: mylog.RotateLog(errorLog),
+			logrus.InfoLevel:  mylog.RotateLog(infoLog),
+			logrus.DebugLevel: mylog.RotateLog(debugLog),
+			logrus.TraceLevel: mylog.RotateLog(traceLog),
 		}
 		logrus.AddHook(lfshook.NewHook(
-			pathMap,
+			writerMap,
 			Formatter,
 		))
 	}

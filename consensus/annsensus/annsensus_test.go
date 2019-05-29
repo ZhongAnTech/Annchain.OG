@@ -15,15 +15,27 @@ package annsensus
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"testing"
 )
 
-func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(false, 1, true, 5, 4,
+func genPublicKeys(num int) (accounts []crypto.PublicKey) {
+	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+	for i := 0; i < num; i++ {
+		pub, _ := signer.RandomKeyPair()
+		accounts = append(accounts, pub)
+	}
+	return accounts
+}
 
-		nil, "test.json", false)
+func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
+	var as = NewAnnSensus(4, false, 1, true, 5, 4,
+
+		genPublicKeys(5), "test.json", false)
 
 	pk := as.dkg.PublicKey()
 	fmt.Println(hexutil.Encode(pk))
@@ -46,4 +58,20 @@ func TestNewDKGPartner(t *testing.T) {
 		fmt.Println(d.partner.MyPartSec)
 	}
 
+}
+
+func logInit() {
+	Formatter := new(logrus.TextFormatter)
+	Formatter.TimestampFormat = "15:04:05.000000"
+	Formatter.FullTimestamp = true
+	logrus.SetFormatter(Formatter)
+	logrus.SetLevel(logrus.TraceLevel)
+	filenameHook := filename.NewHook()
+	filenameHook.Field = "line"
+	logrus.AddHook(filenameHook)
+	log = logrus.StandardLogger()
+}
+
+func init() {
+	logInit()
 }

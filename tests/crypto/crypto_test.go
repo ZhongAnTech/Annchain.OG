@@ -29,7 +29,7 @@ func TestRawTx_Tx(t *testing.T) {
 	var rawtxs types.RawTxs
 	for i := 0; i < num; i++ {
 		tx := types.RandomTx()
-		pub, _, _ := signer.RandomKeyPair()
+		pub, _ := signer.RandomKeyPair()
 		tx.PublicKey = pub.Bytes[:]
 		rawtxs = append(rawtxs, tx.RawTx())
 	}
@@ -52,7 +52,7 @@ func TestRawTx_encode(t *testing.T) {
 	var rawtxs []bytes
 	for i := 0; i < num; i++ {
 		tx := types.RandomTx()
-		pub, _, _ := signer.RandomKeyPair()
+		pub, _ := signer.RandomKeyPair()
 		tx.PublicKey = pub.Bytes[:]
 		data, _ := tx.MarshalMsg(nil)
 		rawtxs = append(rawtxs, bytes{data})

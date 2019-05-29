@@ -33,7 +33,7 @@ func TestVrfSelections_Le(t *testing.T) {
 		NbParticipants: 4,
 	}
 	d := newDkg(&ann, true, 4, 3)
-	tm := newTerm(1, 21)
+	tm := newTerm(1, 21, 4)
 	ann.term = tm
 	ann.dkg = d
 	for i := 0; i < 21; i++ {

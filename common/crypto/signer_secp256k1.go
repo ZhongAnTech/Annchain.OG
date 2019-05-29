@@ -62,7 +62,7 @@ func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []by
 	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
 }
 
-func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error) {
+func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
 	privKeyBytes := [32]byte{}
 	copy(privKeyBytes[:], CRandBytes(32))
 

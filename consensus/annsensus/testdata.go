@@ -43,6 +43,6 @@ func (t *TestMsg) GetHash() types.Hash {
 	return hash
 }
 
-func (t TestMsg) String() {
-	fmt.Sprintf("from %s, type %s, msg %s", t.From.String(), t.MessageType, t.Message)
+func (t TestMsg) String() string {
+	return fmt.Sprintf("from %s, type %s, msg %s", t.From.String(), t.MessageType, t.Message)
 }

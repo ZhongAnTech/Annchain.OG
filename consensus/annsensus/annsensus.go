@@ -82,14 +82,16 @@ func Maj23(n int) int {
 	return 2*n/3 + 1
 }
 
-func NewAnnSensus(disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
+func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
+	if termChangeInterval <= 0 && !disableTermChange {
+		panic("require termChangeInterval ")
+	}
 	if len(genesisAccounts) < partnerNum && !disableConsensus {
 		panic("need more account")
 	}
-
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
@@ -102,7 +104,7 @@ func NewAnnSensus(disableConsensus bool, cryptoType crypto.CryptoType, campaign 
 	dkg := newDkg(ann, campaign, partnerNum, Maj23(partnerNum))
 	ann.dkg = dkg
 	ann.genesisAccounts = genesisAccounts
-	t := newTerm(0, partnerNum)
+	t := newTerm(0, partnerNum, termChangeInterval)
 	ann.term = t
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
@@ -116,7 +118,6 @@ func NewAnnSensus(disableConsensus bool, cryptoType crypto.CryptoType, campaign 
 	ann.ConfigFilePath = configFile
 	ann.termChangeChan = make(chan *types.TermChange)
 	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
-	ann.disableTermChange = disableTermChange
 
 	return ann
 }

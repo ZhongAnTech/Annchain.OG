@@ -25,8 +25,7 @@ import (
 func TestSignerSecp(t *testing.T) {
 	signer := SignerSecp256k1{}
 
-	pub, priv, err := signer.RandomKeyPair()
-	assert.NoError(t, err)
+	pub, priv := signer.RandomKeyPair()
 
 	fmt.Println(hex.Dump(pub.Bytes))
 	fmt.Println(hex.Dump(priv.Bytes))
@@ -57,7 +56,7 @@ func TestSignerNewPrivKey(t *testing.T) {
 	t.Parallel()
 
 	signer := SignerSecp256k1{}
-	pk, priv, _ := signer.RandomKeyPair()
+	pk, priv := signer.RandomKeyPair()
 
 	b := []byte("foo")
 	sig := signer.Sign(priv, b)

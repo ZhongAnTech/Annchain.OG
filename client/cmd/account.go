@@ -56,7 +56,7 @@ func accountGen(cmd *cobra.Command, args []string) {
 		fmt.Println("unknown crypto algorithm", algorithm)
 		return
 	}
-	pub, priv, err := signer.RandomKeyPair()
+	pub, priv := signer.RandomKeyPair()
 	if err != nil {
 		panic(err)
 	}

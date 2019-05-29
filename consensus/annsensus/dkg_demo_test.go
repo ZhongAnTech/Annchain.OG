@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -157,19 +156,6 @@ func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
 	return
 }
 
-func logInit() {
-
-	Formatter := new(logrus.TextFormatter)
-	//Formatter.DisableColors = true
-	Formatter.TimestampFormat = "15:04:05.000000"
-	Formatter.FullTimestamp = true
-	logrus.SetFormatter(Formatter)
-	logrus.SetLevel(logrus.TraceLevel)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
-	log = logrus.StandardLogger()
-}
 func (t *TestHub) loop() {
 	elog := logrus.WithField("me", t.Id).WithField("aid ", t.As.Aid().String())
 	for {
@@ -276,8 +262,9 @@ func TestDKGMain(t *testing.T) {
 
 	var accounts []account.SampleAccount
 	var pks []crypto.PublicKey
+	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 	for j := 0; j < 4; j++ {
-		pub, priv, _ := crypto.NewSigner(crypto.CryptoTypeSecp256k1).RandomKeyPair()
+		pub, priv := signer.RandomKeyPair()
 		account := account.SampleAccount{
 			PrivateKey: priv,
 			PublicKey:  pub,
@@ -289,7 +276,7 @@ func TestDKGMain(t *testing.T) {
 	}
 
 	for j := 0; j < 4; j++ {
-		as := NewAnnSensus(false, crypto.CryptoTypeSecp256k1, true, 4,
+		as := NewAnnSensus(4, false, crypto.CryptoTypeSecp256k1, true, 4,
 			4, pks, "test.json", false)
 		a := TestAnnSensus{
 			AnnSensus: as,

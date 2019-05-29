@@ -57,9 +57,6 @@ func accountGen(cmd *cobra.Command, args []string) {
 		return
 	}
 	pub, priv := signer.RandomKeyPair()
-	if err != nil {
-		panic(err)
-	}
 	fmt.Println(priv.String())
 	fmt.Println(pub.String())
 	fmt.Println(signer.Address(pub).Hex())

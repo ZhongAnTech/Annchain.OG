@@ -170,7 +170,7 @@ func (d *Dkg) generateDkg() []byte {
 }
 
 func (d *Dkg) log() *logrus.Entry {
-	return log.WithField("me ", d.partner.Id)
+	return log.WithField("me ", d.partner.Id).WithField("termId ", d.TermId)
 }
 
 func (d *Dkg) GenerateDkg() []byte {
@@ -445,6 +445,7 @@ func (d *Dkg) ProcessDeal(deal *dkg.Deal) (*dkg.Response, error) {
 
 //ProcessWaitingResponse
 func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
+	log := d.log()
 	var resps []*types.MessageConsensusDkgDealResponse
 	d.mu.RLock()
 	resps, _ = d.respWaitingCache[deal.Index]
@@ -462,6 +463,7 @@ func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
 func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 	//for generating deals, we use n partPubs, including our partPub. it generates  n-1 deals, excluding our own deal
 	//skip myself
+	log := d.log()
 	for i, deal := range deals {
 		data, _ := deal.MarshalMsg(nil)
 		msg := &types.MessageConsensusDkgDeal{

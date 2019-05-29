@@ -290,7 +290,7 @@ func NewNode() *Node {
 	if consensFilePath == "" {
 		panic("need path")
 	}
-	termChangeInterval := viper.GetInt("annsensus term_change_interval")
+	termChangeInterval := viper.GetInt("annsensus.term_change_interval")
 	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
 		partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{

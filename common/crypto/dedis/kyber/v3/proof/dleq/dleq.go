@@ -8,7 +8,7 @@ package dleq
 import (
 	"errors"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite wraps the functionalities needed by the dleq package.

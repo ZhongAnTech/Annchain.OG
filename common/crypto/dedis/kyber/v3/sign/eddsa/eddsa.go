@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var group = new(edwards25519.Curve)

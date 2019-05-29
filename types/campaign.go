@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 	"strings"
 
 	"github.com/annchain/OG/common/hexutil"

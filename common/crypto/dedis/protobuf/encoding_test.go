@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/suites"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/suites"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

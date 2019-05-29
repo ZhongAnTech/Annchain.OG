@@ -3,10 +3,10 @@ package shuffle
 import (
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/proof"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/proof"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 func TestBiffle(t *testing.T) {

@@ -1,10 +1,10 @@
 package suites
 
 import (
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/nist"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/group/nist"
+	"go.dedis.ch/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 )
 
 func init() {

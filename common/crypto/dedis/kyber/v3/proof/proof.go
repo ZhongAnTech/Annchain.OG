@@ -8,7 +8,7 @@ package proof
 import (
 	"errors"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite defines the functionalities needed for this package to operate

@@ -2,12 +2,12 @@ package annsensus
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/share"
 	"reflect"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
+	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
 	"testing"
 )
 

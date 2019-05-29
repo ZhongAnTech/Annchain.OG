@@ -36,10 +36,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/schnorr"
-	"github.com/annchain/OG/common/crypto/dedis/protobuf"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/protobuf"
 )
 
 // Suite defines the capabilities required by the vss package.

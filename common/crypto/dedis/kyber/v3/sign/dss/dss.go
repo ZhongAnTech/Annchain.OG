@@ -19,10 +19,10 @@ import (
 	"crypto/sha512"
 	"errors"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/eddsa"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/sign/eddsa"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
 )
 
 // Suite represents the functionalities needed by the dss package

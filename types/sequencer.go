@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/util/random"
 	"math/rand"
 	"strings"
 

@@ -5,7 +5,7 @@ package curve25519
 import (
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/test"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 // Test the basic implementation of the Ed25519 curve.

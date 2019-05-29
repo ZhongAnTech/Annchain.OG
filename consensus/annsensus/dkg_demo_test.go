@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/og"
@@ -289,8 +289,8 @@ func TestDKGMain(t *testing.T) {
 	}
 
 	for j := 0; j < 4; j++ {
-		as := NewAnnSensus(crypto.CryptoTypeSecp256k1, true, 4,
-			4, pks, "test.json")
+		as := NewAnnSensus(false, crypto.CryptoTypeSecp256k1, true, 4,
+			4, pks, "test.json", false)
 		a := TestAnnSensus{
 			AnnSensus: as,
 		}

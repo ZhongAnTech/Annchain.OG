@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 )
 
 // ReadHexPoint reads a point from r in hex representation.

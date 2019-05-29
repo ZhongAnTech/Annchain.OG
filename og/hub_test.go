@@ -78,7 +78,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 		m := p2PMessage{message: &msg, messageType: MessageTypeConsensusDkgDeal}
 		s := crypto.NewSigner(crypto.CryptoType(i))
 		fmt.Println(s.GetCryptoType())
-		pk, sk, _ := s.RandomKeyPair()
+		pk, sk := s.RandomKeyPair()
 		m.Marshal()
 		logrus.Debug(len(m.data))
 		err := m.Encrypt(&pk)

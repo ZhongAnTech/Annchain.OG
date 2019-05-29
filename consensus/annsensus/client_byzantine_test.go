@@ -93,7 +93,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
-			v := updatedMessage.Payload.(types.MessageProposal)
+			v := updatedMessage.Payload.(*types.MessageProposal)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
@@ -102,7 +102,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
-			v := updatedMessage.Payload.(types.MessagePreVote)
+			v := updatedMessage.Payload.(*types.MessagePreVote)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
@@ -110,7 +110,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {
-			v := updatedMessage.Payload.(types.MessagePreCommit)
+			v := updatedMessage.Payload.(*types.MessagePreCommit)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}

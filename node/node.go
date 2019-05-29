@@ -290,7 +290,9 @@ func NewNode() *Node {
 	if consensFilePath == "" {
 		panic("need path")
 	}
-	annSensus := annsensus.NewAnnSensus(disableConsensus, cryptoType, campaign, partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
+	termChangeInterval := viper.GetInt("annsensus term_change_interval")
+	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
+		partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(cryptoType),
 		NodeStatusDataProvider: org,

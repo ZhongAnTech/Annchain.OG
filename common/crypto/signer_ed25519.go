@@ -57,10 +57,10 @@ func (s *SignerEd25519) Verify(pubKey PublicKey, signature Signature, msg []byte
 	return ed25519.Verify(pubKey.Bytes, msg, signature.Bytes)
 }
 
-func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error) {
+func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
 	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return
+		panic(err)
 	}
 	publicKey = PublicKeyFromBytes(CryptoTypeEd25519, public)
 	privateKey = PrivateKeyFromBytes(CryptoTypeEd25519, private)

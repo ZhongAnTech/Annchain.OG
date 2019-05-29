@@ -108,6 +108,10 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 	return p.WaiterTimeoutChannel
 }
 
+func deFaultDecisionFunc(state *HeightRoundState) error{
+	return  nil
+}
+
 func (p *DefaultPartner) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
 	p.decisionFunc = decisionFunc
 }
@@ -153,6 +157,7 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 		States: make(map[types.HeightRound]*HeightRoundState),
 	}
 	p.waiter = NewWaiter(p.GetWaiterTimeoutChannel())
+	p.RegisterDecisionReceiveFunc(deFaultDecisionFunc)
 	return p
 }
 

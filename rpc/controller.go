@@ -470,7 +470,7 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 	case "secp256k1":
 		signer = &crypto.SignerSecp256k1{}
 	}
-	pub, priv, err := signer.RandomKeyPair()
+	pub, priv := signer.RandomKeyPair()
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("Generate account error"), nil)
 		return

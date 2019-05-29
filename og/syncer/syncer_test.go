@@ -75,7 +75,7 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 	var wg sync.WaitGroup
 	start := time.Now()
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
-	pubKey, _, _ := signer.RandomKeyPair()
+	pubKey, _ := signer.RandomKeyPair()
 	types.Signer = signer
 	for i := 0; i < 60000; i++ {
 		tx := types.RandomTx()
@@ -94,7 +94,7 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 func TestSyncBuffer_AddTxs(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	syncer := newTestIncrementalSyncer()
-	pubKey, _, _ := signer.RandomKeyPair()
+	pubKey, _ := signer.RandomKeyPair()
 	types.Signer = signer
 	var wg sync.WaitGroup
 	for i := 0; i < 60000; i++ {

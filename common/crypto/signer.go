@@ -20,7 +20,7 @@ type Signer interface {
 	Sign(privKey PrivateKey, msg []byte) Signature
 	PubKey(privKey PrivateKey) PublicKey
 	Verify(pubKey PublicKey, signature Signature, msg []byte) bool
-	RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey, err error)
+	RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey)
 	Address(pubKey PublicKey) types.Address
 	AddressFromPubKeyBytes(pubKey []byte) types.Address
 	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)

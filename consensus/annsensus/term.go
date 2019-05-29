@@ -34,6 +34,7 @@ type Term struct {
 	startedHeight          uint64
 	generateCampaignHeight uint64
 	newTerm                bool
+	termChangeInterval     int
 
 	mu                sync.RWMutex
 	currentTermChange *types.TermChange
@@ -41,16 +42,17 @@ type Term struct {
 	started           bool
 }
 
-func newTerm(id uint64, pn int) *Term {
+func newTerm(id uint64, participantNumber int, termChangeInterval int) *Term {
 	return &Term{
-		id:             id,
-		flag:           false,
-		partsNum:       pn,
-		senators:       make(Senators),
-		formerSenators: make(map[uint64]Senators),
-		candidates:     make(map[types.Address]*types.Campaign),
-		alsorans:       make(map[types.Address]*types.Campaign),
-		campaigns:      make(map[types.Address]*types.Campaign),
+		id:                 id,
+		flag:               false,
+		partsNum:           participantNumber,
+		termChangeInterval: termChangeInterval,
+		senators:           make(Senators),
+		formerSenators:     make(map[uint64]Senators),
+		candidates:         make(map[types.Address]*types.Campaign),
+		alsorans:           make(map[types.Address]*types.Campaign),
+		campaigns:          make(map[types.Address]*types.Campaign),
 	}
 }
 
@@ -199,7 +201,7 @@ func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 		log.Debug("is genesis consensus, change term")
 		return true
 	}
-	if lastHeight-t.startedHeight < uint64(t.partsNum*a+b) {
+	if lastHeight-t.startedHeight < uint64(t.termChangeInterval*a+b) {
 		return false
 	}
 	return true

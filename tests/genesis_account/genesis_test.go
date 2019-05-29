@@ -32,7 +32,7 @@ func TestAccount(t *testing.T) {
 	var se secretGenesis
 	var ge genesis
 	for i := 0; i < 7; i++ {
-		pub, priv, err := signer.RandomKeyPair()
+		pub, priv := signer.RandomKeyPair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,7 +78,7 @@ func TestAccount(t *testing.T) {
 
 func TestNewAccount(t *testing.T) {
 	signer := crypto.SignerSecp256k1{}
-	pub, priv, err := signer.RandomKeyPair()
+	pub, priv := signer.RandomKeyPair()
 	if err != nil {
 		t.Fatal(err)
 	}

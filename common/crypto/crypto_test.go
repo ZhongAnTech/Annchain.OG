@@ -18,7 +18,7 @@ func TestPublicKey_Encrypt(t *testing.T) {
 		cType := CryptoType(i)
 		fmt.Println(cType)
 		s := NewSigner(cType)
-		pk, sk, _ := s.RandomKeyPair()
+		pk, sk := s.RandomKeyPair()
 		fmt.Println("pk", pk.String())
 		fmt.Println("sk", sk.String())
 		msg := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
@@ -92,9 +92,9 @@ func TestBenchMarks(t *testing.T) {
 		txs = append(txs, &testTx)
 	}
 	signerSecp := NewSigner(CryptoTypeSecp256k1)
-	pubkey, privKey, _ := signerSecp.RandomKeyPair()
+	pubkey, privKey := signerSecp.RandomKeyPair()
 	signerEd := NewSigner(CryptoTypeEd25519)
-	pubEd, privEd, _ := signerEd.RandomKeyPair()
+	pubEd, privEd := signerEd.RandomKeyPair()
 	start := time.Now()
 	fmt.Println("number of tx ", Txlen)
 	for i, tx := range txs {

@@ -15,11 +15,13 @@ package mylog
 
 import (
 	"fmt"
+	"github.com/lestrrat/go-file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 var TxLogger *logrus.Logger
@@ -31,6 +33,18 @@ func panicIfError(err error, message string) {
 		os.Exit(1)
 	}
 }
+
+func RotateLog(abspath string )*rotatelogs.RotateLogs {
+	logFile, err := rotatelogs.New(
+		abspath+"%Y%m%d%H%M%S.log",
+		rotatelogs.WithLinkName(abspath+".log"),
+		rotatelogs.WithMaxAge(24 * time.Hour*7),
+		rotatelogs.WithRotationTime(time.Hour*24),
+	)
+	panicIfError(err,"err init log")
+	return logFile
+}
+
 
 func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus.Logger {
 	var writer io.Writer
@@ -45,10 +59,11 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 		panicIfError(err, fmt.Sprintf("Error on creating log dir: %s", folderPath))
 
 		logrus.WithField("path", abspath).Info("Additional logger")
-		logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		//logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
 		//write  a message to just one  files
-		writer = io.MultiWriter(logger.Out, logFile)
+
+		writer = io.MultiWriter(logger.Out, RotateLog(abspath))
 	} else {
 		writer = logger.Out
 	}

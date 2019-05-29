@@ -18,17 +18,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/account"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"go.dedis.ch/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+	"go.dedis.ch/kyber/v3"
 )
 
 type AnnSensus struct {

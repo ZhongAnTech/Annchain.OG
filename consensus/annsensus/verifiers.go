@@ -16,8 +16,8 @@ package annsensus
 import (
 	"bytes"
 	"github.com/annchain/OG/common/crypto"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/types"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"time"
 )
 

@@ -17,12 +17,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/encrypt/ecies"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/poc/extra25519"
 	"github.com/annchain/OG/types"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/encrypt/ecies"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 type CryptoType int8

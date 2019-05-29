@@ -17,8 +17,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"github.com/annchain/OG/poc/extra25519"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"testing"
 )
 

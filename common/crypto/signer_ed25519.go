@@ -16,11 +16,11 @@ package crypto
 import (
 	"bytes"
 	"fmt"
-	"go.dedis.ch/kyber/v3/encrypt/ecies"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"github.com/annchain/OG/poc/extra25519"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"go.dedis.ch/kyber/v3/encrypt/ecies"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
 	"strconv"

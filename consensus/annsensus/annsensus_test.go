@@ -15,8 +15,8 @@ package annsensus
 
 import (
 	"fmt"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/hexutil"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"testing"
 )
 

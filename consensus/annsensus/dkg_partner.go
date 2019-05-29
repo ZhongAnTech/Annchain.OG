@@ -15,13 +15,13 @@ package annsensus
 
 import (
 	"errors"
+	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/sign/tbls"
-	"github.com/annchain/OG/types"
 )
 
 type DKGPartner struct {

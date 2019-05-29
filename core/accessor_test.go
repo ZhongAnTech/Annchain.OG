@@ -80,7 +80,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(addr, nonce, types.Hashes{}, nonce, pk)
+	seq := txCreator.NewSignedSequencer(addr, nonce, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*types.Sequencer)

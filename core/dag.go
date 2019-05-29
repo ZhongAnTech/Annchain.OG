@@ -659,7 +659,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// commit statedb's changes to trie and triedb
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: ", errdb)
+		log.Errorf("can't Commit statedb, err: %v", errdb)
 		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
 	// flush triedb into diskdb.
@@ -868,7 +868,7 @@ func (dag *Dag) Finalize() error {
 	// commit statedb's changes to trie and triedb
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: ", errdb)
+		log.Errorf("can't Commit statedb, err:  %v", errdb)
 		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
 	// flush triedb into diskdb.

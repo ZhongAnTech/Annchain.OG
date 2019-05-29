@@ -108,8 +108,8 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 	return p.WaiterTimeoutChannel
 }
 
-func deFaultDecisionFunc(state *HeightRoundState) error{
-	return  nil
+func deFaultDecisionFunc(state *HeightRoundState) error {
+	return nil
 }
 
 func (p *DefaultPartner) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
@@ -299,7 +299,7 @@ func (p *DefaultPartner) receive() {
 			p.dumpAll("wait step timeout")
 			v.TimeoutCallback(v.Context)
 		case <-timer.C:
-			logrus.WithField("IM", p.Id).Warn("Blocked reading incoming")
+			logrus.WithField("IM", p.Id).Debug("Blocked reading incoming")
 			p.dumpAll("blocked reading incoming")
 		case msg := <-p.IncomingMessageChannel:
 			p.handleMessage(msg)

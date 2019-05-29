@@ -36,7 +36,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}
 
-	genesis, balance := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
+	genesis, balance := core.DefaultGenesis(crypto.CryptoTypeSecp256k1, "genesis.json")
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -93,18 +93,18 @@ func TestDagLoadGenesis(t *testing.T) {
 	conf := core.DagConfig{}
 	db, remove := newTestLDB("TestDagLoadGenesis")
 	defer remove()
-	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
+	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db, nil, crypto.CryptoTypeSecp256k1)
 	if errnew != nil {
 		t.Fatalf("can't new a dag: %v", errnew)
 	}
 
 	acc := core.NewAccessor(db)
-	genesis, _ := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
+	genesis, _ := core.DefaultGenesis(crypto.CryptoTypeSecp256k1,"genesis.json")
 	err := acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
 	}
-	if ok := dag.LoadLastState(); !ok {
+	if  ok,_ := dag.LoadLastState(); !ok {
 		t.Fatalf("can't load last state from db")
 	}
 

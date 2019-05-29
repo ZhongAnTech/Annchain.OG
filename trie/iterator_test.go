@@ -25,8 +25,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/ethdb"
+	// "github.com/annchain/OG/common"
+	// ethdb "github.com/annchain/OG/ogdb"
 )
 
 func TestIterator(t *testing.T) {

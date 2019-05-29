@@ -20,8 +20,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
 )
 
 var marshalPointID = [8]byte{'e', 'd', '.', 'p', 'o', 'i', 'n', 't'}
@@ -58,7 +58,6 @@ func (P *point) UnmarshalBinary(b []byte) error {
 	}
 	return nil
 }
-
 
 func (P *point) MarshalTo(w io.Writer) (int, error) {
 	return marshalling.PointMarshalTo(P, w)

@@ -162,5 +162,4 @@ type Group interface {
 
 	PointLen() int // Max length of point in bytes
 	Point() Point  // Create new point
-
 }

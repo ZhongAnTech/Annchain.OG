@@ -3,8 +3,8 @@ package pairing
 import (
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/key"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3/util/key"
 )
 
 func TestAdapter_SuiteBn256(t *testing.T) {

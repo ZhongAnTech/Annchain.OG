@@ -1,6 +1,14 @@
 // Package bls implements the Boneh-Lynn-Shacham (BLS) signature scheme which
 // was introduced in the paper "Short Signatures from the Weil Pairing". BLS
 // requires pairing-based cryptography.
+//
+// Deprecated: This version is vulnerable to rogue public-key attack and the
+// new version of the protocol should be used to make sure a signature
+// aggregate cannot be verified by a forged key. You can find the protocol
+// in kyber/sign/bdn. Note that only the aggregation is broken against the
+// attack and a later version will merge bls and asmbls.
+//
+// See the paper: https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
 package bls
 
 import (
@@ -9,9 +17,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing"
 )
+
+type hashablePoint interface {
+	Hash([]byte) kyber.Point
+}
 
 // NewKeyPair creates a new BLS signing key pair. The private key x is a scalar
 // and the public key X is a point on curve G2.
@@ -24,8 +36,13 @@ func NewKeyPair(suite pairing.Suite, random cipher.Stream) (kyber.Scalar, kyber.
 // Sign creates a BLS signature S = x * H(m) on a message m using the private
 // key x. The signature S is a point on curve G1.
 func Sign(suite pairing.Suite, x kyber.Scalar, msg []byte) ([]byte, error) {
-	HM := hashToPoint(suite, msg)
+	hashable, ok := suite.G1().Point().(hashablePoint)
+	if !ok {
+		return nil, errors.New("point needs to implement hashablePoint")
+	}
+	HM := hashable.Hash(msg)
 	xHM := HM.Mul(x, HM)
+
 	s, err := xHM.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -74,7 +91,11 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 
 	var aggregatedLeft kyber.Point
 	for i := range msgs {
-		hm := hashToPoint(suite, msgs[i])
+		hashable, ok := suite.G1().Point().(hashablePoint)
+		if !ok {
+			return errors.New("bls: point needs to implement hashablePoint")
+		}
+		hm := hashable.Hash(msgs[i])
 		pair := suite.Pair(hm, publics[i])
 
 		if i == 0 {
@@ -96,7 +117,11 @@ func BatchVerify(suite pairing.Suite, publics []kyber.Point, msgs [][]byte, sig 
 // e(x*H(m), B2) == e(S, B2) holds where e is the pairing operation and B2 is
 // the base point from curve G2.
 func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
-	HM := hashToPoint(suite, msg)
+	hashable, ok := suite.G1().Point().(hashablePoint)
+	if !ok {
+		return errors.New("bls: point needs to implement hashablePoint")
+	}
+	HM := hashable.Hash(msg)
 	left := suite.Pair(HM, X)
 	s := suite.G1().Point()
 	if err := s.UnmarshalBinary(sig); err != nil {
@@ -107,15 +132,6 @@ func Verify(suite pairing.Suite, X kyber.Point, msg, sig []byte) error {
 		return errors.New("bls: invalid signature")
 	}
 	return nil
-}
-
-// hashToPoint hashes a message to a point on curve G1. XXX: This should be replaced
-// eventually by a proper hash-to-point mapping like Elligator.
-func hashToPoint(suite pairing.Suite, msg []byte) kyber.Point {
-	h := suite.Hash()
-	h.Write(msg)
-	x := suite.G1().Scalar().SetBytes(h.Sum(nil))
-	return suite.G1().Point().Mul(x, nil)
 }
 
 func distinct(msgs [][]byte) bool {

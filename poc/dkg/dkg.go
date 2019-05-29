@@ -16,12 +16,12 @@ package dkg
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/tbls"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/share"
+	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
+	"go.dedis.ch/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3/sign/tbls"
 )
 
 type Partner struct {

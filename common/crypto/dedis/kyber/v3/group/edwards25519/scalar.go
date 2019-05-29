@@ -12,10 +12,10 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/internal/marshalling"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/mod"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // This code is a port of the public domain, "ref10" implementation of ed25519
@@ -175,7 +175,6 @@ func (s *scalar) UnmarshalBinary(buf []byte) error {
 	copy(s.v[:], buf)
 	return nil
 }
-
 
 // MarshalTo writes the binary representation of this scalar to the given
 // writer.

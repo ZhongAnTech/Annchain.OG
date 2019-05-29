@@ -25,11 +25,11 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
-	dkg "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/dkg/pedersen"
-	vss "github.com/annchain/OG/common/crypto/dedis/kyber/v3/share/vss/pedersen"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/bls"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	dkg "go.dedis.ch/kyber/v3/share/dkg/pedersen"
+	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
+	"go.dedis.ch/kyber/v3/sign/bls"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 )

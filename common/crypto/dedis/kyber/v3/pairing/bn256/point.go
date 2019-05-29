@@ -2,15 +2,19 @@ package bn256
 
 import (
 	"crypto/cipher"
+	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"io"
+	"math/big"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/mod"
 )
 
-var marshalPointID = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
+var marshalPointID1 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '1'}
+var marshalPointID2 = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', '2'}
+var marshalPointIDT = [8]byte{'b', 'n', '2', '5', '6', '.', 'g', 't'}
 
 type pointG1 struct {
 	g *curvePoint
@@ -124,6 +128,10 @@ func (p *pointG1) MarshalBinary() ([]byte, error) {
 	return ret, nil
 }
 
+func (p *pointG1) MarshalID() [8]byte {
+	return marshalPointID1
+}
+
 func (p *pointG1) MarshalTo(w io.Writer) (int, error) {
 	buf, err := p.MarshalBinary()
 	if err != nil {
@@ -166,7 +174,6 @@ func (p *pointG1) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-
 func (p *pointG1) UnmarshalFrom(r io.Reader) (int, error) {
 	buf := make([]byte, p.MarshalSize())
 	n, err := io.ReadFull(r, buf)
@@ -186,6 +193,64 @@ func (p *pointG1) ElementSize() int {
 
 func (p *pointG1) String() string {
 	return "bn256.G1:" + p.g.String()
+}
+
+func (p *pointG1) Hash(m []byte) kyber.Point {
+	leftPad32 := func(in []byte) []byte {
+		if len(in) > 32 {
+			panic("input cannot be more than 32 bytes")
+		}
+
+		out := make([]byte, 32)
+		copy(out[32-len(in):], in)
+		return out
+	}
+
+	bigX, bigY := hashToPoint(m)
+	if p.g == nil {
+		p.g = new(curvePoint)
+	}
+
+	x, y := new(gfP), new(gfP)
+	x.Unmarshal(leftPad32(bigX.Bytes()))
+	y.Unmarshal(leftPad32(bigY.Bytes()))
+	montEncode(x, x)
+	montEncode(y, y)
+
+	p.g.Set(&curvePoint{*x, *y, *newGFp(1), *newGFp(1)})
+	return p
+}
+
+// hashes a byte slice into two points on a curve represented by big.Int
+// ideally we want to do this using gfP, but gfP doesn't have a ModSqrt function
+func hashToPoint(m []byte) (*big.Int, *big.Int) {
+	// we need to convert curveB into a bigInt for our computation
+	intCurveB := new(big.Int)
+	{
+		decodedCurveB := new(gfP)
+		montDecode(decodedCurveB, curveB)
+		bufCurveB := make([]byte, 32)
+		decodedCurveB.Marshal(bufCurveB)
+		intCurveB.SetBytes(bufCurveB)
+	}
+
+	h := sha256.Sum256(m)
+	x := new(big.Int).SetBytes(h[:])
+	x.Mod(x, p)
+
+	for {
+		xxx := new(big.Int).Mul(x, x)
+		xxx.Mul(xxx, x)
+		xxx.Mod(xxx, p)
+
+		t := new(big.Int).Add(xxx, intCurveB)
+		y := new(big.Int).ModSqrt(t, p)
+		if y != nil {
+			return x, y
+		}
+
+		x.Add(x, big.NewInt(1))
+	}
 }
 
 type pointG2 struct {
@@ -303,7 +368,7 @@ func (p *pointG2) MarshalBinary() ([]byte, error) {
 }
 
 func (p *pointG2) MarshalID() [8]byte {
-	return marshalPointID
+	return marshalPointID2
 }
 
 func (p *pointG2) MarshalTo(w io.Writer) (int, error) {
@@ -357,7 +422,6 @@ func (p *pointG2) UnmarshalFrom(r io.Reader) (int, error) {
 	}
 	return n, p.UnmarshalBinary(buf)
 }
-
 
 func (p *pointG2) MarshalSize() int {
 	return 4 * p.ElementSize()
@@ -487,6 +551,10 @@ func (p *pointGT) MarshalBinary() ([]byte, error) {
 	temp.Marshal(ret[11*n:])
 
 	return ret, nil
+}
+
+func (p *pointGT) MarshalID() [8]byte {
+	return marshalPointIDT
 }
 
 func (p *pointGT) MarshalTo(w io.Writer) (int, error) {

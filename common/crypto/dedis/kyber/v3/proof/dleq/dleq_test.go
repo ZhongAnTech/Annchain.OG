@@ -3,10 +3,10 @@ package dleq
 import (
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 var rng = random.New()

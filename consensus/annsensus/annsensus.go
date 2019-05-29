@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"sync"
@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 )

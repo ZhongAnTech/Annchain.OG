@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/util/random"
 )
 
 // SimpleCTScalar implements the scalar operations only using `ScMulAdd` by

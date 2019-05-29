@@ -99,6 +99,11 @@ func (z *Deal) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "SessionID":
+			z.SessionID, err = dc.ReadBytes(z.SessionID)
+			if err != nil {
+				return
+			}
 		case "T":
 			z.T, err = dc.ReadUint32()
 			if err != nil {
@@ -115,10 +120,19 @@ func (z *Deal) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z Deal) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
+func (z *Deal) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 2
+	// write "SessionID"
+	err = en.Append(0x82, 0xa9, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.SessionID)
+	if err != nil {
+		return
+	}
 	// write "T"
-	err = en.Append(0x81, 0xa1, 0x54)
+	err = en.Append(0xa1, 0x54)
 	if err != nil {
 		return
 	}
@@ -130,11 +144,14 @@ func (z Deal) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z Deal) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *Deal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
+	// map header, size 2
+	// string "SessionID"
+	o = append(o, 0x82, 0xa9, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44)
+	o = msgp.AppendBytes(o, z.SessionID)
 	// string "T"
-	o = append(o, 0x81, 0xa1, 0x54)
+	o = append(o, 0xa1, 0x54)
 	o = msgp.AppendUint32(o, z.T)
 	return
 }
@@ -155,6 +172,11 @@ func (z *Deal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
+		case "SessionID":
+			z.SessionID, bts, err = msgp.ReadBytesBytes(bts, z.SessionID)
+			if err != nil {
+				return
+			}
 		case "T":
 			z.T, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
@@ -172,8 +194,8 @@ func (z *Deal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z Deal) Msgsize() (s int) {
-	s = 1 + 2 + msgp.Uint32Size
+func (z *Deal) Msgsize() (s int) {
+	s = 1 + 10 + msgp.BytesPrefixSize + len(z.SessionID) + 2 + msgp.Uint32Size
 	return
 }
 
@@ -550,6 +572,11 @@ func (z *Justification) DecodeMsg(dc *msgp.Reader) (err error) {
 						return
 					}
 					switch msgp.UnsafeString(field) {
+					case "SessionID":
+						z.Deal.SessionID, err = dc.ReadBytes(z.Deal.SessionID)
+						if err != nil {
+							return
+						}
 					case "T":
 						z.Deal.T, err = dc.ReadUint32()
 						if err != nil {
@@ -610,9 +637,18 @@ func (z *Justification) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		// map header, size 1
+		// map header, size 2
+		// write "SessionID"
+		err = en.Append(0x82, 0xa9, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes(z.Deal.SessionID)
+		if err != nil {
+			return
+		}
 		// write "T"
-		err = en.Append(0x81, 0xa1, 0x54)
+		err = en.Append(0xa1, 0x54)
 		if err != nil {
 			return
 		}
@@ -648,9 +684,12 @@ func (z *Justification) MarshalMsg(b []byte) (o []byte, err error) {
 	if z.Deal == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		// map header, size 1
+		// map header, size 2
+		// string "SessionID"
+		o = append(o, 0x82, 0xa9, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x44)
+		o = msgp.AppendBytes(o, z.Deal.SessionID)
 		// string "T"
-		o = append(o, 0x81, 0xa1, 0x54)
+		o = append(o, 0xa1, 0x54)
 		o = msgp.AppendUint32(o, z.Deal.T)
 	}
 	// string "Signature"
@@ -708,6 +747,11 @@ func (z *Justification) UnmarshalMsg(bts []byte) (o []byte, err error) {
 						return
 					}
 					switch msgp.UnsafeString(field) {
+					case "SessionID":
+						z.Deal.SessionID, bts, err = msgp.ReadBytesBytes(bts, z.Deal.SessionID)
+						if err != nil {
+							return
+						}
 					case "T":
 						z.Deal.T, bts, err = msgp.ReadUint32Bytes(bts)
 						if err != nil {
@@ -743,7 +787,7 @@ func (z *Justification) Msgsize() (s int) {
 	if z.Deal == nil {
 		s += msgp.NilSize
 	} else {
-		s += 1 + 2 + msgp.Uint32Size
+		s += 1 + 10 + msgp.BytesPrefixSize + len(z.Deal.SessionID) + 2 + msgp.Uint32Size
 	}
 	s += 10 + msgp.BytesPrefixSize + len(z.Signature)
 	return

@@ -8,11 +8,11 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/annchain/OG/common/crypto/dedis/fixbuf"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/internal/marshalling"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/random"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/fixbuf"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
 )
 
 // QrSuite is a quadratic residue suite
@@ -50,7 +50,7 @@ func (s *QrSuite) New(t reflect.Type) interface{} {
 }
 
 // NewBlakeSHA256QR512 returns a cipher suite based on package
-// github.com/annchain/OG/dedis/kyber/v3/xof/blake2xb, SHA-256, and a residue group of
+// go.dedis.ch/kyber/v3/xof/blake2xb, SHA-256, and a residue group of
 // quadratic residues modulo a 512-bit prime.
 //
 // This group size should be used only for testing and experimentation.

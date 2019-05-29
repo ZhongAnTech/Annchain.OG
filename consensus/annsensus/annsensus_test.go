@@ -15,15 +15,15 @@ package annsensus
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"github.com/annchain/OG/common/hexutil"
 	"testing"
 )
 
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(1, true, 5, 4,
+	var as = NewAnnSensus(false, 1, true, 5, 4,
 
-		nil, "test.json")
+		nil, "test.json", false)
 
 	pk := as.dkg.PublicKey()
 	fmt.Println(hexutil.Encode(pk))

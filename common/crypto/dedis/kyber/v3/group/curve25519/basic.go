@@ -7,9 +7,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/internal/marshalling"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/mod"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/internal/marshalling"
+	"go.dedis.ch/kyber/v3/group/mod"
 )
 
 type basicPoint struct {

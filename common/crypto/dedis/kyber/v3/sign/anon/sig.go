@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 )
 
 // unlinkable ring signature

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
+	"go.dedis.ch/kyber/v3"
 )
 
 // Suite is the sum of all suites mix-ins in Kyber.

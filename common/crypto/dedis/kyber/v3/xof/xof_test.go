@@ -5,10 +5,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/xof/blake2xb"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/xof/keccak"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/kyber/v3/xof/keccak"
 )
 
 type blakeF struct{}

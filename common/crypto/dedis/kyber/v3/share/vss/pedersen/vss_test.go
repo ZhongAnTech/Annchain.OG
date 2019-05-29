@@ -4,13 +4,13 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/sign/schnorr"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/xof/blake2xb"
-	"github.com/annchain/OG/common/crypto/dedis/protobuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/kyber/v3/xof/blake2xb"
+	"go.dedis.ch/protobuf"
 )
 
 var rng = blake2xb.New(nil)
@@ -141,30 +141,6 @@ func TestVSSShare(t *testing.T) {
 
 	assert.NotNil(t, ver.Deal())
 
-}
-
-func TestVSSAggregatorEnoughApprovals(t *testing.T) {
-	dealer := genDealer()
-	aggr := dealer.Aggregator
-	// just below
-	for i := 0; i < aggr.t-1; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-	}
-	assert.False(t, aggr.EnoughApprovals())
-	assert.Nil(t, dealer.SecretCommit())
-
-	aggr.responses[uint32(aggr.t)] = &Response{Status: StatusApproval}
-	assert.True(t, aggr.EnoughApprovals())
-
-	for i := aggr.t + 1; i < nbVerifiers; i++ {
-		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
-	}
-
-	// mark remaning verifiers as timed out
-	dealer.SetTimeout()
-
-	assert.True(t, aggr.EnoughApprovals())
-	assert.Equal(t, suite.Point().Mul(secret, nil), dealer.SecretCommit())
 }
 
 func TestVSSAggregatorDealCertified(t *testing.T) {
@@ -432,7 +408,6 @@ func TestVSSAggregatorAllResponses(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-	assert.True(t, aggr.EnoughApprovals())
 	assert.False(t, aggr.DealCertified())
 
 	for i := aggr.t; i < nbVerifiers; i++ {
@@ -450,17 +425,14 @@ func TestVSSDealerTimeout(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-
-	// Enough approvals, but all remaining responses missing
-	assert.True(t, aggr.EnoughApprovals())
-	assert.False(t, aggr.DealCertified())
+	require.False(t, aggr.DealCertified())
 
 	// Tell dealer to consider other verifiers timed-out
 	dealer.SetTimeout()
 
 	// Deal should be certified
-	assert.True(t, aggr.DealCertified())
-	assert.NotNil(t, dealer.SecretCommit())
+	require.True(t, aggr.DealCertified())
+	require.NotNil(t, dealer.SecretCommit())
 }
 
 func TestVSSVerifierTimeout(t *testing.T) {
@@ -482,9 +454,6 @@ func TestVSSVerifierTimeout(t *testing.T) {
 	for i := 0; i < aggr.t; i++ {
 		aggr.responses[uint32(i)] = &Response{Status: StatusApproval}
 	}
-
-	// Enough Approvals, but not a response for every verifier
-	assert.True(t, aggr.EnoughApprovals())
 	assert.False(t, aggr.DealCertified())
 
 	// Trigger time out, thus adding StatusComplaint to all

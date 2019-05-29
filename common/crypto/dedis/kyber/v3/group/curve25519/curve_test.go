@@ -3,8 +3,8 @@ package curve25519
 import (
 	"testing"
 
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/group/edwards25519"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/util/test"
+	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"go.dedis.ch/kyber/v3/util/test"
 )
 
 var testSuite = NewBlakeSHA256Curve25519(false)

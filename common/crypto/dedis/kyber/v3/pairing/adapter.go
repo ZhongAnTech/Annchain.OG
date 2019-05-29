@@ -1,8 +1,8 @@
 package pairing
 
 import (
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3"
-	"github.com/annchain/OG/common/crypto/dedis/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
 )
 
 // SuiteBn256 is an adapter that implements the suites.Suite interface so that

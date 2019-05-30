@@ -31,7 +31,7 @@ port = 8003
 name = "leveldb"
 
 [leveldb]
-path = "datadir_1"
+path = "rw/datadir_1"
 cache = 16
 handles = 16
 
@@ -78,7 +78,7 @@ disable_encrypt_gossip = false
 algorithm = "secp256k1"
 
 [dag]
-genesis_path = "genesis.json"
+genesis_path = "rw/genesis.json"
 #your own coinbase private key
 my_private_key = "0x0154656564564564abcd54654654654645654656465465454665456456454654654654656445656454654656454654656465453546556564"
 

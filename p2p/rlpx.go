@@ -153,7 +153,7 @@ func (t *rlpx) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err
 	b, _ := our.MarshalMsg(nil)
 	sendFunc := func() { werr <- Send(t.rw, handshakeMsg, b) }
 	goroutine.New(sendFunc)
-	if their, err = readProtocolHandshake(t.rw, our); err != nil {
+	if their, err = readProtocolHandshake(t.rw); err != nil {
 		<-werr // make sure the write terminates too
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (t *rlpx) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandshake, err
 	return their, nil
 }
 
-func readProtocolHandshake(rw MsgReader, our *ProtoHandshake) (*ProtoHandshake, error) {
+func readProtocolHandshake(rw MsgReader) (*ProtoHandshake, error) {
 	msg, err := rw.ReadMsg()
 	if err != nil {
 		return nil, err

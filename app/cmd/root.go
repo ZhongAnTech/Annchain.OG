@@ -112,7 +112,6 @@ func init() {
 	viper.SetDefault("max_mined_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 
 	viper.SetDefault("debug.node_id", 0)
-	viper.SetDefault("consensus", "dpos")
 }
 
 func panicIfError(err error, message string) {
@@ -123,16 +122,12 @@ func panicIfError(err error, message string) {
 	}
 }
 
-
-
-
 // initLogger uses viper to get the log path and level. It should be called by all other commands
 func initLogger() {
 	logdir := viper.GetString("log.log_dir")
 	stdout := viper.GetBool("log_stdout")
 
 	var writer io.Writer
-
 
 	if logdir != "" {
 		folderPath, err := filepath.Abs(logdir)
@@ -147,7 +142,7 @@ func initLogger() {
 		if stdout {
 			logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
-			abspath +=".log"
+			abspath += ".log"
 			fmt.Println("Will be logged to stdout and ", abspath)
 			writer = io.MultiWriter(os.Stdout, logFile)
 		} else {

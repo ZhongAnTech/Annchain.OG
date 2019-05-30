@@ -18,4 +18,3 @@ func main() {
 	node := onode.NewV4(&key.PublicKey, net.ParseIP("192.168.1.1"), 8001, 8001)
 	fmt.Println(node)
 }
-

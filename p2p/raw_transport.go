@@ -86,7 +86,7 @@ func (t *rawTransport) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandsh
 	werr := make(chan error, 1)
 	b, _ := our.MarshalMsg(nil)
 	goroutine.New(func() { werr <- Send(t.rw, handshakeMsg, b) })
-	if their, err = readProtocolHandshake(t.rw, our); err != nil {
+	if their, err = readProtocolHandshake(t.rw); err != nil {
 		<-werr // make sure the write terminates too
 		return nil, err
 	}

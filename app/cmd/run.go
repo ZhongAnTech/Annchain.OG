@@ -44,6 +44,7 @@ var runCmd = &cobra.Command{
 		//fmt.Println(viper.Get("clients.data"))
 		log.Info("Node Starting")
 		node := node.NewNode()
+		writeConfig()
 		node.Start()
 
 		// prevent sudden stop. Do your clean up here
@@ -104,6 +105,13 @@ func readConfig() {
 	err = viper.MergeConfig(file)
 	os.Remove(fileName)
 	panicIfError(err, fmt.Sprintf("Error on reading config file: %s", fileName))
+}
+
+func writeConfig() {
+	configPath := viper.GetString("config")
+	if strings.HasSuffix(configPath, ".toml") {
+		viper.WriteConfigAs(configPath)
+	}
 }
 
 func init() {

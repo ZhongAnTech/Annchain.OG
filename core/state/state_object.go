@@ -126,7 +126,7 @@ func (s *StateObject) GetCommittedState(db Database, key types.Hash) types.Hash 
 	// load state from trie db.
 	b, err := s.openTrie(db).TryGet(key.ToBytes())
 	if err != nil {
-		log.Errorf("get from trie db error: %v, key: %x",err, key.ToBytes())
+		log.Errorf("get from trie db error: %v, key: %x", err, key.ToBytes())
 		s.setError(err)
 	} else {
 		s.committedStorage[key] = value

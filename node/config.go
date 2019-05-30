@@ -24,8 +24,10 @@ import (
 	"github.com/annchain/OG/p2p/onode"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -57,6 +59,8 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 		if err != nil {
 			panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 		}
+		data := crypto.FromECDSA(key)
+		viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
 		return key
 	}
 
@@ -77,6 +81,8 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	if err := crypto.SaveECDSA(keyfile, key); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 	}
+	data := crypto.FromECDSA(key)
+	viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
 	return key
 }
 
@@ -94,7 +100,7 @@ func resolvePath(path string) string {
 
 }
 
-func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
+func NewP2PServer(privKey *ecdsa.PrivateKey, bootNode bool) *p2p.Server {
 	var p2pConfig p2p.Config
 	p2pConfig.PrivateKey = privKey
 	port := viper.GetString("p2p.port")
@@ -123,6 +129,15 @@ func NewP2PServer(privKey *ecdsa.PrivateKey) *p2p.Server {
 	//p2pConfig.BootstrapNodesV5: config.BootstrapNodes.nodes,
 	p2pConfig.NAT = nat.Any()
 	p2pConfig.NoEncryption = viper.GetBool("p2p.no_encryption")
+
+	if bootNode {
+		tcpPort, err := strconv.Atoi(port)
+		if err != nil {
+			panic(err)
+		}
+		ogNode := onode.NewV4(&privKey.PublicKey, net.ParseIP("127.0.0.1"), tcpPort, tcpPort)
+		viper.SetDefault("p2p.bootstrap_nodes", ogNode.String())
+	}
 
 	return &p2p.Server{Config: p2pConfig}
 }

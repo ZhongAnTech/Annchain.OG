@@ -15,7 +15,7 @@ func main() {
 	}
 	data := crypto.FromECDSA(key)
 	fmt.Println("nodekey", hex.EncodeToString(data))
-	node := onode.NewV4(&key.PublicKey, net.ParseIP("0.0.0.0"), 8001, 8001)
+	node := onode.NewV4(&key.PublicKey, net.ParseIP("192.168.1.1"), 8001, 8001)
 	fmt.Println(node)
 }
 

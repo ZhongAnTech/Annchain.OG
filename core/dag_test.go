@@ -99,12 +99,12 @@ func TestDagLoadGenesis(t *testing.T) {
 	}
 
 	acc := core.NewAccessor(db)
-	genesis, _ := core.DefaultGenesis(crypto.CryptoTypeSecp256k1,"genesis.json")
+	genesis, _ := core.DefaultGenesis(crypto.CryptoTypeSecp256k1, "genesis.json")
 	err := acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
 	}
-	if  ok,_ := dag.LoadLastState(); !ok {
+	if ok, _ := dag.LoadLastState(); !ok {
 		t.Fatalf("can't load last state from db")
 	}
 

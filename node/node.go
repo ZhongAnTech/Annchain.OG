@@ -351,7 +351,7 @@ func NewNode() *Node {
 	var p2pServer *p2p.Server
 	if viper.GetBool("p2p.enabled") {
 		privKey := getNodePrivKey()
-		p2pServer = NewP2PServer(privKey)
+		p2pServer = NewP2PServer(privKey, bootNode)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
 		hub.NodeInfo = p2pServer.NodeInfo
 

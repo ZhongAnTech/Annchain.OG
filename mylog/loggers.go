@@ -34,17 +34,16 @@ func panicIfError(err error, message string) {
 	}
 }
 
-func RotateLog(abspath string )*rotatelogs.RotateLogs {
+func RotateLog(abspath string) *rotatelogs.RotateLogs {
 	logFile, err := rotatelogs.New(
 		abspath+"%Y%m%d%H%M%S.log",
 		rotatelogs.WithLinkName(abspath+".log"),
-		rotatelogs.WithMaxAge(24 * time.Hour*7),
+		rotatelogs.WithMaxAge(24*time.Hour*7),
 		rotatelogs.WithRotationTime(time.Hour*24),
 	)
-	panicIfError(err,"err init log")
+	panicIfError(err, "err init log")
 	return logFile
 }
-
 
 func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus.Logger {
 	var writer io.Writer

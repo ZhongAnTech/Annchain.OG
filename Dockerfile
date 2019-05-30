@@ -13,15 +13,15 @@ RUN cd /go/src/github.com/annchain/OG && make og
 # Copy OG into basic alpine image
 FROM alpine:latest
 
-# COPY --from=builder /go/src/github.com/annchain/OG/config.toml /opt/
-# COPY --from=builder /go/src/github.com/annchain/OG/genesis.json /opt/
+COPY --from=builder /go/src/github.com/annchain/OG/config.toml /opt/rw
+COPY --from=builder /go/src/github.com/annchain/OG/genesis.json /opt/rw
 COPY --from=builder /go/src/github.com/annchain/OG/build/og /opt/
 
 EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 
 WORKDIR /opt
 
-CMD ["./og", "-c", "config.toml", "-m", "-n", "-l", "log/", "run"]
+CMD ["./og", "-c", "rw/config.toml", "-m", "-n", "-l", "rw/log/", "run"]
 
 
 

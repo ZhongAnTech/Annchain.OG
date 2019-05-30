@@ -611,14 +611,14 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	sort.Sort(batch.Txs)
 	txhashes := types.Hashes{}
 	consTxs := []types.Txi{}
+	sId := dag.statedb.Snapshot()
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
-		err = dag.WriteTransaction(dbBatch, txi)
-		if err != nil {
-			return fmt.Errorf("write tx into db error: %v", err)
-		}
 		_, receipt, err := dag.ProcessTransaction(txi)
 		if err != nil {
+			dag.statedb.RevertToSnapshot(sId)
+			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
+				"process tx error , revert to snap short")
 			return err
 		}
 		receipts[txi.GetTxHash().Hex()] = receipt
@@ -631,6 +631,23 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
 			consTxs = append(consTxs, txi)
 		}
+	}
+	var writedTxs types.Txis
+	for _, txi := range batch.Txs {
+		err = dag.WriteTransaction(dbBatch, txi)
+		if err != nil {
+			log.WithError(err).Error("write tx error, normally never happen")
+			dag.statedb.RevertToSnapshot(sId)
+			for _, txi := range writedTxs {
+				e := dag.DeleteTransaction(txi.GetTxHash())
+				if e != nil {
+					log.WithField("tx ", txi).WithError(e).Error("delete tx error")
+				}
+			}
+			return fmt.Errorf("write tx into db error: %v", err)
+		}
+		tx := txi
+		writedTxs = append(writedTxs, tx)
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
 
@@ -741,6 +758,10 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	return nil
 }
 
+func (dag *Dag) DeleteTransaction(hash types.Hash) error {
+	return dag.accessor.DeleteTransaction(hash)
+}
+
 // ProcessTransaction execute the tx and update the data in statedb.
 //
 // Besides balance and nonce, if a tx is trying to create or call a
@@ -811,6 +832,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	}
 	if err != nil {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
+		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
 	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTxSuccess, "", contractAddress)

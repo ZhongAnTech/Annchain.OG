@@ -78,7 +78,7 @@ disable_encrypt_gossip = false
 algorithm = "secp256k1"
 
 [dag]
-genesis_path = "rw/genesis.json"
+genesis_path = "genesis.json"
 #your own coinbase private key
 my_private_key = "0x0154656564564564abcd54654654654645654656465465454665456456454654654654656445656454654656454654656465453546556564"
 

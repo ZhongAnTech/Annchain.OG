@@ -16,7 +16,7 @@ port = 8001
 max_peers = 50
 network_id = 1
 enable_sync = true
-bootstrap_nodes = "onode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@127.0.0.1:8001"
+bootstrap_nodes = "onode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@47.100.222.11:8001"
 # node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
 no_encryption = false 
 
@@ -57,11 +57,11 @@ timeout_latest_seq_ms = 10000
 nonce_self_discipline = false
 
 [auto_client.sequencer]
-enabled = true
+enabled = false
 interval_us = 5_000_000
 
 [auto_client.tx]
-enabled = true
+enabled = false
 interval_us = 500_000
 account_ids = [0,1]
 interval_mode = "random"
@@ -84,7 +84,7 @@ my_private_key = "0x0154656564564564abcd5465465465464565465646546545466545645645
 
 
 [annsensus]
-campaign = true
+campaign = false
 partner_number = 4
 threshold = 4
 genesis_pk ="0x010473585a17e7d75fdb91ff71106c90c23f226a4f0fde6d64ba5546b8d032c64e2d90f94868a176e5f807f74164aac8a406cba154536e99ba49611ffd69039925d2;0x010460e93da646f17d40323557664ecb716849cd63ea3154fce1ac2f9dba103e454b66d8d976fe3154e5dc908245f5d1e30b20b5fe88e45c2c71361beab649529b96;0x010437fd7e40ee2eebb7a7e2c5f60864ebf2bcaee50eb0ebd37e9e150dca1f81e398fd79307164edfd3b95c79dd8f562055fc23e2d4f49acd249f14729fb2bc79a02;0x0104519ce72752e08b3e6f96f8add631d2b92080652426993bab0feddc3bf28a88fbd4f17249f108d1fe18458f4c6ea4e8eef40baf63d7cd89434506ff1fae3b5ae5"

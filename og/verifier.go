@@ -14,6 +14,7 @@
 package og
 
 import (
+	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -69,7 +70,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		return false
 	}
 	if !v.VerifySignature(t) {
-		logrus.WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
+		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
 	return true
@@ -81,8 +82,8 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 		logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
 		return false
 	}
-	if t.CalcTxHash() != t.GetTxHash() {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
+	if calcHash := t.CalcTxHash() ; calcHash!= t.GetTxHash() {
+		logrus.WithField("calcHash ",calcHash).WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
 		return false
 	}
 	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {

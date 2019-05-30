@@ -7,7 +7,7 @@ ENV GOPROXY https://goproxy.io
 ENV GO111MODULE on
 
 ADD . /go/src/github.com/annchain/OG
-RUN cd /go/src/github.com/annchain/OG && go mod init
+# RUN cd /go/src/github.com/annchain/OG && go mod init
 RUN cd /go/src/github.com/annchain/OG && make og
 
 # Copy OG into basic alpine image

@@ -47,6 +47,10 @@ func (s *SignerEd25519) AddressFromPubKeyBytes(pubKey []byte) types.Address {
 	return s.Address(PublicKeyFromBytes(CryptoTypeEd25519, pubKey))
 }
 
+func (s *SignerEd25519) PublicKeyFromBytes(b []byte) PublicKey {
+	return PublicKeyFromBytes(s.GetCryptoType(), b)
+}
+
 func (s *SignerEd25519) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	//validate to prevent panic
 	if l := len(pubKey.Bytes); l != ed25519.PublicKeySize {

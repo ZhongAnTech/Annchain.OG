@@ -62,6 +62,9 @@ func NewNode() *Node {
 	default:
 		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
+	//set default signer
+	crypto.Signer = crypto.NewSigner(cryptoType)
+
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
 		maxPeers = defaultMaxPeers
@@ -80,7 +83,6 @@ func NewNode() *Node {
 	org, err := og.NewOg(
 		og.OGConfig{
 			NetworkId:   uint64(networkId),
-			CryptoType:  cryptoType,
 			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
@@ -109,8 +111,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, hub)
 
 	// Setup crypto algorithm
-	signer := crypto.NewSigner(cryptoType)
-	types.Signer = signer
+	types.Signer = crypto.Signer
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,
@@ -118,8 +119,6 @@ func NewNode() *Node {
 	}
 
 	txFormatVerifier := &og.TxFormatVerifier{
-		Signer:       signer,
-		CryptoType:   signer.GetCryptoType(),
 		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
@@ -241,7 +240,6 @@ func NewNode() *Node {
 	miner := &miner2.PoWMiner{}
 
 	txCreator := &og.TxCreator{
-		Signer:             signer,
 		Miner:              miner,
 		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
@@ -275,7 +273,7 @@ func NewNode() *Node {
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
-	genesisAccounts := parserGenesisAccounts(signer, viper.GetString("annsensus.genesis_pk"))
+	genesisAccounts := parserGenesisAccounts(viper.GetString("annsensus.genesis_pk"))
 
 	disableConsensus := viper.GetBool("annsensus.disable")
 	campaign := viper.GetBool("annsensus.campaign")
@@ -294,7 +292,7 @@ func NewNode() *Node {
 	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
 		partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{
-		SampleAccounts:         core.GetSampleAccounts(cryptoType),
+		SampleAccounts:         core.GetSampleAccounts(),
 		NodeStatusDataProvider: org,
 	}
 

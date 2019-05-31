@@ -11,16 +11,4 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
-
-import (
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
-)
-
-type MessageSender interface {
-	BroadcastMessage(messageType og.MessageType, message types.Message)
-	SendToAnynomous(messageType og.MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey)
-	SendToPeer(peerId string, messageType og.MessageType, msg types.Message) error
-}
+package bft

@@ -18,8 +18,6 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -37,9 +35,8 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
-	NetworkId  uint64
-	CryptoType crypto.CryptoType
-	quit       chan bool
+	NetworkId uint64
+	quit      chan bool
 }
 
 func (og *Og) GetCurrentNodeStatus() StatusData {
@@ -58,7 +55,6 @@ func (og *Og) GetHeight() uint64 {
 
 type OGConfig struct {
 	NetworkId   uint64
-	CryptoType  crypto.CryptoType
 	GenesisPath string
 }
 
@@ -76,7 +72,6 @@ func NewOg(config OGConfig) (*Og, error) {
 	}
 
 	og.NetworkId = config.NetworkId
-	og.CryptoType = config.CryptoType
 	db, err := CreateDB()
 	if err != nil {
 		return nil, err
@@ -90,7 +85,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, nil, config.CryptoType)
+	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, nil)
 	if err != nil {
 		return nil, err
 	}

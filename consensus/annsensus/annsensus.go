@@ -20,6 +20,10 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/annsensus/announcer"
+	"github.com/annchain/OG/consensus/annsensus/bft"
+	"github.com/annchain/OG/consensus/annsensus/dkg"
+	"github.com/annchain/OG/consensus/annsensus/term"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"sync"
 	"sync/atomic"
@@ -36,18 +40,17 @@ type AnnSensus struct {
 	campaignFlag bool
 	cryptoType   crypto.CryptoType
 
-	dkg  *Dkg
-	term *Term
-	bft  *BFT // tendermint protocal
+	dkg  *dkg.Dkg
+	term *term.Term
+	bft  *bft.BFT // tendermint protocal
 
 	dkgPulicKeyChan      chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.
 	ConsensusTXConfirmed chan []types.Txi // receiving consensus txs from dag confirm.
 	startTermChange      chan bool
 
-	Hub    MessageSender
-	Txpool og.ITxPool
-	Idag   og.IDag
+	Hub  announcer.MessageSender
+	Idag og.IDag
 
 	MyAccount      *account.SampleAccount
 	Threshold      int
@@ -101,10 +104,9 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.cryptoType = cryptoType
 	ann.dkgPulicKeyChan = make(chan kyber.Point)
 	ann.UpdateEvent = make(chan bool)
-	dkg := newDkg(ann, campaign, partnerNum, Maj23(partnerNum))
-	ann.dkg = dkg
+
 	ann.genesisAccounts = genesisAccounts
-	t := newTerm(0, partnerNum, termChangeInterval)
+	t := term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.term = t
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
@@ -115,8 +117,11 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.startTermChange = make(chan bool)
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 
-	ann.ConfigFilePath = configFile
 	ann.termChangeChan = make(chan *types.TermChange)
+	dkg := dkg.NewDkg(campaign, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	dkg.ConfigFilePath = configFile
+	ann.dkg = dkg
+
 	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
 
 	return ann
@@ -134,7 +139,8 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 		}
 	}
 	as.dkg.SetId(myId)
-	as.bft = NewBFT(as, as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator)
+	as.dkg.SetAccount(as.MyAccount)
+	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, as.Idag, as.MyAccount, as.OnSelfGenTxi)
 	as.addBftPartner()
 }
 
@@ -144,7 +150,7 @@ func (as *AnnSensus) Start() {
 		log.Warn("annsensus disabled")
 		return
 	}
-	as.dkg.start()
+	as.dkg.Start()
 	as.bft.Start()
 	goroutine.New(as.loop)
 	goroutine.New(as.termChangeLoop)
@@ -156,7 +162,7 @@ func (as *AnnSensus) Stop() {
 		return
 	}
 	as.bft.Stop()
-	as.dkg.stop()
+	as.dkg.Stop()
 	close(as.close)
 }
 
@@ -200,7 +206,8 @@ func (as *AnnSensus) ProduceCampaignOn() {
 func (as *AnnSensus) produceCampaign() {
 	//generate new dkg public key for every campaign
 	if as.term.HasCampaign(as.MyAccount.Address) {
-		log.WithField("als", as.term.alsorans).WithField("cps ", as.term.campaigns).WithField("candidates", as.term.candidates).Debug("has campaign ")
+		log.WithField("als", as.term.Alsorans()).WithField("cps ",
+			as.term.Campaigns()).WithField("candidates", as.term.Candidates()).Debug("has campaign ")
 		return
 	}
 	candidatePublicKey := as.dkg.GenerateDkg()
@@ -300,14 +307,14 @@ func (as *AnnSensus) termChangeLoop() {
 			return
 
 		case <-as.startTermChange:
-			log := as.dkg.log()
+			log := as.dkg.Log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
 			if cp == nil {
 				log.Warn("cannot found campaign, i ma not a partner , no dkg gossip")
 			}
 			as.dkg.Reset(cp)
-			as.dkg.SelectCandidates()
-			if !as.dkg.isValidPartner {
+			as.dkg.SelectCandidates(as.Idag.LatestSequencer())
+			if !as.dkg.IsValidPartner() {
 				log.Debug("i am not a lucky dkg partner quit")
 				as.term.SwitchFlag(false)
 				continue
@@ -316,7 +323,7 @@ func (as *AnnSensus) termChangeLoop() {
 			goroutine.New(as.dkg.StartGossip)
 
 		case pk := <-as.dkgPulicKeyChan:
-			log := as.dkg.log()
+			log := as.dkg.Log()
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			//after dkg  gossip finished, set term change flag
 			//term change is finished
@@ -413,14 +420,12 @@ func (as *AnnSensus) addGenesisCampaigns() {
 func (as *AnnSensus) addBftPartner() {
 	log.Debug("add bft partners")
 	//should participate in genesis  bft process
-	if !as.dkg.dkgOn {
-		as.dkg.dkgOn = true
-	}
+	as.dkg.On()
 
-	var peers []BFTPartner
+	var peers []bft.BFTPartner
 	for i, pk := range as.genesisAccounts {
 		//the third param is not used in peer
-		peers = append(peers, NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
+		peers = append(peers, bft.NewOgBftPeer(pk, as.NbParticipants, i, time.Second))
 	}
 	as.bft.BFTPartner.SetPeers(peers)
 }
@@ -490,13 +495,13 @@ func (as *AnnSensus) loop() {
 					goto HandleCampaign
 				}
 				//if i am not a dkg partner , dkg publick key will got from termChange tx
-				if !as.dkg.isValidPartner {
+				if !as.dkg.IsValidPartner() {
 					pk, err := bn256.UnmarshalBinaryPointG2(tc.PkBls)
 					if err != nil {
 						log.WithError(err).Warn("unmarshal failed dkg joint public key")
 						continue
 					}
-					as.dkg.partner.jointPubKey = pk
+					as.dkg.SetJointPk(pk)
 				}
 				//send the signal if i am a partner of consensus nodes
 				//if as.dkg.isValidPartner {
@@ -523,15 +528,15 @@ func (as *AnnSensus) loop() {
 			// 2. produce raw_seq and broadcast it to network.
 			// 3. start bft until someone produce a seq with BLS sig.
 			log.Info("got newTermChange signal")
-			as.bft.Reset(as.dkg.TermId, as.term.formerPublicKeys, int(as.dkg.partner.Id))
+			as.bft.Reset(as.dkg.TermId, as.term.GetFormerPks(), int(as.dkg.GetId()))
 			// 3. start pbft until someone produce a seq with BLS sig.
 			//TODO how to save consensus data
 			if as.dkg.TermId == 1 {
 			}
 
-			if as.dkg.isValidPartner {
-				as.SaveConsensusData()
-				as.bft.startBftChan <- true
+			if as.dkg.IsValidPartner() {
+				as.dkg.SaveConsensusData()
+				as.bft.StartGossip()
 			} else {
 				log.Debug("is not a valid partner")
 			}
@@ -615,17 +620,18 @@ func (as *AnnSensus) loop() {
 					continue
 				}
 				//in this case  , node is a genesis partner, load data
-				if as.dkg.partner.jointPubKey == nil && height == 0 {
+
+				if pk := as.dkg.GetJoinPublicKey(as.dkg.TermId); pk == nil && height == 0 {
 					//load consensus data
-					config, err := as.LoadConsensusData()
+					config, err := as.dkg.LoadConsensusData()
 					if err != nil {
 						log.WithError(err).Error("load error")
 						panic(err)
 					}
-					as.SetConfig(config)
+					as.dkg.SetConfig(config)
 					log.Debug("will set config")
 					as.addGenesisCampaigns()
-					tc := as.genTermChg(as.dkg.partner.jointPubKey, nil)
+					tc := as.genTermChg(pk, nil)
 					as.term.ChangeTerm(tc, height)
 				}
 				if isUptoDate {
@@ -641,7 +647,7 @@ func (as *AnnSensus) loop() {
 			} else {
 				//not a consensus partner , obtain genesis dkg public key from network
 				//
-				if as.term.started {
+				if as.term.Started() {
 					eventInit = true
 					continue
 				}
@@ -668,7 +674,7 @@ func (as *AnnSensus) loop() {
 			if peerNum == as.NbParticipants-1 && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")
 				goroutine.New(func() {
-					as.dkg.SendGenesisPublicKey()
+					as.dkg.SendGenesisPublicKey(as.genesisAccounts)
 				})
 				initDone = true
 			}
@@ -687,7 +693,7 @@ func (as *AnnSensus) loop() {
 				log.Debug("one term change is enough")
 				continue
 			}
-			as.dkg.partner.jointPubKey = pk
+			as.dkg.SetJointPk(pk)
 			eventInit = true
 			as.addGenesisCampaigns()
 			as.term.ChangeTerm(tc, as.Idag.GetHeight())
@@ -736,55 +742,19 @@ func (as *AnnSensus) loop() {
 
 		case hash := <-as.ProposalSeqChan:
 			log.WithField("hash ", hash.TerminalString()).Debug("got proposal seq hash")
-			request := as.bft.proposalCache[hash]
-			if request != nil {
-				delete(as.bft.proposalCache, hash)
-				m := Message{
-					Type:    og.MessageTypeProposal,
-					Payload: request,
-				}
-				as.bft.BFTPartner.GetIncomingMessageChannel() <- m
-
-			}
 
 		}
 	}
 
 }
 
-type DKGInfo struct {
-	TermId             int                   `json:"term_id"`
-	Id                 uint32                `json:"id"`
-	PartPubs           []kyber.Point         `json:"part_pubs"`
-	MyPartSec          kyber.Scalar          `json:"-"`
-	CandidatePartSec   []kyber.Scalar        `json:"-"`
-	CandidatePublicKey [][]byte              `json:"candidate_public_key"`
-	AddressIndex       map[types.Address]int `json:"address_index"`
+type ConsensusInfo struct {
+	Dkg *dkg.DKGInfo `json:"dkg"`
+	Bft *bft.BFTInfo `json:"bft"`
 }
 
-type BFTInfo struct {
-	BFTPartner    PeerInfo      `json:"bft_partner"`
-	DKGTermId     int           `json:"dkg_term_id"`
-	SequencerTime time.Duration `json:"sequencer_time"`
-	Partners      []PeerInfo    `json:"partners"`
-}
-
-func (a *AnnSensus) GetDkgBftInfo() (*DKGInfo, *BFTInfo) {
-	dkgInfo := DKGInfo{
-		TermId:             a.dkg.TermId,
-		Id:                 a.dkg.partner.Id,
-		PartPubs:           a.dkg.partner.PartPubs,
-		MyPartSec:          a.dkg.partner.MyPartSec,
-		CandidatePublicKey: a.dkg.partner.CandidatePublicKey,
-		CandidatePartSec:   a.dkg.partner.CandidatePartSec,
-		AddressIndex:       a.dkg.partner.addressIndex,
-	}
-
-	bftInfo := BFTInfo{
-		BFTPartner:    a.bft.BFTPartner.PeerInfo,
-		Partners:      a.bft.BFTPartner.PeersInfo,
-		DKGTermId:     a.bft.DKGTermId,
-		SequencerTime: a.bft.SequencerTime,
-	}
-	return &dkgInfo, &bftInfo
+func (a *AnnSensus) GetInfo() *ConsensusInfo {
+	var info ConsensusInfo
+	info.Dkg, info.Bft = a.dkg.GetInfo(), a.bft.GetInfo()
+	return &info
 }

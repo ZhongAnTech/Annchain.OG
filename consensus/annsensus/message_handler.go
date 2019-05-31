@@ -16,6 +16,7 @@ package annsensus
 import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/og"
 	"sync/atomic"
 
@@ -27,7 +28,7 @@ func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageCon
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgGenesisPublicKey")
 		return
@@ -53,7 +54,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDeal")
 		return
@@ -66,7 +67,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 		log.Warn("verify signature failed")
 		return
 	}
-	a.dkg.gossipReqCh <- request
+	a.dkg.HandleDkgDeal(request)
 
 }
 
@@ -76,7 +77,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgDealResponse")
 		return
@@ -91,7 +92,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 	}
 	log.Debug("response ok")
 
-	a.dkg.gossipRespCh <- request
+	a.dkg.HandleDkgDealRespone(request)
 }
 
 //HandleConsensusDkgSigSets
@@ -100,7 +101,7 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
@@ -116,7 +117,7 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 	}
 	log.Debug("response ok")
 
-	a.dkg.gossipSigSetspCh <- request
+	a.dkg.HandleSigSet(request)
 }
 
 //HandleConsensusProposal
@@ -125,12 +126,12 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil || request.Value == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
-	if !a.bft.started {
+	if !a.bft.Started() {
 		log.Debug("bft not started yet")
 		return
 	}
@@ -151,12 +152,12 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 	}
 	seq.Proposing = true
 
-	if !a.bft.verifyProposal(request, pk) {
+	if !a.bft.VerifyProposal(request, pk) {
 		log.WithField("seq ", request).Warn("verify raw seq fail")
 		return
 	}
 	//cache them and sent to buffer to verify
-	a.bft.proposalCache[seq.GetTxHash()] = request
+	a.bft.CacheProposal(seq.GetTxHash(), request)
 	a.HandleNewTxi(&seq)
 	log.Debug("response ok")
 	//m := Message{
@@ -173,12 +174,12 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
-	if !a.bft.started {
+	if !a.bft.Started() {
 		log.Debug("bft not started yet")
 		return
 	}
@@ -190,12 +191,12 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
-	if !a.bft.verifyIsPartNer(pk, int(request.SourceId)) {
+	if !a.bft.VerifyIsPartNer(pk, int(request.SourceId)) {
 		log.WithField("request ", request).Warn("verify partner failed")
 		return
 	}
 
-	m := Message{
+	m := bft.Message{
 		Type:    og.MessageTypePreVote,
 		Payload: request,
 	}
@@ -209,13 +210,13 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := a.dkg.log()
+	log := a.dkg.Log()
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
 
-	if !a.bft.started {
+	if !a.bft.Started() {
 		log.Debug("bft not started yet")
 		return
 	}
@@ -228,15 +229,11 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 		return
 	}
 
-	if !a.bft.verifyIsPartNer(pk, int(request.SourceId)) {
+	if !a.bft.VerifyIsPartNer(pk, int(request.SourceId)) {
 		log.WithField("request ", request).Warn("verify signature failed")
 		return
 	}
-	m := Message{
-		Type:    og.MessageTypePreCommit,
-		Payload: request,
-	}
-	a.bft.BFTPartner.GetIncomingMessageChannel() <- m
+	a.bft.HandlePreCommit(request)
 
 }
 
@@ -245,19 +242,19 @@ func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequ
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
 	}
-	log := log.WithField("me", a.dkg.partner.Id)
+	log := log.WithField("me", a.dkg.GetId())
 	if request == nil {
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
-	if !a.term.started {
+	if !a.term.Started() {
 		log.Debug("term change  not started yet")
 		return
 	}
 	s := crypto.NewSigner(a.cryptoType)
 
 	//send  genesis term change
-	tc := a.term.genesisTermChange
+	tc := a.term.GetGenesisTermChange()
 	tc.GetBase().PublicKey = a.MyAccount.PublicKey.Bytes
 	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).Bytes
 	tc.GetBase().Hash = tc.CalcTxHash()
@@ -278,7 +275,7 @@ func (a *AnnSensus) HandleTermChangeResponse(response *types.MessageTermChangeRe
 		log.Warn("got nil MessageConsensusDkgSigSets")
 		return
 	}
-	if a.term.started {
+	if a.term.Started() {
 		log.Debug("term change  already stated")
 		return
 	}

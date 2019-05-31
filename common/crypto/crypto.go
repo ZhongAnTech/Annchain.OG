@@ -163,7 +163,7 @@ func (p *PublicKey) String() string {
 	return hexutil.Encode(bytes)
 }
 
-func NewSigner(cryptoType CryptoType) Signer {
+func NewSigner(cryptoType CryptoType) ISigner {
 	if cryptoType == CryptoTypeEd25519 {
 		return &SignerEd25519{}
 	} else if cryptoType == CryptoTypeSecp256k1 {

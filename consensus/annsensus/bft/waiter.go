@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package bft
 
 import (
 	"github.com/annchain/OG/ffchan"
@@ -54,7 +54,7 @@ func (w *Waiter) StartEventLoop() {
 	for {
 		select {
 		case <-w.quit:
-			log.Info("got quit msg , will stop event loop")
+			logrus.Info("got quit msg , will stop event loop")
 			return
 		case request := <-w.requestChannel:
 			// could be an updated request

@@ -11,10 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package dkg
 
 import (
 	"fmt"
+	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/filename"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/sirupsen/logrus"
 	"testing"
 
 	"github.com/annchain/OG/types"
@@ -26,16 +32,23 @@ func TestDkg_VerifyBlsSig(t *testing.T) {
 	seq.BlsJointPubKey = []byte{}
 }
 
+func logInit() {
+	Formatter := new(logrus.TextFormatter)
+	Formatter.TimestampFormat = "15:04:05.000000"
+	Formatter.FullTimestamp = true
+	logrus.SetFormatter(Formatter)
+	logrus.SetLevel(logrus.TraceLevel)
+	filenameHook := filename.NewHook()
+	filenameHook.Field = "line"
+	logrus.AddHook(filenameHook)
+	log = logrus.StandardLogger()
+}
 func TestVrfSelections_Le(t *testing.T) {
 	logInit()
-	ann := AnnSensus{
-		Idag:           &DummyDag{},
-		NbParticipants: 4,
-	}
-	d := newDkg(&ann, true, 4, 3)
-	tm := newTerm(1, 21, 4)
-	ann.term = tm
-	ann.dkg = d
+
+	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
+	tm := term.NewTerm(1, 21, 4)
+	d.term = tm
 	for i := 0; i < 21; i++ {
 		h := types.RandomHash()
 		cp := types.Campaign{
@@ -44,16 +57,24 @@ func TestVrfSelections_Le(t *testing.T) {
 			},
 			Issuer: types.RandomAddress(),
 		}
-		tm.campaigns[cp.Issuer] = &cp
+		tm.AddCampaign(&cp)
 	}
-	d.SelectCandidates()
+	seq := &types.Sequencer{
+		BlsJointSig: types.RandomAddress().ToBytes(),
+	}
+	d.myAccount = getRandomAccount()
+	d.SelectCandidates(seq)
 	return
+}
+
+func getRandomAccount() *account.SampleAccount {
+	_, priv := crypto.Signer.RandomKeyPair()
+	return account.NewAccount(priv.String())
 }
 
 func TestDKgLog(t *testing.T) {
 	logInit()
-	var d *Dkg
-	d = newDkg(&AnnSensus{}, true, 4, 3)
+	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
 	log := log.WithField("me", d.GetId())
 	log.Debug("hi")
 	d.partner.Id = 10
@@ -62,7 +83,7 @@ func TestDKgLog(t *testing.T) {
 
 func TestReset(t *testing.T) {
 	logInit()
-	d := newDkg(&AnnSensus{}, true, 4, 3)
+	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
 	log.Debug("sk ", d.partner.MyPartSec)
 	d.Reset(nil)
 	log.Debug("sk ", d.partner.MyPartSec)
@@ -70,5 +91,18 @@ func TestReset(t *testing.T) {
 	log.Debug("sk ", d.partner.MyPartSec)
 	d.Reset(nil)
 	log.Debug("sk ", d.partner.MyPartSec)
+
+}
+
+func TestNewDKGPartner(t *testing.T) {
+
+	for j := 0; j < 22; j++ {
+		fmt.Println(j, j*2/3+1)
+	}
+	for i := 0; i < 4; i++ {
+		d := NewDkg(true, 4, 3, nil, nil, nil, nil)
+		fmt.Println(hexutil.Encode(d.PublicKey()))
+		fmt.Println(d.partner.MyPartSec)
+	}
 
 }

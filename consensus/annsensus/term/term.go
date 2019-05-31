@@ -11,13 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package term
 
 import (
 	"github.com/annchain/OG/common/crypto"
 	"sync"
 
 	"github.com/annchain/OG/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type Term struct {
@@ -42,7 +43,7 @@ type Term struct {
 	started           bool
 }
 
-func newTerm(id uint64, participantNumber int, termChangeInterval int) *Term {
+func NewTerm(id uint64, participantNumber int, termChangeInterval int) *Term {
 	return &Term{
 		id:                 id,
 		flag:               false,
@@ -82,11 +83,21 @@ func (t *Term) SetStartedHeight(h uint64) {
 	t.startedHeight = h
 }
 
+func (t *Term) GetGenesisTermChange() *types.TermChange {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.genesisTermChange
+}
+
 func (t *Term) Changing() bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.flag
+}
+
+func (t *Term) Started() bool {
+	return t.started
 }
 
 func (t *Term) GetCandidate(addr types.Address) *types.Campaign {
@@ -123,6 +134,13 @@ func (t *Term) GetCampaign(addr types.Address) *types.Campaign {
 	defer t.mu.RUnlock()
 
 	return t.campaigns[addr]
+}
+
+func (t *Term) Campaigns() map[types.Address]*types.Campaign {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	return t.campaigns
 }
 
 func (t *Term) GetAlsoran(addr types.Address) *types.Campaign {
@@ -274,4 +292,14 @@ func (t *Term) GetSenator(address types.Address) *Senator {
 		return v
 	}
 	return nil
+}
+
+func (t *Term) ClearCampaigns() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.campaigns = nil
+}
+
+func (t *Term) GetFormerPks() []crypto.PublicKey {
+	return t.formerPublicKeys
 }

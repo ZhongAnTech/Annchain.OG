@@ -1,0 +1,18 @@
+{
+	"d_kg_secret_key": "eVxLlAioKacSXv45nqukCEEIPMRFk10FzbXvRGvWY7Y=",
+	"d_kg_joint_public_key": "joRr9Bk5nkIf7yHp3NadZTGMoGIBJL32olAiBolUZuUUyrNz+qrxdJHentTe5mFcSaI8tInh/CBz9t0d+/SnhwhRCrILKpAiF/YatpB05ISbSR9Npcn02rdGJQxXOzZbRIfeTBHNj5EgRirIqeBcGmPGKfHIGhE/jjiaE9iTI+g=",
+	"commit_len": [
+		128,
+		128
+	],
+	"poly_len": [
+		32,
+		32,
+		32
+	],
+	"commits_data": "a9ZmNDRsxscdKGdRDdc2iAifBS5SiQos4giOqL6LULhT1YwdER9rswWb2p8nLWlH1PQtOu6ChgTG0tf72p8x0FxtzqigGrboFTXeqZZf2RdLUv5lfznA1heWyIkc2fxULTcXXe/fSo8ASqBMRZBFBY3QLD/0NZ6eJSLMvjY7xJtaxrboi27BbzuwwBWroScwb0SQo2KlaiJAOjyx76iw0TP6isaVoVs3rrxJY26PsqPpe/iCE4dT4FFACSebB2aLi44cslpqeN40LIELk0q3QPcCfCsW5vlcOm8c/NLvLhAYy1zMYX/e4oCGIUbVDBwrK9W8jAT60BcIGaPb75Ao5Q==",
+	"priv_poly_data": "aafL/Y6f+CT82a6GAeplNHLxfvY5AeXH5AxdhtVWT1VWMJgCu5KRmz1L6+IT5/Dhm5INpqx4VFNyY14Sd5OjVR5wjs3raEhzulkhohSTJw79qKMCLKQYpe0OMt0Us8RC",
+	"share_data": "ewoJIkkiOiAzLAoJIlYiOiB7CgkJIlYiOiAwLAoJCSJNIjogNjUwMDA1NDk2OTU2NDY2MDM3MzI3OTY0Mzg3NDIzNTk5MDU3NDI1NzA0MDYwNTM5MDM3ODYzODk4ODEwNjI5NjkwNDQxNjY3OTk5NjksCgkJIkJPIjogZmFsc2UKCX0KfQ==",
+	"partner_id": 0,
+	"SigSets": {}
+}

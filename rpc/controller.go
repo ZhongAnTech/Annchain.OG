@@ -431,7 +431,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != r.TxCreator.Signer.GetCryptoType() || pub.Type != r.TxCreator.Signer.GetCryptoType() {
+	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
 		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
 		return
 	}
@@ -455,7 +455,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 func (r *RpcController) NewAccount(c *gin.Context) {
 	var (
 		txReq  NewAccountRequest
-		signer crypto.Signer
+		signer crypto.ISigner
 		err    error
 	)
 	err = c.ShouldBindJSON(&txReq)
@@ -546,16 +546,9 @@ func (r *RpcController) ContractPayload(c *gin.Context) {
 	return
 }
 
-type Consensus struct {
-	Dkg *annsensus.DKGInfo `json:"dkg"`
-	Bft *annsensus.BFTInfo `json:"bft"`
-}
-
 func (r *RpcController) ConStatus(c *gin.Context) {
-	var con Consensus
-	con.Dkg, con.Bft = r.AnnSensus.GetDkgBftInfo()
 	cors(c)
-	Response(c, http.StatusOK, nil, con)
+	Response(c, http.StatusOK, nil, r.AnnSensus.GetInfo())
 }
 
 type ReceiptResponse struct {

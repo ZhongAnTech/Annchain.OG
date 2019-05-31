@@ -21,6 +21,6 @@ import (
 var log *logrus.Logger
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	log = mylog.InitLogger(logger, logdir, "og_fetcher.log")
+	log = mylog.InitLogger(logger, logdir, "og_fetcher")
 	logrus.Debug("fetcher logger initialized.")
 }

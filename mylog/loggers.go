@@ -36,7 +36,7 @@ func panicIfError(err error, message string) {
 
 func RotateLog(abspath string) *rotatelogs.RotateLogs {
 	logFile, err := rotatelogs.New(
-		abspath+"%Y%m%d%H%M%S.log",
+		abspath+"%Y%m%d%H%M.log",
 		rotatelogs.WithLinkName(abspath+".log"),
 		rotatelogs.WithMaxAge(24*time.Hour*7),
 		rotatelogs.WithRotationTime(time.Hour*24),
@@ -75,6 +75,6 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 }
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	TxLogger = InitLogger(logger, logdir, "og_tx.log")
+	TxLogger = InitLogger(logger, logdir, "og_tx")
 	logrus.Debug("Additional logger initialized.")
 }

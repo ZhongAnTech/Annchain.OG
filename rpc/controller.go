@@ -189,18 +189,18 @@ func (r *RpcController) Transactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
 			return
 		}
+		if r.Og.Dag.GetHeight() < uint64(id) {
+			Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+			return
+		}
 		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
 			Total int        `json:"total"`
 			Txs   types.Txis `json:"txs"`
 		}
-		if len(txs) != 0 {
-			txsResponse.Total = len(txs)
-			txsResponse.Txs = txs
-			Response(c, http.StatusOK, nil, txsResponse)
-			return
-		}
-		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		txsResponse.Total = len(txs)
+		txsResponse.Txs = txs
+		Response(c, http.StatusOK, nil, txsResponse)
 		return
 	} else {
 		addr, err := types.StringToAddress(address)

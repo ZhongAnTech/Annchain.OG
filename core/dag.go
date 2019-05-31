@@ -23,7 +23,6 @@ import (
 	// "fmt"
 	"sync"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
@@ -71,7 +70,7 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database, cryptoType crypto.CryptoType) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
 	dag.conf = conf
@@ -94,7 +93,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 
 	if !restart {
 		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis(cryptoType, conf.GenesisPath)
+		seq, balance := DefaultGenesis(conf.GenesisPath)
 		if err := dag.Init(seq, balance); err != nil {
 			return nil, err
 		}

@@ -112,14 +112,14 @@ func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Mess
 
 func (as *TestAnnSensus) Start() {
 	as.campaignFlag = false
-	as.dkg.start()
+	as.dkg.Start()
 	go as.loop()
 	go as.Hub.(*TestHub).loop()
 	logrus.Info("started ann  ", as.dkg.GetId())
 }
 
 func (a *TestAnnSensus) Stop() {
-	a.dkg.stop()
+	a.dkg.Stop()
 	close(a.close)
 	a.Hub.(*TestHub).quit <- struct{}{}
 	logrus.Info("stopped ann ", a.dkg.GetId())
@@ -146,7 +146,7 @@ func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 
 func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
 	cp.GetBase().PublicKey = as.MyAccount.PublicKey.Bytes
-	cp.GetBase().AccountNonce = uint64(as.dkg.partner.Id * 10)
+	cp.GetBase().AccountNonce = uint64(as.dkg.GetId() * 10)
 	cp.Issuer = as.MyAccount.Address
 	s := crypto.NewSigner(as.cryptoType)
 	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
@@ -351,12 +351,12 @@ func (as *TestAnnSensus) loop() {
 			// 3. start bft until someone produce a seq with BLS sig.
 			log.Info("got newTermChange signal")
 		case <-as.startTermChange:
-			log := as.dkg.log()
+			log := as.dkg.Log()
 			cp := as.term.GetCampaign(as.MyAccount.Address)
 			log.WithField("cp ", cp).Debug("will reset with cp")
 			as.dkg.Reset(cp)
-			as.dkg.SelectCandidates()
-			if !as.dkg.isValidPartner {
+			as.dkg.SelectCandidates(as.Idag.LatestSequencer())
+			if !as.dkg.IsValidPartner() {
 				log.Debug("i am not a lucky dkg partner quit")
 
 				continue
@@ -365,7 +365,7 @@ func (as *TestAnnSensus) loop() {
 			go as.dkg.StartGossip()
 
 		case pk := <-as.dkgPulicKeyChan:
-			log := as.dkg.log()
+			log := as.dkg.Log()
 			log.WithField("pk ", pk).Info("got a bls public key from dkg")
 			//after dkg  gossip finished, set term change flag
 			//term change is finished

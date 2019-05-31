@@ -11,18 +11,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package bft
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/annsensus/announcer"
+	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -34,7 +36,6 @@ type BFT struct {
 	resetChan          chan bool
 	mu                 sync.RWMutex
 	quit               chan bool
-	ann                *AnnSensus
 	creator            *og.TxCreator
 	JudgeNonceFunction func(account *account.SampleAccount) uint64
 	decisionChan       chan *commitDecision
@@ -43,8 +44,19 @@ type BFT struct {
 
 	DKGTermId     int           `json:"dkg_term_id"`
 	SequencerTime time.Duration `json:"sequencer_time"`
+	dkg           *dkg.Dkg
+
+	NbParticipants int
+
+	Hub announcer.MessageSender
+
+	dag og.IDag
+
+	myAccount *account.SampleAccount
 
 	started bool
+
+	OnSelfGenTxi chan types.Txi
 }
 
 type commitDecision struct {
@@ -85,19 +97,19 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	return bft
 }
 
-func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
-	txCreator *og.TxCreator) *BFT {
-	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
-	bft := &OGBFTPartner{
-		BFTPartner: p,
+func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
+	txCreator *og.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi) *BFT {
+	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)
+	ogBftPartner := &OGBFTPartner{
+		BFTPartner: partner,
 		PeerInfo: PeerInfo{
-			PublicKey:      ann.MyAccount.PublicKey,
-			PublicKeyBytes: ann.MyAccount.PublicKey.Bytes[:],
-			Address:        ann.MyAccount.Address,
+			PublicKey:      myAccount.PublicKey,
+			PublicKeyBytes: myAccount.PublicKey.Bytes[:],
+			Address:        myAccount.Address,
 		},
 	}
-	om := &BFT{
-		BFTPartner:    bft,
+	bft := &BFT{
+		BFTPartner:    ogBftPartner,
 		quit:          make(chan bool),
 		startBftChan:  make(chan bool),
 		resetChan:     make(chan bool),
@@ -105,16 +117,16 @@ func NewBFT(ann *AnnSensus, nbParticipants int, Id int, sequencerTime time.Durat
 		creator:       txCreator,
 		proposalCache: make(map[types.Hash]*types.MessageProposal),
 	}
-	om.BFTPartner.SetProposalFunc(om.ProduceProposal)
-	om.JudgeNonceFunction = judgeNonceFunction
-	om.SequencerTime = sequencerTime
-
-	bft.RegisterDecisionReceiveFunc(om.commitDecision)
-	om.ann = ann
-	return om
+	bft.BFTPartner.SetProposalFunc(bft.ProduceProposal)
+	bft.JudgeNonceFunction = judgeNonceFunction
+	bft.SequencerTime = sequencerTime
+	bft.OnSelfGenTxi = OnSelfGenTxi
+	ogBftPartner.RegisterDecisionReceiveFunc(bft.commitDecision)
+	return bft
 }
-func (b *BFT) AddPeers(peersPublicKey []crypto.PublicKey) {
 
+func (b *BFT) Started() bool {
+	return b.started
 }
 
 func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
@@ -126,7 +138,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
 		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk, PublicKeyBytes: pk.Bytes[:]})
-		peers = append(peers, NewOgBftPeer(pk, b.ann.NbParticipants, i, time.Second))
+		peers = append(peers, NewOgBftPeer(pk, b.NbParticipants, i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)
 	b.BFTPartner.SetPeers(peers)
@@ -134,30 +146,34 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	//TODO immediately change round ?
 }
 
-func (t *BFT) Start() {
-	goroutine.New(t.BFTPartner.WaiterLoop)
-	goroutine.New(t.BFTPartner.EventLoop)
-	goroutine.New(t.loop)
+func (b *BFT) Start() {
+	goroutine.New(b.BFTPartner.WaiterLoop)
+	goroutine.New(b.BFTPartner.EventLoop)
+	goroutine.New(b.loop)
 	logrus.Info("BFT started")
 }
 
-func (t *BFT) SetPeers() {
-	t.BFTPartner.SetPeers(nil)
+func (b *BFT) SetPeers() {
+	b.BFTPartner.SetPeers(nil)
 }
 
-func (t *BFT) Stop() {
+func (b *BFT) StartGossip() {
+	b.startBftChan <- true
+}
+
+func (b *BFT) Stop() {
 	log.Info("BFT will stop")
-	t.BFTPartner.Stop()
-	t.quit <- true
+	b.BFTPartner.Stop()
+	b.quit <- true
 	logrus.Info("BFT stopped")
 }
 
-func (t *BFT) commitDecision(state *HeightRoundState) error {
+func (b *BFT) commitDecision(state *HeightRoundState) error {
 	commit := commitDecision{
 		state:        state,
 		callbackChan: make(chan error),
 	}
-	t.decisionChan <- &commit
+	b.decisionChan <- &commit
 	// waiting for callback
 	select {
 	case err := <-commit.callbackChan:
@@ -169,18 +185,18 @@ func (t *BFT) commitDecision(state *HeightRoundState) error {
 	return nil
 }
 
-func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
-	inChan := t.BFTPartner.GetIncomingMessageChannel()
-	peers := t.BFTPartner.GetPeers()
+func (b *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
+	inChan := b.BFTPartner.GetIncomingMessageChannel()
+	peers := b.BFTPartner.GetPeers()
 	for _, peer := range peers {
 		logrus.WithFields(logrus.Fields{
-			"IM":   t.BFTPartner.GetId(),
+			"IM":   b.BFTPartner.GetId(),
 			"to":   peer.GetId(),
 			"type": msgType.String(),
 			"msg":  request.String(),
 		}).Debug("Out")
 		bftPeer := peer.(*OGBFTPartner)
-		if peer.GetId() == t.BFTPartner.GetId() {
+		if peer.GetId() == b.BFTPartner.GetId() {
 			//it is for me
 			goroutine.New(
 				func() {
@@ -195,62 +211,61 @@ func (t *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
 		}
 		//send to others
 		logrus.WithField("msg ", request).Debug("send msg ")
-		t.ann.Hub.SendToAnynomous(msgType, request, &bftPeer.PublicKey)
+		b.Hub.SendToAnynomous(msgType, request, &bftPeer.PublicKey)
 	}
 }
 
-func (t *BFT) loop() {
-	outCh := t.BFTPartner.GetOutgoingMessageChannel()
-	signer := crypto.NewSigner(t.ann.cryptoType)
-	log := log.WithField("me", t.BFTPartner.GetId())
+func (b *BFT) loop() {
+	outCh := b.BFTPartner.GetOutgoingMessageChannel()
+	log := log.WithField("me", b.BFTPartner.GetId())
 	for {
 		select {
-		case <-t.quit:
+		case <-b.quit:
 			log.Info("got quit signal, BFT loop")
 			return
-		case <-t.startBftChan:
-			if !t.started {
+		case <-b.startBftChan:
+			if !b.started {
 				goroutine.New(func() {
 
-					t.BFTPartner.StartNewEra(t.ann.Idag.LatestSequencer().Height, 0)
+					b.BFTPartner.StartNewEra(b.dag.GetHeight(), 0)
 				})
 			}
-			t.started = true
+			b.started = true
 
 		case msg := <-outCh:
 			log.Tracef("got msg %v", msg)
 			switch msg.Type {
 			case og.MessageTypeProposal:
 				proposal := msg.Payload.(*types.MessageProposal)
-				proposal.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, proposal.SignatureTargets()).Bytes
-				proposal.TermId = uint32(t.DKGTermId)
-				t.sendToPartners(msg.Type, proposal)
+				proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
+				proposal.TermId = uint32(b.DKGTermId)
+				b.sendToPartners(msg.Type, proposal)
 			case og.MessageTypePreVote:
 				prevote := msg.Payload.(*types.MessagePreVote)
-				prevote.PublicKey = t.ann.MyAccount.PublicKey.Bytes
-				prevote.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, prevote.SignatureTargets()).Bytes
-				prevote.TermId = uint32(t.DKGTermId)
-				t.sendToPartners(msg.Type, prevote)
+				prevote.PublicKey = b.myAccount.PublicKey.Bytes
+				prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
+				prevote.TermId = uint32(b.DKGTermId)
+				b.sendToPartners(msg.Type, prevote)
 			case og.MessageTypePreCommit:
 				preCommit := msg.Payload.(*types.MessagePreCommit)
 				if preCommit.Idv != nil {
-					log.WithField("dkg id ", t.ann.dkg.partner.Id).WithField("term id ", t.DKGTermId).Debug("signed ")
-					sig, err := t.ann.dkg.Sign(preCommit.Idv.ToBytes(), t.DKGTermId)
+					log.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
+					sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
 					if err != nil {
 						log.WithError(err).Error("sign error")
 						panic(err)
 					}
 					preCommit.BlsSignature = sig
 				}
-				preCommit.PublicKey = t.ann.MyAccount.PublicKey.Bytes
-				preCommit.Signature = signer.Sign(t.ann.MyAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
-				preCommit.TermId = uint32(t.DKGTermId)
-				t.sendToPartners(msg.Type, preCommit)
+				preCommit.PublicKey = b.myAccount.PublicKey.Bytes
+				preCommit.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
+				preCommit.TermId = uint32(b.DKGTermId)
+				b.sendToPartners(msg.Type, preCommit)
 			default:
 				panic("never come here unknown type")
 			}
 
-		case decision := <-t.decisionChan:
+		case decision := <-b.decisionChan:
 			state := decision.state
 			//set nil first
 			var sigShares [][]byte
@@ -269,9 +284,9 @@ func (t *BFT) loop() {
 				log.Debug("commit ", commit)
 				sigShares = append(sigShares, commit.BlsSignature)
 			}
-			jointSig, err := t.ann.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), t.DKGTermId)
+			jointSig, err := b.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), b.DKGTermId)
 			if err != nil {
-				log.WithField("termId ", t.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
+				log.WithField("termId ", b.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
 
 				decision.callbackChan <- err
 				continue
@@ -282,26 +297,26 @@ func (t *BFT) loop() {
 			sequencerProposal.BlsJointSig = jointSig
 			log.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub
-			t.ann.OnSelfGenTxi <- &sequencerProposal.Sequencer
-			//t.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
+			b.OnSelfGenTxi <- &sequencerProposal.Sequencer
+			//b.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 
-		case <-t.resetChan:
+		case <-b.resetChan:
 			//todo
 		}
 
 	}
 }
 
-func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
-	me := t.ann.MyAccount
-	nonce := t.JudgeNonceFunction(me)
+func (b *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
+	me := b.myAccount
+	nonce := b.JudgeNonceFunction(me)
 	logrus.WithField(" nonce ", nonce).Debug("gen seq")
-	blsPub, err := t.ann.dkg.GetJoinPublicKey(t.DKGTermId).MarshalBinary()
+	blsPub, err := b.dkg.GetJoinPublicKey(b.DKGTermId).MarshalBinary()
 	if err != nil {
 		logrus.WithError(err).Error("unmarshal fail")
 		panic(err)
 	}
-	seq := t.creator.GenerateSequencer(me.Address, t.ann.Idag.LatestSequencer().Height+1, nonce, &me.PrivateKey, blsPub)
+	seq := b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, nonce, &me.PrivateKey, blsPub)
 	if seq == nil {
 		logrus.Warn("gen sequencer failed")
 		panic("gen sequencer failed")
@@ -312,11 +327,11 @@ func (t *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 	return &proposal, seq.Height
 }
 
-func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.PublicKey) bool {
+func (b *BFT) VerifyProposal(proposal *types.MessageProposal, pubkey crypto.PublicKey) bool {
 	h := proposal.BasicMessage.HeightRound
-	id := t.BFTPartner.Proposer(h)
+	id := b.BFTPartner.Proposer(h)
 	if uint16(id) != proposal.SourceId {
-		if proposal.BasicMessage.TermId == uint32(t.DKGTermId)-1 {
+		if proposal.BasicMessage.TermId == uint32(b.DKGTermId)-1 {
 			//former term message
 			//TODO optimize in the future
 		}
@@ -324,14 +339,14 @@ func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.Publ
 		return false
 	}
 
-	if !t.verifyIsPartNer(pubkey, int(id)) {
+	if !b.VerifyIsPartNer(pubkey, int(id)) {
 		logrus.Warn("verify pubkey error")
 		return false
 	}
 	//will verified in buffer
 	//msg := proposal.Value.(*types.SequencerProposal)
 	//
-	//for _, verifier := range t.Verifiers {
+	//for _, verifier := range b.Verifiers {
 	//	if !verifier.Verify(&msg.Sequencer) {
 	//		logrus.Warn("sequencer verify failed")
 	//		return false
@@ -340,8 +355,8 @@ func (t *BFT) verifyProposal(proposal *types.MessageProposal, pubkey crypto.Publ
 	return true
 }
 
-func (t *BFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
-	peers := t.BFTPartner.GetPeers()
+func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
+	peers := b.BFTPartner.GetPeers()
 	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
 		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Debug("sourceId error")
 		return false
@@ -355,11 +370,65 @@ func (t *BFT) verifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) boo
 
 }
 
-//calculate seed
-func CalculateRandomSeed(jointSig []byte) []byte {
-	//TODO
-	h := sha256.New()
-	h.Write(jointSig)
-	seed := h.Sum(nil)
-	return seed
+func (b *BFT) GetProposalCache(hash types.Hash) *types.MessageProposal {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return b.proposalCache[hash]
+}
+
+func (b *BFT) DeleteProposalCache(hash types.Hash) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	delete(b.proposalCache, hash)
+}
+func (b *BFT) CacheProposal(hash types.Hash, proposal *types.MessageProposal) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	b.proposalCache[hash] = proposal
+}
+
+func (b *BFT) GetInfo() *BFTInfo {
+	bftInfo := BFTInfo{
+		BFTPartner:    b.BFTPartner.PeerInfo,
+		Partners:      b.BFTPartner.PeersInfo,
+		DKGTermId:     b.DKGTermId,
+		SequencerTime: b.SequencerTime,
+	}
+	return &bftInfo
+}
+
+type BFTInfo struct {
+	BFTPartner    PeerInfo      `json:"bft_partner"`
+	DKGTermId     int           `json:"dkg_term_id"`
+	SequencerTime time.Duration `json:"sequencer_time"`
+	Partners      []PeerInfo    `json:"partners"`
+}
+
+func (b *BFT) HandlePreCommit(request *types.MessagePreCommit) {
+	m := Message{
+		Type:    og.MessageTypePreCommit,
+		Payload: request,
+	}
+	b.BFTPartner.GetIncomingMessageChannel() <- m
+}
+
+func (b *BFT) HandlePreVote(request *types.MessagePreVote) {
+	m := Message{
+		Type:    og.MessageTypePreVote,
+		Payload: request,
+	}
+	b.BFTPartner.GetIncomingMessageChannel() <- m
+}
+
+func (b *BFT) HandleProposal(hash types.Hash) {
+	request := b.GetProposalCache(hash)
+	if request != nil {
+		b.DeleteProposalCache(hash)
+		m := Message{
+			Type:    og.MessageTypeProposal,
+			Payload: request,
+		}
+		b.BFTPartner.GetIncomingMessageChannel() <- m
+
+	}
 }

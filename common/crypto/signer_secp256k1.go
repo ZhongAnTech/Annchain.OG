@@ -56,6 +56,10 @@ func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
 	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1, pubKey))
 }
 
+func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) PublicKey {
+	return PublicKeyFromBytes(s.GetCryptoType(), b)
+}
+
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	signature = s.DealRecoverID(signature)
 	sig := signature.Bytes

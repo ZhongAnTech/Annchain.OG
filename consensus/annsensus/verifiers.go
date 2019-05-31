@@ -33,13 +33,13 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 		log.Debug("small term id ")
 	} else {
 		if a.GetCandidate(t.Issuer) == nil {
-			log.WithField("candidates ", a.term.candidates).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
+			log.WithField("candidates ", a.term.Candidates()).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
 			return false
 		}
 	}
-	if len(t.SigSet) < a.dkg.partner.NbParticipants {
+	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
 		log.WithField("len ", len(t.SigSet)).WithField("need ",
-			a.dkg.partner.NbParticipants).Warn("not eoungh sigsets")
+			a.dkg.GetParticipantNumber()).Warn("not eoungh sigsets")
 		return false
 	}
 	signer := crypto.NewSigner(a.cryptoType)
@@ -77,7 +77,7 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 	}
 	log.WithField("hash ", seq).Debug("normal seq")
 
-	if !a.term.started {
+	if !a.term.Started() {
 		if seq.Height > 1 {
 			log.Warn("dkg is not ready yet")
 			return false
@@ -86,7 +86,7 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		for {
 			select {
 			case <-time.After(50 * time.Millisecond):
-				if a.term.started {
+				if a.term.Started() {
 					break
 				}
 			case <-a.close:
@@ -153,9 +153,9 @@ func (a *AnnSensus) VerifyRequestedTermChange(t *types.TermChange) bool {
 		return true
 	}
 
-	if len(t.SigSet) < a.dkg.partner.NbParticipants {
+	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
 		log.WithField("len ", len(t.SigSet)).WithField("need ",
-			a.dkg.partner.NbParticipants).Warn("not enough sigsets")
+			a.dkg.GetParticipantNumber()).Warn("not enough sigsets")
 		return false
 	}
 	signer := crypto.NewSigner(a.cryptoType)

@@ -176,7 +176,7 @@ func parserV5Nodes(nodeString string) []*discv5.Node {
 	return nodes
 }
 
-func parserGenesisAccounts(signer crypto.Signer, pubkeys string) []crypto.PublicKey {
+func parserGenesisAccounts(pubkeys string) []crypto.PublicKey {
 	pubkeyList := strings.Split(pubkeys, ";")
 	var account []crypto.PublicKey
 	for _, pubKeyStr := range pubkeyList {

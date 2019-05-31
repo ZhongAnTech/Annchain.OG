@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/p2p/ioperformance"
 	"net/http"
 	"strconv"
 	"strings"
@@ -635,12 +636,13 @@ func (r *RpcController) OgPeersInfo(c *gin.Context) {
 }
 
 type Monitor struct {
-	Port    string     `json:"port"`
-	ShortId string     `json:"short_id"`
-	Peers   []Peer     `json:"peers,omitempty"`
-	SeqId   uint64     `json:"seq_id"`
-	Tps     *Tps       `json:"tps"`
-	Status  SyncStatus `json:"status"`
+	Port          string          `json:"port"`
+	ShortId       string          `json:"short_id"`
+	Peers         []Peer          `json:"peers,omitempty"`
+	SeqId         uint64          `json:"seq_id"`
+	Tps           *Tps            `json:"tps"`
+	Status        SyncStatus      `json:"status"`
+	TransPortData *ioperformance.IoDataInfo `json:"trans_port_data"`
 }
 
 type Peer struct {
@@ -678,6 +680,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	m.ShortId = r.P2pServer.NodeInfo().ShortId
 	m.Tps, _ = r.getTps()
 	m.Status = r.syncStatus()
+	m.TransPortData = ioperformance.GetNetPerformance()
 
 	Response(c, http.StatusOK, nil, m)
 	return

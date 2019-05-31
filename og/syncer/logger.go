@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var log *logrus.Logger
+var log = logrus.StandardLogger()
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
 	log = mylog.InitLogger(logger, logdir, "og_syncer.log")

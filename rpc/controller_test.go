@@ -64,7 +64,7 @@ func newAccount(algorithm string) (string, string, string, error) {
 	defer resp.Body.Close()
 	var buf bytes.Buffer
 	var a account
-	var signer crypto.Signer
+	var signer crypto.ISigner
 	io.Copy(&buf, resp.Body)
 	err = json.Unmarshal(buf.Bytes(), &a)
 	if err != nil {
@@ -151,7 +151,7 @@ func sendTx(algorithm string) error {
 	}
 	toAddr, err := types.StringToAddress(addr2)
 
-	var signer crypto.Signer
+	var signer crypto.ISigner
 	switch algorithm {
 	case "secp256k1":
 		signer = &crypto.SignerSecp256k1{}

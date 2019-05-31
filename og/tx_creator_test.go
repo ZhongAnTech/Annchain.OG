@@ -20,7 +20,6 @@ import (
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -36,8 +35,8 @@ func (AllOkVerifier) Name() string {
 }
 
 func Init() *TxCreator {
+	crypto.Signer = &crypto.SignerEd25519{}
 	txc := TxCreator{
-		Signer:             &crypto.SignerEd25519{},
 		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 100,
@@ -52,12 +51,11 @@ func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
 	tx := txc.TipGenerator.GetRandomTips(1)[0].(*types.Tx)
-	_, priv, err := txc.Signer.RandomKeyPair()
-	assert.NoError(t, err)
+	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 	txSigned := txc.NewSignedTx(tx.From, tx.To, tx.Value, tx.AccountNonce, priv)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
-	ok := txc.SealTx(txSigned)
+	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
 	txdata, _ := tx.MarshalMsg(nil)
 	rawtx := tx.RawTx()
@@ -74,8 +72,7 @@ func TestTxCreator(t *testing.T) {
 func TestSequencerCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	_, priv, err := txc.Signer.RandomKeyPair()
-	assert.NoError(t, err)
+	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 
 	// for copy
@@ -83,7 +80,7 @@ func TestSequencerCreator(t *testing.T) {
 
 	txSigned := txc.NewSignedSequencer(types.Address{}, randomSeq.Height, randomSeq.AccountNonce, priv)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
-	ok := txc.SealTx(txSigned)
+	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
@@ -102,11 +99,11 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 }
 
 func TestBuildDag(t *testing.T) {
+	crypto.Signer = &crypto.SignerEd25519{}
 	logrus.SetLevel(logrus.DebugLevel)
 	pool := &DummyTxPoolMiniTx{}
 	pool.Init()
 	txc := TxCreator{
-		Signer:             &crypto.SignerEd25519{},
 		TipGenerator:       pool,
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 10,
@@ -115,7 +112,7 @@ func TestBuildDag(t *testing.T) {
 		GraphVerifier:      &AllOkVerifier{},
 	}
 
-	_, privateKey, _ := txc.Signer.RandomKeyPair()
+	_, privateKey := crypto.Signer.RandomKeyPair()
 
 	txs := []types.Txi{
 		txc.NewSignedSequencer(types.Address{}, 0, 0, privateKey),
@@ -129,7 +126,7 @@ func TestBuildDag(t *testing.T) {
 	txs[0].GetBase().Hash = txs[0].CalcTxHash()
 	pool.Add(txs[0])
 	for i := 1; i < len(txs); i++ {
-		if ok := txc.SealTx(txs[i]); ok {
+		if ok := txc.SealTx(txs[i], &privateKey); ok {
 			pool.Add(txs[i])
 		}
 	}
@@ -151,7 +148,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 }
 
 func TestSlice(t *testing.T) {
-	parents := []types.Txis{}
+	var parents types.Txis
 	parentHashes := make(types.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()

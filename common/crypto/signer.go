@@ -15,7 +15,7 @@ package crypto
 
 import "github.com/annchain/OG/types"
 
-type Signer interface {
+type ISigner interface {
 	GetCryptoType() CryptoType
 	Sign(privKey PrivateKey, msg []byte) Signature
 	PubKey(privKey PrivateKey) PublicKey
@@ -25,4 +25,13 @@ type Signer interface {
 	AddressFromPubKeyBytes(pubKey []byte) types.Address
 	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)
 	Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
+	PublicKeyFromBytes(b []byte) PublicKey
+}
+
+//set this value when you code run
+var Signer ISigner
+
+func init() {
+	//default value
+	Signer = NewSigner(CryptoTypeSecp256k1)
 }

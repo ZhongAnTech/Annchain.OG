@@ -31,7 +31,7 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Sequencer, map[types.Address]*math.BigInt) {
+func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
@@ -43,7 +43,7 @@ func DefaultGenesis(cryptoType crypto.CryptoType, genesisPath string) (*types.Se
 	addr := types.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance := map[types.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
-	accounts := GetGenesisAccounts(cryptoType, genesisPath)
+	accounts := GetGenesisAccounts(genesisPath)
 	//accounts := GetSampleAccounts(cryptoType)
 	var buf bytes.Buffer
 	for i := 0; i < len(accounts.Accounts); i++ {
@@ -70,7 +70,7 @@ type GenesisAccounts struct {
 	Accounts []Account `json:"accounts"`
 }
 
-func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *GenesisAccounts {
+func GetGenesisAccounts(genesisPath string) *GenesisAccounts {
 	absPath, err := filepath.Abs(genesisPath)
 	if err != nil {
 		panic(fmt.Sprintf("Error on parsing config file path: %s %v err", absPath, err))
@@ -95,9 +95,9 @@ func GetGenesisAccounts(cryptoType crypto.CryptoType, genesisPath string) *Genes
 
 }
 
-func GetSampleAccounts(cryptoType crypto.CryptoType) []*account.SampleAccount {
+func GetSampleAccounts() []*account.SampleAccount {
 	var accounts []*account.SampleAccount
-	if cryptoType == crypto.CryptoTypeSecp256k1 {
+	if crypto.Signer.GetCryptoType() == crypto.CryptoTypeSecp256k1 {
 		logrus.WithField("len", MaxAccountCount).Debug("Generating secp256k1 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {
 			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))

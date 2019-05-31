@@ -27,8 +27,6 @@ type Verifier interface {
 }
 
 type TxFormatVerifier struct {
-	Signer       crypto.Signer
-	CryptoType   crypto.CryptoType
 	MaxTxHash    types.Hash // The difficulty of TxHash
 	MaxMinedHash types.Hash // The difficulty of MinedHash
 }
@@ -95,22 +93,22 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 
 func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
-	return v.Signer.Verify(
-		crypto.PublicKey{Type: v.CryptoType, Bytes: base.PublicKey},
-		crypto.Signature{Type: v.CryptoType, Bytes: base.Signature},
+	return crypto.Signer.Verify(
+		crypto.Signer.PublicKeyFromBytes(base.PublicKey),
+		crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
 		t.SignatureTargets())
 }
 
 func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 	switch t.(type) {
 	case *types.Tx:
-		return t.(*types.Tx).From.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *types.Sequencer:
-		return t.(*types.Sequencer).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *types.Campaign:
-		return t.(*types.Campaign).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *types.TermChange:
-		return t.(*types.TermChange).Issuer.Bytes == v.Signer.Address(crypto.PublicKeyFromBytes(v.CryptoType, t.GetBase().PublicKey)).Bytes
+		return t.(*types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	default:
 		return true
 	}

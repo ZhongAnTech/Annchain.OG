@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package annsensus
+package bft
 
 import (
 	"fmt"
@@ -139,7 +139,7 @@ func (p *DefaultPartner) SetPeers(peers []BFTPartner) {
 func (p *DefaultPartner) Stop() {
 	p.quit <- true
 	p.waiter.quit <- true
-	log.Info("default partner stopped")
+	logrus.Info("default partner stopped")
 }
 
 func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
@@ -199,7 +199,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 	hr.Height = height
 	hr.Round = round
 
-	log.WithFields(logrus.Fields{
+	logrus.WithFields(logrus.Fields{
 		"IM":        p.Id,
 		"currentHR": p.CurrentHR.String(),
 		"newHR":     hr.String(),
@@ -217,22 +217,22 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		var proposal types.Proposal
 		var validHeight uint64
 		if currState.ValidValue != nil {
-			log.WithField("hr ", hr).Trace("will got valid value")
+			logrus.WithField("hr ", hr).Trace("will got valid value")
 			proposal = currState.ValidValue
 		} else {
 			if round == 0 {
-				log.WithField("hr ", hr).Trace("will got new height value")
+				logrus.WithField("hr ", hr).Trace("will got new height value")
 				proposal, validHeight = p.GetValue(true)
 			} else {
-				log.WithField("hr ", hr).Trace("will got new round value")
+				logrus.WithField("hr ", hr).Trace("will got new round value")
 				proposal, validHeight = p.GetValue(false)
 			}
 			if validHeight != p.CurrentHR.Height {
 				//TODO
-				log.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
+				logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
 			}
 		}
-		log.WithField("proposal ", proposal).Trace("new proposal")
+		logrus.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
 		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {
@@ -252,7 +252,7 @@ func (p *DefaultPartner) send() {
 		timer.Reset(time.Second * 7)
 		select {
 		case <-p.quit:
-			log.Info("got quit msg , bft partner send routine will stop")
+			logrus.Info("got quit msg , bft partner send routine will stop")
 			return
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
@@ -287,7 +287,7 @@ func (p *DefaultPartner) receive() {
 		timer.Reset(time.Second * 7)
 		select {
 		case <-p.quit:
-			log.Info("got quit msg , bft partner receive routine will stop")
+			logrus.Info("got quit msg , bft partner receive routine will stop")
 			return
 		case v := <-p.WaiterTimeoutChannel:
 			context := v.Context.(*TendermintContext)
@@ -571,7 +571,7 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 				//send the decision to upper client to process
 				err := p.decisionFunc(state)
 				if err != nil {
-					log.WithError(err).Warn("commit decision error")
+					logrus.WithError(err).Warn("commit decision error")
 					p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
 				} else {
 					p.StartNewEra(p.CurrentHR.Height+1, 0)

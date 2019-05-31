@@ -39,9 +39,9 @@ var (
 func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	var (
 		db               = ogdb.NewMemDatabase()
-		genesis, balance = core.DefaultGenesis(0, "genesis.json")
+		genesis, balance = core.DefaultGenesis("genesis.json")
 		config           = core.DagConfig{}
-		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil, crypto.CryptoTypeSecp256k1)
+		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil)
 	)
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)

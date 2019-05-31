@@ -1,4 +1,4 @@
-package annsensus
+package dkg
 
 import (
 	"fmt"
@@ -22,11 +22,8 @@ func genPoint(p *bn256.Suite) kyber.Point {
 
 func TestAnnSensus_SaveConsensusData(t *testing.T) {
 	logInit()
-	ann := AnnSensus{
-		ConfigFilePath: "test.json",
-	}
-	d := newDkg(&ann, true, 21, 15)
-	ann.dkg = d
+	d := NewDkg(true, 21, 15, nil, nil, nil, nil)
+	d.ConfigFilePath = "test.json"
 	d.GenerateDkg()
 	suite := bn256.NewSuiteG2()
 	fmt.Println(reflect.TypeOf(genScaler(suite)))
@@ -44,8 +41,8 @@ func TestAnnSensus_SaveConsensusData(t *testing.T) {
 	}
 	d.partner.jointPubKey = genPoint(suite)
 	d.partner.MyPartSec = genScaler(suite)
-	fmt.Println(ann.generateConfig())
-	ann.SaveConsensusData()
-	config, _ := ann.LoadConsensusData()
+	fmt.Println(d.generateConfig())
+	d.SaveConsensusData()
+	config, _ := d.LoadConsensusData()
 	fmt.Println(config)
 }

@@ -136,7 +136,6 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 
 // TxCreator creates tx and do the signing and mining
 type TxCreator struct {
-	Signer             crypto.Signer
 	Miner              miner.Miner
 	TipGenerator       TipGenerator // usually tx_pool
 	MaxTxHash          types.Hash   // The difficultiy of TxHash
@@ -193,14 +192,14 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 
 func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,
 	privateKey crypto.PrivateKey) types.Txi {
-	if privateKey.Type != m.Signer.GetCryptoType() {
+	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
 	tx := m.NewUnsignedTx(from, to, value, accountNonce)
 	// do sign work
-	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
+	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = m.Signer.PubKey(privateKey).Bytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(privateKey).Bytes
 	return tx
 }
 
@@ -217,15 +216,15 @@ func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, ac
 }
 
 func (m *TxCreator) NewSignedSequencer(issuer types.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
-	if privateKey.Type != m.Signer.GetCryptoType() {
+	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
 	tx := m.NewUnsignedSequencer(issuer, height, accountNonce)
 	// do sign work
-	logrus.Tracef("seq before sign, the sign type is: %s", m.Signer.GetCryptoType().String())
-	signature := m.Signer.Sign(privateKey, tx.SignatureTargets())
+	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
+	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = m.Signer.PubKey(privateKey).Bytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(privateKey).Bytes
 	return tx
 }
 
@@ -269,7 +268,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		}).Trace("validate graph structure for tx being connected")
 
 		if tx.GetType() == types.TxBaseTypeSequencer {
-			tx.GetBase().Signature = m.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 		}
 
@@ -348,7 +347,7 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
-	tx.GetBase().PublicKey = m.Signer.PubKey(*privateKey).Bytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(*privateKey).Bytes
 	tx.BlsJointPubKey = blsPubKey
 	tx.Proposing = true
 	connectionTries := 0
@@ -391,7 +390,7 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 			continue
 		} else {
 			//calculate signatrue
-			tx.GetBase().Signature = m.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 			break
 		}

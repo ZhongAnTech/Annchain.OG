@@ -11,14 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package dkg
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
@@ -35,7 +38,6 @@ import (
 )
 
 type Dkg struct {
-	ann               *AnnSensus
 	TermId            int
 	dkgOn             bool
 	myPublicKey       []byte
@@ -51,21 +53,28 @@ type Dkg struct {
 	dealSigSetsCache  map[types.Address]*types.MessageConsensusDkgSigSets
 	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
 	blsSigSets        map[types.Address]*types.SigSet
+	dag               og.IDag
 	ready             bool
 	isValidPartner    bool
 
-	mu     sync.RWMutex
-	signer crypto.Signer
+	mu        sync.RWMutex
+	myAccount *account.SampleAccount
+	term      *term.Term
+	Hub       MessageSender
+
+	OndkgPulicKeyChan chan kyber.Point
+	OngenesisPkChan   chan *types.MessageConsensusDkgGenesisPublicKey
+	ConfigFilePath    string
 }
 
-func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
+func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
+	dkgPulicKeyChan chan kyber.Point, genesisPkChan chan *types.MessageConsensusDkgGenesisPublicKey, t *term.Term) *Dkg {
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
 	p.PartPubs = []kyber.Point{}
 
 	d := &Dkg{}
-	d.ann = ann
 	d.dkgOn = dkgOn
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
@@ -86,12 +95,23 @@ func newDkg(ann *AnnSensus, dkgOn bool, numParts, threshold int) *Dkg {
 	d.blsSigSets = make(map[types.Address]*types.SigSet)
 	d.ready = false
 	d.isValidPartner = false
-	d.signer = crypto.NewSigner(d.ann.cryptoType)
+	d.dag = dag
+	d.OndkgPulicKeyChan = dkgPulicKeyChan
+	d.OngenesisPkChan = genesisPkChan
+	d.term = t
 	return d
 }
 
 func (d *Dkg) SetId(id int) {
 	d.partner.Id = uint32(id)
+}
+
+func (d *Dkg) SetAccount(myAccount *account.SampleAccount) {
+	d.myAccount = myAccount
+}
+
+func (d *Dkg) GetParticipantNumber() int {
+	return d.partner.NbParticipants
 }
 
 func (d *Dkg) Reset(myCampaign *types.Campaign) {
@@ -148,15 +168,27 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	log.WithField("len candidate pk ", len(d.partner.CandidatePublicKey)).WithField("termId ", d.TermId).Debug("dkg will reset")
 }
 
-func (d *Dkg) start() {
+func (d *Dkg) Start() {
 	//TODO
 	log.Info("dkg start")
 	goroutine.New(d.gossiploop)
 }
 
-func (d *Dkg) stop() {
+func (d *Dkg) Stop() {
 	d.gossipStopCh <- struct{}{}
 	log.Info("dkg stoped")
+}
+
+func (d *Dkg) Log() *logrus.Entry {
+	return d.log()
+}
+
+func (d *Dkg) On() {
+	d.dkgOn = true
+}
+
+func (d *Dkg) IsValidPartner() bool {
+	return d.isValidPartner
 }
 
 func (d *Dkg) generateDkg() []byte {
@@ -216,20 +248,20 @@ func XOR(a, b []byte) []byte {
 	return c
 }
 
-func (d *Dkg) SelectCandidates() {
+func (d *Dkg) SelectCandidates(seq *types.Sequencer) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	defer func() {
 		//set nil after select
-		d.ann.term.campaigns = nil
+		d.term.ClearCampaigns()
 	}()
-	seq := d.ann.Idag.LatestSequencer()
 	log := d.log()
-	if len(d.ann.term.campaigns) == d.ann.NbParticipants {
+	campaigns := d.term.Campaigns()
+	if len(campaigns) == d.partner.NbParticipants {
 		log.Debug("campaign number is equal to participant number ,all will be senator")
 		var txs types.Txis
-		for _, cp := range d.ann.term.campaigns {
-			if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
+		for _, cp := range campaigns {
+			if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
 				d.isValidPartner = true
 				d.dkgOn = true
 			}
@@ -239,8 +271,8 @@ func (d *Dkg) SelectCandidates() {
 		log.WithField("txs ", txs).Debug("lucky cps")
 		for _, tx := range txs {
 			cp := tx.(*types.Campaign)
-			publicKey := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
-			d.ann.term.AddCandidate(cp, publicKey)
+			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
+			d.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
 				d.addPartner(cp)
 			}
@@ -251,15 +283,14 @@ func (d *Dkg) SelectCandidates() {
 		}
 		return
 	}
-	if len(d.ann.term.campaigns) < d.ann.NbParticipants {
+	if len(campaigns) < d.partner.NbParticipants {
 		panic("never come here , programmer error")
 	}
 	randomSeed := CalculateRandomSeed(seq.BlsJointSig)
 	log.WithField("rand seed ", hexutil.Encode(randomSeed)).Debug("generated")
 	var vrfSelections VrfSelections
 	var j int
-	d.ann.term.mu.RLock()
-	for addr, cp := range d.ann.term.campaigns {
+	for addr, cp := range campaigns {
 		vrfSelect := VrfSelection{
 			addr:   addr,
 			Vrf:    cp.Vrf.Vrf,
@@ -269,8 +300,7 @@ func (d *Dkg) SelectCandidates() {
 		j++
 		vrfSelections = append(vrfSelections, vrfSelect)
 	}
-	d.ann.term.mu.RUnlock()
-	log.Debugf("we have %d capmpaigns, select %d of them ", len(d.ann.term.campaigns), d.ann.NbParticipants)
+	log.Debugf("we have %d capmpaigns, select %d of them ", len(campaigns), d.partner.NbParticipants)
 	for j, v := range vrfSelections {
 		log.WithField("v", v).WithField(" j ", j).Trace("before sort")
 	}
@@ -278,17 +308,17 @@ func (d *Dkg) SelectCandidates() {
 	sort.Sort(vrfSelections)
 	log.WithField("txs ", vrfSelections).Debug("lucky cps")
 	for j, v := range vrfSelections {
-		if j == d.ann.NbParticipants {
+		if j == d.partner.NbParticipants {
 			break
 		}
-		cp := d.ann.term.GetCampaign(v.addr)
+		cp := d.term.GetCampaign(v.addr)
 		if cp == nil {
 			panic("cp is nil")
 		}
-		publicKey := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
-		d.ann.term.AddCandidate(cp, publicKey)
+		publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
+		d.term.AddCandidate(cp, publicKey)
 		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
-		if bytes.Equal(cp.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
+		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
 			log.Debug("congratulation i am a partner of dkg ")
 			d.isValidPartner = true
 		}
@@ -310,6 +340,15 @@ func (d *Dkg) SelectCandidates() {
 	//}
 }
 
+//calculate seed
+func CalculateRandomSeed(jointSig []byte) []byte {
+	//TODO
+	h := sha256.New()
+	h.Write(jointSig)
+	seed := h.Sum(nil)
+	return seed
+}
+
 func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
@@ -324,7 +363,7 @@ func (d *Dkg) AddPartner(c *types.Campaign) {
 
 func (d *Dkg) addPartner(c *types.Campaign) {
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
-	if bytes.Equal(c.PublicKey, d.ann.MyAccount.PublicKey.Bytes) {
+	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
 		log.WithField("id ", d.partner.Id).Trace("my id")
 	}
@@ -357,7 +396,7 @@ func (d *Dkg) ProcesssDeal(dd *dkg.Deal) (resp *dkg.Response, err error) {
 }
 
 func (d *Dkg) CheckAddress(addr types.Address) bool {
-	if d.ann.GetCandidate(addr) == nil {
+	if d.term.GetCandidate(addr) == nil {
 		return false
 	}
 	d.mu.RLock()
@@ -366,21 +405,21 @@ func (d *Dkg) CheckAddress(addr types.Address) bool {
 	return ok
 }
 
-func (d *Dkg) SendGenesisPublicKey() {
+func (d *Dkg) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 	log := d.log()
-	for i := 0; i < len(d.ann.genesisAccounts); i++ {
+	for i := 0; i < len(genesisAccounts); i++ {
 		msg := &types.MessageConsensusDkgGenesisPublicKey{
 			DkgPublicKey: d.myPublicKey,
-			PublicKey:    d.ann.MyAccount.PublicKey.Bytes,
+			PublicKey:    d.myAccount.PublicKey.Bytes,
 		}
-		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
+		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
 		if uint32(i) == d.partner.Id {
 			log.Tracef("escape me %d ", d.partner.Id)
 			//myself
-			d.ann.genesisPkChan <- msg
+			d.OngenesisPkChan <- msg
 			continue
 		}
-		d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgGenesisPublicKey, msg, &d.ann.genesisAccounts[i])
+		d.Hub.SendToAnynomous(og.MessageTypeConsensusDkgGenesisPublicKey, msg, &genesisAccounts[i])
 		log.WithField("msg ", msg).WithField("peer ", i).Debug("send genesis pk to ")
 	}
 }
@@ -474,23 +513,23 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 		if addr == nil {
 			panic("address not found")
 		}
-		if *addr == d.ann.MyAccount.Address {
+		if *addr == d.myAccount.Address {
 			//this is for me , skip myself
 			log.WithField("i ", i).WithField("to ", addr.TerminalString()).WithField("deal",
 				deal.TerminateString()).Error("send dkg deal to myself")
 			panic("send dkg deal to myself")
 		}
 		//not a candidate
-		cp := d.ann.GetCandidate(*addr)
+		cp := d.term.GetCandidate(*addr)
 		if cp == nil {
 			panic("campaign not found")
 		}
-		msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
-		msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
-		pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, cp.PublicKey)
+		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
+		msg.PublicKey = d.myAccount.PublicKey.Bytes
+		pk := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 		log.WithField("to ", addr.TerminalString()).WithField("deal",
 			deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
-		d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
+		d.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDeal, msg, &pk)
 	}
 	return
 }
@@ -544,7 +583,7 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
-			addr := d.signer.AddressFromPubKeyBytes(request.PublicKey)
+			addr := crypto.Signer.AddressFromPubKeyBytes(request.PublicKey)
 			if !d.CacheDealsIfNotReady(addr, request) {
 				log.WithField("deal ", request).Debug("process later ,not ready yet")
 				continue
@@ -579,19 +618,19 @@ func (d *Dkg) gossiploop() {
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
 			}
-			response.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, response.SignatureTargets()).Bytes
-			response.PublicKey = d.ann.MyAccount.PublicKey.Bytes
+			response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).Bytes
+			response.PublicKey = d.myAccount.PublicKey.Bytes
 			log.WithField("to request ", request).WithField("response ", &response).Debug("will send response")
 			//broadcast response to all partner
 
-			for k, v := range d.ann.Candidates() {
-				if k == d.ann.MyAccount.Address {
+			for k, v := range d.term.Candidates() {
+				if k == d.myAccount.Address {
 					continue
 				}
 				msgCopy := response
-				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
+				pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
 				goroutine.New(func() {
-					d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
+					d.Hub.SendToAnynomous(og.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
 				})
 			}
 			//and sent to myself ? already processed inside dkg,skip myself
@@ -610,7 +649,7 @@ func (d *Dkg) gossiploop() {
 				log.Warn("why send to me")
 				continue
 			}
-			addr := d.signer.AddressFromPubKeyBytes(response.PublicKey)
+			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheResponseIfNotReady(addr, response) {
 				log.WithField("response ", resp).Debug("process later ,not ready yet")
 				continue
@@ -655,21 +694,21 @@ func (d *Dkg) gossiploop() {
 			//d.ann.dkgPkCh <- jointPub
 			var msg types.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
-			msg.Signature = d.signer.Sign(d.ann.MyAccount.PrivateKey, msg.SignatureTargets()).Bytes
-			msg.PublicKey = d.ann.MyAccount.PublicKey.Bytes
+			msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
+			msg.PublicKey = d.myAccount.PublicKey.Bytes
 
-			for k, v := range d.ann.Candidates() {
-				if k == d.ann.MyAccount.Address {
+			for k, v := range d.term.Candidates() {
+				if k == d.myAccount.Address {
 					continue
 				}
 				msgCopy := msg
-				pk := crypto.PublicKeyFromBytes(d.ann.cryptoType, v.PublicKey)
+				pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
 				goroutine.New(func() {
-					d.ann.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
+					d.Hub.SendToAnynomous(og.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
 				})
 			}
 
-			d.addSigsets(d.ann.MyAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})
+			d.addSigsets(d.myAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})
 			sigCaches := d.unhandledSigSets()
 			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets
@@ -687,8 +726,7 @@ func (d *Dkg) gossiploop() {
 				log.Warn("why send to me")
 				continue
 			}
-			s := crypto.NewSigner(d.ann.cryptoType)
-			addr := s.AddressFromPubKeyBytes(response.PublicKey)
+			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheSigSetsIfNotReady(addr, response) {
 				log.WithField("response ",
 					response).Debug("process later sigsets ,not ready yet")
@@ -711,7 +749,7 @@ func (d *Dkg) gossiploop() {
 				if err != nil {
 					log.WithError(err).Error("key share err")
 				}
-				d.ann.dkgPulicKeyChan <- d.partner.jointPubKey
+				d.OndkgPulicKeyChan <- d.partner.jointPubKey
 				d.ready = false
 				d.clearCache()
 
@@ -932,4 +970,43 @@ func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermI
 	}
 	return jointSig, nil
 
+}
+
+func (d *Dkg) SetJointPk(pk kyber.Point) {
+	d.partner.jointPubKey = pk
+}
+
+type DKGInfo struct {
+	TermId             int                   `json:"term_id"`
+	Id                 uint32                `json:"id"`
+	PartPubs           []kyber.Point         `json:"part_pubs"`
+	MyPartSec          kyber.Scalar          `json:"-"`
+	CandidatePartSec   []kyber.Scalar        `json:"-"`
+	CandidatePublicKey [][]byte              `json:"candidate_public_key"`
+	AddressIndex       map[types.Address]int `json:"address_index"`
+}
+
+func (dkg *Dkg) GetInfo() *DKGInfo {
+	dkgInfo := DKGInfo{
+		TermId:             dkg.TermId,
+		Id:                 dkg.partner.Id,
+		PartPubs:           dkg.partner.PartPubs,
+		MyPartSec:          dkg.partner.MyPartSec,
+		CandidatePublicKey: dkg.partner.CandidatePublicKey,
+		CandidatePartSec:   dkg.partner.CandidatePartSec,
+		AddressIndex:       dkg.partner.addressIndex,
+	}
+	return &dkgInfo
+}
+
+func (d *Dkg) HandleDkgDeal(request *types.MessageConsensusDkgDeal) {
+	d.gossipReqCh <- request
+}
+
+func (d *Dkg) HandleDkgDealRespone(response *types.MessageConsensusDkgDealResponse) {
+	d.gossipRespCh <- response
+}
+
+func (d *Dkg) HandleSigSet(requset *types.MessageConsensusDkgSigSets) {
+	d.gossipSigSetspCh <- requset
 }

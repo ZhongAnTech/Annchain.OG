@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package fetcher
+package dkg
 
 import (
 	"github.com/annchain/OG/mylog"
@@ -21,6 +21,6 @@ import (
 var log = logrus.StandardLogger()
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	log = mylog.InitLogger(logger, logdir, "og_fetcher.log")
-	logrus.Debug("fetcher logger initialized.")
+	log = mylog.InitLogger(logger, logdir, "og_dkg.log")
+	logrus.Debug("message logger initialized.")
 }

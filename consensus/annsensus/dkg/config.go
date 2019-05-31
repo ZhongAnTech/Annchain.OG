@@ -1,4 +1,4 @@
-package annsensus
+package dkg
 
 import (
 	"encoding/hex"
@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 )
 
-type AnnSensusConfig struct {
+type DkgConfig struct {
 	DKgSecretKey      []byte `json:"d_kg_secret_key"`
 	DKgJointPublicKey []byte `json:"d_kg_joint_public_key"`
 	jointPubKey       kyber.Point
@@ -30,7 +30,7 @@ type AnnSensusConfig struct {
 	SigSets           map[types.Address]*types.SigSet
 }
 
-func (c AnnSensusConfig) String() string {
+func (c DkgConfig) String() string {
 	if c.keyShare != nil {
 		return fmt.Sprintf("sk %s\n pk %s \n key share commit %v \n  key share poly %v \n key share %v \n commits %s \n privePoly %s", hex.EncodeToString(c.DKgSecretKey),
 			hex.EncodeToString(c.DKgJointPublicKey), c.keyShare.Commits, c.keyShare.PrivatePoly, c.keyShare.Share, hex.EncodeToString(c.CommitsData), hex.EncodeToString(c.PrivPolyData))
@@ -40,8 +40,8 @@ func (c AnnSensusConfig) String() string {
 }
 
 //SaveConsensusData
-func (a *AnnSensus) SaveConsensusData() error {
-	config := a.generateConfig()
+func (d *Dkg) SaveConsensusData() error {
+	config := d.generateConfig()
 	//
 	for i := 0; i < len(config.keyShare.Commits); i++ {
 		data, err := config.keyShare.Commits[i].MarshalBinary()
@@ -71,7 +71,7 @@ func (a *AnnSensus) SaveConsensusData() error {
 	if err != nil {
 		panic(err)
 	}
-	absPath, err := filepath.Abs(a.ConfigFilePath)
+	absPath, err := filepath.Abs(d.ConfigFilePath)
 	if err != nil {
 		panic(fmt.Sprintf("Error on parsing config file path: %s %v err", absPath, err))
 	}
@@ -84,30 +84,30 @@ func (a *AnnSensus) SaveConsensusData() error {
 	return nil
 }
 
-func (a *AnnSensus) generateConfig() AnnSensusConfig {
-	var config AnnSensusConfig
-	config.keyShare = a.dkg.partner.KeyShare
-	pk, err := a.dkg.partner.jointPubKey.MarshalBinary()
+func (d *Dkg) generateConfig() DkgConfig {
+	var config DkgConfig
+	config.keyShare = d.partner.KeyShare
+	pk, err := d.partner.jointPubKey.MarshalBinary()
 	if err != nil {
 		log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgJointPublicKey = pk
-	sk, err := a.dkg.partner.MyPartSec.MarshalBinary()
+	sk, err := d.partner.MyPartSec.MarshalBinary()
 	if err != nil {
 		log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgSecretKey = sk
-	config.PartnerId = a.dkg.partner.Id
-	config.SigSets = a.dkg.blsSigSets
+	config.PartnerId = d.partner.Id
+	config.SigSets = d.blsSigSets
 	return config
 }
 
-func (a *AnnSensus) LoadConsensusData() (*AnnSensusConfig, error) {
+func (d *Dkg) LoadConsensusData() (*DkgConfig, error) {
 	suit := bn256.NewSuiteG2()
-	var config AnnSensusConfig
+	var config DkgConfig
 	keyShare := dkg.DistKeyShare{}
 
-	absPath, err := filepath.Abs(a.ConfigFilePath)
+	absPath, err := filepath.Abs(d.ConfigFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("error on parsing config file path: %s %v", absPath, err)
 	}
@@ -178,13 +178,13 @@ func (a *AnnSensus) LoadConsensusData() (*AnnSensusConfig, error) {
 	return &config, nil
 }
 
-func (a *AnnSensus) SetConfig(config *AnnSensusConfig) {
-	a.dkg.partner.KeyShare = config.keyShare
-	a.dkg.dkgOn = true
-	a.dkg.ready = true
-	a.dkg.partner.MyPartSec = config.secretKey
-	a.dkg.partner.jointPubKey = config.jointPubKey
-	a.dkg.partner.Id = config.PartnerId
-	a.dkg.blsSigSets = config.SigSets
+func (d *Dkg) SetConfig(config *DkgConfig) {
+	d.partner.KeyShare = config.keyShare
+	d.dkgOn = true
+	d.ready = true
+	d.partner.MyPartSec = config.secretKey
+	d.partner.jointPubKey = config.jointPubKey
+	d.partner.Id = config.PartnerId
+	d.blsSigSets = config.SigSets
 
 }

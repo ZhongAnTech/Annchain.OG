@@ -13,6 +13,8 @@ RUN cd /go/src/github.com/annchain/OG && make og
 # Copy OG into basic alpine image
 FROM alpine:latest
 
+RUN apk add --no-cache curl iotop busybox-extras
+
 COPY --from=builder /go/src/github.com/annchain/OG/deployment/config.toml /opt/
 COPY --from=builder /go/src/github.com/annchain/OG/deployment/genesis.json /opt/
 COPY --from=builder /go/src/github.com/annchain/OG/build/og /opt/

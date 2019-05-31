@@ -47,7 +47,7 @@ func accountInit() {
 }
 
 func accountGen(cmd *cobra.Command, args []string) {
-	var signer crypto.Signer
+	var signer crypto.ISigner
 	if algorithm == "secp256k1" || algorithm == "s" {
 		signer = &crypto.SignerSecp256k1{}
 	} else if algorithm == "ed25519" || algorithm == "e" {

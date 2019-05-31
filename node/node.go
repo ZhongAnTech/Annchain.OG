@@ -317,9 +317,9 @@ func NewNode() *Node {
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
 	annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator)
+		autoClientManager.JudgeNonce, txCreator,org.Dag, txBuffer.SelfGeneratedNewTxChan,
+		syncManager.IncrementalSyncer.HandleNewTxi, hub)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
-	annSensus.Idag = org.Dag
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener, annSensus.UpdateEvent)
@@ -400,10 +400,8 @@ func NewNode() *Node {
 	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
 	m.TermChangeResponseHandler = annSensus
 	m.TermChangeRequestHandler = annSensus
-	annSensus.Hub = hub
-	annSensus.HandleNewTxi = syncManager.IncrementalSyncer.HandleNewTxi
 	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
-	annSensus.OnSelfGenTxi = txBuffer.SelfGeneratedNewTxChan
+
 	if !disableConsensus {
 		org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
 	}

@@ -121,6 +121,7 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 	bft.JudgeNonceFunction = judgeNonceFunction
 	bft.SequencerTime = sequencerTime
 	bft.OnSelfGenTxi = OnSelfGenTxi
+	bft.dag = dag
 	ogBftPartner.RegisterDecisionReceiveFunc(bft.commitDecision)
 	return bft
 }
@@ -226,7 +227,6 @@ func (b *BFT) loop() {
 		case <-b.startBftChan:
 			if !b.started {
 				goroutine.New(func() {
-
 					b.BFTPartner.StartNewEra(b.dag.GetHeight(), 0)
 				})
 			}

@@ -16,8 +16,7 @@ port = 8001
 max_peers = 50
 network_id = 1
 enable_sync = true
-bootstrap_nodes = "onode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@127.0.0.1:8001"
-#set node key if the node is bootstrap node
+bootstrap_nodes = "onode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@47.100.222.11:8001"
 # node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
 no_encryption = false 
 
@@ -32,7 +31,7 @@ port = 8003
 name = "leveldb"
 
 [leveldb]
-path = "datadir_1"
+path = "rw/datadir_1"
 cache = 16
 handles = 16
 
@@ -58,11 +57,11 @@ timeout_latest_seq_ms = 10000
 nonce_self_discipline = false
 
 [auto_client.sequencer]
-enabled = true
+enabled = false
 interval_us = 5_000_000
 
 [auto_client.tx]
-enabled = true
+enabled = false
 interval_us = 500_000
 account_ids = [0,1]
 interval_mode = "random"
@@ -85,7 +84,7 @@ my_private_key = "0x0154656564564564abcd5465465465464565465646546545466545645645
 
 
 [annsensus]
-campaign = true
+campaign = false
 disable_term_change = true
 partner_number = 4
 threshold = 4

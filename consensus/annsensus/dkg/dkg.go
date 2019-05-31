@@ -99,6 +99,7 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	d.OndkgPulicKeyChan = dkgPulicKeyChan
 	d.OngenesisPkChan = genesisPkChan
 	d.term = t
+
 	return d
 }
 

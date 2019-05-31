@@ -68,7 +68,6 @@ type AnnSensus struct {
 	NewPeerConnectedEventListener chan string
 	ProposalSeqChan               chan types.Hash
 	HandleNewTxi                  func(tx types.Txi)
-	OnSelfGenTxi                  chan types.Txi
 
 	TxEnable           bool
 	NewLatestSequencer chan bool
@@ -121,15 +120,18 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	dkg := dkg.NewDkg(campaign, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
-
 	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
 
 	return ann
 }
 
 func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator) {
+	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator,Idag og.IDag,onSelfGenTxi  chan types.Txi,
+	handleNewTxi func(txi types.Txi), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
+	as.Hub = sender
+	as.dkg.Hub = sender
+	as.Idag = Idag
 	var myId int
 	for id, pk := range as.genesisAccounts {
 		if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
@@ -140,8 +142,10 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 	}
 	as.dkg.SetId(myId)
 	as.dkg.SetAccount(as.MyAccount)
-	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, as.Idag, as.MyAccount, as.OnSelfGenTxi)
+	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, Idag, myAccount, onSelfGenTxi)
 	as.addBftPartner()
+	as.bft.Hub = sender
+	as.HandleNewTxi = handleNewTxi
 }
 
 func (as *AnnSensus) Start() {

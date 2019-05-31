@@ -60,3 +60,17 @@ GET http://172.28.152.101:11300/query_receipt?hash=0xe746cce170af4d331c64f9b9fc4
 #message: ""
 #}
 
+
+
+###
+
+POST http://192.168.45.149:11300/query_contract
+
+{
+"address": "0xa9e185b5a2bce457e022cef7b9bd0511b052a710",
+"data":"893d20e8"
+}
+
+
+
+###

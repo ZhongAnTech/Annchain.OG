@@ -16,6 +16,7 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/p2p/ioperformance"
 	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
@@ -421,7 +422,8 @@ func NewNode() *Node {
 	pm.Register(txCounter)
 	pm.Register(annSensus)
 	n.Components = append(n.Components, pm)
-
+	ioPerformance := ioperformance.Init()
+	n.Components = append(n.Components, ioPerformance)
 	return n
 }
 

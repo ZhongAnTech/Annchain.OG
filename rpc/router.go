@@ -62,8 +62,8 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("monitor", rpc.Monitor)
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
-	return router
 
+	return router
 }
 
 // writes a list of available rpc endpoints as an html page

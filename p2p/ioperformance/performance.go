@@ -10,18 +10,20 @@ import (
 )
 
 type IoData struct {
-	Send    common.IOSize `json:"send"`
-	Recv    common.IOSize `json:"recv"`
-	SendNum int           `json:"send_num"`
-	RecvNum int           `json:"recv_num"`
-	Time    time.Time     `json:"time"`
+	send    common.IOSize
+	recv    common.IOSize
+	Send    string    `json:"send"`
+	Recv    string    `json:"recv"`
+	SendNum int       `json:"send_num"`
+	RecvNum int       `json:"recv_num"`
+	Time    time.Time `json:"time"`
 }
 
 type IoDataInfo struct {
 	DataSize     []IoData      `json:"data_size"`
-	AvgSend      common.IOSize `json:"avg_send"`
+	AvgSend      string `json:"avg_send"`
 	TotalSendNum int           `json:"total_send_num"`
-	AvgRecv      common.IOSize `json:"avg_recv"`
+	AvgRecv      string `json:"avg_recv"`
 	TotalRecvNum int           `json:"total_receiv_num"`
 }
 
@@ -66,15 +68,21 @@ func GetNetPerformance() *IoDataInfo {
 	if len(dataSize) == 0 {
 		return &info
 	}
+	totalSend:=  common.IOSize(0)
+	totalReceiv := common.IOSize(0)
 	for i, d := range dataSize {
-		info.AvgSend += d.Send
-		info.AvgRecv += d.Recv
+		totalSend += d.send
+		totalReceiv += d.recv
 		info.TotalRecvNum += d.RecvNum
 		info.TotalSendNum += d.SendNum
+		dataSize[i].Send = d.send.String()
+		dataSize[i].Recv = d.recv.String()
 		info.DataSize = append(info.DataSize, dataSize[len(dataSize)-i-1])
 	}
-	info.AvgSend = info.AvgSend / common.IOSize(len(dataSize))
-	info.AvgRecv = info.AvgRecv / common.IOSize(len(dataSize))
+	avgSend := totalSend / common.IOSize(len(dataSize))
+	avgRecv := totalReceiv/ common.IOSize(len(dataSize))
+	info.AvgSend = avgSend.String()
+	info.AvgRecv = avgRecv.String()
 	return &info
 }
 
@@ -107,21 +115,21 @@ func (s *iOPerformance) run() {
 		case <-time.After(time.Second):
 			s.mu.Lock()
 			if i == 60 {
-				ioData := IoData{Send: common.IOSize(s.send), Recv: common.IOSize(s.recv), SendNum: s.sendNum, RecvNum: s.recvNum}
+				ioData := IoData{send: common.IOSize(s.send), recv: common.IOSize(s.recv), SendNum: s.sendNum, RecvNum: s.recvNum}
 				ioData.Time = time.Now()
 				s.dataSize = s.dataSize[1:]
 				s.dataSize = append(s.dataSize, ioData)
 				s.send, s.recv, s.sendNum, s.recvNum = 0, 0, 0, 0
 
 			} else {
-				ioData := IoData{Send: common.IOSize(s.send), Recv: common.IOSize(s.recv), SendNum: s.sendNum, RecvNum: s.recvNum}
+				ioData := IoData{send: common.IOSize(s.send), recv: common.IOSize(s.recv), SendNum: s.sendNum, RecvNum: s.recvNum}
 				ioData.Time = time.Now()
 				s.dataSize = append(s.dataSize, ioData)
 				s.send, s.recv, s.sendNum, s.recvNum = 0, 0, 0, 0
 				i++
 			}
 			s.mu.Unlock()
-			logrus.WithField("data ", s.dataSize).Debug("perormance ")
+			logrus.WithField("data ", s.dataSize[0]).Debug("perormance ")
 		//
 		case <-s.quit:
 			return

@@ -65,6 +65,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
 	router.GET("consensus", rpc.ConStatus)
+
 	return router
 
 }

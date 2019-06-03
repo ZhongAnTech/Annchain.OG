@@ -561,6 +561,7 @@ func readHandshakeMsgResp(msg *AuthRespV4, plainSize int, prv *ecdsa.PrivateKey,
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return buf, err
 	}
+	ioperformance.AddRecvSize(len(buf))
 	// Attempt decoding pre-EIP-8 "plain" format.
 	key := ecies.ImportECDSA(prv)
 	if dec, err := key.Decrypt(buf, nil, nil); err == nil {

@@ -11,7 +11,7 @@ import (
 var log = logrus.StandardLogger()
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	log = mylog.InitLogger(logger, logdir, "og_p2p.log")
+	log = mylog.InitLogger(logger, logdir, "og_p2p")
 	logrus.Debug("p2p logger initialized.")
 	discover.SetLogger(log)
 	discv5.SetLogger(log)

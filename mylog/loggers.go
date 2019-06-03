@@ -75,6 +75,6 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 }
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	TxLogger = InitLogger(logger, logdir, "og_tx.log")
+	TxLogger = InitLogger(logger, logdir, "og_tx")
 	logrus.Debug("Additional logger initialized.")
 }

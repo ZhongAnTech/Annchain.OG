@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/status"
 	"sort"
 	"time"
 
@@ -63,8 +64,7 @@ type Dag struct {
 	txcached *txcached
 
 	OnConsensusTXConfirmed chan []types.Txi
-
-	close chan struct{}
+	close                  chan struct{}
 
 	wg sync.WaitGroup
 	mu sync.RWMutex
@@ -715,7 +715,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if len(consTxs) != 0 {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
 		goroutine.New(func() {
-			if dag.OnConsensusTXConfirmed != nil {
+			if dag.OnConsensusTXConfirmed != nil && !status.Stopped {
 				dag.OnConsensusTXConfirmed <- consTxs
 			}
 			log.WithField("txs ", consTxs).Trace("sent consensus txs")

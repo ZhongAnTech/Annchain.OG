@@ -21,6 +21,6 @@ import (
 var log = logrus.StandardLogger()
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
-	log = mylog.InitLogger(logger, logdir, "og_downloader.log")
+	log = mylog.InitLogger(logger, logdir, "og_downloader")
 	logrus.Debug("downloader logger initialized.")
 }

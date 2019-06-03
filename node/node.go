@@ -16,6 +16,8 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/p2p/ioperformance"
+	"github.com/annchain/OG/status"
 	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
@@ -417,7 +419,8 @@ func NewNode() *Node {
 	pm.Register(txCounter)
 	pm.Register(annSensus)
 	n.Components = append(n.Components, pm)
-
+	ioPerformance := ioperformance.Init()
+	n.Components = append(n.Components, ioPerformance)
 	return n
 }
 
@@ -443,6 +446,7 @@ func (n *Node) Start() {
 	logrus.Info("Node Started")
 }
 func (n *Node) Stop() {
+	status.Stopped = true
 	for i := len(n.Components) - 1; i >= 0; i-- {
 		comp := n.Components[i]
 		logrus.Infof("Stopping %s", comp.Name())

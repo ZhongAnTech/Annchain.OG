@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/p2p/ioperformance"
 	"net/http"
 	"strconv"
 	"strings"
@@ -189,18 +190,18 @@ func (r *RpcController) Transactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
 			return
 		}
+		if r.Og.Dag.GetHeight() < uint64(id) {
+			Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+			return
+		}
 		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
 			Total int        `json:"total"`
 			Txs   types.Txis `json:"txs"`
 		}
-		if len(txs) != 0 {
-			txsResponse.Total = len(txs)
-			txsResponse.Txs = txs
-			Response(c, http.StatusOK, nil, txsResponse)
-			return
-		}
-		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		txsResponse.Total = len(txs)
+		txsResponse.Txs = txs
+		Response(c, http.StatusOK, nil, txsResponse)
 		return
 	} else {
 		addr, err := types.StringToAddress(address)
@@ -673,6 +674,16 @@ func (r *RpcController) Monitor(c *gin.Context) {
 	m.Status = r.syncStatus()
 
 	Response(c, http.StatusOK, nil, m)
+	return
+}
+
+func (r *RpcController) NetIo(c *gin.Context) {
+	cors(c)
+	type transportData struct {
+		*ioperformance.IoDataInfo `json:"transport_data"`
+	}
+	data := transportData{ioperformance.GetNetPerformance()}
+	Response(c, http.StatusOK, nil, data)
 	return
 }
 

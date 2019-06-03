@@ -186,6 +186,7 @@ type Server struct {
 	delpeer       chan peerDrop
 	loopWG        sync.WaitGroup // loop, listenLoop
 	//peerFeed      event.Feed
+
 }
 
 type peerOpFunc func(map[onode.ID]*Peer)

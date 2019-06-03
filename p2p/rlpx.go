@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/p2p/ioperformance"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -199,6 +200,7 @@ func readProtocolHandshake(rw MsgReader) (*ProtoHandshake, error) {
 	if len(hs.ID) != 64 || !bitutil.TestBytes(hs.ID) {
 		return nil, DiscInvalidIdentity
 	}
+	ioperformance.AddRecvSize(int(msg.Size))
 	return &hs, nil
 }
 
@@ -299,7 +301,7 @@ func initiatorEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote *ec
 	if _, err = conn.Write(authPacket); err != nil {
 		return s, err
 	}
-
+	ioperformance.AddSendSize(len(authPacket))
 	authRespMsg := new(AuthRespV4)
 	authRespPacket, err := readHandshakeMsgResp(authRespMsg, encAuthRespLen, prv, conn)
 	if err != nil {
@@ -380,6 +382,7 @@ func receiverEncHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (s secrets,
 	if _, err = conn.Write(authRespPacket); err != nil {
 		return s, err
 	}
+	ioperformance.AddSendSize(len(authRespPacket))
 	return h.secrets(authPacket, authRespPacket)
 }
 
@@ -558,6 +561,7 @@ func readHandshakeMsgResp(msg *AuthRespV4, plainSize int, prv *ecdsa.PrivateKey,
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return buf, err
 	}
+	ioperformance.AddRecvSize(len(buf))
 	// Attempt decoding pre-EIP-8 "plain" format.
 	key := ecies.ImportECDSA(prv)
 	if dec, err := key.Decrypt(buf, nil, nil); err == nil {
@@ -740,9 +744,11 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	if _, err := tee.Write(ptype); err != nil {
 		return err
 	}
+
 	if _, err := io.Copy(tee, msg.Payload); err != nil {
 		return err
 	}
+
 	if padding := fsize % 16; padding > 0 {
 		if _, err := tee.Write(zero16[:16-padding]); err != nil {
 			return err
@@ -754,7 +760,12 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	fmacseed := rw.egressMAC.Sum(nil)
 	mac := updateMAC(rw.egressMAC, rw.macCipher, fmacseed)
 	_, err := rw.conn.Write(mac)
+
+	totalSize := len(headbuf) + len(ptype) + len(mac) + int(msg.Size) + len(zero16)
+	log.Trace("write len , ", totalSize)
+	ioperformance.AddSendSize(totalSize)
 	return err
+
 }
 
 func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
@@ -829,6 +840,9 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 		}
 		msg.Size, msg.Payload = uint32(size), bytes.NewReader(payload)
 	}
+	totalSize := len(headbuf) + 3 + len(shouldMAC) + int(msg.Size) + len(zero16)
+	log.Trace("write len , ", totalSize)
+	ioperformance.AddRecvSize(totalSize)
 	return msg, nil
 }
 

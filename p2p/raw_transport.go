@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/golang/snappy"
 	"io"
 	"io/ioutil"
@@ -353,6 +354,8 @@ func (rw *rawFrameRW) WriteMsg(msg Msg) error {
 	if _, err := rw.conn.Write(payload); err != nil {
 		return err
 	}
+
+	ioperformance.AddSendSize(len(headbuf) + len(ptype) + int(msg.Size))
 	return nil
 }
 
@@ -395,5 +398,8 @@ func (rw *rawFrameRW) ReadMsg() (msg Msg, err error) {
 		}
 		msg.Size, msg.Payload = uint32(size), bytes.NewReader(payload)
 	}
+
+	ioperformance.AddRecvSize(int(msg.Size) + len(headbuf) + 3)
+
 	return msg, nil
 }

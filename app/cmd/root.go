@@ -198,12 +198,12 @@ func initLogger() {
 	byLevel := viper.GetBool("multifile_by_level")
 	if byLevel && logdir != "" {
 		panicLog, _ := filepath.Abs(path.Join(logdir, "panic"))
-		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal.log"))
-		warnLog, _ := filepath.Abs(path.Join(logdir, "warn.log"))
-		errorLog, _ := filepath.Abs(path.Join(logdir, "error.log"))
-		infoLog, _ := filepath.Abs(path.Join(logdir, "info.log"))
-		debugLog, _ := filepath.Abs(path.Join(logdir, "debug.log"))
-		traceLog, _ := filepath.Abs(path.Join(logdir, "trace.log"))
+		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal"))
+		warnLog, _ := filepath.Abs(path.Join(logdir, "warn"))
+		errorLog, _ := filepath.Abs(path.Join(logdir, "error"))
+		infoLog, _ := filepath.Abs(path.Join(logdir, "info"))
+		debugLog, _ := filepath.Abs(path.Join(logdir, "debug"))
+		traceLog, _ := filepath.Abs(path.Join(logdir, "trace"))
 		writerMap := lfshook.WriterMap{
 			logrus.PanicLevel: mylog.RotateLog(panicLog),
 			logrus.FatalLevel: mylog.RotateLog(fatalLog),

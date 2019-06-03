@@ -78,6 +78,8 @@ type AnnSensus struct {
 	disableTermChange    bool
 	disable              bool
 	addedGenesisCampaign bool
+
+	initDone bool
 }
 
 func Maj23(n int) int {
@@ -142,7 +144,7 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 	}
 	as.dkg.SetId(myId)
 	as.dkg.SetAccount(as.MyAccount)
-	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, Idag, myAccount, onSelfGenTxi)
+	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, Idag, myAccount, onSelfGenTxi,as.dkg)
 	as.addBftPartner()
 	as.bft.Hub = sender
 	as.HandleNewTxi = handleNewTxi
@@ -440,7 +442,6 @@ func (as *AnnSensus) loop() {
 	// sequencer entry
 	var genesisCamps []*types.Campaign
 	var peerNum int
-	var initDone bool
 
 	var lastHeight uint64
 	var termId uint64
@@ -670,7 +671,7 @@ func (as *AnnSensus) loop() {
 				}
 				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
 			}
-			if initDone {
+			if as.initDone {
 				continue
 			}
 			peerNum++
@@ -680,7 +681,7 @@ func (as *AnnSensus) loop() {
 				goroutine.New(func() {
 					as.dkg.SendGenesisPublicKey(as.genesisAccounts)
 				})
-				initDone = true
+				as.initDone = true
 			}
 
 			//for genesis consensus , obtain tc from network
@@ -746,6 +747,7 @@ func (as *AnnSensus) loop() {
 
 		case hash := <-as.ProposalSeqChan:
 			log.WithField("hash ", hash.TerminalString()).Debug("got proposal seq hash")
+		    as.bft.HandleProposal(hash)
 
 		}
 	}

@@ -98,7 +98,7 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 }
 
 func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
-	txCreator *og.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi) *BFT {
+	txCreator *og.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
 	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	ogBftPartner := &OGBFTPartner{
 		BFTPartner: partner,
@@ -122,6 +122,8 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 	bft.SequencerTime = sequencerTime
 	bft.OnSelfGenTxi = OnSelfGenTxi
 	bft.dag = dag
+	bft.myAccount = myAccount
+	bft.dkg = dkg
 	ogBftPartner.RegisterDecisionReceiveFunc(bft.commitDecision)
 	return bft
 }

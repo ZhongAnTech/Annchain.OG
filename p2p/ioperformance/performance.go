@@ -14,7 +14,7 @@ type IoData struct {
 	Recv    common.IOSize `json:"recv"`
 	SendNum int           `json:"send_num"`
 	RecvNum int           `json:"recv_num"`
-	Time     time.Time `json:"time"`
+	Time    time.Time     `json:"time"`
 }
 
 type IoDataInfo struct {
@@ -40,6 +40,7 @@ var performance *iOPerformance
 
 func Init() *iOPerformance {
 	performance = new(iOPerformance)
+	performance.quit = make(chan bool)
 	return performance
 }
 
@@ -70,7 +71,7 @@ func GetNetPerformance() *IoDataInfo {
 		info.AvgRecv += d.Recv
 		info.TotalRecvNum += d.RecvNum
 		info.TotalSendNum += d.SendNum
-		info.DataSize = append(info.DataSize,dataSize[len(dataSize)-i-1])
+		info.DataSize = append(info.DataSize, dataSize[len(dataSize)-i-1])
 	}
 	info.AvgSend = info.AvgSend / common.IOSize(len(dataSize))
 	info.AvgRecv = info.AvgRecv / common.IOSize(len(dataSize))

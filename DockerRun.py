@@ -30,15 +30,13 @@ def deploy():
         return
 
     if args.m == 'p':
-        # check if it is bootnode
-        if args.b:
-            
-            # generate onode
-            # reset onode
-            pass
 
-        
-        
+        pass
+
+    # check if it is bootnode
+    if args.b:
+        # generate onode
+        # reset onode
         pass
 
      

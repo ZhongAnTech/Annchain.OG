@@ -349,9 +349,12 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 			return
 		}
-		sq := txi.(*types.Sequencer)
-		if sq != nil {
-			Response(c, http.StatusOK, nil, sq)
+		switch t := txi.(type) {
+		case *types.Sequencer:
+			Response(c, http.StatusOK, nil, t)
+			return
+		default:
+			Response(c, http.StatusNotFound, fmt.Errorf("tx not sequencer"), nil)
 			return
 		}
 	}

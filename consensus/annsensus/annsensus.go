@@ -439,6 +439,7 @@ func (as *AnnSensus) loop() {
 	var sentCampaign uint64
 
 	var eventInit bool
+	var loadDone bool
 	//var lastheight uint64
 
 	for {
@@ -615,7 +616,8 @@ func (as *AnnSensus) loop() {
 					continue
 				}
 				//in this case  , node is a genesis partner, load data
-				if as.dkg.partner.jointPubKey == nil && height == 0 {
+				if as.dkg.partner.jointPubKey == nil && !loadDone {
+					loadDone = true
 					//load consensus data
 					config, err := as.LoadConsensusData()
 					if err != nil {

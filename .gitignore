@@ -31,3 +31,4 @@ core/state/debug.test
 /vm/compiler/
 tests/genesis_account/secret.json
 main.exe
+app/app1.exe

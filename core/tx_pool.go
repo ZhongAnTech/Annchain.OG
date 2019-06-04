@@ -16,6 +16,7 @@ package core
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/status"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -723,9 +724,15 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
+		if status.Stopped {
+			break
+		}
 		c <- elders
 	}
 	for _, c := range pool.OnNewLatestSequencer {
+		if status.Stopped {
+			break
+		}
 		c <- true
 	}
 

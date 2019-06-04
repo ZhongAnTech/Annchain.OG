@@ -56,6 +56,8 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("contract_payload", rpc.ContractPayload)
 	router.GET("query_receipt", rpc.QueryReceipt)
 	router.POST("query_contract", rpc.QueryContract)
+	router.GET("query_contract", rpc.QueryContract)
+	router.GET("net_io", rpc.NetIo)
 
 	router.GET("debug", rpc.Debug)
 	router.GET("tps", rpc.Tps)
@@ -85,6 +87,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"consensus":     "",
 		"monitor":       "",
 		"tps":           "",
+		"net_io":        "",
 
 		// broadcast API
 		"new_transaction": "tx",

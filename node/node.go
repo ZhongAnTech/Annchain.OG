@@ -319,7 +319,7 @@ func NewNode() *Node {
 		VerifyCampaign:   annSensus.VerifyCampaign,
 	}
 	annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator,org.Dag, txBuffer.SelfGeneratedNewTxChan,
+		autoClientManager.JudgeNonce, txCreator, org.Dag, txBuffer.SelfGeneratedNewTxChan,
 		syncManager.IncrementalSyncer.HandleNewTxi, hub)
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)

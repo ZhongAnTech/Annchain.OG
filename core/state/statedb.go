@@ -62,12 +62,9 @@ type StateDB struct {
 	snapshotID  int
 
 	// states stores all the active state object, any changes on stateobject
-	// will also update states. Active stateobject means those objects
-	// that has recently been updated or queried. This "recently" is measured
-	// by [beats] map.
+	// will also update states.
 	states   map[types.Address]*StateObject
 	dirtyset map[types.Address]struct{}
-	beats    map[types.Address]time.Time
 
 	close chan struct{}
 
@@ -85,7 +82,6 @@ func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, err
 		trie:     tr,
 		states:   make(map[types.Address]*StateObject),
 		dirtyset: make(map[types.Address]struct{}),
-		beats:    make(map[types.Address]time.Time),
 		journal:  newJournal(),
 		close:    make(chan struct{}),
 	}
@@ -130,7 +126,7 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	return sd.getBalance(addr)
 }
 func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
@@ -145,7 +141,7 @@ func (sd *StateDB) GetNonce(addr types.Address) uint64 {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	return sd.getNonce(addr)
 }
 func (sd *StateDB) getNonce(addr types.Address) uint64 {
@@ -186,7 +182,7 @@ func (sd *StateDB) GetStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	return sd.getStateObject(addr)
 }
 func (sd *StateDB) getStateObject(addr types.Address) *StateObject {
@@ -212,7 +208,7 @@ func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	return sd.getOrCreateStateObject(addr)
 }
 func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
@@ -230,7 +226,7 @@ func (sd *StateDB) DeleteStateObject(addr types.Address) error {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	return sd.deleteStateObject(addr)
 }
 func (sd *StateDB) deleteStateObject(addr types.Address) error {
@@ -257,7 +253,7 @@ func (sd *StateDB) addBalance(addr types.Address, increment *math.BigInt) {
 		return
 	}
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	sd.setBalance(addr, state.data.Balance.Add(increment))
 }
@@ -275,7 +271,7 @@ func (sd *StateDB) subBalance(addr types.Address, decrement *math.BigInt) {
 		return
 	}
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	sd.setBalance(addr, state.data.Balance.Sub(decrement))
 }
@@ -337,7 +333,7 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.setBalance(addr, balance)
 }
 func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 
 	state := sd.getOrCreateStateObject(addr)
 	state.SetBalance(balance)
@@ -347,7 +343,7 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
 }
@@ -376,7 +372,7 @@ func (sd *StateDB) SetStateObject(addr types.Address, stobj *StateObject) {
 	sd.setStateObject(addr, stobj)
 }
 func (sd *StateDB) setStateObject(addr types.Address, stobj *StateObject) {
-	defer sd.refreshbeat(addr)
+	//defer sd.refreshbeat(addr)
 
 	oldobj := sd.getStateObject(addr)
 	if oldobj == nil {
@@ -467,36 +463,36 @@ func (sd *StateDB) loadStateObject(addr types.Address) (*StateObject, error) {
 	return &state, nil
 }
 
-// purge tries to remove all the state that haven't sent any beat
-// for a long time.
+//// purge tries to remove all the state that haven't sent any beat
+//// for a long time.
+////
+//// Note that dirty states will not be removed.
+//func (sd *StateDB) purge() {
+//	// TODO
+//	// purge will cause a panic problem, so temporaly comments the code.
+//	//
+//	// panic: [fatal error: concurrent map writes]
+//	// reason: the reason is that [sd.beats] is been concurrently called and
+//	// there is no lock handling this parameter.
 //
-// Note that dirty states will not be removed.
-func (sd *StateDB) purge() {
-	// TODO
-	// purge will cause a panic problem, so temporaly comments the code.
-	//
-	// panic: [fatal error: concurrent map writes]
-	// reason: the reason is that [sd.beats] is been concurrently called and
-	// there is no lock handling this parameter.
-
-	// for addr, lastbeat := range sd.beats {
-	// 	// skip dirty states
-	// 	if _, in := sd.journal.dirties[addr]; in {
-	// 		continue
-	// 	}
-	// 	if _, in := sd.dirtyset[addr]; in {
-	// 		continue
-	// 	}
-	// 	if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-	// 		sd.deleteStateObject(addr)
-	// 	}
-	// }
-}
-
-// refreshbeat update the beat time of an address.
-func (sd *StateDB) refreshbeat(addr types.Address) {
-	// sd.beats[addr] = time.Now()
-}
+//	// for addr, lastbeat := range sd.beats {
+//	// 	// skip dirty states
+//	// 	if _, in := sd.journal.dirties[addr]; in {
+//	// 		continue
+//	// 	}
+//	// 	if _, in := sd.dirtyset[addr]; in {
+//	// 		continue
+//	// 	}
+//	// 	if time.Since(lastbeat) > sd.conf.BeatExpireTime {
+//	// 		sd.deleteStateObject(addr)
+//	// 	}
+//	// }
+//}
+//
+//// refreshbeat update the beat time of an address.
+//func (sd *StateDB) refreshbeat(addr types.Address) {
+//	// sd.beats[addr] = time.Now()
+//}
 
 // Commit tries to save dirty data to memory trie db.
 func (sd *StateDB) Commit() (types.Hash, error) {
@@ -568,7 +564,6 @@ func (sd *StateDB) loop() {
 
 		case <-purgeTimer.C:
 			sd.mu.Lock()
-			sd.purge()
 			sd.mu.Unlock()
 		}
 	}

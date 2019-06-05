@@ -510,7 +510,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 	nonceDag, errDag := r.Og.Dag.GetLatestNonce(addr)
 	var nonce int64
 	if errPool != nil && errDag != nil {
-		nonce = -1
+		nonce = 0
 	} else {
 		nonce = int64(noncePool)
 		if noncePool < nonceDag {

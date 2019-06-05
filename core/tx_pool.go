@@ -631,22 +631,13 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 	} else {
 		latestNonce, nErr := pool.dag.GetLatestNonce(tx.Sender())
-		if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
+		if nErr != nil {
 			log.Errorf("get latest nonce err: %v", nErr)
 			return TxQualityIsFatal
 		}
-		if nErr == types.ErrNonceNotExist {
-			if tx.GetNonce() != uint64(0) {
-				log.Warnf("nonce %d is not zero when there is no nonce in db, tx: %s", tx.GetNonce(), tx)
-				return TxQualityIsFatal
-			}
-		} else {
-			log.WithField("nErr", nErr).Trace("in verifyNonce with ")
-
-			if tx.GetNonce() != latestNonce+1 {
-				log.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", tx.GetNonce(), latestNonce, tx)
-				return TxQualityIsFatal
-			}
+		if tx.GetNonce() != latestNonce+1 {
+			log.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", tx.GetNonce(), latestNonce, tx)
+			return TxQualityIsFatal
 		}
 	}
 
@@ -937,19 +928,11 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 	nonces := *noncesP
 
 	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
-	if (nErr != nil) && (nErr != types.ErrNonceNotExist) {
+	if nErr != nil {
 		return fmt.Errorf("get latest nonce err: %v", nErr)
 	}
-	if nErr == types.ErrNonceNotExist {
-		if nonces[0] != uint64(0) {
-			return fmt.Errorf("nonce %d is not zero when there is no nonce in db, addr: %s", nonces[0], addr.String())
-		}
-	} else {
-		log.WithField("nErr", nErr).Trace("in verifyNonce with ")
-
-		if nonces[0] != latestNonce+1 {
-			return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
-		}
+	if nonces[0] != latestNonce+1 {
+		return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
 	}
 
 	for i := 1; i < nonces.Len(); i++ {

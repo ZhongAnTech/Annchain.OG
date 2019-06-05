@@ -178,12 +178,12 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 
 	// init genesis balance
 	for addr, value := range genesisBalance {
-		tx := &types.Tx{}
-		tx.To = addr
-		tx.Value = value
-		tx.Type = types.TxBaseTypeNormal
-		tx.GetBase().Hash = tx.CalcTxHash()
-		dag.WriteTransaction(dbBatch, tx)
+		//tx := &types.Tx{}
+		//tx.To = addr
+		//tx.Value = value
+		//tx.Type = types.TxBaseTypeNormal
+		//tx.GetBase().Hash = tx.CalcTxHash()
+		//dag.WriteTransaction(dbBatch, tx)
 
 		dag.statedb.SetBalance(addr, value)
 	}
@@ -545,9 +545,7 @@ func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
 }
 
 func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
-	if !dag.statedb.Exist(addr) {
-		return uint64(0), types.ErrNonceNotExist
-	}
+
 	return dag.statedb.GetNonce(addr), nil
 }
 
@@ -573,12 +571,12 @@ func (dag *Dag) GetTxsByAddress(addr types.Address) []types.Txi {
 
 func (dag *Dag) getTxsByAddress(addr types.Address) []types.Txi {
 	nonce, err := dag.getLatestNonce(addr)
-	if (err != nil) && (err != types.ErrNonceNotExist) {
+	if (err != nil) || (nonce == 0) {
 		return nil
 	}
 	var i int64
 	var txs []types.Txi
-	for i = int64(nonce); i >= 0; i-- {
+	for i = int64(nonce); i > 0; i-- {
 		tx := dag.getTxByNonce(addr, uint64(i))
 		if tx != nil {
 			txs = append(txs, tx)

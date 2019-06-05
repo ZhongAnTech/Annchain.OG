@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/sirupsen/logrus"
 	"sort"
@@ -60,7 +61,7 @@ type Dkg struct {
 	mu        sync.RWMutex
 	myAccount *account.SampleAccount
 	term      *term.Term
-	Hub       MessageSender
+	Hub       announcer.MessageSender
 
 	OndkgPulicKeyChan chan kyber.Point
 	OngenesisPkChan   chan *types.MessageConsensusDkgGenesisPublicKey

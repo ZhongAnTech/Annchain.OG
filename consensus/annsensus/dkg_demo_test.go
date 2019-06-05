@@ -13,11 +13,11 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+	"github.com/annchain/OG/consensus/annsensus/test"
 )
 
 type TestAnnSensus struct {
 	*AnnSensus
-	Address types.Address
 }
 
 type AId struct {
@@ -31,14 +31,14 @@ func (a AId) String() string {
 
 func (a *TestAnnSensus) Aid() AId {
 	return AId{
-		Address: a.Address,
+		Address: a.MyAccount.Address,
 		dkgId:   int(a.dkg.GetId()),
 	}
 }
 
 func GetAnn(anns []TestAnnSensus, Addr types.Address) *TestAnnSensus {
 	for i, ann := range anns {
-		if bytes.Equal(ann.Address.ToBytes(), Addr.ToBytes()) {
+		if bytes.Equal(ann.MyAccount.Address.ToBytes(), Addr.ToBytes()) {
 			return &anns[i]
 		}
 	}
@@ -61,8 +61,8 @@ type TestHub struct {
 	msgCache        gcache.Cache
 }
 
-type sendMsgToChanFunc func(addr types.Address, mdg TestMsg)
-type sendMsgByPubKeyFunc func(pub *crypto.PublicKey, msg TestMsg)
+type sendMsgToChanFunc func(addr types.Address, mdg test.TestMsg)
+type sendMsgByPubKeyFunc func(pub *crypto.PublicKey, msg test.TestMsg)
 
 func newtestHub(id types.Address, peers []types.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
 	return &TestHub{
@@ -80,7 +80,7 @@ func newtestHub(id types.Address, peers []types.Address, sendMsgToChan sendMsgTo
 func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Message) {
 	var sent bool
 	for _, peer := range t.Peers {
-		tMsg := TestMsg{
+		tMsg := test.TestMsg{
 			MessageType: messageType,
 			Message:     message,
 			From:        t.Id,
@@ -100,7 +100,7 @@ func (t *TestHub) SendToPeer(peerId string, messageType og.MessageType, msg type
 }
 
 func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Message, anyNomousPubKey *crypto.PublicKey) {
-	tMsg := TestMsg{
+	tMsg := test.TestMsg{
 		MessageType: messageType,
 		Message:     message,
 		From:        t.Id,
@@ -161,7 +161,7 @@ func (t *TestHub) loop() {
 	for {
 		select {
 		case pMsg := <-t.OutMsg:
-			var msg TestMsg
+			var msg test.TestMsg
 			switch pMsg.msgType {
 			case og.MessageTypeConsensusDkgDeal:
 				msg.MessageType = pMsg.msgType
@@ -223,10 +223,10 @@ func (t *TestHub) loop() {
 	}
 }
 
-func TestDKGMain(t *testing.T) {
+func run() {
 	logInit()
 	var Anns []TestAnnSensus
-	sendMsgToChan := func(addr types.Address, msg TestMsg) {
+	sendMsgToChan := func(addr types.Address, msg test.TestMsg) {
 		data, err := msg.MarshalMsg(nil)
 		if err != nil {
 			panic(err)
@@ -242,7 +242,7 @@ func TestDKGMain(t *testing.T) {
 			msg.MessageType).WithField("msg ", resp).WithField("len ", len(data)).Trace("send msg")
 		return
 	}
-	sendMsgByPubKey := func(pub *crypto.PublicKey, msg TestMsg) {
+	sendMsgByPubKey := func(pub *crypto.PublicKey, msg test.TestMsg) {
 		data, err := msg.MarshalMsg(nil)
 		if err != nil {
 			panic(err)
@@ -288,12 +288,10 @@ func TestDKGMain(t *testing.T) {
 			}
 			peers = append(peers, accounts[k].Address)
 		}
-		as.InitAccount(&accounts[j], time.Second, nil, nil)
-		as.Idag = &DummyDag{}
-		a.Hub = newtestHub(accounts[j].Address, peers, sendMsgToChan, sendMsgByPubKey, &a)
+		hub := newtestHub(accounts[j].Address, peers, sendMsgToChan, sendMsgByPubKey, &a)
+		as.InitAccount(&accounts[j], time.Second, nil, nil, &DummyDag{}, nil, nil, hub)
 		a.AnnSensus = as
-		a.Address = accounts[j].Address
-		logrus.WithField("addr ", a.Address.TerminalString()).Debug("gen hub done")
+		logrus.WithField("addr ", a.MyAccount.Address.TerminalString()).Debug("gen hub done")
 		Anns = append(Anns, a)
 	}
 
@@ -403,6 +401,7 @@ func (as *TestAnnSensus) loop() {
 
 }
 
+
 func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
 	log.Trace("new term change")
 	if len(cps) > 0 {
@@ -422,4 +421,8 @@ func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
 	}()
 
 	log.Infof("already candidates: %d, alsorans: %d", len(as.Candidates()), len(as.Alsorans()))
+}
+
+func TestDKGMain(t *testing.T) {
+	run()
 }

@@ -319,9 +319,9 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// first tx check
 	if txi.GetNonce() == 1 {
 		// test claim: whether it should be 0
-		v, err := v.TxPool.GetLatestNonce(txi.Sender())
+		nonce, err := v.TxPool.GetLatestNonce(txi.Sender())
 		if err == nil {
-			logrus.Debugf("nonce should not be 0. Latest nonce is %d and you should be larger than it", v)
+			logrus.Debugf("nonce should not be 0. Latest nonce is %d and you should be larger than it", nonce)
 		}
 		// not found is good
 		return err != nil

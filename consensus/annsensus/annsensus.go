@@ -90,10 +90,11 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
-	if termChangeInterval <= 0 && !disableTermChange {
+	ann.disableTermChange = disableTermChange
+	if termChangeInterval <= 0 && !ann.disableTermChange {
 		panic("require termChangeInterval ")
 	}
-	if len(genesisAccounts) < partnerNum && !disableConsensus {
+	if len(genesisAccounts) < partnerNum && !ann.disableTermChange {
 		panic("need more account")
 	}
 	ann.close = make(chan struct{})
@@ -128,7 +129,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 }
 
 func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator,Idag og.IDag,onSelfGenTxi  chan types.Txi,
+	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
 	handleNewTxi func(txi types.Txi), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
 	as.Hub = sender
@@ -144,7 +145,7 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 	}
 	as.dkg.SetId(myId)
 	as.dkg.SetAccount(as.MyAccount)
-	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, Idag, myAccount, onSelfGenTxi,as.dkg)
+	as.bft = bft.NewBFT(as.NbParticipants, myId, sequencerTime, judgeNonce, txCreator, Idag, myAccount, onSelfGenTxi, as.dkg)
 	as.addBftPartner()
 	as.bft.Hub = sender
 	as.HandleNewTxi = handleNewTxi
@@ -638,7 +639,11 @@ func (as *AnnSensus) loop() {
 					as.dkg.SetConfig(config)
 					log.Debug("will set config")
 					as.addGenesisCampaigns()
-					tc := as.genTermChg(pk, nil)
+					var sigSets []*types.SigSet
+					for k := range config.SigSets {
+						sigSets = append(sigSets, config.SigSets[k])
+					}
+					tc := as.genTermChg(pk, sigSets)
 					as.term.ChangeTerm(tc, height)
 				}
 				if isUptoDate {
@@ -749,7 +754,7 @@ func (as *AnnSensus) loop() {
 
 		case hash := <-as.ProposalSeqChan:
 			log.WithField("hash ", hash.TerminalString()).Debug("got proposal seq hash")
-		    as.bft.HandleProposal(hash)
+			as.bft.HandleProposal(hash)
 
 		}
 	}

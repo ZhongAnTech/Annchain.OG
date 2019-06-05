@@ -310,10 +310,14 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 
 func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
-	// or nonce reaches 0
+	// or nonce reaches 1
 
-	// zero check
 	if txi.GetNonce() == 0 {
+		return false
+	}
+
+	// first tx check
+	if txi.GetNonce() == 1 {
 		// test claim: whether it should be 0
 		v, err := v.TxPool.GetLatestNonce(txi.Sender())
 		if err == nil {

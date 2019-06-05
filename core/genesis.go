@@ -49,7 +49,7 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*ma
 	for i := 0; i < len(accounts.Accounts); i++ {
 		balance[accounts.Accounts[i].address] = math.NewBigInt(int64(accounts.Accounts[i].Balance))
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
-		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
+		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Balance)
 	}
 	h := sha256.New()
 	h.Write(buf.Bytes())

@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -185,10 +186,23 @@ func (og *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
 //BroadcastLatestSequencer  broadcast the newest sequencer header , seuqencer header is a network state , representing peer's height
 // other peers will know our height and know whether thy were updated and sync with the best height
 func (og *Og) BroadcastLatestSequencer() {
+	var notSend bool
+	var mu sync.RWMutex
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
+
+			if og.Manager.Hub.Downloader.Synchronising() {
+				mu.Lock()
+				notSend = true
+				mu.Unlock()
+				logrus.Debug("sequencer updated, but not broadcasted")
+				continue
+			}
 			logrus.Debug("sequencer updated")
+			mu.Lock()
+			notSend = false
+			mu.Unlock()
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			number := seq.Number()
@@ -198,6 +212,23 @@ func (og *Og) BroadcastLatestSequencer() {
 				og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
+		case <-time.After(200 * time.Millisecond):
+			if notSend && !og.Manager.Hub.Downloader.Synchronising() {
+				mu.Lock()
+				notSend = true
+				mu.Unlock()
+				logrus.Debug("sequencer updated")
+				seq := og.Dag.LatestSequencer()
+				hash := seq.GetTxHash()
+				number := seq.Number()
+				msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
+				// latest sequencer updated , broadcast it
+				function := func() {
+					og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
+				}
+				goroutine.New(function)
+
+			}
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return

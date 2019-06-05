@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/gcache"
+	"github.com/annchain/OG/consensus/annsensus/test"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -13,7 +14,6 @@ import (
 	"math/rand"
 	"testing"
 	"time"
-	"github.com/annchain/OG/consensus/annsensus/test"
 )
 
 type TestAnnSensus struct {
@@ -400,7 +400,6 @@ func (as *TestAnnSensus) loop() {
 	}
 
 }
-
 
 func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
 	log.Trace("new term change")

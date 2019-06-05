@@ -32,3 +32,4 @@ core/state/debug.test
 tests/genesis_account/secret.json
 main.exe
 app/app1.exe
+deployment/deployment

@@ -996,7 +996,7 @@ func (c *SimpleOrderedCache) Sort() {
 		if ok {
 			value = item.value
 			if item.IsExpired(nil) {
-				log.Debug("remove expired key %v, value %v", key, value)
+				log.Debugf("remove expired key %v, value %v", key, value)
 				c.delete(key)
 			}
 		}

@@ -8,7 +8,7 @@ func Debug(args ...interface{}) {
 	if !DebugMode {
 		return
 	}
-	fmt.Println(args)
+	fmt.Println(args...)
 }
 
 func Search(n int, f func(int) bool) int {

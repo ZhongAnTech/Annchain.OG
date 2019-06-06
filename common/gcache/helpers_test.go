@@ -86,7 +86,7 @@ func testGetALL(t *testing.T, evT string) {
 			continue
 		}
 	}
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond+time.Microsecond*100)
 
 	cache.Set(size, size*size)
 	m = cache.GetALL()

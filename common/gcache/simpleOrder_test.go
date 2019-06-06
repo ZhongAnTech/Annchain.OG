@@ -20,7 +20,8 @@ func TestSimpleOrderedCache_Remove(t *testing.T) {
 		c.EnQueue(i, fmt.Sprintf("%d", i))
 	}
 	t.Log(c.Len(), c.orderedKeys)
-	//index := []int{0}
+	//index := []int{0}ls
+
 	//c.removeKeysByIndex(index)
 	t.Log(len(c.orderedKeys), c.orderedKeys)
 	total := c.Len()
@@ -72,7 +73,7 @@ func TestRemoveByIndex(t *testing.T) {
 	}
 	c.removeKeysByIndex(index)
 	if len(c.orderedKeys) != 0 {
-		t.Fatalf("need 0, got %d %v, %v", c.Len(), c.orderedKeys)
+		t.Fatalf("need 0, got %d %v", c.Len(), c.orderedKeys)
 	}
 }
 

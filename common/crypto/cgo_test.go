@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// +build noncgo
+
+// +build !noncgo
 
 package crypto
 
@@ -19,62 +20,104 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/common/crypto/secp256k1"
-	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	ecdsabtcec "github.com/btcsuite/btcd/btcec"
-	log "github.com/sirupsen/logrus"
+	"github.com/btcsuite/btcd/btcec"
+	"math/big"
 	"testing"
 	"time"
 )
 
-type SignerSecp256k1cgo struct {
+type SignerSecp256k1Go struct {
 }
 
-func (s *SignerSecp256k1cgo) GetCryptoType() CryptoType {
+func (s *SignerSecp256k1Go) GetCryptoType() CryptoType {
 	return CryptoTypeSecp256k1
 }
 
-func (s *SignerSecp256k1cgo) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := ToECDSA(privKey.Bytes)
+// Sign calculates an ECDSA signature.
+//
+// This function is susceptible to chosen plaintext attacks that can leak
+// information about the private key that is used for signing. Callers must
+// be aware that the given hash cannot be chosen by an adversery. Common
+// solution is to hash any input before calculating the signature.
+//
+// The produced signature is in the [R || S || V] format where V is 0 or 1.
+func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
+	prv, _ := ToECDSA(privKey.Bytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
-		log.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
-		return Signature{}
+		panic(fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash)))
 	}
-	seckey := math.PaddedBigBytes(priv.D, priv.Params().BitSize/8)
-	defer zeroBytes(seckey)
-	sig, _ := secp256k1.Sign(hash, seckey)
-
-	return SignatureFromBytes(CryptoTypeSecp256k1, sig)
+	if prv.Curve != btcec.S256() {
+		panic(fmt.Errorf("private key curve is not secp256k1"))
+	}
+	key:= (*btcec.PrivateKey)(prv)
+	signature, err := key.Sign(hash)
+	if err != nil {
+		panic(err)
+	}
+	sig := toByte(signature.R,signature.S)
+	// Convert to Ethereum signature format with 'recovery id' v at the end.
+	if len(sig)==sigLength+1 {
+		v := sig[0]
+		copy(sig, sig[1:])
+		//sig[64] = v
+		_ = v
+	}
+	//copy(sig, sig[1:])
+	//v := sig[0] - 27
+	//sig[64] = v
+	return SignatureFromBytes(s.GetCryptoType(), sig)
 }
 
-func (s *SignerSecp256k1cgo) PubKey(privKey PrivateKey) PublicKey {
-	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.Bytes)
-	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
-	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
+func toByte(R *big.Int, S *big.Int)[]byte {
+	rb := canonicalizeInt(R)
+	//sigS := sig.S
+	//if sigS.Cmp(S256().halfOrder) == 1 {
+	//	sigS = new(big.Int).Sub(S256().N, sigS)
+	//}
+	sb := canonicalizeInt(S)
+	b := make([]byte, len(rb)+len(sb))
+	copy(b,rb)
+	copy(b[len(rb):],sb)
+	return b
 }
 
-func (s *SignerSecp256k1cgo) PublicKeyFromBytes(b []byte) PublicKey {
-	return PublicKeyFromBytes(s.GetCryptoType(), b)
+func canonicalizeInt(val *big.Int) []byte {
+	b := val.Bytes()
+	if len(b) == 0 {
+		b = []byte{0x00}
+	}
+	if b[0]&0x80 != 0 {
+		paddedBytes := make([]byte, len(b)+1)
+		copy(paddedBytes[1:], b)
+		b = paddedBytes
+	}
+	return b
 }
 
-func (s *SignerSecp256k1cgo) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
+// VerifySignature checks that the given public key created signature over hash.
+// The public key should be in compressed (33 bytes) or uncompressed (65 bytes) format.
+// The signature should have the 64 byte [R || S] format.
+func (s *SignerSecp256k1Go) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
+	hash := Sha256(msg)
 	signature = s.DealRecoverID(signature)
-	sig := signature.Bytes
-	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
+	sigs := signature.Bytes
+	sig := &btcec.Signature{R: new(big.Int).SetBytes(sigs[:32]), S: new(big.Int).SetBytes(sigs[32:])}
+	key, err := btcec.ParsePubKey(pubKey.Bytes, btcec.S256())
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	// Reject malleable signatures. libsecp256k1 does this check but btcec doesn't.
+	if sig.S.Cmp(secp256k1halfN) > 0 {
+		fmt.Println("sec")
+		return false
+	}
+	return sig.Verify(hash, key)
 }
 
-func (s *SignerSecp256k1cgo) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
-	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], CRandBytes(32))
-
-	privateKey = PrivateKeyFromBytes(CryptoTypeSecp256k1, privKeyBytes[:])
-	publicKey = s.PubKey(privateKey)
-	return
-}
-
-func (s *SignerSecp256k1cgo) DealRecoverID(sig Signature) Signature {
+func (s *SignerSecp256k1Go) DealRecoverID(sig Signature) Signature {
 	l := len(sig.Bytes)
 	if l == sigLength+1 {
 		sig.Bytes = sig.Bytes[:l-1]
@@ -82,11 +125,15 @@ func (s *SignerSecp256k1cgo) DealRecoverID(sig Signature) Signature {
 	return sig
 }
 
+func (s *SignerSecp256k1Go) PubKey(privKey PrivateKey) PublicKey {
+	_, ecdsapub := btcec.PrivKeyFromBytes(btcec.S256(), privKey.Bytes)
+	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
+	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
+}
 
-func TestSignerNewPrivKeyCGO(t *testing.T) {
+func TestSignerNewPrivKeyGO(t *testing.T) {
 	t.Parallel()
-	signer := SignerSecp256k1cgo{}
-	signer2 := SignerSecp256k1{}
+	signer := SignerSecp256k1{}
 	for i:=0;i<10;i++ {
 		pk, priv := signer.RandomKeyPair()
         //fmt.Println(priv.String())
@@ -98,6 +145,7 @@ func TestSignerNewPrivKeyCGO(t *testing.T) {
 		}
 		fmt.Println(hex.EncodeToString(sig.Bytes))
 
+		signer2 := SignerSecp256k1Go{}
 		sig2 := signer2.Sign(priv, b)
 		fmt.Println(hex.EncodeToString(sig2.Bytes))
 		if !signer2.Verify(pk, sig2, b) {
@@ -108,10 +156,10 @@ func TestSignerNewPrivKeyCGO(t *testing.T) {
 
 }
 
-func TestSignBenchMarksCgo(t *testing.T) {
-	signer := SignerSecp256k1cgo{}
+func TestSignBenchMarks(t *testing.T) {
+	signer := SignerSecp256k1{}
 	pk, priv := signer.RandomKeyPair()
-	signer2 := SignerSecp256k1{}
+	signer2 := SignerSecp256k1Go{}
 	var txs1 types.Txis
 	var txs2 types.Txis
 	N := 10000

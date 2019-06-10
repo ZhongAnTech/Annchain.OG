@@ -50,6 +50,7 @@ func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
 		panic(fmt.Errorf("private key curve is not secp256k1"))
 	}
 	sig, err := btcec.SignCompact(btcec.S256(), (*btcec.PrivateKey)(prv), hash, false)
+	//sig, err := btcec.Sign(btcec.S256(), (*btcec.PrivateKey)(prv), hash, false)
 	if err != nil {
 		panic(err)
 	}

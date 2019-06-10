@@ -16,8 +16,8 @@ type ConfirmStatus struct {
 }
 
 type ConfirmInfo struct {
-	ConfirmTime string
-	ConfirmRate string
+	ConfirmTime string `json:"confirm_time"`
+	ConfirmRate string `json:"confirm_rate"`
 }
 
 func (c *ConfirmStatus) AddTxNum() {
@@ -49,7 +49,7 @@ func (c *ConfirmStatus) GetInfo() *ConfirmInfo {
 		rate := float64(c.ConfirmNum*100) / float64(c.TxNum)
 		if rate == 1 {
 			info.ConfirmRate = "100%"
-		} else if rate < 98{
+		} else if rate < 98 {
 			info.ConfirmRate = fmt.Sprintf("%2d", int(rate)) + "%"
 		} else {
 			info.ConfirmRate = fmt.Sprintf("%3f", rate) + "%"

@@ -6,17 +6,22 @@ import (
 	"os"
 )
 
-var rootCmd = &cobra.Command{
-	Use: "OG tool for deployment",
-	Short: "deploy helps you to create boot node address and init genesis consensus public keys",
-}
+var (
+	rootCmd = &cobra.Command{
+		Use: "OG tool for deployment",
+		Short: "deploy helps you to create boot node address and init genesis consensus public keys",
+	}
+	bootUrl string
+)
 
 func init() {
+	rootCmd.Flags().StringVarP(&bootUrl, "bootstrap", "b", "127.0.0.1", "the url of bootstrap node")
+
 	onodeInit()
 	rootCmd.AddCommand(onodeCmd)
 
 	genInit()
-	genCmd.AddCommand(genCmd)
+	rootCmd.AddCommand(genCmd)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

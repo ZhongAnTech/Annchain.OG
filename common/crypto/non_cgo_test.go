@@ -89,7 +89,7 @@ func TestSignerNewPrivKeyCGO(t *testing.T) {
 	signer2 := SignerSecp256k1{}
 	for i:=0;i<10;i++ {
 		pk, priv := signer.RandomKeyPair()
-        //fmt.Println(priv.String())
+		//fmt.Println(priv.String())
 		//fmt.Println(pk.String())
 		b := []byte("foohhhhjkhhj3488984984984jjjdjsdjks")
 		sig := signer.Sign(priv, b)
@@ -103,7 +103,32 @@ func TestSignerNewPrivKeyCGO(t *testing.T) {
 		if !signer2.Verify(pk, sig2, b) {
 			t.Fatalf("vertfy failed")
 		}
-		fmt.Println(i)
+		fmt.Println(" ", i)
+	}
+
+}
+
+func TestSignerNewPrivKeyCGOF(t *testing.T) {
+	t.Parallel()
+	signer := SignerSecp256k1cgo{}
+	signer2 := SignerSecp256k1{}
+	for i:=0;i<1000;i++ {
+		pk, priv := signer.RandomKeyPair()
+		//fmt.Println(priv.String())
+		//fmt.Println(pk.String())
+		b := []byte("foohhhhjkhhj3488984984984jjjdjsdjks")
+		//sig := signer.Sign(priv, b)
+		//if !signer.Verify(pk, sig, b) {
+		//	t.Fatalf("vertfy failed")
+		//}
+		//fmt.Println(hex.EncodeToString(sig.Bytes))
+
+		sig2 := signer2.Sign(priv, b)
+		//fmt.Println(hex.EncodeToString(sig2.Bytes))
+		if !signer2.Verify(pk, sig2, b) {
+			t.Fatalf("vertfy failed")
+		}
+		//fmt.Println(" ", i)
 	}
 
 }

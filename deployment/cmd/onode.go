@@ -11,9 +11,9 @@ import (
 
 var (
 	onodeCmd = &cobra.Command{
-		Use: "onode",
+		Use:   "onode",
 		Short: "onode helps you generate a random onode address",
-		Run: genONode,
+		Run:   genONode,
 	}
 	output string
 )

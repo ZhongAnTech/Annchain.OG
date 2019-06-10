@@ -12,19 +12,19 @@ import (
 
 var (
 	genCmd = &cobra.Command{
-		Use: "gen",
+		Use:   "gen",
 		Short: "generate config.toml files for deployment",
-		Run: gen,
+		Run:   gen,
 	}
 	//normal bool
-	solo bool
-	private bool
+	solo     bool
+	private  bool
 	nodesNum int
 )
 
 var (
 	privateDir = "private"
-	soloDir = "solo"
+	soloDir    = "solo"
 	mainNetDir = "main_net"
 )
 
@@ -50,7 +50,7 @@ func gen(cmd *cobra.Command, args []string) {
 		//generate consensus group keys
 		privateSet := []string{}
 		publicSet := []string{}
-		for i:=0; i<nodesNum; i++ {
+		for i := 0; i < nodesNum; i++ {
 			priv, pub := genAccount()
 			privateSet = append(privateSet, fmt.Sprintf("%x", priv))
 			publicSet = append(publicSet, fmt.Sprintf("%x", pub))
@@ -70,7 +70,7 @@ func gen(cmd *cobra.Command, args []string) {
 		viper.Set("node_key", nodekeyBoot)
 		err = mkDirIfNotExists(privateDir + "/node_boot")
 		if err != nil {
-			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir + "/node_boot", err))
+			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir+"/node_boot", err))
 			return
 		}
 		viper.WriteConfigAs(privateDir + "/node_boot/" + configFileName)
@@ -78,7 +78,7 @@ func gen(cmd *cobra.Command, args []string) {
 		//init other nodes
 		viper.Set("annsensus.campain", false)
 		viper.Set("node_key", "")
-		for i:=1; i<len(privateSet); i++ {
+		for i := 1; i < len(privateSet); i++ {
 			fmt.Println("private key: ", i)
 			viper.Set("dag.my_private_key", privateSet[i])
 
@@ -152,8 +152,12 @@ func panicIfError(err error, message string) {
 
 func mkDirIfNotExists(path string) error {
 	_, err := os.Stat(path)
-	if err == nil { return nil }
-	if !os.IsNotExist(err) { return err }
+	if err == nil {
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return err
+	}
 
 	return os.MkdirAll(path, os.ModePerm)
 }

@@ -103,6 +103,7 @@ type TxPool struct {
 	OnNewLatestSequencer   []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                  uint32
 	maxWeight              uint64
+	confirmStatus        *ConfirmStatus
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -117,6 +118,9 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 }
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
+	if conf.ConfirmStatusRefreshTime ==0 {
+		conf.ConfirmStatusRefreshTime = 30
+	}
 	pool := &TxPool{
 		conf:                   conf,
 		dag:                    d,
@@ -130,7 +134,9 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		onNewTxReceived:        make(map[channelName]chan types.Txi),
 		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
 		OnConsensusTXConfirmed: []chan map[types.Hash]types.Txi{},
+		confirmStatus: &ConfirmStatus{RefreshTime: time.Minute* time.Duration( conf.ConfirmStatusRefreshTime)},
 	}
+
 	return pool
 }
 
@@ -144,6 +150,7 @@ type TxPoolConfig struct {
 	TimeoutSubscriber      int `mapstructure:"timeout_subscriber_ms"`
 	TimeoutConfirmation    int `mapstructure:"timeout_confirmation_ms"`
 	TimeoutLatestSequencer int `mapstructure:"timeout_latest_seq_ms"`
+	ConfirmStatusRefreshTime int  //minute
 }
 
 func DefaultTxPoolConfig() TxPoolConfig {
@@ -503,6 +510,12 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 			noFeedBack: noFeedBack,
 		},
 	}
+
+	if  normalTx  ,ok := tx.(*types.Tx); ok {
+		normalTx.Setconfirm()
+		pool.confirmStatus.AddTxNum()
+	}
+
 	pool.queue <- te
 
 	// waiting for callback
@@ -701,6 +714,13 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
+
+	for _, tx:= range batch.Txs {
+		if  normalTx ,ok := tx.(*types.Tx); ok {
+			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
+		}
+	}
+
 	// solve conflicts of txs in pool
 	pool.solveConflicts(elders)
 	// add seq to txpool
@@ -1220,4 +1240,9 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
 	}
+}
+
+
+func (t *TxPool)GetConfirmStatus()*ConfirmInfo {
+	return  t.confirmStatus.GetInfo()
 }

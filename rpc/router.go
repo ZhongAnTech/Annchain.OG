@@ -65,6 +65,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
 	router.GET("consensus", rpc.ConStatus)
+	router.GET("confirm_status", rpc.ConfirmStatus)
 
 	return router
 
@@ -75,19 +76,20 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 
 	routerMap := map[string]string{
 		// info API
-		"status":        "",
-		"net_info":      "",
-		"peers_info":    "",
-		"validators":    "",
-		"sequencer":     "",
-		"og_peers_info": "",
-		"genesis":       "",
-		"sync_status":   "",
-		"performance":   "",
-		"consensus":     "",
-		"monitor":       "",
-		"tps":           "",
-		"net_io":        "",
+		"status":         "",
+		"net_info":       "",
+		"peers_info":     "",
+		"validators":     "",
+		"sequencer":      "",
+		"og_peers_info":  "",
+		"genesis":        "",
+		"sync_status":    "",
+		"performance":    "",
+		"consensus":      "",
+		"monitor":        "",
+		"tps":            "",
+		"net_io":         "",
+		"confirm_status": "",
 
 		// broadcast API
 		"new_transaction": "tx",

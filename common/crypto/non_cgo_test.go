@@ -82,12 +82,11 @@ func (s *SignerSecp256k1cgo) DealRecoverID(sig Signature) Signature {
 	return sig
 }
 
-
 func TestSignerNewPrivKeyCGO(t *testing.T) {
 	t.Parallel()
 	signer := SignerSecp256k1cgo{}
 	signer2 := SignerSecp256k1{}
-	for i:=0;i<10;i++ {
+	for i := 0; i < 10; i++ {
 		pk, priv := signer.RandomKeyPair()
 		//fmt.Println(priv.String())
 		//fmt.Println(pk.String())
@@ -112,7 +111,7 @@ func TestSignerNewPrivKeyCGOF(t *testing.T) {
 	t.Parallel()
 	signer := SignerSecp256k1cgo{}
 	signer2 := SignerSecp256k1{}
-	for i:=0;i<1000;i++ {
+	for i := 0; i < 1000; i++ {
 		pk, priv := signer.RandomKeyPair()
 		//fmt.Println(priv.String())
 		//fmt.Println(pk.String())

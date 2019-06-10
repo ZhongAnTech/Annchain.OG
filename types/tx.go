@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
@@ -33,10 +34,19 @@ type Txs []*Tx
 //msgp:tuple Tx
 type Tx struct {
 	TxBase
-	From  Address
-	To    Address
-	Value *math.BigInt
-	Data  []byte
+	From    Address
+	To      Address
+	Value   *math.BigInt
+	Data    []byte
+	confirm time.Time
+}
+
+func (t *Tx) GetConfirm() time.Duration {
+	return time.Since(t.confirm)
+}
+
+func (t *Tx) Setconfirm() {
+	t.confirm = time.Now()
 }
 
 func (t *Tx) String() string {

@@ -8,7 +8,7 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use: "OG tool for deployment",
+		Use:   "OG tool for deployment",
 		Short: "deploy helps you to create boot node address and init genesis consensus public keys",
 	}
 	bootUrl string

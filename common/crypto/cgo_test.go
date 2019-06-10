@@ -51,14 +51,14 @@ func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
 	if prv.Curve != btcec.S256() {
 		panic(fmt.Errorf("private key curve is not secp256k1"))
 	}
-	key:= (*btcec.PrivateKey)(prv)
+	key := (*btcec.PrivateKey)(prv)
 	signature, err := key.Sign(hash)
 	if err != nil {
 		panic(err)
 	}
-	sig := toByte(signature.R,signature.S)
+	sig := toByte(signature.R, signature.S)
 	// Convert to Ethereum signature format with 'recovery id' v at the end.
-	if len(sig)==sigLength+1 {
+	if len(sig) == sigLength+1 {
 		v := sig[0]
 		copy(sig, sig[1:])
 		//sig[64] = v
@@ -70,7 +70,7 @@ func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
 	return SignatureFromBytes(s.GetCryptoType(), sig)
 }
 
-func toByte(R *big.Int, S *big.Int)[]byte {
+func toByte(R *big.Int, S *big.Int) []byte {
 	rb := canonicalizeInt(R)
 	//sigS := sig.S
 	//if sigS.Cmp(S256().halfOrder) == 1 {
@@ -78,8 +78,8 @@ func toByte(R *big.Int, S *big.Int)[]byte {
 	//}
 	sb := canonicalizeInt(S)
 	b := make([]byte, len(rb)+len(sb))
-	copy(b,rb)
-	copy(b[len(rb):],sb)
+	copy(b, rb)
+	copy(b[len(rb):], sb)
 	return b
 }
 
@@ -134,9 +134,9 @@ func (s *SignerSecp256k1Go) PubKey(privKey PrivateKey) PublicKey {
 func TestSignerNewPrivKeyGO(t *testing.T) {
 	t.Parallel()
 	signer := SignerSecp256k1{}
-	for i:=0;i<10;i++ {
+	for i := 0; i < 10; i++ {
 		pk, priv := signer.RandomKeyPair()
-        //fmt.Println(priv.String())
+		//fmt.Println(priv.String())
 		//fmt.Println(pk.String())
 		b := []byte("foohhhhjkhhj3488984984984jjjdjsdjks")
 		sig := signer.Sign(priv, b)

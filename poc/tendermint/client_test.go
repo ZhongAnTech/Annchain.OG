@@ -18,7 +18,7 @@ func init() {
 	Formatter.FullTimestamp = true
 
 	logrus.SetFormatter(Formatter)
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 
 	go func() {
 		logrus.Fatal(http.ListenAndServe("localhost:6060", nil))
@@ -28,6 +28,7 @@ func init() {
 
 func start(peers []Partner) {
 	for _, peer := range peers {
+		time.Sleep(2*time.Second)
 		peer.SetPeers(peers)
 		peer.StartNewEra(0, 0)
 		go peer.EventLoop()

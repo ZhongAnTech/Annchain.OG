@@ -305,6 +305,8 @@ func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR {
 		p.StartNewEra(v.HeightRound.Height, v.HeightRound.Round+1)
+	}else {
+		logrus.Warn(v.HeightRound , " diffff ", p.CurrentHR)
 	}
 }
 
@@ -341,6 +343,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		msg := message.Payload.(MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
+			logrus.Debug("no needHandle")
 			break
 		}
 		p.States[msg.HeightRound].PreVotes[msg.SourceId] = &msg
@@ -356,6 +359,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		msg := message.Payload.(MessageCommonVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
+			logrus.Debug("no needHandle")
 			break
 		}
 		p.States[msg.HeightRound].PreCommits[msg.SourceId] = &msg
@@ -441,6 +445,7 @@ func (p *DefaultPartner) handlePreCommit(commit *MessageCommonVote) {
 	count := p.count(MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, "")
 	state := p.States[commit.HeightRound]
 	if count >= 2*p.F+1 && !state.StepTypeEqualPreCommitTriggered {
+		logrus.WithField("IM", p.Id).WithField("hr", commit.HeightRound.String()).Debug("precommit counter is more than 2f+1 #1")
 		state.StepTypeEqualPreCommitTriggered = true
 		p.WaitStepTimeout(StepTypePreCommit, TimeoutPreCommit, commit.HeightRound, p.OnTimeoutPreCommit)
 	}

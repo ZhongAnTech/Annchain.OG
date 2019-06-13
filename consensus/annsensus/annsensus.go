@@ -393,7 +393,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 	}
 	var pkbls []byte
 	var err error
-	if pk !=nil {
+	if pk != nil {
 		pkbls, err = pk.MarshalBinary()
 		if err != nil {
 			log.WithError(err).Warn("pk error")
@@ -455,6 +455,7 @@ func (as *AnnSensus) loop() {
 
 	var eventInit bool
 	var loadDone bool
+	var waitNewTerm bool
 	//var lastheight uint64
 
 	for {
@@ -654,10 +655,9 @@ func (as *AnnSensus) loop() {
 					//after updated , start bft process, skip bfd gossip
 					log.Debug("start bft")
 					eventInit = true
+
+					waitNewTerm = true
 					//TODO  newTermChange if we got new Termchange
-					goroutine.New (func() {
-						as.newTermChan <- true
-					})
 
 				}
 			} else {
@@ -693,6 +693,12 @@ func (as *AnnSensus) loop() {
 					as.dkg.SendGenesisPublicKey(as.genesisAccounts)
 				})
 				as.initDone = true
+			}
+			if waitNewTerm && peerNum == as.NbParticipants-1 {
+				waitNewTerm = false
+				goroutine.New(func() {
+					as.newTermChan <- true
+				})
 			}
 
 			//for genesis consensus , obtain tc from network

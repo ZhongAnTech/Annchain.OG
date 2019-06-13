@@ -35,7 +35,7 @@ func init() {
 	logrus.AddHook(filenameHook)
 }
 
-func start(peers []BFTPartner) {
+func start(peers []BFTPartner, second int ) {
 	for _, peer := range peers {
 		peer.SetPeers(peers)
 		peer.StartNewEra(0, 0)
@@ -43,7 +43,7 @@ func start(peers []BFTPartner) {
 		go peer.EventLoop()
 	}
 	for {
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * time.Duration(second))
 		return
 	}
 }
@@ -54,7 +54,7 @@ func TestAllNonByzantine(t *testing.T) {
 	for i := 0; i < total; i++ {
 		peers = append(peers, NewBFTPartner(total, i, BlockTime))
 	}
-	start(peers)
+	start(peers,10)
 }
 
 func TestByzantineButOK(t *testing.T) {
@@ -72,7 +72,7 @@ func TestByzantineButOK(t *testing.T) {
 				SilencePreCommit: true,
 			}))
 	}
-	start(peers)
+	start(peers,10)
 }
 
 func TestByzantineNotOK(t *testing.T) {
@@ -90,7 +90,7 @@ func TestByzantineNotOK(t *testing.T) {
 				//SilencePreCommit: true,
 			}))
 	}
-	start(peers)
+	start(peers,60)
 }
 
 func TestBadByzantineOK(t *testing.T) {
@@ -108,7 +108,7 @@ func TestBadByzantineOK(t *testing.T) {
 				BadProposal:  true,
 			}))
 	}
-	start(peers)
+	start(peers,10)
 }
 
 func TestManyBadByzantineOK(t *testing.T) {
@@ -126,5 +126,5 @@ func TestManyBadByzantineOK(t *testing.T) {
 				BadProposal:  true,
 			}))
 	}
-	start(peers)
+	start(peers,10)
 }

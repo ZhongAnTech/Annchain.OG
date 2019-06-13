@@ -227,6 +227,7 @@ func (b *BFT) loop() {
 			log.Info("got quit signal, BFT loop")
 			return
 		case <-b.startBftChan:
+			log.Info("bft got start gossip signal")
 			if !b.started {
 				goroutine.New(func() {
 					b.BFTPartner.StartNewEra(b.dag.GetHeight(), 0)

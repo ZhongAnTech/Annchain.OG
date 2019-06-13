@@ -396,12 +396,10 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 	if pk !=nil {
 		pkbls, err = pk.MarshalBinary()
 		if err != nil {
+			log.WithError(err).Warn("pk error")
 			return nil
 		}
 	}
-
-
-
 
 	tc := &types.TermChange{
 		TxBase: base,

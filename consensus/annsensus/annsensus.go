@@ -655,9 +655,9 @@ func (as *AnnSensus) loop() {
 					log.Debug("start bft")
 					eventInit = true
 					//TODO  newTermChange if we got new Termchange
-					//goroutine.New (func() {
-					//	as.newTermChan <- true
-					//})
+					goroutine.New (func() {
+						as.newTermChan <- true
+					})
 
 				}
 			} else {

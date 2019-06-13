@@ -186,5 +186,6 @@ func (d *Dkg) SetConfig(config *DkgConfig) {
 	d.partner.jointPubKey = config.jointPubKey
 	d.partner.Id = config.PartnerId
 	d.blsSigSets = config.SigSets
+	d.isValidPartner = true
 
 }

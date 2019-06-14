@@ -28,7 +28,7 @@ func init() {
 
 func start(peers []Partner) {
 	for _, peer := range peers {
-		time.Sleep(2*time.Second)
+		time.Sleep(2 * time.Second)
 		peer.SetPeers(peers)
 		peer.StartNewEra(0, 0)
 		go peer.EventLoop()

@@ -118,6 +118,7 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 		proposalCache: make(map[types.Hash]*types.MessageProposal),
 	}
 	bft.BFTPartner.SetProposalFunc(bft.ProduceProposal)
+	bft.BFTPartner.SetGetHeightFunc(dag.GetHeight)
 	bft.JudgeNonceFunction = judgeNonceFunction
 	bft.SequencerTime = sequencerTime
 	bft.OnSelfGenTxi = OnSelfGenTxi

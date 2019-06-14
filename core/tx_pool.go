@@ -756,7 +756,7 @@ func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	// check if the nonce is duplicate
 	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
 	if seqindag != nil {
-		return fmt.Errorf("bad seq,duplicate nonce %d found in dag", seq.GetNonce())
+		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag.String())
 	}
 	return nil
 }

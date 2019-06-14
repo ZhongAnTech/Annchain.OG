@@ -301,6 +301,7 @@ func (b *BFT) loop() {
 			sequencerProposal.BlsJointSig = jointSig
 			log.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub
+			sequencerProposal.Sequencer.Proposing = false
 			b.OnSelfGenTxi <- &sequencerProposal.Sequencer
 			//b.ann.Hub.BroadcastMessage(og.MessageTypeNewSequencer, seq.RawSequencer())
 

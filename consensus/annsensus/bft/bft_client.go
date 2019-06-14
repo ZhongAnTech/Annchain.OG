@@ -228,8 +228,20 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 				proposal, validHeight = p.GetValue(false)
 			}
 			if validHeight != p.CurrentHR.Height {
-				//TODO
-				logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
+				if p.CurrentHR.Height > validHeight {
+					//TODO
+					logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
+				} else {
+					// update partner height
+					p.CurrentHR.Height = validHeight
+					currState, _ = p.initHeightRound(p.CurrentHR)
+					p.WipeOldStates()
+					p.changeStep(StepTypePropose)
+
+					//
+					logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Debug("height mismatch //TODO")
+				}
+
 			}
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")

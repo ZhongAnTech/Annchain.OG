@@ -305,8 +305,8 @@ func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR {
 		p.StartNewEra(v.HeightRound.Height, v.HeightRound.Round+1)
-	}else {
-		logrus.Warn(v.HeightRound , " diffff ", p.CurrentHR)
+	} else {
+		logrus.Warn(v.HeightRound, " diffff ", p.CurrentHR)
 	}
 }
 

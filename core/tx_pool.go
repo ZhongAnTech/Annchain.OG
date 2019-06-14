@@ -103,7 +103,7 @@ type TxPool struct {
 	OnNewLatestSequencer   []chan bool                     //for broadcasting new latest sequencer to record height
 	txNum                  uint32
 	maxWeight              uint64
-	confirmStatus        *ConfirmStatus
+	confirmStatus          *ConfirmStatus
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -118,7 +118,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 }
 
 func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
-	if conf.ConfirmStatusRefreshTime ==0 {
+	if conf.ConfirmStatusRefreshTime == 0 {
 		conf.ConfirmStatusRefreshTime = 30
 	}
 	pool := &TxPool{
@@ -134,23 +134,23 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		onNewTxReceived:        make(map[channelName]chan types.Txi),
 		OnBatchConfirmed:       []chan map[types.Hash]types.Txi{},
 		OnConsensusTXConfirmed: []chan map[types.Hash]types.Txi{},
-		confirmStatus: &ConfirmStatus{RefreshTime: time.Minute* time.Duration( conf.ConfirmStatusRefreshTime)},
+		confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
 
 	return pool
 }
 
 type TxPoolConfig struct {
-	QueueSize              int `mapstructure:"queue_size"`
-	TipsSize               int `mapstructure:"tips_size"`
-	ResetDuration          int `mapstructure:"reset_duration"`
-	TxVerifyTime           int `mapstructure:"tx_verify_time"`
-	TxValidTime            int `mapstructure:"tx_valid_time"`
-	TimeOutPoolQueue       int `mapstructure:"timeout_pool_queue_ms"`
-	TimeoutSubscriber      int `mapstructure:"timeout_subscriber_ms"`
-	TimeoutConfirmation    int `mapstructure:"timeout_confirmation_ms"`
-	TimeoutLatestSequencer int `mapstructure:"timeout_latest_seq_ms"`
-	ConfirmStatusRefreshTime int  //minute
+	QueueSize                int `mapstructure:"queue_size"`
+	TipsSize                 int `mapstructure:"tips_size"`
+	ResetDuration            int `mapstructure:"reset_duration"`
+	TxVerifyTime             int `mapstructure:"tx_verify_time"`
+	TxValidTime              int `mapstructure:"tx_valid_time"`
+	TimeOutPoolQueue         int `mapstructure:"timeout_pool_queue_ms"`
+	TimeoutSubscriber        int `mapstructure:"timeout_subscriber_ms"`
+	TimeoutConfirmation      int `mapstructure:"timeout_confirmation_ms"`
+	TimeoutLatestSequencer   int `mapstructure:"timeout_latest_seq_ms"`
+	ConfirmStatusRefreshTime int //minute
 }
 
 func DefaultTxPoolConfig() TxPoolConfig {
@@ -511,7 +511,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		},
 	}
 
-	if  normalTx  ,ok := tx.(*types.Tx); ok {
+	if normalTx, ok := tx.(*types.Tx); ok {
 		normalTx.Setconfirm()
 		pool.confirmStatus.AddTxNum()
 	}
@@ -715,8 +715,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return err
 	}
 
-	for _, tx:= range batch.Txs {
-		if  normalTx ,ok := tx.(*types.Tx); ok {
+	for _, tx := range batch.Txs {
+		if normalTx, ok := tx.(*types.Tx); ok {
 			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
 		}
 	}
@@ -1242,7 +1242,6 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	}
 }
 
-
-func (t *TxPool)GetConfirmStatus()*ConfirmInfo {
-	return  t.confirmStatus.GetInfo()
+func (t *TxPool) GetConfirmStatus() *ConfirmInfo {
+	return t.confirmStatus.GetInfo()
 }

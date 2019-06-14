@@ -655,7 +655,6 @@ func (as *AnnSensus) loop() {
 					//after updated , start bft process, skip bfd gossip
 					log.Debug("start bft")
 					eventInit = true
-
 					waitNewTerm = true
 					//TODO  newTermChange if we got new Termchange
 

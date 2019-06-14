@@ -41,6 +41,7 @@ type BFTPartner interface {
 	Stop()
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
+	SetGetHeightFunc (getHeightFunc func() uint64)
 }
 
 type PartnerBase struct {
@@ -101,6 +102,7 @@ type DefaultPartner struct {
 	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
+	getHeightFunc func()uint64
 	testFlag bool
 }
 
@@ -110,6 +112,10 @@ func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
 
 func deFaultDecisionFunc(state *HeightRoundState) error {
 	return nil
+}
+
+func (p*DefaultPartner)SetGetHeightFunc(getHeightFunc func()uint64)  {
+	p.getHeightFunc = getHeightFunc
 }
 
 func (p *DefaultPartner) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
@@ -192,6 +198,13 @@ func (p *DefaultPartner) WaiterLoop() {
 
 // StartNewEra is called once height or round needs to be changed.
 func (p *DefaultPartner) StartNewEra(height uint64, round int) {
+	if p.getHeightFunc!=nil {
+		ledgerHeight :=  p.getHeightFunc()
+		if ledgerHeight > height {
+			height = ledgerHeight
+			logrus.WithField("height ", height).Debug("height reset")
+		}
+	}
 	hr := p.CurrentHR
 	if height-hr.Height > 1 {
 		logrus.WithField("height", height).Warn("height is much higher than current. Indicating packet loss or severe behind.")
@@ -232,12 +245,6 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 					//TODO
 					logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Warn("height mismatch //TODO")
 				} else {
-					// update partner height
-					p.CurrentHR.Height = validHeight
-					currState, _ = p.initHeightRound(p.CurrentHR)
-					p.WipeOldStates()
-					p.changeStep(StepTypePropose)
-
 					//
 					logrus.WithField("height", p.CurrentHR).WithField("valid height ", validHeight).Debug("height mismatch //TODO")
 				}

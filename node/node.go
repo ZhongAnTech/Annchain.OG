@@ -385,6 +385,7 @@ func NewNode() *Node {
 
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
+		wsServer.ArchiveMode = archiveMode
 		n.Components = append(n.Components, wsServer)
 		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan", true)
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)

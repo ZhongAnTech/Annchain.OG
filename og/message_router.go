@@ -38,6 +38,7 @@ type MessageRouter struct {
 	HeaderResponseHandler               HeaderResponseHandler
 	CampaignHandler                     CampaignHandler
 	TermChangeHandler                   TermChangeHandler
+	ArchiveHandler                      ArchiveHandler
 	ConsensusDkgDealHandler             ConsensusDkgDealHandler
 	ConsensusDkgDealResponseHandler     ConsensusDkgDealResponseHandler
 	ConsensusDkgSigSetsHandler          ConsensusDkgSigSetsHandler
@@ -47,6 +48,7 @@ type MessageRouter struct {
 	ConsensusPreCommitHandler           ConsensusPreCommitHandler
 	TermChangeRequestHandler            TermChangeRequestHandler
 	TermChangeResponseHandler           TermChangeResponseHandler
+
 }
 
 type ManagerConfig struct {
@@ -123,6 +125,10 @@ type CampaignHandler interface {
 
 type TermChangeHandler interface {
 	HandleTermChange(request *types.MessageTermChange, peerId string)
+}
+
+type ArchiveHandler interface {
+	HandleArchive(request *types.MessageNewArchive, peerId string)
 }
 
 type ConsensusDkgDealHandler interface {
@@ -247,6 +253,10 @@ func (m *MessageRouter) RouteCampaign(msg *p2PMessage) {
 
 func (m *MessageRouter) RouteTermChange(msg *p2PMessage) {
 	m.TermChangeHandler.HandleTermChange(msg.message.(*types.MessageTermChange), msg.sourceID)
+}
+
+func (m*MessageRouter)RouteArchive(msg *p2PMessage) {
+	m.ArchiveHandler.HandleArchive(msg.message.(*types.MessageNewArchive), msg.sourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgDeal(msg *p2PMessage) {

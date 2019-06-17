@@ -492,6 +492,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeControl] = m.RouteControlMsg
 	hub.CallbackRegistry[og.MessageTypeCampaign] = m.RouteCampaign
 	hub.CallbackRegistry[og.MessageTypeTermChange] = m.RouteTermChange
+	hub.CallbackRegistry[og.MessageTypeArchive] = m.RouteArchive
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets

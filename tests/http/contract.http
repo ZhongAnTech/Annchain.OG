@@ -24,7 +24,7 @@ GET  http://172.28.152.101:11300/transactions?seq_id=49
 ###
 
 #send contract
-POST  http://172.28.152.101:11300/new_transaction
+POST  http://172.28.152.101:8000/new_transaction
 
 {
         "nonce": "0",

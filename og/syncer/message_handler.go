@@ -117,6 +117,17 @@ func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, p
 
 }
 
+func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peerId string) {
+	ac := request.Archive
+	if ac == nil {
+		log.Warn("got nil MessageCampaign")
+		return
+	}
+	m.HandleNewTxi(ac)
+	log.WithField("q", request).Debug("incremental received MessageTermChange")
+
+}
+
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
 	m.bloomFilterStatus.UpdateResponse(syncResponse.RequestedId)
 	if syncResponse.RawTxs == nil || len(*syncResponse.RawTxs) == 0 {

@@ -47,6 +47,13 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 			RawTermChange: tx.RawTermChange(),
 		}
 		m.messageSender.BroadcastMessage(og.MessageTypeTermChange, &msg)
+
+	case *types.Archive:
+		msg := types.MessageNewArchive{
+			Archive:tx,
+		}
+		m.messageSender.BroadcastMessage(og.MessageTypeArchive, &msg)
+
 	default:
 		log.Warn("never come here, unknown tx type ", tx)
 	}

@@ -515,3 +515,15 @@ func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {
 
 	return buf.Bytes()
 }
+
+//msgp:tupple MessageNewArchive
+type MessageNewArchive struct {
+	Archive *Archive
+}
+
+func (m *MessageNewArchive) String()string {
+	if m.Archive==nil {
+		return "nil"
+	}
+	return m.Archive.String()
+}

@@ -74,3 +74,11 @@ POST http://192.168.45.149:11300/query_contract
 
 
 ###
+
+POST  http://172.28.152.101:8000/new_archive
+
+{
+  "data" : "QUFDTgAAjQ=="
+}
+
+###

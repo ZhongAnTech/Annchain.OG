@@ -151,6 +151,8 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *types.Sequencer:
 		Response(c, http.StatusOK, nil, tx)
 		return
+	case *types.Archive:
+		Response(c, http.StatusOK, nil, tx)
 	}
 	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
 }

@@ -49,6 +49,7 @@ type Node struct {
 }
 
 func NewNode() *Node {
+	var archiveMode bool
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
@@ -277,7 +278,15 @@ func NewNode() *Node {
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
 	genesisAccounts := parserGenesisAccounts(viper.GetString("annsensus.genesis_pk"))
 
+	mode := viper.GetString("mode")
+	if mode == "archive" {
+		archiveMode = true
+	}
 	disableConsensus := viper.GetBool("annsensus.disable")
+	//TODO temperary , delete this after demo
+	if archiveMode {
+		disableConsensus = true
+	}
 	campaign := viper.GetBool("annsensus.campaign")
 	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")
@@ -369,6 +378,9 @@ func NewNode() *Node {
 		rpcServer.C.AutoTxCli = autoClientManager
 		rpcServer.C.AnnSensus = annSensus
 		rpcServer.C.PerformanceMonitor = pm
+
+		rpcServer.C.ArchiveMode = archiveMode
+
 	}
 
 	if viper.GetBool("websocket.enabled") {

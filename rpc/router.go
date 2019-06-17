@@ -66,6 +66,7 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("performance", rpc.Performance)
 	router.GET("consensus", rpc.ConStatus)
 	router.GET("confirm_status", rpc.ConfirmStatus)
+	router.POST("new_archive", rpc.NewArchive)
 
 	return router
 
@@ -94,6 +95,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		// broadcast API
 		"new_transaction": "tx",
 		"auto_tx":         "interval_us",
+		"new_archive":     "tx",
 
 		// query API
 		"query":            "query",

@@ -42,6 +42,8 @@ func (c *ConsensusVerifier) Verify(t types.Txi) bool {
 	switch tx := t.(type) {
 	case *types.Tx:
 		return true
+	case *types.Archive:
+		return true
 	case *types.Sequencer:
 		return c.VerifySequencer(tx)
 	case *types.Campaign:
@@ -92,6 +94,9 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 }
 
 func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
+	if t.GetType() == types.TxBaseTypeArchive {
+		return true
+	}
 	base := t.GetBase()
 	return crypto.Signer.Verify(
 		crypto.Signer.PublicKeyFromBytes(base.PublicKey),
@@ -109,6 +114,8 @@ func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 		return t.(*types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *types.TermChange:
 		return t.(*types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *types.Archive:
+		return true
 	default:
 		return true
 	}
@@ -182,13 +189,15 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
 			// found. verify nonce
-			if txi.Sender() == currentTx.Sender() {
-				// verify if the nonce is larger
-				if txi.GetNonce() == currentTx.GetNonce()-1 {
-					// good
-					previousTx = txi
-					ok = true
-					return
+			if txi.GetType()!=types.TxBaseTypeArchive {
+				if txi.Sender() == currentTx.Sender() {
+					// verify if the nonce is larger
+					if txi.GetNonce() == currentTx.GetNonce()-1 {
+						// good
+						previousTx = txi
+						ok = true
+						return
+					}
 				}
 			}
 
@@ -311,6 +320,10 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 1
+
+	if txi.GetType() == types.TxBaseTypeArchive {
+		return true
+	}
 
 	if txi.GetNonce() == 0 {
 		return false

@@ -33,6 +33,7 @@ const (
 
 	messageTypeNewUnit   = "new_unit"
 	messageTypeConfirmed = "confirmed"
+	messageTypeNewTx     = "new_tx"
 )
 
 var defaultUpgrader = &websocket.Upgrader{
@@ -72,6 +73,7 @@ type Server struct {
 
 	// to receive confirmation events
 	BatchConfirmedChan chan map[types.Hash]types.Txi
+	ArchiveMode        bool
 
 	wh     *websocketHandler
 	ph     *pushHandler
@@ -166,26 +168,44 @@ func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
 	var uidata *UIData
+	var blockData *BlockDbData
 	for {
 		select {
 		case tx := <-s.NewTxReceivedChan:
-			if uidata == nil {
-				uidata = &UIData{
-					Type: messageTypeNewUnit,
-					//Nodes: []Node{},
-					//Edges: []Edge{},
+			if s.ArchiveMode {
+				if blockData == nil {
+					blockData = &BlockDbData{}
 				}
+				blockData.Nodes = append(blockData.Nodes, tx)
+			} else {
+				if uidata == nil {
+					uidata = &UIData{
+						Type: messageTypeNewUnit,
+						//Nodes: []Node{},
+						//Edges: []Edge{},
+					}
+				}
+				uidata.AddToBatch(tx, true)
 			}
-			uidata.AddToBatch(tx, true)
 		case batch := <-s.BatchConfirmedChan:
 			// first publish all pending txs
-			s.publishTxs(uidata)
-			uidata = nil
+			if s.ArchiveMode {
+				s.publishNewTxs(blockData)
+				blockData = nil
+			} else {
+				s.publishTxs(uidata)
+				uidata = nil
+			}
 			// then publish batch
 			s.publishBatch(batch)
 		case <-ticker.C:
-			s.publishTxs(uidata)
-			uidata = nil
+			if s.ArchiveMode {
+				s.publishNewTxs(blockData)
+				blockData = nil
+			} else {
+				s.publishTxs(uidata)
+				uidata = nil
+			}
 		case <-s.quit:
 			break
 		}
@@ -225,4 +245,17 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 	}
 	s.Push(messageTypeConfirmed, string(bs))
 
+}
+
+func (s *Server) publishNewTxs(data *BlockDbData) {
+	if data == nil {
+		return
+	}
+	logrus.WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
+	bs, err := json.Marshal(data)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to marshal ws message")
+		return
+	}
+	s.Push(messageTypeNewTx, string(bs))
 }

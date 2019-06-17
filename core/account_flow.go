@@ -39,6 +39,10 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	if tx.GetType()== types.TxBaseTypeArchive {
+		return
+	}
+
 	if a.afs[tx.Sender()] == nil {
 		log.WithField("tx", tx).Warnf("add to account flows failed")
 		return

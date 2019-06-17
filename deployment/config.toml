@@ -96,6 +96,8 @@ disable = false
  # after 10 sequencer , will term change
 term_change_interval = 10
 
+mode = "archive"
+
 # samples below
 
 #[owner]

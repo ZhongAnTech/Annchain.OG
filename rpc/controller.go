@@ -14,6 +14,8 @@
 package rpc
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
@@ -48,6 +50,7 @@ type RpcController struct {
 	AutoTxCli          AutoTxClient
 	NewRequestChan     chan types.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
+	ArchiveMode        bool
 }
 
 //NodeStatus
@@ -80,6 +83,11 @@ type NewTxRequest struct {
 	CryptoType string `json:"crypto_type"`
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
+}
+
+//NewArchiveRequest for RPC request
+type NewArchiveRequest struct {
+	Data []byte `json:"data"`
 }
 
 //NewAccountRequest for RPC request
@@ -368,6 +376,39 @@ func (r *RpcController) Validator(c *gin.Context) {
 	return
 }
 
+func (r *RpcController) NewArchive(c *gin.Context) {
+	var (
+		tx    types.Txi
+		txReq NewArchiveRequest
+	)
+
+	err := c.ShouldBindJSON(&txReq)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
+		return
+	}
+	buf := bytes.Buffer{}
+	encoder := base64.NewEncoder(base64.StdEncoding, &buf)
+	encoder.Write(txReq.Data)
+	buf.Write(txReq.Data)
+
+	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())
+	if err != nil {
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+	if !r.SyncerManager.IncrementalSyncer.Enabled {
+		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
+		return
+	}
+
+	r.TxBuffer.ReceivedNewTxChan <- tx
+
+	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	return
+}
+
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
 		tx    types.Txi
@@ -375,6 +416,11 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		sig   crypto.Signature
 		pub   crypto.PublicKey
 	)
+
+	if r.ArchiveMode {
+		Response(c, http.StatusBadRequest, fmt.Errorf("archive mode"), nil)
+		return
+	}
 
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {

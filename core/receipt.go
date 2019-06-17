@@ -27,6 +27,7 @@ const (
 	ReceiptStatusOVMFailed
 	ReceiptStatusCampaignSuccess
 	ReceiptStatusTermChangeSuccess
+	ReceiptStatusArchiveSuccess
 )
 
 //go:generate msgp

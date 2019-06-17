@@ -41,7 +41,7 @@ type BFTPartner interface {
 	Stop()
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
-	SetGetHeightFunc (getHeightFunc func() uint64)
+	SetGetHeightFunc(getHeightFunc func() uint64)
 }
 
 type PartnerBase struct {
@@ -102,8 +102,8 @@ type DefaultPartner struct {
 	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
-	getHeightFunc func()uint64
-	testFlag bool
+	getHeightFunc func() uint64
+	testFlag      bool
 }
 
 func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
@@ -114,7 +114,7 @@ func deFaultDecisionFunc(state *HeightRoundState) error {
 	return nil
 }
 
-func (p*DefaultPartner)SetGetHeightFunc(getHeightFunc func()uint64)  {
+func (p *DefaultPartner) SetGetHeightFunc(getHeightFunc func() uint64) {
 	p.getHeightFunc = getHeightFunc
 }
 
@@ -198,8 +198,8 @@ func (p *DefaultPartner) WaiterLoop() {
 
 // StartNewEra is called once height or round needs to be changed.
 func (p *DefaultPartner) StartNewEra(height uint64, round int) {
-	if p.getHeightFunc!=nil {
-		ledgerHeight :=  p.getHeightFunc()
+	if p.getHeightFunc != nil {
+		ledgerHeight := p.getHeightFunc()
 		if ledgerHeight > height {
 			height = ledgerHeight
 			logrus.WithField("height ", height).Debug("height reset")

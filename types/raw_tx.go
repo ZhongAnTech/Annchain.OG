@@ -53,6 +53,14 @@ type RawTermChange struct {
 	SigSet []*SigSet
 }
 
+//msgp:tuple RawArchive
+type RawArchive struct {
+	Archive
+}
+
+//msgp:tuple RawArchive
+type RawArchives []*RawArchive
+
 //msgp:tuple RawSequencers
 type RawSequencers []*RawSequencer
 
@@ -393,6 +401,10 @@ func (t *RawTermChange) Txi() Txi {
 
 func (t *RawCampaign) Txi() Txi {
 	return t.Campaign()
+}
+
+func (a *RawArchive) Txi() Txi {
+	return &a.Archive
 }
 
 //func (t *RawTx) Dump() string  {

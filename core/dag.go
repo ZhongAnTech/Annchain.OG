@@ -740,13 +740,15 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	err := dag.accessor.WriteTxHashByNonce(tx.Sender(), tx.GetNonce(), tx.GetTxHash())
-	if err != nil {
-		return fmt.Errorf("write latest nonce err: %v", err)
+	if tx.GetType()!= types.TxBaseTypeArchive{
+		err := dag.accessor.WriteTxHashByNonce(tx.Sender(), tx.GetNonce(), tx.GetTxHash())
+		if err != nil {
+			return fmt.Errorf("write latest nonce err: %v", err)
+		}
 	}
 
 	// Write tx itself
-	err = dag.accessor.WriteTransaction(putter, tx)
+	err := dag.accessor.WriteTransaction(putter, tx)
 	if err != nil {
 		return err
 	}
@@ -765,6 +767,11 @@ func (dag *Dag) DeleteTransaction(hash types.Hash) error {
 // contract, vm part will be initiated to handle this.
 func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// update nonce
+	if tx.GetType() == types.TxBaseTypeArchive {
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+
 	curNonce := dag.statedb.GetNonce(tx.Sender())
 	if !dag.statedb.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
 		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())

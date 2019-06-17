@@ -31,6 +31,7 @@ const (
 	TxBaseTypeSequencer
 	TxBaseTypeCampaign
 	TxBaseTypeTermChange
+	TxBaseTypeArchive
 )
 
 func (t TxBaseType) String() string {
@@ -43,6 +44,8 @@ func (t TxBaseType) String() string {
 		return "CP"
 	case TxBaseTypeTermChange:
 		return "TC"
+	case TxBaseTypeArchive:
+		return "AC"
 	default:
 		return "NA"
 	}

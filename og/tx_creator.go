@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"sync/atomic"
 	"time"
 
 	"math/rand"
@@ -144,6 +145,11 @@ type TxCreator struct {
 	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 	GraphVerifier      Verifier     // To verify the graph structure
 	quit               bool
+	archiveNonce       uint64
+}
+
+func (t *TxCreator) GetArchiveNonce() uint64 {
+	return atomic.AddUint64(&t.archiveNonce, 1)
 }
 
 func (t *TxCreator) Stop() {
@@ -161,6 +167,25 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 		},
 	}
 	return &tx
+}
+
+func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
+	tx = &types.Archive{
+		TxBase: types.TxBase{
+			AccountNonce: m.GetArchiveNonce(),
+			Type:         types.TxBaseTypeArchive,
+		},
+		Data: data,
+	}
+
+	if ok := m.SealTx(tx, nil); !ok {
+		logrus.Warn("failed to seal tx")
+		err = fmt.Errorf("failed to seal tx")
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
 }
 
 func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt, data []byte,

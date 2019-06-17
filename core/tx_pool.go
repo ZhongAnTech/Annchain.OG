@@ -584,10 +584,15 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
 	// add tx to pool
-	if pool.flows.Get(tx.Sender()) == nil {
-		originBalance := pool.dag.GetBalance(tx.Sender())
-		pool.flows.ResetFlow(tx.Sender(), originBalance)
+	if tx.GetType()== types.TxBaseTypeArchive {
+
+	}else {
+		if pool.flows.Get(tx.Sender()) == nil {
+			originBalance := pool.dag.GetBalance(tx.Sender())
+			pool.flows.ResetFlow(tx.Sender(), originBalance)
+		}
 	}
+
 	pool.flows.Add(tx)
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
@@ -614,6 +619,10 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash.String())
 			return TxQualityIsFatal
 		}
+	}
+
+	if tx.GetType() == types.TxBaseTypeArchive {
+		return TxQualityIsGood
 	}
 
 	// check if nonce is duplicate
@@ -817,6 +826,10 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 	for _, txi := range elders {
 		if txi.GetType() != types.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
+		}
+
+		if txi.GetType() == types.TxBaseTypeArchive{
+			continue
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.

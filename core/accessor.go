@@ -38,6 +38,7 @@ var (
 	contentPrefixSequencer   = []byte("cpsq")
 	contentPrefixCampaign    = []byte("cpcp")
 	contentPrefixTermChg     = []byte("cptc")
+	contentPrefixArchive     = []byte("cpac")
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
@@ -193,6 +194,16 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		}
 		return &tc
 	}
+	if bytes.Equal(prefix, contentPrefixArchive) {
+		var ac types.Archive
+		_, err := ac.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal archive error")
+			return nil
+		}
+		return &ac
+	}
+
 	return nil
 }
 
@@ -312,6 +323,9 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		data, err = tx.MarshalMsg(nil)
 	case *types.TermChange:
 		prefix = contentPrefixTermChg
+		data, err = tx.MarshalMsg(nil)
+	case *types.Archive:
+		prefix = contentPrefixArchive
 		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx, *Sequencer, *Campaign, *TermChange")

@@ -213,6 +213,7 @@ func NewNode() *Node {
 	m.FetchByHashResponseHandler = syncManager.IncrementalSyncer
 	m.CampaignHandler = syncManager.IncrementalSyncer
 	m.TermChangeHandler = syncManager.IncrementalSyncer
+	m.ArchiveHandler = syncManager.IncrementalSyncer
 	messageHandler.TxEnable = syncManager.IncrementalSyncer.TxEnable
 	syncManager.IncrementalSyncer.RemoveContrlMsgFromCache = messageHandler.RemoveControlMsgFromCache
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)

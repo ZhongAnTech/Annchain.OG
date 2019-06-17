@@ -391,6 +391,9 @@ func NewNode() *Node {
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
+if archiveMode {
+	logrus.Info("archive mode")
+}
 
 	//txMetrics
 	txCounter := performance.NewTxCounter()

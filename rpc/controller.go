@@ -14,6 +14,8 @@
 package rpc
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
@@ -85,7 +87,7 @@ type NewTxRequest struct {
 
 //NewArchiveRequest for RPC request
 type NewArchiveRequest struct {
-	Data []byte `json:"data"`
+	Data string  `json:"data"`
 }
 
 //NewAccountRequest for RPC request
@@ -394,12 +396,11 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data "), nil)
 		return
 	}
-	//var data []byte
-	//base64.StdEncoding.Encode(data,txReq.Data)
-	////buf.Write(txReq.Data)
+	var buf bytes.Buffer
+	buf.WriteString(txReq.Data)
 	//TODO compress data
 
-	tx, err = r.TxCreator.NewArchiveWithSeal(txReq.Data)
+	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return

@@ -82,3 +82,11 @@ POST  http://172.28.152.101:8000/new_archive
 }
 
 ###
+
+POST  http://172.28.152.101:8000/new_archive
+
+{
+  "data" : 0x010101
+}
+
+###

@@ -14,6 +14,7 @@
 package node
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
@@ -40,11 +41,13 @@ type AutoClient struct {
 	MyAccount            *account.SampleAccount //if MyAccount is
 	SequencerIntervalUs  int
 	TxIntervalUs         int
+	ArchiveInterValUs    int
 	IntervalMode         string
 	NonceSelfDiscipline  bool
 	AutoSequencerEnabled bool
 	CampainEnable        bool
 	AutoTxEnabled        bool
+	AutoArchiveEnabled   bool
 
 	Delegate *Delegate
 
@@ -56,9 +59,10 @@ type AutoClient struct {
 
 	wg sync.WaitGroup
 
-	nonceLock sync.RWMutex
-	txLock    sync.RWMutex
-	NewRawTx  chan types.Txi
+	nonceLock   sync.RWMutex
+	txLock      sync.RWMutex
+	archiveLock sync.RWMutex
+	NewRawTx    chan types.Txi
 }
 
 func (c *AutoClient) Init() {
@@ -69,6 +73,20 @@ func (c *AutoClient) Init() {
 
 func (c *AutoClient) SetTxIntervalUs(i int) {
 	c.TxIntervalUs = i
+}
+
+func (c *AutoClient) nextArchiveSleepDuraiton() time.Duration {
+	// tx duration selection
+	var sleepDuration time.Duration
+	switch c.IntervalMode {
+	case IntervalModeConstantInterval:
+		sleepDuration = time.Microsecond * time.Duration(c.ArchiveInterValUs)
+	case IntervalModeRandom:
+		sleepDuration = time.Microsecond * (time.Duration(rand.Intn(c.ArchiveInterValUs-1) + 1))
+	default:
+		panic(fmt.Sprintf("unkown IntervalMode : %s  ", c.IntervalMode))
+	}
+	return sleepDuration
 }
 
 func (c *AutoClient) nextSleepDuraiton() time.Duration {
@@ -102,6 +120,7 @@ func (c *AutoClient) loop() {
 	defer c.wg.Done()
 
 	timerTx := time.NewTimer(c.nextSleepDuraiton())
+	timerArchive := time.NewTimer(c.nextArchiveSleepDuraiton())
 	tickerSeq := time.NewTicker(time.Microsecond * time.Duration(c.SequencerIntervalUs))
 	logrus.Debug(c.SequencerIntervalUs, "  seq duration")
 	if !c.AutoTxEnabled {
@@ -109,6 +128,10 @@ func (c *AutoClient) loop() {
 	}
 	if !c.AutoSequencerEnabled {
 		tickerSeq.Stop()
+	}
+
+	if !c.AutoArchiveEnabled {
+		timerArchive.Stop()
 	}
 
 	for {
@@ -142,6 +165,10 @@ func (c *AutoClient) loop() {
 			timerTx.Reset(c.nextSleepDuraiton())
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)
+		case <-timerArchive.C:
+			logrus.Debug("timer sample tx")
+			c.doSampleArchive(false)
+			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:
 			if c.testMode {
 				timerTx.Stop()
@@ -249,6 +276,40 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 		Value:      math.NewBigInt(0),
 		PrivateKey: me.PrivateKey,
 	})
+	if err != nil {
+		logrus.WithError(err).Error("failed to auto generate tx")
+		return false
+	}
+	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
+		WithField("id", c.MyIndex).Trace("Generated tx")
+	c.Delegate.Announce(tx)
+	return true
+}
+
+type randomArchive struct {
+	Name    string `json:"name"`
+	RandInt uint64 `json:"rand_int"`
+	Num     int    `json:"num"`
+	From    []byte `json:"from"`
+}
+
+var archiveNum int
+
+func (c *AutoClient) doSampleArchive(force bool) bool {
+	if !force && !c.AutoArchiveEnabled {
+		return false
+	}
+	c.archiveLock.RLock()
+	defer c.archiveLock.RUnlock()
+	r := randomArchive{
+		Name:    fmt.Sprintf("%d", rand.Int31()),
+		RandInt: rand.Uint64(),
+		Num:     archiveNum,
+		From:    c.MyAccount.Address.ToBytes()[:5],
+	}
+	archiveNum++
+	data, _ := json.Marshal(&r)
+	tx, err := c.Delegate.GenerateArchive(data)
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")
 		return false

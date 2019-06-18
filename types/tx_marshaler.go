@@ -74,6 +74,8 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
 	case TxBaseTypeSequencer:
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
+	case TxBaseTypeArchive:
+		t.RawTxi = &RawArchive{Archive: Archive{TxBase: TxBase{Type: TxBaseTypeArchive}}}
 	default:
 		return bts, fmt.Errorf("unkown type")
 	}
@@ -103,6 +105,8 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 		t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
 	case TxBaseTypeSequencer:
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
+	case TxBaseTypeArchive:
+		t.RawTxi = &RawArchive{Archive: Archive{TxBase: TxBase{Type: TxBaseTypeArchive}}}
 	default:
 		return fmt.Errorf("unkown type")
 	}
@@ -135,6 +139,8 @@ func (t *RawTxMarshaler) Txi() Txi {
 		return raw.Campaign()
 	case *RawTermChange:
 		return raw.TermChange()
+	case *RawArchive:
+		return &raw.Archive
 	default:
 		return nil
 	}

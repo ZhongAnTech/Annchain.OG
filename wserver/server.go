@@ -183,7 +183,7 @@ func (s *Server) WatchNewTxs() {
 				//	a.Data = []byte(data)
 				//	blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{&a})
 				//}else {
-					blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
+				blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
 				//}
 			} else {
 				if uidata == nil {

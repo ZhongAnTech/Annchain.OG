@@ -285,9 +285,9 @@ func NewNode() *Node {
 	}
 	disableConsensus := viper.GetBool("annsensus.disable")
 	//TODO temperary , delete this after demo
-	if archiveMode {
-		disableConsensus = true
-	}
+	//if archiveMode {
+	//	disableConsensus = true
+	//}
 	campaign := viper.GetBool("annsensus.campaign")
 	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")

@@ -67,6 +67,10 @@ interval_us = 500_000
 account_ids = [0,1]
 interval_mode = "random"
 
+[auto_client.archive]
+enabled = false
+interval_us = 500_000
+
 [debug]
 node_id = 1
 

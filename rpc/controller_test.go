@@ -198,14 +198,13 @@ func sendTx(algorithm string) error {
 
 }
 
-
 func TestRpcController_NewArchive(t *testing.T) {
 	data := []byte("hhhh")
 	fmt.Println(data)
 	dataOut := base64.StdEncoding.EncodeToString(data)
 	//buf.Write(data)
 	fmt.Println(dataOut, []byte(dataOut))
-	encodeData,_ := base64.StdEncoding.DecodeString(dataOut)
+	encodeData, _ := base64.StdEncoding.DecodeString(dataOut)
 	fmt.Println(encodeData)
 
 }

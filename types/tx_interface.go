@@ -102,7 +102,7 @@ type Txi interface {
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
 
-	ToSmallCaseJson()([]byte ,error)
+	ToSmallCaseJson() ([]byte, error)
 }
 
 //msgp:tuple TxBase
@@ -121,15 +121,15 @@ type TxBase struct {
 
 type TxBaseJson struct {
 	Type         TxBaseType `json:"type"`
-	Hash         Hash `json:"hash"`
-	ParentsHash  Hashes `json:"parents_hash"`
-	AccountNonce uint64 `json:"account_nonce"`
-	Height       uint64 `json:"height"`
-	PublicKey    []byte `json:"public_key"`
-	Signature    []byte `json:"signature"`
-	MineNonce    uint64 `json:"mine_nonce"`
-	Weight       uint64 `json:"weight"`
-	inValid      bool   `json:"in_valid"`
+	Hash         Hash       `json:"hash"`
+	ParentsHash  Hashes     `json:"parents_hash"`
+	AccountNonce uint64     `json:"account_nonce"`
+	Height       uint64     `json:"height"`
+	PublicKey    []byte     `json:"public_key"`
+	Signature    []byte     `json:"signature"`
+	MineNonce    uint64     `json:"mine_nonce"`
+	Weight       uint64     `json:"weight"`
+	inValid      bool       `json:"in_valid"`
 }
 
 type TxiSmallCaseMarshal struct {
@@ -140,27 +140,27 @@ func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {
 	return t.Txi.ToSmallCaseJson()
 }
 
-func (t *TxBase)ToSmallCase()*TxBaseJson {
-	if t==nil {
+func (t *TxBase) ToSmallCase() *TxBaseJson {
+	if t == nil {
 		return nil
 	}
-	b:= TxBaseJson{
-		Type:t.Type,
-		Height:t.Height,
-		Hash: t.Hash,
-		ParentsHash: t.ParentsHash,
-		AccountNonce : t.AccountNonce,
-		PublicKey :  t.PublicKey,
-		Signature :  t.Signature,
-		MineNonce  : t.MineNonce,
-		Weight     :  t.Weight,
-		inValid    : t.inValid,
+	b := TxBaseJson{
+		Type:         t.Type,
+		Height:       t.Height,
+		Hash:         t.Hash,
+		ParentsHash:  t.ParentsHash,
+		AccountNonce: t.AccountNonce,
+		PublicKey:    t.PublicKey,
+		Signature:    t.Signature,
+		MineNonce:    t.MineNonce,
+		Weight:       t.Weight,
+		inValid:      t.inValid,
 	}
 	return &b
 }
 
-func (t *TxBase)ToSmallCaseJson()([]byte ,error) {
- 	b:=t.ToSmallCase()
+func (t *TxBase) ToSmallCaseJson() ([]byte, error) {
+	b := t.ToSmallCase()
 	return json.Marshal(b)
 }
 

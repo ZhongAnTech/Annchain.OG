@@ -158,7 +158,7 @@ func New(mode SyncMode, dag IDag, dropPeer peerDropFn, insertTxs insertTxsFn) *D
 	return dl
 }
 
-func (d *Downloader)Start() {
+func (d *Downloader) Start() {
 	goroutine.New(d.qosTuner)
 }
 

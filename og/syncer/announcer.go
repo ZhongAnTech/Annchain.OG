@@ -50,7 +50,7 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 
 	case *types.Archive:
 		msg := types.MessageNewArchive{
-			Archive:tx,
+			Archive: tx,
 		}
 		m.messageSender.BroadcastMessage(og.MessageTypeArchive, &msg)
 

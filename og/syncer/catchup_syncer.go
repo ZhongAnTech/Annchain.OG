@@ -144,6 +144,7 @@ func (c *CatchupSyncer) isUpToDate(maxDiff uint64) bool {
 }
 
 func (c *CatchupSyncer) loopSync() {
+	c.Downloader.Start()
 	defer c.Downloader.Terminate()
 	for {
 		select {

@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
 	"sync"
 	"time"
 
@@ -86,7 +85,6 @@ func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, err
 		close:    make(chan struct{}),
 	}
 
-	goroutine.New(sd.loop)
 	return sd, nil
 }
 
@@ -554,6 +552,9 @@ func (sd *StateDB) commit() (types.Hash, error) {
 }
 
 func (sd *StateDB) loop() {
+	if sd.conf.PurgeTimer < time.Millisecond {
+		sd.conf.PurgeTimer = time.Second
+	}
 	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
 
 	for {

@@ -38,6 +38,9 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi) {
 	if err != nil {
 		log.WithError(err).Warn("add tx to cache error")
 	}
+	if m.Enabled {
+		m.notifyTxEvent <-true
+	}
 	//m.notifyTxEvent <- true
 	//notify channel will be  blocked if tps is high ,check first and add
 }
@@ -81,6 +84,9 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 	err := m.bufferedIncomingTxCache.EnQueueBatch(validTxs)
 	if err != nil {
 		log.WithError(err).Warn("add tx to cache error")
+	}
+	if m.Enabled {
+		m.notifyTxEvent <-true
 	}
 	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 }
@@ -187,6 +193,9 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.Messag
 	err := m.bufferedIncomingTxCache.PrependBatch(txis)
 	if err != nil {
 		log.WithError(err).Warn("add txs error")
+	}
+	if m.Enabled {
+		m.notifyTxEvent <-true
 	}
 	//if len(txis) > 10 {
 	//	start := time.Now()

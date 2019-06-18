@@ -330,7 +330,8 @@ func (m *IncrementalSyncer) eventLoop() {
 func (m *IncrementalSyncer) txNotifyLoop() {
 	for {
 		select {
-		case <-time.After(20 * time.Microsecond):
+		//todo 20*microsecond to millisecond , check this later
+		case <-time.After(40 * time.Millisecond):
 			goroutine.New(m.notifyNewTxi)
 		case <-m.notifyTxEvent:
 			goroutine.New(m.notifyNewTxi)

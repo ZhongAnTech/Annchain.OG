@@ -522,6 +522,10 @@ func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash types.Hash) {
 }
 
 func (h *IncomingMessageHandler) loop() {
+	if h.Hub.broadCastMode != FeedBackMode {
+		//TODO
+		//return
+	}
 	c := h.controlMsgCache
 	var handling uint32
 	for {
@@ -538,40 +542,13 @@ func (h *IncomingMessageHandler) loop() {
 			}
 			c.cache[h.hash] = &item
 			c.mu.Unlock()
-		case <-time.After(1 * time.Millisecond):
+			//todo optimize the time after
+		case <-time.After(10 * time.Millisecond):
 			if atomic.LoadUint32(&handling) == 1 {
 				continue
 			}
 			atomic.StoreUint32(&handling, 1)
-			keys := c.getALlKey()
-			for _, k := range keys {
-				item := c.get(k)
-				if item == nil {
-					continue
-				}
-				txkey := newMsgKey(MessageTypeNewTx, k)
-				if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
-					msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
-					c.remove(k)
-					continue
-				}
-				if item.receivedAt.Add(2 * time.Millisecond).Before(time.Now()) {
-					if h.Hub.IsReceivedHash(k) {
-						msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
-						c.remove(k)
-						continue
-					}
-					if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
-						hash := k
-						msg := &types.MessageGetMsg{Hash: &hash}
-						msgLog.WithField("hash ", k).Debug("send GetTx msg")
-						goroutine.New(func() {
-							h.Hub.SendGetMsg(item.sourceId, msg)
-						})
-						c.remove(k)
-					}
-				}
-			}
+			h.processControlMsg()
 			atomic.StoreUint32(&handling, 0)
 
 		case <-h.quit:
@@ -579,6 +556,39 @@ func (h *IncomingMessageHandler) loop() {
 			return
 		}
 
+	}
+}
+
+func (h *IncomingMessageHandler)processControlMsg(){
+	c:= h.controlMsgCache
+	keys := c.getALlKey()
+	for _, k := range keys {
+		item := c.get(k)
+		if item == nil {
+			continue
+		}
+		txkey := newMsgKey(MessageTypeNewTx, k)
+		if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
+			msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+			c.remove(k)
+			continue
+		}
+		if item.receivedAt.Add(2 * time.Millisecond).Before(time.Now()) {
+			if h.Hub.IsReceivedHash(k) {
+				msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+				c.remove(k)
+				continue
+			}
+			if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
+				hash := k
+				msg := &types.MessageGetMsg{Hash: &hash}
+				msgLog.WithField("hash ", k).Debug("send GetTx msg")
+				goroutine.New(func() {
+					h.Hub.SendGetMsg(item.sourceId, msg)
+				})
+				c.remove(k)
+			}
+		}
 	}
 }
 

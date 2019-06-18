@@ -176,7 +176,7 @@ func (s *Server) WatchNewTxs() {
 				if blockData == nil {
 					blockData = &BlockDbData{}
 				}
-				blockData.Nodes = append(blockData.Nodes, tx)
+				blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
 			} else {
 				if uidata == nil {
 					uidata = &UIData{

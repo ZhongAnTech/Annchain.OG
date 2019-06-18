@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/sha3"
 	"math/rand"
@@ -15,6 +16,22 @@ import (
 type Archive struct {
 	TxBase
 	Data []byte `json:"data"`
+}
+
+type ArchiveJson struct {
+	TxBaseJson
+	Data []byte `json:"data"`
+}
+
+func (a *Archive) ToSmallCaseJson() ([]byte, error) {
+	if a == nil {
+		return nil, nil
+	}
+	j := ArchiveJson{
+		TxBaseJson: *a.TxBase.ToSmallCase(),
+		Data:       a.Data,
+	}
+	return json.Marshal(&j)
 }
 
 //msgp:tuple Campaigns

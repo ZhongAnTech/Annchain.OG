@@ -155,8 +155,11 @@ func New(mode SyncMode, dag IDag, dropPeer peerDropFn, insertTxs insertTxsFn) *D
 		quitCh:        make(chan struct{}),
 		stateCh:       make(chan dataPack),
 	}
-	goroutine.New(dl.qosTuner)
 	return dl
+}
+
+func (d *Downloader)Start() {
+	goroutine.New(d.qosTuner)
 }
 
 // Synchronising returns whether the downloader is currently retrieving blocks.

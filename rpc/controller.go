@@ -86,7 +86,7 @@ type NewTxRequest struct {
 
 //NewArchiveRequest for RPC request
 type NewArchiveRequest struct {
-	Data string  `json:"data"`
+	Data string `json:"data"`
 }
 
 //NewAccountRequest for RPC request
@@ -383,15 +383,15 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		txReq NewArchiveRequest
 	)
 	if !r.ArchiveMode {
-			Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
-			return
+		Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
+		return
 	}
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	if len(txReq.Data)==0 {
+	if len(txReq.Data) == 0 {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data "), nil)
 		return
 	}

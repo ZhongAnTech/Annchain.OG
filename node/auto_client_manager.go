@@ -53,6 +53,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)

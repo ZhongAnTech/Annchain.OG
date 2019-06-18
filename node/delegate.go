@@ -52,6 +52,14 @@ func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
 	return
 }
 
+func (c *Delegate) GenerateArchive(data []byte) (tx types.Txi, err error) {
+	tx, err = c.TxCreator.NewArchiveWithSeal(data)
+	if err != nil {
+		logrus.WithField("tx", tx).Debugf("tx generated")
+	}
+	return
+}
+
 type SeqRequest struct {
 	Issuer     types.Address
 	PrivateKey crypto.PrivateKey

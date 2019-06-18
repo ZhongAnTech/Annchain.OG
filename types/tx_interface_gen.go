@@ -191,6 +191,290 @@ func (z *TxBase) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *TxBaseJson) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Type":
+			{
+				var zb0002 uint16
+				zb0002, err = dc.ReadUint16()
+				if err != nil {
+					return
+				}
+				z.Type = TxBaseType(zb0002)
+			}
+		case "Hash":
+			err = z.Hash.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "ParentsHash":
+			err = z.ParentsHash.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		case "AccountNonce":
+			z.AccountNonce, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		case "Height":
+			z.Height, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			if err != nil {
+				return
+			}
+		case "Signature":
+			z.Signature, err = dc.ReadBytes(z.Signature)
+			if err != nil {
+				return
+			}
+		case "MineNonce":
+			z.MineNonce, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		case "Weight":
+			z.Weight, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *TxBaseJson) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 9
+	// write "Type"
+	err = en.Append(0x89, 0xa4, 0x54, 0x79, 0x70, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint16(uint16(z.Type))
+	if err != nil {
+		return
+	}
+	// write "Hash"
+	err = en.Append(0xa4, 0x48, 0x61, 0x73, 0x68)
+	if err != nil {
+		return
+	}
+	err = z.Hash.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "ParentsHash"
+	err = en.Append(0xab, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x48, 0x61, 0x73, 0x68)
+	if err != nil {
+		return
+	}
+	err = z.ParentsHash.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	// write "AccountNonce"
+	err = en.Append(0xac, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.AccountNonce)
+	if err != nil {
+		return
+	}
+	// write "Height"
+	err = en.Append(0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.Height)
+	if err != nil {
+		return
+	}
+	// write "PublicKey"
+	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.PublicKey)
+	if err != nil {
+		return
+	}
+	// write "Signature"
+	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBytes(z.Signature)
+	if err != nil {
+		return
+	}
+	// write "MineNonce"
+	err = en.Append(0xa9, 0x4d, 0x69, 0x6e, 0x65, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.MineNonce)
+	if err != nil {
+		return
+	}
+	// write "Weight"
+	err = en.Append(0xa6, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.Weight)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *TxBaseJson) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 9
+	// string "Type"
+	o = append(o, 0x89, 0xa4, 0x54, 0x79, 0x70, 0x65)
+	o = msgp.AppendUint16(o, uint16(z.Type))
+	// string "Hash"
+	o = append(o, 0xa4, 0x48, 0x61, 0x73, 0x68)
+	o, err = z.Hash.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "ParentsHash"
+	o = append(o, 0xab, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x73, 0x48, 0x61, 0x73, 0x68)
+	o, err = z.ParentsHash.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	// string "AccountNonce"
+	o = append(o, 0xac, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	o = msgp.AppendUint64(o, z.AccountNonce)
+	// string "Height"
+	o = append(o, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	o = msgp.AppendUint64(o, z.Height)
+	// string "PublicKey"
+	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
+	o = msgp.AppendBytes(o, z.PublicKey)
+	// string "Signature"
+	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, z.Signature)
+	// string "MineNonce"
+	o = append(o, 0xa9, 0x4d, 0x69, 0x6e, 0x65, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	o = msgp.AppendUint64(o, z.MineNonce)
+	// string "Weight"
+	o = append(o, 0xa6, 0x57, 0x65, 0x69, 0x67, 0x68, 0x74)
+	o = msgp.AppendUint64(o, z.Weight)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TxBaseJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Type":
+			{
+				var zb0002 uint16
+				zb0002, bts, err = msgp.ReadUint16Bytes(bts)
+				if err != nil {
+					return
+				}
+				z.Type = TxBaseType(zb0002)
+			}
+		case "Hash":
+			bts, err = z.Hash.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "ParentsHash":
+			bts, err = z.ParentsHash.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		case "AccountNonce":
+			z.AccountNonce, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Height":
+			z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "PublicKey":
+			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			if err != nil {
+				return
+			}
+		case "Signature":
+			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			if err != nil {
+				return
+			}
+		case "MineNonce":
+			z.MineNonce, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Weight":
+			z.Weight, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *TxBaseJson) Msgsize() (s int) {
+	s = 1 + 5 + msgp.Uint16Size + 5 + z.Hash.Msgsize() + 12 + z.ParentsHash.Msgsize() + 13 + msgp.Uint64Size + 7 + msgp.Uint64Size + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.Uint64Size + 7 + msgp.Uint64Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *TxBaseType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zb0001 uint16
@@ -236,6 +520,103 @@ func (z *TxBaseType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z TxBaseType) Msgsize() (s int) {
 	s = msgp.Uint16Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *TxiSmallCaseMarshal) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Txi":
+			err = z.Txi.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *TxiSmallCaseMarshal) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 1
+	// write "Txi"
+	err = en.Append(0x81, 0xa3, 0x54, 0x78, 0x69)
+	if err != nil {
+		return
+	}
+	err = z.Txi.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *TxiSmallCaseMarshal) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 1
+	// string "Txi"
+	o = append(o, 0x81, 0xa3, 0x54, 0x78, 0x69)
+	o, err = z.Txi.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TxiSmallCaseMarshal) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Txi":
+			bts, err = z.Txi.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *TxiSmallCaseMarshal) Msgsize() (s int) {
+	s = 1 + 4 + z.Txi.Msgsize()
 	return
 }
 

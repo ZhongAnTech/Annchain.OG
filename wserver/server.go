@@ -16,6 +16,7 @@ package wserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
@@ -175,6 +176,15 @@ func (s *Server) WatchNewTxs() {
 			if s.ArchiveMode {
 				if blockData == nil {
 					blockData = &BlockDbData{}
+				}
+				if ac,ok := tx.(*types.Archive);ok {
+					data := base64.StdEncoding.EncodeToString(ac.Data)
+					var a types.Archive
+					a= *ac
+					a.Data = []byte(data)
+					blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{&a})
+				}else {
+					blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
 				}
 				blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
 			} else {

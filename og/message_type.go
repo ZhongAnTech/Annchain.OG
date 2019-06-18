@@ -170,8 +170,8 @@ func (mt MessageType) String() string {
 		return "MessageTypeCampaign"
 	case MessageTypeTermChange:
 		return "MessageTypeTermChange"
-	case 	MessageTypeArchive:
-		return  "MessageTypeArchive"
+	case MessageTypeArchive:
+		return "MessageTypeArchive"
 
 	case MessageTypeConsensusDkgDeal:
 		return "MessageTypeConsensusDkgDeal"

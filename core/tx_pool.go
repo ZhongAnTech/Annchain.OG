@@ -584,9 +584,9 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
 	// add tx to pool
-	if tx.GetType()== types.TxBaseTypeArchive {
+	if tx.GetType() == types.TxBaseTypeArchive {
 
-	}else {
+	} else {
 		if pool.flows.Get(tx.Sender()) == nil {
 			originBalance := pool.dag.GetBalance(tx.Sender())
 			pool.flows.ResetFlow(tx.Sender(), originBalance)
@@ -828,7 +828,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			cTxs = append(cTxs, txi)
 		}
 
-		if txi.GetType() == types.TxBaseTypeArchive{
+		if txi.GetType() == types.TxBaseTypeArchive {
 			continue
 		}
 

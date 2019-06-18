@@ -48,7 +48,6 @@ type MessageRouter struct {
 	ConsensusPreCommitHandler           ConsensusPreCommitHandler
 	TermChangeRequestHandler            TermChangeRequestHandler
 	TermChangeResponseHandler           TermChangeResponseHandler
-
 }
 
 type ManagerConfig struct {
@@ -255,7 +254,7 @@ func (m *MessageRouter) RouteTermChange(msg *p2PMessage) {
 	m.TermChangeHandler.HandleTermChange(msg.message.(*types.MessageTermChange), msg.sourceID)
 }
 
-func (m*MessageRouter)RouteArchive(msg *p2PMessage) {
+func (m *MessageRouter) RouteArchive(msg *p2PMessage) {
 	m.ArchiveHandler.HandleArchive(msg.message.(*types.MessageNewArchive), msg.sourceID)
 }
 

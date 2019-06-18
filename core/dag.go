@@ -740,7 +740,7 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	if tx.GetType()!= types.TxBaseTypeArchive{
+	if tx.GetType() != types.TxBaseTypeArchive {
 		err := dag.accessor.WriteTxHashByNonce(tx.Sender(), tx.GetNonce(), tx.GetTxHash())
 		if err != nil {
 			return fmt.Errorf("write latest nonce err: %v", err)

@@ -15,7 +15,6 @@ package rpc
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"

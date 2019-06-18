@@ -383,7 +383,10 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		tx    types.Txi
 		txReq NewArchiveRequest
 	)
-
+	if !r.ArchiveMode {
+			Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
+			return
+	}
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)

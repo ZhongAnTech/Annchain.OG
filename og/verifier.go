@@ -189,7 +189,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
 			// found. verify nonce
-			if txi.GetType()!=types.TxBaseTypeArchive {
+			if txi.GetType() != types.TxBaseTypeArchive {
 				if txi.Sender() == currentTx.Sender() {
 					// verify if the nonce is larger
 					if txi.GetNonce() == currentTx.GetNonce()-1 {

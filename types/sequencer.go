@@ -40,24 +40,24 @@ type Sequencer struct {
 type SequencerJson struct {
 	TxBaseJson
 	Issuer         Address `json:"issuer"`
-	BlsJointSig    []byte `json:"bls_joint_sig"`
-	BlsJointPubKey []byte `json:"bls_joint_pub_key"`
-	Proposing      bool `msg:"-",json:"-"`
+	BlsJointSig    []byte  `json:"bls_joint_sig"`
+	BlsJointPubKey []byte  `json:"bls_joint_pub_key"`
+	Proposing      bool    `msg:"-",json:"-"`
 }
 
-func (s *Sequencer)ToSmallCaseJson()([]byte ,error){
-	if s==nil {
-		return nil,nil
+func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
+	if s == nil {
+		return nil, nil
 	}
-	j:= SequencerJson{
-		TxBaseJson: *s.TxBase.ToSmallCase(),
-		Issuer: s.Issuer,
-		BlsJointSig:s.BlsJointSig,
-		BlsJointPubKey:s.BlsJointPubKey,
-		Proposing: s.Proposing,
+	j := SequencerJson{
+		TxBaseJson:     *s.TxBase.ToSmallCase(),
+		Issuer:         s.Issuer,
+		BlsJointSig:    s.BlsJointSig,
+		BlsJointPubKey: s.BlsJointPubKey,
+		Proposing:      s.Proposing,
 	}
 
-	return  json.Marshal(&j)
+	return json.Marshal(&j)
 }
 
 func (t *Sequencer) String() string {

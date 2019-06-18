@@ -59,7 +59,6 @@ type BlockDbData struct {
 	Nodes []types.TxiSmallCaseMarshal `json:"nodes"`
 }
 
-
 func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),

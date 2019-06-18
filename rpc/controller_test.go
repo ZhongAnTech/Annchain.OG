@@ -15,6 +15,7 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
@@ -194,5 +195,17 @@ func sendTx(algorithm string) error {
 		time.Sleep(time.Millisecond * 100)
 	}
 	return nil
+
+}
+
+
+func TestRpcController_NewArchive(t *testing.T) {
+	data := []byte("hhhh")
+	fmt.Println(data)
+	dataOut := base64.StdEncoding.EncodeToString(data)
+	//buf.Write(data)
+	fmt.Println(dataOut, []byte(dataOut))
+	encodeData,_ := base64.StdEncoding.DecodeString(dataOut)
+	fmt.Println(encodeData)
 
 }

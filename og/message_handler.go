@@ -559,8 +559,8 @@ func (h *IncomingMessageHandler) loop() {
 	}
 }
 
-func (h *IncomingMessageHandler)processControlMsg(){
-	c:= h.controlMsgCache
+func (h *IncomingMessageHandler) processControlMsg() {
+	c := h.controlMsgCache
 	keys := c.getALlKey()
 	for _, k := range keys {
 		item := c.get(k)

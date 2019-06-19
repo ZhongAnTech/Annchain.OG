@@ -36,20 +36,20 @@ func onodeInit() {
 }
 
 func genONode(cmd *cobra.Command, args []string) {
-	nodekey, node := genBootONode()
+	nodekey, node := genBootONode(port)
 
 	fmt.Println("nodekey: ", nodekey)
 	fmt.Println("ndoe: ", node)
 }
 
-func genBootONode() (nodekey string, node string) {
+func genBootONode(port int) (nodekey string, node string) {
 
 	key, err := crypto.GenerateKey()
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 	}
 	nodekey = hex.EncodeToString(crypto.FromECDSA(key))
-	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), 8001, 8001).String()
+	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), port , port).String()
 
 	return
 }

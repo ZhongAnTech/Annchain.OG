@@ -66,12 +66,15 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 	} else {
 		writer = logger.Out
 	}
-	return &logrus.Logger{
+	newLogger :=  &logrus.Logger{
 		Level:     logger.Level,
 		Formatter: logger.Formatter,
 		Out:       writer,
 		Hooks:     logger.Hooks,
+		ExitFunc:  logger.ExitFunc,
+		ReportCaller: logger.ReportCaller,
 	}
+	return newLogger
 }
 
 func InitLoggers(logger *logrus.Logger, logdir string) {

@@ -30,7 +30,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/mylog"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -191,9 +190,10 @@ func initLogger() {
 	//log.Println("Standard logger. Am I here?")
 	lineNum := viper.GetBool("log_line_number")
 	if lineNum {
-		filenameHook := filename.NewHook()
-		filenameHook.Field = "line"
-		logrus.AddHook(filenameHook)
+		//filenameHook := filename.NewHook()
+		//filenameHook.Field = "line"
+		//logrus.AddHook(filenameHook)
+		logrus.SetReportCaller(true)
 	}
 	byLevel := viper.GetBool("multifile_by_level")
 	if byLevel && logdir != "" {

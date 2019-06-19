@@ -224,7 +224,7 @@ func initLogger() {
 	if !byModule {
 		logdir = ""
 	}
-	mylog.InitLoggers(logger, logdir)
+
 	downloader.InitLoggers(logger, logdir)
 	fetcher.InitLoggers(logger, logdir)
 	p2p.InitLoggers(logger, logdir)

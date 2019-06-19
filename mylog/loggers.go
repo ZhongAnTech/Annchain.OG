@@ -24,7 +24,6 @@ import (
 	"time"
 )
 
-var TxLogger *logrus.Logger
 
 func panicIfError(err error, message string) {
 	if err != nil {
@@ -77,7 +76,3 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 	return newLogger
 }
 
-func InitLoggers(logger *logrus.Logger, logdir string) {
-	TxLogger = InitLogger(logger, logdir, "og_tx")
-	logrus.Debug("Additional logger initialized.")
-}

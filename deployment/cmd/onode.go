@@ -49,7 +49,7 @@ func genBootONode(port int) (nodekey string, node string) {
 		panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 	}
 	nodekey = hex.EncodeToString(crypto.FromECDSA(key))
-	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), port , port).String()
+	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), port, port).String()
 
 	return
 }

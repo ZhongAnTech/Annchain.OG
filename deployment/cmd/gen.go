@@ -35,10 +35,10 @@ var (
 )
 
 var (
-	privateDir = "private"
-	soloDir    = "solo"
-	mainNetDir = "main_net"
-	port int  = 8000
+	privateDir     = "private"
+	soloDir        = "solo"
+	mainNetDir     = "main_net"
+	port       int = 8000
 )
 
 var configFileName = "config.toml"
@@ -51,19 +51,19 @@ func genInit() {
 	genCmd.PersistentFlags().BoolVarP(&solo, "solo", "s", false, "solo node that use auto client to produce sequencer")
 	genCmd.PersistentFlags().BoolVarP(&private, "private", "p", false, "private nodes that use your own boot-strap nodes")
 	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system")
-	genCmd.PersistentFlags().IntVarP(&port,"port","t",8000,"the port of private network")
+	genCmd.PersistentFlags().IntVarP(&port, "port", "t", 8000, "the port of private network")
 }
 
 func gen(cmd *cobra.Command, args []string) {
 	readConfig()
 
 	if private {
-		nodekeyBoot, nodeBoot := genBootONode(port+1)
+		nodekeyBoot, nodeBoot := genBootONode(port + 1)
 		viper.Set("p2p.bootstrap_nodes", nodeBoot)
-		viper.Set("rpc.port",port)
-		viper.Set("p2p.port",port+1)
-		viper.Set("websocket.port",port+2)
-		viper.Set("profiling.port",port+3)
+		viper.Set("rpc.port", port)
+		viper.Set("p2p.port", port+1)
+		viper.Set("websocket.port", port+2)
+		viper.Set("profiling.port", port+3)
 
 		//generate consensus group keys
 		privateSet := []string{}
@@ -71,7 +71,7 @@ func gen(cmd *cobra.Command, args []string) {
 		for i := 0; i < nodesNum; i++ {
 			priv, pub := genAccount()
 			privateSet = append(privateSet, priv.String())
-			publicSet = append(publicSet,  pub.String())
+			publicSet = append(publicSet, pub.String())
 		}
 		genesisPk := strings.Join(publicSet, ";")
 		viper.Set("annsensus.genesis_pk", genesisPk)
@@ -86,27 +86,27 @@ func gen(cmd *cobra.Command, args []string) {
 		//init bootstrap
 		viper.Set("dag.my_private_key", privateSet[0])
 		viper.Set("p2p.node_key", nodekeyBoot)
-		viper.Set("p2p.bootstrap_node",true)
+		viper.Set("p2p.bootstrap_node", true)
 		err = mkDirIfNotExists(privateDir + "/node_0")
 		if err != nil {
 			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir+"/node_0", err))
 			return
 		}
-		viper.Set("leveldb.path","rw/datadir_0")
-		viper.Set("annsensus.consensus_path","consensus0.json")
+		viper.Set("leveldb.path", "rw/datadir_0")
+		viper.Set("annsensus.consensus_path", "consensus0.json")
 		viper.WriteConfigAs(privateDir + "/node_0/" + configFileName)
 
 		//init other nodes
 		viper.Set("annsensus.campain", false)
-		viper.Set("p2p.bootstrap_node",false)
+		viper.Set("p2p.bootstrap_node", false)
 		for i := 1; i < len(privateSet); i++ {
-			viper.Set("rpc.port",port+10*i)
-			viper.Set("p2p.port",port+10*i+1)
-			viper.Set("websocket.port",port+10*i+2)
-			viper.Set("profiling.port",port+10*i+3)
-			viper.Set("leveldb.path",fmt.Sprintf("rw/datadir_%d",i))
-			viper.Set("annsensus.consensus_path",fmt.Sprintf("consensus%d.json",i))
-			nodekey ,_:= genBootONode(port+10*i+1)
+			viper.Set("rpc.port", port+10*i)
+			viper.Set("p2p.port", port+10*i+1)
+			viper.Set("websocket.port", port+10*i+2)
+			viper.Set("profiling.port", port+10*i+3)
+			viper.Set("leveldb.path", fmt.Sprintf("rw/datadir_%d", i))
+			viper.Set("annsensus.consensus_path", fmt.Sprintf("consensus%d.json", i))
+			nodekey, _ := genBootONode(port + 10*i + 1)
 			viper.Set("p2p.node_key", nodekey)
 			fmt.Println("private key: ", i)
 			viper.Set("dag.my_private_key", privateSet[i])
@@ -126,10 +126,10 @@ func gen(cmd *cobra.Command, args []string) {
 
 		priv, _ := genAccount()
 		viper.Set("dag.my_private_key", priv.String())
-		viper.Set("rpc.port",port)
-		viper.Set("p2p.port",port+1)
-		viper.Set("websocket.port",port+2)
-		viper.Set("profiling.port",port+3)
+		viper.Set("rpc.port", port)
+		viper.Set("p2p.port", port+1)
+		viper.Set("websocket.port", port+2)
+		viper.Set("profiling.port", port+3)
 		err := mkDirIfNotExists(soloDir)
 		if err != nil {
 			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", soloDir, err))
@@ -143,10 +143,10 @@ func gen(cmd *cobra.Command, args []string) {
 		viper.Set("annsensus.genesis_pk", mainNetGenesisPk)
 
 		priv, _ := genAccount()
-		viper.Set("rpc.port",port)
-		viper.Set("p2p.port",port+1)
-		viper.Set("websocket.port",port+2)
-		viper.Set("profiling.port",port+3)
+		viper.Set("rpc.port", port)
+		viper.Set("p2p.port", port+1)
+		viper.Set("websocket.port", port+2)
+		viper.Set("profiling.port", port+3)
 		viper.Set("dag.my_private_key", priv.String())
 
 		err := mkDirIfNotExists(mainNetDir)
@@ -171,7 +171,7 @@ func readConfig() {
 	panicIfError(err, "merge viper config err")
 }
 
-func genAccount() (crypto.PrivateKey,crypto.PublicKey) {
+func genAccount() (crypto.PrivateKey, crypto.PublicKey) {
 	signer := &crypto.SignerSecp256k1{}
 	pub, priv := signer.RandomKeyPair()
 

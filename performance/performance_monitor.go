@@ -44,7 +44,7 @@ func (p *PerformanceMonitor) Start() {
 			logrus.WithFields(fields).Info("Performance")
 			//pprof.Lookup("block").WriteTo(os.Stdout, 1)
 
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 10)
 		}
 	})
 }

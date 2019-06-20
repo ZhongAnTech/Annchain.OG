@@ -8,54 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *Archive) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBase":
-			err = z.TxBase.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "Data":
-			z.Data, err = dc.ReadBytes(z.Data)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	err = z.TxBase.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	z.Data, err = dc.ReadBytes(z.Data)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Archive) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "TxBase"
-	err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
 	err = z.TxBase.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "Data"
-	err = en.Append(0xa4, 0x44, 0x61, 0x74, 0x61)
 	if err != nil {
 		return
 	}
@@ -69,51 +49,34 @@ func (z *Archive) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Archive) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "TxBase"
-	o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+	// array header, size 2
+	o = append(o, 0x92)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Data"
-	o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
 	o = msgp.AppendBytes(o, z.Data)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Archive) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBase":
-			bts, err = z.TxBase.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "Data":
-			z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	bts, err = z.TxBase.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -121,7 +84,7 @@ func (z *Archive) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Archive) Msgsize() (s int) {
-	s = 1 + 7 + z.TxBase.Msgsize() + 5 + msgp.BytesPrefixSize + len(z.Data)
+	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 
@@ -267,36 +230,22 @@ func (z *Archives) DecodeMsg(dc *msgp.Reader) (err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Archive)
 			}
-			var field []byte
-			_ = field
 			var zb0003 uint32
-			zb0003, err = dc.ReadMapHeader()
+			zb0003, err = dc.ReadArrayHeader()
 			if err != nil {
 				return
 			}
-			for zb0003 > 0 {
-				zb0003--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "TxBase":
-					err = (*z)[zb0001].TxBase.DecodeMsg(dc)
-					if err != nil {
-						return
-					}
-				case "Data":
-					(*z)[zb0001].Data, err = dc.ReadBytes((*z)[zb0001].Data)
-					if err != nil {
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						return
-					}
-				}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			err = (*z)[zb0001].TxBase.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001].Data, err = dc.ReadBytes((*z)[zb0001].Data)
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -316,18 +265,12 @@ func (z Archives) EncodeMsg(en *msgp.Writer) (err error) {
 				return
 			}
 		} else {
-			// map header, size 2
-			// write "TxBase"
-			err = en.Append(0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			// array header, size 2
+			err = en.Append(0x92)
 			if err != nil {
 				return
 			}
 			err = z[zb0004].TxBase.EncodeMsg(en)
-			if err != nil {
-				return
-			}
-			// write "Data"
-			err = en.Append(0xa4, 0x44, 0x61, 0x74, 0x61)
 			if err != nil {
 				return
 			}
@@ -348,15 +291,12 @@ func (z Archives) MarshalMsg(b []byte) (o []byte, err error) {
 		if z[zb0004] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			// map header, size 2
-			// string "TxBase"
-			o = append(o, 0x82, 0xa6, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65)
+			// array header, size 2
+			o = append(o, 0x92)
 			o, err = z[zb0004].TxBase.MarshalMsg(o)
 			if err != nil {
 				return
 			}
-			// string "Data"
-			o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
 			o = msgp.AppendBytes(o, z[zb0004].Data)
 		}
 	}
@@ -386,36 +326,22 @@ func (z *Archives) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if (*z)[zb0001] == nil {
 				(*z)[zb0001] = new(Archive)
 			}
-			var field []byte
-			_ = field
 			var zb0003 uint32
-			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				return
 			}
-			for zb0003 > 0 {
-				zb0003--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "TxBase":
-					bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
-					if err != nil {
-						return
-					}
-				case "Data":
-					(*z)[zb0001].Data, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].Data)
-					if err != nil {
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						return
-					}
-				}
+			if zb0003 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+				return
+			}
+			bts, err = (*z)[zb0001].TxBase.UnmarshalMsg(bts)
+			if err != nil {
+				return
+			}
+			(*z)[zb0001].Data, bts, err = msgp.ReadBytesBytes(bts, (*z)[zb0001].Data)
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -430,7 +356,7 @@ func (z Archives) Msgsize() (s int) {
 		if z[zb0004] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + 7 + z[zb0004].TxBase.Msgsize() + 5 + msgp.BytesPrefixSize + len(z[zb0004].Data)
+			s += 1 + z[zb0004].TxBase.Msgsize() + msgp.BytesPrefixSize + len(z[zb0004].Data)
 		}
 	}
 	return

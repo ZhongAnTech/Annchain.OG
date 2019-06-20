@@ -516,7 +516,7 @@ func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {
 	return buf.Bytes()
 }
 
-//msgp:tupple MessageNewArchive
+//msgp:tuple MessageNewArchive
 type MessageNewArchive struct {
 	Archive *Archive
 }

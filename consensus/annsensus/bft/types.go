@@ -14,6 +14,7 @@
 package bft
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
@@ -54,6 +55,11 @@ func (m StepType) String() string {
 	default:
 		return "Unknown"
 	}
+}
+
+func (m *StepType) MarshalJSON() ([]byte, error) {
+	s := m.String()
+	return json.Marshal(&s)
 }
 
 func (m StepType) IsAfter(o StepType) bool {

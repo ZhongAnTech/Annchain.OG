@@ -17,11 +17,11 @@ func (z *SigSet) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+	err = z.PublicKey.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	z.Signature, err = dc.ReadBytes(z.Signature)
+	err = z.Signature.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -35,11 +35,11 @@ func (z *SigSet) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PublicKey)
+	err = z.PublicKey.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -51,8 +51,14 @@ func (z *SigSet) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendBytes(o, z.PublicKey)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -67,11 +73,11 @@ func (z *SigSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+	bts, err = z.Signature.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -81,7 +87,7 @@ func (z *SigSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *SigSet) Msgsize() (s int) {
-	s = 1 + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature)
+	s = 1 + z.PublicKey.Msgsize() + z.Signature.Msgsize()
 	return
 }
 
@@ -104,7 +110,7 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.PkBls, err = dc.ReadBytes(z.PkBls)
+	err = z.PkBls.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -138,11 +144,11 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 				return
 			}
-			z.SigSet[za0001].PublicKey, err = dc.ReadBytes(z.SigSet[za0001].PublicKey)
+			err = z.SigSet[za0001].PublicKey.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
-			z.SigSet[za0001].Signature, err = dc.ReadBytes(z.SigSet[za0001].Signature)
+			err = z.SigSet[za0001].Signature.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -170,7 +176,7 @@ func (z *TermChange) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PkBls)
+	err = z.PkBls.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -190,11 +196,11 @@ func (z *TermChange) EncodeMsg(en *msgp.Writer) (err error) {
 			if err != nil {
 				return
 			}
-			err = en.WriteBytes(z.SigSet[za0001].PublicKey)
+			err = z.SigSet[za0001].PublicKey.EncodeMsg(en)
 			if err != nil {
 				return
 			}
-			err = en.WriteBytes(z.SigSet[za0001].Signature)
+			err = z.SigSet[za0001].Signature.EncodeMsg(en)
 			if err != nil {
 				return
 			}
@@ -217,7 +223,10 @@ func (z *TermChange) MarshalMsg(b []byte) (o []byte, err error) {
 		return
 	}
 	o = msgp.AppendUint64(o, z.TermID)
-	o = msgp.AppendBytes(o, z.PkBls)
+	o, err = z.PkBls.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	o = msgp.AppendArrayHeader(o, uint32(len(z.SigSet)))
 	for za0001 := range z.SigSet {
 		if z.SigSet[za0001] == nil {
@@ -225,8 +234,14 @@ func (z *TermChange) MarshalMsg(b []byte) (o []byte, err error) {
 		} else {
 			// array header, size 2
 			o = append(o, 0x92)
-			o = msgp.AppendBytes(o, z.SigSet[za0001].PublicKey)
-			o = msgp.AppendBytes(o, z.SigSet[za0001].Signature)
+			o, err = z.SigSet[za0001].PublicKey.MarshalMsg(o)
+			if err != nil {
+				return
+			}
+			o, err = z.SigSet[za0001].Signature.MarshalMsg(o)
+			if err != nil {
+				return
+			}
 		}
 	}
 	o, err = z.Issuer.MarshalMsg(o)
@@ -255,7 +270,7 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.PkBls, bts, err = msgp.ReadBytesBytes(bts, z.PkBls)
+	bts, err = z.PkBls.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -289,11 +304,11 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 				return
 			}
-			z.SigSet[za0001].PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.SigSet[za0001].PublicKey)
+			bts, err = z.SigSet[za0001].PublicKey.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
-			z.SigSet[za0001].Signature, bts, err = msgp.ReadBytesBytes(bts, z.SigSet[za0001].Signature)
+			bts, err = z.SigSet[za0001].Signature.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -309,12 +324,12 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TermChange) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PkBls) + msgp.ArrayHeaderSize
+	s = 1 + z.TxBase.Msgsize() + msgp.Uint64Size + z.PkBls.Msgsize() + msgp.ArrayHeaderSize
 	for za0001 := range z.SigSet {
 		if z.SigSet[za0001] == nil {
 			s += msgp.NilSize
 		} else {
-			s += 1 + msgp.BytesPrefixSize + len(z.SigSet[za0001].PublicKey) + msgp.BytesPrefixSize + len(z.SigSet[za0001].Signature)
+			s += 1 + z.SigSet[za0001].PublicKey.Msgsize() + z.SigSet[za0001].Signature.Msgsize()
 		}
 	}
 	s += z.Issuer.Msgsize()

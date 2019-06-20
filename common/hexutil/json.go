@@ -25,6 +25,7 @@ import (
 	"strconv"
 )
 
+////go:generate msgp
 var (
 	bytesT  = reflect.TypeOf(Bytes(nil))
 	bigT    = reflect.TypeOf((*Big)(nil))
@@ -34,6 +35,7 @@ var (
 
 // Bytes marshals/unmarshals as a JSON string with 0x prefix.
 // The empty slice marshals as "0x".
+//msgp:tuple Bytes
 type Bytes []byte
 
 // MarshalText implements encoding.TextMarshaler

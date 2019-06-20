@@ -780,3 +780,10 @@ func (a *AnnSensus) GetInfo() *ConsensusInfo {
 	info.Dkg, info.Bft = a.dkg.GetInfo(), a.bft.GetInfo()
 	return &info
 }
+
+func (a *AnnSensus) GetBftStatus() interface{} {
+	if a.bft == nil {
+		return nil
+	}
+	return a.bft.GetStatus()
+}

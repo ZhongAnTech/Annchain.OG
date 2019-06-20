@@ -13,7 +13,9 @@
 // limitations under the License.
 package msg
 
-import "github.com/tinylib/msgp/msgp"
+import (
+	"github.com/tinylib/msgp/msgp"
+)
 
 //go:generate msgp
 
@@ -55,7 +57,9 @@ type Uint uint
 // integer values.
 type Byte byte
 
-type Bytes []byte
+//msgp:tuple Bytes
+type Bytes []byte 
+
 type Strings []string
 
 type Uints []uint

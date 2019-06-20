@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/msg"
 	"strings"
 
 	"github.com/annchain/OG/common"
@@ -30,15 +29,15 @@ import (
 type TermChange struct {
 	TxBase
 	TermID uint64
-	PkBls  msg.Bytes
+	PkBls  hexutil.Bytes
 	SigSet []*SigSet
 	Issuer Address
 }
 
 //msgp:tuple SigSet
 type SigSet struct {
-	PublicKey msg.Bytes
-	Signature msg.Bytes
+	PublicKey hexutil.Bytes
+	Signature hexutil.Bytes
 }
 
 //msgp:tuple TermChanges

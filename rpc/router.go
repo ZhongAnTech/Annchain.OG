@@ -67,7 +67,8 @@ func (rpc *RpcController) Newrouter() *gin.Engine {
 	router.GET("consensus", rpc.ConStatus)
 	router.GET("confirm_status", rpc.ConfirmStatus)
 	router.POST("new_archive", rpc.NewArchive)
-	router.GET("bft_status", rpc.BftStatus)
+	router.GET("debug/bft_status", rpc.BftStatus)
+	router.GET("debug/pool_hashes",rpc.GetPoolHashes)
 
 	return router
 
@@ -92,7 +93,8 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"tps":            "",
 		"net_io":         "",
 		"confirm_status": "",
-		"bft_status":     "",
+		"debug/pool_hashes":     "",
+		"debug/bft_status" : "",
 
 		// broadcast API
 		"new_transaction": "tx",

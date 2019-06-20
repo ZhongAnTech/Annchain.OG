@@ -378,6 +378,13 @@ func (r *RpcController) BftStatus(c *gin.Context) {
 	return
 }
 
+func (r *RpcController) GetPoolHashes(c *gin.Context) {
+	cors(c)
+	s := r.Og.TxPool.GetOrder()
+	Response(c, http.StatusOK, nil, s)
+	return
+}
+
 func (r *RpcController) Validator(c *gin.Context) {
 	cors(c)
 	Response(c, http.StatusOK, nil, "validator")

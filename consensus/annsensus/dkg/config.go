@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/mod"
@@ -29,16 +30,16 @@ import (
 )
 
 type DkgConfig struct {
-	DKgSecretKey      []byte `json:"d_kg_secret_key"`
-	DKgJointPublicKey []byte `json:"d_kg_joint_public_key"`
+	DKgSecretKey      hexutil.Bytes `json:"d_kg_secret_key"`
+	DKgJointPublicKey hexutil.Bytes `json:"d_kg_joint_public_key"`
 	jointPubKey       kyber.Point
 	secretKey         kyber.Scalar
 	keyShare          *dkg.DistKeyShare
 	CommitLen         []int  `json:"commit_len"`
 	PolyLen           []int  `json:"poly_len"`
-	CommitsData       []byte `json:"commits_data"`
-	PrivPolyData      []byte `json:"priv_poly_data"`
-	ShareData         []byte `json:"share_data"`
+	CommitsData       hexutil.Bytes `json:"commits_data"`
+	PrivPolyData      hexutil.Bytes `json:"priv_poly_data"`
+	ShareData         hexutil.Bytes `json:"share_data"`
 	PartnerId         uint32 `json:"partner_id"`
 	SigSets           map[types.Address]*types.SigSet
 }
@@ -173,7 +174,6 @@ func (d *Dkg) LoadConsensusData() (*DkgConfig, error) {
 		log.WithError(err).Error("unmarshal key share key error")
 	} else {
 		config.keyShare = &keyShare
-
 	}
 	q, err := bn256.UnmarshalBinaryPointG2(config.DKgJointPublicKey)
 	if err != nil {
@@ -200,5 +200,4 @@ func (d *Dkg) SetConfig(config *DkgConfig) {
 	d.partner.Id = config.PartnerId
 	d.blsSigSets = config.SigSets
 	d.isValidPartner = true
-
 }

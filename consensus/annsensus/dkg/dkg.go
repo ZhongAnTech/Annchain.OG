@@ -21,7 +21,6 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/sirupsen/logrus"
@@ -984,7 +983,7 @@ type DKGInfo struct {
 	PartPubs           []kyber.Point         `json:"part_pubs"`
 	MyPartSec          kyber.Scalar          `json:"-"`
 	CandidatePartSec   []kyber.Scalar        `json:"-"`
-	CandidatePublicKey []msg.Bytes           `json:"candidate_public_key"`
+	CandidatePublicKey []hexutil.Bytes           `json:"candidate_public_key"`
 	AddressIndex       map[types.Address]int `json:"address_index"`
 }
 

@@ -161,12 +161,20 @@ func (c *AutoClient) loop() {
 				timerTx.Stop()
 				continue
 			}
+		    if c.Delegate.TooMoreTx() {
+				timerTx.Stop()
+				continue
+			}
 			c.doSampleTx(false)
 			timerTx.Reset(c.nextSleepDuraiton())
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)
 		case <-timerArchive.C:
 			logrus.Debug("timer sample tx")
+			if c.Delegate.TooMoreTx() {
+				timerArchive.Stop()
+				continue
+			}
 			c.doSampleArchive(false)
 			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:

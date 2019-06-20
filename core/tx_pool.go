@@ -1258,3 +1258,7 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 func (t *TxPool) GetConfirmStatus() *ConfirmInfo {
 	return t.confirmStatus.GetInfo()
 }
+
+func (t *TxPool)GetOrder()types.Hashes {
+	return t.txLookup.GetOrder()
+}

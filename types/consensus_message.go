@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/msg"
 )
 
@@ -108,7 +109,7 @@ type MessageProposal struct {
 	Value      Proposal //TODO
 	ValidRound int
 	//PublicKey  []byte
-	Signature msg.Bytes
+	Signature hexutil.Bytes
 }
 
 func (m MessageProposal) Copy() *MessageProposal {
@@ -122,16 +123,17 @@ func (m MessageProposal) Copy() *MessageProposal {
 type MessagePreVote struct {
 	BasicMessage
 	Idv       *Hash // ID of the proposal, usually be the hash of the proposal
-	Signature msg.Bytes
-	PublicKey msg.Bytes
+	Signature hexutil.Bytes
+	PublicKey hexutil.Bytes
 }
 
+//msgp:tuple MessagePreCommit
 type MessagePreCommit struct {
 	BasicMessage
 	Idv          *Hash // ID of the proposal, usually be the hash of the proposal
-	BlsSignature msg.Bytes
-	Signature    msg.Bytes
-	PublicKey    msg.Bytes
+	BlsSignature hexutil.Bytes
+	Signature    hexutil.Bytes
+	PublicKey    hexutil.Bytes
 }
 
 func (m BasicMessage) String() string {

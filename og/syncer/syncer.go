@@ -25,7 +25,7 @@ import (
 	"github.com/bluele/gcache"
 )
 
-const BloomFilterRate = 5 //sending 4 req
+const BloomFilterRate = 4 //sending 4 req
 
 type MessageSender interface {
 	BroadcastMessage(messageType og.MessageType, message types.Message)
@@ -331,7 +331,7 @@ func (m *IncrementalSyncer) txNotifyLoop() {
 	for {
 		select {
 		//todo 20*microsecond to millisecond , check this later
-		case <-time.After(40 * time.Millisecond):
+		case <-time.After(20 * time.Millisecond):
 			goroutine.New(m.notifyNewTxi)
 		case <-m.notifyTxEvent:
 			goroutine.New(m.notifyNewTxi)

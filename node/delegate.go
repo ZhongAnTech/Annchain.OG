@@ -40,6 +40,17 @@ type Delegate struct {
 	OnNewTxiGenerated []chan types.Txi
 }
 
+func (d *Delegate)GetTxNum() uint32{
+	return d.TxPool.GetTxNum()
+}
+
+func (d*Delegate)TooMoreTx() bool{
+	if d.GetTxNum() > 6000 {
+		return true
+	}
+	return false
+}
+
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey)
 

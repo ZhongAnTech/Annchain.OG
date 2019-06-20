@@ -25,7 +25,7 @@ import (
 	"strconv"
 )
 
-////go:generate msgp
+//go:generate msgp
 var (
 	bytesT  = reflect.TypeOf(Bytes(nil))
 	bigT    = reflect.TypeOf((*Big)(nil))
@@ -44,6 +44,11 @@ func (b Bytes) MarshalText() ([]byte, error) {
 	copy(result, `0x`)
 	hex.Encode(result[2:], b)
 	return result, nil
+}
+
+func (b Bytes) MarshalJson() ([]byte, error) {
+	s := b.String()
+	return json.Marshal(&s)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.

@@ -130,7 +130,7 @@ func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peer
 		return
 	}
 	m.HandleNewTxi(ac)
-	log.WithField("q", request).Debug("incremental received MessageTermChange")
+	log.WithField("q", request).Debug("incremental received MessageNewArchive")
 
 }
 

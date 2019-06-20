@@ -89,7 +89,6 @@ func NewNode() *Node {
 			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
-
 	if err != nil {
 		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
@@ -193,7 +192,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, messageHandler)
 	syncManager.IncrementalSyncer = syncer.NewIncrementalSyncer(
 		&syncer.SyncerConfig{
-			BatchTimeoutMilliSecond:                  40,
+			BatchTimeoutMilliSecond:                  20,
 			AcquireTxQueueSize:                       1000,
 			MaxBatchSize:                             5, //smaller
 			AcquireTxDedupCacheMaxSize:               10000,

@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common/msg"
 	"strings"
 
 	"github.com/tinylib/msgp/msgp"
@@ -112,8 +113,8 @@ type TxBase struct {
 	ParentsHash  Hashes
 	AccountNonce uint64
 	Height       uint64
-	PublicKey    []byte
-	Signature    []byte
+	PublicKey    msg.Bytes
+	Signature    msg.Bytes
 	MineNonce    uint64
 	Weight       uint64
 	inValid      bool
@@ -125,8 +126,8 @@ type TxBaseJson struct {
 	ParentsHash  Hashes     `json:"parents_hash"`
 	AccountNonce uint64     `json:"account_nonce"`
 	Height       uint64     `json:"height"`
-	PublicKey    []byte     `json:"public_key"`
-	Signature    []byte     `json:"signature"`
+	PublicKey    msg.Bytes  `json:"public_key"`
+	Signature    msg.Bytes  `json:"signature"`
 	MineNonce    uint64     `json:"mine_nonce"`
 	Weight       uint64     `json:"weight"`
 	inValid      bool       `json:"in_valid"`

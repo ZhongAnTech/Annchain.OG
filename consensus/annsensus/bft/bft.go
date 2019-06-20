@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/og"
@@ -74,7 +75,7 @@ type OGBFTPartner struct {
 type PeerInfo struct {
 	PublicKey      crypto.PublicKey `json:"-"`
 	Address        types.Address    `json:"address"`
-	PublicKeyBytes []byte           `json:"public_key"`
+	PublicKeyBytes msg.Bytes        `json:"public_key"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
@@ -436,4 +437,8 @@ func (b *BFT) HandleProposal(hash types.Hash) {
 		b.BFTPartner.GetIncomingMessageChannel() <- m
 
 	}
+}
+
+func (b *BFT) GetStatus() interface{} {
+	return b.BFTPartner.Status()
 }

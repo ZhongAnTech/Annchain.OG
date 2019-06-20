@@ -371,6 +371,13 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 	return
 }
 
+func (r *RpcController) BftStatus(c *gin.Context) {
+	cors(c)
+	s := r.AnnSensus.GetBftStatus()
+	Response(c, http.StatusOK, nil, s)
+	return
+}
+
 func (r *RpcController) Validator(c *gin.Context) {
 	cors(c)
 	Response(c, http.StatusOK, nil, "validator")

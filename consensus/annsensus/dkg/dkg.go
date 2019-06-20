@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/sirupsen/logrus"
@@ -983,19 +984,21 @@ type DKGInfo struct {
 	PartPubs           []kyber.Point         `json:"part_pubs"`
 	MyPartSec          kyber.Scalar          `json:"-"`
 	CandidatePartSec   []kyber.Scalar        `json:"-"`
-	CandidatePublicKey [][]byte              `json:"candidate_public_key"`
+	CandidatePublicKey []msg.Bytes           `json:"candidate_public_key"`
 	AddressIndex       map[types.Address]int `json:"address_index"`
 }
 
 func (dkg *Dkg) GetInfo() *DKGInfo {
 	dkgInfo := DKGInfo{
-		TermId:             dkg.TermId,
-		Id:                 dkg.partner.Id,
-		PartPubs:           dkg.partner.PartPubs,
-		MyPartSec:          dkg.partner.MyPartSec,
-		CandidatePublicKey: dkg.partner.CandidatePublicKey,
-		CandidatePartSec:   dkg.partner.CandidatePartSec,
-		AddressIndex:       dkg.partner.addressIndex,
+		TermId:           dkg.TermId,
+		Id:               dkg.partner.Id,
+		PartPubs:         dkg.partner.PartPubs,
+		MyPartSec:        dkg.partner.MyPartSec,
+		CandidatePartSec: dkg.partner.CandidatePartSec,
+		AddressIndex:     dkg.partner.addressIndex,
+	}
+	for _, v := range dkg.partner.CandidatePublicKey {
+		dkgInfo.CandidatePublicKey = append(dkgInfo.CandidatePublicKey, v)
 	}
 	return &dkgInfo
 }

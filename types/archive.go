@@ -25,7 +25,7 @@ import (
 
 //go:generate msgp
 
-//msgp:tupple Archive
+//msgp:tuple Archive
 type Archive struct {
 	TxBase
 	Data []byte `json:"data"`

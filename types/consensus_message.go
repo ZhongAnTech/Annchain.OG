@@ -108,7 +108,7 @@ type MessageProposal struct {
 	Value      Proposal //TODO
 	ValidRound int
 	//PublicKey  []byte
-	Signature []byte
+	Signature msg.Bytes
 }
 
 func (m MessageProposal) Copy() *MessageProposal {
@@ -122,16 +122,16 @@ func (m MessageProposal) Copy() *MessageProposal {
 type MessagePreVote struct {
 	BasicMessage
 	Idv       *Hash // ID of the proposal, usually be the hash of the proposal
-	Signature []byte
-	PublicKey []byte
+	Signature msg.Bytes
+	PublicKey msg.Bytes
 }
 
 type MessagePreCommit struct {
 	BasicMessage
 	Idv          *Hash // ID of the proposal, usually be the hash of the proposal
-	BlsSignature []byte
-	Signature    []byte
-	PublicKey    []byte
+	BlsSignature msg.Bytes
+	Signature    msg.Bytes
+	PublicKey    msg.Bytes
 }
 
 func (m BasicMessage) String() string {

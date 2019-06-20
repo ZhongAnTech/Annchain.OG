@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common/msg"
 	"go.dedis.ch/kyber/v3/util/random"
 	"math/rand"
 	"strings"
@@ -32,17 +33,17 @@ type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
 	Issuer         Address
-	BlsJointSig    []byte
-	BlsJointPubKey []byte
+	BlsJointSig    msg.Bytes
+	BlsJointPubKey msg.Bytes
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
 type SequencerJson struct {
 	TxBaseJson
-	Issuer         Address `json:"issuer"`
-	BlsJointSig    []byte  `json:"bls_joint_sig"`
-	BlsJointPubKey []byte  `json:"bls_joint_pub_key"`
-	Proposing      bool    `msg:"-",json:"-"`
+	Issuer         Address   `json:"issuer"`
+	BlsJointSig    msg.Bytes `json:"bls_joint_sig"`
+	BlsJointPubKey msg.Bytes `json:"bls_joint_pub_key"`
+	Proposing      bool      `msg:"-",json:"-"`
 }
 
 func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {

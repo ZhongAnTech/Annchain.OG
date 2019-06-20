@@ -1780,41 +1780,28 @@ func (z *MessageHeaderResponse) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *MessageNewArchive) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "Archive":
-			if dc.IsNil() {
-				err = dc.ReadNil()
-				if err != nil {
-					return
-				}
-				z.Archive = nil
-			} else {
-				if z.Archive == nil {
-					z.Archive = new(Archive)
-				}
-				err = z.Archive.DecodeMsg(dc)
-				if err != nil {
-					return
-				}
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
+		z.Archive = nil
+	} else {
+		if z.Archive == nil {
+			z.Archive = new(Archive)
+		}
+		err = z.Archive.DecodeMsg(dc)
+		if err != nil {
+			return
 		}
 	}
 	return
@@ -1822,9 +1809,8 @@ func (z *MessageNewArchive) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageNewArchive) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Archive"
-	err = en.Append(0x81, 0xa7, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65)
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
 		return
 	}
@@ -1845,9 +1831,8 @@ func (z *MessageNewArchive) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageNewArchive) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Archive"
-	o = append(o, 0x81, 0xa7, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65)
+	// array header, size 1
+	o = append(o, 0x91)
 	if z.Archive == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -1861,41 +1846,28 @@ func (z *MessageNewArchive) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *MessageNewArchive) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "Archive":
-			if msgp.IsNil(bts) {
-				bts, err = msgp.ReadNilBytes(bts)
-				if err != nil {
-					return
-				}
-				z.Archive = nil
-			} else {
-				if z.Archive == nil {
-					z.Archive = new(Archive)
-				}
-				bts, err = z.Archive.UnmarshalMsg(bts)
-				if err != nil {
-					return
-				}
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
+		z.Archive = nil
+	} else {
+		if z.Archive == nil {
+			z.Archive = new(Archive)
+		}
+		bts, err = z.Archive.UnmarshalMsg(bts)
+		if err != nil {
+			return
 		}
 	}
 	o = bts
@@ -1904,7 +1876,7 @@ func (z *MessageNewArchive) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageNewArchive) Msgsize() (s int) {
-	s = 1 + 8
+	s = 1
 	if z.Archive == nil {
 		s += msgp.NilSize
 	} else {

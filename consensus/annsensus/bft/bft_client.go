@@ -15,6 +15,7 @@
 package bft
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
 	"strings"
@@ -42,6 +43,7 @@ type BFTPartner interface {
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
 	SetGetHeightFunc(getHeightFunc func() uint64)
+	Status() interface{}
 }
 
 type PartnerBase struct {
@@ -67,6 +69,7 @@ type HeightRoundState struct {
 	StepTypeEqualOrLargerPreVoteTriggered bool                      // for line 36, FIRST time trigger
 	StepTypeEqualPreCommitTriggered       bool                      // for line 47, FIRST time trigger
 	Step                                  StepType                  // current step in this round
+	StartAt                               time.Time
 }
 
 func NewHeightRoundState(total int) *HeightRoundState {
@@ -76,11 +79,25 @@ func NewHeightRoundState(total int) *HeightRoundState {
 		PreVotes:    make([]*types.MessagePreVote, total),
 		PreCommits:  make([]*types.MessagePreCommit, total),
 		Sources:     make(map[uint16]bool),
+		StartAt:     time.Now(),
 	}
 }
 
 func (p *DefaultPartner) GetPeers() []BFTPartner {
 	return p.Peers
+}
+
+type HeightRoundStateMap map[types.HeightRound]*HeightRoundState
+
+func (h *HeightRoundStateMap) MarshalJSON() ([]byte, error) {
+	if h == nil {
+		return nil, nil
+	}
+	m := make(map[string]*HeightRoundState, len(*h))
+	for k, v := range *h {
+		m[k.String()] = v
+	}
+	return json.Marshal(&m)
 }
 
 // DefaultPartner implements a Tendermint client according to "The latest gossip on BFT consensus"
@@ -98,7 +115,7 @@ type DefaultPartner struct {
 	quit         chan bool
 	waiter       *Waiter
 	proposalFunc func() (types.Proposal, uint64)
-	States       map[types.HeightRound]*HeightRoundState // for line 55, round number -> count
+	States       HeightRoundStateMap // for line 55, round number -> count
 	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
 
@@ -360,11 +377,11 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
-	var idv types.Hash
+	var idv *types.Hash
 	if content != nil {
 		cIdv := content.GetId()
 		if cIdv != nil {
-			idv = *cIdv
+			idv = cIdv
 		}
 
 	}
@@ -378,12 +395,12 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 	case og.MessageTypePreVote:
 		m.Payload = &types.MessagePreVote{
 			BasicMessage: basicMessage,
-			Idv:          &idv,
+			Idv:          idv,
 		}
 	case og.MessageTypePreCommit:
 		m.Payload = &types.MessagePreCommit{
 			BasicMessage: basicMessage,
-			Idv:          &idv,
+			Idv:          idv,
 		}
 	}
 	p.OutgoingMessageChannel <- m
@@ -782,4 +799,18 @@ func (p *DefaultPartner) initHeightRound(hr types.HeightRound) (*HeightRoundStat
 		p.States[hr] = NewHeightRoundState(p.N)
 	}
 	return p.States[hr], len(p.States)
+}
+
+type BftStatus struct {
+	HeightRound types.HeightRound
+	States      HeightRoundStateMap
+	Now         time.Time
+}
+
+func (p *DefaultPartner) Status() interface{} {
+	status := BftStatus{}
+	status.HeightRound = p.CurrentHR
+	status.States = p.States
+	status.Now = time.Now()
+	return &status
 }

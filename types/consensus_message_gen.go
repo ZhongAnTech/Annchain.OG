@@ -253,17 +253,17 @@ func (z *MessagePreCommit) DecodeMsg(dc *msgp.Reader) (err error) {
 				}
 			}
 		case "BlsSignature":
-			z.BlsSignature, err = dc.ReadBytes(z.BlsSignature)
+			err = z.BlsSignature.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
 		case "Signature":
-			z.Signature, err = dc.ReadBytes(z.Signature)
+			err = z.Signature.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			err = z.PublicKey.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -310,7 +310,7 @@ func (z *MessagePreCommit) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.BlsSignature)
+	err = z.BlsSignature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -319,7 +319,7 @@ func (z *MessagePreCommit) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -328,7 +328,7 @@ func (z *MessagePreCommit) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PublicKey)
+	err = z.PublicKey.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -357,13 +357,22 @@ func (z *MessagePreCommit) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "BlsSignature"
 	o = append(o, 0xac, 0x42, 0x6c, 0x73, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.BlsSignature)
+	o, err = z.BlsSignature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "Signature"
 	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "PublicKey"
 	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
-	o = msgp.AppendBytes(o, z.PublicKey)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -405,17 +414,17 @@ func (z *MessagePreCommit) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				}
 			}
 		case "BlsSignature":
-			z.BlsSignature, bts, err = msgp.ReadBytesBytes(bts, z.BlsSignature)
+			bts, err = z.BlsSignature.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
 		case "Signature":
-			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			bts, err = z.Signature.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			bts, err = z.PublicKey.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -438,7 +447,7 @@ func (z *MessagePreCommit) Msgsize() (s int) {
 	} else {
 		s += z.Idv.Msgsize()
 	}
-	s += 13 + msgp.BytesPrefixSize + len(z.BlsSignature) + 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.BytesPrefixSize + len(z.PublicKey)
+	s += 13 + z.BlsSignature.Msgsize() + 10 + z.Signature.Msgsize() + 10 + z.PublicKey.Msgsize()
 	return
 }
 
@@ -480,12 +489,12 @@ func (z *MessagePreVote) DecodeMsg(dc *msgp.Reader) (err error) {
 				}
 			}
 		case "Signature":
-			z.Signature, err = dc.ReadBytes(z.Signature)
+			err = z.Signature.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			err = z.PublicKey.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -532,7 +541,7 @@ func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -541,7 +550,7 @@ func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PublicKey)
+	err = z.PublicKey.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -570,10 +579,16 @@ func (z *MessagePreVote) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "Signature"
 	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "PublicKey"
 	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
-	o = msgp.AppendBytes(o, z.PublicKey)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -615,12 +630,12 @@ func (z *MessagePreVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				}
 			}
 		case "Signature":
-			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			bts, err = z.Signature.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			bts, err = z.PublicKey.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -643,7 +658,7 @@ func (z *MessagePreVote) Msgsize() (s int) {
 	} else {
 		s += z.Idv.Msgsize()
 	}
-	s += 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.BytesPrefixSize + len(z.PublicKey)
+	s += 10 + z.Signature.Msgsize() + 10 + z.PublicKey.Msgsize()
 	return
 }
 
@@ -670,7 +685,7 @@ func (z *MessageProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.Signature, err = dc.ReadBytes(z.Signature)
+	err = z.Signature.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -696,7 +711,7 @@ func (z *MessageProposal) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -717,7 +732,10 @@ func (z *MessageProposal) MarshalMsg(b []byte) (o []byte, err error) {
 		return
 	}
 	o = msgp.AppendInt(o, z.ValidRound)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -744,7 +762,7 @@ func (z *MessageProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+	bts, err = z.Signature.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -754,7 +772,7 @@ func (z *MessageProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageProposal) Msgsize() (s int) {
-	s = 1 + z.BasicMessage.Msgsize() + z.Value.Msgsize() + msgp.IntSize + msgp.BytesPrefixSize + len(z.Signature)
+	s = 1 + z.BasicMessage.Msgsize() + z.Value.Msgsize() + msgp.IntSize + z.Signature.Msgsize()
 	return
 }
 

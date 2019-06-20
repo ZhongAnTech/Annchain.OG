@@ -14,6 +14,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 )
@@ -40,4 +41,10 @@ func TestHash(t *testing.T) {
 	if pHash == p2hash {
 		t.Fatal("should not  equal")
 	}
+}
+
+func TestHexToHash(t *testing.T) {
+	h := randomHash()
+	d, err := json.Marshal(&h)
+	fmt.Println(string(d), err)
 }

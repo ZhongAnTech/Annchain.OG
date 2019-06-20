@@ -1,3 +1,4 @@
+#!/bin/bash
 killall -v og
 rm -rvf logs
 
@@ -12,3 +13,4 @@ do
         fi
 
 done
+

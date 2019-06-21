@@ -90,6 +90,9 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
+	if restart && root.Empty() {
+		panic("should not be empty hash")
+	}
 
 	if !restart {
 		// TODO use config to load the genesis

@@ -62,7 +62,6 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 
 func newTestUnsealTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -75,7 +74,6 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 
 func newTestSeq(nonce uint64) *types.Sequencer {
 	txCreator := &og.TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)

@@ -83,10 +83,12 @@ func NewLevelDB(file string, cache int, handles int) (*LevelDB, error) {
 		Filter:                 filter.NewBloomFilter(10),
 	})
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
+		log.WithError(err).Warning("recovering")
 		db, err = leveldb.RecoverFile(file, nil)
 	}
 	// (Re)check for errors and abort if opening of the db failed
 	if err != nil {
+		log.WithError(err).Warning("create db error")
 		return nil, err
 	}
 	return &LevelDB{

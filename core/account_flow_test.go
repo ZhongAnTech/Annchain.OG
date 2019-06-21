@@ -25,7 +25,6 @@ import (
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &og.TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)

@@ -34,13 +34,13 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db, nil, 0)
+	dag, errnew := core.NewDag(core.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
 	pool := core.NewTxPool(txpoolconfig, dag)
 
-	genesis, balance := core.DefaultGenesis(crypto.CryptoTypeSecp256k1)
+	genesis, balance := core.DefaultGenesis("genesis.json")
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -58,7 +58,6 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 
 func newTestPoolTx(nonce uint64) *types.Tx {
 	txCreator := &og.TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -71,7 +70,6 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 
 func newTestPoolBadTx() *types.Tx {
 	txCreator := &og.TxCreator{
-		Signer: &crypto.SignerSecp256k1{},
 	}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)

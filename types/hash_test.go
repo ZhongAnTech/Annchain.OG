@@ -48,3 +48,13 @@ func TestHexToHash(t *testing.T) {
 	d, err := json.Marshal(&h)
 	fmt.Println(string(d), err)
 }
+
+func TestHash_Empty(t *testing.T) {
+	var h Hash
+	fmt.Println(h)
+	if h.Empty() {
+		fmt.Println("empty")
+	}else {
+		t.Fatal("should be empty")
+	}
+}

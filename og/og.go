@@ -75,6 +75,7 @@ func NewOg(config OGConfig) (*Og, error) {
 	og.NetworkId = config.NetworkId
 	db, err := CreateDB()
 	if err != nil {
+		logrus.WithError(err).Warning("create db error")
 		return nil, err
 	}
 	//testDb, err := GetOldDb()
@@ -88,6 +89,7 @@ func NewOg(config OGConfig) (*Og, error) {
 	}
 	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, nil)
 	if err != nil {
+		logrus.WithError(err).Warning("create db error")
 		return nil, err
 	}
 

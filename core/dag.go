@@ -127,7 +127,8 @@ func (dag *Dag) Stop() {
 // latest sequencer every time restart the node.
 func (dag *Dag) SaveStateRoot() {
 	key := []byte("stateroot")
-	if dag.statedb.Root().Empty() {
+	root := dag.statedb.Root()
+	if root.Empty() {
 		panic("empty hash slove this")
 	}
 	dag.db.Put(key, dag.statedb.Root().ToBytes())

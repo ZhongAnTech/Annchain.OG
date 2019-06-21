@@ -152,7 +152,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-	s.quit <- true
+	close(s.quit)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {

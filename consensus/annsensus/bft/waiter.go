@@ -98,7 +98,7 @@ func (w *Waiter) StartEventLoop() {
 			// timeout, trigger callback
 			if w.currentRequest != nil {
 				//ffchan.NewTimeoutSenderShort(w.callbackEventChanel, w.currentRequest, "waiterCallback")
-				w.callbackEventChanel<-w.currentRequest
+				w.callbackEventChanel <- w.currentRequest
 				//w.currentRequest.TimeoutCallback(w.currentRequest.Context)
 			}
 		}

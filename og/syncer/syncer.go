@@ -124,9 +124,9 @@ func (m *IncrementalSyncer) Start() {
 
 func (m *IncrementalSyncer) Stop() {
 	m.Enabled = false
-	m.quitLoopEvent <- true
-	m.quitLoopSync <- true
-	m.quitLoopEvent <- true
+	close(m.quitLoopEvent)
+	close(m.quitLoopSync)
+	close(m.quitNotifyEvent)
 	// <-ffchan.NewTimeoutSender(m.quitLoopEvent, true, "increSyncerQuitLoopEvent", 1000).C
 	// <-ffchan.NewTimeoutSender(m.quitLoopSync, true, "increSyncerQuitLoopSync", 1000).C
 }

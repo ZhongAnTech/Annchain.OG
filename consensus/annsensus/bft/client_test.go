@@ -14,8 +14,10 @@
 package bft
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -44,6 +46,10 @@ func start(peers []BFTPartner, second int) {
 	}
 	for {
 		time.Sleep(time.Second * time.Duration(second))
+		for _, peer := range peers {
+			peer.Stop()
+		}
+		fmt.Println(runtime.NumGoroutine())
 		return
 	}
 }
@@ -127,4 +133,13 @@ func TestManyBadByzantineOK(t *testing.T) {
 			}))
 	}
 	start(peers, 10)
+}
+
+func TestBFT_GetInfo(t *testing.T) {
+	total := 1
+	var peers []BFTPartner
+	for i := 0; i < total; i++ {
+		peers = append(peers, NewBFTPartner(total, i, BlockTime*1000))
+	}
+	start(peers, 3)
 }

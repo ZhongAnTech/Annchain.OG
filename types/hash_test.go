@@ -54,7 +54,7 @@ func TestHash_Empty(t *testing.T) {
 	fmt.Println(h)
 	if h.Empty() {
 		fmt.Println("empty")
-	}else {
+	} else {
 		t.Fatal("should be empty")
 	}
 }

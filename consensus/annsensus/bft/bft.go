@@ -74,7 +74,7 @@ type OGBFTPartner struct {
 type PeerInfo struct {
 	PublicKey      crypto.PublicKey `json:"-"`
 	Address        types.Address    `json:"address"`
-	PublicKeyBytes hexutil.Bytes        `json:"public_key"`
+	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
@@ -168,7 +168,7 @@ func (b *BFT) StartGossip() {
 func (b *BFT) Stop() {
 	log.Info("BFT will stop")
 	b.BFTPartner.Stop()
-	b.quit <- true
+	close(b.quit)
 	logrus.Info("BFT stopped")
 }
 

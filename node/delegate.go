@@ -40,11 +40,11 @@ type Delegate struct {
 	OnNewTxiGenerated []chan types.Txi
 }
 
-func (d *Delegate)GetTxNum() uint32{
+func (d *Delegate) GetTxNum() uint32 {
 	return d.TxPool.GetTxNum()
 }
 
-func (d*Delegate)TooMoreTx() bool{
+func (d *Delegate) TooMoreTx() bool {
 	if d.GetTxNum() > 6000 {
 		return true
 	}

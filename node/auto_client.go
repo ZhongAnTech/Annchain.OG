@@ -161,7 +161,7 @@ func (c *AutoClient) loop() {
 				timerTx.Stop()
 				continue
 			}
-		    if c.Delegate.TooMoreTx() {
+			if c.Delegate.TooMoreTx() {
 				timerTx.Stop()
 				logrus.Warn("auto tx stopped")
 				continue
@@ -196,7 +196,7 @@ func (c *AutoClient) Start() {
 }
 
 func (c *AutoClient) Stop() {
-	c.quit <- true
+	close(c.quit)
 	c.Delegate.TxCreator.Stop()
 	c.wg.Wait()
 }

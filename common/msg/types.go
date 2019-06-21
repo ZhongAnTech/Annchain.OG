@@ -58,7 +58,7 @@ type Uint uint
 type Byte byte
 
 //msgp:tuple Bytes
-type Bytes []byte 
+type Bytes []byte
 
 type Strings []string
 

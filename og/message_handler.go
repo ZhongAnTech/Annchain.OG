@@ -140,7 +140,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 				seq := h.Og.Dag.GetSequencerByHeight(height + 2)
 				txs.Append(seq)
 			}
-			msgLog.WithField("to ", peerId).WithField("to request ",syncRequest.RequestId).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
+			msgLog.WithField("to ", peerId).WithField("to request ", syncRequest.RequestId).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
 		}
 	} else if syncRequest.Hashes != nil && len(*syncRequest.Hashes) > 0 {
 		for _, hash := range *syncRequest.Hashes {
@@ -668,7 +668,7 @@ func (m *IncomingMessageHandler) Start() {
 }
 
 func (m *IncomingMessageHandler) Stop() {
-	m.quit <- struct{}{}
+	close(m.quit)
 	msgLog.Info("message handler stopped")
 }
 

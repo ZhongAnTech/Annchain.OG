@@ -442,11 +442,12 @@ func (pool *TxPool) loop() {
 	pool.wg.Add(1)
 	defer pool.wg.Done()
 
-	resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
+	//resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
 
 	for {
 		select {
 		case <-pool.close:
+			log.Info("pool got quit signal quiting...")
 			return
 
 		case txEvent := <-pool.queue:
@@ -491,8 +492,8 @@ func (pool *TxPool) loop() {
 
 			txEvent.callbackChan <- err
 
-		case <-resetTimer.C:
-			pool.reset()
+			//case <-resetTimer.C:
+			//pool.reset()
 		}
 	}
 }
@@ -1259,6 +1260,6 @@ func (t *TxPool) GetConfirmStatus() *ConfirmInfo {
 	return t.confirmStatus.GetInfo()
 }
 
-func (t *TxPool)GetOrder()types.Hashes {
+func (t *TxPool) GetOrder() types.Hashes {
 	return t.txLookup.GetOrder()
 }

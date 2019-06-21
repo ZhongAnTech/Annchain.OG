@@ -983,7 +983,7 @@ type DKGInfo struct {
 	PartPubs           []kyber.Point         `json:"part_pubs"`
 	MyPartSec          kyber.Scalar          `json:"-"`
 	CandidatePartSec   []kyber.Scalar        `json:"-"`
-	CandidatePublicKey []hexutil.Bytes           `json:"candidate_public_key"`
+	CandidatePublicKey []hexutil.Bytes       `json:"candidate_public_key"`
 	AddressIndex       map[types.Address]int `json:"address_index"`
 }
 

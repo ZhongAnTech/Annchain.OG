@@ -103,8 +103,8 @@ func (c *CatchupSyncer) Start() {
 }
 
 func (c *CatchupSyncer) Stop() {
-	c.quit <- true
-	c.quitLoopEvent <- true
+	close(c.quit)
+	close(c.quitLoopEvent)
 	// <-ffchan.NewTimeoutSender(c.quit, true, "catchupSyncerQuit", 1000).C
 	// <-ffchan.NewTimeoutSender(c.quitLoopEvent, true, "catchupSyncerQuitLoopEvent", 1000).C
 }

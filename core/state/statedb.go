@@ -550,6 +550,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 	if err!=nil {
 		log.WithError(err).Warning("commit trie error")
 	}
+	log.WithField("rootHash",rootHash).Info("state root set to")
 	sd.root = rootHash
 
 	sd.clearJournalAndRefund()

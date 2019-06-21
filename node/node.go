@@ -90,7 +90,7 @@ func NewNode() *Node {
 		},
 	)
 	if err != nil {
-		logrus.WithError(err).Fatalf("Error occurred while initializing OG")
+		logrus.WithError(err).Warning("Error occurred while initializing OG")
 		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
 	feedBack := og.FeedBackMode

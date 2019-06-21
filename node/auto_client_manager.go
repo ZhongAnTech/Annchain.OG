@@ -119,7 +119,7 @@ func (m *AutoClientManager) Start() {
 }
 
 func (m *AutoClientManager) Stop() {
-	m.quit <- true
+	close(m.quit)
 	m.wg.Wait()
 }
 

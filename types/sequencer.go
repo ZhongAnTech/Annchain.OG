@@ -39,10 +39,10 @@ type Sequencer struct {
 
 type SequencerJson struct {
 	TxBaseJson
-	Issuer         Address   `json:"issuer"`
+	Issuer         Address       `json:"issuer"`
 	BlsJointSig    hexutil.Bytes `json:"bls_joint_sig"`
 	BlsJointPubKey hexutil.Bytes `json:"bls_joint_pub_key"`
-	Proposing      bool      `msg:"-",json:"-"`
+	Proposing      bool          `msg:"-",json:"-"`
 }
 
 func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {

@@ -121,16 +121,16 @@ type TxBase struct {
 }
 
 type TxBaseJson struct {
-	Type         TxBaseType `json:"type"`
-	Hash         Hash       `json:"hash"`
-	ParentsHash  Hashes     `json:"parents_hash"`
-	AccountNonce uint64     `json:"account_nonce"`
-	Height       uint64     `json:"height"`
-	PublicKey    hexutil.Bytes  `json:"public_key"`
-	Signature    hexutil.Bytes  `json:"signature"`
-	MineNonce    uint64     `json:"mine_nonce"`
-	Weight       uint64     `json:"weight"`
-	inValid      bool       `json:"in_valid"`
+	Type         TxBaseType    `json:"type"`
+	Hash         Hash          `json:"hash"`
+	ParentsHash  Hashes        `json:"parents_hash"`
+	AccountNonce uint64        `json:"account_nonce"`
+	Height       uint64        `json:"height"`
+	PublicKey    hexutil.Bytes `json:"public_key"`
+	Signature    hexutil.Bytes `json:"signature"`
+	MineNonce    uint64        `json:"mine_nonce"`
+	Weight       uint64        `json:"weight"`
+	inValid      bool          `json:"in_valid"`
 }
 
 type TxiSmallCaseMarshal struct {

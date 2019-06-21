@@ -35,12 +35,12 @@ type DkgConfig struct {
 	jointPubKey       kyber.Point
 	secretKey         kyber.Scalar
 	keyShare          *dkg.DistKeyShare
-	CommitLen         []int  `json:"commit_len"`
-	PolyLen           []int  `json:"poly_len"`
+	CommitLen         []int         `json:"commit_len"`
+	PolyLen           []int         `json:"poly_len"`
 	CommitsData       hexutil.Bytes `json:"commits_data"`
 	PrivPolyData      hexutil.Bytes `json:"priv_poly_data"`
 	ShareData         hexutil.Bytes `json:"share_data"`
-	PartnerId         uint32 `json:"partner_id"`
+	PartnerId         uint32        `json:"partner_id"`
 	SigSets           map[types.Address]*types.SigSet
 }
 

@@ -36,7 +36,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}
 
-	genesis, balance := core.DefaultGenesis( "genesis.json")
+	genesis, balance := core.DefaultGenesis("genesis.json")
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -50,8 +50,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 }
 
 func newTestDagTx(nonce uint64) *types.Tx {
-	txCreator := &og.TxCreator{
-	}
+	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
@@ -98,7 +97,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	}
 
 	acc := core.NewAccessor(db)
-	genesis, _ := core.DefaultGenesis( "genesis.json")
+	genesis, _ := core.DefaultGenesis("genesis.json")
 	err := acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
@@ -245,7 +244,7 @@ func TestDagProcess(t *testing.T) {
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)
-	 ret,_, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -262,12 +261,12 @@ func TestDagProcess(t *testing.T) {
 	setTx.Value = math.NewBigInt(0)
 	setTx.To = contractAddr
 	setTx.Data, _ = hex.DecodeString(setdata)
-	ret,_, err = dag.ProcessTransaction(setTx)
+	ret, _, err = dag.ProcessTransaction(setTx)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
 	// get i and check if it is changed
-	ret,_, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -283,7 +282,7 @@ func TestDagProcess(t *testing.T) {
 	payTx.From = addr
 	payTx.Value = math.NewBigInt(transferValue)
 	payTx.To = contractAddr
-	ret,_, err = dag.ProcessTransaction(payTx)
+	ret, _, err = dag.ProcessTransaction(payTx)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
@@ -292,4 +291,3 @@ func TestDagProcess(t *testing.T) {
 		t.Fatalf("the value is not tranferred to contract, should be: %d, get: %d", transferValue, blc.GetInt64())
 	}
 }
-

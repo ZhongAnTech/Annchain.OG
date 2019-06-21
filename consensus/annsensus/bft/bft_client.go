@@ -121,6 +121,7 @@ type DefaultPartner struct {
 
 	getHeightFunc func() uint64
 	testFlag      bool
+	//wg sync.WaitGroup
 }
 
 func (p *DefaultPartner) GetWaiterTimeoutChannel() chan *WaiterRequest {
@@ -160,8 +161,11 @@ func (p *DefaultPartner) SetPeers(peers []BFTPartner) {
 }
 
 func (p *DefaultPartner) Stop() {
-	p.quit <- true
-	p.waiter.quit <- true
+	//quit channal is used by two or more go routines , use close instead of send values to channel
+	//p.quit <- true
+	close(p.quit)
+	close(p.waiter.quit)
+	//p.wg.Wait()
 	logrus.Info("default partner stopped")
 }
 
@@ -278,11 +282,14 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 
 func (p *DefaultPartner) EventLoop() {
 	goroutine.New(p.send)
+	//p.wg.Add(1)
 	goroutine.New(p.receive)
+	//p.wg.Add(1)
 }
 
 // send is just for outgoing messages. It should not change any state of local tendermint
 func (p *DefaultPartner) send() {
+	//defer p.wg.Done()
 	timer := time.NewTimer(time.Second * 7)
 	for {
 		timer.Reset(time.Second * 7)
@@ -318,6 +325,7 @@ func (p *DefaultPartner) send() {
 // receive prevents concurrent state updates by allowing only one channel to be read per loop
 // Any action which involves state updates should be in this select clause
 func (p *DefaultPartner) receive() {
+	//defer p.wg.Done()
 	timer := time.NewTimer(time.Second * 7)
 	for {
 		timer.Reset(time.Second * 7)
@@ -354,8 +362,15 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 // GetValue generates the value requiring consensus
 func (p *DefaultPartner) GetValue(newBlock bool) (types.Proposal, uint64) {
 	//don't sleep for the same height new round
+	blockTime := time.After(p.blockTime)
 	if newBlock {
-		time.Sleep(p.blockTime)
+		select {
+		case <-p.quit:
+			logrus.Info("got stop signal")
+		case <-blockTime:
+			break
+		}
+		//time.Sleep(p.blockTime)
 	}
 	if p.proposalFunc != nil {
 		pro, validHeight := p.proposalFunc()

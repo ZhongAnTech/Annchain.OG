@@ -57,8 +57,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, fun
 }
 
 func newTestPoolTx(nonce uint64) *types.Tx {
-	txCreator := &og.TxCreator{
-	}
+	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
@@ -69,8 +68,7 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 }
 
 func newTestPoolBadTx() *types.Tx {
-	txCreator := &og.TxCreator{
-	}
+	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
 

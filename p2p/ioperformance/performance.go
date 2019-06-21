@@ -51,7 +51,7 @@ func (i *iOPerformance) Start() {
 }
 
 func (i *iOPerformance) Stop() {
-	i.quit <- true
+	close(i.quit)
 }
 
 func (i *iOPerformance) Name() string {

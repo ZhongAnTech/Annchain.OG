@@ -163,6 +163,7 @@ func (c *AutoClient) loop() {
 			}
 		    if c.Delegate.TooMoreTx() {
 				timerTx.Stop()
+				logrus.Warn("auto tx stopped")
 				continue
 			}
 			c.doSampleTx(false)
@@ -173,6 +174,7 @@ func (c *AutoClient) loop() {
 			logrus.Debug("timer sample tx")
 			if c.Delegate.TooMoreTx() {
 				timerArchive.Stop()
+				logrus.Warn("auto archive stopped")
 				continue
 			}
 			c.doSampleArchive(false)

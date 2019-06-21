@@ -100,6 +100,10 @@ func (sd *StateDB) Root() types.Hash {
 	return sd.root
 }
 
+func (sd *StateDB) SetRoot(root types.Hash) {
+	sd.root = root
+}
+
 // CreateAccount will create a new state for input address and
 // return the state. If input address already exists in StateDB
 // returns it.
@@ -551,7 +555,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 		log.WithError(err).Warning("commit trie error")
 	}
 	log.WithField("rootHash", rootHash).Info("state root set to")
-	sd.root = rootHash
+	sd.SetRoot(rootHash)
 
 	sd.clearJournalAndRefund()
 	return rootHash, err

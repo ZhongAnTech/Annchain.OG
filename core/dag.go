@@ -93,7 +93,9 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	if restart && root.Empty() {
 		panic("should not be empty hash")
 	}
-
+	if restart {
+		dag.statedb.SetRoot(root)
+	}
 	if !restart {
 		// TODO use config to load the genesis
 		seq, balance := DefaultGenesis(conf.GenesisPath)

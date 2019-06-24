@@ -76,7 +76,6 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	p.PartPubs = []kyber.Point{}
 
 	d := &Dkg{}
-	d.dkgOn = dkgOn
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
 	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
@@ -84,10 +83,11 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	d.gossipSigSetspCh = make(chan *types.MessageConsensusDkgSigSets, 100)
 	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
-	d.GenerateDkg() //todo fix later
-	d.myPublicKey = d.partner.CandidatePublicKey[0]
-	d.partner.MyPartSec = d.partner.CandidatePartSec[0]
-
+	if d.dkgOn{
+		d.GenerateDkg() //todo fix later
+		d.myPublicKey = d.partner.CandidatePublicKey[0]
+		d.partner.MyPartSec = d.partner.CandidatePartSec[0]
+	}
 	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
 	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
 	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)

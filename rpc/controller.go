@@ -399,7 +399,7 @@ func getArchiveId()uint32 {
 	if archiveId > math2.MaxUint32-1000 {
 		archiveId = 10
 	}
- 	return atomic.AddUint32(&archiveId,1)
+	return atomic.AddUint32(&archiveId,1)
 }
 
 func (r *RpcController) NewArchive(c *gin.Context) {

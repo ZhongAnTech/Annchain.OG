@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"io"
 	"net/http"
 	"time"
 )
@@ -35,7 +34,7 @@ type RpcServer struct {
 
 func NewRpcServer(port string) *RpcServer {
 	c := RpcController{}
-	router := c.Newrouter()
+	router := c.NewRouter()
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: router,
@@ -51,10 +50,11 @@ func NewRpcServer(port string) *RpcServer {
 }
 
 func (srv *RpcServer)loggerInit(){
-	gin.DisableConsoleColor()
+	//gin.DisableConsoleColor()
 	// Logging to a file.
-	gin.DefaultWriter = io.MultiWriter(logrus.StandardLogger().Out)
-	srv.router.Use(gin.Logger())
+	//gin.DefaultWriter = io.MultiWriter(logrus.StandardLogger().Out)
+	//logger := gin.LoggerWithWriter(logrus.StandardLogger().Out, "/")
+	//srv.router.Use(gin.Logger())
 }
 
 func (srv *RpcServer) Start() {

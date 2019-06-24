@@ -407,6 +407,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		tx    types.Txi
 		txReq NewArchiveRequest
 	)
+	now := time.Now()
 	id := getArchiveId()
 	if !r.ArchiveMode {
 		Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
@@ -438,7 +439,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	}
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
-	logrus.WithField("id ",id).WithField("tx ",tx).Trace("send ok")
+	logrus.WithField("used time ",time.Since(now)).WithField("id ",id).WithField("tx ",tx).Trace("send ok")
 
 	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
 	return

@@ -333,16 +333,14 @@ func NewNode() *Node {
 	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
-	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener, annSensus.UpdateEvent)
-	if disableConsensus {
-		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,
-			syncManager.CatchupSyncer.NewPeerConnectedEventListener,
-		)
-	} else {
-		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,
-			syncManager.CatchupSyncer.NewPeerConnectedEventListener,
-			annSensus.NewPeerConnectedEventListener)
+	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
+	if !disableConsensus {
+		syncManager.OnUpToDate = append(syncManager.OnUpToDate, annSensus.UpdateEvent)
 	}
+	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
+	if !disableConsensus {
+		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,annSensus.NewPeerConnectedEventListener)
+	} 
 
 	//init msg requst id
 	og.MsgCountInit()

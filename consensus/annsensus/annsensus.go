@@ -90,6 +90,9 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
+	if disableConsensus {
+		disableTermChange = true
+	}
 	ann.disableTermChange = disableTermChange
 	if termChangeInterval <= 0 && !ann.disableTermChange {
 		panic("require termChangeInterval ")
@@ -120,7 +123,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 
 	ann.termChangeChan = make(chan *types.TermChange)
-	dkg := dkg.NewDkg(campaign, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	dkg := dkg.NewDkg(!disableConsensus, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
 	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
@@ -136,11 +139,13 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 	as.dkg.Hub = sender
 	as.Idag = Idag
 	var myId int
-	for id, pk := range as.genesisAccounts {
-		if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
-			as.isGenesisPartner = true
-			myId = id
-			log.WithField("my id ", id).Info("i am a genesis partner")
+	if !as.disable {
+		for id, pk := range as.genesisAccounts {
+			if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
+				as.isGenesisPartner = true
+				myId = id
+				log.WithField("my id ", id).Info("i am a genesis partner")
+			}
 		}
 	}
 	as.dkg.SetId(myId)

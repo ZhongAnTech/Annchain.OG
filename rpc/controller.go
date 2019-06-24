@@ -152,6 +152,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		return
 	case *types.Archive:
 		Response(c, http.StatusOK, nil, tx)
+		return
 	}
 	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
 }

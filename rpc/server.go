@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"time"
 )
@@ -49,7 +50,15 @@ func NewRpcServer(port string) *RpcServer {
 	return rpc
 }
 
+func (srv *RpcServer)loggerInit(){
+	gin.DisableConsoleColor()
+	// Logging to a file.
+	gin.DefaultWriter = io.MultiWriter(logrus.StandardLogger().Out)
+	srv.router.Use(gin.Logger())
+}
+
 func (srv *RpcServer) Start() {
+	srv.loggerInit()
 	logrus.Infof("listening Http on %s", srv.port)
 	goroutine.New(func() {
 		// service connections

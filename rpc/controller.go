@@ -19,9 +19,11 @@ import (
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/p2p/ioperformance"
+	math2 "github.com/annchain/OG/vm/eth/common/math"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/annchain/OG/common"
@@ -392,11 +394,20 @@ func (r *RpcController) Validator(c *gin.Context) {
 	return
 }
 
+var archiveId uint32
+func getArchiveId()uint32 {
+	if archiveId > math2.MaxUint32-1000 {
+		archiveId = 10
+	}
+ 	return atomic.AddUint32(&archiveId,1)
+}
+
 func (r *RpcController) NewArchive(c *gin.Context) {
 	var (
 		tx    types.Txi
 		txReq NewArchiveRequest
 	)
+	id := getArchiveId()
 	if !r.ArchiveMode {
 		Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
 		return
@@ -414,19 +425,20 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	var buf bytes.Buffer
 	buf.Write(txReq.Data)
 	//TODO compress data
-
+	logrus.WithField("id ",id).WithField("data  ",string(txReq.Data)).Trace("got archive request")
 	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
 	}
-	logrus.WithField("tx", tx).Debugf("tx generated")
+	logrus.WithField("id ",id).WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 		return
 	}
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
+	logrus.WithField("id ",id).WithField("tx ",tx).Trace("send ok")
 
 	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
 	return

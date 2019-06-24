@@ -10,7 +10,7 @@ import (
 
 func TestSend(t *testing.T){
 	var ar [][]byte
-   for i:=0;i<1000;i++ {
+   for i:=0;i<10;i++ {
       ar = append(ar,types.RandomHash().ToBytes())
    }
    for i,v := range ar {

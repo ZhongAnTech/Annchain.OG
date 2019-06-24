@@ -16,6 +16,7 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"sort"
 	"strings"
@@ -23,8 +24,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (rpc *RpcController) Newrouter() *gin.Engine {
+func (rpc *RpcController)NewRouter()*gin.Engine {
 	router := gin.New()
+	logger := gin.LoggerWithConfig(gin.LoggerConfig{
+		Formatter:ginLogFormatter,
+		Output: logrus.StandardLogger().Out,
+		SkipPaths:[]string{"/"},
+	})
+	router.Use(logger)
+	router.Use(gin.Recovery())
+	return  rpc.addRouter(router)
+}
+
+
+func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("/", rpc.writeListOfEndpoints)
 	// init paths here
 	router.GET("/ping", func(c *gin.Context) {

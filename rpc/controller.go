@@ -86,7 +86,7 @@ type NewTxRequest struct {
 
 //NewArchiveRequest for RPC request
 type NewArchiveRequest struct {
-	Data string `json:"data"`
+	Data  []byte `json:"data"`
 }
 
 //NewAccountRequest for RPC request
@@ -406,12 +406,13 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	if len(txReq.Data) == 0 {
+	//c.Request.Context()
+	if len(txReq.Data) ==0 {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data "), nil)
 		return
 	}
 	var buf bytes.Buffer
-	buf.WriteString(txReq.Data)
+	buf.Write(txReq.Data)
 	//TODO compress data
 
 	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())

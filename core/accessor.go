@@ -331,7 +331,7 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		return fmt.Errorf("unknown tx type, must be *Tx, *Sequencer, *Campaign, *TermChange")
 	}
 	if err != nil {
-		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash().String(), err)
+		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash(), err)
 	}
 	data = append(prefix, data...)
 	err = da.db.Put(transactionKey(tx.GetTxHash()), data)
@@ -403,11 +403,11 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 	balance := da.ReadBalance(addr)
 	// no balance exists
 	if balance == nil {
-		return fmt.Errorf("address %s has no balance yet, cannot process sub", addr.String())
+		return fmt.Errorf("address %s has no balance yet, cannot process sub", addr)
 	}
 	if balance.Value.Cmp(amount.Value) == -1 {
 		return fmt.Errorf("address %s has no enough balance to sub. balance: %d, sub amount: %d",
-			addr.String(), balance.GetInt64(), amount.GetInt64())
+			addr, balance.GetInt64(), amount.GetInt64())
 	}
 	newBalanceValue := balance.Value.Sub(balance.Value, amount.Value)
 	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})

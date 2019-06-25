@@ -31,7 +31,11 @@ func (AllOkVerifier) Verify(t types.Txi) bool {
 }
 
 func (AllOkVerifier) Name() string {
-	panic("AllOkVerifier")
+	return "AllOkVerifier"
+}
+
+func (a *AllOkVerifier) String() string {
+	return a.Name()
 }
 
 func Init() *TxCreator {

@@ -83,7 +83,7 @@ func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, err
 		dirtyset: make(map[types.Address]struct{}),
 		journal:  newJournal(),
 		close:    make(chan struct{}),
-		root:root,
+		root:     root,
 	}
 
 	return sd, nil

@@ -40,16 +40,16 @@ type Statistics struct {
 	PeersNum map[int]int
 }
 
-var fistPort = 11300
+var fistPort = 8000
 
-var peerNum = 5
+var peerNum = 1
 var ipsNum = 1
 
 func main() {
 	ips := GetIps()
 	for {
 		select {
-		case <-time.After(2 * time.Second):
+		case <-time.After(1 * time.Second):
 			go run(ips)
 		}
 	}
@@ -120,7 +120,7 @@ func getPort(id int) int {
 }
 
 func GetIps() []string {
-	return []string{"192.168.45.147"}
+	return []string{"172.28.152.101"}
 	dir, _ := os.Getwd()
 	fName := fmt.Sprintf("%s/scripts/data/hosts", dir)
 	f, err := os.Open(fName)
@@ -142,6 +142,7 @@ func GetIps() []string {
 func getRequest(ip string, id, portId int, ch chan *Monitor) {
 	port := getPort(portId)
 	host := fmt.Sprintf("http://%s:%d", ip, port)
+	//fmt.Println(host)
 	req := httplib.NewBeegoRequest(host+"/monitor", "GET")
 	req.SetTimeout(8*time.Second, 8*time.Second)
 	var res response

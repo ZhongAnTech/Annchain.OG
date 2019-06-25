@@ -187,8 +187,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
-		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
-		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
+		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize*40),
+		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize*40),
 		ReceivedNewTxsChan:     make(chan []types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),

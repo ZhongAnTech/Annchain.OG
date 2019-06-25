@@ -135,6 +135,14 @@ func (m *IncrementalSyncer) Name() string {
 	return "IncrementalSyncer"
 }
 
+func (m*IncrementalSyncer)CacheTxs(txs types.Txis) {
+	m.bufferedIncomingTxCache.EnQueueBatch(txs)
+}
+
+func (m*IncrementalSyncer)CacheTx(tx types.Txi){
+	m.bufferedIncomingTxCache.EnQueue(tx)
+}
+
 func (m *IncrementalSyncer) fireRequest(buffer map[types.Hash]struct{}) {
 	if len(buffer) == 0 {
 		return

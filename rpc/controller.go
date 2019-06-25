@@ -437,8 +437,9 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 		return
 	}
+	r.SyncerManager.IncrementalSyncer.CacheTx(tx)
 
-	r.TxBuffer.ReceivedNewTxChan <- tx
+	//r.TxBuffer.ReceivedNewTxChan <- tx
 	logrus.WithField("used time ",time.Since(now)).WithField("id ",id).WithField("tx ",tx).Trace("send ok")
 
 	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())

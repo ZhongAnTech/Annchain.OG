@@ -63,7 +63,7 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 
 	if a.disable {
-		log.WithField("seq ", seq).Warn("annsensus disabled ")
+		log.WithField("seq ", seq).Debug("annsensus disabled ")
 		return true
 	}
 

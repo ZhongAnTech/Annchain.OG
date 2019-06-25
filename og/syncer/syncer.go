@@ -135,11 +135,11 @@ func (m *IncrementalSyncer) Name() string {
 	return "IncrementalSyncer"
 }
 
-func (m*IncrementalSyncer)CacheTxs(txs types.Txis) {
+func (m *IncrementalSyncer) CacheTxs(txs types.Txis) {
 	m.bufferedIncomingTxCache.EnQueueBatch(txs)
 }
 
-func (m*IncrementalSyncer)CacheTx(tx types.Txi){
+func (m *IncrementalSyncer) CacheTx(tx types.Txi) {
 	m.bufferedIncomingTxCache.EnQueue(tx)
 }
 

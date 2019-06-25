@@ -49,7 +49,7 @@ func NewRpcServer(port string) *RpcServer {
 	return rpc
 }
 
-func (srv *RpcServer)loggerInit(){
+func (srv *RpcServer) loggerInit() {
 	//gin.DisableConsoleColor()
 	// Logging to a file.
 	//gin.DefaultWriter = io.MultiWriter(logrus.StandardLogger().Out)

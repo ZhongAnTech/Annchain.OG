@@ -24,18 +24,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (rpc *RpcController)NewRouter()*gin.Engine {
+func (rpc *RpcController) NewRouter() *gin.Engine {
 	router := gin.New()
 	logger := gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter:ginLogFormatter,
-		Output: logrus.StandardLogger().Out,
-		SkipPaths:[]string{"/"},
+		Formatter: ginLogFormatter,
+		Output:    logrus.StandardLogger().Out,
+		SkipPaths: []string{"/"},
 	})
 	router.Use(logger)
 	router.Use(gin.Recovery())
-	return  rpc.addRouter(router)
+	return rpc.addRouter(router)
 }
-
 
 func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("/", rpc.writeListOfEndpoints)

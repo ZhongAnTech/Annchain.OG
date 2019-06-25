@@ -10,11 +10,12 @@ import (
 )
 
 var requestId uint32
-func getRequestId()uint32 {
+
+func getRequestId() uint32 {
 	if requestId > math.MaxUint32-1000 {
 		requestId = 10
 	}
-	return atomic.AddUint32(&requestId,1)
+	return atomic.AddUint32(&requestId, 1)
 }
 
 // defaultLogFormatter is the default log format function Logger middleware uses.
@@ -34,7 +35,7 @@ var ginLogFormatter = func(param gin.LogFormatterParams) string {
 		param.Latency = param.Latency - param.Latency%time.Second
 	}
 
-	logEntry :=  fmt.Sprintf("GIN %v %s %3d %s %13v  %15s %s %-7s %s %s %s  id_%d",
+	logEntry := fmt.Sprintf("GIN %v %s %3d %s %13v  %15s %s %-7s %s %s %s  id_%d",
 		param.TimeStamp.Format("2006/01/02 - 15:04:05"),
 		statusColor, param.StatusCode, resetColor,
 		param.Latency,
@@ -43,7 +44,6 @@ var ginLogFormatter = func(param gin.LogFormatterParams) string {
 		param.Path,
 		param.ErrorMessage,
 		getRequestId(),
-
 	)
 	logrus.Tracef("gin log %v ", logEntry)
 	//return  logEntry

@@ -83,7 +83,7 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	d.gossipSigSetspCh = make(chan *types.MessageConsensusDkgSigSets, 100)
 	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
-	if d.dkgOn{
+	if d.dkgOn {
 		d.GenerateDkg() //todo fix later
 		d.myPublicKey = d.partner.CandidatePublicKey[0]
 		d.partner.MyPartSec = d.partner.CandidatePartSec[0]

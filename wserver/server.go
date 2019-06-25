@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -73,7 +74,6 @@ type Server struct {
 
 	// to receive confirmation events
 	BatchConfirmedChan chan map[types.Hash]types.Txi
-	ArchiveMode        bool
 
 	wh     *websocketHandler
 	ph     *pushHandler
@@ -172,7 +172,7 @@ func (s *Server) WatchNewTxs() {
 	for {
 		select {
 		case tx := <-s.NewTxReceivedChan:
-			if s.ArchiveMode {
+			if status.ArchiveMode {
 				if blockData == nil {
 					blockData = &BlockDbData{}
 				}
@@ -197,7 +197,7 @@ func (s *Server) WatchNewTxs() {
 			}
 		case batch := <-s.BatchConfirmedChan:
 			// first publish all pending txs
-			if s.ArchiveMode {
+			if status.ArchiveMode {
 				s.publishNewTxs(blockData)
 				blockData = nil
 			} else {
@@ -207,7 +207,7 @@ func (s *Server) WatchNewTxs() {
 			// then publish batch
 			s.publishBatch(batch)
 		case <-ticker.C:
-			if s.ArchiveMode {
+			if status.ArchiveMode {
 				s.publishNewTxs(blockData)
 				blockData = nil
 			} else {

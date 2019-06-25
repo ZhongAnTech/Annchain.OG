@@ -181,7 +181,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 	if err != nil {
 		return err
 	}
-	log.Tracef("successfully store genesis: %s", genesis.String())
+	log.Tracef("successfully store genesis: %s", genesis)
 
 	// init genesis balance
 	for addr, value := range genesisBalance {
@@ -376,10 +376,11 @@ func (dag *Dag) GetTxConfirmHeight(hash types.Hash) (uint64, error) {
 
 	return dag.getTxConfirmHeight(hash)
 }
+
 func (dag *Dag) getTxConfirmHeight(hash types.Hash) (uint64, error) {
 	tx := dag.getTx(hash)
 	if tx == nil {
-		return 0, fmt.Errorf("hash not exists: %s", hash.String())
+		return 0, fmt.Errorf("hash not exists: %s", hash)
 	}
 	return tx.GetBase().GetHeight(), nil
 }
@@ -526,7 +527,7 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
 	if err != nil {
-		log.WithError(err).WithField("height", Height).Warn("head not found")
+		log.WithError(err).WithField("height", Height).Trace("hashes not found")
 	}
 	return hashs
 }
@@ -706,7 +707,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 	dag.latestSequencer = batch.Seq
 
-	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash().String())
+	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
 
 	// TODO: confirm time is for tps calculation, delete later.
 	cf := types.ConfirmTime{
@@ -717,16 +718,14 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	dag.writeConfirmTime(&cf)
 
 	// send consensus related txs.
-	if len(consTxs) != 0 {
+	if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
 		goroutine.New(func() {
-			if dag.OnConsensusTXConfirmed != nil && !status.Stopped {
-				dag.OnConsensusTXConfirmed <- consTxs
-			}
+			dag.OnConsensusTXConfirmed <- consTxs
 			log.WithField("txs ", consTxs).Trace("sent consensus txs")
 		})
 	}
-	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash().String())
+	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 
 	return nil
@@ -775,8 +774,8 @@ func (dag *Dag) DeleteTransaction(hash types.Hash) error {
 func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// update nonce
 	if tx.GetType() == types.TxBaseTypeArchive {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
-		return nil, receipt, nil
+		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
+		return nil, nil, nil
 	}
 
 	curNonce := dag.statedb.GetNonce(tx.Sender())

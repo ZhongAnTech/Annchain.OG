@@ -146,6 +146,8 @@ type TxCreator struct {
 	GraphVerifier      Verifier     // To verify the graph structure
 	quit               bool
 	archiveNonce       uint64
+	NoVerifyMindHash   bool
+	NoVerifyMaxTxHash  bool
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -276,7 +278,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 	tx.GetBase().ParentsHash = parentHashes
 	// verify if the hash of the structure meet the standard.
 	hash := tx.CalcTxHash()
-	if hash.Cmp(m.MaxTxHash) < 0 {
+	if m.NoVerifyMaxTxHash || hash.Cmp(m.MaxTxHash) < 0 {
 		tx.GetBase().Hash = hash
 		logrus.WithField("hash", hash).WithField("parent", tx.Parents()).Trace("new tx connected")
 		// yes
@@ -319,13 +321,18 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 	for !done {
 		if m.quit {
 			logrus.Info("got quit signal")
-			return true
+			return false
 		}
 		mineCount++
-		function := func() {
-			m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+		if !m.NoVerifyMindHash {
+			goroutine.New(func() {
+				m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+			})
+		} else {
+			goroutine.New(func() {
+				respChan <- 1
+			})
 		}
-		goroutine.New(function)
 		select {
 		case minedNonce = <-respChan:
 			tx.GetBase().MineNonce = minedNonce // Actually, this value is already set during mining.
@@ -334,7 +341,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 			for i := 0; i < m.MaxConnectingTries; i++ {
 				if m.quit {
 					logrus.Info("got quit signal")
-					return true
+					return false
 				}
 				connectionTries++
 				txs := m.TipGenerator.GetRandomTips(2)

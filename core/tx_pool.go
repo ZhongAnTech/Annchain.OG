@@ -550,10 +550,10 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.remove(tx, removeFromEnd)
 		tx.SetInValid(true)
 		log.WithField("tx ", tx).Debug("set invalid ")
-		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash().String())
+		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
 	}
 	if txquality == TxQualityIsBad {
-		log.Tracef("bad tx: %s", tx.String())
+		log.Tracef("bad tx: %s", tx)
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
 		return nil
@@ -599,8 +599,9 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
 
 	// TODO delete this line later.
-	tStatus := pool.getStatus(tx.GetTxHash())
-	log.WithField("tx", tx).WithField("status", tStatus.String()).Tracef("finished commit tx")
+	if log.GetLevel() >= log.TraceLevel {
+		log.WithField("tx", tx).WithField("status", pool.getStatus(tx.GetTxHash())).Tracef("finished commit tx")
+	}
 	return nil
 }
 
@@ -610,14 +611,14 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		// check if tx in pool
 		if pool.get(parentHash) != nil {
 			if pool.getStatus(parentHash) == TxStatusBadTx {
-				log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash.String())
+				log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
 				return TxQualityIsBad
 			}
 			continue
 		}
 		// check if tx in dag
 		if pool.dag.GetTx(parentHash) == nil {
-			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash.String())
+			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash)
 			return TxQualityIsFatal
 		}
 	}
@@ -745,13 +746,13 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
-		if status.Stopped {
+		if status.NodeStopped {
 			break
 		}
 		c <- elders
 	}
 	for _, c := range pool.OnNewLatestSequencer {
-		if status.Stopped {
+		if status.NodeStopped {
 			break
 		}
 		c <- true
@@ -766,7 +767,7 @@ func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	// check if the nonce is duplicate
 	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
 	if seqindag != nil {
-		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag.String())
+		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
 	return nil
 }
@@ -788,7 +789,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 		if elder == nil {
 			elder = pool.dag.GetTx(elderHash)
 			if elder == nil {
-				return nil, fmt.Errorf("can't find elder %s", elderHash.String())
+				return nil, fmt.Errorf("can't find elder %s", elderHash)
 			}
 			continue
 		}
@@ -836,7 +837,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
-				seq.GetNonce(), txi.GetTxHash().String())
+				seq.GetNonce(), txi.GetTxHash())
 		}
 
 		switch tx := txi.(type) {
@@ -885,7 +886,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		// if balance < outcome, then verify failed
 		confirmedBalance := pool.dag.GetBalance(addr)
 		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
-			return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
+			return nil, fmt.Errorf("the balance of addr %s is not enough", addr)
 		}
 
 		// check nonce order

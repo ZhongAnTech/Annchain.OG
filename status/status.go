@@ -1,3 +1,7 @@
 package status
 
-var Stopped bool
+//global node variables
+
+var NodeStopped bool
+
+var ArchiveMode bool

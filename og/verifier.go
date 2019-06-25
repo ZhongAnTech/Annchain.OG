@@ -16,6 +16,7 @@ package og
 import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 )
@@ -24,11 +25,14 @@ import (
 type Verifier interface {
 	Verify(t types.Txi) bool
 	Name() string
+	String() string
 }
 
 type TxFormatVerifier struct {
-	MaxTxHash    types.Hash // The difficulty of TxHash
-	MaxMinedHash types.Hash // The difficulty of MinedHash
+	MaxTxHash         types.Hash // The difficulty of TxHash
+	MaxMinedHash      types.Hash // The difficulty of MinedHash
+	NoVerifyMindHash  bool
+	NoVerifyMaxTxHash bool
 }
 
 //consensus related verification
@@ -64,6 +68,18 @@ func (c *ConsensusVerifier) Name() string {
 	return "ConsensusVerifier"
 }
 
+func (c *TxFormatVerifier) String() string {
+	return c.Name()
+}
+
+func (c *GraphVerifier) String() string {
+	return c.Name()
+}
+
+func (c *ConsensusVerifier) String() string {
+	return c.Name()
+}
+
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
@@ -77,16 +93,19 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	calMinedHash := t.CalcMinedHash()
-	if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
-		return false
+	if !v.NoVerifyMindHash {
+		calMinedHash := t.CalcMinedHash()
+		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
+			logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
+			return false
+		}
 	}
 	if calcHash := t.CalcTxHash(); calcHash != t.GetTxHash() {
 		logrus.WithField("calcHash ", calcHash).WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
 		return false
 	}
-	if !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
+
+	if !v.NoVerifyMaxTxHash && !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
 		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not less than MaxTxHash")
 		return false
 	}
@@ -180,6 +199,19 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 	seekingHashes := types.Hashes{}
 	for _, parent := range currentTx.Parents() {
 		seekingHashes = append(seekingHashes, parent)
+	}
+
+	if status.ArchiveMode {
+		if currentTx.GetType() != types.TxBaseTypeSequencer {
+			logrus.Warn("archive mode , only process archive")
+			return nil, false
+		}
+		if ptx := v.Dag.GetTxByNonce(currentTx.Sender(), currentTx.GetNonce()-1); ptx != nil {
+			previousTx = ptx
+			ok = true
+			return
+		}
+		return nil, false
 	}
 
 	for len(seekingHashes) > 0 {
@@ -369,17 +401,17 @@ func (v *GraphVerifier) verifyB1(txi types.Txi) bool {
 }
 
 func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
-	var txis types.Txis
+	var parents types.Txis
 	for _, pHash := range txi.Parents() {
 		parent := v.TxPool.Get(pHash)
 		if parent == nil {
 			parent = v.Dag.GetTx(pHash)
 		}
 		if parent == nil {
-			logrus.WithField("parent hash ", pHash).Debug("parent not found")
+			logrus.WithField("parent hash ", pHash).Warn("parent not found")
 			return false
 		}
-		txis = append(txis, parent)
+		parents = append(parents, parent)
 	}
-	return txi.CalculateWeight(txis) == txi.GetWeight()
+	return txi.CalculateWeight(parents) == txi.GetWeight()
 }

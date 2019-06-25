@@ -49,7 +49,6 @@ type Node struct {
 }
 
 func NewNode() *Node {
-	var archiveMode bool
 	n := new(Node)
 	// Order matters.
 	// Start myself first and then provide service and do p2p
@@ -123,6 +122,14 @@ func NewNode() *Node {
 	txFormatVerifier := &og.TxFormatVerifier{
 		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
+	}
+	if txFormatVerifier.MaxMinedHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+		txFormatVerifier.NoVerifyMindHash = true
+		logrus.Info("no verify mined hash")
+	}
+	if txFormatVerifier.MaxTxHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+		txFormatVerifier.NoVerifyMaxTxHash = true
+		logrus.Info("no verify max tx hash")
 	}
 	consensusVerifier := &og.ConsensusVerifier{}
 
@@ -241,13 +248,14 @@ func NewNode() *Node {
 	SetupCallbacksOG32(mr32, hub)
 
 	miner := &miner2.PoWMiner{}
-
 	txCreator := &og.TxCreator{
 		Miner:              miner,
 		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
-		MaxTxHash:          types.HexToHash(viper.GetString("max_tx_hash")),
-		MaxMinedHash:       types.HexToHash(viper.GetString("max_mined_hash")),
+		MaxTxHash:          txFormatVerifier.MaxTxHash,
+		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
+		NoVerifyMindHash:   txFormatVerifier.NoVerifyMindHash,
+		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,
 	}
@@ -280,7 +288,7 @@ func NewNode() *Node {
 
 	mode := viper.GetString("mode")
 	if mode == "archive" {
-		archiveMode = true
+		status.ArchiveMode = true
 	}
 	disableConsensus := viper.GetBool("annsensus.disable")
 	//TODO temperary , delete this after demo
@@ -339,8 +347,8 @@ func NewNode() *Node {
 	}
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 	if !disableConsensus {
-		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected,annSensus.NewPeerConnectedEventListener)
-	} 
+		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, annSensus.NewPeerConnectedEventListener)
+	}
 
 	//init msg requst id
 	og.MsgCountInit()
@@ -377,19 +385,16 @@ func NewNode() *Node {
 		rpcServer.C.AnnSensus = annSensus
 		rpcServer.C.PerformanceMonitor = pm
 
-		rpcServer.C.ArchiveMode = archiveMode
-
 	}
 
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
-		wsServer.ArchiveMode = archiveMode
 		n.Components = append(n.Components, wsServer)
 		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan", true)
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
-	if archiveMode {
+	if status.ArchiveMode {
 		logrus.Info("archive mode")
 	}
 
@@ -460,7 +465,7 @@ func (n *Node) Start() {
 	logrus.Info("Node Started")
 }
 func (n *Node) Stop() {
-	status.Stopped = true
+	status.NodeStopped = true
 	for i := len(n.Components) - 1; i >= 0; i-- {
 		comp := n.Components[i]
 		logrus.Infof("Stopping %s", comp.Name())

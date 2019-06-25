@@ -187,8 +187,9 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		txPool:    config.TxPool,
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
-		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize*40),
-		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize*40),
+		//todo maybe we need big size channels
+		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
+		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
 		ReceivedNewTxsChan:     make(chan []types.Txi, config.NewTxQueueSize),
 		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),
@@ -238,7 +239,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	for _, verifier := range b.verifiers {
 		if !verifier.Verify(tx) {
-			logrus.WithField("tx", tx).WithField("verifier", verifier.Name()).Warn("bad tx")
+			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 			return
 		}
 	}

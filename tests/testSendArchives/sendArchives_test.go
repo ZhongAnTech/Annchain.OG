@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/types"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -16,9 +17,23 @@ func TestSend(t *testing.T) {
 	for i := 0; i < 100000; i++ {
 		ar = append(ar, types.RandomHash().ToBytes())
 	}
+	transport := &http.Transport{
+		MaxIdleConnsPerHost: 15,
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 	a := app{
 		client: &http.Client{
 			Timeout: time.Second * 10,
+			Transport:transport,
 		},
 	}
 	for i, v := range ar {
@@ -49,14 +64,14 @@ func (a *app) sendArchiveData(data []byte, i int) {
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	c := http.DefaultClient
-	c.Timeout = 10 * time.Second
-	resp, err := c.Post(url, "application/json", r)
+	req, err := http.NewRequest("POST", url, r)
+
+	resp, err := a.client.Do(req)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	now := time.Now()
+	//now := time.Now()
 	defer resp.Body.Close()
 	resDate, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -72,6 +87,6 @@ func (a *app) sendArchiveData(data []byte, i int) {
 		fmt.Println(resp.StatusCode)
 		return
 	}
-	fmt.Println(i, err, time.Since(now), str)
+	//fmt.Println(i, err, time.Since(now), str)
 
 }

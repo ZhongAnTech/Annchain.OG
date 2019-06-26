@@ -46,7 +46,7 @@ type BFT struct {
 	SequencerTime time.Duration `json:"sequencer_time"`
 	dkg           *dkg.Dkg
 
-	NbParticipants int
+	//NbParticipants int
 
 	Hub announcer.MessageSender
 
@@ -130,6 +130,7 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 	bft.dag = dag
 	bft.myAccount = myAccount
 	bft.dkg = dkg
+	//bft.NbParticipants
 	ogBftPartner.RegisterDecisionReceiveFunc(bft.commitDecision)
 	return bft
 }
@@ -147,7 +148,7 @@ func (b *BFT) Reset(TermId int, peersPublicKey []crypto.PublicKey, myId int) {
 	for i, pk := range peersPublicKey {
 		//the third param is not used in peer
 		b.BFTPartner.PeersInfo = append(b.BFTPartner.PeersInfo, PeerInfo{Address: pk.Address(), PublicKey: pk, PublicKeyBytes: pk.Bytes[:]})
-		peers = append(peers, NewOgBftPeer(pk, b.NbParticipants, i, time.Second))
+		peers = append(peers, NewOgBftPeer(pk, len(peersPublicKey), i, time.Second))
 	}
 	b.BFTPartner.Reset(len(peersPublicKey), myId)
 	b.BFTPartner.SetPeers(peers)

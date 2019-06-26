@@ -633,7 +633,7 @@ func (as *AnnSensus) loop() {
 					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
 					//wait until connect enought peers
 					eventInit = true
-					if !as.initDone && as.NbParticipants ==2 {
+					if !as.initDone && as.NbParticipants ==2 && peerNum==as.NbParticipants-1{
 						goroutine.New(func() {
 							as.NewPeerConnectedEventListener<- "temp peer"
 						})

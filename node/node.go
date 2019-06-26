@@ -298,7 +298,7 @@ func NewNode() *Node {
 	campaign := viper.GetBool("annsensus.campaign")
 	disableTermChange := viper.GetBool("annsensus.disable_term_change")
 	partnerNum := viper.GetInt("annsensus.partner_number")
-	threshold := viper.GetInt("annsensus.threshold")
+	//threshold := viper.GetInt("annsensus.threshold")
 	sequencerTime := viper.GetInt("annsensus.sequencerTime")
 	if sequencerTime == 0 {
 		sequencerTime = 3000
@@ -309,7 +309,7 @@ func NewNode() *Node {
 	}
 	termChangeInterval := viper.GetInt("annsensus.term_change_interval")
 	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
-		partnerNum, threshold, genesisAccounts, consensFilePath, disableTermChange)
+		partnerNum, genesisAccounts, consensFilePath, disableTermChange)
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(),
 		NodeStatusDataProvider: org,

@@ -143,3 +143,22 @@ func TestBFT_GetInfo(t *testing.T) {
 	}
 	start(peers, 3)
 }
+
+
+func TestByzantineButOKBUG(t *testing.T) {
+	total := 6
+	byzantines := 3
+	var peers []BFTPartner
+	for i := 0; i < total-byzantines; i++ {
+		peers = append(peers, NewBFTPartner(total, i, BlockTime))
+	}
+	for i := total - byzantines; i < total; i++ {
+		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
+			ByzantineFeatures{
+				SilenceProposal:  true,
+				SilencePreVote:   true,
+				SilencePreCommit: true,
+			}))
+	}
+	start(peers, 10)
+}

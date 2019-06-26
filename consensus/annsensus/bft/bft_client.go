@@ -169,7 +169,13 @@ func (p *DefaultPartner) Stop() {
 	logrus.Info("default partner stopped")
 }
 
+
+
 func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
+	if nbParticipants <2 {
+		panic(fmt.Sprintf("partner number is too small %d",nbParticipants))
+	}
+
 	p := &DefaultPartner{
 		N:         nbParticipants,
 		F:         (nbParticipants - 1) / 3,

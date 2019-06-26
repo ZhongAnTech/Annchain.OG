@@ -124,7 +124,9 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.startTermChange = make(chan bool)
 
 	ann.termChangeChan = make(chan *types.TermChange)
-	if partnerNum <2 {
+	//todo fix this later ,bft consensus
+	//"The latest gossip on BFT consensus " 2f+1
+	if partnerNum <4 {
 		panic(partnerNum)
 	}
 	threshold:= bft.TwoFplusOne(partnerNum)

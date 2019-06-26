@@ -682,7 +682,7 @@ func (as *AnnSensus) loop() {
 
 			}
 
-		case <-as.NewPeerConnectedEventListener:
+		case peerID :=<-as.NewPeerConnectedEventListener:
 
 			if !as.isGenesisPartner && !eventInit {
 				msg := types.MessageTermChangeRequest{
@@ -695,7 +695,7 @@ func (as *AnnSensus) loop() {
 			}
 			peerNum++
 			log.WithField("num ", peerNum).Debug("peer num ")
-			if peerNum == as.NbParticipants-1 && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
+			if (peerNum == as.NbParticipants-1 || peerID =="temp peer")  && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")
 				goroutine.New(func() {
 					as.dkg.SendGenesisPublicKey(as.genesisAccounts)

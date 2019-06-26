@@ -224,12 +224,12 @@ func (s *Server) publishTxs(uidata *UIData) {
 	if uidata == nil {
 		return
 	}
-	logrus.WithField("nodeCount", len(uidata.Nodes)).Trace("push to ws")
 	bs, err := json.Marshal(uidata)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to marshal ws message")
 		return
 	}
+	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(uidata.Nodes)).Trace("push to ws")
 	s.Push(messageTypeNewUnit, string(bs))
 }
 func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
@@ -259,11 +259,11 @@ func (s *Server) publishNewTxs(data *BlockDbData) {
 	if data == nil {
 		return
 	}
-	logrus.WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
 	bs, err := json.Marshal(data)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to marshal ws message")
 		return
 	}
+	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
 	s.Push(messageTypeNewTx, string(bs))
 }

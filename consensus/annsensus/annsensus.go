@@ -124,7 +124,14 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.startTermChange = make(chan bool)
 
 	ann.termChangeChan = make(chan *types.TermChange)
-	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.TwoFplusOne(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	if partnerNum <2 {
+		panic(partnerNum)
+	}
+	threshold:= bft.TwoFplusOne(partnerNum)
+	if threshold <2 {
+		threshold = 2
+	}
+	dkg := dkg.NewDkg(!disableConsensus, partnerNum, threshold, ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")

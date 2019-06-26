@@ -82,11 +82,14 @@ type AnnSensus struct {
 	initDone bool
 }
 
-func Maj23(n int) int {
-	return 2*n/3 + 1
-}
+//func Maj23(n int) int {
+//	if n<3 {
+//		return n
+//	}
+//	return 2*n/3 + 1
+//}
 
-func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum, threshold int,
+func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int ,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
@@ -104,7 +107,6 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
 	ann.NbParticipants = partnerNum
-	ann.Threshold = threshold
 	ann.ConsensusTXConfirmed = make(chan []types.Txi)
 	ann.cryptoType = cryptoType
 	ann.dkgPulicKeyChan = make(chan kyber.Point)
@@ -122,7 +124,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.startTermChange = make(chan bool)
 
 	ann.termChangeChan = make(chan *types.TermChange)
-	dkg := dkg.NewDkg(!disableConsensus, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.TwoFplusOne(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")

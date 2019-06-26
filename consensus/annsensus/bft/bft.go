@@ -97,6 +97,11 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	return bft
 }
 
+func TwoFplusOne(n int) int {
+	return 2* ((n-1) /3) +1
+}
+
+
 func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
 	txCreator *og.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
 	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)

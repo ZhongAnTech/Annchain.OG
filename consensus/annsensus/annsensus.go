@@ -107,8 +107,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.UpdateEvent = make(chan bool)
 
 	ann.genesisAccounts = genesisAccounts
-	t := term.NewTerm(0, partnerNum, termChangeInterval)
-	ann.term = t
+	ann.term = term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
 	ann.NewPeerConnectedEventListener = make(chan string)
@@ -123,7 +122,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	if partnerNum <2 {
 		panic(partnerNum)
 	}
-	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")

@@ -236,7 +236,7 @@ func (t *TestHub) loop() {
 	}
 }
 
-func run() {
+func run(n int ) {
 	logInit()
 	var Anns []TestAnnSensus
 	sendMsgToChan := func(addr types.Address, msg test.TestMsg) {
@@ -261,7 +261,7 @@ func run() {
 			panic(err)
 		}
 		pMsg := p2pMsg{data: data, msgType: msg.MessageType}
-		for j := 0; j < 4; j++ {
+		for j := 0; j < n; j++ {
 			if bytes.Equal(Anns[j].MyAccount.PublicKey.Bytes, pub.Bytes) {
 				Anns[j].Hub.(*TestHub).OutMsg <- pMsg
 				logrus.WithField("from peer", msg.From.TerminalString()).WithField("to peer id ", Anns[j].Aid().String()).WithField("type ",
@@ -276,7 +276,7 @@ func run() {
 	var accounts []account.SampleAccount
 	var pks []crypto.PublicKey
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	for j := 0; j < 4; j++ {
+	for j := 0; j < n; j++ {
 		pub, priv := signer.RandomKeyPair()
 		account := account.SampleAccount{
 			PrivateKey: priv,
@@ -288,14 +288,14 @@ func run() {
 		pks = append(pks, account.PublicKey)
 	}
 
-	for j := 0; j < 4; j++ {
-		as := NewAnnSensus(4, false, crypto.CryptoTypeSecp256k1, true, 4,
-			4, pks, "test.json", false)
+	for j := 0; j < n; j++ {
+		as := NewAnnSensus(4, false, crypto.CryptoTypeSecp256k1, true, n,
+			n, pks, "test.json", false)
 		a := TestAnnSensus{
 			AnnSensus: as,
 		}
 		var peers []types.Address
-		for k := 0; k < 4; k++ {
+		for k := 0; k < n; k++ {
 			if k == j {
 				continue
 			}
@@ -436,5 +436,5 @@ func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
 }
 
 func TestDKGMain(t *testing.T) {
-	run()
+	run(2)
 }

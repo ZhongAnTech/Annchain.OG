@@ -120,13 +120,12 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.ProposalSeqChan = make(chan types.Hash)
 	ann.NewLatestSequencer = make(chan bool)
 	ann.startTermChange = make(chan bool)
-	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 
 	ann.termChangeChan = make(chan *types.TermChange)
 	dkg := dkg.NewDkg(!disableConsensus, partnerNum, Maj23(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
-	log.WithField("nbpartner ", ann.NbParticipants).Info("new ann")
+	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 
 	return ann
 }
@@ -634,6 +633,11 @@ func (as *AnnSensus) loop() {
 					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
 					//wait until connect enought peers
 					eventInit = true
+					if !as.initDone && as.NbParticipants ==2 {
+						goroutine.New(func() {
+							as.NewPeerConnectedEventListener<- "temp peer"
+						})
+					}
 					continue
 				}
 				//in this case  , node is a genesis partner, load data

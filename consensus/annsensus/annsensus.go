@@ -666,6 +666,11 @@ func (as *AnnSensus) loop() {
 					eventInit = true
 					waitNewTerm = true
 					//TODO  newTermChange if we got new Termchange
+					if as.NbParticipants ==2 && peerNum==as.NbParticipants-1{
+						goroutine.New(func() {
+							as.NewPeerConnectedEventListener<- "temp peer"
+						})
+					}
 
 				}
 			} else {
@@ -693,7 +698,10 @@ func (as *AnnSensus) loop() {
 			if as.initDone {
 				continue
 			}
-			peerNum++
+		    if peerID !="temp peer" {
+				peerNum++
+			}
+
 			log.WithField("num ", peerNum).Debug("peer num ")
 			if (peerNum == as.NbParticipants-1 || peerID =="temp peer")  && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")

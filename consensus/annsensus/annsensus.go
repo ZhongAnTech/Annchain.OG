@@ -82,12 +82,6 @@ type AnnSensus struct {
 	initDone bool
 }
 
-//func Maj23(n int) int {
-//	if n<3 {
-//		return n
-//	}
-//	return 2*n/3 + 1
-//}
 
 func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int ,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
@@ -126,14 +120,10 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.termChangeChan = make(chan *types.TermChange)
 	//todo fix this later ,bft consensus
 	//"The latest gossip on BFT consensus " 2f+1
-	if partnerNum <4 {
+	if partnerNum <2 {
 		panic(partnerNum)
 	}
-	threshold:= bft.TwoFplusOne(partnerNum)
-	if threshold <2 {
-		threshold = 2
-	}
-	dkg := dkg.NewDkg(!disableConsensus, partnerNum, threshold, ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
+	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, t)
 	dkg.ConfigFilePath = configFile
 	ann.dkg = dkg
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")

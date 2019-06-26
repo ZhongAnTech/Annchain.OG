@@ -110,6 +110,7 @@ type DefaultPartner struct {
 	blockTime time.Duration
 	N         int // total number of participants
 	F         int // max number of Byzantines
+	Maj23     int
 	Peers     []BFTPartner
 
 	quit         chan bool
@@ -172,9 +173,13 @@ func (p *DefaultPartner) Stop() {
 
 
 func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
+
+	if nbParticipants < 2 {
+		panic(0)
+	}
 	p := &DefaultPartner{
 		N:         nbParticipants,
-		F:         (nbParticipants - 1) / 3,
+		F:         (nbParticipants -1 )/3,
 		blockTime: blockTime,
 		PartnerBase: PartnerBase{
 			Id:                     id,
@@ -185,8 +190,15 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 		quit:   make(chan bool),
 		States: make(map[types.HeightRound]*HeightRoundState),
 	}
+	// p.N == 3 *p.F+1
+	 if p.N%3==1 {
+		p.Maj23 = 2*p.F+1
+	}else {
+		 p.Maj23 = MajorityTwoThird(p.N)
+	 }
 	p.waiter = NewWaiter(p.GetWaiterTimeoutChannel())
 	p.RegisterDecisionReceiveFunc(deFaultDecisionFunc)
+	logrus.WithField("n ",p.N).WithField("F",p.F).WithField("maj23",p.Maj23).Debug("new bft")
 	return p
 }
 
@@ -194,7 +206,12 @@ func (p *DefaultPartner) Reset(nbParticipants int, id int) {
 	p.N = nbParticipants
 	p.F = (nbParticipants - 1) / 3
 	p.Id = id
-	logrus.WithField("f ",p.F).WithField("nb ",p.N).Info("reset bft")
+	if p.N %3==1 {
+		p.Maj23 = 2*p.F+1
+	}else {
+		p.Maj23 = MajorityTwoThird(p.N)
+	}
+	logrus.WithField("maj23" ,p.Maj23).WithField("f ",p.F).WithField("nb ",p.N).Info("reset bft")
 	return
 
 }
@@ -552,7 +569,7 @@ func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
 
 	// rule line 28
 	count := p.count(og.MessageTypePreVote, proposal.HeightRound.Height, proposal.ValidRound, MatchTypeByValue, proposal.Value.GetId())
-	if count >= 2*p.F+1 {
+	if count >= p.Maj23 {
 		if state.Step == StepTypePropose && (proposal.ValidRound >= 0 && proposal.ValidRound < p.CurrentHR.Round) {
 			if p.valid(proposal.Value) && (state.LockedRound <= proposal.ValidRound || state.LockedValue.Equal(proposal.Value)) {
 				p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
@@ -570,7 +587,7 @@ func (p *DefaultPartner) handlePreVote(vote *types.MessagePreVote) {
 	if !ok {
 		panic("should exists: " + vote.HeightRound.String())
 	}
-	if count >= 2*p.F+1 {
+	if count >= p.Maj23 {
 		if state.Step == StepTypePreVote && !state.StepTypeEqualPreVoteTriggered {
 			logrus.WithField("IM", p.Id).WithField("hr", vote.HeightRound.String()).Debug("prevote counter is more than 2f+1 #1")
 			state.StepTypeEqualPreVoteTriggered = true
@@ -578,7 +595,7 @@ func (p *DefaultPartner) handlePreVote(vote *types.MessagePreVote) {
 		}
 	}
 	// rule line 36
-	if state.MessageProposal != nil && count >= 2*p.F+1 {
+	if state.MessageProposal != nil && count >= p.Maj23 {
 		if p.valid(state.MessageProposal.Value) && state.Step >= StepTypePreVote && !state.StepTypeEqualOrLargerPreVoteTriggered {
 			logrus.WithField("IM", p.Id).WithField("hr", vote.HeightRound.String()).Debug("prevote counter is more than 2f+1 #2")
 			state.StepTypeEqualOrLargerPreVoteTriggered = true
@@ -594,7 +611,7 @@ func (p *DefaultPartner) handlePreVote(vote *types.MessagePreVote) {
 	}
 	// rule line 44
 	count = p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeNil, nil)
-	if count >= 2*p.F+1 && state.Step == StepTypePreVote {
+	if count >= p.Maj23 && state.Step == StepTypePreVote {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Debug("prevote counter is more than 2f+1 #3")
 		p.Broadcast(og.MessageTypePreCommit, vote.HeightRound, nil, 0)
 		p.changeStep(StepTypePreCommit)
@@ -606,14 +623,14 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 	// rule line 47
 	count := p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
 	state := p.States[commit.HeightRound]
-	if count >= 2*p.F+1 && !state.StepTypeEqualPreCommitTriggered {
+	if count >= p.Maj23 && !state.StepTypeEqualPreCommitTriggered {
 		state.StepTypeEqualPreCommitTriggered = true
 		p.WaitStepTimeout(StepTypePreCommit, TimeoutPreCommit, commit.HeightRound, p.OnTimeoutPreCommit)
 	}
 	// rule line 49
 	if state.MessageProposal != nil {
 		count = p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
-		if count >= 2*p.F+1 {
+		if count >= p.Maj23 {
 			if state.Decision == nil {
 				// output decision
 				state.Decision = state.MessageProposal.Value

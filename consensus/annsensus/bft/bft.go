@@ -97,8 +97,8 @@ func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime tim
 	return bft
 }
 
-func TwoFplusOne(n int) int {
-	return 2* ((n-1) /3) +1
+func MajorityTwoThird(n int) int {
+	return 2* n /3 +1
 }
 
 

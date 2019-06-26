@@ -194,6 +194,7 @@ func (p *DefaultPartner) Reset(nbParticipants int, id int) {
 	p.N = nbParticipants
 	p.F = (nbParticipants - 1) / 3
 	p.Id = id
+	logrus.WithField("f ",p.F).WithField("nb ",p.N).Info("reset bft")
 	return
 
 }

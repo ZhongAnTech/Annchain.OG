@@ -162,7 +162,7 @@ func (b *BFT) Start() {
 	logrus.Info("BFT started")
 }
 
-func (b *BFT) SetPeers() {
+func (b *BFT) ReSetPeers() {
 	b.BFTPartner.SetPeers(nil)
 }
 

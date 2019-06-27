@@ -8,72 +8,38 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *AuthMsgV4) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Signature":
-			err = dc.ReadExactBytes((z.Signature)[:])
-			if err != nil {
-				return
-			}
-		case "InitiatorPubkey":
-			err = dc.ReadExactBytes((z.InitiatorPubkey)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			err = dc.ReadExactBytes((z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, err = dc.ReadUint()
-			if err != nil {
-				return
-			}
-		case "Rest":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				return
-			}
-			if cap(z.Rest) >= int(zb0002) {
-				z.Rest = (z.Rest)[:zb0002]
-			} else {
-				z.Rest = make([][]byte, zb0002)
-			}
-			for za0004 := range z.Rest {
-				z.Rest[za0004], err = dc.ReadBytes(z.Rest[za0004])
-				if err != nil {
-					return
-				}
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((z.Signature)[:])
+	if err != nil {
+		return
+	}
+	err = dc.ReadExactBytes((z.InitiatorPubkey)[:])
+	if err != nil {
+		return
+	}
+	err = dc.ReadExactBytes((z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, err = dc.ReadUint32()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *AuthMsgV4) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
-	// write "Signature"
-	err = en.Append(0x85, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -81,17 +47,7 @@ func (z *AuthMsgV4) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "InitiatorPubkey"
-	err = en.Append(0xaf, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x6f, 0x72, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes((z.InitiatorPubkey)[:])
-	if err != nil {
-		return
-	}
-	// write "Nonce"
-	err = en.Append(0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	if err != nil {
 		return
 	}
@@ -99,29 +55,9 @@ func (z *AuthMsgV4) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Version"
-	err = en.Append(0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
+	err = en.WriteUint32(z.Version)
 	if err != nil {
 		return
-	}
-	err = en.WriteUint(z.Version)
-	if err != nil {
-		return
-	}
-	// write "Rest"
-	err = en.Append(0xa4, 0x52, 0x65, 0x73, 0x74)
-	if err != nil {
-		return
-	}
-	err = en.WriteArrayHeader(uint32(len(z.Rest)))
-	if err != nil {
-		return
-	}
-	for za0004 := range z.Rest {
-		err = en.WriteBytes(z.Rest[za0004])
-		if err != nil {
-			return
-		}
 	}
 	return
 }
@@ -129,87 +65,41 @@ func (z *AuthMsgV4) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *AuthMsgV4) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
-	// string "Signature"
-	o = append(o, 0x85, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendBytes(o, (z.Signature)[:])
-	// string "InitiatorPubkey"
-	o = append(o, 0xaf, 0x49, 0x6e, 0x69, 0x74, 0x69, 0x61, 0x74, 0x6f, 0x72, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
 	o = msgp.AppendBytes(o, (z.InitiatorPubkey)[:])
-	// string "Nonce"
-	o = append(o, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
-	// string "Version"
-	o = append(o, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	o = msgp.AppendUint(o, z.Version)
-	// string "Rest"
-	o = append(o, 0xa4, 0x52, 0x65, 0x73, 0x74)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Rest)))
-	for za0004 := range z.Rest {
-		o = msgp.AppendBytes(o, z.Rest[za0004])
-	}
+	o = msgp.AppendUint32(o, z.Version)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *AuthMsgV4) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Signature":
-			bts, err = msgp.ReadExactBytes(bts, (z.Signature)[:])
-			if err != nil {
-				return
-			}
-		case "InitiatorPubkey":
-			bts, err = msgp.ReadExactBytes(bts, (z.InitiatorPubkey)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, bts, err = msgp.ReadUintBytes(bts)
-			if err != nil {
-				return
-			}
-		case "Rest":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			if cap(z.Rest) >= int(zb0002) {
-				z.Rest = (z.Rest)[:zb0002]
-			} else {
-				z.Rest = make([][]byte, zb0002)
-			}
-			for za0004 := range z.Rest {
-				z.Rest[za0004], bts, err = msgp.ReadBytesBytes(bts, z.Rest[za0004])
-				if err != nil {
-					return
-				}
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Signature)[:])
+	if err != nil {
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.InitiatorPubkey)[:])
+	if err != nil {
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -217,76 +107,40 @@ func (z *AuthMsgV4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *AuthMsgV4) Msgsize() (s int) {
-	s = 1 + 10 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + 16 + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize + 5 + msgp.ArrayHeaderSize
-	for za0004 := range z.Rest {
-		s += msgp.BytesPrefixSize + len(z.Rest[za0004])
-	}
+	s = 1 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + msgp.Uint32Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *AuthRespV4) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "RandomPubkey":
-			err = dc.ReadExactBytes((z.RandomPubkey)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			err = dc.ReadExactBytes((z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, err = dc.ReadUint()
-			if err != nil {
-				return
-			}
-		case "Rest":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				return
-			}
-			if cap(z.Rest) >= int(zb0002) {
-				z.Rest = (z.Rest)[:zb0002]
-			} else {
-				z.Rest = make([][]byte, zb0002)
-			}
-			for za0003 := range z.Rest {
-				z.Rest[za0003], err = dc.ReadBytes(z.Rest[za0003])
-				if err != nil {
-					return
-				}
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((z.RandomPubkey)[:])
+	if err != nil {
+		return
+	}
+	err = dc.ReadExactBytes((z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, err = dc.ReadUint32()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *AuthRespV4) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
-	// write "RandomPubkey"
-	err = en.Append(0x84, 0xac, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -294,38 +148,13 @@ func (z *AuthRespV4) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Nonce"
-	err = en.Append(0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes((z.Nonce)[:])
 	if err != nil {
 		return
 	}
-	// write "Version"
-	err = en.Append(0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
+	err = en.WriteUint32(z.Version)
 	if err != nil {
 		return
-	}
-	err = en.WriteUint(z.Version)
-	if err != nil {
-		return
-	}
-	// write "Rest"
-	err = en.Append(0xa4, 0x52, 0x65, 0x73, 0x74)
-	if err != nil {
-		return
-	}
-	err = en.WriteArrayHeader(uint32(len(z.Rest)))
-	if err != nil {
-		return
-	}
-	for za0003 := range z.Rest {
-		err = en.WriteBytes(z.Rest[za0003])
-		if err != nil {
-			return
-		}
 	}
 	return
 }
@@ -333,79 +162,36 @@ func (z *AuthRespV4) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *AuthRespV4) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
-	// string "RandomPubkey"
-	o = append(o, 0x84, 0xac, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendBytes(o, (z.RandomPubkey)[:])
-	// string "Nonce"
-	o = append(o, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
-	// string "Version"
-	o = append(o, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	o = msgp.AppendUint(o, z.Version)
-	// string "Rest"
-	o = append(o, 0xa4, 0x52, 0x65, 0x73, 0x74)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Rest)))
-	for za0003 := range z.Rest {
-		o = msgp.AppendBytes(o, z.Rest[za0003])
-	}
+	o = msgp.AppendUint32(o, z.Version)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *AuthRespV4) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "RandomPubkey":
-			bts, err = msgp.ReadExactBytes(bts, (z.RandomPubkey)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, bts, err = msgp.ReadUintBytes(bts)
-			if err != nil {
-				return
-			}
-		case "Rest":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			if cap(z.Rest) >= int(zb0002) {
-				z.Rest = (z.Rest)[:zb0002]
-			} else {
-				z.Rest = make([][]byte, zb0002)
-			}
-			for za0003 := range z.Rest {
-				z.Rest[za0003], bts, err = msgp.ReadBytesBytes(bts, z.Rest[za0003])
-				if err != nil {
-					return
-				}
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.RandomPubkey)[:])
+	if err != nil {
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -413,9 +199,6 @@ func (z *AuthRespV4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *AuthRespV4) Msgsize() (s int) {
-	s = 1 + 13 + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize + 5 + msgp.ArrayHeaderSize
-	for za0003 := range z.Rest {
-		s += msgp.BytesPrefixSize + len(z.Rest[za0003])
-	}
+	s = 1 + msgp.ArrayHeaderSize + (pubLen * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + msgp.Uint32Size
 	return
 }

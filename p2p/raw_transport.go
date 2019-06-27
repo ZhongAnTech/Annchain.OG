@@ -100,18 +100,20 @@ func (t *rawTransport) doProtoHandshake(our *ProtoHandshake) (their *ProtoHandsh
 	return their, nil
 }
 
+//msgp:tuple RawHandshakeMsg
 type RawHandshakeMsg struct {
 	Signature [sigLen]byte
 	Nonce     [shaLen]byte
-	Version   uint
+	Version   uint32
 }
 
 // RLPx v4 handshake response (defined in EIP-8).
+//msgp:tuple RawHandshakeResponseMsg
 type RawHandshakeResponseMsg struct {
 	//RemotePubkey [pubLen]byte
 	Nonce [shaLen]byte
 	//Signature    [sigLen]byte
-	Version uint
+	Version uint32
 }
 
 // rawHandshake contains the state of the encryption handshake.

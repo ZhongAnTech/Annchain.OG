@@ -19,7 +19,7 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-type ReceiptStatus int
+type ReceiptStatus uint8
 
 const (
 	ReceiptStatusSeqSuccess ReceiptStatus = iota

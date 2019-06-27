@@ -18,7 +18,6 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/annchain/OG/p2p/enr"
 	"github.com/annchain/OG/p2p/onode"
 )
 
@@ -31,7 +30,7 @@ type Protocol struct {
 	Name string
 
 	// Version should contain the version number of the protocol.
-	Version uint
+	Version uint32
 
 	// Length should contain the number of message codes used
 	// by the protocol.
@@ -56,7 +55,7 @@ type Protocol struct {
 	PeerInfo func(id onode.ID) interface{}
 
 	// Attributes contains protocol specific information for the node record.
-	Attributes []enr.Entry
+	//Attributes []enr.Entry
 }
 
 func (p Protocol) cap() Cap {
@@ -66,19 +65,19 @@ func (p Protocol) cap() Cap {
 // Cap is the structure of a peer capability.
 type Cap struct {
 	Name    string
-	Version uint
+	Version uint32
 }
 
 // protoHandshake is the RLP structure of the protocol handshake.
 type ProtoHandshake struct {
-	Version    uint64 `msg:"version"`
+	Version    uint32 `msg:"version"`
 	Name       string `msg:"name"`
 	Caps       []Cap  `msg:"caps"`
-	ListenPort uint64 `msg:"listen_port"`
+	ListenPort uint16 `msg:"listen_port"`
 	ID         []byte `msg:"id"` // secp256k1 public key
 
 	// Ignore additional fields (for forward compatibility).
-	Rest [][]byte `rlp:"tail" msg:"tail"`
+	//Rest [][]byte `rlp:"tail" msg:"tail"`
 }
 
 func (cap Cap) RlpData() interface{} {

@@ -36,7 +36,7 @@ const (
 var ProtocolName = "og"
 
 // ProtocolVersions are the supported versions of the og protocol (first is primary).
-var ProtocolVersions = []uint{OG02, OG01}
+var ProtocolVersions = []uint32{OG02, OG01}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
 var ProtocolLengths = []MessageType{MessageTypeOg02Length, MessageTypeOg01Length}

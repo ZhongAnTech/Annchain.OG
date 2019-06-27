@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 )
+////go:generate msgp
 
 // Msg defines the structure of a p2p message.
 //
@@ -35,6 +36,7 @@ import (
 // structure, encode the payload into a byte array and create a
 // separate Msg with a bytes.Reader as Payload for each send.
 
+//msgp:tuple Msg
 type Msg struct {
 	Code       MsgCodeType
 	Size       uint32 // size of the payload

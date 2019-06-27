@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:generate msgp
+
 package p2p
 
 import (
@@ -84,26 +86,22 @@ type rlpx struct {
 }
 
 // RLPx v4 handshake auth (defined in EIP-8).
+//msgp:tuple AuthMsgV4
 type AuthMsgV4 struct {
 	gotPlain bool // whether read packet had plain format.
 
 	Signature       [sigLen]byte
 	InitiatorPubkey [pubLen]byte
 	Nonce           [shaLen]byte
-	Version         uint
-
-	// Ignore additional fields (forward-compatibility)
-	Rest [][]byte `rlp:"tail"`
+	Version         uint32
 }
 
 // RLPx v4 handshake response (defined in EIP-8).
+//msgp:tuple AuthRespV4
 type AuthRespV4 struct {
 	RandomPubkey [pubLen]byte
 	Nonce        [shaLen]byte
-	Version      uint
-
-	// Ignore additional fields (forward-compatibility)
-	Rest [][]byte `rlp:"tail"`
+	Version      uint32
 }
 
 func newRLPX(fd net.Conn) transport {

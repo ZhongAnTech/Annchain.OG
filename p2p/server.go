@@ -502,11 +502,11 @@ func (srv *Server) setupLocalNode() error {
 	cap := CapsByNameAndVersion(srv.ourHandshake.Caps)
 	srv.localnode.Set(&cap)
 	// TODO: check conflicts
-	for _, p := range srv.Protocols {
-		for _, e := range p.Attributes {
-			srv.localnode.Set(e)
-		}
-	}
+	//for _, p := range srv.Protocols {
+	//	for _, e := range p.Attributes {
+	//		srv.localnode.Set(e)
+	//	}
+	//}
 	switch srv.NAT.(type) {
 	case nil:
 		// No NAT interface, do nothing.

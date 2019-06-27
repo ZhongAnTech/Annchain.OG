@@ -8,50 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *RawHandshakeMsg) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Signature":
-			err = dc.ReadExactBytes((z.Signature)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			err = dc.ReadExactBytes((z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, err = dc.ReadUint()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((z.Signature)[:])
+	if err != nil {
+		return
+	}
+	err = dc.ReadExactBytes((z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, err = dc.ReadUint32()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *RawHandshakeMsg) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
-	// write "Signature"
-	err = en.Append(0x83, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -59,21 +43,11 @@ func (z *RawHandshakeMsg) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Nonce"
-	err = en.Append(0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes((z.Nonce)[:])
 	if err != nil {
 		return
 	}
-	// write "Version"
-	err = en.Append(0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint(z.Version)
+	err = en.WriteUint32(z.Version)
 	if err != nil {
 		return
 	}
@@ -83,56 +57,36 @@ func (z *RawHandshakeMsg) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *RawHandshakeMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
-	// string "Signature"
-	o = append(o, 0x83, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendBytes(o, (z.Signature)[:])
-	// string "Nonce"
-	o = append(o, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
-	// string "Version"
-	o = append(o, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	o = msgp.AppendUint(o, z.Version)
+	o = msgp.AppendUint32(o, z.Version)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *RawHandshakeMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Signature":
-			bts, err = msgp.ReadExactBytes(bts, (z.Signature)[:])
-			if err != nil {
-				return
-			}
-		case "Nonce":
-			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, bts, err = msgp.ReadUintBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Signature)[:])
+	if err != nil {
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -140,51 +94,36 @@ func (z *RawHandshakeMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawHandshakeMsg) Msgsize() (s int) {
-	s = 1 + 10 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize
+	s = 1 + msgp.ArrayHeaderSize + (sigLen * (msgp.ByteSize)) + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + msgp.Uint32Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *RawHandshakeResponseMsg) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Nonce":
-			err = dc.ReadExactBytes((z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, err = dc.ReadUint()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	err = dc.ReadExactBytes((z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, err = dc.ReadUint32()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *RawHandshakeResponseMsg) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "Nonce"
-	err = en.Append(0x82, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
@@ -192,12 +131,7 @@ func (z *RawHandshakeResponseMsg) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Version"
-	err = en.Append(0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint(z.Version)
+	err = en.WriteUint32(z.Version)
 	if err != nil {
 		return
 	}
@@ -207,48 +141,31 @@ func (z *RawHandshakeResponseMsg) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *RawHandshakeResponseMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "Nonce"
-	o = append(o, 0x82, 0xa5, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
+	// array header, size 2
+	o = append(o, 0x92)
 	o = msgp.AppendBytes(o, (z.Nonce)[:])
-	// string "Version"
-	o = append(o, 0xa7, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e)
-	o = msgp.AppendUint(o, z.Version)
+	o = msgp.AppendUint32(o, z.Version)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *RawHandshakeResponseMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Nonce":
-			bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
-			if err != nil {
-				return
-			}
-		case "Version":
-			z.Version, bts, err = msgp.ReadUintBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.Nonce)[:])
+	if err != nil {
+		return
+	}
+	z.Version, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -256,6 +173,6 @@ func (z *RawHandshakeResponseMsg) UnmarshalMsg(bts []byte) (o []byte, err error)
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *RawHandshakeResponseMsg) Msgsize() (s int) {
-	s = 1 + 6 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + 8 + msgp.UintSize
+	s = 1 + msgp.ArrayHeaderSize + (shaLen * (msgp.ByteSize)) + msgp.Uint32Size
 	return
 }

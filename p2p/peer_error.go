@@ -21,22 +21,25 @@ import (
 	"fmt"
 )
 
+//go:generate msgp
+
 const (
-	errInvalidMsgCode = iota
+	errInvalidMsgCode uint16 = iota
 	errInvalidMsg
 )
 
-var errorToString = map[int]string{
+var errorToString = map[uint16]string{
 	errInvalidMsgCode: "invalid message code",
 	errInvalidMsg:     "invalid message",
 }
 
+
 type peerError struct {
-	code    int
+	code    uint16
 	message string
 }
 
-func newPeerError(code int, format string, v ...interface{}) *peerError {
+func newPeerError(code uint16, format string, v ...interface{}) *peerError {
 	desc, ok := errorToString[code]
 	if !ok {
 		panic("invalid error code")
@@ -54,7 +57,7 @@ func (pe *peerError) Error() string {
 
 var errProtocolReturned = errors.New("protocol returned")
 
-type DiscReason uint
+type DiscReason uint16
 
 const (
 	DiscRequested DiscReason = iota

@@ -134,7 +134,7 @@ type TxBaseJson struct {
 }
 
 type TxiSmallCaseMarshal struct {
-	Txi
+	Txi Txi
 }
 
 func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {

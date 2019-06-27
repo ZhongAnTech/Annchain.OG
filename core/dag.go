@@ -159,7 +159,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
 	var err error
-	dbBatch := dag.db.NewBatch()
+	//dbBatch := dag.db.NewBatch()
 
 	// init genesis
 	err = dag.accessor.WriteGenesis(genesis)
@@ -167,17 +167,17 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 	// init latest sequencer
-	err = dag.accessor.WriteLatestSequencer(genesis)
+	err = dag.accessor.WriteLatestSequencer(nil,genesis)
 	if err != nil {
 		return err
 	}
 
-	err = dag.accessor.WriteSequencerByHeight(genesis)
+	err = dag.accessor.WriteSequencerByHeight(nil,genesis)
 	if err != nil {
 		return err
 	}
 	// store genesis as first tx
-	err = dag.WriteTransaction(dbBatch, genesis)
+	err = dag.WriteTransaction(nil, genesis)
 	if err != nil {
 		return err
 	}
@@ -669,7 +669,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	receipts[batch.Seq.GetTxHash().Hex()] = receipt
 
 	// write receipts.
-	err = dag.accessor.WriteReceipts(batch.Seq.Height, receipts)
+	err = dag.accessor.WriteReceipts(dbBatch, batch.Seq.Height, receipts)
 	if err != nil {
 		return err
 	}
@@ -694,15 +694,21 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// store the hashs of the txs confirmed by this sequencer.
 	if len(txhashes) > 0 {
-		dag.accessor.WriteIndexedTxHashs(batch.Seq.Height, &txhashes)
+		dag.accessor.WriteIndexedTxHashs(dbBatch, batch.Seq.Height, &txhashes)
 	}
-	err = dag.accessor.WriteSequencerByHeight(batch.Seq)
+	err = dag.accessor.WriteSequencerByHeight(dbBatch, batch.Seq)
 	if err != nil {
 		return err
 	}
 	// set latest sequencer
-	err = dag.accessor.WriteLatestSequencer(batch.Seq)
+	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
 	if err != nil {
+		return err
+	}
+
+	err = dbBatch.Write()
+	if err != nil {
+		log.WithError(err).Warn("dbbatch write error")
 		return err
 	}
 	dag.latestSequencer = batch.Seq
@@ -747,7 +753,7 @@ func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
 	if tx.GetType() != types.TxBaseTypeArchive {
-		err := dag.accessor.WriteTxHashByNonce(tx.Sender(), tx.GetNonce(), tx.GetTxHash())
+		err := dag.accessor.WriteTxHashByNonce(putter,tx.Sender(), tx.GetNonce(), tx.GetTxHash())
 		if err != nil {
 			return fmt.Errorf("write latest nonce err: %v", err)
 		}

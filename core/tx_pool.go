@@ -29,7 +29,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type TxType int
+type TxType uint8
 
 const (
 	TxTypeGenesis TxType = iota
@@ -38,7 +38,7 @@ const (
 	TxTypeRejudge
 )
 
-type TxStatus int
+type TxStatus uint8
 
 const (
 	TxStatusNotExist TxStatus = iota
@@ -65,7 +65,7 @@ func (ts *TxStatus) String() string {
 	}
 }
 
-type TxQuality int
+type TxQuality uint8
 
 const (
 	TxQualityIsBad TxQuality = iota
@@ -116,6 +116,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"latest_seq": int(pool.dag.latestSequencer.Number()),
 		"pendings" : len(pool.pendings.txs),
 		"flows":     len(pool.flows.afs),
+		"hashordr":len(pool.txLookup.order),
 	}
 }
 

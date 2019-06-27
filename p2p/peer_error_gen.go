@@ -9,8 +9,8 @@ import (
 // DecodeMsg implements msgp.Decodable
 func (z *DiscReason) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
-		var zb0001 uint
-		zb0001, err = dc.ReadUint()
+		var zb0001 uint16
+		zb0001, err = dc.ReadUint16()
 		if err != nil {
 			return
 		}
@@ -21,7 +21,7 @@ func (z *DiscReason) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z DiscReason) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteUint(uint(z))
+	err = en.WriteUint16(uint16(z))
 	if err != nil {
 		return
 	}
@@ -31,15 +31,15 @@ func (z DiscReason) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z DiscReason) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendUint(o, uint(z))
+	o = msgp.AppendUint16(o, uint16(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *DiscReason) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
-		var zb0001 uint
-		zb0001, bts, err = msgp.ReadUintBytes(bts)
+		var zb0001 uint16
+		zb0001, bts, err = msgp.ReadUint16Bytes(bts)
 		if err != nil {
 			return
 		}
@@ -51,6 +51,6 @@ func (z *DiscReason) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z DiscReason) Msgsize() (s int) {
-	s = msgp.UintSize
+	s = msgp.Uint16Size
 	return
 }

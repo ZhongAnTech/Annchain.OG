@@ -141,10 +141,13 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 }
 
 // WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(seq *types.Sequencer) error {
+func (da *Accessor) WriteLatestSequencer(putter ogdb.Putter, seq *types.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
+	}
+	if putter!=nil {
+		return putter.Put(latestSequencerKey(), data)
 	}
 	return da.db.Put(latestSequencerKey(), data)
 }
@@ -218,9 +221,14 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 }
 
 // WriteTxHashByNonce writes tx hash into db and construct key with address and nonce.
-func (da *Accessor) WriteTxHashByNonce(addr types.Address, nonce uint64, hash types.Hash) error {
+func (da *Accessor) WriteTxHashByNonce(putter ogdb.Putter ,addr types.Address, nonce uint64, hash types.Hash) error {
 	data := hash.ToBytes()
-	err := da.db.Put(txHashFlowKey(addr, nonce), data)
+	var err error
+	if putter!=nil {
+		err= putter.Put(txHashFlowKey(addr, nonce), data)
+	}else {
+		err = da.db.Put(txHashFlowKey(addr, nonce), data)
+	}
 	if err != nil {
 		return fmt.Errorf("write tx hash flow to db err: %v", err)
 	}
@@ -275,12 +283,16 @@ func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
 }
 
 // WriteReceipts write a receipt map into db.
-func (da *Accessor) WriteReceipts(seqID uint64, receipts ReceiptSet) error {
+func (da *Accessor) WriteReceipts( putter ogdb.Putter, seqID uint64, receipts ReceiptSet) error {
 	data, err := receipts.MarshalMsg(nil)
 	if err != nil {
 		return fmt.Errorf("marshal seq%d's receipts err: %v", seqID, err)
 	}
-	err = da.db.Put(receiptKey(seqID), data)
+	if putter!=nil {
+		err = putter.Put(receiptKey(seqID), data)
+	}else {
+		err = da.db.Put(receiptKey(seqID), data)
+	}
 	if err != nil {
 		return fmt.Errorf("write seq%d's receipts err: %v", seqID, err)
 	}
@@ -334,7 +346,11 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash(), err)
 	}
 	data = append(prefix, data...)
-	err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+	if putter!=nil {
+		err = putter.Put(transactionKey(tx.GetTxHash()), data)
+	}else {
+		err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+	}
 	if err != nil {
 		return fmt.Errorf("write tx to db batch err: %v", err)
 	}
@@ -343,7 +359,7 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 }
 
 // DeleteTransaction delete the tx or sequencer.
-func (da *Accessor) DeleteTransaction(hash types.Hash) error {
+func (da *Accessor) DeleteTransaction( hash types.Hash) error {
 	return da.db.Delete(transactionKey(hash))
 }
 
@@ -363,13 +379,16 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 
 // SetBalance write the balance of an address into ogdb.
 // Data will be overwritten if it already exist in db.
-func (da *Accessor) SetBalance(addr types.Address, value *math.BigInt) error {
+func (da *Accessor) SetBalance( putter ogdb.Putter, addr types.Address, value *math.BigInt) error {
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
 	data, err := value.MarshalMsg(nil)
 	if err != nil {
 		return err
+	}
+	if putter !=nil {
+		return putter.Put(addressBalanceKey(addr), data)
 	}
 	return da.db.Put(addressBalanceKey(addr), data)
 }
@@ -381,22 +400,22 @@ func (da *Accessor) DeleteBalance(addr types.Address) error {
 
 // AddBalance adds an amount of value to the address balance. Note that AddBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) AddBalance(addr types.Address, amount *math.BigInt) error {
+func (da *Accessor) AddBalance(putter ogdb.Putter,  addr types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
 	balance := da.ReadBalance(addr)
 	// no balance exists
 	if balance == nil {
-		return da.SetBalance(addr, amount)
+		return da.SetBalance(putter,addr, amount)
 	}
 	newBalanceValue := balance.Value.Add(balance.Value, amount.Value)
-	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
+	return da.SetBalance(putter,addr, &math.BigInt{Value: newBalanceValue})
 }
 
 // SubBalance subs an amount of value to the address balance. Note that SubBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
+func (da *Accessor) SubBalance(putter ogdb.Putter, addr types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
@@ -410,7 +429,7 @@ func (da *Accessor) SubBalance(addr types.Address, amount *math.BigInt) error {
 			addr, balance.GetInt64(), amount.GetInt64())
 	}
 	newBalanceValue := balance.Value.Sub(balance.Value, amount.Value)
-	return da.SetBalance(addr, &math.BigInt{Value: newBalanceValue})
+	return da.SetBalance(putter,addr, &math.BigInt{Value: newBalanceValue})
 }
 
 // ReadSequencerByHeight get sequencer from db by sequencer id.
@@ -428,10 +447,13 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, e
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerByHeight(seq *types.Sequencer) error {
+func (da *Accessor) WriteSequencerByHeight(putter ogdb.Putter, seq *types.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
+	}
+	if putter!=nil {
+		return  putter.Put(seqHeightKey(seq.Height), data)
 	}
 	return da.db.Put(seqHeightKey(seq.Height), data)
 }
@@ -453,10 +475,13 @@ func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*types.Hashes, error) 
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'SeqHeight'.
-func (da *Accessor) WriteIndexedTxHashs(SeqHeight uint64, hashs *types.Hashes) error {
+func (da *Accessor) WriteIndexedTxHashs(putter ogdb.Putter,SeqHeight uint64, hashs *types.Hashes) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err
+	}
+	if putter!=nil {
+		return putter.Put(txIndexKey(SeqHeight), data)
 	}
 	return da.db.Put(txIndexKey(SeqHeight), data)
 }

@@ -39,7 +39,7 @@ type FIFOTipGenerator struct {
 	fifoRing     []types.Txi
 	fifoRingPos  int
 	fifoRingFull bool
-	mu           sync.Mutex
+	mu           sync.RWMutex
 }
 
 func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenerator {

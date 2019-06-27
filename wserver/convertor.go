@@ -57,6 +57,8 @@ type UIData struct {
 
 type BlockDbData struct {
 	Nodes []types.TxiSmallCaseMarshal `json:"nodes"`
+	Type  string `json:"type"`
+	Edges []Edge `json:"edges"`
 }
 
 func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
@@ -78,6 +80,39 @@ func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	}
 
 	u.Nodes = append(u.Nodes, node)
+
+	if includingEdge {
+		for _, parent := range tx.Parents() {
+			edge := Edge{
+				Id:     tx.String() + "_" + parent.String(),
+				Source: tx.GetTxHash().Hex(),
+				Target: parent.Hex(),
+			}
+			u.Edges = append(u.Edges, edge)
+		}
+	}
+
+}
+
+func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
+	nodeData := NodeData{
+		Unit:   tx.GetTxHash().Hex(),
+		Unit_s: tx.String(),
+	}
+	node := Node{
+		Data: nodeData,
+	}
+
+	switch tx.GetBase().Type {
+	case types.TxBaseTypeSequencer:
+		node.Type = "sequencer_unit"
+	default:
+		node.Type = ""
+		//default:
+		//	node.Type = "Unknown"
+	}
+
+	u.Nodes = append(u.Nodes,  types.TxiSmallCaseMarshal{tx})
 
 	if includingEdge {
 		for _, parent := range tx.Parents() {

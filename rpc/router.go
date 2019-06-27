@@ -26,12 +26,15 @@ import (
 
 func (rpc *RpcController) NewRouter() *gin.Engine {
 	router := gin.New()
-	logger := gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: ginLogFormatter,
-		Output:    logrus.StandardLogger().Out,
-		SkipPaths: []string{"/"},
-	})
-	router.Use(logger)
+	if logrus.GetLevel() > logrus.DebugLevel {
+		logger := gin.LoggerWithConfig(gin.LoggerConfig{
+			Formatter: ginLogFormatter,
+			Output:    logrus.StandardLogger().Out,
+			SkipPaths: []string{"/"},
+		})
+		router.Use(logger)
+	}
+
 	router.Use(gin.Recovery())
 	return rpc.addRouter(router)
 }

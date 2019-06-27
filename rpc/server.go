@@ -49,16 +49,8 @@ func NewRpcServer(port string) *RpcServer {
 	return rpc
 }
 
-func (srv *RpcServer) loggerInit() {
-	//gin.DisableConsoleColor()
-	// Logging to a file.
-	//gin.DefaultWriter = io.MultiWriter(logrus.StandardLogger().Out)
-	//logger := gin.LoggerWithWriter(logrus.StandardLogger().Out, "/")
-	//srv.router.Use(gin.Logger())
-}
 
 func (srv *RpcServer) Start() {
-	srv.loggerInit()
 	logrus.Infof("listening Http on %s", srv.port)
 	goroutine.New(func() {
 		// service connections

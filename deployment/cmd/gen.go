@@ -121,8 +121,12 @@ func gen(cmd *cobra.Command, args []string) {
 		}
 
 	} else if solo {
+		nodekeyBoot, nodeBoot := genBootONode(port + 1)
+		viper.Set("p2p.bootstrap_nodes", nodeBoot)
+		viper.Set("p2p.node_key",nodekeyBoot)
 		viper.Set("annsensus.disable", true)
 		viper.Set("auto_client.sequencer.enabled", true)
+		viper.Set("p2p.bootstrap_node", true)
 
 		priv, _ := genAccount()
 		viper.Set("dag.my_private_key", priv.String())

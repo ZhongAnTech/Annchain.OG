@@ -179,9 +179,7 @@ func (s *Server) WatchNewTxs() {
 					}
 				}
 
-				if blockdbData == nil {
-					blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
-				}
+				blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
 			}
 
 				//if ac,ok := tx.(*types.Archive);ok {

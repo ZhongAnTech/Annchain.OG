@@ -114,6 +114,8 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
 		"latest_seq": int(pool.dag.latestSequencer.Number()),
+		"pendings" : len(pool.pendings.txs),
+		"flows":     len(pool.flows.afs),
 	}
 }
 

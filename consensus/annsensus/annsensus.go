@@ -182,6 +182,10 @@ func (as *AnnSensus) Name() string {
 }
 
 func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{} {
+		"newTxHandlers" : len(as.newTxHandlers),
+		"consensusTXConfirmed" : len(as.ConsensusTXConfirmed),
+	}
 	// TODO
 	return nil
 }

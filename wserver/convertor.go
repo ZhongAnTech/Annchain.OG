@@ -99,7 +99,7 @@ func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
-		Tx:  types.TxiSmallCaseMarshal{tx}
+		Tx:  types.TxiSmallCaseMarshal{tx},
 	}
 	node := Node{
 		Data: nodeData,

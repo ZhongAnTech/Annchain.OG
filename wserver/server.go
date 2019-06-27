@@ -175,7 +175,7 @@ func (s *Server) WatchNewTxs() {
 			if status.ArchiveMode {
 				if blockdbData == nil {
 					blockdbData = &BlockDbUIData{
-						Type: messageTypeNewTx,
+						//Type: messageTypeNewTx,
 					}
 				}
 

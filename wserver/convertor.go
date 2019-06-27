@@ -59,8 +59,8 @@ type UIData struct {
 
 type BlockDbUIData struct {
 	Nodes []types.TxiSmallCaseMarshal  `json:"nodes"`
-	Type  string `json:"type"`
-	Edges []Edge `json:"edges"`
+	//Type  string `json:"type"`
+	//Edges []Edge `json:"edges"`
 }
 
 func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {

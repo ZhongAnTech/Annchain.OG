@@ -99,7 +99,7 @@ func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
-		Tx:  types.TxiSmallCaseMarshal{tx},
+		Tx:  types.TxiSmallCaseMarshal{Txi:tx},
 	}
 	node := Node{
 		Data: nodeData,
@@ -114,7 +114,7 @@ func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
 		//	node.Type = "Unknown"
 	}
 
-	u.Nodes = append(u.Nodes, node )
+	u.Nodes = append(u.Nodes, node)
 
 	if includingEdge {
 		for _, parent := range tx.Parents() {

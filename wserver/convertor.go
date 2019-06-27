@@ -36,6 +36,7 @@ import (
 type NodeData struct {
 	Unit   string `json:"unit"`
 	Unit_s string `json:"unit_s"`
+	Tx    types.TxiSmallCaseMarshal `json:"tx"`
 }
 
 type Node struct {
@@ -56,7 +57,7 @@ type UIData struct {
 }
 
 type BlockDbData struct {
-	Nodes []types.TxiSmallCaseMarshal `json:"nodes"`
+	Nodes []Node `json:"nodes"`
 	Type  string `json:"type"`
 	Edges []Edge `json:"edges"`
 }
@@ -98,6 +99,7 @@ func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
+		Tx:  types.TxiSmallCaseMarshal{tx}
 	}
 	node := Node{
 		Data: nodeData,
@@ -112,7 +114,7 @@ func (u *BlockDbData) AddToBatch(tx types.Txi, includingEdge bool) {
 		//	node.Type = "Unknown"
 	}
 
-	u.Nodes = append(u.Nodes,  types.TxiSmallCaseMarshal{tx})
+	u.Nodes = append(u.Nodes, node )
 
 	if includingEdge {
 		for _, parent := range tx.Parents() {

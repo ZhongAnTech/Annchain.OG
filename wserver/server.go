@@ -174,7 +174,9 @@ func (s *Server) WatchNewTxs() {
 		case tx := <-s.NewTxReceivedChan:
 			if status.ArchiveMode {
 				if blockData == nil {
-					blockData = &BlockDbData{}
+					blockData = &BlockDbData{
+						Type: messageTypeNewUnit,
+					}
 				}
 				//if ac,ok := tx.(*types.Archive);ok {
 				//	data := base64.StdEncoding.EncodeToString(ac.Data)
@@ -266,5 +268,5 @@ func (s *Server) publishNewTxs(data *BlockDbData) {
 		return
 	}
 	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
-	s.Push(messageTypeNewTx, string(bs))
+	s.Push(messageTypeNewUnit, string(bs))
 }

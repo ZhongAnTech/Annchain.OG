@@ -168,16 +168,22 @@ func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
 	var uidata *UIData
-	var blockData *BlockDbData
+	var blockdbData *BlockDbUIData
 	for {
 		select {
 		case tx := <-s.NewTxReceivedChan:
 			if status.ArchiveMode {
-				if blockData == nil {
-					blockData = &BlockDbData{
-						Type: messageTypeNewUnit,
+				if blockdbData == nil {
+					blockdbData = &BlockDbUIData{
+						Type: messageTypeNewTx,
 					}
 				}
+
+				if blockdbData == nil {
+					blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
+				}
+			}
+
 				//if ac,ok := tx.(*types.Archive);ok {
 				//	data := base64.StdEncoding.EncodeToString(ac.Data)
 				//	var a types.Archive
@@ -186,9 +192,8 @@ func (s *Server) WatchNewTxs() {
 				//	blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{&a})
 				//}else {
 				//blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
-				blockData.AddToBatch(tx,true)
 				//}
-			} else {
+
 				if uidata == nil {
 					uidata = &UIData{
 						Type: messageTypeNewUnit,
@@ -197,26 +202,25 @@ func (s *Server) WatchNewTxs() {
 					}
 				}
 				uidata.AddToBatch(tx, true)
-			}
 		case batch := <-s.BatchConfirmedChan:
 			// first publish all pending txs
 			if status.ArchiveMode {
-				s.publishNewTxs(blockData)
-				blockData = nil
-			} else {
+				s.publishNewTxs(blockdbData)
+				blockdbData = nil
+			}
 				s.publishTxs(uidata)
 				uidata = nil
-			}
+
 			// then publish batch
 			s.publishBatch(batch)
 		case <-ticker.C:
 			if status.ArchiveMode {
-				s.publishNewTxs(blockData)
-				blockData = nil
-			} else {
+				s.publishNewTxs(blockdbData)
+				blockdbData = nil
+			}
 				s.publishTxs(uidata)
 				uidata = nil
-			}
+
 		case <-s.quit:
 			break
 		}
@@ -258,7 +262,7 @@ func (s *Server) publishBatch(elders map[types.Hash]types.Txi) {
 
 }
 
-func (s *Server) publishNewTxs(data *BlockDbData) {
+func (s *Server) publishNewTxs(data *BlockDbUIData) {
 	if data == nil {
 		return
 	}
@@ -268,5 +272,5 @@ func (s *Server) publishNewTxs(data *BlockDbData) {
 		return
 	}
 	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
-	s.Push(messageTypeNewUnit, string(bs))
+	s.Push(messageTypeNewTx, string(bs))
 }

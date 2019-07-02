@@ -14,18 +14,26 @@ import (
 	"time"
 )
 
+var archive bool
 func generateTxs (totalHeight int,txnum int  ) []*core.ConfirmBatch{
 	var height uint64
 	var batchs  []*core.ConfirmBatch
 	for j:=0;j<totalHeight;j++ {
-		var txis types.Txis
 		pub, priv := crypto.Signer.RandomKeyPair()
-		for i := txnum; i > 0; i-- {
-			tx := types.RandomTx()
-			tx.Value= math.NewBigInt(0)
-			tx.PublicKey = pub.Bytes[:]
-			tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
-			txis = append(txis, tx)
+		var txis types.Txis
+			for i := txnum; i > 0; i-- {
+				if archive {
+                  ar := types.RandomArchive()
+                  ar.Data = append(ar.Data,pub.Bytes[:]...)
+					ar.Data = append(ar.Data,pub.Bytes[:]...)
+					ar.Data = append(ar.Data,pub.Bytes[:]...)
+				}else {
+					tx := types.RandomTx()
+					tx.Value = math.NewBigInt(0)
+					tx.PublicKey = pub.Bytes[:]
+					tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+					txis = append(txis, tx)
+				}
 		}
 		seq := types.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
@@ -45,6 +53,7 @@ func generateTxs (totalHeight int,txnum int  ) []*core.ConfirmBatch{
 
 
 func main(){
+	archive = true
 	go func() {
 		http.ListenAndServe("0.0.0.0:"+"9095", nil)
 	}()

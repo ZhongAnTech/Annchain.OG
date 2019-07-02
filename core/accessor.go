@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common/goroutine"
 	"strconv"
 
 	"github.com/annchain/OG/common/math"
@@ -346,14 +347,17 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash(), err)
 	}
 	data = append(prefix, data...)
-	if putter!=nil {
-		err = putter.Put(transactionKey(tx.GetTxHash()), data)
-	}else {
-		err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+	put:= func() {
+		if putter != nil {
+			err = putter.Put(transactionKey(tx.GetTxHash()), data)
+		} else {
+			err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+		}
+		if err != nil {
+			log.Errorf("write tx to db batch err: %v", err)
+		}
 	}
-	if err != nil {
-		return fmt.Errorf("write tx to db batch err: %v", err)
-	}
+		goroutine.New(put)
 
 	return nil
 }

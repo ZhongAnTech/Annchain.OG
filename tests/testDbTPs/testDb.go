@@ -9,6 +9,8 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"net/http"
 	"time"
 )
 
@@ -43,6 +45,9 @@ func generateTxs (totalHeight int,txnum int  ) []*core.ConfirmBatch{
 
 
 func main(){
+	go func() {
+		http.ListenAndServe("0.0.0.0:"+"9095", nil)
+	}()
 	db,err := ogdb.NewLevelDB("datadir",512,512)
 	if err !=nil{
 		panic(err)

@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	_ "net/http/pprof"
 	"net/http"
 	"time"
 )

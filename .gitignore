@@ -34,3 +34,4 @@ main.exe
 app/app1.exe
 deployment/deployment
 genesis.json
+tests/testDbTPs/testDb.exe

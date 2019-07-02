@@ -12,7 +12,7 @@ import (
 
 var globalGoRoutineNum int32
 
-var calculateGoroutineNum = false
+var calculateGoroutineNum = true
 
 func GetGoRoutineNum() int32 {
 	return atomic.LoadInt32(&globalGoRoutineNum)
@@ -42,6 +42,7 @@ func WithRecover(handler func()) {
 
 func DumpStack(exitIFPanic bool) {
 	if err := recover(); err != nil {
+		fmt.Println("goroutine num ",calculateGoroutineNum)
 		logrus.WithField("obj", err).Error("Fatal error occurred. Program will exit")
 		var buf bytes.Buffer
 		stack := debug.Stack()

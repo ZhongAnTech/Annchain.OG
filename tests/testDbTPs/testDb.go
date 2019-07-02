@@ -58,15 +58,15 @@ func main(){
 	fmt.Println("gen tx done",time.Now())
     logrus.SetLevel(logrus.WarnLevel)
     start :=time.Now()
-    for i,b:= range  batchs {
+    for i:= range  batchs {
 		local :=time.Now()
-    	err = dag.Push(b)
+    	err = dag.Push(batchs[i])
     	if err!=nil {
     		panic(err)
 		}
     	since:= time.Since(local)
-    	tps := int64( txnum)* int64( time.Second)/since.Nanoseconds()
-    	fmt.Println("used time for push ",tps ,i,since.String())
+    	tps := int64(txnum)* int64( time.Second)/since.Nanoseconds()
+    	fmt.Println("used time for push ",tps ,batchs[i].Seq,since.String())
 	}
 	since:= time.Since(start)
 	tps := int64( txnum)* int64( time.Second)/since.Nanoseconds()

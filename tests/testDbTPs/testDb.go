@@ -9,7 +9,6 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"net/http"
 	"time"
 )

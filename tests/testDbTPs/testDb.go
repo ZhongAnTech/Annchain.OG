@@ -52,7 +52,7 @@ func main(){
     	panic(err)
 	}
     fmt.Println("dag init done",time.Now())
-    height := 200
+    height := 30
     txnum :=10000
     batchs := generateTxs(height,txnum)
 	fmt.Println("gen tx done",time.Now())
@@ -66,7 +66,7 @@ func main(){
 		}
     	since:= time.Since(local)
     	tps := int64( txnum)* int64( time.Second)/since.Nanoseconds()
-    	fmt.Println("used time for push ",tps ,i)
+    	fmt.Println("used time for push ",tps ,i,since.String())
 	}
 	since:= time.Since(start)
 	tps := int64( txnum)* int64( time.Second)/since.Nanoseconds()

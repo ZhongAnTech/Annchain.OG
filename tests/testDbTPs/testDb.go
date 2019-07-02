@@ -27,6 +27,7 @@ func generateTxs (totalHeight int,txnum int  ) []*core.ConfirmBatch{
                   ar.Data = append(ar.Data,pub.Bytes[:]...)
 					ar.Data = append(ar.Data,pub.Bytes[:]...)
 					ar.Data = append(ar.Data,pub.Bytes[:]...)
+					txis = append(txis,ar)
 				}else {
 					tx := types.RandomTx()
 					tx.Value = math.NewBigInt(0)

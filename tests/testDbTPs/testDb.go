@@ -15,8 +15,7 @@ import (
 )
 
 var archive bool
-func generateTxs (totalHeight int,txnum int  ) []*core.ConfirmBatch{
-	var height uint64
+func generateTxs (height uint64, totalHeight int,txnum int  ) []*core.ConfirmBatch{
 	var batchs  []*core.ConfirmBatch
 	for j:=0;j<totalHeight;j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
@@ -67,24 +66,26 @@ func main(){
     	panic(err)
 	}
     fmt.Println("dag init done",time.Now())
-    height := 30
+	totalHeight := 35
     txnum :=10000
-    batchs := generateTxs(height,txnum)
+    batchs := generateTxs(dag.LatestSequencer().Height, totalHeight,txnum)
 	fmt.Println("gen tx done",time.Now())
     logrus.SetLevel(logrus.WarnLevel)
     start :=time.Now()
     for i:= range  batchs {
 		local :=time.Now()
-    	err = dag.Push(batchs[i])
+		batch:= batchs[i]
+    	err = dag.Push(batch)
     	if err!=nil {
     		panic(err)
 		}
     	since:= time.Since(local)
     	tps := int64(txnum)* int64( time.Second)/since.Nanoseconds()
-    	fmt.Println("used time for push ",tps ,batchs[i].Seq,since.String())
+    	fmt.Println("used time for push ",tps ,batch.Seq,since.String())
 	}
+    dag.Stop()
 	since:= time.Since(start)
-	tps := int64(height* txnum)* int64( time.Second)/since.Nanoseconds()
+	tps := int64(totalHeight* txnum)* int64( time.Second)/since.Nanoseconds()
 	fmt.Println("used time for all ", time.Since(start),tps )
 
 }

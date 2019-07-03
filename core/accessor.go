@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
 	"strconv"
+	"sync"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
@@ -97,6 +98,7 @@ func txIndexKey(seqID uint64) []byte {
 type Accessor struct {
 	db ogdb.Database
 	writeConcurrenceChan chan bool
+	mu sync.RWMutex
 }
 
 func NewAccessor(db ogdb.Database) *Accessor {
@@ -127,7 +129,7 @@ func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
 	if err != nil {
 		return err
 	}
-	return da.db.Put(genesisKey(), data)
+	return da.put(nil,genesisKey(), data)
 }
 
 // ReadLatestSequencer get latest sequencer from db.
@@ -151,10 +153,7 @@ func (da *Accessor) WriteLatestSequencer(putter ogdb.Putter, seq *types.Sequence
 	if err != nil {
 		return err
 	}
-	if putter!=nil {
-		return putter.Put(latestSequencerKey(), data)
-	}
-	return da.db.Put(latestSequencerKey(), data)
+	return da.put(putter,latestSequencerKey(),data)
 }
 
 // ReadTransaction get tx or sequencer from ogdb.
@@ -225,15 +224,14 @@ func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return da.ReadTransaction(hash)
 }
 
+
+
 // WriteTxHashByNonce writes tx hash into db and construct key with address and nonce.
 func (da *Accessor) WriteTxHashByNonce(putter ogdb.Putter ,addr types.Address, nonce uint64, hash types.Hash) error {
 	data := hash.ToBytes()
 	var err error
-	if putter!=nil {
-		err= putter.Put(txHashFlowKey(addr, nonce), data)
-	}else {
-		err = da.db.Put(txHashFlowKey(addr, nonce), data)
-	}
+	key := txHashFlowKey(addr, nonce)
+	err = da.put(putter, key, data)
 	if err != nil {
 		return fmt.Errorf("write tx hash flow to db err: %v", err)
 	}
@@ -293,11 +291,7 @@ func (da *Accessor) WriteReceipts( putter ogdb.Putter, seqID uint64, receipts Re
 	if err != nil {
 		return fmt.Errorf("marshal seq%d's receipts err: %v", seqID, err)
 	}
-	if putter!=nil {
-		err = putter.Put(receiptKey(seqID), data)
-	}else {
-		err = da.db.Put(receiptKey(seqID), data)
-	}
+	err = da.put(putter,receiptKey(seqID), data)
 	if err != nil {
 		return fmt.Errorf("write seq%d's receipts err: %v", seqID, err)
 	}
@@ -352,8 +346,17 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	}
 	data = append(prefix, data...)
 	key := transactionKey(tx.GetTxHash())
+	da.put(putter,key,data)
+
+	return nil
+}
+
+func (da*Accessor)put(putter ogdb.Putter,key []byte, data []byte) error{
 	put:= func() {
+		var err error
 		if putter != nil {
+			da.mu.Lock()
+			defer da.mu.Unlock()
 			err = putter.Put(key, data)
 		} else {
 			err = da.db.Put(key, data)
@@ -365,7 +368,6 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 	}
 	da.writeConcurrenceChan<-true
 	goroutine.New(put)
-
 	return nil
 }
 
@@ -398,10 +400,8 @@ func (da *Accessor) SetBalance( putter ogdb.Putter, addr types.Address, value *m
 	if err != nil {
 		return err
 	}
-	if putter !=nil {
-		return putter.Put(addressBalanceKey(addr), data)
-	}
-	return da.db.Put(addressBalanceKey(addr), data)
+	key := addressBalanceKey(addr)
+	return da.put(putter,key,data)
 }
 
 // DeleteBalance delete the balance of an address.
@@ -463,10 +463,8 @@ func (da *Accessor) WriteSequencerByHeight(putter ogdb.Putter, seq *types.Sequen
 	if err != nil {
 		return err
 	}
-	if putter!=nil {
-		return  putter.Put(seqHeightKey(seq.Height), data)
-	}
-	return da.db.Put(seqHeightKey(seq.Height), data)
+	key := seqHeightKey(seq.Height)
+	return da.put(putter,key,data)
 }
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
@@ -491,10 +489,8 @@ func (da *Accessor) WriteIndexedTxHashs(putter ogdb.Putter,SeqHeight uint64, has
 	if err != nil {
 		return err
 	}
-	if putter!=nil {
-		return putter.Put(txIndexKey(SeqHeight), data)
-	}
-	return da.db.Put(txIndexKey(SeqHeight), data)
+	key:= txIndexKey(SeqHeight)
+	return da.put(putter,key, data)
 }
 
 /**

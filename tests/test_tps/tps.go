@@ -21,12 +21,12 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 	oldpub, _ := crypto.Signer.RandomKeyPair()
 	to := oldpub.Address().Hex()
 	toAdd := oldpub.Address()
+	pub, priv := crypto.Signer.RandomKeyPair()
 	for i := 1; i < N; i++ {
-		pub, priv := crypto.Signer.RandomKeyPair()
 		tx := types.Tx{
 			TxBase: types.TxBase{
 				Type:         types.TxBaseTypeNormal,
-				AccountNonce: 1,
+				AccountNonce: uint64(i),
 				PublicKey:    pub.Bytes[:],
 			},
 			From:  pub.Address(),

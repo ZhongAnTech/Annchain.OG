@@ -167,17 +167,17 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 	// init latest sequencer
-	err = dag.accessor.WriteLatestSequencer(nil,genesis)
+	err = dag.accessor.WriteLatestSequencer(nilPutter(),genesis)
 	if err != nil {
 		return err
 	}
 
-	err = dag.accessor.WriteSequencerByHeight(nil,genesis)
+	err = dag.accessor.WriteSequencerByHeight(nilPutter(),genesis)
 	if err != nil {
 		return err
 	}
 	// store genesis as first tx
-	err = dag.WriteTransaction(nil, genesis)
+	err = dag.WriteTransaction(nilPutter(), genesis)
 	if err != nil {
 		return err
 	}
@@ -609,7 +609,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	var err error
 
 	// TODO batch is not used properly.
-	dbBatch := dag.db.NewBatch()
+	dbBatch := dag.accessor.NewBatch()
 	receipts := make(ReceiptSet)
 	//var  dbBatch ogdb.Putter
 
@@ -706,6 +706,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
+	dbBatch.wg.Wait()
 	err = dbBatch.Write()
 	if err != nil {
 		log.WithError(err).Warn("dbbatch write error")
@@ -749,7 +750,7 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
 // relation into db, finally write the tx itself. Data will be overwritten
 // if it already exists in db.
-func (dag *Dag) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
+func (dag *Dag) WriteTransaction(putter Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
 	if tx.GetType() != types.TxBaseTypeArchive {

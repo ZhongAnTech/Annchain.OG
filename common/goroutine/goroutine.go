@@ -42,7 +42,7 @@ func WithRecover(handler func()) {
 
 func DumpStack(exitIFPanic bool) {
 	if err := recover(); err != nil {
-		fmt.Println("goroutine num ",calculateGoroutineNum)
+		fmt.Println("goroutine num ",globalGoRoutineNum)
 		logrus.WithField("obj", err).Error("Fatal error occurred. Program will exit")
 		var buf bytes.Buffer
 		stack := debug.Stack()

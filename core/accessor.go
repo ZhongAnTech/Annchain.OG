@@ -96,10 +96,14 @@ func txIndexKey(seqID uint64) []byte {
 
 type Accessor struct {
 	db ogdb.Database
+	writeConcurrenceChan chan bool
 }
 
 func NewAccessor(db ogdb.Database) *Accessor {
-	return &Accessor{db: db}
+	return &Accessor{
+		db: db,
+		writeConcurrenceChan:make(chan bool,100),
+	}
 }
 
 // ReadGenesis get genesis sequencer from db.
@@ -356,8 +360,10 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		if err != nil {
 			log.Errorf("write tx to db batch err: %v", err)
 		}
+		<-da.writeConcurrenceChan
 	}
-		goroutine.New(put)
+	da.writeConcurrenceChan<-true
+	goroutine.New(put)
 
 	return nil
 }

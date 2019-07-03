@@ -351,11 +351,12 @@ func (da *Accessor) WriteTransaction(putter ogdb.Putter, tx types.Txi) error {
 		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash(), err)
 	}
 	data = append(prefix, data...)
+	key := transactionKey(tx.GetTxHash())
 	put:= func() {
 		if putter != nil {
-			err = putter.Put(transactionKey(tx.GetTxHash()), data)
+			err = putter.Put(key, data)
 		} else {
-			err = da.db.Put(transactionKey(tx.GetTxHash()), data)
+			err = da.db.Put(key, data)
 		}
 		if err != nil {
 			log.Errorf("write tx to db batch err: %v", err)

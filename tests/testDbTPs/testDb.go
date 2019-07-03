@@ -20,7 +20,7 @@ func generateTxs (height uint64, totalHeight int,txnum int  ) []*core.ConfirmBat
 	for j:=0;j<totalHeight;j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
 		var txis types.Txis
-			for i := txnum; i > 0; i-- {
+			for i := 0; i < txnum; i++ {
 				if archive {
                   ar := types.RandomArchive()
                   ar.Data = append(ar.Data,pub.Bytes[:]...)
@@ -31,6 +31,8 @@ func generateTxs (height uint64, totalHeight int,txnum int  ) []*core.ConfirmBat
 					tx := types.RandomTx()
 					tx.Value = math.NewBigInt(0)
 					tx.PublicKey = pub.Bytes[:]
+					tx.From = pub.Address()
+					tx.AccountNonce = uint64(i)+1
 					tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
 					txis = append(txis, tx)
 				}
@@ -53,7 +55,7 @@ func generateTxs (height uint64, totalHeight int,txnum int  ) []*core.ConfirmBat
 
 
 func main(){
-	archive = true
+	archive = false
 	go func() {
 		http.ListenAndServe("0.0.0.0:"+"9095", nil)
 	}()

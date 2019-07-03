@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -37,6 +38,8 @@ var (
 	// Secp256k1 Address "0xa70c8a9485441f6fa2141d550c26d793107d3dea"
 	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
+
+var nilBatch = core.Putter{}
 
 func newTestAddress(priv crypto.PrivateKey) types.Address {
 	signer := crypto.NewSigner(priv.Type)
@@ -97,7 +100,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test tx read write
 	tx := newTestUnsealTx(0)
-	err = acc.WriteTransaction(db.NewBatch(), tx)
+	err = acc.WriteTransaction(nilBatch, tx)
 	if err != nil {
 		t.Fatalf("write tx %s failed: %v", tx.GetTxHash().String(), err)
 	}
@@ -120,7 +123,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test sequencer read write
 	seq := newTestSeq(1)
-	err = acc.WriteTransaction(db.NewBatch(), seq)
+	err = acc.WriteTransaction(nilBatch, seq)
 	if err != nil {
 		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)
 	}
@@ -166,7 +169,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	acc := core.NewAccessor(db)
 
 	latestSeq := newTestSeq(0)
-	err = acc.WriteLatestSequencer(latestSeq)
+	err = acc.WriteLatestSequencer(nilBatch,latestSeq)
 	if err != nil {
 		t.Fatalf("write latest sequencer error: %v", err)
 	}
@@ -199,7 +202,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	newBalance := math.NewBigInt(int64(rand.Intn(10000) + 10000))
-	err = acc.SetBalance(addr, newBalance)
+	err = acc.SetBalance(nilBatch,addr, newBalance)
 	if err != nil {
 		t.Fatalf("set new balance failed: %v", err)
 	}
@@ -212,7 +215,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	addAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.AddBalance(addr, addAmount)
+	err = acc.AddBalance(nilBatch,addr, addAmount)
 	if err != nil {
 		t.Fatalf("add balance failed")
 	}
@@ -225,7 +228,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	subAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.SubBalance(addr, subAmount)
+	err = acc.SubBalance(nilBatch,addr, subAmount)
 	if err != nil {
 		t.Fatalf("sub balance failed")
 	}
@@ -240,3 +243,23 @@ func TestBalanceStorage(t *testing.T) {
 
 // Note that nonce is now managed by statedb, so no need to test
 // latest nonce in accessor part.
+
+func TestDag_Start(t *testing.T) {
+	db, remove := newTestLDB("TestTransactionStorage")
+	defer remove()
+
+	acc := core.NewAccessor(db)
+	seq:=types.RandomSequencer()
+	height := seq.Height
+	//acc.WriteLatestSequencer(nil,seq)
+	acc.WriteSequencerByHeight(nilBatch,seq)
+	fmt.Println(seq)
+	readSeq,err := acc.ReadSequencerByHeight(height)
+	if err!=nil {
+		t.Fatal(err)
+	}
+	if readSeq.Height!=height {
+		t.Fatal(readSeq,seq)
+	}
+	fmt.Println(seq,readSeq)
+}

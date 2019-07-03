@@ -15,7 +15,6 @@ app/app
 app/app.exe
 client/client
 .vscode/
-/datadir/
 /client/main
 client/client.exe
 config_*.toml
@@ -33,5 +32,6 @@ tests/genesis_account/secret.json
 main.exe
 app/app1.exe
 deployment/deployment
-genesis.json
 tests/testDbTPs/testDb.exe
+tests/testDbTPs/datadir
+tests/testDbTPs/genesis.json

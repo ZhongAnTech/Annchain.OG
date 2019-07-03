@@ -611,6 +611,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// TODO batch is not used properly.
 	dbBatch := dag.db.NewBatch()
 	receipts := make(ReceiptSet)
+	//var  dbBatch ogdb.Putter
 
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
@@ -705,7 +706,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-
 	err = dbBatch.Write()
 	if err != nil {
 		log.WithError(err).Warn("dbbatch write error")

@@ -19,7 +19,6 @@ func TestLimit(t *testing.T) {
 	       a.process(i)
 		fmt.Println("after write ",i,time.Now())
 	}
-	fmt.Println(runtime.NumGoroutine())
 
 }
 
@@ -47,9 +46,10 @@ func (a *app)loop (){
 
 func (a *app)process(i int  ) {
 	a.ch<-i
+	fmt.Println(runtime.NumGoroutine(), "goroutine num")
 	go func() {
 		fmt.Println("start " ,i, time.Now())
-		time.Sleep(time.Millisecond*500)
+		time.Sleep(time.Millisecond*1000)
 		fmt.Println("stop " ,i,time.Now())
 		<-a.ch
 	}()

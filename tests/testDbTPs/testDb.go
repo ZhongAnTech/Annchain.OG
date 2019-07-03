@@ -84,7 +84,7 @@ func main(){
     	fmt.Println("used time for push ",tps ,batchs[i].Seq,since.String())
 	}
 	since:= time.Since(start)
-	tps := int64( txnum)* int64( time.Second)/since.Nanoseconds()
+	tps := int64(height* txnum)* int64( time.Second)/since.Nanoseconds()
 	fmt.Println("used time for all ", time.Since(start),tps )
 
 }

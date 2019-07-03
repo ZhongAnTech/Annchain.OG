@@ -118,7 +118,7 @@ func (ac *Accessor)NewBatch() Putter {
 	writeConcurrenceChan:make(chan bool,100)}
 }
 
-func (da *Accessor)Put(putter Putter,key[]byte,data []byte) error {
+func (da *Accessor)put(putter Putter,key[]byte,data []byte) error {
 	if putter.Batch==nil {
 		err:=  da.db.Put(key,data)
 		if err != nil {

@@ -120,7 +120,7 @@ func (ac *Accessor)NewBatch() *Putter {
 }
 
 func (da *Accessor)put(putter *Putter,key[]byte,data []byte) error {
-	if putter.Batch==nil {
+	if putter==nil || putter.Batch==nil {
 		err:=  da.db.Put(key,data)
 		if err != nil {
 			log.Errorf("write tx to db batch err: %v", err)

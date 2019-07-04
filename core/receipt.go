@@ -27,6 +27,7 @@ const (
 	ReceiptStatusOVMFailed
 	ReceiptStatusCampaignSuccess
 	ReceiptStatusTermChangeSuccess
+	ReceiptStatusActionTxSuccess
 	ReceiptStatusArchiveSuccess
 )
 

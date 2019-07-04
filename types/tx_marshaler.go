@@ -57,11 +57,15 @@ func (t *RawTxMarshaler) MarshalMsg(b []byte) (o []byte, err error) {
 	head := make([]byte, 2)
 	binary.BigEndian.PutUint16(head, uint16(t.GetType()))
 	b = append(b, head...)
+	if t.GetType() ==TxBaseAction {
+		r := t.RawTxi.(*RawActionTx)
+		b = append(b, r.Action)
+	}
 	return t.RawTxi.MarshalMsg(b)
 }
 
 func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	if len(bts) < 3 {
+	if len(bts) <= 3 {
 		return bts, fmt.Errorf("size mismatch")
 	}
 	tp := binary.BigEndian.Uint16(bts)
@@ -76,6 +80,18 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
 	case TxBaseTypeArchive:
 		t.RawTxi = &RawArchive{Archive: Archive{TxBase: TxBase{Type: TxBaseTypeArchive}}}
+	case TxBaseAction:
+		rawTx  := &RawActionTx{TxBase:TxBase{Type:TxBaseAction}}
+		action :=bts[3]
+		if action ==ActionRequestDomainName {
+			rawTx.ActionData = &RequestDomain{}
+		}else if action == ActionTxActionIPO || action ==ActionTxActionSPO || action == ActionTxActionWithdraw{
+			rawTx.ActionData = &PublicOffering{}
+		}else {
+			return bts,  fmt.Errorf("unkown action %d",action)
+		}
+		t.RawTxi = rawTx
+		return t.RawTxi.UnmarshalMsg(bts[3:])
 	default:
 		return bts, fmt.Errorf("unkown type")
 	}
@@ -83,6 +99,9 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 func (t *RawTxMarshaler) Msgsize() (s int) {
+	if t.GetType() == TxBaseAction {
+		return 3+t.RawTxi.Msgsize()
+	}
 	return 2 + t.RawTxi.Msgsize()
 }
 
@@ -107,6 +126,25 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
 	case TxBaseTypeArchive:
 		t.RawTxi = &RawArchive{Archive: Archive{TxBase: TxBase{Type: TxBaseTypeArchive}}}
+		rawTx  := &RawActionTx{TxBase:TxBase{Type:TxBaseAction}}
+		head := make([]byte, 1)
+		_,err := dc.ReadFull(head)
+		if err != nil {
+			return
+		}
+		if len(head) < 1 {
+			return fmt.Errorf("size mismatch")
+		}
+		action:=head[0]
+		if action ==ActionRequestDomainName {
+			rawTx.ActionData = &RequestDomain{}
+		}else if action == ActionTxActionIPO || action ==ActionTxActionSPO || action == ActionTxActionWithdraw{
+			rawTx.ActionData = &PublicOffering{}
+		}else {
+			return fmt.Errorf("unkown action %d",action)
+		}
+		t.RawTxi = rawTx
+		return t.RawTxi.DecodeMsg(dc)
 	default:
 		return fmt.Errorf("unkown type")
 	}
@@ -120,6 +158,13 @@ func (t *RawTxMarshaler) EncodeMsg(en *msgp.Writer) (err error) {
 	head := make([]byte, 2)
 	binary.BigEndian.PutUint16(head, uint16(t.GetType()))
 	_, err = en.Write(head)
+	if err != nil {
+		return err
+	}
+	if t.GetType() ==TxBaseAction {
+		r := t.RawTxi.(*RawActionTx)
+		err = en.WriteByte(r.Action)
+	}
 	if err != nil {
 		return err
 	}
@@ -141,6 +186,8 @@ func (t *RawTxMarshaler) Txi() Txi {
 		return raw.TermChange()
 	case *RawArchive:
 		return &raw.Archive
+	case *RawActionTx:
+		return raw.ActionTx()
 	default:
 		return nil
 	}

@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-//go:generate msgp
+////go:generate msgp  never generate automaticly
 const (
 	ActionTxActionIPO uint8 =  iota
 	ActionTxActionWithdraw
@@ -80,7 +80,7 @@ func (t *ActionTx) Setconfirm() {
 
 
 func (t *ActionTx) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-Ttx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleActionTx() *ActionTx {
@@ -245,4 +245,3 @@ func (t ActionTxs) ToRawTxs() RawActionTxs {
 func (c *ActionTx) RawTxi() RawTxi {
 	return c.RawActionTx()
 }
-

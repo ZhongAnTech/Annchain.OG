@@ -126,12 +126,22 @@ func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, p
 func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peerId string) {
 	ac := request.Archive
 	if ac == nil {
-		log.Warn("got nil MessageCampaign")
+		log.Warn("got nil MessageNewArchive")
 		return
 	}
 	m.HandleNewTxi(ac)
 	log.WithField("q", request).Debug("incremental received MessageNewArchive")
 
+}
+
+func (m*IncrementalSyncer) ActionTxHandler(request* types.MessageNewActionTx ,peerId string ) {
+	ax := request.ActionTx
+	if ax == nil {
+		log.Warn("got nil MessageNewActionTx")
+		return
+	}
+	m.HandleNewTxi(ax)
+	log.WithField("q", request).Debug("incremental received MessageNewActionTx")
 }
 
 func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {

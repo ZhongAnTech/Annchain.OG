@@ -29,7 +29,17 @@ type RawTx struct {
 	To    Address
 	Value *math.BigInt
 	Data  []byte
+	TokenId  int32
 }
+
+//msgp:RawActionTX
+type RawActionTx struct {
+	TxBase
+	Action  uint8
+	ActionData ActionData
+}
+
+
 
 //msgp:tuple RawSequencer
 type RawSequencer struct {
@@ -70,6 +80,8 @@ type RawCampaigns []*RawCampaign
 //msgp:tuple RawTermChanges
 type RawTermChanges []*RawTermChange
 
+//msgp:tuple RawActionTxs
+type RawActionTxs []*RawActionTx
 //msgp:tuple RawTxs
 type RawTxs []*RawTx
 
@@ -84,6 +96,7 @@ func (t *RawTx) Tx() *Tx {
 		To:     t.To,
 		Value:  t.Value,
 		Data:   t.Data,
+		TokenId:t.TokenId,
 	}
 	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
@@ -100,6 +113,26 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 	}
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
+}
+
+func (t *RawActionTx)ActionTx()*ActionTx{
+	if t==nil {
+		return nil
+	}
+	if t == nil {
+		return nil
+	}
+	tx := &ActionTx{
+		TxBase: t.TxBase,
+		Action:     t.Action,
+		ActionData:t.ActionData,
+		From: Signer.AddressFromPubKeyBytes(t.PublicKey),
+	}
+	return tx
+}
+
+func (t *RawActionTx)String()string {
+	return fmt.Sprintf("%s-[%.10s]-%d-rawTtx", t.TxBase.String(), t.AccountNonce)
 }
 
 func (t *RawTx) String() string {
@@ -341,6 +374,13 @@ func (r *Sequencers) Len() int {
 	return len(*r)
 }
 
+func (r *ActionTxs) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
+}
+
 type TxisMarshaler []*RawTxMarshaler
 
 func (t *TxisMarshaler) Append(tx Txi) {
@@ -405,6 +445,10 @@ func (t *RawCampaign) Txi() Txi {
 
 func (a *RawArchive) Txi() Txi {
 	return &a.Archive
+}
+
+func (a *RawActionTx) Txi() Txi {
+	return a.ActionTx()
 }
 
 //func (t *RawTx) Dump() string  {

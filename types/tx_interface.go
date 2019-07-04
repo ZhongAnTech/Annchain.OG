@@ -34,6 +34,7 @@ const (
 	TxBaseTypeCampaign
 	TxBaseTypeTermChange
 	TxBaseTypeArchive
+	TxBaseAction
 )
 
 func (t TxBaseType) String() string {

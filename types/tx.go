@@ -37,6 +37,7 @@ type Tx struct {
 	From    Address
 	To      Address
 	Value   *math.BigInt
+	TokenId  int32
 	Data    []byte
 	confirm time.Time
 }
@@ -125,6 +126,7 @@ func (t *Tx) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetSigBytes()))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Data))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.TokenId))
 
 	return buf.Bytes()
 }
@@ -176,6 +178,7 @@ func (t *Tx) RawTx() *RawTx {
 		To:     t.To,
 		Value:  t.Value,
 		Data:   t.Data,
+		TokenId: t.TokenId,
 	}
 	return rawTx
 }

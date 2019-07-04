@@ -49,6 +49,8 @@ func (t TxBaseType) String() string {
 		return "TC"
 	case TxBaseTypeArchive:
 		return "AC"
+	case TxBaseAction:
+		return "ATX"
 	default:
 		return "NA"
 	}

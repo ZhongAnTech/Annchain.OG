@@ -217,6 +217,35 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 	return tx, nil
 }
 
+func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
+	nonce uint64, enableSpo bool,TokenId int32  , pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	tx = &types.ActionTx{
+		From: from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
+		TxBase: types.TxBase{
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+		},
+		ActionData:&types.PublicOffering{
+			Value:value,
+			EnableSPO:enableSpo,
+			TokenId:TokenId,
+		},
+	}
+	tx.GetBase().Signature = sig.Bytes
+	tx.GetBase().PublicKey = pubkey.Bytes
+
+	if ok := m.SealTx(tx, nil); !ok {
+		logrus.Warn("failed to seal tx")
+		err = fmt.Errorf("failed to seal tx")
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
+}
+
 func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,
 	privateKey crypto.PrivateKey) types.Txi {
 	if privateKey.Type != crypto.Signer.GetCryptoType() {

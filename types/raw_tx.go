@@ -132,7 +132,7 @@ func (t *RawActionTx)ActionTx()*ActionTx{
 }
 
 func (t *RawActionTx)String()string {
-	return fmt.Sprintf("%s-[%.10s]-%d-rawTtx", t.TxBase.String(), t.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-rawATX", t.TxBase.String(), t.AccountNonce)
 }
 
 func (t *RawTx) String() string {

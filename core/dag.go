@@ -801,6 +801,10 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
+	if tx.GetType() == types.TxBaseAction {
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
 
 	// transfer balance
 	txnormal := tx.(*types.Tx)

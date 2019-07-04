@@ -39,7 +39,6 @@ var (
 	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
 
-var nilBatch = core.Putter{}
 
 func newTestAddress(priv crypto.PrivateKey) types.Address {
 	signer := crypto.NewSigner(priv.Type)
@@ -100,7 +99,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test tx read write
 	tx := newTestUnsealTx(0)
-	err = acc.WriteTransaction(nilBatch, tx)
+	err = acc.WriteTransaction(nil, tx)
 	if err != nil {
 		t.Fatalf("write tx %s failed: %v", tx.GetTxHash().String(), err)
 	}
@@ -123,7 +122,7 @@ func TestTransactionStorage(t *testing.T) {
 
 	// test sequencer read write
 	seq := newTestSeq(1)
-	err = acc.WriteTransaction(nilBatch, seq)
+	err = acc.WriteTransaction(nil, seq)
 	if err != nil {
 		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)
 	}
@@ -169,7 +168,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	acc := core.NewAccessor(db)
 
 	latestSeq := newTestSeq(0)
-	err = acc.WriteLatestSequencer(nilBatch,latestSeq)
+	err = acc.WriteLatestSequencer(nil,latestSeq)
 	if err != nil {
 		t.Fatalf("write latest sequencer error: %v", err)
 	}
@@ -202,7 +201,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	newBalance := math.NewBigInt(int64(rand.Intn(10000) + 10000))
-	err = acc.SetBalance(nilBatch,addr, newBalance)
+	err = acc.SetBalance(nil,addr, newBalance)
 	if err != nil {
 		t.Fatalf("set new balance failed: %v", err)
 	}
@@ -215,7 +214,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	addAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.AddBalance(nilBatch,addr, addAmount)
+	err = acc.AddBalance(nil,addr, addAmount)
 	if err != nil {
 		t.Fatalf("add balance failed")
 	}
@@ -228,7 +227,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	subAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.SubBalance(nilBatch,addr, subAmount)
+	err = acc.SubBalance(nil,addr, subAmount)
 	if err != nil {
 		t.Fatalf("sub balance failed")
 	}
@@ -252,10 +251,16 @@ func TestDag_Start(t *testing.T) {
 	seq:=types.RandomSequencer()
 	height := seq.Height
 	//acc.WriteLatestSequencer(nil,seq)
-	acc.WriteSequencerByHeight(nilBatch,seq)
+	batch := acc.NewBatch()
+	acc.WriteSequencerByHeight(batch,seq)
 	fmt.Println(seq)
+	err := batch.Write()
+	if err!=nil {
+		t.Fatal(err)
+	}
 	readSeq,err := acc.ReadSequencerByHeight(height)
 	if err!=nil {
+		fmt.Println(batch.ValueSize())
 		t.Fatal(err)
 	}
 	if readSeq.Height!=height {

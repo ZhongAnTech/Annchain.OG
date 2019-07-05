@@ -90,8 +90,8 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
-	if restart && root.Empty() {
-		panic("should not be empty hash")
+	if restart && dag.GetHeight() > 0 && root.Empty() {
+		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
 	}
 
 	if !restart {
@@ -131,8 +131,10 @@ func (dag *Dag) Stop() {
 func (dag *Dag) SaveStateRoot() {
 	key := []byte("stateroot")
 	root := dag.statedb.Root()
-	if root.Empty() {
-		panic("empty hash slove this")
+	// Debug code
+	if root.Empty() && dag.GetHeight() > 0 {
+		log.Error("empty hash slove this")
+		return
 	}
 	dag.db.Put(key, dag.statedb.Root().ToBytes())
 	log.Infof("stateroot saved: %x", dag.statedb.Root().ToBytes())

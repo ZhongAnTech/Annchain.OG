@@ -383,8 +383,8 @@ Check genesis sequencer from OG.
         "PublicKey":"s+G4MG4bqxXtUaTCSwhlUGd7qZzWKDWWUxajZBno9ZzmojKJIYLadAGjKQZuj+KvYHKHE55jfTFL8NYcudHH7g==",
         "Signature":"MEQCIBIwK9fJUfy/7yZG2Zb6QnCaPMNd/K9ID6Tw+HgmRVhdAiBCTXEC2on0R7KMU6rjiKzwulcAjIBI9eNNwRdlscq39g==",
         "MineNonce":0,
-        "Id":0,"
-        Issuer":"0x0000000000000000000000000000000000000000",
+        "Id":0,
+        "Issuer":"0x0000000000000000000000000000000000000000",
         "ContractHashOrder":[]
     },
     "message":""

@@ -16,6 +16,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -65,21 +66,7 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func readConfig() {
-	configPath := viper.GetString("config")
-	if strings.HasSuffix(configPath, ".toml") {
-		absPath, err := filepath.Abs(configPath)
-		panicIfError(err, fmt.Sprintf("Error on parsing config file path: %s", absPath))
-
-		file, err := os.Open(absPath)
-		panicIfError(err, fmt.Sprintf("Error on opening config file: %s", absPath))
-		defer file.Close()
-
-		viper.SetConfigType("toml")
-		err = viper.MergeConfig(file)
-		panicIfError(err, fmt.Sprintf("Error on reading config file: %s", absPath))
-		return
-	}
+func mergeOnlineConfig(configPath string) {
 	_, err := url.Parse(configPath)
 	if err != nil {
 		panicIfError(err, "config is should  be valid server url or toml file has suffix .toml")
@@ -91,21 +78,48 @@ func readConfig() {
 	req.SetTimeout(60*time.Second, 60*time.Second)
 	err = req.ToFile(fileName)
 	if err != nil {
-		os.Remove(fileName)
+		_ = os.Remove(fileName)
 		fmt.Println(req.String())
 	}
 	panicIfError(err, "get config from server error")
+
 	file, err := os.Open(fileName)
 	if err != nil {
-		os.Remove(fileName)
+		_ = os.Remove(fileName)
 	}
 	panicIfError(err, fmt.Sprintf("Error on opening config file: %s", fileName))
 	defer file.Close()
 
 	viper.SetConfigType("toml")
 	err = viper.MergeConfig(file)
-	os.Remove(fileName)
+	_ = os.Remove(fileName)
 	panicIfError(err, fmt.Sprintf("Error on reading config file: %s", fileName))
+}
+
+func mergeLocalConfig(configPath string) {
+	absPath, err := filepath.Abs(configPath)
+	panicIfError(err, fmt.Sprintf("Error on parsing config file path: %s", absPath))
+
+	file, err := os.Open(absPath)
+	panicIfError(err, fmt.Sprintf("Error on opening config file: %s", absPath))
+	defer file.Close()
+
+	viper.SetConfigType("toml")
+	err = viper.MergeConfig(file)
+	panicIfError(err, fmt.Sprintf("Error on reading config file: %s", absPath))
+	return
+}
+
+// readConfig will respect --config first. If not found, try --datadir/--config
+// If neither config exists, try to use --config as an online source.
+func readConfig() {
+	configPath := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("config"))
+
+	if io.FileExists(configPath) {
+		mergeLocalConfig(configPath)
+		return
+	}
+	mergeOnlineConfig(viper.GetString("config"))
 }
 
 func writeConfig() {

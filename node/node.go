@@ -82,7 +82,7 @@ func NewNode() *Node {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
 		n.Components = append(n.Components, rpcServer)
 	}
-	bootNode := viper.GetBool("p2p.bootstrap_node")
+	isBootNode := viper.GetBool("p2p.bootstrap_node")
 
 	networkId := viper.GetInt64("p2p.network_id")
 	if networkId == 0 {
@@ -166,7 +166,7 @@ func NewNode() *Node {
 	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
 		Mode:           downloader.FullSync,
 		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
-		BootstrapNode:  bootNode,
+		BootstrapNode:  isBootNode,
 	}, hub, org)
 
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
@@ -180,7 +180,7 @@ func NewNode() *Node {
 		Hub:                    hub,
 		Downloader:             downloaderInstance,
 		SyncMode:               downloader.FullSync,
-		BootStrapNode:          bootNode,
+		BootStrapNode:          isBootNode,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -388,7 +388,7 @@ func NewNode() *Node {
 	var p2pServer *p2p.Server
 	if viper.GetBool("p2p.enabled") {
 		privKey := getNodePrivKey()
-		p2pServer = NewP2PServer(privKey, bootNode)
+		p2pServer = NewP2PServer(privKey, isBootNode)
 		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
 		hub.NodeInfo = p2pServer.NodeInfo
 

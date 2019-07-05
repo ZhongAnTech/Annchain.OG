@@ -26,27 +26,25 @@ import (
 //msgp:tuple RawTx
 type RawTx struct {
 	TxBase
-	To    Address
-	Value *math.BigInt
-	Data  []byte
-	TokenId  int32
+	To      Address
+	Value   *math.BigInt
+	Data    []byte
+	TokenId int32
 }
 
 //msgp:RawActionTX
 type RawActionTx struct {
 	TxBase
-	Action  uint8
+	Action     uint8
 	ActionData ActionData
 }
-
-
 
 //msgp:tuple RawSequencer
 type RawSequencer struct {
 	TxBase
 	BlsJointSig    []byte
 	BlsJointPubKey []byte
-	StateRoot Hash
+	StateRoot      Hash
 }
 
 //msgp:tuple RawCampaign
@@ -83,6 +81,7 @@ type RawTermChanges []*RawTermChange
 
 //msgp:tuple RawActionTxs
 type RawActionTxs []*RawActionTx
+
 //msgp:tuple RawTxs
 type RawTxs []*RawTx
 
@@ -93,11 +92,11 @@ func (t *RawTx) Tx() *Tx {
 		return nil
 	}
 	tx := &Tx{
-		TxBase: t.TxBase,
-		To:     t.To,
-		Value:  t.Value,
-		Data:   t.Data,
-		TokenId:t.TokenId,
+		TxBase:  t.TxBase,
+		To:      t.To,
+		Value:   t.Value,
+		Data:    t.Data,
+		TokenId: t.TokenId,
 	}
 	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
@@ -111,29 +110,29 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		TxBase:         t.TxBase,
 		BlsJointPubKey: t.BlsJointPubKey,
 		BlsJointSig:    t.BlsJointSig,
-		StateRoot: t.StateRoot,
+		StateRoot:      t.StateRoot,
 	}
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx
 }
 
-func (t *RawActionTx)ActionTx()*ActionTx{
-	if t==nil {
+func (t *RawActionTx) ActionTx() *ActionTx {
+	if t == nil {
 		return nil
 	}
 	if t == nil {
 		return nil
 	}
 	tx := &ActionTx{
-		TxBase: t.TxBase,
+		TxBase:     t.TxBase,
 		Action:     t.Action,
-		ActionData:t.ActionData,
-		From: Signer.AddressFromPubKeyBytes(t.PublicKey),
+		ActionData: t.ActionData,
+		From:       Signer.AddressFromPubKeyBytes(t.PublicKey),
 	}
 	return tx
 }
 
-func (t *RawActionTx)String()string {
+func (t *RawActionTx) String() string {
 	return fmt.Sprintf("%s-[%.10s]-%d-rawATX", t.TxBase.String(), t.AccountNonce)
 }
 

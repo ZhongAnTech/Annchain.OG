@@ -115,7 +115,7 @@ func (t *Sequencer) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
-	panicIfError(binary.Write(&buf, binary.BigEndian,t.StateRoot.Bytes))
+	panicIfError(binary.Write(&buf, binary.BigEndian, t.StateRoot.Bytes))
 	for _, parent := range t.Parents() {
 		panicIfError(binary.Write(&buf, binary.BigEndian, parent.Bytes))
 	}
@@ -180,7 +180,7 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		TxBase:         s.TxBase,
 		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
-		StateRoot:s.StateRoot,
+		StateRoot:      s.StateRoot,
 	}
 }
 

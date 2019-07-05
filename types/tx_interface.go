@@ -141,8 +141,8 @@ type TxiSmallCaseMarshal struct {
 }
 
 func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {
-	if t ==nil || t.Txi ==nil {
-		return nil,nil
+	if t == nil || t.Txi == nil {
+		return nil, nil
 	}
 	return t.Txi.ToSmallCaseJson()
 }

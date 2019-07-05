@@ -106,12 +106,12 @@ func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	//this is edited by manuly
-	if z.Action == ActionTxActionWithdraw || z.Action == ActionTxActionIPO|| z.Action == ActionTxActionSPO {
+	if z.Action == ActionTxActionWithdraw || z.Action == ActionTxActionIPO || z.Action == ActionTxActionSPO {
 		z.ActionData = &PublicOffering{}
-	}else if z.Action ==ActionRequestDomainName {
+	} else if z.Action == ActionRequestDomainName {
 		z.ActionData = &RequestDomain{}
-	}else {
-		err = fmt.Errorf("unkown action %d",z.Action)
+	} else {
+		err = fmt.Errorf("unkown action %d", z.Action)
 		return
 	}
 	bts, err = z.From.UnmarshalMsg(bts)

@@ -19,7 +19,7 @@ func TestSend(t *testing.T) {
 	}
 	transport := &http.Transport{
 		MaxIdleConnsPerHost: 15,
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:               http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
@@ -32,8 +32,8 @@ func TestSend(t *testing.T) {
 	}
 	a := app{
 		client: &http.Client{
-			Timeout: time.Second * 10,
-			Transport:transport,
+			Timeout:   time.Second * 10,
+			Transport: transport,
 		},
 	}
 	for i, v := range ar {

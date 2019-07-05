@@ -17,6 +17,7 @@ package crypto
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 
 	"github.com/annchain/OG/common/crypto/ecies"
@@ -105,4 +106,24 @@ func (s *SignerSecp256k1) DealRecoverID(sig Signature) Signature {
 		sig.Bytes = sig.Bytes[:l-1]
 	}
 	return sig
+}
+
+// Ecrecover returns the uncompressed public key that created the given signature.
+func Ecrecover(hash, sig []byte) ([]byte, error) {
+	return secp256k1.RecoverPubkey(hash, sig)
+}
+
+// SigToPub returns the public key that created the given signature.
+func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
+	s, err := Ecrecover(hash, sig)
+	if err != nil {
+		return nil, err
+	}
+
+	x, y := elliptic.Unmarshal(S256(), s)
+	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
+}
+
+func (s*SignerSecp256k1)CanRecoverPubFromSig()bool {
+	return true
 }

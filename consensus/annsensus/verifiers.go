@@ -32,7 +32,7 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 		//small term id senstors will be dropped , just verify format and bls keys
 		log.Debug("small term id ")
 	} else {
-		if a.GetCandidate(t.Issuer) == nil {
+		if a.GetCandidate(t.Sender()) == nil {
 			log.WithField("candidates ", a.term.Candidates()).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
 			return false
 		}
@@ -67,7 +67,7 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 		return true
 	}
 
-	if senator := a.term.GetSenator(seq.Issuer); senator == nil {
+	if senator := a.term.GetSenator(seq.Sender()); senator == nil {
 		log.WithField("address ", seq.Issuer.ShortString()).Warn("not found senator for address")
 		return false
 	}
@@ -116,7 +116,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	}
 
 	//check balance
-	balance := a.Idag.GetBalance(cp.Issuer)
+	balance := a.Idag.GetBalance(cp.Sender())
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
 		log.WithField("addr ", cp.Issuer).Warn("your balance is not enough to generate campaign")
 		return false
@@ -137,7 +137,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 		log.WithField("cp", cp).WithField("data ", cp.PublicKey).Warn("dkgPub is nil")
 		return false
 	}
-	if a.HasCampaign(cp.Issuer) {
+	if a.HasCampaign(cp.Sender()) {
 		log.WithField("campaign", cp).Debug("duplicate campaign ")
 		//todo  if a node dose not cacht up yet  returning false will cause fail
 		//return false

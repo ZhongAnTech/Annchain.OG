@@ -133,7 +133,8 @@ func NewNode() *Node {
 	}
 	consensusVerifier := &og.ConsensusVerifier{}
 
-	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
+	//verify format first , set address and then verify graph
+	verifiers := []og.Verifier{txFormatVerifier,graphVerifier, consensusVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,

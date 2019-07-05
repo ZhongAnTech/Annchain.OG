@@ -848,13 +848,13 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			break
 
 		case *types.Tx:
-			batchFrom, okFrom := batch[tx.From]
+			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = math.NewBigInt(0)
 				batchFrom.Pos = math.NewBigInt(0)
-				batch[tx.From] = batchFrom
+				batch[tx.Sender()] = batchFrom
 			}
 			batchFrom.TxList.put(tx)
 			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)

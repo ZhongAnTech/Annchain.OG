@@ -127,7 +127,7 @@ func TestPoolCommit(t *testing.T) {
 		t.Fatalf("tx0 is not added into pool")
 	}
 	if status := pool.GetStatus(tx0.GetTxHash()); status != core.TxStatusTip {
-		t.Fatalf("tx0's status is not tip but %s after commit, addr %s", status.String(), tx0.Sender().String())
+		t.Fatalf("tx0's status is not tip but %s after commit, addr %s", status.String(), tx0.Sender())
 	}
 	geInPool := pool.Get(genesis.GetTxHash())
 	if geInPool != nil {

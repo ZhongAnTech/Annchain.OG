@@ -33,6 +33,7 @@ const (
 
 type ISigner interface {
 	AddressFromPubKeyBytes(pubKey []byte) Address
+	CanRecoverPubFromSig  () bool
 }
 
 type Message interface {

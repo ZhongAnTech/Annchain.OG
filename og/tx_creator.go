@@ -164,7 +164,7 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 	tx := types.Tx{
 		Value: value,
 		To:    to,
-		From:  from,
+		From:  &from,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeNormal,
@@ -195,7 +195,7 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt, data []byte,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.Tx{
-		From: from,
+		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
 		To:    to,
@@ -222,7 +222,7 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
 	nonce uint64, enableSpo bool, TokenId int32, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.ActionTx{
-		From: from,
+		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
 		TxBase: types.TxBase{
@@ -263,7 +263,7 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 
 func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, accountNonce uint64) *types.Sequencer {
 	tx := types.Sequencer{
-		Issuer: issuer,
+		Issuer: &issuer,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,
@@ -411,8 +411,10 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	//for sequencer no mined nonce
 	// record the mining times.
 	tx.GetBase().PublicKey = crypto.Signer.PubKey(*privateKey).Bytes
-	tx.BlsJointPubKey = blsPubKey
-	tx.Proposing = true
+	if blsPubKey !=nil {
+		tx.BlsJointPubKey = blsPubKey
+		tx.Proposing = true
+	}
 	connectionTries := 0
 	timeStart := time.Now()
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)

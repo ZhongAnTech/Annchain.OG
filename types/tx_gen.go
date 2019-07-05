@@ -22,9 +22,20 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.From.DecodeMsg(dc)
-	if err != nil {
-		return
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.From = nil
+	} else {
+		if z.From == nil {
+			z.From = new(Address)
+		}
+		err = z.From.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
 	}
 	err = z.To.DecodeMsg(dc)
 	if err != nil {
@@ -67,9 +78,16 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.From.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.From == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.From.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	err = z.To.EncodeMsg(en)
 	if err != nil {
@@ -106,9 +124,13 @@ func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	o, err = z.From.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.From == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.From.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	o, err = z.To.MarshalMsg(o)
 	if err != nil {
@@ -142,9 +164,20 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	bts, err = z.From.UnmarshalMsg(bts)
-	if err != nil {
-		return
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.From = nil
+	} else {
+		if z.From == nil {
+			z.From = new(Address)
+		}
+		bts, err = z.From.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
 	}
 	bts, err = z.To.UnmarshalMsg(bts)
 	if err != nil {
@@ -179,7 +212,13 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Tx) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + z.From.Msgsize() + z.To.Msgsize()
+	s = 1 + z.TxBase.Msgsize()
+	if z.From == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.From.Msgsize()
+	}
+	s += z.To.Msgsize()
 	if z.Value == nil {
 		s += msgp.NilSize
 	} else {

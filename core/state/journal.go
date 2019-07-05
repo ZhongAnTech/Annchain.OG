@@ -94,12 +94,13 @@ type (
 	suicideChange struct {
 		account     *types.Address
 		prev        bool // whether account had already suicided
-		prevbalance *math.BigInt
+		prevbalance BalanceSet
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
 		account *types.Address
+		tokenID int32
 		prev    *math.BigInt
 	}
 	nonceChange struct {
@@ -153,7 +154,9 @@ func (ch suicideChange) revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.suicided = ch.prev
-		stobj.SetBalance(ch.prevbalance)
+		for k, v := range ch.prevbalance {
+			stobj.SetBalance(k, v)
+		}
 	}
 }
 
@@ -173,7 +176,7 @@ func (ch touchChange) dirtied() *types.Address {
 func (ch balanceChange) revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetBalance(ch.prev)
+		stobj.SetBalance(ch.tokenID, ch.prev)
 	}
 }
 

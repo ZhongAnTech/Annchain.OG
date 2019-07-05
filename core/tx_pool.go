@@ -653,7 +653,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 
 	if e == nil {
 		if tx.GetNonce() != latestNonce+1 {
-			log.WithField("shoud be ", latestNonce+1).WithField("tx", tx).Error("nonce err")
+			log.WithField("should be ", latestNonce+1).WithField("tx", tx).Error("nonce err")
 			return TxQualityIsFatal
 		}
 	} else {

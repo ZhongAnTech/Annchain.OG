@@ -533,15 +533,15 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
 }
 
 // GetBalance read the confirmed balance of an address from ogdb.
-func (dag *Dag) GetBalance(addr types.Address) *math.BigInt {
+func (dag *Dag) GetBalance(tokenID int32, addr types.Address) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getBalance(addr)
+	return dag.getBalance(tokenID, addr)
 }
 
-func (dag *Dag) getBalance(addr types.Address) *math.BigInt {
-	return dag.statedb.GetBalance(addr)
+func (dag *Dag) getBalance(tokenID int32, addr types.Address) *math.BigInt {
+	return dag.statedb.GetTokenBalance(tokenID, addr)
 }
 
 // GetLatestNonce returns the latest tx of an addresss.

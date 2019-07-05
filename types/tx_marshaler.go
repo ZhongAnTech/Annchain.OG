@@ -130,7 +130,7 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 		head := make([]byte, 1)
 		_,err := dc.ReadFull(head)
 		if err != nil {
-			return
+			return err
 		}
 		if len(head) < 1 {
 			return fmt.Errorf("size mismatch")

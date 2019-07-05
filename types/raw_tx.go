@@ -46,6 +46,7 @@ type RawSequencer struct {
 	TxBase
 	BlsJointSig    []byte
 	BlsJointPubKey []byte
+	StateRoot Hash
 }
 
 //msgp:tuple RawCampaign
@@ -110,6 +111,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		TxBase:         t.TxBase,
 		BlsJointPubKey: t.BlsJointPubKey,
 		BlsJointSig:    t.BlsJointSig,
+		StateRoot: t.StateRoot,
 	}
 	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
 	return tx

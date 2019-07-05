@@ -14,6 +14,7 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/annchain/OG/common/crypto"
@@ -78,15 +79,18 @@ type SeqRequest struct {
 	Height     uint64
 }
 
+//discarded function
 func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
-	seq = c.TxCreator.NewSignedSequencer(r.Issuer, r.Height, r.Nonce, r.PrivateKey)
+	seq = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	logrus.WithField("seq", seq).Infof("sequencer generated")
-	if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
-		logrus.Warn("delegate failed to seal seq")
-		err = fmt.Errorf("delegate failed to seal seq")
-		return
+	//if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
+	//	logrus.Warn("delegate failed to seal seq")
+	//	err = fmt.Errorf("delegate failed to seal seq")
+	//	return
+	//}
+	if seq == nil {
+		return nil, errors.New("generate seq failed")
 	}
-
 	logrus.WithField("seq", seq).Infof("sequencer  connected")
 	return
 }

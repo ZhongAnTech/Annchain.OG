@@ -169,6 +169,7 @@ func (t *Tx) Dump() string {
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight, t.Data)
 }
+
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {
 		return nil

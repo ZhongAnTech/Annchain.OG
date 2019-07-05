@@ -34,6 +34,7 @@ type Sequencer struct {
 	Issuer         Address
 	BlsJointSig    hexutil.Bytes
 	BlsJointPubKey hexutil.Bytes
+	StateRoot      Hash
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
@@ -114,6 +115,7 @@ func (t *Sequencer) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
+	panicIfError(binary.Write(&buf, binary.BigEndian,t.StateRoot.Bytes))
 	for _, parent := range t.Parents() {
 		panicIfError(binary.Write(&buf, binary.BigEndian, parent.Bytes))
 	}
@@ -157,7 +159,7 @@ func (t *Sequencer) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s",
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s root: %s",
 		strings.Join(phashes, " ,"),
 		t.Issuer.Hex(),
 		t.Height,
@@ -166,6 +168,7 @@ func (t *Sequencer) Dump() string {
 		t.BlsJointPubKey,
 		hexutil.Encode(t.PublicKey),
 		hexutil.Encode(t.Signature),
+		t.StateRoot.Hex(),
 	)
 }
 
@@ -177,6 +180,7 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		TxBase:         s.TxBase,
 		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
+		StateRoot:s.StateRoot,
 	}
 }
 

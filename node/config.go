@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
@@ -26,7 +27,6 @@ import (
 	"github.com/spf13/viper"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -50,22 +50,11 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 		}
 		return key
 	}
-	datadir := viper.GetString("datadir")
+	dataDir := viper.GetString("datadir")
 	// Use any specifically configured key.
 
-	// Generate ephemeral key if no datadir is being used.
-	if datadir == "" {
-		key, err := crypto.GenerateKey()
-		if err != nil {
-			panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
-		}
-		data := crypto.FromECDSA(key)
-		viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
-		return key
-	}
-
-	keyfile := resolvePath(datadirPrivateKey)
-	if key, err := crypto.LoadECDSA(keyfile); err == nil {
+	keyFile := io.FixPrefixPath(dataDir, datadirPrivateKey)
+	if key, err := crypto.LoadECDSA(keyFile); err == nil {
 		return key
 	}
 	// No persistent key found, generate and store a new one.
@@ -73,12 +62,11 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate node key: %v", err))
 	}
-	if err := os.MkdirAll(datadir, 0700); err != nil {
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 		return key
 	}
-	keyfile = filepath.Join(datadir, datadirPrivateKey)
-	if err := crypto.SaveECDSA(keyfile, key); err != nil {
+	if err := crypto.SaveECDSA(keyFile, key); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 	}
 	data := crypto.FromECDSA(key)
@@ -86,21 +74,7 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	return key
 }
 
-// ResolvePath resolves path in the instance directory.
-func resolvePath(path string) string {
-	datadir := viper.GetString("datadir")
-	if filepath.IsAbs(path) {
-		return path
-	}
-	oldpath := filepath.Join(datadir, path)
-	if filepath.IsAbs(oldpath) {
-		return oldpath
-	}
-	return oldpath
-
-}
-
-func NewP2PServer(privKey *ecdsa.PrivateKey, bootNode bool) *p2p.Server {
+func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {
 	var p2pConfig p2p.Config
 	p2pConfig.PrivateKey = privKey
 	port := viper.GetString("p2p.port")
@@ -130,7 +104,7 @@ func NewP2PServer(privKey *ecdsa.PrivateKey, bootNode bool) *p2p.Server {
 	p2pConfig.NAT = nat.Any()
 	p2pConfig.NoEncryption = viper.GetBool("p2p.no_encryption")
 
-	if bootNode {
+	if isBootNode {
 		tcpPort, err := strconv.Atoi(port)
 		if err != nil {
 			panic(err)

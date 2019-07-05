@@ -134,7 +134,7 @@ func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peer
 
 }
 
-func (m*IncrementalSyncer) ActionTxHandler(request* types.MessageNewActionTx ,peerId string ) {
+func (m *IncrementalSyncer) HandleActionTx(request *types.MessageNewActionTx, peerId string) {
 	ax := request.ActionTx
 	if ax == nil {
 		log.Warn("got nil MessageNewActionTx")

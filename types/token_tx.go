@@ -159,7 +159,9 @@ func (t *ActionTx) SignatureTargets() []byte {
 	if t.Action == ActionTxActionIPO || t.Action ==ActionTxActionSPO || t.Action ==ActionTxActionWithdraw {
 		of := t.GetPublicOffering()
 		panicIfError(binary.Write(&buf, binary.BigEndian, of.Value.GetSigBytes()))
-		panicIfError(binary.Write(&buf, binary.BigEndian, of.TokenId))
+		if t.Action == ActionTxActionIPO {
+			panicIfError(binary.Write(&buf, binary.BigEndian, of.TokenId))
+		}
 		panicIfError(binary.Write(&buf, binary.BigEndian, of.EnableSPO))
 	}else if t.Action ==ActionRequestDomainName  {
 		r :=t.GetDomainName()

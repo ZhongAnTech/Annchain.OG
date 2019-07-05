@@ -114,9 +114,9 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
 		"latest_seq": int(pool.dag.latestSequencer.Number()),
-		"pendings" : len(pool.pendings.txs),
-		"flows":     len(pool.flows.afs),
-		"hashordr":len(pool.txLookup.order),
+		"pendings":   len(pool.pendings.txs),
+		"flows":      len(pool.flows.afs),
+		"hashordr":   len(pool.txLookup.order),
 	}
 }
 
@@ -1266,4 +1266,10 @@ func (t *TxPool) GetConfirmStatus() *ConfirmInfo {
 
 func (t *TxPool) GetOrder() types.Hashes {
 	return t.txLookup.GetOrder()
+}
+
+//CalculateStateRoot  for proposing sequencer
+func (t *TxPool) CalculateStateRoot(seq *types.Sequencer) (hash types.Hash, err error) {
+	//TODO
+	return types.Hash{}, nil
 }

@@ -240,7 +240,7 @@ func (c *AutoClient) fireTxs(me types.Address) bool {
 		m = 1000
 	}
 	logrus.WithField("micro", m).Info("sent interval ")
-	for i := uint64(1); i < 1000000000; i++ {
+	for i := uint64(2); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
 			return true
@@ -264,7 +264,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 
 	me := c.MyAccount
 	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 1)
 		if txi != nil {
 			logrus.WithField("txi", txi).Info("get start test tps")
 			c.AutoTxEnabled = false

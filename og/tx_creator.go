@@ -411,10 +411,15 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	//for sequencer no mined nonce
 	// record the mining times.
 	tx.GetBase().PublicKey = crypto.Signer.PubKey(*privateKey).Bytes
-	if blsPubKey !=nil {
+
+
+	if blsPubKey != nil {
+		// proposed by bft
 		tx.BlsJointPubKey = blsPubKey
 		tx.Proposing = true
 	}
+	// else it is proposed by delegate for solo
+	
 	connectionTries := 0
 	timeStart := time.Now()
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)

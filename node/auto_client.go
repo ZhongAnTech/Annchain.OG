@@ -227,7 +227,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 	me.SetNonce(n)
 	if err != nil {
 		// not exists, set to 0
-		return 0
+		return 1
 	} else {
 		n, _ = me.ConsumeNonce()
 		return n

@@ -527,3 +527,15 @@ func (m *MessageNewArchive) String() string {
 	}
 	return m.Archive.String()
 }
+
+//msgp:tuple MessageNewActionTx
+type MessageNewActionTx struct {
+	ActionTx *ActionTx
+}
+
+func (m *MessageNewActionTx) String() string {
+	if m.ActionTx == nil {
+		return "nil"
+	}
+	return m.ActionTx.String()
+}

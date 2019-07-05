@@ -79,6 +79,7 @@ const (
 	MessageTypeTermChange
 
 	MessageTypeArchive
+	MessageTypeActionTX
 
 	//for consensus dkg
 	MessageTypeConsensusDkgDeal
@@ -172,6 +173,8 @@ func (mt MessageType) String() string {
 		return "MessageTypeTermChange"
 	case MessageTypeArchive:
 		return "MessageTypeArchive"
+	case MessageTypeActionTX:
+		return "MessageTypeActionTX"
 
 	case MessageTypeConsensusDkgDeal:
 		return "MessageTypeConsensusDkgDeal"
@@ -596,6 +599,8 @@ func (p *p2PMessage) Unmarshal() error {
 
 	case MessageTypeArchive:
 		p.message = &types.MessageNewArchive{}
+	case MessageTypeActionTX:
+		p.message = &types.MessageNewActionTx{}
 
 	case MessageTypeProposal:
 		p.message = &types.MessageProposal{

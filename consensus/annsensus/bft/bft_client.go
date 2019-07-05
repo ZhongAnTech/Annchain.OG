@@ -170,8 +170,6 @@ func (p *DefaultPartner) Stop() {
 	logrus.Info("default partner stopped")
 }
 
-
-
 func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultPartner {
 
 	if nbParticipants < 2 {
@@ -179,7 +177,7 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 	}
 	p := &DefaultPartner{
 		N:         nbParticipants,
-		F:         (nbParticipants -1 )/3,
+		F:         (nbParticipants - 1) / 3,
 		blockTime: blockTime,
 		PartnerBase: PartnerBase{
 			Id:                     id,
@@ -191,14 +189,14 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 		States: make(map[types.HeightRound]*HeightRoundState),
 	}
 	// p.N == 3 *p.F+1
-	 if p.N%3==1 {
-		p.Maj23 = 2*p.F+1
-	}else {
-		 p.Maj23 = MajorityTwoThird(p.N)
-	 }
+	if p.N%3 == 1 {
+		p.Maj23 = 2*p.F + 1
+	} else {
+		p.Maj23 = MajorityTwoThird(p.N)
+	}
 	p.waiter = NewWaiter(p.GetWaiterTimeoutChannel())
 	p.RegisterDecisionReceiveFunc(deFaultDecisionFunc)
-	logrus.WithField("n ",p.N).WithField("F",p.F).WithField("maj23",p.Maj23).Debug("new bft")
+	logrus.WithField("n ", p.N).WithField("F", p.F).WithField("maj23", p.Maj23).Debug("new bft")
 	return p
 }
 
@@ -206,12 +204,12 @@ func (p *DefaultPartner) Reset(nbParticipants int, id int) {
 	p.N = nbParticipants
 	p.F = (nbParticipants - 1) / 3
 	p.Id = id
-	if p.N %3==1 {
-		p.Maj23 = 2*p.F+1
-	}else {
+	if p.N%3 == 1 {
+		p.Maj23 = 2*p.F + 1
+	} else {
 		p.Maj23 = MajorityTwoThird(p.N)
 	}
-	logrus.WithField("maj23" ,p.Maj23).WithField("f ",p.F).WithField("nb ",p.N).Info("reset bft")
+	logrus.WithField("maj23", p.Maj23).WithField("f ", p.F).WithField("nb ", p.N).Info("reset bft")
 	return
 
 }

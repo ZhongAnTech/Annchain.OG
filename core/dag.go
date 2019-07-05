@@ -167,12 +167,12 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 		return err
 	}
 	// init latest sequencer
-	err = dag.accessor.WriteLatestSequencer(nil,genesis)
+	err = dag.accessor.WriteLatestSequencer(nil, genesis)
 	if err != nil {
 		return err
 	}
 
-	err = dag.accessor.WriteSequencerByHeight(nil,genesis)
+	err = dag.accessor.WriteSequencerByHeight(nil, genesis)
 	if err != nil {
 		return err
 	}
@@ -753,7 +753,7 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
 	if tx.GetType() != types.TxBaseTypeArchive {
-		err := dag.accessor.WriteTxHashByNonce(putter,tx.Sender(), tx.GetNonce(), tx.GetTxHash())
+		err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
 		if err != nil {
 			return fmt.Errorf("write latest nonce err: %v", err)
 		}
@@ -799,6 +799,10 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	}
 	if tx.GetType() == types.TxBaseTypeTermChange {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+	if tx.GetType() == types.TxBaseAction {
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 

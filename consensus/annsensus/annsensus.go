@@ -82,8 +82,7 @@ type AnnSensus struct {
 	initDone bool
 }
 
-
-func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int ,
+func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int,
 	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
@@ -119,7 +118,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.termChangeChan = make(chan *types.TermChange)
 	//todo fix this later ,bft consensus
 	//"The latest gossip on BFT consensus " 2f+1
-	if partnerNum <2 {
+	if partnerNum < 2 {
 		panic(partnerNum)
 	}
 	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
@@ -182,9 +181,9 @@ func (as *AnnSensus) Name() string {
 }
 
 func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
-	return map[string]interface{} {
-		"newTxHandlers" : len(as.newTxHandlers),
-		"consensusTXConfirmed" : len(as.ConsensusTXConfirmed),
+	return map[string]interface{}{
+		"newTxHandlers":        len(as.newTxHandlers),
+		"consensusTXConfirmed": len(as.ConsensusTXConfirmed),
 	}
 	// TODO
 	return nil
@@ -637,9 +636,9 @@ func (as *AnnSensus) loop() {
 					atomic.StoreUint32(&as.genesisBftIsRunning, 1)
 					//wait until connect enought peers
 					eventInit = true
-					if !as.initDone && as.NbParticipants ==2 && peerNum==as.NbParticipants-1{
+					if !as.initDone && as.NbParticipants == 2 && peerNum == as.NbParticipants-1 {
 						goroutine.New(func() {
-							as.NewPeerConnectedEventListener<- "temp peer"
+							as.NewPeerConnectedEventListener <- "temp peer"
 						})
 					}
 					continue
@@ -670,9 +669,9 @@ func (as *AnnSensus) loop() {
 					eventInit = true
 					waitNewTerm = true
 					//TODO  newTermChange if we got new Termchange
-					if as.NbParticipants ==2 && peerNum==as.NbParticipants-1{
+					if as.NbParticipants == 2 && peerNum == as.NbParticipants-1 {
 						goroutine.New(func() {
-							as.NewPeerConnectedEventListener<- "temp peer"
+							as.NewPeerConnectedEventListener <- "temp peer"
 						})
 					}
 
@@ -691,7 +690,7 @@ func (as *AnnSensus) loop() {
 
 			}
 
-		case peerID :=<-as.NewPeerConnectedEventListener:
+		case peerID := <-as.NewPeerConnectedEventListener:
 
 			if !as.isGenesisPartner && !eventInit {
 				msg := types.MessageTermChangeRequest{
@@ -702,12 +701,12 @@ func (as *AnnSensus) loop() {
 			if as.initDone {
 				continue
 			}
-		    if peerID !="temp peer" {
+			if peerID != "temp peer" {
 				peerNum++
 			}
 
 			log.WithField("num ", peerNum).Debug("peer num ")
-			if (peerNum == as.NbParticipants-1 || peerID =="temp peer")  && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
+			if (peerNum == as.NbParticipants-1 || peerID == "temp peer") && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")
 				goroutine.New(func() {
 					as.dkg.SendGenesisPublicKey(as.genesisAccounts)

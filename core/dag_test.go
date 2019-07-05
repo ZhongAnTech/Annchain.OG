@@ -291,4 +291,3 @@ func TestDagProcess(t *testing.T) {
 		t.Fatalf("the value is not tranferred to contract, should be: %d, get: %d", transferValue, blc.GetInt64())
 	}
 }
-

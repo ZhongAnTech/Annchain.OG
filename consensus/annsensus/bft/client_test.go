@@ -144,7 +144,6 @@ func TestBFT_GetInfo(t *testing.T) {
 	start(peers, 3)
 }
 
-
 func TestByzantineButOKBUG(t *testing.T) {
 	total := 6
 	byzantines := 3

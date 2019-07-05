@@ -54,10 +54,10 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 		}
 		m.messageSender.BroadcastMessage(og.MessageTypeArchive, &msg)
 	case *types.ActionTx:
-		msg:= types.MessageNewActionTx{
-			ActionTx:tx,
+		msg := types.MessageNewActionTx{
+			ActionTx: tx,
 		}
-		m.messageSender.BroadcastMessage(og.MessageTypeActionTX,&msg)
+		m.messageSender.BroadcastMessage(og.MessageTypeActionTX, &msg)
 
 	default:
 		log.Warn("never come here, unknown tx type ", tx)

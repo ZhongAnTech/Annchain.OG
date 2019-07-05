@@ -49,7 +49,6 @@ func NewRpcServer(port string) *RpcServer {
 	return rpc
 }
 
-
 func (srv *RpcServer) Start() {
 	logrus.Infof("listening Http on %s", srv.port)
 	goroutine.New(func() {

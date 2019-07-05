@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/core"
 	"sync/atomic"
 	"time"
 
@@ -148,6 +149,7 @@ type TxCreator struct {
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
+	Pool               *core.TxPool
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -202,6 +204,35 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
+		},
+	}
+	tx.GetBase().Signature = sig.Bytes
+	tx.GetBase().PublicKey = pubkey.Bytes
+
+	if ok := m.SealTx(tx, nil); !ok {
+		logrus.Warn("failed to seal tx")
+		err = fmt.Errorf("failed to seal tx")
+		return
+	}
+	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
+}
+
+func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
+	nonce uint64, enableSpo bool, TokenId int32, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	tx = &types.ActionTx{
+		From: from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
+		TxBase: types.TxBase{
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+		},
+		ActionData: &types.PublicOffering{
+			Value:     value,
+			EnableSPO: enableSpo,
+			TokenId:   TokenId,
 		},
 	}
 	tx.GetBase().Signature = sig.Bytes
@@ -421,7 +452,14 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 			}).Trace("validate graph structure for tx being connected")
 			continue
 		} else {
+			//calculate root
 			//calculate signatrue
+			root, err := m.Pool.CalculateStateRoot(tx)
+			if err != nil {
+				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
+				return nil
+			}
+			tx.StateRoot = root
 			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 			break

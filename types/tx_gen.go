@@ -14,8 +14,8 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 6 {
+		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
 	err = z.TxBase.DecodeMsg(dc)
@@ -45,6 +45,10 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	z.TokenId, err = dc.ReadInt32()
+	if err != nil {
+		return
+	}
 	z.Data, err = dc.ReadBytes(z.Data)
 	if err != nil {
 		return
@@ -54,8 +58,8 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 5
-	err = en.Append(0x95)
+	// array header, size 6
+	err = en.Append(0x96)
 	if err != nil {
 		return
 	}
@@ -82,6 +86,10 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	err = en.WriteInt32(z.TokenId)
+	if err != nil {
+		return
+	}
 	err = en.WriteBytes(z.Data)
 	if err != nil {
 		return
@@ -92,8 +100,8 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
+	// array header, size 6
+	o = append(o, 0x96)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
@@ -114,6 +122,7 @@ func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
+	o = msgp.AppendInt32(o, z.TokenId)
 	o = msgp.AppendBytes(o, z.Data)
 	return
 }
@@ -125,8 +134,8 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+	if zb0001 != 6 {
+		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
 	bts, err = z.TxBase.UnmarshalMsg(bts)
@@ -156,6 +165,10 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	z.TokenId, bts, err = msgp.ReadInt32Bytes(bts)
+	if err != nil {
+		return
+	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
 	if err != nil {
 		return
@@ -172,7 +185,7 @@ func (z *Tx) Msgsize() (s int) {
 	} else {
 		s += z.Value.Msgsize()
 	}
-	s += msgp.BytesPrefixSize + len(z.Data)
+	s += msgp.Int32Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 

@@ -39,6 +39,7 @@ type MessageRouter struct {
 	CampaignHandler                     CampaignHandler
 	TermChangeHandler                   TermChangeHandler
 	ArchiveHandler                      ArchiveHandler
+	ActionTxHandler                     ActionTxHandler
 	ConsensusDkgDealHandler             ConsensusDkgDealHandler
 	ConsensusDkgDealResponseHandler     ConsensusDkgDealResponseHandler
 	ConsensusDkgSigSetsHandler          ConsensusDkgSigSetsHandler
@@ -128,6 +129,10 @@ type TermChangeHandler interface {
 
 type ArchiveHandler interface {
 	HandleArchive(request *types.MessageNewArchive, peerId string)
+}
+
+type ActionTxHandler interface {
+	HandleActionTx(request *types.MessageNewActionTx, perid string)
 }
 
 type ConsensusDkgDealHandler interface {
@@ -256,6 +261,10 @@ func (m *MessageRouter) RouteTermChange(msg *p2PMessage) {
 
 func (m *MessageRouter) RouteArchive(msg *p2PMessage) {
 	m.ArchiveHandler.HandleArchive(msg.message.(*types.MessageNewArchive), msg.sourceID)
+}
+
+func (m *MessageRouter) RouteActionTx(msg *p2PMessage) {
+	m.ActionTxHandler.HandleActionTx(msg.message.(*types.MessageNewActionTx), msg.sourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgDeal(msg *p2PMessage) {

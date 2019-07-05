@@ -84,6 +84,9 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.POST("new_archive", rpc.NewArchive)
 	router.GET("debug/bft_status", rpc.BftStatus)
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)
+	router.POST("token/NewSecondOffering", rpc.NewSecondOffering)
+	router.POST("token/NewPublicOffering", rpc.NewPublicOffering)
+	router.POST("token/TokenWithdraw", rpc.NewPublicOffering)
 
 	return router
 
@@ -123,11 +126,14 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
-		"query_receipt":  "hash",
-		"transaction":    "hash",
-		"transactions":   "seq_id,address",
-		"confirm":        "hash",
-		"query_contract": "address,data",
+		"query_receipt":           "hash",
+		"transaction":             "hash",
+		"transactions":            "seq_id,address",
+		"confirm":                 "hash",
+		"query_contract":          "address,data",
+		"token/NewSecondOffering": "",
+		"token/NewPublicOffering": "",
+		"token/TokenWithdraw":     "",
 
 		// debug
 		"debug": "f",

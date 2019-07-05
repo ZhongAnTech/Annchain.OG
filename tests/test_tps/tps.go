@@ -42,12 +42,12 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 		//	panic("not ok")
 		//}
 		request := rpc.NewTxRequest{
-			Nonce:      "1",
-			From:       tx.From.Hex(),
-			To:         to,
-			Value:      tx.Value.String(),
-			Signature:  tx.Signature.String(),
-			Pubkey:     pub.String(),
+			Nonce:     "1",
+			From:      tx.From.Hex(),
+			To:        to,
+			Value:     tx.Value.String(),
+			Signature: tx.Signature.String(),
+			Pubkey:    pub.String(),
 		}
 		requests = append(requests, request)
 	}
@@ -72,7 +72,7 @@ func main() {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 	var apps []app
-	for i:=0;i<M;i++ {
+	for i := 0; i < M; i++ {
 		a := app{
 			client: &http.Client{
 				Timeout:   time.Second * 10,
@@ -81,20 +81,20 @@ func main() {
 			requestChan: make(chan *rpc.NewTxRequest, 100),
 			quit:        make(chan bool),
 		}
-		apps = append(apps,a)
+		apps = append(apps, a)
 	}
 	requests := generateTxrequests(N)
 	fmt.Println("gen txs ", time.Now(), len(requests))
-	for i:= 0;i<M;i++ {
+	for i := 0; i < M; i++ {
 		go apps[i].ConsumeQueue()
 	}
 	for i := range requests {
-		j:= i%M
+		j := i % M
 		apps[j].requestChan <- &requests[i]
 	}
 	time.Sleep(time.Second * 100)
-	for i:= 0;i<M;i++ {
-		 close (apps[i].quit)
+	for i := 0; i < M; i++ {
+		close(apps[i].quit)
 	}
 	return
 }

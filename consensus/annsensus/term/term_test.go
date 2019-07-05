@@ -23,10 +23,10 @@ import (
 
 func TestNewTerm(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	term := NewTerm(1,3,4)
-	pk,_:=crypto.Signer.RandomKeyPair()
-	term.PublicKeys = append(term.PublicKeys,pk)
+	term := NewTerm(1, 3, 4)
+	pk, _ := crypto.Signer.RandomKeyPair()
+	term.PublicKeys = append(term.PublicKeys, pk)
 	fmt.Println()
-	term.ChangeTerm(&types.TermChange{},2)
+	term.ChangeTerm(&types.TermChange{}, 2)
 	fmt.Println(term.GetFormerPks())
 }

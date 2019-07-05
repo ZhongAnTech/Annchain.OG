@@ -1779,6 +1779,113 @@ func (z *MessageHeaderResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageNewActionTx) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.ActionTx = nil
+	} else {
+		if z.ActionTx == nil {
+			z.ActionTx = new(ActionTx)
+		}
+		err = z.ActionTx.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageNewActionTx) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	if z.ActionTx == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.ActionTx.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageNewActionTx) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	if z.ActionTx == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.ActionTx.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageNewActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.ActionTx = nil
+	} else {
+		if z.ActionTx == nil {
+			z.ActionTx = new(ActionTx)
+		}
+		bts, err = z.ActionTx.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageNewActionTx) Msgsize() (s int) {
+	s = 1
+	if z.ActionTx == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.ActionTx.Msgsize()
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageNewArchive) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

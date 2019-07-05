@@ -78,16 +78,16 @@ func NewOg(config OGConfig) (*Og, error) {
 		logrus.WithError(err).Warning("create db error")
 		return nil, err
 	}
-	//testDb, err := GetOldDb()
-	//if err != nil {
-	//	return nil, err
-	//}
+	testDb, err := GetOldDb()
+	if err != nil {
+		return nil, err
+	}
 	dagConfig := core.DagConfig{GenesisPath: config.GenesisPath}
 	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, nil)
+	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, testDb)
 	if err != nil {
 		logrus.WithError(err).Warning("create db error")
 		return nil, err

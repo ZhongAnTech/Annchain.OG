@@ -631,6 +631,10 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePe
 		tx := txi.(*types.Sequencer)
 		response := types.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
+	case types.TxBaseAction:
+		tx := txi.(*types.ActionTx)
+		response := types.MessageNewActionTx{ActionTx: tx}
+		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
 	}
 	return
 }

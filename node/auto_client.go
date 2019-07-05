@@ -315,12 +315,12 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	r := randomArchive{
 		//Name:    fmt.Sprintf("%d", ran),
 		//RandInt: ran,
-		Num:     archiveNum,
-		From:    c.MyAccount.Address.ToBytes()[:5],
+		Num:  archiveNum,
+		From: c.MyAccount.Address.ToBytes()[:5],
 	}
 	archiveNum++
 	data, _ := json.Marshal(&r)
-	data = append(data,c.MyAccount.PublicKey.Bytes[:]...)
+	data = append(data, c.MyAccount.PublicKey.Bytes[:]...)
 	tx, err := c.Delegate.GenerateArchive(data)
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")

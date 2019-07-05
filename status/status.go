@@ -6,4 +6,4 @@ var NodeStopped bool
 
 var ArchiveMode bool
 
-var LogLevel  int
+var LogLevel int

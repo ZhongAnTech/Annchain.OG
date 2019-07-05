@@ -118,7 +118,7 @@ func (t *Term) AddCandidate(c *types.Campaign, publicKey crypto.PublicKey) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.candidates[c.Issuer] = c
+	t.candidates[c.Sender()] = c
 	t.PublicKeys = append(t.PublicKeys, publicKey)
 }
 
@@ -126,7 +126,7 @@ func (t *Term) AddCampaign(c *types.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.campaigns[c.Issuer] = c
+	t.campaigns[c.Sender()] = c
 }
 
 func (t *Term) GetCampaign(addr types.Address) *types.Campaign {
@@ -167,10 +167,10 @@ func (t *Term) AddAlsorans(camps []*types.Campaign) {
 		}
 		// TODO
 		// this check is not proper enough, try optimize it.
-		if t.hasCampaign(c.Issuer) {
+		if t.hasCampaign(c.Sender()) {
 			continue
 		}
-		t.alsorans[c.Issuer] = c
+		t.alsorans[c.Sender()] = c
 	}
 }
 

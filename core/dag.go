@@ -809,7 +809,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
-		dag.statedb.SubBalance(txnormal.From, txnormal.Value)
+		dag.statedb.SubBalance(txnormal.Sender(), txnormal.Value)
 		dag.statedb.AddBalance(txnormal.To, txnormal.Value)
 	}
 	// return when its not contract related tx.
@@ -823,7 +823,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// TODO gaslimit not implemented yet.
 	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.statedb)
 	txContext := &ovm.TxContext{
-		From:       txnormal.From,
+		From:       txnormal.Sender(),
 		Value:      txnormal.Value,
 		Data:       txnormal.Data,
 		GasPrice:   math.NewBigInt(0),

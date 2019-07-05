@@ -28,7 +28,7 @@ func TestProtocolCompatibility(t *testing.T) {
 
 	// Define the compatibility chart
 	tests := []struct {
-		version    uint
+		version    uint32
 		mode       downloader.SyncMode
 		compatible bool
 	}{
@@ -41,7 +41,7 @@ func TestProtocolCompatibility(t *testing.T) {
 
 	// Try all available compatibility configs and check for errors
 	for i, tt := range tests {
-		ProtocolVersions = []uint{tt.version}
+		ProtocolVersions = []uint32{tt.version}
 		h, _, err := newTestHub(tt.mode)
 		if h != nil {
 			defer h.Stop()

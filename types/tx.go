@@ -34,7 +34,7 @@ type Txs []*Tx
 //msgp:tuple Tx
 type Tx struct {
 	TxBase
-	From    Address
+	From    *Address
 	To      Address
 	Value   *math.BigInt
 	TokenId int32
@@ -51,19 +51,24 @@ func (t *Tx) Setconfirm() {
 }
 
 func (t *Tx) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	if t.GetSender() ==nil {
+		return fmt.Sprintf("%s-[nil]-%d-Tx", t.TxBase.String(), t.AccountNonce)
+	}else {
+		return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	}
+
 }
 
 func SampleTx() *Tx {
 	v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
-
+    from := HexToAddress("0x99")
 	return &Tx{TxBase: TxBase{
 		Height:       12,
 		ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From:  HexToAddress("0x99"),
+		From:  &from,
 		To:    HexToAddress("0x88"),
 		Value: v,
 	}
@@ -102,6 +107,7 @@ func randomAddress() Address {
 }
 
 func RandomTx() *Tx {
+	from:= randomAddress()
 	return &Tx{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       uint64(rand.Int63n(1000)),
@@ -110,7 +116,7 @@ func RandomTx() *Tx {
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
 	},
-		From:  randomAddress(),
+		From:  &from,
 		To:    randomAddress(),
 		Value: math.NewBigInt(rand.Int63()),
 	}
@@ -122,7 +128,9 @@ func (t *Tx) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Value.GetSigBytes()))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Data))
@@ -132,7 +140,15 @@ func (t *Tx) SignatureTargets() []byte {
 }
 
 func (t *Tx) Sender() Address {
+	return *t.From
+}
+
+func (t *Tx)GetSender() *Address {
 	return t.From
+}
+
+func (t *Tx)SetSender (addr Address) {
+	t.From = &addr
 }
 
 func (t *Tx) GetValue() *math.BigInt {

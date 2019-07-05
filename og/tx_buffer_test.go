@@ -163,6 +163,10 @@ func (d *dummyVerifier) Name() string {
 	return "dumnmy verifier"
 }
 
+func (d *dummyVerifier)String()string {
+	return d.Name()
+}
+
 func setup() *TxBuffer {
 	ver := new(dummyVerifier)
 	buffer := NewTxBuffer(TxBufferConfig{
@@ -201,8 +205,8 @@ func sampleTx(selfHash string, parentsHash []string) *types.Tx {
 func doTest(buffer *TxBuffer) {
 	buffer.Start()
 
-	if buffer.dependencyCache.Len() != 0 {
-		for k, v := range buffer.dependencyCache.GetALL() {
+	if buffer.dependencyCache.Len(true) != 0 {
+		for k, v := range buffer.dependencyCache.GetALL(true) {
 			for k1 := range v.(map[types.Hash]types.Txi) {
 				logrus.Warnf("not fulfilled: %s <- %s", k.(types.Hash), k1)
 			}
@@ -231,7 +235,7 @@ func TestBuffer(t *testing.T) {
 	doTest(buffer)
 	time.Sleep(time.Second * 3)
 	buffer.Stop()
-	assert.Equal(t, buffer.dependencyCache.Len(), 0)
+	assert.Equal(t, buffer.dependencyCache.Len(true), 0)
 }
 
 func TestBufferMissing3(t *testing.T) {
@@ -256,7 +260,7 @@ func TestBufferMissing3(t *testing.T) {
 	time.Sleep(time.Second * 3)
 	buffer.Stop()
 	// missing 5,7,8,9
-	assert.Equal(t, buffer.dependencyCache.Len(), 5)
+	assert.Equal(t, buffer.dependencyCache.Len(true), 5)
 }
 
 func TestBufferCache(t *testing.T) {

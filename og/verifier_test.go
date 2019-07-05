@@ -14,6 +14,8 @@
 package og
 
 import (
+	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -23,14 +25,14 @@ import (
 func buildTx(from types.Address, accountNonce uint64) *types.Tx {
 	tx := types.RandomTx()
 	tx.AccountNonce = accountNonce
-	tx.From = from
+	tx.From = &from
 	return tx
 }
 
 func buildSeq(from types.Address, accountNonce uint64, id uint64) *types.Sequencer {
 	tx := types.RandomSequencer()
 	tx.AccountNonce = accountNonce
-	tx.Issuer = from
+	tx.Issuer = &from
 	return tx
 }
 
@@ -165,3 +167,29 @@ func TestA6(t *testing.T) {
 	}
 
 }
+
+func TestConsensusVerifier_Verify(t *testing.T) {
+	types.Signer = crypto.Signer
+	logrus.SetLevel(logrus.TraceLevel)
+	tx:= types.RandomTx()
+	//fmt.Println(tx)
+	pub,priv:= crypto.Signer.RandomKeyPair()
+	tx.From =nil
+	fmt.Println(tx.SignatureTargets())
+	tx.Signature =  crypto.Signer.Sign(priv,tx.SignatureTargets()).Bytes
+	tx.SetHash(tx.CalcTxHash())
+	tx.From = nil
+	//fmt.Println(tx,"hehe")
+	v:=TxFormatVerifier{NoVerifyMindHash:true,NoVerifyMaxTxHash:true}
+	ok:= v.Verify(tx)
+	fmt.Println(tx,"hihi")
+	if !ok {
+		t.Fatal(ok)
+	}
+	if *tx.From != pub.Address() {
+		t.Fatal(tx.From,pub.Address())
+	}
+	fmt.Println(tx.From,pub.Address())
+
+}
+

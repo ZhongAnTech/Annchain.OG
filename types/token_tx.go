@@ -27,24 +27,23 @@ import (
 
 ////go:generate msgp  never generate automaticly
 const (
-	ActionTxActionIPO uint8 =  iota
+	ActionTxActionIPO uint8 = iota
 	ActionTxActionWithdraw
 	ActionTxActionSPO
 	ActionRequestDomainName
 )
 
-
 type ActionData interface {
 	msg.Message
-	String()string
+	String() string
 }
 
 //msgp:tuple PublicOffering
 type PublicOffering struct {
-	TokenId  int32     //for Secondary Public Offering
+	TokenId int32 //for Secondary Public Offering
 	Value   *math.BigInt
 	//To      Address       //when publish a token ,to equals from
-	EnableSPO      bool   //if enableSPO is false  , no Secondary Public Offering.
+	EnableSPO bool //if enableSPO is false  , no Secondary Public Offering.
 }
 
 //msgp:tuple RequestDomain
@@ -55,18 +54,17 @@ type RequestDomain struct {
 //msgp:tuple ActionTx
 type ActionTx struct {
 	TxBase
-	Action  uint8
-	From    Address
+	Action     uint8
+	From       Address
 	ActionData ActionData
-	confirm time.Time
+	confirm    time.Time
 }
 
-
-func (p PublicOffering)String()string {
-	return  fmt.Sprintf("tokenid %d,value %v, EnableSPO %v", p.TokenId,p.Value,p.EnableSPO)
+func (p PublicOffering) String() string {
+	return fmt.Sprintf("tokenid %d,value %v, EnableSPO %v", p.TokenId, p.Value, p.EnableSPO)
 }
 
-func (r RequestDomain) String()string {
+func (r RequestDomain) String() string {
 	return r.DomainName
 }
 
@@ -77,7 +75,6 @@ func (t *ActionTx) GetConfirm() time.Duration {
 func (t *ActionTx) Setconfirm() {
 	t.confirm = time.Now()
 }
-
 
 func (t *ActionTx) String() string {
 	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
@@ -92,13 +89,11 @@ func SampleActionTx() *ActionTx {
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From:  HexToAddress("0x99"),
+		From: HexToAddress("0x99"),
 		//To:    HexToAddress("0x88"),
 		//Value: v,
 	}
 }
-
-
 
 func RandomActionTx() *ActionTx {
 	return &ActionTx{TxBase: TxBase{
@@ -109,15 +104,15 @@ func RandomActionTx() *ActionTx {
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
 	},
-		From:  randomAddress(),
+		From: randomAddress(),
 		//To:    randomAddress(),
 		//Value: math.NewBigInt(rand.Int63()),
 	}
 }
 
-func (t *ActionTx)GetPublicOffering() (*PublicOffering) {
-	if t.Action == ActionTxActionIPO || t.Action ==ActionTxActionSPO || t.Action ==ActionTxActionWithdraw {
-		v,ok:=  t.ActionData.(*PublicOffering)
+func (t *ActionTx) GetPublicOffering() *PublicOffering {
+	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionWithdraw {
+		v, ok := t.ActionData.(*PublicOffering)
 		if ok {
 			return v
 		}
@@ -125,9 +120,9 @@ func (t *ActionTx)GetPublicOffering() (*PublicOffering) {
 	return nil
 }
 
-func (t *ActionTx)GetDomainName()*RequestDomain {
+func (t *ActionTx) GetDomainName() *RequestDomain {
 	if t.Action == ActionRequestDomainName {
-		v ,ok:=  t.ActionData.(*RequestDomain)
+		v, ok := t.ActionData.(*RequestDomain)
 		if ok {
 			return v
 		}
@@ -135,10 +130,10 @@ func (t *ActionTx)GetDomainName()*RequestDomain {
 	return nil
 }
 
-func (t *ActionTx)CheckActionIsValid()bool {
+func (t *ActionTx) CheckActionIsValid() bool {
 	switch t.Action {
-	case  ActionTxActionIPO :
-	case  ActionTxActionSPO :
+	case ActionTxActionIPO:
+	case ActionTxActionSPO:
 	case ActionTxActionWithdraw:
 	case ActionRequestDomainName:
 	default:
@@ -146,7 +141,6 @@ func (t *ActionTx)CheckActionIsValid()bool {
 	}
 	return true
 }
-
 
 func (t *ActionTx) SignatureTargets() []byte {
 	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
@@ -156,15 +150,15 @@ func (t *ActionTx) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
 	//panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
-	if t.Action == ActionTxActionIPO || t.Action ==ActionTxActionSPO || t.Action ==ActionTxActionWithdraw {
+	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionWithdraw {
 		of := t.GetPublicOffering()
 		panicIfError(binary.Write(&buf, binary.BigEndian, of.Value.GetSigBytes()))
 		if t.Action == ActionTxActionIPO {
 			panicIfError(binary.Write(&buf, binary.BigEndian, of.TokenId))
 		}
 		panicIfError(binary.Write(&buf, binary.BigEndian, of.EnableSPO))
-	}else if t.Action ==ActionRequestDomainName  {
-		r :=t.GetDomainName()
+	} else if t.Action == ActionRequestDomainName {
+		r := t.GetDomainName()
 		panicIfError(binary.Write(&buf, binary.BigEndian, r.DomainName))
 	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Action))
@@ -208,16 +202,16 @@ func (t *ActionTx) Dump() string {
 		"height: %d , mined Nonce: %v, type: %v, weight: %d, action %d, actionData %s", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(),
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey),
-		t.Height, t.MineNonce, t.Type, t.Weight,t.Action,t.ActionData)
+		t.Height, t.MineNonce, t.Type, t.Weight, t.Action, t.ActionData)
 }
 func (t *ActionTx) RawActionTx() *RawActionTx {
 	if t == nil {
 		return nil
 	}
 	rawTx := &RawActionTx{
-		TxBase: t.TxBase,
+		TxBase:     t.TxBase,
 		Action:     t.Action,
-		ActionData:t.ActionData,
+		ActionData: t.ActionData,
 	}
 	return rawTx
 }

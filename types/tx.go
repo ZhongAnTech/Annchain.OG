@@ -37,7 +37,7 @@ type Tx struct {
 	From    Address
 	To      Address
 	Value   *math.BigInt
-	TokenId  int32
+	TokenId int32
 	Data    []byte
 	confirm time.Time
 }
@@ -175,10 +175,10 @@ func (t *Tx) RawTx() *RawTx {
 		return nil
 	}
 	rawTx := &RawTx{
-		TxBase: t.TxBase,
-		To:     t.To,
-		Value:  t.Value,
-		Data:   t.Data,
+		TxBase:  t.TxBase,
+		To:      t.To,
+		Value:   t.Value,
+		Data:    t.Data,
 		TokenId: t.TokenId,
 	}
 	return rawTx

@@ -182,32 +182,32 @@ func (s *Server) WatchNewTxs() {
 				blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
 			}
 
-				//if ac,ok := tx.(*types.Archive);ok {
-				//	data := base64.StdEncoding.EncodeToString(ac.Data)
-				//	var a types.Archive
-				//	a= *ac
-				//	a.Data = []byte(data)
-				//	blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{&a})
-				//}else {
-				//blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
-				//}
+			//if ac,ok := tx.(*types.Archive);ok {
+			//	data := base64.StdEncoding.EncodeToString(ac.Data)
+			//	var a types.Archive
+			//	a= *ac
+			//	a.Data = []byte(data)
+			//	blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{&a})
+			//}else {
+			//blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
+			//}
 
-				if uidata == nil {
-					uidata = &UIData{
-						Type: messageTypeNewUnit,
-						//Nodes: []Node{},
-						//Edges: []Edge{},
-					}
+			if uidata == nil {
+				uidata = &UIData{
+					Type: messageTypeNewUnit,
+					//Nodes: []Node{},
+					//Edges: []Edge{},
 				}
-				uidata.AddToBatch(tx, true)
+			}
+			uidata.AddToBatch(tx, true)
 		case batch := <-s.BatchConfirmedChan:
 			// first publish all pending txs
 			if status.ArchiveMode {
 				s.publishNewTxs(blockdbData)
 				blockdbData = nil
 			}
-				s.publishTxs(uidata)
-				uidata = nil
+			s.publishTxs(uidata)
+			uidata = nil
 
 			// then publish batch
 			s.publishBatch(batch)
@@ -216,8 +216,8 @@ func (s *Server) WatchNewTxs() {
 				s.publishNewTxs(blockdbData)
 				blockdbData = nil
 			}
-				s.publishTxs(uidata)
-				uidata = nil
+			s.publishTxs(uidata)
+			uidata = nil
 
 		case <-s.quit:
 			break

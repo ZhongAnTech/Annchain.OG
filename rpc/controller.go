@@ -91,7 +91,7 @@ type NewPublicOfferingRequest struct {
 	From       string `json:"from"`
 	Value      string `json:"value"`
 	Action     uint8  `json:"action"`
-	EnableSPO  bool  `json:"enable_spo"`
+	EnableSPO  bool   `json:"enable_spo"`
 	CryptoType string `json:"crypto_type"`
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
@@ -557,7 +557,6 @@ func (r *RpcController) TokenWithdraw(c *gin.Context) {
 
 }
 
-
 func (r *RpcController) NewPublicOffering(c *gin.Context) {
 	var (
 		tx    types.Txi
@@ -582,7 +581,6 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-
 	value, ok := math.NewBigIntFromString(txReq.Value, 10)
 	if !ok {
 		err = fmt.Errorf("new Big Int error")
@@ -591,7 +589,6 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("value format error: %v", err), nil)
 		return
 	}
-
 
 	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
 	if err != nil {
@@ -631,7 +628,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value,types.ActionTxActionIPO , nonce,txReq.EnableSPO,0, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionIPO, nonce, txReq.EnableSPO, 0, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
@@ -672,7 +669,6 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-
 	value, ok := math.NewBigIntFromString(txReq.Value, 10)
 	if !ok {
 		err = fmt.Errorf("new Big Int error")
@@ -681,7 +677,6 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("value format error: %v", err), nil)
 		return
 	}
-
 
 	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
 	if err != nil {
@@ -721,7 +716,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO, nonce,txReq.EnableSPO,txReq.TokenId, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO, nonce, txReq.EnableSPO, txReq.TokenId, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return

@@ -56,9 +56,8 @@ type UIData struct {
 	Edges []Edge `json:"edges"`
 }
 
-
 type BlockDbUIData struct {
-	Nodes []types.TxiSmallCaseMarshal  `json:"nodes"`
+	Nodes []types.TxiSmallCaseMarshal `json:"nodes"`
 	//Type  string `json:"type"`
 	//Edges []Edge `json:"edges"`
 }

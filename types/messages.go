@@ -528,7 +528,6 @@ func (m *MessageNewArchive) String() string {
 	return m.Archive.String()
 }
 
-
 //msgp:tuple MessageNewActionTx
 type MessageNewActionTx struct {
 	ActionTx *ActionTx

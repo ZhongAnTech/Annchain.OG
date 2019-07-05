@@ -236,7 +236,7 @@ func (t *TestHub) loop() {
 	}
 }
 
-func run(n int ) {
+func run(n int) {
 	logInit()
 	var Anns []TestAnnSensus
 	sendMsgToChan := func(addr types.Address, msg test.TestMsg) {

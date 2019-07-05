@@ -72,7 +72,7 @@ func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
 		"acquireTxQueue":          len(m.acquireTxQueue),
 		"bufferedIncomingTxCache": m.bufferedIncomingTxCache.Len(),
 		"firedTxCache":            m.firedTxCache.Len(true),
-		"acquireTxDuplicateCache" : m.acquireTxDuplicateCache.Len(true),
+		"acquireTxDuplicateCache": m.acquireTxDuplicateCache.Len(true),
 	}
 }
 

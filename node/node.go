@@ -220,7 +220,7 @@ func NewNode() *Node {
 	m.CampaignHandler = syncManager.IncrementalSyncer
 	m.TermChangeHandler = syncManager.IncrementalSyncer
 	m.ArchiveHandler = syncManager.IncrementalSyncer
-	m.ActionTxHandler =syncManager.IncrementalSyncer
+	m.ActionTxHandler = syncManager.IncrementalSyncer
 	messageHandler.TxEnable = syncManager.IncrementalSyncer.TxEnable
 	syncManager.IncrementalSyncer.RemoveContrlMsgFromCache = messageHandler.RemoveControlMsgFromCache
 	//syncManager.OnUpToDate = append(syncManager.OnUpToDate, syncer.UpToDateEventListener)
@@ -497,7 +497,7 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[og.MessageTypeCampaign] = m.RouteCampaign
 	hub.CallbackRegistry[og.MessageTypeTermChange] = m.RouteTermChange
 	hub.CallbackRegistry[og.MessageTypeArchive] = m.RouteArchive
-	hub.CallbackRegistry[og.MessageTypeActionTX]=m.RouteActionTx
+	hub.CallbackRegistry[og.MessageTypeActionTX] = m.RouteActionTx
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[og.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets

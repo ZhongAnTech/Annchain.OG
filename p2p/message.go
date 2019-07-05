@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 )
+
 ////go:generate msgp
 
 // Msg defines the structure of a p2p message.

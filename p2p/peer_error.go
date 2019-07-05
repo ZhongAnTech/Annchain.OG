@@ -33,7 +33,6 @@ var errorToString = map[uint16]string{
 	errInvalidMsg:     "invalid message",
 }
 
-
 type peerError struct {
 	code    uint16
 	message string

@@ -39,7 +39,6 @@ var (
 	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
 
-
 func newTestAddress(priv crypto.PrivateKey) types.Address {
 	signer := crypto.NewSigner(priv.Type)
 	pubkey := signer.PubKey(priv)
@@ -168,7 +167,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	acc := core.NewAccessor(db)
 
 	latestSeq := newTestSeq(0)
-	err = acc.WriteLatestSequencer(nil,latestSeq)
+	err = acc.WriteLatestSequencer(nil, latestSeq)
 	if err != nil {
 		t.Fatalf("write latest sequencer error: %v", err)
 	}
@@ -201,7 +200,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	newBalance := math.NewBigInt(int64(rand.Intn(10000) + 10000))
-	err = acc.SetBalance(nil,addr, newBalance)
+	err = acc.SetBalance(nil, addr, newBalance)
 	if err != nil {
 		t.Fatalf("set new balance failed: %v", err)
 	}
@@ -214,7 +213,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	addAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.AddBalance(nil,addr, addAmount)
+	err = acc.AddBalance(nil, addr, addAmount)
 	if err != nil {
 		t.Fatalf("add balance failed")
 	}
@@ -227,7 +226,7 @@ func TestBalanceStorage(t *testing.T) {
 	}
 
 	subAmount := math.NewBigInt(int64(rand.Intn(10000)))
-	err = acc.SubBalance(nil,addr, subAmount)
+	err = acc.SubBalance(nil, addr, subAmount)
 	if err != nil {
 		t.Fatalf("sub balance failed")
 	}
@@ -248,23 +247,23 @@ func TestDag_Start(t *testing.T) {
 	defer remove()
 
 	acc := core.NewAccessor(db)
-	seq:=types.RandomSequencer()
+	seq := types.RandomSequencer()
 	height := seq.Height
 	//acc.WriteLatestSequencer(nil,seq)
 	batch := acc.NewBatch()
-	acc.WriteSequencerByHeight(batch,seq)
+	acc.WriteSequencerByHeight(batch, seq)
 	fmt.Println(seq)
 	err := batch.Write()
-	if err!=nil {
+	if err != nil {
 		t.Fatal(err)
 	}
-	readSeq,err := acc.ReadSequencerByHeight(height)
-	if err!=nil {
+	readSeq, err := acc.ReadSequencerByHeight(height)
+	if err != nil {
 		fmt.Println(batch.ValueSize())
 		t.Fatal(err)
 	}
-	if readSeq.Height!=height {
-		t.Fatal(readSeq,seq)
+	if readSeq.Height != height {
+		t.Fatal(readSeq, seq)
 	}
-	fmt.Println(seq,readSeq)
+	fmt.Println(seq, readSeq)
 }

@@ -117,9 +117,17 @@ func readConfig() {
 
 	if io.FileExists(configPath) {
 		mergeLocalConfig(configPath)
-		return
+	} else {
+		mergeOnlineConfig(viper.GetString("config"))
 	}
-	mergeOnlineConfig(viper.GetString("config"))
+
+	mergeEnvConfig()
+}
+
+func mergeEnvConfig() {
+	// env override
+	viper.SetEnvPrefix("og")
+	viper.AutomaticEnv()
 }
 
 func writeConfig() {

@@ -119,18 +119,23 @@ func (a *AccountFlows) Remove(tx types.Txi) {
 // AccountFlow stores the information about an address. It includes the
 // balance state of the account among the txpool,
 type AccountFlow struct {
-	balance *BalanceState
+	balances map[int32]*BalanceState
 	txlist  *TxList
 }
 
-func NewAccountFlow(originBalance *math.BigInt) *AccountFlow {
+func NewAccountFlow(originBalance map[int32]*math.BigInt) *AccountFlow {
+	bls := map[int32]*BalanceState{}
+	for k, v := range originBalance {
+		bls[k] = NewBalanceState(v)
+	}
+
 	return &AccountFlow{
-		balance: NewBalanceState(originBalance),
+		balances: bls,
 		txlist:  NewTxList(),
 	}
 }
-func (af *AccountFlow) BalanceState() *BalanceState {
-	return af.balance
+func (af *AccountFlow) BalanceState(tokenID int32) *BalanceState {
+	return af.balances[tokenID]
 }
 func (af *AccountFlow) TxList() *TxList {
 	return af.txlist

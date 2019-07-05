@@ -16,19 +16,22 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/tinylib/msgp/msgp"
+	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	log "github.com/sirupsen/logrus"
 )
 
 //go:generate msgp
 
-//msgp:tuple Account
-type Account struct {
+//msgp:tuple AccountData
+type AccountData struct {
 	Address  types.Address
-	Balance  *math.BigInt
+	Balances  BalanceSet
 	Nonce    uint64
 	Root     types.Hash
 	CodeHash []byte
@@ -37,7 +40,7 @@ type Account struct {
 type StateObject struct {
 	address     types.Address
 	addressHash types.Hash
-	data        Account
+	data        AccountData
 
 	dbErr error
 
@@ -53,9 +56,9 @@ type StateObject struct {
 }
 
 func NewStateObject(addr types.Address, db *StateDB) *StateObject {
-	a := Account{}
+	a := AccountData{}
 	a.Address = addr
-	a.Balance = math.NewBigInt(0)
+	a.Balances = NewBalanceSet()
 	a.Nonce = 0
 	a.CodeHash = emptyCodeHash.ToBytes()
 	a.Root = emptyStateRoot
@@ -70,32 +73,37 @@ func NewStateObject(addr types.Address, db *StateDB) *StateObject {
 	return s
 }
 
-func (s *StateObject) GetBalance() *math.BigInt {
-	return s.data.Balance
+func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
+	return s.data.Balances[tokenID]
 }
 
-func (s *StateObject) AddBalance(increment *math.BigInt) {
+func (s *StateObject) AddBalance(tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {
 		return
 	}
-	s.SetBalance(s.data.Balance.Add(increment))
+	if s.data.Balances[tokenID] != nil {
+		s.SetBalance(tokenID, s.data.Balances[tokenID].Add(increment))
+	}
 }
 
-func (s *StateObject) SubBalance(decrement *math.BigInt) {
+func (s *StateObject) SubBalance(tokenID int32, decrement *math.BigInt) {
 	// check if decrement is zero
 	if decrement.Sign() == 0 {
 		return
 	}
-	s.SetBalance(s.data.Balance.Sub(decrement))
+	if s.data.Balances[tokenID] != nil {
+		s.SetBalance(tokenID, s.data.Balances[tokenID].Sub(decrement))
+	}
 }
 
-func (s *StateObject) SetBalance(balance *math.BigInt) {
+func (s *StateObject) SetBalance(tokenID int32, balance *math.BigInt) {
 	s.db.journal.append(&balanceChange{
 		account: &s.address,
-		prev:    s.data.Balance,
+		tokenID: tokenID,
+		prev:    s.data.Balances[tokenID],
 	})
-	s.data.Balance = balance
+	s.data.Balances[tokenID] = balance
 }
 
 func (s *StateObject) GetNonce() uint64 {
@@ -248,7 +256,7 @@ func (s *StateObject) Encode() ([]byte, error) {
 }
 
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
-	var a Account
+	var a AccountData
 	_, err := a.UnmarshalMsg(b)
 
 	s.data = a
@@ -259,6 +267,93 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	s.db = db
 	return err
 }
+
+// BalanceSet
+type BalanceSet map[int32]*math.BigInt
+
+func NewBalanceSet() BalanceSet {
+	return BalanceSet(make(map[int32]*math.BigInt))
+}
+
+func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
+	bi := (*b)[tokenID]
+	if bi == nil {
+		return math.NewBigInt(0)
+	}
+	return bi.Add(increment)
+}
+
+func (b *BalanceSet) PreSub(tokenID int32, decrement *math.BigInt) *math.BigInt {
+	bi := (*b)[tokenID]
+	if bi == nil {
+		return math.NewBigInt(0)
+	}
+	return bi.Sub(decrement)
+}
+
+func (b *BalanceSet) Copy() BalanceSet {
+	bs := NewBalanceSet()
+	for k, v := range *b {
+		bs[k] = v
+	}
+	return bs
+}
+
+func (b *BalanceSet) IsEmpty() bool {
+	for _, v := range *b {
+		if v.GetInt64() != int64(0) {
+			return false
+		}
+	}
+	return true
+}
+
+// MarshalMsg - For every [key, value] pair, marshal it in [size (int32) + key (int32) + bigint.bytes]
+func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
+
+	size := b.Msgsize()
+	o = msgp.Require(bts, size)
+
+	// add total size
+	o = append(o, common.ByteInt32(int32(size))...)
+
+	for k, v := range *b {
+		vb := v.GetBytes()
+		msize := int32(4 + len(vb))
+		o = append(o, common.ByteInt32(msize)...)
+		o = append(o, common.ByteInt32(k)...)
+		o = append(o, vb...)
+	}
+
+	return o, nil
+}
+
+func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
+
+	size := common.GetInt32(bts, 0)
+	bsBytes := bts[4:size]
+
+	for len(bsBytes) > 0 {
+		pairSize := common.GetInt32(bsBytes, 0)
+		key := common.GetInt32(bsBytes, 4)
+		value := bsBytes[4:pairSize]
+		(*b)[key] = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(value))
+
+		bsBytes = bsBytes[:pairSize]
+	}
+
+	return bts[size:], nil
+}
+
+// Msgsize - BalanceSet size = size (4 bytes for int32) + every key pair size
+func (b *BalanceSet) Msgsize() int {
+	l := 4
+	for _, v := range *b {
+		l += 4 + len(v.GetBytes())
+	}
+	return l
+}
+
 
 /*
 	components

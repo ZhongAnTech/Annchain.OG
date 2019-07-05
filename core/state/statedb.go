@@ -25,6 +25,8 @@ var (
 
 	// emptyCodeHash is the known hash of the empty EVM bytecode.
 	emptyCodeHash = crypto.Keccak256Hash(nil)
+
+	OGTokenID = int32(0)
 )
 
 type StateDBConfig struct {
@@ -125,15 +127,20 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	//defer sd.refreshbeat(addr)
-	return sd.getBalance(addr)
+	return sd.getBalance(OGTokenID, addr)
 }
-func (sd *StateDB) getBalance(addr types.Address) *math.BigInt {
+func (sd *StateDB) GetTokenBalance(tokenID int32, addr types.Address) *math.BigInt {
+	sd.mu.RLock()
+	defer sd.mu.RUnlock()
+
+	return sd.getBalance(tokenID, addr)
+}
+func (sd *StateDB) getBalance(tokenID int32, addr types.Address) *math.BigInt {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		return math.NewBigInt(0)
 	}
-	return state.GetBalance()
+	return state.GetBalance(tokenID)
 }
 
 func (sd *StateDB) GetNonce(addr types.Address) uint64 {
@@ -169,7 +176,7 @@ func (sd *StateDB) Empty(addr types.Address) bool {
 	if stobj.data.Nonce != uint64(0) {
 		return false
 	}
-	if stobj.data.Balance.GetInt64() != int64(0) {
+	if stobj.data.Balances.IsEmpty() {
 		return false
 	}
 	return true
@@ -244,17 +251,21 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.addBalance(addr, increment)
+	sd.addBalance(addr, OGTokenID, increment)
 }
-func (sd *StateDB) addBalance(addr types.Address, increment *math.BigInt) {
+func (sd *StateDB) AddTokenBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	sd.addBalance(addr, tokenID, increment)
+}
+func (sd *StateDB) addBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {
 		return
 	}
-
-	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
-	sd.setBalance(addr, state.data.Balance.Add(increment))
+	sd.setBalance(addr, tokenID, state.data.Balances.PreAdd(tokenID, increment))
 }
 
 // SubBalance
@@ -262,17 +273,21 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.subBalance(addr, decrement)
+	sd.subBalance(addr, OGTokenID, decrement)
 }
-func (sd *StateDB) subBalance(addr types.Address, decrement *math.BigInt) {
+func (sd *StateDB) SubTokenBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	sd.subBalance(addr, tokenID, decrement)
+}
+func (sd *StateDB) subBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
 	// check if increment is zero
 	if decrement.Sign() == 0 {
 		return
 	}
-
-	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
-	sd.setBalance(addr, state.data.Balance.Sub(decrement))
+	sd.setBalance(addr, tokenID, state.data.Balances.PreSub(tokenID, decrement))
 }
 
 func (sd *StateDB) GetRefund() uint64 {
@@ -324,25 +339,29 @@ func (sd *StateDB) GetCommittedState(addr types.Address, key types.Hash) types.H
 	return stobj.GetCommittedState(sd.db, key)
 }
 
-// SetBalance
+// SetBalance set origin OG token balance.
+// TODO should be modified to satisfy all tokens.
 func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.setBalance(addr, balance)
+	sd.setBalance(addr, OGTokenID, balance)
 }
-func (sd *StateDB) setBalance(addr types.Address, balance *math.BigInt) {
-	//defer sd.refreshbeat(addr)
+func (sd *StateDB) SetTokenBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
 
+	sd.setBalance(addr, tokenID, balance)
+}
+func (sd *StateDB) setBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
 	state := sd.getOrCreateStateObject(addr)
-	state.SetBalance(balance)
+	state.SetBalance(tokenID, balance)
 }
 
 func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	state := sd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
 }
@@ -404,10 +423,10 @@ func (sd *StateDB) Suicide(addr types.Address) bool {
 	sd.journal.append(&suicideChange{
 		account:     &addr,
 		prev:        stobj.suicided,
-		prevbalance: math.NewBigIntFromBigInt(stobj.GetBalance().Value),
+		prevbalance: stobj.data.Balances.Copy(),
 	})
 	stobj.suicided = true
-	stobj.data.Balance = math.NewBigInt(0)
+	stobj.data.Balances = NewBalanceSet()
 	return true
 }
 
@@ -532,7 +551,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 	}
 	// commit current trie into triedb.
 	rootHash, err := sd.trie.Commit(func(leaf []byte, parent types.Hash) error {
-		var account Account
+		var account AccountData
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
 		}

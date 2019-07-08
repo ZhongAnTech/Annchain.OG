@@ -14,6 +14,7 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 )
@@ -29,7 +30,7 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 		Type:      types.TxBaseTypeCampaign,
 		PublicKey: as.MyAccount.PublicKey.Bytes[:],
 	}
-	balance := as.Idag.GetBalance(as.MyAccount.Address)
+	balance := as.Idag.GetBalance(as.MyAccount.Address, common.OGTokenID)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
 		log.Debug("not enough balance to gen campaign")
 		return nil

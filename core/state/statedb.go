@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"sync"
 	"time"
 
@@ -25,8 +26,6 @@ var (
 
 	// emptyCodeHash is the known hash of the empty EVM bytecode.
 	emptyCodeHash = crypto.Keccak256Hash(nil)
-
-	OGTokenID = int32(0)
 )
 
 type StateDBConfig struct {
@@ -127,15 +126,15 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	return sd.getBalance(OGTokenID, addr)
+	return sd.getBalance(addr, common.OGTokenID)
 }
-func (sd *StateDB) GetTokenBalance(tokenID int32, addr types.Address) *math.BigInt {
+func (sd *StateDB) GetTokenBalance(addr types.Address, tokenID int32) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	return sd.getBalance(tokenID, addr)
+	return sd.getBalance(addr, tokenID)
 }
-func (sd *StateDB) getBalance(tokenID int32, addr types.Address) *math.BigInt {
+func (sd *StateDB) getBalance(addr types.Address, tokenID int32) *math.BigInt {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		return math.NewBigInt(0)
@@ -147,7 +146,6 @@ func (sd *StateDB) GetNonce(addr types.Address) uint64 {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.getNonce(addr)
 }
 func (sd *StateDB) getNonce(addr types.Address) uint64 {
@@ -251,7 +249,7 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.addBalance(addr, OGTokenID, increment)
+	sd.addBalance(addr, common.OGTokenID, increment)
 }
 func (sd *StateDB) AddTokenBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
 	sd.mu.Lock()
@@ -273,7 +271,7 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.subBalance(addr, OGTokenID, decrement)
+	sd.subBalance(addr, common.OGTokenID, decrement)
 }
 func (sd *StateDB) SubTokenBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
 	sd.mu.Lock()
@@ -345,7 +343,7 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.setBalance(addr, OGTokenID, balance)
+	sd.setBalance(addr, common.OGTokenID, balance)
 }
 func (sd *StateDB) SetTokenBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
 	sd.mu.Lock()

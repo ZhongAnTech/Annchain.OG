@@ -16,6 +16,7 @@ package core
 import (
 	"container/heap"
 	"fmt"
+	"github.com/annchain/OG/core/state"
 	"sort"
 	"sync"
 
@@ -57,7 +58,7 @@ func (a *AccountFlows) Get(addr types.Address) *AccountFlow {
 	return a.afs[addr]
 }
 
-func (a *AccountFlows) GetBalanceState(addr types.Address) *BalanceState {
+func (a *AccountFlows) GetBalanceState(addr types.Address, tokenID int32) *BalanceState {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -65,7 +66,11 @@ func (a *AccountFlows) GetBalanceState(addr types.Address) *BalanceState {
 	if af == nil {
 		return nil
 	}
-	return af.balance
+	bls := af.balances
+	if bls == nil {
+		return nil
+	}
+	return bls[tokenID]
 }
 
 func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
@@ -93,7 +98,7 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 	return flow.LatestNonce()
 }
 
-func (a *AccountFlows) ResetFlow(addr types.Address, originBalance *math.BigInt) {
+func (a *AccountFlows) ResetFlow(addr types.Address, originBalance state.BalanceSet) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -123,7 +128,7 @@ type AccountFlow struct {
 	txlist  *TxList
 }
 
-func NewAccountFlow(originBalance map[int32]*math.BigInt) *AccountFlow {
+func NewAccountFlow(originBalance state.BalanceSet) *AccountFlow {
 	bls := map[int32]*BalanceState{}
 	for k, v := range originBalance {
 		bls[k] = NewBalanceState(v)
@@ -159,12 +164,17 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		log.WithField("tx", tx).Errorf("add tx that has same nonce")
 		return fmt.Errorf("already exists")
 	}
-	value := math.NewBigInt(0)
-	if tx.GetType() == types.TxBaseTypeNormal {
-		txnormal := tx.(*types.Tx)
-		value = txnormal.GetValue()
+	if tx.GetType() != types.TxBaseTypeNormal {
+		af.txlist.Put(tx)
+		return nil
 	}
-	err := af.balance.TrySubBalance(value)
+	txnormal := tx.(*types.Tx)
+	if af.balances[txnormal.TokenId] == nil {
+		af.txlist.Put(tx)
+		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
+	}
+	value := txnormal.GetValue()
+	err := af.balances[txnormal.TokenId].TrySubBalance(value)
 	if err != nil {
 		return err
 	}
@@ -179,12 +189,17 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	value := math.NewBigInt(0)
-	if tx.GetType() == types.TxBaseTypeNormal {
-		txnormal := tx.(*types.Tx)
-		value = txnormal.GetValue()
+	if tx.GetType() != types.TxBaseTypeNormal {
+		af.txlist.Remove(nonce)
+		return nil
 	}
-	err := af.balance.TryRemoveValue(value)
+	txnormal := tx.(*types.Tx)
+	if af.balances[txnormal.TokenId] == nil {
+		af.txlist.Remove(nonce)
+		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
+	}
+	value := txnormal.GetValue()
+	err := af.balances[txnormal.TokenId].TryRemoveValue(value)
 	if err != nil {
 		return err
 	}

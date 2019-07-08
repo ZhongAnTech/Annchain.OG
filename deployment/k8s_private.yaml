@@ -1,0 +1,34 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ognb
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: ognb
+      annotations:
+        kubernetes.io/ingress-bandwidth: 1024M
+        kubernetes.io/egress-bandwidth: 1024M
+    spec:
+      containers:
+        - name: ognb
+          image: localhost:5000/ognb
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          command:
+            ["./og", "-c", "config.toml", "-m", "-n", "-l", "rw/log/", "-d", "rw/datadir", "run"]
+          resources:
+            limits:
+              cpu: "2"
+            requests:
+              cpu: "100m"

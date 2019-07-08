@@ -54,7 +54,7 @@ type AutoClient struct {
 	ManualChan chan types.TxBaseType
 	quit       chan bool
 
-	pause    bool
+	pause bool
 
 	wg sync.WaitGroup
 
@@ -248,34 +248,33 @@ func (c *AutoClient) fireTxs() bool {
 			logrus.Info("tx generate stopped")
 			return true
 		}
-		txis,seq:= c.Delegate.Dag.GetTestTxisByNumber(i)
-			var j int
-			for k:=0; k<len(txis);  {
-				//time.Sleep(time.Duration(m) * time.Microsecond)
-				if c.pause {
-					return true
-				}
-				j=k+100
-				if j>=len(txis) {
-					c.Delegate.ReceivedNewTxsChan <- txis[k:]
-				}else {
-					c.Delegate.ReceivedNewTxsChan <-txis[k:j]
-				}
-				k=j
-			}
-
-		if seq!=nil {
+		txis, seq := c.Delegate.Dag.GetTestTxisByNumber(i)
+		var j int
+		for k := 0; k < len(txis); {
+			//time.Sleep(time.Duration(m) * time.Microsecond)
 			if c.pause {
 				return true
 			}
-			c.Delegate.ReceivedNewTxsChan<-types.Txis{seq}
-		}else {
+			j = k + 100
+			if j >= len(txis) {
+				c.Delegate.ReceivedNewTxsChan <- txis[k:]
+			} else {
+				c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+			}
+			k = j
+		}
+
+		if seq != nil {
+			if c.pause {
+				return true
+			}
+			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+		} else {
 			return true
 		}
 	}
 	return true
 }
-
 
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
@@ -284,10 +283,10 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 
 	me := c.MyAccount
 	if c.TpsTest {
-			logrus.Info("get start test tps")
-			c.AutoTxEnabled = false
-			c.AutoSequencerEnabled = false
-			return c.fireTxs()
+		logrus.Info("get start test tps")
+		c.AutoTxEnabled = false
+		c.AutoSequencerEnabled = false
+		return c.fireTxs()
 		//logrus.WithField("txi", txi).Info("tps test  mode, txi not found, enter normal mode")
 	}
 	c.txLock.RLock()

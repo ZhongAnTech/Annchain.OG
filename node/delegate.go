@@ -34,11 +34,11 @@ type TxRequest struct {
 }
 
 type Delegate struct {
-	TxCreator         *og.TxCreator
-	ReceivedNewTxsChan    chan []types.Txi
-	TxPool            *core.TxPool
-	Dag               *core.Dag
-	OnNewTxiGenerated []chan types.Txi
+	TxCreator          *og.TxCreator
+	ReceivedNewTxsChan chan []types.Txi
+	TxPool             *core.TxPool
+	Dag                *core.Dag
+	OnNewTxiGenerated  []chan types.Txi
 }
 
 func (d *Delegate) GetTxNum() uint32 {

@@ -24,6 +24,7 @@ import (
 type MsgCodeType uint16
 
 // Protocol represents a P2P subprotocol implementation.
+//msgp:tuple Protocol
 type Protocol struct {
 	// Name should contain the official protocol name,
 	// often a three-letter word.
@@ -63,12 +64,14 @@ func (p Protocol) cap() Cap {
 }
 
 // Cap is the structure of a peer capability.
+//msgp:tuple Cap
 type Cap struct {
 	Name    string
 	Version uint32
 }
 
 // protoHandshake is the RLP structure of the protocol handshake.
+//msgp:tuple ProtoHandshake
 type ProtoHandshake struct {
 	Version    uint32 `msg:"version"`
 	Name       string `msg:"name"`

@@ -31,6 +31,7 @@ type Archive struct {
 	Data []byte `json:"data"`
 }
 
+//msgp:tuple ArchiveJson
 type ArchiveJson struct {
 	TxBaseJson
 	Data []byte `json:"data"`

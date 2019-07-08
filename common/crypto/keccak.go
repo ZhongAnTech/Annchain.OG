@@ -198,7 +198,6 @@ func zeroBytes(bytes []byte) {
 	}
 }
 
-
 // Sign calculates an ECDSA signature.
 //
 // This function is susceptible to chosen plaintext attacks that can leak

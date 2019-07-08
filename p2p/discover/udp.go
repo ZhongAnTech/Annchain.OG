@@ -66,6 +66,7 @@ const (
 
 // RPC request structures
 type (
+	//msgp:tuple Ping
 	Ping struct {
 		Version    uint
 		From, To   RpcEndpoint
@@ -75,6 +76,7 @@ type (
 	}
 
 	// pong is the reply to ping.
+	//msgp:tuple Pong
 	Pong struct {
 		// This field should mirror the UDP envelope address
 		// of the ping packet, which provides a way to discover the
@@ -88,6 +90,7 @@ type (
 	}
 
 	// findnode is a query for nodes close to the given target.
+	//msgp:tuple Findnode
 	Findnode struct {
 		//Target     NodeID // doesn't need to be an actual public key
 		Target     EncPubkey
@@ -97,6 +100,7 @@ type (
 	}
 
 	// reply to findnode
+	//msgp:tuple Neighbors
 	Neighbors struct {
 		Nodes      []RpcNode
 		Expiration uint64
@@ -104,6 +108,7 @@ type (
 		Rest [][]byte `rlp:"tail"`
 	}
 
+	//msgp:tuple RpcNode
 	RpcNode struct {
 		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
 		IP  []byte
@@ -112,6 +117,7 @@ type (
 		ID  EncPubkey
 	}
 
+	//msgp:tuple RpcEndpoint
 	RpcEndpoint struct {
 		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
 		IP  []byte
@@ -239,6 +245,7 @@ type reply struct {
 }
 
 // ReadPacket is sent to the unhandled channel when it could not be processed
+//msgp:tuple ReadPacket
 type ReadPacket struct {
 	Data []byte       `msg:"-"`
 	Addr *net.UDPAddr `msg:"-"`

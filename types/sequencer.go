@@ -38,9 +38,10 @@ type Sequencer struct {
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
+//msgp:tuuple SequencerJson
 type SequencerJson struct {
 	TxBaseJson
-	Issuer         *Address       `json:"issuer"`
+	Issuer         *Address      `json:"issuer"`
 	BlsJointSig    hexutil.Bytes `json:"bls_joint_sig"`
 	BlsJointPubKey hexutil.Bytes `json:"bls_joint_pub_key"`
 	Proposing      bool          `msg:"-",json:"-"`
@@ -62,9 +63,9 @@ func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
 }
 
 func (t *Sequencer) String() string {
-	if t.GetSender() ==nil {
+	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-Seq", t.TxBase.String(), t.AccountNonce)
-	}else {
+	} else {
 		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender(), t.AccountNonce)
 	}
 
@@ -136,7 +137,7 @@ func (t *Sequencer) Sender() Address {
 	return *t.Issuer
 }
 
-func (t *Sequencer)GetSender() *Address {
+func (t *Sequencer) GetSender() *Address {
 	return t.Issuer
 }
 
@@ -234,6 +235,6 @@ func (c *Sequencer) RawTxi() RawTxi {
 	return c.RawSequencer()
 }
 
-func (t *Sequencer)SetSender (addr Address) {
+func (t *Sequencer) SetSender(addr Address) {
 	t.Issuer = &addr
 }

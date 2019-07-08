@@ -53,9 +53,9 @@ func (d *DataLoader) LoadLocalData() {
 }
 
 func (d *DataLoader) GenerateGenesis() *types.Sequencer {
-	from:=types.HexToAddress("0x00")
+	from := types.HexToAddress("0x00")
 	return &types.Sequencer{
-		Issuer:&from ,
+		Issuer: &from,
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeSequencer,
 			Hash:         types.HexToHash("0x00"),

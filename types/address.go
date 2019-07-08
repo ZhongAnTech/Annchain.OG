@@ -39,6 +39,7 @@ var (
 )
 
 // Address represents the 20 byte of address.
+//msgp:tuple Address
 type Address struct {
 	Bytes [AddressLength]byte `msgp:"bytes"`
 }

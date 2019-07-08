@@ -163,7 +163,7 @@ func (d *dummyVerifier) Name() string {
 	return "dumnmy verifier"
 }
 
-func (d *dummyVerifier)String()string {
+func (d *dummyVerifier) String() string {
 	return d.Name()
 }
 

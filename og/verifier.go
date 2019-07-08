@@ -123,19 +123,19 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	base := t.GetBase()
 
 	if !crypto.Signer.CanRecoverPubFromSig() {
-		if t.GetSender() ==nil {
+		if t.GetSender() == nil {
 			logrus.Debug("verify sig failed, from is nil")
 			return false
 		}
-		 ok:= crypto.Signer.Verify(
+		ok := crypto.Signer.Verify(
 			crypto.Signer.PublicKeyFromBytes(base.PublicKey),
 			crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
 			t.SignatureTargets())
-		 return ok
+		return ok
 	}
 
-	R, S, Vb ,err:= v.SignatureValues(base.Signature)
-	if err!=nil {
+	R, S, Vb, err := v.SignatureValues(base.Signature)
+	if err != nil {
 		logrus.WithError(err).Debug("verify sig failed")
 		return false
 	}
@@ -161,7 +161,7 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 		logrus.WithError(err).Debug("sig verify failed")
 	}
 	if len(pub) == 0 || pub[0] != 4 {
-		err :=  errors.New("invalid public key")
+		err := errors.New("invalid public key")
 		logrus.WithError(err).Debug("verify sig failed")
 	}
 	var addr types.Address
@@ -176,17 +176,16 @@ func Sha256(bytes []byte) []byte {
 	return hasher.Sum(nil)
 }
 
-
 // SignatureValues returns signature values. This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (t *TxFormatVerifier) SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
-		if len(sig) != 65 {
-			return  r, s, v, fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
-		}
-		r = new(big.Int).SetBytes(sig[:32])
-		s = new(big.Int).SetBytes(sig[32:64])
-		v = new(big.Int).SetBytes([]byte{sig[64] + 27})
-		return r, s, v, nil
+	if len(sig) != 65 {
+		return r, s, v, fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v, nil
 }
 
 func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {

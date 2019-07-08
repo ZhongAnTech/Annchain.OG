@@ -90,54 +90,34 @@ func (z *Archive) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *ArchiveJson) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBaseJson":
-			err = z.TxBaseJson.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "Data":
-			z.Data, err = dc.ReadBytes(z.Data)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	err = z.TxBaseJson.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	z.Data, err = dc.ReadBytes(z.Data)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *ArchiveJson) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "TxBaseJson"
-	err = en.Append(0x82, 0xaa, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65, 0x4a, 0x73, 0x6f, 0x6e)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
 	err = z.TxBaseJson.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "Data"
-	err = en.Append(0xa4, 0x44, 0x61, 0x74, 0x61)
 	if err != nil {
 		return
 	}
@@ -151,51 +131,34 @@ func (z *ArchiveJson) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *ArchiveJson) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "TxBaseJson"
-	o = append(o, 0x82, 0xaa, 0x54, 0x78, 0x42, 0x61, 0x73, 0x65, 0x4a, 0x73, 0x6f, 0x6e)
+	// array header, size 2
+	o = append(o, 0x92)
 	o, err = z.TxBaseJson.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Data"
-	o = append(o, 0xa4, 0x44, 0x61, 0x74, 0x61)
 	o = msgp.AppendBytes(o, z.Data)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *ArchiveJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "TxBaseJson":
-			bts, err = z.TxBaseJson.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "Data":
-			z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	bts, err = z.TxBaseJson.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -203,7 +166,7 @@ func (z *ArchiveJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ArchiveJson) Msgsize() (s int) {
-	s = 1 + 11 + z.TxBaseJson.Msgsize() + 5 + msgp.BytesPrefixSize + len(z.Data)
+	s = 1 + z.TxBaseJson.Msgsize() + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 

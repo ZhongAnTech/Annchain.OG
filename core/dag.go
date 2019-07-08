@@ -60,7 +60,7 @@ type Dag struct {
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
-	latestTokenId  int32
+	latestTokenId   int32
 
 	txcached *txcached
 
@@ -223,7 +223,7 @@ func (dag *Dag) LoadLastState() (bool, types.Hash) {
 	} else {
 		dag.latestSequencer = seq
 	}
-	dag.latestTokenId=  dag.getLatestTokenId()
+	dag.latestTokenId = dag.getLatestTokenId()
 	root := dag.LoadStateRoot()
 
 	return true, root
@@ -714,15 +714,15 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	var tokens map[int32]*types.TokenInfo
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
-		if txi.GetType() ==types.TxBaseAction {
-			tx:= txi.(*types.ActionTx)
+		if txi.GetType() == types.TxBaseAction {
+			tx := txi.(*types.ActionTx)
 			if tx.Action == types.ActionTxActionIPO {
 				tokenId++
 				actionData := tx.ActionData.(*types.PublicOffering)
 				actionData.TokenId = tokenId
-				 token := types.TokenInfo{
-					PublicOffering:*actionData,
-					Sender:txi.Sender(),
+				token := types.TokenInfo{
+					PublicOffering: *actionData,
+					Sender:         txi.Sender(),
 				}
 				tokens[tokenId] = &token
 			}
@@ -805,12 +805,12 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		dag.accessor.WriteIndexedTxHashs(dbBatch, batch.Seq.Height, &txhashes)
 	}
 
-	for _,token:= range tokens {
-		dag.accessor.WriteToken(dbBatch,token)
+	for _, token := range tokens {
+		dag.accessor.WriteToken(dbBatch, token)
 	}
 
-	if len(tokens)> 0 {
-		err = dag.accessor.WriteLatestTokenId(dbBatch,tokenId)
+	if len(tokens) > 0 {
+		err = dag.accessor.WriteLatestTokenId(dbBatch, tokenId)
 	}
 	if err != nil {
 		return err
@@ -888,7 +888,7 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	return nil
 }
 
-func (dag *Dag)GetToken(tokenId int32) *types.TokenInfo{
+func (dag *Dag) GetToken(tokenId int32) *types.TokenInfo {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if tokenId > dag.latestTokenId {
@@ -897,47 +897,44 @@ func (dag *Dag)GetToken(tokenId int32) *types.TokenInfo{
 	return dag.getToken(tokenId)
 }
 
-
-
-func (dag *Dag)getToken(tokenId int32) *types.TokenInfo {
+func (dag *Dag) getToken(tokenId int32) *types.TokenInfo {
 	return dag.accessor.ReadToken(tokenId)
 }
 
-func (dag *Dag)GetLatestTokenId ()int32 {
+func (dag *Dag) GetLatestTokenId() int32 {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	return dag.latestTokenId
 }
 
-func (dag *Dag)GetTokens ()types.TokensInfo {
+func (dag *Dag) GetTokens() types.TokensInfo {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	return dag.getTokens()
 }
 
-func (dag *Dag)getTokens()types.TokensInfo {
+func (dag *Dag) getTokens() types.TokensInfo {
 	var tokens types.TokensInfo
-	lid:= dag.latestTokenId
-	for i:= int32(0)  ;i<=lid;i++ {
+	lid := dag.latestTokenId
+	for i := int32(0); i <= lid; i++ {
 		token := dag.getToken(i)
 		//if token!=nil {
-			tokens= append(tokens,token)
+		tokens = append(tokens, token)
 		//}
 	}
 	return tokens
 }
 
-
-func (dag *Dag)getLatestTokenId() int32 {
+func (dag *Dag) getLatestTokenId() int32 {
 	return dag.accessor.RaedLatestTokenId()
 }
 
-func (dag *Dag)WriteToken (putter *Putter, token *types.TokenInfo) error{
-	return dag.accessor.WriteToken(putter,token)
+func (dag *Dag) WriteToken(putter *Putter, token *types.TokenInfo) error {
+	return dag.accessor.WriteToken(putter, token)
 }
 
-func (dag *Dag)WriteLatestTokenId (putter *Putter, tokenId int32)error {
-	return dag.accessor.WriteLatestTokenId(putter,tokenId)
+func (dag *Dag) WriteLatestTokenId(putter *Putter, tokenId int32) error {
+	return dag.accessor.WriteLatestTokenId(putter, tokenId)
 }
 
 func (dag *Dag) DeleteTransaction(hash types.Hash) error {
@@ -973,19 +970,19 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		return nil, receipt, nil
 	}
 
-	if tx.GetType() ==types.TxBaseAction {
+	if tx.GetType() == types.TxBaseAction {
 		//ipo
 		actionTx := tx.(*types.ActionTx)
 		if actionTx.Action == types.ActionTxActionIPO {
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(),actionData.TokenId,actionData.Value)
-		}else if actionTx.Action == types.ActionTxActionSPO {
+			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+		} else if actionTx.Action == types.ActionTxActionSPO {
 			//spo
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.AddTokenBalance(actionTx.Sender(),actionData.TokenId,actionData.Value)
-		}else if actionTx.Action == types.ActionTxActionWithdraw {
+			dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+		} else if actionTx.Action == types.ActionTxActionWithdraw {
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(),actionData.TokenId,math.NewBigInt(0))
+			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
 		}
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
 		return nil, receipt, nil
@@ -994,8 +991,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
-		dag.statedb.SubTokenBalance(txnormal.Sender(),txnormal.TokenId,  txnormal.Value)
-		dag.statedb.AddTokenBalance(txnormal.To,txnormal.TokenId, txnormal.Value)
+		dag.statedb.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
+		dag.statedb.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {

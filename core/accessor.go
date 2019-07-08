@@ -41,13 +41,13 @@ var (
 	contentPrefixCampaign    = []byte("cpcp")
 	contentPrefixTermChg     = []byte("cptc")
 	contentPrefixArchive     = []byte("cpac")
-	contentPrefixActionTx    =[]byte("cpax")
+	contentPrefixActionTx    = []byte("cpax")
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
-	prefixSeqHeightKey = []byte("sh")
-	prefixTxIndexKey   = []byte("ti")
-	prefixTokenIndexKey = []byte("toi")
+	prefixSeqHeightKey        = []byte("sh")
+	prefixTxIndexKey          = []byte("ti")
+	prefixTokenIndexKey       = []byte("toi")
 	prefixLatestTokenindexKey = []byte("latesttoi")
 
 	prefixAddressBalanceKey = []byte("ba")
@@ -102,10 +102,9 @@ func txIndexKey(seqID uint64) []byte {
 	return append(prefixTxIndexKey, encodeUint64(seqID)...)
 }
 
-func tokenIndexKey(tokenId  int32) []byte {
-    return append(prefixTokenIndexKey, encodeInt32(tokenId)...)
+func tokenIndexKey(tokenId int32) []byte {
+	return append(prefixTokenIndexKey, encodeInt32(tokenId)...)
 }
-
 
 type Accessor struct {
 	db ogdb.Database
@@ -370,7 +369,7 @@ func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
 	return &cf
 }
 
-func (da* Accessor)WriteToken(putter *Putter , token *types.TokenInfo) error {
+func (da *Accessor) WriteToken(putter *Putter, token *types.TokenInfo) error {
 	data, err := token.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -383,7 +382,7 @@ func (da* Accessor)WriteToken(putter *Putter , token *types.TokenInfo) error {
 	return nil
 }
 
-func (da*Accessor)WriteLatestTokenId(putter *Putter , tokenIndex int32)  error{
+func (da *Accessor) WriteLatestTokenId(putter *Putter, tokenIndex int32) error {
 	err := da.put(putter, latestTokenKey(), encodeInt32(tokenIndex))
 	if err != nil {
 		return fmt.Errorf("write token to db err: %v", err)
@@ -391,15 +390,15 @@ func (da*Accessor)WriteLatestTokenId(putter *Putter , tokenIndex int32)  error{
 	return nil
 }
 
-func (da*Accessor)RaedLatestTokenId() int32{
+func (da *Accessor) RaedLatestTokenId() int32 {
 	data, _ := da.db.Get(latestTokenKey())
 	if len(data) == 0 {
 		return 0
 	}
-	return common.GetInt32(data,0)
+	return common.GetInt32(data, 0)
 }
 
-func (da *Accessor)ReadToken(tokenIndex int32) *types.TokenInfo{
+func (da *Accessor) ReadToken(tokenIndex int32) *types.TokenInfo {
 	var token types.TokenInfo
 	data, _ := da.db.Get(tokenIndexKey(tokenIndex))
 	if len(data) == 0 {
@@ -614,6 +613,5 @@ func encodeUint64(n uint64) []byte {
 }
 
 func encodeInt32(n int32) []byte {
-	return  common.ByteInt32(n)
+	return common.ByteInt32(n)
 }
-

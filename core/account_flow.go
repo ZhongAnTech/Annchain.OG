@@ -125,7 +125,7 @@ func (a *AccountFlows) Remove(tx types.Txi) {
 // balance state of the account among the txpool,
 type AccountFlow struct {
 	balances map[int32]*BalanceState
-	txlist  *TxList
+	txlist   *TxList
 }
 
 func NewAccountFlow(originBalance state.BalanceSet) *AccountFlow {
@@ -136,7 +136,7 @@ func NewAccountFlow(originBalance state.BalanceSet) *AccountFlow {
 
 	return &AccountFlow{
 		balances: bls,
-		txlist:  NewTxList(),
+		txlist:   NewTxList(),
 	}
 }
 func (af *AccountFlow) BalanceState(tokenID int32) *BalanceState {

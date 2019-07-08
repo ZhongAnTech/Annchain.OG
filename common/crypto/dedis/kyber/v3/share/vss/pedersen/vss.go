@@ -50,6 +50,7 @@ type Dealer struct {
 }
 
 // Deal encapsulates the verifiable secret share and is sent by the dealer to a verifier.
+//msgp:tuple Deal
 type Deal struct {
 	// Unique session identifier for this protocol run
 	SessionID []byte
@@ -65,6 +66,7 @@ type Deal struct {
 // correct recipient. The encryption is performed in a similar manner as what is
 // done in TLS. The dealer generates a temporary key pair, signs it with its
 // longterm secret key.
+//msgp:tuple EncryptedDeal
 type EncryptedDeal struct {
 	// Ephemeral Diffie Hellman key
 	DHKey []byte
@@ -78,6 +80,7 @@ type EncryptedDeal struct {
 
 // Response is sent by the verifiers to all participants and holds each
 // individual validation or refusal of a Deal.
+//msgp:tuple Response
 type Response struct {
 	// SessionID related to this run of the protocol
 	SessionID []byte
@@ -101,6 +104,7 @@ const (
 // Justification is a message that is broadcasted by the Dealer in response to
 // a Complaint. It contains the original Complaint as well as the shares
 // distributed to the complainer.
+//msgp:tuple Justification
 type Justification struct {
 	// SessionID related to the current run of the protocol
 	SessionID []byte

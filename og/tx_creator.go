@@ -220,7 +220,7 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 }
 
 func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
-	nonce uint64, enableSpo bool, TokenId int32, tokenName string , pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	nonce uint64, enableSpo bool, TokenId int32, tokenName string, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.ActionTx{
 		From: &from,
 		// TODO
@@ -413,14 +413,13 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	// record the mining times.
 	tx.GetBase().PublicKey = crypto.Signer.PubKey(*privateKey).Bytes
 
-
 	if blsPubKey != nil {
 		// proposed by bft
 		tx.BlsJointPubKey = blsPubKey
 		tx.Proposing = true
 	}
 	// else it is proposed by delegate for solo
-	
+
 	connectionTries := 0
 	timeStart := time.Now()
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)

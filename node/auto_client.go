@@ -251,7 +251,7 @@ func (c *AutoClient) fireTxs() bool {
 		txis,seq:= c.Delegate.Dag.GetTestTxisByNumber(i)
 			var j int
 			for k:=0; k<len(txis);  {
-				time.Sleep(time.Duration(m) * time.Microsecond)
+				//time.Sleep(time.Duration(m) * time.Microsecond)
 				if c.pause {
 					return true
 				}

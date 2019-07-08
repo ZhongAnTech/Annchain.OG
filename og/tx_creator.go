@@ -220,7 +220,7 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 }
 
 func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
-	nonce uint64, enableSpo bool, TokenId int32, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	nonce uint64, enableSpo bool, TokenId int32, tokenName string , pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &types.ActionTx{
 		From: &from,
 		// TODO
@@ -233,6 +233,7 @@ func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, va
 			Value:     value,
 			EnableSPO: enableSpo,
 			TokenId:   TokenId,
+			TokenName: tokenName,
 		},
 	}
 	tx.GetBase().Signature = sig.Bytes

@@ -14,7 +14,6 @@
 package og
 
 import (
-	"github.com/annchain/OG/types/token"
 	"sort"
 	"sync"
 	"time"
@@ -65,7 +64,7 @@ type IDag interface {
 	Genesis() *types.Sequencer
 	GetHeight() uint64
 	GetSequencerByHash(hash types.Hash) *types.Sequencer
-	GetBalance(addr types.Address, tokenID token.TokenID) *math.BigInt
+	GetBalance(addr types.Address, tokenID int32) *math.BigInt
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.

@@ -461,7 +461,7 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.Pool.CalculateStateRoot(tx)
+			root, err := m.Pool.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
 				return nil

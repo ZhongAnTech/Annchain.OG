@@ -41,6 +41,12 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 	m.delegate = delegate
 	// to make sure we have only one sequencer
 	sequencers := 1
+	mode := viper.GetString("mode")
+	var tpsTest bool
+	if mode =="tps_test" {
+		tpsTest = true
+		accountIndices = []int{0}
+	}
 	for _, accountIndex := range accountIndices {
 		client := &AutoClient{
 			Delegate:             delegate,
@@ -55,6 +61,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
 			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TpsTest:tpsTest,
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -63,7 +70,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		}
 
 	}
-	if sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
+	if !tpsTest &&  sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,
@@ -80,7 +87,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		m.Clients = append(m.Clients, client)
 	}
 
-	if viper.GetBool("annsensus.campaign") {
+	if !tpsTest && viper.GetBool("annsensus.campaign") {
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,

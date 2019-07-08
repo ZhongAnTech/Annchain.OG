@@ -899,6 +899,25 @@ func (dag *Dag)GetLatestTokenId ()int32 {
 	return dag.latestTokenId
 }
 
+func (dag *Dag)GetTokens ()types.TokensInfo {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	return dag.getTokens()
+}
+
+func (dag *Dag)getTokens()types.TokensInfo {
+	var tokens types.TokensInfo
+	lid:= dag.latestTokenId
+	for i:= int32(0)  ;i<=lid;i++ {
+		token := dag.getToken(i)
+		//if token!=nil {
+			tokens= append(tokens,token)
+		//}
+	}
+	return tokens
+}
+
+
 func (dag *Dag)getLatestTokenId() int32 {
 	return dag.accessor.RaedLatestTokenId()
 }

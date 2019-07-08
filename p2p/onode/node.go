@@ -31,6 +31,7 @@ import (
 
 //go:generate msgp
 // Node represents a host on the network.
+//msgp:tuple Node
 type Node struct {
 	R  enr.Record
 	Id ID

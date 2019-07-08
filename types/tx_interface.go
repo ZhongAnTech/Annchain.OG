@@ -127,6 +127,7 @@ type TxBase struct {
 	Version      byte
 }
 
+//msgp:tuple TxBaseJson
 type TxBaseJson struct {
 	Type         TxBaseType    `json:"type"`
 	Hash         Hash          `json:"hash"`

@@ -35,9 +35,13 @@ type AccountData struct {
 	CodeHash []byte
 }
 
-func NewAccountData()AccountData {
+func NewAccountData() AccountData {
 	return AccountData{
-		Balances:NewBalanceSet(),
+		Address:  types.Address{},
+		Balances: NewBalanceSet(),
+		Nonce:    0,
+		Root:     types.Hash{},
+		CodeHash: []byte{},
 	}
 }
 
@@ -315,23 +319,23 @@ func (b *BalanceSet) IsEmpty() bool {
 // MarshalMsg - For every [key, value] pair, marshal it in [size (int32) + key (int32) + bigint.bytes]
 func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 
-	mspSize := b.Msgsize()
-	o = msgp.Require(bts, mspSize)
+	msgpSize := b.Msgsize()
+	o = msgp.Require(bts, msgpSize)
 
 	// add total size
-	o = append(o, common.ByteInt32(int32(mspSize))...)
+	o = append(o, common.ByteInt32(int32(0))...)
 
 	for k, v := range *b {
 		o = append(o, common.ByteInt32(k)...)
 
 		o, err = v.MarshalMsg(o)
-		fmt.Println(fmt.Sprintf("cur o: %x", o))
+		//fmt.Println(fmt.Sprintf("cur o: %x", o))
 		if err != nil {
 			return
 		}
 	}
-	size := len(o)
-	common.SetInt32(o, 0, int32(size))
+	size := len(o) - len(bts)
+	common.SetInt32(o, len(bts), int32(size))
 
 	return o, nil
 }

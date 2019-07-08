@@ -885,11 +885,27 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		return nil, receipt, nil
 	}
 
+	if tx.GetType() ==types.TxBaseAction {
+		//ipo
+		actionTx := tx.(*types.ActionTx)
+		if actionTx.Action == types.ActionTxActionIPO {
+			actionData := actionTx.ActionData.(*types.PublicOffering)
+			dag.statedb.SetTokenBalance(actionTx.Sender(),actionData.TokenId,actionData.Value)
+		}else if actionTx.Action == types.ActionTxActionSPO {
+			//spo
+			actionData := actionTx.ActionData.(*types.PublicOffering)
+			dag.statedb.AddTokenBalance(actionTx.Sender(),actionData.TokenId,actionData.Value)
+		}else if actionTx.Action == types.ActionTxActionWithdraw {
+			actionData := actionTx.ActionData.(*types.PublicOffering)
+			dag.statedb.SetTokenBalance(actionTx.Sender(),actionData.TokenId,math.NewBigInt(0))
+		}
+	}
+
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
-		dag.statedb.SubBalance(txnormal.Sender(), txnormal.Value)
-		dag.statedb.AddBalance(txnormal.To, txnormal.Value)
+		dag.statedb.SubTokenBalance(txnormal.Sender(),txnormal.TokenId,  txnormal.Value)
+		dag.statedb.AddTokenBalance(txnormal.To,txnormal.TokenId, txnormal.Value)
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {

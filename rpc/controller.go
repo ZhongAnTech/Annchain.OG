@@ -97,6 +97,7 @@ type NewPublicOfferingRequest struct {
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
 	TokenId    int32
+	TokenName  string `json:"token_name"`
 }
 
 //NewArchiveRequest for RPC request
@@ -168,7 +169,17 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *types.Archive:
 		Response(c, http.StatusOK, nil, tx)
 		return
+	case *types.Campaign:
+		Response(c, http.StatusOK, nil, tx)
+		return
+	case *types.TermChange:
+		Response(c, http.StatusOK, nil, tx)
+		return
+	case *types.ActionTx:
+		Response(c, http.StatusOK, nil, tx)
+		return
 	}
+
 	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
 }
 
@@ -629,7 +640,8 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionIPO, nonce, txReq.EnableSPO, 0, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionIPO, nonce,
+	txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
@@ -717,7 +729,8 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO, nonce, txReq.EnableSPO, txReq.TokenId, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO,
+	nonce, txReq.EnableSPO, txReq.TokenId,txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return

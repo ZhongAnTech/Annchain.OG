@@ -690,6 +690,47 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
+	case *types.ActionTx:
+		if tx.Action == types.ActionTxActionIPO {
+			actionData := tx.ActionData.(*types.PublicOffering)
+			actionData.TokenId =  pool.dag.GetLatestTokenId()
+		}
+		if tx.Action == types.ActionTxActionSPO {
+			actionData := tx.ActionData.(*types.PublicOffering)
+			if actionData.TokenId ==0 {
+				log.Warn("og token is disabled for publishing")
+				return TxQualityIsFatal
+			}
+			token := pool.dag.GetToken(actionData.TokenId)
+			if token==nil {
+				log.Warn("token not found")
+				return TxQualityIsFatal
+			}
+			if !token.EnableSPO {
+				log.Warn("token is disabled for second publishing")
+				return TxQualityIsFatal
+			}
+			if token.Sender != tx.Sender() {
+				log.WithField("token ",token).WithField("you address",tx.Sender()).Warn("you have no authority to second publishing for this token")
+				return TxQualityIsFatal
+			}
+		}
+		if tx.Action == types.ActionTxActionWithdraw {
+			actionData := tx.ActionData.(*types.PublicOffering)
+			if actionData.TokenId ==0 {
+				log.Warn("og token is disabled for withdraw")
+				return TxQualityIsFatal
+			}
+			token := pool.dag.GetToken(actionData.TokenId)
+			if token==nil {
+				log.Warn("token not found")
+				return TxQualityIsFatal
+			}
+			if token.Sender != tx.Sender() {
+				log.WithField("token ",token).WithField("you address",tx.Sender()).Warn("you have no authority to second publishing for this token")
+				return TxQualityIsFatal
+			}
+		}
 	case *types.Campaign:
 		// TODO
 	case *types.TermChange:

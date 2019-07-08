@@ -44,6 +44,7 @@ type PublicOffering struct {
 	Value   *math.BigInt
 	//To      Address       //when publish a token ,to equals from
 	EnableSPO bool //if enableSPO is false  , no Secondary Public Offering.
+	TokenName string
 }
 
 //msgp:tuple RequestDomain

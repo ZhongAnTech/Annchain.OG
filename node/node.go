@@ -92,7 +92,7 @@ func NewNode() *Node {
 	org, err := og.NewOg(
 		og.OGConfig{
 			NetworkId:   uint64(networkId),
-			GenesisPath: io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("dag.genesis_path")),
+			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
 	if err != nil {

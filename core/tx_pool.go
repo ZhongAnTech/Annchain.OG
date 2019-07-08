@@ -92,6 +92,7 @@ type TxPool struct {
 	pendings *TxMap
 	flows    *AccountFlows
 	txLookup *txLookUp // txLookUp stores all the txs for external query
+	cached   *cachedConfirm
 
 	close chan struct{}
 
@@ -701,6 +702,23 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
+// PreConfirm simulates the confirm process of a sequencer and store the related data
+// into pool.cached. Once a real sequencer with same hash comes, reload cached data without
+// any more calculates.
+func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash types.Hash, err error) {
+	//TODO
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	// check if sequencer is correct
+	checkErr := pool.isBadSeq(seq)
+	if checkErr != nil {
+		return types.Hash{}, checkErr
+	}
+
+	return types.Hash{}, nil
+}
+
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
@@ -807,17 +825,6 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[types.Hash]types.Txi, erro
 	return batch, nil
 }
 
-// BatchDetail describes all the details of a specific address within a
-// sequencer confirmation term.
-// - TxList - represents the txs sent by this addrs, ordered by nonce.
-// - Neg    - means the amount this address should spent out.
-// - Pos    - means the amount this address get paid.
-type BatchDetail struct {
-	TxList *TxList
-	Neg    *math.BigInt
-	Pos    *math.BigInt
-}
-
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
 func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Hash]types.Txi) (*ConfirmBatch, error) {
@@ -836,13 +843,6 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 		}
 
 		if txi.GetType() == types.TxBaseTypeNormal {
-			// check balance
-			// if balance < outcome, then verify failed
-			tx := txi.(*types.Tx)
-			confirmedBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
-			if confirmedBalance.Value.Cmp(tx.GetValue().Value) < 0 {
-				return nil, fmt.Errorf("the balance of addr %s is not enough", tx.Sender())
-			}
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
@@ -860,37 +860,34 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = NewTxList()
-				batchFrom.Neg = math.NewBigInt(0)
-				batchFrom.Pos = math.NewBigInt(0)
+				batchFrom.Neg = make(map[int32]*math.BigInt)
+				//batchFrom.Pos = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
 			batchFrom.TxList.put(tx)
-			batchFrom.Neg.Value.Add(batchFrom.Neg.Value, tx.Value.Value)
-
-			batchTo, okTo := batch[tx.To]
-			if !okTo {
-				batchTo = &BatchDetail{}
-				batchTo.TxList = NewTxList()
-				batchTo.Neg = math.NewBigInt(0)
-				batchTo.Pos = math.NewBigInt(0)
-				batch[tx.To] = batchTo
-			}
-			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
+			batchFrom.AddNeg(tx.TokenId, tx.Value)
 
 		default:
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
 				batchFrom.TxList = NewTxList()
-				batchFrom.Neg = math.NewBigInt(0)
-				batchFrom.Pos = math.NewBigInt(0)
+				batchFrom.Neg = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
 			batchFrom.TxList.put(tx)
 		}
 	}
-	// verify nonce
+	// verify balance and nonce
 	for addr, batchDetail := range batch {
+		// check balance
+		// for every token, if balance < outcome, then verify failed
+		for tokenID, spent := range batchDetail.Neg {
+			confirmedBalance := pool.dag.GetBalance(addr, tokenID)
+			if confirmedBalance.Value.Cmp(spent.Value) < 0 {
+				return nil, fmt.Errorf("the balance of addr %s is not enough", addr)
+			}
+		}
 		// check nonce order
 		nonces := *batchDetail.TxList.keys
 		if !(nonces.Len() > 0) {
@@ -991,6 +988,29 @@ func (pool *TxPool) verifyNonce(addr types.Address, noncesP *nonceHeap, seq *typ
 // reset clears the txs that conflicts with sequencer
 func (pool *TxPool) reset() {
 	// TODO
+}
+
+// BatchDetail describes all the details of a specific address within a
+// sequencer confirmation term.
+// - TxList - represents the txs sent by this addrs, ordered by nonce.
+// - Neg    - means the amount this address should spent out.
+type BatchDetail struct {
+	TxList *TxList
+	Neg    map[int32]*math.BigInt
+}
+
+func (bd *BatchDetail) AddNeg(tokenID int32, amount *math.BigInt) {
+	v, ok := bd.Neg[tokenID]
+	if !ok {
+		v = math.NewBigInt(0)
+	}
+	v.Value.Add(v.Value, amount.Value)
+	bd.Neg[tokenID] = v
+}
+
+type cachedConfirm struct {
+	seq *types.Sequencer
+	txs types.Txis
 }
 
 type TxMap struct {
@@ -1266,10 +1286,4 @@ func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
 
 func (pool *TxPool) GetOrder() types.Hashes {
 	return pool.txLookup.GetOrder()
-}
-
-//CalculateStateRoot  for proposing sequencer
-func (pool *TxPool) CalculateStateRoot(seq *types.Sequencer) (hash types.Hash, err error) {
-	//TODO
-	return types.Hash{}, nil
 }

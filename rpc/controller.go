@@ -18,6 +18,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/types/token"
+
 	//"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/status"
@@ -807,16 +809,16 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("address format err: %v", err), nil)
 		return
 	}
-	var tokenID int32
+	var tokenID token.TokenID
 	if tokenIDStr == "" {
-		tokenID = common.OGTokenID
+		tokenID = token.OGTokenID
 	} else {
 		t, err := strconv.Atoi(tokenIDStr)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("tokenID format err: %v", err), nil)
 			return
 		}
-		tokenID = int32(t)
+		tokenID = token.TokenID(t)
 	}
 	b := r.Og.Dag.GetBalance(addr, tokenID)
 	Response(c, http.StatusOK, nil, gin.H{

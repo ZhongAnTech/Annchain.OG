@@ -25,8 +25,3 @@ var (
 	Big256 = big.NewInt(256)
 	Big257 = big.NewInt(257)
 )
-
-// token id
-var (
-	OGTokenID = int32(0)
-)

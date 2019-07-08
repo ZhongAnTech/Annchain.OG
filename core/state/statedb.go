@@ -2,7 +2,7 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/token"
 	"sync"
 	"time"
 
@@ -126,7 +126,7 @@ func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	return sd.getBalance(addr, common.OGTokenID)
+	return sd.getBalance(addr, token.OGTokenID)
 }
 func (sd *StateDB) GetTokenBalance(addr types.Address, tokenID int32) *math.BigInt {
 	sd.mu.RLock()
@@ -249,7 +249,7 @@ func (sd *StateDB) AddBalance(addr types.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.addBalance(addr, common.OGTokenID, increment)
+	sd.addBalance(addr, token.OGTokenID, increment)
 }
 func (sd *StateDB) AddTokenBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
 	sd.mu.Lock()
@@ -271,7 +271,7 @@ func (sd *StateDB) SubBalance(addr types.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.subBalance(addr, common.OGTokenID, decrement)
+	sd.subBalance(addr, token.OGTokenID, decrement)
 }
 func (sd *StateDB) SubTokenBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
 	sd.mu.Lock()
@@ -343,7 +343,7 @@ func (sd *StateDB) SetBalance(addr types.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.setBalance(addr, common.OGTokenID, balance)
+	sd.setBalance(addr, token.OGTokenID, balance)
 }
 func (sd *StateDB) SetTokenBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
 	sd.mu.Lock()

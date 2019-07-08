@@ -78,7 +78,7 @@ func TestStateWorkFlow(t *testing.T) {
 
 	stobj := stdb.GetStateObject(addr)
 	stobj.SetNonce(testnonce)
-	stobj.SetBalance(math.NewBigInt(testblc))
+	stobj.SetBalance(0,math.NewBigInt(testblc))
 
 	blcInStateDB := stdb.GetBalance(addr)
 	if blcInStateDB.GetInt64() != testblc {
@@ -100,3 +100,4 @@ func TestStateWorkFlow(t *testing.T) {
 	}
 
 }
+

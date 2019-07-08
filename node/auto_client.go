@@ -63,6 +63,7 @@ type AutoClient struct {
 	archiveLock sync.RWMutex
 	NewRawTx    chan types.Txi
 	TpsTest     bool
+	TpsTestInit bool
 }
 
 func (c *AutoClient) Init() {
@@ -163,8 +164,9 @@ func (c *AutoClient) loop() {
 				continue
 			}
 			c.doSampleTx(false)
-			if c.TpsTest {
+			if c.TpsTestInit {
 				timerTx.Stop()
+				logrus.Warn("auto tx stopped tps test init done")
 				continue
 			}
 			timerTx.Reset(c.nextSleepDuraiton())
@@ -239,6 +241,7 @@ func (c *AutoClient) fireTxs() bool {
 	if m == 0 {
 		m = 1000
 	}
+	c.TpsTestInit = true
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
@@ -265,7 +268,7 @@ func (c *AutoClient) fireTxs() bool {
 			if c.pause {
 				return true
 			}
-			c.Delegate.Announce(seq)
+			c.Delegate.TxBuffer.ReceivedNewTxsChan<-types.Txis{seq}
 		}else {
 			return true
 		}

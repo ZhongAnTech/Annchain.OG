@@ -107,6 +107,7 @@ type Txi interface {
 	MarshalMsg(b []byte) (o []byte, err error)
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
+	GetVersion()byte
 
 	ToSmallCaseJson() ([]byte, error)
 }
@@ -123,6 +124,7 @@ type TxBase struct {
 	MineNonce    uint64
 	Weight       uint64
 	inValid      bool
+	Version      byte
 }
 
 type TxBaseJson struct {
@@ -136,10 +138,15 @@ type TxBaseJson struct {
 	MineNonce    uint64        `json:"mine_nonce"`
 	Weight       uint64        `json:"weight"`
 	inValid      bool          `json:"in_valid"`
+	Version      byte `json:"version"`
 }
 
 type TxiSmallCaseMarshal struct {
 	Txi Txi
+}
+
+func (t *TxBase)GetVersion() byte {
+	return t.Version
 }
 
 func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {

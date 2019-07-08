@@ -80,7 +80,7 @@ func newTx(cmd *cobra.Command, args []string) {
 	tx := types.Tx{
 		Value: math.NewBigInt(value),
 		To:    toAddr,
-		From:  from,
+		From:  &from,
 		Data:  common.FromHex(payload),
 		TxBase: types.TxBase{
 			AccountNonce: nonce,

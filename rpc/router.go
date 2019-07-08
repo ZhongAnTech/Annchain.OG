@@ -86,7 +86,10 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)
 	router.POST("token/NewSecondOffering", rpc.NewSecondOffering)
 	router.POST("token/NewPublicOffering", rpc.NewPublicOffering)
-	router.POST("token/TokenWithdraw", rpc.NewPublicOffering)
+	router.POST("token/TokenWithdraw", rpc.TokenWithdraw)
+	router.GET("token/latestId", rpc.LatestTokenId)
+	router.GET("token/list", rpc.Tokens)
+	router.GET("token", rpc.GetToken)
 
 	return router
 
@@ -134,6 +137,9 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"token/NewSecondOffering": "",
 		"token/NewPublicOffering": "",
 		"token/TokenWithdraw":     "",
+		"token/latestId":"",
+		"token/list" :"",
+		"token":"id",
 
 		// debug
 		"debug": "f",

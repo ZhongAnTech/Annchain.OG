@@ -171,25 +171,24 @@ func TestA6(t *testing.T) {
 func TestConsensusVerifier_Verify(t *testing.T) {
 	types.Signer = crypto.Signer
 	logrus.SetLevel(logrus.TraceLevel)
-	tx:= types.RandomTx()
+	tx := types.RandomTx()
 	//fmt.Println(tx)
-	pub,priv:= crypto.Signer.RandomKeyPair()
-	tx.From =nil
+	pub, priv := crypto.Signer.RandomKeyPair()
+	tx.From = nil
 	fmt.Println(tx.SignatureTargets())
-	tx.Signature =  crypto.Signer.Sign(priv,tx.SignatureTargets()).Bytes
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes
 	tx.SetHash(tx.CalcTxHash())
 	tx.From = nil
 	//fmt.Println(tx,"hehe")
-	v:=TxFormatVerifier{NoVerifyMindHash:true,NoVerifyMaxTxHash:true}
-	ok:= v.Verify(tx)
-	fmt.Println(tx,"hihi")
+	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}
+	ok := v.Verify(tx)
+	fmt.Println(tx, "hihi")
 	if !ok {
 		t.Fatal(ok)
 	}
 	if *tx.From != pub.Address() {
-		t.Fatal(tx.From,pub.Address())
+		t.Fatal(tx.From, pub.Address())
 	}
-	fmt.Println(tx.From,pub.Address())
+	fmt.Println(tx.From, pub.Address())
 
 }
-

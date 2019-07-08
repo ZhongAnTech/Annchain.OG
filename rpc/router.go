@@ -137,9 +137,9 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"token/NewSecondOffering": "",
 		"token/NewPublicOffering": "",
 		"token/TokenWithdraw":     "",
-		"token/latestId":"",
-		"token/list" :"",
-		"token":"id",
+		"token/latestId":          "",
+		"token/list":              "",
+		"token":                   "id",
 
 		// debug
 		"debug": "f",

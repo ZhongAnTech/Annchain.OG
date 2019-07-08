@@ -566,26 +566,25 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 }
 
 func (r *RpcController) LatestTokenId(c *gin.Context) {
-	tokenId:= r.Og.Dag.GetLatestTokenId()
+	tokenId := r.Og.Dag.GetLatestTokenId()
 	Response(c, http.StatusOK, nil, tokenId)
 }
 
 func (r *RpcController) Tokens(c *gin.Context) {
 	tokens := r.Og.Dag.GetTokens()
-	Response(c, http.StatusOK,nil, tokens)
+	Response(c, http.StatusOK, nil, tokens)
 }
 
 func (r *RpcController) GetToken(c *gin.Context) {
 	str := c.Query("id")
-	tokenId ,err:= strconv.Atoi(str)
-	if err!=nil {
+	tokenId, err := strconv.Atoi(str)
+	if err != nil {
 		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
-	token:= r.Og.Dag.GetToken(int32(tokenId))
-	Response(c, http.StatusOK,nil, token)
+	token := r.Og.Dag.GetToken(int32(tokenId))
+	Response(c, http.StatusOK, nil, token)
 }
-
 
 func (r *RpcController) TokenWithdraw(c *gin.Context) {
 	var (
@@ -610,7 +609,6 @@ func (r *RpcController) TokenWithdraw(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
 	}
-
 
 	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
 	if err != nil {
@@ -740,7 +738,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 	}
 
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionIPO, nonce,
-	txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
+		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
@@ -829,7 +827,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 	}
 
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO,
-	nonce, txReq.EnableSPO, txReq.TokenId,txReq.TokenName, pub, sig)
+		nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return

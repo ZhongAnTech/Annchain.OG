@@ -334,7 +334,13 @@ func NewNode() *Node {
 	// init key vault from a file
 	privFilePath := io.FixPrefixPath(viper.GetString("datadir"), "privkey")
 	if !io.FileExists(privFilePath) {
-		panic("Please generate a private key first")
+		if viper.GetBool("genkey") {
+			logrus.Info("We will generate a private key for you. Please store it carefully.")
+			priv, _ := account.GenAccount()
+			account.SavePrivateKey(privFilePath, priv.String())
+		} else {
+			panic("Please generate a private key under " + privFilePath + " , or specify --genkey to let us generate one for you")
+		}
 	}
 
 	decrpted, err := encryption.DecryptFileDummy(privFilePath, "")

@@ -757,10 +757,10 @@ func (as *AnnSensus) loop() {
 				log.Warn("not valid genesis pk")
 				continue
 			}
-			addr :=as.genesisAccounts[id].Address()
+			addr := as.genesisAccounts[id].Address()
 			cp := &types.Campaign{
 				DkgPublicKey: pkMsg.DkgPublicKey,
-				Issuer:  &addr     ,
+				Issuer:       &addr,
 				TxBase: types.TxBase{
 					PublicKey: pkMsg.PublicKey,
 					Weight:    uint64(id*10 + 10),

@@ -19,10 +19,10 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"math/big"
 
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,15 +31,15 @@ import (
 //msgp:tuple AccountData
 type AccountData struct {
 	Address  types.Address
-	Balances  BalanceSet
+	Balances BalanceSet
 	Nonce    uint64
 	Root     types.Hash
 	CodeHash []byte
 }
 
-func NewAccountData()AccountData {
+func NewAccountData() AccountData {
 	return AccountData{
-		Balances:NewBalanceSet(),
+		Balances: NewBalanceSet(),
 	}
 }
 
@@ -358,7 +358,6 @@ func (b *BalanceSet) Msgsize() int {
 	}
 	return l
 }
-
 
 /*
 	components

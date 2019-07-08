@@ -39,7 +39,7 @@ func TestSerialization(t *testing.T) {
 	addr := types.HexToAddress(testAddress)
 	stobj := stdb.GetStateObject(addr)
 	stobj.SetNonce(testnonce)
-	stobj.SetBalance(0,math.NewBigInt(testblc))
+	stobj.SetBalance(0, math.NewBigInt(testblc))
 
 	b, err := stobj.Encode()
 	if err != nil {
@@ -62,13 +62,13 @@ func TestSerialization(t *testing.T) {
 }
 
 func TestStateDB_GetBalance(t *testing.T) {
-	var  bs =  state.NewBalanceSet()
-	for i:=0;i<5;i++ {
-		bs[int32(i)] = math.NewBigInt( int64(i)*1000+3)
+	var bs = state.NewBalanceSet()
+	for i := 0; i < 5; i++ {
+		bs[int32(i)] = math.NewBigInt(int64(i)*1000 + 3)
 	}
-	data,_:= bs.MarshalMsg(nil)
-	fmt.Println(hexutil.Encode(data),len(data))
-	as:= state.NewBalanceSet()
-	o, err:= as.UnmarshalMsg(data)
-	fmt.Println(as,o,err)
+	data, _ := bs.MarshalMsg(nil)
+	fmt.Println(hexutil.Encode(data), len(data))
+	as := state.NewBalanceSet()
+	o, err := as.UnmarshalMsg(data)
+	fmt.Println(as, o, err)
 }

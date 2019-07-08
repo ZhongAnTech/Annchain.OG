@@ -37,7 +37,7 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*ma
 	seq := newUnsignedSequencer(0, 0)
 	seq.GetBase().Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
 	seq.GetBase().PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
-	issuer:=  crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.GetBase().PublicKey))
+	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.GetBase().PublicKey))
 	seq.Issuer = &issuer
 	hash := seq.CalcTxHash()
 	seq.SetHash(hash)

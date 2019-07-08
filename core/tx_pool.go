@@ -693,16 +693,16 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	case *types.ActionTx:
 		if tx.Action == types.ActionTxActionIPO {
 			actionData := tx.ActionData.(*types.PublicOffering)
-			actionData.TokenId =  pool.dag.GetLatestTokenId()
+			actionData.TokenId = pool.dag.GetLatestTokenId()
 		}
 		if tx.Action == types.ActionTxActionSPO {
 			actionData := tx.ActionData.(*types.PublicOffering)
-			if actionData.TokenId ==0 {
+			if actionData.TokenId == 0 {
 				log.Warn("og token is disabled for publishing")
 				return TxQualityIsFatal
 			}
 			token := pool.dag.GetToken(actionData.TokenId)
-			if token==nil {
+			if token == nil {
 				log.Warn("token not found")
 				return TxQualityIsFatal
 			}
@@ -711,23 +711,23 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 			if token.Sender != tx.Sender() {
-				log.WithField("token ",token).WithField("you address",tx.Sender()).Warn("you have no authority to second publishing for this token")
+				log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
 				return TxQualityIsFatal
 			}
 		}
 		if tx.Action == types.ActionTxActionWithdraw {
 			actionData := tx.ActionData.(*types.PublicOffering)
-			if actionData.TokenId ==0 {
+			if actionData.TokenId == 0 {
 				log.Warn("og token is disabled for withdraw")
 				return TxQualityIsFatal
 			}
 			token := pool.dag.GetToken(actionData.TokenId)
-			if token==nil {
+			if token == nil {
 				log.Warn("token not found")
 				return TxQualityIsFatal
 			}
 			if token.Sender != tx.Sender() {
-				log.WithField("token ",token).WithField("you address",tx.Sender()).Warn("you have no authority to second publishing for this token")
+				log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
 				return TxQualityIsFatal
 			}
 		}

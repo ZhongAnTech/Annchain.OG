@@ -33,7 +33,7 @@ func (s *SignerEd25519) GetCryptoType() CryptoType {
 	return CryptoTypeEd25519
 }
 
-func (s*SignerEd25519)CanRecoverPubFromSig()bool {
+func (s *SignerEd25519) CanRecoverPubFromSig() bool {
 	return false
 }
 

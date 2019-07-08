@@ -51,9 +51,9 @@ func (t *Tx) Setconfirm() {
 }
 
 func (t *Tx) String() string {
-	if t.GetSender() ==nil {
+	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-Tx", t.TxBase.String(), t.AccountNonce)
-	}else {
+	} else {
 		return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 	}
 
@@ -61,7 +61,7 @@ func (t *Tx) String() string {
 
 func SampleTx() *Tx {
 	v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
-    from := HexToAddress("0x99")
+	from := HexToAddress("0x99")
 	return &Tx{TxBase: TxBase{
 		Height:       12,
 		ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
@@ -107,7 +107,7 @@ func randomAddress() Address {
 }
 
 func RandomTx() *Tx {
-	from:= randomAddress()
+	from := randomAddress()
 	return &Tx{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       uint64(rand.Int63n(1000)),
@@ -143,11 +143,11 @@ func (t *Tx) Sender() Address {
 	return *t.From
 }
 
-func (t *Tx)GetSender() *Address {
+func (t *Tx) GetSender() *Address {
 	return t.From
 }
 
-func (t *Tx)SetSender (addr Address) {
+func (t *Tx) SetSender(addr Address) {
 	t.From = &addr
 }
 

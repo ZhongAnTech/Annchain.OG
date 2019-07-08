@@ -93,7 +93,7 @@ type Txi interface {
 	// implemented by each tx type
 	GetBase() *TxBase
 	Sender() Address
-	GetSender()*Address
+	GetSender() *Address
 	SetSender(addr Address)
 	Dump() string             // For logger dump
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
@@ -107,7 +107,7 @@ type Txi interface {
 	MarshalMsg(b []byte) (o []byte, err error)
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
-	GetVersion()byte
+	GetVersion() byte
 
 	ToSmallCaseJson() ([]byte, error)
 }
@@ -134,19 +134,19 @@ type TxBaseJson struct {
 	ParentsHash  Hashes        `json:"parents_hash"`
 	AccountNonce uint64        `json:"account_nonce"`
 	Height       uint64        `json:"height"`
-	PublicKey    PublicKey `json:"public_key"`
+	PublicKey    PublicKey     `json:"public_key"`
 	Signature    hexutil.Bytes `json:"signature"`
 	MineNonce    uint64        `json:"mine_nonce"`
 	Weight       uint64        `json:"weight"`
 	inValid      bool          `json:"in_valid"`
-	Version      byte `json:"version"`
+	Version      byte          `json:"version"`
 }
 
 type TxiSmallCaseMarshal struct {
 	Txi Txi
 }
 
-func (t *TxBase)GetVersion() byte {
+func (t *TxBase) GetVersion() byte {
 	return t.Version
 }
 
@@ -238,9 +238,9 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 
 func (t *TxBase) CalcMinedHash() (hash Hash) {
 	var buf bytes.Buffer
-     if !Signer.CanRecoverPubFromSig() {
-		 panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
-	 }
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
 

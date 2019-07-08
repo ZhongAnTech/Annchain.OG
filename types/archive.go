@@ -66,7 +66,6 @@ func (tc *Archive) GetSender() *Address {
 	return nil
 }
 
-
 func (c *Archive) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
@@ -160,6 +159,6 @@ func (t *Archive) CalcTxHash() (hash Hash) {
 	return
 }
 
-func (t*Archive)SetSender(address Address) {
+func (t *Archive) SetSender(address Address) {
 	return
 }

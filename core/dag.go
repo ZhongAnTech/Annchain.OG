@@ -54,7 +54,7 @@ type Dag struct {
 
 	db ogdb.Database
 	// testDb is for test only, should be deleted later.
-	testDb    ogdb.Database
+	testDb   ogdb.Database
 	accessor *Accessor
 	statedb  *state.StateDB
 
@@ -259,10 +259,20 @@ func (dag *Dag) Accessor() *Accessor {
 func (dag *Dag) Push(batch *ConfirmBatch) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
-	dag.wg.Add(1)
-	defer dag.wg.Done()
 
 	return dag.push(batch)
+}
+
+// PrePush simulates the action of pushing sequencer into Dag ledger. Simulates will
+// store the changes into cache statedb. Once the same sequencer comes, the cached
+// states will becomes regular ones.
+func (dag *Dag) PrePush(batch *ConfirmBatch) (types.Hash, error) {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+
+	// TODO
+	// Not implemented yet.
+	return types.Hash{}, nil
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
@@ -297,7 +307,7 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func(dag *Dag)getTestTx(hash types.Hash)types.Txi {
+func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
 		log.Info("tx not found")
@@ -436,14 +446,14 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag)GetTestTxisByNumber(height uint64) (txis types.Txis,sequencer *types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
-	
+
 	data, _ := dag.testDb.Get(seqHeightKey(height))
 	if len(data) == 0 {
 		log.Warnf("tx hashs with seq height %d not found", height)
-		return nil,nil
+		return nil, nil
 	}
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
@@ -456,8 +466,8 @@ func (dag *Dag)GetTestTxisByNumber(height uint64) (txis types.Txis,sequencer *ty
 	}
 	data, _ = dag.testDb.Get(txIndexKey(height))
 	if len(data) == 0 {
-		 log.Warnf("tx hashs with seq height %d not found", height)
-		 return nil,sequencer
+		log.Warnf("tx hashs with seq height %d not found", height)
+		return nil, sequencer
 	}
 	var hashs types.Hashes
 	_, err = hashs.UnmarshalMsg(data)
@@ -465,8 +475,8 @@ func (dag *Dag)GetTestTxisByNumber(height uint64) (txis types.Txis,sequencer *ty
 		log.WithError(err).Warn("unmarshal err")
 		return nil, &seq
 	}
-	if hashs == nil || len(hashs) ==0{
-		return nil,&seq
+	if hashs == nil || len(hashs) == 0 {
+		return nil, &seq
 	}
 	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
 	var txs types.Txis

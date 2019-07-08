@@ -16,22 +16,20 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/tinylib/msgp/msgp"
-	"math/big"
-
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/common"
 	log "github.com/sirupsen/logrus"
+	"github.com/tinylib/msgp/msgp"
 )
 
-// //go:generate msgp
+//go:generate msgp
 
 //msgp:tuple AccountData
 type AccountData struct {
 	Address  types.Address
-	Balances  BalanceSet
+	Balances BalanceSet
 	Nonce    uint64
 	Root     types.Hash
 	CodeHash []byte
@@ -311,35 +309,41 @@ func (b *BalanceSet) IsEmpty() bool {
 // MarshalMsg - For every [key, value] pair, marshal it in [size (int32) + key (int32) + bigint.bytes]
 func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 
-	size := b.Msgsize()
-	o = msgp.Require(bts, size)
+	mspSize := b.Msgsize()
+	o = msgp.Require(bts, mspSize)
 
 	// add total size
-	o = append(o, common.ByteInt32(int32(size))...)
+	o = append(o, common.ByteInt32(int32(mspSize))...)
 
 	for k, v := range *b {
-		vb := v.GetBytes()
-		msize := int32(4 + len(vb))
-		o = append(o, common.ByteInt32(msize)...)
 		o = append(o, common.ByteInt32(k)...)
-		o = append(o, vb...)
+
+		o, err = v.MarshalMsg(o)
+		fmt.Println(fmt.Sprintf("cur o: %x", o))
+		if err != nil {
+			return
+		}
 	}
+	size := len(o)
+	common.SetInt32(o, 0, int32(size))
 
 	return o, nil
 }
 
 func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
-
 	size := common.GetInt32(bts, 0)
 	bsBytes := bts[4:size]
 
 	for len(bsBytes) > 0 {
-		pairSize := common.GetInt32(bsBytes, 0)
-		key := common.GetInt32(bsBytes, 4)
-		value := bsBytes[4:pairSize]
-		(*b)[key] = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(value))
+		key := common.GetInt32(bsBytes, 0)
+		bsBytes = bsBytes[4:]
 
-		bsBytes = bsBytes[:pairSize]
+		value := math.BigInt{}
+		bsBytes, err = value.UnmarshalMsg(bsBytes)
+		if err != nil {
+			return bsBytes, err
+		}
+		(*b)[key] = &value
 	}
 
 	return bts[size:], nil
@@ -349,11 +353,10 @@ func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (b *BalanceSet) Msgsize() int {
 	l := 4
 	for _, v := range *b {
-		l += 4 + len(v.GetBytes())
+		l += 4 + v.Msgsize()
 	}
 	return l
 }
-
 
 /*
 	components

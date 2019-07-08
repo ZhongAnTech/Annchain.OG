@@ -274,6 +274,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 			c.Delegate.Announce(txi)
 			return c.fireTxs(me.Address)
 		}
+		logrus.WithField("txi", txi).Info("normal mode")
 		firstTx = true
 	}
 	c.txLock.RLock()
@@ -365,7 +366,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	me := c.MyAccount
 	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
+		txi := c.Delegate.Dag.GetOldTx(me.Address, 1)
 		if txi != nil {
 			c.AutoSequencerEnabled = false
 			return true

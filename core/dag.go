@@ -301,15 +301,18 @@ func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if dag.oldDb == nil {
+		log.Info("testdb is nil")
 		return nil
 	}
 	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
+		log.Info("hash not found")
 		return nil
 	}
 	hash := types.BytesToHash(data)
 	data, _ = dag.oldDb.Get(transactionKey(hash))
 	if len(data) == 0 {
+		log.Info("tx not found")
 		return nil
 	}
 	prefixLen := len(contentPrefixTransaction)
@@ -333,6 +336,34 @@ func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 		}
 		return &sq
 	}
+	if bytes.Equal(prefix, contentPrefixCampaign) {
+		var cp types.Campaign
+		_, err := cp.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal camp error")
+			return nil
+		}
+		return &cp
+	}
+	if bytes.Equal(prefix, contentPrefixTermChg) {
+		var tc types.TermChange
+		_, err := tc.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal termchg error")
+			return nil
+		}
+		return &tc
+	}
+	if bytes.Equal(prefix, contentPrefixArchive) {
+		var ac types.Archive
+		_, err := ac.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal archive error")
+			return nil
+		}
+		return &ac
+	}
+	log.Warn("unknown prefix")
 	return nil
 
 }

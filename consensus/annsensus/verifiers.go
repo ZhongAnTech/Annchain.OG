@@ -15,9 +15,9 @@ package annsensus
 
 import (
 	"bytes"
+	"github.com/annchain/OG/types/token"
 	"time"
 
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
@@ -118,7 +118,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	}
 
 	//check balance
-	balance := a.Idag.GetBalance(*cp.Issuer, common.OGTokenID)
+	balance := a.Idag.GetBalance(*cp.Issuer, token.OGTokenID)
 	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
 		log.WithField("addr ", cp.Issuer).Warn("your balance is not enough to generate campaign")
 		return false

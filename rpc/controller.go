@@ -919,7 +919,7 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("address format err: %v", err), nil)
 		return
 	}
-	var tokenID token.TokenID
+	var tokenID int32
 	if tokenIDStr == "" {
 		tokenID = token.OGTokenID
 	} else {
@@ -928,7 +928,7 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 			Response(c, http.StatusBadRequest, fmt.Errorf("tokenID format err: %v", err), nil)
 			return
 		}
-		tokenID = token.TokenID(t)
+		tokenID = int32(t)
 	}
 	b := r.Og.Dag.GetBalance(addr, tokenID)
 	Response(c, http.StatusOK, nil, gin.H{

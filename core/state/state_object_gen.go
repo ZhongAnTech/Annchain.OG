@@ -23,11 +23,11 @@ func (z *AccountData) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "Address")
 		return
 	}
-	err = z.Balances.DecodeMsg(dc)
-	if err != nil {
-		err = msgp.WrapError(err, "Balances")
-		return
-	}
+	//err = z.Balances.DecodeMsg(dc)
+	//if err != nil {
+	//	err = msgp.WrapError(err, "Balances")
+	//	return
+	//}
 	z.Nonce, err = dc.ReadUint64()
 	if err != nil {
 		err = msgp.WrapError(err, "Nonce")
@@ -58,11 +58,11 @@ func (z *AccountData) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Address")
 		return
 	}
-	err = z.Balances.EncodeMsg(en)
-	if err != nil {
-		err = msgp.WrapError(err, "Balances")
-		return
-	}
+	//err = z.Balances.EncodeMsg(en)
+	//if err != nil {
+	//	err = msgp.WrapError(err, "Balances")
+	//	return
+	//}
 	err = en.WriteUint64(z.Nonce)
 	if err != nil {
 		err = msgp.WrapError(err, "Nonce")

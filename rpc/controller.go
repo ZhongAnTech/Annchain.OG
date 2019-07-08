@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
+	//"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/status"
 	math2 "github.com/annchain/OG/vm/eth/common/math"
@@ -800,21 +801,29 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 
 func (r *RpcController) QueryBalance(c *gin.Context) {
 	address := c.Query("address")
+	tokenIDStr := c.Query("token_id")
 	addr, err := types.StringToAddress(address)
 	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("address format err"), nil)
+		Response(c, http.StatusBadRequest, fmt.Errorf("address format err: %v", err), nil)
 		return
 	}
-	b := r.Og.Dag.GetBalance(addr)
+	var tokenID int32
+	if tokenIDStr == "" {
+		tokenID = common.OGTokenID
+	} else {
+		t, err := strconv.Atoi(tokenIDStr)
+		if err != nil {
+			Response(c, http.StatusBadRequest, fmt.Errorf("tokenID format err: %v", err), nil)
+			return
+		}
+		tokenID = int32(t)
+	}
+	b := r.Og.Dag.GetBalance(addr, tokenID)
 	Response(c, http.StatusOK, nil, gin.H{
 		"address": address,
 		"balance": b,
 	})
 	return
-	// c.JSON(http.StatusBadRequest, gin.H{
-	// 	"balance": b,
-	// })
-	// return
 }
 
 func (r *RpcController) QueryShare(c *gin.Context) {

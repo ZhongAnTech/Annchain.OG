@@ -26,7 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:generate msgp
+// //go:generate msgp
 
 //msgp:tuple AccountData
 type AccountData struct {

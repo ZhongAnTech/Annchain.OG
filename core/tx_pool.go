@@ -16,6 +16,7 @@ package core
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"sort"
 	"sync"
@@ -588,15 +589,13 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
 	// add tx to pool
-	if tx.GetType() == types.TxBaseTypeArchive {
-
-	} else {
-		if pool.flows.Get(tx.Sender()) == nil {
-			originBalance := pool.dag.GetBalance(tx.Sender())
-			pool.flows.ResetFlow(tx.Sender(), originBalance)
-		}
+	if pool.flows.Get(tx.Sender()) == nil {
+		pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
 	}
-
+	if tx.GetType() == types.TxBaseTypeNormal {
+		txn := tx.(*types.Tx)
+		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
+	}
 	pool.flows.Add(tx)
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
@@ -668,15 +667,15 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 	}
 
-	// check if the tx itself has no conflicts with local ledger
-	stateFrom := pool.flows.GetBalanceState(tx.Sender())
-	if stateFrom == nil {
-		originBalance := pool.dag.GetBalance(tx.Sender())
-		stateFrom = NewBalanceState(originBalance)
-	}
-
 	switch tx := tx.(type) {
 	case *types.Tx:
+		// check if the tx itself has no conflicts with local ledger
+		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
+		if stateFrom == nil {
+			originBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
+			stateFrom = NewBalanceState(originBalance)
+		}
+
 		// if tx's value is larger than its balance, return fatal.
 		if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
@@ -739,8 +738,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.solveConflicts(elders)
 	// add seq to txpool
 	if pool.flows.Get(seq.Sender()) == nil {
-		originBalance := pool.dag.GetBalance(seq.Sender())
-		pool.flows.ResetFlow(seq.Sender(), originBalance)
+		pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
 	}
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
@@ -837,6 +835,16 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			continue
 		}
 
+		if txi.GetType() == types.TxBaseTypeNormal {
+			// check balance
+			// if balance < outcome, then verify failed
+			tx := txi.(*types.Tx)
+			confirmedBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
+			if confirmedBalance.Value.Cmp(tx.GetValue().Value) < 0 {
+				return nil, fmt.Errorf("the balance of addr %s is not enough", tx.Sender())
+			}
+		}
+
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
@@ -870,7 +878,6 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchTo.Pos.Value.Add(batchTo.Pos.Value, tx.Value.Value)
 
 		default:
-			log.Trace(tx)
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
@@ -882,16 +889,8 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[types.Ha
 			batchFrom.TxList.put(tx)
 		}
 	}
-
-	// verify balance and nonce
+	// verify nonce
 	for addr, batchDetail := range batch {
-		// check balance
-		// if balance < outcome, then verify failed
-		confirmedBalance := pool.dag.GetBalance(addr)
-		if confirmedBalance.Value.Cmp(batchDetail.Neg.Value) < 0 {
-			return nil, fmt.Errorf("the balance of addr %s is not enough", addr)
-		}
-
 		// check nonce order
 		nonces := *batchDetail.TxList.keys
 		if !(nonces.Len() > 0) {
@@ -925,8 +924,8 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 
 	txsInPool := []types.Txi{}
 	// remove elders from pool
-	for elserHash := range elders {
-		pool.txLookup.removeTxFromMapOnly(elserHash)
+	for elderHash := range elders {
+		pool.txLookup.removeTxFromMapOnly(elderHash)
 	}
 
 	for _, hash := range pool.txLookup.getorder() {
@@ -934,19 +933,20 @@ func (pool *TxPool) solveConflicts(elders map[types.Hash]types.Txi) {
 		if tx == nil {
 			continue
 		}
-		// TODO sequencer is removed from txpool later when calling
+		// TODO
+		// sequencer is removed from txpool later when calling
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
 		if tx.GetType() == types.TxBaseTypeSequencer {
-
-			//log.WithField("found seq",tx).Warn("should never come here")
-
 			continue
 		}
 		txsInPool = append(txsInPool, tx)
 	}
 	pool.clearAll()
 	for _, tx := range txsInPool {
+		// TODO
+		// Throw away the txs that been rejudged for more than 5 times. In order
+		// to clear up the memory and the process pressure of tx pool.
 		log.WithField("tx", tx).Tracef("start rejudge")
 		txEnv := &txEnvelope{
 			tx:     tx,
@@ -1260,16 +1260,16 @@ func (t *txLookUp) switchstatus(h types.Hash, status TxStatus) {
 	}
 }
 
-func (t *TxPool) GetConfirmStatus() *ConfirmInfo {
-	return t.confirmStatus.GetInfo()
+func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
+	return pool.confirmStatus.GetInfo()
 }
 
-func (t *TxPool) GetOrder() types.Hashes {
-	return t.txLookup.GetOrder()
+func (pool *TxPool) GetOrder() types.Hashes {
+	return pool.txLookup.GetOrder()
 }
 
 //CalculateStateRoot  for proposing sequencer
-func (t *TxPool) CalculateStateRoot(seq *types.Sequencer) (hash types.Hash, err error) {
+func (pool *TxPool) CalculateStateRoot(seq *types.Sequencer) (hash types.Hash, err error) {
 	//TODO
 	return types.Hash{}, nil
 }

@@ -27,9 +27,20 @@ func (z *ActionTx) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.From.DecodeMsg(dc)
-	if err != nil {
-		return
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.From = nil
+	} else {
+		if z.From == nil {
+			z.From = new(Address)
+		}
+		err = z.From.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
 	}
 	err = z.ActionData.DecodeMsg(dc)
 	if err != nil {
@@ -53,9 +64,16 @@ func (z *ActionTx) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.From.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.From == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.From.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	err = z.ActionData.EncodeMsg(en)
 	if err != nil {
@@ -74,9 +92,13 @@ func (z *ActionTx) MarshalMsg(b []byte) (o []byte, err error) {
 		return
 	}
 	o = msgp.AppendUint8(o, z.Action)
-	o, err = z.From.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.From == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.From.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	o, err = z.ActionData.MarshalMsg(o)
 	if err != nil {
@@ -85,7 +107,6 @@ func (z *ActionTx) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-//don't auto generate
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
@@ -105,6 +126,22 @@ func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.From = nil
+	} else {
+		if z.From == nil {
+			z.From = new(Address)
+		}
+		bts, err = z.From.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	//bts, err = z.ActionData.UnmarshalMsg(bts)
 	//this is edited by manuly
 	if z.Action == ActionTxActionWithdraw || z.Action == ActionTxActionIPO || z.Action == ActionTxActionSPO {
 		z.ActionData = &PublicOffering{}
@@ -114,11 +151,6 @@ func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = fmt.Errorf("unkown action %d", z.Action)
 		return
 	}
-	bts, err = z.From.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.ActionData.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -128,7 +160,13 @@ func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ActionTx) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.Uint8Size + z.From.Msgsize() + z.ActionData.Msgsize()
+	s = 1 + z.TxBase.Msgsize() + msgp.Uint8Size
+	if z.From == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.From.Msgsize()
+	}
+	s += z.ActionData.Msgsize()
 	return
 }
 
@@ -256,8 +294,8 @@ func (z *PublicOffering) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.TokenId, err = dc.ReadInt32()
@@ -283,13 +321,17 @@ func (z *PublicOffering) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	z.TokenName, err = dc.ReadString()
+	if err != nil {
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *PublicOffering) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -312,14 +354,18 @@ func (z *PublicOffering) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	err = en.WriteString(z.TokenName)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *PublicOffering) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendInt32(o, z.TokenId)
 	if z.Value == nil {
 		o = msgp.AppendNil(o)
@@ -330,6 +376,7 @@ func (z *PublicOffering) MarshalMsg(b []byte) (o []byte, err error) {
 		}
 	}
 	o = msgp.AppendBool(o, z.EnableSPO)
+	o = msgp.AppendString(o, z.TokenName)
 	return
 }
 
@@ -340,8 +387,8 @@ func (z *PublicOffering) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.TokenId, bts, err = msgp.ReadInt32Bytes(bts)
@@ -367,6 +414,10 @@ func (z *PublicOffering) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	z.TokenName, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
@@ -379,7 +430,7 @@ func (z *PublicOffering) Msgsize() (s int) {
 	} else {
 		s += z.Value.Msgsize()
 	}
-	s += msgp.BoolSize
+	s += msgp.BoolSize + msgp.StringPrefixSize + len(z.TokenName)
 	return
 }
 

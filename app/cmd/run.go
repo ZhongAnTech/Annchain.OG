@@ -16,6 +16,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
@@ -122,6 +123,9 @@ func readConfig() {
 	}
 
 	mergeEnvConfig()
+	b, err := common.PrettyJson(viper.AllSettings())
+	panicIfError(err, "dump json")
+	fmt.Println(b)
 }
 
 func mergeEnvConfig() {

@@ -288,6 +288,7 @@ func NewNode() *Node {
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+	delegate.ReceivedNewTxsChan = txBuffer.ReceivedNewTxsChan
 	genesisAccounts := parserGenesisAccounts(viper.GetString("annsensus.genesis_pk"))
 
 	mode := viper.GetString("mode")

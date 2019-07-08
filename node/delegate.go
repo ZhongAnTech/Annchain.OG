@@ -35,7 +35,7 @@ type TxRequest struct {
 
 type Delegate struct {
 	TxCreator         *og.TxCreator
-	TxBuffer          *og.TxBuffer
+	ReceivedNewTxsChan    chan []types.Txi
 	TxPool            *core.TxPool
 	Dag               *core.Dag
 	OnNewTxiGenerated []chan types.Txi

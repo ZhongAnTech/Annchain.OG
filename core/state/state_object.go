@@ -37,6 +37,12 @@ type AccountData struct {
 	CodeHash []byte
 }
 
+func NewAccountData()AccountData {
+	return AccountData{
+		Balances:NewBalanceSet(),
+	}
+}
+
 type StateObject struct {
 	address     types.Address
 	addressHash types.Hash
@@ -329,7 +335,6 @@ func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
-
 	size := common.GetInt32(bts, 0)
 	bsBytes := bts[4:size]
 

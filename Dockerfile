@@ -15,15 +15,15 @@ FROM alpine:latest
 
 RUN apk add --no-cache curl iotop busybox-extras
 
-COPY --from=builder /go/src/github.com/annchain/OG/deployment/config.toml /opt/
-COPY --from=builder /go/src/github.com/annchain/OG/deployment/genesis.json /opt/
+COPY --from=builder /go/src/github.com/annchain/OG/deployment/docker_private.toml /opt/config.toml
+COPY --from=builder /go/src/github.com/annchain/OG/deployment/genesis.json /opt/genesis.json
 COPY --from=builder /go/src/github.com/annchain/OG/build/og /opt/
 
 EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 
 WORKDIR /opt
 
-CMD ["./og", "-c", "config.toml", "-m", "-n", "-l", "rw/log/", "run"]
+CMD ["./og", "-c", "config.toml", "-m", "-n", "-l", "rw/log/", "-d", "rw/datadir", "run"]
 
 
 

@@ -1,18 +1,19 @@
 config = "config.toml"
-datadir = "D:\\ws\\git\\OG\\build\\solo"
+datadir = "D:\\ws\\git\\OG\\build\\private\\node_1"
 log_line_number = false
 max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 multifile_by_level = false
 multifile_by_module = false
-title = "TOML Example"
+title = "OG configuration"
 
 [annsensus]
   campaign = false
-  consensus_path = "consensus.json"
-  disable = true
+  campain = false
+  consensus_path = "consensus1.json"
+  disable = false
   disable_term_change = true
-  genesis_pk = "0x0104994735dfcf60eb43bb5286334a7a83b622685fc3feb92247c65cc4b4cd55497fbc767f2e59a222abb650e5f411d9f7b6266b49439cdb348d859e33e89846bcaf;0x01046ce80b57488632dd7fc1488f5c2ed4746b16e2656b9ec7793f6f7d23663a5bd68ba37a00313d55042480c23b98b2cbee334eda939eab12a737f4a5d3e646da93;0x0104329ad4860f4835427efe677cecfda463e9fa0be722b41d64109197499b2804fbe9fa41416191c81fc9f819f83fad0a891a4eb3c5ee7d7122c8a6c948f71c8028;0x0104f25bceb564a148de47ba2725eaa4f88898d54dee044d8bbf75b4f209edd67a0e21ab145e249a5dd236a7bd9d7bb42ef24c30fb9da94d8001faac29588c61c45b"
+  genesis_pk = "0x01043cef2edf0803c8d8fb0abfa17b2bda8043e39d4c1b908e88c79cbba3a97f63c8dfcc4891747c2ff0e46324814dffe8be9e839257039ec0afc1bf03537570d62b;0x01048788655ee0f41a9eb62a16d1db29c91d45382ad55134232b3a1f6385909ae57e22daec27082fe6f13a723301c6517548e62f8f9cee06a5a603365db7c8f97396;0x0104629e855c11dfdd7d856140565c4cb23995953bb03669ed33bf21e4c3c36a4f82ce6642d34dc6cf2baa6480f76e31d274e74de6159b5499ae390adf158aa33be3;0x01042d8c926ae03995eb464d82e9d939cb4abe32a4db531ce1c9105e7980b7e3cf5459f3332ae172d32ad13074be21bc49febb3b0e9382a676653b025f00aee45c00"
   mode = "archive"
   partner_number = 4
   term_change_interval = 10
@@ -26,7 +27,7 @@ title = "TOML Example"
     interval_us = 500000
 
   [auto_client.sequencer]
-    enabled = true
+    enabled = false
     interval_us = 5000000
 
   [auto_client.tx]
@@ -61,25 +62,26 @@ title = "TOML Example"
   path = "rw/datadir_1"
 
 [log]
-  level = "trace"
+  level = "debug"
   log_dir = ""
 
 [p2p]
-  bootstrap_node = true
-  bootstrap_nodes = "onode://2308307bbec418f713d965344af898128320e23a6f5352064605d37f779aef0d79e635c12563a990086fc711d1e1eadce4b812e652f5e9909f5d12c797656310@127.0.0.1:8001"
+  bootstrap_node = false
+  bootstrap_nodes = "onode://e27504dd0e54fa6b981be9fce34f1ada908add2618fba829070bf4b5063f7667573dd31004ae9902f8832a0f7a36de7922926dbd7ced337a0a9b98f0de5d2abf@127.0.0.1:8001"
   enable_sync = true
   enabled = true
   max_peers = 50
   network_id = 1
   no_encryption = false
-  port = 8001
+  node_key = "eb648bcfd5345068054c420fba19cfc8fdcb4709ca6b79e704d08e343c7fed89"
+  port = 8011
 
 [profiling]
-  port = 8003
+  port = 8013
 
 [rpc]
   enabled = true
-  port = 8000
+  port = 8010
 
 [statedb]
   beat_expire_time_s = 300
@@ -99,4 +101,4 @@ title = "TOML Example"
 
 [websocket]
   enabled = true
-  port = 8002
+  port = 8012

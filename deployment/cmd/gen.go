@@ -15,8 +15,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/encryption"
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/io"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -74,7 +73,7 @@ func privateChainConfig() {
 	var privateSet []string
 	var publicSet []string
 	for i := 0; i < nodesNum; i++ {
-		priv, pub := genAccount()
+		priv, pub := account.GenAccount()
 		privateSet = append(privateSet, priv.String())
 		publicSet = append(publicSet, pub.String())
 	}
@@ -97,7 +96,7 @@ func privateChainConfig() {
 	}
 	// init private key
 	// viper.Set("dag.my_private_key", privateSet[0])
-	savePrivateKey(path.Join(privateDirNode0, privateKeyFile), privateSet[0])
+	account.SavePrivateKey(path.Join(privateDirNode0, privateKeyFile), privateSet[0])
 
 	//init bootstrap
 	viper.Set("p2p.node_key", nodekeyBoot)
@@ -130,7 +129,7 @@ func privateChainConfig() {
 			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", configDir, err))
 			return
 		}
-		savePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
+		account.SavePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
 		//viper.Set("dag.my_private_key", privateSet[i])
 		err = viper.WriteConfigAs(path.Join(configDir, configFileName))
 		panicIfError(err, "error on dump config")
@@ -149,7 +148,7 @@ func soloChainConfig() {
 	viper.Set("auto_client.sequencer.enabled", true)
 	viper.Set("p2p.bootstrap_node", true)
 
-	priv, _ := genAccount()
+	priv, _ := account.GenAccount()
 
 	viper.Set("rpc.port", port)
 	viper.Set("p2p.port", port+1)
@@ -162,7 +161,7 @@ func soloChainConfig() {
 	}
 
 	// viper.Set("dag.my_private_key", priv.String())
-	savePrivateKey(path.Join(soloDir, privateKeyFile), priv.String())
+	account.SavePrivateKey(path.Join(soloDir, privateKeyFile), priv.String())
 	err = viper.WriteConfigAs(path.Join(soloDir, configFileName))
 	panicIfError(err, "error on dump config")
 	io.CopyFile("genesis.json", path.Join(soloDir, "genesis.json"))
@@ -175,7 +174,7 @@ func mainChainConfig() {
 
 	viper.Set("annsensus.genesis_pk", mainNetGenesisPk)
 
-	priv, _ := genAccount()
+	priv, _ := account.GenAccount()
 	viper.Set("rpc.port", port)
 	viper.Set("p2p.port", port+1)
 	viper.Set("websocket.port", port+2)
@@ -188,7 +187,7 @@ func mainChainConfig() {
 	}
 
 	//viper.Set("dag.my_private_key", priv.String())
-	savePrivateKey(path.Join(mainNetDir, privateKeyFile), priv.String())
+	account.SavePrivateKey(path.Join(mainNetDir, privateKeyFile), priv.String())
 	err = viper.WriteConfigAs(path.Join(mainNetDir, configFileName))
 	panicIfError(err, "error on dump config")
 	io.CopyFile("genesis.json", path.Join(mainNetDir, "genesis.json"))
@@ -216,25 +215,10 @@ func readConfig() {
 	panicIfError(err, "merge viper config err")
 }
 
-func genAccount() (crypto.PrivateKey, crypto.PublicKey) {
-	signer := &crypto.SignerSecp256k1{}
-	pub, priv := signer.RandomKeyPair()
-
-	return priv, pub
-}
-
 func panicIfError(err error, message string) {
 	if err != nil {
 		fmt.Println(message)
 		fmt.Println(err.Error())
 		os.Exit(1)
-	}
-}
-
-func savePrivateKey(path string, content string) {
-	vault := encryption.NewVault([]byte(content))
-	if err := vault.Dump(path, ""); err != nil {
-		fmt.Println(fmt.Sprintf("error on saving privkey to %s: %v", path, err))
-		panic(err)
 	}
 }

@@ -1,5 +1,6 @@
 config = "config.toml"
 datadir = "D:\\ws\\git\\OG\\build\\private\\node_1"
+genkey = false
 log_line_number = false
 max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"

@@ -1,0 +1,132 @@
+# This is a TOML document.
+
+title = "OG Mainnet configuration"
+
+[log]
+level = "info"
+
+[rpc]
+enabled = true
+port = 8000
+
+[p2p]
+enabled = true
+bootstrap_node = false
+port = 8001
+max_peers = 50
+network_id = 1
+enable_sync = true
+
+bootstrap_nodes = "onode://6caae3f8faba3a135e2bd21d48a3be09c45653c4484fe396ac28c838ffc6b6d203295a7f963162687ec7d402157bbfaf8b602017a26945b13a98dc5a7eb43b5c@47.100.222.11:8001"
+# node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
+no_encryption = false 
+
+[websocket]
+enabled = true
+port = 8002
+
+[profiling]
+port = 8003
+
+[db]
+name = "leveldb"
+
+[leveldb]
+path = "rw/datadir_1"
+cache = 16
+handles = 16
+
+[statedb]
+flush_timer_s = 5
+purge_timer_s = 10
+beat_expire_time_s = 300
+
+[txpool]
+queue_size = 100
+tips_size = 1000
+reset_duration = 10
+tx_verify_time = 2
+tx_valid_time = 100
+timeout_pool_queue_ms = 10000
+timeout_subscriber_ms = 10000
+timeout_confirmation_ms = 10000
+timeout_latest_seq_ms = 10000
+
+[auto_client]
+# whether auto_tx will maintain its own nonce records.
+# false to query latest nonce every time.
+nonce_self_discipline = false
+
+[auto_client.sequencer]
+enabled = false
+interval_us = 5_000_000
+
+[auto_client.tx]
+enabled = false
+interval_us = 500_000
+account_ids = [0,1]
+interval_mode = "random"
+
+[auto_client.archive]
+enabled = false
+interval_us = 500_000
+
+[debug]
+node_id = 1
+
+[hub]
+sync_cycle_ms = 10000
+disable_encrypt_gossip = false
+
+[crypto]
+# ed25519 or secp256k1
+algorithm = "secp256k1"
+
+[dag]
+genesis_path = "genesis.json"
+
+[annsensus]
+campaign = false
+disable_term_change = true
+partner_number = 4
+threshold = 4
+genesis_pk ="0x0104994735dfcf60eb43bb5286334a7a83b622685fc3feb92247c65cc4b4cd55497fbc767f2e59a222abb650e5f411d9f7b6266b49439cdb348d859e33e89846bcaf;0x01046ce80b57488632dd7fc1488f5c2ed4746b16e2656b9ec7793f6f7d23663a5bd68ba37a00313d55042480c23b98b2cbee334eda939eab12a737f4a5d3e646da93;0x0104329ad4860f4835427efe677cecfda463e9fa0be722b41d64109197499b2804fbe9fa41416191c81fc9f819f83fad0a891a4eb3c5ee7d7122c8a6c948f71c8028;0x0104f25bceb564a148de47ba2725eaa4f88898d54dee044d8bbf75b4f209edd67a0e21ab145e249a5dd236a7bd9d7bb42ef24c30fb9da94d8001faac29588c61c45b"
+consensus_path ="consensus.json"
+#disable consensus module
+disable = false
+ # after 10 sequencer , will term change
+term_change_interval = 10
+
+mode = "normal"
+
+# samples below
+
+#[owner]
+#name = "Tom Preston-Werner"
+#dob = 1979-05-27T07:32:00-08:00 # First class dates
+#
+#[database]
+#server = "192.168.1.1"
+#ports = [ 8001, 8001, 8002 ]
+#connection_max = 5000
+#enabled = true
+#
+#[servers]
+#
+#  # Indentation (tabs and/or spaces) is allowed but not required
+#  [servers.alpha]
+#  ip = "10.0.0.1"
+#  dc = "eqdc10"
+#
+#  [servers.beta]
+#  ip = "10.0.0.2"
+#  dc = "eqdc10"
+#
+#[clients]
+#data = [ ["gamma", "delta"], [1, 2] ]
+#
+## Line breaks are OK when inside arrays
+#hosts = [
+#  "alpha",
+#  "omega"
+#]

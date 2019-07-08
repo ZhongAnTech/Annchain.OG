@@ -133,7 +133,7 @@ func (tc *TermChange) SignatureTargets() []byte {
 }
 
 func (tc *TermChange) String() string {
-	if tc.GetSender() ==nil {
+	if tc.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-id-%d-termChange", tc.TxBase.String(), tc.TermID)
 	}
 	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", tc.TxBase.String(), tc.Issuer.String(), tc.TermID)
@@ -176,7 +176,6 @@ func (c *TermChange) RawTxi() RawTxi {
 	return c.RawTermChange()
 }
 
-
-func (t *TermChange)SetSender (addr Address) {
+func (t *TermChange) SetSender(addr Address) {
 	t.Issuer = &addr
 }

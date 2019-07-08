@@ -78,7 +78,7 @@ func (t *ActionTx) Setconfirm() {
 }
 
 func (t *ActionTx) String() string {
-	if t.GetSender()==nil {
+	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-ATX", t.TxBase.String(), t.AccountNonce)
 	}
 	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender(), t.AccountNonce)
@@ -86,21 +86,21 @@ func (t *ActionTx) String() string {
 
 func SampleActionTx() *ActionTx {
 	//v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
- from := HexToAddress("0x99")
+	from := HexToAddress("0x99")
 	return &ActionTx{TxBase: TxBase{
 		Height:       12,
 		ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From:&from ,
+		From: &from,
 		//To:    HexToAddress("0x88"),
 		//Value: v,
 	}
 }
 
 func RandomActionTx() *ActionTx {
-	from:=randomAddress()
+	from := randomAddress()
 	return &ActionTx{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       uint64(rand.Int63n(1000)),
@@ -180,7 +180,6 @@ func (tc *ActionTx) GetSender() *Address {
 	return tc.From
 }
 
-
 func (t *ActionTx) GetOfferValue() *math.BigInt {
 	return t.GetPublicOffering().Value
 }
@@ -254,6 +253,6 @@ func (c *ActionTx) RawTxi() RawTxi {
 	return c.RawActionTx()
 }
 
-func (c*ActionTx)SetSender(addr Address) {
+func (c *ActionTx) SetSender(addr Address) {
 	c.From = &addr
 }

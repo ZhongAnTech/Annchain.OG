@@ -8,8 +8,7 @@ import (
 
 //go:generate msgp
 
-
-type PublicKey  []byte
+type PublicKey []byte
 
 // DecodeMsg implements msgp.Decodable
 func (z *PublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
@@ -52,7 +51,7 @@ func (z PublicKey) MarshalMsg(b []byte) (o []byte, err error) {
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *PublicKey) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if Signer.CanRecoverPubFromSig() {
-		return bts,nil
+		return bts, nil
 	}
 	{
 		var zb0001 []byte
@@ -75,10 +74,9 @@ func (z PublicKey) Msgsize() (s int) {
 	return
 }
 
-func (z PublicKey)String()string{
+func (z PublicKey) String() string {
 	return hexutil.Encode(z)
 }
-
 
 func (b PublicKey) MarshalJson() ([]byte, error) {
 	s := b.String()

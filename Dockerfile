@@ -32,7 +32,7 @@ EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 
 WORKDIR /opt
 
-CMD ["./og", "-c", "config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir", "run"]
+CMD ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir", "run"]
 
 
 

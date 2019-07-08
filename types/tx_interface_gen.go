@@ -41,11 +41,11 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+	err = z.PublicKey.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	z.Signature, err = dc.ReadBytes(z.Signature)
+	err = z.Signature.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -87,11 +87,11 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PublicKey)
+	err = z.PublicKey.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -122,8 +122,14 @@ func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o = msgp.AppendUint64(o, z.AccountNonce)
 	o = msgp.AppendUint64(o, z.Height)
-	o = msgp.AppendBytes(o, z.PublicKey)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	o = msgp.AppendUint64(o, z.MineNonce)
 	o = msgp.AppendUint64(o, z.Weight)
 	return
@@ -164,11 +170,11 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+	bts, err = z.Signature.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -186,7 +192,7 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size + msgp.Uint64Size
+	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + z.PublicKey.Msgsize() + z.Signature.Msgsize() + msgp.Uint64Size + msgp.Uint64Size
 	return
 }
 
@@ -236,12 +242,12 @@ func (z *TxBaseJson) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, err = dc.ReadBytes(z.PublicKey)
+			err = z.PublicKey.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
 		case "Signature":
-			z.Signature, err = dc.ReadBytes(z.Signature)
+			err = z.Signature.DecodeMsg(dc)
 			if err != nil {
 				return
 			}
@@ -318,7 +324,7 @@ func (z *TxBaseJson) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.PublicKey)
+	err = z.PublicKey.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -327,7 +333,7 @@ func (z *TxBaseJson) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Signature)
+	err = z.Signature.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -379,10 +385,16 @@ func (z *TxBaseJson) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendUint64(o, z.Height)
 	// string "PublicKey"
 	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
-	o = msgp.AppendBytes(o, z.PublicKey)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "Signature"
 	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	o = msgp.AppendBytes(o, z.Signature)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "MineNonce"
 	o = append(o, 0xa9, 0x4d, 0x69, 0x6e, 0x65, 0x4e, 0x6f, 0x6e, 0x63, 0x65)
 	o = msgp.AppendUint64(o, z.MineNonce)
@@ -438,12 +450,12 @@ func (z *TxBaseJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "PublicKey":
-			z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
+			bts, err = z.PublicKey.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
 		case "Signature":
-			z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
+			bts, err = z.Signature.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -470,7 +482,7 @@ func (z *TxBaseJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxBaseJson) Msgsize() (s int) {
-	s = 1 + 5 + msgp.Uint16Size + 5 + z.Hash.Msgsize() + 12 + z.ParentsHash.Msgsize() + 13 + msgp.Uint64Size + 7 + msgp.Uint64Size + 10 + msgp.BytesPrefixSize + len(z.PublicKey) + 10 + msgp.BytesPrefixSize + len(z.Signature) + 10 + msgp.Uint64Size + 7 + msgp.Uint64Size
+	s = 1 + 5 + msgp.Uint16Size + 5 + z.Hash.Msgsize() + 12 + z.ParentsHash.Msgsize() + 13 + msgp.Uint64Size + 7 + msgp.Uint64Size + 10 + z.PublicKey.Msgsize() + 10 + z.Signature.Msgsize() + 10 + msgp.Uint64Size + 7 + msgp.Uint64Size
 	return
 }
 

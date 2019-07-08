@@ -55,7 +55,6 @@ type AutoClient struct {
 	quit       chan bool
 
 	pause    bool
-	testMode bool
 
 	wg sync.WaitGroup
 
@@ -63,6 +62,8 @@ type AutoClient struct {
 	txLock      sync.RWMutex
 	archiveLock sync.RWMutex
 	NewRawTx    chan types.Txi
+	TpsTest     bool
+	TpsTestInit bool
 }
 
 func (c *AutoClient) Init() {
@@ -157,16 +158,17 @@ func (c *AutoClient) loop() {
 			c.fireManualTx(txType, true)
 		case <-timerTx.C:
 			logrus.Debug("timer sample tx")
-			if c.testMode {
-				timerTx.Stop()
-				continue
-			}
 			if c.Delegate.TooMoreTx() {
 				timerTx.Stop()
 				logrus.Warn("auto tx stopped")
 				continue
 			}
 			c.doSampleTx(false)
+			if c.TpsTestInit {
+				timerTx.Stop()
+				logrus.Warn("auto tx stopped tps test init done")
+				continue
+			}
 			timerTx.Reset(c.nextSleepDuraiton())
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)
@@ -180,7 +182,7 @@ func (c *AutoClient) loop() {
 			c.doSampleArchive(false)
 			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:
-			if c.testMode {
+			if c.TpsTest {
 				timerTx.Stop()
 				continue
 			}
@@ -227,35 +229,53 @@ func (c *AutoClient) judgeNonce() uint64 {
 	me.SetNonce(n)
 	if err != nil {
 		// not exists, set to 0
-		return 0
+		return 1
 	} else {
 		n, _ = me.ConsumeNonce()
 		return n
 	}
 }
 
-func (c *AutoClient) fireTxs(me types.Address) bool {
+func (c *AutoClient) fireTxs() bool {
 	m := viper.GetInt("auto_client.tx.interval_us")
 	if m == 0 {
 		m = 1000
 	}
+	c.TpsTestInit = true
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
 			return true
 		}
-		time.Sleep(time.Duration(m) * time.Microsecond)
-		txi := c.Delegate.Dag.GetOldTx(me, i)
-		if txi == nil {
+		txis,seq:= c.Delegate.Dag.GetTestTxisByNumber(i)
+			var j int
+			for k:=0; k<len(txis);  {
+				//time.Sleep(time.Duration(m) * time.Microsecond)
+				if c.pause {
+					return true
+				}
+				j=k+100
+				if j>=len(txis) {
+					c.Delegate.ReceivedNewTxsChan <- txis[k:]
+				}else {
+					c.Delegate.ReceivedNewTxsChan <-txis[k:j]
+				}
+				k=j
+			}
+
+		if seq!=nil {
+			if c.pause {
+				return true
+			}
+			c.Delegate.ReceivedNewTxsChan<-types.Txis{seq}
+		}else {
 			return true
 		}
-		c.Delegate.Announce(txi)
 	}
 	return true
 }
 
-var firstTx bool
 
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
@@ -263,18 +283,12 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 
 	me := c.MyAccount
-	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
-		if txi != nil {
-			logrus.WithField("txi", txi).Info("get start test tps")
+	if c.TpsTest {
+			logrus.Info("get start test tps")
 			c.AutoTxEnabled = false
 			c.AutoSequencerEnabled = false
-			c.testMode = true
-			firstTx = true
-			c.Delegate.Announce(txi)
-			return c.fireTxs(me.Address)
-		}
-		firstTx = true
+			return c.fireTxs()
+		//logrus.WithField("txi", txi).Info("tps test  mode, txi not found, enter normal mode")
 	}
 	c.txLock.RLock()
 	defer c.txLock.RUnlock()
@@ -341,10 +355,10 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	txi.GetBase().AccountNonce = c.judgeNonce()
 	if txi.GetType() == types.TxBaseTypeCampaign {
 		cp := txi.(*types.Campaign)
-		cp.Issuer = me.Address
+		cp.Issuer = &me.Address
 	} else if txi.GetType() == types.TxBaseTypeTermChange {
 		cp := txi.(*types.TermChange)
-		cp.Issuer = me.Address
+		cp.Issuer = &me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)
 	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).Bytes
@@ -364,13 +378,6 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	me := c.MyAccount
-	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 0)
-		if txi != nil {
-			c.AutoSequencerEnabled = false
-			return true
-		}
-	}
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,

@@ -16,6 +16,8 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/encryption"
+	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/status"
 	"time"
@@ -85,7 +87,7 @@ func NewNode() *Node {
 	org, err := og.NewOg(
 		og.OGConfig{
 			NetworkId:   uint64(networkId),
-			GenesisPath: viper.GetString("dag.genesis_path"),
+			GenesisPath: io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("dag.genesis_path")),
 		},
 	)
 	if err != nil {
@@ -133,7 +135,8 @@ func NewNode() *Node {
 	}
 	consensusVerifier := &og.ConsensusVerifier{}
 
-	verifiers := []og.Verifier{graphVerifier, txFormatVerifier, consensusVerifier}
+	//verify format first , set address and then verify graph
+	verifiers := []og.Verifier{txFormatVerifier,graphVerifier, consensusVerifier}
 
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
@@ -285,6 +288,7 @@ func NewNode() *Node {
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
+	delegate.ReceivedNewTxsChan = txBuffer.ReceivedNewTxsChan
 	genesisAccounts := parserGenesisAccounts(viper.GetString("annsensus.genesis_pk"))
 
 	mode := viper.GetString("mode")
@@ -304,7 +308,7 @@ func NewNode() *Node {
 	if sequencerTime == 0 {
 		sequencerTime = 3000
 	}
-	consensFilePath := viper.GetString("annsensus.consensus_path")
+	consensFilePath := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("annsensus.consensus_path"))
 	if consensFilePath == "" {
 		panic("need path")
 	}
@@ -322,7 +326,20 @@ func NewNode() *Node {
 	autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	//coinBaseId := accountIds[0] + 100
-	myAcount := account.NewAccount(viper.GetString("dag.my_private_key"))
+
+	// init key vault from a file
+	privFilePath := io.FixPrefixPath(viper.GetString("datadir"), "privkey")
+	if !io.FileExists(privFilePath) {
+		panic("Please generate a private key first")
+	}
+
+	decrpted, err := encryption.DecryptFileDummy(privFilePath, "")
+	if err != nil {
+		panic("failed to decrypt private key")
+	}
+	vault := encryption.NewVault(decrpted)
+
+	myAcount := account.NewAccount(string(vault.Fetch()))
 	autoClientManager.Init(
 		accountIds,
 		delegate,

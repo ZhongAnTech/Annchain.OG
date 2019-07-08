@@ -55,7 +55,7 @@ type RequestDomain struct {
 type ActionTx struct {
 	TxBase
 	Action     uint8
-	From       Address
+	From       *Address
 	ActionData ActionData
 	confirm    time.Time
 }
@@ -77,25 +77,29 @@ func (t *ActionTx) Setconfirm() {
 }
 
 func (t *ActionTx) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	if t.GetSender()==nil {
+		return fmt.Sprintf("%s-[nil]-%d-ATX", t.TxBase.String(), t.AccountNonce)
+	}
+	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender(), t.AccountNonce)
 }
 
 func SampleActionTx() *ActionTx {
 	//v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
-
+ from := HexToAddress("0x99")
 	return &ActionTx{TxBase: TxBase{
 		Height:       12,
 		ParentsHash:  Hashes{HexToHash("0xCCDD"), HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
-		From: HexToAddress("0x99"),
+		From:&from ,
 		//To:    HexToAddress("0x88"),
 		//Value: v,
 	}
 }
 
 func RandomActionTx() *ActionTx {
+	from:=randomAddress()
 	return &ActionTx{TxBase: TxBase{
 		Hash:         randomHash(),
 		Height:       uint64(rand.Int63n(1000)),
@@ -104,7 +108,7 @@ func RandomActionTx() *ActionTx {
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
 	},
-		From: randomAddress(),
+		From: &from,
 		//To:    randomAddress(),
 		//Value: math.NewBigInt(rand.Int63()),
 	}
@@ -148,7 +152,9 @@ func (t *ActionTx) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, t.From.Bytes))
+	}
 	//panicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionWithdraw {
 		of := t.GetPublicOffering()
@@ -166,8 +172,13 @@ func (t *ActionTx) SignatureTargets() []byte {
 }
 
 func (t *ActionTx) Sender() Address {
-	return t.From
+	return *t.From
 }
+
+func (tc *ActionTx) GetSender() *Address {
+	return tc.From
+}
+
 
 func (t *ActionTx) GetOfferValue() *math.BigInt {
 	return t.GetPublicOffering().Value
@@ -240,4 +251,8 @@ func (t ActionTxs) ToRawTxs() RawActionTxs {
 
 func (c *ActionTx) RawTxi() RawTxi {
 	return c.RawActionTx()
+}
+
+func (c*ActionTx)SetSender(addr Address) {
+	c.From = &addr
 }

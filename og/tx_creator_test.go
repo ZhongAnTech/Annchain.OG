@@ -57,7 +57,7 @@ func TestTxCreator(t *testing.T) {
 	tx := txc.TipGenerator.GetRandomTips(1)[0].(*types.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
-	txSigned := txc.NewSignedTx(tx.From, tx.To, tx.Value, tx.AccountNonce, priv)
+	txSigned := txc.NewSignedTx(*tx.From, tx.To, tx.Value, tx.AccountNonce, priv)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)

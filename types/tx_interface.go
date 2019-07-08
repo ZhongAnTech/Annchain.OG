@@ -93,6 +93,8 @@ type Txi interface {
 	// implemented by each tx type
 	GetBase() *TxBase
 	Sender() Address
+	GetSender()*Address
+	SetSender(addr Address)
 	Dump() string             // For logger dump
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
@@ -116,7 +118,7 @@ type TxBase struct {
 	ParentsHash  Hashes
 	AccountNonce uint64
 	Height       uint64
-	PublicKey    hexutil.Bytes
+	PublicKey    PublicKey //
 	Signature    hexutil.Bytes
 	MineNonce    uint64
 	Weight       uint64
@@ -129,7 +131,7 @@ type TxBaseJson struct {
 	ParentsHash  Hashes        `json:"parents_hash"`
 	AccountNonce uint64        `json:"account_nonce"`
 	Height       uint64        `json:"height"`
-	PublicKey    hexutil.Bytes `json:"public_key"`
+	PublicKey    PublicKey `json:"public_key"`
 	Signature    hexutil.Bytes `json:"signature"`
 	MineNonce    uint64        `json:"mine_nonce"`
 	Weight       uint64        `json:"weight"`
@@ -228,8 +230,9 @@ func (t *TxBase) CalcTxHash() (hash Hash) {
 
 func (t *TxBase) CalcMinedHash() (hash Hash) {
 	var buf bytes.Buffer
-
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+     if !Signer.CanRecoverPubFromSig() {
+		 panicIfError(binary.Write(&buf, binary.BigEndian, t.PublicKey))
+	 }
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Signature))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.MineNonce))
 

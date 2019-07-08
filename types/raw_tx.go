@@ -18,9 +18,11 @@ import (
 	"strings"
 
 	"github.com/annchain/OG/common/math"
+
 )
 
 //go:generate msgp
+
 
 // compress data ,for p2p  , small size
 //msgp:tuple RawTx
@@ -98,7 +100,9 @@ func (t *RawTx) Tx() *Tx {
 		Data:    t.Data,
 		TokenId: t.TokenId,
 	}
-	tx.From = Signer.AddressFromPubKeyBytes(tx.PublicKey)
+	if !Signer.CanRecoverPubFromSig() {
+	   tx.SetSender(Signer.AddressFromPubKeyBytes(tx.PublicKey))
+	}
 	return tx
 }
 
@@ -112,7 +116,10 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		BlsJointSig:    t.BlsJointSig,
 		StateRoot:      t.StateRoot,
 	}
-	tx.Issuer = Signer.AddressFromPubKeyBytes(tx.PublicKey)
+	if !Signer.CanRecoverPubFromSig() {
+		addr :=  Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		tx.Issuer = &addr
+	}
 	return tx
 }
 
@@ -127,7 +134,11 @@ func (t *RawActionTx) ActionTx() *ActionTx {
 		TxBase:     t.TxBase,
 		Action:     t.Action,
 		ActionData: t.ActionData,
-		From:       Signer.AddressFromPubKeyBytes(t.PublicKey),
+	}
+
+	if !Signer.CanRecoverPubFromSig() {
+		addr :=  Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		tx.From = &addr
 	}
 	return tx
 }
@@ -237,7 +248,10 @@ func (rc *RawCampaign) Campaign() *Campaign {
 		DkgPublicKey: rc.DkgPublicKey,
 		Vrf:          rc.Vrf,
 	}
-	cp.Issuer = Signer.AddressFromPubKeyBytes(rc.PublicKey)
+	if !Signer.CanRecoverPubFromSig() {
+		addr := Signer.AddressFromPubKeyBytes(rc.PublicKey)
+		cp.Issuer = &addr
+	}
 	return cp
 }
 
@@ -251,7 +265,10 @@ func (r *RawTermChange) TermChange() *TermChange {
 		SigSet: r.SigSet,
 		TermID: r.TermId,
 	}
-	t.Issuer = Signer.AddressFromPubKeyBytes(r.PublicKey)
+	if !Signer.CanRecoverPubFromSig() {
+		addr := Signer.AddressFromPubKeyBytes(r.PublicKey)
+		t.Issuer = &addr
+	}
 	return t
 }
 

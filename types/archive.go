@@ -60,6 +60,12 @@ func (a *Archive) Sender() Address {
 	//return  &Address{}
 }
 
+func (tc *Archive) GetSender() *Address {
+	panic("not implemented")
+	return nil
+}
+
+
 func (c *Archive) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
@@ -150,5 +156,9 @@ func (t *Archive) CalcTxHash() (hash Hash) {
 
 	result := sha3.Sum256(buf.Bytes())
 	hash.MustSetBytes(result[0:], PaddingNone)
+	return
+}
+
+func (t*Archive)SetSender(address Address) {
 	return
 }

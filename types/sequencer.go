@@ -31,7 +31,7 @@ import (
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
-	Issuer         Address
+	Issuer         *Address
 	BlsJointSig    hexutil.Bytes
 	BlsJointPubKey hexutil.Bytes
 	StateRoot      Hash
@@ -40,7 +40,7 @@ type Sequencer struct {
 
 type SequencerJson struct {
 	TxBaseJson
-	Issuer         Address       `json:"issuer"`
+	Issuer         *Address       `json:"issuer"`
 	BlsJointSig    hexutil.Bytes `json:"bls_joint_sig"`
 	BlsJointPubKey hexutil.Bytes `json:"bls_joint_pub_key"`
 	Proposing      bool          `msg:"-",json:"-"`
@@ -62,7 +62,12 @@ func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
 }
 
 func (t *Sequencer) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+	if t.GetSender() ==nil {
+		return fmt.Sprintf("%s-[nil]-%d-Seq", t.TxBase.String(), t.AccountNonce)
+	}else {
+		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender(), t.AccountNonce)
+	}
+
 }
 
 //msgp:tuple BlsSigSet
@@ -75,6 +80,7 @@ type BlsSigSet struct {
 type Sequencers []*Sequencer
 
 func SampleSequencer() *Sequencer {
+	from := HexToAddress("0x33")
 	return &Sequencer{
 		TxBase: TxBase{
 			Height:       12,
@@ -82,12 +88,13 @@ func SampleSequencer() *Sequencer {
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
-		Issuer: HexToAddress("0x33"),
+		Issuer: &from,
 	}
 }
 
 func RandomSequencer() *Sequencer {
 	id := uint64(rand.Int63n(1000))
+	from := randomAddress()
 	r := random.New()
 	seq := &Sequencer{
 		TxBase: TxBase{
@@ -98,10 +105,11 @@ func RandomSequencer() *Sequencer {
 			AccountNonce: uint64(rand.Int63n(50000)),
 			Weight:       uint64(rand.Int31n(2000)),
 		},
-		Issuer: randomAddress(),
+		Issuer: &from,
 	}
 	seq.BlsJointSig = make([]byte, 64)
 	seq.BlsJointPubKey = make([]byte, 128)
+
 	random.Bytes(seq.BlsJointPubKey, r)
 	random.Bytes(seq.BlsJointSig, r)
 	return seq
@@ -112,7 +120,9 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.BlsJointPubKey))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, t.Issuer.Bytes))
+	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Height))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.Weight))
 	panicIfError(binary.Write(&buf, binary.BigEndian, t.StateRoot.Bytes))
@@ -123,6 +133,10 @@ func (t *Sequencer) SignatureTargets() []byte {
 }
 
 func (t *Sequencer) Sender() Address {
+	return *t.Issuer
+}
+
+func (t *Sequencer)GetSender() *Address {
 	return t.Issuer
 }
 
@@ -218,4 +232,8 @@ func (seqs Sequencers) ToRawSequencers() RawSequencers {
 
 func (c *Sequencer) RawTxi() RawTxi {
 	return c.RawSequencer()
+}
+
+func (t *Sequencer)SetSender (addr Address) {
+	t.Issuer = &addr
 }

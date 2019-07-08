@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/common/io"
 	"sync"
 	"time"
 
@@ -154,7 +155,7 @@ func (og *Og) Name() string {
 func CreateDB() (ogdb.Database, error) {
 	switch viper.GetString("db.name") {
 	case "leveldb":
-		path := viper.GetString("leveldb.path")
+		path := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("leveldb.path"))
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)
@@ -166,7 +167,7 @@ func CreateDB() (ogdb.Database, error) {
 func GetOldDb() (ogdb.Database, error) {
 	switch viper.GetString("db.name") {
 	case "leveldb":
-		path := viper.GetString("leveldb.path") + "test"
+		path := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("leveldb.path")+"test")
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)

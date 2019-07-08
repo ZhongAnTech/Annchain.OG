@@ -100,9 +100,20 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Issuer.DecodeMsg(dc)
-	if err != nil {
-		return
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		err = z.Issuer.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
 	}
 	err = z.BlsJointSig.DecodeMsg(dc)
 	if err != nil {
@@ -130,9 +141,16 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Issuer.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Issuer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	err = z.BlsJointSig.EncodeMsg(en)
 	if err != nil {
@@ -158,9 +176,13 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	o, err = z.Issuer.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Issuer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	o, err = z.BlsJointSig.MarshalMsg(o)
 	if err != nil {
@@ -192,9 +214,20 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	bts, err = z.Issuer.UnmarshalMsg(bts)
-	if err != nil {
-		return
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		bts, err = z.Issuer.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
 	}
 	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
 	if err != nil {
@@ -214,7 +247,13 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + z.Issuer.Msgsize() + z.BlsJointSig.Msgsize() + z.BlsJointPubKey.Msgsize() + z.StateRoot.Msgsize()
+	s = 1 + z.TxBase.Msgsize()
+	if z.Issuer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Issuer.Msgsize()
+	}
+	s += z.BlsJointSig.Msgsize() + z.BlsJointPubKey.Msgsize() + z.StateRoot.Msgsize()
 	return
 }
 
@@ -240,9 +279,20 @@ func (z *SequencerJson) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Issuer":
-			err = z.Issuer.DecodeMsg(dc)
-			if err != nil {
-				return
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					return
+				}
+				z.Issuer = nil
+			} else {
+				if z.Issuer == nil {
+					z.Issuer = new(Address)
+				}
+				err = z.Issuer.DecodeMsg(dc)
+				if err != nil {
+					return
+				}
 			}
 		case "BlsJointSig":
 			err = z.BlsJointSig.DecodeMsg(dc)
@@ -281,9 +331,16 @@ func (z *SequencerJson) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Issuer.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Issuer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	// write "BlsJointSig"
 	err = en.Append(0xab, 0x42, 0x6c, 0x73, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67)
@@ -318,9 +375,13 @@ func (z *SequencerJson) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "Issuer"
 	o = append(o, 0xa6, 0x49, 0x73, 0x73, 0x75, 0x65, 0x72)
-	o, err = z.Issuer.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Issuer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	// string "BlsJointSig"
 	o = append(o, 0xab, 0x42, 0x6c, 0x73, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67)
@@ -359,9 +420,20 @@ func (z *SequencerJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Issuer":
-			bts, err = z.Issuer.UnmarshalMsg(bts)
-			if err != nil {
-				return
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.Issuer = nil
+			} else {
+				if z.Issuer == nil {
+					z.Issuer = new(Address)
+				}
+				bts, err = z.Issuer.UnmarshalMsg(bts)
+				if err != nil {
+					return
+				}
 			}
 		case "BlsJointSig":
 			bts, err = z.BlsJointSig.UnmarshalMsg(bts)
@@ -386,7 +458,13 @@ func (z *SequencerJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *SequencerJson) Msgsize() (s int) {
-	s = 1 + 11 + z.TxBaseJson.Msgsize() + 7 + z.Issuer.Msgsize() + 12 + z.BlsJointSig.Msgsize() + 15 + z.BlsJointPubKey.Msgsize()
+	s = 1 + 11 + z.TxBaseJson.Msgsize() + 7
+	if z.Issuer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Issuer.Msgsize()
+	}
+	s += 12 + z.BlsJointSig.Msgsize() + 15 + z.BlsJointPubKey.Msgsize()
 	return
 }
 

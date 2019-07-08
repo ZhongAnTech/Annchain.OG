@@ -37,7 +37,7 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	}
 	cp := &types.Campaign{
 		TxBase: base,
-		Issuer: as.MyAccount.Address,
+		Issuer: &as.MyAccount.Address,
 	}
 	if vrf := as.GenerateVrf(); vrf != nil {
 		cp.Vrf = *vrf

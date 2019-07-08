@@ -157,16 +157,16 @@ func (c *AutoClient) loop() {
 			c.fireManualTx(txType, true)
 		case <-timerTx.C:
 			logrus.Debug("timer sample tx")
-			if c.TpsTest {
-				timerTx.Stop()
-				continue
-			}
 			if c.Delegate.TooMoreTx() {
 				timerTx.Stop()
 				logrus.Warn("auto tx stopped")
 				continue
 			}
 			c.doSampleTx(false)
+			if c.TpsTest {
+				timerTx.Stop()
+				continue
+			}
 			timerTx.Reset(c.nextSleepDuraiton())
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)

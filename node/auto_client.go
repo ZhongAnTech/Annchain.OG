@@ -246,6 +246,21 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		txis,seq:= c.Delegate.Dag.GetTestTxisByNumber(i)
+			var j int
+			for k:=0; k<len(txis);  {
+				time.Sleep(time.Duration(m) * time.Microsecond)
+				if c.pause {
+					return true
+				}
+				j=k+100
+				if j>=len(txis) {
+					c.Delegate.TxBuffer.ReceivedNewTxsChan <- txis[i:]
+				}else {
+					c.Delegate.TxBuffer.ReceivedNewTxsChan <-txis[i:j]
+				}
+				k=j
+			}
+
 		if seq!=nil {
 			if c.pause {
 				return true
@@ -254,15 +269,6 @@ func (c *AutoClient) fireTxs() bool {
 		}else {
 			return true
 		}
-			for _,tx:= range txis {
-				time.Sleep(time.Duration(m) * time.Microsecond)
-				if c.pause {
-					return true
-				}
-				c.Delegate.Announce(tx)
-			}
-
-
 	}
 	return true
 }

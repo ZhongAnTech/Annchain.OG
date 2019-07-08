@@ -14,6 +14,8 @@
 package state_test
 
 import (
+	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	"testing"
 
 	"github.com/annchain/OG/common/math"
@@ -37,7 +39,7 @@ func TestSerialization(t *testing.T) {
 	addr := types.HexToAddress(testAddress)
 	stobj := stdb.GetStateObject(addr)
 	stobj.SetNonce(testnonce)
-	stobj.SetBalance(math.NewBigInt(testblc))
+	stobj.SetBalance(0,math.NewBigInt(testblc))
 
 	b, err := stobj.Encode()
 	if err != nil {
@@ -52,9 +54,21 @@ func TestSerialization(t *testing.T) {
 	if newnonce != testnonce {
 		t.Errorf("nonce error, should be %d, but get %d", testnonce, newnonce)
 	}
-	newblc := newstobj.GetBalance()
+	newblc := newstobj.GetBalance(0)
 	if newblc.GetInt64() != testblc {
 		t.Errorf("balance error, should be %d, but get %d", testblc, newblc.GetInt64())
 	}
 
+}
+
+func TestStateDB_GetBalance(t *testing.T) {
+	var  bs =  state.NewBalanceSet()
+	for i:=0;i<5;i++ {
+		bs[int32(i)] = math.NewBigInt( int64(i)*1000+3)
+	}
+	data,_:= bs.MarshalMsg(nil)
+	fmt.Println(hexutil.Encode(data),len(data))
+	as:= state.NewBalanceSet()
+	o, err:= as.UnmarshalMsg(data)
+	fmt.Println(as,o,err)
 }

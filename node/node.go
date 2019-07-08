@@ -68,6 +68,8 @@ func NewNode() *Node {
 	}
 	//set default signer
 	crypto.Signer = crypto.NewSigner(cryptoType)
+	// Setup crypto algorithm
+	types.Signer = crypto.Signer
 
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
@@ -113,8 +115,6 @@ func NewNode() *Node {
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 
-	// Setup crypto algorithm
-	types.Signer = crypto.Signer
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,

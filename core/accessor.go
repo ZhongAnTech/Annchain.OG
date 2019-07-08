@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
@@ -40,11 +41,14 @@ var (
 	contentPrefixCampaign    = []byte("cpcp")
 	contentPrefixTermChg     = []byte("cptc")
 	contentPrefixArchive     = []byte("cpac")
+	contentPrefixActionTx    =[]byte("cpax")
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
 	prefixSeqHeightKey = []byte("sh")
 	prefixTxIndexKey   = []byte("ti")
+	prefixTokenIndexKey = []byte("toi")
+	prefixLatestTokenindexKey = []byte("latesttoi")
 
 	prefixAddressBalanceKey = []byte("ba")
 
@@ -59,6 +63,10 @@ func genesisKey() []byte {
 
 func latestSequencerKey() []byte {
 	return prefixLatestSeqKey
+}
+
+func latestTokenKey() []byte {
+	return prefixLatestTokenindexKey
 }
 
 func receiptKey(seqID uint64) []byte {
@@ -93,6 +101,11 @@ func seqHeightKey(seqID uint64) []byte {
 func txIndexKey(seqID uint64) []byte {
 	return append(prefixTxIndexKey, encodeUint64(seqID)...)
 }
+
+func tokenIndexKey(tokenId  int32) []byte {
+    return append(prefixTokenIndexKey, encodeInt32(tokenId)...)
+}
+
 
 type Accessor struct {
 	db ogdb.Database
@@ -275,6 +288,15 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		}
 		return &ac
 	}
+	if bytes.Equal(prefix, contentPrefixActionTx) {
+		var ac types.ActionTx
+		_, err := ac.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal archive error")
+			return nil
+		}
+		return &ac
+	}
 
 	return nil
 }
@@ -348,6 +370,48 @@ func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
 	return &cf
 }
 
+func (da* Accessor)WriteToken(putter *Putter , token *types.TokenInfo) error {
+	data, err := token.MarshalMsg(nil)
+	if err != nil {
+		return err
+	}
+	key := tokenIndexKey(token.TokenId)
+	err = da.put(putter, key, data)
+	if err != nil {
+		return fmt.Errorf("write token to db err: %v", err)
+	}
+	return nil
+}
+
+func (da*Accessor)WriteLatestTokenId(putter *Putter , tokenIndex int32)  error{
+	err := da.put(putter, latestTokenKey(), encodeInt32(tokenIndex))
+	if err != nil {
+		return fmt.Errorf("write token to db err: %v", err)
+	}
+	return nil
+}
+
+func (da*Accessor)RaedLatestTokenId() int32{
+	data, _ := da.db.Get(latestTokenKey())
+	if len(data) == 0 {
+		return 0
+	}
+	return common.GetInt32(data,0)
+}
+
+func (da *Accessor)ReadToken(tokenIndex int32) *types.TokenInfo{
+	var token types.TokenInfo
+	data, _ := da.db.Get(tokenIndexKey(tokenIndex))
+	if len(data) == 0 {
+		return nil
+	}
+	_, err := token.UnmarshalMsg(data)
+	if err != nil {
+		return nil
+	}
+	return &token
+}
+
 // WriteReceipts write a receipt map into db.
 func (da *Accessor) WriteReceipts(putter *Putter, seqID uint64, receipts ReceiptSet) error {
 	data, err := receipts.MarshalMsg(nil)
@@ -400,6 +464,9 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 		data, err = tx.MarshalMsg(nil)
 	case *types.Archive:
 		prefix = contentPrefixArchive
+		data, err = tx.MarshalMsg(nil)
+	case *types.ActionTx:
+		prefix = contentPrefixActionTx
 		data, err = tx.MarshalMsg(nil)
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx, *Sequencer, *Campaign, *TermChange")
@@ -545,3 +612,8 @@ func encodeUint64(n uint64) []byte {
 	binary.BigEndian.PutUint64(b, n)
 	return b
 }
+
+func encodeInt32(n int32) []byte {
+	return  common.ByteInt32(n)
+}
+

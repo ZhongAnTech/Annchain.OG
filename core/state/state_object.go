@@ -35,6 +35,12 @@ type AccountData struct {
 	CodeHash []byte
 }
 
+func NewAccountData()AccountData {
+	return AccountData{
+		Balances:NewBalanceSet(),
+	}
+}
+
 type StateObject struct {
 	address     types.Address
 	addressHash types.Hash

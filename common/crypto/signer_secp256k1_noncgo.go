@@ -136,7 +136,6 @@ func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey Priva
 	return
 }
 
-
 // Ecrecover returns the uncompressed public key that created the given signature.
 func Ecrecover(hash, sig []byte) ([]byte, error) {
 	pub, err := SigToPub(hash, sig)
@@ -158,6 +157,6 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 	return (*ecdsa.PublicKey)(pub), err
 }
 
-func (s*SignerSecp256k1)CanRecoverPubFromSig()bool {
+func (s *SignerSecp256k1) CanRecoverPubFromSig() bool {
 	return false
 }

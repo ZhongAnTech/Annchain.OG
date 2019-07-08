@@ -145,7 +145,6 @@ func IsSameBytes(s, t []byte) bool {
 	return true
 }
 
-
 // GetInt32 get an int32 from byte array with a start position.
 func GetInt32(b []byte, pos int) int32 {
 	return int32(b[pos]) | int32(b[pos+1])<<8 | int32(b[pos+2])<<16 | int32(b[pos+3])<<24

@@ -257,9 +257,9 @@ func (c *AutoClient) fireTxs() bool {
 				}
 				j=k+100
 				if j>=len(txis) {
-					c.Delegate.ReceivedNewTxsChan <- txis[i:]
+					c.Delegate.ReceivedNewTxsChan <- txis[k:]
 				}else {
-					c.Delegate.ReceivedNewTxsChan <-txis[i:j]
+					c.Delegate.ReceivedNewTxsChan <-txis[k:j]
 				}
 				k=j
 			}

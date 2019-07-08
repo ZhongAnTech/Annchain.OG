@@ -549,7 +549,7 @@ func (sd *StateDB) commit() (types.Hash, error) {
 	}
 	// commit current trie into triedb.
 	rootHash, err := sd.trie.Commit(func(leaf []byte, parent types.Hash) error {
-		 account := NewAccountData()
+		account := NewAccountData()
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
 		}

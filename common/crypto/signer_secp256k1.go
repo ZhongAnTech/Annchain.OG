@@ -124,6 +124,6 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 	return &ecdsa.PublicKey{Curve: S256(), X: x, Y: y}, nil
 }
 
-func (s*SignerSecp256k1)CanRecoverPubFromSig()bool {
+func (s *SignerSecp256k1) CanRecoverPubFromSig() bool {
 	return true
 }

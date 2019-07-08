@@ -92,6 +92,7 @@ func (s StringProposal) String() string {
 	return string(s)
 }
 
+//msgp:tuple SequencerProposal
 type SequencerProposal struct {
 	Sequencer
 }

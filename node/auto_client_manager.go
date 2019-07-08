@@ -43,7 +43,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 	sequencers := 1
 	mode := viper.GetString("mode")
 	var tpsTest bool
-	if mode =="tps_test" {
+	if mode == "tps_test" {
 		tpsTest = true
 		accountIndices = []int{0}
 	}
@@ -61,7 +61,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
 			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
-			TpsTest:tpsTest,
+			TpsTest:              tpsTest,
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -70,7 +70,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 		}
 
 	}
-	if !tpsTest &&  sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
+	if !tpsTest && sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
 		// add pure sequencer
 		client := &AutoClient{
 			Delegate:             delegate,

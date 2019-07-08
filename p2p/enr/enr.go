@@ -55,7 +55,7 @@ var (
 )
 
 // Pair is a key/value Pair in a record.
-//msgp:Pair
+//msgp:tuple Pair
 type Pair struct {
 	K string
 	//v rlp.RawValue
@@ -63,7 +63,7 @@ type Pair struct {
 }
 
 // Record represents a node record. The zero value is an empty record.
-//msgp:Record
+//msgp:tuple Record
 type Record struct {
 	Seq       uint64 // sequence number
 	Signature []byte // the Signature

@@ -31,6 +31,7 @@ type Archive struct {
 	Data []byte `json:"data"`
 }
 
+//msgp:tuple ArchiveJson
 type ArchiveJson struct {
 	TxBaseJson
 	Data []byte `json:"data"`
@@ -64,7 +65,6 @@ func (tc *Archive) GetSender() *Address {
 	panic("not implemented")
 	return nil
 }
-
 
 func (c *Archive) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
@@ -159,6 +159,6 @@ func (t *Archive) CalcTxHash() (hash Hash) {
 	return
 }
 
-func (t*Archive)SetSender(address Address) {
+func (t *Archive) SetSender(address Address) {
 	return
 }

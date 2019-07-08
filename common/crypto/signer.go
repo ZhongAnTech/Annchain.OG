@@ -26,7 +26,7 @@ type ISigner interface {
 	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)
 	Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
 	PublicKeyFromBytes(b []byte) PublicKey
-	CanRecoverPubFromSig  () bool
+	CanRecoverPubFromSig() bool
 }
 
 //set this value when you code run

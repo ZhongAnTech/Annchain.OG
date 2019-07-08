@@ -99,7 +99,7 @@ func (c *Campaign) SignatureTargets() []byte {
 }
 
 func (c *Campaign) String() string {
-	if c.GetSender()==nil {
+	if c.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-%s-Cp", c.TxBase.String(), c.Sender(), c.AccountNonce, hexutil.Encode(c.DkgPublicKey[:5]))
 	}
 	return fmt.Sprintf("%s-[%.10s]-%d-%s-Cp", c.TxBase.String(), c.Sender(), c.AccountNonce, hexutil.Encode(c.DkgPublicKey[:5]))
@@ -171,6 +171,6 @@ func (c *Campaign) RawTxi() RawTxi {
 	return c.RawCampaign()
 }
 
-func (t *Campaign)SetSender (addr Address) {
+func (t *Campaign) SetSender(addr Address) {
 	t.Issuer = &addr
 }

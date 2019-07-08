@@ -18,11 +18,9 @@ import (
 	"strings"
 
 	"github.com/annchain/OG/common/math"
-
 )
 
 //go:generate msgp
-
 
 // compress data ,for p2p  , small size
 //msgp:tuple RawTx
@@ -101,7 +99,7 @@ func (t *RawTx) Tx() *Tx {
 		TokenId: t.TokenId,
 	}
 	if !Signer.CanRecoverPubFromSig() {
-	   tx.SetSender(Signer.AddressFromPubKeyBytes(tx.PublicKey))
+		tx.SetSender(Signer.AddressFromPubKeyBytes(tx.PublicKey))
 	}
 	return tx
 }
@@ -117,7 +115,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		StateRoot:      t.StateRoot,
 	}
 	if !Signer.CanRecoverPubFromSig() {
-		addr :=  Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		addr := Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.Issuer = &addr
 	}
 	return tx
@@ -137,7 +135,7 @@ func (t *RawActionTx) ActionTx() *ActionTx {
 	}
 
 	if !Signer.CanRecoverPubFromSig() {
-		addr :=  Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		addr := Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.From = &addr
 	}
 	return tx

@@ -239,7 +239,7 @@ func (c *AutoClient) fireTxs(me types.Address) bool {
 	if m == 0 {
 		m = 1000
 	}
-	logrus.WithField("micro", m).Info("sent interval ")
+	logrus.WithField("my addrss ", me).WithField("micro", m).Info("sent interval ")
 	for i := uint64(2); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")

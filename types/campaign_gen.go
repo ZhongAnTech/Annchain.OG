@@ -29,9 +29,20 @@ func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Issuer.DecodeMsg(dc)
-	if err != nil {
-		return
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		err = z.Issuer.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -55,9 +66,16 @@ func (z *Campaign) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.Issuer.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Issuer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -76,9 +94,13 @@ func (z *Campaign) MarshalMsg(b []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	o, err = z.Issuer.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Issuer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -106,9 +128,20 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	bts, err = z.Issuer.UnmarshalMsg(bts)
-	if err != nil {
-		return
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		bts, err = z.Issuer.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
 	}
 	o = bts
 	return
@@ -116,7 +149,12 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Campaign) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.DkgPublicKey) + z.Vrf.Msgsize() + z.Issuer.Msgsize()
+	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.DkgPublicKey) + z.Vrf.Msgsize()
+	if z.Issuer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Issuer.Msgsize()
+	}
 	return
 }
 

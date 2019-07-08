@@ -33,6 +33,10 @@ func (s *SignerEd25519) GetCryptoType() CryptoType {
 	return CryptoTypeEd25519
 }
 
+func (s*SignerEd25519)CanRecoverPubFromSig()bool {
+	return false
+}
+
 func (s *SignerEd25519) Sign(privKey PrivateKey, msg []byte) Signature {
 	signatureBytes := ed25519.Sign(privKey.Bytes, msg)
 	return SignatureFromBytes(CryptoTypeEd25519, signatureBytes)

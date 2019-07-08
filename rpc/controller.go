@@ -1056,7 +1056,7 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 
 	calldata := "e5aa3d58"
 	callTx := &types.Tx{}
-	callTx.From = from
+	callTx.From = &from
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)

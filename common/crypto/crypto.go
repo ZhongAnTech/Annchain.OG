@@ -27,6 +27,7 @@ import (
 
 type CryptoType int8
 
+
 const (
 	CryptoTypeEd25519 CryptoType = iota
 	CryptoTypeSecp256k1
@@ -41,6 +42,7 @@ type PrivateKey struct {
 	Type  CryptoType
 	Bytes []byte
 }
+
 
 type PublicKey struct {
 	Type  CryptoType

@@ -369,7 +369,7 @@ func (d *Dkg) addPartner(c *types.Campaign) {
 		log.WithField("id ", d.partner.Id).Trace("my id")
 	}
 	log.WithField("cp ", c).Trace("added partner")
-	d.partner.addressIndex[c.Issuer] = len(d.partner.PartPubs) - 1
+	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
 
 func (d *Dkg) GetBlsSigsets() []*types.SigSet {

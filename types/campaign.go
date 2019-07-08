@@ -31,7 +31,7 @@ type Campaign struct {
 	TxBase
 	DkgPublicKey []byte
 	Vrf          VrfInfo
-	Issuer       Address
+	Issuer       *Address
 	dkgPublicKey kyber.Point
 }
 
@@ -51,7 +51,11 @@ func (c *Campaign) GetBase() *TxBase {
 }
 
 func (c *Campaign) Sender() Address {
-	return c.Issuer
+	return *c.Issuer
+}
+
+func (tc *Campaign) GetSender() *Address {
+	return tc.Issuer
 }
 
 func (c *Campaign) Compare(tx Txi) bool {
@@ -73,7 +77,7 @@ func (c *Campaign) Dump() string {
 	}
 	return fmt.Sprintf("hash: %s, pHash: [%s], issuer: %s, nonce: %d , signatute: %s, pubkey %s ,"+
 		"PkDkg: %x, PkVrf: %x, Data: %x, Vrf: %x, Proof: %x", c.Hash.Hex(),
-		strings.Join(phashes, " ,"), c.Issuer.Hex(), c.AccountNonce, hexutil.Encode(c.Signature), hexutil.Encode(c.PublicKey),
+		strings.Join(phashes, " ,"), c.Issuer, c.AccountNonce, hexutil.Encode(c.Signature), hexutil.Encode(c.PublicKey),
 		c.DkgPublicKey, c.Vrf.PublicKey, c.Vrf.Message, c.Vrf.Vrf, c.Vrf.Proof)
 }
 
@@ -87,13 +91,18 @@ func (c *Campaign) SignatureTargets() []byte {
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.Proof))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.Vrf.Message))
 	panicIfError(binary.Write(&buf, binary.BigEndian, c.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, c.Issuer.Bytes))
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, c.Issuer.Bytes))
+	}
 
 	return buf.Bytes()
 }
 
 func (c *Campaign) String() string {
-	return fmt.Sprintf("%s-[%.10s]-%d-%s-Cp", c.TxBase.String(), c.Sender().String(), c.AccountNonce, hexutil.Encode(c.DkgPublicKey[:5]))
+	if c.GetSender()==nil {
+		return fmt.Sprintf("%s-[nil]-%d-%s-Cp", c.TxBase.String(), c.Sender(), c.AccountNonce, hexutil.Encode(c.DkgPublicKey[:5]))
+	}
+	return fmt.Sprintf("%s-[%.10s]-%d-%s-Cp", c.TxBase.String(), c.Sender(), c.AccountNonce, hexutil.Encode(c.DkgPublicKey[:5]))
 }
 
 func (c Campaigns) String() string {
@@ -160,4 +169,8 @@ func (v *VrfInfo) String() string {
 
 func (c *Campaign) RawTxi() RawTxi {
 	return c.RawCampaign()
+}
+
+func (t *Campaign)SetSender (addr Address) {
+	t.Issuer = &addr
 }

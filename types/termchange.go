@@ -31,7 +31,7 @@ type TermChange struct {
 	TermID uint64
 	PkBls  hexutil.Bytes
 	SigSet []*SigSet
-	Issuer Address
+	Issuer *Address
 }
 
 //msgp:tuple SigSet
@@ -48,6 +48,10 @@ func (tc *TermChange) GetBase() *TxBase {
 }
 
 func (tc *TermChange) Sender() Address {
+	return *tc.Issuer
+}
+
+func (tc *TermChange) GetSender() *Address {
 	return tc.Issuer
 }
 
@@ -108,7 +112,7 @@ func (tc *TermChange) Dump() string {
 	}
 	return fmt.Sprintf("hash: %s, pHash: [%s], issuer: %s, nonce: %d , signatute: %s, pubkey %s ,"+
 		"PkBls: %x, sigs: [%s]", tc.Hash.Hex(),
-		strings.Join(phashes, ", "), tc.Issuer.Hex(), tc.AccountNonce, hexutil.Encode(tc.Signature), hexutil.Encode(tc.PublicKey),
+		strings.Join(phashes, ", "), tc.Issuer, tc.AccountNonce, hexutil.Encode(tc.Signature), hexutil.Encode(tc.PublicKey),
 		tc.PkBls, strings.Join(sigs, ", "))
 }
 
@@ -117,7 +121,9 @@ func (tc *TermChange) SignatureTargets() []byte {
 	var buf bytes.Buffer
 
 	panicIfError(binary.Write(&buf, binary.BigEndian, tc.AccountNonce))
-	panicIfError(binary.Write(&buf, binary.BigEndian, tc.Issuer.Bytes))
+	if !Signer.CanRecoverPubFromSig() {
+		panicIfError(binary.Write(&buf, binary.BigEndian, tc.Issuer.Bytes))
+	}
 	panicIfError(binary.Write(&buf, binary.BigEndian, tc.PkBls))
 	for _, sig := range tc.SigSet {
 		panicIfError(binary.Write(&buf, binary.BigEndian, sig.PublicKey))
@@ -127,6 +133,9 @@ func (tc *TermChange) SignatureTargets() []byte {
 }
 
 func (tc *TermChange) String() string {
+	if tc.GetSender() ==nil {
+		return fmt.Sprintf("%s-[nil]-id-%d-termChange", tc.TxBase.String(), tc.TermID)
+	}
 	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", tc.TxBase.String(), tc.Issuer.String(), tc.TermID)
 }
 
@@ -165,4 +174,9 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 
 func (c *TermChange) RawTxi() RawTxi {
 	return c.RawTermChange()
+}
+
+
+func (t *TermChange)SetSender (addr Address) {
+	t.Issuer = &addr
 }

@@ -53,8 +53,8 @@ type Dag struct {
 	conf DagConfig
 
 	db ogdb.Database
-	// oldDb is for test only, should be deleted later.
-	oldDb    ogdb.Database
+	// testDb is for test only, should be deleted later.
+	testDb    ogdb.Database
 	accessor *Accessor
 	statedb  *state.StateDB
 
@@ -70,12 +70,12 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, testDb ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
 	dag.conf = conf
 	dag.db = db
-	dag.oldDb = oldDb
+	dag.testDb = testDb
 	dag.accessor = NewAccessor(db)
 	// TODO
 	// default maxsize of txcached is 10000,
@@ -90,8 +90,8 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
-	if restart && root.Empty() {
-		panic("should not be empty hash")
+	if restart && dag.GetHeight() > 0 && root.Empty() {
+		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
 	}
 
 	if !restart {
@@ -131,8 +131,10 @@ func (dag *Dag) Stop() {
 func (dag *Dag) SaveStateRoot() {
 	key := []byte("stateroot")
 	root := dag.statedb.Root()
-	if root.Empty() {
-		panic("empty hash slove this")
+	// Debug code
+	if root.Empty() && dag.GetHeight() > 0 {
+		log.Error("empty hash slove this")
+		return
 	}
 	dag.db.Put(key, dag.statedb.Root().ToBytes())
 	log.Infof("stateroot saved: %x", dag.statedb.Root().ToBytes())
@@ -295,19 +297,10 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	if dag.oldDb == nil {
-		return nil
-	}
-	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
+func(dag *Dag)getTestTx(hash types.Hash)types.Txi {
+	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
-		return nil
-	}
-	hash := types.BytesToHash(data)
-	data, _ = dag.oldDb.Get(transactionKey(hash))
-	if len(data) == 0 {
+		log.Info("tx not found")
 		return nil
 	}
 	prefixLen := len(contentPrefixTransaction)
@@ -331,8 +324,51 @@ func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 		}
 		return &sq
 	}
+	if bytes.Equal(prefix, contentPrefixCampaign) {
+		var cp types.Campaign
+		_, err := cp.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal camp error")
+			return nil
+		}
+		return &cp
+	}
+	if bytes.Equal(prefix, contentPrefixTermChg) {
+		var tc types.TermChange
+		_, err := tc.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal termchg error")
+			return nil
+		}
+		return &tc
+	}
+	if bytes.Equal(prefix, contentPrefixArchive) {
+		var ac types.Archive
+		_, err := ac.UnmarshalMsg(data)
+		if err != nil {
+			log.WithError(err).Warn("unmarshal archive error")
+			return nil
+		}
+		return &ac
+	}
+	log.Warn("unknown prefix")
 	return nil
+}
 
+func (dag *Dag) GetTestTxByAddressAndNonce(addr types.Address, nonce uint64) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	if dag.testDb == nil {
+		log.Info("testdb is nil")
+		return nil
+	}
+	data, _ := dag.testDb.Get(txHashFlowKey(addr, nonce))
+	if len(data) == 0 {
+		log.Info("hash not found")
+		return nil
+	}
+	hash := types.BytesToHash(data)
+	return dag.getTestTx(hash)
 }
 
 func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
@@ -398,6 +434,49 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	}
 	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
 	return dag.getTxis(*hashs)
+}
+
+func (dag *Dag)GetTestTxisByNumber(height uint64) (txis types.Txis,sequencer *types.Sequencer) {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	
+	data, _ := dag.testDb.Get(seqHeightKey(height))
+	if len(data) == 0 {
+		log.Warnf("tx hashs with seq height %d not found", height)
+		return nil,nil
+	}
+	//if len(data) == 0 {
+	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
+	//}
+	var seq types.Sequencer
+	_, err := seq.UnmarshalMsg(data)
+	if err != nil {
+		log.WithError(err).Warn("unmarsahl error")
+		return nil, nil
+	}
+	data, _ = dag.testDb.Get(txIndexKey(height))
+	if len(data) == 0 {
+		 log.Warnf("tx hashs with seq height %d not found", height)
+		 return nil,sequencer
+	}
+	var hashs types.Hashes
+	_, err = hashs.UnmarshalMsg(data)
+	if err != nil {
+		log.WithError(err).Warn("unmarshal err")
+		return nil, &seq
+	}
+	if hashs == nil || len(hashs) ==0{
+		return nil,&seq
+	}
+	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
+	var txs types.Txis
+	for _, hash := range hashs {
+		tx := dag.getTestTx(hash)
+		if tx != nil {
+			txs = append(txs, tx)
+		}
+	}
+	return txs, &seq
 }
 
 func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {
@@ -809,7 +888,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
-		dag.statedb.SubBalance(txnormal.From, txnormal.Value)
+		dag.statedb.SubBalance(txnormal.Sender(), txnormal.Value)
 		dag.statedb.AddBalance(txnormal.To, txnormal.Value)
 	}
 	// return when its not contract related tx.
@@ -823,7 +902,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// TODO gaslimit not implemented yet.
 	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.statedb)
 	txContext := &ovm.TxContext{
-		From:       txnormal.From,
+		From:       txnormal.Sender(),
 		Value:      txnormal.Value,
 		Data:       txnormal.Data,
 		GasPrice:   math.NewBigInt(0),

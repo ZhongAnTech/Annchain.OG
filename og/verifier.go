@@ -14,11 +14,15 @@
 package og
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
+	"math/big"
 )
 
 // GraphVerifier verifies if the tx meets the standards
@@ -117,13 +121,79 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 		return true
 	}
 	base := t.GetBase()
-	return crypto.Signer.Verify(
-		crypto.Signer.PublicKeyFromBytes(base.PublicKey),
-		crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
-		t.SignatureTargets())
+
+	if !crypto.Signer.CanRecoverPubFromSig() {
+		if t.GetSender() ==nil {
+			logrus.Debug("verify sig failed, from is nil")
+			return false
+		}
+		 ok:= crypto.Signer.Verify(
+			crypto.Signer.PublicKeyFromBytes(base.PublicKey),
+			crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
+			t.SignatureTargets())
+		 return ok
+	}
+
+	R, S, Vb ,err:= v.SignatureValues(base.Signature)
+	if err!=nil {
+		logrus.WithError(err).Debug("verify sig failed")
+		return false
+	}
+	if Vb.BitLen() > 8 {
+		logrus.WithError(err).Debug("v len error")
+		return false
+	}
+	V := byte(Vb.Uint64() - 27)
+	if !crypto.ValidateSignatureValues(V, R, S, false) {
+		logrus.WithError(err).Debug("v len error")
+		return false
+	}
+	// encode the signature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, 65)
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+	sighash := Sha256(t.SignatureTargets())
+	// recover the public key from the signature
+	pub, err := crypto.Ecrecover(sighash[:], sig)
+	if err != nil {
+		logrus.WithError(err).Debug("sig verify failed")
+	}
+	if len(pub) == 0 || pub[0] != 4 {
+		err :=  errors.New("invalid public key")
+		logrus.WithError(err).Debug("verify sig failed")
+	}
+	var addr types.Address
+	copy(addr.Bytes[:], crypto.Keccak256(pub[1:])[12:])
+	t.SetSender(addr)
+	return true
+}
+
+func Sha256(bytes []byte) []byte {
+	hasher := sha256.New()
+	hasher.Write(bytes)
+	return hasher.Sum(nil)
+}
+
+
+// SignatureValues returns signature values. This signature
+// needs to be in the [R || S || V] format where V is 0 or 1.
+func (t *TxFormatVerifier) SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
+		if len(sig) != 65 {
+			return  r, s, v, fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
+		}
+		r = new(big.Int).SetBytes(sig[:32])
+		s = new(big.Int).SetBytes(sig[32:64])
+		v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+		return r, s, v, nil
 }
 
 func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
+	if crypto.Signer.CanRecoverPubFromSig() {
+		//address was set by recovering signature ,
+		return true
+	}
 	switch t.(type) {
 	case *types.Tx:
 		return t.(*types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes

@@ -154,9 +154,20 @@ func (z *TermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 		}
 	}
-	err = z.Issuer.DecodeMsg(dc)
-	if err != nil {
-		return
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		err = z.Issuer.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -206,9 +217,16 @@ func (z *TermChange) EncodeMsg(en *msgp.Writer) (err error) {
 			}
 		}
 	}
-	err = z.Issuer.EncodeMsg(en)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Issuer.EncodeMsg(en)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -244,9 +262,13 @@ func (z *TermChange) MarshalMsg(b []byte) (o []byte, err error) {
 			}
 		}
 	}
-	o, err = z.Issuer.MarshalMsg(o)
-	if err != nil {
-		return
+	if z.Issuer == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Issuer.MarshalMsg(o)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
@@ -314,9 +336,20 @@ func (z *TermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 		}
 	}
-	bts, err = z.Issuer.UnmarshalMsg(bts)
-	if err != nil {
-		return
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Issuer = nil
+	} else {
+		if z.Issuer == nil {
+			z.Issuer = new(Address)
+		}
+		bts, err = z.Issuer.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
 	}
 	o = bts
 	return
@@ -332,7 +365,11 @@ func (z *TermChange) Msgsize() (s int) {
 			s += 1 + z.SigSet[za0001].PublicKey.Msgsize() + z.SigSet[za0001].Signature.Msgsize()
 		}
 	}
-	s += z.Issuer.Msgsize()
+	if z.Issuer == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Issuer.Msgsize()
+	}
 	return
 }
 

@@ -274,7 +274,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 // candidate requirements.
 func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 
-	if as.term.HasCampaign(cp.Issuer) {
+	if as.term.HasCampaign(cp.Sender()) {
 		log.WithField("id ", as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
 		return fmt.Errorf("duplicate ")
 	}
@@ -411,7 +411,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 	tc := &types.TermChange{
 		TxBase: base,
 		TermID: as.term.ID() + 1,
-		Issuer: as.MyAccount.Address,
+		Issuer: &as.MyAccount.Address,
 		PkBls:  pkbls,
 		SigSet: sigset,
 	}
@@ -428,8 +428,9 @@ func (as *AnnSensus) addGenesisCampaigns() {
 	as.addedGenesisCampaign = true
 	as.mu.RUnlock()
 	for _, pk := range as.genesisAccounts {
+		addr := pk.Address()
 		cp := types.Campaign{
-			Issuer: pk.Address(),
+			Issuer: &addr,
 		}
 		as.term.AddCandidate(&cp, pk)
 	}
@@ -756,9 +757,10 @@ func (as *AnnSensus) loop() {
 				log.Warn("not valid genesis pk")
 				continue
 			}
+			addr :=as.genesisAccounts[id].Address()
 			cp := &types.Campaign{
 				DkgPublicKey: pkMsg.DkgPublicKey,
-				Issuer:       as.genesisAccounts[id].Address(),
+				Issuer:  &addr     ,
 				TxBase: types.TxBase{
 					PublicKey: pkMsg.PublicKey,
 					Weight:    uint64(id*10 + 10),

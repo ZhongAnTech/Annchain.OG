@@ -880,11 +880,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == types.TxBaseAction {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
-
+	
 	if tx.GetType() ==types.TxBaseAction {
 		//ipo
 		actionTx := tx.(*types.ActionTx)
@@ -899,6 +895,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 			actionData := actionTx.ActionData.(*types.PublicOffering)
 			dag.statedb.SetTokenBalance(actionTx.Sender(),actionData.TokenId,math.NewBigInt(0))
 		}
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
+		return nil, receipt, nil
 	}
 
 	// transfer balance

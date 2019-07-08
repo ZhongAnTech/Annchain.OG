@@ -55,7 +55,6 @@ type AutoClient struct {
 	quit       chan bool
 
 	pause    bool
-	testMode bool
 
 	wg sync.WaitGroup
 
@@ -63,6 +62,7 @@ type AutoClient struct {
 	txLock      sync.RWMutex
 	archiveLock sync.RWMutex
 	NewRawTx    chan types.Txi
+	TpsTest     bool
 }
 
 func (c *AutoClient) Init() {
@@ -157,7 +157,7 @@ func (c *AutoClient) loop() {
 			c.fireManualTx(txType, true)
 		case <-timerTx.C:
 			logrus.Debug("timer sample tx")
-			if c.testMode {
+			if c.TpsTest {
 				timerTx.Stop()
 				continue
 			}
@@ -180,7 +180,7 @@ func (c *AutoClient) loop() {
 			c.doSampleArchive(false)
 			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:
-			if c.testMode {
+			if c.TpsTest {
 				timerTx.Stop()
 				continue
 			}
@@ -234,28 +234,39 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
-func (c *AutoClient) fireTxs(me types.Address) bool {
+func (c *AutoClient) fireTxs() bool {
 	m := viper.GetInt("auto_client.tx.interval_us")
 	if m == 0 {
 		m = 1000
 	}
-	logrus.WithField("my addrss ", me).WithField("micro", m).Info("sent interval ")
-	for i := uint64(2); i < 1000000000; i++ {
+	logrus.WithField("micro", m).Info("sent interval ")
+	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
 			return true
 		}
-		time.Sleep(time.Duration(m) * time.Microsecond)
-		txi := c.Delegate.Dag.GetOldTx(me, i)
-		if txi == nil {
+		txis,seq:= c.Delegate.Dag.GetTestTxisByNumber(i)
+		if seq!=nil {
+			if c.pause {
+				return true
+			}
+			c.Delegate.Announce(seq)
+		}else {
 			return true
 		}
-		c.Delegate.Announce(txi)
+			for _,tx:= range txis {
+				time.Sleep(time.Duration(m) * time.Microsecond)
+				if c.pause {
+					return true
+				}
+				c.Delegate.Announce(tx)
+			}
+
+
 	}
 	return true
 }
 
-var firstTx bool
 
 func (c *AutoClient) doSampleTx(force bool) bool {
 	if !force && !c.AutoTxEnabled {
@@ -263,19 +274,12 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 
 	me := c.MyAccount
-	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 1)
-		if txi != nil {
-			logrus.WithField("txi", txi).Info("get start test tps")
+	if c.TpsTest {
+			logrus.Info("get start test tps")
 			c.AutoTxEnabled = false
 			c.AutoSequencerEnabled = false
-			c.testMode = true
-			firstTx = true
-			c.Delegate.Announce(txi)
-			return c.fireTxs(me.Address)
-		}
-		logrus.WithField("txi", txi).Info("normal mode")
-		firstTx = true
+			return c.fireTxs()
+		//logrus.WithField("txi", txi).Info("tps test  mode, txi not found, enter normal mode")
 	}
 	c.txLock.RLock()
 	defer c.txLock.RUnlock()
@@ -365,13 +369,6 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 		return false
 	}
 	me := c.MyAccount
-	if !firstTx {
-		txi := c.Delegate.Dag.GetOldTx(me.Address, 1)
-		if txi != nil {
-			c.AutoSequencerEnabled = false
-			return true
-		}
-	}
 
 	seq, err := c.Delegate.GenerateSequencer(SeqRequest{
 		Issuer:     me.Address,

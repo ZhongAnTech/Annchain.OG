@@ -53,8 +53,8 @@ type Dag struct {
 	conf DagConfig
 
 	db ogdb.Database
-	// oldDb is for test only, should be deleted later.
-	oldDb    ogdb.Database
+	// testDb is for test only, should be deleted later.
+	testDb    ogdb.Database
 	accessor *Accessor
 	statedb  *state.StateDB
 
@@ -70,12 +70,12 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, oldDb ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, testDb ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 
 	dag.conf = conf
 	dag.db = db
-	dag.oldDb = oldDb
+	dag.testDb = testDb
 	dag.accessor = NewAccessor(db)
 	// TODO
 	// default maxsize of txcached is 10000,
@@ -297,20 +297,8 @@ func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	if dag.oldDb == nil {
-		log.Info("testdb is nil")
-		return nil
-	}
-	data, _ := dag.oldDb.Get(txHashFlowKey(addr, nonce))
-	if len(data) == 0 {
-		log.Info("hash not found")
-		return nil
-	}
-	hash := types.BytesToHash(data)
-	data, _ = dag.oldDb.Get(transactionKey(hash))
+func(dag *Dag)getTestTx(hash types.Hash)types.Txi {
+	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
 		log.Info("tx not found")
 		return nil
@@ -365,7 +353,22 @@ func (dag *Dag) GetOldTx(addr types.Address, nonce uint64) types.Txi {
 	}
 	log.Warn("unknown prefix")
 	return nil
+}
 
+func (dag *Dag) GetTestTxByAddressAndNonce(addr types.Address, nonce uint64) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	if dag.testDb == nil {
+		log.Info("testdb is nil")
+		return nil
+	}
+	data, _ := dag.testDb.Get(txHashFlowKey(addr, nonce))
+	if len(data) == 0 {
+		log.Info("hash not found")
+		return nil
+	}
+	hash := types.BytesToHash(data)
+	return dag.getTestTx(hash)
 }
 
 func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
@@ -431,6 +434,49 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	}
 	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
 	return dag.getTxis(*hashs)
+}
+
+func (dag *Dag)GetTestTxisByNumber(height uint64) (txis types.Txis,sequencer *types.Sequencer) {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+	
+	data, _ := dag.testDb.Get(seqHeightKey(height))
+	if len(data) == 0 {
+		log.Warnf("tx hashs with seq height %d not found", height)
+		return nil,nil
+	}
+	//if len(data) == 0 {
+	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
+	//}
+	var seq types.Sequencer
+	_, err := seq.UnmarshalMsg(data)
+	if err != nil {
+		log.WithError(err).Warn("unmarsahl error")
+		return nil, nil
+	}
+	data, _ = dag.testDb.Get(txIndexKey(height))
+	if len(data) == 0 {
+		 log.Warnf("tx hashs with seq height %d not found", height)
+		 return nil,sequencer
+	}
+	var hashs types.Hashes
+	_, err = hashs.UnmarshalMsg(data)
+	if err != nil {
+		log.WithError(err).Warn("unmarshal err")
+		return nil, &seq
+	}
+	if hashs == nil || len(hashs) ==0{
+		return nil,&seq
+	}
+	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
+	var txs types.Txis
+	for _, hash := range hashs {
+		tx := dag.getTestTx(hash)
+		if tx != nil {
+			txs = append(txs, tx)
+		}
+	}
+	return txs, &seq
 }
 
 func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {

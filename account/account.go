@@ -2,8 +2,8 @@ package account
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 	"go.uber.org/atomic"
 	"sync"
 )
@@ -12,7 +12,7 @@ type SampleAccount struct {
 	Id          int
 	PrivateKey  crypto.PrivateKey
 	PublicKey   crypto.PublicKey
-	Address     types.Address
+	Address     common.Address
 	nonce       atomic.Uint64
 	nonceInited bool
 	mu          sync.RWMutex

@@ -14,6 +14,8 @@
 package og
 
 import (
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync"
 	"time"
@@ -36,9 +38,9 @@ const (
 )
 
 type Syncer interface {
-	Enqueue(hash *types.Hash, childHash types.Hash, sendBloomFilter bool)
+	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
 	ClearQueue()
-	IsCachedHash(hash types.Hash) bool
+	IsCachedHash(hash common.Hash) bool
 }
 
 type Announcer interface {
@@ -46,25 +48,25 @@ type Announcer interface {
 }
 
 type ITxPool interface {
-	Get(hash types.Hash) types.Txi
+	Get(hash common.Hash) types.Txi
 	AddRemoteTx(tx types.Txi, noFeedBack bool) error
 	RegisterOnNewTxReceived(c chan types.Txi, name string, allTx bool)
-	GetLatestNonce(addr types.Address) (uint64, error)
-	IsLocalHash(hash types.Hash) bool
+	GetLatestNonce(addr common.Address) (uint64, error)
+	IsLocalHash(hash common.Hash) bool
 	GetMaxWeight() uint64
 }
 
 type IDag interface {
-	GetTx(hash types.Hash) types.Txi
-	GetTxByNonce(addr types.Address, nonce uint64) types.Txi
-	GetSequencerByHeight(id uint64) *types.Sequencer
+	GetTx(hash common.Hash) types.Txi
+	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
+	GetSequencerByHeight(id uint64) *tx_types.Sequencer
 	GetTxisByNumber(id uint64) types.Txis
-	LatestSequencer() *types.Sequencer
-	GetSequencer(hash types.Hash, id uint64) *types.Sequencer
-	Genesis() *types.Sequencer
+	LatestSequencer() *tx_types.Sequencer
+	GetSequencer(hash common.Hash, id uint64) *tx_types.Sequencer
+	Genesis() *tx_types.Sequencer
 	GetHeight() uint64
-	GetSequencerByHash(hash types.Hash) *types.Sequencer
-	GetBalance(addr types.Address, tokenID int32) *math.BigInt
+	GetSequencerByHash(hash common.Hash) *tx_types.Sequencer
+	GetBalance(addr common.Address, tokenID int32) *math.BigInt
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
@@ -76,7 +78,7 @@ type TxBuffer struct {
 	Syncer                 Syncer
 	Announcer              Announcer
 	txPool                 ITxPool
-	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[types.Hash]map[types.Hash]types.Tx
+	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx
 	affmu                  sync.RWMutex
 	SelfGeneratedNewTxChan chan types.Txi
 	ReceivedNewTxChan      chan types.Txi
@@ -84,7 +86,7 @@ type TxBuffer struct {
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	txAddedToPoolChan      chan types.Txi
-	OnProposalSeqCh        chan types.Hash
+	OnProposalSeqCh        chan common.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
 }
@@ -100,13 +102,13 @@ func newChilrdenCache(size int, expire time.Duration) *childrenCache {
 	}
 }
 
-func (c *childrenCache) AddChildren(parent types.Hash, child types.Hash) {
+func (c *childrenCache) AddChildren(parent common.Hash, child common.Hash) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	value, err := c.cache.GetIFPresent(parent)
-	var children types.Hashes
+	var children common.Hashes
 	if err == nil {
-		children = value.(types.Hashes)
+		children = value.(common.Hashes)
 	}
 	for _, h := range children {
 		if h == child {
@@ -119,22 +121,22 @@ func (c *childrenCache) AddChildren(parent types.Hash, child types.Hash) {
 	}
 }
 
-func (c *childrenCache) GetChildren(parent types.Hash) (children types.Hashes) {
+func (c *childrenCache) GetChildren(parent common.Hash) (children common.Hashes) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	value, err := c.cache.GetIFPresent(parent)
 	if err == nil {
-		children = value.(types.Hashes)
+		children = value.(common.Hashes)
 	}
 	return
 }
 
-func (c *childrenCache) GetAndRemove(parent types.Hash) (children types.Hashes) {
+func (c *childrenCache) GetAndRemove(parent common.Hash) (children common.Hashes) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	value, err := c.cache.GetIFPresent(parent)
 	if err == nil {
-		children = value.(types.Hashes)
+		children = value.(common.Hashes)
 	} else {
 		return
 	}
@@ -142,7 +144,7 @@ func (c *childrenCache) GetAndRemove(parent types.Hash) (children types.Hashes) 
 	return
 }
 
-func (c *childrenCache) Remove(parent types.Hash) bool {
+func (c *childrenCache) Remove(parent common.Hash) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.cache.Remove(parent)
@@ -305,7 +307,7 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 	}
 }
 
-func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
+func (b *TxBuffer) GetFromBuffer(hash common.Hash) types.Txi {
 	a, err := b.knownCache.GetIFPresent(hash)
 	if err == nil {
 		return a.(types.Txi)
@@ -313,7 +315,7 @@ func (b *TxBuffer) GetFromBuffer(hash types.Hash) types.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromAllKnownSource(hash types.Hash) types.Txi {
+func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
 	if tx := b.GetFromBuffer(hash); tx != nil {
 		return tx
 	} else if tx := b.GetFromProviders(hash); tx != nil {
@@ -322,7 +324,7 @@ func (b *TxBuffer) GetFromAllKnownSource(hash types.Hash) types.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromProviders(hash types.Hash) types.Txi {
+func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 	if poolTx := b.txPool.Get(hash); poolTx != nil {
 		return poolTx
 	} else if dagTx := b.dag.GetTx(hash); dagTx != nil {
@@ -334,7 +336,7 @@ func (b *TxBuffer) GetFromProviders(hash types.Hash) types.Txi {
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 
-func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
+func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{
 			"parent": parentHash,
@@ -352,9 +354,9 @@ func (b *TxBuffer) updateDependencyMap(parentHash types.Hash, self types.Txi) {
 
 	if err != nil {
 		// key not present, need to build an inner map
-		v = map[types.Hash]types.Txi{self.GetBase().Hash: self}
+		v = map[common.Hash]types.Txi{self.GetBase().Hash: self}
 	}
-	v.(map[types.Hash]types.Txi)[self.GetBase().Hash] = self
+	v.(map[common.Hash]types.Txi)[self.GetBase().Hash] = self
 	b.dependencyCache.Set(parentHash, v)
 
 	b.affmu.Unlock()
@@ -369,7 +371,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	if tx.GetType() == types.TxBaseTypeSequencer {
-		seq := tx.(*types.Sequencer)
+		seq := tx.(*tx_types.Sequencer)
 		if seq.Proposing {
 			function := func() {
 				b.OnProposalSeqCh <- seq.GetTxHash()
@@ -403,7 +405,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		return
 	}
 	// try resolve the remainings
-	for _, v := range vs.(map[types.Hash]types.Txi) {
+	for _, v := range vs.(map[common.Hash]types.Txi) {
 		if v.GetTxHash() == tx.GetTxHash() {
 			// self already resolved
 			continue
@@ -421,7 +423,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 }
 
 //// isLocalHash tests if the tx has already been in the txpool or dag.
-//func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
+//func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
 //	//just get once
 //	var poolTx, dagTx types.Txi
 //	ok := false
@@ -439,26 +441,26 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 //	return ok
 //}
 
-func (b *TxBuffer) isLocalHash(hash types.Hash) bool {
+func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
 	return b.txPool.IsLocalHash(hash)
 }
 
 // isKnownHash tests if the tx is ever heard of, either in local or in buffer.
 // if tx is known, do not broadcast anymore
-func (b *TxBuffer) IsKnownHash(hash types.Hash) bool {
+func (b *TxBuffer) IsKnownHash(hash common.Hash) bool {
 	return b.isBufferedHash(hash) || b.txPool.IsLocalHash(hash)
 }
 
 // isCachedHash tests if the tx is in the buffer
-func (b *TxBuffer) isBufferedHash(hash types.Hash) bool {
+func (b *TxBuffer) isBufferedHash(hash common.Hash) bool {
 	return b.GetFromBuffer(hash) != nil
 }
 
-func (b *TxBuffer) IsCachedHash(hash types.Hash) bool {
+func (b *TxBuffer) IsCachedHash(hash common.Hash) bool {
 	return b.Syncer.IsCachedHash(hash)
 }
 
-func (b *TxBuffer) IsReceivedHash(hash types.Hash) bool {
+func (b *TxBuffer) IsReceivedHash(hash common.Hash) bool {
 	return b.IsCachedHash(hash) || b.IsKnownHash(hash)
 }
 
@@ -510,7 +512,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
-				b.Syncer.Enqueue(nil, types.Hash{}, false)
+				b.Syncer.Enqueue(nil, common.Hash{}, false)
 			}
 		}
 	}
@@ -520,7 +522,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 
 		// add myself to the dependency map
 		if tx.GetType() == types.TxBaseTypeSequencer {
-			seq := tx.(*types.Sequencer)
+			seq := tx.(*tx_types.Sequencer)
 			//proposing seq
 			if seq.Proposing {
 				return allFetched
@@ -531,16 +533,16 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	return allFetched
 }
 
-func (b *TxBuffer) getMissingHashes(txi types.Txi) types.Hashes {
+func (b *TxBuffer) getMissingHashes(txi types.Txi) common.Hashes {
 	start := time.Now()
 	logrus.WithField("tx", txi).Trace("missing hashes start")
 	defer func() {
 		logrus.WithField("tx", txi).WithField("time", time.Now().Sub(start)).Trace("missing hashes done")
 	}()
-	l := types.Hashes{}
-	lDedup := map[types.Hash]int{}
-	s := map[types.Hash]struct{}{}
-	visited := map[types.Hash]struct{}{}
+	l := common.Hashes{}
+	lDedup := map[common.Hash]int{}
+	s := map[common.Hash]struct{}{}
+	visited := map[common.Hash]struct{}{}
 	// find out who is missing
 	for _, v := range txi.Parents() {
 		l = append(l, v)
@@ -550,7 +552,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) types.Hashes {
 	for len(l) != 0 {
 		hash := l[0]
 		l = l[1:]
-		// hash := l.Remove(l.Front()).(types.Hash)
+		// hash := l.Remove(l.Front()).(common.Hash)
 		if _, ok := visited[hash]; ok {
 			// already there, continue
 			continue
@@ -573,7 +575,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) types.Hashes {
 			s[hash] = struct{}{}
 		}
 	}
-	var missingHashes types.Hashes
+	var missingHashes common.Hashes
 	for k := range s {
 		missingHashes = append(missingHashes, k)
 	}
@@ -595,7 +597,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			if err == nil {
 				//if len(children) != 0 {
 				b.dependencyCache.Remove(tx.GetTxHash())
-				for _, v := range vs.(map[types.Hash]types.Txi) {
+				for _, v := range vs.(map[common.Hash]types.Txi) {
 					if v.GetTxHash() == tx.GetTxHash() {
 						//self already resolved
 						continue

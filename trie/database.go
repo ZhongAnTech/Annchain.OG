@@ -23,8 +23,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,12 +61,12 @@ type DatabaseReader interface {
 type Database struct {
 	diskdb ogdb.Database // Persistent storage for matured trie nodes
 
-	nodes  map[types.Hash]*cachedNode // Data and references relationships of a node
-	oldest types.Hash                 // Oldest tracked node, flush-list head
-	newest types.Hash                 // Newest tracked node, flush-list tail
+	nodes  map[common.Hash]*cachedNode // Data and references relationships of a node
+	oldest common.Hash                 // Oldest tracked node, flush-list head
+	newest common.Hash                 // Newest tracked node, flush-list tail
 
-	preimages map[types.Hash][]byte // Preimages of nodes from the secure trie
-	seckeybuf [secureKeyLength]byte // Ephemeral buffer for calculating preimage keys
+	preimages map[common.Hash][]byte // Preimages of nodes from the secure trie
+	seckeybuf [secureKeyLength]byte  // Ephemeral buffer for calculating preimage keys
 
 	gctime  time.Duration      // Time spent on garbage collection since last commit
 	gcnodes uint64             // Nodes garbage collected since last commit
@@ -87,12 +85,12 @@ type Database struct {
 // cachedNode is all the information we know about a single cached node in the
 // memory database write layer.
 type cachedNode struct {
-	blob     []byte             // Cached data block of the trie node
-	parents  int                // Number of live nodes referencing this one
-	children map[types.Hash]int // Children referenced by this nodes
+	blob     []byte              // Cached data block of the trie node
+	parents  int                 // Number of live nodes referencing this one
+	children map[common.Hash]int // Children referenced by this nodes
 
-	flushPrev types.Hash // Previous node in the flush-list
-	flushNext types.Hash // Next node in the flush-list
+	flushPrev common.Hash // Previous node in the flush-list
+	flushNext common.Hash // Next node in the flush-list
 }
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
@@ -100,10 +98,10 @@ type cachedNode struct {
 func NewDatabase(diskdb ogdb.Database) *Database {
 	return &Database{
 		diskdb: diskdb,
-		nodes: map[types.Hash]*cachedNode{
-			{}: {children: make(map[types.Hash]int)},
+		nodes: map[common.Hash]*cachedNode{
+			{}: {children: make(map[common.Hash]int)},
 		},
-		preimages: make(map[types.Hash][]byte),
+		preimages: make(map[common.Hash][]byte),
 	}
 }
 
@@ -114,7 +112,7 @@ func (db *Database) DiskDB() DatabaseReader {
 
 // Insert writes a new trie node to the memory database if it's yet unknown. The
 // method will make a copy of the slice.
-func (db *Database) Insert(hash types.Hash, blob []byte) {
+func (db *Database) Insert(hash common.Hash, blob []byte) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -122,40 +120,40 @@ func (db *Database) Insert(hash types.Hash, blob []byte) {
 }
 
 // insert is the private locked version of Insert.
-func (db *Database) insert(hash types.Hash, blob []byte) {
+func (db *Database) insert(hash common.Hash, blob []byte) {
 	// If the node's already cached, skip
 	if _, ok := db.nodes[hash]; ok {
 		return
 	}
 	db.nodes[hash] = &cachedNode{
 		blob:      common.CopyBytes(blob),
-		children:  make(map[types.Hash]int),
+		children:  make(map[common.Hash]int),
 		flushPrev: db.newest,
 	}
 	// Update the flush-list endpoints
-	if db.oldest == (types.Hash{}) {
+	if db.oldest == (common.Hash{}) {
 		db.oldest, db.newest = hash, hash
 	} else {
 		db.nodes[db.newest].flushNext, db.newest = hash, hash
 	}
-	db.nodesSize += common.StorageSize(types.HashLength + len(blob))
+	db.nodesSize += common.StorageSize(common.HashLength + len(blob))
 }
 
 // insertPreimage writes a new trie node pre-image to the memory database if it's
 // yet unknown. The method will make a copy of the slice.
 //
 // Note, this method assumes that the database's lock is held!
-func (db *Database) insertPreimage(hash types.Hash, preimage []byte) {
+func (db *Database) insertPreimage(hash common.Hash, preimage []byte) {
 	if _, ok := db.preimages[hash]; ok {
 		return
 	}
 	db.preimages[hash] = common.CopyBytes(preimage)
-	db.preimagesSize += common.StorageSize(types.HashLength + len(preimage))
+	db.preimagesSize += common.StorageSize(common.HashLength + len(preimage))
 }
 
 // Node retrieves a cached trie node from memory. If it cannot be found cached,
 // the method queries the persistent database for the content.
-func (db *Database) Node(hash types.Hash) ([]byte, error) {
+func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	node := db.nodes[hash]
@@ -170,7 +168,7 @@ func (db *Database) Node(hash types.Hash) ([]byte, error) {
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
 // found cached, the method queries the persistent database for the content.
-func (db *Database) preimage(hash types.Hash) ([]byte, error) {
+func (db *Database) preimage(hash common.Hash) ([]byte, error) {
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	preimage := db.preimages[hash]
@@ -195,13 +193,13 @@ func (db *Database) secureKey(key []byte) []byte {
 // Nodes retrieves the hashes of all the nodes cached within the memory database.
 // This method is extremely expensive and should only be used to validate internal
 // states in test code.
-func (db *Database) Nodes() types.Hashes {
+func (db *Database) Nodes() common.Hashes {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	var hashes = make(types.Hashes, 0, len(db.nodes))
+	var hashes = make(common.Hashes, 0, len(db.nodes))
 	for hash := range db.nodes {
-		if hash != (types.Hash{}) { // Special case for "root" references/nodes
+		if hash != (common.Hash{}) { // Special case for "root" references/nodes
 			hashes = append(hashes, hash)
 		}
 	}
@@ -209,7 +207,7 @@ func (db *Database) Nodes() types.Hashes {
 }
 
 // Reference adds a new reference from a parent node to a child node.
-func (db *Database) Reference(child types.Hash, parent types.Hash) {
+func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -217,14 +215,14 @@ func (db *Database) Reference(child types.Hash, parent types.Hash) {
 }
 
 // reference is the private locked version of Reference.
-func (db *Database) reference(child types.Hash, parent types.Hash) {
+func (db *Database) reference(child common.Hash, parent common.Hash) {
 	// If the node does not exist, it's a node pulled from disk, skip
 	node, ok := db.nodes[child]
 	if !ok {
 		return
 	}
 	// If the reference already exists, only duplicate for roots
-	if _, ok = db.nodes[parent].children[child]; ok && parent != (types.Hash{}) {
+	if _, ok = db.nodes[parent].children[child]; ok && parent != (common.Hash{}) {
 		return
 	}
 	node.parents++
@@ -232,7 +230,7 @@ func (db *Database) reference(child types.Hash, parent types.Hash) {
 }
 
 // Dereference removes an existing reference from a parent node to a child node.
-func (db *Database) Dereference(child types.Hash, parent types.Hash) {
+func (db *Database) Dereference(child common.Hash, parent common.Hash) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -252,7 +250,7 @@ func (db *Database) Dereference(child types.Hash, parent types.Hash) {
 }
 
 // dereference is the private locked version of Dereference.
-func (db *Database) dereference(child types.Hash, parent types.Hash) {
+func (db *Database) dereference(child common.Hash, parent common.Hash) {
 	// Dereference the parent-child
 	node := db.nodes[parent]
 
@@ -280,7 +278,7 @@ func (db *Database) dereference(child types.Hash, parent types.Hash) {
 			db.dereference(hash, child)
 		}
 		delete(db.nodes, child)
-		db.nodesSize -= common.StorageSize(types.HashLength + len(node.blob))
+		db.nodesSize -= common.StorageSize(common.HashLength + len(node.blob))
 	}
 }
 
@@ -299,7 +297,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted. For every useful node, we track 2 extra hashes as the flushlist.
-	size := db.nodesSize + common.StorageSize((len(db.nodes)-1)*2*types.HashLength)
+	size := db.nodesSize + common.StorageSize((len(db.nodes)-1)*2*common.HashLength)
 
 	// If the preimage cache got large enough, push to disk. If it's still small
 	// leave for later to deduplicate writes.
@@ -322,7 +320,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	}
 	// Keep committing nodes from the flush-list until we're below allowance
 	oldest := db.oldest
-	for size > limit && oldest != (types.Hash{}) {
+	for size > limit && oldest != (common.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.nodes[oldest]
 		if err := batch.Put(oldest.ToBytes(), node.blob); err != nil {
@@ -342,7 +340,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		// is the total size, including both the useful cached data (hash -> blob), as
 		// well as the flushlist metadata (2*hash). When flushing items from the cache,
 		// we need to reduce both.
-		size -= common.StorageSize(3*types.HashLength + len(node.blob))
+		size -= common.StorageSize(3*common.HashLength + len(node.blob))
 		oldest = node.flushNext
 	}
 	// Flush out any remainder data from the last batch
@@ -358,7 +356,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	defer db.lock.Unlock()
 
 	if flushPreimages {
-		db.preimages = make(map[types.Hash][]byte)
+		db.preimages = make(map[common.Hash][]byte)
 		db.preimagesSize = 0
 	}
 	for db.oldest != oldest {
@@ -366,10 +364,10 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		delete(db.nodes, db.oldest)
 		db.oldest = node.flushNext
 
-		db.nodesSize -= common.StorageSize(types.HashLength + len(node.blob))
+		db.nodesSize -= common.StorageSize(common.HashLength + len(node.blob))
 	}
-	if db.oldest != (types.Hash{}) {
-		db.nodes[db.oldest].flushPrev = types.Hash{}
+	if db.oldest != (common.Hash{}) {
+		db.nodes[db.oldest].flushPrev = common.Hash{}
 	}
 	db.flushnodes += uint64(nodes - len(db.nodes))
 	db.flushsize += storage - db.nodesSize
@@ -389,7 +387,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 // to disk, forcefully tearing down all references in both directions.
 //
 // As a side effect, all pre-images accumulated up to this point are also written.
-func (db *Database) Commit(node types.Hash, report bool) error {
+func (db *Database) Commit(node common.Hash, report bool) error {
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -432,7 +430,7 @@ func (db *Database) Commit(node types.Hash, report bool) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	db.preimages = make(map[types.Hash][]byte)
+	db.preimages = make(map[common.Hash][]byte)
 	db.preimagesSize = 0
 
 	db.uncache(node)
@@ -456,7 +454,7 @@ func (db *Database) Commit(node types.Hash, report bool) error {
 }
 
 // commit is the private locked version of Commit.
-func (db *Database) commit(hash types.Hash, batch ogdb.Batch) error {
+func (db *Database) commit(hash common.Hash, batch ogdb.Batch) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -484,7 +482,7 @@ func (db *Database) commit(hash types.Hash, batch ogdb.Batch) error {
 // persisted trie is removed from the cache. The reason behind the two-phase
 // commit is to ensure consistent data availability while moving from memory
 // to disk.
-func (db *Database) uncache(hash types.Hash) {
+func (db *Database) uncache(hash common.Hash) {
 	// If the node does not exist, we're done on this path
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -502,7 +500,7 @@ func (db *Database) uncache(hash types.Hash) {
 		db.uncache(child)
 	}
 	delete(db.nodes, hash)
-	db.nodesSize -= common.StorageSize(types.HashLength + len(node.blob))
+	db.nodesSize -= common.StorageSize(common.HashLength + len(node.blob))
 }
 
 // Size returns the current storage size of the memory cache in front of the
@@ -514,6 +512,6 @@ func (db *Database) Size() (common.StorageSize, common.StorageSize) {
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted. For every useful node, we track 2 extra hashes as the flushlist.
-	var flushlistSize = common.StorageSize((len(db.nodes) - 1) * 2 * types.HashLength)
+	var flushlistSize = common.StorageSize((len(db.nodes) - 1) * 2 * common.HashLength)
 	return db.nodesSize + flushlistSize, db.preimagesSize
 }

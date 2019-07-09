@@ -13,9 +13,9 @@ import (
 )
 
 func TestCall(t *testing.T) {
-	from := types.HexToAddress("0xABCDEF88")
-	from2 := types.HexToAddress("0xABCDEF87")
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	from := common.HexToAddress("0xABCDEF88")
+	from2 := common.HexToAddress("0xABCDEF87")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
@@ -28,7 +28,7 @@ func TestCall(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:       types.HexToAddress("0xABCDEF88"),
+			From:       common.HexToAddress("0xABCDEF88"),
 			Value:      math.NewBigInt(0),
 			GasPrice:   math.NewBigInt(1),
 			GasLimit:   DefaultGasLimit,
@@ -37,7 +37,7 @@ func TestCall(t *testing.T) {
 		},
 	}
 
-	addrs := make(map[string]types.Address)
+	addrs := make(map[string]common.Address)
 
 	for _, filename := range []string{"Callee.bin", "Caller.bin"} {
 		_, contractAddr, leftGas, err := DeployContract(filename, from, coinBase, rt, nil)

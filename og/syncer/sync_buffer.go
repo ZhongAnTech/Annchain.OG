@@ -16,6 +16,8 @@ package syncer
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/tx_types"
 	"sync"
 	"sync/atomic"
 
@@ -26,9 +28,9 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs        map[types.Hash]types.Txi
-	TxsList    types.Hashes
-	Seq        *types.Sequencer
+	Txs        map[common.Hash]types.Txi
+	TxsList    common.Hashes
+	Seq        *tx_types.Sequencer
 	mu         sync.RWMutex
 	txPool     og.ITxPool
 	dag        og.IDag
@@ -58,7 +60,7 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:       make(map[types.Hash]types.Txi),
+		Txs:       make(map[common.Hash]types.Txi),
 		txPool:    config.TxPool,
 		dag:       config.Dag,
 		Verifiers: config.Verifiers,
@@ -76,7 +78,7 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs types.Txis, seq *types.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs types.Txis, seq *tx_types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Seq = seq
@@ -98,7 +100,7 @@ func (s *SyncBuffer) addTxs(txs types.Txis, seq *types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txis) error {
+func (s *SyncBuffer) AddTxs(seq *tx_types.Sequencer, txs types.Txis) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
@@ -133,17 +135,17 @@ func (s *SyncBuffer) Count() int {
 	return len(s.Txs)
 }
 
-func (s *SyncBuffer) Get(hash types.Hash) types.Txi {
+func (s *SyncBuffer) Get(hash common.Hash) types.Txi {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.Txs[hash]
 
 }
 
-func (s *SyncBuffer) GetAllKeys() types.Hashes {
+func (s *SyncBuffer) GetAllKeys() common.Hashes {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var keys types.Hashes
+	var keys common.Hashes
 	for k := range s.Txs {
 		keys = append(keys, k)
 	}
@@ -227,13 +229,13 @@ out:
 func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 
 	allKeys := s.GetAllKeys()
-	keysMap := make(map[types.Hash]int)
+	keysMap := make(map[common.Hash]int)
 	for _, k := range allKeys {
 		keysMap[k] = 1
 	}
 
-	inSeekingPool := map[types.Hash]int{}
-	seekingPool := types.Hashes{}
+	inSeekingPool := map[common.Hash]int{}
+	seekingPool := common.Hashes{}
 	for _, parentHash := range seq.Parents() {
 		seekingPool = append(seekingPool, parentHash)
 		// seekingPool.PushBack(parentHash)
@@ -241,7 +243,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 	for len(seekingPool) > 0 {
 		elderHash := seekingPool[0]
 		seekingPool = seekingPool[1:]
-		// elderHash := seekingPool.Remove(seekingPool.Front()).(types.Hash)
+		// elderHash := seekingPool.Remove(seekingPool.Front()).(common.Hash)
 
 		elder := s.Get(elderHash)
 		if elder == nil {

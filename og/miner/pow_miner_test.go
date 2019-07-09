@@ -14,6 +14,7 @@
 package miner
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -25,12 +26,12 @@ func TestPoW(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	t.Parallel()
 
-	tx := types.SampleTx()
+	tx := tx_types.SampleTx()
 	miner := PoWMiner{}
 
 	responseChan := make(chan uint64)
 	start := time.Now()
-	go miner.StartMine(tx, types.HexToHash("0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
+	go miner.StartMine(tx, common.HexToHash("0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
 
 	c, ok := <-responseChan
 	logrus.Infof("time: %d ms", time.Since(start).Nanoseconds()/1000000)

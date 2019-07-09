@@ -19,9 +19,9 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
@@ -35,9 +35,9 @@ var ErrAlreadyProcessed = errors.New("already processed")
 
 // request represents a scheduled or already in-flight state retrieval request.
 type request struct {
-	hash types.Hash // Hash of the node data content to retrieve
-	data []byte     // Data content of the node, cached until all subtrees complete
-	raw  bool       // Whether this is a raw entry (code) or a trie node
+	hash common.Hash // Hash of the node data content to retrieve
+	data []byte      // Data content of the node, cached until all subtrees complete
+	raw  bool        // Whether this is a raw entry (code) or a trie node
 
 	parents []*request // Parent state nodes referencing this entry (notify all upon completion)
 	depth   int        // Depth level within the trie the node is located to prioritise DFS
@@ -49,22 +49,22 @@ type request struct {
 // SyncResult is a simple list to return missing nodes along with their request
 // hashes.
 type SyncResult struct {
-	Hash types.Hash // Hash of the originally unknown trie node
-	Data []byte     // Data content of the retrieved node
+	Hash common.Hash // Hash of the originally unknown trie node
+	Data []byte      // Data content of the retrieved node
 }
 
 // syncMemBatch is an in-memory buffer of successfully downloaded but not yet
 // persisted data items.
 type syncMemBatch struct {
-	batch map[types.Hash][]byte // In-memory membatch of recently completed items
-	order types.Hashes          // Order of completion to prevent out-of-order data loss
+	batch map[common.Hash][]byte // In-memory membatch of recently completed items
+	order common.Hashes          // Order of completion to prevent out-of-order data loss
 }
 
 // newSyncMemBatch allocates a new memory-buffer for not-yet persisted trie nodes.
 func newSyncMemBatch() *syncMemBatch {
 	return &syncMemBatch{
-		batch: make(map[types.Hash][]byte),
-		order: make(types.Hashes, 0, 256),
+		batch: make(map[common.Hash][]byte),
+		order: make(common.Hashes, 0, 256),
 	}
 }
 
@@ -72,26 +72,26 @@ func newSyncMemBatch() *syncMemBatch {
 // unknown trie hashes to retrieve, accepts node data associated with said hashes
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
-	database DatabaseReader          // Persistent database to check for existing entries
-	membatch *syncMemBatch           // Memory buffer to avoid frequest database writes
-	requests map[types.Hash]*request // Pending requests pertaining to a key hash
-	queue    *prque.Prque            // Priority queue with the pending requests
+	database DatabaseReader           // Persistent database to check for existing entries
+	membatch *syncMemBatch            // Memory buffer to avoid frequest database writes
+	requests map[common.Hash]*request // Pending requests pertaining to a key hash
+	queue    *prque.Prque             // Priority queue with the pending requests
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root types.Hash, database DatabaseReader, callback LeafCallback) *Sync {
+func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *Sync {
 	ts := &Sync{
 		database: database,
 		membatch: newSyncMemBatch(),
-		requests: make(map[types.Hash]*request),
+		requests: make(map[common.Hash]*request),
 		queue:    prque.New(),
 	}
-	ts.AddSubTrie(root, 0, types.Hash{}, callback)
+	ts.AddSubTrie(root, 0, common.Hash{}, callback)
 	return ts
 }
 
 // AddSubTrie registers a new trie to the sync code, rooted at the designated parent.
-func (s *Sync) AddSubTrie(root types.Hash, depth int, parent types.Hash, callback LeafCallback) {
+func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callback LeafCallback) {
 	// Short circuit if the trie is empty or already known
 	if root == emptyRoot {
 		return
@@ -111,7 +111,7 @@ func (s *Sync) AddSubTrie(root types.Hash, depth int, parent types.Hash, callbac
 		callback: callback,
 	}
 	// If this sub-trie has a designated parent, link them together
-	if parent != (types.Hash{}) {
+	if parent != (common.Hash{}) {
 		ancestor := s.requests[parent]
 		if ancestor == nil {
 			panic(fmt.Sprintf("sub-trie ancestor not found: %x", parent))
@@ -126,7 +126,7 @@ func (s *Sync) AddSubTrie(root types.Hash, depth int, parent types.Hash, callbac
 // interpreted as a trie node, but rather accepted and stored into the database
 // as is. This method's goal is to support misc state metadata retrievals (e.g.
 // contract code).
-func (s *Sync) AddRawEntry(hash types.Hash, depth int, parent types.Hash) {
+func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 	// Short circuit if the entry is empty or already known
 	if hash == emptyState {
 		return
@@ -144,7 +144,7 @@ func (s *Sync) AddRawEntry(hash types.Hash, depth int, parent types.Hash) {
 		depth: depth,
 	}
 	// If this sub-trie has a designated parent, link them together
-	if parent != (types.Hash{}) {
+	if parent != (common.Hash{}) {
 		ancestor := s.requests[parent]
 		if ancestor == nil {
 			panic(fmt.Sprintf("raw-entry ancestor not found: %x", parent))
@@ -156,10 +156,10 @@ func (s *Sync) AddRawEntry(hash types.Hash, depth int, parent types.Hash) {
 }
 
 // Missing retrieves the known missing nodes from the trie for retrieval.
-func (s *Sync) Missing(max int) types.Hashes {
-	requests := types.Hashes{}
+func (s *Sync) Missing(max int) common.Hashes {
+	requests := common.Hashes{}
 	for !s.queue.Empty() && (max == 0 || len(requests) < max) {
-		requests = append(requests, s.queue.PopItem().(types.Hash))
+		requests = append(requests, s.queue.PopItem().(common.Hash))
 	}
 	return requests
 }
@@ -288,7 +288,7 @@ func (s *Sync) children(req *request, object Node) ([]*request, error) {
 		// If the child references another node, resolve or schedule
 		if node, ok := (child.node).(HashNode); ok {
 			// Try to resolve the node from the local database
-			hash := types.BytesToHash(node)
+			hash := common.BytesToHash(node)
 			if _, ok := s.membatch.batch[hash]; ok {
 				continue
 			}

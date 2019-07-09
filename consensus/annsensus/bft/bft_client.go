@@ -17,12 +17,13 @@ package bft
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/types/p2p_message"
 	"strings"
 	"time"
 
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,10 +36,10 @@ type BFTPartner interface {
 	GetOutgoingMessageChannel() chan Message
 	GetWaiterTimeoutChannel() chan *WaiterRequest
 	GetId() int
-	Proposer(hr types.HeightRound) int
+	Proposer(hr p2p_message.HeightRound) int
 	WaiterLoop()
 	GetPeers() (peer []BFTPartner)
-	SetProposalFunc(proposalFunc func() (types.Proposal, uint64))
+	SetProposalFunc(proposalFunc func() (p2p_message.Proposal, uint64))
 	Stop()
 	RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error)
 	Reset(nbParticipants int, id int)
@@ -56,19 +57,19 @@ type PartnerBase struct {
 // HeightRoundState is the structure for each Height/Round
 // Always keep this state that is higher than current in Partner.States map in order not to miss future things
 type HeightRoundState struct {
-	MessageProposal                       *types.MessageProposal // the proposal received in this round
-	LockedValue                           types.Proposal
+	MessageProposal                       *p2p_message.MessageProposal // the proposal received in this round
+	LockedValue                           p2p_message.Proposal
 	LockedRound                           int
-	ValidValue                            types.Proposal
+	ValidValue                            p2p_message.Proposal
 	ValidRound                            int
-	Decision                              interface{}               // final decision of mine in this round
-	PreVotes                              []*types.MessagePreVote   // other peers' PreVotes
-	PreCommits                            []*types.MessagePreCommit // other peers' PreCommits
-	Sources                               map[uint16]bool           // for line 55, who send future round so that I may advance?
-	StepTypeEqualPreVoteTriggered         bool                      // for line 34, FIRST time trigger
-	StepTypeEqualOrLargerPreVoteTriggered bool                      // for line 36, FIRST time trigger
-	StepTypeEqualPreCommitTriggered       bool                      // for line 47, FIRST time trigger
-	Step                                  StepType                  // current step in this round
+	Decision                              interface{}                     // final decision of mine in this round
+	PreVotes                              []*p2p_message.MessagePreVote   // other peers' PreVotes
+	PreCommits                            []*p2p_message.MessagePreCommit // other peers' PreCommits
+	Sources                               map[uint16]bool                 // for line 55, who send future round so that I may advance?
+	StepTypeEqualPreVoteTriggered         bool                            // for line 34, FIRST time trigger
+	StepTypeEqualOrLargerPreVoteTriggered bool                            // for line 36, FIRST time trigger
+	StepTypeEqualPreCommitTriggered       bool                            // for line 47, FIRST time trigger
+	Step                                  StepType                        // current step in this round
 	StartAt                               time.Time
 }
 
@@ -76,8 +77,8 @@ func NewHeightRoundState(total int) *HeightRoundState {
 	return &HeightRoundState{
 		LockedRound: -1,
 		ValidRound:  -1,
-		PreVotes:    make([]*types.MessagePreVote, total),
-		PreCommits:  make([]*types.MessagePreCommit, total),
+		PreVotes:    make([]*p2p_message.MessagePreVote, total),
+		PreCommits:  make([]*p2p_message.MessagePreCommit, total),
 		Sources:     make(map[uint16]bool),
 		StartAt:     time.Now(),
 	}
@@ -87,7 +88,7 @@ func (p *DefaultPartner) GetPeers() []BFTPartner {
 	return p.Peers
 }
 
-type HeightRoundStateMap map[types.HeightRound]*HeightRoundState
+type HeightRoundStateMap map[p2p_message.HeightRound]*HeightRoundState
 
 func (h *HeightRoundStateMap) MarshalJSON() ([]byte, error) {
 	if h == nil {
@@ -105,7 +106,7 @@ func (h *HeightRoundStateMap) MarshalJSON() ([]byte, error) {
 type DefaultPartner struct {
 	PartnerBase
 
-	CurrentHR types.HeightRound
+	CurrentHR p2p_message.HeightRound
 
 	blockTime time.Duration
 	N         int // total number of participants
@@ -115,7 +116,7 @@ type DefaultPartner struct {
 
 	quit         chan bool
 	waiter       *Waiter
-	proposalFunc func() (types.Proposal, uint64)
+	proposalFunc func() (p2p_message.Proposal, uint64)
 	States       HeightRoundStateMap // for line 55, round number -> count
 	decisionFunc func(state *HeightRoundState) error
 	// consider updating resetStatus() if you want to add things here
@@ -149,7 +150,7 @@ func (p *DefaultPartner) GetOutgoingMessageChannel() chan Message {
 	return p.OutgoingMessageChannel
 }
 
-func (P *DefaultPartner) SetProposalFunc(proposalFunc func() (types.Proposal, uint64)) {
+func (P *DefaultPartner) SetProposalFunc(proposalFunc func() (p2p_message.Proposal, uint64)) {
 	P.proposalFunc = proposalFunc
 }
 
@@ -186,7 +187,7 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *Default
 			WaiterTimeoutChannel:   make(chan *WaiterRequest, 10),
 		},
 		quit:   make(chan bool),
-		States: make(map[types.HeightRound]*HeightRoundState),
+		States: make(map[p2p_message.HeightRound]*HeightRoundState),
 	}
 	// p.N == 3 *p.F+1
 	if p.N%3 == 1 {
@@ -218,14 +219,14 @@ func (p *DefaultPartner) RestartNewAre() {
 	s := p.States[p.CurrentHR]
 	if s != nil {
 		if s.Decision != nil {
-			//p.States = make(map[types.HeightRound]*HeightRoundState)
+			//p.States = make(map[p2p_message.HeightRound]*HeightRoundState)
 			p.StartNewEra(p.CurrentHR.Height+1, 0)
 			return
 		}
 		p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round+1)
 		return
 	}
-	//p.States = make(map[types.HeightRound]*HeightRoundState)
+	//p.States = make(map[p2p_message.HeightRound]*HeightRoundState)
 	p.StartNewEra(p.CurrentHR.Height, p.CurrentHR.Round)
 	return
 
@@ -266,7 +267,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 
 	if p.Id == p.Proposer(p.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Trace("I'm the proposer")
-		var proposal types.Proposal
+		var proposal p2p_message.Proposal
 		var validHeight uint64
 		if currState.ValidValue != nil {
 			logrus.WithField("hr ", hr).Trace("will got valid value")
@@ -370,7 +371,7 @@ func (p *DefaultPartner) receive() {
 }
 
 // Proposer returns current round proposer. Now simply round robin
-func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
+func (p *DefaultPartner) Proposer(hr p2p_message.HeightRound) int {
 	//return 3
 	//return (hr.Height + hr.Round) % p.N
 	//maybe overflow
@@ -378,7 +379,7 @@ func (p *DefaultPartner) Proposer(hr types.HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultPartner) GetValue(newBlock bool) (types.Proposal, uint64) {
+func (p *DefaultPartner) GetValue(newBlock bool) (p2p_message.Proposal, uint64) {
 	//don't sleep for the same height new round
 	blockTime := time.After(p.blockTime)
 	if newBlock {
@@ -396,21 +397,21 @@ func (p *DefaultPartner) GetValue(newBlock bool) (types.Proposal, uint64) {
 		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
-	s := types.StringProposal(v)
+	s := p2p_message.StringProposal(v)
 	logrus.WithField("proposal ", s).Debug("proposal gen ")
 	return &s, p.CurrentHR.Height
 }
 
 // Broadcast announce messages to all partners
-func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRound, content types.Proposal, validRound int) {
+func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr p2p_message.HeightRound, content p2p_message.Proposal, validRound int) {
 	m := Message{
 		Type: messageType,
 	}
-	basicMessage := types.BasicMessage{
+	basicMessage := p2p_message.BasicMessage{
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
-	var idv *types.Hash
+	var idv *common.Hash
 	if content != nil {
 		cIdv := content.GetId()
 		if cIdv != nil {
@@ -420,18 +421,18 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr types.HeightRo
 	}
 	switch messageType {
 	case og.MessageTypeProposal:
-		m.Payload = &types.MessageProposal{
+		m.Payload = &p2p_message.MessageProposal{
 			BasicMessage: basicMessage,
 			Value:        content,
 			ValidRound:   validRound,
 		}
 	case og.MessageTypePreVote:
-		m.Payload = &types.MessagePreVote{
+		m.Payload = &p2p_message.MessagePreVote{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
 	case og.MessageTypePreCommit:
-		m.Payload = &types.MessagePreCommit{
+		m.Payload = &p2p_message.MessagePreCommit{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
@@ -467,7 +468,7 @@ func (p *DefaultPartner) OnTimeoutPreCommit(context WaiterContext) {
 }
 
 // WaitStepTimeout waits for a centain time if stepType stays too long
-func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, hr types.HeightRound, timeoutCallback func(WaiterContext)) {
+func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, hr p2p_message.HeightRound, timeoutCallback func(WaiterContext)) {
 	p.waiter.UpdateRequest(&WaiterRequest{
 		WaitTime:        timeout,
 		TimeoutCallback: timeoutCallback,
@@ -482,11 +483,11 @@ func (p *DefaultPartner) handleMessage(message Message) {
 	switch message.Type {
 	case og.MessageTypeProposal:
 		switch message.Payload.(type) {
-		case *types.MessageProposal:
+		case *p2p_message.MessageProposal:
 		default:
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
-		msg := message.Payload.(*types.MessageProposal)
+		msg := message.Payload.(*p2p_message.MessageProposal)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -502,11 +503,11 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		p.handleProposal(msg)
 	case og.MessageTypePreVote:
 		switch message.Payload.(type) {
-		case *types.MessagePreVote:
+		case *p2p_message.MessagePreVote:
 		default:
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
-		msg := message.Payload.(*types.MessagePreVote)
+		msg := message.Payload.(*p2p_message.MessagePreVote)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -522,11 +523,11 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		p.handlePreVote(msg)
 	case og.MessageTypePreCommit:
 		switch message.Payload.(type) {
-		case *types.MessagePreCommit:
+		case *p2p_message.MessagePreCommit:
 		default:
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
-		msg := message.Payload.(*types.MessagePreCommit)
+		msg := message.Payload.(*p2p_message.MessagePreCommit)
 		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -543,7 +544,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 		p.handlePreCommit(msg)
 	}
 }
-func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
+func (p *DefaultPartner) handleProposal(proposal *p2p_message.MessageProposal) {
 	state, ok := p.States[proposal.HeightRound]
 	if !ok {
 		panic("must exists")
@@ -578,7 +579,7 @@ func (p *DefaultPartner) handleProposal(proposal *types.MessageProposal) {
 		}
 	}
 }
-func (p *DefaultPartner) handlePreVote(vote *types.MessagePreVote) {
+func (p *DefaultPartner) handlePreVote(vote *p2p_message.MessagePreVote) {
 	// rule line 34
 	count := p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, nil)
 	state, ok := p.States[vote.HeightRound]
@@ -617,7 +618,7 @@ func (p *DefaultPartner) handlePreVote(vote *types.MessagePreVote) {
 
 }
 
-func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
+func (p *DefaultPartner) handlePreCommit(commit *p2p_message.MessagePreCommit) {
 	// rule line 47
 	count := p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
 	state := p.States[commit.HeightRound]
@@ -653,15 +654,15 @@ func (p *DefaultPartner) handlePreCommit(commit *types.MessagePreCommit) {
 
 // valid checks proposal validation
 // TODO: inject so that valid will call a function to validate the proposal
-func (p *DefaultPartner) valid(proposal types.Proposal) bool {
+func (p *DefaultPartner) valid(proposal p2p_message.Proposal) bool {
 	return true
 }
 
 // count votes and commits from others.
-func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *types.Hash) int {
+func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
 	counter := 0
 
-	state, ok := p.States[types.HeightRound{
+	state, ok := p.States[p2p_message.HeightRound{
 		Height: height,
 		Round:  validRound,
 	}]
@@ -729,7 +730,7 @@ func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validR
 
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
-func (p *DefaultPartner) checkRound(message *types.BasicMessage) (needHandle bool) {
+func (p *DefaultPartner) checkRound(message *p2p_message.BasicMessage) (needHandle bool) {
 	// rule line 55
 	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
 	if message.HeightRound.IsAfter(p.CurrentHR) {
@@ -766,7 +767,7 @@ func (p *DefaultPartner) changeStep(stepType StepType) {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultPartner) dumpVotes(votes []*types.MessagePreVote) string {
+func (p *DefaultPartner) dumpVotes(votes []*p2p_message.MessagePreVote) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -783,7 +784,7 @@ func (p *DefaultPartner) dumpVotes(votes []*types.MessagePreVote) string {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultPartner) dumpCommits(votes []*types.MessagePreCommit) string {
+func (p *DefaultPartner) dumpCommits(votes []*p2p_message.MessagePreCommit) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -814,7 +815,7 @@ func (p *DefaultPartner) dumpAll(reason string) {
 }
 
 func (p *DefaultPartner) WipeOldStates() {
-	var toRemove []types.HeightRound
+	var toRemove []p2p_message.HeightRound
 	for hr := range p.States {
 		if hr.IsBefore(p.CurrentHR) {
 			toRemove = append(toRemove, hr)
@@ -825,7 +826,7 @@ func (p *DefaultPartner) WipeOldStates() {
 	}
 }
 
-func (p *DefaultPartner) initHeightRound(hr types.HeightRound) (*HeightRoundState, int) {
+func (p *DefaultPartner) initHeightRound(hr p2p_message.HeightRound) (*HeightRoundState, int) {
 	// first check if there is previous message received
 	if _, ok := p.States[hr]; !ok {
 		// init one
@@ -835,7 +836,7 @@ func (p *DefaultPartner) initHeightRound(hr types.HeightRound) (*HeightRoundStat
 }
 
 type BftStatus struct {
-	HeightRound types.HeightRound
+	HeightRound p2p_message.HeightRound
 	States      HeightRoundStateMap
 	Now         time.Time
 }

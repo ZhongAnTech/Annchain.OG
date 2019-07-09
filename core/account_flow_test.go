@@ -31,7 +31,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*types.Tx)
+	return tx.(*tx_types.Tx)
 }
 
 func TestTxList(t *testing.T) {

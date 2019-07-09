@@ -18,11 +18,11 @@ package vm
 
 import (
 	"bytes"
+	common2 "github.com/annchain/OG/common"
 	"math/big"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 
 	"github.com/annchain/OG/vm/ovm"
@@ -567,8 +567,8 @@ func TestCreate2Addreses(t *testing.T) {
 		},
 	} {
 
-		origin := types.BytesToAddress(common.FromHex(tt.origin))
-		salt := types.BytesToHash(common.FromHex(tt.salt))
+		origin := common2.BytesToAddress(common.FromHex(tt.origin))
+		salt := common2.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
 		codeHash := crypto.Keccak256(code)
 		address := crypto.CreateAddress2(origin, salt.Bytes, codeHash)
@@ -581,7 +581,7 @@ func TestCreate2Addreses(t *testing.T) {
 			gas, _ := gasCreate2(params.GasTable{}, nil, nil, stack, nil, 0)
 			fmt.Printf("Example %d\n* address `0x%x`\n* salt `0x%x`\n* init_code `0x%x`\n* gas (assuming no mem expansion): `%v`\n* result: `%s`\n\n", i,origin, salt, code, gas, address.String())
 		*/
-		expected := types.BytesToAddress(common.FromHex(tt.expected))
+		expected := common2.BytesToAddress(common.FromHex(tt.expected))
 		if !bytes.Equal(expected.ToBytes(), address.ToBytes()) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
 		}

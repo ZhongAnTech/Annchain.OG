@@ -15,7 +15,9 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/types/tx_types"
 	"sync/atomic"
 	"time"
 
@@ -34,9 +36,8 @@ type TipGenerator interface {
 }
 
 type GetStateRoot interface {
-	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error)
+	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
 }
-
 
 type FIFOTipGenerator struct {
 	maxCacheSize int
@@ -144,8 +145,8 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 type TxCreator struct {
 	Miner              miner.Miner
 	TipGenerator       TipGenerator // usually tx_pool
-	MaxTxHash          types.Hash   // The difficultiy of TxHash
-	MaxMinedHash       types.Hash   // The difficultiy of MinedHash
+	MaxTxHash          common.Hash  // The difficultiy of TxHash
+	MaxMinedHash       common.Hash  // The difficultiy of MinedHash
 	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
 	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 	GraphVerifier      Verifier     // To verify the graph structure
@@ -153,7 +154,7 @@ type TxCreator struct {
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
-	GetStateRoot     GetStateRoot
+	GetStateRoot       GetStateRoot
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -164,8 +165,8 @@ func (t *TxCreator) Stop() {
 	t.quit = true
 }
 
-func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64) types.Txi {
-	tx := types.Tx{
+func (m *TxCreator) NewUnsignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64) types.Txi {
+	tx := tx_types.Tx{
 		Value: value,
 		To:    to,
 		From:  &from,
@@ -178,7 +179,7 @@ func (m *TxCreator) NewUnsignedTx(from types.Address, to types.Address, value *m
 }
 
 func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
-	tx = &types.Archive{
+	tx = &tx_types.Archive{
 		TxBase: types.TxBase{
 			AccountNonce: m.GetArchiveNonce(),
 			Type:         types.TxBaseTypeArchive,
@@ -196,9 +197,9 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	return tx, nil
 }
 
-func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *math.BigInt, data []byte,
+func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value *math.BigInt, data []byte,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
-	tx = &types.Tx{
+	tx = &tx_types.Tx{
 		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
@@ -223,9 +224,9 @@ func (m *TxCreator) NewTxWithSeal(from types.Address, to types.Address, value *m
 	return tx, nil
 }
 
-func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, value *math.BigInt, action byte,
+func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, value *math.BigInt, action byte,
 	nonce uint64, enableSpo bool, TokenId int32, tokenName string, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
-	tx = &types.ActionTx{
+	tx = &tx_types.ActionTx{
 		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
@@ -233,7 +234,7 @@ func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, va
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
 		},
-		ActionData: &types.PublicOffering{
+		ActionData: &tx_types.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSpo,
 			TokenId:   TokenId,
@@ -253,7 +254,7 @@ func (m *TxCreator) NewActionTxWithSeal(from types.Address, to types.Address, va
 	return tx, nil
 }
 
-func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *math.BigInt, accountNonce uint64,
+func (m *TxCreator) NewSignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64,
 	privateKey crypto.PrivateKey) types.Txi {
 	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
@@ -266,8 +267,8 @@ func (m *TxCreator) NewSignedTx(from types.Address, to types.Address, value *mat
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, accountNonce uint64) *types.Sequencer {
-	tx := types.Sequencer{
+func (m *TxCreator) NewUnsignedSequencer(issuer common.Address, Height uint64, accountNonce uint64) *tx_types.Sequencer {
+	tx := tx_types.Sequencer{
 		Issuer: &issuer,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
@@ -278,7 +279,7 @@ func (m *TxCreator) NewUnsignedSequencer(issuer types.Address, Height uint64, ac
 	return &tx
 }
 
-func (m *TxCreator) NewSignedSequencer(issuer types.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
+func (m *TxCreator) NewSignedSequencer(issuer common.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
 	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
@@ -304,7 +305,7 @@ func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 }
 
 func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
-	parentHashes := make(types.Hashes, len(parents))
+	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
 	}
@@ -382,7 +383,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				connectionTries++
 				txs := m.TipGenerator.GetRandomTips(2)
 
-				//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
+				//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
 				if len(txs) == 0 {
 					// Impossible. At least genesis is there
 					logrus.Warn("at least genesis is there. Wait for loading")
@@ -411,11 +412,11 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 	return true
 }
 
-func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *types.Sequencer) {
+func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer) {
 	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
-	pubkey:= crypto.Signer.PubKey(*privateKey)
+	pubkey := crypto.Signer.PubKey(*privateKey)
 	tx.GetBase().PublicKey = pubkey.Bytes
 	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
@@ -437,14 +438,14 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
-		//logrus.Debugf("Got %d Tips: %s", len(txs), types.HashesToString(tx.Parents()))
+		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
 		if len(parents) == 0 {
 			// Impossible. At least genesis is there
 			logrus.Warn("at least genesis is there. Wait for loading")
 			time.Sleep(time.Second * 1)
 			continue
 		}
-		parentHashes := make(types.Hashes, len(parents))
+		parentHashes := make(common.Hashes, len(parents))
 		for i, parent := range parents {
 			parentHashes[i] = parent.GetTxHash()
 		}

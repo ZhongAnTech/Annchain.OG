@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/types/tx_types"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
@@ -25,7 +26,7 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *types.Sequencer, func()) {
+func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *tx_types.Sequencer, func()) {
 	txpoolconfig := core.TxPoolConfig{
 		QueueSize:     100,
 		TipsSize:      100,
@@ -64,7 +65,7 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*types.Tx)
+	return tx.(*tx_types.Tx)
 }
 
 func newTestPoolBadTx() *types.Tx {
@@ -75,7 +76,7 @@ func newTestPoolBadTx() *types.Tx {
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(100), 0, pk)
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*types.Tx)
+	return tx.(*tx_types.Tx)
 }
 
 func TestPoolInit(t *testing.T) {
@@ -118,7 +119,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx0's parent is genesis
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	err = pool.AddLocalTx(tx0, true)
 	if err != nil {
 		t.Fatalf("add tx0 to pool failed: %v", err)
@@ -136,7 +137,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx1's parent is tx0
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = types.Hashes{tx0.GetTxHash()}
+	tx1.ParentsHash = common.Hashes{tx0.GetTxHash()}
 	err = pool.AddLocalTx(tx1, true)
 	if err != nil {
 		t.Fatalf("add tx1 to pool failed: %v", err)
@@ -156,7 +157,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx2's parent is genesis which is not in pool yet
 	tx2 := newTestPoolTx(2)
-	tx2.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	err = pool.AddLocalTx(tx2, true)
 	if err != nil {
 		t.Fatalf("add tx2 to pool failed: %v", err)
@@ -171,7 +172,7 @@ func TestPoolCommit(t *testing.T) {
 	// TODO bad tx unit test
 	// // test bad tx
 	// badtx := newTestPoolBadTx()
-	// badtx.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	// badtx.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	// err = pool.AddLocalTx(badtx)
 	// if err != nil {
 	// 	t.Fatalf("add badtx to pool failed: %v", err)
@@ -195,7 +196,7 @@ func TestPoolConfirm(t *testing.T) {
 
 	// sequencer's parents are normal txs
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	pool.AddLocalTx(tx0, true)
 
 	// TODO
@@ -203,11 +204,11 @@ func TestPoolConfirm(t *testing.T) {
 	// pool.AddLocalTx(tx3)
 
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	pool.AddLocalTx(tx1, true)
 
 	seq := newTestSeq(1)
-	seq.ParentsHash = types.Hashes{
+	seq.ParentsHash = common.Hashes{
 		tx0.GetTxHash(),
 		tx1.GetTxHash(),
 	}
@@ -243,15 +244,15 @@ func TestPoolConfirm(t *testing.T) {
 	// TODO bad tx unit test
 	// // sequencer's parent is bad tx
 	// badtx := newTestPoolBadTx()
-	// badtx.ParentsHash = types.Hashes{seq.GetTxHash()}
+	// badtx.ParentsHash = common.Hashes{seq.GetTxHash()}
 	// pool.AddLocalTx(badtx)
 
-	// addr := types.HexToAddress(testAddr2)
+	// addr := common.HexToAddress(testAddr2)
 	// dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
 
 	// badtxseq := newTestSeq(2)
-	// badtxseq.ParentsHash = types.Hashes{badtx.GetTxHash()}
-	// badtxseq.ContractHashOrder = types.Hashes{badtx.GetTxHash()}
+	// badtxseq.ParentsHash = common.Hashes{badtx.GetTxHash()}
+	// badtxseq.ContractHashOrder = common.Hashes{badtx.GetTxHash()}
 	// err = pool.AddLocalTx(badtxseq)
 	// if err != nil {
 	// 	t.Fatalf("add badtxseq to pool failed: %v", err)

@@ -22,8 +22,8 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"math"
 	"sort"
@@ -66,7 +66,7 @@ type peerConnection struct {
 	receiptStarted time.Time // Time instance when the last receipt fetch was started
 	stateStarted   time.Time // Time instance when the last node data fetch was started
 
-	lacking map[types.Hash]struct{} // Set of hashes not to request (didn't have previously)
+	lacking map[common.Hash]struct{} // Set of hashes not to request (didn't have previously)
 
 	peer Peer
 
@@ -76,22 +76,22 @@ type peerConnection struct {
 
 // Peer encapsulates the methods required to synchronise with a remote full peer.
 type Peer interface {
-	Head() (types.Hash, uint64)
-	RequestHeadersByHash(origin types.Hash, amount int, skip int, reverse bool) error
+	Head() (common.Hash, uint64)
+	RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool) error
 	RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool) error
-	//RequestSequencerByHash(types.Hash, int, int, bool) error
+	//RequestSequencerByHash(common.Hash, int, int, bool) error
 	//RequestSequencerByNumber(uint64, int, int, bool) error
-	//RequestTxs(types.Hashes) error
-	RequestBodies(seqHashs types.Hashes) error
-	//RequestTxsByHash(hash types.Hash, id uint64) error
-	RequestNodeData(types.Hashes) error
+	//RequestTxs(common.Hashes) error
+	RequestBodies(seqHashs common.Hashes) error
+	//RequestTxsByHash(hash common.Hash, id uint64) error
+	RequestNodeData(common.Hashes) error
 }
 
 // newPeerConnection creates a new downloader peer.
 func newPeerConnection(id string, version int, peer Peer) *peerConnection {
 	return &peerConnection{
 		id:      id,
-		lacking: make(map[types.Hash]struct{}),
+		lacking: make(map[common.Hash]struct{}),
 
 		peer: peer,
 
@@ -112,7 +112,7 @@ func (p *peerConnection) Reset() {
 	p.receiptThroughput = 0
 	p.stateThroughput = 0
 
-	p.lacking = make(map[types.Hash]struct{})
+	p.lacking = make(map[common.Hash]struct{})
 }
 
 // FetchHeaders sends a header retrieval request to the remote peer.
@@ -146,7 +146,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 	p.blockStarted = time.Now()
 
 	// Convert the header set to a retrievable slice
-	hashes := make(types.Hashes, 0, len(request.Headers))
+	hashes := make(common.Hashes, 0, len(request.Headers))
 	for _, header := range request.Headers {
 		hashes = append(hashes, header.GetHash())
 	}
@@ -157,7 +157,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 }
 
 // FetchNodeData sends a node state data retrieval request to the remote peer.
-func (p *peerConnection) FetchNodeData(hashes types.Hashes) error {
+func (p *peerConnection) FetchNodeData(hashes common.Hashes) error {
 	// Sanity check the protocol version
 	if p.version < Og02 {
 		panic(fmt.Sprintf("node data fetch [og/02+] requested on eth/%d", p.version))
@@ -269,7 +269,7 @@ func (p *peerConnection) NodeDataCapacity(targetRTT time.Duration) int {
 // MarkLacking appends a new entity to the set of items (blocks, receipts, states)
 // that a peer is known not to have (i.e. have been requested before). If the
 // set reaches its maximum allowed capacity, items are randomly dropped off.
-func (p *peerConnection) MarkLacking(hash types.Hash) {
+func (p *peerConnection) MarkLacking(hash common.Hash) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -284,7 +284,7 @@ func (p *peerConnection) MarkLacking(hash types.Hash) {
 
 // Lacks retrieves whether the hash of a blockchain item is on the peers lacking
 // list (i.e. whether we know that the peer does not have it).
-func (p *peerConnection) Lacks(hash types.Hash) bool {
+func (p *peerConnection) Lacks(hash common.Hash) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 

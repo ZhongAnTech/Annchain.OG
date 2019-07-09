@@ -15,9 +15,10 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
@@ -57,7 +58,7 @@ func TestSh256(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		var m p2PMessage
 		m.messageType = MessageTypeBodiesResponse
-		h := types.RandomHash()
+		h := common.RandomHash()
 		m.data = append(m.data, h.Bytes[:]...)
 		msg = append(msg, m)
 	}
@@ -71,7 +72,7 @@ func TestSh256(t *testing.T) {
 func TestP2PMessage_Encrypt(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		logrus.SetLevel(logrus.TraceLevel)
-		msg := types.MessageConsensusDkgDeal{
+		msg := p2p_message.MessageConsensusDkgDeal{
 			Data: []byte("this is a test of og message"),
 			Id:   12,
 		}
@@ -103,7 +104,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(mm.data))
-		dkgMsg := mm.message.(*types.MessageConsensusDkgDeal)
+		dkgMsg := mm.message.(*p2p_message.MessageConsensusDkgDeal)
 		logrus.Debug(dkgMsg.Id, " ", string(dkgMsg.Data))
 		logrus.Debug(mm.message)
 	}

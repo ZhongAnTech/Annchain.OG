@@ -19,10 +19,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
@@ -46,14 +49,14 @@ type Dkg struct {
 	formerPartner     *DKGPartner //used for case : partner reset , but bft is still generating sequencer
 	gossipStartCh     chan struct{}
 	gossipStopCh      chan struct{}
-	gossipReqCh       chan *types.MessageConsensusDkgDeal
-	gossipRespCh      chan *types.MessageConsensusDkgDealResponse
-	gossipSigSetspCh  chan *types.MessageConsensusDkgSigSets
-	dealCache         map[types.Address]*types.MessageConsensusDkgDeal
-	dealResPonseCache map[types.Address][]*types.MessageConsensusDkgDealResponse
-	dealSigSetsCache  map[types.Address]*types.MessageConsensusDkgSigSets
-	respWaitingCache  map[uint32][]*types.MessageConsensusDkgDealResponse
-	blsSigSets        map[types.Address]*types.SigSet
+	gossipReqCh       chan *p2p_message.MessageConsensusDkgDeal
+	gossipRespCh      chan *p2p_message.MessageConsensusDkgDealResponse
+	gossipSigSetspCh  chan *p2p_message.MessageConsensusDkgSigSets
+	dealCache         map[common.Address]*p2p_message.MessageConsensusDkgDeal
+	dealResPonseCache map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse
+	dealSigSetsCache  map[common.Address]*p2p_message.MessageConsensusDkgSigSets
+	respWaitingCache  map[uint32][]*p2p_message.MessageConsensusDkgDealResponse
+	blsSigSets        map[common.Address]*tx_types.SigSet
 	dag               og.IDag
 	ready             bool
 	isValidPartner    bool
@@ -64,12 +67,12 @@ type Dkg struct {
 	Hub       announcer.MessageSender
 
 	OndkgPulicKeyChan chan kyber.Point
-	OngenesisPkChan   chan *types.MessageConsensusDkgGenesisPublicKey
+	OngenesisPkChan   chan *p2p_message.MessageConsensusDkgGenesisPublicKey
 	ConfigFilePath    string
 }
 
 func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
-	dkgPulicKeyChan chan kyber.Point, genesisPkChan chan *types.MessageConsensusDkgGenesisPublicKey, t *term.Term) *Dkg {
+	dkgPulicKeyChan chan kyber.Point, genesisPkChan chan *p2p_message.MessageConsensusDkgGenesisPublicKey, t *term.Term) *Dkg {
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
@@ -78,9 +81,9 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	d := &Dkg{}
 	d.partner = p
 	d.gossipStartCh = make(chan struct{})
-	d.gossipReqCh = make(chan *types.MessageConsensusDkgDeal, 100)
-	d.gossipRespCh = make(chan *types.MessageConsensusDkgDealResponse, 100)
-	d.gossipSigSetspCh = make(chan *types.MessageConsensusDkgSigSets, 100)
+	d.gossipReqCh = make(chan *p2p_message.MessageConsensusDkgDeal, 100)
+	d.gossipRespCh = make(chan *p2p_message.MessageConsensusDkgDealResponse, 100)
+	d.gossipSigSetspCh = make(chan *p2p_message.MessageConsensusDkgSigSets, 100)
 	d.gossipStopCh = make(chan struct{})
 	d.dkgOn = dkgOn
 	if d.dkgOn {
@@ -88,11 +91,11 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 		d.myPublicKey = d.partner.CandidatePublicKey[0]
 		d.partner.MyPartSec = d.partner.CandidatePartSec[0]
 	}
-	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
-	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
-	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
-	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
-	d.blsSigSets = make(map[types.Address]*types.SigSet)
+	d.dealCache = make(map[common.Address]*p2p_message.MessageConsensusDkgDeal)
+	d.dealResPonseCache = make(map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse)
+	d.respWaitingCache = make(map[uint32][]*p2p_message.MessageConsensusDkgDealResponse)
+	d.dealSigSetsCache = make(map[common.Address]*p2p_message.MessageConsensusDkgSigSets)
+	d.blsSigSets = make(map[common.Address]*tx_types.SigSet)
 	d.ready = false
 	d.isValidPartner = false
 	d.dag = dag
@@ -115,7 +118,7 @@ func (d *Dkg) GetParticipantNumber() int {
 	return d.partner.NbParticipants
 }
 
-func (d *Dkg) Reset(myCampaign *types.Campaign) {
+func (d *Dkg) Reset(myCampaign *tx_types.Campaign) {
 	if myCampaign == nil {
 		log.Warn("nil campagin,  i am not a dkg partner")
 	}
@@ -160,11 +163,11 @@ func (d *Dkg) Reset(myCampaign *types.Campaign) {
 	d.partner = p
 	d.TermId++
 
-	//d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
-	//d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
-	//d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
-	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
-	d.blsSigSets = make(map[types.Address]*types.SigSet)
+	//d.dealCache = make(map[common.Address]*p2p_message.MessageConsensusDkgDeal)
+	//d.dealResPonseCache = make(map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse)
+	//d.respWaitingCache = make(map[uint32][]*p2p_message.MessageConsensusDkgDealResponse)
+	d.dealSigSetsCache = make(map[common.Address]*p2p_message.MessageConsensusDkgSigSets)
+	d.blsSigSets = make(map[common.Address]*tx_types.SigSet)
 	d.ready = false
 	log.WithField("len candidate pk ", len(d.partner.CandidatePublicKey)).WithField("termId ", d.TermId).Debug("dkg will reset")
 }
@@ -222,7 +225,7 @@ func (d *Dkg) StartGossip() {
 }
 
 type VrfSelection struct {
-	addr   types.Address
+	addr   common.Address
 	Vrf    hexutil.Bytes
 	XORVRF hexutil.Bytes
 	Id     int //for test
@@ -249,7 +252,7 @@ func XOR(a, b []byte) []byte {
 	return c
 }
 
-func (d *Dkg) SelectCandidates(seq *types.Sequencer) {
+func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	defer func() {
@@ -271,7 +274,7 @@ func (d *Dkg) SelectCandidates(seq *types.Sequencer) {
 		sort.Sort(txs)
 		log.WithField("txs ", txs).Debug("lucky cps")
 		for _, tx := range txs {
-			cp := tx.(*types.Campaign)
+			cp := tx.(*tx_types.Campaign)
 			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 			d.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
@@ -354,7 +357,7 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-func (d *Dkg) AddPartner(c *types.Campaign) {
+func (d *Dkg) AddPartner(c *tx_types.Campaign) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.addPartner(c)
@@ -362,7 +365,7 @@ func (d *Dkg) AddPartner(c *types.Campaign) {
 
 }
 
-func (d *Dkg) addPartner(c *types.Campaign) {
+func (d *Dkg) addPartner(c *tx_types.Campaign) {
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
 	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
@@ -372,8 +375,8 @@ func (d *Dkg) addPartner(c *types.Campaign) {
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
 
-func (d *Dkg) GetBlsSigsets() []*types.SigSet {
-	var sigset []*types.SigSet
+func (d *Dkg) GetBlsSigsets() []*tx_types.SigSet {
+	var sigset []*tx_types.SigSet
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	for _, sig := range d.blsSigSets {
@@ -396,7 +399,7 @@ func (d *Dkg) ProcesssDeal(dd *dkg.Deal) (resp *dkg.Response, err error) {
 	return d.partner.Dkger.ProcessDeal(dd)
 }
 
-func (d *Dkg) CheckAddress(addr types.Address) bool {
+func (d *Dkg) CheckAddress(addr common.Address) bool {
 	if d.term.GetCandidate(addr) == nil {
 		return false
 	}
@@ -409,7 +412,7 @@ func (d *Dkg) CheckAddress(addr types.Address) bool {
 func (d *Dkg) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 	log := d.log()
 	for i := 0; i < len(genesisAccounts); i++ {
-		msg := &types.MessageConsensusDkgGenesisPublicKey{
+		msg := &p2p_message.MessageConsensusDkgGenesisPublicKey{
 			DkgPublicKey: d.myPublicKey,
 			PublicKey:    d.myAccount.PublicKey.Bytes,
 		}
@@ -425,9 +428,9 @@ func (d *Dkg) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 	}
 }
 
-func (d *Dkg) getUnhandled() ([]*types.MessageConsensusDkgDeal, []*types.MessageConsensusDkgDealResponse) {
-	var unhandledDeal []*types.MessageConsensusDkgDeal
-	var unhandledResponse []*types.MessageConsensusDkgDealResponse
+func (d *Dkg) getUnhandled() ([]*p2p_message.MessageConsensusDkgDeal, []*p2p_message.MessageConsensusDkgDealResponse) {
+	var unhandledDeal []*p2p_message.MessageConsensusDkgDeal
+	var unhandledResponse []*p2p_message.MessageConsensusDkgDealResponse
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	for i := range d.dealCache {
@@ -437,15 +440,15 @@ func (d *Dkg) getUnhandled() ([]*types.MessageConsensusDkgDeal, []*types.Message
 		unhandledResponse = append(unhandledResponse, d.dealResPonseCache[i]...)
 	}
 	if len(d.dealCache) == 0 {
-		d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
+		d.dealCache = make(map[common.Address]*p2p_message.MessageConsensusDkgDeal)
 	}
 	if len(d.dealResPonseCache) == 0 {
-		d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
+		d.dealResPonseCache = make(map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse)
 	}
 	return unhandledDeal, unhandledResponse
 }
 
-func (d *Dkg) sendUnhandledTochan(unhandledDeal []*types.MessageConsensusDkgDeal, unhandledResponse []*types.MessageConsensusDkgDealResponse) {
+func (d *Dkg) sendUnhandledTochan(unhandledDeal []*p2p_message.MessageConsensusDkgDeal, unhandledResponse []*p2p_message.MessageConsensusDkgDealResponse) {
 	if len(unhandledDeal) != 0 || len(unhandledResponse) != 0 {
 		log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
 			"unhandledResponse", unhandledResponse).Debug("will process")
@@ -461,14 +464,14 @@ func (d *Dkg) sendUnhandledTochan(unhandledDeal []*types.MessageConsensusDkgDeal
 	}
 }
 
-func (d *Dkg) unhandledSigSets() []*types.MessageConsensusDkgSigSets {
+func (d *Dkg) unhandledSigSets() []*p2p_message.MessageConsensusDkgSigSets {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	var sigs []*types.MessageConsensusDkgSigSets
+	var sigs []*p2p_message.MessageConsensusDkgSigSets
 	for _, v := range d.dealSigSetsCache {
 		sigs = append(sigs, v)
 	}
-	d.dealSigSetsCache = make(map[types.Address]*types.MessageConsensusDkgSigSets)
+	d.dealSigSetsCache = make(map[common.Address]*p2p_message.MessageConsensusDkgSigSets)
 	return sigs
 }
 
@@ -486,7 +489,7 @@ func (d *Dkg) ProcessDeal(deal *dkg.Deal) (*dkg.Response, error) {
 //ProcessWaitingResponse
 func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
 	log := d.log()
-	var resps []*types.MessageConsensusDkgDealResponse
+	var resps []*p2p_message.MessageConsensusDkgDealResponse
 	d.mu.RLock()
 	resps, _ = d.respWaitingCache[deal.Index]
 	delete(d.respWaitingCache, deal.Index)
@@ -506,7 +509,7 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
 	log := d.log()
 	for i, deal := range deals {
 		data, _ := deal.MarshalMsg(nil)
-		msg := &types.MessageConsensusDkgDeal{
+		msg := &p2p_message.MessageConsensusDkgDeal{
 			Data: data,
 			Id:   og.MsgCounter.Get(),
 		}
@@ -614,7 +617,7 @@ func (d *Dkg) gossiploop() {
 				continue
 			}
 
-			response := types.MessageConsensusDkgDealResponse{
+			response := p2p_message.MessageConsensusDkgDealResponse{
 				Data: respData,
 				//Id:   request.Id,
 				Id: og.MsgCounter.Get(),
@@ -693,7 +696,7 @@ func (d *Dkg) gossiploop() {
 			// this channel may be changed later.
 			log.WithField("bls key ", jointPub).Trace("joint pubkey ")
 			//d.ann.dkgPkCh <- jointPub
-			var msg types.MessageConsensusDkgSigSets
+			var msg p2p_message.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
 			msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
 			msg.PublicKey = d.myAccount.PublicKey.Bytes
@@ -709,7 +712,7 @@ func (d *Dkg) gossiploop() {
 				})
 			}
 
-			d.addSigsets(d.myAccount.Address, &types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})
+			d.addSigsets(d.myAccount.Address, &tx_types.SigSet{PublicKey: msg.PublicKey, Signature: msg.Signature})
 			sigCaches := d.unhandledSigSets()
 			for _, sigSets := range sigCaches {
 				d.gossipSigSetspCh <- sigSets
@@ -742,7 +745,7 @@ func (d *Dkg) gossiploop() {
 				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.partner.jointPubKey).Warn("pk bls mismatch")
 				continue
 			}
-			d.addSigsets(addr, &types.SigSet{PublicKey: response.PublicKey, Signature: response.Signature})
+			d.addSigsets(addr, &tx_types.SigSet{PublicKey: response.PublicKey, Signature: response.Signature})
 
 			if len(d.blsSigSets) >= d.partner.NbParticipants {
 				log.Info("got enough sig sets")
@@ -765,13 +768,13 @@ func (d *Dkg) gossiploop() {
 }
 
 func (d *Dkg) clearCache() {
-	d.dealCache = make(map[types.Address]*types.MessageConsensusDkgDeal)
-	d.dealResPonseCache = make(map[types.Address][]*types.MessageConsensusDkgDealResponse)
-	d.respWaitingCache = make(map[uint32][]*types.MessageConsensusDkgDealResponse)
+	d.dealCache = make(map[common.Address]*p2p_message.MessageConsensusDkgDeal)
+	d.dealResPonseCache = make(map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse)
+	d.respWaitingCache = make(map[uint32][]*p2p_message.MessageConsensusDkgDealResponse)
 }
 
 //CacheResponseIfDealNotReceived
-func (d *Dkg) CacheResponseIfDealNotReceived(resp *dkg.Response, response *types.MessageConsensusDkgDealResponse) (ok bool) {
+func (d *Dkg) CacheResponseIfDealNotReceived(resp *dkg.Response, response *p2p_message.MessageConsensusDkgDealResponse) (ok bool) {
 	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -787,7 +790,7 @@ func (d *Dkg) CacheResponseIfDealNotReceived(resp *dkg.Response, response *types
 }
 
 //CacheResponseIfNotReady check whether dkg is ready, not ready  cache the dkg deal response
-func (d *Dkg) CacheResponseIfNotReady(addr types.Address, response *types.MessageConsensusDkgDealResponse) (ready bool) {
+func (d *Dkg) CacheResponseIfNotReady(addr common.Address, response *p2p_message.MessageConsensusDkgDealResponse) (ready bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if !d.ready {
@@ -799,7 +802,7 @@ func (d *Dkg) CacheResponseIfNotReady(addr types.Address, response *types.Messag
 }
 
 //CacheDealsIfNotReady check whether dkg is ready, not ready  cache the dkg deal
-func (d *Dkg) CacheDealsIfNotReady(addr types.Address, request *types.MessageConsensusDkgDeal) (ready bool) {
+func (d *Dkg) CacheDealsIfNotReady(addr common.Address, request *p2p_message.MessageConsensusDkgDeal) (ready bool) {
 	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -814,7 +817,7 @@ func (d *Dkg) CacheDealsIfNotReady(addr types.Address, request *types.MessageCon
 }
 
 //CacheSigSetsIfNotReady
-func (d *Dkg) CacheSigSetsIfNotReady(addr types.Address, response *types.MessageConsensusDkgSigSets) bool {
+func (d *Dkg) CacheSigSetsIfNotReady(addr common.Address, response *p2p_message.MessageConsensusDkgSigSets) bool {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if !d.ready || d.partner.jointPubKey == nil {
@@ -827,7 +830,7 @@ func (d *Dkg) CacheSigSetsIfNotReady(addr types.Address, response *types.Message
 	return true
 }
 
-func (d *Dkg) addSigsets(addr types.Address, sig *types.SigSet) {
+func (d *Dkg) addSigsets(addr common.Address, sig *tx_types.SigSet) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	d.blsSigSets[addr] = sig
@@ -846,7 +849,7 @@ func (d *Dkg) processResponse(resp *dkg.Response) (just *dkg.Justification, err 
 	return d.partner.Dkger.ProcessResponse(resp)
 }
 
-func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
+func (d *Dkg) GetPartnerAddressByIndex(i int) *common.Address {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -858,7 +861,7 @@ func (d *Dkg) GetPartnerAddressByIndex(i int) *types.Address {
 	return nil
 }
 
-func (d *Dkg) GetAddresIndex() map[types.Address]int {
+func (d *Dkg) GetAddresIndex() map[common.Address]int {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return d.partner.addressIndex
@@ -978,13 +981,13 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 }
 
 type DKGInfo struct {
-	TermId             int                   `json:"term_id"`
-	Id                 uint32                `json:"id"`
-	PartPubs           []kyber.Point         `json:"part_pubs"`
-	MyPartSec          kyber.Scalar          `json:"-"`
-	CandidatePartSec   []kyber.Scalar        `json:"-"`
-	CandidatePublicKey []hexutil.Bytes       `json:"candidate_public_key"`
-	AddressIndex       map[types.Address]int `json:"address_index"`
+	TermId             int                    `json:"term_id"`
+	Id                 uint32                 `json:"id"`
+	PartPubs           []kyber.Point          `json:"part_pubs"`
+	MyPartSec          kyber.Scalar           `json:"-"`
+	CandidatePartSec   []kyber.Scalar         `json:"-"`
+	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`
+	AddressIndex       map[common.Address]int `json:"address_index"`
 }
 
 func (dkg *Dkg) GetInfo() *DKGInfo {
@@ -1002,14 +1005,14 @@ func (dkg *Dkg) GetInfo() *DKGInfo {
 	return &dkgInfo
 }
 
-func (d *Dkg) HandleDkgDeal(request *types.MessageConsensusDkgDeal) {
+func (d *Dkg) HandleDkgDeal(request *p2p_message.MessageConsensusDkgDeal) {
 	d.gossipReqCh <- request
 }
 
-func (d *Dkg) HandleDkgDealRespone(response *types.MessageConsensusDkgDealResponse) {
+func (d *Dkg) HandleDkgDealRespone(response *p2p_message.MessageConsensusDkgDealResponse) {
 	d.gossipRespCh <- response
 }
 
-func (d *Dkg) HandleSigSet(requset *types.MessageConsensusDkgSigSets) {
+func (d *Dkg) HandleSigSet(requset *p2p_message.MessageConsensusDkgSigSets) {
 	d.gossipSigSetspCh <- requset
 }

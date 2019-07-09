@@ -9,8 +9,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-func TestMarshalUnmarshalTxBase(t *testing.T) {
-	v := TxBase{}
+func TestMarshalUnmarshalRawTxis(t *testing.T) {
+	v := RawTxis{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,8 +32,8 @@ func TestMarshalUnmarshalTxBase(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgTxBase(b *testing.B) {
-	v := TxBase{}
+func BenchmarkMarshalMsgRawTxis(b *testing.B) {
+	v := RawTxis{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,8 +41,8 @@ func BenchmarkMarshalMsgTxBase(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgTxBase(b *testing.B) {
-	v := TxBase{}
+func BenchmarkAppendMsgRawTxis(b *testing.B) {
+	v := RawTxis{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -53,8 +53,8 @@ func BenchmarkAppendMsgTxBase(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalTxBase(b *testing.B) {
-	v := TxBase{}
+func BenchmarkUnmarshalRawTxis(b *testing.B) {
+	v := RawTxis{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -67,8 +67,8 @@ func BenchmarkUnmarshalTxBase(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeTxBase(t *testing.T) {
-	v := TxBase{}
+func TestEncodeDecodeRawTxis(t *testing.T) {
+	v := RawTxis{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -77,7 +77,7 @@ func TestEncodeDecodeTxBase(t *testing.T) {
 		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
 	}
 
-	vn := TxBase{}
+	vn := RawTxis{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -91,8 +91,8 @@ func TestEncodeDecodeTxBase(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeTxBase(b *testing.B) {
-	v := TxBase{}
+func BenchmarkEncodeRawTxis(b *testing.B) {
+	v := RawTxis{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -105,121 +105,8 @@ func BenchmarkEncodeTxBase(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeTxBase(b *testing.B) {
-	v := TxBase{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	rd := msgp.NewEndlessReader(buf.Bytes(), b)
-	dc := msgp.NewReader(rd)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := v.DecodeMsg(dc)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestMarshalUnmarshalTxBaseJson(t *testing.T) {
-	v := TxBaseJson{}
-	bts, err := v.MarshalMsg(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	left, err := v.UnmarshalMsg(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
-	}
-
-	left, err = msgp.Skip(bts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
-	}
-}
-
-func BenchmarkMarshalMsgTxBaseJson(b *testing.B) {
-	v := TxBaseJson{}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.MarshalMsg(nil)
-	}
-}
-
-func BenchmarkAppendMsgTxBaseJson(b *testing.B) {
-	v := TxBaseJson{}
-	bts := make([]byte, 0, v.Msgsize())
-	bts, _ = v.MarshalMsg(bts[0:0])
-	b.SetBytes(int64(len(bts)))
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		bts, _ = v.MarshalMsg(bts[0:0])
-	}
-}
-
-func BenchmarkUnmarshalTxBaseJson(b *testing.B) {
-	v := TxBaseJson{}
-	bts, _ := v.MarshalMsg(nil)
-	b.ReportAllocs()
-	b.SetBytes(int64(len(bts)))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := v.UnmarshalMsg(bts)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func TestEncodeDecodeTxBaseJson(t *testing.T) {
-	v := TxBaseJson{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-
-	m := v.Msgsize()
-	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
-	}
-
-	vn := TxBaseJson{}
-	err := msgp.Decode(&buf, &vn)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf.Reset()
-	msgp.Encode(&buf, &v)
-	err = msgp.NewReader(&buf).Skip()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func BenchmarkEncodeTxBaseJson(b *testing.B) {
-	v := TxBaseJson{}
-	var buf bytes.Buffer
-	msgp.Encode(&buf, &v)
-	b.SetBytes(int64(buf.Len()))
-	en := msgp.NewWriter(msgp.Nowhere)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		v.EncodeMsg(en)
-	}
-	en.Flush()
-}
-
-func BenchmarkDecodeTxBaseJson(b *testing.B) {
-	v := TxBaseJson{}
+func BenchmarkDecodeRawTxis(b *testing.B) {
+	v := RawTxis{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

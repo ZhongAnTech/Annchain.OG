@@ -10,8 +10,8 @@ import (
 )
 
 func TestContractCreation(t *testing.T) {
-	from := types.HexToAddress("0xABCDEF88")
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	from := common.HexToAddress("0xABCDEF88")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
@@ -22,7 +22,7 @@ func TestContractCreation(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:       types.HexToAddress("0xABCDEF88"),
+			From:       common.HexToAddress("0xABCDEF88"),
 			Value:      math.NewBigInt(0),
 			GasPrice:   math.NewBigInt(1),
 			GasLimit:   DefaultGasLimit,

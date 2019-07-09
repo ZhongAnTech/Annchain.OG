@@ -16,8 +16,10 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
+	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"time"
 
@@ -38,11 +40,11 @@ import (
 var (
 	// empty address is the address used for contract creation, it
 	// is filled in [tx.To].
-	emptyAddress = types.BytesToAddress(nil)
+	emptyAddress = common.BytesToAddress(nil)
 
 	DefaultGasLimit = uint64(10000000000)
 
-	DefaultCoinbase = types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	DefaultCoinbase = common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
 type DagConfig struct {
@@ -58,8 +60,8 @@ type Dag struct {
 	accessor *Accessor
 	statedb  *state.StateDB
 
-	genesis         *types.Sequencer
-	latestSequencer *types.Sequencer
+	genesis         *tx_types.Sequencer
+	latestSequencer *tx_types.Sequencer
 	latestTokenId   int32
 
 	txcached *txcached
@@ -145,10 +147,10 @@ func (dag *Dag) SaveStateRoot() {
 // This is a temp function to solve the not working problem when
 // restart the node. The perfect solution is to load the root from
 // latest sequencer every time restart the node.
-func (dag *Dag) LoadStateRoot() types.Hash {
+func (dag *Dag) LoadStateRoot() common.Hash {
 	key := []byte("stateroot")
 	rootbyte, _ := dag.db.Get(key)
-	return types.BytesToHash(rootbyte)
+	return common.BytesToHash(rootbyte)
 }
 
 // StateDatabase is for testing only
@@ -157,7 +159,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *tx_types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -208,13 +210,13 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[types.Address]
 
 // LoadLastState load genesis and latestsequencer data from ogdb.
 // return false if there is no genesis stored in the db.
-func (dag *Dag) LoadLastState() (bool, types.Hash) {
+func (dag *Dag) LoadLastState() (bool, common.Hash) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	genesis := dag.accessor.ReadGenesis()
 	if genesis == nil {
-		return false, types.Hash{}
+		return false, common.Hash{}
 	}
 	dag.genesis = genesis
 	seq := dag.accessor.ReadLatestSequencer()
@@ -230,7 +232,7 @@ func (dag *Dag) LoadLastState() (bool, types.Hash) {
 }
 
 // Genesis returns the genesis tx of dag
-func (dag *Dag) Genesis() *types.Sequencer {
+func (dag *Dag) Genesis() *tx_types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -238,7 +240,7 @@ func (dag *Dag) Genesis() *types.Sequencer {
 }
 
 // LatestSequencer returns the latest sequencer stored in dag
-func (dag *Dag) LatestSequencer() *types.Sequencer {
+func (dag *Dag) LatestSequencer() *tx_types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -269,24 +271,24 @@ func (dag *Dag) Push(batch *ConfirmBatch) error {
 // PrePush simulates the action of pushing sequencer into Dag ledger. Simulates will
 // store the changes into cache statedb. Once the same sequencer comes, the cached
 // states will becomes regular ones.
-func (dag *Dag) PrePush(batch *ConfirmBatch) (types.Hash, error) {
+func (dag *Dag) PrePush(batch *ConfirmBatch) (common.Hash, error) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	// TODO
 	// Not implemented yet.
-	return types.Hash{}, nil
+	return common.Hash{}, nil
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
 // ogdb only.
-func (dag *Dag) GetTx(hash types.Hash) types.Txi {
+func (dag *Dag) GetTx(hash common.Hash) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTx(hash)
 }
-func (dag *Dag) getTx(hash types.Hash) types.Txi {
+func (dag *Dag) getTx(hash common.Hash) types.Txi {
 	tx := dag.txcached.get(hash)
 	if tx != nil {
 		return tx
@@ -294,23 +296,23 @@ func (dag *Dag) getTx(hash types.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
-func (dag *Dag) Has(hash types.Hash) bool {
+func (dag *Dag) Has(hash common.Hash) bool {
 	return dag.GetTx(hash) != nil
 }
 
-func (dag *Dag) Exist(addr types.Address) bool {
+func (dag *Dag) Exist(addr common.Address) bool {
 	return dag.statedb.Exist(addr)
 }
 
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
-func (dag *Dag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (dag *Dag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
+func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
 		log.Info("tx not found")
@@ -320,7 +322,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx types.Tx
+		var tx tx_types.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -329,7 +331,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq types.Sequencer
+		var sq tx_types.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -338,7 +340,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 		return &sq
 	}
 	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp types.Campaign
+		var cp tx_types.Campaign
 		_, err := cp.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal camp error")
@@ -347,7 +349,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc types.TermChange
+		var tc tx_types.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")
@@ -356,7 +358,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 		return &tc
 	}
 	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac types.Archive
+		var ac tx_types.Archive
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -368,7 +370,7 @@ func (dag *Dag) getTestTx(hash types.Hash) types.Txi {
 	return nil
 }
 
-func (dag *Dag) GetTestTxByAddressAndNonce(addr types.Address, nonce uint64) types.Txi {
+func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if dag.testDb == nil {
@@ -380,23 +382,23 @@ func (dag *Dag) GetTestTxByAddressAndNonce(addr types.Address, nonce uint64) typ
 		log.Info("hash not found")
 		return nil
 	}
-	hash := types.BytesToHash(data)
+	hash := common.BytesToHash(data)
 	return dag.getTestTx(hash)
 }
 
-func (dag *Dag) getTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (dag *Dag) getTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return dag.accessor.ReadTxByNonce(addr, nonce)
 }
 
 // GetTxs get a bundle of txs according to a hash list.
-func (dag *Dag) GetTxis(hashs types.Hashes) types.Txis {
+func (dag *Dag) GetTxis(hashs common.Hashes) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxis(hashs)
 }
 
-func (dag *Dag) getTxis(hashs types.Hashes) types.Txis {
+func (dag *Dag) getTxis(hashs common.Hashes) types.Txis {
 	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
@@ -407,7 +409,7 @@ func (dag *Dag) getTxis(hashs types.Hashes) types.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs types.Hashes, baseType types.TxBaseType) types.Txis {
+func (dag *Dag) getTxisByType(hashs common.Hashes, baseType types.TxBaseType) types.Txis {
 	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
@@ -419,14 +421,14 @@ func (dag *Dag) getTxisByType(hashs types.Hashes, baseType types.TxBaseType) typ
 }
 
 // GetTxConfirmHeight returns the height of sequencer that confirm this tx.
-func (dag *Dag) GetTxConfirmHeight(hash types.Hash) (uint64, error) {
+func (dag *Dag) GetTxConfirmHeight(hash common.Hash) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxConfirmHeight(hash)
 }
 
-func (dag *Dag) getTxConfirmHeight(hash types.Hash) (uint64, error) {
+func (dag *Dag) getTxConfirmHeight(hash common.Hash) (uint64, error) {
 	tx := dag.getTx(hash)
 	if tx == nil {
 		return 0, fmt.Errorf("hash not exists: %s", hash)
@@ -449,7 +451,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *tx_types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -461,7 +463,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq types.Sequencer
+	var seq tx_types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
@@ -472,7 +474,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *
 		log.Warnf("tx hashs with seq height %d not found", height)
 		return nil, sequencer
 	}
-	var hashs types.Hashes
+	var hashs common.Hashes
 	_, err = hashs.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarshal err")
@@ -507,7 +509,7 @@ func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) ty
 	return dag.getTxisByType(*hashs, txType)
 }
 
-func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
+func (dag *Dag) GetReceipt(hash common.Hash) *Receipt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -519,27 +521,27 @@ func (dag *Dag) GetReceipt(hash types.Hash) *Receipt {
 	return dag.accessor.ReadReceipt(seqid, hash)
 }
 
-func (dag *Dag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+func (dag *Dag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *types.Sequencer:
+	case *tx_types.Sequencer:
 		return tx
 	default:
 		return nil
 	}
 }
 
-func (dag *Dag) GetSequencerByHeight(height uint64) *types.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *tx_types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
+func (dag *Dag) getSequencerByHeight(height uint64) *tx_types.Sequencer {
 	if height == 0 {
 		return dag.genesis
 	}
@@ -554,14 +556,14 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	return seq
 }
 
-func (dag *Dag) GetSequencerHashByHeight(height uint64) *types.Hash {
+func (dag *Dag) GetSequencerHashByHeight(height uint64) *common.Hash {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerHashByHeight(height)
 }
 
-func (dag *Dag) getSequencerHashByHeight(height uint64) *types.Hash {
+func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 	seq, err := dag.accessor.ReadSequencerByHeight(height)
 	if err != nil || seq == nil {
 		log.WithField("height", height).Warn("head not found")
@@ -571,13 +573,13 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *types.Hash {
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash types.Hash, seqHeight uint64) *types.Sequencer {
+func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *tx_types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *types.Sequencer:
+	case *tx_types.Sequencer:
 		if tx.Height != seqHeight {
 			log.Warn("seq height mismatch ")
 			return nil
@@ -606,14 +608,14 @@ func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
 	return cf
 }
 
-func (dag *Dag) GetTxsHashesByNumber(Height uint64) *types.Hashes {
+func (dag *Dag) GetTxsHashesByNumber(Height uint64) *common.Hashes {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxsHashesByNumber(Height)
 }
 
-func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
+func (dag *Dag) getTxsHashesByNumber(Height uint64) *common.Hashes {
 	if Height > dag.latestSequencer.Number() {
 		return nil
 	}
@@ -625,51 +627,51 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *types.Hashes {
 }
 
 // GetBalance read the confirmed balance of an address from ogdb.
-func (dag *Dag) GetBalance(addr types.Address, tokenID int32) *math.BigInt {
+func (dag *Dag) GetBalance(addr common.Address, tokenID int32) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getBalance(addr, tokenID)
 }
 
-func (dag *Dag) getBalance(addr types.Address, tokenID int32) *math.BigInt {
+func (dag *Dag) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return dag.statedb.GetTokenBalance(addr, tokenID)
 }
 
 // GetLatestNonce returns the latest tx of an addresss.
-func (dag *Dag) GetLatestNonce(addr types.Address) (uint64, error) {
+func (dag *Dag) GetLatestNonce(addr common.Address) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getLatestNonce(addr)
 }
 
-func (dag *Dag) getLatestNonce(addr types.Address) (uint64, error) {
+func (dag *Dag) getLatestNonce(addr common.Address) (uint64, error) {
 
 	return dag.statedb.GetNonce(addr), nil
 }
 
 // GetState get contract's state from statedb.
-func (dag *Dag) GetState(addr types.Address, key types.Hash) types.Hash {
+func (dag *Dag) GetState(addr common.Address, key common.Hash) common.Hash {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getState(addr, key)
 }
 
-func (dag *Dag) getState(addr types.Address, key types.Hash) types.Hash {
+func (dag *Dag) getState(addr common.Address, key common.Hash) common.Hash {
 	return dag.statedb.GetState(addr, key)
 }
 
 //GetTxsByAddress get all txs from this address
-func (dag *Dag) GetTxsByAddress(addr types.Address) []types.Txi {
+func (dag *Dag) GetTxsByAddress(addr common.Address) []types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxsByAddress(addr)
 }
 
-func (dag *Dag) getTxsByAddress(addr types.Address) []types.Txi {
+func (dag *Dag) getTxsByAddress(addr common.Address) []types.Txi {
 	nonce, err := dag.getLatestNonce(addr)
 	if (err != nil) || (nonce == 0) {
 		return nil
@@ -707,20 +709,20 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
-	txhashes := types.Hashes{}
+	txhashes := common.Hashes{}
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 	tokenId := dag.latestTokenId
-	var tokens map[int32]*types.TokenInfo
+	var tokens map[int32]*tx_types.TokenInfo
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		if txi.GetType() == types.TxBaseAction {
-			tx := txi.(*types.ActionTx)
-			if tx.Action == types.ActionTxActionIPO {
+			tx := txi.(*tx_types.ActionTx)
+			if tx.Action == tx_types.ActionTxActionIPO {
 				tokenId++
-				actionData := tx.ActionData.(*types.PublicOffering)
+				actionData := tx.ActionData.(*tx_types.PublicOffering)
 				actionData.TokenId = tokenId
-				token := types.TokenInfo{
+				token := tx_types.TokenInfo{
 					PublicOffering: *actionData,
 					Sender:         txi.Sender(),
 				}
@@ -888,7 +890,7 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	return nil
 }
 
-func (dag *Dag) GetToken(tokenId int32) *types.TokenInfo {
+func (dag *Dag) GetToken(tokenId int32) *tx_types.TokenInfo {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if tokenId > dag.latestTokenId {
@@ -897,7 +899,7 @@ func (dag *Dag) GetToken(tokenId int32) *types.TokenInfo {
 	return dag.getToken(tokenId)
 }
 
-func (dag *Dag) getToken(tokenId int32) *types.TokenInfo {
+func (dag *Dag) getToken(tokenId int32) *tx_types.TokenInfo {
 	return dag.accessor.ReadToken(tokenId)
 }
 
@@ -907,14 +909,14 @@ func (dag *Dag) GetLatestTokenId() int32 {
 	return dag.latestTokenId
 }
 
-func (dag *Dag) GetTokens() types.TokensInfo {
+func (dag *Dag) GetTokens() tx_types.TokensInfo {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	return dag.getTokens()
 }
 
-func (dag *Dag) getTokens() types.TokensInfo {
-	var tokens types.TokensInfo
+func (dag *Dag) getTokens() tx_types.TokensInfo {
+	var tokens tx_types.TokensInfo
 	lid := dag.latestTokenId
 	for i := int32(0); i <= lid; i++ {
 		token := dag.getToken(i)
@@ -929,7 +931,7 @@ func (dag *Dag) getLatestTokenId() int32 {
 	return dag.accessor.RaedLatestTokenId()
 }
 
-func (dag *Dag) WriteToken(putter *Putter, token *types.TokenInfo) error {
+func (dag *Dag) WriteToken(putter *Putter, token *tx_types.TokenInfo) error {
 	return dag.accessor.WriteToken(putter, token)
 }
 
@@ -937,7 +939,7 @@ func (dag *Dag) WriteLatestTokenId(putter *Putter, tokenId int32) error {
 	return dag.accessor.WriteLatestTokenId(putter, tokenId)
 }
 
-func (dag *Dag) DeleteTransaction(hash types.Hash) error {
+func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 	return dag.accessor.DeleteTransaction(hash)
 }
 
@@ -972,16 +974,16 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 
 	if tx.GetType() == types.TxBaseAction {
 		//ipo
-		actionTx := tx.(*types.ActionTx)
-		if actionTx.Action == types.ActionTxActionIPO {
-			actionData := actionTx.ActionData.(*types.PublicOffering)
+		actionTx := tx.(*tx_types.ActionTx)
+		if actionTx.Action == tx_types.ActionTxActionIPO {
+			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
 			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		} else if actionTx.Action == types.ActionTxActionSPO {
+		} else if actionTx.Action == tx_types.ActionTxActionSPO {
 			//spo
-			actionData := actionTx.ActionData.(*types.PublicOffering)
+			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
 			dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		} else if actionTx.Action == types.ActionTxActionWithdraw {
-			actionData := actionTx.ActionData.(*types.PublicOffering)
+		} else if actionTx.Action == tx_types.ActionTxActionWithdraw {
+			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
 			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
 		}
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
@@ -989,7 +991,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	}
 
 	// transfer balance
-	txnormal := tx.(*types.Tx)
+	txnormal := tx.(*tx_types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		dag.statedb.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		dag.statedb.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
@@ -1050,7 +1052,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 
 // CallContract calls contract but disallow any modifications on
 // statedb. This method will call ovm.StaticCall() to satisfy this.
-func (dag *Dag) CallContract(addr types.Address, data []byte) ([]byte, error) {
+func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
@@ -1108,19 +1110,19 @@ func (dag *Dag) Finalize() error {
 
 type txcached struct {
 	maxsize int
-	order   types.Hashes
-	txs     map[types.Hash]types.Txi
+	order   common.Hashes
+	txs     map[common.Hash]types.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
-		order:   types.Hashes{},
-		txs:     make(map[types.Hash]types.Txi),
+		order:   common.Hashes{},
+		txs:     make(map[common.Hash]types.Txi),
 	}
 }
 
-func (tc *txcached) get(hash types.Hash) types.Txi {
+func (tc *txcached) get(hash common.Hash) types.Txi {
 	return tc.txs[hash]
 }
 
@@ -1138,6 +1140,6 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq *types.Sequencer
+	Seq *tx_types.Sequencer
 	Txs types.Txis
 }

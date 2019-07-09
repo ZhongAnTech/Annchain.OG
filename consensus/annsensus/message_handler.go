@@ -18,12 +18,11 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
-
-	"github.com/annchain/OG/types"
 )
 
-func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageConsensusDkgGenesisPublicKey, peerId string) {
+func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *p2p_message.MessageConsensusDkgGenesisPublicKey, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -49,7 +48,7 @@ func (a *AnnSensus) HandleConsensusDkgGenesisPublicKey(request *types.MessageCon
 }
 
 //HandleConsensusDkgDeal
-func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDeal, peerId string) {
+func (a *AnnSensus) HandleConsensusDkgDeal(request *p2p_message.MessageConsensusDkgDeal, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -72,7 +71,7 @@ func (a *AnnSensus) HandleConsensusDkgDeal(request *types.MessageConsensusDkgDea
 }
 
 //HandleConsensusDkgDealResponse
-func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsensusDkgDealResponse, peerId string) {
+func (a *AnnSensus) HandleConsensusDkgDealResponse(request *p2p_message.MessageConsensusDkgDealResponse, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -96,7 +95,7 @@ func (a *AnnSensus) HandleConsensusDkgDealResponse(request *types.MessageConsens
 }
 
 //HandleConsensusDkgSigSets
-func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkgSigSets, peerId string) {
+func (a *AnnSensus) HandleConsensusDkgSigSets(request *p2p_message.MessageConsensusDkgSigSets, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -121,7 +120,7 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *types.MessageConsensusDkg
 }
 
 //HandleConsensusProposal
-func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peerId string) {
+func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -136,12 +135,12 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 		return
 	}
 	switch msg := request.Value.(type) {
-	case *types.SequencerProposal:
+	case *p2p_message.SequencerProposal:
 	default:
 		log.WithField("request ", msg).Warn("unsupported proposal type")
 		return
 	}
-	seq := request.Value.(*types.SequencerProposal).Sequencer
+	seq := request.Value.(*p2p_message.SequencerProposal).Sequencer
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft proposal data")
 	pk := crypto.PublicKeyFromBytes(a.cryptoType, seq.PublicKey)
 	s := crypto.NewSigner(pk.Type)
@@ -169,7 +168,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *types.MessageProposal, peer
 }
 
 //HandleConsensusPreVote
-func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId string) {
+func (a *AnnSensus) HandleConsensusPreVote(request *p2p_message.MessagePreVote, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -205,7 +204,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *types.MessagePreVote, peerId
 }
 
 //HandleConsensusPreCommit
-func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, peerId string) {
+func (a *AnnSensus) HandleConsensusPreCommit(request *p2p_message.MessagePreCommit, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -237,7 +236,7 @@ func (a *AnnSensus) HandleConsensusPreCommit(request *types.MessagePreCommit, pe
 
 }
 
-func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequest, peerId string) {
+func (a *AnnSensus) HandleTermChangeRequest(request *p2p_message.MessageTermChangeRequest, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -258,7 +257,7 @@ func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequ
 	tc.GetBase().PublicKey = a.MyAccount.PublicKey.Bytes
 	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).Bytes
 	tc.GetBase().Hash = tc.CalcTxHash()
-	msg := &types.MessageTermChangeResponse{
+	msg := &p2p_message.MessageTermChangeResponse{
 		TermChange: tc,
 	}
 	a.Hub.SendToPeer(peerId, og.MessageTypeTermChangeResponse, msg)
@@ -266,7 +265,7 @@ func (a *AnnSensus) HandleTermChangeRequest(request *types.MessageTermChangeRequ
 	log.WithField("data", msg).WithField("to  peer ", peerId).Debug("send term change")
 }
 
-func (a *AnnSensus) HandleTermChangeResponse(response *types.MessageTermChangeResponse, peerId string) {
+func (a *AnnSensus) HandleTermChangeResponse(response *p2p_message.MessageTermChangeResponse, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("response ", response).Warn("annsensus disabled")
 		return

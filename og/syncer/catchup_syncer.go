@@ -271,7 +271,7 @@ func (c *CatchupSyncer) notifyProgress() {
 		// degenerate connectivity, but it should be healthy for the mainnet too to
 		// more reliably update peers or the local TD state.
 		hash := nodeStatus.CurrentBlock
-		msg := types.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentId}
+		msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentId}
 		data, _ := msg.MarshalMsg(nil)
 		c.Hub.BroadcastMessage(og.MessageTypeSequencerHeader, data)
 	}

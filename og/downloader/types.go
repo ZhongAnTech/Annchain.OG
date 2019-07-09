@@ -3,12 +3,13 @@ package downloader
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
 
-type insertTxsFn func(seq *types.Sequencer, txs types.Txis) error
+type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
 
 // dataPack is a data message returned by a peer for some query.
 type dataPack interface {
@@ -20,7 +21,7 @@ type dataPack interface {
 // headerPack is a batch of block headers returned by a peer.
 type headerPack struct {
 	peerID  string
-	headers []*types.SequencerHeader
+	headers []*tx_types.SequencerHeader
 }
 
 func (p *headerPack) PeerId() string { return p.peerID }
@@ -32,17 +33,17 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 type bodyPack struct {
 	peerID       string
 	transactions []types.Txis
-	//sequencer    *types.Sequencer
-	sequencers []*types.Sequencer
+	//sequencer    *tx_types.Sequencer
+	sequencers []*tx_types.Sequencer
 }
 
 /*
-func (p *bodyPack) Sequencer() *types.Sequencer {
+func (p *bodyPack) Sequencer() *tx_types.Sequencer {
 	return p.sequencer
 }
 */
 
-func (p *bodyPack) Sequencers() []*types.Sequencer {
+func (p *bodyPack) Sequencers() []*tx_types.Sequencer {
 	return p.sequencers
 }
 

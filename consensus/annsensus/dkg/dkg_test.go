@@ -16,10 +16,12 @@ package dkg
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"testing"
 
@@ -27,7 +29,7 @@ import (
 )
 
 func TestDkg_VerifyBlsSig(t *testing.T) {
-	seq := types.RandomSequencer()
+	seq := tx_types.RandomSequencer()
 	fmt.Println(seq.GetTxHash().Hex())
 	seq.BlsJointPubKey = []byte{}
 }
@@ -50,17 +52,17 @@ func TestVrfSelections_Le(t *testing.T) {
 	tm := term.NewTerm(1, 21, 4)
 	d.term = tm
 	for i := 0; i < 21; i++ {
-		h := types.RandomHash()
-		cp := types.Campaign{
+		h := common.RandomHash()
+		cp := tx_types.Campaign{
 			Vrf: types.VrfInfo{
 				Vrf: h.Bytes[:],
 			},
-			Issuer: types.RandomAddress(),
+			Issuer: common.RandomAddress(),
 		}
 		tm.AddCampaign(&cp)
 	}
-	seq := &types.Sequencer{
-		BlsJointSig: types.RandomAddress().ToBytes(),
+	seq := &tx_types.Sequencer{
+		BlsJointSig: common.RandomAddress().ToBytes(),
 	}
 	d.myAccount = getRandomAccount()
 	d.SelectCandidates(seq)

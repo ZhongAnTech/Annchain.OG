@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync/atomic"
 
@@ -39,13 +41,13 @@ type IncomingMessageHandler struct {
 }
 
 type hashAndSourceId struct {
-	hash     types.Hash
+	hash     common.Hash
 	sourceId string
 }
 
 //msg request cache ,don't send duplicate message
 type ControlMsgCache struct {
-	cache      map[types.Hash]*controlItem
+	cache      map[common.Hash]*controlItem
 	mu         sync.RWMutex
 	size       int
 	queue      chan *hashAndSourceId
@@ -69,7 +71,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 		Og:  og,
 		Hub: hub,
 		controlMsgCache: &ControlMsgCache{
-			cache:      make(map[types.Hash]*controlItem),
+			cache:      make(map[common.Hash]*controlItem),
 			size:       cacheSize,
 			ExpireTime: expireTime,
 			queue:      make(chan *hashAndSourceId, 1),
@@ -82,8 +84,8 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 	}
 }
 
-func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.MessageSyncRequest, peerId string) {
-	var txs types.TxisMarshaler
+func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_message.MessageSyncRequest, peerId string) {
+	var txs tx_types.TxisMarshaler
 	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
@@ -102,7 +104,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			msgLog.WithField("ourHeight ", ourHeight).WithField("height", height).Warn("our height is smaller")
 			return
 		} else {
-			var filterHashes types.Hashes
+			var filterHashes common.Hashes
 			if height == ourHeight {
 				filterHashes = h.Og.TxPool.GetHashOrder()
 			} else if height < ourHeight {
@@ -132,7 +134,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 			// uint64(0) -2 >0
 			if height+2 <= ourHeight {
 				dagTxs := h.Og.Dag.GetTxisByNumber(height + 2)
-				rtxs := dagTxs.TxisMarshaler()
+				rtxs := tx_types.NewTxisMarshaler(dagTxs)
 				if rtxs != nil && len(rtxs) != 0 {
 					txs = append(txs, rtxs...)
 				}
@@ -158,7 +160,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 		return
 	}
 	if len(txs) > 0 {
-		msgRes := types.MessageSyncResponse{
+		msgRes := p2p_message.MessageSyncResponse{
 			RawTxs: &txs,
 			//SequencerIndex: index,
 			RequestedId: syncRequest.RequestId,
@@ -173,7 +175,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *types.Mes
 	return
 }
 
-func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHeaderResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *p2p_message.MessageHeaderResponse, peerId string) {
 
 	// Filter out any explicitly requested headers, deliver the rest to the downloader
 	if headerMsg.Headers == nil {
@@ -198,7 +200,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *types.MessageHe
 	msgLog.WithField("headers", headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle MessageTypeHeaderResponse")
 }
 
-func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderRequest, peerId string) {
+func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageHeaderRequest, peerId string) {
 	hashMode := query.Origin.Hash != nil
 	if query.Origin.Number == nil {
 		i := uint64(0)
@@ -210,12 +212,12 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 	// Gather headers until the fetch or network limits is reached
 	var (
 		bytes   common.StorageSize
-		headers types.Sequencers
+		headers tx_types.Sequencers
 		unknown bool
 	)
 	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
 		// Retrieve the next header satisfying the query
-		var origin *types.Sequencer
+		var origin *tx_types.Sequencer
 		if hashMode {
 			if first {
 				first = false
@@ -288,15 +290,15 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *types.MessageHeaderR
 		}
 	}
 	headres := headers.ToHeaders()
-	msgRes := types.MessageHeaderResponse{
+	msgRes := p2p_message.MessageHeaderResponse{
 		Headers:     &headres,
 		RequestedId: query.RequestId,
 	}
 	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResponse) {
-	var rawTxs types.TxisMarshaler
+func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageTxsResponse) {
+	var rawTxs tx_types.TxisMarshaler
 	var txis types.Txis
 	if request.RawTxs != nil {
 		rawTxs = *request.RawTxs
@@ -325,9 +327,9 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *types.MessageTxsResp
 	return
 }
 
-func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsRequest, peerId string) {
-	var msgRes types.MessageTxsResponse
-	var seq *types.Sequencer
+func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxsRequest, peerId string) {
+	var msgRes p2p_message.MessageTxsResponse
+	var seq *tx_types.Sequencer
 	if msgReq.Id == nil {
 		i := uint64(0)
 		msgReq.Id = &i
@@ -340,7 +342,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsReques
 	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs := txs.TxisMarshaler()
+		rtxs := tx_types.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			msgRes.RawTxs = &rtxs
 		}
@@ -351,12 +353,12 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *types.MessageTxsReques
 	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodiesResponse, peerId string) {
+func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.MessageBodiesResponse, peerId string) {
 	// Deliver them all to the downloader for queuing
 	transactions := make([]types.Txis, len(request.Bodies))
-	sequencers := make([]*types.Sequencer, len(request.Bodies))
+	sequencers := make([]*tx_types.Sequencer, len(request.Bodies))
 	for i, bodyData := range request.Bodies {
-		var body types.MessageBodyData
+		var body p2p_message.MessageBodyData
 		_, err := body.UnmarshalMsg(bodyData)
 		if err != nil {
 			msgLog.WithError(err).Warn("decode error")
@@ -390,8 +392,8 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *types.MessageBodi
 	return
 }
 
-func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodiesRequest, peerId string) {
-	var msgRes types.MessageBodiesResponse
+func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *p2p_message.MessageBodiesRequest, peerId string) {
+	var msgRes p2p_message.MessageBodiesResponse
 	var bytes int
 
 	for i := 0; i < len(msgReq.SeqHashes); i++ {
@@ -408,22 +410,22 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *types.MessageBodies
 			msgLog.Debug("reached MaxBlockFetch 128 ")
 			break
 		}
-		var body types.MessageBodyData
+		var body p2p_message.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs := txs.TxisMarshaler()
+		rtxs := tx_types.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			body.RawTxs = &rtxs
 		}
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
-		msgRes.Bodies = append(msgRes.Bodies, types.RawData(bodyData))
+		msgRes.Bodies = append(msgRes.Bodies, p2p_message.RawData(bodyData))
 	}
 	msgRes.RequestedId = msgReq.RequestId
 	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
 }
 
-func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *types.MessageSequencerHeader, peerId string) {
+func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *p2p_message.MessageSequencerHeader, peerId string) {
 	if msgHeader.Hash == nil {
 		return
 	}
@@ -482,11 +484,11 @@ func (c *RequestCache) clean(lseqId uint64) {
 	}
 }
 
-func (c *ControlMsgCache) set(hash types.Hash, sourceId string) {
+func (c *ControlMsgCache) set(hash common.Hash, sourceId string) {
 	c.queue <- &hashAndSourceId{hash: hash, sourceId: sourceId}
 }
 
-func (c *ControlMsgCache) get(hash types.Hash) *controlItem {
+func (c *ControlMsgCache) get(hash common.Hash) *controlItem {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if v, ok := c.cache[hash]; ok {
@@ -495,10 +497,10 @@ func (c *ControlMsgCache) get(hash types.Hash) *controlItem {
 	return nil
 }
 
-func (c *ControlMsgCache) getALlKey() types.Hashes {
+func (c *ControlMsgCache) getALlKey() common.Hashes {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	var hashes types.Hashes
+	var hashes common.Hashes
 	for k := range c.cache {
 		hashes = append(hashes, k)
 	}
@@ -511,13 +513,13 @@ func (c *ControlMsgCache) Len() int {
 	return len(c.cache)
 }
 
-func (c *ControlMsgCache) remove(hash types.Hash) {
+func (c *ControlMsgCache) remove(hash common.Hash) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.cache, hash)
 }
 
-func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash types.Hash) {
+func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash common.Hash) {
 	h.controlMsgCache.remove(hash)
 }
 
@@ -581,7 +583,7 @@ func (h *IncomingMessageHandler) processControlMsg() {
 			}
 			if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
 				hash := k
-				msg := &types.MessageGetMsg{Hash: &hash}
+				msg := &p2p_message.MessageGetMsg{Hash: &hash}
 				msgLog.WithField("hash ", k).Debug("send GetTx msg")
 				goroutine.New(func() {
 					h.Hub.SendGetMsg(item.sourceId, msg)
@@ -601,7 +603,7 @@ func (h *IncomingMessageHandler) HandlePong() {
 	msgLog.Debug("received your pong.")
 }
 
-func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePeerId string) {
+func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, sourcePeerId string) {
 	if msg == nil || msg.Hash == nil {
 		msgLog.Warn("msg is nil ")
 		return
@@ -616,30 +618,30 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *types.MessageGetMsg, sourcePe
 	}
 	switch txi.GetType() {
 	case types.TxBaseTypeNormal:
-		tx := txi.(*types.Tx)
-		response := types.MessageNewTx{RawTx: tx.RawTx()}
+		tx := txi.(*tx_types.Tx)
+		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
 	case types.TxBaseTypeTermChange:
-		tx := txi.(*types.TermChange)
-		response := types.MessageTermChange{RawTermChange: tx.RawTermChange()}
+		tx := txi.(*tx_types.TermChange)
+		response := p2p_message.MessageTermChange{RawTermChange: tx.RawTermChange()}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
 	case types.TxBaseTypeCampaign:
-		tx := txi.(*types.Campaign)
-		response := types.MessageCampaign{RawCampaign: tx.RawCampaign()}
+		tx := txi.(*tx_types.Campaign)
+		response := p2p_message.MessageCampaign{RawCampaign: tx.RawCampaign()}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
 	case types.TxBaseTypeSequencer:
-		tx := txi.(*types.Sequencer)
-		response := types.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
+		tx := txi.(*tx_types.Sequencer)
+		response := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
 	case types.TxBaseAction:
-		tx := txi.(*types.ActionTx)
-		response := types.MessageNewActionTx{ActionTx: tx}
+		tx := txi.(*tx_types.ActionTx)
+		response := p2p_message.MessageNewActionTx{ActionTx: tx}
 		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
 	}
 	return
 }
 
-func (h *IncomingMessageHandler) HandleControlMsg(req *types.MessageControl, sourceId string) {
+func (h *IncomingMessageHandler) HandleControlMsg(req *p2p_message.MessageControl, sourceId string) {
 	if req.Hash == nil {
 		msgLog.WithError(fmt.Errorf("miss hash")).Debug("control msg request err")
 		return

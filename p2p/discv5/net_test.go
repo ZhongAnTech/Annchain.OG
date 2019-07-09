@@ -67,7 +67,7 @@ func TestNetwork_Lookup(t *testing.T) {
 // The nodes were obtained by running testnet.mine with a random NodeID as target.
 var lookupTestnet = &preminedTestnet{
 	target:    MustHexID("166aea4f556532c6d34e8b740e5d314af7e9ac0ca79833bd751d6b665f12dfd38ec563c363b32f02aef4a80b44fd3def94612d497b99cb5f17fd24de454927ec"),
-	targetSha: types.Hash{Bytes: [32]byte{0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61}},
+	targetSha: common.Hash{Bytes: [32]byte{0x5c, 0x94, 0x4e, 0xe5, 0x1c, 0x5a, 0xe9, 0xf7, 0x2a, 0x95, 0xec, 0xcb, 0x8a, 0xed, 0x3, 0x74, 0xee, 0xcb, 0x51, 0x19, 0xd7, 0x20, 0xcb, 0xea, 0x68, 0x13, 0xe8, 0xe0, 0xd6, 0xad, 0x92, 0x61}},
 	dists: [257][]NodeID{
 		240: {
 			MustHexID("2001ad5e3e80c71b952161bc0186731cf5ffe942d24a79230a0555802296238e57ea7a32f5b6f18564eadc1c65389448481f8c9338df0a3dbd18f708cbc2cbcb"),
@@ -260,7 +260,7 @@ var lookupTestnet = &preminedTestnet{
 
 type preminedTestnet struct {
 	target    NodeID
-	targetSha types.Hash // sha3(target)
+	targetSha common.Hash // sha3(target)
 	dists     [hashBits + 1][]NodeID
 	net       *Network
 }
@@ -269,7 +269,7 @@ func (tn *preminedTestnet) sendFindnode(to *Node, target NodeID) {
 	panic("sendFindnode called")
 }
 
-func (tn *preminedTestnet) sendFindnodeHash(to *Node, target types.Hash) {
+func (tn *preminedTestnet) sendFindnodeHash(to *Node, target common.Hash) {
 	// current log distance is encoded in port number
 	// fmt.Println("findnode query at dist", toaddr.Port)
 	if to.UDP <= lowPort {
@@ -320,7 +320,7 @@ func (tn *preminedTestnet) sendTopicQuery(to *Node, topic Topic) {
 	panic("sendTopicQuery called")
 }
 
-func (tn *preminedTestnet) sendTopicNodes(to *Node, queryHash types.Hash, nodes []*Node) {
+func (tn *preminedTestnet) sendTopicNodes(to *Node, queryHash common.Hash, nodes []*Node) {
 	panic("sendTopicNodes called")
 }
 

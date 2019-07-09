@@ -14,10 +14,11 @@
 package miner
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
 )
 
 type Miner interface {
-	StartMine(tx types.Txi, targetMax types.Hash, start uint64, responseChan chan uint64)
+	StartMine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64)
 	Stop()
 }

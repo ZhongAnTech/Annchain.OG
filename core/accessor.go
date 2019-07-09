@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
@@ -73,7 +74,7 @@ func receiptKey(seqID uint64) []byte {
 	return append(prefixReceiptKey, encodeUint64(seqID)...)
 }
 
-func transactionKey(hash types.Hash) []byte {
+func transactionKey(hash common.Hash) []byte {
 	return append(prefixTransactionKey, hash.ToBytes()...)
 }
 
@@ -81,16 +82,16 @@ func confirmTimeKey(SeqHeight uint64) []byte {
 	return append(prefixConfirmtime, encodeUint64(SeqHeight)...)
 }
 
-func txHashFlowKey(addr types.Address, nonce uint64) []byte {
+func txHashFlowKey(addr common.Address, nonce uint64) []byte {
 	keybody := append(addr.ToBytes(), encodeUint64(nonce)...)
 	return append(prefixTxHashFlowKey, keybody...)
 }
 
-func addrLatestNonceKey(addr types.Address) []byte {
+func addrLatestNonceKey(addr common.Address) []byte {
 	return append(prefixAddrLatestNonceKey, addr.ToBytes()...)
 }
 
-func addressBalanceKey(addr types.Address) []byte {
+func addressBalanceKey(addr common.Address) []byte {
 	return append(prefixAddressBalanceKey, addr.ToBytes()...)
 }
 
@@ -187,12 +188,12 @@ func (p *Putter) Put(key []byte, data []byte) error {
 
 // ReadGenesis get genesis sequencer from db.
 // return nil if there is no genesis.
-func (da *Accessor) ReadGenesis() *types.Sequencer {
+func (da *Accessor) ReadGenesis() *tx_types.Sequencer {
 	data, _ := da.db.Get(genesisKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq types.Sequencer
+	var seq tx_types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -201,7 +202,7 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 }
 
 // WriteGenesis writes geneis into db.
-func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
+func (da *Accessor) WriteGenesis(genesis *tx_types.Sequencer) error {
 	data, err := genesis.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -211,12 +212,12 @@ func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
 
 // ReadLatestSequencer get latest sequencer from db.
 // return nil if there is no sequencer.
-func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
+func (da *Accessor) ReadLatestSequencer() *tx_types.Sequencer {
 	data, _ := da.db.Get(latestSequencerKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq types.Sequencer
+	var seq tx_types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -225,7 +226,7 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 }
 
 // WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) error {
+func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *tx_types.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -234,7 +235,7 @@ func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) e
 }
 
 // ReadTransaction get tx or sequencer from ogdb.
-func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
+func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 	data, _ := da.db.Get(transactionKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -243,7 +244,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx types.Tx
+		var tx tx_types.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
@@ -252,7 +253,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq types.Sequencer
+		var sq tx_types.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal seq error")
@@ -261,7 +262,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return &sq
 	}
 	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp types.Campaign
+		var cp tx_types.Campaign
 		_, err := cp.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal camp error")
@@ -270,7 +271,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc types.TermChange
+		var tc tx_types.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")
@@ -279,7 +280,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return &tc
 	}
 	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac types.Archive
+		var ac tx_types.Archive
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -288,7 +289,7 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 		return &ac
 	}
 	if bytes.Equal(prefix, contentPrefixActionTx) {
-		var ac types.ActionTx
+		var ac tx_types.ActionTx
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -301,17 +302,17 @@ func (da *Accessor) ReadTransaction(hash types.Hash) types.Txi {
 }
 
 // ReadTxByNonce get tx from db by sender's address and nonce.
-func (da *Accessor) ReadTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	data, _ := da.db.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil
 	}
-	hash := types.BytesToHash(data)
+	hash := common.BytesToHash(data)
 	return da.ReadTransaction(hash)
 }
 
 // WriteTxHashByNonce writes tx hash into db and construct key with address and nonce.
-func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr types.Address, nonce uint64, hash types.Hash) error {
+func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr common.Address, nonce uint64, hash common.Hash) error {
 	data := hash.ToBytes()
 	var err error
 	key := txHashFlowKey(addr, nonce)
@@ -323,7 +324,7 @@ func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr types.Address, nonce
 }
 
 // ReadAddrLatestNonce get latest nonce of an address
-func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
+func (da *Accessor) ReadAddrLatestNonce(addr common.Address) (uint64, error) {
 	has, _ := da.HasAddrLatestNonce(addr)
 	if !has {
 		return 0, fmt.Errorf("not exists")
@@ -340,7 +341,7 @@ func (da *Accessor) ReadAddrLatestNonce(addr types.Address) (uint64, error) {
 }
 
 // HasAddrLatestNonce returns true if addr already sent some txs.
-func (da *Accessor) HasAddrLatestNonce(addr types.Address) (bool, error) {
+func (da *Accessor) HasAddrLatestNonce(addr common.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 func (da *Accessor) writeConfirmTime(cf *types.ConfirmTime) error {
@@ -369,7 +370,7 @@ func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
 	return &cf
 }
 
-func (da *Accessor) WriteToken(putter *Putter, token *types.TokenInfo) error {
+func (da *Accessor) WriteToken(putter *Putter, token *tx_types.TokenInfo) error {
 	data, err := token.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -398,8 +399,8 @@ func (da *Accessor) RaedLatestTokenId() int32 {
 	return common.GetInt32(data, 0)
 }
 
-func (da *Accessor) ReadToken(tokenIndex int32) *types.TokenInfo {
-	var token types.TokenInfo
+func (da *Accessor) ReadToken(tokenIndex int32) *tx_types.TokenInfo {
+	var token tx_types.TokenInfo
 	data, _ := da.db.Get(tokenIndexKey(tokenIndex))
 	if len(data) == 0 {
 		return nil
@@ -425,7 +426,7 @@ func (da *Accessor) WriteReceipts(putter *Putter, seqID uint64, receipts Receipt
 }
 
 // ReadReceipt try get receipt by tx hash and seqID.
-func (da *Accessor) ReadReceipt(seqID uint64, hash types.Hash) *Receipt {
+func (da *Accessor) ReadReceipt(seqID uint64, hash common.Hash) *Receipt {
 	bundleBytes, _ := da.db.Get(receiptKey(seqID))
 	if len(bundleBytes) == 0 {
 		return nil
@@ -449,22 +450,22 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 
 	// write tx
 	switch tx := tx.(type) {
-	case *types.Tx:
+	case *tx_types.Tx:
 		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
-	case *types.Sequencer:
+	case *tx_types.Sequencer:
 		prefix = contentPrefixSequencer
 		data, err = tx.MarshalMsg(nil)
-	case *types.Campaign:
+	case *tx_types.Campaign:
 		prefix = contentPrefixCampaign
 		data, err = tx.MarshalMsg(nil)
-	case *types.TermChange:
+	case *tx_types.TermChange:
 		prefix = contentPrefixTermChg
 		data, err = tx.MarshalMsg(nil)
-	case *types.Archive:
+	case *tx_types.Archive:
 		prefix = contentPrefixArchive
 		data, err = tx.MarshalMsg(nil)
-	case *types.ActionTx:
+	case *tx_types.ActionTx:
 		prefix = contentPrefixActionTx
 		data, err = tx.MarshalMsg(nil)
 	default:
@@ -481,12 +482,12 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 }
 
 // DeleteTransaction delete the tx or sequencer.
-func (da *Accessor) DeleteTransaction(hash types.Hash) error {
+func (da *Accessor) DeleteTransaction(hash common.Hash) error {
 	return da.db.Delete(transactionKey(hash))
 }
 
 // ReadBalance get the balance of an address.
-func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
+func (da *Accessor) ReadBalance(addr common.Address) *math.BigInt {
 	data, _ := da.db.Get(addressBalanceKey(addr))
 	if len(data) == 0 {
 		return math.NewBigInt(0)
@@ -501,7 +502,7 @@ func (da *Accessor) ReadBalance(addr types.Address) *math.BigInt {
 
 // SetBalance write the balance of an address into ogdb.
 // Data will be overwritten if it already exist in db.
-func (da *Accessor) SetBalance(putter *Putter, addr types.Address, value *math.BigInt) error {
+func (da *Accessor) SetBalance(putter *Putter, addr common.Address, value *math.BigInt) error {
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
@@ -514,13 +515,13 @@ func (da *Accessor) SetBalance(putter *Putter, addr types.Address, value *math.B
 }
 
 // DeleteBalance delete the balance of an address.
-func (da *Accessor) DeleteBalance(addr types.Address) error {
+func (da *Accessor) DeleteBalance(addr common.Address) error {
 	return da.db.Delete(addressBalanceKey(addr))
 }
 
 // AddBalance adds an amount of value to the address balance. Note that AddBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) AddBalance(putter *Putter, addr types.Address, amount *math.BigInt) error {
+func (da *Accessor) AddBalance(putter *Putter, addr common.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
@@ -535,7 +536,7 @@ func (da *Accessor) AddBalance(putter *Putter, addr types.Address, amount *math.
 
 // SubBalance subs an amount of value to the address balance. Note that SubBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) SubBalance(putter *Putter, addr types.Address, amount *math.BigInt) error {
+func (da *Accessor) SubBalance(putter *Putter, addr common.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
@@ -553,12 +554,12 @@ func (da *Accessor) SubBalance(putter *Putter, addr types.Address, amount *math.
 }
 
 // ReadSequencerByHeight get sequencer from db by sequencer id.
-func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, error) {
+func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*tx_types.Sequencer, error) {
 	data, _ := da.db.Get(seqHeightKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
-	var seq types.Sequencer
+	var seq tx_types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -567,7 +568,7 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, e
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer) error {
+func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *tx_types.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -578,12 +579,12 @@ func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer)
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
 // holds the id 'SeqHeight'.
-func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*types.Hashes, error) {
+func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*common.Hashes, error) {
 	data, _ := da.db.Get(txIndexKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("tx hashs with seq height %d not found", SeqHeight)
 	}
-	var hashs types.Hashes
+	var hashs common.Hashes
 	_, err := hashs.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -593,7 +594,7 @@ func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*types.Hashes, error) 
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'SeqHeight'.
-func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs *types.Hashes) error {
+func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs *common.Hashes) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err

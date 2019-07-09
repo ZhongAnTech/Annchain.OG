@@ -39,7 +39,7 @@ var (
 	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
 )
 
-func newTestAddress(priv crypto.PrivateKey) types.Address {
+func newTestAddress(priv crypto.PrivateKey) common.Address {
 	signer := crypto.NewSigner(priv.Type)
 	pubkey := signer.PubKey(priv)
 	return signer.Address(pubkey)
@@ -69,10 +69,10 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*types.Tx)
+	return tx.(*tx_types.Tx)
 }
 
-func newTestSeq(nonce uint64) *types.Sequencer {
+func newTestSeq(nonce uint64) *tx_types.Sequencer {
 	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
@@ -80,7 +80,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	seq := txCreator.NewSignedSequencer(addr, nonce, nonce, pk)
 	seq.SetHash(seq.CalcTxHash())
 
-	return seq.(*types.Sequencer)
+	return seq.(*tx_types.Sequencer)
 }
 
 func compareTxi(tx1, tx2 types.Txi) bool {
@@ -247,7 +247,7 @@ func TestDag_Start(t *testing.T) {
 	defer remove()
 
 	acc := core.NewAccessor(db)
-	seq := types.RandomSequencer()
+	seq := tx_types.RandomSequencer()
 	height := seq.Height
 	//acc.WriteLatestSequencer(nil,seq)
 	batch := acc.NewBatch()

@@ -62,7 +62,7 @@ func newTx(cmd *cobra.Command, args []string) {
 	if to == "" || value < 1 || priv_key == "" {
 		cmd.HelpFunc()
 	}
-	toAddr := types.HexToAddress(to)
+	toAddr := common.HexToAddress(to)
 	key, err := crypto.PrivateKeyFromString(priv_key)
 	if err != nil {
 		fmt.Println(err)
@@ -115,7 +115,7 @@ func newTx(cmd *cobra.Command, args []string) {
 	fmt.Println(str)
 }
 
-func getNonce(addr types.Address) (nonce uint64) {
+func getNonce(addr common.Address) (nonce uint64) {
 	uri := fmt.Sprintf("query_nonce?address=%s", addr.Hex())
 	req := httplib.Get(Host + "/" + uri)
 	var nonceResp struct {

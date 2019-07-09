@@ -18,11 +18,11 @@ package state
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"sync"
 
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/trie"
-	"github.com/annchain/OG/types"
 
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -42,19 +42,19 @@ const (
 // Database wraps access to tries and contract code.
 type Database interface {
 	// OpenTrie opens the main account trie.
-	OpenTrie(root types.Hash) (Trie, error)
+	OpenTrie(root common.Hash) (Trie, error)
 
 	// OpenStorageTrie opens the storage trie of an account.
-	OpenStorageTrie(addrHash, root types.Hash) (Trie, error)
+	OpenStorageTrie(addrHash, root common.Hash) (Trie, error)
 
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
 	// ContractCode retrieves a particular contract's code.
-	ContractCode(addrHash, codeHash types.Hash) ([]byte, error)
+	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
 
 	// ContractCodeSize retrieves a particular contracts code's size.
-	ContractCodeSize(addrHash, codeHash types.Hash) (int, error)
+	ContractCodeSize(addrHash, codeHash common.Hash) (int, error)
 
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
@@ -65,8 +65,8 @@ type Trie interface {
 	TryGet(key []byte) ([]byte, error)
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
-	Commit(onleaf trie.LeafCallback) (types.Hash, error)
-	Hash() types.Hash
+	Commit(onleaf trie.LeafCallback) (common.Hash, error)
+	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
 	Prove(key []byte, fromLevel uint, proofDb ogdb.Putter) error
@@ -92,7 +92,7 @@ type cachingDB struct {
 }
 
 // OpenTrie opens the main account trie.
-func (db *cachingDB) OpenTrie(root types.Hash) (Trie, error) {
+func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -121,7 +121,7 @@ func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
 }
 
 // OpenStorageTrie opens the storage trie of an account.
-func (db *cachingDB) OpenStorageTrie(addrHash, root types.Hash) (Trie, error) {
+func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db, 0)
 }
 
@@ -138,7 +138,7 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 }
 
 // ContractCode retrieves a particular contract's code.
-func (db *cachingDB) ContractCode(addrHash, codeHash types.Hash) ([]byte, error) {
+func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
 	code, err := db.db.Node(codeHash)
 	if err == nil {
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -147,7 +147,7 @@ func (db *cachingDB) ContractCode(addrHash, codeHash types.Hash) ([]byte, error)
 }
 
 // ContractCodeSize retrieves a particular contracts code's size.
-func (db *cachingDB) ContractCodeSize(addrHash, codeHash types.Hash) (int, error) {
+func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
 		return cached.(int), nil
 	}
@@ -166,7 +166,7 @@ type cachedTrie struct {
 	db *cachingDB
 }
 
-func (m cachedTrie) Commit(onleaf trie.LeafCallback) (types.Hash, error) {
+func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	root, err := m.SecureTrie.Commit(onleaf)
 	if err == nil {
 		m.db.pushTrie(m.SecureTrie)

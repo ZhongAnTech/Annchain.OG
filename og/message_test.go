@@ -15,7 +15,8 @@ package og
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/bluele/gcache"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -31,8 +32,8 @@ func TestCache(t *testing.T) {
 			Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build(),
 	}
 
-	tx := types.SampleTx()
-	msg := &types.MessageNewTx{
+	tx := tx_types.SampleTx()
+	msg := &p2p_message.MessageNewTx{
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)

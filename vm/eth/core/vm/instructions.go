@@ -18,9 +18,9 @@ package vm
 
 import (
 	"fmt"
+	common2 "github.com/annchain/OG/common"
 	"math/big"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
@@ -390,7 +390,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	interpreter.hasher.Write(data)
 	hasherBufBytes := interpreter.hasherBuf.ToBytes()
 	interpreter.hasher.Read(hasherBufBytes)
-	interpreter.hasherBuf = types.BytesToHash(hasherBufBytes)
+	interpreter.hasherBuf = common2.BytesToHash(hasherBufBytes)
 
 	evm := interpreter.vmContext
 	if interpreter.Cfg.EnablePreimageRecording {
@@ -409,7 +409,7 @@ func opAddress(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opBalance(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.Set(interpreter.vmContext.StateDB.GetBalance(types.BigToAddress(slot)).Value)
+	slot.Set(interpreter.vmContext.StateDB.GetBalance(common2.BigToAddress(slot)).Value)
 	return nil, nil
 }
 
@@ -475,7 +475,7 @@ func opReturnDataCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes
 
 func opExtCodeSize(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	slot.SetUint64(uint64(interpreter.vmContext.StateDB.GetCodeSize(types.BigToAddress(slot))))
+	slot.SetUint64(uint64(interpreter.vmContext.StateDB.GetCodeSize(common2.BigToAddress(slot))))
 
 	return nil, nil
 }
@@ -502,7 +502,7 @@ func opCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 
 func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	var (
-		addr       = types.BigToAddress(stack.pop())
+		addr       = common2.BigToAddress(stack.pop())
 		memOffset  = stack.pop()
 		codeOffset = stack.pop()
 		length     = stack.pop()
@@ -521,7 +521,7 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Co
 // should return the relative code hash and set it as the result.
 //
 //   (2) Caller tries to get the code hash of a non-existent account, state should
-// return types.Hash{} and zero will be set as the result.
+// return common.Hash{} and zero will be set as the result.
 //
 //   (3) Caller tries to get the code hash for an account without contract code,
 // state should return emptyCodeHash(0xc5d246...) as the result.
@@ -542,7 +542,7 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Co
 // this account should be regarded as a non-existent account and zero should be returned.
 func opExtCodeHash(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	slot := stack.peek()
-	address := types.BigToAddress(slot)
+	address := common2.BigToAddress(slot)
 	if interpreter.vmContext.StateDB.Empty(address) {
 		slot.SetUint64(0)
 	} else {
@@ -626,15 +626,15 @@ func opMstore8(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opSload(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
-	val := interpreter.vmContext.StateDB.GetState(contract.Address(), types.BigToHash(loc))
+	val := interpreter.vmContext.StateDB.GetState(contract.Address(), common2.BigToHash(loc))
 	loc.SetBytes(val.ToBytes())
 	return nil, nil
 }
 
 func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	loc := types.BigToHash(stack.pop())
+	loc := common2.BigToHash(stack.pop())
 	val := stack.pop()
-	interpreter.vmContext.StateDB.SetState(contract.Address(), loc, types.BigToHash(val))
+	interpreter.vmContext.StateDB.SetState(contract.Address(), loc, common2.BigToHash(val))
 
 	interpreter.intPool.put(val)
 	return nil, nil
@@ -754,7 +754,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := common2.BigToAddress(addr)
 	value = math.U256(value)
 	// Get the arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
@@ -783,7 +783,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contr
 	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := common2.BigToAddress(addr)
 	value = math.U256(value)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
@@ -812,7 +812,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.C
 	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := common2.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
@@ -837,7 +837,7 @@ func opStaticCall(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Con
 	gas := interpreter.vmContext.CallGasTemp
 	// Pop other call parameters.
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
-	toAddr := types.BigToAddress(addr)
+	toAddr := common2.BigToAddress(addr)
 	// Get arguments from the memory.
 	args := memory.Get(inOffset.Int64(), inSize.Int64())
 
@@ -878,7 +878,7 @@ func opStop(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 
 func opSuicide(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	balance := interpreter.vmContext.StateDB.GetBalance(contract.Address())
-	interpreter.vmContext.StateDB.AddBalance(types.BigToAddress(stack.pop()), balance)
+	interpreter.vmContext.StateDB.AddBalance(common2.BigToAddress(stack.pop()), balance)
 
 	interpreter.vmContext.StateDB.Suicide(contract.Address())
 	return nil, nil
@@ -889,10 +889,10 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 // make log instruction function
 func makeLog(size int) executionFunc {
 	return func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-		topics := make(types.Hashes, size)
+		topics := make(common2.Hashes, size)
 		mStart, mSize := stack.pop(), stack.pop()
 		for i := 0; i < size; i++ {
-			topics[i] = types.BigToHash(stack.pop())
+			topics[i] = common2.BigToHash(stack.pop())
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())

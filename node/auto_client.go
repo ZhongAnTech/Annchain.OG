@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/types/tx_types"
 	"math/rand"
 	"sync"
 	"time"
@@ -353,10 +354,10 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
 	if txi.GetType() == types.TxBaseTypeCampaign {
-		cp := txi.(*types.Campaign)
+		cp := txi.(*tx_types.Campaign)
 		cp.Issuer = &me.Address
 	} else if txi.GetType() == types.TxBaseTypeTermChange {
-		cp := txi.(*types.TermChange)
+		cp := txi.(*tx_types.TermChange)
 		cp.Issuer = &me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)

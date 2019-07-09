@@ -16,7 +16,9 @@ package core
 import (
 	"container/heap"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync"
 
@@ -26,13 +28,13 @@ import (
 )
 
 type AccountFlows struct {
-	afs map[types.Address]*AccountFlow
+	afs map[common.Address]*AccountFlow
 	mu  sync.RWMutex
 }
 
 func NewAccountFlows() *AccountFlows {
 	return &AccountFlows{
-		afs: make(map[types.Address]*AccountFlow),
+		afs: make(map[common.Address]*AccountFlow),
 	}
 }
 
@@ -51,14 +53,14 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	a.afs[tx.Sender()].Add(tx)
 }
 
-func (a *AccountFlows) Get(addr types.Address) *AccountFlow {
+func (a *AccountFlows) Get(addr common.Address) *AccountFlow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	return a.afs[addr]
 }
 
-func (a *AccountFlows) GetBalanceState(addr types.Address, tokenID int32) *BalanceState {
+func (a *AccountFlows) GetBalanceState(addr common.Address, tokenID int32) *BalanceState {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -73,7 +75,7 @@ func (a *AccountFlows) GetBalanceState(addr types.Address, tokenID int32) *Balan
 	return bls[tokenID]
 }
 
-func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (a *AccountFlows) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -84,7 +86,7 @@ func (a *AccountFlows) GetTxByNonce(addr types.Address, nonce uint64) types.Txi 
 	return flow.GetTx(nonce)
 }
 
-func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
+func (a *AccountFlows) GetLatestNonce(addr common.Address) (uint64, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -98,7 +100,7 @@ func (a *AccountFlows) GetLatestNonce(addr types.Address) (uint64, error) {
 	return flow.LatestNonce()
 }
 
-func (a *AccountFlows) ResetFlow(addr types.Address, originBalance state.BalanceSet) {
+func (a *AccountFlows) ResetFlow(addr common.Address, originBalance state.BalanceSet) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -168,7 +170,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		af.txlist.Put(tx)
 		return nil
 	}
-	txnormal := tx.(*types.Tx)
+	txnormal := tx.(*tx_types.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
@@ -193,7 +195,7 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 		af.txlist.Remove(nonce)
 		return nil
 	}
-	txnormal := tx.(*types.Tx)
+	txnormal := tx.(*tx_types.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Remove(nonce)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())

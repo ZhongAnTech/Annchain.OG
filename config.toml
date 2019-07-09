@@ -1,5 +1,5 @@
 config = "config.toml"
-datadir = "D:\\ws\\git\\OG\\build\\private\\node_1"
+datadir = "D:\\ws\\git\\OG\\build\\private\\node_0"
 genkey = false
 log_line_number = false
 max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
@@ -9,12 +9,11 @@ multifile_by_module = false
 title = "OG configuration"
 
 [annsensus]
-  campaign = false
-  campain = false
-  consensus_path = "consensus1.json"
+  campaign = true
+  consensus_path = "consensus0.json"
   disable = false
   disable_term_change = true
-  genesis_pk = "0x01043cef2edf0803c8d8fb0abfa17b2bda8043e39d4c1b908e88c79cbba3a97f63c8dfcc4891747c2ff0e46324814dffe8be9e839257039ec0afc1bf03537570d62b;0x01048788655ee0f41a9eb62a16d1db29c91d45382ad55134232b3a1f6385909ae57e22daec27082fe6f13a723301c6517548e62f8f9cee06a5a603365db7c8f97396;0x0104629e855c11dfdd7d856140565c4cb23995953bb03669ed33bf21e4c3c36a4f82ce6642d34dc6cf2baa6480f76e31d274e74de6159b5499ae390adf158aa33be3;0x01042d8c926ae03995eb464d82e9d939cb4abe32a4db531ce1c9105e7980b7e3cf5459f3332ae172d32ad13074be21bc49febb3b0e9382a676653b025f00aee45c00"
+  genesis_pk = "0x0104c544565e015346da7c29b1161a8369bf58da2adb3a6fc6a806386de2a7965c7fe2990574156d9e5103e0ef2daf081dd0ffce7b434710b908c4b61083322b2b2c;0x0104ed90b29606e51dc050d56b205d5001e1aa8472c9bf10882a9af49d250e735e46cf8164e1174cd35ef5273269fbcced7f72e4f8ecf660dc79ea27e152c16a8475;0x01044e83369a8bacaae5492089904dfaa49e19635cf29c7e6d2697a6f3be63a08cec6f356d506c42fbcda5dffaaca05f8486a3576db53121fbd275f192a95b3b3bee;0x01044ad86a816fd62ec410a3f49bfcfa171929b1b1ddffaced8c5d5ac35b35e6ced61f5b1f30c4d1f9aa8d24944a9e13f6413646f88ffaaf79ff44fd67de01ae12d5"
   mode = "archive"
   partner_number = 4
   term_change_interval = 10
@@ -28,7 +27,7 @@ title = "OG configuration"
     interval_us = 500000
 
   [auto_client.sequencer]
-    enabled = false
+    enabled = "true"
     interval_us = 5000000
 
   [auto_client.tx]
@@ -60,29 +59,29 @@ title = "OG configuration"
 [leveldb]
   cache = 16
   handles = 16
-  path = "rw/datadir_1"
+  path = "rw/datadir_0"
 
 [log]
   level = "debug"
   log_dir = ""
 
 [p2p]
-  bootstrap_node = false
-  bootstrap_nodes = "onode://e27504dd0e54fa6b981be9fce34f1ada908add2618fba829070bf4b5063f7667573dd31004ae9902f8832a0f7a36de7922926dbd7ced337a0a9b98f0de5d2abf@127.0.0.1:8001"
+  bootstrap_node = "true"
+  bootstrap_nodes = "onode://c5d29092fdbfd12bbb36822f5b9a494e04586a55cd8b82ada7254ee1daf50239334f5b05608ef169f83f3c2f2a5b6332aba2ee1e9145c8033804f1894450a604@127.0.0.1:8001"
   enable_sync = true
   enabled = true
   max_peers = 50
-  network_id = 1
+  network_id = "2"
   no_encryption = false
-  node_key = "eb648bcfd5345068054c420fba19cfc8fdcb4709ca6b79e704d08e343c7fed89"
-  port = 8011
+  node_key = "9c2a300ed9a7e5783debe11b9a940dbf3dd9a9c27a7e6af8e0b7533312cbbf06"
+  port = 8001
 
 [profiling]
-  port = 8013
+  port = 8003
 
 [rpc]
   enabled = true
-  port = 8010
+  port = 8000
 
 [statedb]
   beat_expire_time_s = 300
@@ -102,4 +101,4 @@ title = "OG configuration"
 
 [websocket]
   enabled = true
-  port = 8012
+  port = 8002

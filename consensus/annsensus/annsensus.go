@@ -284,7 +284,7 @@ func (as *AnnSensus) AddCampaign(cp *tx_types.Campaign) error {
 
 	pubkey := cp.GetDkgPublicKey()
 	if pubkey == nil {
-		log.WithField("nil PartPubf for  campain", cp).Warn("add campaign")
+		log.WithField("nil PartPubf for campaign", cp).Warn("add campaign")
 		return fmt.Errorf("pubkey is nil ")
 	}
 

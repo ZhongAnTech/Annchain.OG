@@ -86,7 +86,7 @@ algorithm = "secp256k1"
 genesis_path = "genesis.json"
 
 [annsensus]
-campaign = false
+campaign = true
 disable_term_change = true
 partner_number = 4
 threshold = 4

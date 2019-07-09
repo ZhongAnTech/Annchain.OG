@@ -79,7 +79,7 @@ func privateChainConfig() {
 	}
 	genesisPk := strings.Join(publicSet, ";")
 	viper.Set("annsensus.genesis_pk", genesisPk)
-	viper.Set("annsensus.campain", true)
+	viper.Set("annsensus.campaign", true)
 
 	err := io.MkDirIfNotExists(privateDir)
 	if err != nil {
@@ -87,7 +87,6 @@ func privateChainConfig() {
 		return
 	}
 
-	// init node 0
 	privateDirNode0 := path.Join(privateDir, "node_0")
 	err = io.MkDirIfNotExists(privateDirNode0)
 	if err != nil {
@@ -110,7 +109,7 @@ func privateChainConfig() {
 	io.CopyFile("genesis.json", path.Join(privateDirNode0, "genesis.json"))
 
 	//init other nodes
-	viper.Set("annsensus.campain", false)
+	viper.Set("annsensus.campaign", true)
 	viper.Set("p2p.bootstrap_node", false)
 	for i := 1; i < len(privateSet); i++ {
 		viper.Set("rpc.port", port+10*i)

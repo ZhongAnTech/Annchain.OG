@@ -24,7 +24,6 @@ import (
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 	// "github.com/annchain/OG/common"
 	// ethdb "github.com/annchain/OG/ogdb"
 )
@@ -104,9 +103,9 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	db, trie, _ := makeTestTrie()
 
 	// Gather all the node hashes found by the iterator
-	hashes := make(map[types.Hash]struct{})
+	hashes := make(map[common.Hash]struct{})
 	for it := trie.NodeIterator(nil); it.Next(true); {
-		if it.Hash() != (types.Hash{}) {
+		if it.Hash() != (common.Hash{}) {
 			hashes[it.Hash()] = struct{}{}
 		}
 	}
@@ -117,14 +116,14 @@ func TestNodeIteratorCoverage(t *testing.T) {
 		}
 	}
 	for hash, obj := range db.nodes {
-		if obj != nil && hash != (types.Hash{}) {
+		if obj != nil && hash != (common.Hash{}) {
 			if _, ok := hashes[hash]; !ok {
 				t.Errorf("state entry not reported %x", hash)
 			}
 		}
 	}
 	for _, key := range db.diskdb.(*ogdb.MemDatabase).Keys() {
-		if _, ok := hashes[types.BytesToHash(key)]; !ok {
+		if _, ok := hashes[common.BytesToHash(key)]; !ok {
 			t.Errorf("state entry not reported %x", key)
 		}
 	}
@@ -295,7 +294,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	diskdb := ogdb.NewMemDatabase()
 	triedb := NewDatabase(diskdb)
 
-	tr, _ := New(types.Hash{}, triedb)
+	tr, _ := New(common.Hash{}, triedb)
 	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
 	}
@@ -307,7 +306,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 
 	var (
 		diskKeys [][]byte
-		memKeys  types.Hashes
+		memKeys  common.Hashes
 	)
 	if memonly {
 		memKeys = triedb.Nodes()
@@ -321,7 +320,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		// Remove a random node from the database. It can't be the root node
 		// because that one is already loaded.
 		var (
-			rkey types.Hash
+			rkey common.Hash
 			rval []byte
 			robj *cachedNode
 		)
@@ -382,7 +381,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	diskdb := ogdb.NewMemDatabase()
 	triedb := NewDatabase(diskdb)
 
-	ctr, _ := New(types.Hash{}, triedb)
+	ctr, _ := New(common.Hash{}, triedb)
 	for _, val := range testdata1 {
 		ctr.Update([]byte(val.k), []byte(val.v))
 	}
@@ -390,7 +389,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	if !memonly {
 		triedb.Commit(root, true)
 	}
-	barNodeHash := types.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
+	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (
 		barNodeBlob []byte
 		barNodeObj  *cachedNode

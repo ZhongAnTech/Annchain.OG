@@ -1,18 +1,18 @@
 package state_test
 
 import (
+	"github.com/annchain/OG/common"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 )
 
 func newTestStateDB(t *testing.T) *state.StateDB {
 	db := ogdb.NewMemDatabase()
-	initRoot := types.Hash{}
+	initRoot := common.Hash{}
 	stdb, err := state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(db), initRoot)
 	if err != nil {
 		t.Errorf("create StateDB error: %v", err)
@@ -37,7 +37,7 @@ func TestStateStorage(t *testing.T) {
 	t.Parallel()
 
 	stdb := newTestStateDB(t)
-	addr := types.HexToAddress(testAddress)
+	addr := common.HexToAddress(testAddress)
 
 	stdb.SetState(addr, storageKey1, storageValue1)
 	stdb.SetState(addr, storageKey2, storageValue2)
@@ -69,7 +69,7 @@ func TestStateStorage(t *testing.T) {
 func TestStateWorkFlow(t *testing.T) {
 	t.Parallel()
 
-	addr := types.HexToAddress(testAddress)
+	addr := common.HexToAddress(testAddress)
 	testnonce := uint64(123456)
 	testblc := int64(666)
 

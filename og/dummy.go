@@ -15,7 +15,9 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,25 +26,25 @@ type dummyTxPoolRandomTx struct {
 
 func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
 	for i := 0; i < n; i++ {
-		v = append(v, types.RandomTx())
+		v = append(v, tx_types.RandomTx())
 	}
 	return
 }
 
 type DummyTxPoolMiniTx struct {
-	poolMap map[types.Hash]types.Txi
-	tipsMap map[types.Hash]types.Txi
+	poolMap map[common.Hash]types.Txi
+	tipsMap map[common.Hash]types.Txi
 }
 
 func (d *DummyTxPoolMiniTx) Init() {
-	d.poolMap = make(map[types.Hash]types.Txi)
-	d.tipsMap = make(map[types.Hash]types.Txi)
+	d.poolMap = make(map[common.Hash]types.Txi)
+	d.tipsMap = make(map[common.Hash]types.Txi)
 }
 
 func (p *DummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 	indices := generateRandomIndices(n, len(p.tipsMap))
 	// slice of keys
-	var keys types.Hashes
+	var keys common.Hashes
 	for k := range p.tipsMap {
 		keys = append(keys, k)
 	}
@@ -66,14 +68,14 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 }
 
 type dummyTxPoolParents struct {
-	poolMap map[types.Hash]types.Txi
+	poolMap map[common.Hash]types.Txi
 }
 
-func (p *dummyTxPoolParents) IsLocalHash(h types.Hash) bool {
+func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
 	return false
 }
 
-func (p *dummyTxPoolParents) GetLatestNonce(addr types.Address) (uint64, error) {
+func (p *dummyTxPoolParents) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
@@ -82,10 +84,10 @@ func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string,
 }
 
 func (p *dummyTxPoolParents) Init() {
-	p.poolMap = make(map[types.Hash]types.Txi)
+	p.poolMap = make(map[common.Hash]types.Txi)
 }
 
-func (p *dummyTxPoolParents) Get(hash types.Hash) types.Txi {
+func (p *dummyTxPoolParents) Get(hash common.Hash) types.Txi {
 	return p.poolMap[hash]
 }
 

@@ -15,8 +15,11 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"sync"
 	"time"
 
@@ -26,7 +29,6 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 )
 
 type Og struct {
@@ -176,10 +178,10 @@ func GetOldDb() (ogdb.Database, error) {
 	}
 }
 
-func (og *Og) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+func (og *Og) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
-	case *types.Sequencer:
+	case *tx_types.Sequencer:
 		return tx
 	default:
 		return nil
@@ -209,7 +211,7 @@ func (og *Og) BroadcastLatestSequencer() {
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			number := seq.Number()
-			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
+			msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			function := func() {
 				og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
@@ -224,7 +226,7 @@ func (og *Og) BroadcastLatestSequencer() {
 				seq := og.Dag.LatestSequencer()
 				hash := seq.GetTxHash()
 				number := seq.Number()
-				msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
+				msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it
 				function := func() {
 					og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)

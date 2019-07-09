@@ -14,10 +14,11 @@
 package term
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types/tx_types"
 	"sync"
 
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,19 +28,19 @@ type Term struct {
 	partsNum               int
 	senators               Senators            `json:"senators"`
 	formerSenators         map[uint64]Senators `json:"former_senators"`
-	candidates             map[types.Address]*types.Campaign
+	candidates             map[common.Address]*tx_types.Campaign
 	PublicKeys             []crypto.PublicKey
 	formerPublicKeys       []crypto.PublicKey
-	alsorans               map[types.Address]*types.Campaign
-	campaigns              map[types.Address]*types.Campaign
+	alsorans               map[common.Address]*tx_types.Campaign
+	campaigns              map[common.Address]*tx_types.Campaign
 	startedHeight          uint64
 	generateCampaignHeight uint64
 	newTerm                bool
 	termChangeInterval     int
 
 	mu                sync.RWMutex
-	currentTermChange *types.TermChange
-	genesisTermChange *types.TermChange
+	currentTermChange *tx_types.TermChange
+	genesisTermChange *tx_types.TermChange
 	started           bool
 }
 
@@ -51,9 +52,9 @@ func NewTerm(id uint64, participantNumber int, termChangeInterval int) *Term {
 		termChangeInterval: termChangeInterval,
 		senators:           make(Senators),
 		formerSenators:     make(map[uint64]Senators),
-		candidates:         make(map[types.Address]*types.Campaign),
-		alsorans:           make(map[types.Address]*types.Campaign),
-		campaigns:          make(map[types.Address]*types.Campaign),
+		candidates:         make(map[common.Address]*tx_types.Campaign),
+		alsorans:           make(map[common.Address]*tx_types.Campaign),
+		campaigns:          make(map[common.Address]*tx_types.Campaign),
 	}
 }
 
@@ -83,7 +84,7 @@ func (t *Term) SetStartedHeight(h uint64) {
 	t.startedHeight = h
 }
 
-func (t *Term) GetGenesisTermChange() *types.TermChange {
+func (t *Term) GetGenesisTermChange() *tx_types.TermChange {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.genesisTermChange
@@ -100,21 +101,21 @@ func (t *Term) Started() bool {
 	return t.started
 }
 
-func (t *Term) GetCandidate(addr types.Address) *types.Campaign {
+func (t *Term) GetCandidate(addr common.Address) *tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.candidates[addr]
 }
 
-func (t *Term) Candidates() map[types.Address]*types.Campaign {
+func (t *Term) Candidates() map[common.Address]*tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.candidates
 }
 
-func (t *Term) AddCandidate(c *types.Campaign, publicKey crypto.PublicKey) {
+func (t *Term) AddCandidate(c *tx_types.Campaign, publicKey crypto.PublicKey) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -122,42 +123,42 @@ func (t *Term) AddCandidate(c *types.Campaign, publicKey crypto.PublicKey) {
 	t.PublicKeys = append(t.PublicKeys, publicKey)
 }
 
-func (t *Term) AddCampaign(c *types.Campaign) {
+func (t *Term) AddCampaign(c *tx_types.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.campaigns[c.Sender()] = c
 }
 
-func (t *Term) GetCampaign(addr types.Address) *types.Campaign {
+func (t *Term) GetCampaign(addr common.Address) *tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.campaigns[addr]
 }
 
-func (t *Term) Campaigns() map[types.Address]*types.Campaign {
+func (t *Term) Campaigns() map[common.Address]*tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.campaigns
 }
 
-func (t *Term) GetAlsoran(addr types.Address) *types.Campaign {
+func (t *Term) GetAlsoran(addr common.Address) *tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.alsorans[addr]
 }
 
-func (t *Term) Alsorans() map[types.Address]*types.Campaign {
+func (t *Term) Alsorans() map[common.Address]*tx_types.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.alsorans
 }
 
-func (t *Term) AddAlsorans(camps []*types.Campaign) {
+func (t *Term) AddAlsorans(camps []*tx_types.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -174,14 +175,14 @@ func (t *Term) AddAlsorans(camps []*types.Campaign) {
 	}
 }
 
-func (t *Term) HasCampaign(address types.Address) bool {
+func (t *Term) HasCampaign(address common.Address) bool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.hasCampaign(address)
 }
 
-func (t *Term) hasCampaign(address types.Address) bool {
+func (t *Term) hasCampaign(address common.Address) bool {
 	if _, exists := t.candidates[address]; exists {
 		log.Debug("exist in candidates ")
 		return true
@@ -225,11 +226,11 @@ func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 	return true
 }
 
-func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
+func (t *Term) ChangeTerm(tc *tx_types.TermChange, lastHeight uint64) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	snts := make(map[types.Address]*Senator)
+	snts := make(map[common.Address]*Senator)
 	for addr, c := range t.candidates {
 		s := newSenator(addr, c.PublicKey, tc.PkBls)
 		snts[addr] = s
@@ -242,9 +243,9 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 
 	t.currentTermChange = tc
 
-	t.candidates = make(map[types.Address]*types.Campaign)
-	t.alsorans = make(map[types.Address]*types.Campaign)
-	t.campaigns = make(map[types.Address]*types.Campaign)
+	t.candidates = make(map[common.Address]*tx_types.Campaign)
+	t.alsorans = make(map[common.Address]*tx_types.Campaign)
+	t.campaigns = make(map[common.Address]*tx_types.Campaign)
 	t.PublicKeys = nil
 
 	formerSnts := t.senators
@@ -265,16 +266,16 @@ func (t *Term) ChangeTerm(tc *types.TermChange, lastHeight uint64) error {
 }
 
 type Senator struct {
-	addr         types.Address
+	addr         common.Address
 	pk           []byte
 	blspk        []byte
 	Id           int
-	CampaignHash types.Hash
+	CampaignHash common.Hash
 	// TODO:
 	// more variables?
 }
 
-func newSenator(addr types.Address, publickey, blspk []byte) *Senator {
+func newSenator(addr common.Address, publickey, blspk []byte) *Senator {
 	s := &Senator{}
 	s.addr = addr
 	s.pk = publickey
@@ -283,9 +284,9 @@ func newSenator(addr types.Address, publickey, blspk []byte) *Senator {
 	return s
 }
 
-type Senators map[types.Address]*Senator
+type Senators map[common.Address]*Senator
 
-func (t *Term) GetSenator(address types.Address) *Senator {
+func (t *Term) GetSenator(address common.Address) *Senator {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	if v, ok := t.senators[address]; ok {

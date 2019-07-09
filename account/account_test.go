@@ -15,7 +15,7 @@ func TestSignature(t *testing.T) {
 
 	tx := &types.Tx{
 		From:  acc.Address,
-		To:    types.HexToAddress("0x1234567812345678"),
+		To:    common.HexToAddress("0x1234567812345678"),
 		Value: math.NewBigInt(0xAABBCCDDEEFF),
 		TxBase: types.TxBase{
 			PublicKey: acc.PublicKey.Bytes,

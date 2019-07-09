@@ -15,29 +15,31 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
-func buildTx(from types.Address, accountNonce uint64) *types.Tx {
-	tx := types.RandomTx()
+func buildTx(from common.Address, accountNonce uint64) *tx_types.Tx {
+	tx := tx_types.RandomTx()
 	tx.AccountNonce = accountNonce
 	tx.From = &from
 	return tx
 }
 
-func buildSeq(from types.Address, accountNonce uint64, id uint64) *types.Sequencer {
-	tx := types.RandomSequencer()
+func buildSeq(from common.Address, accountNonce uint64, id uint64) *tx_types.Sequencer {
+	tx := tx_types.RandomSequencer()
 	tx.AccountNonce = accountNonce
 	tx.Issuer = &from
 	return tx
 }
 
 func setParents(tx types.Txi, parents []types.Txi) {
-	tx.GetBase().ParentsHash = types.Hashes{}
+	tx.GetBase().ParentsHash = common.Hashes{}
 	for _, parent := range parents {
 		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetTxHash())
 	}
@@ -57,8 +59,8 @@ func TestA3(t *testing.T) {
 	dag := &dummyDag{}
 	dag.init()
 
-	addr1 := types.HexToAddress("0x0001")
-	addr2 := types.HexToAddress("0x0002")
+	addr1 := common.HexToAddress("0x0001")
+	addr2 := common.HexToAddress("0x0002")
 
 	txs := []types.Txi{
 		buildSeq(addr1, 1, 1),
@@ -120,9 +122,9 @@ func TestA6(t *testing.T) {
 	dag := &dummyDag{}
 	dag.init()
 
-	addr1 := types.HexToAddress("0x0001")
-	addr2 := types.HexToAddress("0x0002")
-	addr3 := types.HexToAddress("0x0003")
+	addr1 := common.HexToAddress("0x0001")
+	addr2 := common.HexToAddress("0x0002")
+	addr3 := common.HexToAddress("0x0003")
 
 	txs := []types.Txi{
 		buildSeq(addr1, 1, 1),
@@ -171,7 +173,7 @@ func TestA6(t *testing.T) {
 func TestConsensusVerifier_Verify(t *testing.T) {
 	types.Signer = crypto.Signer
 	logrus.SetLevel(logrus.TraceLevel)
-	tx := types.RandomTx()
+	tx := tx_types.RandomTx()
 	//fmt.Println(tx)
 	pub, priv := crypto.Signer.RandomKeyPair()
 	tx.From = nil

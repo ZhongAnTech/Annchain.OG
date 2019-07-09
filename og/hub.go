@@ -16,14 +16,15 @@ package og
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/types/p2p_message"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 
 	"sync"
@@ -75,7 +76,7 @@ type Hub struct {
 	Fetcher            *fetcher.Fetcher
 
 	NodeInfo             func() *p2p.NodeInfo
-	IsReceivedHash       func(hash types.Hash) bool
+	IsReceivedHash       func(hash common.Hash) bool
 	broadCastMode        uint8
 	encryptionPrivKey    *crypto.PrivateKey
 	encryptionPubKey     *crypto.PublicKey
@@ -105,8 +106,8 @@ type NodeStatusDataProvider interface {
 }
 
 type PeerProvider interface {
-	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
-	GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error)
+	BestPeerInfo() (peerId string, hash common.Hash, seqId uint64, err error)
+	GetPeerHead(peerId string) (hash common.Hash, seqId uint64, err error)
 }
 
 type EncryptionLayer interface {
@@ -366,7 +367,7 @@ func (h *Hub) handleMsg(p *peer) error {
 					log.WithField("outNum ", outNum).WithField("inNum", inNum).Debug("not enough valid path")
 					//return nil
 				}
-				var dup types.MessageDuplicate
+				var dup p2p_message.MessageDuplicate
 				p.SetInPath(false)
 				return h.SendToPeer(p.id, MessageTypeDuplicate, &dup)
 			}
@@ -487,7 +488,7 @@ func (h *Hub) loopReceive() {
 }
 
 //MulticastToSource  multicast msg to source , for example , send tx request to the peer which hash the tx
-func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sourceMsgHash *types.Hash) {
+func (h *Hub) MulticastToSource(messageType MessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticastToSource, sourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
 	if err != nil {
@@ -500,7 +501,7 @@ func (h *Hub) MulticastToSource(messageType MessageType, msg types.Message, sour
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
+func (h *Hub) BroadcastMessage(messageType MessageType, msg p2p_message.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
 	err := msgOut.Marshal()
 	if err != nil {
@@ -513,7 +514,7 @@ func (h *Hub) BroadcastMessage(messageType MessageType, msg types.Message) {
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg types.Message) {
+func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg p2p_message.Message) {
 	if h.broadCastMode != FeedBackMode {
 		msgLog.WithField("type", messageType).Trace("broadcast withlink disabled")
 		h.BroadcastMessage(messageType, msg)
@@ -531,7 +532,7 @@ func (h *Hub) BroadcastMessageWithLink(messageType MessageType, msg types.Messag
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Message) {
+func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg p2p_message.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithFilter}
 	err := msgOut.Marshal()
 	if err != nil {
@@ -544,7 +545,7 @@ func (h *Hub) BroadcastMessageWithFilter(messageType MessageType, msg types.Mess
 }
 
 //MulticastMessage multicast message to some peer
-func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
+func (h *Hub) MulticastMessage(messageType MessageType, msg p2p_message.Message) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticast}
 	err := msgOut.Marshal()
 	if err != nil {
@@ -557,7 +558,7 @@ func (h *Hub) MulticastMessage(messageType MessageType, msg types.Message) {
 }
 
 //SendToAnynomous send msg by  Anynomous
-func (h *Hub) SendToAnynomous(messageType MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey) {
+func (h *Hub) SendToAnynomous(messageType MessageType, msg p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
 	if h.disableEncryptGossip {
 		msgOut.disableEncrypt = true
@@ -588,7 +589,7 @@ func (h *Hub) RelayMessage(msgOut *p2PMessage) {
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg types.Message) error {
+func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg p2p_message.Message) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -596,7 +597,7 @@ func (h *Hub) SendToPeer(peerId string, messageType MessageType, msg types.Messa
 	return p.sendRequest(messageType, msg)
 }
 
-func (h *Hub) SendGetMsg(peerId string, msg *types.MessageGetMsg) error {
+func (h *Hub) SendGetMsg(peerId string, msg *p2p_message.MessageGetMsg) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		if p == nil {
@@ -627,7 +628,7 @@ func (h *Hub) SendBytesToPeer(peerId string, messageType MessageType, msg []byte
 // SetPeerHead is just a hack to set the latest seq number known of the peer
 // This value ought not to be stored in peer, but an outside map.
 // This has nothing related to p2p.
-func (h *Hub) SetPeerHead(peerId string, hash types.Hash, number uint64) error {
+func (h *Hub) SetPeerHead(peerId string, hash common.Hash, number uint64) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -636,7 +637,7 @@ func (h *Hub) SetPeerHead(peerId string, hash types.Hash, number uint64) error {
 	return nil
 }
 
-func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error) {
+func (h *Hub) BestPeerInfo() (peerId string, hash common.Hash, seqId uint64, err error) {
 	p := h.peers.BestPeer()
 	if p != nil {
 		peerId = p.id
@@ -647,7 +648,7 @@ func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err 
 	return
 }
 
-func (h *Hub) GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error) {
+func (h *Hub) GetPeerHead(peerId string) (hash common.Hash, seqId uint64, err error) {
 	p := h.peers.Peer(peerId)
 	if p != nil {
 		hash, seqId = p.Head()
@@ -681,9 +682,9 @@ func (h *Hub) broadcastMessage(msg *p2PMessage) {
 func (h *Hub) broadcastMessageWithLink(msg *p2PMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
-	var hash types.Hash
+	var hash common.Hash
 	hash = *msg.hash
-	c := types.MessageControl{Hash: &hash}
+	c := p2p_message.MessageControl{Hash: &hash}
 	var pMsg = &p2PMessage{messageType: MessageTypeControl, message: &c}
 	//outgoing msg
 	if err := pMsg.Marshal(); err != nil {
@@ -706,7 +707,7 @@ func (h *Hub) broadcastMessageWithLink(msg *p2PMessage) {
 
 /*
 func (h *Hub) broadcastMessageWithFilter(msg *p2PMessage) {
-	newSeq := msg.Message.(*types.MessageNewSequencer)
+	newSeq := msg.Message.(*p2p_message.MessageNewSequencer)
 	if newSeq.Filter == nil {
 		newSeq.Filter = types.NewDefaultBloomFilter()
 	} else if len(newSeq.Filter.Data) != 0 {
@@ -802,7 +803,7 @@ func (h *Hub) cacheMessage(m *p2PMessage) (exists bool) {
 }
 
 //getMsgFromCache
-func (h *Hub) getMsgFromCache(m MessageType, hash types.Hash) []string {
+func (h *Hub) getMsgFromCache(m MessageType, hash common.Hash) []string {
 	key := newMsgKey(m, hash)
 	if a, err := h.messageCache.GetIFPresent(key); err == nil {
 		var peers []string
@@ -854,10 +855,10 @@ func (h *Hub) PeersInfo() []*PeerInfo {
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
 type NodeStatus struct {
-	Network    uint64     `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    types.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Head       types.Hash `json:"head"`       // SHA3 hash of the host's best owned block
+	Network    uint64      `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty *big.Int    `json:"difficulty"` // Total difficulty of the host's blockchain
+	Genesis    common.Hash `json:"genesis"`    // SHA3 hash of the host's genesis block
+	Head       common.Hash `json:"head"`       // SHA3 hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.

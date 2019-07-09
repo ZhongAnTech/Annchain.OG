@@ -13,16 +13,16 @@ import (
 func ExampleExecute() {
 
 	txContext := &ovm.TxContext{
-		From:       types.HexToAddress("0x01"),
-		To:         types.HexToAddress("0x02"),
+		From:       common.HexToAddress("0x01"),
+		To:         common.HexToAddress("0x02"),
 		Value:      math.NewBigInt(10),
 		Data:       common.Hex2Bytes("6060604052600a8060106000396000f360606040526008565b00"),
 		GasPrice:   math.NewBigInt(10000),
 		GasLimit:   DefaultGasLimit,
-		Coinbase:   types.HexToAddress("0x01"),
+		Coinbase:   common.HexToAddress("0x01"),
 		SequenceID: 0,
 	}
-	coinBase := types.HexToAddress("0x03")
+	coinBase := common.HexToAddress("0x03")
 
 	db := ovm.NewMemoryStateDB()
 	db.CreateAccount(txContext.From)

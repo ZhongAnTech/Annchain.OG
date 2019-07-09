@@ -14,46 +14,48 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 )
 
 type DummyDag struct {
 }
 
-func (d *DummyDag) GetTx(hash types.Hash) types.Txi {
+func (d *DummyDag) GetTx(hash common.Hash) types.Txi {
 	return nil
 }
 
-func (d *DummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
-func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
-	return &types.Sequencer{
+func (d *DummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
+	return &tx_types.Sequencer{
 		TxBase: types.TxBase{Height: id},
 	}
 }
 
 func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
 	var txis types.Txis
-	txis = append(txis, types.RandomTx(), types.RandomTx())
+	txis = append(txis, tx_types.RandomTx(), tx_types.RandomTx())
 	return txis
 }
 
-func (d *DummyDag) LatestSequencer() *types.Sequencer {
-	return types.RandomSequencer()
+func (d *DummyDag) LatestSequencer() *tx_types.Sequencer {
+	return tx_types.RandomSequencer()
 }
 
-func (d *DummyDag) GetSequencer(hash types.Hash, id uint64) *types.Sequencer {
-	return &types.Sequencer{
+func (d *DummyDag) GetSequencer(hash common.Hash, id uint64) *tx_types.Sequencer {
+	return &tx_types.Sequencer{
 		TxBase: types.TxBase{Height: id,
 			Hash: hash},
 	}
 }
 
-func (d *DummyDag) Genesis() *types.Sequencer {
-	return &types.Sequencer{
+func (d *DummyDag) Genesis() *tx_types.Sequencer {
+	return &tx_types.Sequencer{
 		TxBase: types.TxBase{Height: 0},
 	}
 }
@@ -62,10 +64,10 @@ func (d *DummyDag) GetHeight() uint64 {
 	return 0
 }
 
-func (d *DummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+func (d *DummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *DummyDag) GetBalance(addr types.Address) *math.BigInt {
+func (d *DummyDag) GetBalance(addr common.Address) *math.BigInt {
 	return math.NewBigInt(100000)
 }

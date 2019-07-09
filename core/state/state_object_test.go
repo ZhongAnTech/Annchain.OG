@@ -15,12 +15,12 @@ package state_test
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"testing"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/types"
 )
 
 var (
@@ -34,9 +34,9 @@ func TestSerialization(t *testing.T) {
 	testblc := int64(666)
 
 	stdb := newTestStateDB(t)
-	stdb.CreateAccount(types.HexToAddress(testAddress))
+	stdb.CreateAccount(common.HexToAddress(testAddress))
 
-	addr := types.HexToAddress(testAddress)
+	addr := common.HexToAddress(testAddress)
 	stobj := stdb.GetStateObject(addr)
 	stobj.SetNonce(testnonce)
 	stobj.SetBalance(0, math.NewBigInt(testblc))

@@ -146,11 +146,11 @@ func sendTx(algorithm string) error {
 	if err != nil {
 		return err
 	}
-	fromAddr, err := types.StringToAddress(addr1)
+	fromAddr, err := common.StringToAddress(addr1)
 	if err != nil {
 		return err
 	}
-	toAddr, err := types.StringToAddress(addr2)
+	toAddr, err := common.StringToAddress(addr2)
 
 	var signer crypto.ISigner
 	switch algorithm {

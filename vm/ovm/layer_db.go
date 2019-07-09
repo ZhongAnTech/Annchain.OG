@@ -2,7 +2,6 @@ package ovm
 
 import (
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 
 	"fmt"
@@ -16,7 +15,7 @@ import (
 
 var MAX_LAYER = 1024
 var FAST_FAIL = false
-var empty = types.Hash{}
+var empty = common.Hash{}
 
 // LayerStateDB is the cascading storage for contracts.
 // It consists of multiple layers, each of which represents the result of a contract.
@@ -33,7 +32,7 @@ type LayerStateDB struct {
 	activeLayer vmtypes.StateDBDebug
 }
 
-func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
+func (l *LayerStateDB) GetStateObject(addr common.Address) *vmtypes.StateObject {
 	for i := len(l.Layers) - 1; i >= 0; i-- {
 		layer := l.Layers[i]
 		if so := layer.GetStateObject(addr); so != nil {
@@ -49,7 +48,7 @@ func (l *LayerStateDB) GetStateObject(addr types.Address) *vmtypes.StateObject {
 	return nil
 }
 
-func (l *LayerStateDB) SetStateObject(addr types.Address, stateObject *vmtypes.StateObject) {
+func (l *LayerStateDB) SetStateObject(addr common.Address, stateObject *vmtypes.StateObject) {
 	l.activeLayer.SetStateObject(addr, stateObject)
 	stateObject.DirtySO = true
 }
@@ -100,7 +99,7 @@ func (l *LayerStateDB) String() string {
 	return buffer.String()
 }
 
-func (l *LayerStateDB) CreateAccount(addr types.Address) {
+func (l *LayerStateDB) CreateAccount(addr common.Address) {
 	if so := l.GetStateObject(addr); so == nil {
 		l.activeLayer.CreateAccount(addr)
 	} else {
@@ -110,7 +109,7 @@ func (l *LayerStateDB) CreateAccount(addr types.Address) {
 	}
 }
 
-func (l *LayerStateDB) SubBalance(addr types.Address, value *math.BigInt) {
+func (l *LayerStateDB) SubBalance(addr common.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Balance = new(big.Int).Sub(so.Balance, value.Value)
 		// store to this layer
@@ -122,7 +121,7 @@ func (l *LayerStateDB) SubBalance(addr types.Address, value *math.BigInt) {
 	}
 }
 
-func (l *LayerStateDB) AddBalance(addr types.Address, value *math.BigInt) {
+func (l *LayerStateDB) AddBalance(addr common.Address, value *math.BigInt) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Balance = new(big.Int).Add(so.Balance, value.Value)
 		// store to this layer
@@ -134,7 +133,7 @@ func (l *LayerStateDB) AddBalance(addr types.Address, value *math.BigInt) {
 	}
 }
 
-func (l *LayerStateDB) GetBalance(addr types.Address) *math.BigInt {
+func (l *LayerStateDB) GetBalance(addr common.Address) *math.BigInt {
 	if so := l.GetStateObject(addr); so != nil {
 		return math.NewBigIntFromBigInt(so.Balance)
 	} else {
@@ -145,7 +144,7 @@ func (l *LayerStateDB) GetBalance(addr types.Address) *math.BigInt {
 	return math.NewBigIntFromBigInt(common.Big0)
 }
 
-func (l *LayerStateDB) GetNonce(addr types.Address) uint64 {
+func (l *LayerStateDB) GetNonce(addr common.Address) uint64 {
 	if so := l.GetStateObject(addr); so != nil {
 		return so.Nonce
 	} else {
@@ -156,7 +155,7 @@ func (l *LayerStateDB) GetNonce(addr types.Address) uint64 {
 	return 0
 }
 
-func (l *LayerStateDB) SetNonce(addr types.Address, nonce uint64) {
+func (l *LayerStateDB) SetNonce(addr common.Address, nonce uint64) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Nonce = nonce
 		l.SetStateObject(addr, so)
@@ -167,7 +166,7 @@ func (l *LayerStateDB) SetNonce(addr types.Address, nonce uint64) {
 	}
 }
 
-func (l *LayerStateDB) GetCodeHash(addr types.Address) types.Hash {
+func (l *LayerStateDB) GetCodeHash(addr common.Address) common.Hash {
 	if so := l.GetStateObject(addr); so != nil {
 		return so.CodeHash
 	} else {
@@ -175,10 +174,10 @@ func (l *LayerStateDB) GetCodeHash(addr types.Address) types.Hash {
 			panic("address not exists")
 		}
 	}
-	return types.Hash{}
+	return common.Hash{}
 }
 
-func (l *LayerStateDB) GetCode(addr types.Address) []byte {
+func (l *LayerStateDB) GetCode(addr common.Address) []byte {
 	if so := l.GetStateObject(addr); so != nil {
 		return so.Code
 	} else {
@@ -189,7 +188,7 @@ func (l *LayerStateDB) GetCode(addr types.Address) []byte {
 	return nil
 }
 
-func (l *LayerStateDB) SetCode(addr types.Address, code []byte) {
+func (l *LayerStateDB) SetCode(addr common.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
 		so.CodeHash = crypto.Keccak256Hash(code)
@@ -202,7 +201,7 @@ func (l *LayerStateDB) SetCode(addr types.Address, code []byte) {
 	}
 }
 
-func (l *LayerStateDB) GetCodeSize(addr types.Address) int {
+func (l *LayerStateDB) GetCodeSize(addr common.Address) int {
 	so := l.GetStateObject(addr)
 	if so == nil {
 		return 0
@@ -229,26 +228,26 @@ func (l *LayerStateDB) GetRefund() uint64 {
 	return sum
 }
 
-func (l *LayerStateDB) GetCommittedState(addr types.Address, hash types.Hash) types.Hash {
+func (l *LayerStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	// TODO: committed state
 	panic("implement me")
 }
 
-func (l *LayerStateDB) GetState(addr types.Address, key types.Hash) types.Hash {
+func (l *LayerStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
 	for i := len(l.Layers) - 1; i >= 0; i-- {
 		layer := l.Layers[i]
 		if so := layer.GetState(addr, key); so != empty {
 			return so
 		}
 	}
-	return types.Hash{}
+	return common.Hash{}
 }
 
-func (l *LayerStateDB) SetState(addr types.Address, key types.Hash, value types.Hash) {
+func (l *LayerStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
 	l.activeLayer.SetState(addr, key, value)
 }
 
-func (l *LayerStateDB) Suicide(addr types.Address) bool {
+func (l *LayerStateDB) Suicide(addr common.Address) bool {
 	so := l.GetStateObject(addr)
 	if so == nil {
 		return false
@@ -259,7 +258,7 @@ func (l *LayerStateDB) Suicide(addr types.Address) bool {
 	return true
 }
 
-func (l *LayerStateDB) HasSuicided(addr types.Address) bool {
+func (l *LayerStateDB) HasSuicided(addr common.Address) bool {
 	so := l.GetStateObject(addr)
 	if so == nil {
 		return false
@@ -267,12 +266,12 @@ func (l *LayerStateDB) HasSuicided(addr types.Address) bool {
 	return so.Suicided
 }
 
-func (l *LayerStateDB) Exist(addr types.Address) bool {
+func (l *LayerStateDB) Exist(addr common.Address) bool {
 	so := l.GetStateObject(addr)
 	return so != nil
 }
 
-func (l *LayerStateDB) Empty(addr types.Address) bool {
+func (l *LayerStateDB) Empty(addr common.Address) bool {
 	so := l.GetStateObject(addr)
 	return so == nil || so.Empty()
 }
@@ -290,11 +289,11 @@ func (l *LayerStateDB) AddLog(log *vmtypes.Log) {
 	l.activeLayer.AddLog(log)
 }
 
-func (l *LayerStateDB) AddPreimage(hash types.Hash, code []byte) {
+func (l *LayerStateDB) AddPreimage(hash common.Hash, code []byte) {
 	l.activeLayer.AddPreimage(hash, code)
 }
 
-func (l *LayerStateDB) ForEachStorage(addr types.Address, f func(types.Hash, types.Hash) bool) {
+func (l *LayerStateDB) ForEachStorage(addr common.Address, f func(common.Hash, common.Hash) bool) {
 	// TODO: foreach storage
 	panic("implement me")
 }

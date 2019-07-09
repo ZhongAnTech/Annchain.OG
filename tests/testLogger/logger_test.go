@@ -35,8 +35,8 @@ func TestLogger(t *testing.T) {
 }
 
 type Foo struct {
-	Hash types.Hash
-	Add  types.Address
+	Hash common.Hash
+	Add  common.Address
 	Name string
 	Id   uint64
 }
@@ -61,8 +61,8 @@ var globalInt uint64
 func randomFoo() *Foo {
 	globalInt++
 	return &Foo{
-		Hash: types.RandomHash(),
-		Add:  types.RandomAddress(),
+		Hash: common.RandomHash(),
+		Add:  common.RandomAddress(),
 		Name: "test",
 		Id:   globalInt,
 	}

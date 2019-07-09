@@ -25,14 +25,13 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 	// "github.com/ethereum/go-ethereum/common"
 	// "github.com/ethereum/go-ethereum/crypto"
 	// "github.com/ethereum/go-ethereum/ethdb"
 )
 
 func newEmptySecure() *SecureTrie {
-	trie, _ := NewSecure(types.Hash{}, NewDatabase(ogdb.NewMemDatabase()), 0)
+	trie, _ := NewSecure(common.Hash{}, NewDatabase(ogdb.NewMemDatabase()), 0)
 	return trie
 }
 
@@ -41,7 +40,7 @@ func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(ogdb.NewMemDatabase())
 
-	trie, _ := NewSecure(types.Hash{}, triedb, 0)
+	trie, _ := NewSecure(common.Hash{}, triedb, 0)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -88,7 +87,7 @@ func TestSecureDelete(t *testing.T) {
 		}
 	}
 	hash := trie.Hash()
-	exp := types.HexToHash("29b235a58c3c25ab83010c327d5932bcf05324b7d6b1185e650798034783ca9d")
+	exp := common.HexToHash("29b235a58c3c25ab83010c327d5932bcf05324b7d6b1185e650798034783ca9d")
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}

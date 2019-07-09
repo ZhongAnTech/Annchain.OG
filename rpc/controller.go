@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
+	"github.com/annchain/OG/types/tx_types"
 
 	//"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/p2p/ioperformance"
@@ -147,7 +148,7 @@ func (r *RpcController) Query(c *gin.Context) {
 //Transaction  get  transaction
 func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := types.HexStringToHash(hashtr)
+	hash, err := common.HexStringToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -162,22 +163,22 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		return
 	}
 	switch tx := txi.(type) {
-	case *types.Tx:
+	case *tx_types.Tx:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *types.Sequencer:
+	case *tx_types.Sequencer:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *types.Archive:
+	case *tx_types.Archive:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *types.Campaign:
+	case *tx_types.Campaign:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *types.TermChange:
+	case *tx_types.TermChange:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *types.ActionTx:
+	case *tx_types.ActionTx:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	}
@@ -188,7 +189,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 //Confirm checks if tx has already been confirmed.
 func (r *RpcController) Confirm(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := types.HexStringToHash(hashtr)
+	hash, err := common.HexStringToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -242,7 +243,7 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		Response(c, http.StatusOK, nil, txsResponse)
 		return
 	} else {
-		addr, err := types.StringToAddress(address)
+		addr, err := common.StringToAddress(address)
 		if err != nil {
 			Response(c, http.StatusOK, fmt.Errorf("address format error"), nil)
 			return
@@ -343,7 +344,7 @@ func (r *RpcController) Tps(c *gin.Context) {
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
-	var sq *types.Sequencer
+	var sq *tx_types.Sequencer
 	hashtr := c.Query("hash")
 	seqId := c.Query("seq_id")
 	if seqId == "" {
@@ -374,7 +375,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 	} else {
-		hash, err := types.HexStringToHash(hashtr)
+		hash, err := common.HexStringToHash(hashtr)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 			return
@@ -388,7 +389,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 		switch t := txi.(type) {
-		case *types.Sequencer:
+		case *tx_types.Sequencer:
 			Response(c, http.StatusOK, nil, t)
 			return
 		default:
@@ -492,12 +493,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	from, err := types.StringToAddress(txReq.From)
+	from, err := common.StringToAddress(txReq.From)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
 	}
-	to, err := types.StringToAddress(txReq.To)
+	to, err := common.StringToAddress(txReq.To)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("to address format error: %v", err), nil)
 		return
@@ -606,7 +607,7 @@ func (r *RpcController) TokenWithdraw(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	from, err := types.StringToAddress(txReq.From)
+	from, err := common.StringToAddress(txReq.From)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
@@ -650,7 +651,7 @@ func (r *RpcController) TokenWithdraw(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, math.NewBigInt(0), types.ActionTxActionWithdraw, nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionWithdraw, nonce,
 		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -686,7 +687,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	from, err := types.StringToAddress(txReq.From)
+	from, err := common.StringToAddress(txReq.From)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
@@ -739,7 +740,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionIPO, nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionIPO, nonce,
 		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -775,7 +776,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	from, err := types.StringToAddress(txReq.From)
+	from, err := common.StringToAddress(txReq.From)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
@@ -828,7 +829,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, types.Address{}, value, types.ActionTxActionSPO,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionSPO,
 		nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -891,7 +892,7 @@ func (r *RpcController) AutoTx(c *gin.Context) {
 
 func (r *RpcController) QueryNonce(c *gin.Context) {
 	address := c.Query("address")
-	addr, err := types.StringToAddress(address)
+	addr, err := common.StringToAddress(address)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("address format err"), nil)
 		return
@@ -914,7 +915,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 func (r *RpcController) QueryBalance(c *gin.Context) {
 	address := c.Query("address")
 	tokenIDStr := c.Query("token_id")
-	addr, err := types.StringToAddress(address)
+	addr, err := common.StringToAddress(address)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("address format err: %v", err), nil)
 		return
@@ -973,7 +974,7 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash not hex"), nil)
 		return
 	}
-	hash := types.BytesToHash(hashBytes)
+	hash := common.BytesToHash(hashBytes)
 	receipt := r.Og.Dag.GetReceipt(hash)
 	if receipt == nil {
 		Response(c, http.StatusNotFound, fmt.Errorf("can't find receipt"), nil)
@@ -1006,7 +1007,7 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 		return
 	}
 
-	addr, err := types.StringToAddress(reqdata.Address)
+	addr, err := common.StringToAddress(reqdata.Address)
 	if err != nil {
 		Response(c, http.StatusBadRequest, err, nil)
 		return
@@ -1151,8 +1152,8 @@ func (r *RpcController) Debug(c *gin.Context) {
 }
 
 func (r *RpcController) DebugCreateContract() error {
-	from := types.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
-	to := types.BytesToAddress(nil)
+	from := common.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
+	to := common.BytesToAddress(nil)
 	value := math.NewBigInt(0)
 	nonce := uint64(1)
 
@@ -1163,11 +1164,11 @@ func (r *RpcController) DebugCreateContract() error {
 }
 
 func (r *RpcController) DebugQueryContract() ([]byte, error) {
-	from := types.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
+	from := common.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
 	contractAddr := crypto.CreateAddress(from, uint64(1))
 
 	calldata := "e5aa3d58"
-	callTx := &types.Tx{}
+	callTx := &tx_types.Tx{}
 	callTx.From = &from
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
@@ -1178,7 +1179,7 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 }
 
 func (r *RpcController) DebugSetContract(n string) error {
-	from := types.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
+	from := common.HexToAddress("0x60ce04e6a1cc8887fa5dcd43f87c38be1d41827e")
 	to := crypto.CreateAddress(from, uint64(1))
 	value := math.NewBigInt(0)
 	curnonce, err := r.Og.Dag.GetLatestNonce(from)
@@ -1196,8 +1197,8 @@ func (r *RpcController) DebugSetContract(n string) error {
 }
 
 func (r *RpcController) DebugCallerCreate() error {
-	from := types.HexToAddress("0xc18969f0b7e3d192d86e220c44be2f03abdaeda2")
-	to := types.BytesToAddress(nil)
+	from := common.HexToAddress("0xc18969f0b7e3d192d86e220c44be2f03abdaeda2")
+	to := common.BytesToAddress(nil)
 	value := math.NewBigInt(0)
 	nonce := uint64(1)
 
@@ -1208,7 +1209,7 @@ func (r *RpcController) DebugCallerCreate() error {
 }
 
 func (r *RpcController) DebugCallerCall(setvalue string) error {
-	from := types.HexToAddress("0xc18969f0b7e3d192d86e220c44be2f03abdaeda2")
+	from := common.HexToAddress("0xc18969f0b7e3d192d86e220c44be2f03abdaeda2")
 	to := crypto.CreateAddress(from, uint64(1))
 	value := math.NewBigInt(0)
 	curnonce, err := r.Og.Dag.GetLatestNonce(from)
@@ -1225,7 +1226,7 @@ func (r *RpcController) DebugCallerCall(setvalue string) error {
 	return r.DebugCreateTxAndSendToBuffer(from, to, value, data, nonce)
 }
 
-func (r *RpcController) DebugCreateTxAndSendToBuffer(from, to types.Address, value *math.BigInt, data []byte, nonce uint64) error {
+func (r *RpcController) DebugCreateTxAndSendToBuffer(from, to common.Address, value *math.BigInt, data []byte, nonce uint64) error {
 	pubstr := "0x0104a391a55b84e45858748324534a187c60046266b17a5c77161104c4a6c4b1511789de692b898768ff6ee731e2fe068d6234a19a1e20246c968df9c0ca797498e7"
 	pub, _ := crypto.PublicKeyFromString(pubstr)
 

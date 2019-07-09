@@ -16,10 +16,10 @@ package crypto
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/poc/extra25519"
-	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/encrypt/ecies"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
@@ -151,7 +151,7 @@ func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
 	}
 }
 
-func (p *PublicKey) Address() types.Address {
+func (p *PublicKey) Address() common.Address {
 	s := NewSigner(p.Type)
 	return s.Address(*p)
 }
@@ -182,14 +182,14 @@ func (c CryptoType) String() string {
 }
 
 // CreateAddress creates an ethereum address given the bytes and the nonce
-func CreateAddress(b types.Address, nonce uint64) types.Address {
+func CreateAddress(b common.Address, nonce uint64) common.Address {
 	bs := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bs, nonce)
-	return types.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes()[:], bs)[12:])
+	return common.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes()[:], bs)[12:])
 }
 
 // CreateAddress2 creates an ethereum address given the address bytes, initial
 // contract code hash and a salt.
-func CreateAddress2(b types.Address, salt [32]byte, inithash []byte) types.Address {
-	return types.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes()[:], salt[:], inithash)[12:])
+func CreateAddress2(b common.Address, salt [32]byte, inithash []byte) common.Address {
+	return common.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes()[:], salt[:], inithash)[12:])
 }

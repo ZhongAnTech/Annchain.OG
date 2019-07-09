@@ -18,9 +18,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"math/big"
 )
@@ -33,30 +35,32 @@ type Verifier interface {
 }
 
 type TxFormatVerifier struct {
-	MaxTxHash         types.Hash // The difficulty of TxHash
-	MaxMinedHash      types.Hash // The difficulty of MinedHash
+	MaxTxHash         common.Hash // The difficulty of TxHash
+	MaxMinedHash      common.Hash // The difficulty of MinedHash
 	NoVerifyMindHash  bool
 	NoVerifyMaxTxHash bool
 }
 
 //consensus related verification
 type ConsensusVerifier struct {
-	VerifyCampaign   func(cp *types.Campaign) bool
-	VerifyTermChange func(cp *types.TermChange) bool
-	VerifySequencer  func(cp *types.Sequencer) bool
+	VerifyCampaign   func(cp *tx_types.Campaign) bool
+	VerifyTermChange func(cp *tx_types.TermChange) bool
+	VerifySequencer  func(cp *tx_types.Sequencer) bool
 }
 
 func (c *ConsensusVerifier) Verify(t types.Txi) bool {
 	switch tx := t.(type) {
-	case *types.Tx:
+	case *tx_types.Tx:
 		return true
-	case *types.Archive:
+	case *tx_types.Archive:
 		return true
-	case *types.Sequencer:
+	case *tx_types.ActionTx:
+		return true
+	case *tx_types.Sequencer:
 		return c.VerifySequencer(tx)
-	case *types.Campaign:
+	case *tx_types.Campaign:
 		return c.VerifyCampaign(tx)
-	case *types.TermChange:
+	case *tx_types.TermChange:
 		return c.VerifyTermChange(tx)
 	default:
 		return false
@@ -164,7 +168,7 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 		err := errors.New("invalid public key")
 		logrus.WithError(err).Debug("verify sig failed")
 	}
-	var addr types.Address
+	var addr common.Address
 	copy(addr.Bytes[:], crypto.Keccak256(pub[1:])[12:])
 	t.SetSender(addr)
 	return true
@@ -194,15 +198,15 @@ func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 		return true
 	}
 	switch t.(type) {
-	case *types.Tx:
-		return t.(*types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *types.Sequencer:
-		return t.(*types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *types.Campaign:
-		return t.(*types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *types.TermChange:
-		return t.(*types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *types.Archive:
+	case *tx_types.Tx:
+		return t.(*tx_types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *tx_types.Sequencer:
+		return t.(*tx_types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *tx_types.Campaign:
+		return t.(*tx_types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *tx_types.TermChange:
+		return t.(*tx_types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *tx_types.Archive:
 		return true
 	default:
 		return true
@@ -222,7 +226,7 @@ func (v *GraphVerifier) Name() string {
 
 // getTxFromTempSource tries to get tx from anywhere but dag itself.
 // return nil if not found in either txpool or buffer
-func (v *GraphVerifier) getTxFromTempSource(hash types.Hash) (txi types.Txi) {
+func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi types.Txi) {
 	// Re-think. Do we really need to check buffer?
 
 	//if v.Buffer != nil {
@@ -241,7 +245,7 @@ func (v *GraphVerifier) getTxFromTempSource(hash types.Hash) (txi types.Txi) {
 	return
 }
 
-func (v *GraphVerifier) getTxFromAnywhere(hash types.Hash) (txi types.Txi, archived bool) {
+func (v *GraphVerifier) getTxFromAnywhere(hash common.Hash) (txi types.Txi, archived bool) {
 	txi = v.getTxFromTempSource(hash)
 	if txi != nil {
 		archived = false
@@ -264,8 +268,8 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		ok = true
 		return
 	}
-	seeked := map[types.Hash]bool{}
-	seekingHashes := types.Hashes{}
+	seeked := map[common.Hash]bool{}
+	seekingHashes := common.Hashes{}
 	for _, parent := range currentTx.Parents() {
 		seekingHashes = append(seekingHashes, parent)
 	}
@@ -337,16 +341,16 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 }
 
 // get the nearest previous sequencer from txpool
-func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
-	seeked := map[types.Hash]bool{}
-	seekingHashes := types.Hashes{}
+func (v *GraphVerifier) getPreviousSequencer(currentSeq *tx_types.Sequencer) (previousSeq *tx_types.Sequencer, ok bool) {
+	seeked := map[common.Hash]bool{}
+	seekingHashes := common.Hashes{}
 	// seekingHashes := list.New()
 	seekingHashes = append(seekingHashes, currentSeq.GetTxHash())
 	// seekingHashes.PushBack(currentSeq.GetTxHash())
 	for len(seekingHashes) > 0 {
 		head := seekingHashes[0]
 		seekingHashes = seekingHashes[1:]
-		// head := seekingHashes.Remove(seekingHashes.Front()).(types.Hash)
+		// head := seekingHashes.Remove(seekingHashes.Front()).(common.Hash)
 		txi, archived := v.getTxFromAnywhere(head)
 
 		if txi != nil {
@@ -354,9 +358,9 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 			case types.TxBaseTypeSequencer:
 				// found seq, check nonce
 				// verify if the nonce is larger
-				if txi.(*types.Sequencer).Height == currentSeq.Height-1 {
+				if txi.(*tx_types.Sequencer).Height == currentSeq.Height-1 {
 					// good
-					previousSeq = txi.(*types.Sequencer)
+					previousSeq = txi.(*tx_types.Sequencer)
 					ok = true
 					return
 				}
@@ -451,7 +455,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	switch txi.GetType() {
 	// no additional check
 	case types.TxBaseTypeSequencer:
-		seq := txi.(*types.Sequencer)
+		seq := txi.(*tx_types.Sequencer)
 		// to check if there is a lower seq height in the path behind
 		_, ok := v.getPreviousSequencer(seq)
 		if !ok {

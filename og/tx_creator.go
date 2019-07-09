@@ -16,7 +16,6 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/core"
 	"sync/atomic"
 	"time"
 
@@ -35,7 +34,7 @@ type TipGenerator interface {
 }
 
 type GetStateRoot interface {
-	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error) {
+	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error) 
 }
 
 

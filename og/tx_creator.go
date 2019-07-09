@@ -34,7 +34,7 @@ type TipGenerator interface {
 }
 
 type GetStateRoot interface {
-	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error) 
+	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error)
 }
 
 

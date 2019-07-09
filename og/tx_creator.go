@@ -34,6 +34,11 @@ type TipGenerator interface {
 	GetRandomTips(n int) (v []types.Txi)
 }
 
+type GetStateRoot interface {
+	PreConfirm(seq *types.Sequencer) (hash types.Hash, err error) {
+}
+
+
 type FIFOTipGenerator struct {
 	maxCacheSize int
 	upstream     TipGenerator
@@ -149,7 +154,7 @@ type TxCreator struct {
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
-	Pool               *core.TxPool
+	GetStateRoot     GetStateRoot
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -462,7 +467,7 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.Pool.PreConfirm(tx)
+			root, err := m.GetStateRoot.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
 				return nil

@@ -262,6 +262,7 @@ func NewNode() *Node {
 		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,
+		GetStateRoot:org.TxPool,
 	}
 
 	// TODO: move to (embeded) client. It is not part of OG

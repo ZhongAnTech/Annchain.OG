@@ -80,7 +80,7 @@ type SeqRequest struct {
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
+func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *types.Sequencer, err error) {
 	seq = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	logrus.WithField("seq", seq).Infof("sequencer generated")
 	//if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {

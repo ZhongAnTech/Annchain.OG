@@ -411,8 +411,9 @@ func (m *TxCreator) GenerateSequencer(issuer types.Address, Height uint64, accou
 	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(*privateKey).Bytes
-
+	pubkey:= crypto.Signer.PubKey(*privateKey)
+	tx.GetBase().PublicKey = pubkey.Bytes
+	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
 		// proposed by bft
 		tx.BlsJointPubKey = blsPubKey

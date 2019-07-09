@@ -81,7 +81,7 @@ func (t *ActionTx) String() string {
 	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-ATX", t.TxBase.String(), t.AccountNonce)
 	}
-	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender(), t.AccountNonce)
+	return fmt.Sprintf("%s-[%.10s]-%d-ATX", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 }
 
 func SampleActionTx() *ActionTx {

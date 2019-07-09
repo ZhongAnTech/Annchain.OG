@@ -66,7 +66,7 @@ func (t *Sequencer) String() string {
 	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-Seq", t.TxBase.String(), t.AccountNonce)
 	} else {
-		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender(), t.AccountNonce)
+		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
 	}
 
 }

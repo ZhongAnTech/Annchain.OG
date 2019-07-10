@@ -85,6 +85,10 @@ func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
 	return s.data.Balances[tokenID]
 }
 
+func (s*StateObject)GetAllBalance() BalanceSet{
+	return s.data.Balances
+}
+
 func (s *StateObject) AddBalance(tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {

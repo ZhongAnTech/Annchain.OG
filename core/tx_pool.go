@@ -695,8 +695,8 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 	case *tx_types.ActionTx:
 		if tx.Action == tx_types.ActionTxActionIPO {
-			actionData := tx.ActionData.(*tx_types.PublicOffering)
-			actionData.TokenId = pool.dag.GetLatestTokenId()
+			//actionData := tx.ActionData.(*tx_types.PublicOffering)
+			//actionData.TokenId = pool.dag.GetLatestTokenId()
 		}
 		if tx.Action == tx_types.ActionTxActionSPO {
 			actionData := tx.ActionData.(*tx_types.PublicOffering)

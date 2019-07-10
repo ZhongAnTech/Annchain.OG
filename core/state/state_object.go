@@ -290,7 +290,7 @@ func NewBalanceSet() BalanceSet {
 func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
 	bi := (*b)[tokenID]
 	if bi == nil {
-		return math.NewBigInt(0)
+		bi = math.NewBigInt(0)
 	}
 	return bi.Add(increment)
 }

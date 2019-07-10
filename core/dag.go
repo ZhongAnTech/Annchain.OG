@@ -713,7 +713,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 	tokenId := dag.latestTokenId
-	var tokens map[int32]*tx_types.TokenInfo
+	var tokens = make( map[int32]*tx_types.TokenInfo)
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		if txi.GetType() == types.TxBaseAction {

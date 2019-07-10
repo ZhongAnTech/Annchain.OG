@@ -24,8 +24,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"io/ioutil"
 	"sort"
 
 	"github.com/annchain/OG/common"
@@ -628,6 +631,13 @@ type dialer interface {
 
 func (srv *Server) run(dialstate dialer) {
 	log.WithField("self", srv.localnode.Node()).Info("Started P2P networking")
+	// dump node info to a file
+	nodeUrl := srv.localnode.Node().String()
+	err := ioutil.WriteFile(io.FixPrefixPath(viper.GetString("datadir"), "nodeip"), []byte(nodeUrl), 0644)
+	if err != nil {
+		logrus.WithError(err).Warn("failed to dump nodeip.")
+	}
+
 	defer srv.loopWG.Done()
 	defer srv.nodedb.Close()
 

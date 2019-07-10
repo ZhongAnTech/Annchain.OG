@@ -3,6 +3,7 @@ package vm_test
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/core/vm"

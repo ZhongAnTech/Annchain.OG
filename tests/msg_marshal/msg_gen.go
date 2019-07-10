@@ -8,50 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *Person) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Name":
-			z.Name, err = dc.ReadString()
-			if err != nil {
-				return
-			}
-		case "Age":
-			z.Age, err = dc.ReadInt()
-			if err != nil {
-				return
-			}
-		case "Type":
-			z.Type, err = dc.ReadUint16()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	z.Name, err = dc.ReadString()
+	if err != nil {
+		return
+	}
+	z.Age, err = dc.ReadInt()
+	if err != nil {
+		return
+	}
+	z.Type, err = dc.ReadUint16()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z Person) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
-	// write "Name"
-	err = en.Append(0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -59,17 +43,7 @@ func (z Person) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Age"
-	err = en.Append(0xa3, 0x41, 0x67, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteInt(z.Age)
-	if err != nil {
-		return
-	}
-	// write "Type"
-	err = en.Append(0xa4, 0x54, 0x79, 0x70, 0x65)
 	if err != nil {
 		return
 	}
@@ -83,56 +57,36 @@ func (z Person) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z Person) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
-	// string "Name"
-	o = append(o, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendString(o, z.Name)
-	// string "Age"
-	o = append(o, 0xa3, 0x41, 0x67, 0x65)
 	o = msgp.AppendInt(o, z.Age)
-	// string "Type"
-	o = append(o, 0xa4, 0x54, 0x79, 0x70, 0x65)
 	o = msgp.AppendUint16(o, z.Type)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Person) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Name":
-			z.Name, bts, err = msgp.ReadStringBytes(bts)
-			if err != nil {
-				return
-			}
-		case "Age":
-			z.Age, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				return
-			}
-		case "Type":
-			z.Type, bts, err = msgp.ReadUint16Bytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	z.Name, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Age, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Type, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -140,83 +94,54 @@ func (z *Person) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z Person) Msgsize() (s int) {
-	s = 1 + 5 + msgp.StringPrefixSize + len(z.Name) + 4 + msgp.IntSize + 5 + msgp.Uint16Size
+	s = 1 + msgp.StringPrefixSize + len(z.Name) + msgp.IntSize + msgp.Uint16Size
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *Student) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Person":
-			var zb0002 uint32
-			zb0002, err = dc.ReadMapHeader()
-			if err != nil {
-				return
-			}
-			for zb0002 > 0 {
-				zb0002--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Name":
-					z.Person.Name, err = dc.ReadString()
-					if err != nil {
-						return
-					}
-				case "Age":
-					z.Person.Age, err = dc.ReadInt()
-					if err != nil {
-						return
-					}
-				case "Type":
-					z.Person.Type, err = dc.ReadUint16()
-					if err != nil {
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						return
-					}
-				}
-			}
-		case "Score":
-			z.Score, err = dc.ReadInt()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0002 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		return
+	}
+	z.Person.Name, err = dc.ReadString()
+	if err != nil {
+		return
+	}
+	z.Person.Age, err = dc.ReadInt()
+	if err != nil {
+		return
+	}
+	z.Person.Type, err = dc.ReadUint16()
+	if err != nil {
+		return
+	}
+	z.Score, err = dc.ReadInt()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Student) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "Person"
-	// map header, size 3
-	// write "Name"
-	err = en.Append(0x82, 0xa6, 0x50, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 2
+	// array header, size 3
+	err = en.Append(0x92, 0x93)
 	if err != nil {
 		return
 	}
@@ -224,26 +149,11 @@ func (z *Student) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Age"
-	err = en.Append(0xa3, 0x41, 0x67, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteInt(z.Person.Age)
 	if err != nil {
 		return
 	}
-	// write "Type"
-	err = en.Append(0xa4, 0x54, 0x79, 0x70, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteUint16(z.Person.Type)
-	if err != nil {
-		return
-	}
-	// write "Score"
-	err = en.Append(0xa5, 0x53, 0x63, 0x6f, 0x72, 0x65)
 	if err != nil {
 		return
 	}
@@ -257,86 +167,51 @@ func (z *Student) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Student) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "Person"
-	// map header, size 3
-	// string "Name"
-	o = append(o, 0x82, 0xa6, 0x50, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 2
+	// array header, size 3
+	o = append(o, 0x92, 0x93)
 	o = msgp.AppendString(o, z.Person.Name)
-	// string "Age"
-	o = append(o, 0xa3, 0x41, 0x67, 0x65)
 	o = msgp.AppendInt(o, z.Person.Age)
-	// string "Type"
-	o = append(o, 0xa4, 0x54, 0x79, 0x70, 0x65)
 	o = msgp.AppendUint16(o, z.Person.Type)
-	// string "Score"
-	o = append(o, 0xa5, 0x53, 0x63, 0x6f, 0x72, 0x65)
 	o = msgp.AppendInt(o, z.Score)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Student) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Person":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			for zb0002 > 0 {
-				zb0002--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Name":
-					z.Person.Name, bts, err = msgp.ReadStringBytes(bts)
-					if err != nil {
-						return
-					}
-				case "Age":
-					z.Person.Age, bts, err = msgp.ReadIntBytes(bts)
-					if err != nil {
-						return
-					}
-				case "Type":
-					z.Person.Type, bts, err = msgp.ReadUint16Bytes(bts)
-					if err != nil {
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						return
-					}
-				}
-			}
-		case "Score":
-			z.Score, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0002 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		return
+	}
+	z.Person.Name, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Person.Age, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Person.Type, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
+	}
+	z.Score, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -344,83 +219,54 @@ func (z *Student) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Student) Msgsize() (s int) {
-	s = 1 + 7 + 1 + 5 + msgp.StringPrefixSize + len(z.Person.Name) + 4 + msgp.IntSize + 5 + msgp.Uint16Size + 6 + msgp.IntSize
+	s = 1 + 1 + msgp.StringPrefixSize + len(z.Person.Name) + msgp.IntSize + msgp.Uint16Size + msgp.IntSize
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
 func (z *Teacher) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Person":
-			var zb0002 uint32
-			zb0002, err = dc.ReadMapHeader()
-			if err != nil {
-				return
-			}
-			for zb0002 > 0 {
-				zb0002--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Name":
-					z.Person.Name, err = dc.ReadString()
-					if err != nil {
-						return
-					}
-				case "Age":
-					z.Person.Age, err = dc.ReadInt()
-					if err != nil {
-						return
-					}
-				case "Type":
-					z.Person.Type, err = dc.ReadUint16()
-					if err != nil {
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						return
-					}
-				}
-			}
-		case "Teach":
-			z.Teach, err = dc.ReadBool()
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if zb0002 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		return
+	}
+	z.Person.Name, err = dc.ReadString()
+	if err != nil {
+		return
+	}
+	z.Person.Age, err = dc.ReadInt()
+	if err != nil {
+		return
+	}
+	z.Person.Type, err = dc.ReadUint16()
+	if err != nil {
+		return
+	}
+	z.Teach, err = dc.ReadBool()
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Teacher) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
-	// write "Person"
-	// map header, size 3
-	// write "Name"
-	err = en.Append(0x82, 0xa6, 0x50, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 2
+	// array header, size 3
+	err = en.Append(0x92, 0x93)
 	if err != nil {
 		return
 	}
@@ -428,26 +274,11 @@ func (z *Teacher) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "Age"
-	err = en.Append(0xa3, 0x41, 0x67, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteInt(z.Person.Age)
 	if err != nil {
 		return
 	}
-	// write "Type"
-	err = en.Append(0xa4, 0x54, 0x79, 0x70, 0x65)
-	if err != nil {
-		return
-	}
 	err = en.WriteUint16(z.Person.Type)
-	if err != nil {
-		return
-	}
-	// write "Teach"
-	err = en.Append(0xa5, 0x54, 0x65, 0x61, 0x63, 0x68)
 	if err != nil {
 		return
 	}
@@ -461,86 +292,51 @@ func (z *Teacher) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Teacher) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
-	// string "Person"
-	// map header, size 3
-	// string "Name"
-	o = append(o, 0x82, 0xa6, 0x50, 0x65, 0x72, 0x73, 0x6f, 0x6e, 0x83, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// array header, size 2
+	// array header, size 3
+	o = append(o, 0x92, 0x93)
 	o = msgp.AppendString(o, z.Person.Name)
-	// string "Age"
-	o = append(o, 0xa3, 0x41, 0x67, 0x65)
 	o = msgp.AppendInt(o, z.Person.Age)
-	// string "Type"
-	o = append(o, 0xa4, 0x54, 0x79, 0x70, 0x65)
 	o = msgp.AppendUint16(o, z.Person.Type)
-	// string "Teach"
-	o = append(o, 0xa5, 0x54, 0x65, 0x61, 0x63, 0x68)
 	o = msgp.AppendBool(o, z.Teach)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Teacher) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Person":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
-			if err != nil {
-				return
-			}
-			for zb0002 > 0 {
-				zb0002--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Name":
-					z.Person.Name, bts, err = msgp.ReadStringBytes(bts)
-					if err != nil {
-						return
-					}
-				case "Age":
-					z.Person.Age, bts, err = msgp.ReadIntBytes(bts)
-					if err != nil {
-						return
-					}
-				case "Type":
-					z.Person.Type, bts, err = msgp.ReadUint16Bytes(bts)
-					if err != nil {
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						return
-					}
-				}
-			}
-		case "Teach":
-			z.Teach, bts, err = msgp.ReadBoolBytes(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if zb0002 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		return
+	}
+	z.Person.Name, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Person.Age, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		return
+	}
+	z.Person.Type, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
+	}
+	z.Teach, bts, err = msgp.ReadBoolBytes(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -548,6 +344,6 @@ func (z *Teacher) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Teacher) Msgsize() (s int) {
-	s = 1 + 7 + 1 + 5 + msgp.StringPrefixSize + len(z.Person.Name) + 4 + msgp.IntSize + 5 + msgp.Uint16Size + 6 + msgp.BoolSize
+	s = 1 + 1 + msgp.StringPrefixSize + len(z.Person.Name) + msgp.IntSize + msgp.Uint16Size + msgp.BoolSize
 	return
 }

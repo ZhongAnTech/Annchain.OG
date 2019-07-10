@@ -428,7 +428,7 @@ func (m MessageTermChangeRequest) String() string {
 	return fmt.Sprintf("requst id %d ", m.Id)
 }
 
-//msgp:tuple MessageTypeDkgSigSets
+//msgp:tuple MessageConsensusDkgSigSets
 type MessageConsensusDkgSigSets struct {
 	PkBls     []byte
 	PublicKey []byte
@@ -436,7 +436,7 @@ type MessageConsensusDkgSigSets struct {
 	TermId    uint64
 }
 
-//msgp:MessageConsensusDkgGenesisPublicKey
+//msgp:tuple MessageConsensusDkgGenesisPublicKey
 type MessageConsensusDkgGenesisPublicKey struct {
 	DkgPublicKey []byte
 	PublicKey    []byte

@@ -54,6 +54,7 @@ const (
 type CommonHash [32]byte
 
 type (
+	//msgp:tuple Ping
 	Ping struct {
 		Version    uint
 		From, To   RpcEndpoint
@@ -67,6 +68,7 @@ type (
 	}
 
 	// pong is the reply to ping.
+	//msgp:tuple Pong
 	Pong struct {
 		// This field should mirror the UDP envelope address
 		// of the ping packet, which provides a way to discover the
@@ -86,6 +88,7 @@ type (
 	}
 
 	// findnode is a query for nodes close to the given target.
+	//msgp:tuple Findnode
 	Findnode struct {
 		//Target     NodeID // doesn't need to be an actual public key
 		Target     [64]byte
@@ -95,6 +98,7 @@ type (
 	}
 
 	// findnode is a query for nodes close to the given target.
+	//msgp:tuple FindnodeHash
 	FindnodeHash struct {
 		//Target     common.Hash
 		Target     CommonHash
@@ -104,20 +108,21 @@ type (
 	}
 
 	// reply to findnode
+	//msgp:tuple Neighbors
 	Neighbors struct {
 		Nodes      []RpcNode
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
 		Rest [][]byte `rlp:"tail"`
 	}
-
+	//msgp:tuple TopicRegister
 	TopicRegister struct {
 		//Topics []Topic
 		Topics []string
 		Idx    uint
 		Pong   []byte
 	}
-
+	//msgp:tuple TopicQuery
 	TopicQuery struct {
 		//Topic      Topic
 		Topic      string
@@ -125,12 +130,13 @@ type (
 	}
 
 	// reply to topicQuery
+	//msgp:tuple TopicNodes
 	TopicNodes struct {
 		//Echo  common.Hash
 		Echo  CommonHash
 		Nodes []RpcNode
 	}
-
+	//msgp:tuple RpcNode
 	RpcNode struct {
 		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
 		IP  []byte
@@ -139,7 +145,7 @@ type (
 		//ID  NodeID
 		ID [64]byte
 	}
-
+	//msgp:tuple RpcEndpoint
 	RpcEndpoint struct {
 		//IP  net.IP // len 4 for IPv4 or 16 for IPv6
 		IP  []byte

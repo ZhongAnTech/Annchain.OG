@@ -29,6 +29,7 @@ type Suite interface {
 
 // Dealer encapsulates for creating and distributing the shares and for
 // replying to any Responses.
+//msgp:tuple Dealer
 type Dealer struct {
 	suite  Suite
 	reader cipher.Stream
@@ -517,6 +518,7 @@ func (v *Verifier) UnsafeSetResponseDKG(idx uint32, approval bool) {
 
 // Aggregator is used to collect all deals, and responses for one protocol run.
 // It brings common functionalities for both Dealer and Verifier structs.
+//msgp:tuple Aggregator
 type Aggregator struct {
 	suite     Suite
 	dealer    kyber.Point

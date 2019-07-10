@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-////go:generate msgp  never generate automaticly
+//go:generate msgp  never generate automaticly
 const (
 	ActionTxActionIPO uint8 = iota
 	ActionTxActionDestroy

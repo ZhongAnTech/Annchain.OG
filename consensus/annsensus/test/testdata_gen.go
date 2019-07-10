@@ -8,50 +8,34 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *TestMsg) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Message":
-			err = z.Message.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "MessageType":
-			err = z.MessageType.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "From":
-			err = z.From.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	err = z.Message.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	err = z.MessageType.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	err = z.From.DecodeMsg(dc)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *TestMsg) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
-	// write "Message"
-	err = en.Append(0x83, 0xa7, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -59,17 +43,7 @@ func (z *TestMsg) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "MessageType"
-	err = en.Append(0xab, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65)
-	if err != nil {
-		return
-	}
 	err = z.MessageType.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "From"
-	err = en.Append(0xa4, 0x46, 0x72, 0x6f, 0x6d)
 	if err != nil {
 		return
 	}
@@ -83,21 +57,16 @@ func (z *TestMsg) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *TestMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
-	// string "Message"
-	o = append(o, 0x83, 0xa7, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 3
+	o = append(o, 0x93)
 	o, err = z.Message.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "MessageType"
-	o = append(o, 0xab, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65)
 	o, err = z.MessageType.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "From"
-	o = append(o, 0xa4, 0x46, 0x72, 0x6f, 0x6d)
 	o, err = z.From.MarshalMsg(o)
 	if err != nil {
 		return
@@ -107,41 +76,26 @@ func (z *TestMsg) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *TestMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Message":
-			bts, err = z.Message.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "MessageType":
-			bts, err = z.MessageType.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "From":
-			bts, err = z.From.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	bts, err = z.Message.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.MessageType.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.From.UnmarshalMsg(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -149,6 +103,6 @@ func (z *TestMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TestMsg) Msgsize() (s int) {
-	s = 1 + 8 + z.Message.Msgsize() + 12 + z.MessageType.Msgsize() + 5 + z.From.Msgsize()
+	s = 1 + z.Message.Msgsize() + z.MessageType.Msgsize() + z.From.Msgsize()
 	return
 }

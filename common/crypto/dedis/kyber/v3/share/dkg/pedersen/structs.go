@@ -12,6 +12,7 @@ import (
 //go:generate msgp
 
 // DistKeyShare holds the share of a distributed key for a participant.
+//msgp:tuple DistKeyShare
 type DistKeyShare struct {
 	// Coefficients of the public polynomial holding the public key.
 	Commits []kyber.Point         `msg:"-"`
@@ -42,6 +43,7 @@ func (d *DistKeyShare) Commitments() []kyber.Point {
 
 // Deal holds the Deal for one participant as well as the index of the issuing
 // Dealer.
+//msgp:tuple Deal
 type Deal struct {
 	// Index of the Dealer in the list of participants
 	Index uint32
@@ -62,6 +64,7 @@ func (d *Deal) MarshalBinary() ([]byte, error) {
 
 // Response holds the Response from another participant as well as the index of
 // the target Dealer.
+//msgp:tuple Response
 type Response struct {
 	// Index of the Dealer for which this response is for
 	Index uint32
@@ -71,6 +74,7 @@ type Response struct {
 
 // Justification holds the Justification from a Dealer as well as the index of
 // the Dealer in question.
+//msgp:tuple Justification
 type Justification struct {
 	// Index of the Dealer who answered with this Justification
 	Index uint32

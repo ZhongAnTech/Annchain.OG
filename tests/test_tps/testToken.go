@@ -35,18 +35,18 @@ var debug bool
 func main() {
 	debug = true
 	a := newApp()
-	nonce := 7
+	nonce := 1
 	priv, pub, addr := getkey()
 	tokenName := "btcd"
 	_ = tokenName
-	//request := generateTokenPublishing(priv,pub,addr,nonce,true,tokenName)
-	//a.sendTx(&request,0,ipoUrl)
+	request := generateTokenPublishing(priv,pub,addr,nonce,true,tokenName)
+	a.sendTx(&request,0,ipoUrl)
 	//request := secondPublicOffering(priv, pub, addr, 2, nonce)
 	//a.sendTx(&request, 0, spoUrl)
 	//request := transfer(priv, pub, addr, 2, nonce)
 	//a.sendTx(&request, 0, txurl)
-	request := withdraw(priv,pub,addr,2,nonce)
-	a.sendTx(&request,0,withdrawUrl)
+	//request := withdraw(priv,pub,addr,2,nonce)
+	//a.sendTx(&request,0,withdrawUrl)
 	return
 }
 

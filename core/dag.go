@@ -54,9 +54,10 @@ type Dag struct {
 
 	db ogdb.Database
 	// testDb is for test only, should be deleted later.
-	testDb   ogdb.Database
-	accessor *Accessor
-	statedb  *state.StateDB
+	testDb    ogdb.Database
+	accessor  *Accessor
+	preloadDB *state.PreloadDB
+	statedb   *state.StateDB
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
@@ -85,12 +86,17 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	dag.close = make(chan struct{})
 
 	restart, root := dag.LoadLastState()
+
 	log.Infof("the root loaded from last state is: %x", root.ToBytes())
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
+
+	preloadDB := state.NewPreloadDB(statedb.Database(), statedb)
+	dag.preloadDB = preloadDB
+
 	if restart && dag.GetHeight() > 0 && root.Empty() {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
 	}
@@ -273,9 +279,7 @@ func (dag *Dag) PrePush(batch *ConfirmBatch) (types.Hash, error) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
-	// TODO
-	// Not implemented yet.
-	return types.Hash{}, nil
+	return dag.prePush(batch)
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
@@ -693,6 +697,19 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
+func (dag *Dag) prePush(batch *ConfirmBatch) (types.Hash, error) {
+	sort.Sort(batch.Txs)
+
+	dag.preloadDB.Reset()
+	for _, txi := range batch.Txs {
+		_, _, err := dag.ProcessTransaction(txi, true)
+		if err != nil {
+			return types.Hash{}, fmt.Errorf("process tx error: %v", err)
+		}
+	}
+	return dag.preloadDB.Commit()
+}
+
 func (dag *Dag) push(batch *ConfirmBatch) error {
 	if dag.latestSequencer.Height+1 != batch.Seq.Height {
 		return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
@@ -727,7 +744,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 				tokens[tokenId] = &token
 			}
 		}
-		_, receipt, err := dag.ProcessTransaction(txi)
+		_, receipt, err := dag.ProcessTransaction(txi, false)
 		if err != nil {
 			dag.statedb.RevertToSnapshot(sId)
 			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
@@ -770,7 +787,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	_, receipt, err := dag.ProcessTransaction(batch.Seq)
+	_, receipt, err := dag.ProcessTransaction(batch.Seq, false)
 	if err != nil {
 		return err
 	}
@@ -945,16 +962,23 @@ func (dag *Dag) DeleteTransaction(hash types.Hash) error {
 //
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
-func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
+func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
 	if tx.GetType() == types.TxBaseTypeArchive {
 		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
 		return nil, nil, nil
 	}
 
-	curNonce := dag.statedb.GetNonce(tx.Sender())
-	if !dag.statedb.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
-		dag.statedb.SetNonce(tx.Sender(), tx.GetNonce())
+	var db state.StateDBInterface
+	if preload {
+		db = dag.preloadDB
+	} else {
+		db = dag.statedb
+	}
+
+	curNonce := db.GetNonce(tx.Sender())
+	if !db.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
+		db.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
 	if tx.GetType() == types.TxBaseTypeSequencer {
@@ -975,14 +999,14 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 		actionTx := tx.(*types.ActionTx)
 		if actionTx.Action == types.ActionTxActionIPO {
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+			db.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
 		} else if actionTx.Action == types.ActionTxActionSPO {
 			//spo
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+			db.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
 		} else if actionTx.Action == types.ActionTxActionWithdraw {
 			actionData := actionTx.ActionData.(*types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
+			db.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
 		}
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
 		return nil, receipt, nil
@@ -991,8 +1015,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// transfer balance
 	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
-		dag.statedb.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
-		dag.statedb.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
+		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
+		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {
@@ -1003,7 +1027,13 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
-	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.statedb)
+	var vmContext *vmtypes.Context
+	if preload {
+		vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.preloadDB)
+	} else {
+		vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.statedb)
+	}
+
 	txContext := &ovm.TxContext{
 		From:       txnormal.Sender(),
 		Value:      txnormal.Value,

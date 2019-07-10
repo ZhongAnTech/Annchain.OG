@@ -10,9 +10,13 @@ type StateDBInterface interface {
 	CreateAccount(types.Address)
 
 	SubBalance(types.Address, *math.BigInt)
+	SubTokenBalance(types.Address, int32, *math.BigInt)
 	AddBalance(types.Address, *math.BigInt)
+	AddTokenBalance(types.Address, int32, *math.BigInt)
+	SetTokenBalance(types.Address, int32, *math.BigInt)
 	// Retrieve the balance from the given address or 0 if object not found
 	GetBalance(types.Address) *math.BigInt
+	GetTokenBalance(types.Address, int32) *math.BigInt
 
 	GetNonce(types.Address) uint64
 	SetNonce(types.Address, uint64)

@@ -39,6 +39,13 @@ func NewPreloadDB(db Database, statedb *StateDB) *PreloadDB {
 	}
 }
 
+func (pd *PreloadDB) Reset() {
+	pd.trie = nil
+	pd.journal = newJournal()
+	pd.states = make(map[types.Address]*StateObject)
+	pd.dirtyset = make(map[types.Address]struct{})
+}
+
 func (pd *PreloadDB) getOrCreateStateObject(addr types.Address) *StateObject {
 	state := pd.getStateObject(addr)
 	if state == nil {
@@ -108,6 +115,9 @@ func (pd *PreloadDB) addBalance(addr types.Address, tokenID int32, increment *ma
 	pd.setBalance(addr, tokenID, state.data.Balances.PreAdd(tokenID, increment))
 }
 
+func (ps *PreloadDB) SetTokenBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
+	ps.setBalance(addr, tokenID, balance)
+}
 func (pd *PreloadDB) setBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
 	state := pd.getOrCreateStateObject(addr)
 	state.SetBalance(tokenID, balance)
@@ -259,7 +269,7 @@ func (pd *PreloadDB) Commit() (types.Hash, error) {
 	log.WithField("rootHash", rootHash).Trace("state root set to")
 	pd.root = rootHash
 
-	//pd.clearJournalAndRefund()
+	pd.Reset()
 	return rootHash, err
 }
 

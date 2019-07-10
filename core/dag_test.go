@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/ogdb"
 	"testing"
 
 	"encoding/hex"
@@ -25,6 +26,11 @@ import (
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+)
+
+var (
+	testAddress01 = "0x0b5d53f433b7e4a4f853a01e987f977497dda261"
+	testAddress02 = "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
 )
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
@@ -47,6 +53,30 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 		dag.Stop()
 		remove()
 	}
+}
+
+func newTestMemDag(t *testing.T) (*core.Dag, *types.Sequencer, func()) {
+
+	conf := core.DagConfig{}
+	db := ogdb.NewMemDatabase()
+	tdb := ogdb.NewMemDatabase()
+	stdbconf := state.DefaultStateDBConfig()
+
+	dag, err := core.NewDag(conf, stdbconf, db, tdb)
+	if err != nil {
+		t.Errorf("create dag error: %v", err)
+	}
+	genesis, balance := core.DefaultGenesis("genesis.json")
+	err = dag.Init(genesis, balance)
+	if err != nil {
+		t.Fatalf("init dag failed with error: %v", err)
+	}
+	dag.Start()
+
+	return dag, genesis, func() {
+		dag.Stop()
+	}
+
 }
 
 func newTestDagTx(nonce uint64) *types.Tx {
@@ -131,19 +161,18 @@ func TestDagPush(t *testing.T) {
 
 	var err error
 
-	tx1 := newTestDagTx(0)
+	tx1 := newTestDagTx(1)
 	tx1.ParentsHash = types.Hashes{genesis.GetTxHash()}
-	tx2 := newTestDagTx(1)
+	tx2 := newTestDagTx(2)
 	tx2.ParentsHash = types.Hashes{genesis.GetTxHash()}
 
 	bd := &core.BatchDetail{TxList: core.NewTxList()}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
-	bd.Pos = math.NewBigInt(0)
-	bd.Neg = math.NewBigInt(0)
+	bd.Neg = make(map[int32]*math.BigInt)
 
 	batch := map[types.Address]*core.BatchDetail{}
-	batch[tx1.From] = bd
+	batch[*tx1.From] = bd
 
 	seq := newTestSeq(1)
 	seq.ParentsHash = types.Hashes{
@@ -195,7 +224,6 @@ func TestDagPush(t *testing.T) {
 	fmt.Println("txs", txs)
 
 	// TODO check addr balance
-
 }
 
 func TestDagProcess(t *testing.T) {
@@ -216,13 +244,13 @@ func TestDagProcess(t *testing.T) {
 	contractCode := "6060604052341561000f57600080fd5b600a60008190555060006001819055506102078061002e6000396000f300606060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631c0f72e11461006b57806360fe47b114610094578063c605f76c146100b7578063e5aa3d5814610145575b34600181905550005b341561007657600080fd5b61007e61016e565b6040518082815260200191505060405180910390f35b341561009f57600080fd5b6100b56004808035906020019091905050610174565b005b34156100c257600080fd5b6100ca61017e565b6040518080602001828103825283818151815260200191508051906020019080838360005b8381101561010a5780820151818401526020810190506100ef565b50505050905090810190601f1680156101375780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b341561015057600080fd5b6101586101c1565b6040518082815260200191505060405180910390f35b60015481565b8060008190555050565b6101866101c7565b6040805190810160405280600a81526020017f68656c6c6f576f726c6400000000000000000000000000000000000000000000815250905090565b60005481565b6020604051908101604052806000815250905600a165627a7a723058208e1bdbeee227900e60082cfcc0e44d400385e8811ae77ac6d7f3b72f630f04170029"
 
 	createTx := &types.Tx{}
-	createTx.From = addr
+	createTx.From = &addr
 	createTx.Value = math.NewBigInt(0)
 	createTx.Data, err = hex.DecodeString(contractCode)
 	if err != nil {
 		t.Fatalf("decode hex string to bytes error: %v", err)
 	}
-	_, _, err = dag.ProcessTransaction(createTx)
+	_, _, err = dag.ProcessTransaction(createTx, false)
 	if err != nil {
 		t.Fatalf("error during contract creation: %v", err)
 	}
@@ -240,11 +268,11 @@ func TestDagProcess(t *testing.T) {
 	// get i from setter contract
 	calldata := "e5aa3d58"
 	callTx := &types.Tx{}
-	callTx.From = addr
+	callTx.From = &addr
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)
-	ret, _, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx, false)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -257,16 +285,16 @@ func TestDagProcess(t *testing.T) {
 	// set i to be 100
 	setdata := "60fe47b10000000000000000000000000000000000000000000000000000000000000064"
 	setTx := &types.Tx{}
-	setTx.From = addr
+	setTx.From = &addr
 	setTx.Value = math.NewBigInt(0)
 	setTx.To = contractAddr
 	setTx.Data, _ = hex.DecodeString(setdata)
-	ret, _, err = dag.ProcessTransaction(setTx)
+	ret, _, err = dag.ProcessTransaction(setTx, false)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
 	// get i and check if it is changed
-	ret, _, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx, false)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -279,10 +307,10 @@ func TestDagProcess(t *testing.T) {
 	// pay a 10 bill to contract
 	transferValue := int64(10)
 	payTx := &types.Tx{}
-	payTx.From = addr
+	payTx.From = &addr
 	payTx.Value = math.NewBigInt(transferValue)
 	payTx.To = contractAddr
-	ret, _, err = dag.ProcessTransaction(payTx)
+	ret, _, err = dag.ProcessTransaction(payTx, false)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
@@ -290,4 +318,42 @@ func TestDagProcess(t *testing.T) {
 	if blc.GetInt64() != transferValue {
 		t.Fatalf("the value is not tranferred to contract, should be: %d, get: %d", transferValue, blc.GetInt64())
 	}
+}
+
+// Check if the root of pre push and actual push is the same.
+func TestDag_PrePush(t *testing.T) {
+	//dag, _, finish := newTestMemDag(t)
+	//defer finish()
+	//
+	//addr1 := types.HexToAddress(testAddress01)
+	//addr2 := types.HexToAddress(testAddress02)
+	//
+	//dag.StateDatabase().AddBalance(addr1, math.NewBigInt(10000000))
+	//root, err := dag.StateDatabase().Commit()
+	//if err != nil {
+	//	t.Errorf("statedb commit error: %v", err)
+	//}
+	//fmt.Println("root 1: ", root)
+	//
+	//tx1 := types.Tx{}
+	//tx1.From = &addr1
+	//tx1.To = addr2
+	//tx1.AccountNonce = 1
+	//tx1.Value = math.NewBigInt(10)
+	//tx1.TokenId = token.OGTokenID
+	//tx1.Weight = 100
+	//tx1.Hash = types.HexToHash("0x010101")
+	//
+	//seq := types.Sequencer{}
+	//seq.AccountNonce = 2
+	//seq.ParentsHash = types.Hashes{tx1.Hash}
+	//
+	//batch := &core.ConfirmBatch{}
+	//batch.Seq = &seq
+	//batch.Txs = types.Txis{&tx1}
+	//
+	//if err = dag.Push(batch); err != nil {
+	//	t.Errorf("dag push error: %v", err)
+	//}
+
 }

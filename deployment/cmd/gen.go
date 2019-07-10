@@ -55,7 +55,7 @@ func genInit() {
 	genCmd.PersistentFlags().BoolVarP(&solo, "solo", "s", false, "solo node that use auto client to produce sequencer")
 	genCmd.PersistentFlags().BoolVarP(&private, "private", "p", false, "private nodes that use your own boot-strap nodes")
 	genCmd.PersistentFlags().BoolVarP(&embededBootstrap, "embeded_bootstrap", "e", true, "if put bootstrap node info inside config")
-	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system")
+	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system。 At least 2.")
 	genCmd.PersistentFlags().IntVarP(&port, "port", "t", 8000, "the port of private network")
 }
 
@@ -80,6 +80,8 @@ func privateChainConfig() {
 	genesisPk := strings.Join(publicSet, ";")
 	viper.Set("annsensus.genesis_pk", genesisPk)
 	viper.Set("annsensus.campaign", true)
+	viper.Set("annsensus.partner_number", nodesNum)
+	viper.Set("annsensus.threshold", 2*nodesNum/3+1)
 
 	err := io.MkDirIfNotExists(privateDir)
 	if err != nil {

@@ -80,15 +80,15 @@ func TestStateWorkFlow(t *testing.T) {
 	stobj.SetNonce(testnonce)
 	stobj.SetBalance(1, math.NewBigInt(testblc))
 
-	blcInStateDB := stdb.GetTokenBalance(addr,1)
+	blcInStateDB := stdb.GetTokenBalance(addr, 1)
 	if blcInStateDB.GetInt64() != testblc {
 		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", blcInStateDB.GetInt64(), testblc)
 	}
-	stdb.AddTokenBalance(addr,2,math.NewBigInt(66))
-	blcInStateDB = stdb.GetTokenBalance(addr,2)
+	stdb.AddTokenBalance(addr, 2, math.NewBigInt(66))
+	blcInStateDB = stdb.GetTokenBalance(addr, 2)
 	//testblc = 666+32
 	if blcInStateDB.GetInt64() != int64(66) {
-		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", 66,blcInStateDB.GetInt64())
+		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", 66, blcInStateDB.GetInt64())
 	}
 
 	root, err := stdb.Commit()
@@ -100,7 +100,7 @@ func TestStateWorkFlow(t *testing.T) {
 		t.Fatalf("commit triedb error: %v", err)
 	}
 
-	blcInStateDB = stdb.GetTokenBalance(addr,1)
+	blcInStateDB = stdb.GetTokenBalance(addr, 1)
 	if blcInStateDB.GetInt64() != testblc {
 		t.Fatalf("the balance in statedb is not correct. shoud be: %d, get: %d", blcInStateDB.GetInt64(), testblc)
 	}

@@ -85,7 +85,7 @@ func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
 	return s.data.Balances[tokenID]
 }
 
-func (s*StateObject)GetAllBalance() BalanceSet{
+func (s *StateObject) GetAllBalance() BalanceSet {
 	return s.data.Balances
 }
 

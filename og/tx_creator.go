@@ -165,11 +165,12 @@ func (t *TxCreator) Stop() {
 	t.quit = true
 }
 
-func (m *TxCreator) NewUnsignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64) types.Txi {
+func (m *TxCreator) NewUnsignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64, tokenId int32) types.Txi {
 	tx := tx_types.Tx{
-		Value: value,
-		To:    to,
-		From:  &from,
+		Value:   value,
+		To:      to,
+		From:    &from,
+		TokenId: tokenId,
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeNormal,
@@ -198,14 +199,15 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 }
 
 func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value *math.BigInt, data []byte,
-	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature, tokenId int32) (tx types.Txi, err error) {
 	tx = &tx_types.Tx{
 		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
-		To:    to,
-		Value: value,
-		Data:  data,
+		To:      to,
+		Value:   value,
+		Data:    data,
+		TokenId: tokenId,
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
@@ -234,7 +236,7 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 			AccountNonce: nonce,
 			Type:         types.TxBaseAction,
 		},
-		Action:action,
+		Action: action,
 		ActionData: &tx_types.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSpo,
@@ -256,11 +258,11 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 }
 
 func (m *TxCreator) NewSignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64,
-	privateKey crypto.PrivateKey) types.Txi {
+	privateKey crypto.PrivateKey, tokenId int32) types.Txi {
 	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedTx(from, to, value, accountNonce)
+	tx := m.NewUnsignedTx(from, to, value, accountNonce, tokenId)
 	// do sign work
 	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes

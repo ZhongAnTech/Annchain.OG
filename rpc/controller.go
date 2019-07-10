@@ -915,6 +915,7 @@ func (r *RpcController) QueryNonce(c *gin.Context) {
 func (r *RpcController) QueryBalance(c *gin.Context) {
 	address := c.Query("address")
 	tokenIDStr := c.Query("token_id")
+	all :=c.Query("all")
 	addr, err := common.StringToAddress(address)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("address format err: %v", err), nil)
@@ -931,6 +932,15 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 		}
 		tokenID = int32(t)
 	}
+	if all=="true" {
+		b := r.Og.Dag.GetAllTokenBalance(addr)
+		Response(c, http.StatusOK, nil, gin.H{
+			"address": address,
+			"balance": b,
+		})
+		return 
+	}
+
 	b := r.Og.Dag.GetBalance(addr, tokenID)
 	Response(c, http.StatusOK, nil, gin.H{
 		"address": address,

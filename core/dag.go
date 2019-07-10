@@ -638,6 +638,18 @@ func (dag *Dag) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return dag.statedb.GetTokenBalance(addr, tokenID)
 }
 
+
+func (dag *Dag) GetAllTokenBalance(addr common.Address) state.BalanceSet {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getAlltokenBalance(addr)
+}
+
+func (dag *Dag) getAlltokenBalance(addr common.Address) state.BalanceSet {
+	return dag.statedb.GetAllTokenBalance(addr)
+}
+
 // GetLatestNonce returns the latest tx of an addresss.
 func (dag *Dag) GetLatestNonce(addr common.Address) (uint64, error) {
 	dag.mu.RLock()

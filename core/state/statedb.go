@@ -128,12 +128,21 @@ func (sd *StateDB) GetBalance(addr common.Address) *math.BigInt {
 
 	return sd.getBalance(addr, token.OGTokenID)
 }
+
 func (sd *StateDB) GetTokenBalance(addr common.Address, tokenID int32) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
 	return sd.getBalance(addr, tokenID)
 }
+
+func (sd *StateDB) GetAllTokenBalance(addr common.Address) BalanceSet {
+	sd.mu.RLock()
+	defer sd.mu.RUnlock()
+
+	return sd.getAllBalance(addr)
+}
+
 func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	state := sd.getStateObject(addr)
 	if state == nil {
@@ -145,6 +154,19 @@ func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	}
 	return balance
 }
+
+func (sd *StateDB) getAllBalance(addr common.Address) BalanceSet {
+	state := sd.getStateObject(addr)
+	if state == nil {
+		return NewBalanceSet()
+	}
+	balance := state.GetAllBalance()
+	if balance==nil {
+		return NewBalanceSet()
+	}
+	return balance
+}
+
 
 func (sd *StateDB) GetNonce(addr common.Address) uint64 {
 	sd.mu.RLock()

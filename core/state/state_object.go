@@ -16,7 +16,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -61,10 +60,10 @@ type StateObject struct {
 	dirtyStorage     map[types.Hash]types.Hash
 
 	trie Trie
-	db   *StateDB
+	db   StateDBInterface
 }
 
-func NewStateObject(addr types.Address, db *StateDB) *StateObject {
+func NewStateObject(addr types.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
@@ -82,8 +81,18 @@ func NewStateObject(addr types.Address, db *StateDB) *StateObject {
 	return s
 }
 
+func (s *StateObject) Copy(src *StateObject) {
+	s.address = src.address
+	s.addressHash = src.addressHash
+	s.data = src.data
+}
+
 func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
-	return s.data.Balances[tokenID]
+	b := s.data.Balances[tokenID]
+	if b == nil {
+		return math.NewBigInt(0)
+	}
+	return b
 }
 
 func (s *StateObject) AddBalance(tokenID int32, increment *math.BigInt) {
@@ -107,7 +116,7 @@ func (s *StateObject) SubBalance(tokenID int32, decrement *math.BigInt) {
 }
 
 func (s *StateObject) SetBalance(tokenID int32, balance *math.BigInt) {
-	s.db.journal.append(&balanceChange{
+	s.db.AppendJournal(&balanceChange{
 		account: &s.address,
 		tokenID: tokenID,
 		prev:    s.data.Balances[tokenID],
@@ -120,7 +129,7 @@ func (s *StateObject) GetNonce() uint64 {
 }
 
 func (s *StateObject) SetNonce(nonce uint64) {
-	s.db.journal.append(&nonceChange{
+	s.db.AppendJournal(&nonceChange{
 		account: &s.address,
 		prev:    s.data.Nonce,
 	})
@@ -153,7 +162,7 @@ func (s *StateObject) GetCommittedState(db Database, key types.Hash) types.Hash 
 }
 
 func (s *StateObject) SetState(db Database, key, value types.Hash) {
-	s.db.journal.append(&storageChange{
+	s.db.AppendJournal(&storageChange{
 		account:  &s.address,
 		key:      key,
 		prevalue: s.GetState(db, key),
@@ -177,7 +186,7 @@ func (s *StateObject) GetCode(db Database) []byte {
 }
 
 func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
-	s.db.journal.append(&codeChange{
+	s.db.AppendJournal(&codeChange{
 		account:  &s.address,
 		prevcode: s.code,
 		prevhash: s.data.CodeHash,

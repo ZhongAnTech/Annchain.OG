@@ -8,55 +8,38 @@ import (
 
 // DecodeMsg implements msgp.Decodable
 func (z *Node) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "IP":
-			z.IP, err = dc.ReadBytes(z.IP)
-			if err != nil {
-				return
-			}
-		case "UDP":
-			z.UDP, err = dc.ReadUint16()
-			if err != nil {
-				return
-			}
-		case "TCP":
-			z.TCP, err = dc.ReadUint16()
-			if err != nil {
-				return
-			}
-		case "ID":
-			err = dc.ReadExactBytes((z.ID)[:])
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	z.IP, err = dc.ReadBytes(z.IP)
+	if err != nil {
+		return
+	}
+	z.UDP, err = dc.ReadUint16()
+	if err != nil {
+		return
+	}
+	z.TCP, err = dc.ReadUint16()
+	if err != nil {
+		return
+	}
+	err = dc.ReadExactBytes((z.ID)[:])
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *Node) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
-	// write "IP"
-	err = en.Append(0x84, 0xa2, 0x49, 0x50)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -64,26 +47,11 @@ func (z *Node) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "UDP"
-	err = en.Append(0xa3, 0x55, 0x44, 0x50)
-	if err != nil {
-		return
-	}
 	err = en.WriteUint16(z.UDP)
 	if err != nil {
 		return
 	}
-	// write "TCP"
-	err = en.Append(0xa3, 0x54, 0x43, 0x50)
-	if err != nil {
-		return
-	}
 	err = en.WriteUint16(z.TCP)
-	if err != nil {
-		return
-	}
-	// write "ID"
-	err = en.Append(0xa2, 0x49, 0x44)
 	if err != nil {
 		return
 	}
@@ -97,64 +65,41 @@ func (z *Node) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Node) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
-	// string "IP"
-	o = append(o, 0x84, 0xa2, 0x49, 0x50)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendBytes(o, z.IP)
-	// string "UDP"
-	o = append(o, 0xa3, 0x55, 0x44, 0x50)
 	o = msgp.AppendUint16(o, z.UDP)
-	// string "TCP"
-	o = append(o, 0xa3, 0x54, 0x43, 0x50)
 	o = msgp.AppendUint16(o, z.TCP)
-	// string "ID"
-	o = append(o, 0xa2, 0x49, 0x44)
 	o = msgp.AppendBytes(o, (z.ID)[:])
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *Node) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "IP":
-			z.IP, bts, err = msgp.ReadBytesBytes(bts, z.IP)
-			if err != nil {
-				return
-			}
-		case "UDP":
-			z.UDP, bts, err = msgp.ReadUint16Bytes(bts)
-			if err != nil {
-				return
-			}
-		case "TCP":
-			z.TCP, bts, err = msgp.ReadUint16Bytes(bts)
-			if err != nil {
-				return
-			}
-		case "ID":
-			bts, err = msgp.ReadExactBytes(bts, (z.ID)[:])
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
-		}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	z.IP, bts, err = msgp.ReadBytesBytes(bts, z.IP)
+	if err != nil {
+		return
+	}
+	z.UDP, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
+	}
+	z.TCP, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		return
+	}
+	bts, err = msgp.ReadExactBytes(bts, (z.ID)[:])
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -162,6 +107,6 @@ func (z *Node) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Node) Msgsize() (s int) {
-	s = 1 + 3 + msgp.BytesPrefixSize + len(z.IP) + 4 + msgp.Uint16Size + 4 + msgp.Uint16Size + 3 + msgp.ArrayHeaderSize + (64 * (msgp.ByteSize))
+	s = 1 + msgp.BytesPrefixSize + len(z.IP) + msgp.Uint16Size + msgp.Uint16Size + msgp.ArrayHeaderSize + (64 * (msgp.ByteSize))
 	return
 }

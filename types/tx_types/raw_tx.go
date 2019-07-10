@@ -35,7 +35,7 @@ type RawTx struct {
 	TokenId int32
 }
 
-//msgp:RawActionTX
+//msgp:tuple RawActionTx
 type RawActionTx struct {
 	types.TxBase
 	Action     uint8

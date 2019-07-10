@@ -16,6 +16,7 @@ package main
 //go:generate msgp
 type Bytes []byte
 
+//msgp:tuple Person
 type Person struct {
 	Name string
 	Id   string

@@ -38,7 +38,7 @@ type Sequencer struct {
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
-//msgp:tuuple SequencerJson
+//msgp:tuple SequencerJson
 type SequencerJson struct {
 	types.TxBaseJson
 	Issuer         *common.Address `json:"issuer"`

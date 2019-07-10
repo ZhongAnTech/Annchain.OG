@@ -121,7 +121,7 @@ func (m MessageProposal) Copy() *MessageProposal {
 	return &r
 }
 
-//msgp:tuple MessageCommonVote
+//msgp:tuple MessagePreVote
 type MessagePreVote struct {
 	BasicMessage
 	Idv       *common.Hash // ID of the proposal, usually be the hash of the proposal

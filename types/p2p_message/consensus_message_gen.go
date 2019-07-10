@@ -390,75 +390,53 @@ func (z *MessagePreCommit) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *MessagePreVote) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	err = z.BasicMessage.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "BasicMessage":
-			err = z.BasicMessage.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "Idv":
-			if dc.IsNil() {
-				err = dc.ReadNil()
-				if err != nil {
-					return
-				}
-				z.Idv = nil
-			} else {
-				if z.Idv == nil {
-					z.Idv = new(common.Hash)
-				}
-				err = z.Idv.DecodeMsg(dc)
-				if err != nil {
-					return
-				}
-			}
-		case "Signature":
-			err = z.Signature.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		case "PublicKey":
-			err = z.PublicKey.DecodeMsg(dc)
-			if err != nil {
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				return
-			}
+		z.Idv = nil
+	} else {
+		if z.Idv == nil {
+			z.Idv = new(common.Hash)
 		}
+		err = z.Idv.DecodeMsg(dc)
+		if err != nil {
+			return
+		}
+	}
+	err = z.Signature.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	err = z.PublicKey.DecodeMsg(dc)
+	if err != nil {
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
-	// write "BasicMessage"
-	err = en.Append(0x84, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
 	err = z.BasicMessage.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "Idv"
-	err = en.Append(0xa3, 0x49, 0x64, 0x76)
 	if err != nil {
 		return
 	}
@@ -473,17 +451,7 @@ func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "Signature"
-	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
-	if err != nil {
-		return
-	}
 	err = z.Signature.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	// write "PublicKey"
-	err = en.Append(0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	if err != nil {
 		return
 	}
@@ -497,15 +465,12 @@ func (z *MessagePreVote) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessagePreVote) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
-	// string "BasicMessage"
-	o = append(o, 0x84, 0xac, 0x42, 0x61, 0x73, 0x69, 0x63, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65)
+	// array header, size 4
+	o = append(o, 0x94)
 	o, err = z.BasicMessage.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "Idv"
-	o = append(o, 0xa3, 0x49, 0x64, 0x76)
 	if z.Idv == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -514,14 +479,10 @@ func (z *MessagePreVote) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
-	// string "Signature"
-	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	o, err = z.Signature.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	// string "PublicKey"
-	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79)
 	o, err = z.PublicKey.MarshalMsg(o)
 	if err != nil {
 		return
@@ -531,57 +492,41 @@ func (z *MessagePreVote) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *MessagePreVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	bts, err = z.BasicMessage.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
 		if err != nil {
 			return
 		}
-		switch msgp.UnsafeString(field) {
-		case "BasicMessage":
-			bts, err = z.BasicMessage.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "Idv":
-			if msgp.IsNil(bts) {
-				bts, err = msgp.ReadNilBytes(bts)
-				if err != nil {
-					return
-				}
-				z.Idv = nil
-			} else {
-				if z.Idv == nil {
-					z.Idv = new(common.Hash)
-				}
-				bts, err = z.Idv.UnmarshalMsg(bts)
-				if err != nil {
-					return
-				}
-			}
-		case "Signature":
-			bts, err = z.Signature.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		case "PublicKey":
-			bts, err = z.PublicKey.UnmarshalMsg(bts)
-			if err != nil {
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				return
-			}
+		z.Idv = nil
+	} else {
+		if z.Idv == nil {
+			z.Idv = new(common.Hash)
 		}
+		bts, err = z.Idv.UnmarshalMsg(bts)
+		if err != nil {
+			return
+		}
+	}
+	bts, err = z.Signature.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
+	if err != nil {
+		return
 	}
 	o = bts
 	return
@@ -589,13 +534,13 @@ func (z *MessagePreVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessagePreVote) Msgsize() (s int) {
-	s = 1 + 13 + z.BasicMessage.Msgsize() + 4
+	s = 1 + z.BasicMessage.Msgsize()
 	if z.Idv == nil {
 		s += msgp.NilSize
 	} else {
 		s += z.Idv.Msgsize()
 	}
-	s += 10 + z.Signature.Msgsize() + 10 + z.PublicKey.Msgsize()
+	s += z.Signature.Msgsize() + z.PublicKey.Msgsize()
 	return
 }
 

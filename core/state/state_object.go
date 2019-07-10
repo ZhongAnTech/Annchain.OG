@@ -268,7 +268,7 @@ func (s *StateObject) Encode() ([]byte, error) {
 }
 
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
-	var a AccountData
+	a := NewAccountData()
 	_, err := a.UnmarshalMsg(b)
 
 	s.data = a

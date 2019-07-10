@@ -938,7 +938,7 @@ func (r *RpcController) QueryBalance(c *gin.Context) {
 			"address": address,
 			"balance": b,
 		})
-		return 
+		return
 	}
 
 	b := r.Og.Dag.GetBalance(addr, tokenID)

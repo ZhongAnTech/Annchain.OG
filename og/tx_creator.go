@@ -234,6 +234,7 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 			AccountNonce: nonce,
 			Type:         types.TxBaseAction,
 		},
+		Action:action,
 		ActionData: &tx_types.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSpo,

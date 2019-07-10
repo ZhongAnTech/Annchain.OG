@@ -144,7 +144,7 @@ func (z *ActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	//bts, err = z.ActionData.UnmarshalMsg(bts)
 	//this is edited by manuly
-	if z.Action == ActionTxActionWithdraw || z.Action == ActionTxActionIPO || z.Action == ActionTxActionSPO {
+	if z.Action == ActionTxActionDestroy || z.Action == ActionTxActionIPO || z.Action == ActionTxActionSPO {
 		z.ActionData = &PublicOffering{}
 	} else if z.Action == ActionRequestDomainName {
 		z.ActionData = &RequestDomain{}

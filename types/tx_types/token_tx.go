@@ -28,7 +28,7 @@ import (
 ////go:generate msgp  never generate automaticly
 const (
 	ActionTxActionIPO uint8 = iota
-	ActionTxActionWithdraw
+	ActionTxActionDestroy
 	ActionTxActionSPO
 	ActionRequestDomainName
 )
@@ -116,7 +116,7 @@ func RandomActionTx() *ActionTx {
 }
 
 func (t *ActionTx) GetPublicOffering() *PublicOffering {
-	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionWithdraw {
+	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionDestroy {
 		v, ok := t.ActionData.(*PublicOffering)
 		if ok {
 			return v
@@ -139,7 +139,7 @@ func (t *ActionTx) CheckActionIsValid() bool {
 	switch t.Action {
 	case ActionTxActionIPO:
 	case ActionTxActionSPO:
-	case ActionTxActionWithdraw:
+	case ActionTxActionDestroy:
 	case ActionRequestDomainName:
 	default:
 		return false
@@ -157,7 +157,7 @@ func (t *ActionTx) SignatureTargets() []byte {
 		w.Write(t.From.Bytes)
 	}
 	//types.PanicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
-	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionWithdraw {
+	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionDestroy {
 		of := t.GetPublicOffering()
 		w.Write(of.Value.GetSigBytes(), of.EnableSPO)
 		if t.Action == ActionTxActionIPO {

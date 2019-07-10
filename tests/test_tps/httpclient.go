@@ -60,9 +60,6 @@ type app struct {
 	quit        chan bool
 }
 
-
-
-
 func (o *app) ConsumeQueue() {
 	i := 0
 	for {

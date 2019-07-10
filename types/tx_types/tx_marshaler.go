@@ -63,7 +63,7 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		action := bts[3]
 		if action == ActionRequestDomainName {
 			rawTx.ActionData = &RequestDomain{}
-		} else if action == ActionTxActionIPO || action == ActionTxActionSPO || action == ActionTxActionWithdraw {
+		} else if action == ActionTxActionIPO || action == ActionTxActionSPO || action == ActionTxActionDestroy {
 			rawTx.ActionData = &PublicOffering{}
 		} else {
 			return bts, fmt.Errorf("unkown action %d", action)
@@ -117,7 +117,7 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 		action := head[0]
 		if action == ActionRequestDomainName {
 			rawTx.ActionData = &RequestDomain{}
-		} else if action == ActionTxActionIPO || action == ActionTxActionSPO || action == ActionTxActionWithdraw {
+		} else if action == ActionTxActionIPO || action == ActionTxActionSPO || action == ActionTxActionDestroy {
 			rawTx.ActionData = &PublicOffering{}
 		} else {
 			return fmt.Errorf("unkown action %d", action)

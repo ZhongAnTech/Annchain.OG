@@ -35,16 +35,18 @@ var debug bool
 func main() {
 	debug = true
 	a := newApp()
-	nonce := 7
+	nonce := 9
 	priv, pub, addr := getkey()
-	//request := generateTokenPublishing(priv,pub,addr,nonce)
+	tokenName := "btc"
+	_ = tokenName
+	//request := generateTokenPublishing(priv,pub,addr,nonce,false,tokenName)
 	//a.sendTx(&request,0,ipoUrl)
-	//request := secondPublicOffering(priv,pub,addr,2,nonce)
-	//a.sendTx(&request,0,spoUrl)
+	request := secondPublicOffering(priv, pub, addr, 3, nonce)
+	a.sendTx(&request, 0, spoUrl)
 	//request := transfer(priv, pub, addr, 2, nonce)
 	//a.sendTx(&request, 0, txurl)
-	request := withdraw(priv,pub,addr,2,nonce)
-	a.sendTx(&request,0,withdrawUrl)
+	//request := withdraw(priv,pub,addr,2,nonce)
+	//a.sendTx(&request,0,withdrawUrl)
 	return
 }
 
@@ -67,7 +69,7 @@ func getkey() (priv crypto.PrivateKey, pub crypto.PublicKey, addr common.Address
 	return
 }
 
-func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, nonce int) rpc.NewPublicOfferingRequest {
+func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, nonce int, enableSPO bool, tokenName string) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
 	//from:= pub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String())
@@ -83,8 +85,8 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		From:   &from,
 		ActionData: &tx_types.PublicOffering{
 			Value:     value,
-			EnableSPO: true,
-			TokenName: "test_token",
+			EnableSPO: enableSPO,
+			TokenName: tokenName,
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
@@ -102,8 +104,8 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
 		Action:    tx_types.ActionTxActionIPO,
-		EnableSPO: true,
-		TokenName: "test_token",
+		EnableSPO: enableSPO,
+		TokenName: tokenName,
 	}
 
 	return request
@@ -121,13 +123,13 @@ func withdraw(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: tx_types.ActionTxActionWithdraw,
+		Action: tx_types.ActionTxActionDestroy,
 		From:   &from,
 		ActionData: &tx_types.PublicOffering{
-			Value:     value,
-			EnableSPO: true,
-			TokenName: "test_token",
-			TokenId:   tokenId,
+			Value: value,
+			//EnableSPO:  enableSPO,
+			//TokenName: "test_token",
+			TokenId: tokenId,
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
@@ -144,10 +146,10 @@ func withdraw(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    tx_types.ActionTxActionWithdraw,
-		EnableSPO: true,
-		TokenName: "test_token",
-		TokenId:   tokenId,
+		Action:    tx_types.ActionTxActionDestroy,
+		//EnableSPO: enableSPO,
+		//TokenName: "test_token",
+		TokenId: tokenId,
 	}
 
 	return request
@@ -168,10 +170,10 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		Action: tx_types.ActionTxActionSPO,
 		From:   &from,
 		ActionData: &tx_types.PublicOffering{
-			Value:     value,
-			EnableSPO: true,
-			TokenName: "test_token",
-			TokenId:   tokenId,
+			Value: value,
+			//EnableSPO: true,
+			//TokenName: "test_token",
+			TokenId: tokenId,
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
@@ -191,9 +193,9 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
 		Action:    tx_types.ActionTxActionSPO,
-		EnableSPO: true,
-		TokenName: "test_token",
-		TokenId:   tokenId,
+		//EnableSPO: true,
+		//TokenName: "test_token",
+		TokenId: tokenId,
 	}
 
 	return request

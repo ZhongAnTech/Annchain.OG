@@ -701,16 +701,20 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		if tx.Action == tx_types.ActionTxActionSPO {
 			actionData := tx.ActionData.(*tx_types.PublicOffering)
 			if actionData.TokenId == 0 {
-				log.Warn("og token is disabled for publishing")
+				log.WithField("tx ", tx).Warn("og token is disabled for publishing")
 				return TxQualityIsFatal
 			}
 			token := pool.dag.GetToken(actionData.TokenId)
 			if token == nil {
-				log.Warn("token not found")
+				log.WithField("tx ", tx).Warn("token not found")
 				return TxQualityIsFatal
 			}
 			if !token.EnableSPO {
-				log.Warn("token is disabled for second publishing")
+				log.WithField("tx ", tx).Warn("token is disabled for second publishing")
+				return TxQualityIsFatal
+			}
+			if token.Destroyed {
+				log.WithField("tx ", tx).Warn("token is destroyed already")
 				return TxQualityIsFatal
 			}
 			if token.Sender != tx.Sender() {
@@ -718,19 +722,23 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 		}
-		if tx.Action == tx_types.ActionTxActionWithdraw {
+		if tx.Action == tx_types.ActionTxActionDestroy {
 			actionData := tx.ActionData.(*tx_types.PublicOffering)
 			if actionData.TokenId == 0 {
-				log.Warn("og token is disabled for withdraw")
+				log.WithField("tx ", tx).Warn("og token is disabled for withdraw")
 				return TxQualityIsFatal
 			}
 			token := pool.dag.GetToken(actionData.TokenId)
 			if token == nil {
-				log.Warn("token not found")
+				log.WithField("tx ", tx).Warn("token not found")
+				return TxQualityIsFatal
+			}
+			if token.Destroyed {
+				log.WithField("tx ", tx).Warn("token is destroyed already")
 				return TxQualityIsFatal
 			}
 			if token.Sender != tx.Sender() {
-				log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
+				log.WithField("tx ", tx).WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
 				return TxQualityIsFatal
 			}
 		}

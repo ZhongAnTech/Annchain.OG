@@ -103,7 +103,7 @@ func (r *RpcController) TokenWithdraw(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionWithdraw, nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionDestroy, nonce,
 		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)

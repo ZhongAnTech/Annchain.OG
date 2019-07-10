@@ -676,9 +676,6 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
 			originBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
-			if originBalance == nil {
-				originBalance = math.NewBigInt(0)
-			}
 			stateFrom = NewBalanceState(originBalance)
 		}
 

@@ -120,7 +120,7 @@ func gasReturnDataCopy(gt params.GasTable, ctx *vmtypes.Context, contract *vmtyp
 func gasSStore(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = ctx.StateDB.GetState(contract.Address(),common2.BigToHash(x))
+		current = ctx.StateDB.GetState(contract.Address(), common2.BigToHash(x))
 	)
 	// This checks for 3 scenario's and calculates gas accordingly:
 	//
@@ -150,11 +150,11 @@ func gasSStore(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Contr
 	// 	  2.2.2. If original value equals new value (this storage slot is reset)
 	//       2.2.2.1. If original value is 0, add 19800 gas to refund counter.
 	// 	     2.2.2.2. Otherwise, add 4800 gas to refund counter.
-	value :=common2.BigToHash(y)
+	value := common2.BigToHash(y)
 	if current == value { // noop (1)
 		return params.NetSstoreNoopGas, nil
 	}
-	original := ctx.StateDB.GetCommittedState(contract.Address(),common2.BigToHash(x))
+	original := ctx.StateDB.GetCommittedState(contract.Address(), common2.BigToHash(x))
 	if original == current {
 		if original == (common2.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil

@@ -232,7 +232,7 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 		// should consider the case that to is nil. (contract creation)
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseAction,
 		},
 		ActionData: &tx_types.PublicOffering{
 			Value:     value,

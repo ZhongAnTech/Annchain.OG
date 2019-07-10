@@ -47,6 +47,12 @@ type PublicOffering struct {
 	TokenName string
 }
 
+func NewPublicOffering() *PublicOffering {
+	return &PublicOffering{
+		Value:math.NewBigInt(0),
+	}
+}
+
 //msgp:tuple RequestDomain
 type RequestDomain struct {
 	DomainName string

@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/spf13/cobra"
 )
 
@@ -77,7 +78,7 @@ func newTx(cmd *cobra.Command, args []string) {
 	if nonce <= 0 {
 		nonce = getNonce(from)
 	}
-	tx := types.Tx{
+	tx := tx_types.Tx{
 		Value: math.NewBigInt(value),
 		To:    toAddr,
 		From:  &from,

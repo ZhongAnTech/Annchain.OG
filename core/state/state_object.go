@@ -85,6 +85,10 @@ func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
 	return s.data.Balances[tokenID]
 }
 
+func (s *StateObject) GetAllBalance() BalanceSet {
+	return s.data.Balances
+}
+
 func (s *StateObject) AddBalance(tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {
@@ -264,7 +268,7 @@ func (s *StateObject) Encode() ([]byte, error) {
 }
 
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
-	var a AccountData
+	a := NewAccountData()
 	_, err := a.UnmarshalMsg(b)
 
 	s.data = a
@@ -286,7 +290,7 @@ func NewBalanceSet() BalanceSet {
 func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
 	bi := (*b)[tokenID]
 	if bi == nil {
-		return math.NewBigInt(0)
+		bi = math.NewBigInt(0)
 	}
 	return bi.Add(increment)
 }

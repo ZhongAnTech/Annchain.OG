@@ -638,6 +638,17 @@ func (dag *Dag) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return dag.statedb.GetTokenBalance(addr, tokenID)
 }
 
+func (dag *Dag) GetAllTokenBalance(addr common.Address) state.BalanceSet {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getAlltokenBalance(addr)
+}
+
+func (dag *Dag) getAlltokenBalance(addr common.Address) state.BalanceSet {
+	return dag.statedb.GetAllTokenBalance(addr)
+}
+
 // GetLatestNonce returns the latest tx of an addresss.
 func (dag *Dag) GetLatestNonce(addr common.Address) (uint64, error) {
 	dag.mu.RLock()
@@ -713,20 +724,56 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 	tokenId := dag.latestTokenId
-	var tokens map[int32]*tx_types.TokenInfo
+	var tokens = make(map[int32]*tx_types.TokenInfo)
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		if txi.GetType() == types.TxBaseAction {
-			tx := txi.(*tx_types.ActionTx)
-			if tx.Action == tx_types.ActionTxActionIPO {
+			actionTx := txi.(*tx_types.ActionTx)
+			if actionTx.Action == tx_types.ActionTxActionIPO {
 				tokenId++
-				actionData := tx.ActionData.(*tx_types.PublicOffering)
+				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
 				actionData.TokenId = tokenId
+				currentValue := *actionData.Value
 				token := tx_types.TokenInfo{
 					PublicOffering: *actionData,
 					Sender:         txi.Sender(),
+					CurrentValue:   &currentValue,
 				}
 				tokens[tokenId] = &token
+				dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+			} else if actionTx.Action == tx_types.ActionTxActionSPO {
+
+				//spo
+				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
+
+				token := tokens[actionData.TokenId]
+				if token == nil {
+					token = dag.getToken(actionData.TokenId)
+				}
+				if token == nil {
+					log.WithField("tx", txi).Error("token not found,shoul never be hera ")
+					return fmt.Errorf("token not found %v", actionData.TokenId)
+				}
+				if token.Destroyed {
+					log.WithField("tx", txi).Error("token is destroyed ,shoul never be hera ,go on never return fail")
+				} else {
+					token.CurrentValue = token.CurrentValue.Add(actionData.Value)
+					dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+					tokens[tokenId] = token
+				}
+			} else if actionTx.Action == tx_types.ActionTxActionDestroy {
+				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
+				token := tokens[actionData.TokenId]
+				if token == nil {
+					token = dag.getToken(actionData.TokenId)
+				}
+				if token == nil {
+					log.WithField("tx", txi).Error("token not found,shoul never be hera ")
+					return fmt.Errorf("token not found %v", actionData.TokenId)
+				}
+				token.Destroyed = true
+				dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
+				tokens[tokenId] = token
 			}
 		}
 		_, receipt, err := dag.ProcessTransaction(txi)
@@ -974,18 +1021,18 @@ func (dag *Dag) ProcessTransaction(tx types.Txi) ([]byte, *Receipt, error) {
 
 	if tx.GetType() == types.TxBaseAction {
 		//ipo
-		actionTx := tx.(*tx_types.ActionTx)
-		if actionTx.Action == tx_types.ActionTxActionIPO {
-			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		} else if actionTx.Action == tx_types.ActionTxActionSPO {
-			//spo
-			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-			dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		} else if actionTx.Action == tx_types.ActionTxActionWithdraw {
-			actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-			dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
-		}
+		//actionTx := tx.(*tx_types.ActionTx)
+		//if actionTx.Action == tx_types.ActionTxActionIPO {
+		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
+		//	dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+		//} else if actionTx.Action == tx_types.ActionTxActionSPO {
+		//	//spo
+		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
+		//	dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
+		//} else if actionTx.Action == tx_types.ActionTxActionDestroy {
+		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
+		//	dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
+		//}
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}

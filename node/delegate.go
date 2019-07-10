@@ -33,6 +33,7 @@ type TxRequest struct {
 	PrivateKey crypto.PrivateKey
 	Value      *math.BigInt
 	Nonce      uint64
+	TokenId    int32
 }
 
 type Delegate struct {
@@ -55,7 +56,7 @@ func (d *Delegate) TooMoreTx() bool {
 }
 
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
-	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey)
+	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey, r.TokenId)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {
 		logrus.Warn("delegate failed to seal tx")

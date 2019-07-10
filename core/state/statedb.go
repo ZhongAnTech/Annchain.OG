@@ -149,7 +149,7 @@ func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 		return math.NewBigInt(0)
 	}
 	balance := state.GetBalance(tokenID)
-	if balance==nil {
+	if balance == nil {
 		return math.NewBigInt(0)
 	}
 	return balance
@@ -161,12 +161,11 @@ func (sd *StateDB) getAllBalance(addr common.Address) BalanceSet {
 		return NewBalanceSet()
 	}
 	balance := state.GetAllBalance()
-	if balance==nil {
+	if balance == nil {
 		return NewBalanceSet()
 	}
 	return balance
 }
-
 
 func (sd *StateDB) GetNonce(addr common.Address) uint64 {
 	sd.mu.RLock()

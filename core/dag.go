@@ -638,7 +638,6 @@ func (dag *Dag) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return dag.statedb.GetTokenBalance(addr, tokenID)
 }
 
-
 func (dag *Dag) GetAllTokenBalance(addr common.Address) state.BalanceSet {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -725,7 +724,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 	tokenId := dag.latestTokenId
-	var tokens = make( map[int32]*tx_types.TokenInfo)
+	var tokens = make(map[int32]*tx_types.TokenInfo)
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 		if txi.GetType() == types.TxBaseAction {

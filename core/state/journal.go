@@ -23,19 +23,19 @@ import (
 
 // journalEntry is a modification entry in the state change journal that can be
 // reverted on demand.
-type journalEntry interface {
+type JournalEntry interface {
 	// revert undoes the changes introduced by this journal entry.
-	revert(*StateDB)
+	Revert(db *StateDB)
 
 	// dirtied returns the Ethereum address modified by this journal entry.
-	dirtied() *types.Address
+	Dirtied() *types.Address
 }
 
 // journal contains the list of state modifications applied since the last state
 // commit. These are tracked to be able to be reverted in case of an execution
 // exception or revertal request.
 type journal struct {
-	entries []journalEntry        // Current changes tracked by the journal
+	entries []JournalEntry        // Current changes tracked by the journal
 	dirties map[types.Address]int // Dirty accounts and the number of changes
 }
 
@@ -47,9 +47,9 @@ func newJournal() *journal {
 }
 
 // append inserts a new modification entry to the end of the change journal.
-func (j *journal) append(entry journalEntry) {
+func (j *journal) append(entry JournalEntry) {
 	j.entries = append(j.entries, entry)
-	if addr := entry.dirtied(); addr != nil {
+	if addr := entry.Dirtied(); addr != nil {
 		j.dirties[*addr]++
 	}
 }
@@ -59,10 +59,10 @@ func (j *journal) append(entry journalEntry) {
 func (j *journal) revert(statedb *StateDB, snapshot int) {
 	for i := len(j.entries) - 1; i >= snapshot; i-- {
 		// Undo the changes made by the operation
-		j.entries[i].revert(statedb)
+		j.entries[i].Revert(statedb)
 
 		// Drop any dirty tracking induced by the change
-		if addr := j.entries[i].dirtied(); addr != nil {
+		if addr := j.entries[i].Dirtied(); addr != nil {
 			if j.dirties[*addr]--; j.dirties[*addr] == 0 {
 				delete(j.dirties, *addr)
 			}
@@ -133,24 +133,24 @@ type (
 	}
 )
 
-func (ch createObjectChange) revert(s *StateDB) {
+func (ch createObjectChange) Revert(s *StateDB) {
 	delete(s.states, *ch.account)
 	delete(s.dirtyset, *ch.account)
 }
 
-func (ch createObjectChange) dirtied() *types.Address {
+func (ch createObjectChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch resetObjectChange) revert(s *StateDB) {
+func (ch resetObjectChange) Revert(s *StateDB) {
 	s.setStateObject(ch.prev.address, ch.prev)
 }
 
-func (ch resetObjectChange) dirtied() *types.Address {
+func (ch resetObjectChange) Dirtied() *types.Address {
 	return nil
 }
 
-func (ch suicideChange) revert(s *StateDB) {
+func (ch suicideChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.suicided = ch.prev
@@ -160,74 +160,74 @@ func (ch suicideChange) revert(s *StateDB) {
 	}
 }
 
-func (ch suicideChange) dirtied() *types.Address {
+func (ch suicideChange) Dirtied() *types.Address {
 	return ch.account
 }
 
 var ripemd = types.HexToAddress("0000000000000000000000000000000000000003")
 
-func (ch touchChange) revert(s *StateDB) {
+func (ch touchChange) Revert(s *StateDB) {
 }
 
-func (ch touchChange) dirtied() *types.Address {
+func (ch touchChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch balanceChange) revert(s *StateDB) {
+func (ch balanceChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetBalance(ch.tokenID, ch.prev)
 	}
 }
 
-func (ch balanceChange) dirtied() *types.Address {
+func (ch balanceChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch nonceChange) revert(s *StateDB) {
+func (ch nonceChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetNonce(ch.prev)
 	}
 }
 
-func (ch nonceChange) dirtied() *types.Address {
+func (ch nonceChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch codeChange) revert(s *StateDB) {
+func (ch codeChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetCode(types.BytesToHash(ch.prevhash), ch.prevcode)
 	}
 }
 
-func (ch codeChange) dirtied() *types.Address {
+func (ch codeChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch storageChange) revert(s *StateDB) {
+func (ch storageChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
 		stobj.SetState(s.db, ch.key, ch.prevalue)
 	}
 }
 
-func (ch storageChange) dirtied() *types.Address {
+func (ch storageChange) Dirtied() *types.Address {
 	return ch.account
 }
 
-func (ch refundChange) revert(s *StateDB) {
+func (ch refundChange) Revert(s *StateDB) {
 	s.refund = ch.prev
 }
 
-func (ch refundChange) dirtied() *types.Address {
+func (ch refundChange) Dirtied() *types.Address {
 	return nil
 }
 
-func (ch addLogChange) revert(s *StateDB) {
+func (ch addLogChange) Revert(s *StateDB) {
 	// TODO
-	// Log not implemented yet. To avoid the error, commment
+	// Log not implemented yet. To avoid the error, comment
 	// this function.
 
 	// logs := s.logs[ch.txhash]
@@ -239,11 +239,11 @@ func (ch addLogChange) revert(s *StateDB) {
 	// s.logSize--
 }
 
-func (ch addLogChange) dirtied() *types.Address {
+func (ch addLogChange) Dirtied() *types.Address {
 	return nil
 }
 
-func (ch addPreimageChange) revert(s *StateDB) {
+func (ch addPreimageChange) Revert(s *StateDB) {
 	// TODO
 	// preimage not implemented yet, comment temporarily this function
 	// to avoid compile error.
@@ -251,6 +251,6 @@ func (ch addPreimageChange) revert(s *StateDB) {
 	// delete(s.preimages, ch.hash)
 }
 
-func (ch addPreimageChange) dirtied() *types.Address {
+func (ch addPreimageChange) Dirtied() *types.Address {
 	return nil
 }

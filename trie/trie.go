@@ -225,7 +225,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 	}
 	switch n := n.(type) {
 	case *ShortNode:
-		log.Tracef("Panic debug, insert meet Shortnode, shortnode key: %x, key: %x", n.Key, key)
+		//log.Tracef("Panic debug, insert meet Shortnode, shortnode key: %x, key: %x", n.Key, key)
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
@@ -257,7 +257,7 @@ func (t *Trie) insert(n Node, prefix, key []byte, value Node) (bool, Node, error
 		return true, sn, nil
 
 	case *FullNode:
-		log.Tracef("Panic debug, insert meet FullNode, key: %x", key)
+		//log.Tracef("Panic debug, insert meet FullNode, key: %x", key)
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err

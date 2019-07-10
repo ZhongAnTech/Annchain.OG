@@ -109,17 +109,16 @@ func (sd *StateDB) CreateAccount(addr types.Address) {
 	newstate := NewStateObject(addr, sd)
 	oldstate := sd.getStateObject(addr)
 	if oldstate != nil {
-		sd.journal.append(&resetObjectChange{
+		sd.AppendJournal(&resetObjectChange{
 			prev: oldstate,
 		})
 	} else {
-		sd.journal.append(&createObjectChange{
+		sd.AppendJournal(&createObjectChange{
 			account: &addr,
 		})
 	}
 	sd.states[addr] = newstate
 	// sd.beats[addr] = time.Now()
-
 }
 
 func (sd *StateDB) GetBalance(addr types.Address) *math.BigInt {
@@ -186,7 +185,6 @@ func (sd *StateDB) GetStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.getStateObject(addr)
 }
 func (sd *StateDB) getStateObject(addr types.Address) *StateObject {
@@ -212,7 +210,6 @@ func (sd *StateDB) GetOrCreateStateObject(addr types.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.getOrCreateStateObject(addr)
 }
 func (sd *StateDB) getOrCreateStateObject(addr types.Address) *StateObject {
@@ -365,14 +362,14 @@ func (sd *StateDB) SetNonce(addr types.Address, nonce uint64) {
 }
 
 func (sd *StateDB) AddRefund(increment uint64) {
-	sd.journal.append(&refundChange{
+	sd.AppendJournal(&refundChange{
 		prev: sd.refund,
 	})
 	sd.refund += increment
 }
 
 func (sd *StateDB) SubRefund(decrement uint64) {
-	sd.journal.append(&refundChange{
+	sd.AppendJournal(&refundChange{
 		prev: sd.refund,
 	})
 	if decrement > sd.refund {
@@ -394,7 +391,7 @@ func (sd *StateDB) setStateObject(addr types.Address, stobj *StateObject) {
 	if oldobj == nil {
 		return
 	}
-	sd.journal.append(&resetObjectChange{
+	sd.AppendJournal(&resetObjectChange{
 		prev: oldobj,
 	})
 	sd.states[addr] = stobj
@@ -413,12 +410,16 @@ func (sd *StateDB) SetState(addr types.Address, key, value types.Hash) {
 	stobj.SetState(sd.db, key, value)
 }
 
+func (sd *StateDB) AppendJournal(entry JournalEntry) {
+	sd.journal.append(entry)
+}
+
 func (sd *StateDB) Suicide(addr types.Address) bool {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return false
 	}
-	sd.journal.append(&suicideChange{
+	sd.AppendJournal(&suicideChange{
 		account:     &addr,
 		prev:        stobj.suicided,
 		prevbalance: stobj.data.Balances.Copy(),

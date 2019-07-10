@@ -143,7 +143,7 @@ func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	if balance==nil {
 		return math.NewBigInt(0)
 	}
-	return
+	return balance
 }
 
 func (sd *StateDB) GetNonce(addr common.Address) uint64 {

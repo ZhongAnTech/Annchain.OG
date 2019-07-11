@@ -269,7 +269,7 @@ func (c *AutoClient) fireTxs() bool {
 				return true
 			}
 			if  c.TestInsertPool {
-				tx:= txis[i]
+				tx := txis[k]
 				err := c.Delegate.TxPool.AddRemoteTx(tx,true)
 				if err!=nil {
 					logrus.WithField("tx ",tx).WithError(err).Warn("add tx err")

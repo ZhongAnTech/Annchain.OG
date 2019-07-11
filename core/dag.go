@@ -451,7 +451,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) ( types.Txis, *tx_types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *tx_types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 

@@ -40,7 +40,6 @@ type Person struct {
 	Type uint16
 }
 
-
 //msgp:tuple Student
 type Student struct {
 	Person

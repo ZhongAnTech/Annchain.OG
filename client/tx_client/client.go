@@ -123,7 +123,7 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	url := a.Host+"/"+"uri"
+	url := a.Host+"/"+uri
 	req, err := http.NewRequest(methd, url, r)
 
 	resp, err := a.httpClient.Do(req)
@@ -199,15 +199,18 @@ func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 }
 
 
-type TokenList map[string]string
+//type TokenList map[string]string
 
-func (a *TxClient)GetTokenList() ( TokenList ,error ) {
+func (a *TxClient)GetTokenList() ( TokenList string  ,err error ) {
 	url := a.Host + "/" + "token/list"
 	req, err := http.NewRequest("GET", url, nil)
+	if err!=nil {
+		panic(err)
+	}
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		//fmt.Println(err)
-		return nil ,err
+		return "" ,err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -218,21 +221,13 @@ func (a *TxClient)GetTokenList() ( TokenList ,error ) {
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return nil ,err
+		return "" ,err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return nil ,errors.New(resp.Status)
+		return "" ,errors.New(resp.Status)
 	}
-	var nonceResp struct {
-		Data TokenList `json:"data"`
-	}
-	nonceResp.Data = make(map[string]string)
-	err = json.Unmarshal(resDate,&nonceResp)
-	if err != nil {
-		fmt.Println("encode nonce errror ", err)
-		return nil,err
-	}
-	return nonceResp.Data, nil
+	return str, nil
 }
+

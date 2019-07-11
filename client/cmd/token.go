@@ -45,8 +45,8 @@ var (
 		Run:   tokenDestroy,
 	}
 	tokenTransferCmd = &cobra.Command{
-		Use:   "destroy",
-		Short: "token second  public offering",
+		Use:   "transfer",
+		Short: "token transfer",
 		Run:   tokenTransfer,
 	}
 	 tokenName =  "btc"
@@ -91,8 +91,8 @@ func tokenIPO(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	data :=  requester.TokenPublishing(nonce,enableSPO, tokenName, math.NewBigInt(value))
-	resp,err := txClient.SendTokenSPO(&data)
+	data :=  requester.TokenPublishing(nonce+1,enableSPO, tokenName, math.NewBigInt(value))
+	resp,err := txClient.SendTokenIPO(&data)
 	if err!=nil {
 		fmt.Println(err)
 		return
@@ -119,7 +119,7 @@ func tokenSPO(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	data :=  requester.SecondPublicOffering(tokenId,nonce,math.NewBigInt(value))
+	data :=  requester.SecondPublicOffering(tokenId,nonce+1,math.NewBigInt(value))
 	resp,err := txClient.SendTokenSPO(&data)
 	if err!=nil {
 		fmt.Println(err)
@@ -147,7 +147,7 @@ func tokenDestroy(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	data :=  requester.TokenDestroy(tokenId,nonce)
+	data :=  requester.TokenDestroy(tokenId,nonce+1)
 	resp,err := txClient.SendTokenDestroy(&data)
 	if err!=nil {
 		fmt.Println(err)
@@ -176,7 +176,7 @@ func tokenTransfer(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
-	data :=  requester.NormalTx(tokenId,nonce,toAddr,math.NewBigInt(value))
+	data :=  requester.NormalTx(tokenId,nonce+1,toAddr,math.NewBigInt(value))
 	resp,err := txClient.SendNormalTx(&data)
 	if err!=nil {
 		fmt.Println(err)

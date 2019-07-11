@@ -309,21 +309,21 @@ func (c *AutoClient) fireTxs() bool {
 				}
 				k++
 			} else {
-				tx := txis[k]
-				c.Delegate.Announce(tx)
-				//if err != nil {
-				//	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
-				//}
-				k++
-				_=j
+				//tx := txis[k]
+				//c.Delegate.Announce(tx)
+				////if err != nil {
+				////	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+				////}
+				//k++
+				//_=j
 
-				//j = k + 100
-				//if j >= len(txis) {
-				//	c.Delegate.ReceivedNewTxsChan <- txis[k:]
-				//} else {
-				//	c.Delegate.ReceivedNewTxsChan <- txis[k:j]
-				//}
-				//k = j
+				j = k + 150
+				if j >= len(txis) {
+					c.Delegate.ReceivedNewTxsChan <- txis[k:]
+				} else {
+					c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+				}
+				k = j
 			}
 		}
 		if c.pause {

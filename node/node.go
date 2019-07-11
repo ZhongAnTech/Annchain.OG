@@ -151,6 +151,8 @@ func NewNode() *Node {
 		KnownCacheMaxSize:                30000,
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,
+		TestNoVerify: viper.GetBool("tx_buffer.test_no_verify"),
+
 	})
 	hub.IsReceivedHash = txBuffer.IsReceivedHash
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{

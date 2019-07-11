@@ -912,6 +912,8 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 func (dag*Dag)TestWriteConfirmTIme(cf *types.ConfirmTime) error{
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
+	dag.latestSequencer = tx_types.RandomSequencer()
+	dag.latestSequencer.Height = cf.SeqHeight
 	return dag.writeConfirmTime(cf)
 }
 

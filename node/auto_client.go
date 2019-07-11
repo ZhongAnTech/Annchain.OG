@@ -315,6 +315,7 @@ func (c *AutoClient) fireTxs() bool {
 				//	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
 				//}
 				k++
+				_=j
 
 				//j = k + 100
 				//if j >= len(txis) {

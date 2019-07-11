@@ -56,7 +56,7 @@ type NewTxRequest struct {
 	Value      string `json:"value"`
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
-	CryptoType string `json:"crypto_type"`
+	//CryptoType string `json:"crypto_type"`
 }
 
 func newTx(cmd *cobra.Command, args []string) {

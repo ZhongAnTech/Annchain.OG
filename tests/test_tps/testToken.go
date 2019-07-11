@@ -28,13 +28,13 @@ import (
 var txurl = "http://172.28.152.101:8000/new_transaction"
 var ipoUrl = "http://172.28.152.101:8000/token/NewPublicOffering"
 var spoUrl = "http://172.28.152.101:8000/token/NewSecondOffering"
-var destroyUrl = "http://172.28.152.101:8000/token/TokenWithdraw"
+var destroyUrl = "http://172.28.152.101:8000/token/Destroy"
 
 var debug bool
 
 func main() {
 	debug = true
-	a := newApp()
+	a := newTxClient()
 	nonce := 6
 	priv, pub, addr := getkey()
 	tokenName := "btcdh"

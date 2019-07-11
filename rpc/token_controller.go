@@ -41,7 +41,7 @@ type NewPublicOfferingRequest struct {
 }
 
 //todo optimize later
-func (r *RpcController) TokenWithdraw(c *gin.Context) {
+func (r *RpcController) TokenDestroy(c *gin.Context) {
 	var (
 		tx    types.Txi
 		txReq NewPublicOfferingRequest

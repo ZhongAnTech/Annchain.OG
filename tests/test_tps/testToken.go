@@ -45,8 +45,8 @@ func main() {
 	//a.sendTx(&request, 0, spoUrl)
 	//request := transfer(priv, pub, addr, 3, nonce)
 	//a.sendTx(&request, 0, txurl)
-	request := destroyRequest(priv,pub,addr,2,nonce)
-	a.sendTx(&request,0,destroyUrl)
+	request := destroyRequest(priv, pub, addr, 2, nonce)
+	a.sendTx(&request, 0, destroyUrl)
 	return
 }
 

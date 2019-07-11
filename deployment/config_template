@@ -1,6 +1,7 @@
 # This is a TOML document.
 
 title = "TOML Example"
+mode ="normal"
 
 [log]
 level = "<log_level>"
@@ -66,6 +67,8 @@ enabled = false
 interval_us = 500_000
 account_ids = [0,1]
 interval_mode = "random"
+test_dag_push = false
+test_insert_pool = false
 
 [debug]
 node_id = 1

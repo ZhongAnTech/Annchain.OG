@@ -89,7 +89,8 @@ type TxBuffer struct {
 	OnProposalSeqCh        chan common.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
-}
+	TestNoVerify bool
+ }
 
 type childrenCache struct {
 	cache gcache.Cache
@@ -178,6 +179,7 @@ type TxBufferConfig struct {
 	KnownCacheMaxSize                int
 	KnownCacheExpirationSeconds      int
 	AddedToPoolQueueSize             int
+	TestNoVerify bool
 }
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
@@ -198,6 +200,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 		//children: newChilrdenCache(config.DependencyCacheMaxSize, time.Second*time.Duration(config.DependencyCacheExpirationSeconds)),
+		TestNoVerify:config.TestNoVerify,
 	}
 }
 
@@ -239,10 +242,12 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	b.knownCache.Remove(tx.GetTxHash())
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
-	for _, verifier := range b.verifiers {
-		if !verifier.Verify(tx) {
-			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-			return
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
 		}
 	}
 	logrus.WithField("tx", tx).Debugf("nice tx")
@@ -507,7 +512,6 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 					sendBloom = true
 				} else {
 					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
-
 				}
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {

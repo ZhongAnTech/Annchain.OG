@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/types/tx_types"
 	"math/rand"
 	"sync"
@@ -65,6 +66,8 @@ type AutoClient struct {
 	NewRawTx    chan types.Txi
 	TpsTest     bool
 	TpsTestInit bool
+	TestInsertPool bool
+	TestDagPush    bool
 }
 
 func (c *AutoClient) Init() {
@@ -237,6 +240,7 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
+
 func (c *AutoClient) fireTxs() bool {
 	m := viper.GetInt("auto_client.tx.interval_us")
 	if m == 0 {
@@ -250,26 +254,50 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		txis, seq := c.Delegate.Dag.GetTestTxisByNumber(i)
+		if seq!=nil && c.TestDagPush {
+			batch := &core.ConfirmBatch{seq,txis}
+			err := c.Delegate.Dag.Push(batch)
+			if err!=nil {
+				logrus.WithField("seq ",seq).WithError(err).Error("dag push err")
+			}
+			continue
+		}
 		var j int
 		for k := 0; k < len(txis); {
 			//time.Sleep(time.Duration(m) * time.Microsecond)
 			if c.pause {
 				return true
 			}
-			j = k + 100
-			if j >= len(txis) {
-				c.Delegate.ReceivedNewTxsChan <- txis[k:]
-			} else {
-				c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+			if  c.TestInsertPool {
+				tx:= txis[i]
+				err := c.Delegate.TxPool.AddRemoteTx(tx,true)
+				if err!=nil {
+					logrus.WithField("tx ",tx).WithError(err).Warn("add tx err")
+				}
+				k++
+			}else {
+				j = k + 100
+				if j >= len(txis) {
+					c.Delegate.ReceivedNewTxsChan <- txis[k:]
+				} else {
+					c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+				}
+				k = j
 			}
-			k = j
 		}
 
 		if seq != nil {
 			if c.pause {
 				return true
 			}
-			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			if c.TestInsertPool {
+				err :=  c.Delegate.TxPool.AddRemoteTx(seq,true)
+				if err!=nil {
+					logrus.WithField("tx ",seq).WithError(err).Warn("add tx err")
+				}
+			}else {
+				c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			}
 		} else {
 			return true
 		}

@@ -155,6 +155,7 @@ type TxCreator struct {
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
 	GetStateRoot       GetStateRoot
+	TxFormatVerifier    TxFormatVerifier
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {

@@ -69,6 +69,7 @@ type AutoClient struct {
 	TestInsertPool bool
 	TestDagPush    bool
 	TestSyncBuffer bool
+	TestSigNature     bool
 }
 
 func (c *AutoClient) Init() {
@@ -246,6 +247,7 @@ func (c *AutoClient) fireTxs() bool {
 	if m == 0 {
 		m = 1000
 	}
+	c.TestSigNature =  viper.GetBool("auto_client.tx.test_sig")
 	c.TpsTestInit = true
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
@@ -257,6 +259,25 @@ func (c *AutoClient) fireTxs() bool {
 		if seq == nil {
 			logrus.WithField("seq ", seq).Error("seq is nil ")
 			return true
+		}
+		if c.TestSigNature {
+			for _ ,tx:= range txis{
+				ok:= c.Delegate.TxCreator.TxFormatVerifier.VerifySignature(tx)
+				if !ok {
+					logrus.Error(tx,ok)
+				}
+			}
+			cf := types.ConfirmTime{
+				SeqHeight:   seq.Height,
+				TxNum:       uint64(len(txis)),
+				ConfirmTime: time.Now().Format(time.RFC3339Nano),
+			}
+			err := c.Delegate.Dag.TestWriteConfirmTIme(&cf)
+			if err != nil {
+				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
+			}
+			continue
+
 		}
 		if c.TestDagPush {
 			batch := &core.ConfirmBatch{seq, txis}

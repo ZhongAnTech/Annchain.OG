@@ -21,7 +21,7 @@ FROM alpine:latest
 
 RUN apk add --no-cache curl iotop busybox-extras
 
-COPY --from=builder /go/src/github.com/annchain/OG/deployment/docker_private.toml /opt/config.toml
+COPY --from=builder /go/src/github.com/annchain/OG/deployment/docker_private_server.toml /opt/config.toml
 COPY --from=builder /go/src/github.com/annchain/OG/deployment/genesis.json /opt/
 COPY --from=builder /go/src/github.com/annchain/OG/build/og /opt/
 

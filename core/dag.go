@@ -710,14 +710,14 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) prePush(batch *ConfirmBatch) (types.Hash, error) {
+func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
 	sort.Sort(batch.Txs)
 
 	dag.preloadDB.Reset()
 	for _, txi := range batch.Txs {
 		_, _, err := dag.ProcessTransaction(txi, true)
 		if err != nil {
-			return types.Hash{}, fmt.Errorf("process tx error: %v", err)
+			return common.Hash{}, fmt.Errorf("process tx error: %v", err)
 		}
 	}
 	return dag.preloadDB.Commit()

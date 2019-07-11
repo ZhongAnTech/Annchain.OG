@@ -784,7 +784,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 
 	var err error
 	var batch *ConfirmBatch
-	var elders map[types.Hash]types.Txi
+	var elders map[common.Hash]types.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
 		batch = &ConfirmBatch{
 			Seq: seq,
@@ -840,7 +840,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[types.Hash]types.Txi, *ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -1096,7 +1096,7 @@ type cachedConfirm struct {
 	elders  map[common.Hash]types.Txi
 }
 
-func newCachedConfirm(seq *types.Sequencer, root types.Hash, txs types.Txis, elders map[types.Hash]types.Txi) *cachedConfirm {
+func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
 	return &cachedConfirm{
 		seqHash: seq.GetTxHash(),
 		seq:     seq,
@@ -1106,11 +1106,11 @@ func newCachedConfirm(seq *types.Sequencer, root types.Hash, txs types.Txis, eld
 	}
 }
 
-func (c *cachedConfirm) SeqHash() types.Hash              { return c.seqHash }
-func (c *cachedConfirm) Seq() *types.Sequencer            { return c.seq }
-func (c *cachedConfirm) Root() types.Hash                 { return c.root }
-func (c *cachedConfirm) Txs() types.Txis                  { return c.txs }
-func (c *cachedConfirm) Elders() map[types.Hash]types.Txi { return c.elders }
+func (c *cachedConfirm) SeqHash() common.Hash              { return c.seqHash }
+func (c *cachedConfirm) Seq() *tx_types.Sequencer          { return c.seq }
+func (c *cachedConfirm) Root() common.Hash                 { return c.root }
+func (c *cachedConfirm) Txs() types.Txis                   { return c.txs }
+func (c *cachedConfirm) Elders() map[common.Hash]types.Txi { return c.elders }
 
 type TxMap struct {
 	txs map[common.Hash]types.Txi

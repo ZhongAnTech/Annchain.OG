@@ -291,6 +291,7 @@ func NewNode() *Node {
 		//TxBuffer:  txBuffer,
 		Dag:       org.Dag,
 		TxCreator: txCreator,
+		InsertSyncBuffer:syncBuffer.AddTxs,
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)

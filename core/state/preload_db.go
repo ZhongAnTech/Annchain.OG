@@ -1,16 +1,16 @@
 package state
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/token"
 	vmtypes "github.com/annchain/OG/vm/types"
 	log "github.com/sirupsen/logrus"
 )
 
 type PreloadDB struct {
-	root types.Hash
+	root common.Hash
 
 	db Database
 	sd *StateDB
@@ -24,8 +24,8 @@ type PreloadDB struct {
 
 	// states stores all the active state object, any changes on stateobject
 	// will also update states.
-	states   map[types.Address]*StateObject
-	dirtyset map[types.Address]struct{}
+	states   map[common.Address]*StateObject
+	dirtyset map[common.Address]struct{}
 }
 
 func NewPreloadDB(db Database, statedb *StateDB) *PreloadDB {
@@ -34,19 +34,19 @@ func NewPreloadDB(db Database, statedb *StateDB) *PreloadDB {
 		db:       db,
 		sd:       statedb,
 		journal:  newJournal(),
-		states:   make(map[types.Address]*StateObject),
-		dirtyset: make(map[types.Address]struct{}),
+		states:   make(map[common.Address]*StateObject),
+		dirtyset: make(map[common.Address]struct{}),
 	}
 }
 
 func (pd *PreloadDB) Reset() {
 	pd.trie = nil
 	pd.journal = newJournal()
-	pd.states = make(map[types.Address]*StateObject)
-	pd.dirtyset = make(map[types.Address]struct{})
+	pd.states = make(map[common.Address]*StateObject)
+	pd.dirtyset = make(map[common.Address]struct{})
 }
 
-func (pd *PreloadDB) getOrCreateStateObject(addr types.Address) *StateObject {
+func (pd *PreloadDB) getOrCreateStateObject(addr common.Address) *StateObject {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		pd.CreateAccount(addr)
@@ -55,7 +55,7 @@ func (pd *PreloadDB) getOrCreateStateObject(addr types.Address) *StateObject {
 	return state
 }
 
-func (pd *PreloadDB) getStateObject(addr types.Address) *StateObject {
+func (pd *PreloadDB) getStateObject(addr common.Address) *StateObject {
 	state, exist := pd.states[addr]
 	if !exist {
 		sdState := pd.sd.GetStateObject(addr)
@@ -69,7 +69,7 @@ func (pd *PreloadDB) getStateObject(addr types.Address) *StateObject {
 	return state
 }
 
-func (pd *PreloadDB) CreateAccount(addr types.Address) {
+func (pd *PreloadDB) CreateAccount(addr common.Address) {
 	newstate := NewStateObject(addr, pd)
 	oldstate := pd.sd.GetStateObject(addr)
 	if oldstate != nil {
@@ -85,13 +85,13 @@ func (pd *PreloadDB) CreateAccount(addr types.Address) {
 
 }
 
-func (pd *PreloadDB) SubBalance(addr types.Address, decrement *math.BigInt) {
+func (pd *PreloadDB) SubBalance(addr common.Address, decrement *math.BigInt) {
 	pd.subBalance(addr, token.OGTokenID, decrement)
 }
-func (pd *PreloadDB) SubTokenBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
+func (pd *PreloadDB) SubTokenBalance(addr common.Address, tokenID int32, decrement *math.BigInt) {
 	pd.subBalance(addr, tokenID, decrement)
 }
-func (pd *PreloadDB) subBalance(addr types.Address, tokenID int32, decrement *math.BigInt) {
+func (pd *PreloadDB) subBalance(addr common.Address, tokenID int32, decrement *math.BigInt) {
 	// check if increment is zero
 	if decrement.Sign() == 0 {
 		return
@@ -100,13 +100,13 @@ func (pd *PreloadDB) subBalance(addr types.Address, tokenID int32, decrement *ma
 	pd.setBalance(addr, tokenID, state.data.Balances.PreSub(tokenID, decrement))
 }
 
-func (pd *PreloadDB) AddBalance(addr types.Address, increment *math.BigInt) {
+func (pd *PreloadDB) AddBalance(addr common.Address, increment *math.BigInt) {
 	pd.addBalance(addr, token.OGTokenID, increment)
 }
-func (pd *PreloadDB) AddTokenBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
+func (pd *PreloadDB) AddTokenBalance(addr common.Address, tokenID int32, increment *math.BigInt) {
 	pd.addBalance(addr, tokenID, increment)
 }
-func (pd *PreloadDB) addBalance(addr types.Address, tokenID int32, increment *math.BigInt) {
+func (pd *PreloadDB) addBalance(addr common.Address, tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {
 		return
@@ -115,22 +115,22 @@ func (pd *PreloadDB) addBalance(addr types.Address, tokenID int32, increment *ma
 	pd.setBalance(addr, tokenID, state.data.Balances.PreAdd(tokenID, increment))
 }
 
-func (ps *PreloadDB) SetTokenBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
+func (ps *PreloadDB) SetTokenBalance(addr common.Address, tokenID int32, balance *math.BigInt) {
 	ps.setBalance(addr, tokenID, balance)
 }
-func (pd *PreloadDB) setBalance(addr types.Address, tokenID int32, balance *math.BigInt) {
+func (pd *PreloadDB) setBalance(addr common.Address, tokenID int32, balance *math.BigInt) {
 	state := pd.getOrCreateStateObject(addr)
 	state.SetBalance(tokenID, balance)
 }
 
 // Retrieve the balance from the given address or 0 if object not found
-func (pd *PreloadDB) GetBalance(addr types.Address) *math.BigInt {
+func (pd *PreloadDB) GetBalance(addr common.Address) *math.BigInt {
 	return pd.getBalance(addr, token.OGTokenID)
 }
-func (pd *PreloadDB) GetTokenBalance(addr types.Address, tokenID int32) *math.BigInt {
+func (pd *PreloadDB) GetTokenBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return pd.getBalance(addr, tokenID)
 }
-func (pd *PreloadDB) getBalance(addr types.Address, tokenID int32) *math.BigInt {
+func (pd *PreloadDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return math.NewBigInt(0)
@@ -138,27 +138,27 @@ func (pd *PreloadDB) getBalance(addr types.Address, tokenID int32) *math.BigInt 
 	return state.GetBalance(tokenID)
 }
 
-func (pd *PreloadDB) GetNonce(addr types.Address) uint64 {
+func (pd *PreloadDB) GetNonce(addr common.Address) uint64 {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return 0
 	}
 	return state.GetNonce()
 }
-func (pd *PreloadDB) SetNonce(addr types.Address, nonce uint64) {
+func (pd *PreloadDB) SetNonce(addr common.Address, nonce uint64) {
 	state := pd.getOrCreateStateObject(addr)
 	state.SetNonce(nonce)
 }
 
-func (pd *PreloadDB) GetCodeHash(addr types.Address) types.Hash {
+func (pd *PreloadDB) GetCodeHash(addr common.Address) common.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
-		return types.Hash{}
+		return common.Hash{}
 	}
 	return state.GetCodeHash()
 }
 
-func (pd *PreloadDB) GetCode(addr types.Address) []byte {
+func (pd *PreloadDB) GetCode(addr common.Address) []byte {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return nil
@@ -166,12 +166,12 @@ func (pd *PreloadDB) GetCode(addr types.Address) []byte {
 	return state.GetCode(pd.db)
 }
 
-func (pd *PreloadDB) SetCode(addr types.Address, code []byte) {
+func (pd *PreloadDB) SetCode(addr common.Address, code []byte) {
 	state := pd.getOrCreateStateObject(addr)
 	state.SetCode(crypto.Keccak256Hash(code), code)
 }
 
-func (pd *PreloadDB) GetCodeSize(addr types.Address) int {
+func (pd *PreloadDB) GetCodeSize(addr common.Address) int {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return 0
@@ -188,7 +188,7 @@ func (pd *PreloadDB) AddRefund(uint64)  {}
 func (pd *PreloadDB) SubRefund(uint64)  {}
 func (pd *PreloadDB) GetRefund() uint64 { return 0 }
 
-func (pd *PreloadDB) GetCommittedState(addr types.Address, key types.Hash) types.Hash {
+func (pd *PreloadDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return emptyStateHash
@@ -197,7 +197,7 @@ func (pd *PreloadDB) GetCommittedState(addr types.Address, key types.Hash) types
 }
 
 // GetState retrieves a value from the given account's storage trie.
-func (pd *PreloadDB) GetState(addr types.Address, key types.Hash) types.Hash {
+func (pd *PreloadDB) GetState(addr common.Address, key common.Hash) common.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return emptyStateHash
@@ -205,7 +205,7 @@ func (pd *PreloadDB) GetState(addr types.Address, key types.Hash) types.Hash {
 	return state.GetState(pd.db, key)
 }
 
-func (pd *PreloadDB) SetState(addr types.Address, key, value types.Hash) {
+func (pd *PreloadDB) SetState(addr common.Address, key, value common.Hash) {
 	state := pd.getOrCreateStateObject(addr)
 	if state == nil {
 		return
@@ -213,10 +213,10 @@ func (pd *PreloadDB) SetState(addr types.Address, key, value types.Hash) {
 	state.SetState(pd.db, key, value)
 }
 
-func (pd *PreloadDB) Commit() (types.Hash, error) {
+func (pd *PreloadDB) Commit() (common.Hash, error) {
 	trie, err := pd.db.OpenTrie(pd.sd.Root())
 	if err != nil {
-		return types.Hash{}, err
+		return common.Hash{}, err
 	}
 	pd.trie = trie
 
@@ -246,7 +246,7 @@ func (pd *PreloadDB) Commit() (types.Hash, error) {
 		delete(pd.dirtyset, addr)
 	}
 	// commit current trie into triedb.
-	rootHash, err := pd.trie.Commit(func(leaf []byte, parent types.Hash) error {
+	rootHash, err := pd.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		account := NewAccountData()
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
@@ -255,7 +255,7 @@ func (pd *PreloadDB) Commit() (types.Hash, error) {
 		if account.Root != emptyStateRoot {
 			pd.db.TrieDB().Reference(account.Root, parent)
 		}
-		codehash := types.BytesToHash(account.CodeHash)
+		codehash := common.BytesToHash(account.CodeHash)
 		if codehash != emptyCodeHash {
 			pd.db.TrieDB().Reference(codehash, parent)
 		}
@@ -277,7 +277,7 @@ func (pd *PreloadDB) AppendJournal(entry JournalEntry) {
 	pd.journal.append(entry)
 }
 
-func (pd *PreloadDB) Suicide(addr types.Address) bool {
+func (pd *PreloadDB) Suicide(addr common.Address) bool {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return false
@@ -292,7 +292,7 @@ func (pd *PreloadDB) Suicide(addr types.Address) bool {
 	return true
 }
 
-func (pd *PreloadDB) HasSuicided(addr types.Address) bool {
+func (pd *PreloadDB) HasSuicided(addr common.Address) bool {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return false
@@ -302,7 +302,7 @@ func (pd *PreloadDB) HasSuicided(addr types.Address) bool {
 
 // Exist reports whether the given account exists in state.
 // Notably this should also return true for suicided accounts.
-func (pd *PreloadDB) Exist(addr types.Address) bool {
+func (pd *PreloadDB) Exist(addr common.Address) bool {
 	if state := pd.getStateObject(addr); state != nil {
 		return true
 	}
@@ -311,7 +311,7 @@ func (pd *PreloadDB) Exist(addr types.Address) bool {
 
 // Empty returns whether the given account is empty. Empty
 // is defined according to EIP161 (balance = nonce = code = 0).
-func (pd *PreloadDB) Empty(addr types.Address) bool {
+func (pd *PreloadDB) Empty(addr common.Address) bool {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return true
@@ -336,10 +336,10 @@ func (pd *PreloadDB) Snapshot() int {
 	return 0
 }
 
-func (pd *PreloadDB) AddLog(l *vmtypes.Log)          {}
-func (pd *PreloadDB) AddPreimage(types.Hash, []byte) {}
+func (pd *PreloadDB) AddLog(l *vmtypes.Log)           {}
+func (pd *PreloadDB) AddPreimage(common.Hash, []byte) {}
 
-func (pd *PreloadDB) ForEachStorage(types.Address, func(types.Hash, types.Hash) bool) {}
+func (pd *PreloadDB) ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) {}
 
 // for debug.
 func (pd *PreloadDB) String() string {

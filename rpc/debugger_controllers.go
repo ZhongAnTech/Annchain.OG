@@ -48,7 +48,7 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)
 
-	b, _, err := r.Og.Dag.ProcessTransaction(callTx)
+	b, _, err := r.Og.Dag.ProcessTransaction(callTx, false)
 	return b, err
 }
 

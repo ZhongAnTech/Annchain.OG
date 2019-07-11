@@ -505,37 +505,6 @@ func (sd *StateDB) loadStateObject(addr common.Address) (*StateObject, error) {
 	return &state, nil
 }
 
-//// purge tries to remove all the state that haven't sent any beat
-//// for a long time.
-////
-//// Note that dirty states will not be removed.
-//func (sd *StateDB) purge() {
-//	// TODO
-//	// purge will cause a panic problem, so temporaly comments the code.
-//	//
-//	// panic: [fatal error: concurrent map writes]
-//	// reason: the reason is that [sd.beats] is been concurrently called and
-//	// there is no lock handling this parameter.
-//
-//	// for addr, lastbeat := range sd.beats {
-//	// 	// skip dirty states
-//	// 	if _, in := sd.journal.dirties[addr]; in {
-//	// 		continue
-//	// 	}
-//	// 	if _, in := sd.dirtyset[addr]; in {
-//	// 		continue
-//	// 	}
-//	// 	if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-//	// 		sd.deleteStateObject(addr)
-//	// 	}
-//	// }
-//}
-//
-//// refreshbeat update the beat time of an address.
-//func (sd *StateDB) refreshbeat(addr common.Address) {
-//	// sd.beats[addr] = time.Now()
-//}
-
 // Commit tries to save dirty data to memory trie db.
 func (sd *StateDB) Commit() (common.Hash, error) {
 	sd.mu.Lock()
@@ -601,24 +570,24 @@ func (sd *StateDB) commit() (common.Hash, error) {
 	return rootHash, err
 }
 
-func (sd *StateDB) loop() {
-	if sd.conf.PurgeTimer < time.Millisecond {
-		sd.conf.PurgeTimer = time.Second
-	}
-	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
-
-	for {
-		select {
-		case <-sd.close:
-			purgeTimer.Stop()
-			return
-
-		case <-purgeTimer.C:
-			sd.mu.Lock()
-			sd.mu.Unlock()
-		}
-	}
-}
+//func (sd *StateDB) loop() {
+//	if sd.conf.PurgeTimer < time.Millisecond {
+//		sd.conf.PurgeTimer = time.Second
+//	}
+//	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
+//
+//	for {
+//		select {
+//		case <-sd.close:
+//			purgeTimer.Stop()
+//			return
+//
+//		case <-purgeTimer.C:
+//			sd.mu.Lock()
+//			sd.mu.Unlock()
+//		}
+//	}
+//}
 
 func (sd *StateDB) Snapshot() int {
 	id := sd.snapshotID

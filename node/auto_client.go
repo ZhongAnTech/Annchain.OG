@@ -68,6 +68,7 @@ type AutoClient struct {
 	TpsTestInit    bool
 	TestInsertPool bool
 	TestDagPush    bool
+	TestSyncBuffer bool
 }
 
 func (c *AutoClient) Init() {
@@ -264,6 +265,11 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
 			}
 			continue
+		}else if c.TestSyncBuffer {
+			err := c.Delegate.InsertSyncBuffer(seq,txis)
+			if err != nil {
+				logrus.WithField("seq ", seq).WithError(err).Error("syncbuffer add  err")
+			}
 		}
 		var j int
 		for k := 0; k < len(txis); {

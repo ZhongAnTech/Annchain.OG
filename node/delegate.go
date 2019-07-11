@@ -36,12 +36,15 @@ type TxRequest struct {
 	TokenId    int32
 }
 
+type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
+
 type Delegate struct {
 	TxCreator          *og.TxCreator
 	ReceivedNewTxsChan chan []types.Txi
 	TxPool             *core.TxPool
 	Dag                *core.Dag
 	OnNewTxiGenerated  []chan types.Txi
+	InsertSyncBuffer insertTxsFn
 }
 
 func (d *Delegate) GetTxNum() uint32 {

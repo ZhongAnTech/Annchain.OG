@@ -14,8 +14,10 @@
 package node
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/io"
@@ -25,10 +27,13 @@ import (
 	"github.com/annchain/OG/p2p/onode"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -36,6 +41,21 @@ const (
 	defaultMaxPeers   = 50
 	defaultNetworkId  = 1
 )
+
+type BootstrapInfoRequest struct {
+	NetworkId int64  `json:"networkid"`
+	PublicKey string `json:"publickey"`
+	ONode     string `json:"onode"`
+}
+
+type BootstrapInfoResponse struct {
+	Status         string `json:"status"`
+	BootstrapNode  bool   `json:"bootstrap_node"`
+	BootstrapNodes string `json:"bootstrap_nodes"`
+	GenesisPk      string `json:"genesis_pk"`
+	Message        string `json:"message"`
+	Partners       int    `json:"partners"`
+}
 
 func getNodePrivKey() *ecdsa.PrivateKey {
 	nodeKey := viper.GetString("p2p.node_key")
@@ -72,6 +92,13 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	data := crypto.FromECDSA(key)
 	viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
 	return key
+}
+
+func getOnodeURL(privKey *ecdsa.PrivateKey) string {
+	port := viper.GetString("p2p.port")
+	tcpPort, _ := strconv.Atoi(port)
+	ogNode := onode.NewV4(&privKey.PublicKey, net.ParseIP("127.0.0.1"), tcpPort, tcpPort)
+	return ogNode.String()
 }
 
 func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {
@@ -161,4 +188,73 @@ func parserGenesisAccounts(pubkeys string) []crypto.PublicKey {
 		account = append(account, pubKey)
 	}
 	return account
+}
+
+// buildBootstrap keeps sending info of itself to quering server and wait for other bootstrap server to be ready
+func buildBootstrap(networkId int64, nodeURL string, key *crypto.PublicKey) {
+
+	pubkey := key.String()
+
+	breq := BootstrapInfoRequest{
+		NetworkId: networkId,
+		ONode:     nodeURL,
+		PublicKey: pubkey,
+	}
+	for {
+		bresp, err := doRequest(breq)
+		if err != nil {
+			log.Warn("failed to get bootstrap config. wait for another 5 seconds")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		if bresp.Status != "ok" {
+			log.WithField("message", bresp.Message).Info("Consensus group is not ready. waiting for more nodes.")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		viper.Set("p2p.bootstrap_node", bresp.BootstrapNode)
+		viper.Set("p2p.bootstrap_nodes", bresp.BootstrapNodes)
+		viper.Set("annsensus.genesis_pk", bresp.GenesisPk)
+		viper.Set("annsensus.partner_number", bresp.Partners)
+		viper.Set("annsensus.threshold", 2*bresp.Partners/3+1)
+		log.WithField("resp", bresp).Info("bootstrap info is updated.")
+		break
+	}
+
+}
+
+func doRequest(breq BootstrapInfoRequest) (bresp BootstrapInfoResponse, err error) {
+	url := viper.GetString("p2p.bootstrap_config_server")
+	if url == "" {
+		panic("You must either provide a bootstrap server or provide a bootstrap config server to start building network.")
+	}
+
+	jsonStr, err := json.Marshal(breq)
+	if err != nil {
+		panic("failed to marshal bootstrap request data")
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	defer client.CloseIdleConnections()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Warn("failed to request bootstrap centralized server")
+		return
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.WithError(err).Warn("failed to read response")
+		return
+	}
+	err = json.Unmarshal(body, &bresp)
+	if err != nil {
+		log.WithError(err).Warn("response cannot be unmarshalled")
+		return
+	}
+	return
 }

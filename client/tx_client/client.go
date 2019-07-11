@@ -202,7 +202,7 @@ func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 type TokenList map[string]string
 
 func (a *TxClient)GetTokenList() ( TokenList ,error ) {
-	url := a.Host + "/" + "token"
+	url := a.Host + "/" + "token/list"
 	req, err := http.NewRequest("GET", url, nil)
 	resp, err := a.httpClient.Do(req)
 	if err != nil {

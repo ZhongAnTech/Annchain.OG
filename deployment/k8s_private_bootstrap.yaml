@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: ognb-bootstrap
 spec:
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -14,11 +14,11 @@ spec:
     spec:
       containers:
         - name: ognb-bootstrap
-          image: localhost:5000/ognb
+          image: 172.28.152.101:5000/ognb
           env:
-            - name: og_p2p.bootstrap_node
-              value: "true"
-            - name: og_p2p.network_id
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://192.168.198.25:8008"
+            - name: OG_P2P.NETWORK_ID
               value: "2"
           ports:
             - name: rpc
@@ -34,6 +34,6 @@ spec:
             ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
           resources:
             limits:
-              cpu: "2"
+              cpu: "4"
             requests:
-              cpu: "100m"
+              cpu: "2"

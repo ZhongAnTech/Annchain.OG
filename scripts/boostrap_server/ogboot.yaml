@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ogboot
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ogboot
+      annotations:
+        kubernetes.io/ingress-bandwidth: 1024M
+        kubernetes.io/egress-bandwidth: 1024M
+    spec:
+      containers:
+        - name: ogboot
+          image: 172.28.152.101:5000/ogboot
+          ports:
+            - name: http
+              containerPort: 8008
+          command:
+            ["python","run.py"]
+          resources:
+            limits:
+              cpu: "1"
+            requests:
+              cpu: "10m"

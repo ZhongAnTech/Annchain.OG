@@ -177,9 +177,9 @@ func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 	if err != nil {
 		panic(err)
 	}
-	str = string(resDate)
+	str := string(resDate)
 	if err != nil {
-		//fmt.Println(str, err)
+		fmt.Println(str, err)
 		return  0 ,err
 	}
 	if resp.StatusCode != 200 {

@@ -309,13 +309,20 @@ func (c *AutoClient) fireTxs() bool {
 				}
 				k++
 			} else {
-				j = k + 100
-				if j >= len(txis) {
-					c.Delegate.ReceivedNewTxsChan <- txis[k:]
-				} else {
-					c.Delegate.ReceivedNewTxsChan <- txis[k:j]
-				}
-				k = j
+				tx := txis[k]
+				c.Delegate.Announce(tx)
+				//if err != nil {
+				//	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+				//}
+				k++
+
+				//j = k + 100
+				//if j >= len(txis) {
+				//	c.Delegate.ReceivedNewTxsChan <- txis[k:]
+				//} else {
+				//	c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+				//}
+				//k = j
 			}
 		}
 		if c.pause {
@@ -327,7 +334,8 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else {
-			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			//c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			c.Delegate.Announce(seq)
 		}
 	}
 	return true

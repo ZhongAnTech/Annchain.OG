@@ -190,7 +190,7 @@ func NewNode() *Node {
 		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           20000,
-		NewTxQueueSize:                   1,
+		NewTxQueueSize:                  viper.GetInt("tx_buffer.new_tx_queue_size"),
 		KnownCacheMaxSize:                30000,
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,

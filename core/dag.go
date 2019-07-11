@@ -451,13 +451,13 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *tx_types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) ( types.Txis, *tx_types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	data, _ := dag.testDb.Get(seqHeightKey(height))
 	if len(data) == 0 {
-		log.Warnf("tx hashs with seq height %d not found", height)
+		log.Warnf("seq height %d not found", height)
 		return nil, nil
 	}
 	//if len(data) == 0 {
@@ -472,7 +472,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (txis types.Txis, sequencer *
 	data, _ = dag.testDb.Get(txIndexKey(height))
 	if len(data) == 0 {
 		log.Warnf("tx hashs with seq height %d not found", height)
-		return nil, sequencer
+		return nil, &seq
 	}
 	var hashs common.Hashes
 	_, err = hashs.UnmarshalMsg(data)

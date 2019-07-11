@@ -7,6 +7,7 @@ max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 multifile_by_level = false
 multifile_by_module = false
 title = "OG configuration"
+mode="normal"
 
 [annsensus]
   campaign = true
@@ -27,7 +28,7 @@ title = "OG configuration"
     interval_us = 500000
 
   [auto_client.sequencer]
-    enabled = "true"
+    enabled = true
     interval_us = 5000000
 
   [auto_client.tx]
@@ -35,6 +36,9 @@ title = "OG configuration"
     enabled = false
     interval_mode = "random"
     interval_us = 500000
+    test_dag_push = false
+    test_insert_pool = false
+
 
 [crypto]
   algorithm = "secp256k1"

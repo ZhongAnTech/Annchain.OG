@@ -134,8 +134,6 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"transactions":            "seq_id,address",
 		"confirm":                 "hash",
 		"query_contract":          "address,data",
-		"token/NewSecondOffering": "",
-		"token/NewPublicOffering": "",
 		"token/list":              "",
 		"token":                   "id",
 

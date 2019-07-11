@@ -909,6 +909,12 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 	return dag.accessor.writeConfirmTime(cf)
 }
 
+func (dag*Dag)TestWriteConfirmTIme(cf *types.ConfirmTime) error{
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+	return dag.writeConfirmTime(cf)
+}
+
 func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 	return dag.accessor.readConfirmTime(seqHeight)
 }

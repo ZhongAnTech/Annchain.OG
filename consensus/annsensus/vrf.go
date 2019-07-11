@@ -16,14 +16,15 @@ package annsensus
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/poc/vrf"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
 
 //go:generate msgp
 
-func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
+func (as *AnnSensus) GenerateVrf() *tx_types.VrfInfo {
 	sk, err := vrf.GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
@@ -37,7 +38,7 @@ func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
 	}
 	VRFFromProof, proof := sk.Prove(data)
 	_ = VRFFromProof ///todo ???
-	var VrfInfo types.VrfInfo
+	var VrfInfo tx_types.VrfInfo
 	VrfInfo.Vrf = Vrf
 	VrfInfo.PublicKey = pk
 	VrfInfo.Proof = proof
@@ -47,14 +48,14 @@ func (as *AnnSensus) GenerateVrf() *types.VrfInfo {
 
 //msgp:tuple VrfData
 type VrfData struct {
-	SeqHash types.Hash
+	SeqHash common.Hash
 	Height  uint64
 	TxNum   int
 }
 
 //GetProofData get data
 func (as *AnnSensus) GetProofData(height uint64) (*VrfData, []byte) {
-	var sq *types.Sequencer
+	var sq *tx_types.Sequencer
 	if height == 0 {
 		sq = as.Idag.LatestSequencer()
 	} else {

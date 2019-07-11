@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/mclock"
-	"github.com/annchain/OG/types"
 )
 
 func TestTopicRadius(t *testing.T) {
@@ -31,7 +30,7 @@ func TestTopicRadius(t *testing.T) {
 	rad := newTopicRadius(topic)
 	targetRad := (^uint64(0)) / 100
 
-	waitFn := func(addr types.Hash) time.Duration {
+	waitFn := func(addr common.Hash) time.Duration {
 		prefix := binary.BigEndian.Uint64(addr.Bytes[0:8])
 		dist := prefix ^ rad.topicHashPrefix
 		relDist := float64(dist) / float64(targetRad)

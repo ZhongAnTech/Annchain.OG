@@ -29,7 +29,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 				ar.Data = append(ar.Data, pub.Bytes[:]...)
 				txis = append(txis, ar)
 			} else {
-				tx := types.RandomTx()
+				tx := tx_types.RandomTx()
 				tx.Value = math.NewBigInt(0)
 				tx.PublicKey = pub.Bytes[:]
 				tx.From = pub.Address()
@@ -38,7 +38,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 				txis = append(txis, tx)
 			}
 		}
-		seq := types.RandomSequencer()
+		seq := tx_types.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
 		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
 		batch := &core.ConfirmBatch{

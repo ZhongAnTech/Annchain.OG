@@ -51,8 +51,8 @@ func main() {
 
 }
 
-func newUnsignedSequencer(issuer types.Address, id uint64, contractHashOrder types.Hashes, accountNonce uint64) types.Txi {
-	tx := types.Sequencer{
+func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) types.Txi {
+	tx := tx_types.Sequencer{
 		Issuer:            issuer,
 		Id:                id,
 		ContractHashOrder: contractHashOrder,

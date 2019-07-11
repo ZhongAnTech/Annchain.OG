@@ -17,7 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 	"time"
 )
 
@@ -77,11 +77,11 @@ func (m *Message) String() string {
 
 type ChangeStateEvent struct {
 	NewStepType StepType
-	HeightRound types.HeightRound
+	HeightRound p2p_message.HeightRound
 }
 
 type TendermintContext struct {
-	HeightRound types.HeightRound
+	HeightRound p2p_message.HeightRound
 	StepType    StepType
 }
 

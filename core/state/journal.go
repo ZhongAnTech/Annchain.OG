@@ -17,8 +17,8 @@
 package state
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 )
 
 // journalEntry is a modification entry in the state change journal that can be
@@ -28,7 +28,7 @@ type JournalEntry interface {
 	Revert(db *StateDB)
 
 	// dirtied returns the Ethereum address modified by this journal entry.
-	Dirtied() *types.Address
+	Dirtied() *common.Address
 }
 
 // journal contains the list of state modifications applied since the last state
@@ -36,13 +36,13 @@ type JournalEntry interface {
 // exception or revertal request.
 type journal struct {
 	entries []JournalEntry        // Current changes tracked by the journal
-	dirties map[types.Address]int // Dirty accounts and the number of changes
+	dirties map[common.Address]int // Dirty accounts and the number of changes
 }
 
 // newJournal create a new initialized journal.
 func newJournal() *journal {
 	return &journal{
-		dirties: make(map[types.Address]int),
+		dirties: make(map[common.Address]int),
 	}
 }
 
@@ -74,7 +74,7 @@ func (j *journal) revert(statedb *StateDB, snapshot int) {
 // dirty explicitly sets an address to dirty, even if the change entries would
 // otherwise suggest it as clean. This method is an ugly hack to handle the RIPEMD
 // precompile consensus exception.
-func (j *journal) dirty(addr types.Address) {
+func (j *journal) dirty(addr common.Address) {
 	j.dirties[addr]++
 }
 
@@ -86,33 +86,33 @@ func (j *journal) length() int {
 type (
 	// Changes to the account trie.
 	createObjectChange struct {
-		account *types.Address
+		account *common.Address
 	}
 	resetObjectChange struct {
 		prev *StateObject
 	}
 	suicideChange struct {
-		account     *types.Address
+		account     *common.Address
 		prev        bool // whether account had already suicided
 		prevbalance BalanceSet
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
-		account *types.Address
+		account *common.Address
 		tokenID int32
 		prev    *math.BigInt
 	}
 	nonceChange struct {
-		account *types.Address
+		account *common.Address
 		prev    uint64
 	}
 	storageChange struct {
-		account       *types.Address
-		key, prevalue types.Hash
+		account       *common.Address
+		key, prevalue common.Hash
 	}
 	codeChange struct {
-		account            *types.Address
+		account            *common.Address
 		prevcode, prevhash []byte
 	}
 
@@ -121,13 +121,13 @@ type (
 		prev uint64
 	}
 	addLogChange struct {
-		txhash types.Hash
+		txhash common.Hash
 	}
 	addPreimageChange struct {
-		hash types.Hash
+		hash common.Hash
 	}
 	touchChange struct {
-		account   *types.Address
+		account   *common.Address
 		prev      bool
 		prevDirty bool
 	}
@@ -138,7 +138,7 @@ func (ch createObjectChange) Revert(s *StateDB) {
 	delete(s.dirtyset, *ch.account)
 }
 
-func (ch createObjectChange) Dirtied() *types.Address {
+func (ch createObjectChange) Dirtied() *common.Address {
 	return ch.account
 }
 
@@ -146,7 +146,7 @@ func (ch resetObjectChange) Revert(s *StateDB) {
 	s.setStateObject(ch.prev.address, ch.prev)
 }
 
-func (ch resetObjectChange) Dirtied() *types.Address {
+func (ch resetObjectChange) Dirtied() *common.Address {
 	return nil
 }
 
@@ -160,16 +160,16 @@ func (ch suicideChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch suicideChange) Dirtied() *types.Address {
+func (ch suicideChange) Dirtied() *common.Address {
 	return ch.account
 }
 
-var ripemd = types.HexToAddress("0000000000000000000000000000000000000003")
+var ripemd = common.HexToAddress("0000000000000000000000000000000000000003")
 
 func (ch touchChange) Revert(s *StateDB) {
 }
 
-func (ch touchChange) Dirtied() *types.Address {
+func (ch touchChange) Dirtied() *common.Address {
 	return ch.account
 }
 
@@ -180,7 +180,7 @@ func (ch balanceChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch balanceChange) Dirtied() *types.Address {
+func (ch balanceChange) Dirtied() *common.Address {
 	return ch.account
 }
 
@@ -191,18 +191,18 @@ func (ch nonceChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch nonceChange) Dirtied() *types.Address {
+func (ch nonceChange) Dirtied() *common.Address {
 	return ch.account
 }
 
 func (ch codeChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetCode(types.BytesToHash(ch.prevhash), ch.prevcode)
+		stobj.SetCode(common.BytesToHash(ch.prevhash), ch.prevcode)
 	}
 }
 
-func (ch codeChange) Dirtied() *types.Address {
+func (ch codeChange) Dirtied() *common.Address {
 	return ch.account
 }
 
@@ -213,7 +213,7 @@ func (ch storageChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch storageChange) Dirtied() *types.Address {
+func (ch storageChange) Dirtied() *common.Address {
 	return ch.account
 }
 
@@ -221,7 +221,7 @@ func (ch refundChange) Revert(s *StateDB) {
 	s.refund = ch.prev
 }
 
-func (ch refundChange) Dirtied() *types.Address {
+func (ch refundChange) Dirtied() *common.Address {
 	return nil
 }
 
@@ -239,7 +239,7 @@ func (ch addLogChange) Revert(s *StateDB) {
 	// s.logSize--
 }
 
-func (ch addLogChange) Dirtied() *types.Address {
+func (ch addLogChange) Dirtied() *common.Address {
 	return nil
 }
 
@@ -251,6 +251,6 @@ func (ch addPreimageChange) Revert(s *StateDB) {
 	// delete(s.preimages, ch.hash)
 }
 
-func (ch addPreimageChange) Dirtied() *types.Address {
+func (ch addPreimageChange) Dirtied() *common.Address {
 	return nil
 }

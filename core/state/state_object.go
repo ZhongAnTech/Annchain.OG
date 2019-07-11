@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
 )
@@ -28,26 +27,26 @@ import (
 
 //msgp:tuple AccountData
 type AccountData struct {
-	Address  types.Address
+	Address  common.Address
 	Balances BalanceSet
 	Nonce    uint64
-	Root     types.Hash
+	Root     common.Hash
 	CodeHash []byte
 }
 
 func NewAccountData() AccountData {
 	return AccountData{
-		Address:  types.Address{},
+		Address:  common.Address{},
 		Balances: NewBalanceSet(),
 		Nonce:    0,
-		Root:     types.Hash{},
+		Root:     common.Hash{},
 		CodeHash: []byte{},
 	}
 }
 
 type StateObject struct {
-	address     types.Address
-	addressHash types.Hash
+	address     common.Address
+	addressHash common.Hash
 	data        AccountData
 
 	dbErr error
@@ -56,14 +55,14 @@ type StateObject struct {
 	dirtycode bool
 	suicided  bool // TODO suicided is useless now.
 
-	committedStorage map[types.Hash]types.Hash
-	dirtyStorage     map[types.Hash]types.Hash
+	committedStorage map[common.Hash]common.Hash
+	dirtyStorage     map[common.Hash]common.Hash
 
 	trie Trie
 	db   StateDBInterface
 }
 
-func NewStateObject(addr types.Address, db StateDBInterface) *StateObject {
+func NewStateObject(addr common.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
@@ -74,8 +73,8 @@ func NewStateObject(addr types.Address, db StateDBInterface) *StateObject {
 	s := &StateObject{}
 	s.address = addr
 	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
-	s.committedStorage = make(map[types.Hash]types.Hash)
-	s.dirtyStorage = make(map[types.Hash]types.Hash)
+	s.committedStorage = make(map[common.Hash]common.Hash)
+	s.dirtyStorage = make(map[common.Hash]common.Hash)
 	s.data = a
 	s.db = db
 	return s
@@ -93,6 +92,10 @@ func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
 		return math.NewBigInt(0)
 	}
 	return b
+}
+
+func (s *StateObject) GetAllBalance() BalanceSet {
+	return s.data.Balances
 }
 
 func (s *StateObject) AddBalance(tokenID int32, increment *math.BigInt) {
@@ -136,7 +139,7 @@ func (s *StateObject) SetNonce(nonce uint64) {
 	s.data.Nonce = nonce
 }
 
-func (s *StateObject) GetState(db Database, key types.Hash) types.Hash {
+func (s *StateObject) GetState(db Database, key common.Hash) common.Hash {
 	value, ok := s.dirtyStorage[key]
 	if ok {
 		return value
@@ -144,7 +147,7 @@ func (s *StateObject) GetState(db Database, key types.Hash) types.Hash {
 	return s.GetCommittedState(db, key)
 }
 
-func (s *StateObject) GetCommittedState(db Database, key types.Hash) types.Hash {
+func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
 	value, ok := s.committedStorage[key]
 	if ok {
 		return value
@@ -157,11 +160,11 @@ func (s *StateObject) GetCommittedState(db Database, key types.Hash) types.Hash 
 	} else {
 		s.committedStorage[key] = value
 	}
-	value = types.BytesToHash(b)
+	value = common.BytesToHash(b)
 	return value
 }
 
-func (s *StateObject) SetState(db Database, key, value types.Hash) {
+func (s *StateObject) SetState(db Database, key, value common.Hash) {
 	s.db.AppendJournal(&storageChange{
 		account:  &s.address,
 		key:      key,
@@ -185,7 +188,7 @@ func (s *StateObject) GetCode(db Database) []byte {
 	return s.code
 }
 
-func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
+func (s *StateObject) SetCode(codehash common.Hash, code []byte) {
 	s.db.AppendJournal(&codeChange{
 		account:  &s.address,
 		prevcode: s.code,
@@ -196,15 +199,15 @@ func (s *StateObject) SetCode(codehash types.Hash, code []byte) {
 	s.dirtycode = true
 }
 
-func (s *StateObject) GetCodeHash() types.Hash {
-	return types.BytesToHash(s.data.CodeHash)
+func (s *StateObject) GetCodeHash() common.Hash {
+	return common.BytesToHash(s.data.CodeHash)
 }
 
 func (s *StateObject) GetCodeSize(db Database) (int, error) {
 	if s.code != nil {
 		return len(s.code), nil
 	}
-	return db.ContractCodeSize(s.addressHash, types.BytesToHash(s.data.CodeHash))
+	return db.ContractCodeSize(s.addressHash, common.BytesToHash(s.data.CodeHash))
 }
 
 func (s *StateObject) openTrie(db Database) Trie {
@@ -213,7 +216,7 @@ func (s *StateObject) openTrie(db Database) Trie {
 	}
 	t, err := db.OpenStorageTrie(s.addressHash, s.data.Root)
 	if err != nil {
-		t, _ = db.OpenStorageTrie(s.addressHash, types.BytesToHash([]byte{}))
+		t, _ = db.OpenStorageTrie(s.addressHash, common.BytesToHash([]byte{}))
 	}
 	s.trie = t
 	return s.trie
@@ -261,8 +264,8 @@ func (s *StateObject) CommitStorage(db Database) error {
 // Note that this function is for test debug only, should not
 // be called by other functions.
 func (s *StateObject) Uncache() {
-	s.committedStorage = make(map[types.Hash]types.Hash)
-	s.dirtyStorage = make(map[types.Hash]types.Hash)
+	s.committedStorage = make(map[common.Hash]common.Hash)
+	s.dirtyStorage = make(map[common.Hash]common.Hash)
 }
 
 /*
@@ -274,14 +277,14 @@ func (s *StateObject) Encode() ([]byte, error) {
 }
 
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
-	var a AccountData
+	a := NewAccountData()
 	_, err := a.UnmarshalMsg(b)
 
 	s.data = a
 	s.address = a.Address
 	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
-	s.committedStorage = make(map[types.Hash]types.Hash)
-	s.dirtyStorage = make(map[types.Hash]types.Hash)
+	s.committedStorage = make(map[common.Hash]common.Hash)
+	s.dirtyStorage = make(map[common.Hash]common.Hash)
 	s.db = db
 	return err
 }
@@ -296,7 +299,7 @@ func NewBalanceSet() BalanceSet {
 func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
 	bi := (*b)[tokenID]
 	if bi == nil {
-		return math.NewBigInt(0)
+		bi = math.NewBigInt(0)
 	}
 	return bi.Add(increment)
 }

@@ -1,26 +1,26 @@
 package types
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 )
 
 // StateDB is an OVM database for full state querying.
 type StateDB interface {
-	CreateAccount(types.Address)
+	CreateAccount(common.Address)
 
-	SubBalance(types.Address, *math.BigInt)
-	AddBalance(types.Address, *math.BigInt)
+	SubBalance(common.Address, *math.BigInt)
+	AddBalance(common.Address, *math.BigInt)
 	// Retrieve the balance from the given address or 0 if object not found
-	GetBalance(types.Address) *math.BigInt
+	GetBalance(common.Address) *math.BigInt
 
-	GetNonce(types.Address) uint64
-	SetNonce(types.Address, uint64)
+	GetNonce(common.Address) uint64
+	SetNonce(common.Address, uint64)
 
-	GetCodeHash(types.Address) types.Hash
-	GetCode(types.Address) []byte
-	SetCode(types.Address, []byte)
-	GetCodeSize(types.Address) int
+	GetCodeHash(common.Address) common.Hash
+	GetCode(common.Address) []byte
+	SetCode(common.Address, []byte)
+	GetCodeSize(common.Address) int
 
 	// AddRefund adds gas to the refund counter
 	AddRefund(uint64)
@@ -30,25 +30,25 @@ type StateDB interface {
 	// GetRefund returns the current value of the refund counter.
 	GetRefund() uint64
 
-	GetCommittedState(types.Address, types.Hash) types.Hash
+	GetCommittedState(common.Address, common.Hash) common.Hash
 	// GetState retrieves a value from the given account's storage trie.
-	GetState(types.Address, types.Hash) types.Hash
-	SetState(types.Address, types.Hash, types.Hash)
+	GetState(common.Address, common.Hash) common.Hash
+	SetState(common.Address, common.Hash, common.Hash)
 
 	// Suicide marks the given account as suicided.
 	// This clears the account balance.
 	//
 	// The account's state object is still available until the state is committed,
 	// getStateObject will return a non-nil account after Suicide.
-	Suicide(types.Address) bool
-	HasSuicided(types.Address) bool
+	Suicide(common.Address) bool
+	HasSuicided(common.Address) bool
 
 	// Exist reports whether the given account exists in state.
 	// Notably this should also return true for suicided accounts.
-	Exist(types.Address) bool
+	Exist(common.Address) bool
 	// Empty returns whether the given account is empty. Empty
 	// is defined according to EIP161 (balance = nonce = code = 0).
-	Empty(types.Address) bool
+	Empty(common.Address) bool
 
 	// RevertToSnapshot reverts all state changes made since the given revision.
 	RevertToSnapshot(int)
@@ -56,32 +56,32 @@ type StateDB interface {
 	Snapshot() int
 
 	AddLog(*Log)
-	AddPreimage(types.Hash, []byte)
+	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(types.Address, func(types.Hash, types.Hash) bool)
+	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 	// for debug.
 	String() string
 
-	// GetStateObject(addr types.Address) StateObjectInterface
-	// SetStateObject(addr types.Address, stateObject StateObjectInterface)
+	// GetStateObject(addr common.Address) StateObjectInterface
+	// SetStateObject(addr common.Address, stateObject StateObjectInterface)
 }
 
 // StateDBDebug is a temp inferface for layerdb debug.
 type StateDBDebug interface {
-	CreateAccount(types.Address)
+	CreateAccount(common.Address)
 
-	SubBalance(types.Address, *math.BigInt)
-	AddBalance(types.Address, *math.BigInt)
+	SubBalance(common.Address, *math.BigInt)
+	AddBalance(common.Address, *math.BigInt)
 	// Retrieve the balance from the given address or 0 if object not found
-	GetBalance(types.Address) *math.BigInt
+	GetBalance(common.Address) *math.BigInt
 
-	GetNonce(types.Address) uint64
-	SetNonce(types.Address, uint64)
+	GetNonce(common.Address) uint64
+	SetNonce(common.Address, uint64)
 
-	GetCodeHash(types.Address) types.Hash
-	GetCode(types.Address) []byte
-	SetCode(types.Address, []byte)
-	GetCodeSize(types.Address) int
+	GetCodeHash(common.Address) common.Hash
+	GetCode(common.Address) []byte
+	SetCode(common.Address, []byte)
+	GetCodeSize(common.Address) int
 
 	// AddRefund adds gas to the refund counter
 	AddRefund(uint64)
@@ -91,25 +91,25 @@ type StateDBDebug interface {
 	// GetRefund returns the current value of the refund counter.
 	GetRefund() uint64
 
-	GetCommittedState(types.Address, types.Hash) types.Hash
+	GetCommittedState(common.Address, common.Hash) common.Hash
 	// GetState retrieves a value from the given account's storage trie.
-	GetState(types.Address, types.Hash) types.Hash
-	SetState(types.Address, types.Hash, types.Hash)
+	GetState(common.Address, common.Hash) common.Hash
+	SetState(common.Address, common.Hash, common.Hash)
 
 	// Suicide marks the given account as suicided.
 	// This clears the account balance.
 	//
 	// The account's state object is still available until the state is committed,
 	// getStateObject will return a non-nil account after Suicide.
-	Suicide(types.Address) bool
-	HasSuicided(types.Address) bool
+	Suicide(common.Address) bool
+	HasSuicided(common.Address) bool
 
 	// Exist reports whether the given account exists in state.
 	// Notably this should also return true for suicided accounts.
-	Exist(types.Address) bool
+	Exist(common.Address) bool
 	// Empty returns whether the given account is empty. Empty
 	// is defined according to EIP161 (balance = nonce = code = 0).
-	Empty(types.Address) bool
+	Empty(common.Address) bool
 
 	// RevertToSnapshot reverts all state changes made since the given revision.
 	RevertToSnapshot(int)
@@ -117,12 +117,12 @@ type StateDBDebug interface {
 	Snapshot() int
 
 	AddLog(*Log)
-	AddPreimage(types.Hash, []byte)
+	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(types.Address, func(types.Hash, types.Hash) bool)
+	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 	// for debug.
 	String() string
 
-	GetStateObject(addr types.Address) *StateObject
-	SetStateObject(addr types.Address, stateObject *StateObject)
+	GetStateObject(addr common.Address) *StateObject
+	SetStateObject(addr common.Address, stateObject *StateObject)
 }

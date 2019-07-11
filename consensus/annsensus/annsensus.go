@@ -18,12 +18,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"sync"
 	"sync/atomic"
@@ -64,17 +67,17 @@ type AnnSensus struct {
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
 	newTermChan                   chan bool
-	genesisPkChan                 chan *types.MessageConsensusDkgGenesisPublicKey
+	genesisPkChan                 chan *p2p_message.MessageConsensusDkgGenesisPublicKey
 	NewPeerConnectedEventListener chan string
-	ProposalSeqChan               chan types.Hash
+	ProposalSeqChan               chan common.Hash
 	HandleNewTxi                  func(tx types.Txi)
 
 	TxEnable           bool
 	NewLatestSequencer chan bool
 
 	ConfigFilePath       string
-	termChangeChan       chan *types.TermChange
-	currentTermChange    *types.TermChange
+	termChangeChan       chan *tx_types.TermChange
+	currentTermChange    *tx_types.TermChange
 	disableTermChange    bool
 	disable              bool
 	addedGenesisCampaign bool
@@ -108,14 +111,14 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.genesisAccounts = genesisAccounts
 	ann.term = term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.newTermChan = make(chan bool)
-	ann.genesisPkChan = make(chan *types.MessageConsensusDkgGenesisPublicKey)
+	ann.genesisPkChan = make(chan *p2p_message.MessageConsensusDkgGenesisPublicKey)
 	ann.NewPeerConnectedEventListener = make(chan string)
 
-	ann.ProposalSeqChan = make(chan types.Hash)
+	ann.ProposalSeqChan = make(chan common.Hash)
 	ann.NewLatestSequencer = make(chan bool)
 	ann.startTermChange = make(chan bool)
 
-	ann.termChangeChan = make(chan *types.TermChange)
+	ann.termChangeChan = make(chan *tx_types.TermChange)
 	//todo fix this later ,bft consensus
 	//"The latest gossip on BFT consensus " 2f+1
 	if partnerNum < 2 {
@@ -189,19 +192,19 @@ func (as *AnnSensus) GetBenchmarks() map[string]interface{} {
 	return nil
 }
 
-func (as *AnnSensus) GetCandidate(addr types.Address) *types.Campaign {
+func (as *AnnSensus) GetCandidate(addr common.Address) *tx_types.Campaign {
 	return as.term.GetCandidate(addr)
 }
 
-func (as *AnnSensus) Candidates() map[types.Address]*types.Campaign {
+func (as *AnnSensus) Candidates() map[common.Address]*tx_types.Campaign {
 	return as.term.Candidates()
 }
 
-func (as *AnnSensus) GetAlsoran(addr types.Address) *types.Campaign {
+func (as *AnnSensus) GetAlsoran(addr common.Address) *tx_types.Campaign {
 	return as.term.GetAlsoran(addr)
 }
 
-func (as *AnnSensus) Alsorans() map[types.Address]*types.Campaign {
+func (as *AnnSensus) Alsorans() map[common.Address]*tx_types.Campaign {
 	return as.term.Alsorans()
 }
 
@@ -244,7 +247,7 @@ func (as *AnnSensus) produceCampaign() {
 // commit takes a list of campaigns as input and record these
 // camps' information. It checks if the number of camps reaches
 // the threshold. If so, start term changing flow.
-func (as *AnnSensus) commit(camps []*types.Campaign) {
+func (as *AnnSensus) commit(camps []*tx_types.Campaign) {
 
 	for i, c := range camps {
 		if as.isTermChanging() {
@@ -272,7 +275,7 @@ func (as *AnnSensus) commit(camps []*types.Campaign) {
 
 // AddCandidate adds campaign into annsensus if the campaign meets the
 // candidate requirements.
-func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
+func (as *AnnSensus) AddCampaign(cp *tx_types.Campaign) error {
 
 	if as.term.HasCampaign(cp.Sender()) {
 		log.WithField("id ", as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
@@ -294,7 +297,7 @@ func (as *AnnSensus) AddCampaign(cp *types.Campaign) error {
 // AddAlsorans adds a list of campaigns into annsensus as alsorans.
 // Campaigns will be regard as alsoran when current candidates cached
 // already reaches the term change requirements.
-func (as *AnnSensus) AddAlsorans(cps []*types.Campaign) {
+func (as *AnnSensus) AddAlsorans(cps []*tx_types.Campaign) {
 	as.term.AddAlsorans(cps)
 }
 
@@ -373,11 +376,11 @@ func (as *AnnSensus) termChangeLoop() {
 }
 
 // pickTermChg picks a valid TermChange from a tc list.
-func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, error) {
+func (as *AnnSensus) pickTermChg(tcs []*tx_types.TermChange) (*tx_types.TermChange, error) {
 	if len(tcs) == 0 {
 		return nil, errors.New("nil tcs")
 	}
-	var niceTc *types.TermChange
+	var niceTc *tx_types.TermChange
 	for _, tc := range tcs {
 		if niceTc != nil && niceTc.IsSameTermInfo(tc) {
 			continue
@@ -394,7 +397,7 @@ func (as *AnnSensus) pickTermChg(tcs []*types.TermChange) (*types.TermChange, er
 }
 
 //genTermChg
-func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.TermChange {
+func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*tx_types.SigSet) *tx_types.TermChange {
 	base := types.TxBase{
 		Type: types.TxBaseTypeTermChange,
 	}
@@ -408,7 +411,7 @@ func (as *AnnSensus) genTermChg(pk kyber.Point, sigset []*types.SigSet) *types.T
 		}
 	}
 
-	tc := &types.TermChange{
+	tc := &tx_types.TermChange{
 		TxBase: base,
 		TermID: as.term.ID() + 1,
 		Issuer: &as.MyAccount.Address,
@@ -429,7 +432,7 @@ func (as *AnnSensus) addGenesisCampaigns() {
 	as.mu.RUnlock()
 	for _, pk := range as.genesisAccounts {
 		addr := pk.Address()
-		cp := types.Campaign{
+		cp := tx_types.Campaign{
 			Issuer: &addr,
 		}
 		as.term.AddCandidate(&cp, pk)
@@ -453,7 +456,7 @@ func (as *AnnSensus) loop() {
 	//var camp bool
 
 	// sequencer entry
-	var genesisCamps []*types.Campaign
+	var genesisCamps []*tx_types.Campaign
 	var peerNum int
 
 	var lastHeight uint64
@@ -479,11 +482,11 @@ func (as *AnnSensus) loop() {
 				log.Debug("term change is disabled , quiting")
 				continue
 			}
-			var cps []*types.Campaign
-			var tcs []*types.TermChange
+			var cps []*tx_types.Campaign
+			var tcs []*tx_types.TermChange
 			for _, tx := range txs {
 				if tx.GetType() == types.TxBaseTypeCampaign {
-					cp := tx.(*types.Campaign)
+					cp := tx.(*tx_types.Campaign)
 					cps = append(cps, cp)
 					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
 						if sentCampaign > 0 {
@@ -492,7 +495,7 @@ func (as *AnnSensus) loop() {
 						}
 					}
 				} else if tx.GetType() == types.TxBaseTypeTermChange {
-					tcs = append(tcs, tx.(*types.TermChange))
+					tcs = append(tcs, tx.(*tx_types.TermChange))
 				}
 			}
 			// TODO:
@@ -575,7 +578,7 @@ func (as *AnnSensus) loop() {
 		//	}
 
 		case <-as.NewLatestSequencer:
-			var tc *types.TermChange
+			var tc *tx_types.TermChange
 			as.mu.RLock()
 			tc = as.currentTermChange
 			as.currentTermChange = nil
@@ -657,7 +660,7 @@ func (as *AnnSensus) loop() {
 					as.dkg.SetConfig(config)
 					log.Debug("will set config")
 					as.addGenesisCampaigns()
-					var sigSets []*types.SigSet
+					var sigSets []*tx_types.SigSet
 					for k := range config.SigSets {
 						sigSets = append(sigSets, config.SigSets[k])
 					}
@@ -684,7 +687,7 @@ func (as *AnnSensus) loop() {
 					eventInit = true
 					continue
 				}
-				msg := types.MessageTermChangeRequest{
+				msg := p2p_message.MessageTermChangeRequest{
 					Id: og.MsgCounter.Get(),
 				}
 				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
@@ -694,7 +697,7 @@ func (as *AnnSensus) loop() {
 		case peerID := <-as.NewPeerConnectedEventListener:
 
 			if !as.isGenesisPartner && !eventInit {
-				msg := types.MessageTermChangeRequest{
+				msg := p2p_message.MessageTermChangeRequest{
 					Id: og.MsgCounter.Get(),
 				}
 				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
@@ -758,7 +761,7 @@ func (as *AnnSensus) loop() {
 				continue
 			}
 			addr := as.genesisAccounts[id].Address()
-			cp := &types.Campaign{
+			cp := &tx_types.Campaign{
 				DkgPublicKey: pkMsg.DkgPublicKey,
 				Issuer:       &addr,
 				TxBase: types.TxBase{

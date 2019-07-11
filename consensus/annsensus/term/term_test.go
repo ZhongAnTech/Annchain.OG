@@ -16,7 +16,6 @@ package term
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -27,6 +26,6 @@ func TestNewTerm(t *testing.T) {
 	pk, _ := crypto.Signer.RandomKeyPair()
 	term.PublicKeys = append(term.PublicKeys, pk)
 	fmt.Println()
-	term.ChangeTerm(&types.TermChange{}, 2)
+	term.ChangeTerm(&tx_types.TermChange{}, 2)
 	fmt.Println(term.GetFormerPks())
 }

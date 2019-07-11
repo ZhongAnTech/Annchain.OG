@@ -19,11 +19,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
 	log "github.com/sirupsen/logrus"
 )
@@ -55,7 +55,7 @@ func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
-func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
+func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) common.Address {
 	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1, pubKey))
 }
 
@@ -79,8 +79,8 @@ func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey Priva
 }
 
 // Address calculate the address from the pubkey
-func (s *SignerSecp256k1) Address(pubKey PublicKey) types.Address {
-	return types.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
+func (s *SignerSecp256k1) Address(pubKey PublicKey) common.Address {
+	return common.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
 }
 
 func (s *SignerSecp256k1) Encrypt(p PublicKey, m []byte) (ct []byte, err error) {
@@ -125,5 +125,6 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 }
 
 func (s *SignerSecp256k1) CanRecoverPubFromSig() bool {
-	return true
+	//return true
+	return false
 }

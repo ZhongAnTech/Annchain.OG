@@ -17,7 +17,7 @@
 package types
 
 import (
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"math/big"
 )
 
@@ -25,15 +25,15 @@ import (
 // depends on this context being implemented for doing subcalls and initialising new OVM contracts.
 type Caller interface {
 	// Call another contract
-	Call(me ContractRef, addr types.Address, data []byte, gas uint64, value *big.Int, txCall bool) (resp []byte, leftOverGas uint64, err error)
+	Call(me ContractRef, addr common.Address, data []byte, gas uint64, value *big.Int, txCall bool) (resp []byte, leftOverGas uint64, err error)
 	// Take another's contract code and execute within our own context
-	CallCode(me ContractRef, addr types.Address, data []byte, gas uint64, value *big.Int) (resp []byte, leftOverGas uint64, err error)
+	CallCode(me ContractRef, addr common.Address, data []byte, gas uint64, value *big.Int) (resp []byte, leftOverGas uint64, err error)
 	// Same as CallCode except sender and value is propagated from parent to child scope
-	DelegateCall(me ContractRef, addr types.Address, data []byte, gas uint64) (resp []byte, leftOverGas uint64, err error)
+	DelegateCall(me ContractRef, addr common.Address, data []byte, gas uint64) (resp []byte, leftOverGas uint64, err error)
 	// Create a new contract
-	Create(me ContractRef, data []byte, gas uint64, value *big.Int, txCall bool) (resp []byte, contractAddr types.Address, leftOverGas uint64, err error)
+	Create(me ContractRef, data []byte, gas uint64, value *big.Int, txCall bool) (resp []byte, contractAddr common.Address, leftOverGas uint64, err error)
 	// Create a new contract use sha3
-	Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int, txCall bool) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error)
+	Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int, txCall bool) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error)
 
-	StaticCall(caller ContractRef, addr types.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error)
+	StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error)
 }

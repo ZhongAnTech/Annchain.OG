@@ -20,7 +20,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/annchain/OG/common/crypto/ecies"
-	"github.com/annchain/OG/types"
 	"github.com/btcsuite/btcd/btcec"
 	"math/big"
 )
@@ -88,7 +87,7 @@ func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
-func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) types.Address {
+func (s *SignerSecp256k1) AddressFromPubKeyBytes(pubKey []byte) common.Address {
 	return s.Address(PublicKeyFromBytes(CryptoTypeSecp256k1, pubKey))
 }
 
@@ -97,8 +96,8 @@ func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) PublicKey {
 }
 
 // Address calculate the address from the pubkey
-func (s *SignerSecp256k1) Address(pubKey PublicKey) types.Address {
-	return types.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
+func (s *SignerSecp256k1) Address(pubKey PublicKey) common.Address {
+	return common.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
 }
 
 func (s *SignerSecp256k1) Encrypt(p PublicKey, m []byte) (ct []byte, err error) {

@@ -16,6 +16,7 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p/ioperformance"
@@ -69,7 +70,9 @@ func NewNode() *Node {
 	//set default signer
 	crypto.Signer = crypto.NewSigner(cryptoType)
 	// Setup crypto algorithm
-	types.Signer = crypto.Signer
+	if crypto.Signer.CanRecoverPubFromSig() {
+		types.CanRecoverPubFromSig = true
+	}
 
 	maxPeers := viper.GetInt("p2p.max_peers")
 	if maxPeers == 0 {
@@ -122,14 +125,14 @@ func NewNode() *Node {
 	}
 
 	txFormatVerifier := &og.TxFormatVerifier{
-		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
-		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
+		MaxTxHash:    common.HexToHash(viper.GetString("max_tx_hash")),
+		MaxMinedHash: common.HexToHash(viper.GetString("max_mined_hash")),
 	}
-	if txFormatVerifier.MaxMinedHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+	if txFormatVerifier.MaxMinedHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
 		txFormatVerifier.NoVerifyMindHash = true
 		logrus.Info("no verify mined hash")
 	}
-	if txFormatVerifier.MaxTxHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+	if txFormatVerifier.MaxTxHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
 		txFormatVerifier.NoVerifyMaxTxHash = true
 		logrus.Info("no verify max tx hash")
 	}
@@ -262,6 +265,7 @@ func NewNode() *Node {
 		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,
+		GetStateRoot:       org.TxPool,
 	}
 
 	// TODO: move to (embeded) client. It is not part of OG

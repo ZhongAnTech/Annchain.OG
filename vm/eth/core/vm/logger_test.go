@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/annchain/OG/common"
 	"math/big"
 	"testing"
 
@@ -29,11 +30,11 @@ type dummyContractRef struct {
 	calledForEach bool
 }
 
-func (dummyContractRef) ReturnGas(*big.Int)         {}
-func (dummyContractRef) Address() types.Address     { return types.Address{} }
-func (dummyContractRef) Value() *big.Int            { return new(big.Int) }
-func (dummyContractRef) SetCode(types.Hash, []byte) {}
-func (d *dummyContractRef) ForEachStorage(callback func(key, value types.Hash) bool) {
+func (dummyContractRef) ReturnGas(*big.Int)          {}
+func (dummyContractRef) Address() common.Address     { return common.Address{} }
+func (dummyContractRef) Value() *big.Int             { return new(big.Int) }
+func (dummyContractRef) SetCode(common.Hash, []byte) {}
+func (d *dummyContractRef) ForEachStorage(callback func(key, value common.Hash) bool) {
 	d.calledForEach = true
 }
 func (d *dummyContractRef) SubBalance(amount *big.Int) {}
@@ -58,7 +59,7 @@ func TestStoreCapture(t *testing.T) {
 	)
 	stack.push(big.NewInt(1))
 	stack.push(big.NewInt(0))
-	var index types.Hash
+	var index common.Hash
 	logger.CaptureState(env, 0, instruction.SSTORE, 0, 0, mem, stack, contract, 0, nil)
 	if len(logger.changedValues[contract.Address()]) == 0 {
 		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(), len(logger.changedValues[contract.Address()]))

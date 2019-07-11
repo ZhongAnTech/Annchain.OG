@@ -55,3 +55,10 @@ func TestSerialization(t *testing.T) {
 	fmt.Println(b.String())
 	assert.Equal(t, s, b.String())
 }
+
+func TestBigInt_Add(t *testing.T) {
+	bi := NewBigInt(1000)
+	fmt.Println(bi)
+	bi = bi.Add(NewBigInt(99))
+	fmt.Println(bi)
+}

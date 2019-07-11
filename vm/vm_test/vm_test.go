@@ -16,19 +16,19 @@ import (
 )
 
 func TestContractSmallStorage(t *testing.T) {
-	from := types.HexToAddress("0x01")
+	from := common.HexToAddress("0x01")
 
 	txContext := &ovm.TxContext{
-		From: types.HexToAddress("0x01"),
-		//To:       types.HexToAddress("0x02"),
+		From: common.HexToAddress("0x01"),
+		//To:       common.HexToAddress("0x02"),
 		Value:      math.NewBigInt(0),
 		Data:       readFile("OwnedToken.bin"),
 		GasPrice:   math.NewBigInt(1),
 		GasLimit:   DefaultGasLimit,
-		Coinbase:   types.HexToAddress("0x01"),
+		Coinbase:   common.HexToAddress("0x01"),
 		SequenceID: 0,
 	}
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	ldb := DefaultLDB(from, coinBase)
 
@@ -80,8 +80,8 @@ func TestContractSmallStorage(t *testing.T) {
 }
 
 func TestContractHelloWorld(t *testing.T) {
-	from := types.HexToAddress("0x01")
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	from := common.HexToAddress("0x01")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
@@ -93,8 +93,8 @@ func TestContractHelloWorld(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From: types.HexToAddress("0x01"),
-			//To:       types.HexToAddress("0x02"),
+			From: common.HexToAddress("0x01"),
+			//To:       common.HexToAddress("0x02"),
 			Value:      math.NewBigInt(0),
 			Data:       readFile("hello.bin"),
 			GasPrice:   math.NewBigInt(1),

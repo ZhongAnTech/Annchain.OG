@@ -14,10 +14,12 @@
 package og
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,18 +54,18 @@ func (d *DataLoader) LoadLocalData() {
 	}
 }
 
-func (d *DataLoader) GenerateGenesis() *types.Sequencer {
-	from := types.HexToAddress("0x00")
-	return &types.Sequencer{
+func (d *DataLoader) GenerateGenesis() *tx_types.Sequencer {
+	from := common.HexToAddress("0x00")
+	return &tx_types.Sequencer{
 		Issuer: &from,
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeSequencer,
-			Hash:         types.HexToHash("0x00"),
+			Hash:         common.HexToHash("0x00"),
 			Height:       0,
 			AccountNonce: 0,
 		},
 	}
 }
-func (loader *DataLoader) GenerateGenesisBalance() map[types.Address]*math.BigInt {
-	return map[types.Address]*math.BigInt{}
+func (loader *DataLoader) GenerateGenesisBalance() map[common.Address]*math.BigInt {
+	return map[common.Address]*math.BigInt{}
 }

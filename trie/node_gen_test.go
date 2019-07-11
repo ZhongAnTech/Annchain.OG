@@ -55,7 +55,7 @@ func newHashNode() HashNode {
 		sr[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	seedstr := string(sr)
-	return HashNode(types.HexToHash(seedstr).ToBytes())
+	return HashNode(common.HexToHash(seedstr).ToBytes())
 }
 
 func newValueNode() ValueNode {

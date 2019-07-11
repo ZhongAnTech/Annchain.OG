@@ -31,12 +31,12 @@ func TestSig(t *testing.T) {
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeNormal,
 			AccountNonce: 3,
-			Hash:         types.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
+			Hash:         common.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
 			PublicKey:    pk.Bytes,
 		},
-		From:  types.HexToAddress("0x49fdaab0af739e16c9e1c9bf1715a6503edf4cab"),
+		From:  common.HexToAddress("0x49fdaab0af739e16c9e1c9bf1715a6503edf4cab"),
 		Value: math.NewBigInt(0),
-		To:    types.Address{},
+		To:    common.Address{},
 		Data:  data,
 	}
 	//fmt.Println(tx.SignatureTargets())

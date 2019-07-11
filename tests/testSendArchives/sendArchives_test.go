@@ -15,7 +15,7 @@ import (
 func TestSend(t *testing.T) {
 	var ar [][]byte
 	for i := 0; i < 100000; i++ {
-		ar = append(ar, types.RandomHash().ToBytes())
+		ar = append(ar, common.RandomHash().ToBytes())
 	}
 	transport := &http.Transport{
 		MaxIdleConnsPerHost: 15,

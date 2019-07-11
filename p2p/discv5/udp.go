@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"net"
 	"time"
@@ -28,9 +29,9 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
-	"github.com/annchain/OG/types"
 )
 
+//go:generate msgp
 const Version = 4
 
 // Errors
@@ -95,7 +96,7 @@ type (
 
 	// findnode is a query for nodes close to the given target.
 	FindnodeHash struct {
-		//Target     types.Hash
+		//Target     common.Hash
 		Target     CommonHash
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
@@ -125,7 +126,7 @@ type (
 
 	// reply to topicQuery
 	TopicNodes struct {
-		//Echo  types.Hash
+		//Echo  common.Hash
 		Echo  CommonHash
 		Nodes []RpcNode
 	}
@@ -315,7 +316,7 @@ func (t *udp) sendNeighbours(remote *Node, results []*Node) {
 	}
 }
 
-func (t *udp) sendFindnodeHash(remote *Node, target types.Hash) {
+func (t *udp) sendFindnodeHash(remote *Node, target common.Hash) {
 	f := FindnodeHash{
 		Target:     target.Bytes,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
@@ -334,7 +335,7 @@ func (t *udp) sendTopicRegister(remote *Node, topics []Topic, idx int, pong []by
 	t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), data)
 }
 
-func (t *udp) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
+func (t *udp) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
 	p := TopicNodes{Echo: queryHash.Bytes}
 	var sent bool
 	for _, result := range nodes {

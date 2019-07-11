@@ -14,15 +14,15 @@ import (
 )
 
 func TestMultiContract(t *testing.T) {
-	from := types.HexToAddress("0xABCDEF88")
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	from := common.HexToAddress("0xABCDEF88")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
 	})
 	ldb := DefaultLDB(from, coinBase)
 
-	contracts := make(map[string]types.Address)
+	contracts := make(map[string]common.Address)
 
 	//for _, file := range ([]string{"ABBToken", "owned", "SafeMath", "TokenCreator", "TokenERC20"}) {
 	for _, file := range []string{"ABBToken"} {
@@ -38,8 +38,8 @@ func TestMultiContract(t *testing.T) {
 			Tracer:    tracer,
 			VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 			TxContext: &ovm.TxContext{
-				From: types.HexToAddress("0xABCDEF88"),
-				//To:       types.HexToAddress("0x02"),
+				From: common.HexToAddress("0xABCDEF88"),
+				//To:       common.HexToAddress("0x02"),
 				Value:      math.NewBigInt(0),
 				Data:       readFile(file + ".bin"),
 				GasPrice:   math.NewBigInt(1),
@@ -63,7 +63,7 @@ func TestMultiContract(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:       types.HexToAddress("0xABCDEF88"),
+			From:       common.HexToAddress("0xABCDEF88"),
 			To:         contracts["TokenERC20"],
 			Value:      math.NewBigInt(0),
 			GasPrice:   math.NewBigInt(1),
@@ -78,7 +78,7 @@ func TestMultiContract(t *testing.T) {
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "18160ddd", nil)
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "8da5cb5b", nil)
 	// get balance
-	//params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+	//params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88")})
 	//ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 
 	//symbol
@@ -98,19 +98,19 @@ func TestMultiContract(t *testing.T) {
 	}
 	//frozenAccount
 	//{
-	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+	//	params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88")})
 	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
 	//	dump(t, ldb, ret, err)
 	//}
 	//freezeAccount
 	//{
-	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88"), true})
+	//	params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88"), true})
 	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "e724529c", params)
 	//	dump(t, ldb, ret, err)
 	//}
 	////frozenAccount
 	//{
-	//	params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+	//	params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88")})
 	//	ret, _, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "b414d4b6", params)
 	//	dump(t, ldb, ret, err)
 	//}
@@ -123,7 +123,7 @@ func TestMultiContract(t *testing.T) {
 	//burn2
 	//{
 	//	params := EncodeParams([]interface{}{100000000})
-	//	ret, _, err := CallContract(contracts["ABBToken"], types.HexToAddress("0xDEADBEEF"), coinBase, rt, math.NewBigInt(0), "42966c68", params)
+	//	ret, _, err := CallContract(contracts["ABBToken"], common.HexToAddress("0xDEADBEEF"), coinBase, rt, math.NewBigInt(0), "42966c68", params)
 	//	dump(t, ldb, ret, err)
 	//}
 	// burn
@@ -134,7 +134,7 @@ func TestMultiContract(t *testing.T) {
 	//}
 	// query balance
 	{
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+		params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88")})
 		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 		dump(t, ldb, ret, leftGas, err)
 	}
@@ -143,28 +143,28 @@ func TestMultiContract(t *testing.T) {
 	{
 		u64, err := strconv.ParseUint("0101", 16, 64)
 		assert.NoError(t, err)
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF87"), u64})
+		params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF87"), u64})
 		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "a9059cbb", params)
 		dump(t, ldb, ret, leftGas, err)
 	}
 	// query again
 	{
-		params := EncodeParams([]interface{}{types.HexToAddress("0xABCDEF88")})
+		params := EncodeParams([]interface{}{common.HexToAddress("0xABCDEF88")})
 		ret, leftGas, err := CallContract(contracts["ABBToken"], from, coinBase, rt, math.NewBigInt(0), "70a08231", params)
 		dump(t, ldb, ret, leftGas, err)
 	}
 }
 
 func TestInterCall(t *testing.T) {
-	from := types.HexToAddress("0xABCDEF88")
-	coinBase := types.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	from := common.HexToAddress("0xABCDEF88")
+	coinBase := common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 
 	tracer := vm.NewStructLogger(&vm.LogConfig{
 		Debug: true,
 	})
 	ldb := DefaultLDB(from, coinBase)
 
-	contracts := make(map[string]types.Address)
+	contracts := make(map[string]common.Address)
 
 	for _, file := range []string{"C1", "C2"} {
 
@@ -192,7 +192,7 @@ func TestInterCall(t *testing.T) {
 		Tracer:    tracer,
 		VmContext: ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb),
 		TxContext: &ovm.TxContext{
-			From:       types.HexToAddress("0xABCDEF88"),
+			From:       common.HexToAddress("0xABCDEF88"),
 			To:         contracts["TokenERC20"],
 			Value:      math.NewBigInt(0),
 			GasPrice:   math.NewBigInt(1),

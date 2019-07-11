@@ -16,11 +16,11 @@ package announcer
 import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 )
 
 type MessageSender interface {
-	BroadcastMessage(messageType og.MessageType, message types.Message)
-	SendToAnynomous(messageType og.MessageType, msg types.Message, anyNomousPubKey *crypto.PublicKey)
-	SendToPeer(peerId string, messageType og.MessageType, msg types.Message) error
+	BroadcastMessage(messageType og.MessageType, message p2p_message.Message)
+	SendToAnynomous(messageType og.MessageType, msg p2p_message.Message, anyNomousPubKey *crypto.PublicKey)
+	SendToPeer(peerId string, messageType og.MessageType, msg p2p_message.Message) error
 }

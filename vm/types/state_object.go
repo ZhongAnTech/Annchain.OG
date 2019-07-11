@@ -2,17 +2,17 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"math/big"
 )
 
-type Storage map[types.Hash]types.Hash
+type Storage map[common.Hash]common.Hash
 
 type StateObject struct {
 	Balance     *big.Int
 	Nonce       uint64
 	Code        []byte
-	CodeHash    types.Hash
+	CodeHash    common.Hash
 	Suicided    bool
 	Version     int
 	dirtyStates Storage
@@ -35,9 +35,9 @@ func (s *StateObject) Copy() (d *StateObject) {
 	d.CodeHash = s.CodeHash
 	d.Suicided = s.Suicided
 	d.DirtySO = false
-	d.dirtyStates = make(map[types.Hash]types.Hash)
+	d.dirtyStates = make(map[common.Hash]common.Hash)
 	for k, v := range s.dirtyStates {
-		d.dirtyStates[types.BytesToHash(k.Bytes[:])] = types.BytesToHash(v.Bytes[:])
+		d.dirtyStates[common.BytesToHash(k.Bytes[:])] = common.BytesToHash(v.Bytes[:])
 	}
 
 	d.Version = s.Version + 1
@@ -47,11 +47,11 @@ func (s *StateObject) Copy() (d *StateObject) {
 func NewStateObject() *StateObject {
 	return &StateObject{
 		Balance:     big.NewInt(0),
-		dirtyStates: make(map[types.Hash]types.Hash),
+		dirtyStates: make(map[common.Hash]common.Hash),
 	}
 }
 
 func NewStorage() Storage {
-	a := make(map[types.Hash]types.Hash)
+	a := make(map[common.Hash]common.Hash)
 	return a
 }

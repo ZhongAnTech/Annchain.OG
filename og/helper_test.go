@@ -16,6 +16,7 @@ package og
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
@@ -23,7 +24,6 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/onode"
-	"github.com/annchain/OG/types"
 	"testing"
 )
 
@@ -60,8 +60,8 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 			CryptoType:   crypto.CryptoTypeSecp256k1,
 			Dag:          dag,
 			TxPool:       txPool,
-			MaxTxHash:    types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-			MaxMinedHash: types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+			MaxTxHash:    common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+			MaxMinedHash: common.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		}
 
 		//bufConf := DefaultTxBufferConfig(syncer, txPool, dag, verfier)
@@ -127,7 +127,7 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
-func (p *testPeer) handshake(t *testing.T, seqId uint64, head types.Hash, genesis types.Hash) {
+func (p *testPeer) handshake(t *testing.T, seqId uint64, head common.Hash, genesis common.Hash) {
 	msg := &StatusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkId:       testNetworkId,
@@ -151,7 +151,7 @@ func (p *testPeer) close() {
 }
 
 func TestDatasize(t *testing.T) {
-	var r types.Hash
+	var r common.Hash
 	data, _ := r.MarshalMsg(nil)
 	if len(data) == r.Msgsize() {
 		t.Fatal("msg size not equal", "len data", len(data), "msgSize", r.Msgsize())

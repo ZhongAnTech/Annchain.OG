@@ -15,8 +15,7 @@ package core
 
 import (
 	"fmt"
-
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 )
 
 type ReceiptStatus uint8
@@ -35,13 +34,13 @@ const (
 
 //msgp:tuple Receipt
 type Receipt struct {
-	TxHash          types.Hash
+	TxHash          common.Hash
 	Status          ReceiptStatus
 	ProcessResult   string
-	ContractAddress types.Address
+	ContractAddress common.Address
 }
 
-func NewReceipt(hash types.Hash, status ReceiptStatus, pResult string, addr types.Address) *Receipt {
+func NewReceipt(hash common.Hash, status ReceiptStatus, pResult string, addr common.Address) *Receipt {
 	return &Receipt{
 		TxHash:          hash,
 		Status:          status,

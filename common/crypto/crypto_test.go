@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"math/big"
 	"testing"
 	"time"

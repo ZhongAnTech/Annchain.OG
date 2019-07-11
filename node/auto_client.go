@@ -261,21 +261,24 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		if c.TestSigNature {
-			for _ ,tx:= range txis{
-				ok:= c.Delegate.TxCreator.TxFormatVerifier.VerifySignature(tx)
-				if !ok {
-					logrus.Error(tx,ok)
+			f :=func() {
+				for _, tx := range txis {
+					ok := c.Delegate.TxCreator.TxFormatVerifier.VerifySignature(tx)
+					if !ok {
+						logrus.Error(tx, ok)
+					}
+				}
+				cf := types.ConfirmTime{
+					SeqHeight:   seq.Height,
+					TxNum:       uint64(len(txis)),
+					ConfirmTime: time.Now().Format(time.RFC3339Nano),
+				}
+				err := c.Delegate.Dag.TestWriteConfirmTIme(&cf)
+				if err != nil {
+					logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
 				}
 			}
-			cf := types.ConfirmTime{
-				SeqHeight:   seq.Height,
-				TxNum:       uint64(len(txis)),
-				ConfirmTime: time.Now().Format(time.RFC3339Nano),
-			}
-			err := c.Delegate.Dag.TestWriteConfirmTIme(&cf)
-			if err != nil {
-				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
-			}
+			goroutine.New(f)
 			continue
 
 		}

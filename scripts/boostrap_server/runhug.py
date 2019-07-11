@@ -6,8 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import cgi
 
-ttl = 60 * 5
-PARTNERS = 2
+ttl = 60 * 0.3
 
 # req:
 # {"networkid": 1, "publickey":"0x01000000000", "partners": 4, "onode": "onode://d2469187c351fad31b84f4afb2939cb19c03b7c9359f07447aea3a85664cd33d39afc0c531ad4a8e9ff5ed76b58216e19b0ba208b45d5017ca40c9bd351d29ee@47.100.222.11:8001"}
@@ -23,7 +22,7 @@ networks = {}
 def handle(req, sourceip):
     network_id = req['networkid']
     publickey = req['publickey']
-    # partners = req['partners']
+    partners = req['partners']
     onode: str = req['onode']
     # modify onode's ip to source ip
     onode = onode[0: onode.index("@") + 1] + sourceip + onode[onode.index(":", 10):]
@@ -32,11 +31,17 @@ def handle(req, sourceip):
     if network_id not in networks:
         networks[network_id] = {
             'time': time.time(),
-            'require': PARTNERS,
+            'require': partners,
             'peers': {}
         }
 
     d = networks[network_id]
+    if d['require'] != partners:
+        msg = {'status': 'error',
+               'message': 'Another one is requiring %d partners previously. You are requiring %d.' % (
+                   d['require'], partners)}
+        print(msg)
+        return msg
 
     if publickey not in d['peers']:
         req['id'] = len(d['peers'])
@@ -47,12 +52,10 @@ def handle(req, sourceip):
                'message': '%d of %d is registered... waiting for more' % (len(d['peers']), d['require'])}
         print(msg)
         return msg
-    items = d['peers'].values()
     msg = {'status': 'ok',
            'bootstrap_node': d['peers'][publickey]['id'] == 0,
-           'bootstrap_nodes': ';'.join([x['onode'] for x in items]),
-           'genesis_pk': ';'.join([x['publickey'] for x in items]),
-           'partners': len(d['peers'])
+           'bootstrap_nodes': [';'.join([x['onode'] for _, x in d['peers'].items()])],
+           'genesis_pk': [';'.join([x['publickey'] for _, x in d['peers'].items()])]
            }
     print(msg)
     return msg
@@ -70,20 +73,19 @@ class Server(BaseHTTPRequestHandler):
         self.directory = directory
         super().__init__(*args, **kwargs)
 
-    def _set_headers(self, length):
+    def _set_headers(self):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Content-Length', length)
         self.end_headers()
 
     def do_HEAD(self):
-        self._set_headers(0)
+        self._set_headers()
 
     # GET sends back a Hello world message
     def do_GET(self):
-        j = bytes(json.dumps({'hello': 'world', 'received': 'ok'}), 'utf-8')
-        self._set_headers(len(j))
-        self.wfile.write(j)
+        self._set_headers()
+        j = json.dumps({'hello': 'world', 'received': 'ok'})
+        self.wfile.write(bytes(j))
 
     # POST echoes the message adding a JSON field
     def do_POST(self):
@@ -106,19 +108,18 @@ class Server(BaseHTTPRequestHandler):
             self.lock.release()
 
         # send the message back
-        j = bytes(json.dumps(resp), 'utf-8')
-        self._set_headers(len(j))
-        self.wfile.write(j)
+        self._set_headers()
+        self.wfile.write(bytes(json.dumps(resp), 'utf-8'))
 
     def wipe(self):
         while True:
             self.lock.acquire()
             try:
                 to_remove = []
-                # for k, v in networks.items():
-                    # if time.time() - v['time'] > ttl:
-                    #     # remove it
-                    #     to_remove.append(k)
+                for k, v in networks.items():
+                    if time.time() - v['time'] > ttl:
+                        # remove it
+                        to_remove.append(k)
 
                 for k in to_remove:
                     print('Removing network id', k)
@@ -129,7 +130,7 @@ class Server(BaseHTTPRequestHandler):
 
 
 def run(server_class=HTTPServer, handler_class=Server, port=8008):
-    server_address = ('0.0.0.0', port)
+    server_address = ('', port)
     httpd = server_class(server_address, handler_class)
 
     print('Starting httpd on port %d...' % port)

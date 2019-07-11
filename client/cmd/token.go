@@ -58,11 +58,9 @@ func tokenInit() {
 	tokenCmd.AddCommand(tokenIPOCmd, tokenSPOCmd,tokenDestroyCmd,tokenTransferCmd)
 	tokenCmd.PersistentFlags().StringVarP(&priv_key, "priv_key", "k", "", "priv_key ***")
 	tokenIPOCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
-	tokenIPOCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
+
 	tokenSPOCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
 	tokenTransferCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
-
-	txCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
 	tokenSPOCmd.PersistentFlags().Int32VarP(&tokenId, "token_id", "i", 0, "token_id 1")
 	tokenDestroyCmd.PersistentFlags().Int32VarP(&tokenId, "token_id", "i", 0, "token_id 1")
 	tokenTransferCmd.PersistentFlags().Int32VarP(&tokenId, "token_id", "i", 0, "token_id 1")

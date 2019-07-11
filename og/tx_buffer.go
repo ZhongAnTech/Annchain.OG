@@ -244,14 +244,17 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	b.knownCache.Remove(tx.GetTxHash())
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
-	//if !b.TestNoVerify {
-	//	for _, verifier := range b.verifiers {
-	//		if !verifier.Verify(tx) {
-	//			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-	//			return
-	//		}
-	//	}
-	//}
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if verifier.Independent() {
+				continue
+			}
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
+		}
+	}
 	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
@@ -276,6 +279,9 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	//}
 	if !b.TestNoVerify {
 		for _, verifier := range b.verifiers {
+			if !verifier.Independent() {
+				continue
+			}
 			if !verifier.Verify(tx) {
 				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 				return
@@ -296,6 +302,9 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis) {
 	if !b.TestNoVerify {
 		for _, verifier := range b.verifiers {
+			if !verifier.Independent() {
+				continue
+			}
 			if !verifier.Verify(tx) {
 				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 				return
@@ -330,7 +339,6 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		goroutine.New(f)
 	}
 	b.wg.Wait()
-	logrus.Debug("wg  ", b.wg)
 	sort.Sort(validTxs)
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")

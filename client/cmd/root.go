@@ -46,6 +46,8 @@ func init() {
 	rootCmd.AddCommand(txCmd)
 	accountInit()
 	rootCmd.AddCommand(accountCmd)
+	rootCmd.AddCommand(tokenCmd)
+	tokenInit()
 }
 
 func panicIfError(err error, message string) {

@@ -41,6 +41,7 @@ type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
 type Delegate struct {
 	TxCreator          *og.TxCreator
 	ReceivedNewTxsChan chan []types.Txi
+	ReceivedNewTxChan chan types.Txi
 	TxPool             *core.TxPool
 	Dag                *core.Dag
 	OnNewTxiGenerated  []chan types.Txi

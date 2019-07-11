@@ -335,8 +335,8 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else {
-			//c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
-			c.Delegate.Announce(seq)
+			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			//c.Delegate.Announce(seq)
 		}
 	}
 	return true

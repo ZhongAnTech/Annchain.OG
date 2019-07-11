@@ -293,6 +293,22 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 }
 
+func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis) {
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
+		}
+	}
+	b.affmu.Lock()
+	b.knownCache.Set(tx.GetTxHash(), tx)
+	*validTxs = append(*validTxs, tx)
+	b.affmu.Unlock()
+	b.wg.Done()
+}
+
 // in parallel
 func (b *TxBuffer) handleTxs(txs types.Txis) {
 	logrus.WithField("tx", txs).Debug("buffer is handling txs")
@@ -307,20 +323,8 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		if b.IsKnownHash(tx.GetTxHash()) {
 			continue
 		}
-		f:= func() {
-			defer b.wg.Done()
-			if !b.TestNoVerify {
-				for _, verifier := range b.verifiers {
-					if !verifier.Verify(tx) {
-						logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-						return
-					}
-				}
-				b.affmu.Lock()
-				b.knownCache.Set(tx.GetTxHash(), tx)
-				validTxs = append(validTxs, tx)
-				b.affmu.Unlock()
-			}
+		f := func() {
+			b.verify(tx, &validTxs)
 		}
 		b.wg.Add(1)
 		goroutine.New(f)

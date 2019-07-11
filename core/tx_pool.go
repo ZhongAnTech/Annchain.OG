@@ -786,8 +786,8 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 			log.WithField("error", err).Errorf("confirm error: %v", err)
 			return err
 		}
-		pool.cached = nil
 	}
+	pool.cached = nil
 
 	// push batch to dag
 	if err := pool.dag.Push(batch); err != nil {

@@ -60,12 +60,12 @@ type AutoClient struct {
 
 	wg sync.WaitGroup
 
-	nonceLock   sync.RWMutex
-	txLock      sync.RWMutex
-	archiveLock sync.RWMutex
-	NewRawTx    chan types.Txi
-	TpsTest     bool
-	TpsTestInit bool
+	nonceLock      sync.RWMutex
+	txLock         sync.RWMutex
+	archiveLock    sync.RWMutex
+	NewRawTx       chan types.Txi
+	TpsTest        bool
+	TpsTestInit    bool
 	TestInsertPool bool
 	TestDagPush    bool
 }
@@ -240,7 +240,6 @@ func (c *AutoClient) judgeNonce() uint64 {
 	}
 }
 
-
 func (c *AutoClient) fireTxs() bool {
 	m := viper.GetInt("auto_client.tx.interval_us")
 	if m == 0 {
@@ -254,11 +253,15 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		txis, seq := c.Delegate.Dag.GetTestTxisByNumber(i)
-		if seq!=nil && c.TestDagPush {
-			batch := &core.ConfirmBatch{seq,txis}
+		if seq == nil {
+			logrus.WithField("seq ", seq).Error("seq is nil ")
+			return true
+		}
+		if c.TestDagPush {
+			batch := &core.ConfirmBatch{seq, txis}
 			err := c.Delegate.Dag.Push(batch)
-			if err!=nil {
-				logrus.WithField("seq ",seq).WithError(err).Error("dag push err")
+			if err != nil {
+				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
 			}
 			continue
 		}
@@ -268,14 +271,14 @@ func (c *AutoClient) fireTxs() bool {
 			if c.pause {
 				return true
 			}
-			if  c.TestInsertPool {
+			if c.TestInsertPool {
 				tx := txis[k]
-				err := c.Delegate.TxPool.AddRemoteTx(tx,true)
-				if err!=nil {
-					logrus.WithField("tx ",tx).WithError(err).Warn("add tx err")
+				err := c.Delegate.TxPool.AddRemoteTx(tx, true)
+				if err != nil {
+					logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
 				}
 				k++
-			}else {
+			} else {
 				j = k + 100
 				if j >= len(txis) {
 					c.Delegate.ReceivedNewTxsChan <- txis[k:]
@@ -285,21 +288,16 @@ func (c *AutoClient) fireTxs() bool {
 				k = j
 			}
 		}
-
-		if seq != nil {
-			if c.pause {
-				return true
-			}
-			if c.TestInsertPool {
-				err :=  c.Delegate.TxPool.AddRemoteTx(seq,true)
-				if err!=nil {
-					logrus.WithField("tx ",seq).WithError(err).Warn("add tx err")
-				}
-			}else {
-				c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+		if c.pause {
+			return true
+		}
+		if c.TestInsertPool {
+			err := c.Delegate.TxPool.AddRemoteTx(seq, true)
+			if err != nil {
+				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else {
-			return true
+			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
 		}
 	}
 	return true

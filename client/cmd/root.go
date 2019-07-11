@@ -57,3 +57,4 @@ func panicIfError(err error, message string) {
 		os.Exit(1)
 	}
 }
+

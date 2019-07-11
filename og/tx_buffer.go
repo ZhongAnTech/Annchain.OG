@@ -90,6 +90,7 @@ type TxBuffer struct {
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
 	TestNoVerify bool
+	wg *sync.WaitGroup
  }
 
 type childrenCache struct {
@@ -201,6 +202,7 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 		//children: newChilrdenCache(config.DependencyCacheMaxSize, time.Second*time.Duration(config.DependencyCacheExpirationSeconds)),
 		TestNoVerify:config.TestNoVerify,
+		wg:&sync.WaitGroup{},
 	}
 }
 
@@ -242,14 +244,14 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	b.knownCache.Remove(tx.GetTxHash())
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
-	if !b.TestNoVerify {
-		for _, verifier := range b.verifiers {
-			if !verifier.Verify(tx) {
-				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-				return
-			}
-		}
-	}
+	//if !b.TestNoVerify {
+	//	for _, verifier := range b.verifiers {
+	//		if !verifier.Verify(tx) {
+	//			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+	//			return
+	//		}
+	//	}
+	//}
 	logrus.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
@@ -272,6 +274,14 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
 	//	return
 	//}
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
+		}
+	}
 
 	b.knownCache.Set(tx.GetTxHash(), tx)
 
@@ -297,9 +307,25 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		if b.IsKnownHash(tx.GetTxHash()) {
 			continue
 		}
-		validTxs = append(validTxs, tx)
-		b.knownCache.Set(tx.GetTxHash(), tx)
+		f:= func() {
+			defer b.wg.Done()
+			if !b.TestNoVerify {
+				for _, verifier := range b.verifiers {
+					if !verifier.Verify(tx) {
+						logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+						return
+					}
+				}
+				b.affmu.Lock()
+				b.knownCache.Set(tx.GetTxHash(), tx)
+				validTxs = append(validTxs, tx)
+				b.affmu.Unlock()
+			}
+		}
+		b.wg.Add(1)
+		goroutine.New(f)
 	}
+	b.wg.Wait()
 	sort.Sort(validTxs)
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")

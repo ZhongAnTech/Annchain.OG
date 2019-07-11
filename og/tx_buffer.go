@@ -330,6 +330,7 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		goroutine.New(f)
 	}
 	b.wg.Wait()
+	logrus.Debug("wg  ", b.wg)
 	sort.Sort(validTxs)
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")

@@ -16,6 +16,8 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/tx_types"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -26,11 +28,12 @@ import (
 )
 
 type TxRequest struct {
-	AddrFrom   types.Address
-	AddrTo     types.Address
+	AddrFrom   common.Address
+	AddrTo     common.Address
 	PrivateKey crypto.PrivateKey
 	Value      *math.BigInt
 	Nonce      uint64
+	TokenId    int32
 }
 
 type Delegate struct {
@@ -53,7 +56,7 @@ func (d *Delegate) TooMoreTx() bool {
 }
 
 func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
-	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey)
+	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey, r.TokenId)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {
 		logrus.Warn("delegate failed to seal tx")
@@ -73,14 +76,14 @@ func (c *Delegate) GenerateArchive(data []byte) (tx types.Txi, err error) {
 }
 
 type SeqRequest struct {
-	Issuer     types.Address
+	Issuer     common.Address
 	PrivateKey crypto.PrivateKey
 	Nonce      uint64
 	Height     uint64
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
+func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *tx_types.Sequencer, err error) {
 	seq = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	logrus.WithField("seq", seq).Infof("sequencer generated")
 	//if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
@@ -95,7 +98,7 @@ func (c *Delegate) GenerateSequencer(r SeqRequest) (seq types.Txi, err error) {
 	return
 }
 
-func (c *Delegate) GetLatestAccountNonce(addr types.Address) (uint64, error) {
+func (c *Delegate) GetLatestAccountNonce(addr common.Address) (uint64, error) {
 	noncePool, errPool := c.TxPool.GetLatestNonce(addr)
 	if errPool == nil {
 		return noncePool, errPool
@@ -111,7 +114,7 @@ func (c *Delegate) GetLatestAccountNonce(addr types.Address) (uint64, error) {
 	return 0, fmt.Errorf("nonce for address not found")
 }
 
-func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
+func (c *Delegate) GetLatestDagSequencer() *tx_types.Sequencer {
 	latestSeq := c.Dag.LatestSequencer()
 	return latestSeq
 }

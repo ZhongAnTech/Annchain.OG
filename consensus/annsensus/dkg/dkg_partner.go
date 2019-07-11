@@ -15,7 +15,7 @@ package dkg
 
 import (
 	"errors"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
@@ -30,11 +30,11 @@ type DKGPartner struct {
 	MyPartSec             kyber.Scalar
 	CandidatePartSec      []kyber.Scalar
 	CandidatePublicKey    [][]byte
-	addressIndex          map[types.Address]int
-	SecretKeyContribution map[types.Address]kyber.Scalar
+	addressIndex          map[common.Address]int
+	SecretKeyContribution map[common.Address]kyber.Scalar
 	Suite                 *bn256.Suite
 	Dkger                 *dkg.DistKeyGenerator
-	Resps                 map[types.Address]*dkg.Response
+	Resps                 map[common.Address]*dkg.Response
 	dealsIndex            map[uint32]bool
 	Threshold             int
 	NbParticipants        int
@@ -47,9 +47,9 @@ type DKGPartner struct {
 func NewDKGPartner(s *bn256.Suite) *DKGPartner {
 	return &DKGPartner{
 		Suite:                 s,
-		addressIndex:          make(map[types.Address]int),
-		SecretKeyContribution: make(map[types.Address]kyber.Scalar),
-		Resps:                 make(map[types.Address]*dkg.Response),
+		addressIndex:          make(map[common.Address]int),
+		SecretKeyContribution: make(map[common.Address]kyber.Scalar),
+		Resps:                 make(map[common.Address]*dkg.Response),
 		dealsIndex:            make(map[uint32]bool),
 	}
 }

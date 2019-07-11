@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
@@ -31,7 +32,7 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*math.BigInt) {
+func DefaultGenesis(genesisPath string) (*tx_types.Sequencer, map[common.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
@@ -42,8 +43,8 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*ma
 	hash := seq.CalcTxHash()
 	seq.SetHash(hash)
 
-	addr := types.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
-	balance := map[types.Address]*math.BigInt{}
+	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
+	balance := map[common.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
 	accounts := GetGenesisAccounts(genesisPath)
 	//accounts := GetSampleAccounts(cryptoType)
@@ -56,16 +57,16 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[types.Address]*ma
 	h := sha256.New()
 	h.Write(buf.Bytes())
 	sum := h.Sum(nil)
-	hash.MustSetBytes(sum, types.PaddingNone)
+	hash.MustSetBytes(sum, common.PaddingNone)
 	seq.SetHash(hash)
 
 	return seq, balance
 }
 
 type Account struct {
-	address types.Address `json:"-"`
-	Address string        `json:"address"`
-	Balance uint64        `json:"balance"`
+	address common.Address `json:"-"`
+	Address string         `json:"address"`
+	Balance uint64         `json:"balance"`
 }
 
 type GenesisAccounts struct {
@@ -87,7 +88,7 @@ func GetGenesisAccounts(genesisPath string) *GenesisAccounts {
 		panic(err)
 	}
 	for i := 0; i < len(accounts.Accounts); i++ {
-		addr, err := types.StringToAddress(accounts.Accounts[i].Address)
+		addr, err := common.StringToAddress(accounts.Accounts[i].Address)
 		if err != nil {
 			panic(err)
 		}
@@ -122,8 +123,8 @@ func GetSampleAccounts() []*account.SampleAccount {
 	return accounts
 }
 
-func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
-	tx := types.Sequencer{
+func newUnsignedSequencer(height uint64, accountNonce uint64) *tx_types.Sequencer {
+	tx := tx_types.Sequencer{
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,

@@ -36,7 +36,7 @@ type Runtime struct {
 	Tracer    vm.Tracer
 }
 
-func DefaultLDB(from types.Address, coinBase types.Address) *ovm.LayerStateDB {
+func DefaultLDB(from common.Address, coinBase common.Address) *ovm.LayerStateDB {
 	mmdb := ovm.NewMemoryStateDB()
 	ldb := ovm.NewLayerDB(mmdb)
 	ldb.NewLayer()
@@ -58,7 +58,7 @@ func DefaultOVM(runtime *Runtime) *ovm.OVM {
 	return oovm
 }
 
-func DeployContract(filename string, from types.Address, coinBase types.Address, rt *Runtime, params []byte) (ret []byte, contractAddr types.Address, leftOverGas uint64, err error) {
+func DeployContract(filename string, from common.Address, coinBase common.Address, rt *Runtime, params []byte) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
 		From:       from,
 		Value:      math.NewBigInt(0),
@@ -90,7 +90,7 @@ func DeployContract(filename string, from types.Address, coinBase types.Address,
 	return
 }
 
-func CallContract(contractAddr types.Address, from types.Address, coinBase types.Address, rt *Runtime, value *math.BigInt, functionHash string, params []byte) (ret []byte, leftOverGas uint64, err error) {
+func CallContract(contractAddr common.Address, from common.Address, coinBase common.Address, rt *Runtime, value *math.BigInt, functionHash string, params []byte) (ret []byte, leftOverGas uint64, err error) {
 	txContext := &ovm.TxContext{
 		From:       from,
 		To:         contractAddr,
@@ -196,11 +196,11 @@ func EncodeParams(params []interface{}) []byte {
 			} else {
 				binary.BigEndian.PutUint32(bs, 0)
 			}
-		case types.Address:
-			bsv := obj.(types.Address).Bytes
+		case common.Address:
+			bsv := obj.(common.Address).Bytes
 			bs = bsv[:]
-		case types.Hash:
-			bsv := obj.(types.Hash).Bytes
+		case common.Hash:
+			bsv := obj.(common.Hash).Bytes
 			bs = bsv[:]
 		case string:
 			bs = make([]byte, 4)

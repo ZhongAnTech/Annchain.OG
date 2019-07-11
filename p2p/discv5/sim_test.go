@@ -374,7 +374,7 @@ func (st *simTransport) sendPong(remote *Node, pingHash []byte) {
 	})
 }
 
-func (st *simTransport) sendFindnodeHash(remote *Node, target types.Hash) {
+func (st *simTransport) sendFindnodeHash(remote *Node, target common.Hash) {
 	st.sendPacket(remote.ID, ingressPacket{
 		remoteID:   st.sender,
 		remoteAddr: st.senderAddr,
@@ -402,7 +402,7 @@ func (st *simTransport) sendTopicRegister(remote *Node, topics []Topic, idx int,
 	})
 }
 
-func (st *simTransport) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
+func (st *simTransport) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
 	rnodes := make([]RpcNode, len(nodes))
 	for i := range nodes {
 		rnodes[i] = nodeToRPC(nodes[i])
@@ -436,7 +436,7 @@ func (st *simTransport) sendNeighbours(remote *Node, nodes []*Node) {
 
 func (st *simTransport) nextHash() []byte {
 	v := atomic.AddUint64(&st.hashctr, 1)
-	var hash types.Hash
+	var hash common.Hash
 	binary.BigEndian.PutUint64(hash.Bytes[:], v)
 	return hash.Bytes[:]
 }

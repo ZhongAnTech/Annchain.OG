@@ -15,6 +15,7 @@ package syncer
 
 import (
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 )
 
 func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi) {
@@ -45,7 +46,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi) {
 	//notify channel will be  blocked if tps is high ,check first and add
 }
 
-func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string) {
+func (m *IncrementalSyncer) HandleNewTx(newTx *p2p_message.MessageNewTx, peerId string) {
 	tx := newTx.RawTx.Tx()
 	if tx == nil {
 		log.Debug("empty MessageNewTx")
@@ -56,7 +57,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *types.MessageNewTx, peerId string
 
 }
 
-func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId string) {
+func (m *IncrementalSyncer) HandleNewTxs(newTxs *p2p_message.MessageNewTxs, peerId string) {
 	if newTxs.RawTxs == nil || len(*newTxs.RawTxs) == 0 {
 		log.Debug("Empty MessageNewTx")
 		return
@@ -91,7 +92,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *types.MessageNewTxs, peerId str
 	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 }
 
-func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer, peerId string) {
+func (m *IncrementalSyncer) HandleNewSequencer(newSeq *p2p_message.MessageNewSequencer, peerId string) {
 	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
 		log.Debug("empty NewSequence")
@@ -101,7 +102,7 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *types.MessageNewSequencer
 	log.WithField("q", newSeq).Debug("incremental received NewSequence")
 }
 
-func (m *IncrementalSyncer) HandleCampaign(request *types.MessageCampaign, peerId string) {
+func (m *IncrementalSyncer) HandleCampaign(request *p2p_message.MessageCampaign, peerId string) {
 	cp := request.RawCampaign.Campaign()
 	if cp == nil {
 		log.Warn("got nil MessageCampaign")
@@ -112,7 +113,7 @@ func (m *IncrementalSyncer) HandleCampaign(request *types.MessageCampaign, peerI
 
 }
 
-func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, peerId string) {
+func (m *IncrementalSyncer) HandleTermChange(request *p2p_message.MessageTermChange, peerId string) {
 	cp := request.RawTermChange.TermChange()
 	if cp == nil {
 		log.Warn("got nil MessageCampaign")
@@ -123,7 +124,7 @@ func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, p
 
 }
 
-func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peerId string) {
+func (m *IncrementalSyncer) HandleArchive(request *p2p_message.MessageNewArchive, peerId string) {
 	ac := request.Archive
 	if ac == nil {
 		log.Warn("got nil MessageNewArchive")
@@ -134,7 +135,7 @@ func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peer
 
 }
 
-func (m *IncrementalSyncer) HandleActionTx(request *types.MessageNewActionTx, peerId string) {
+func (m *IncrementalSyncer) HandleActionTx(request *p2p_message.MessageNewActionTx, peerId string) {
 	ax := request.ActionTx
 	if ax == nil {
 		log.Warn("got nil MessageNewActionTx")
@@ -144,7 +145,7 @@ func (m *IncrementalSyncer) HandleActionTx(request *types.MessageNewActionTx, pe
 	log.WithField("q", request).Debug("incremental received MessageNewActionTx")
 }
 
-func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *types.MessageSyncResponse, sourceId string) {
+func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *p2p_message.MessageSyncResponse, sourceId string) {
 	m.bloomFilterStatus.UpdateResponse(syncResponse.RequestedId)
 	if syncResponse.RawTxs == nil || len(*syncResponse.RawTxs) == 0 {
 		log.Debug("empty MessageSyncResponse")

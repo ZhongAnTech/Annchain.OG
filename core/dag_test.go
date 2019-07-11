@@ -33,7 +33,7 @@ var (
 	testAddress02 = "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
 )
 
-func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
+func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequencer, func()) {
 	conf := core.DagConfig{}
 	db, remove := newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
@@ -87,7 +87,7 @@ func newTestDagTx(nonce uint64) *types.Tx {
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*types.Tx)
+	return tx.(*tx_types.Tx)
 }
 
 func TestDagInit(t *testing.T) {
@@ -161,26 +161,26 @@ func TestDagPush(t *testing.T) {
 
 	var err error
 
-	tx1 := newTestDagTx(1)
-	tx1.ParentsHash = types.Hashes{genesis.GetTxHash()}
-	tx2 := newTestDagTx(2)
-	tx2.ParentsHash = types.Hashes{genesis.GetTxHash()}
+	tx1 := newTestDagTx(0)
+	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	tx2 := newTestDagTx(1)
+	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
 	bd := &core.BatchDetail{TxList: core.NewTxList()}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
 	bd.Neg = make(map[int32]*math.BigInt)
 
-	batch := map[types.Address]*core.BatchDetail{}
-	batch[*tx1.From] = bd
+	batch := map[common.Address]*core.BatchDetail{}
+	batch[tx1.From] = bd
 
 	seq := newTestSeq(1)
-	seq.ParentsHash = types.Hashes{
+	seq.ParentsHash = common.Hashes{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
 	}
 
-	//hashes := &types.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
+	//hashes := &common.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
 
 	cb := &core.ConfirmBatch{}
 	cb.Seq = seq
@@ -206,7 +206,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("latest seq is not set")
 	}
 	// check txs' hashs
-	var hashsP *types.Hashes
+	var hashsP *common.Hashes
 	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Height)
 	hashs := *hashsP
 	if err != nil {

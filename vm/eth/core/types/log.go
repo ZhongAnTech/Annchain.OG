@@ -30,9 +30,9 @@ import (
 type Log struct {
 	// Consensus fields:
 	// address of the contract that generated the event
-	Address types.Address `json:"address" gencodec:"required"`
+	Address common.Address `json:"address" gencodec:"required"`
 	// list of topics provided by the contract.
-	Topics types.Hashes `json:"topics" gencodec:"required"`
+	Topics common.Hashes `json:"topics" gencodec:"required"`
 	// supplied by the contract, usually ABI-encoded
 	Data []byte `json:"data" gencodec:"required"`
 
@@ -41,11 +41,11 @@ type Log struct {
 	// block in which the transaction was included
 	BlockNumber uint64 `json:"blockNumber"`
 	// hash of the transaction
-	TxHash types.Hash `json:"transactionHash" gencodec:"required"`
+	TxHash common.Hash `json:"transactionHash" gencodec:"required"`
 	// index of the transaction in the block
 	TxIndex uint `json:"transactionIndex" gencodec:"required"`
 	// hash of the block in which the transaction was included
-	BlockHash types.Hash `json:"blockHash"`
+	BlockHash common.Hash `json:"blockHash"`
 	// index of the log in the block
 	Index uint `json:"logIndex" gencodec:"required"`
 
@@ -62,19 +62,19 @@ type logMarshaling struct {
 }
 
 type rlpLog struct {
-	Address types.Address
-	Topics  types.Hashes
+	Address common.Address
+	Topics  common.Hashes
 	Data    []byte
 }
 
 type rlpStorageLog struct {
-	Address     types.Address
-	Topics      types.Hashes
+	Address     common.Address
+	Topics      common.Hashes
 	Data        []byte
 	BlockNumber uint64
-	TxHash      types.Hash
+	TxHash      common.Hash
 	TxIndex     uint
-	BlockHash   types.Hash
+	BlockHash   common.Hash
 	Index       uint
 }
 

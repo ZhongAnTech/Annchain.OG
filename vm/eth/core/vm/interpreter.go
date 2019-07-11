@@ -18,10 +18,10 @@ package vm
 
 import (
 	"fmt"
+	common2 "github.com/annchain/OG/common"
 	"hash"
 	"sync/atomic"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
@@ -50,7 +50,7 @@ type EVMInterpreter struct {
 	gasTable   params.GasTable
 	intPool    *intPool
 	hasher     keccakState    // Keccak256 hasher instance shared across opcodes
-	hasherBuf  types.Hash     // Keccak256 hasher result array shared aross opcodes
+	hasherBuf  common2.Hash   // Keccak256 hasher result array shared aross opcodes
 	jumpTable  [256]operation // JumpTable contains the OVM instruction table.
 	readOnly   bool           // Whether to throw on stateful modifications
 	returnData []byte         // Last CALL's return data for subsequent reuse

@@ -17,11 +17,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/gcache"
 	"github.com/annchain/OG/consensus/annsensus/test"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"math/rand"
@@ -34,7 +37,7 @@ type TestAnnSensus struct {
 }
 
 type AId struct {
-	Address types.Address
+	Address common.Address
 	dkgId   int
 }
 
@@ -49,7 +52,7 @@ func (a *TestAnnSensus) Aid() AId {
 	}
 }
 
-func GetAnn(anns []TestAnnSensus, Addr types.Address) *TestAnnSensus {
+func GetAnn(anns []TestAnnSensus, Addr common.Address) *TestAnnSensus {
 	for i, ann := range anns {
 		if bytes.Equal(ann.MyAccount.Address.ToBytes(), Addr.ToBytes()) {
 			return &anns[i]
@@ -64,8 +67,8 @@ type p2pMsg struct {
 }
 
 type TestHub struct {
-	Id              types.Address
-	Peers           []types.Address
+	Id              common.Address
+	Peers           []common.Address
 	sendMsgToChan   sendMsgToChanFunc
 	sendMsgByPubKey sendMsgByPubKeyFunc
 	OutMsg          chan p2pMsg
@@ -74,10 +77,10 @@ type TestHub struct {
 	msgCache        gcache.Cache
 }
 
-type sendMsgToChanFunc func(addr types.Address, mdg test.TestMsg)
+type sendMsgToChanFunc func(addr common.Address, mdg test.TestMsg)
 type sendMsgByPubKeyFunc func(pub *crypto.PublicKey, msg test.TestMsg)
 
-func newtestHub(id types.Address, peers []types.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
+func newtestHub(id common.Address, peers []common.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
 	return &TestHub{
 		Id:              id,
 		Peers:           peers,
@@ -90,7 +93,7 @@ func newtestHub(id types.Address, peers []types.Address, sendMsgToChan sendMsgTo
 	}
 }
 
-func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Message) {
+func (t *TestHub) BroadcastMessage(messageType og.MessageType, message p2p_message.Message) {
 	var sent bool
 	for _, peer := range t.Peers {
 		tMsg := test.TestMsg{
@@ -108,11 +111,11 @@ func (t *TestHub) BroadcastMessage(messageType og.MessageType, message types.Mes
 	}
 }
 
-func (t *TestHub) SendToPeer(peerId string, messageType og.MessageType, msg types.Message) error {
+func (t *TestHub) SendToPeer(peerId string, messageType og.MessageType, msg p2p_message.Message) error {
 	return nil
 }
 
-func (t *TestHub) SendToAnynomous(messageType og.MessageType, message types.Message, anyNomousPubKey *crypto.PublicKey) {
+func (t *TestHub) SendToAnynomous(messageType og.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 	tMsg := test.TestMsg{
 		MessageType: messageType,
 		Message:     message,
@@ -138,7 +141,7 @@ func (a *TestAnnSensus) Stop() {
 	logrus.Info("stopped ann ", a.dkg.GetId())
 }
 
-func (as *TestAnnSensus) GenCampaign() *types.Campaign {
+func (as *TestAnnSensus) GenCampaign() *tx_types.Campaign {
 	// generate campaign.
 	//generate new dkg public key for every campaign
 	candidatePublicKey := as.dkg.GenerateDkg()
@@ -157,10 +160,10 @@ func (as *TestAnnSensus) GenCampaign() *types.Campaign {
 	return camp
 }
 
-func (as *TestAnnSensus) newCampaign(cp *types.Campaign) {
+func (as *TestAnnSensus) newCampaign(cp *tx_types.Campaign) {
 	cp.GetBase().PublicKey = as.MyAccount.PublicKey.Bytes
 	cp.GetBase().AccountNonce = uint64(as.dkg.GetId() * 10)
-	cp.Issuer = as.MyAccount.Address
+	cp.Issuer = &as.MyAccount.Address
 	s := crypto.NewSigner(as.cryptoType)
 	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
 	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 + 3)
@@ -178,13 +181,13 @@ func (t *TestHub) loop() {
 			switch pMsg.msgType {
 			case og.MessageTypeConsensusDkgDeal:
 				msg.MessageType = pMsg.msgType
-				msg.Message = &types.MessageConsensusDkgDeal{}
+				msg.Message = &p2p_message.MessageConsensusDkgDeal{}
 			case og.MessageTypeConsensusDkgDealResponse:
 				msg.MessageType = pMsg.msgType
-				msg.Message = &types.MessageConsensusDkgDealResponse{}
+				msg.Message = &p2p_message.MessageConsensusDkgDealResponse{}
 			case og.MessageTypeConsensusDkgSigSets:
 				msg.MessageType = pMsg.msgType
-				msg.Message = &types.MessageConsensusDkgSigSets{}
+				msg.Message = &p2p_message.MessageConsensusDkgSigSets{}
 			default:
 				elog.Warn(pMsg, " unkown meg type will panic ")
 				panic(pMsg)
@@ -197,7 +200,7 @@ func (t *TestHub) loop() {
 			hash := msg.GetHash()
 			switch msg.MessageType {
 			case og.MessageTypeConsensusDkgDeal:
-				request := msg.Message.(*types.MessageConsensusDkgDeal)
+				request := msg.Message.(*p2p_message.MessageConsensusDkgDeal)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
 					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
@@ -206,7 +209,7 @@ func (t *TestHub) loop() {
 				}
 				go t.As.HandleConsensusDkgDeal(request, fmt.Sprintf("%s", msg.From.TerminalString()))
 			case og.MessageTypeConsensusDkgDealResponse:
-				request := msg.Message.(*types.MessageConsensusDkgDealResponse)
+				request := msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
 					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
@@ -215,7 +218,7 @@ func (t *TestHub) loop() {
 				}
 				go t.As.HandleConsensusDkgDealResponse(request, fmt.Sprintf("%s", msg.From.TerminalString()))
 			case og.MessageTypeConsensusDkgSigSets:
-				request := msg.Message.(*types.MessageConsensusDkgSigSets)
+				request := msg.Message.(*p2p_message.MessageConsensusDkgSigSets)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
 					//	msg.MessageType).WithField("msg ", len(request.PkBls)).WithField("hash ",
@@ -239,7 +242,7 @@ func (t *TestHub) loop() {
 func run(n int) {
 	logInit()
 	var Anns []TestAnnSensus
-	sendMsgToChan := func(addr types.Address, msg test.TestMsg) {
+	sendMsgToChan := func(addr common.Address, msg test.TestMsg) {
 		data, err := msg.MarshalMsg(nil)
 		if err != nil {
 			panic(err)
@@ -247,9 +250,9 @@ func run(n int) {
 		pMsg := p2pMsg{data: data, msgType: msg.MessageType}
 		ann := GetAnn(Anns, addr)
 		ann.Hub.(*TestHub).OutMsg <- pMsg
-		var resp *types.MessageConsensusDkgDealResponse
+		var resp *p2p_message.MessageConsensusDkgDealResponse
 		if msg.MessageType == og.MessageTypeConsensusDkgDealResponse {
-			resp = msg.Message.(*types.MessageConsensusDkgDealResponse)
+			resp = msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 		}
 		logrus.WithField("me ", msg.From).WithField("to peer ", ann.Aid().String()).WithField("type ",
 			msg.MessageType).WithField("msg ", resp).WithField("len ", len(data)).Trace("send msg")
@@ -294,7 +297,7 @@ func run(n int) {
 		a := TestAnnSensus{
 			AnnSensus: as,
 		}
-		var peers []types.Address
+		var peers []common.Address
 		for k := 0; k < n; k++ {
 			if k == j {
 				continue
@@ -394,10 +397,10 @@ func (as *TestAnnSensus) loop() {
 			}()
 
 		case txs := <-as.ConsensusTXConfirmed:
-			var cps types.Campaigns
+			var cps tx_types.Campaigns
 			for _, tx := range txs {
 				if tx.GetType() == types.TxBaseTypeCampaign {
-					cp := tx.(*types.Campaign)
+					cp := tx.(*tx_types.Campaign)
 					cps = append(cps, cp)
 					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
 
@@ -414,7 +417,7 @@ func (as *TestAnnSensus) loop() {
 
 }
 
-func (as *TestAnnSensus) newTerm(cps types.Campaigns) {
+func (as *TestAnnSensus) newTerm(cps tx_types.Campaigns) {
 	log.Trace("new term change")
 	if len(cps) > 0 {
 		for _, c := range cps {

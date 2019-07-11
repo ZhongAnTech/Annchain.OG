@@ -14,15 +14,17 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/token"
+	"github.com/annchain/OG/types/tx_types"
 )
 
 var campaigningMinBalance = math.NewBigInt(1000)
 
 // genCamp calculate vrf and generate a campaign that contains this vrf info.
-func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
+func (as *AnnSensus) genCamp(dkgPub []byte) *tx_types.Campaign {
 	//once for test
 	//as.doCamp = false
 	// TODO
@@ -35,7 +37,7 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 		log.Debug("not enough balance to gen campaign")
 		return nil
 	}
-	cp := &types.Campaign{
+	cp := &tx_types.Campaign{
 		TxBase: base,
 		Issuer: &as.MyAccount.Address,
 	}
@@ -49,6 +51,6 @@ func (as *AnnSensus) genCamp(dkgPub []byte) *types.Campaign {
 	return cp
 }
 
-func (a *AnnSensus) HasCampaign(address types.Address) bool {
+func (a *AnnSensus) HasCampaign(address common.Address) bool {
 	return a.term.HasCampaign(address)
 }

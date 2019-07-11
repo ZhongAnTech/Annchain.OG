@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 
 	log "github.com/sirupsen/logrus"
@@ -207,18 +206,18 @@ func (h *hasher) store(n Node, db *Database, force bool) (Node, error) {
 	if db != nil {
 		// We are pooling the trie nodes into an intermediate memory cache
 		db.lock.Lock()
-		hash := types.BytesToHash(hash)
+		hash := common.BytesToHash(hash)
 		db.insert(hash, h.tmp)
 		// Track all direct parent->child node references
 		switch n := n.(type) {
 		case *ShortNode:
 			if child, ok := n.Val.(HashNode); ok {
-				db.reference(types.BytesToHash(child), hash)
+				db.reference(common.BytesToHash(child), hash)
 			}
 		case *FullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(HashNode); ok {
-					db.reference(types.BytesToHash(child), hash)
+					db.reference(common.BytesToHash(child), hash)
 				}
 			}
 		}

@@ -27,6 +27,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	mrand "math/rand"
@@ -38,7 +39,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/netutil"
 	"github.com/annchain/OG/p2p/onode"
-	"github.com/annchain/OG/types"
 )
 
 const (
@@ -48,7 +48,7 @@ const (
 
 	// We keep buckets for the upper 1/15 of distances because
 	// it's very unlikely we'll ever encounter a node that's closer.
-	hashBits          = len(types.Hash{}.Bytes) * 8
+	hashBits          = len(common.Hash{}.Bytes) * 8
 	nBuckets          = hashBits / 15       // Number of buckets
 	bucketMinDistance = hashBits - nBuckets // Log distance of closest bucket
 

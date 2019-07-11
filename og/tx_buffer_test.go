@@ -15,9 +15,11 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/bluele/gcache"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -26,26 +28,26 @@ import (
 )
 
 type dummyDag struct {
-	dmap map[types.Hash]types.Txi
+	dmap map[common.Hash]types.Txi
 }
 
 func (d *dummyDag) GetHeight() uint64 {
 	return 0
 }
 
-func (d *dummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
+func (d *dummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetSequencerByHash(hash types.Hash) *types.Sequencer {
+func (d *dummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetBalance(address types.Address) *math.BigInt {
+func (d *dummyDag) GetBalance(address common.Address) *math.BigInt {
 	return math.NewBigInt(0)
 }
 
-func (d *dummyDag) GetTxByNonce(addr types.Address, nonce uint64) types.Txi {
+func (d *dummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
@@ -53,25 +55,25 @@ func (d *dummyDag) GetTxisByNumber(id uint64) types.Txis {
 	return nil
 }
 
-func (d *dummyDag) LatestSequencer() *types.Sequencer {
+func (d *dummyDag) LatestSequencer() *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetSequencer(hash types.Hash, id uint64) *types.Sequencer {
+func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) Genesis() *types.Sequencer {
+func (d *dummyDag) Genesis() *tx_types.Sequencer {
 	return nil
 }
 
 func (d *dummyDag) init() {
-	d.dmap = make(map[types.Hash]types.Txi)
+	d.dmap = make(map[common.Hash]types.Txi)
 	tx := sampleTx("0x00", []string{})
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummyDag) GetTx(hash types.Hash) types.Txi {
+func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
@@ -79,10 +81,10 @@ func (d *dummyDag) GetTx(hash types.Hash) types.Txi {
 }
 
 type dummyTxPool struct {
-	dmap map[types.Hash]types.Txi
+	dmap map[common.Hash]types.Txi
 }
 
-func (d *dummyTxPool) GetLatestNonce(addr types.Address) (uint64, error) {
+func (d *dummyTxPool) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
@@ -95,12 +97,12 @@ func (d *dummyTxPool) GetMaxWeight() uint64 {
 }
 
 func (d *dummyTxPool) init() {
-	d.dmap = make(map[types.Hash]types.Txi)
+	d.dmap = make(map[common.Hash]types.Txi)
 	tx := sampleTx("0x01", []string{"0x00"})
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummyTxPool) Get(hash types.Hash) types.Txi {
+func (d *dummyTxPool) Get(hash common.Hash) types.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
@@ -112,12 +114,12 @@ func (d *dummyTxPool) AddRemoteTx(tx types.Txi, b bool) error {
 	return nil
 }
 
-func (d *dummyTxPool) IsLocalHash(hash types.Hash) bool {
+func (d *dummyTxPool) IsLocalHash(hash common.Hash) bool {
 	return false
 }
 
 type dummySyncer struct {
-	dmap                map[types.Hash]types.Txi
+	dmap                map[common.Hash]types.Txi
 	buffer              *TxBuffer
 	acquireTxDedupCache gcache.Cache
 }
@@ -132,11 +134,11 @@ func (d *dummySyncer) Know(tx types.Txi) {
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummySyncer) IsCachedHash(hash types.Hash) bool {
+func (d *dummySyncer) IsCachedHash(hash common.Hash) bool {
 	return false
 }
 
-func (d *dummySyncer) Enqueue(hash *types.Hash, childHash types.Hash, b bool) {
+func (d *dummySyncer) Enqueue(hash *common.Hash, childHash common.Hash, b bool) {
 	if _, err := d.acquireTxDedupCache.Get(*hash); err == nil {
 		logrus.WithField("hash", hash).Debugf("duplicate sync task")
 		return
@@ -180,7 +182,7 @@ func setup() *TxBuffer {
 		KnownCacheMaxSize:                10000,
 		KnownCacheExpirationSeconds:      30,
 	})
-	buffer.Syncer.(*dummySyncer).dmap = make(map[types.Hash]types.Txi)
+	buffer.Syncer.(*dummySyncer).dmap = make(map[common.Hash]types.Txi)
 	buffer.Syncer.(*dummySyncer).buffer = buffer
 	buffer.Syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
 		Expiration(time.Second * 10).Build()
@@ -189,15 +191,15 @@ func setup() *TxBuffer {
 	return buffer
 }
 
-func sampleTx(selfHash string, parentsHash []string) *types.Tx {
-	tx := &types.Tx{TxBase: types.TxBase{
-		ParentsHash: types.Hashes{},
+func sampleTx(selfHash string, parentsHash []string) *tx_types.Tx {
+	tx := &tx_types.Tx{TxBase: types.TxBase{
+		ParentsHash: common.Hashes{},
 		Type:        types.TxBaseTypeNormal,
-		Hash:        types.HexToHash(selfHash),
+		Hash:        common.HexToHash(selfHash),
 	},
 	}
 	for _, h := range parentsHash {
-		tx.ParentsHash = append(tx.ParentsHash, types.HexToHash(h))
+		tx.ParentsHash = append(tx.ParentsHash, common.HexToHash(h))
 	}
 	return tx
 }
@@ -207,8 +209,8 @@ func doTest(buffer *TxBuffer) {
 
 	if buffer.dependencyCache.Len(true) != 0 {
 		for k, v := range buffer.dependencyCache.GetALL(true) {
-			for k1 := range v.(map[types.Hash]types.Txi) {
-				logrus.Warnf("not fulfilled: %s <- %s", k.(types.Hash), k1)
+			for k1 := range v.(map[common.Hash]types.Txi) {
+				logrus.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
 			}
 		}
 	}
@@ -275,7 +277,7 @@ func TestBufferCache(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		time.Sleep(time.Second * 2)
 		// query request cache
-		_, err := m.acquireTxDedupCache.Get(types.HexToHash("0x09"))
+		_, err := m.acquireTxDedupCache.Get(common.HexToHash("0x09"))
 		if err != nil {
 			// not found
 			logrus.Debug("not in cache")

@@ -19,9 +19,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )
 
@@ -225,12 +226,12 @@ func (mt MessageType) Code() p2p.MsgCodeType {
 type p2PMessage struct {
 	messageType    MessageType
 	data           []byte
-	hash           *types.Hash //inner use to avoid resend a message to the same peer
-	sourceID       string      // the source that this message  coming from , outgoing if it is nil
-	sendingType    SendingType //sending type
-	version        int         // peer version.
-	message        types.Message
-	sourceHash     *types.Hash
+	hash           *common.Hash //inner use to avoid resend a message to the same peer
+	sourceID       string       // the source that this message  coming from , outgoing if it is nil
+	sendingType    SendingType  //sending type
+	version        int          // peer version.
+	message        p2p_message.Message
+	sourceHash     *common.Hash
 	marshalState   bool
 	disableEncrypt bool
 }
@@ -243,26 +244,26 @@ func (m *p2PMessage) calculateHash() {
 		msgLog.Error("nil data to calculate hash")
 	}
 	data := m.data
-	var hash *types.Hash
+	var hash *common.Hash
 	switch m.messageType {
 	case MessageTypeNewTx:
-		msg := m.message.(*types.MessageNewTx)
+		msg := m.message.(*p2p_message.MessageNewTx)
 		hash = msg.GetHash()
-		var msgHash types.Hash
+		var msgHash common.Hash
 		msgHash = *hash
 		m.hash = &msgHash
 		return
 	case MessageTypeControl:
-		msg := m.message.(*types.MessageControl)
-		var msgHash types.Hash
+		msg := m.message.(*p2p_message.MessageControl)
+		var msgHash common.Hash
 		msgHash = *msg.Hash
 		m.hash = &msgHash
 		return
 
 	case MessageTypeNewSequencer:
-		msg := m.message.(*types.MessageNewSequencer)
+		msg := m.message.(*p2p_message.MessageNewSequencer)
 		hash = msg.GetHash()
-		var msgHash types.Hash
+		var msgHash common.Hash
 		msgHash = *hash
 		m.hash = &msgHash
 		return
@@ -289,8 +290,8 @@ func (m *p2PMessage) calculateHash() {
 	h := sha256.New()
 	h.Write(data)
 	sum := h.Sum(nil)
-	m.hash = &types.Hash{}
-	m.hash.MustSetBytes(sum, types.PaddingNone)
+	m.hash = &common.Hash{}
+	m.hash.MustSetBytes(sum, common.PaddingNone)
 }
 
 type errCode int
@@ -329,8 +330,8 @@ var errorToString = map[int]string{
 type StatusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
-	CurrentBlock    types.Hash
-	GenesisBlock    types.Hash
+	CurrentBlock    common.Hash
+	GenesisBlock    common.Hash
 	CurrentId       uint64
 }
 
@@ -357,19 +358,19 @@ func MsgCountInit() {
 	}
 }
 
-func (p *p2PMessage) GetMarkHashes() types.Hashes {
+func (p *p2PMessage) GetMarkHashes() common.Hashes {
 	if p.message == nil {
 		panic("unmarshal first")
 	}
 	switch p.messageType {
 	case MessageTypeFetchByHashResponse:
-		msg := p.message.(*types.MessageSyncResponse)
+		msg := p.message.(*p2p_message.MessageSyncResponse)
 		return msg.Hashes()
 	case MessageTypeNewTxs:
-		msg := p.message.(*types.MessageNewTxs)
+		msg := p.message.(*p2p_message.MessageNewTxs)
 		return msg.Hashes()
 	case MessageTypeTxsResponse:
-		msg := p.message.(*types.MessageTxsResponse)
+		msg := p.message.(*p2p_message.MessageTxsResponse)
 		return msg.Hashes()
 	default:
 		return nil
@@ -503,15 +504,15 @@ func (p *p2PMessage) Unmarshal() error {
 	}
 	switch p.messageType {
 	case MessageTypePing:
-		p.message = &types.MessagePing{}
+		p.message = &p2p_message.MessagePing{}
 	case MessageTypePong:
-		p.message = &types.MessagePong{}
+		p.message = &p2p_message.MessagePong{}
 	case MessageTypeFetchByHashRequest:
-		p.message = &types.MessageSyncRequest{}
+		p.message = &p2p_message.MessageSyncRequest{}
 	case MessageTypeFetchByHashResponse:
-		p.message = &types.MessageSyncResponse{}
+		p.message = &p2p_message.MessageSyncResponse{}
 	case MessageTypeNewTx:
-		msg := &types.MessageNewTx{}
+		msg := &p2p_message.MessageNewTx{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
 			return err
@@ -523,7 +524,7 @@ func (p *p2PMessage) Unmarshal() error {
 		p.marshalState = true
 		return nil
 	case MessageTypeNewSequencer:
-		msg := &types.MessageNewSequencer{}
+		msg := &p2p_message.MessageNewSequencer{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
 			return err
@@ -535,28 +536,28 @@ func (p *p2PMessage) Unmarshal() error {
 		p.marshalState = true
 		return nil
 	case MessageTypeNewTxs:
-		p.message = &types.MessageNewTxs{}
+		p.message = &p2p_message.MessageNewTxs{}
 	case MessageTypeSequencerHeader:
-		p.message = &types.MessageSequencerHeader{}
+		p.message = &p2p_message.MessageSequencerHeader{}
 
 	case MessageTypeBodiesRequest:
-		p.message = &types.MessageBodiesRequest{}
+		p.message = &p2p_message.MessageBodiesRequest{}
 	case MessageTypeBodiesResponse:
-		p.message = &types.MessageBodiesResponse{}
+		p.message = &p2p_message.MessageBodiesResponse{}
 
 	case MessageTypeTxsRequest:
-		p.message = &types.MessageTxsRequest{}
+		p.message = &p2p_message.MessageTxsRequest{}
 	case MessageTypeTxsResponse:
-		p.message = &types.MessageTxsResponse{}
+		p.message = &p2p_message.MessageTxsResponse{}
 	case MessageTypeHeaderRequest:
-		p.message = &types.MessageHeaderRequest{}
+		p.message = &p2p_message.MessageHeaderRequest{}
 	case MessageTypeHeaderResponse:
-		p.message = &types.MessageHeaderResponse{}
+		p.message = &p2p_message.MessageHeaderResponse{}
 	case MessageTypeDuplicate:
-		var dup types.MessageDuplicate
+		var dup p2p_message.MessageDuplicate
 		p.message = &dup
 	case MessageTypeGetMsg:
-		msg := &types.MessageGetMsg{}
+		msg := &p2p_message.MessageGetMsg{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
 			return err
@@ -568,7 +569,7 @@ func (p *p2PMessage) Unmarshal() error {
 		p.marshalState = true
 		return nil
 	case MessageTypeControl:
-		msg := &types.MessageControl{}
+		msg := &p2p_message.MessageControl{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
 			return err
@@ -580,36 +581,36 @@ func (p *p2PMessage) Unmarshal() error {
 		p.marshalState = true
 		return nil
 	case MessageTypeCampaign:
-		p.message = &types.MessageCampaign{}
+		p.message = &p2p_message.MessageCampaign{}
 	case MessageTypeTermChange:
-		p.message = &types.MessageTermChange{}
+		p.message = &p2p_message.MessageTermChange{}
 	case MessageTypeConsensusDkgDeal:
-		p.message = &types.MessageConsensusDkgDeal{}
+		p.message = &p2p_message.MessageConsensusDkgDeal{}
 	case MessageTypeConsensusDkgDealResponse:
-		p.message = &types.MessageConsensusDkgDealResponse{}
+		p.message = &p2p_message.MessageConsensusDkgDealResponse{}
 	case MessageTypeConsensusDkgSigSets:
-		p.message = &types.MessageConsensusDkgSigSets{}
+		p.message = &p2p_message.MessageConsensusDkgSigSets{}
 	case MessageTypeConsensusDkgGenesisPublicKey:
-		p.message = &types.MessageConsensusDkgGenesisPublicKey{}
+		p.message = &p2p_message.MessageConsensusDkgGenesisPublicKey{}
 
 	case MessageTypeTermChangeResponse:
-		p.message = &types.MessageTermChangeResponse{}
+		p.message = &p2p_message.MessageTermChangeResponse{}
 	case MessageTypeTermChangeRequest:
-		p.message = &types.MessageTermChangeRequest{}
+		p.message = &p2p_message.MessageTermChangeRequest{}
 
 	case MessageTypeArchive:
-		p.message = &types.MessageNewArchive{}
+		p.message = &p2p_message.MessageNewArchive{}
 	case MessageTypeActionTX:
-		p.message = &types.MessageNewActionTx{}
+		p.message = &p2p_message.MessageNewActionTx{}
 
 	case MessageTypeProposal:
-		p.message = &types.MessageProposal{
-			Value: &types.SequencerProposal{},
+		p.message = &p2p_message.MessageProposal{
+			Value: &p2p_message.SequencerProposal{},
 		}
 	case MessageTypePreVote:
-		p.message = &types.MessagePreVote{}
+		p.message = &p2p_message.MessagePreVote{}
 	case MessageTypePreCommit:
-		p.message = &types.MessagePreCommit{}
+		p.message = &p2p_message.MessagePreCommit{}
 
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)
@@ -625,7 +626,7 @@ func (m *p2PMessage) sendDuplicateMsg() bool {
 }
 
 type msgKey struct {
-	data [types.HashLength + 2]byte
+	data [common.HashLength + 2]byte
 }
 
 func (m *p2PMessage) msgKey() msgKey {
@@ -633,20 +634,20 @@ func (m *p2PMessage) msgKey() msgKey {
 }
 
 func (k msgKey) GetType() (MessageType, error) {
-	if len(k.data) != types.HashLength+2 {
+	if len(k.data) != common.HashLength+2 {
 		return 0, errors.New("size err")
 	}
 	return MessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
 }
 
-func (k msgKey) GetHash() (types.Hash, error) {
-	if len(k.data) != types.HashLength+2 {
-		return types.Hash{}, errors.New("size err")
+func (k msgKey) GetHash() (common.Hash, error) {
+	if len(k.data) != common.HashLength+2 {
+		return common.Hash{}, errors.New("size err")
 	}
-	return types.BytesToHash(k.data[2:]), nil
+	return common.BytesToHash(k.data[2:]), nil
 }
 
-func newMsgKey(m MessageType, hash types.Hash) msgKey {
+func newMsgKey(m MessageType, hash common.Hash) msgKey {
 	var key msgKey
 	b := make([]byte, 2)
 	//use one key for tx and sequencer

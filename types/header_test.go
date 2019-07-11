@@ -24,7 +24,7 @@ func TestNewSequencerHead(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		s := Sequencer{
 			TxBase: TxBase{
-				Hash:   randomHash(),
+				Hash:   common.RandomHash(),
 				Height: uint64(i),
 			},
 		}

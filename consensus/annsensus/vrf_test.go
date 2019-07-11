@@ -15,7 +15,7 @@ package annsensus
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -23,7 +23,7 @@ import (
 func TestAnnSensus_VrfVerify(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		a := &AnnSensus{}
-		cp := &types.Campaign{}
+		cp := &tx_types.Campaign{}
 		a.Idag = &DummyDag{}
 		vrf := a.GenerateVrf()
 		fmt.Println(vrf, i)

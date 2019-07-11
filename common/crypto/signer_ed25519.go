@@ -16,8 +16,8 @@ package crypto
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/poc/extra25519"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"go.dedis.ch/kyber/v3/encrypt/ecies"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
@@ -47,7 +47,7 @@ func (s *SignerEd25519) PubKey(privKey PrivateKey) PublicKey {
 	return PublicKeyFromBytes(CryptoTypeEd25519, []byte(pubkey.(ed25519.PublicKey)))
 }
 
-func (s *SignerEd25519) AddressFromPubKeyBytes(pubKey []byte) types.Address {
+func (s *SignerEd25519) AddressFromPubKeyBytes(pubKey []byte) common.Address {
 	return s.Address(PublicKeyFromBytes(CryptoTypeEd25519, pubKey))
 }
 
@@ -76,14 +76,14 @@ func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey Private
 }
 
 // Address calculate the address from the pubkey
-func (s *SignerEd25519) Address(pubKey PublicKey) types.Address {
+func (s *SignerEd25519) Address(pubKey PublicKey) common.Address {
 	var w bytes.Buffer
 	w.Write([]byte{byte(pubKey.Type)})
 	w.Write(pubKey.Bytes)
 	hasher := ripemd160.New()
 	hasher.Write(w.Bytes())
 	result := hasher.Sum(nil)
-	return types.BytesToAddress(result)
+	return common.BytesToAddress(result)
 }
 
 func (s *SignerEd25519) Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error) {

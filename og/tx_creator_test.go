@@ -15,10 +15,13 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
@@ -44,8 +47,8 @@ func Init() *TxCreator {
 		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 100,
-		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash:       types.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxMinedHash:       common.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		GraphVerifier:      &AllOkVerifier{},
 	}
 	return &txc
@@ -54,7 +57,7 @@ func Init() *TxCreator {
 func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	tx := txc.TipGenerator.GetRandomTips(1)[0].(*types.Tx)
+	tx := txc.TipGenerator.GetRandomTips(1)[0].(*tx_types.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 	txSigned := txc.NewSignedTx(*tx.From, tx.To, tx.Value, tx.AccountNonce, priv)
@@ -64,7 +67,7 @@ func TestTxCreator(t *testing.T) {
 	txdata, _ := tx.MarshalMsg(nil)
 	rawtx := tx.RawTx()
 	rawTxData, _ := rawtx.MarshalMsg(nil)
-	msg := types.MessageNewTx{
+	msg := p2p_message.MessageNewTx{
 		RawTx: rawtx,
 	}
 	msgData, _ := msg.MarshalMsg(nil)
@@ -80,9 +83,9 @@ func TestSequencerCreator(t *testing.T) {
 	time1 := time.Now()
 
 	// for copy
-	randomSeq := types.RandomSequencer()
+	randomSeq := tx_types.RandomSequencer()
 
-	txSigned := txc.NewSignedSequencer(types.Address{}, randomSeq.Height, randomSeq.AccountNonce, priv)
+	txSigned := txc.NewSignedSequencer(common.Address{}, randomSeq.Height, randomSeq.AccountNonce, priv)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
@@ -90,14 +93,14 @@ func TestSequencerCreator(t *testing.T) {
 
 func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {
 
-	tx := &types.Tx{TxBase: types.TxBase{
-		ParentsHash: types.Hashes{},
+	tx := &tx_types.Tx{TxBase: types.TxBase{
+		ParentsHash: common.Hashes{},
 		Type:        types.TxBaseTypeNormal,
-		Hash:        types.HexToHash(selfHash),
+		Hash:        common.HexToHash(selfHash),
 	},
 	}
 	for _, h := range parentsHash {
-		tx.ParentsHash = append(tx.ParentsHash, types.HexToHash(h))
+		tx.ParentsHash = append(tx.ParentsHash, common.HexToHash(h))
 	}
 	return tx
 }
@@ -111,20 +114,20 @@ func TestBuildDag(t *testing.T) {
 		TipGenerator:       pool,
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 10,
-		MaxTxHash:          types.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash:       types.HexToHash("0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxMinedHash:       common.HexToHash("0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		GraphVerifier:      &AllOkVerifier{},
 	}
 
 	_, privateKey := crypto.Signer.RandomKeyPair()
 
 	txs := []types.Txi{
-		txc.NewSignedSequencer(types.Address{}, 0, 0, privateKey),
-		txc.NewSignedTx(types.HexToAddress("0x01"), types.HexToAddress("0x02"), math.NewBigInt(10), 0, privateKey),
-		txc.NewSignedSequencer(types.Address{}, 1, 1, privateKey),
-		txc.NewSignedTx(types.HexToAddress("0x02"), types.HexToAddress("0x03"), math.NewBigInt(9), 0, privateKey),
-		txc.NewSignedTx(types.HexToAddress("0x03"), types.HexToAddress("0x04"), math.NewBigInt(8), 0, privateKey),
-		txc.NewSignedSequencer(types.Address{}, 2, 2, privateKey),
+		txc.NewSignedSequencer(common.Address{}, 0, 0, privateKey),
+		txc.NewSignedTx(common.HexToAddress("0x01"), common.HexToAddress("0x02"), math.NewBigInt(10), 0, privateKey),
+		txc.NewSignedSequencer(common.Address{}, 1, 1, privateKey),
+		txc.NewSignedTx(common.HexToAddress("0x02"), common.HexToAddress("0x03"), math.NewBigInt(9), 0, privateKey),
+		txc.NewSignedTx(common.HexToAddress("0x03"), common.HexToAddress("0x04"), math.NewBigInt(8), 0, privateKey),
+		txc.NewSignedSequencer(common.Address{}, 2, 2, privateKey),
 	}
 
 	txs[0].GetBase().Hash = txs[0].CalcTxHash()
@@ -153,7 +156,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 
 func TestSlice(t *testing.T) {
 	var parents types.Txis
-	parentHashes := make(types.Hashes, len(parents))
+	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
 	}

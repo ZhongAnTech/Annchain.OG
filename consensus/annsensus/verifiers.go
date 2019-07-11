@@ -16,15 +16,15 @@ package annsensus
 import (
 	"bytes"
 	"github.com/annchain/OG/types/token"
+	"github.com/annchain/OG/types/tx_types"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 )
 
 // consensus related verification
-func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
+func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
 	if a.disable {
 		log.WithField("t ", t).Warn("annsensus disabled ")
 		return true
@@ -62,7 +62,7 @@ func (a *AnnSensus) VerifyTermChange(t *types.TermChange) bool {
 }
 
 // consensus related verification
-func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
+func (a *AnnSensus) VerifySequencer(seq *tx_types.Sequencer) bool {
 
 	if a.disable {
 		log.WithField("seq ", seq).Debug("annsensus disabled ")
@@ -110,7 +110,7 @@ func (a *AnnSensus) VerifySequencer(seq *types.Sequencer) bool {
 }
 
 // consensus related verification
-func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
+func (a *AnnSensus) VerifyCampaign(cp *tx_types.Campaign) bool {
 
 	if a.disable {
 		log.WithField("cp ", cp).Warn("annsensus disabled ")
@@ -148,7 +148,7 @@ func (a *AnnSensus) VerifyCampaign(cp *types.Campaign) bool {
 	return true
 }
 
-func (a *AnnSensus) VerifyRequestedTermChange(t *types.TermChange) bool {
+func (a *AnnSensus) VerifyRequestedTermChange(t *tx_types.TermChange) bool {
 
 	if a.disable {
 		log.WithField("t ", t).Warn("annsensus disabled ")

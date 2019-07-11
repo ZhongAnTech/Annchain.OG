@@ -13,7 +13,9 @@
 // limitations under the License.
 package crypto
 
-import "github.com/annchain/OG/types"
+import (
+	"github.com/annchain/OG/common"
+)
 
 type ISigner interface {
 	GetCryptoType() CryptoType
@@ -21,8 +23,8 @@ type ISigner interface {
 	PubKey(privKey PrivateKey) PublicKey
 	Verify(pubKey PublicKey, signature Signature, msg []byte) bool
 	RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey)
-	Address(pubKey PublicKey) types.Address
-	AddressFromPubKeyBytes(pubKey []byte) types.Address
+	Address(pubKey PublicKey) common.Address
+	AddressFromPubKeyBytes(pubKey []byte) common.Address
 	Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error)
 	Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
 	PublicKeyFromBytes(b []byte) PublicKey

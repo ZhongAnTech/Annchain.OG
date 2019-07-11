@@ -15,8 +15,9 @@ package syncer
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 	"sync"
 	"time"
 )
@@ -91,13 +92,13 @@ func (b *BloomFilterFireStatus) check() bool {
 
 //sendBloomFilter , avoid sending bloom filter frequently ,wait until got response of bloom filter or timeout
 
-func (m *IncrementalSyncer) sendBloomFilter(childhash types.Hash) {
+func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
 	if !m.bloomFilterStatus.Check() {
 		log.Debug("bloom filter request is pending")
 		return
 	}
-	req := types.MessageSyncRequest{
-		Filter:    types.NewDefaultBloomFilter(),
+	req := p2p_message.MessageSyncRequest{
+		Filter:    p2p_message.NewDefaultBloomFilter(),
 		RequestId: og.MsgCounter.Get(),
 	}
 	m.bloomFilterStatus.Set(req.RequestId)

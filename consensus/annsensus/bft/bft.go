@@ -16,6 +16,7 @@ package bft
 import (
 	"bytes"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
@@ -23,6 +24,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -40,7 +42,7 @@ type BFT struct {
 	JudgeNonceFunction func(account *account.SampleAccount) uint64
 	decisionChan       chan *commitDecision
 	//Verifiers     []og.Verifier
-	proposalCache map[types.Hash]*types.MessageProposal
+	proposalCache map[common.Hash]*p2p_message.MessageProposal
 
 	DKGTermId     int           `json:"dkg_term_id"`
 	SequencerTime time.Duration `json:"sequencer_time"`
@@ -73,7 +75,7 @@ type OGBFTPartner struct {
 
 type PeerInfo struct {
 	PublicKey      crypto.PublicKey `json:"-"`
-	Address        types.Address    `json:"address"`
+	Address        common.Address   `json:"address"`
 	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
 }
 
@@ -119,7 +121,7 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 		resetChan:     make(chan bool),
 		decisionChan:  make(chan *commitDecision),
 		creator:       txCreator,
-		proposalCache: make(map[types.Hash]*types.MessageProposal),
+		proposalCache: make(map[common.Hash]*p2p_message.MessageProposal),
 	}
 	bft.BFTPartner.SetProposalFunc(bft.ProduceProposal)
 	bft.BFTPartner.SetGetHeightFunc(dag.GetHeight)
@@ -194,7 +196,7 @@ func (b *BFT) commitDecision(state *HeightRoundState) error {
 	return nil
 }
 
-func (b *BFT) sendToPartners(msgType og.MessageType, request types.Message) {
+func (b *BFT) sendToPartners(msgType og.MessageType, request p2p_message.Message) {
 	inChan := b.BFTPartner.GetIncomingMessageChannel()
 	peers := b.BFTPartner.GetPeers()
 	for _, peer := range peers {
@@ -245,18 +247,18 @@ func (b *BFT) loop() {
 			log.Tracef("got msg %v", msg)
 			switch msg.Type {
 			case og.MessageTypeProposal:
-				proposal := msg.Payload.(*types.MessageProposal)
+				proposal := msg.Payload.(*p2p_message.MessageProposal)
 				proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
 				proposal.TermId = uint32(b.DKGTermId)
 				b.sendToPartners(msg.Type, proposal)
 			case og.MessageTypePreVote:
-				prevote := msg.Payload.(*types.MessagePreVote)
+				prevote := msg.Payload.(*p2p_message.MessagePreVote)
 				prevote.PublicKey = b.myAccount.PublicKey.Bytes
 				prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
 				prevote.TermId = uint32(b.DKGTermId)
 				b.sendToPartners(msg.Type, prevote)
 			case og.MessageTypePreCommit:
-				preCommit := msg.Payload.(*types.MessagePreCommit)
+				preCommit := msg.Payload.(*p2p_message.MessagePreCommit)
 				if preCommit.Idv != nil {
 					log.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
 					sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
@@ -278,7 +280,7 @@ func (b *BFT) loop() {
 			state := decision.state
 			//set nil first
 			var sigShares [][]byte
-			sequencerProposal := state.Decision.(*types.SequencerProposal)
+			sequencerProposal := state.Decision.(*p2p_message.SequencerProposal)
 			for i, commit := range state.PreCommits {
 				//blsSig := &types.BlsSigSet{
 				//	PublicKey:    commit.PublicKey,
@@ -317,7 +319,7 @@ func (b *BFT) loop() {
 	}
 }
 
-func (b *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
+func (b *BFT) ProduceProposal() (pro p2p_message.Proposal, validHeight uint64) {
 	me := b.myAccount
 	nonce := b.JudgeNonceFunction(me)
 	logrus.WithField(" nonce ", nonce).Debug("gen seq")
@@ -331,13 +333,13 @@ func (b *BFT) ProduceProposal() (pro types.Proposal, validHeight uint64) {
 		logrus.Warn("gen sequencer failed")
 		panic("gen sequencer failed")
 	}
-	proposal := types.SequencerProposal{
+	proposal := p2p_message.SequencerProposal{
 		Sequencer: *seq,
 	}
 	return &proposal, seq.Height
 }
 
-func (b *BFT) VerifyProposal(proposal *types.MessageProposal, pubkey crypto.PublicKey) bool {
+func (b *BFT) VerifyProposal(proposal *p2p_message.MessageProposal, pubkey crypto.PublicKey) bool {
 	h := proposal.BasicMessage.HeightRound
 	id := b.BFTPartner.Proposer(h)
 	if uint16(id) != proposal.SourceId {
@@ -354,7 +356,7 @@ func (b *BFT) VerifyProposal(proposal *types.MessageProposal, pubkey crypto.Publ
 		return false
 	}
 	//will verified in buffer
-	//msg := proposal.Value.(*types.SequencerProposal)
+	//msg := proposal.Value.(*tx_types.SequencerProposal)
 	//
 	//for _, verifier := range b.Verifiers {
 	//	if !verifier.Verify(&msg.Sequencer) {
@@ -380,18 +382,18 @@ func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) boo
 
 }
 
-func (b *BFT) GetProposalCache(hash types.Hash) *types.MessageProposal {
+func (b *BFT) GetProposalCache(hash common.Hash) *p2p_message.MessageProposal {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.proposalCache[hash]
 }
 
-func (b *BFT) DeleteProposalCache(hash types.Hash) {
+func (b *BFT) DeleteProposalCache(hash common.Hash) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	delete(b.proposalCache, hash)
 }
-func (b *BFT) CacheProposal(hash types.Hash, proposal *types.MessageProposal) {
+func (b *BFT) CacheProposal(hash common.Hash, proposal *p2p_message.MessageProposal) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	b.proposalCache[hash] = proposal
@@ -414,7 +416,7 @@ type BFTInfo struct {
 	Partners      []PeerInfo    `json:"partners"`
 }
 
-func (b *BFT) HandlePreCommit(request *types.MessagePreCommit) {
+func (b *BFT) HandlePreCommit(request *p2p_message.MessagePreCommit) {
 	m := Message{
 		Type:    og.MessageTypePreCommit,
 		Payload: request,
@@ -422,7 +424,7 @@ func (b *BFT) HandlePreCommit(request *types.MessagePreCommit) {
 	b.BFTPartner.GetIncomingMessageChannel() <- m
 }
 
-func (b *BFT) HandlePreVote(request *types.MessagePreVote) {
+func (b *BFT) HandlePreVote(request *p2p_message.MessagePreVote) {
 	m := Message{
 		Type:    og.MessageTypePreVote,
 		Payload: request,
@@ -430,7 +432,7 @@ func (b *BFT) HandlePreVote(request *types.MessagePreVote) {
 	b.BFTPartner.GetIncomingMessageChannel() <- m
 }
 
-func (b *BFT) HandleProposal(hash types.Hash) {
+func (b *BFT) HandleProposal(hash common.Hash) {
 	request := b.GetProposalCache(hash)
 	if request != nil {
 		b.DeleteProposalCache(hash)

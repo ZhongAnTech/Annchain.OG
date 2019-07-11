@@ -11,9 +11,9 @@ func TestLayers(t *testing.T) {
 	base := NewMemoryStateDB()
 	ldb := NewLayerDB(base)
 
-	addr1 := types.HexToAddress("0x01")
-	addr2 := types.HexToAddress("0x02")
-	addr3 := types.HexToAddress("0x03")
+	addr1 := common.HexToAddress("0x01")
+	addr2 := common.HexToAddress("0x02")
+	addr3 := common.HexToAddress("0x03")
 
 	ldb.CreateAccount(addr1)
 	ldb.CreateAccount(addr2)

@@ -17,8 +17,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/mod"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
@@ -41,7 +42,7 @@ type DkgConfig struct {
 	PrivPolyData      hexutil.Bytes `json:"priv_poly_data"`
 	ShareData         hexutil.Bytes `json:"share_data"`
 	PartnerId         uint32        `json:"partner_id"`
-	SigSets           map[types.Address]*types.SigSet
+	SigSets           map[common.Address]*tx_types.SigSet
 }
 
 func (c DkgConfig) String() string {

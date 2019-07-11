@@ -17,24 +17,24 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"math/big"
 )
 
 // TxContext represents all information that evm needs to know about the tx current processing.
 type TxContext struct {
-	From  types.Address
-	To    types.Address
+	From  common.Address
+	To    common.Address
 	Value *math.BigInt
 	Data  []byte
 
 	// Temporarily keep using gas as resource billing
 	GasLimit   uint64
 	GasPrice   *math.BigInt
-	Coinbase   types.Address // Provides information for COINBASE
-	SequenceID uint64        // Provides information for SequenceID
+	Coinbase   common.Address // Provides information for COINBASE
+	SequenceID uint64         // Provides information for SequenceID
 	//Time        *math.BigInt      // Provides information for TIME
 	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
 }
@@ -48,7 +48,7 @@ type DefaultChainContext struct {
 }
 
 // NewOVMContext creates a new context for use in the OVM.
-func NewOVMContext(chainContext ChainContext, coinBase *types.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
+func NewOVMContext(chainContext ChainContext, coinBase *common.Address, stateDB vmtypes.StateDB) *vmtypes.Context {
 	return &vmtypes.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
@@ -58,12 +58,12 @@ func NewOVMContext(chainContext ChainContext, coinBase *types.Address, stateDB v
 
 // CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
-func CanTransfer(db vmtypes.StateDB, addr types.Address, amount *big.Int) bool {
+func CanTransfer(db vmtypes.StateDB, addr common.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Value.Cmp(amount) >= 0
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db vmtypes.StateDB, sender, recipient types.Address, amount *big.Int) {
+func Transfer(db vmtypes.StateDB, sender, recipient common.Address, amount *big.Int) {
 	a := math.NewBigIntFromBigInt(amount)
 	db.SubBalance(sender, a)
 	db.AddBalance(recipient, a)

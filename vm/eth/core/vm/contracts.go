@@ -19,11 +19,11 @@ package vm
 import (
 	"crypto/sha256"
 	"errors"
+	common2 "github.com/annchain/OG/common"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/crypto/bn256"
-	"github.com/annchain/OG/types"
 	vmcommon "github.com/annchain/OG/vm/common"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
@@ -61,15 +61,15 @@ type PrecompiledContract interface {
 
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[types.Address]PrecompiledContract{
-	types.BytesToAddress([]byte{1}): &ecrecover{},
-	types.BytesToAddress([]byte{2}): &sha256hash{},
-	types.BytesToAddress([]byte{3}): &ripemd160hash{},
-	types.BytesToAddress([]byte{4}): &dataCopy{},
-	types.BytesToAddress([]byte{5}): &bigModExp{},
-	types.BytesToAddress([]byte{6}): &bn256Add{},
-	types.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	types.BytesToAddress([]byte{8}): &bn256Pairing{},
+var PrecompiledContractsByzantium = map[common2.Address]PrecompiledContract{
+	common2.BytesToAddress([]byte{1}): &ecrecover{},
+	common2.BytesToAddress([]byte{2}): &sha256hash{},
+	common2.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common2.BytesToAddress([]byte{4}): &dataCopy{},
+	common2.BytesToAddress([]byte{5}): &bigModExp{},
+	common2.BytesToAddress([]byte{6}): &bn256Add{},
+	common2.BytesToAddress([]byte{7}): &bn256ScalarMul{},
+	common2.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

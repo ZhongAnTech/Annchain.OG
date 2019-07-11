@@ -107,7 +107,7 @@ func TestBucket_bumpNoDuplicates(t *testing.T) {
 			n := rand.Intn(bucketSize-1) + 1
 			nodes := make([]*Node, n)
 			for i := range nodes {
-				nodes[i] = nodeAtDistance(types.Hash{}, 200)
+				nodes[i] = nodeAtDistance(common.Hash{}, 200)
 			}
 			args[0] = reflect.ValueOf(nodes)
 			// generate random bump positions.
@@ -152,7 +152,7 @@ func fillBucket(tab *Table, ld int) (last *Node) {
 
 // nodeAtDistance creates a node for which logdist(base, n.sha) == ld.
 // The node's ID does not correspond to n.sha.
-func nodeAtDistance(base types.Hash, ld int) (n *Node) {
+func nodeAtDistance(base common.Hash, ld int) (n *Node) {
 	n = new(Node)
 	n.sha = hashAtDistance(base, ld)
 	copy(n.ID[:], n.sha.Bytes[:]) // ensure the node still has a unique ID
@@ -267,7 +267,7 @@ func TestTable_ReadRandomNodesGetAll(t *testing.T) {
 
 type closeTest struct {
 	Self   NodeID
-	Target types.Hash
+	Target common.Hash
 	All    []*Node
 	N      int
 }
@@ -275,7 +275,7 @@ type closeTest struct {
 func (*closeTest) Generate(rand *rand.Rand, size int) reflect.Value {
 	t := &closeTest{
 		Self:   gen(NodeID{}, rand).(NodeID),
-		Target: gen(types.Hash{}, rand).(types.Hash),
+		Target: gen(common.Hash{}, rand).(common.Hash),
 		N:      rand.Intn(bucketSize),
 	}
 	for _, id := range gen([]NodeID{}, rand).([]NodeID) {
@@ -298,8 +298,8 @@ func hasDuplicates(slice []*Node) bool {
 	return false
 }
 
-func sortedByDistanceTo(distbase types.Hash, slice []*Node) bool {
-	var last types.Hash
+func sortedByDistanceTo(distbase common.Hash, slice []*Node) bool {
+	var last common.Hash
 	for i, e := range slice {
 		if i > 0 && distcmp(distbase, e.sha, last) < 0 {
 			return false

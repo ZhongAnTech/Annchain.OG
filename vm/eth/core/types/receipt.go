@@ -53,9 +53,9 @@ type Receipt struct {
 	Logs              []*Log `json:"logs"              gencodec:"required"`
 
 	// Implementation fields (don't reorder!)
-	TxHash          types.Hash    `json:"transactionHash" gencodec:"required"`
-	ContractAddress types.Address `json:"contractAddress"`
-	GasUsed         uint64        `json:"gasUsed" gencodec:"required"`
+	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
+	ContractAddress common.Address `json:"contractAddress"`
+	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
@@ -77,8 +77,8 @@ type receiptStorageRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
 	Bloom             Bloom
-	TxHash            types.Hash
-	ContractAddress   types.Address
+	TxHash            common.Hash
+	ContractAddress   common.Address
 	Logs              []*LogForStorage
 	GasUsed           uint64
 }
@@ -120,7 +120,7 @@ func (r *Receipt) setStatus(postStateOrStatus []byte) error {
 		r.Status = ReceiptStatusSuccessful
 	case bytes.Equal(postStateOrStatus, receiptStatusFailedRLP):
 		r.Status = ReceiptStatusFailed
-	case len(postStateOrStatus) == len(types.Hash{}.Bytes):
+	case len(postStateOrStatus) == len(common.Hash{}.Bytes):
 		r.PostState = postStateOrStatus
 	default:
 		return fmt.Errorf("invalid receipt status %x", postStateOrStatus)
@@ -145,7 +145,7 @@ func (r *Receipt) Size() common.StorageSize {
 
 	size += common.StorageSize(len(r.Logs)) * common.StorageSize(unsafe.Sizeof(Log{}))
 	for _, log := range r.Logs {
-		size += common.StorageSize(len(log.Topics)*types.HashLength + len(log.Data))
+		size += common.StorageSize(len(log.Topics)*common.HashLength + len(log.Data))
 	}
 	return size
 }

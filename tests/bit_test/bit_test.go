@@ -8,7 +8,7 @@ import (
 
 func TestBits(t *testing.T) {
 
-	b := types.RandomHash().ToBytes()
+	b := common.RandomHash().ToBytes()
 	k := 4
 
 	//for j=:0;j<100;j++ {

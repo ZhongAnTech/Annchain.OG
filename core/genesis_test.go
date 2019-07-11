@@ -14,12 +14,12 @@
 package core
 
 import (
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
 func TestName(t *testing.T) {
-	a := types.HexToHash("0x00")
+	a := common.HexToHash("0x00")
 	logrus.Info(a)
 }

@@ -77,14 +77,16 @@ func NewStateDB(conf StateDBConfig, db Database, root common.Hash) (*StateDB, er
 		return nil, err
 	}
 	sd := &StateDB{
-		conf:     conf,
-		db:       db,
-		trie:     tr,
-		states:   make(map[common.Address]*StateObject),
-		dirtyset: make(map[common.Address]struct{}),
-		journal:  newJournal(),
-		close:    make(chan struct{}),
-		root:     root,
+		conf:        conf,
+		db:          db,
+		trie:        tr,
+		states:      make(map[common.Address]*StateObject),
+		dirtyset:    make(map[common.Address]struct{}),
+		journal:     newJournal(),
+		snapshotID:  0,
+		snapshotSet: make([]shot, 0),
+		close:       make(chan struct{}),
+		root:        root,
 	}
 
 	return sd, nil
@@ -525,6 +527,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
+		log.Tracef("commit state, addr: %s, state: %s", addr.Hex(), state.String())
 		// commit state's code
 		if state.code != nil && state.dirtycode {
 			sd.db.TrieDB().Insert(state.GetCodeHash(), state.code)
@@ -536,7 +539,6 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
-		log.Tracef("Panic debug, statdb commit, addr: %x, data: %x", addr.ToBytes(), data)
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}
@@ -566,7 +568,6 @@ func (sd *StateDB) commit() (common.Hash, error) {
 	log.WithField("rootHash", rootHash).Trace("state root set to")
 	sd.root = rootHash
 
-	sd.clearJournalAndRefund()
 	return rootHash, err
 }
 
@@ -593,13 +594,11 @@ func (sd *StateDB) Snapshot() int {
 	id := sd.snapshotID
 	sd.snapshotID++
 	sd.snapshotSet = append(sd.snapshotSet, shot{shotid: id, journalIndex: sd.journal.length()})
+	log.Tracef("snapshot id: %d", id)
 	return id
 }
 
 func (sd *StateDB) RevertToSnapshot(snapshotid int) {
-	// TODO
-	// Ethereum uses sort.Search to get the valid snapshot,
-	// consider any necessary for this.
 	index := 0
 	s := shot{shotid: -1}
 	for i, shotInMem := range sd.snapshotSet {

@@ -22,8 +22,6 @@ import (
 
 	"github.com/annchain/OG/common"
 	"golang.org/x/crypto/sha3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {
@@ -104,7 +102,7 @@ func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 		return HashNode{}, n, err
 	}
 
-	log.Tracef("Panic debug, hashed the node: %s", hashed.String())
+	//log.Tracef("Panic debug, hashed the node: %s", hashed.String())
 
 	// Cache the hash of the node for later reuse and remove
 	// the dirty flag in commit mode. It's fine to assign these values directly

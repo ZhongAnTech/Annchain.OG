@@ -246,9 +246,9 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	if !b.TestNoVerify {
 		for _, verifier := range b.verifiers {
-			if verifier.Independent() {
-				continue
-			}
+			//if verifier.Independent() {
+			//	continue
+			//}
 			if !verifier.Verify(tx) {
 				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 				return
@@ -328,21 +328,25 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		if b.IsKnownHash(txs[i].GetTxHash()) {
 			continue
 		}
-		f := func() {
-			tx:=txs[i]
-			ok := b.verify(tx)
-			if ok {
-				b.affmu.Lock()
-				b.knownCache.Set(tx.GetTxHash(), tx)
-				validTxs = append(validTxs,tx)
-				b.affmu.Unlock()
-			}
-			b.wg.Done()
-		}
-		b.wg.Add(1)
-		goroutine.New(f)
+
+		b.knownCache.Set(txs[i].GetTxHash(), txs[i])
+		validTxs = append(validTxs,txs[i])
+
+		//f := func() {
+		//	tx:=txs[i]
+		//	ok := b.verify(tx)
+		//	if ok {
+		//		b.affmu.Lock()
+		//		b.knownCache.Set(tx.GetTxHash(), tx)
+		//		validTxs = append(validTxs,tx)
+		//		b.affmu.Unlock()
+		//	}
+		//	b.wg.Done()
+		//}
+		//b.wg.Add(1)
+		//goroutine.New(f)
 	}
-	b.wg.Wait()
+	//b.wg.Wait()
 	sort.Sort(validTxs)
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")

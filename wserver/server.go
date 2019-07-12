@@ -270,6 +270,6 @@ func (s *Server) publishNewTxs(data *BlockDbUIData) {
 		logrus.WithError(err).Error("Failed to marshal ws message")
 		return
 	}
-	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
+	logrus.WithField("data ",string(bs)).WithField("len ", len(bs)).WithField("nodeCount", len(data.Nodes)).Trace("push to ws")
 	s.Push(messageTypeNewTx, string(bs))
 }

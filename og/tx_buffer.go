@@ -14,6 +14,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
@@ -299,7 +300,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 }
 
-func (b*TxBuffer)verify(tx types.Txi) bool {
+func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis)  {
 	if !b.TestNoVerify {
 		for _, verifier := range b.verifiers {
 			if !verifier.Independent() {
@@ -307,11 +308,15 @@ func (b*TxBuffer)verify(tx types.Txi) bool {
 			}
 			if !verifier.Verify(tx) {
 				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-				return false
+				return
 			}
 		}
 	}
-	return true
+		b.affmu.Lock()
+		b.knownCache.Set(tx.GetTxHash(), tx)
+		*validTxs = append(*validTxs,tx)
+		b.affmu.Unlock()
+	b.wg.Done()
 }
 
 // in parallel
@@ -329,25 +334,22 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 			continue
 		}
 
-		b.knownCache.Set(txs[i].GetTxHash(), txs[i])
-		validTxs = append(validTxs,txs[i])
+		//b.knownCache.Set(txs[i].GetTxHash(), txs[i])
+		//validTxs = append(validTxs,txs[i])
+		tx:=txs[i]
+		//logrus.Debug("i ", i, tx)
+		f := func() {
+			//logrus.Debug(tx)
+			b.verify(tx,&validTxs)
+		}
+		b.wg.Add(1)
+		goroutine.New(f)
+		fmt.Println()
 
-		//f := func() {
-		//	tx:=txs[i]
-		//	ok := b.verify(tx)
-		//	if ok {
-		//		b.affmu.Lock()
-		//		b.knownCache.Set(tx.GetTxHash(), tx)
-		//		validTxs = append(validTxs,tx)
-		//		b.affmu.Unlock()
-		//	}
-		//	b.wg.Done()
-		//}
-		//b.wg.Add(1)
-		//goroutine.New(f)
 	}
-	//b.wg.Wait()
+	b.wg.Wait()
 	sort.Sort(validTxs)
+	//logrus.Debug(validTxs,"hahah")
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 		if b.buildDependencies(tx) {

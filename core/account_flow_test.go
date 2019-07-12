@@ -14,21 +14,22 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/types/tx_types"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 )
 
-func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
+func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk)
+	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk,0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)
@@ -128,8 +129,8 @@ func TestAccountFlow(t *testing.T) {
 
 	var err error
 
-	balancevalue := int64(100000)
-	originBalance := math.NewBigInt(balancevalue)
+	//balancevalue := int64(100000)
+	originBalance := state.NewBalanceSet()
 	af := core.NewAccountFlow(originBalance)
 
 	tx0value := int64(1000)
@@ -175,13 +176,13 @@ func TestAccountFlow(t *testing.T) {
 	}
 
 	// test remove
-	spent := af.BalanceState().Spent()
+	spent := af.BalanceState(0).Spent()
 
 	err = af.Remove(tx0.GetNonce())
 	if err != nil {
 		t.Fatalf("confirm tx0 err: %v", err)
 	}
-	spent = af.BalanceState().Spent()
+	spent = af.BalanceState(0).Spent()
 	if spent.Value.Cmp(math.NewBigInt(tx1value+tx2value).Value) != 0 {
 		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value+tx2value, spent.GetInt64())
 	}
@@ -190,7 +191,7 @@ func TestAccountFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("confirm tx1 err: %v", err)
 	}
-	spent = af.BalanceState().Spent()
+	spent = af.BalanceState(0).Spent()
 	if spent.Value.Cmp(math.NewBigInt(tx2value).Value) != 0 {
 		t.Fatalf("spent not correct after confirm tx1, expect: %d, get %d", tx2value, spent.GetInt64())
 	}
@@ -199,7 +200,7 @@ func TestAccountFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("confirm tx2 err: %v", err)
 	}
-	spent = af.BalanceState().Spent()
+	spent = af.BalanceState(0).Spent()
 	if spent.Value.Cmp(math.NewBigInt(0).Value) != 0 {
 		t.Fatalf("spent not correct after confirm tx2, expect: %d, get %d", 0, spent.GetInt64())
 	}

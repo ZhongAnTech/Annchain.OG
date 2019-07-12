@@ -15,6 +15,8 @@ package core_test
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/tx_types"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -61,12 +63,12 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 	}
 }
 
-func newTestUnsealTx(nonce uint64) *types.Tx {
+func newTestUnsealTx(nonce uint64) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk)
+	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk,0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)

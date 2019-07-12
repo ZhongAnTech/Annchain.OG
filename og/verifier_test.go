@@ -171,7 +171,6 @@ func TestA6(t *testing.T) {
 }
 
 func TestConsensusVerifier_Verify(t *testing.T) {
-	types.Signer = crypto.Signer
 	logrus.SetLevel(logrus.TraceLevel)
 	tx := tx_types.RandomTx()
 	//fmt.Println(tx)

@@ -246,9 +246,9 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	if !b.TestNoVerify {
 		for _, verifier := range b.verifiers {
-			//if verifier.Independent() {
-			//	continue
-			//}
+			if verifier.Independent() {
+				continue
+			}
 			if !verifier.Verify(tx) {
 				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 				return

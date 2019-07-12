@@ -228,6 +228,7 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 		if _, isdirty := pd.dirtyset[addr]; !isdirty {
 			continue
 		}
+		log.Tracef("commit preload state, addr: %s, state: %s", addr.Hex(), state.String())
 		// commit state's code
 		if state.code != nil && state.dirtycode {
 			pd.db.TrieDB().Insert(state.GetCodeHash(), state.code)
@@ -239,7 +240,6 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
-		log.Tracef("Panic debug, statdb commit, addr: %x, data: %x", addr.ToBytes(), data)
 		if err := pd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}

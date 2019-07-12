@@ -15,6 +15,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
@@ -235,7 +236,7 @@ func (s *StateObject) updateTrie(db Database) {
 			delete(s.committedStorage, key)
 			continue
 		}
-		log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
+		//log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
 		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
 		if err != nil {
 			s.setError(err)
@@ -271,6 +272,23 @@ func (s *StateObject) Uncache() {
 /*
 	Encode part
 */
+
+func (s *StateObject) Map() map[string]interface{} {
+	stobjMap := map[string]interface{}{}
+
+	stobjMap["code"] = common.Bytes2Hex(s.code)
+	stobjMap["committed"] = s.committedStorage
+	stobjMap["dirty"] = s.dirtyStorage
+	stobjMap["data"] = s.data
+
+	return stobjMap
+}
+
+func (s *StateObject) String() string {
+	stobjMap := s.Map()
+	b, _ := json.Marshal(stobjMap)
+	return string(b)
+}
 
 func (s *StateObject) Encode() ([]byte, error) {
 	return s.data.MarshalMsg(nil)

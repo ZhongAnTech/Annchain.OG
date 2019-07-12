@@ -35,3 +35,5 @@ deployment/deployment
 tests/testDbTPs/testDb.exe
 tests/testDbTPs/datadir
 tests/testDbTPs/genesis.json
+deployment/private/
+deployment/solo/

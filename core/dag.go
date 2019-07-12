@@ -711,6 +711,8 @@ func (dag *Dag) RollBack() {
 }
 
 func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
+	log.Tracef("prePush the batch: %s", batch.String())
+
 	sort.Sort(batch.Txs)
 
 	dag.preloadDB.Reset()
@@ -724,6 +726,8 @@ func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
 }
 
 func (dag *Dag) push(batch *ConfirmBatch) error {
+	log.Tracef("push the batch: %s", batch.String())
+
 	if dag.latestSequencer.Height+1 != batch.Seq.Height {
 		return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
 	}
@@ -858,11 +862,19 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		log.Errorf("can't Commit statedb, err: %v", errdb)
 		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
+	if root.Cmp(batch.Seq.StateRoot) != 0 {
+		log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
+			"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+		dag.statedb.RevertToSnapshot(sId)
+		return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	}
+
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()
 	err = triedb.Commit(root, false)
 	if err != nil {
 		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		dag.statedb.RevertToSnapshot(sId)
 		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
@@ -1042,22 +1054,12 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-
 	if tx.GetType() == types.TxBaseAction {
-		//ipo
-		//actionTx := tx.(*tx_types.ActionTx)
-		//if actionTx.Action == tx_types.ActionTxActionIPO {
-		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-		//	dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		//} else if actionTx.Action == tx_types.ActionTxActionSPO {
-		//	//spo
-		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-		//	dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-		//} else if actionTx.Action == tx_types.ActionTxActionDestroy {
-		//	actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-		//	dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
-		//}
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+	if tx.GetType() != types.TxBaseTypeNormal {
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
@@ -1219,4 +1221,8 @@ func (tc *txcached) add(tx types.Txi) {
 type ConfirmBatch struct {
 	Seq *tx_types.Sequencer
 	Txs types.Txis
+}
+
+func (c *ConfirmBatch) String() string {
+	return fmt.Sprintf("seq: %s, txs: [%s]", c.Seq.String(), c.Txs.String())
 }

@@ -79,7 +79,7 @@ func gen(cmd *cobra.Command, args []string) {
 		}
 		genesisPk := strings.Join(publicSet, ";")
 		viper.Set("annsensus.genesis_pk", genesisPk)
-		viper.Set("annsensus.campain", true)
+		viper.Set("annsensus.campaign", true)
 
 		err := io.MkDirIfNotExists(privateDir)
 		if err != nil {
@@ -89,16 +89,17 @@ func gen(cmd *cobra.Command, args []string) {
 
 		// init private key
 		// viper.Set("dag.my_private_key", privateSet[0])
-		savePrivateKey(path.Join(privateDir+"/node_0/", privateKeyFile), privateSet[0])
-
-		//init bootstrap
-		viper.Set("p2p.node_key", nodekeyBoot)
-		viper.Set("p2p.bootstrap_node", true)
 		err = io.MkDirIfNotExists(privateDir + "/node_0")
 		if err != nil {
 			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir+"/node_0", err))
 			return
 		}
+
+		savePrivateKey(path.Join(privateDir+"/node_0/", privateKeyFile), privateSet[0])
+
+		//init bootstrap
+		viper.Set("p2p.node_key", nodekeyBoot)
+		viper.Set("p2p.bootstrap_node", true)
 		viper.Set("leveldb.path", "rw/datadir_0")
 		viper.Set("annsensus.consensus_path", "consensus0.json")
 		viper.WriteConfigAs(privateDir + "/node_0/" + configFileName)
@@ -106,7 +107,7 @@ func gen(cmd *cobra.Command, args []string) {
 		io.CopyFile("genesis.json", privateDir+"/node_0/"+"genesis.json")
 
 		//init other nodes
-		viper.Set("annsensus.campain", false)
+		viper.Set("annsensus.campaign", false)
 		viper.Set("p2p.bootstrap_node", false)
 		for i := 1; i < len(privateSet); i++ {
 			viper.Set("rpc.port", port+10*i)

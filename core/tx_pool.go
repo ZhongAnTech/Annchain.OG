@@ -757,7 +757,6 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 // into pool.cached. Once a real sequencer with same hash comes, reload cached data without
 // any more calculates.
 func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
-	//TODO
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -790,6 +789,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 			Seq: seq,
 			Txs: pool.cached.Txs(),
 		}
+		elders = pool.cached.elders
 	} else {
 		elders, batch, err = pool.confirmHelper(seq)
 		if err != nil {

@@ -100,6 +100,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: false,
 			CampainEnable:        true,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 		}
 		client.Init()
 		m.RegisterReceiver(client.NewRawTx)
@@ -112,7 +114,6 @@ func (m *AutoClientManager) SetTxIntervalUs(interval int) {
 		if m.Clients[i] != nil {
 			m.Clients[i].SetTxIntervalUs(interval)
 		}
-
 	}
 }
 

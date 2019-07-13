@@ -122,7 +122,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	//todo fix this later ,bft consensus
 	//"The latest gossip on BFT consensus " 2f+1
 	if partnerNum < 2 {
-		panic(partnerNum)
+		panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
 	}
 	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
 	dkg.ConfigFilePath = configFile
@@ -284,7 +284,7 @@ func (as *AnnSensus) AddCampaign(cp *tx_types.Campaign) error {
 
 	pubkey := cp.GetDkgPublicKey()
 	if pubkey == nil {
-		log.WithField("nil PartPubf for  campain", cp).Warn("add campaign")
+		log.WithField("nil PartPubf for campaign", cp).Warn("add campaign")
 		return fmt.Errorf("pubkey is nil ")
 	}
 

@@ -14,21 +14,26 @@
 package node
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/onode"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -36,6 +41,21 @@ const (
 	defaultMaxPeers   = 50
 	defaultNetworkId  = 1
 )
+
+type BootstrapInfoRequest struct {
+	NetworkId int64  `json:"networkid"`
+	PublicKey string `json:"publickey"`
+	ONode     string `json:"onode"`
+}
+
+type BootstrapInfoResponse struct {
+	Status         string `json:"status"`
+	BootstrapNode  bool   `json:"bootstrap_node"`
+	BootstrapNodes string `json:"bootstrap_nodes"`
+	GenesisPk      string `json:"genesis_pk"`
+	Message        string `json:"message"`
+	Partners       int    `json:"partners"`
+}
 
 func getNodePrivKey() *ecdsa.PrivateKey {
 	nodeKey := viper.GetString("p2p.node_key")
@@ -50,22 +70,11 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 		}
 		return key
 	}
-	datadir := viper.GetString("datadir")
+	dataDir := viper.GetString("datadir")
 	// Use any specifically configured key.
 
-	// Generate ephemeral key if no datadir is being used.
-	if datadir == "" {
-		key, err := crypto.GenerateKey()
-		if err != nil {
-			panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
-		}
-		data := crypto.FromECDSA(key)
-		viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
-		return key
-	}
-
-	keyfile := resolvePath(datadirPrivateKey)
-	if key, err := crypto.LoadECDSA(keyfile); err == nil {
+	keyFile := io.FixPrefixPath(dataDir, datadirPrivateKey)
+	if key, err := crypto.LoadECDSA(keyFile); err == nil {
 		return key
 	}
 	// No persistent key found, generate and store a new one.
@@ -73,12 +82,11 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate node key: %v", err))
 	}
-	if err := os.MkdirAll(datadir, 0700); err != nil {
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 		return key
 	}
-	keyfile = filepath.Join(datadir, datadirPrivateKey)
-	if err := crypto.SaveECDSA(keyfile, key); err != nil {
+	if err := crypto.SaveECDSA(keyFile, key); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 	}
 	data := crypto.FromECDSA(key)
@@ -86,21 +94,14 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	return key
 }
 
-// ResolvePath resolves path in the instance directory.
-func resolvePath(path string) string {
-	datadir := viper.GetString("datadir")
-	if filepath.IsAbs(path) {
-		return path
-	}
-	oldpath := filepath.Join(datadir, path)
-	if filepath.IsAbs(oldpath) {
-		return oldpath
-	}
-	return oldpath
-
+func getOnodeURL(privKey *ecdsa.PrivateKey) string {
+	port := viper.GetString("p2p.port")
+	tcpPort, _ := strconv.Atoi(port)
+	ogNode := onode.NewV4(&privKey.PublicKey, net.ParseIP("127.0.0.1"), tcpPort, tcpPort)
+	return ogNode.String()
 }
 
-func NewP2PServer(privKey *ecdsa.PrivateKey, bootNode bool) *p2p.Server {
+func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {
 	var p2pConfig p2p.Config
 	p2pConfig.PrivateKey = privKey
 	port := viper.GetString("p2p.port")
@@ -130,7 +131,7 @@ func NewP2PServer(privKey *ecdsa.PrivateKey, bootNode bool) *p2p.Server {
 	p2pConfig.NAT = nat.Any()
 	p2pConfig.NoEncryption = viper.GetBool("p2p.no_encryption")
 
-	if bootNode {
+	if isBootNode {
 		tcpPort, err := strconv.Atoi(port)
 		if err != nil {
 			panic(err)
@@ -187,4 +188,88 @@ func parserGenesisAccounts(pubkeys string) []crypto.PublicKey {
 		account = append(account, pubKey)
 	}
 	return account
+}
+
+// buildBootstrap keeps sending info of itself to quering server and wait for other bootstrap server to be ready
+func buildBootstrap(networkId int64, nodeURL string, key *crypto.PublicKey) {
+
+	pubkey := key.String()
+
+	breq := BootstrapInfoRequest{
+		NetworkId: networkId,
+		ONode:     nodeURL,
+		PublicKey: pubkey,
+	}
+	for {
+		bresp, err := doRequest(breq)
+		if err != nil {
+			log.Warn("failed to get bootstrap config. wait for another 5 seconds")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		if bresp.Status != "ok" {
+			log.WithField("message", bresp.Message).Info("Consensus group is not ready. waiting for more nodes.")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		// ready.
+		injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected.toml")
+		injectedViper := viper.New()
+		injectedViper.SetConfigType("toml")
+
+		injectedViper.Set("p2p.bootstrap_node", bresp.BootstrapNode)
+		injectedViper.Set("p2p.bootstrap_nodes", bresp.BootstrapNodes)
+		injectedViper.Set("annsensus.genesis_pk", bresp.GenesisPk)
+		injectedViper.Set("annsensus.partner_number", bresp.Partners)
+		injectedViper.Set("annsensus.threshold", 2*bresp.Partners/3+1)
+
+		err = injectedViper.WriteConfigAs(injectedPath)
+		if err != nil {
+			log.WithError(err).Fatal("cannot dump injected config")
+		}
+		err = viper.MergeConfigMap(injectedViper.AllSettings())
+		if err != nil {
+			log.WithError(err).Fatal("cannot merge injected config")
+		}
+
+		log.WithField("resp", bresp).Info("bootstrap info is updated.")
+		break
+	}
+
+}
+
+func doRequest(breq BootstrapInfoRequest) (bresp BootstrapInfoResponse, err error) {
+	url := viper.GetString("p2p.bootstrap_config_server")
+	if url == "" {
+		panic("You must either provide a bootstrap server or provide a bootstrap config server to start building network.")
+	}
+
+	jsonStr, err := json.Marshal(breq)
+	if err != nil {
+		panic("failed to marshal bootstrap request data")
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	defer client.CloseIdleConnections()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Warn("failed to request bootstrap centralized server")
+		return
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.WithError(err).Warn("failed to read response")
+		return
+	}
+	err = json.Unmarshal(body, &bresp)
+	if err != nil {
+		log.WithError(err).Warn("response cannot be unmarshalled")
+		return
+	}
+	return
 }

@@ -591,9 +591,11 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
-	// add tx to pool
-	if pool.flows.Get(tx.Sender()) == nil {
-		pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
+	if tx.GetType() != types.TxBaseTypeArchive {
+		// add tx to pool
+		if pool.flows.Get(tx.Sender()) == nil {
+			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
+		}
 	}
 	if tx.GetType() == types.TxBaseTypeNormal {
 		txn := tx.(*tx_types.Tx)

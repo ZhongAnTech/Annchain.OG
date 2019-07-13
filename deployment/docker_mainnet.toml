@@ -1,9 +1,9 @@
 # This is a TOML document.
 
-title = "TOML Example"
+title = "OG Mainnet configuration"
 
 [log]
-level = "trace"
+level = "info"
 
 [rpc]
 enabled = true
@@ -32,7 +32,7 @@ port = 8003
 name = "leveldb"
 
 [leveldb]
-path = "rw/datadir_1"
+path = "/rw/datadir_1"
 cache = 16
 handles = 16
 
@@ -97,7 +97,7 @@ disable = false
  # after 10 sequencer , will term change
 term_change_interval = 10
 
-mode = "archive"
+mode = "normal"
 
 # samples below
 

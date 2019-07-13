@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/types/tx_types"
 	"math/rand"
 	"sync"
@@ -59,12 +60,17 @@ type AutoClient struct {
 
 	wg sync.WaitGroup
 
-	nonceLock   sync.RWMutex
-	txLock      sync.RWMutex
-	archiveLock sync.RWMutex
-	NewRawTx    chan types.Txi
-	TpsTest     bool
-	TpsTestInit bool
+	nonceLock      sync.RWMutex
+	txLock         sync.RWMutex
+	archiveLock    sync.RWMutex
+	NewRawTx       chan types.Txi
+	TpsTest        bool
+	TpsTestInit    bool
+	TestInsertPool bool
+	TestDagPush    bool
+	TestSyncBuffer bool
+	TestSigNature     bool
+	TestSeal         bool
 }
 
 func (c *AutoClient) Init() {
@@ -131,11 +137,9 @@ func (c *AutoClient) loop() {
 	if !c.AutoSequencerEnabled {
 		tickerSeq.Stop()
 	}
-
 	if !c.AutoArchiveEnabled {
 		timerArchive.Stop()
 	}
-
 	for {
 		if c.pause {
 			logrus.Trace("client paused")
@@ -174,7 +178,7 @@ func (c *AutoClient) loop() {
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)
 		case <-timerArchive.C:
-			logrus.Debug("timer sample tx")
+			logrus.Debug("timer sample archive")
 			if c.Delegate.TooMoreTx() {
 				timerArchive.Stop()
 				logrus.Warn("auto archive stopped")
@@ -183,7 +187,7 @@ func (c *AutoClient) loop() {
 			c.doSampleArchive(false)
 			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:
-			if c.TpsTest {
+			if c.TpsTest && !c.TestSeal {
 				timerTx.Stop()
 				continue
 			}
@@ -242,6 +246,7 @@ func (c *AutoClient) fireTxs() bool {
 	if m == 0 {
 		m = 1000
 	}
+	c.TestSigNature =  viper.GetBool("auto_client.tx.test_sig")
 	c.TpsTestInit = true
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
@@ -250,28 +255,101 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		txis, seq := c.Delegate.Dag.GetTestTxisByNumber(i)
-		var j int
-		for k := 0; k < len(txis); {
-			//time.Sleep(time.Duration(m) * time.Microsecond)
-			if c.pause {
-				return true
-			}
-			j = k + 100
-			if j >= len(txis) {
-				c.Delegate.ReceivedNewTxsChan <- txis[k:]
-			} else {
-				c.Delegate.ReceivedNewTxsChan <- txis[k:j]
-			}
-			k = j
-		}
-
-		if seq != nil {
-			if c.pause {
-				return true
-			}
-			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
-		} else {
+		if seq == nil {
+			logrus.WithField("seq ", seq).Error("seq is nil ")
 			return true
+		}
+		if c.TestSigNature {
+			f :=func() {
+				for _, tx := range txis {
+					ok := c.Delegate.TxCreator.TxFormatVerifier.VerifySignature(tx)
+					if !ok {
+						logrus.Error(tx, ok)
+					}
+				}
+				cf := types.ConfirmTime{
+					SeqHeight:   seq.Height,
+					TxNum:       uint64(len(txis)),
+					ConfirmTime: time.Now().Format(time.RFC3339Nano),
+				}
+				err := c.Delegate.Dag.TestWriteConfirmTIme(&cf)
+				if err != nil {
+					logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
+				}
+			}
+			goroutine.New(f)
+			continue
+
+		}
+		if c.TestDagPush {
+			batch := &core.ConfirmBatch{seq, txis}
+			err := c.Delegate.Dag.Push(batch)
+			if err != nil {
+				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
+			}
+			continue
+		}else if c.TestSyncBuffer {
+			err := c.Delegate.InsertSyncBuffer(seq,txis)
+			if err != nil {
+				logrus.WithField("seq ", seq).WithError(err).Error("syncbuffer add  err")
+			}
+		}else {
+			if c.TestSeal {
+				for k := 0; k < len(txis); {
+					//time.Sleep(time.Duration(m) * time.Microsecond)
+					if c.pause {
+						return true
+					}
+					ok  := c.Delegate.TxCreator.SealTx(txis[k], nil)
+					if !ok {
+						logrus.WithField("tx ", txis[k]).Warn("seal tx err")
+					}
+					k++
+				}
+			}
+			var j int
+			for k := 0; k < len(txis); {
+				//time.Sleep(time.Duration(m) * time.Microsecond)
+				if c.pause {
+					return true
+				}
+				if c.TestInsertPool {
+					tx := txis[k]
+					err := c.Delegate.TxPool.AddRemoteTx(tx, true)
+					if err != nil {
+						logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+					}
+					k++
+				} else {
+					//tx := txis[k]
+					//c.Delegate.Announce(tx)
+					////if err != nil {
+					////	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+					////}
+					//k++
+					//_=j
+
+					j = k + 150
+					if j >= len(txis) {
+						c.Delegate.ReceivedNewTxsChan <- txis[k:]
+					} else {
+						c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+					}
+					k = j
+				}
+			}
+		}
+		if c.pause {
+			return true
+		}
+		if c.TestInsertPool {
+			err := c.Delegate.TxPool.AddRemoteTx(seq, true)
+			if err != nil {
+				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
+			}
+		} else if !c.TestSeal{
+			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
+			//c.Delegate.Announce(seq)
 		}
 	}
 	return true
@@ -286,7 +364,9 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	if c.TpsTest {
 		logrus.Info("get start test tps")
 		c.AutoTxEnabled = false
-		c.AutoSequencerEnabled = false
+		if !c.TestSeal {
+			c.AutoSequencerEnabled = false
+		}
 		return c.fireTxs()
 		//logrus.WithField("txi", txi).Info("tps test  mode, txi not found, enter normal mode")
 	}
@@ -306,6 +386,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated tx")
+	tx.SetFormatVerified()
 	c.Delegate.Announce(tx)
 	return true
 }
@@ -325,16 +406,15 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	}
 	c.archiveLock.RLock()
 	defer c.archiveLock.RUnlock()
-	//ran := rand.Uint64()
+	ran := rand.Uint64()
 	r := randomArchive{
-		//Name:    fmt.Sprintf("%d", ran),
-		//RandInt: ran,
+		Name:    fmt.Sprintf("%d", ran),
+		RandInt: ran,
 		Num:  archiveNum,
 		From: c.MyAccount.Address.ToBytes()[:5],
 	}
 	archiveNum++
 	data, _ := json.Marshal(&r)
-	data = append(data, c.MyAccount.PublicKey.Bytes[:]...)
 	tx, err := c.Delegate.GenerateArchive(data)
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")
@@ -369,6 +449,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated txi")
+	txi.SetFormatVerified()
 	c.Delegate.Announce(txi)
 	return true
 }
@@ -391,6 +472,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
+	seq.SetFormatVerified()
 	c.Delegate.Announce(seq)
 	return true
 }

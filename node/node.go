@@ -20,13 +20,13 @@ import (
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/p2p/ioperformance"
+	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/status"
 	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
-	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/wserver"
 	"github.com/sirupsen/logrus"
 
@@ -56,16 +56,16 @@ func NewNode() *Node {
 	// Order matters.
 	// Start myself first and then provide service and do p2p
 	pm := &performance.PerformanceMonitor{}
-	var rpcServer *rpc.RpcServer
-	var cryptoType crypto.CryptoType
 
+	// Crypto and signers
+	var cryptoType crypto.CryptoType
 	switch viper.GetString("crypto.algorithm") {
 	case "ed25519":
 		cryptoType = crypto.CryptoTypeEd25519
 	case "secp256k1":
 		cryptoType = crypto.CryptoTypeSecp256k1
 	default:
-		panic("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
+		logrus.Fatal("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
 	}
 	//set default signer
 	crypto.Signer = crypto.NewSigner(cryptoType)
@@ -73,32 +73,30 @@ func NewNode() *Node {
 	if crypto.Signer.CanRecoverPubFromSig() {
 		types.CanRecoverPubFromSig = true
 	}
-
-	maxPeers := viper.GetInt("p2p.max_peers")
-	if maxPeers == 0 {
-		maxPeers = defaultMaxPeers
-	}
-	if viper.GetBool("rpc.enabled") {
-		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
-		n.Components = append(n.Components, rpcServer)
-	}
-	bootNode := viper.GetBool("p2p.bootstrap_node")
-
+	// network id is configured either in config.toml or env variable
 	networkId := viper.GetInt64("p2p.network_id")
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}
 
+	// OG init
 	org, err := og.NewOg(
 		og.OGConfig{
 			NetworkId:   uint64(networkId),
-			GenesisPath: io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("dag.genesis_path")),
+			GenesisPath: viper.GetString("dag.genesis_path"),
 		},
 	)
 	if err != nil {
 		logrus.WithError(err).Warning("Error occurred while initializing OG")
-		panic(fmt.Sprintf("Error occurred while initializing OG %v", err))
+		logrus.WithError(err).Fatal(fmt.Sprintf("Error occurred while initializing OG %v", err))
 	}
+
+	// Hub
+	maxPeers := viper.GetInt("p2p.max_peers")
+	if maxPeers == 0 {
+		maxPeers = defaultMaxPeers
+	}
+
 	feedBack := og.FeedBackMode
 	if viper.GetBool("hub.disable_feedback") == true {
 		feedBack = og.NormalMode
@@ -113,11 +111,55 @@ func NewNode() *Node {
 		DisableEncryptGossip:          viper.GetBool("hub.disable_encrypt_gossip"),
 	})
 
+	// let og be the status source of hub to provide chain info to other peers
 	hub.StatusDataProvider = org
 
 	n.Components = append(n.Components, org)
 	n.Components = append(n.Components, hub)
 
+	// my account
+	// init key vault from a file
+	privFilePath := io.FixPrefixPath(viper.GetString("datadir"), "privkey")
+	if !io.FileExists(privFilePath) {
+		if viper.GetBool("genkey") {
+			logrus.Info("We will generate a private key for you. Please store it carefully.")
+			priv, _ := account.GenAccount()
+			account.SavePrivateKey(privFilePath, priv.String())
+		} else {
+			logrus.Fatal("Please generate a private key under " + privFilePath + " , or specify --genkey to let us generate one for you")
+		}
+	}
+
+	decrpted, err := encryption.DecryptFileDummy(privFilePath, "")
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to decrypt private key")
+	}
+	vault := encryption.NewVault(decrpted)
+
+	myAcount := account.NewAccount(string(vault.Fetch()))
+
+	// p2p server
+	privKey := getNodePrivKey()
+	// isBootNode must be set to false if you need a centralized server to collect and dispatch bootstrap
+	if viper.GetBool("p2p.enabled") && viper.GetString("p2p.bootstrap_nodes") == "" {
+
+		// get my url and then send to centralized bootstrap server if there is no bootstrap server specified
+		nodeURL := getOnodeURL(privKey)
+		buildBootstrap(networkId, nodeURL, &myAcount.PublicKey)
+	}
+
+	var p2pServer *p2p.Server
+	if viper.GetBool("p2p.enabled") {
+		isBootNode := viper.GetBool("p2p.bootstrap_node")
+		p2pServer = NewP2PServer(privKey, isBootNode)
+
+		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
+		hub.NodeInfo = p2pServer.NodeInfo
+
+		n.Components = append(n.Components, p2pServer)
+	}
+
+	// transaction verifiers
 	graphVerifier := &og.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,
@@ -141,18 +183,26 @@ func NewNode() *Node {
 	//verify format first , set address and then verify graph
 	verifiers := []og.Verifier{txFormatVerifier, graphVerifier, consensusVerifier}
 
+	// txBuffer
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
 		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           20000,
-		NewTxQueueSize:                   1,
+		NewTxQueueSize:                  viper.GetInt("tx_buffer.new_tx_queue_size"),
 		KnownCacheMaxSize:                30000,
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,
+		TestNoVerify: viper.GetBool("tx_buffer.test_no_verify"),
+
 	})
+	// let txBuffer judge whether the tx is received previously
 	hub.IsReceivedHash = txBuffer.IsReceivedHash
+	org.TxBuffer = txBuffer
+	n.Components = append(n.Components, txBuffer)
+
+	// syncBuffer
 	syncBuffer := syncer.NewSyncBuffer(syncer.SyncBufferConfig{
 		TxPool:    org.TxPool,
 		Dag:       org.Dag,
@@ -160,13 +210,12 @@ func NewNode() *Node {
 	})
 	n.Components = append(n.Components, syncBuffer)
 
-	org.TxBuffer = txBuffer
-	n.Components = append(n.Components, txBuffer)
-
+	isBootNode := viper.GetBool("p2p.bootstrap_node")
+	// syncManager
 	syncManager := syncer.NewSyncManager(syncer.SyncManagerConfig{
 		Mode:           downloader.FullSync,
 		ForceSyncCycle: uint(viper.GetInt("hub.sync_cycle_ms")),
-		BootstrapNode:  bootNode,
+		BootstrapNode:  isBootNode,
 	}, hub, org)
 
 	downloaderInstance := downloader.New(downloader.FullSync, org.Dag, hub.RemovePeer, syncBuffer.AddTxs)
@@ -180,7 +229,7 @@ func NewNode() *Node {
 		Hub:                    hub,
 		Downloader:             downloaderInstance,
 		SyncMode:               downloader.FullSync,
-		BootStrapNode:          bootNode,
+		BootStrapNode:          isBootNode,
 	}
 	syncManager.CatchupSyncer.Init()
 	hub.Downloader = downloaderInstance
@@ -289,6 +338,7 @@ func NewNode() *Node {
 		//TxBuffer:  txBuffer,
 		Dag:       org.Dag,
 		TxCreator: txCreator,
+		InsertSyncBuffer:syncBuffer.AddTxs,
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
@@ -314,7 +364,7 @@ func NewNode() *Node {
 	}
 	consensFilePath := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("annsensus.consensus_path"))
 	if consensFilePath == "" {
-		panic("need path")
+		logrus.Fatal("need path")
 	}
 	termChangeInterval := viper.GetInt("annsensus.term_change_interval")
 	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
@@ -331,19 +381,6 @@ func NewNode() *Node {
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	//coinBaseId := accountIds[0] + 100
 
-	// init key vault from a file
-	privFilePath := io.FixPrefixPath(viper.GetString("datadir"), "privkey")
-	if !io.FileExists(privFilePath) {
-		panic("Please generate a private key first")
-	}
-
-	decrpted, err := encryption.DecryptFileDummy(privFilePath, "")
-	if err != nil {
-		panic("failed to decrypt private key")
-	}
-	vault := encryption.NewVault(decrpted)
-
-	myAcount := account.NewAccount(string(vault.Fetch()))
 	autoClientManager.Init(
 		accountIds,
 		delegate,
@@ -385,14 +422,11 @@ func NewNode() *Node {
 	n.Components = append(n.Components, m)
 	org.Manager = m
 
-	var p2pServer *p2p.Server
-	if viper.GetBool("p2p.enabled") {
-		privKey := getNodePrivKey()
-		p2pServer = NewP2PServer(privKey, bootNode)
-		p2pServer.Protocols = append(p2pServer.Protocols, hub.SubProtocols...)
-		hub.NodeInfo = p2pServer.NodeInfo
-
-		n.Components = append(n.Components, p2pServer)
+	// rpc server
+	var rpcServer *rpc.RpcServer
+	if viper.GetBool("rpc.enabled") {
+		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
+		n.Components = append(n.Components, rpcServer)
 	}
 
 	if rpcServer != nil {
@@ -409,6 +443,7 @@ func NewNode() *Node {
 
 	}
 
+	// websocket server
 	if viper.GetBool("websocket.enabled") {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
@@ -416,6 +451,7 @@ func NewNode() *Node {
 		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
+
 	if status.ArchiveMode {
 		logrus.Info("archive mode")
 	}

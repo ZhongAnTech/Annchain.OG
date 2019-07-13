@@ -16,19 +16,21 @@ package core_test
 import (
 	"testing"
 
+	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/types/tx_types"
+
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 )
 
-func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
+func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk)
+	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)
@@ -124,84 +126,84 @@ func TestBalanceState(t *testing.T) {
 }
 
 func TestAccountFlow(t *testing.T) {
-	//t.Parallel()
-	//
-	//var err error
-	//
+	t.Parallel()
+
+	var err error
+
 	//balancevalue := int64(100000)
-	//originBalance := math.NewBigInt(balancevalue)
-	//af := core.NewAccountFlow(originBalance)
-	//
-	//tx0value := int64(1000)
-	//tx1value := int64(2000)
-	//tx2value := int64(3000)
-	//tx0 := newTestAccountFlowTx(0, math.NewBigInt(tx0value))
-	//tx1 := newTestAccountFlowTx(1, math.NewBigInt(tx1value))
-	//tx2 := newTestAccountFlowTx(2, math.NewBigInt(tx2value))
-	//
-	//// test add, get
-	//err = af.Add(tx0)
-	//if err != nil {
-	//	t.Fatalf("can't add tx0 into account flow, err: %v", err)
-	//}
-	//err = af.Add(tx1)
-	//if err != nil {
-	//	t.Fatalf("can't add tx1 into account flow, err: %v", err)
-	//}
-	//err = af.Add(tx2)
-	//if err != nil {
-	//	t.Fatalf("can't add tx2 into account flow, err: %v", err)
-	//}
-	//tx0inAccountFlow := af.GetTx(tx0.GetNonce())
-	//if tx0inAccountFlow == nil {
-	//	t.Fatalf("can't get tx0 from account flow after add")
-	//}
-	//tx1inAccountFlow := af.GetTx(tx1.GetNonce())
-	//if tx1inAccountFlow == nil {
-	//	t.Fatalf("can't get tx1 from account flow after add")
-	//}
-	//tx2inAccountFlow := af.GetTx(tx2.GetNonce())
-	//if tx2inAccountFlow == nil {
-	//	t.Fatalf("can't get tx2 from account flow after add")
-	//}
-	//
-	//// test latest nonce
-	//latestnonce, lnerr := af.LatestNonce()
-	//if lnerr != nil {
-	//	t.Fatalf("get latest nonce failed, err: %v", lnerr)
-	//}
-	//if latestnonce != uint64(2) {
-	//	t.Fatalf("latest nonce not correct, expect %d, get %d", 2, latestnonce)
-	//}
-	//
-	//// test remove
-	//spent := af.BalanceState().Spent()
-	//
-	//err = af.Remove(tx0.GetNonce())
-	//if err != nil {
-	//	t.Fatalf("confirm tx0 err: %v", err)
-	//}
-	//spent = af.BalanceState().Spent()
-	//if spent.Value.Cmp(math.NewBigInt(tx1value+tx2value).Value) != 0 {
-	//	t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value+tx2value, spent.GetInt64())
-	//}
-	//
-	//err = af.Remove(tx1.GetNonce())
-	//if err != nil {
-	//	t.Fatalf("confirm tx1 err: %v", err)
-	//}
-	//spent = af.BalanceState().Spent()
-	//if spent.Value.Cmp(math.NewBigInt(tx2value).Value) != 0 {
-	//	t.Fatalf("spent not correct after confirm tx1, expect: %d, get %d", tx2value, spent.GetInt64())
-	//}
-	//
-	//err = af.Remove(tx2.GetNonce())
-	//if err != nil {
-	//	t.Fatalf("confirm tx2 err: %v", err)
-	//}
-	//spent = af.BalanceState().Spent()
-	//if spent.Value.Cmp(math.NewBigInt(0).Value) != 0 {
-	//	t.Fatalf("spent not correct after confirm tx2, expect: %d, get %d", 0, spent.GetInt64())
-	//}
+	originBalance := state.NewBalanceSet()
+	af := core.NewAccountFlow(originBalance)
+
+	tx0value := int64(1000)
+	tx1value := int64(2000)
+	tx2value := int64(3000)
+	tx0 := newTestAccountFlowTx(0, math.NewBigInt(tx0value))
+	tx1 := newTestAccountFlowTx(1, math.NewBigInt(tx1value))
+	tx2 := newTestAccountFlowTx(2, math.NewBigInt(tx2value))
+
+	// test add, get
+	err = af.Add(tx0)
+	if err != nil {
+		t.Fatalf("can't add tx0 into account flow, err: %v", err)
+	}
+	err = af.Add(tx1)
+	if err != nil {
+		t.Fatalf("can't add tx1 into account flow, err: %v", err)
+	}
+	err = af.Add(tx2)
+	if err != nil {
+		t.Fatalf("can't add tx2 into account flow, err: %v", err)
+	}
+	tx0inAccountFlow := af.GetTx(tx0.GetNonce())
+	if tx0inAccountFlow == nil {
+		t.Fatalf("can't get tx0 from account flow after add")
+	}
+	tx1inAccountFlow := af.GetTx(tx1.GetNonce())
+	if tx1inAccountFlow == nil {
+		t.Fatalf("can't get tx1 from account flow after add")
+	}
+	tx2inAccountFlow := af.GetTx(tx2.GetNonce())
+	if tx2inAccountFlow == nil {
+		t.Fatalf("can't get tx2 from account flow after add")
+	}
+
+	// test latest nonce
+	latestnonce, lnerr := af.LatestNonce()
+	if lnerr != nil {
+		t.Fatalf("get latest nonce failed, err: %v", lnerr)
+	}
+	if latestnonce != uint64(2) {
+		t.Fatalf("latest nonce not correct, expect %d, get %d", 2, latestnonce)
+	}
+
+	// test remove
+	spent := af.BalanceState(0).Spent()
+
+	err = af.Remove(tx0.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx0 err: %v", err)
+	}
+	spent = af.BalanceState(0).Spent()
+	if spent.Value.Cmp(math.NewBigInt(tx1value+tx2value).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx0, expect: %d, get %d", tx1value+tx2value, spent.GetInt64())
+	}
+
+	err = af.Remove(tx1.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx1 err: %v", err)
+	}
+	spent = af.BalanceState(0).Spent()
+	if spent.Value.Cmp(math.NewBigInt(tx2value).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx1, expect: %d, get %d", tx2value, spent.GetInt64())
+	}
+
+	err = af.Remove(tx2.GetNonce())
+	if err != nil {
+		t.Fatalf("confirm tx2 err: %v", err)
+	}
+	spent = af.BalanceState(0).Spent()
+	if spent.Value.Cmp(math.NewBigInt(0).Value) != 0 {
+		t.Fatalf("spent not correct after confirm tx2, expect: %d, get %d", 0, spent.GetInt64())
+	}
 
 }

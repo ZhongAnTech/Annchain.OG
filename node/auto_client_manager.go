@@ -39,7 +39,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 	m.UpToDateEventListener = make(chan bool)
 	m.quit = make(chan bool)
 	m.delegate = delegate
-	// to make sure we have only one sequencer
+	// to make sure we have only one sequencer per node
 	sequencers := 1
 	mode := viper.GetString("mode")
 	var tpsTest bool
@@ -62,6 +62,10 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 			TpsTest:              tpsTest,
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -71,7 +75,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 
 	}
 	if !tpsTest && sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
-		// add pure sequencer
+		// add pure sequencer， never produce tx
 		client := &AutoClient{
 			Delegate:             delegate,
 			SampleAccounts:       m.SampleAccounts,
@@ -82,6 +86,12 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: true,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -99,6 +109,11 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
 			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
 			AutoSequencerEnabled: false,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
 			CampainEnable:        true,
 			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),

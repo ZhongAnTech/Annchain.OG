@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ogblockdb
+spec:
+  selector:
+    matchLabels:
+      app: ogblockdb
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: ogblockdb
+    spec:
+      containers:
+        - name: ogblockdb
+          image: 172.28.152.101:5000/ognb
+          env:
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://ogboot:8008"
+            - name: OG_P2P.NETWORK_ID
+              value: "3"
+            - name: OG_MODE
+              value: "archive"
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          volumeMounts:
+            - name: rw
+              mountPath: /rw
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+          resources:
+            limits:
+              cpu: "4"
+            requests:
+              cpu: "2"
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi

@@ -14,6 +14,7 @@
 package og
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
@@ -89,7 +90,10 @@ type TxBuffer struct {
 	OnProposalSeqCh        chan common.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
-}
+	TestNoVerify bool
+	wg *sync.WaitGroup
+ }
+
 
 type childrenCache struct {
 	cache gcache.Cache
@@ -178,6 +182,7 @@ type TxBufferConfig struct {
 	KnownCacheMaxSize                int
 	KnownCacheExpirationSeconds      int
 	AddedToPoolQueueSize             int
+	TestNoVerify bool
 }
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
@@ -198,6 +203,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 		//children: newChilrdenCache(config.DependencyCacheMaxSize, time.Second*time.Duration(config.DependencyCacheExpirationSeconds)),
+		TestNoVerify:config.TestNoVerify,
+		wg:&sync.WaitGroup{},
 	}
 }
 
@@ -239,10 +246,15 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	b.knownCache.Remove(tx.GetTxHash())
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
-	for _, verifier := range b.verifiers {
-		if !verifier.Verify(tx) {
-			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
-			return
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if verifier.Independent() {
+				continue
+			}
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
 		}
 	}
 	logrus.WithField("tx", tx).Debugf("nice tx")
@@ -267,6 +279,17 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
 	//	return
 	//}
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if !verifier.Independent() {
+				continue
+			}
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
+		}
+	}
 
 	b.knownCache.Set(tx.GetTxHash(), tx)
 
@@ -278,6 +301,25 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 }
 
+func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis)  {
+	if !b.TestNoVerify {
+		for _, verifier := range b.verifiers {
+			if !verifier.Independent() {
+				continue
+			}
+			if !verifier.Verify(tx) {
+				logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+				return
+			}
+		}
+	}
+		b.affmu.Lock()
+		b.knownCache.Set(tx.GetTxHash(), tx)
+		*validTxs = append(*validTxs,tx)
+		b.affmu.Unlock()
+	    b.wg.Done()
+}
+
 // in parallel
 func (b *TxBuffer) handleTxs(txs types.Txis) {
 	logrus.WithField("tx", txs).Debug("buffer is handling txs")
@@ -287,15 +329,28 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 	var validTxs types.Txis
-	for _, tx := range txs {
+	for i := range txs {
 		// already in the dag or tx_pool or buffer itself.
-		if b.IsKnownHash(tx.GetTxHash()) {
+		if b.IsKnownHash(txs[i].GetTxHash()) {
 			continue
 		}
-		validTxs = append(validTxs, tx)
-		b.knownCache.Set(tx.GetTxHash(), tx)
+
+		//b.knownCache.Set(txs[i].GetTxHash(), txs[i])
+		//validTxs = append(validTxs,txs[i])
+		tx:=txs[i]
+		//logrus.Debug("i ", i, tx)
+		f := func() {
+			//logrus.Debug(tx)
+			b.verify(tx,&validTxs)
+		}
+		b.wg.Add(1)
+		goroutine.New(f)
+		fmt.Println()
+
 	}
+	b.wg.Wait()
 	sort.Sort(validTxs)
+	//logrus.Debug(validTxs,"hahah")
 	for _, tx := range validTxs {
 		logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 		if b.buildDependencies(tx) {
@@ -507,7 +562,6 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 					sendBloom = true
 				} else {
 					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
-
 				}
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {

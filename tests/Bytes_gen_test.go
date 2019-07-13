@@ -4,8 +4,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
 	"testing"
 
 	"github.com/tinylib/msgp/msgp"
@@ -13,8 +11,6 @@ import (
 
 func TestMarshalUnmarshalPerson(t *testing.T) {
 	v := Person{}
-	v.Name = "fjhjhofjhf"
-	v.Id = "5156454646565446565456446565454525255288585858556565625265252522525255252"
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -34,12 +30,6 @@ func TestMarshalUnmarshalPerson(t *testing.T) {
 	if len(left) > 0 {
 		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
 	}
-	fmt.Println(len(bts))
-	var s *string
-	var k string
-	s = &k
-	*s = "addd"
-	fmt.Println(s, *s, k)
 }
 
 func BenchmarkMarshalMsgPerson(b *testing.B) {
@@ -79,8 +69,6 @@ func BenchmarkUnmarshalPerson(b *testing.B) {
 
 func TestEncodeDecodePerson(t *testing.T) {
 	v := Person{}
-	v.Name = "fjhjhofjhf"
-	v.Id = "51564546465654465654564465654"
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -97,13 +85,10 @@ func TestEncodeDecodePerson(t *testing.T) {
 
 	buf.Reset()
 	msgp.Encode(&buf, &v)
-	//err = msgp.NewReader(&buf).Skip()
-	r := msgp.NewReader(&buf)
-	b, _ := ioutil.ReadAll(r)
+	err = msgp.NewReader(&buf).Skip()
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(len(b), v.Msgsize())
 }
 
 func BenchmarkEncodePerson(b *testing.B) {

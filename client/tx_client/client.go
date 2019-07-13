@@ -119,7 +119,7 @@ func (a *TxClient)SendNormalTx(request *rpc.NewTxRequest) ( string,error  ){
 }
 
 func (a *TxClient)SendNormalTxs(request *rpc.NewTxsRequests) ( string,error  ){
-	return a.sendTx(request,"new_transactions","POST")
+	return a.sendTxs(request,"new_transactions","POST")
 }
 
 func (a *TxClient)SendTokenIPO(request *rpc.NewPublicOfferingRequest) ( string,error ){
@@ -180,6 +180,49 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 	}
 	return respStruct.Data, nil
 }
+
+func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( string,error  ) {
+	//req := httplib.NewBeegoRequest(url,"POST")
+	//req.SetTimeout(time.Second*10,time.Second*10)
+	data, err := json.Marshal(request)
+	if err != nil {
+		panic(err)
+	}
+	r := bytes.NewReader(data)
+	url := a.Host+"/"+uri
+	req, err := http.NewRequest(methd, url, r)
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		//fmt.Println(err)
+		return "",err
+	}
+	//now := time.Now()
+	defer resp.Body.Close()
+	resDate, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	str := string(resDate)
+	if err != nil {
+		fmt.Println(str, err)
+		return "",err
+	}
+	if resp.StatusCode != 200 {
+		//panic( resp.StatusCode)
+		fmt.Println(resp.StatusCode)
+		return "",errors.New(resp.Status)
+	}
+	//var respStruct struct{
+	//	Data common.Hashes  `json:"data"`
+	//}
+	if a.Debug {
+		fmt.Println(str)
+	}
+	return str, nil
+}
+
 
 func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 	uri := fmt.Sprintf("query_nonce?address=%s", addr.Hex())

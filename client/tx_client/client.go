@@ -27,18 +27,18 @@ import (
 	"time"
 )
 
-func newTransport() *http.Transport {
+func newTransport(timeOut time.Duration) *http.Transport {
 	transport := &http.Transport{
 		MaxIdleConnsPerHost: 15,
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   timeOut,
+			KeepAlive: timeOut*3,
 		}).DialContext,
 		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		IdleConnTimeout:       timeOut*9,
+		TLSHandshakeTimeout:   timeOut,
+		ExpectContinueTimeout: timeOut/10,
 	}
 	return transport
 }
@@ -47,7 +47,7 @@ func NewTxClient(Host string,debug bool) TxClient {
 	a := TxClient{
 		httpClient: &http.Client{
 			Timeout:   time.Second * 10,
-			Transport: newTransport(),
+			Transport: newTransport(time.Second * 10),
 		},
 		requestChan: make(chan *rpc.NewTxRequest, 100),
 		quit:        make(chan bool),
@@ -56,6 +56,21 @@ func NewTxClient(Host string,debug bool) TxClient {
 	}
 	return a
 }
+
+func NewTxClientWIthTimeOut(Host string,debug bool,timeOut time.Duration) TxClient {
+	a := TxClient{
+		httpClient: &http.Client{
+			Timeout:    timeOut,
+			Transport: newTransport(timeOut),
+		},
+		requestChan: make(chan *rpc.NewTxRequest, 100),
+		quit:        make(chan bool),
+		Host:Host,
+		Debug:debug,
+	}
+	return a
+}
+
 
 type TxClient struct {
 	httpClient      *http.Client
@@ -101,6 +116,10 @@ func (o *TxClient) ConsumeQueue() {
 
 func (a *TxClient)SendNormalTx(request *rpc.NewTxRequest) ( string,error  ){
 	return a.sendTx(request,"new_transaction","POST")
+}
+
+func (a *TxClient)SendNormalTxs(request *rpc.NewTxsRequests) ( string,error  ){
+	return a.sendTx(request,"new_transactions","POST")
 }
 
 func (a *TxClient)SendTokenIPO(request *rpc.NewPublicOfferingRequest) ( string,error ){

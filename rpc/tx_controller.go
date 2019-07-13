@@ -13,6 +13,7 @@
 // limitations under the License.
 package rpc
 
+//go:generate msgp
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
@@ -120,6 +121,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 }
 
 //NewTxrequest for RPC request
+//msgp:tuple NewTxRequest
 type NewTxRequest struct {
 	Nonce      string `json:"nonce"`
 	From       string `json:"from"`
@@ -132,6 +134,7 @@ type NewTxRequest struct {
 	TokenId    int32
 }
 
+//msgp:tuple NewTxsRequests
 type NewTxsRequests struct {
 	Txs  []NewTxRequest `json:"txs"`
 }

@@ -60,6 +60,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
+	router.POST("new_transactions",rpc.NewTransactions)
 	router.POST("new_account", rpc.NewAccount)
 	router.GET("auto_tx", rpc.AutoTx)
 
@@ -136,6 +137,7 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query_contract":          "address,data",
 		"token/list":              "",
 		"token":                   "id",
+		"new_transactions":        "",
 
 		// debug
 		"debug": "f",

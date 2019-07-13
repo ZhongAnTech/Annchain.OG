@@ -17,7 +17,7 @@ spec:
           image: 172.28.152.101:5000/ognb
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
-              value: "http://ogboot:8008"
+              value: "http://ogboot:8008/4"
             - name: OG_P2P.NETWORK_ID
               value: "3"
             - name: OG_MODE

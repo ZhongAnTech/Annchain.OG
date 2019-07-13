@@ -70,6 +70,7 @@ type AutoClient struct {
 	TestDagPush    bool
 	TestSyncBuffer bool
 	TestSigNature     bool
+	TestSeal         bool
 }
 
 func (c *AutoClient) Init() {
@@ -188,7 +189,7 @@ func (c *AutoClient) loop() {
 			c.doSampleArchive(false)
 			timerArchive.Reset(c.nextArchiveSleepDuraiton())
 		case <-tickerSeq.C:
-			if c.TpsTest {
+			if c.TpsTest && !c.TestSeal {
 				timerTx.Stop()
 				continue
 			}
@@ -294,36 +295,50 @@ func (c *AutoClient) fireTxs() bool {
 			if err != nil {
 				logrus.WithField("seq ", seq).WithError(err).Error("syncbuffer add  err")
 			}
-		}
-		var j int
-		for k := 0; k < len(txis); {
-			//time.Sleep(time.Duration(m) * time.Microsecond)
-			if c.pause {
-				return true
+		}else {
+			if c.TestSeal {
+				for k := 0; k < len(txis); {
+					//time.Sleep(time.Duration(m) * time.Microsecond)
+					if c.pause {
+						return true
+					}
+					ok  := c.Delegate.TxCreator.SealTx(txis[k], nil)
+					if !ok {
+						logrus.WithField("tx ", txis[k]).Warn("seal tx err")
+					}
+					k++
+				}
 			}
-			if c.TestInsertPool {
-				tx := txis[k]
-				err := c.Delegate.TxPool.AddRemoteTx(tx, true)
-				if err != nil {
-					logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+			var j int
+			for k := 0; k < len(txis); {
+				//time.Sleep(time.Duration(m) * time.Microsecond)
+				if c.pause {
+					return true
 				}
-				k++
-			} else {
-				//tx := txis[k]
-				//c.Delegate.Announce(tx)
-				////if err != nil {
-				////	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
-				////}
-				//k++
-				//_=j
-
-				j = k + 150
-				if j >= len(txis) {
-					c.Delegate.ReceivedNewTxsChan <- txis[k:]
+				if c.TestInsertPool {
+					tx := txis[k]
+					err := c.Delegate.TxPool.AddRemoteTx(tx, true)
+					if err != nil {
+						logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+					}
+					k++
 				} else {
-					c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+					//tx := txis[k]
+					//c.Delegate.Announce(tx)
+					////if err != nil {
+					////	logrus.WithField("tx ", tx).WithError(err).Warn("add tx err")
+					////}
+					//k++
+					//_=j
+
+					j = k + 150
+					if j >= len(txis) {
+						c.Delegate.ReceivedNewTxsChan <- txis[k:]
+					} else {
+						c.Delegate.ReceivedNewTxsChan <- txis[k:j]
+					}
+					k = j
 				}
-				k = j
 			}
 		}
 		if c.pause {
@@ -334,7 +349,7 @@ func (c *AutoClient) fireTxs() bool {
 			if err != nil {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
-		} else {
+		} else if !c.TestSeal{
 			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
 			//c.Delegate.Announce(seq)
 		}
@@ -351,7 +366,9 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	if c.TpsTest {
 		logrus.Info("get start test tps")
 		c.AutoTxEnabled = false
-		c.AutoSequencerEnabled = false
+		if !c.TestSeal {
+			c.AutoSequencerEnabled = false
+		}
 		return c.fireTxs()
 		//logrus.WithField("txi", txi).Info("tps test  mode, txi not found, enter normal mode")
 	}

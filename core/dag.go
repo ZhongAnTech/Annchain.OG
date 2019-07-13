@@ -852,22 +852,20 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 
-	// TODO
-	// get new trie root after commit, then compare new root
-	// to the root in seq. If not equal then return error.
-
 	// commit statedb's changes to trie and triedb
 	root, errdb := dag.statedb.Commit()
 	if errdb != nil {
 		log.Errorf("can't Commit statedb, err: %v", errdb)
 		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
-	if root.Cmp(batch.Seq.StateRoot) != 0 {
-		log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
-			"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
-		dag.statedb.RevertToSnapshot(sId)
-		return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
-	}
+	// TODO
+	// compare the state root between seq.StateRoot and root after committing statedb.
+	//if root.Cmp(batch.Seq.StateRoot) != 0 {
+	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
+	//		"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	//	dag.statedb.RevertToSnapshot(sId)
+	//	return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	//}
 
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()

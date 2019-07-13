@@ -18,6 +18,7 @@ type RequstGenerator struct {
 	privKey crypto.PrivateKey
 	publicKey *crypto.PublicKey
 	address common.Address
+	Nodebug bool
 }
 
 func (r *RequstGenerator)Address()common.Address {
@@ -35,7 +36,9 @@ func NewRequestGenerator(priv crypto.PrivateKey) *RequstGenerator{
 func (r *RequstGenerator)TokenPublishing(nonce uint64, enableSPO bool, tokenName string, value *math.BigInt) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
 	from:= r.address
-	fmt.Println(from.String())
+	if !r.Nodebug {
+		fmt.Println(from.String())
+	}
 	tx := tx_types.ActionTx{
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
@@ -120,7 +123,9 @@ func (r *RequstGenerator)TokenDestroy(tokenId int32, nonce uint64) rpc.NewPublic
 func  (r *RequstGenerator)SecondPublicOffering( tokenId int32, nonce uint64, value *math.BigInt) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
 	from:= r.address
-	fmt.Println(from.String())
+	if !r.Nodebug {
+		fmt.Println(from.String())
+	}
 	tx := tx_types.ActionTx{
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
@@ -163,7 +168,9 @@ func  (r *RequstGenerator)SecondPublicOffering( tokenId int32, nonce uint64, val
 
 func (r *RequstGenerator) NormalTx( tokenId int32, nonce uint64, to common.Address,value *math.BigInt) rpc.NewTxRequest {
 	from := r.address
-	fmt.Println(from.String(), to.String())
+	if !r.Nodebug {
+		fmt.Println(from.String(), to.String())
+	}
 	tx := tx_types.Tx{
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeNormal,
@@ -178,8 +185,6 @@ func (r *RequstGenerator) NormalTx( tokenId int32, nonce uint64, to common.Addre
 	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
 	v := og.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
-	target := tx.SignatureTargets()
-	fmt.Println(hexutil.Encode(target))
 	if !ok {
 		target := tx.SignatureTargets()
 		fmt.Println(hexutil.Encode(target))

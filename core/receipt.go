@@ -28,6 +28,7 @@ const (
 	ReceiptStatusTermChangeSuccess
 	ReceiptStatusActionTxSuccess
 	ReceiptStatusArchiveSuccess
+	ReceiptStatusUnknownTxType
 )
 
 //go:generate msgp

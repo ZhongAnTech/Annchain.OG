@@ -15,8 +15,8 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -60,10 +60,10 @@ type StateObject struct {
 	dirtyStorage     map[common.Hash]common.Hash
 
 	trie Trie
-	db   *StateDB
+	db   StateDBInterface
 }
 
-func NewStateObject(addr common.Address, db *StateDB) *StateObject {
+func NewStateObject(addr common.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
@@ -81,8 +81,18 @@ func NewStateObject(addr common.Address, db *StateDB) *StateObject {
 	return s
 }
 
+func (s *StateObject) Copy(src *StateObject) {
+	s.address = src.address
+	s.addressHash = src.addressHash
+	s.data = src.data
+}
+
 func (s *StateObject) GetBalance(tokenID int32) *math.BigInt {
-	return s.data.Balances[tokenID]
+	b := s.data.Balances[tokenID]
+	if b == nil {
+		return math.NewBigInt(0)
+	}
+	return b
 }
 
 func (s *StateObject) GetAllBalance() BalanceSet {
@@ -110,7 +120,7 @@ func (s *StateObject) SubBalance(tokenID int32, decrement *math.BigInt) {
 }
 
 func (s *StateObject) SetBalance(tokenID int32, balance *math.BigInt) {
-	s.db.journal.append(&balanceChange{
+	s.db.AppendJournal(&balanceChange{
 		account: &s.address,
 		tokenID: tokenID,
 		prev:    s.data.Balances[tokenID],
@@ -123,7 +133,7 @@ func (s *StateObject) GetNonce() uint64 {
 }
 
 func (s *StateObject) SetNonce(nonce uint64) {
-	s.db.journal.append(&nonceChange{
+	s.db.AppendJournal(&nonceChange{
 		account: &s.address,
 		prev:    s.data.Nonce,
 	})
@@ -156,7 +166,7 @@ func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Has
 }
 
 func (s *StateObject) SetState(db Database, key, value common.Hash) {
-	s.db.journal.append(&storageChange{
+	s.db.AppendJournal(&storageChange{
 		account:  &s.address,
 		key:      key,
 		prevalue: s.GetState(db, key),
@@ -180,7 +190,7 @@ func (s *StateObject) GetCode(db Database) []byte {
 }
 
 func (s *StateObject) SetCode(codehash common.Hash, code []byte) {
-	s.db.journal.append(&codeChange{
+	s.db.AppendJournal(&codeChange{
 		account:  &s.address,
 		prevcode: s.code,
 		prevhash: s.data.CodeHash,
@@ -226,7 +236,7 @@ func (s *StateObject) updateTrie(db Database) {
 			delete(s.committedStorage, key)
 			continue
 		}
-		log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
+		//log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
 		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
 		if err != nil {
 			s.setError(err)
@@ -262,6 +272,23 @@ func (s *StateObject) Uncache() {
 /*
 	Encode part
 */
+
+func (s *StateObject) Map() map[string]interface{} {
+	stobjMap := map[string]interface{}{}
+
+	stobjMap["code"] = common.Bytes2Hex(s.code)
+	stobjMap["committed"] = s.committedStorage
+	stobjMap["dirty"] = s.dirtyStorage
+	stobjMap["data"] = s.data
+
+	return stobjMap
+}
+
+func (s *StateObject) String() string {
+	stobjMap := s.Map()
+	b, _ := json.Marshal(stobjMap)
+	return string(b)
+}
 
 func (s *StateObject) Encode() ([]byte, error) {
 	return s.data.MarshalMsg(nil)

@@ -131,7 +131,7 @@ type NewTxRequest struct {
 	CryptoType string `json:"crypto_type"`
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
-	TokenId    int32
+	TokenId    int32  `json:"token_id"`
 }
 
 //msgp:tuple NewTxsRequests

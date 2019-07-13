@@ -5,6 +5,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import cgi
+from urllib.parse import parse_qs
 
 ttl = 60 * 5
 PARTNERS = 2
@@ -20,7 +21,7 @@ PARTNERS = 2
 networks = {}
 
 
-def handle(req, sourceip):
+def handle(req, sourceip, requirePartners):
     network_id = req['networkid']
     publickey = req['publickey']
     # partners = req['partners']
@@ -32,9 +33,16 @@ def handle(req, sourceip):
     if network_id not in networks:
         networks[network_id] = {
             'time': time.time(),
-            'require': PARTNERS,
+            'require': requirePartners,
             'peers': {}
         }
+    else:
+        if networks[network_id]['require'] != requirePartners:
+            msg = {'status': 'error',
+                   'message': 'someone else specified required partners as %d, earlier than your %d' % (
+                       networks[network_id]['require'], requirePartners)}
+            print(msg)
+            return msg
 
     d = networks[network_id]
 
@@ -81,7 +89,7 @@ class Server(BaseHTTPRequestHandler):
 
     # GET sends back a Hello world message
     def do_GET(self):
-        j = bytes(json.dumps({'hello': 'world', 'received': 'ok'}), 'utf-8')
+        j = bytes(json.dumps(networks, indent=4), 'utf-8')
         self._set_headers(len(j))
         self.wfile.write(j)
 
@@ -98,10 +106,11 @@ class Server(BaseHTTPRequestHandler):
         # read the message and convert it into a python dictionary
         length = int(self.headers.get('content-length'))
         message = json.loads(self.rfile.read(length))
+        required = int(self.path[1:])
 
         self.lock.acquire()
         try:
-            resp = handle(message, self.client_address[0])
+            resp = handle(message, self.client_address[0], required)
         finally:
             self.lock.release()
 
@@ -115,10 +124,10 @@ class Server(BaseHTTPRequestHandler):
             self.lock.acquire()
             try:
                 to_remove = []
-                # for k, v in networks.items():
-                    # if time.time() - v['time'] > ttl:
-                    #     # remove it
-                    #     to_remove.append(k)
+                for k, v in networks.items():
+                    if time.time() - v['time'] > ttl:
+                        # remove it
+                        to_remove.append(k)
 
                 for k in to_remove:
                     print('Removing network id', k)

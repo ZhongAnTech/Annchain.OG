@@ -15,14 +15,15 @@ package tx_types
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/types"
-	"math/rand"
-	"strings"
-	"time"
 )
 
 //go:generate msgp  never generate automaticly
@@ -40,11 +41,11 @@ type ActionData interface {
 
 //msgp:tuple PublicOffering
 type PublicOffering struct {
-	TokenId int32 //for Secondary Public Offering
-	Value   *math.BigInt
+	TokenId int32        `json:"token_id"` //for Secondary Public Offering
+	Value   *math.BigInt `json:"value"`
 	//To      Address       //when publish a token ,to equals from
-	EnableSPO bool //if enableSPO is false  , no Secondary Public Offering.
-	TokenName string
+	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Offering.
+	TokenName string `json:"token_name"`
 }
 
 func NewPublicOffering() *PublicOffering {
@@ -167,10 +168,11 @@ func (t *ActionTx) SignatureTargets() []byte {
 		of := t.GetPublicOffering()
 		w.Write(of.Value.GetSigBytes(), of.EnableSPO)
 		if t.Action == ActionTxActionIPO {
-			w.Write(of.TokenName)
-		}else {
+			w.Write([]byte(of.TokenName))
+		} else {
 			w.Write(of.TokenId)
 		}
+
 	} else if t.Action == ActionRequestDomainName {
 		r := t.GetDomainName()
 		w.Write(r.DomainName)

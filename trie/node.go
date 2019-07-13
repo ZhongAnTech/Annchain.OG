@@ -22,7 +22,6 @@ import (
 	"io"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -173,13 +172,13 @@ func decodeNode(hash, buf []byte, cachegen uint16) (Node, error) {
 	if bytes.Equal(prefix, encodePrefixFullNode) {
 		n, err := decodeFull(hash, data, cachegen)
 
-		log.Tracef("Panic debug, decode Fullnode, hash: %x, data: %x, fullnode: %s", hash, data, n.String())
+		//log.Tracef("Panic debug, decode Fullnode, hash: %x, data: %x, fullnode: %s", hash, data, n.String())
 		return n, wrapError(err, "full")
 	}
 	if bytes.Equal(prefix, encodePrefixShortNode) {
 		n, err := decodeShort(hash, data, cachegen)
 
-		log.Tracef("Panic debug, decode Shortnode, hash: %x, data: %x, shortnode: %s", hash, data, n.String())
+		//log.Tracef("Panic debug, decode Shortnode, hash: %x, data: %x, shortnode: %s", hash, data, n.String())
 		return n, wrapError(err, "short")
 	}
 	return nil, fmt.Errorf("invalid prefix of encoded node: %v", prefix)

@@ -77,14 +77,16 @@ func NewStateDB(conf StateDBConfig, db Database, root common.Hash) (*StateDB, er
 		return nil, err
 	}
 	sd := &StateDB{
-		conf:     conf,
-		db:       db,
-		trie:     tr,
-		states:   make(map[common.Address]*StateObject),
-		dirtyset: make(map[common.Address]struct{}),
-		journal:  newJournal(),
-		close:    make(chan struct{}),
-		root:     root,
+		conf:        conf,
+		db:          db,
+		trie:        tr,
+		states:      make(map[common.Address]*StateObject),
+		dirtyset:    make(map[common.Address]struct{}),
+		journal:     newJournal(),
+		snapshotID:  0,
+		snapshotSet: make([]shot, 0),
+		close:       make(chan struct{}),
+		root:        root,
 	}
 
 	return sd, nil
@@ -109,17 +111,16 @@ func (sd *StateDB) CreateAccount(addr common.Address) {
 	newstate := NewStateObject(addr, sd)
 	oldstate := sd.getStateObject(addr)
 	if oldstate != nil {
-		sd.journal.append(&resetObjectChange{
+		sd.AppendJournal(&resetObjectChange{
 			prev: oldstate,
 		})
 	} else {
-		sd.journal.append(&createObjectChange{
+		sd.AppendJournal(&createObjectChange{
 			account: &addr,
 		})
 	}
 	sd.states[addr] = newstate
 	// sd.beats[addr] = time.Now()
-
 }
 
 func (sd *StateDB) GetBalance(addr common.Address) *math.BigInt {
@@ -211,7 +212,6 @@ func (sd *StateDB) GetStateObject(addr common.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.getStateObject(addr)
 }
 func (sd *StateDB) getStateObject(addr common.Address) *StateObject {
@@ -237,7 +237,6 @@ func (sd *StateDB) GetOrCreateStateObject(addr common.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.getOrCreateStateObject(addr)
 }
 func (sd *StateDB) getOrCreateStateObject(addr common.Address) *StateObject {
@@ -390,14 +389,14 @@ func (sd *StateDB) SetNonce(addr common.Address, nonce uint64) {
 }
 
 func (sd *StateDB) AddRefund(increment uint64) {
-	sd.journal.append(&refundChange{
+	sd.AppendJournal(&refundChange{
 		prev: sd.refund,
 	})
 	sd.refund += increment
 }
 
 func (sd *StateDB) SubRefund(decrement uint64) {
-	sd.journal.append(&refundChange{
+	sd.AppendJournal(&refundChange{
 		prev: sd.refund,
 	})
 	if decrement > sd.refund {
@@ -419,7 +418,7 @@ func (sd *StateDB) setStateObject(addr common.Address, stobj *StateObject) {
 	if oldobj == nil {
 		return
 	}
-	sd.journal.append(&resetObjectChange{
+	sd.AppendJournal(&resetObjectChange{
 		prev: oldobj,
 	})
 	sd.states[addr] = stobj
@@ -438,12 +437,16 @@ func (sd *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stobj.SetState(sd.db, key, value)
 }
 
+func (sd *StateDB) AppendJournal(entry JournalEntry) {
+	sd.journal.append(entry)
+}
+
 func (sd *StateDB) Suicide(addr common.Address) bool {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return false
 	}
-	sd.journal.append(&suicideChange{
+	sd.AppendJournal(&suicideChange{
 		account:     &addr,
 		prev:        stobj.suicided,
 		prevbalance: stobj.data.Balances.Copy(),
@@ -504,37 +507,6 @@ func (sd *StateDB) loadStateObject(addr common.Address) (*StateObject, error) {
 	return &state, nil
 }
 
-//// purge tries to remove all the state that haven't sent any beat
-//// for a long time.
-////
-//// Note that dirty states will not be removed.
-//func (sd *StateDB) purge() {
-//	// TODO
-//	// purge will cause a panic problem, so temporaly comments the code.
-//	//
-//	// panic: [fatal error: concurrent map writes]
-//	// reason: the reason is that [sd.beats] is been concurrently called and
-//	// there is no lock handling this parameter.
-//
-//	// for addr, lastbeat := range sd.beats {
-//	// 	// skip dirty states
-//	// 	if _, in := sd.journal.dirties[addr]; in {
-//	// 		continue
-//	// 	}
-//	// 	if _, in := sd.dirtyset[addr]; in {
-//	// 		continue
-//	// 	}
-//	// 	if time.Since(lastbeat) > sd.conf.BeatExpireTime {
-//	// 		sd.deleteStateObject(addr)
-//	// 	}
-//	// }
-//}
-//
-//// refreshbeat update the beat time of an address.
-//func (sd *StateDB) refreshbeat(addr common.Address) {
-//	// sd.beats[addr] = time.Now()
-//}
-
 // Commit tries to save dirty data to memory trie db.
 func (sd *StateDB) Commit() (common.Hash, error) {
 	sd.mu.Lock()
@@ -555,6 +527,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
+		log.Tracef("commit state, addr: %s, state: %s", addr.Hex(), state.String())
 		// commit state's code
 		if state.code != nil && state.dirtycode {
 			sd.db.TrieDB().Insert(state.GetCodeHash(), state.code)
@@ -566,7 +539,6 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
-		log.Tracef("Panic debug, statdb commit, addr: %x, data: %x", addr.ToBytes(), data)
 		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}
@@ -596,40 +568,37 @@ func (sd *StateDB) commit() (common.Hash, error) {
 	log.WithField("rootHash", rootHash).Trace("state root set to")
 	sd.root = rootHash
 
-	sd.clearJournalAndRefund()
 	return rootHash, err
 }
 
-func (sd *StateDB) loop() {
-	if sd.conf.PurgeTimer < time.Millisecond {
-		sd.conf.PurgeTimer = time.Second
-	}
-	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
-
-	for {
-		select {
-		case <-sd.close:
-			purgeTimer.Stop()
-			return
-
-		case <-purgeTimer.C:
-			sd.mu.Lock()
-			sd.mu.Unlock()
-		}
-	}
-}
+//func (sd *StateDB) loop() {
+//	if sd.conf.PurgeTimer < time.Millisecond {
+//		sd.conf.PurgeTimer = time.Second
+//	}
+//	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
+//
+//	for {
+//		select {
+//		case <-sd.close:
+//			purgeTimer.Stop()
+//			return
+//
+//		case <-purgeTimer.C:
+//			sd.mu.Lock()
+//			sd.mu.Unlock()
+//		}
+//	}
+//}
 
 func (sd *StateDB) Snapshot() int {
 	id := sd.snapshotID
 	sd.snapshotID++
 	sd.snapshotSet = append(sd.snapshotSet, shot{shotid: id, journalIndex: sd.journal.length()})
+	log.Tracef("snapshot id: %d", id)
 	return id
 }
 
 func (sd *StateDB) RevertToSnapshot(snapshotid int) {
-	// TODO
-	// Ethereum uses sort.Search to get the valid snapshot,
-	// consider any necessary for this.
 	index := 0
 	s := shot{shotid: -1}
 	for i, shotInMem := range sd.snapshotSet {

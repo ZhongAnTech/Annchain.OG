@@ -1,0 +1,40 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ognb-bootstrap
+spec:
+  replicas: 2
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      labels:
+        app: ognb-bootstrap
+      annotations:
+        kubernetes.io/ingress-bandwidth: 1024M
+        kubernetes.io/egress-bandwidth: 1024M
+    spec:
+      containers:
+        - name: ognb-bootstrap
+          image: 172.28.152.101:5000/ognb
+          env:
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://192.168.198.25:8008"
+            - name: OG_P2P.NETWORK_ID
+              value: "2"
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+          resources:
+            limits:
+              cpu: "4"
+            requests:
+              cpu: "2"

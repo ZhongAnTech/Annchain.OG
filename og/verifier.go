@@ -32,6 +32,7 @@ type Verifier interface {
 	Verify(t types.Txi) bool
 	Name() string
 	String() string
+	Independent() bool
 }
 
 type TxFormatVerifier struct {
@@ -39,6 +40,7 @@ type TxFormatVerifier struct {
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
 	NoVerifyMindHash  bool
 	NoVerifyMaxTxHash bool
+
 }
 
 //consensus related verification
@@ -46,6 +48,7 @@ type ConsensusVerifier struct {
 	VerifyCampaign   func(cp *tx_types.Campaign) bool
 	VerifyTermChange func(cp *tx_types.TermChange) bool
 	VerifySequencer  func(cp *tx_types.Sequencer) bool
+
 }
 
 func (c *ConsensusVerifier) Verify(t types.Txi) bool {
@@ -72,8 +75,16 @@ func (v *TxFormatVerifier) Name() string {
 	return "TxFormatVerifier"
 }
 
+func (v *TxFormatVerifier)Independent() bool{
+	return true
+}
+
 func (c *ConsensusVerifier) Name() string {
 	return "ConsensusVerifier"
+}
+
+func (v *ConsensusVerifier)Independent() bool{
+	return false
 }
 
 func (c *TxFormatVerifier) String() string {
@@ -83,12 +94,20 @@ func (c *TxFormatVerifier) String() string {
 func (c *GraphVerifier) String() string {
 	return c.Name()
 }
+func (v *GraphVerifier)Independent() bool{
+	return false
+}
+
+
 
 func (c *ConsensusVerifier) String() string {
 	return c.Name()
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+	if t.FormatVerified() {
+		return true
+	}
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
@@ -97,6 +116,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
+	t.SetFormatVerified()
 	return true
 }
 

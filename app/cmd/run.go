@@ -16,6 +16,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
@@ -117,9 +118,26 @@ func readConfig() {
 
 	if io.FileExists(configPath) {
 		mergeLocalConfig(configPath)
-		return
+	} else {
+		mergeOnlineConfig(viper.GetString("config"))
 	}
-	mergeOnlineConfig(viper.GetString("config"))
+
+	// load injected config from ogbootstrap if any
+	injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
+	if io.FileExists(injectedPath) {
+		mergeLocalConfig(injectedPath)
+	}
+
+	mergeEnvConfig()
+	b, err := common.PrettyJson(viper.AllSettings())
+	panicIfError(err, "dump json")
+	fmt.Println(b)
+}
+
+func mergeEnvConfig() {
+	// env override
+	viper.SetEnvPrefix("og")
+	viper.AutomaticEnv()
 }
 
 func writeConfig() {

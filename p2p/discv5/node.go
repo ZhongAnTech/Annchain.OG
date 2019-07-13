@@ -36,6 +36,8 @@ import (
 
 // Node represents a host on the network.
 // The public fields of Node may not be modified.
+//go:generate msgp
+//msgp:tuple Node
 type Node struct {
 	//IP       net.IP // len 4 for IPv4 or 16 for IPv6
 	IP       []byte

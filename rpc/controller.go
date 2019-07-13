@@ -44,6 +44,7 @@ type RpcController struct {
 	AutoTxCli          AutoTxClient
 	NewRequestChan     chan types.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
+	FormatVerifier     *og.TxFormatVerifier
 }
 
 type AutoTxClient interface {

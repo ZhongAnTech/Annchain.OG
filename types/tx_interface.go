@@ -59,6 +59,8 @@ type Txi interface {
 	Msgsize() (s int)
 	GetVersion() byte
 	ToSmallCaseJson() ([]byte, error)
+	FormatVerified()bool
+	SetFormatVerified ()
 }
 
 type RawTxi interface {
@@ -170,7 +172,7 @@ func (t Txis) Swap(i, j int) {
 //	}
 //	return
 //}
-
+//msgp:tuple RawTxis
 type RawTxis []RawTxi
 
 func (t Txis) RawTxis() RawTxis {
@@ -187,6 +189,7 @@ func (t Txis) RawTxis() RawTxis {
 	return txs
 }
 
+//msgp:tuple TxiSmallCaseMarshal
 type TxiSmallCaseMarshal struct {
 	Txi Txi
 }

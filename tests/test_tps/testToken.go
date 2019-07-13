@@ -28,25 +28,25 @@ import (
 var txurl = "http://172.28.152.101:8000/new_transaction"
 var ipoUrl = "http://172.28.152.101:8000/token/NewPublicOffering"
 var spoUrl = "http://172.28.152.101:8000/token/NewSecondOffering"
-var withdrawUrl = "http://172.28.152.101:8000/token/TokenWithdraw"
+var destroyUrl = "http://172.28.152.101:8000/token/Destroy"
 
 var debug bool
 
 func main() {
 	debug = true
-	a := newApp()
-	nonce := 7
+	a := newTxClient()
+	nonce := 6
 	priv, pub, addr := getkey()
-	tokenName := "btcd"
+	tokenName := "btcdh"
 	_ = tokenName
 	//request := generateTokenPublishing(priv,pub,addr,nonce,true,tokenName)
 	//a.sendTx(&request,0,ipoUrl)
 	//request := secondPublicOffering(priv, pub, addr, 2, nonce)
 	//a.sendTx(&request, 0, spoUrl)
-	//request := transfer(priv, pub, addr, 2, nonce)
+	//request := transfer(priv, pub, addr, 3, nonce)
 	//a.sendTx(&request, 0, txurl)
-	request := withdraw(priv,pub,addr,2,nonce)
-	a.sendTx(&request,0,withdrawUrl)
+	request := destroyRequest(priv, pub, addr, 2, nonce)
+	a.sendTx(&request, 0, destroyUrl)
 	return
 }
 
@@ -111,7 +111,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 	return request
 }
 
-func withdraw(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, tokenId int32, nonce int) rpc.NewPublicOfferingRequest {
+func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, tokenId int32, nonce int) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
 	//from:= pub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String())

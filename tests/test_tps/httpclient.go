@@ -6,7 +6,7 @@
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
+// Unless required by TxClientlicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/rpc"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -42,25 +43,39 @@ func newTransport() *http.Transport {
 	return transport
 }
 
-func newApp() app {
-	a := app{
-		client: &http.Client{
+func NewTxClient(Host string) TxClient {
+	a := TxClient{
+		httpClient: &http.Client{
 			Timeout:   time.Second * 10,
 			Transport: newTransport(),
 		},
 		requestChan: make(chan *rpc.NewTxRequest, 100),
 		quit:        make(chan bool),
 	}
+	a.Host = Host
 	return a
 }
 
-type app struct {
-	client      *http.Client
+type TxClient struct {
+	httpClient      *http.Client
 	requestChan chan *rpc.NewTxRequest
 	quit        chan bool
+	Host        string
 }
 
-func (o *app) ConsumeQueue() {
+func (a *TxClient)StartAsyncLoop() {
+	go a.ConsumeQueue()
+}
+
+func (a *TxClient)Stop() {
+	close(a.quit)
+}
+
+func (A *TxClient)SendAsyncTx(Req  *rpc.NewTxRequest) {
+	A.requestChan<-Req
+}
+
+func (o *TxClient) ConsumeQueue() {
 	i := 0
 	for {
 		logrus.WithField("size", len(o.requestChan)).Debug("og queue size")
@@ -70,9 +85,9 @@ func (o *app) ConsumeQueue() {
 			if debug {
 				fmt.Println(data)
 			}
-			err := o.sendTx(data, i, txurl)
+			resp, err := o.SendNormalTx(data)
 			if err != nil {
-				logrus.WithError(err).Warnf("failed to send to ledger")
+				logrus.WithField("resp",resp).WithError(err).Warnf("failed to send to ledger")
 			}
 		case <-o.quit:
 			logrus.Info("OgProcessor stopped")
@@ -82,7 +97,23 @@ func (o *app) ConsumeQueue() {
 
 }
 
-func (a *app) sendTx(request interface{}, i int, url string) error {
+func (a *TxClient)SendNormalTx(request *rpc.NewTxRequest) ( string,error  ){
+	return a.sendTx(request,"new_transaction","POST")
+}
+
+func (a *TxClient)SendTokenIPO(request *rpc.NewPublicOfferingRequest) ( string,error ){
+	return a.sendTx(request,"token","POST")
+}
+
+func (a *TxClient)SendTokenSPO(request *rpc.NewPublicOfferingRequest) ( string,error  ){
+	return a.sendTx(request,"token","PUT")
+}
+
+func (a *TxClient)SendTokenDestroy(request *rpc.NewPublicOfferingRequest) ( string,error  ){
+	return a.sendTx(request,"token","DELETE")
+}
+
+func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( string,error  ) {
 	//req := httplib.NewBeegoRequest(url,"POST")
 	//req.SetTimeout(time.Second*10,time.Second*10)
 	data, err := json.Marshal(request)
@@ -90,12 +121,13 @@ func (a *app) sendTx(request interface{}, i int, url string) error {
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	req, err := http.NewRequest("POST", url, r)
+	url := a.Host+"/"+"uri"
+	req, err := http.NewRequest(methd, url, r)
 
-	resp, err := a.client.Do(req)
+	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return "",err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -106,16 +138,60 @@ func (a *app) sendTx(request interface{}, i int, url string) error {
 
 	str := string(resDate)
 	if err != nil {
-		fmt.Println(i, str, err)
-		return err
+		fmt.Println(str, err)
+		return "",err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return errors.New(resp.Status)
+		return "",errors.New(resp.Status)
+	}
+	var respStruct struct{
+		Data  string `json:"data"`
+	}
+	err = json.Unmarshal(resDate,&respStruct)
+	if err != nil {
+		fmt.Println(str, err)
+		return "",err
 	}
 	if debug {
-		fmt.Println(i, err, str)
+		fmt.Println(respStruct.Data)
 	}
-	return nil
+	return respStruct.Data, nil
+}
+
+func (a *TxClient) getNonce(addr common.Address) (nonce uint64) {
+	uri := fmt.Sprintf("query_nonce?address=%s", addr.Hex())
+	url := a.Host + "/" + uri
+	req, err := http.NewRequest("GET", url, nil)
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	//now := time.Now()
+	defer resp.Body.Close()
+	resDate, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	str := string(resDate)
+	if err != nil {
+		fmt.Println(str, err)
+		return  0
+	}
+	if resp.StatusCode != 200 {
+		//panic( resp.StatusCode)
+		fmt.Println(resp.StatusCode)
+		return 0
+	}
+	var nonceResp struct {
+		Nonce uint64 `json:"nonce"`
+	}
+	err = json.Unmarshal(resDate,&nonceResp)
+	if err != nil {
+		fmt.Println("encode nonce errror ", err)
+		return 0
+	}
+	return nonceResp.Nonce
 }

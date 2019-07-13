@@ -15,7 +15,11 @@ package og
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
@@ -23,8 +27,6 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 type dummyDag struct {
@@ -43,7 +45,7 @@ func (d *dummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetBalance(address common.Address,tokenId int32) *math.BigInt {
+func (d *dummyDag) GetBalance(address common.Address, tokenId int32) *math.BigInt {
 	return math.NewBigInt(0)
 }
 
@@ -171,6 +173,10 @@ func (d *dummyVerifier) Name() string {
 
 func (d *dummyVerifier) String() string {
 	return d.Name()
+}
+
+func (d *dummyVerifier) Independent() bool {
+	return false
 }
 
 func setup() *TxBuffer {
@@ -307,5 +313,42 @@ func TestLocalHash(t *testing.T) {
 	}
 	if buffer.isLocalHash(tx3.GetTxHash()) {
 		t.Fatal("is not localhash")
+	}
+}
+
+func TestTxBuffer_Handle(t *testing.T) {
+	t.Parallel()
+	logrus.SetLevel(logrus.TraceLevel)
+	ver := &TxFormatVerifier{
+		NoVerifyMaxTxHash: true,
+		NoVerifyMindHash:  true,
+	}
+	buffer := NewTxBuffer(TxBufferConfig{
+		Verifiers:                        []Verifier{ver},
+		DependencyCacheMaxSize:           20,
+		TxPool:                           new(dummyTxPool),
+		DependencyCacheExpirationSeconds: 60,
+		NewTxQueueSize:                   100,
+		KnownCacheMaxSize:                10000,
+		KnownCacheExpirationSeconds:      30,
+	})
+	pub, priv := crypto.Signer.RandomKeyPair()
+	from := pub.Address()
+	N := 20
+	var txs types.Txis
+	for i := 0; i < N; i++ {
+		tx := tx_types.RandomTx()
+		tx.Height = 1
+		tx.Weight = tx.Weight % uint64(N)
+		tx.SetSender(from)
+		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes
+		tx.PublicKey = pub.Bytes
+		tx.Hash = tx.CalcTxHash()
+		txs = append(txs, tx)
+	}
+	logrus.Debug("handle txis start", txs)
+	buffer.handleTxs(txs)
+	for i := 0; i < N; i++ {
+
 	}
 }

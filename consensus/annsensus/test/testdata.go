@@ -17,13 +17,12 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp
-
+//msgp:tuple TestMsg
 type TestMsg struct {
 	Message     p2p_message.Message
 	MessageType og.MessageType

@@ -15,17 +15,18 @@ package tx_types
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/common/msg"
 	"github.com/annchain/OG/types"
-	"math/rand"
-	"strings"
-	"time"
 )
 
-////go:generate msgp  never generate automaticly
+//go:generate msgp  never generate automaticly
 const (
 	ActionTxActionIPO uint8 = iota
 	ActionTxActionDestroy
@@ -45,6 +46,12 @@ type PublicOffering struct {
 	//To      Address       //when publish a token ,to equals from
 	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Offering.
 	TokenName string `json:"token_name"`
+}
+
+func NewPublicOffering() *PublicOffering {
+	return &PublicOffering{
+		Value: math.NewBigInt(0),
+	}
 }
 
 //msgp:tuple RequestDomain

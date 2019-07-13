@@ -33,17 +33,20 @@ type FooI interface {
 	GetName() string
 }
 
+//msgp:tuple Person
 type Person struct {
 	Name string
 	Age  int
 	Type uint16
 }
 
+//msgp:tuple Student
 type Student struct {
 	Person
 	Score int
 }
 
+//msgp:tuple Teacher
 type Teacher struct {
 	Person
 	Teach bool

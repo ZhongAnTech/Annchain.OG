@@ -293,7 +293,7 @@ func run(n int) {
 
 	for j := 0; j < n; j++ {
 		as := NewAnnSensus(4, false, crypto.CryptoTypeSecp256k1, true, n,
-			n, pks, "test.json", false)
+			pks, "test.json", false)
 		a := TestAnnSensus{
 			AnnSensus: as,
 		}

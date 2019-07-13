@@ -15,14 +15,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/encryption"
-	"github.com/annchain/OG/common/io"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/io"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -32,17 +32,20 @@ var (
 		Run:   gen,
 	}
 	//normal bool
-	solo     bool
-	private  bool
-	nodesNum int
+	solo             bool
+	private          bool
+	privateServer    bool
+	embededBootstrap bool
+	nodesNum         int
 )
 
 var (
-	privateDir         = "private"
-	soloDir            = "solo"
-	mainNetDir         = "main_net"
-	privateKeyFile     = "privkey"
-	port           int = 8000
+	privateServerDir     = "private_server"
+	privateDir           = "private"
+	soloDir              = "solo"
+	mainNetDir           = "main_net"
+	privateKeyFile       = "privkey"
+	port             int = 8000
 )
 
 var configFileName = "config.toml"
@@ -54,130 +57,202 @@ func genInit() {
 	//genCmd.PersistentFlags().BoolVarP(&normal,"normal", "m", true, "normal node that connect to main network")
 	genCmd.PersistentFlags().BoolVarP(&solo, "solo", "s", false, "solo node that use auto client to produce sequencer")
 	genCmd.PersistentFlags().BoolVarP(&private, "private", "p", false, "private nodes that use your own boot-strap nodes")
-	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system")
+	genCmd.PersistentFlags().BoolVarP(&privateServer, "privateserver", "k", false, "private nodes that will use a bootstrap server to decide bootstrap nodes")
+	genCmd.PersistentFlags().BoolVarP(&embededBootstrap, "embeded_bootstrap", "e", true, "if put bootstrap node info inside config")
+	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system。 At least 2.")
 	genCmd.PersistentFlags().IntVarP(&port, "port", "t", 8000, "the port of private network")
+}
+
+func privateChainWithServerConfig() {
+	viper.Set("rpc.port", port)
+	viper.Set("p2p.port", port+1)
+	viper.Set("websocket.port", port+2)
+	viper.Set("profiling.port", port+3)
+	viper.Set("annsensus.campaign", true)
+	viper.Set("p2p.bootstrap_config_server", "http://localhost:8008")
+	//generate consensus group keys
+	var privateSet []string
+	for i := 0; i < nodesNum; i++ {
+		priv, _ := account.GenAccount()
+		privateSet = append(privateSet, priv.String())
+	}
+
+	err := io.MkDirIfNotExists(privateServerDir)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateServerDir, err))
+		return
+	}
+
+	for i := 0; i < len(privateSet); i++ {
+		viper.Set("rpc.port", port+10*i)
+		viper.Set("p2p.port", port+10*i+1)
+		viper.Set("websocket.port", port+10*i+2)
+		viper.Set("profiling.port", port+10*i+3)
+		viper.Set("leveldb.path", fmt.Sprintf("rw/datadir_%d", i))
+		viper.Set("annsensus.consensus_path", fmt.Sprintf("consensus%d.json", i))
+		//nodekey, _ := genBootONode(port + 10*i + 1)
+		fmt.Println("private key: ", i)
+
+		configDir := path.Join(privateServerDir, fmt.Sprintf("/node_%d", i))
+		err = io.MkDirIfNotExists(configDir)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", configDir, err))
+			return
+		}
+		account.SavePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
+		//viper.Set("dag.my_private_key", privateSet[i])
+		err = viper.WriteConfigAs(path.Join(configDir, configFileName))
+		panicIfError(err, "error on dump config")
+		io.CopyFile("genesis.json", path.Join(configDir, "genesis.json"))
+	}
+}
+
+func privateChainConfig() {
+	nodekeyBoot, nodeBoot := genBootONode(port + 1)
+	if embededBootstrap {
+		viper.Set("p2p.bootstrap_nodes", nodeBoot)
+	}
+	viper.Set("rpc.port", port)
+	viper.Set("p2p.port", port+1)
+	viper.Set("websocket.port", port+2)
+	viper.Set("profiling.port", port+3)
+
+	//generate consensus group keys
+	var privateSet []string
+	var publicSet []string
+	for i := 0; i < nodesNum; i++ {
+		priv, pub := account.GenAccount()
+		privateSet = append(privateSet, priv.String())
+		publicSet = append(publicSet, pub.String())
+	}
+	genesisPk := strings.Join(publicSet, ";")
+	viper.Set("annsensus.genesis_pk", genesisPk)
+	viper.Set("annsensus.campaign", true)
+	viper.Set("annsensus.partner_number", nodesNum)
+	viper.Set("annsensus.threshold", 2*nodesNum/3+1)
+
+	err := io.MkDirIfNotExists(privateDir)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir, err))
+		return
+	}
+
+	privateDirNode0 := path.Join(privateDir, "node_0")
+	err = io.MkDirIfNotExists(privateDirNode0)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDirNode0, err))
+		return
+	}
+	// init private key
+	// viper.Set("dag.my_private_key", privateSet[0])
+	account.SavePrivateKey(path.Join(privateDirNode0, privateKeyFile), privateSet[0])
+
+	//init bootstrap
+	viper.Set("p2p.node_key", nodekeyBoot)
+	viper.Set("p2p.bootstrap_node", true)
+	viper.Set("leveldb.path", "rw/datadir_0")
+	viper.Set("annsensus.consensus_path", "consensus0.json")
+	err = viper.WriteConfigAs(path.Join(privateDirNode0, configFileName))
+	panicIfError(err, "error on dump config")
+
+	// copy genesis
+	io.CopyFile("genesis.json", path.Join(privateDirNode0, "genesis.json"))
+
+	//init other nodes
+	viper.Set("annsensus.campaign", true)
+	viper.Set("p2p.bootstrap_node", false)
+	for i := 1; i < len(privateSet); i++ {
+		viper.Set("rpc.port", port+10*i)
+		viper.Set("p2p.port", port+10*i+1)
+		viper.Set("websocket.port", port+10*i+2)
+		viper.Set("profiling.port", port+10*i+3)
+		viper.Set("leveldb.path", fmt.Sprintf("rw/datadir_%d", i))
+		viper.Set("annsensus.consensus_path", fmt.Sprintf("consensus%d.json", i))
+		nodekey, _ := genBootONode(port + 10*i + 1)
+		viper.Set("p2p.node_key", nodekey)
+		fmt.Println("private key: ", i)
+
+		configDir := path.Join(privateDir, fmt.Sprintf("/node_%d", i))
+		err = io.MkDirIfNotExists(configDir)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", configDir, err))
+			return
+		}
+		account.SavePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
+		//viper.Set("dag.my_private_key", privateSet[i])
+		err = viper.WriteConfigAs(path.Join(configDir, configFileName))
+		panicIfError(err, "error on dump config")
+		io.CopyFile("genesis.json", path.Join(configDir, "genesis.json"))
+	}
+}
+
+func soloChainConfig() {
+	nodekeyBoot, nodeBoot := genBootONode(port + 1)
+	if embededBootstrap {
+		viper.Set("p2p.bootstrap_nodes", nodeBoot)
+	}
+
+	viper.Set("p2p.node_key", nodekeyBoot)
+	viper.Set("annsensus.disable", true)
+	viper.Set("auto_client.sequencer.enabled", true)
+	viper.Set("p2p.bootstrap_node", true)
+
+	priv, _ := account.GenAccount()
+
+	viper.Set("rpc.port", port)
+	viper.Set("p2p.port", port+1)
+	viper.Set("websocket.port", port+2)
+	viper.Set("profiling.port", port+3)
+	err := io.MkDirIfNotExists(soloDir)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("check and make dir %s error: %v", soloDir, err))
+		return
+	}
+
+	// viper.Set("dag.my_private_key", priv.String())
+	account.SavePrivateKey(path.Join(soloDir, privateKeyFile), priv.String())
+	err = viper.WriteConfigAs(path.Join(soloDir, configFileName))
+	panicIfError(err, "error on dump config")
+	io.CopyFile("genesis.json", path.Join(soloDir, "genesis.json"))
+}
+
+func mainChainConfig() {
+	if embededBootstrap {
+		viper.Set("p2p.bootstrap_nodes", mainNetBootstrap)
+	}
+
+	viper.Set("annsensus.genesis_pk", mainNetGenesisPk)
+
+	priv, _ := account.GenAccount()
+	viper.Set("rpc.port", port)
+	viper.Set("p2p.port", port+1)
+	viper.Set("websocket.port", port+2)
+	viper.Set("profiling.port", port+3)
+
+	err := io.MkDirIfNotExists(mainNetDir)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("check and make dir %s error: %v", mainNetDir, err))
+		return
+	}
+
+	//viper.Set("dag.my_private_key", priv.String())
+	account.SavePrivateKey(path.Join(mainNetDir, privateKeyFile), priv.String())
+	err = viper.WriteConfigAs(path.Join(mainNetDir, configFileName))
+	panicIfError(err, "error on dump config")
+	io.CopyFile("genesis.json", path.Join(mainNetDir, "genesis.json"))
 }
 
 func gen(cmd *cobra.Command, args []string) {
 	readConfig()
-
-	if private {
-		nodekeyBoot, nodeBoot := genBootONode(port + 1)
-		viper.Set("p2p.bootstrap_nodes", nodeBoot)
-		viper.Set("rpc.port", port)
-		viper.Set("p2p.port", port+1)
-		viper.Set("websocket.port", port+2)
-		viper.Set("profiling.port", port+3)
-
-		//generate consensus group keys
-		var privateSet []string
-		var publicSet []string
-		for i := 0; i < nodesNum; i++ {
-			priv, pub := genAccount()
-			privateSet = append(privateSet, priv.String())
-			publicSet = append(publicSet, pub.String())
-		}
-		genesisPk := strings.Join(publicSet, ";")
-		viper.Set("annsensus.genesis_pk", genesisPk)
-		viper.Set("annsensus.campaign", true)
-
-		err := io.MkDirIfNotExists(privateDir)
-		if err != nil {
-			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir, err))
-			return
-		}
-
-		// init private key
-		// viper.Set("dag.my_private_key", privateSet[0])
-		err = io.MkDirIfNotExists(privateDir + "/node_0")
-		if err != nil {
-			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", privateDir+"/node_0", err))
-			return
-		}
-
-		savePrivateKey(path.Join(privateDir+"/node_0/", privateKeyFile), privateSet[0])
-
-		//init bootstrap
-		viper.Set("p2p.node_key", nodekeyBoot)
-		viper.Set("p2p.bootstrap_node", true)
-		viper.Set("leveldb.path", "rw/datadir_0")
-		viper.Set("annsensus.consensus_path", "consensus0.json")
-		viper.WriteConfigAs(privateDir + "/node_0/" + configFileName)
-		// copy genesis
-		io.CopyFile("genesis.json", privateDir+"/node_0/"+"genesis.json")
-
-		//init other nodes
-		viper.Set("annsensus.campaign", false)
-		viper.Set("p2p.bootstrap_node", false)
-		for i := 1; i < len(privateSet); i++ {
-			viper.Set("rpc.port", port+10*i)
-			viper.Set("p2p.port", port+10*i+1)
-			viper.Set("websocket.port", port+10*i+2)
-			viper.Set("profiling.port", port+10*i+3)
-			viper.Set("leveldb.path", fmt.Sprintf("rw/datadir_%d", i))
-			viper.Set("annsensus.consensus_path", fmt.Sprintf("consensus%d.json", i))
-			nodekey, _ := genBootONode(port + 10*i + 1)
-			viper.Set("p2p.node_key", nodekey)
-			fmt.Println("private key: ", i)
-			configDir := privateDir + "/node_" + fmt.Sprintf("%d", i)
-			err = io.MkDirIfNotExists(configDir)
-			if err != nil {
-				fmt.Println(fmt.Sprintf("check and make dir %s error: %v", configDir, err))
-				return
-			}
-			savePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
-			//viper.Set("dag.my_private_key", privateSet[i])
-			viper.WriteConfigAs(configDir + "/" + configFileName)
-			io.CopyFile("genesis.json", configDir+"/"+"genesis.json")
-		}
-
+	if privateServer {
+		privateChainWithServerConfig()
+	} else if private {
+		privateChainConfig()
 	} else if solo {
-		nodekeyBoot, nodeBoot := genBootONode(port + 1)
-		viper.Set("p2p.bootstrap_nodes", nodeBoot)
-		viper.Set("p2p.node_key", nodekeyBoot)
-		viper.Set("annsensus.disable", true)
-		viper.Set("auto_client.sequencer.enabled", true)
-		viper.Set("p2p.bootstrap_node", true)
-
-		priv, _ := genAccount()
-
-		viper.Set("rpc.port", port)
-		viper.Set("p2p.port", port+1)
-		viper.Set("websocket.port", port+2)
-		viper.Set("profiling.port", port+3)
-		err := io.MkDirIfNotExists(soloDir)
-		if err != nil {
-			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", soloDir, err))
-			return
-		}
-
-		// viper.Set("dag.my_private_key", priv.String())
-		savePrivateKey(path.Join(soloDir, privateKeyFile), priv.String())
-		viper.WriteConfigAs(soloDir + "/" + configFileName)
-		io.CopyFile("genesis.json", soloDir+"/"+"genesis.json")
-
+		soloChainConfig()
 	} else {
-		viper.Set("bootstrap_nodes", mainNetBootstrap)
-		viper.Set("annsensus.genesis_pk", mainNetGenesisPk)
-
-		priv, _ := genAccount()
-		viper.Set("rpc.port", port)
-		viper.Set("p2p.port", port+1)
-		viper.Set("websocket.port", port+2)
-		viper.Set("profiling.port", port+3)
-
-		err := io.MkDirIfNotExists(mainNetDir)
-		if err != nil {
-			fmt.Println(fmt.Sprintf("check and make dir %s error: %v", mainNetDir, err))
-			return
-		}
-
-		//viper.Set("dag.my_private_key", priv.String())
-		savePrivateKey(path.Join(mainNetDir, privateKeyFile), priv.String())
-		viper.WriteConfigAs(mainNetDir + "/" + configFileName)
-		io.CopyFile("genesis.json", mainNetDir+"/"+"genesis.json")
+		mainChainConfig()
 	}
-
 }
 
 func readConfig() {
@@ -191,25 +266,10 @@ func readConfig() {
 	panicIfError(err, "merge viper config err")
 }
 
-func genAccount() (crypto.PrivateKey, crypto.PublicKey) {
-	signer := &crypto.SignerSecp256k1{}
-	pub, priv := signer.RandomKeyPair()
-
-	return priv, pub
-}
-
 func panicIfError(err error, message string) {
 	if err != nil {
 		fmt.Println(message)
 		fmt.Println(err.Error())
 		os.Exit(1)
-	}
-}
-
-func savePrivateKey(path string, content string) {
-	vault := encryption.NewVault([]byte(content))
-	if err := vault.Dump(path, ""); err != nil {
-		fmt.Println(fmt.Sprintf("error on saving privkey to %s: %v", path, err))
-		panic(err)
 	}
 }

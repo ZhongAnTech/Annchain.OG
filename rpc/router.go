@@ -60,6 +60,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
+	router.POST("new_transactions",rpc.NewTransactions)
 	router.POST("new_account", rpc.NewAccount)
 	router.GET("auto_tx", rpc.AutoTx)
 
@@ -84,9 +85,9 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.POST("new_archive", rpc.NewArchive)
 	router.GET("debug/bft_status", rpc.BftStatus)
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)
-	router.POST("token/NewSecondOffering", rpc.NewSecondOffering)
-	router.POST("token/NewPublicOffering", rpc.NewPublicOffering)
-	router.POST("token/TokenWithdraw", rpc.TokenWithdraw)
+	router.PUT("token", rpc.NewSecondOffering) //NewSecondOffering
+	router.POST("token", rpc.NewPublicOffering)
+	router.DELETE("token", rpc.TokenDestroy)
 	router.GET("token/latestId", rpc.LatestTokenId)
 	router.GET("token/list", rpc.Tokens)
 	router.GET("token", rpc.GetToken)
@@ -134,12 +135,9 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"transactions":            "seq_id,address",
 		"confirm":                 "hash",
 		"query_contract":          "address,data",
-		"token/NewSecondOffering": "",
-		"token/NewPublicOffering": "",
-		"token/TokenWithdraw":     "",
-		"token/latestId":          "",
 		"token/list":              "",
 		"token":                   "id",
+		"new_transactions":        "",
 
 		// debug
 		"debug": "f",

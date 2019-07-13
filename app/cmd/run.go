@@ -122,6 +122,12 @@ func readConfig() {
 		mergeOnlineConfig(viper.GetString("config"))
 	}
 
+	// load injected config from ogbootstrap if any
+	injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
+	if io.FileExists(injectedPath) {
+		mergeLocalConfig(injectedPath)
+	}
+
 	mergeEnvConfig()
 	b, err := common.PrettyJson(viper.AllSettings())
 	panicIfError(err, "dump json")

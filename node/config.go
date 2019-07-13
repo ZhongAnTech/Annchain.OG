@@ -215,6 +215,7 @@ func buildBootstrap(networkId int64, nodeURL string, key *crypto.PublicKey) {
 		// ready.
 		injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
 		injectedViper := viper.New()
+		injectedViper.SetConfigType("toml")
 
 		injectedViper.Set("p2p.bootstrap_node", bresp.BootstrapNode)
 		injectedViper.Set("p2p.bootstrap_nodes", bresp.BootstrapNodes)

@@ -167,6 +167,8 @@ func (t *ActionTx) SignatureTargets() []byte {
 		of := t.GetPublicOffering()
 		w.Write(of.Value.GetSigBytes(), of.EnableSPO)
 		if t.Action == ActionTxActionIPO {
+			w.Write(of.TokenName)
+		}else {
 			w.Write(of.TokenId)
 		}
 	} else if t.Action == ActionRequestDomainName {

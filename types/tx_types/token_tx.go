@@ -40,11 +40,11 @@ type ActionData interface {
 
 //msgp:tuple PublicOffering
 type PublicOffering struct {
-	TokenId int32 //for Secondary Public Offering
-	Value   *math.BigInt
+	TokenId int32        `json:"token_id"` //for Secondary Public Offering
+	Value   *math.BigInt `json:"value"`
 	//To      Address       //when publish a token ,to equals from
-	EnableSPO bool //if enableSPO is false  , no Secondary Public Offering.
-	TokenName string
+	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Offering.
+	TokenName string `json:"token_name"`
 }
 
 //msgp:tuple RequestDomain
@@ -161,8 +161,11 @@ func (t *ActionTx) SignatureTargets() []byte {
 		of := t.GetPublicOffering()
 		w.Write(of.Value.GetSigBytes(), of.EnableSPO)
 		if t.Action == ActionTxActionIPO {
+			w.Write([]byte(of.TokenName))
+		} else {
 			w.Write(of.TokenId)
 		}
+
 	} else if t.Action == ActionRequestDomainName {
 		r := t.GetDomainName()
 		w.Write(r.DomainName)

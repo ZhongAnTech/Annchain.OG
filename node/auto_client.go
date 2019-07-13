@@ -386,6 +386,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated tx")
+	tx.SetFormatVerified()
 	c.Delegate.Announce(tx)
 	return true
 }
@@ -448,6 +449,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated txi")
+	txi.SetFormatVerified()
 	c.Delegate.Announce(txi)
 	return true
 }
@@ -470,6 +472,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
+	seq.SetFormatVerified()
 	c.Delegate.Announce(seq)
 	return true
 }

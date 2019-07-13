@@ -94,6 +94,7 @@ type TxBuffer struct {
 	wg *sync.WaitGroup
  }
 
+
 type childrenCache struct {
 	cache gcache.Cache
 	mu    sync.RWMutex
@@ -316,7 +317,7 @@ func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis)  {
 		b.knownCache.Set(tx.GetTxHash(), tx)
 		*validTxs = append(*validTxs,tx)
 		b.affmu.Unlock()
-	b.wg.Done()
+	    b.wg.Done()
 }
 
 // in parallel

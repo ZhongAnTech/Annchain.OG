@@ -218,6 +218,10 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
 			return
 		}
+		if !r.SyncerManager.IncrementalSyncer.Enabled {
+			Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
+			return
+		}
 		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 		if err != nil {
 			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed")
@@ -225,15 +229,26 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 		logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated")
-		txs = append(txs,tx)
+		//txs = append(txs,tx)
+		ok = r.FormatVerifier.VerifySignature(tx)
+		if !ok {
+			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("signature invalid")
+			Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
+			return
+		}
+		ok = r.FormatVerifier.VerifySourceAddress(tx)
+		if !ok {
+			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("source address invalid")
+			Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+			return
+		}
+        //we don't verify hash , since we calculated the hash
+        tx.SetFormatVerified ()
+		r.TxBuffer.ReceivedNewTxChan <- tx
 		hashes = append(hashes,tx.GetTxHash())
 	}
-	if !r.SyncerManager.IncrementalSyncer.Enabled {
-		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
-		return
-	}
 
-	r.TxBuffer.ReceivedNewTxsChan <- txs
+	//r.TxBuffer.ReceivedNewTxsChan <- txs
 
 	Response(c, http.StatusOK, nil, hashes)
 	return

@@ -212,11 +212,25 @@ func buildBootstrap(networkId int64, nodeURL string, key *crypto.PublicKey) {
 			time.Sleep(time.Second * 5)
 			continue
 		}
-		viper.Set("p2p.bootstrap_node", bresp.BootstrapNode)
-		viper.Set("p2p.bootstrap_nodes", bresp.BootstrapNodes)
-		viper.Set("annsensus.genesis_pk", bresp.GenesisPk)
-		viper.Set("annsensus.partner_number", bresp.Partners)
-		viper.Set("annsensus.threshold", 2*bresp.Partners/3+1)
+		// ready.
+		injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
+		injectedViper := viper.New()
+
+		injectedViper.Set("p2p.bootstrap_node", bresp.BootstrapNode)
+		injectedViper.Set("p2p.bootstrap_nodes", bresp.BootstrapNodes)
+		injectedViper.Set("annsensus.genesis_pk", bresp.GenesisPk)
+		injectedViper.Set("annsensus.partner_number", bresp.Partners)
+		injectedViper.Set("annsensus.threshold", 2*bresp.Partners/3+1)
+
+		err = injectedViper.WriteConfigAs(injectedPath)
+		if err != nil {
+			log.WithError(err).Fatal("cannot dump injected config")
+		}
+		err = viper.MergeConfigMap(injectedViper.AllSettings())
+		if err != nil {
+			log.WithError(err).Fatal("cannot merge injected config")
+		}
+
 		log.WithField("resp", bresp).Info("bootstrap info is updated.")
 		break
 	}

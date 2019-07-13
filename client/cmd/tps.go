@@ -103,7 +103,7 @@ func tpsGen(cmd *cobra.Command, args []string) {
 			wg.Done()
 		}(uint16(i))
 	}
-	wg.Done()
+	wg.Wait()
 	fmt.Println("used time for generating txs ", time.Since(start), num*times)
 
 }
@@ -123,7 +123,7 @@ func tpsSend(cmd *cobra.Command, args []string) {
 			wg.Done()
 		}(uint16(i))
 	}
-	wg.Done()
+	wg.Wait()
 	fmt.Println("used time for generating txs ", time.Since(start), num*times)
 
 }

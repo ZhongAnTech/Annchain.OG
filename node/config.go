@@ -213,7 +213,7 @@ func buildBootstrap(networkId int64, nodeURL string, key *crypto.PublicKey) {
 			continue
 		}
 		// ready.
-		injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
+		injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected.toml")
 		injectedViper := viper.New()
 		injectedViper.SetConfigType("toml")
 

@@ -331,6 +331,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		//	logrus.Debug("NOT OK")
 		//	return txRet, ok
 		//}
+		ok = true
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,

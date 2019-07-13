@@ -33,8 +33,7 @@ func genPublicKeys(num int) (accounts []crypto.PublicKey) {
 }
 
 func TestAnnSensus_GenerateDKgPublicKey(t *testing.T) {
-	var as = NewAnnSensus(4, false, 1, true, 5, 4,
-
+	var as = NewAnnSensus(4, false, 1, true, 5,
 		genPublicKeys(5), "test.json", false)
 
 	pk := as.dkg.PublicKey()

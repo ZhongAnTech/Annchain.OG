@@ -65,6 +65,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
 			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -90,6 +91,7 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
 			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)

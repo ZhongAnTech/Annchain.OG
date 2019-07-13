@@ -43,7 +43,7 @@ func (d *dummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetBalance(address common.Address) *math.BigInt {
+func (d *dummyDag) GetBalance(address common.Address,tokenId int32) *math.BigInt {
 	return math.NewBigInt(0)
 }
 
@@ -52,6 +52,10 @@ func (d *dummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 }
 
 func (d *dummyDag) GetTxisByNumber(id uint64) types.Txis {
+	return nil
+}
+
+func (d *dummyDag) GetTestTxisByNumber(id uint64) types.Txis {
 	return nil
 }
 

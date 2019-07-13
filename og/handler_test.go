@@ -34,7 +34,7 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		}
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
-		msgRes.Bodies = append(msgRes.Bodies, tx_types.RawData(bodyData))
+		msgRes.Bodies = append(msgRes.Bodies, p2p_message.RawData(bodyData))
 		fmt.Println(body)
 	}
 	fmt.Println(&msgRes)

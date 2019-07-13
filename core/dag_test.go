@@ -14,9 +14,10 @@
 package core_test
 
 import (
+	"testing"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/tx_types"
-	"testing"
 
 	"encoding/hex"
 	"fmt"
@@ -26,6 +27,11 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og"
+)
+
+var (
+	testAddress01 = "0x0b5d53f433b7e4a4f853a01e987f977497dda261"
+	testAddress02 = "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
 )
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequencer, func()) {
@@ -55,7 +61,7 @@ func newTestDagTx(nonce uint64) *tx_types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk,0)
+	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)
@@ -137,7 +143,7 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: core.NewTxList(), Neg:make(map[int32]*math.BigInt)}
+	bd := &core.BatchDetail{TxList: core.NewTxList(), Neg: make(map[int32]*math.BigInt)}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
 	//bd.Pos = math.NewBigInt(0)
@@ -196,7 +202,6 @@ func TestDagPush(t *testing.T) {
 	fmt.Println("txs", txs)
 
 	// TODO check addr balance
-
 }
 
 func TestDagProcess(t *testing.T) {
@@ -223,7 +228,7 @@ func TestDagProcess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode hex string to bytes error: %v", err)
 	}
-	_, _, err = dag.ProcessTransaction(createTx)
+	_, _, err = dag.ProcessTransaction(createTx, false)
 	if err != nil {
 		t.Fatalf("error during contract creation: %v", err)
 	}
@@ -245,7 +250,7 @@ func TestDagProcess(t *testing.T) {
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
 	callTx.Data, _ = hex.DecodeString(calldata)
-	ret, _, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx, false)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -262,12 +267,12 @@ func TestDagProcess(t *testing.T) {
 	setTx.Value = math.NewBigInt(0)
 	setTx.To = contractAddr
 	setTx.Data, _ = hex.DecodeString(setdata)
-	ret, _, err = dag.ProcessTransaction(setTx)
+	ret, _, err = dag.ProcessTransaction(setTx, false)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
 	// get i and check if it is changed
-	ret, _, err = dag.ProcessTransaction(callTx)
+	ret, _, err = dag.ProcessTransaction(callTx, false)
 	if err != nil {
 		t.Fatalf("error during contract calling: %v", err)
 	}
@@ -283,7 +288,7 @@ func TestDagProcess(t *testing.T) {
 	setTx.SetSender(addr)
 	payTx.Value = math.NewBigInt(transferValue)
 	payTx.To = contractAddr
-	ret, _, err = dag.ProcessTransaction(payTx)
+	ret, _, err = dag.ProcessTransaction(payTx, false)
 	if err != nil {
 		t.Fatalf("error during contract setting: %v", err)
 	}
@@ -291,4 +296,42 @@ func TestDagProcess(t *testing.T) {
 	if blc.GetInt64() != transferValue {
 		t.Fatalf("the value is not tranferred to contract, should be: %d, get: %d", transferValue, blc.GetInt64())
 	}
+}
+
+// Check if the root of pre push and actual push is the same.
+func TestDag_PrePush(t *testing.T) {
+	//dag, _, finish := newTestMemDag(t)
+	//defer finish()
+	//
+	//addr1 := types.HexToAddress(testAddress01)
+	//addr2 := types.HexToAddress(testAddress02)
+	//
+	//dag.StateDatabase().AddBalance(addr1, math.NewBigInt(10000000))
+	//root, err := dag.StateDatabase().Commit()
+	//if err != nil {
+	//	t.Errorf("statedb commit error: %v", err)
+	//}
+	//fmt.Println("root 1: ", root)
+	//
+	//tx1 := types.Tx{}
+	//tx1.From = &addr1
+	//tx1.To = addr2
+	//tx1.AccountNonce = 1
+	//tx1.Value = math.NewBigInt(10)
+	//tx1.TokenId = token.OGTokenID
+	//tx1.Weight = 100
+	//tx1.Hash = types.HexToHash("0x010101")
+	//
+	//seq := types.Sequencer{}
+	//seq.AccountNonce = 2
+	//seq.ParentsHash = types.Hashes{tx1.Hash}
+	//
+	//batch := &core.ConfirmBatch{}
+	//batch.Seq = &seq
+	//batch.Txs = types.Txis{&tx1}
+	//
+	//if err = dag.Push(batch); err != nil {
+	//	t.Errorf("dag push error: %v", err)
+	//}
+
 }

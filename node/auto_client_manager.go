@@ -115,6 +115,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
 			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
 			CampainEnable:        true,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 		}
 		client.Init()
 		m.RegisterReceiver(client.NewRawTx)
@@ -127,7 +129,6 @@ func (m *AutoClientManager) SetTxIntervalUs(interval int) {
 		if m.Clients[i] != nil {
 			m.Clients[i].SetTxIntervalUs(interval)
 		}
-
 	}
 }
 

@@ -15,6 +15,9 @@ package og
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -23,8 +26,6 @@ import (
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
-	"testing"
-	"time"
 )
 
 type AllOkVerifier struct{}
@@ -45,7 +46,6 @@ func (a *AllOkVerifier) Independent() bool {
 	return false
 }
 
-
 func Init() *TxCreator {
 	crypto.Signer = &crypto.SignerEd25519{}
 	txc := TxCreator{
@@ -65,7 +65,7 @@ func TestTxCreator(t *testing.T) {
 	tx := txc.TipGenerator.GetRandomTips(1)[0].(*tx_types.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
-	txSigned := txc.NewSignedTx(*tx.From, tx.To, tx.Value, tx.AccountNonce, priv,0)
+	txSigned := txc.NewSignedTx(*tx.From, tx.To, tx.Value, tx.AccountNonce, priv, 0)
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
@@ -129,12 +129,12 @@ func TestBuildDag(t *testing.T) {
 	txs := []types.Txi{
 		txc.NewSignedSequencer(common.Address{}, 0, 0, privateKey),
 		txc.NewSignedTx(common.HexToAddress("0x01"), common.HexToAddress("0x02"), math.NewBigInt(10),
-			0, privateKey,0),
+			0, privateKey, 0),
 		txc.NewSignedSequencer(common.Address{}, 1, 1, privateKey),
 		txc.NewSignedTx(common.HexToAddress("0x02"), common.HexToAddress("0x03"), math.NewBigInt(9),
-			0, privateKey,0),
+			0, privateKey, 0),
 		txc.NewSignedTx(common.HexToAddress("0x03"), common.HexToAddress("0x04"), math.NewBigInt(8),
-			0, privateKey,0),
+			0, privateKey, 0),
 		txc.NewSignedSequencer(common.Address{}, 2, 2, privateKey),
 	}
 

@@ -22,8 +22,6 @@ import (
 
 	"github.com/annchain/OG/common"
 	"golang.org/x/crypto/sha3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {
@@ -77,7 +75,7 @@ func returnHasherToPool(h *hasher) {
 // original node initialized with the computed hash to replace the original one.
 func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 
-	log.Tracef("Panic debug, start hash node: %s", n.String())
+	//log.Tracef("Panic debug, start hash node: %s", n.String())
 
 	// If we're not storing the node, just hashing, use available cached data
 	if hash, dirty := n.cache(); hash != nil {
@@ -104,7 +102,7 @@ func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 		return HashNode{}, n, err
 	}
 
-	log.Tracef("Panic debug, hashed the node: %s", hashed.String())
+	//log.Tracef("Panic debug, hashed the node: %s", hashed.String())
 
 	// Cache the hash of the node for later reuse and remove
 	// the dirty flag in commit mode. It's fine to assign these values directly
@@ -145,7 +143,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 			}
 		}
 		// OG version of trie use msgp encoding, and it can handle nil node.
-		// Commend these lines
+		// Comment these lines
 		// if collapsed.Val == nil {
 		// 	collapsed.Val = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
 		// }
@@ -163,7 +161,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 				}
 			}
 			// OG version of trie use msgp encoding, and it can handle nil node.
-			// Commend these lines
+			// Comment these lines
 			// else {
 			// 	collapsed.Children[i] = ValueNode(nil) // Ensure that nil children are encoded as empty strings.
 			// }
@@ -171,7 +169,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 		cached.Children[16] = n.Children[16]
 		if collapsed.Children[16] == nil {
 			// OG version of trie use msgp encoding, and it can handle nil node.
-			// Commend these lines
+			// Comment these lines
 			// collapsed.Children[16] = ValueNode(nil)
 		}
 		return collapsed, cached, nil

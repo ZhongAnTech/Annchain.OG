@@ -14,9 +14,10 @@
 package core_test
 
 import (
+	"testing"
+
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/types/tx_types"
-	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -29,7 +30,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk,0)
+	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)

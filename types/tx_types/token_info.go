@@ -10,9 +10,9 @@ import (
 //msgp:tuple TokenInfo
 type TokenInfo struct {
 	PublicOffering
-	Sender       common.Address
-	CurrentValue *math.BigInt
-	Destroyed    bool
+	Sender       common.Address `json:"sender"`
+	CurrentValue *math.BigInt   `json:"current_value"`
+	Destroyed    bool           `json:"destroyed"`
 }
 
 type TokensInfo []*TokenInfo

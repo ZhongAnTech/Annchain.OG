@@ -759,40 +759,48 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 // into pool.cached. Once a real sequencer with same hash comes, reload cached data without
 // any more calculates.
 func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
-	//TODO
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	// check if sequencer is correct
-	checkErr := pool.isBadSeq(seq)
-	if checkErr != nil {
-		return common.Hash{}, checkErr
+	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
+		return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
+			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
 	}
-
-	return common.Hash{}, nil
+	elders, batch, err := pool.confirmHelper(seq)
+	if err != nil {
+		log.WithField("error", err).Errorf("confirm error: %v", err)
+		return common.Hash{}, err
+	}
+	rootHash, err := pool.dag.PrePush(batch)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
+	return rootHash, nil
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
 func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
 
-	// check if sequencer is correct
-	checkErr := pool.isBadSeq(seq)
-	if checkErr != nil {
-		return checkErr
+	var err error
+	var batch *ConfirmBatch
+	var elders map[common.Hash]types.Txi
+	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
+		batch = &ConfirmBatch{
+			Seq: seq,
+			Txs: pool.cached.Txs(),
+		}
+		elders = pool.cached.elders
+	} else {
+		elders, batch, err = pool.confirmHelper(seq)
+		if err != nil {
+			log.WithField("error", err).Errorf("confirm error: %v", err)
+			return err
+		}
 	}
-	// get sequencer's unconfirmed elders
-	elders, errElders := pool.seekElders(seq)
-	if errElders != nil {
-		return errElders
-	}
-	// verify the elders
-	log.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
-	batch, err := pool.verifyConfirmBatch(seq, elders)
-	if err != nil {
-		log.WithField("error", err).Errorf("verifyConfirmBatch error: %v", err)
-		return err
-	}
+	pool.cached = nil
+
 	// push batch to dag
 	if err := pool.dag.Push(batch); err != nil {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
@@ -806,7 +814,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	}
 
 	// solve conflicts of txs in pool
-	pool.solveConflicts(elders)
+	pool.solveConflicts(batch)
 	// add seq to txpool
 	if pool.flows.Get(seq.Sender()) == nil {
 		pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
@@ -832,6 +840,26 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 
 	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
 	return nil
+}
+
+func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
+	// check if sequencer is correct
+	checkErr := pool.isBadSeq(seq)
+	if checkErr != nil {
+		return nil, nil, checkErr
+	}
+	// get sequencer's unconfirmed elders
+	elders, errElders := pool.seekElders(seq)
+	if errElders != nil {
+		return nil, nil, errElders
+	}
+	// verify the elders
+	log.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
+	batch, err := pool.verifyConfirmBatch(seq, elders)
+	if err != nil {
+		return nil, nil, err
+	}
+	return elders, batch, err
 }
 
 // isBadSeq checks if a sequencer is correct.
@@ -960,7 +988,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(elders map[common.Hash]types.Txi) {
+func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -974,7 +1002,8 @@ func (pool *TxPool) solveConflicts(elders map[common.Hash]types.Txi) {
 
 	txsInPool := []types.Txi{}
 	// remove elders from pool
-	for elderHash := range elders {
+	for _, tx := range batch.Txs {
+		elderHash := tx.GetTxHash()
 		pool.txLookup.removeTxFromMapOnly(elderHash)
 	}
 
@@ -1062,9 +1091,28 @@ func (bd *BatchDetail) AddNeg(tokenID int32, amount *math.BigInt) {
 }
 
 type cachedConfirm struct {
-	seq *tx_types.Sequencer
-	txs types.Txis
+	seqHash common.Hash
+	seq     *tx_types.Sequencer
+	root    common.Hash
+	txs     types.Txis
+	elders  map[common.Hash]types.Txi
 }
+
+func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
+	return &cachedConfirm{
+		seqHash: seq.GetTxHash(),
+		seq:     seq,
+		root:    root,
+		txs:     txs,
+		elders:  elders,
+	}
+}
+
+func (c *cachedConfirm) SeqHash() common.Hash              { return c.seqHash }
+func (c *cachedConfirm) Seq() *tx_types.Sequencer          { return c.seq }
+func (c *cachedConfirm) Root() common.Hash                 { return c.root }
+func (c *cachedConfirm) Txs() types.Txis                   { return c.txs }
+func (c *cachedConfirm) Elders() map[common.Hash]types.Txi { return c.elders }
 
 type TxMap struct {
 	txs map[common.Hash]types.Txi

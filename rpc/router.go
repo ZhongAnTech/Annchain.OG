@@ -60,7 +60,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
 	router.GET("new_transaction", rpc.NewTransaction)
-	router.POST("new_transactions",rpc.NewTransactions)
+	router.POST("new_transactions", rpc.NewTransactions)
 	router.POST("new_account", rpc.NewAccount)
 	router.GET("auto_tx", rpc.AutoTx)
 
@@ -85,9 +85,9 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.POST("new_archive", rpc.NewArchive)
 	router.GET("debug/bft_status", rpc.BftStatus)
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)
-	router.PUT("token", rpc.NewSecondOffering) //NewSecondOffering
-	router.POST("token", rpc.NewPublicOffering)
-	router.DELETE("token", rpc.TokenDestroy)
+	router.POST("token/second_offering", rpc.NewSecondOffering) //NewSecondOffering
+	router.POST("token/initial_offering", rpc.NewPublicOffering)
+	router.POST("token/destroy", rpc.TokenDestroy)
 	router.GET("token/latestId", rpc.LatestTokenId)
 	router.GET("token/list", rpc.Tokens)
 	router.GET("token", rpc.GetToken)
@@ -130,14 +130,14 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
-		"query_receipt":           "hash",
-		"transaction":             "hash",
-		"transactions":            "seq_id,address",
-		"confirm":                 "hash",
-		"query_contract":          "address,data",
-		"token/list":              "",
-		"token":                   "id",
-		"new_transactions":        "",
+		"query_receipt":    "hash",
+		"transaction":      "hash",
+		"transactions":     "seq_id,address",
+		"confirm":          "hash",
+		"query_contract":   "address,data",
+		"token/list":       "",
+		"token":            "id",
+		"new_transactions": "",
 
 		// debug
 		"debug": "f",

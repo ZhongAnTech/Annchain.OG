@@ -15,13 +15,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/io"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"path"
-	"strings"
 )
 
 var (

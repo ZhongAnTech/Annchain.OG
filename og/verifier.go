@@ -105,6 +105,9 @@ func (c *ConsensusVerifier) String() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+	if t.FormatVerified() {
+		return true
+	}
 	if !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
@@ -113,6 +116,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
+	t.SetFormatVerified()
 	return true
 }
 

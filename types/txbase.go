@@ -72,6 +72,7 @@ type TxBase struct {
 	Weight       uint64
 	inValid      bool
 	Version      byte
+	formatVerified     bool
 }
 
 //msgp:tuple TxBaseJson
@@ -87,6 +88,8 @@ type TxBaseJson struct {
 	Weight       uint64        `json:"weight"`
 	inValid      bool          `json:"in_valid"`
 	Version      byte          `json:"version"`
+	formatVerified     bool     `json:"-"`
+
 }
 
 func (t *TxBase) ToSmallCase() *TxBaseJson {
@@ -116,6 +119,15 @@ func (t *TxBase) ToSmallCaseJson() ([]byte, error) {
 func (t *TxBase) SetInValid(b bool) {
 	t.inValid = b
 }
+
+func (t *TxBase)FormatVerified() bool {
+	return  t.formatVerified
+}
+
+func (t *TxBase)SetFormatVerified()  {
+	  t.formatVerified = true
+}
+
 
 func (t *TxBase) InValid() bool {
 	return t.inValid

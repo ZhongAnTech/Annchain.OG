@@ -326,12 +326,12 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)
 		//todo why verify here duplicated verification
-		//ok = m.GraphVerifier.Verify(tx)
-		//if !ok {
-		//	logrus.Debug("NOT OK")
-		//	return txRet, ok
-		//}
-		ok = true
+		ok = m.GraphVerifier.Verify(tx)
+		if !ok {
+			logrus.Debug("NOT OK")
+			return txRet, ok
+		}
+		//ok = true
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
 			"ok": ok,

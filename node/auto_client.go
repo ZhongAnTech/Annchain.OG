@@ -137,11 +137,9 @@ func (c *AutoClient) loop() {
 	if !c.AutoSequencerEnabled {
 		tickerSeq.Stop()
 	}
-
 	if !c.AutoArchiveEnabled {
 		timerArchive.Stop()
 	}
-
 	for {
 		if c.pause {
 			logrus.Trace("client paused")
@@ -180,7 +178,7 @@ func (c *AutoClient) loop() {
 		case tx := <-c.NewRawTx:
 			c.doRawTx(tx)
 		case <-timerArchive.C:
-			logrus.Debug("timer sample tx")
+			logrus.Debug("timer sample archive")
 			if c.Delegate.TooMoreTx() {
 				timerArchive.Stop()
 				logrus.Warn("auto archive stopped")

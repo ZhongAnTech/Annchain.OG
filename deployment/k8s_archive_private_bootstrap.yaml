@@ -1,26 +1,27 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: ognb-bootstrap
+  name: ogblockdb
 spec:
+  selector:
+    matchLabels:
+      app: ogblockdb
   replicas: 2
-  podManagementPolicy: OrderedReady
   template:
     metadata:
       labels:
-        app: ognb-bootstrap
-      annotations:
-        kubernetes.io/ingress-bandwidth: 1024M
-        kubernetes.io/egress-bandwidth: 1024M
+        app: ogblockdb
     spec:
       containers:
-        - name: ognb-bootstrap
+        - name: ogblockdb
           image: 172.28.152.101:5000/ognb
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
-              value: "http://192.168.198.25:8008"
+              value: "http://ogboot:8008"
             - name: OG_P2P.NETWORK_ID
-              value: "2"
+              value: "3"
+            - name: OG_MODE
+              value: "archive"
           ports:
             - name: rpc
               containerPort: 8000
@@ -31,6 +32,9 @@ spec:
               containerPort: 8002
             - name: profiling
               containerPort: 8003
+          volumeMounts:
+            - name: rw
+              mountPath: /rw
           command:
             ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
           resources:
@@ -38,3 +42,12 @@ spec:
               cpu: "4"
             requests:
               cpu: "2"
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi

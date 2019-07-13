@@ -8,9 +8,6 @@ spec:
     metadata:
       labels:
         app: ogboot
-      annotations:
-        kubernetes.io/ingress-bandwidth: 1024M
-        kubernetes.io/egress-bandwidth: 1024M
     spec:
       containers:
         - name: ogboot

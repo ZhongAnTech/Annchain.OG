@@ -141,7 +141,7 @@ type NewTxsRequests struct {
 
 func (r *RpcController) NewTransactions(c *gin.Context) {
 	var (
-		txs types.Txis
+		//txs types.Txis
 		txrequsets NewTxsRequests
 		sig   crypto.Signature
 		pub   crypto.PublicKey

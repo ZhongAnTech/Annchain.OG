@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/client/tx_client"
 	"github.com/annchain/OG/common"
@@ -25,6 +26,8 @@ import (
 	"github.com/annchain/OG/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"runtime"
+	"sync"
 	"time"
 )
 
@@ -45,65 +48,104 @@ var (
 		Short: "send",
 		Run:   tpsSend,
 	}
-	num  uint64
-	times uint64
+	num  uint16
+	times uint16
 )
 
 func tpsInit() {
 	tpsCmd.AddCommand(tpsGenCmd, tpsSendTxCmd)
-	tpsCmd.PersistentFlags().Uint64VarP(&num, "num", "n", 1000,"num 1000")
-	tpsGenCmd.PersistentFlags().Uint64VarP(&times, "times", "t", 1000,"times 1000")
+	tpsCmd.PersistentFlags().Uint16VarP(&num, "num", "n", 1000,"num 1000")
+	tpsGenCmd.PersistentFlags().Uint16VarP(&times, "times", "t", 1000,"times 1000")
 }
 
-
-func tpsGen(cmd *cobra.Command, args []string) {
+func tepsDataGen( threadNum uint16 , db ogdb.Database ,total uint16) {
 	_, priv := crypto.Signer.RandomKeyPair()
 	requester :=tx_client.NewRequestGenerator(priv)
-	requester.Nodebug = true
 	to:= common.RandomAddress()
-	db ,err := generateDb()
-	panicIfError(err ,"")
-	start := time.Now()
-	defer db.Close()
+	requester.Nodebug = true
 	fmt.Println("will generate tx ",num ," * ", times )
-	for i:= uint64(0);i<times;i++ {
+	for i:= uint16(0);i<total;i++ {
 		var reqs rpc.NewTxsRequests
-		for j:= uint64(0);j<num;j++ {
-			txReq:= requester.NormalTx(0,i*num+1+j,to ,math.NewBigInt(0))
+		for j:= uint16(0);j<num;j++ {
+			txReq:= requester.NormalTx(0,uint64(i*num+1+j),to ,math.NewBigInt(0))
 			reqs.Txs = append(reqs.Txs,txReq )
 		}
 		data,err := reqs.MarshalMsg(nil)
 		panicIfError(err, "marshal err")
-		key := common.ByteInt32(int32(i))
+		key := makeKey(threadNum,i)
 		err = db.Put(key,data)
 		panicIfError(err, "db err")
-		fmt.Println("gen tx ",i)
+		fmt.Println("gen tx ",i, threadNum)
 	}
-	fmt.Println("used time for generating txs ", time.Since(start), num*times)
 }
 
-func tpsSend(cmd *cobra.Command, args []string) {
-	txClient  := tx_client.NewTxClientWIthTimeOut(Host,true, time.Second*20)
+func makeKey(i ,j uint16) []byte 	{
+	data1 := make([]byte,2)
+	binary.BigEndian.PutUint16(data1,i)
+	data2 := make([]byte,2)
+	binary.BigEndian.PutUint16(data2,j)
+	return  append(data1,data2...)
+}
+
+
+func tpsGen(cmd *cobra.Command, args []string) {
 	db ,err := generateDb()
 	panicIfError(err ,"")
 	defer db.Close()
+	start := time.Now()
+	mp:= runtime.GOMAXPROCS(0)
+	var wg = &sync.WaitGroup{}
+	wg.Wait()
+	for i:=0;i<mp;i++ {
+		wg.Add(1)
+		go func(k uint16 ) {
+			tepsDataGen(k,db,times/ uint16(mp))
+			wg.Done()
+		}(uint16(i))
+	}
+	wg.Done()
+	fmt.Println("used time for generating txs ", time.Since(start), num*times)
+
+}
+
+func tpsSend(cmd *cobra.Command, args []string) {
+	db ,err := generateDb()
+	panicIfError(err ,"")
+	defer db.Close()
+	start := time.Now()
+	mp:= runtime.GOMAXPROCS(0)
+	var wg = &sync.WaitGroup{}
+	wg.Wait()
+	for i:=0;i<mp;i++ {
+		wg.Add(1)
+		go func(k uint16 ) {
+			tpsSendData(k,db)
+			wg.Done()
+		}(uint16(i))
+	}
+	wg.Done()
+	fmt.Println("used time for generating txs ", time.Since(start), num*times)
+
+}
+
+func tpsSendData(threadNum uint16,db ogdb.Database ) {
+	txClient  := tx_client.NewTxClientWIthTimeOut(Host,true, time.Second*20)
 	Max:=  1000000
 	for i:= 0; i<Max;i++ {
 		var reqs rpc.NewTxsRequests
-		data,err := db.Get(common.ByteInt32(int32(i)))
+		key := makeKey(threadNum,uint16(i))
+		data,err := db.Get(key)
 		if err!=nil || len(data) ==0 {
 			fmt.Println("read data err ",err,i )
 			break
 		}
 		_, err = reqs.UnmarshalMsg(data)
 		panicIfError(err, "unmarshal err")
-		fmt.Println("sending  data " ,i , len(reqs.Txs))
+		fmt.Println("sending  data " ,i ,threadNum, len(reqs.Txs))
 		resp,err := txClient.SendNormalTxs(&reqs)
-		panicIfError(err, "send tx err")
-		_ = resp
+		panicIfError(err, resp)
 	}
 }
-
 
 func generateDb() (ogdb.Database, error) {
 	path := io.FixPrefixPath(viper.GetString("./"), "test_tps_db")

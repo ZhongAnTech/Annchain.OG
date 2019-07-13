@@ -220,6 +220,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 		if err != nil {
+			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 			return
 		}

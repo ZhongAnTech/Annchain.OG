@@ -3,9 +3,6 @@ kind: StatefulSet
 metadata:
   name: ogblockdb
 spec:
-  selector:
-    matchLabels:
-      app: ogblockdb
   replicas: 2
   template:
     metadata:
@@ -51,3 +48,6 @@ spec:
         resources:
           requests:
             storage: 20Gi
+        selector:
+          matchLabels:
+            target: ogblockdb

@@ -1049,19 +1049,28 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	if tx.GetType() == types.TxBaseTypeSequencer {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseTypeCampaign {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusCampaignSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseTypeTermChange {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseAction {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
+		txAction := tx.(*tx_types.ActionTx)
+		var pResult interface{}
+		if txAction.Action == tx_types.ActionTxActionIPO {
+			if actionData, ok := txAction.ActionData.(*tx_types.PublicOffering); ok {
+				pResult = actionData.TokenId
+			} else {
+				pResult = ""
+			}
+		}
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, pResult, emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() != types.TxBaseTypeNormal {
@@ -1077,7 +1086,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTxSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
@@ -1124,7 +1133,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTxSuccess, "", contractAddress)
+	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", contractAddress)
 
 	// TODO
 	// not finished yet

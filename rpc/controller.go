@@ -393,10 +393,10 @@ func (r *RpcController) ConfirmStatus(c *gin.Context) {
 }
 
 type ReceiptResponse struct {
-	TxHash          string `json:"tx_hash"`
-	Status          int    `json:"status"`
-	Result          string `json:"result"`
-	ContractAddress string `json:"contract_address"`
+	TxHash          string      `json:"tx_hash"`
+	Status          int         `json:"status"`
+	Result          interface{} `json:"result"`
+	ContractAddress string      `json:"contract_address"`
 }
 
 func (r *RpcController) QueryReceipt(c *gin.Context) {

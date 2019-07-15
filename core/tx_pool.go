@@ -759,6 +759,9 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 // into pool.cached. Once a real sequencer with same hash comes, reload cached data without
 // any more calculates.
 func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
+	//TODO , exists a panic bug in statedb commit , fix later 
+	//and recover this later
+	return common.Hash{}, nil
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 

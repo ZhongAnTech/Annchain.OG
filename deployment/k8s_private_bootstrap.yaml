@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: ognb
-  replicas: 6
+  replicas: 7
   template:
     metadata:
       labels:
@@ -17,7 +17,7 @@ spec:
           image: 172.28.152.101:5000/ognb
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
-              value: "http://ogboot:8008/6"
+              value: "http://ogboot:8008/7"
             - name: OG_P2P.NETWORK_ID
               value: "6"
             - name: OG_MODE
@@ -39,9 +39,9 @@ spec:
             ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
           resources:
             limits:
-              cpu: "4"
-            requests:
               cpu: "2"
+            requests:
+              cpu: "100m"
   volumeClaimTemplates:
     - metadata:
         name: rw
@@ -50,7 +50,10 @@ spec:
         storageClassName: "local-storage"
         resources:
           requests:
-            storage: 18Gi
+            storage: 20Gi
+        selector:
+          matchLabels:
+            target: og
 
 -----
 apiVersion: v1

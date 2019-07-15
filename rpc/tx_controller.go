@@ -244,8 +244,9 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			if err!=nil {
 				logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
+				return
 			}
-
+			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
 			//we don't verify hash , since we calculated the hash
 			tx.SetFormatVerified ()
 			r.TxBuffer.ReceivedNewTxChan <- tx

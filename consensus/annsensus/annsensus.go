@@ -63,7 +63,7 @@ type AnnSensus struct {
 	mu sync.RWMutex
 
 	close                         chan struct{}
-	genesisAccounts               []crypto.PublicKey
+	genesisAccounts              crypto.PublicKeys
 	isGenesisPartner              bool
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
@@ -110,7 +110,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.UpdateEvent = make(chan bool)
 
 	ann.genesisAccounts = genesisAccounts
-	sort.Sort(genesisAccounts)
+	sort.Sort(ann.genesisAccounts)
 	ann.term = term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *p2p_message.MessageConsensusDkgGenesisPublicKey)

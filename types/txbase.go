@@ -23,6 +23,7 @@ const (
 	TxBaseAction
 )
 
+
 func (t TxBaseType) String() string {
 	switch t {
 	case TxBaseTypeNormal:
@@ -72,8 +73,9 @@ type TxBase struct {
 	Weight       uint64
 	inValid      bool
 	Version      byte
-	formatVerified     bool
+	verified     verifiedType
 }
+
 
 //msgp:tuple TxBaseJson
 type TxBaseJson struct {
@@ -88,7 +90,7 @@ type TxBaseJson struct {
 	Weight       uint64        `json:"weight"`
 	inValid      bool          `json:"in_valid"`
 	Version      byte          `json:"version"`
-	formatVerified     bool     `json:"-"`
+	verified     verifiedType     `json:"-"`
 
 }
 
@@ -120,12 +122,12 @@ func (t *TxBase) SetInValid(b bool) {
 	t.inValid = b
 }
 
-func (t *TxBase)FormatVerified() bool {
-	return  t.formatVerified
+func (t *TxBase)IsVerified() verifiedType {
+	return  t.verified
 }
 
-func (t *TxBase)SetFormatVerified()  {
-	  t.formatVerified = true
+func (t *TxBase)SetVerified(v verifiedType)  {
+	t.verified = t.verified.merge(v)
 }
 
 

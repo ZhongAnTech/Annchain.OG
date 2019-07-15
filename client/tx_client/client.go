@@ -211,7 +211,7 @@ func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( str
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
-		fmt.Println(resp.StatusCode)
+		fmt.Println(resp.StatusCode, str)
 		return "",errors.New(resp.Status)
 	}
 	//var respStruct struct{

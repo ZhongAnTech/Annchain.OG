@@ -161,7 +161,11 @@ func tpsSendData(threadNum uint16,db ogdb.Database, host string  ) {
 		panicIfError(err, "unmarshal err")
 		fmt.Println("sending  data " ,i ,threadNum, len(reqs.Txs))
 		resp,err := txClient.SendNormalTxs(&reqs)
-		panicIfError(err, resp)
+		//panicIfError(err, resp)
+		if err!=nil {
+			fmt.Println(err,resp)
+			return 
+		}
 	}
 }
 

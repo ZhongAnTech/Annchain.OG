@@ -103,7 +103,8 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionDestroy, txReq.Nonce,
+	fmt.Println(fmt.Sprintf("tx req action: %x", txReq.Action))
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), txReq.Action, txReq.Nonce,
 		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -192,7 +193,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionIPO, txReq.Nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, txReq.Action, txReq.Nonce,
 		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)

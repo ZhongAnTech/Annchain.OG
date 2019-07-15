@@ -19,6 +19,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
 	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/common/crypto/ecies"
@@ -36,7 +37,10 @@ func (s *SignerSecp256k1) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := ToECDSA(privKey.Bytes)
+	priv, err := ToECDSA(privKey.Bytes)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("ToECDSA error: %v. priv bytes: %x", err, privKey.Bytes))
+	}
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		log.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
@@ -66,6 +70,11 @@ func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) PublicKey {
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	signature = s.DealRecoverID(signature)
 	sig := signature.Bytes
+
+	fmt.Println(fmt.Sprintf("pubkey bytes: %x", pubKey.Bytes))
+	fmt.Println(fmt.Sprintf("msg: %x", msg))
+	fmt.Println(fmt.Sprintf("sig: %x", sig))
+
 	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
 }
 

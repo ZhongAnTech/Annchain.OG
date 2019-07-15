@@ -21,13 +21,8 @@ import (
 type ReceiptStatus uint8
 
 const (
-	ReceiptStatusSeqSuccess ReceiptStatus = iota
-	ReceiptStatusTxSuccess
+	ReceiptStatusSuccess ReceiptStatus = iota
 	ReceiptStatusOVMFailed
-	ReceiptStatusCampaignSuccess
-	ReceiptStatusTermChangeSuccess
-	ReceiptStatusActionTxSuccess
-	ReceiptStatusArchiveSuccess
 	ReceiptStatusUnknownTxType
 )
 
@@ -37,11 +32,11 @@ const (
 type Receipt struct {
 	TxHash          common.Hash
 	Status          ReceiptStatus
-	ProcessResult   string
+	ProcessResult   interface{}
 	ContractAddress common.Address
 }
 
-func NewReceipt(hash common.Hash, status ReceiptStatus, pResult string, addr common.Address) *Receipt {
+func NewReceipt(hash common.Hash, status ReceiptStatus, pResult interface{}, addr common.Address) *Receipt {
 	return &Receipt{
 		TxHash:          hash,
 		Status:          status,
@@ -50,8 +45,8 @@ func NewReceipt(hash common.Hash, status ReceiptStatus, pResult string, addr com
 	}
 }
 
-func (r *Receipt) ToJsonMap() map[string]string {
-	jm := make(map[string]string)
+func (r *Receipt) ToJsonMap() map[string]interface{} {
+	jm := make(map[string]interface{})
 	jm["hash"] = r.TxHash.Hex()
 	jm["status"] = fmt.Sprintf("%d", r.Status)
 	jm["result"] = r.ProcessResult

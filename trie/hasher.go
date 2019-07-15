@@ -22,8 +22,7 @@ import (
 
 	"github.com/annchain/OG/common"
 	"golang.org/x/crypto/sha3"
-
-	log "github.com/sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {

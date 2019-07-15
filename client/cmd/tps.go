@@ -26,7 +26,6 @@ import (
 	"github.com/annchain/OG/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -50,11 +49,13 @@ var (
 	}
 	num  uint16
 	times uint16
+	accountNum uint16
 )
 
 func tpsInit() {
 	tpsCmd.AddCommand(tpsGenCmd, tpsSendTxCmd)
 	tpsCmd.PersistentFlags().Uint16VarP(&num, "num", "n", 1000,"num 1000")
+	tpsCmd.PersistentFlags().Uint16VarP(&accountNum, "accounts_num", "a", 4,"accounts_num 1000")
 	tpsGenCmd.PersistentFlags().Uint16VarP(&times, "times", "t", 1000,"times 1000")
 }
 
@@ -93,7 +94,8 @@ func tpsGen(cmd *cobra.Command, args []string) {
 	panicIfError(err ,"")
 	defer db.Close()
 	start := time.Now()
-	mp:= runtime.GOMAXPROCS(0)
+	//mp:= runtime.GOMAXPROCS(0)
+	mp:= int(accountNum)
 	var wg = &sync.WaitGroup{}
 	wg.Wait()
 	for i:=0;i<mp;i++ {
@@ -113,7 +115,8 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	panicIfError(err ,"")
 	defer db.Close()
 	start := time.Now()
-	mp:= runtime.GOMAXPROCS(0)
+	//mp:= runtime.GOMAXPROCS(0)
+	mp:= int(accountNum)
 	var wg = &sync.WaitGroup{}
 	wg.Wait()
 	for i:=0;i<mp;i++ {
@@ -129,7 +132,7 @@ func tpsSend(cmd *cobra.Command, args []string) {
 }
 
 func tpsSendData(threadNum uint16,db ogdb.Database ) {
-	txClient  := tx_client.NewTxClientWIthTimeOut(Host,true, time.Second*20)
+	txClient  := tx_client.NewTxClientWIthTimeOut(Host,false, time.Second*20)
 	Max:=  1000000
 	for i:= 0; i<Max;i++ {
 		var reqs rpc.NewTxsRequests

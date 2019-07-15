@@ -26,6 +26,7 @@ import (
 	"github.com/annchain/OG/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 	"sync"
 	"time"
 )
@@ -50,12 +51,14 @@ var (
 	num  uint16
 	times uint16
 	accountNum uint16
+	ipports string
 )
 
 func tpsInit() {
 	tpsCmd.AddCommand(tpsGenCmd, tpsSendTxCmd)
 	tpsCmd.PersistentFlags().Uint16VarP(&num, "num", "n", 1000,"num 1000")
 	tpsCmd.PersistentFlags().Uint16VarP(&accountNum, "accounts_num", "a", 4,"accounts_num 1000")
+	tpsCmd.PersistentFlags().StringVarP(&ipports, "ips", "i", "","accounts_num 1000")
 	tpsGenCmd.PersistentFlags().Uint16VarP(&times, "times", "t", 1000,"times 1000")
 }
 
@@ -116,23 +119,35 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	defer db.Close()
 	start := time.Now()
 	//mp:= runtime.GOMAXPROCS(0)
-	mp:= int(accountNum)
+	//mp:= int(accountNum)
+	ipportList := strings.Split(ipports,";")
+	if len(ipportList) == 0 {
+		fmt.Println("need ips and ports , for example : 127.0.0.1:8000;127.0.0.1:8010")
+		return
+	}
+	if int( accountNum) < len(ipportList) {
+		fmt.Println("need more accounts")
+		return
+	}
 	var wg = &sync.WaitGroup{}
-	wg.Wait()
-	for i:=0;i<mp;i++ {
-		wg.Add(1)
-		go func(k uint16 ) {
-			tpsSendData(k,db)
-			wg.Done()
-		}(uint16(i))
+	hostNum :=  uint16(len(ipportList))
+	perHost :=  accountNum/ hostNum
+	for i:=uint16(0) ;i<hostNum;i++ {
+		for j:=uint16(0) ;j<perHost ;j++ {
+			wg.Add(1)
+			go func(k uint16, host string ) {
+				tpsSendData(k, db, host)
+				wg.Done()
+			}(i*perHost+j,ipportList[i])
+		}
 	}
 	wg.Wait()
 	fmt.Println("used time for generating txs ", time.Since(start), num*times)
 
 }
 
-func tpsSendData(threadNum uint16,db ogdb.Database ) {
-	txClient  := tx_client.NewTxClientWIthTimeOut(Host,false, time.Second*20)
+func tpsSendData(threadNum uint16,db ogdb.Database, host string  ) {
+	txClient  := tx_client.NewTxClientWIthTimeOut(host,false, time.Second*120)
 	Max:=  1000000
 	for i:= 0; i<Max;i++ {
 		var reqs rpc.NewTxsRequests

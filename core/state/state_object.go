@@ -246,12 +246,12 @@ func (s *StateObject) updateTrie(db Database) {
 	}
 }
 
-func (s *StateObject) CommitStorage(db Database) error {
+func (s *StateObject) CommitStorage(db Database, preCommit bool) error {
 	s.updateTrie(db)
 	if s.dbErr != nil {
 		return s.dbErr
 	}
-	root, err := s.trie.Commit(nil)
+	root, err := s.trie.Commit(nil, preCommit)
 	if err != nil {
 		return err
 	}

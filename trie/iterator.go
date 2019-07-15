@@ -183,8 +183,8 @@ func (it *nodeIterator) LeafProof() [][]byte {
 
 			for i, item := range it.stack[:len(it.stack)-1] {
 				// Gather nodes that end up as hash nodes (or the root)
-				node, _, _ := hasher.hashChildren(item.node, nil)
-				hashed, _ := hasher.store(node, nil, false)
+				node, _, _ := hasher.hashChildren(item.node, nil, false)
+				hashed, _ := hasher.store(node, nil, false, false)
 				if _, ok := hashed.(HashNode); ok || i == 0 {
 					enc := node.encodeNode()
 					// TODO

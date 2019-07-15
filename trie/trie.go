@@ -457,18 +457,18 @@ func (t *Trie) Root() []byte { return t.Hash().ToBytes() }
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *Trie) Hash() common.Hash {
-	hash, cached, _ := t.hashRoot(nil, nil)
+	hash, cached, _ := t.hashRoot(nil, nil, false)
 	t.root = cached
 	return common.BytesToHash(hash.(HashNode))
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
 // and external (for account tries) references.
-func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
+func (t *Trie) Commit(onleaf LeafCallback, preCommit bool) (root common.Hash, err error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
-	hash, cached, err := t.hashRoot(t.db, onleaf)
+	hash, cached, err := t.hashRoot(t.db, onleaf, preCommit)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -477,11 +477,11 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	return common.BytesToHash(hash.(HashNode)), nil
 }
 
-func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (Node, Node, error) {
+func (t *Trie) hashRoot(db *Database, onleaf LeafCallback, preHash bool) (Node, Node, error) {
 	if t.root == nil {
 		return HashNode(emptyRoot.ToBytes()), nil, nil
 	}
 	h := newHasher(t.cachegen, t.cachelimit, onleaf)
 	defer returnHasherToPool(h)
-	return h.hash(t.root, db, true)
+	return h.hash(t.root, db, true, preHash)
 }

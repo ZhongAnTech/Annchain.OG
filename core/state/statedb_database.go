@@ -65,7 +65,10 @@ type Trie interface {
 	TryGet(key []byte) ([]byte, error)
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
-	Commit(onleaf trie.LeafCallback) (common.Hash, error)
+	// preCommit is a flag for pre confirming sequencer. Because pre confirm uses the
+	// same trie db in real sequencer confirm and the db will be modified during db commit.
+	// To avoid this, add a flag to let pre confirm process not modify trie db anymore.
+	Commit(onleaf trie.LeafCallback, preCommit bool) (common.Hash, error)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
@@ -166,8 +169,8 @@ type cachedTrie struct {
 	db *cachingDB
 }
 
-func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
-	root, err := m.SecureTrie.Commit(onleaf)
+func (m cachedTrie) Commit(onleaf trie.LeafCallback, preCommit bool) (common.Hash, error) {
+	root, err := m.SecureTrie.Commit(onleaf, preCommit)
 	if err == nil {
 		m.db.pushTrie(m.SecureTrie)
 	}

@@ -33,11 +33,10 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
-	dkg "go.dedis.ch/kyber/v3/share/dkg/pedersen"
-	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
+	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
+	"go.dedis.ch/kyber/v3/share/vss/pedersen"
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
@@ -263,25 +262,36 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 	campaigns := d.term.Campaigns()
 	if len(campaigns) == d.partner.NbParticipants {
 		log.Debug("campaign number is equal to participant number ,all will be senator")
-		var txs types.Txis
 		for _, cp := range campaigns {
 			if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
 				d.isValidPartner = true
 				d.dkgOn = true
 			}
-			txs = append(txs, cp)
 		}
-		sort.Sort(txs)
-		log.WithField("txs ", txs).Debug("lucky cps")
-		for _, tx := range txs {
-			cp := tx.(*tx_types.Campaign)
+		//sort.Sort(txs)
+		log.WithField("txs ", campaigns).Debug("lucky cps")
+		for _, cp := range campaigns {
 			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 			d.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
 				d.addPartner(cp,publicKey)
 			}
 		}
+
 		if d.isValidPartner {
+			var idSet bool
+				for i, v := range d.partner.PartPubs {
+					if bytes.Equal(v.PublicKey.Bytes, d.myAccount.PublicKey.Bytes) {
+						d.partner.Id = uint32(i)
+						log.WithField("id ", d.partner.Id).Trace("my id")
+						idSet =true
+						break
+					}
+				}
+				if !idSet {
+					log.WithField("me ",d.myAccount.Address ).WithField("not found campagin for me ",campaigns).Error("should be ok")
+				}
+
 			//d.generateDkg()
 			log.Debug("you are lucky one")
 		}
@@ -322,12 +332,18 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 		publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 		d.term.AddCandidate(cp, publicKey)
 		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
-		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
-			log.Debug("congratulation i am a partner of dkg ")
-			d.isValidPartner = true
-		}
+
 		//add here with sorted
 		d.addPartner(cp,publicKey)
+			for i, cp := range d.partner.PartPubs {
+				if bytes.Equal(cp.PublicKey.Bytes, d.myAccount.PublicKey.Bytes) {
+					log.Debug("congratulation i am a partner of dkg ")
+					d.isValidPartner = true
+					d.partner.Id = uint32(i)
+					log.WithField("id ", d.partner.Id).Trace("my id")
+				}
+		}
+		return
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
@@ -357,22 +373,18 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-func (d *Dkg) AddPartner(c *tx_types.Campaign) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	publicKey := crypto.Signer.PublicKeyFromBytes(c.PublicKey)
-	d.addPartner(c,publicKey)
-	return
-
-}
+//func (d *Dkg) AddPartner(c *tx_types.Campaign) {
+//	d.mu.Lock()
+//	defer d.mu.Unlock()
+//	publicKey := crypto.Signer.PublicKeyFromBytes(c.PublicKey)
+//	d.addPartner(c,publicKey)
+//	return
+//
+//}
 
 func (d *Dkg) addPartner(c *tx_types.Campaign, pk crypto.PublicKey) {
 	d.partner.PartPubs = append(d.partner.PartPubs, PartPub{Point:c.GetDkgPublicKey()})
     sort.Sort(d.partner.PartPubs)
-	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
-		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
-		log.WithField("id ", d.partner.Id).Trace("my id")
-	}
 	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }

@@ -172,6 +172,7 @@ func (p  PartPubs)Points()[]kyber.Point {
 func (h PartPubs) Len() int           {
 	return len(h)
 }
+
 func (h PartPubs) Less(i, j int) bool {
 	return h[i].PublicKey.String() < h[j].PublicKey.String()
 }

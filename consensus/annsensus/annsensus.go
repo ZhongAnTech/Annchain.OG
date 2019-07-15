@@ -28,6 +28,7 @@ import (
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -86,7 +87,7 @@ type AnnSensus struct {
 }
 
 func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int,
-	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
+	genesisAccounts crypto.PublicKeys, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
 	if disableConsensus {
@@ -109,6 +110,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.UpdateEvent = make(chan bool)
 
 	ann.genesisAccounts = genesisAccounts
+	sort.Sort(genesisAccounts)
 	ann.term = term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *p2p_message.MessageConsensusDkgGenesisPublicKey)

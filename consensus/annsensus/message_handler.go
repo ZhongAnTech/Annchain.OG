@@ -191,7 +191,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *p2p_message.MessagePreVote, 
 		return
 	}
 	if !a.bft.VerifyIsPartNer(pk, int(request.SourceId)) {
-		log.WithField("request ", request).Warn("verify partner failed")
+		log.WithField("pks ", a.bft.BFTPartner.PeersInfo,).WithField("sourc id ", request.SourceId).WithField("pk ", pk).WithField("request ", request).Warn("verify partner failed")
 		return
 	}
 

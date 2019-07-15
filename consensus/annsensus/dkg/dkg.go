@@ -76,7 +76,7 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
-	p.PartPubs = []kyber.Point{}
+	p.PartPubs = PartPubs{}
 
 	d := &Dkg{}
 	d.partner = p
@@ -133,7 +133,7 @@ func (d *Dkg) Reset(myCampaign *tx_types.Campaign) {
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
-	p.PartPubs = []kyber.Point{}
+	p.PartPubs = PartPubs{}
 	if myCampaign != nil {
 		index := -1
 		if len(myCampaign.DkgPublicKey) != 0 {
@@ -278,7 +278,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 			d.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
-				d.addPartner(cp)
+				d.addPartner(cp,publicKey)
 			}
 		}
 		if d.isValidPartner {
@@ -327,7 +327,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 			d.isValidPartner = true
 		}
 		//add here with sorted
-		d.addPartner(cp)
+		d.addPartner(cp,publicKey)
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
@@ -360,13 +360,15 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 func (d *Dkg) AddPartner(c *tx_types.Campaign) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.addPartner(c)
+	publicKey := crypto.Signer.PublicKeyFromBytes(c.PublicKey)
+	d.addPartner(c,publicKey)
 	return
 
 }
 
-func (d *Dkg) addPartner(c *tx_types.Campaign) {
-	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
+func (d *Dkg) addPartner(c *tx_types.Campaign, pk crypto.PublicKey) {
+	d.partner.PartPubs = append(d.partner.PartPubs, PartPub{Point:c.GetDkgPublicKey()})
+    sort.Sort(d.partner.PartPubs)
 	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
 		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
 		log.WithField("id ", d.partner.Id).Trace("my id")
@@ -374,6 +376,7 @@ func (d *Dkg) addPartner(c *tx_types.Campaign) {
 	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
+
 
 func (d *Dkg) GetBlsSigsets() []*tx_types.SigSet {
 	var sigset []*tx_types.SigSet
@@ -983,7 +986,7 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 type DKGInfo struct {
 	TermId             int                    `json:"term_id"`
 	Id                 uint32                 `json:"id"`
-	PartPubs           []kyber.Point          `json:"part_pubs"`
+	PartPubs           PartPubs               `json:"part_pubs"`
 	MyPartSec          kyber.Scalar           `json:"-"`
 	CandidatePartSec   []kyber.Scalar         `json:"-"`
 	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`

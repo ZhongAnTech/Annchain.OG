@@ -370,7 +370,7 @@ func (b *BFT) VerifyProposal(proposal *p2p_message.MessageProposal, pubkey crypt
 func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
 	peers := b.BFTPartner.GetPeers()
 	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
-		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Debug("sourceId error")
+		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
 		return false
 	}
 	partner := peers[sourcePartner].(*OGBFTPartner)

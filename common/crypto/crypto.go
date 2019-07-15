@@ -67,9 +67,14 @@ func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
 	if err != nil {
 		return
 	}
+	cryptoType := CryptoTypeSecp256k1
+	if len(bytes) == 33 {
+		cryptoType = CryptoType(bytes[0])
+		bytes = bytes[1:]
+	}
 	priv = PrivateKey{
-		Type:  CryptoType(bytes[0]),
-		Bytes: bytes[1:],
+		Type:  cryptoType,
+		Bytes: bytes,
 	}
 	return
 }

@@ -64,8 +64,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			TpsTest:              tpsTest,
 			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
-			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -90,8 +90,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
-			TestSeal:  viper.GetBool("auto_client.tx.test_seal"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
 		}
 		client.Init()
 		m.Clients = append(m.Clients, client)
@@ -113,10 +113,8 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
 			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-			TestSyncBuffer: viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
 			CampainEnable:        true,
-			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
-			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
 		}
 		client.Init()
 		m.RegisterReceiver(client.NewRawTx)

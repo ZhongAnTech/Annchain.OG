@@ -28,7 +28,7 @@ import (
 )
 
 type NewPublicOfferingRequest struct {
-	Nonce      string `json:"nonce"`
+	Nonce      uint64 `json:"nonce"`
 	From       string `json:"from"`
 	Value      string `json:"value"`
 	Action     uint8  `json:"action"`
@@ -65,11 +65,11 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 		return
 	}
 
-	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-		return
-	}
+	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
+	//if err != nil {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
+	//	return
+	//}
 
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
@@ -103,7 +103,7 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionDestroy, nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), tx_types.ActionTxActionDestroy, txReq.Nonce,
 		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -154,11 +154,11 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-		return
-	}
+	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
+	//if err != nil {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
+	//	return
+	//}
 
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
@@ -192,7 +192,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionIPO, nonce,
+	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionIPO, txReq.Nonce,
 		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
@@ -243,11 +243,11 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-		return
-	}
+	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
+	//if err != nil {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
+	//	return
+	//}
 
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
@@ -281,7 +281,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 	}
 
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionSPO,
-		nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
+		txReq.Nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return

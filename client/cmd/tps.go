@@ -138,7 +138,7 @@ func tpsSendData(threadNum uint16,db ogdb.Database ) {
 		var reqs rpc.NewTxsRequests
 		key := makeKey(threadNum,uint16(i))
 		data,err := db.Get(key)
-		if err!=nil || len(data) ==0 {
+		if err != nil || len(data) ==0 {
 			fmt.Println("read data err ",err,i )
 			break
 		}

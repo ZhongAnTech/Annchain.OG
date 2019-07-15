@@ -328,7 +328,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		//todo why verify here duplicated verification
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.Debug("NOT OK")
+			logrus.WithField("tx ",tx).Debug("NOT OK")
 			return txRet, ok
 		}
 		//ok = true
@@ -400,6 +400,8 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				if _, ok := m.tryConnect(tx, txs, priveKey); ok {
 					done = true
 					break
+				}else {
+					logrus.WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
 				}
 			}
 			if mineCount > 1 {

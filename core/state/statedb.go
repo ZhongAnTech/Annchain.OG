@@ -534,7 +534,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 			state.dirtycode = false
 		}
 		// commit state's storage
-		if err := state.CommitStorage(sd.db); err != nil {
+		if err := state.CommitStorage(sd.db, false); err != nil {
 			log.Errorf("commit state's storage error: %v", err)
 		}
 		// update state data in current trie.
@@ -559,7 +559,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 			sd.db.TrieDB().Reference(codehash, parent)
 		}
 		return nil
-	})
+	}, false)
 
 	//if trie commit fail ,nil root will write to db
 	if err != nil {

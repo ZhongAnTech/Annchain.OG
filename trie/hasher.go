@@ -22,6 +22,8 @@ import (
 
 	"github.com/annchain/OG/common"
 	"golang.org/x/crypto/sha3"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type hasher struct {
@@ -73,7 +75,7 @@ func returnHasherToPool(h *hasher) {
 
 // hash collapses a node down into a hash node, also returning a copy of the
 // original node initialized with the computed hash to replace the original one.
-func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
+func (h *hasher) hash(n Node, db *Database, force bool, preHash bool) (Node, Node, error) {
 
 	//log.Tracef("Panic debug, start hash node: %s", n.String())
 
@@ -93,11 +95,11 @@ func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 		}
 	}
 	// Trie not processed yet or needs storage, walk the children
-	collapsed, cached, err := h.hashChildren(n, db)
+	collapsed, cached, err := h.hashChildren(n, db, preHash)
 	if err != nil {
 		return HashNode{}, n, err
 	}
-	hashed, err := h.store(collapsed, db, force)
+	hashed, err := h.store(collapsed, db, force, preHash)
 	if err != nil {
 		return HashNode{}, n, err
 	}
@@ -126,7 +128,7 @@ func (h *hasher) hash(n Node, db *Database, force bool) (Node, Node, error) {
 // hashChildren replaces the children of a node with their hashes if the encoded
 // size of the child is larger than a hash, returning the collapsed node as well
 // as a replacement for the original node with the child hashes cached in.
-func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
+func (h *hasher) hashChildren(original Node, db *Database, preHash bool) (Node, Node, error) {
 	var err error
 
 	switch n := original.(type) {
@@ -137,7 +139,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 		cached.Key = common.CopyBytes(n.Key)
 
 		if _, ok := n.Val.(ValueNode); !ok {
-			collapsed.Val, cached.Val, err = h.hash(n.Val, db, false)
+			collapsed.Val, cached.Val, err = h.hash(n.Val, db, false, preHash)
 			if err != nil {
 				return original, original, err
 			}
@@ -155,7 +157,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 
 		for i := 0; i < 16; i++ {
 			if n.Children[i] != nil {
-				collapsed.Children[i], cached.Children[i], err = h.hash(n.Children[i], db, false)
+				collapsed.Children[i], cached.Children[i], err = h.hash(n.Children[i], db, false, preHash)
 				if err != nil {
 					return original, original, err
 				}
@@ -183,7 +185,7 @@ func (h *hasher) hashChildren(original Node, db *Database) (Node, Node, error) {
 // store hashes the node n and if we have a storage layer specified, it writes
 // the key/value pair to it and tracks any node->child references as well as any
 // node->external trie references.
-func (h *hasher) store(n Node, db *Database, force bool) (Node, error) {
+func (h *hasher) store(n Node, db *Database, force bool, preHash bool) (Node, error) {
 	// Don't store hashes or empty nodes.
 	if _, isHash := n.(HashNode); n == nil || isHash {
 		return n, nil
@@ -201,7 +203,7 @@ func (h *hasher) store(n Node, db *Database, force bool) (Node, error) {
 		hash = h.makeHashNode(h.tmp)
 	}
 
-	if db != nil {
+	if db != nil && !preHash {
 		// We are pooling the trie nodes into an intermediate memory cache
 		db.lock.Lock()
 		hash := common.BytesToHash(hash)

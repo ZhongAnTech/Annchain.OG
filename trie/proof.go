@@ -68,8 +68,8 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ogdb.Putter) error {
 	for i, n := range nodes {
 		// Don't bother checking for errors here since hasher panics
 		// if encoding doesn't work and we're not writing to any database.
-		n, _, _ = hasher.hashChildren(n, nil)
-		hn, _ := hasher.store(n, nil, false)
+		n, _, _ = hasher.hashChildren(n, nil, false)
+		hn, _ := hasher.store(n, nil, false, false)
 		if hash, ok := hn.(HashNode); ok || i == 0 {
 			// If the node's database encoding is a hash (or is the
 			// root node), it becomes a proof element.

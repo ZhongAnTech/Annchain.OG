@@ -401,7 +401,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 					done = true
 					break
 				}else {
-					logrus.WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
+					logrus.WithField("parents ",txs).WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
 				}
 			}
 			if mineCount > 1 {

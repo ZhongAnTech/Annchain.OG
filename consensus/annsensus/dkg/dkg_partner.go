@@ -27,7 +27,7 @@ import (
 
 type DKGPartner struct {
 	Id                    uint32
-	PartPubs              PartPubs
+	PartPubs              []kyber.Point
 	MyPartSec             kyber.Scalar
 	CandidatePartSec      []kyber.Scalar
 	CandidatePublicKey    [][]byte
@@ -63,7 +63,7 @@ func genPartnerPair(p *DKGPartner) (kyber.Scalar, kyber.Point) {
 func (p *DKGPartner) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
 	log.WithField(" len ", len(p.PartPubs)).Debug("my part pbus")
-	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs.Points(), p.Threshold)
+	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
 	if err != nil {
 		log.WithField("dkger ", dkger).WithError(err).Error("generate dkg error")
 		return err

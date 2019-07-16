@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
@@ -262,36 +263,26 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 	campaigns := d.term.Campaigns()
 	if len(campaigns) == d.partner.NbParticipants {
 		log.Debug("campaign number is equal to participant number ,all will be senator")
+		var txs types.Txis
 		for _, cp := range campaigns {
 			if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
 				d.isValidPartner = true
 				d.dkgOn = true
 			}
+			txs = append(txs,cp)
 		}
-		//sort.Sort(txs)
-		log.WithField("txs ", campaigns).Debug("lucky cps")
-		for _, cp := range campaigns {
+		sort.Sort(txs)
+		log.WithField("txs ", txs).Debug("lucky cps")
+		for _, tx := range txs {
+			cp := tx.(*tx_types.Campaign)
 			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 			d.term.AddCandidate(cp, publicKey)
 			if d.isValidPartner {
-				d.addPartner(cp,publicKey)
+				d.addPartner(cp)
 			}
 		}
 
 		if d.isValidPartner {
-			var idSet bool
-				for i, v := range d.partner.PartPubs {
-					if bytes.Equal(v.PublicKey.Bytes, d.myAccount.PublicKey.Bytes) {
-						d.partner.Id = uint32(i)
-						log.WithField("id ", d.partner.Id).Trace("my id")
-						idSet =true
-						break
-					}
-				}
-				if !idSet {
-					log.WithField("me ",d.myAccount.Address ).WithField("not found campagin for me ",campaigns).Error("should be ok")
-				}
-
 			//d.generateDkg()
 			log.Debug("you are lucky one")
 		}
@@ -332,18 +323,13 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 		publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 		d.term.AddCandidate(cp, publicKey)
 		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
-
-		//add here with sorted
-		d.addPartner(cp,publicKey)
-			for i, cp := range d.partner.PartPubs {
-				if bytes.Equal(cp.PublicKey.Bytes, d.myAccount.PublicKey.Bytes) {
-					log.Debug("congratulation i am a partner of dkg ")
-					d.isValidPartner = true
-					d.partner.Id = uint32(i)
-					log.WithField("id ", d.partner.Id).Trace("my id")
-				}
+		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
+			log.Debug("congratulation i am a partner of dkg ")
+			d.isValidPartner = true
+			d.partner.Id = uint32(j)
 		}
-		return
+		//add here with sorted
+		d.addPartner(cp)
 	}
 	if !d.isValidPartner {
 		log.Debug("unfortunately  i am not a partner of dkg ")
@@ -382,9 +368,12 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 //
 //}
 
-func (d *Dkg) addPartner(c *tx_types.Campaign, pk crypto.PublicKey) {
-	d.partner.PartPubs = append(d.partner.PartPubs, PartPub{Point:c.GetDkgPublicKey()})
-    sort.Sort(d.partner.PartPubs)
+func (d *Dkg) addPartner(c *tx_types.Campaign) {
+	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
+	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
+		d.partner.Id = uint32(len(d.partner.PartPubs) - 1)
+		log.WithField("id ", d.partner.Id).Trace("my id")
+	}
 	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
@@ -998,7 +987,7 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 type DKGInfo struct {
 	TermId             int                    `json:"term_id"`
 	Id                 uint32                 `json:"id"`
-	PartPubs           PartPubs               `json:"part_pubs"`
+	PartPubs           []kyber.Point               `json:"part_pubs"`
 	MyPartSec          kyber.Scalar           `json:"-"`
 	CandidatePartSec   []kyber.Scalar         `json:"-"`
 	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`

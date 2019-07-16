@@ -133,7 +133,7 @@ func (d *Dkg) Reset(myCampaign *tx_types.Campaign) {
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = d.partner.NbParticipants
 	p.Threshold = d.partner.Threshold
-	p.PartPubs = PartPubs{}
+	p.PartPubs = []kyber.Point{}
 	if myCampaign != nil {
 		index := -1
 		if len(myCampaign.DkgPublicKey) != 0 {

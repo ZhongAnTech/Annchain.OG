@@ -432,10 +432,15 @@ func (as *AnnSensus) addGenesisCampaigns() {
 	}
 	as.addedGenesisCampaign = true
 	as.mu.RUnlock()
-	for _, pk := range as.genesisAccounts {
+	for id, pk := range as.genesisAccounts {
 		addr := pk.Address()
 		cp := tx_types.Campaign{
-			Issuer: &addr,
+			//DkgPublicKey: pkMsg.DkgPublicKey,
+			Issuer:       &addr,
+			TxBase: types.TxBase{
+				PublicKey: pk.Bytes,
+				Weight:    uint64(id*10 + 10),
+			},
 		}
 		as.term.AddCandidate(&cp, pk)
 	}

@@ -76,7 +76,7 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
 	p.Threshold = threshold
-	p.PartPubs = PartPubs{}
+	p.PartPubs = []kyber.Point{}
 
 	d := &Dkg{}
 	d.partner = p

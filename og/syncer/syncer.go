@@ -272,7 +272,7 @@ func (m *IncrementalSyncer) loopSync() {
 				fired++
 			}
 
-		case <-time.After(time.Second * 5):
+		case <-time.After(sleepDuration * 5):
 			repickedHashes := m.repickHashes()
 			log.WithField("hashes", repickedHashes).Info("syncer repicked hashes")
 			for _, hash := range repickedHashes {
@@ -409,7 +409,8 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 
 func (m *IncrementalSyncer) repickHashes() common.Hashes {
 	maps := m.firedTxCache.GetALL(true)
-	duration := time.Duration(time.Second * 10)
+	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
+	duration := time.Duration(sleepDuration*20)
 	var result common.Hashes
 	for ik, iv := range maps {
 		v := iv.(FireHistory)

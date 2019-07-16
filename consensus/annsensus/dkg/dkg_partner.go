@@ -164,7 +164,7 @@ type PartPubs []PartPub
 func (p  PartPubs)Points()[]kyber.Point {
 	var poits []kyber.Point
 	for _,v:= range p {
-		poits = append(poits,v)
+		poits = append(poits,v.Point)
 	}
 	return poits
 }

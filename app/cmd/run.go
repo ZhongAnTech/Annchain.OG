@@ -123,7 +123,7 @@ func readConfig() {
 	}
 
 	// load injected config from ogbootstrap if any
-	injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected")
+	injectedPath := io.FixPrefixPath(viper.GetString("datadir"), "injected.toml")
 	if io.FileExists(injectedPath) {
 		mergeLocalConfig(injectedPath)
 	}

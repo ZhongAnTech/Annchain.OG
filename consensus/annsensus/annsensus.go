@@ -28,6 +28,7 @@ import (
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -62,7 +63,7 @@ type AnnSensus struct {
 	mu sync.RWMutex
 
 	close                         chan struct{}
-	genesisAccounts               []crypto.PublicKey
+	genesisAccounts              crypto.PublicKeys
 	isGenesisPartner              bool
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
@@ -86,7 +87,7 @@ type AnnSensus struct {
 }
 
 func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int,
-	genesisAccounts []crypto.PublicKey, configFile string, disableTermChange bool) *AnnSensus {
+	genesisAccounts crypto.PublicKeys, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
 	ann.disable = disableConsensus
 	if disableConsensus {
@@ -109,6 +110,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.UpdateEvent = make(chan bool)
 
 	ann.genesisAccounts = genesisAccounts
+	sort.Sort(ann.genesisAccounts)
 	ann.term = term.NewTerm(0, partnerNum, termChangeInterval)
 	ann.newTermChan = make(chan bool)
 	ann.genesisPkChan = make(chan *p2p_message.MessageConsensusDkgGenesisPublicKey)
@@ -430,10 +432,15 @@ func (as *AnnSensus) addGenesisCampaigns() {
 	}
 	as.addedGenesisCampaign = true
 	as.mu.RUnlock()
-	for _, pk := range as.genesisAccounts {
+	for id, pk := range as.genesisAccounts {
 		addr := pk.Address()
 		cp := tx_types.Campaign{
-			Issuer: &addr,
+			//DkgPublicKey: pkMsg.DkgPublicKey,
+			Issuer:       &addr,
+			TxBase: types.TxBase{
+				PublicKey: pk.Bytes,
+				Weight:    uint64(id*10 + 10),
+			},
 		}
 		as.term.AddCandidate(&cp, pk)
 	}

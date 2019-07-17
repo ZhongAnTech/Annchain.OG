@@ -59,8 +59,8 @@ type Txi interface {
 	Msgsize() (s int)
 	GetVersion() byte
 	ToSmallCaseJson() ([]byte, error)
-	FormatVerified()bool
-	SetFormatVerified ()
+	IsVerified()verifiedType
+	SetVerified(v verifiedType)
 }
 
 type RawTxi interface {

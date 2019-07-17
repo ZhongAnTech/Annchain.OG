@@ -198,3 +198,17 @@ func CreateAddress(b common.Address, nonce uint64) common.Address {
 func CreateAddress2(b common.Address, salt [32]byte, inithash []byte) common.Address {
 	return common.BytesToAddress(Keccak256([]byte{0xff}, b.ToBytes()[:], salt[:], inithash)[12:])
 }
+
+
+type PublicKeys []PublicKey
+
+func (h PublicKeys) Len() int           {
+	return len(h)
+}
+func (h PublicKeys) Less(i, j int) bool {
+	return h[i].String() < h[j].String()
+}
+
+func (h PublicKeys) Swap(i, j int)      {
+	h[i], h[j] = h[j], h[i]
+}

@@ -9,6 +9,7 @@ spec:
       labels:
         app: ogboot
     spec:
+      terminationGracePeriodSeconds: 1
       containers:
         - name: ogboot
           image: 172.28.152.101:5000/ogboot

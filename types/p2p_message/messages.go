@@ -125,6 +125,7 @@ func (m *MessageNewTx) GetHash() *common.Hash {
 type BloomFilter struct {
 	Data   []byte
 	Count  uint32
+	Capacity  uint32
 	filter *bloom.BloomFilter
 }
 
@@ -169,7 +170,11 @@ func (c *BloomFilter) Encode() error {
 }
 
 func (c *BloomFilter) Decode() error {
-	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	if c.Capacity ==0 {
+		c.filter = bloom.New(BloomItemNumber, HashFuncNum)
+	}else {
+		c.filter = bloom.New(uint(c.Capacity),HashFuncNum)
+	}
 	return c.filter.Decode(c.Data)
 }
 
@@ -177,6 +182,18 @@ func NewDefaultBloomFilter() *BloomFilter {
 	c := &BloomFilter{}
 	c.filter = bloom.New(BloomItemNumber, HashFuncNum)
 	c.Count = 0
+	c.Capacity = 0 //0 if for default
+	return c
+}
+
+func NewBloomFilter(m uint32) *BloomFilter {
+	if m< BloomItemNumber {
+		return NewDefaultBloomFilter()
+	}
+	c := &BloomFilter{}
+	c.filter = bloom.New(uint(m), HashFuncNum)
+	c.Count = 0
+	c.Capacity = uint32(m)
 	return c
 }
 

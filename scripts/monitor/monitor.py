@@ -24,7 +24,8 @@ tps = {}  # host ->{}
 
 
 def host_to_show(ip):
-    return ip.split(':')[0].split('.')[3]
+    # return ip.split(':')[0].split('.')[3]
+    return ip[-9:]
 
 
 def id_to_show(id):
@@ -37,7 +38,7 @@ def myid(host):
     try:
         resp = s.get('http://%s/net_info' % host, timeout=10)
         j = json.loads(resp.text)
-        return j['short_id']
+        return j['data']['short_id']
     except Exception as e:
         return None
 
@@ -48,7 +49,7 @@ def doone(host):
         try:
             resp = s.get('http://%s/sequencer' % host, timeout=5)
             j = json.loads(resp.text)
-            d['seq'] = j['Id']
+            d['seq'] = j['data']['Hash'][-8:]
         except Exception as e:
             print(e)
             return None
@@ -58,7 +59,7 @@ def doone(host):
             peers = []
             resp = s.get('http://%s/peers_info' % host, timeout=5)
             j = json.loads(resp.text)
-            for peer in j:
+            for peer in j['data']:
                 peers.append(peer['short_id'])
                 d['peers'] = peers
         except Exception as e:
@@ -110,7 +111,7 @@ def doround(hosts, pool):
         if d is not None:
             d['bestPeer'] = id_to_show(d['bestPeer'])
             ippeers = []
-            if 'peers' in peer:
+            if 'peers' in d:
                 for peer in d['peers']:
                     ippeers.append(id_to_show(peer))
             d['peers'] = ippeers
@@ -150,9 +151,8 @@ def hosts(fname):
 
 if __name__ == '__main__':
     # hosts = ['127.0.0.1:%d' % (8000 + i*100) for i in range(total)]
-    host_ips = hosts('data/hosts')
-    host_ipports = ['%s:30000' % (x) for x in host_ips]
-    pool = multiprocessing.Pool(processes=20)
+    host_ipports = hosts('../data/hosts')
+    pool = multiprocessing.Pool(processes=7)
 
     try:
         while True:

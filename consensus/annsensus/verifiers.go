@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/pairing/bn256"
 )
 
 // consensus related verification

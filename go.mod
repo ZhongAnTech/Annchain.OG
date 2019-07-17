@@ -3,6 +3,7 @@ module github.com/annchain/OG
 go 1.12
 
 require (
+	github.com/annchain/kyber/v3 v3.1.0
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -27,12 +28,9 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tinylib/msgp v1.1.0
 	github.com/willf/bitset v1.1.10
-	go.dedis.ch/kyber/v3 v3.0.0-00010101000000-000000000000
 	go.uber.org/atomic v1.4.0
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
 	golang.org/x/sys v0.0.0-20190528183647-3626398d7749
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/yaml.v2 v2.2.2
 )
-
-replace go.dedis.ch/kyber/v3 => ./common/crypto/dedis/kyber/v3

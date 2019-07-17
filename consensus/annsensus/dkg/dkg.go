@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
@@ -33,11 +34,10 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
-	dkg "go.dedis.ch/kyber/v3/share/dkg/pedersen"
-	vss "go.dedis.ch/kyber/v3/share/vss/pedersen"
+	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
+	"go.dedis.ch/kyber/v3/share/vss/pedersen"
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
@@ -269,7 +269,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 				d.isValidPartner = true
 				d.dkgOn = true
 			}
-			txs = append(txs, cp)
+			txs = append(txs,cp)
 		}
 		sort.Sort(txs)
 		log.WithField("txs ", txs).Debug("lucky cps")
@@ -281,6 +281,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 				d.addPartner(cp)
 			}
 		}
+
 		if d.isValidPartner {
 			//d.generateDkg()
 			log.Debug("you are lucky one")
@@ -325,6 +326,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
 			log.Debug("congratulation i am a partner of dkg ")
 			d.isValidPartner = true
+			d.partner.Id = uint32(j)
 		}
 		//add here with sorted
 		d.addPartner(cp)
@@ -357,13 +359,14 @@ func (d *Dkg) getDeals() (DealsMap, error) {
 	return d.partner.Dkger.Deals()
 }
 
-func (d *Dkg) AddPartner(c *tx_types.Campaign) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.addPartner(c)
-	return
-
-}
+//func (d *Dkg) AddPartner(c *tx_types.Campaign) {
+//	d.mu.Lock()
+//	defer d.mu.Unlock()
+//	publicKey := crypto.Signer.PublicKeyFromBytes(c.PublicKey)
+//	d.addPartner(c,publicKey)
+//	return
+//
+//}
 
 func (d *Dkg) addPartner(c *tx_types.Campaign) {
 	d.partner.PartPubs = append(d.partner.PartPubs, c.GetDkgPublicKey())
@@ -374,6 +377,7 @@ func (d *Dkg) addPartner(c *tx_types.Campaign) {
 	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
+
 
 func (d *Dkg) GetBlsSigsets() []*tx_types.SigSet {
 	var sigset []*tx_types.SigSet
@@ -983,7 +987,7 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 type DKGInfo struct {
 	TermId             int                    `json:"term_id"`
 	Id                 uint32                 `json:"id"`
-	PartPubs           []kyber.Point          `json:"part_pubs"`
+	PartPubs           []kyber.Point               `json:"part_pubs"`
 	MyPartSec          kyber.Scalar           `json:"-"`
 	CandidatePartSec   []kyber.Scalar         `json:"-"`
 	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`

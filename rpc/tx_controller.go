@@ -16,6 +16,10 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -23,8 +27,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"strconv"
 )
 
 func (r *RpcController) NewTransaction(c *gin.Context) {
@@ -102,6 +104,20 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 		return
 	}
+
+	ok = r.FormatVerifier.VerifySignature(tx)
+	if !ok {
+		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
+		Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
+		return
+	}
+	ok = r.FormatVerifier.VerifySourceAddress(tx)
+	if !ok {
+		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
+		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+		return
+	}
+	tx.SetVerified(types.VerifiedFormat)
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
@@ -212,9 +228,33 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 		if err != nil {
-			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
-			Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
-			return
+			//try second time
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed , try again")
+			ok = r.FormatVerifier.VerifySignature(tx)
+			if !ok {
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
+				Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
+				return
+			}
+			ok = r.FormatVerifier.VerifySourceAddress(tx)
+			if !ok {
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
+				Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+				return
+			}
+			time.Sleep(time.Microsecond * 2)
+			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+			if err != nil {
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
+				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
+				return
+			}
+			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
+			//we don't verify hash , since we calculated the hash
+			tx.SetVerified(types.VerifiedFormat)
+			r.TxBuffer.ReceivedNewTxChan <- tx
+			hashes = append(hashes, tx.GetTxHash())
+			continue
 		}
 		logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated")
 		//txs = append(txs,tx)
@@ -231,7 +271,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 		//we don't verify hash , since we calculated the hash
-		tx.SetFormatVerified()
+		tx.SetVerified(types.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
 		hashes = append(hashes, tx.GetTxHash())
 	}

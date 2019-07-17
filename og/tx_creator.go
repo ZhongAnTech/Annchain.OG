@@ -254,7 +254,7 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
-
+	tx.SetVerified(types.VerifiedFormat)
 	return tx, nil
 }
 
@@ -328,9 +328,10 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		//todo why verify here duplicated verification
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.Debug("NOT OK")
+			logrus.WithField("tx ",tx).Debug("NOT OK")
 			return txRet, ok
 		}
+		tx.SetVerified(types.VerifiedGraph)
 		//ok = true
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
@@ -400,6 +401,8 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				if _, ok := m.tryConnect(tx, txs, priveKey); ok {
 					done = true
 					break
+				}else {
+					logrus.WithField("parents ",txs).WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
 				}
 			}
 			if mineCount > 1 {
@@ -481,6 +484,8 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			tx.StateRoot = root
 			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
 			tx.GetBase().Hash = tx.CalcTxHash()
+			tx.SetVerified(types.VerifiedGraph)
+			tx.SetVerified(types.VerifiedFormat)
 			break
 		}
 	}

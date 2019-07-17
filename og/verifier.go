@@ -105,7 +105,7 @@ func (c *ConsensusVerifier) String() string {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	if t.FormatVerified() {
+	if t.IsVerified().IsFormatVerified()  {
 		return true
 	}
 	if !v.VerifyHash(t) {
@@ -116,7 +116,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 		return false
 	}
-	t.SetFormatVerified()
+	t.SetVerified(types.VerifiedFormat)
 	return true
 }
 
@@ -426,6 +426,9 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *tx_types.Sequencer) (pr
 // B2: [My job] Two layer hash validation
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
+	if txi.IsVerified().IsGraphVerified() {
+		return true
+	}
 	ok = false
 	if ok = v.verifyWeight(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on weight")
@@ -439,6 +442,7 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
+	txi.SetVerified(types.VerifiedGraph)
 	return true
 }
 

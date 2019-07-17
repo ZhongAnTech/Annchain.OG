@@ -1,26 +1,27 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: ognb-bootstrap
+  name: ognb
 spec:
-  replicas: 2
-  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app: ognb
+  replicas: 7
   template:
     metadata:
       labels:
-        app: ognb-bootstrap
-      annotations:
-        kubernetes.io/ingress-bandwidth: 1024M
-        kubernetes.io/egress-bandwidth: 1024M
+        app: ognb
     spec:
       containers:
-        - name: ognb-bootstrap
+        - name: ognb
           image: 172.28.152.101:5000/ognb
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
-              value: "http://192.168.198.25:8008"
+              value: "http://ogboot:8008/7"
             - name: OG_P2P.NETWORK_ID
-              value: "2"
+              value: "6"
+            - name: OG_MODE
+              value: "normal"
           ports:
             - name: rpc
               containerPort: 8000
@@ -31,10 +32,45 @@ spec:
               containerPort: 8002
             - name: profiling
               containerPort: 8003
+          volumeMounts:
+            - name: rw
+              mountPath: /rw
           command:
             ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
           resources:
             limits:
-              cpu: "4"
-            requests:
               cpu: "2"
+            requests:
+              cpu: "100m"
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi
+        selector:
+          matchLabels:
+            target: og
+
+-----
+apiVersion: v1
+kind: Service
+metadata:
+  name: ognb
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      nodePort: 30300
+      name: rpc
+    - port: 8002
+      nodePort: 30302
+      name: websocket
+    - port: 8003
+      nodePort: 30303
+      name: profiling
+  selector:
+    app: ognb

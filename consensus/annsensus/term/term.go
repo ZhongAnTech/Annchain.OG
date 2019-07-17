@@ -29,7 +29,7 @@ type Term struct {
 	senators               Senators            `json:"senators"`
 	formerSenators         map[uint64]Senators `json:"former_senators"`
 	candidates             map[common.Address]*tx_types.Campaign
-	PublicKeys             []crypto.PublicKey
+	publicKeys             []crypto.PublicKey
 	formerPublicKeys       []crypto.PublicKey
 	alsorans               map[common.Address]*tx_types.Campaign
 	campaigns              map[common.Address]*tx_types.Campaign
@@ -120,7 +120,8 @@ func (t *Term) AddCandidate(c *tx_types.Campaign, publicKey crypto.PublicKey) {
 	defer t.mu.Unlock()
 
 	t.candidates[c.Sender()] = c
-	t.PublicKeys = append(t.PublicKeys, publicKey)
+	t.publicKeys = append(t.publicKeys, publicKey)
+	//sort.Sort(t.publicKeys)
 }
 
 func (t *Term) AddCampaign(c *tx_types.Campaign) {
@@ -236,7 +237,7 @@ func (t *Term) ChangeTerm(tc *tx_types.TermChange, lastHeight uint64) error {
 		snts[addr] = s
 	}
 
-	t.formerPublicKeys = t.PublicKeys
+	t.formerPublicKeys = t.publicKeys
 	if t.id == 0 {
 		t.genesisTermChange = tc
 	}
@@ -246,7 +247,7 @@ func (t *Term) ChangeTerm(tc *tx_types.TermChange, lastHeight uint64) error {
 	t.candidates = make(map[common.Address]*tx_types.Campaign)
 	t.alsorans = make(map[common.Address]*tx_types.Campaign)
 	t.campaigns = make(map[common.Address]*tx_types.Campaign)
-	t.PublicKeys = nil
+	t.publicKeys = nil
 
 	formerSnts := t.senators
 	t.formerSenators[t.id] = formerSnts
@@ -304,3 +305,6 @@ func (t *Term) ClearCampaigns() {
 func (t *Term) GetFormerPks() []crypto.PublicKey {
 	return t.formerPublicKeys
 }
+
+
+

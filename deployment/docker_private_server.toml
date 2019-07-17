@@ -11,7 +11,7 @@ port = 8000
 
 [p2p]
 enabled = true
-bootstrap_config_server = "http://172.28.152.101:8008"
+bootstrap_config_server = "http://ogboot:8008"
 #bootstrap_node = false
 port = 8001
 max_peers = 50

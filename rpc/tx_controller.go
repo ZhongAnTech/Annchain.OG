@@ -84,18 +84,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	if txReq.CryptoType == "" {
-		pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
-	} else {
-
-		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
+		txReq.CryptoType = "secp256k1"
+	}
+	pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+		return
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
@@ -136,16 +130,16 @@ type NewTxRequest struct {
 
 //msgp:tuple NewTxsRequests
 type NewTxsRequests struct {
-	Txs  []NewTxRequest `json:"txs"`
+	Txs []NewTxRequest `json:"txs"`
 }
 
 func (r *RpcController) NewTransactions(c *gin.Context) {
 	var (
 		//txs types.Txis
 		txrequsets NewTxsRequests
-		sig   crypto.Signature
-		pub   crypto.PublicKey
-		hashes common.Hashes
+		sig        crypto.Signature
+		pub        crypto.PublicKey
+		hashes     common.Hashes
 	)
 
 	if status.ArchiveMode {
@@ -154,12 +148,12 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 	}
 
 	err := c.ShouldBindJSON(&txrequsets)
-	if err != nil || len(txrequsets.Txs) ==0 {
+	if err != nil || len(txrequsets.Txs) == 0 {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	for i,txReq := range txrequsets.Txs {
-		var  tx    types.Txi
+	for i, txReq := range txrequsets.Txs {
+		var tx types.Txi
 		from, err := common.StringToAddress(txReq.From)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
@@ -199,18 +193,12 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 
 		if txReq.CryptoType == "" {
-			pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
-		} else {
-
-			pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
+			txReq.CryptoType = "secp256k1"
+		}
+		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
+		if err != nil {
+			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+			return
 		}
 
 		sig = crypto.SignatureFromBytes(pub.Type, signature)
@@ -224,7 +212,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 		if err != nil {
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 			return
 		}
@@ -232,20 +220,20 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		//txs = append(txs,tx)
 		ok = r.FormatVerifier.VerifySignature(tx)
 		if !ok {
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("signature invalid")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
 			return
 		}
 		ok = r.FormatVerifier.VerifySourceAddress(tx)
 		if !ok {
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("source address invalid")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 			return
 		}
-        //we don't verify hash , since we calculated the hash
-        tx.SetFormatVerified ()
+		//we don't verify hash , since we calculated the hash
+		tx.SetFormatVerified()
 		r.TxBuffer.ReceivedNewTxChan <- tx
-		hashes = append(hashes,tx.GetTxHash())
+		hashes = append(hashes, tx.GetTxHash())
 	}
 
 	//r.TxBuffer.ReceivedNewTxsChan <- txs

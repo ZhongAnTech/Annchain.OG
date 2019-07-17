@@ -3,7 +3,7 @@ module github.com/annchain/OG
 go 1.12
 
 require (
-	github.com/annchain/kyber/v3 v3.1.0
+	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c

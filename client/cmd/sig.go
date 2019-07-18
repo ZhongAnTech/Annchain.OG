@@ -64,7 +64,10 @@ func sig(cmd *cobra.Command, args []string) {
 		fmt.Println(fmt.Sprintf("invalid from length, must be 20 bytes, but get: %d", len(fromBytes)))
 		return
 	}
-	from := common.BytesToAddress(fromBytes)
+	fromAddr := common.BytesToAddress(fromBytes)
+
+	toBytes, _ := hexutil.Decode("0xa3fa6b326c91bfa1addd6fa9fd27f266cce43e0d")
+	toAddr := common.BytesToAddress(toBytes)
 
 	fmt.Println("PLEASE ENTER value: ")
 	valueStr := ""
@@ -94,7 +97,8 @@ func sig(cmd *cobra.Command, args []string) {
 
 	tx := tx_types.Tx{}
 	tx.AccountNonce = uint64(nonce)
-	tx.From = &from
+	tx.From = &fromAddr
+	tx.To = toAddr
 	tx.Value = value
 	tx.Data = data
 

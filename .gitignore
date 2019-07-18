@@ -5,6 +5,8 @@
 .bak
 *.bak
 .DS_Store
+!build/config.toml
+!build/genesis.json
 build/*
 logs/
 *.iml

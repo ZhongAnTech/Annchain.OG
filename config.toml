@@ -1,20 +1,19 @@
 config = "config.toml"
-datadir = "D:\\ws\\git\\OG\\build\\private\\node_0"
-genkey = false
-log_line_number = false
+datadir = "build/"
+genkey = true
+log_line_number = true
 max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-multifile_by_level = false
+multifile_by_level = true
 multifile_by_module = false
-title = "OG configuration"
-mode="normal"
+title = "TOML Example"
 
 [annsensus]
-  campaign = true
-  consensus_path = "consensus0.json"
-  disable = false
+  campaign = false
+  consensus_path = "consensus.json"
+  disable = true
   disable_term_change = true
-  genesis_pk = "0x0104c544565e015346da7c29b1161a8369bf58da2adb3a6fc6a806386de2a7965c7fe2990574156d9e5103e0ef2daf081dd0ffce7b434710b908c4b61083322b2b2c;0x0104ed90b29606e51dc050d56b205d5001e1aa8472c9bf10882a9af49d250e735e46cf8164e1174cd35ef5273269fbcced7f72e4f8ecf660dc79ea27e152c16a8475;0x01044e83369a8bacaae5492089904dfaa49e19635cf29c7e6d2697a6f3be63a08cec6f356d506c42fbcda5dffaaca05f8486a3576db53121fbd275f192a95b3b3bee;0x01044ad86a816fd62ec410a3f49bfcfa171929b1b1ddffaced8c5d5ac35b35e6ced61f5b1f30c4d1f9aa8d24944a9e13f6413646f88ffaaf79ff44fd67de01ae12d5"
+  genesis_pk = "0x0104994735dfcf60eb43bb5286334a7a83b622685fc3feb92247c65cc4b4cd55497fbc767f2e59a222abb650e5f411d9f7b6266b49439cdb348d859e33e89846bcaf;0x01046ce80b57488632dd7fc1488f5c2ed4746b16e2656b9ec7793f6f7d23663a5bd68ba37a00313d55042480c23b98b2cbee334eda939eab12a737f4a5d3e646da93;0x0104329ad4860f4835427efe677cecfda463e9fa0be722b41d64109197499b2804fbe9fa41416191c81fc9f819f83fad0a891a4eb3c5ee7d7122c8a6c948f71c8028;0x0104f25bceb564a148de47ba2725eaa4f88898d54dee044d8bbf75b4f209edd67a0e21ab145e249a5dd236a7bd9d7bb42ef24c30fb9da94d8001faac29588c61c45b"
   mode = "archive"
   partner_number = 4
   term_change_interval = 10
@@ -36,9 +35,6 @@ mode="normal"
     enabled = false
     interval_mode = "random"
     interval_us = 500000
-    test_dag_push = false
-    test_insert_pool = false
-
 
 [crypto]
   algorithm = "secp256k1"
@@ -63,21 +59,21 @@ mode="normal"
 [leveldb]
   cache = 16
   handles = 16
-  path = "rw/datadir_0"
+  path = "rw/datadir_1"
 
 [log]
-  level = "debug"
-  log_dir = ""
+  level = "trace"
+  log_dir = "build/log/"
 
 [p2p]
-  bootstrap_node = "true"
-  bootstrap_nodes = "onode://c5d29092fdbfd12bbb36822f5b9a494e04586a55cd8b82ada7254ee1daf50239334f5b05608ef169f83f3c2f2a5b6332aba2ee1e9145c8033804f1894450a604@127.0.0.1:8001"
+  bootstrap_node = true
+  bootstrap_nodes = "onode://63bdbc3a67b74688614e3cbb110a918c97e36b8bc24e0b303d7c847c307e2aed3049142782e2f9bd5b3dad4f8c7db012d4072e9e82fa4399c9d44e9ff2d907c1@127.0.0.1:8001"
   enable_sync = true
   enabled = true
   max_peers = 50
-  network_id = "2"
+  network_id = 1
   no_encryption = false
-  node_key = "9c2a300ed9a7e5783debe11b9a940dbf3dd9a9c27a7e6af8e0b7533312cbbf06"
+  node_key = "6d4ce0f90b69ff9482fee9abe877c7797ab81618a74e97074190c13aa596aa79"
   port = 8001
 
 [profiling]
@@ -91,6 +87,9 @@ mode="normal"
   beat_expire_time_s = 300
   flush_timer_s = 5
   purge_timer_s = 10
+
+[tx_buffer]
+  new_tx_queue_size = 1
 
 [txpool]
   queue_size = 100

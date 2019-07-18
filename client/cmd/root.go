@@ -51,6 +51,9 @@ func init() {
 	rootCmd.AddCommand(tpsCmd)
 	tpsInit()
 
+	rootCmd.AddCommand(hackdataCmd)
+	rootCmd.AddCommand(sigCmd)
+
 }
 
 func panicIfError(err error, message string) {
@@ -60,4 +63,3 @@ func panicIfError(err error, message string) {
 		panic(err)
 	}
 }
-

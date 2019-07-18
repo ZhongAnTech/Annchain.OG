@@ -71,10 +71,6 @@ func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []by
 	signature = s.DealRecoverID(signature)
 	sig := signature.Bytes
 
-	fmt.Println(fmt.Sprintf("pubkey bytes: %x", pubKey.Bytes))
-	fmt.Println(fmt.Sprintf("msg: %x", msg))
-	fmt.Println(fmt.Sprintf("sig: %x", sig))
-
 	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
 }
 

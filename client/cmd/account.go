@@ -57,9 +57,9 @@ func accountGen(cmd *cobra.Command, args []string) {
 		return
 	}
 	pub, priv := signer.RandomKeyPair()
-	fmt.Println(priv.String())
-	fmt.Println(pub.String())
-	fmt.Println(signer.Address(pub).Hex())
+	fmt.Println(fmt.Sprintf("private: %x", priv.Bytes))
+	fmt.Println(fmt.Sprintf("public: %x", pub.Bytes))
+	fmt.Println(fmt.Sprintf("address: %x", signer.Address(pub).Bytes))
 }
 
 func accountCal(cmd *cobra.Command, args []string) {

@@ -5,9 +5,9 @@
 .bak
 *.bak
 .DS_Store
+build/*
 !build/config.toml
 !build/genesis.json
-build/*
 logs/
 *.iml
 vendor/

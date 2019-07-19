@@ -27,7 +27,7 @@ title = "TOML Example"
     interval_us = 500000
 
   [auto_client.sequencer]
-    enabled = true
+    enabled = false
     interval_us = 5000000
 
   [auto_client.tx]
@@ -66,8 +66,8 @@ title = "TOML Example"
   log_dir = "log/"
 
 [p2p]
-  bootstrap_node = true
-  bootstrap_nodes = "onode://63bdbc3a67b74688614e3cbb110a918c97e36b8bc24e0b303d7c847c307e2aed3049142782e2f9bd5b3dad4f8c7db012d4072e9e82fa4399c9d44e9ff2d907c1@127.0.0.1:8001"
+  bootstrap_node = false
+  bootstrap_nodes = "onode://8f8e947f52fc5beac771bad7b997f47521c44a16719a585ccd1e8a0557f8c54d993225a6adfb9bb6a40232f0227cf88ab542ea4b1b4fd04116ee5119a552382b@47.100.222.11:30006"
   enable_sync = true
   enabled = true
   max_peers = 50

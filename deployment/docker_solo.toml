@@ -54,8 +54,8 @@ mode="normal"
 [p2p]
   bootstrap_node = true
   bootstrap_nodes = "onode://8f8e947f52fc5beac771bad7b997f47521c44a16719a585ccd1e8a0557f8c54d993225a6adfb9bb6a40232f0227cf88ab542ea4b1b4fd04116ee5119a552382b@127.0.0.1:8001"
-  enable_sync = false
-  enabled = false
+  enable_sync = true
+  enabled = true
   max_peers = 50
   network_id = 1
   no_encryption = false

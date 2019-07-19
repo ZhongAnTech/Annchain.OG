@@ -34,11 +34,11 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
-	"go.dedis.ch/kyber/v3/share/vss/pedersen"
-	"go.dedis.ch/kyber/v3/sign/bls"
+	"github.com/annchain/kyber/v3"
+	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/kyber/v3/share/vss/pedersen"
+	"github.com/annchain/kyber/v3/sign/bls"
 )
 
 type Dkg struct {

@@ -15,12 +15,12 @@ package dkg
 
 import (
 	"fmt"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
+	"github.com/annchain/kyber/v3"
+	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/share"
 	"reflect"
 
-	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/kyber/v3/share/dkg/pedersen"
 	"testing"
 )
 

@@ -14,7 +14,6 @@
 package og
 
 import (
-	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
@@ -344,7 +343,6 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 		}
 		b.wg.Add(1)
 		goroutine.New(f)
-		fmt.Println()
 
 	}
 	b.wg.Wait()

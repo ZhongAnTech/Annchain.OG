@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          securityContext:
+            runAsUser: 0
+          ports:
+            - name: rpc
+              containerPort: 9090
+          volumeMounts:
+            - name: volume-prometheus
+              mountPath: /var/lib/grafana
+  volumeClaimTemplates:
+    - metadata:
+        name: volume-grafana
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+
+  -----
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: 30002
+      name: http
+  selector:
+    app: grafana

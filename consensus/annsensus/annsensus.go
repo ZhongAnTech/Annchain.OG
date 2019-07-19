@@ -27,7 +27,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/pairing/bn256"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -36,7 +36,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	"go.dedis.ch/kyber/v3"
+	"github.com/annchain/kyber/v3"
 )
 
 type AnnSensus struct {

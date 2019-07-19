@@ -148,8 +148,13 @@ func (r *RpcController) Monitor(c *gin.Context) {
 
 func (r *RpcController) BftStatus(c *gin.Context) {
 	cors(c)
-	s := r.AnnSensus.GetBftStatus()
-	Response(c, http.StatusOK, nil, s)
+	if r.AnnSensus != nil {
+		s := r.AnnSensus.GetBftStatus()
+		Response(c, http.StatusOK, nil, s)
+	} else {
+		Response(c, http.StatusOK, nil, nil)
+	}
+
 	return
 }
 

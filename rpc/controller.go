@@ -384,7 +384,12 @@ func (r *RpcController) ContractPayload(c *gin.Context) {
 
 func (r *RpcController) ConStatus(c *gin.Context) {
 	cors(c)
-	Response(c, http.StatusOK, nil, r.AnnSensus.GetInfo())
+	if r.AnnSensus != nil {
+		Response(c, http.StatusOK, nil, r.AnnSensus.GetInfo())
+	} else {
+		Response(c, http.StatusOK, nil, nil)
+	}
+
 }
 
 func (r *RpcController) ConfirmStatus(c *gin.Context) {

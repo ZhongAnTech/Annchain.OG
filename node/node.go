@@ -178,10 +178,8 @@ func NewNode() *Node {
 		txFormatVerifier.NoVerifyMaxTxHash = true
 		logrus.Info("no verify max tx hash")
 	}
-	consensusVerifier := &og.ConsensusVerifier{}
-
 	//verify format first , set address and then verify graph
-	verifiers := []og.Verifier{txFormatVerifier, graphVerifier, consensusVerifier}
+	verifiers := []og.Verifier{txFormatVerifier, graphVerifier}
 
 	// txBuffer
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
@@ -190,12 +188,11 @@ func NewNode() *Node {
 		TxPool:                           org.TxPool,
 		DependencyCacheExpirationSeconds: 10 * 60,
 		DependencyCacheMaxSize:           20000,
-		NewTxQueueSize:                  viper.GetInt("tx_buffer.new_tx_queue_size"),
+		NewTxQueueSize:                   viper.GetInt("tx_buffer.new_tx_queue_size"),
 		KnownCacheMaxSize:                30000,
 		KnownCacheExpirationSeconds:      10 * 60,
 		AddedToPoolQueueSize:             10000,
-		TestNoVerify: viper.GetBool("tx_buffer.test_no_verify"),
-
+		TestNoVerify:                     viper.GetBool("tx_buffer.test_no_verify"),
 	})
 	// let txBuffer judge whether the tx is received previously
 	hub.IsReceivedHash = txBuffer.IsReceivedHash
@@ -336,9 +333,9 @@ func NewNode() *Node {
 	delegate := &Delegate{
 		TxPool: org.TxPool,
 		//TxBuffer:  txBuffer,
-		Dag:       org.Dag,
-		TxCreator: txCreator,
-		InsertSyncBuffer:syncBuffer.AddTxs,
+		Dag:              org.Dag,
+		TxCreator:        txCreator,
+		InsertSyncBuffer: syncBuffer.AddTxs,
 	}
 
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txBuffer.SelfGeneratedNewTxChan)
@@ -349,35 +346,75 @@ func NewNode() *Node {
 	if mode == "archive" {
 		status.ArchiveMode = true
 	}
-	disableConsensus := viper.GetBool("annsensus.disable")
-	//TODO temperary , delete this after demo
-	//if archiveMode {
-	//	disableConsensus = true
-	//}
-	campaign := viper.GetBool("annsensus.campaign")
-	disableTermChange := viper.GetBool("annsensus.disable_term_change")
-	partnerNum := viper.GetInt("annsensus.partner_number")
-	//threshold := viper.GetInt("annsensus.threshold")
-	sequencerTime := viper.GetInt("annsensus.sequencerTime")
-	if sequencerTime == 0 {
-		sequencerTime = 3000
-	}
-	consensFilePath := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("annsensus.consensus_path"))
-	if consensFilePath == "" {
-		logrus.Fatal("need path")
-	}
-	termChangeInterval := viper.GetInt("annsensus.term_change_interval")
-	annSensus := annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
-		partnerNum, genesisAccounts, consensFilePath, disableTermChange)
+
 	autoClientManager := &AutoClientManager{
 		SampleAccounts:         core.GetSampleAccounts(),
 		NodeStatusDataProvider: org,
 	}
 
-	// TODO
-	// RegisterNewTxHandler is not for AnnSensus sending txs out.
-	// Not suitable to be used here.
-	autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
+	disableConsensus := viper.GetBool("annsensus.disable")
+	//TODO temperary , delete this after demo
+	//if archiveMode {
+	//	disableConsensus = true
+	//}
+
+	var annSensus *annsensus.AnnSensus
+	if !disableConsensus {
+		campaign := viper.GetBool("annsensus.campaign")
+		disableTermChange := viper.GetBool("annsensus.disable_term_change")
+		partnerNum := viper.GetInt("annsensus.partner_number")
+		//threshold := viper.GetInt("annsensus.threshold")
+		sequencerTime := viper.GetInt("annsensus.sequencerTime")
+		if sequencerTime == 0 {
+			sequencerTime = 3000
+		}
+		consensFilePath := io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("annsensus.consensus_path"))
+		if consensFilePath == "" {
+			logrus.Fatal("need path")
+		}
+		termChangeInterval := viper.GetInt("annsensus.term_change_interval")
+		annSensus = annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
+			partnerNum, genesisAccounts, consensFilePath, disableTermChange)
+		// TODO
+		// RegisterNewTxHandler is not for AnnSensus sending txs out.
+		// Not suitable to be used here.
+		autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
+		// TODO
+		// set annsensus's private key to be coinbase.
+
+		consensusVerifier := &og.ConsensusVerifier{
+			VerifyTermChange: annSensus.VerifyTermChange,
+			VerifySequencer:  annSensus.VerifySequencer,
+			VerifyCampaign:   annSensus.VerifyCampaign,
+		}
+		txBuffer.Verifiers = append(txBuffer.Verifiers, consensusVerifier)
+
+		annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
+			autoClientManager.JudgeNonce, txCreator, org.Dag, txBuffer.SelfGeneratedNewTxChan,
+			syncManager.IncrementalSyncer.HandleNewTxi, hub)
+		logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
+		hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
+
+		syncManager.OnUpToDate = append(syncManager.OnUpToDate, annSensus.UpdateEvent)
+		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, annSensus.NewPeerConnectedEventListener)
+		org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
+
+		n.Components = append(n.Components, annSensus)
+		m.ConsensusDkgDealHandler = annSensus
+		m.ConsensusDkgDealResponseHandler = annSensus
+		m.ConsensusDkgSigSetsHandler = annSensus
+		m.ConsensusProposalHandler = annSensus
+		m.ConsensusPreCommitHandler = annSensus
+		m.ConsensusPreVoteHandler = annSensus
+		m.ConsensusDkgGenesisPublicKeyHandler = annSensus
+		m.TermChangeResponseHandler = annSensus
+		m.TermChangeRequestHandler = annSensus
+		txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
+
+		org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
+		pm.Register(annSensus)
+	}
+
 	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	//coinBaseId := accountIds[0] + 100
 
@@ -386,28 +423,10 @@ func NewNode() *Node {
 		delegate,
 		myAcount,
 	)
-	// TODO
-	// set annsensus's private key to be coinbase.
 
-	*consensusVerifier = og.ConsensusVerifier{
-		VerifyTermChange: annSensus.VerifyTermChange,
-		VerifySequencer:  annSensus.VerifySequencer,
-		VerifyCampaign:   annSensus.VerifyCampaign,
-	}
-	annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
-		autoClientManager.JudgeNonce, txCreator, org.Dag, txBuffer.SelfGeneratedNewTxChan,
-		syncManager.IncrementalSyncer.HandleNewTxi, hub)
-	logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
-	hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
 	n.Components = append(n.Components, autoClientManager)
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
-	if !disableConsensus {
-		syncManager.OnUpToDate = append(syncManager.OnUpToDate, annSensus.UpdateEvent)
-	}
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
-	if !disableConsensus {
-		hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, annSensus.NewPeerConnectedEventListener)
-	}
 
 	//init msg requst id
 	og.MsgCountInit()
@@ -438,9 +457,11 @@ func NewNode() *Node {
 		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
 		rpcServer.C.SyncerManager = syncManager
 		rpcServer.C.AutoTxCli = autoClientManager
-		rpcServer.C.AnnSensus = annSensus
-		rpcServer.C.PerformanceMonitor = pm
+		if !disableConsensus {
+			rpcServer.C.AnnSensus = annSensus
+		}
 
+		rpcServer.C.PerformanceMonitor = pm
 	}
 
 	// websocket server
@@ -464,27 +485,6 @@ func NewNode() *Node {
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)
 
-	//
-	if !disableConsensus {
-		org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
-	}
-
-	n.Components = append(n.Components, annSensus)
-	m.ConsensusDkgDealHandler = annSensus
-	m.ConsensusDkgDealResponseHandler = annSensus
-	m.ConsensusDkgSigSetsHandler = annSensus
-	m.ConsensusProposalHandler = annSensus
-	m.ConsensusPreCommitHandler = annSensus
-	m.ConsensusPreVoteHandler = annSensus
-	m.ConsensusDkgGenesisPublicKeyHandler = annSensus
-	m.TermChangeResponseHandler = annSensus
-	m.TermChangeRequestHandler = annSensus
-	txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
-
-	if !disableConsensus {
-		org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
-	}
-
 	//annSensus.RegisterNewTxHandler(txBuffer.ReceivedNewTxChan)
 
 	pm.Register(org.TxPool)
@@ -494,7 +494,7 @@ func NewNode() *Node {
 	pm.Register(messageHandler)
 	pm.Register(hub)
 	pm.Register(txCounter)
-	pm.Register(annSensus)
+
 	n.Components = append(n.Components, pm)
 	ioPerformance := ioperformance.Init()
 	n.Components = append(n.Components, ioPerformance)

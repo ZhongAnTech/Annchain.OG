@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/poc/extra25519"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
+	"github.com/annchain/kyber/v3/group/edwards25519"
 	"testing"
 )
 

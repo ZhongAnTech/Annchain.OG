@@ -24,8 +24,6 @@ import (
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"testing"
-
-	"github.com/annchain/OG/types"
 )
 
 func TestDkg_VerifyBlsSig(t *testing.T) {
@@ -52,12 +50,13 @@ func TestVrfSelections_Le(t *testing.T) {
 	tm := term.NewTerm(1, 21, 4)
 	d.term = tm
 	for i := 0; i < 21; i++ {
+		addr := common.RandomAddress()
 		h := common.RandomHash()
 		cp := tx_types.Campaign{
-			Vrf: types.VrfInfo{
+			Vrf: tx_types.VrfInfo{
 				Vrf: h.Bytes[:],
 			},
-			Issuer: common.RandomAddress(),
+			Issuer: &addr,
 		}
 		tm.AddCampaign(&cp)
 	}

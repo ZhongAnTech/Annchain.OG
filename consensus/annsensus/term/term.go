@@ -17,7 +17,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types/tx_types"
-	"sort"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -30,8 +29,8 @@ type Term struct {
 	senators               Senators            `json:"senators"`
 	formerSenators         map[uint64]Senators `json:"former_senators"`
 	candidates             map[common.Address]*tx_types.Campaign
-	publicKeys             crypto.PublicKeys
-	formerPublicKeys       crypto.PublicKeys
+	publicKeys             []crypto.PublicKey
+	formerPublicKeys       []crypto.PublicKey
 	alsorans               map[common.Address]*tx_types.Campaign
 	campaigns              map[common.Address]*tx_types.Campaign
 	startedHeight          uint64
@@ -122,7 +121,7 @@ func (t *Term) AddCandidate(c *tx_types.Campaign, publicKey crypto.PublicKey) {
 
 	t.candidates[c.Sender()] = c
 	t.publicKeys = append(t.publicKeys, publicKey)
-	sort.Sort(t.publicKeys)
+	//sort.Sort(t.publicKeys)
 }
 
 func (t *Term) AddCampaign(c *tx_types.Campaign) {

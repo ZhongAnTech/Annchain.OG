@@ -459,14 +459,20 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	}
 
 	// first tx check
+	nonce, err := v.TxPool.GetLatestNonce(txi.Sender())
 	if txi.GetNonce() == 1 {
 		// test claim: whether it should be 0
-		nonce, err := v.TxPool.GetLatestNonce(txi.Sender())
+
 		if err == nil {
 			logrus.Debugf("nonce should not be 0. Latest nonce is %d and you should be larger than it", nonce)
 		}
 		// not found is good
 		return err != nil
+	}
+	if nonce!= txi.GetNonce() -1 {
+		logrus.WithField("tx", txi).Debug("previous tx  not found for address")
+		// fail if not good
+		return false
 	}
 	// check txpool queue first
 	_, ok := v.getMyPreviousTx(txi)

@@ -80,7 +80,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	signature := common.FromHex(txReq.Signature)
-	if signature == nil {
+	if signature == nil || txReq.Signature == "" {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 		return
 	}

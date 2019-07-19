@@ -19,23 +19,6 @@ title = "TOML Example"
   term_change_interval = 10
   threshold = 4
 
-[auto_client]
-  nonce_self_discipline = false
-
-  [auto_client.archive]
-    enabled = false
-    interval_us = 500000
-
-  [auto_client.sequencer]
-    enabled = false
-    interval_us = 5000000
-
-  [auto_client.tx]
-    account_ids = [0,1]
-    enabled = false
-    interval_mode = "random"
-    interval_us = 500000
-
 [crypto]
   algorithm = "secp256k1"
 

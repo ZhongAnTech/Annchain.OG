@@ -415,7 +415,7 @@ func NewNode() *Node {
 		pm.Register(annSensus)
 	}
 
-	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
+	accountIds := StringArrayToIntArray([]string{"0", "1"})
 	//coinBaseId := accountIds[0] + 100
 
 	autoClientManager.Init(

@@ -17,17 +17,17 @@ import (
 	"errors"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/share/dkg/pedersen"
-	"go.dedis.ch/kyber/v3/sign/bls"
-	"go.dedis.ch/kyber/v3/sign/tbls"
+	"github.com/annchain/kyber/v3"
+	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/share"
+	"github.com/annchain/kyber/v3/share/dkg/pedersen"
+	"github.com/annchain/kyber/v3/sign/bls"
+	"github.com/annchain/kyber/v3/sign/tbls"
 )
 
 type DKGPartner struct {
 	Id                    uint32
-	PartPubs              PartPubs
+	PartPubs              []kyber.Point
 	MyPartSec             kyber.Scalar
 	CandidatePartSec      []kyber.Scalar
 	CandidatePublicKey    [][]byte
@@ -63,7 +63,7 @@ func genPartnerPair(p *DKGPartner) (kyber.Scalar, kyber.Point) {
 func (p *DKGPartner) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
 	log.WithField(" len ", len(p.PartPubs)).Debug("my part pbus")
-	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs.Points(), p.Threshold)
+	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
 	if err != nil {
 		log.WithField("dkger ", dkger).WithError(err).Error("generate dkg error")
 		return err
@@ -164,7 +164,7 @@ type PartPubs []PartPub
 func (p  PartPubs)Points()[]kyber.Point {
 	var poits []kyber.Point
 	for _,v:= range p {
-		poits = append(poits,v)
+		poits = append(poits,v.Point)
 	}
 	return poits
 }

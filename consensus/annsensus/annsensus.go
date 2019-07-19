@@ -27,7 +27,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/pairing/bn256"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -36,7 +36,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
-	"go.dedis.ch/kyber/v3"
+	"github.com/annchain/kyber/v3"
 )
 
 type AnnSensus struct {
@@ -432,10 +432,15 @@ func (as *AnnSensus) addGenesisCampaigns() {
 	}
 	as.addedGenesisCampaign = true
 	as.mu.RUnlock()
-	for _, pk := range as.genesisAccounts {
+	for id, pk := range as.genesisAccounts {
 		addr := pk.Address()
 		cp := tx_types.Campaign{
-			Issuer: &addr,
+			//DkgPublicKey: pkMsg.DkgPublicKey,
+			Issuer:       &addr,
+			TxBase: types.TxBase{
+				PublicKey: pk.Bytes,
+				Weight:    uint64(id*10 + 10),
+			},
 		}
 		as.term.AddCandidate(&cp, pk)
 	}

@@ -142,7 +142,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 				seq := h.Og.Dag.GetSequencerByHeight(height + 2)
 				txs.Append(seq)
 			}
-			msgLog.WithField("to ", peerId).WithField("to request ", syncRequest.RequestId).WithField("len txs ", len(txs)).Trace("will send txs after bloom filter")
+			msgLog.WithField("to ", peerId).WithField("to request ", syncRequest.RequestId).WithField("len txs ", len(txs)).Debug("will send txs after bloom filter")
 		}
 	} else if syncRequest.Hashes != nil && len(*syncRequest.Hashes) > 0 {
 		for _, hash := range *syncRequest.Hashes {

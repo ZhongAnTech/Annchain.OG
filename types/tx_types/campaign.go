@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
-	"go.dedis.ch/kyber/v3"
+	"github.com/annchain/kyber/v3"
 	"strings"
 
 	"github.com/annchain/OG/common/hexutil"

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: grafana
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          securityContext:
+            runAsUser: 0
+          ports:
+            - name: rpc
+              containerPort: 3000
+          volumeMounts:
+            - name: volume-grafana
+              mountPath: /var/lib/grafana
+  volumeClaimTemplates:
+    - metadata:
+        name: volume-grafana
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+
+  -----
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: 30002
+      name: http
+  selector:
+    app: grafana

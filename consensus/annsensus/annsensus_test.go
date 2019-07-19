@@ -19,7 +19,7 @@ import (
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/sirupsen/logrus"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"github.com/annchain/kyber/v3/pairing/bn256"
 	"testing"
 )
 

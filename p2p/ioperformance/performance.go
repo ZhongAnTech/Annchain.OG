@@ -129,7 +129,7 @@ func (s *iOPerformance) run() {
 				i++
 			}
 			s.mu.Unlock()
-			logrus.WithField("data ", s.dataSize[0]).Debug("perormance ")
+			logrus.WithField("data ", s.dataSize[0]).Debug("performance")
 		//
 		case <-s.quit:
 			return

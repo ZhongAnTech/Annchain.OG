@@ -195,7 +195,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &soucrHash)
 }
 
-// LoopSync checks if there is new hash to fetcs. Dedup.
+// LoopSync checks if there is new hash to fetch. Dedup.
 func (m *IncrementalSyncer) loopSync() {
 	buffer := make(map[common.Hash]struct{})
 	var triggerTime int

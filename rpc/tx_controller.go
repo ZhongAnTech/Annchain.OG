@@ -79,7 +79,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	signature := common.FromHex(txReq.Signature)
-	if signature == nil {
+	if signature == nil || txReq.Signature == "" {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 		return
 	}
@@ -112,13 +112,13 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	ok = r.FormatVerifier.VerifySignature(tx)
 	if !ok {
-		logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("signature invalid")
+		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
 		return
 	}
 	ok = r.FormatVerifier.VerifySourceAddress(tx)
 	if !ok {
-		logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("source address invalid")
+		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 		return
 	}
@@ -151,16 +151,16 @@ type NewTxRequest struct {
 
 //msgp:tuple NewTxsRequests
 type NewTxsRequests struct {
-	Txs  []NewTxRequest `json:"txs"`
+	Txs []NewTxRequest `json:"txs"`
 }
 
 func (r *RpcController) NewTransactions(c *gin.Context) {
 	var (
 		//txs types.Txis
 		txrequsets NewTxsRequests
-		sig   crypto.Signature
-		pub   crypto.PublicKey
-		hashes common.Hashes
+		sig        crypto.Signature
+		pub        crypto.PublicKey
+		hashes     common.Hashes
 	)
 
 	if status.ArchiveMode {
@@ -169,12 +169,12 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 	}
 
 	err := c.ShouldBindJSON(&txrequsets)
-	if err != nil || len(txrequsets.Txs) ==0 {
+	if err != nil || len(txrequsets.Txs) == 0 {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
-	for i,txReq := range txrequsets.Txs {
-		var  tx    types.Txi
+	for i, txReq := range txrequsets.Txs {
+		var tx types.Txi
 		from, err := common.StringToAddress(txReq.From)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
@@ -240,51 +240,51 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 		if err != nil {
 			//try second time
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed , try again")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed , try again")
 			ok = r.FormatVerifier.VerifySignature(tx)
 			if !ok {
-				logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("signature invalid")
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
 				return
 			}
 			ok = r.FormatVerifier.VerifySourceAddress(tx)
 			if !ok {
-				logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("source address invalid")
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 				return
 			}
-			time.Sleep(time.Microsecond*2)
+			time.Sleep(time.Microsecond * 2)
 			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
-			if err!=nil {
-				logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("gen tx failed")
+			if err != nil {
+				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
 				return
 			}
 			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
 			//we don't verify hash , since we calculated the hash
-			tx.SetVerified (types.VerifiedFormat)
+			tx.SetVerified(types.VerifiedFormat)
 			r.TxBuffer.ReceivedNewTxChan <- tx
-			hashes = append(hashes,tx.GetTxHash())
+			hashes = append(hashes, tx.GetTxHash())
 			continue
 		}
 		logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated")
 		//txs = append(txs,tx)
 		ok = r.FormatVerifier.VerifySignature(tx)
 		if !ok {
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("signature invalid")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
 			return
 		}
 		ok = r.FormatVerifier.VerifySourceAddress(tx)
 		if !ok {
-			logrus.WithField("request ",txReq).WithField("tx ",tx).Warn("source address invalid")
+			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
 			Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 			return
 		}
-        //we don't verify hash , since we calculated the hash
-		tx.SetVerified (types.VerifiedFormat)
+		//we don't verify hash , since we calculated the hash
+		tx.SetVerified(types.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
-		hashes = append(hashes,tx.GetTxHash())
+		hashes = append(hashes, tx.GetTxHash())
 	}
 
 	//r.TxBuffer.ReceivedNewTxsChan <- txs

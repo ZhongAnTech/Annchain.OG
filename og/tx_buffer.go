@@ -75,7 +75,7 @@ type IDag interface {
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
 	dag                    IDag
-	verifiers              []Verifier
+	Verifiers              []Verifier
 	Syncer                 Syncer
 	Announcer              Announcer
 	txPool                 ITxPool
@@ -91,9 +91,8 @@ type TxBuffer struct {
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
 	TestNoVerify bool
-	wg *sync.WaitGroup
- }
-
+	wg           *sync.WaitGroup
+}
 
 type childrenCache struct {
 	cache gcache.Cache
@@ -182,13 +181,13 @@ type TxBufferConfig struct {
 	KnownCacheMaxSize                int
 	KnownCacheExpirationSeconds      int
 	AddedToPoolQueueSize             int
-	TestNoVerify bool
+	TestNoVerify                     bool
 }
 
 func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 	return &TxBuffer{
 		dag:       config.Dag,
-		verifiers: config.Verifiers,
+		Verifiers: config.Verifiers,
 		Syncer:    config.Syncer,
 		Announcer: config.TxAnnouncer,
 		txPool:    config.TxPool,
@@ -203,8 +202,8 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
 		//children: newChilrdenCache(config.DependencyCacheMaxSize, time.Second*time.Duration(config.DependencyCacheExpirationSeconds)),
-		TestNoVerify:config.TestNoVerify,
-		wg:&sync.WaitGroup{},
+		TestNoVerify: config.TestNoVerify,
+		wg:           &sync.WaitGroup{},
 	}
 }
 
@@ -247,7 +246,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	if !b.TestNoVerify {
-		for _, verifier := range b.verifiers {
+		for _, verifier := range b.Verifiers {
 			if verifier.Independent() {
 				continue
 			}
@@ -280,7 +279,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	//	return
 	//}
 	if !b.TestNoVerify {
-		for _, verifier := range b.verifiers {
+		for _, verifier := range b.Verifiers {
 			if !verifier.Independent() {
 				continue
 			}
@@ -301,9 +300,9 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 }
 
-func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis)  {
+func (b *TxBuffer) verify(tx types.Txi, validTxs *types.Txis) {
 	if !b.TestNoVerify {
-		for _, verifier := range b.verifiers {
+		for _, verifier := range b.Verifiers {
 			if !verifier.Independent() {
 				continue
 			}
@@ -313,11 +312,11 @@ func (b*TxBuffer)verify(tx types.Txi, validTxs *types.Txis)  {
 			}
 		}
 	}
-		b.affmu.Lock()
-		b.knownCache.Set(tx.GetTxHash(), tx)
-		*validTxs = append(*validTxs,tx)
-		b.affmu.Unlock()
-	    b.wg.Done()
+	b.affmu.Lock()
+	b.knownCache.Set(tx.GetTxHash(), tx)
+	*validTxs = append(*validTxs, tx)
+	b.affmu.Unlock()
+	b.wg.Done()
 }
 
 // in parallel
@@ -337,11 +336,11 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 
 		//b.knownCache.Set(txs[i].GetTxHash(), txs[i])
 		//validTxs = append(validTxs,txs[i])
-		tx:=txs[i]
+		tx := txs[i]
 		//logrus.Debug("i ", i, tx)
 		f := func() {
 			//logrus.Debug(tx)
-			b.verify(tx,&validTxs)
+			b.verify(tx, &validTxs)
 		}
 		b.wg.Add(1)
 		goroutine.New(f)

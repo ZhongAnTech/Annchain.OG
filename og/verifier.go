@@ -479,14 +479,14 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	if poolErr!=nil {
 		//no related tx in txpool ,check dag
 		if dagNonce!= txi.GetNonce() -1 {
-			logrus.WithField("tx", txi).Debug("previous tx  not found for address")
+			logrus.WithField("current nonce ", txi.GetNonce() -1).WithField("dag nonce ",dagNonce).WithField("tx", txi).Debug("previous tx  not found for address")
 			// fail if not good
 			return false
 		}
 		goto Out
 	}
 	if nonce!= txi.GetNonce() -1 {
-		logrus.WithField("tx", txi).Debug("previous tx  not found for address")
+		logrus.WithField("current nonce ", txi.GetNonce() -1).WithField("pool nonce ",nonce).WithField("tx", txi).Debug("previous tx  not found for address")
 		// fail if not good
 		return false
 	}

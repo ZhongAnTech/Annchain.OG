@@ -54,6 +54,7 @@ type ITxPool interface {
 	GetLatestNonce(addr common.Address) (uint64, error)
 	IsLocalHash(hash common.Hash) bool
 	GetMaxWeight() uint64
+	GetByNonce(addr common.Address, nonce uint64) types.Txi
 }
 
 type IDag interface {
@@ -67,6 +68,7 @@ type IDag interface {
 	GetHeight() uint64
 	GetSequencerByHash(hash common.Hash) *tx_types.Sequencer
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
+	GetLatestNonce(addr common.Address) (uint64, error)
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.

@@ -33,6 +33,7 @@ import (
 
 type TipGenerator interface {
 	GetRandomTips(n int) (v []types.Txi)
+	GetByNonce(addr common.Address, nonce uint64) types.Txi
 }
 
 type GetStateRoot interface {
@@ -89,6 +90,10 @@ func (f *FIFOTipGenerator) validation() {
 			}
 		}
 	}
+}
+
+func (f *FIFOTipGenerator)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return f.upstream.GetByNonce(addr,nonce)
 }
 
 func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
@@ -283,6 +288,7 @@ func (m *TxCreator) NewUnsignedSequencer(issuer common.Address, Height uint64, a
 	return &tx
 }
 
+//NewSignedSequencer this function is for test
 func (m *TxCreator) NewSignedSequencer(issuer common.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
 	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
@@ -388,7 +394,24 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 					return false
 				}
 				connectionTries++
-				txs := m.TipGenerator.GetRandomTips(2)
+				var txs types.Txis
+				ancestor := m.TipGenerator.GetByNonce(tx.Sender(),tx.GetNonce()-1)
+				if ancestor!=nil && !ancestor.InValid(){
+					txs = m.TipGenerator.GetRandomTips(2)
+					var include  bool
+					for _,tx:= range txs {
+						if tx.GetTxHash() == ancestor.GetTxHash() {
+							include = true
+							break
+						}
+					}
+					if !include &&len(txs) >0 {
+						txs[0] = ancestor
+					}
+
+				}else {
+					txs = m.TipGenerator.GetRandomTips(2)
+				}
 
 				//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
 				if len(txs) == 0 {

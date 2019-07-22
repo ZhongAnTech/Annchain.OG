@@ -295,10 +295,6 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 	}
 
 	if status.ArchiveMode {
-		if currentTx.GetType() != types.TxBaseTypeSequencer {
-			logrus.Warn("archive mode , only process archive")
-			return nil, false
-		}
 		if ptx := v.Dag.GetTxByNonce(currentTx.Sender(), currentTx.GetNonce()-1); ptx != nil {
 			previousTx = ptx
 			ok = true
@@ -306,6 +302,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		}
 		return nil, false
 	}
+
 
 	for len(seekingHashes) > 0 {
 		head := seekingHashes[0]
@@ -350,13 +347,15 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 			// this ancestor should already be in the dag. do nothing
 		}
 	}
-	// Here, the ancestor of the same From address must be in the dag.
-	// Once found, this tx must be the previous tx of currentTx because everyone behind sequencer is confirmed by sequencer
-	if ptx := v.Dag.GetTxByNonce(currentTx.Sender(), currentTx.GetNonce()-1); ptx != nil {
-		previousTx = ptx
-		ok = true
-		return
-	}
+
+	//// Here, the ancestor of the same From address must be in the dag.
+	//// Once found, this tx must be the previous tx of currentTx because everyone behind sequencer is confirmed by sequencer
+	//if ptx := v.Dag.GetTxByNonce(currentTx.Sender(), currentTx.GetNonce()-1); ptx != nil {
+	//	previousTx = ptx
+	//	ok = true
+	//	return
+	//}
+	//return
 	return
 }
 
@@ -453,21 +452,38 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	if txi.GetType() == types.TxBaseTypeArchive {
 		return true
 	}
+	if status.ArchiveMode {
+		if txi.GetType() != types.TxBaseTypeSequencer {
+			logrus.Warn("archive mode , only process archive")
+			return  false
+		}
+	}
 
 	if txi.GetNonce() == 0 {
 		return false
 	}
+	var ok bool
 
 	// first tx check
-	nonce, err := v.TxPool.GetLatestNonce(txi.Sender())
+	nonce, poolErr := v.TxPool.GetLatestNonce(txi.Sender())
 	if txi.GetNonce() == 1 {
 		// test claim: whether it should be 0
 
-		if err == nil {
+		if poolErr == nil {
 			logrus.Debugf("nonce should not be 0. Latest nonce is %d and you should be larger than it", nonce)
 		}
 		// not found is good
-		return err != nil
+		return poolErr != nil
+	}
+	dagNonce, _ := v.Dag.GetLatestNonce(txi.Sender())
+	if poolErr!=nil {
+		//no related tx in txpool ,check dag
+		if dagNonce!= txi.GetNonce() -1 {
+			logrus.WithField("tx", txi).Debug("previous tx  not found for address")
+			// fail if not good
+			return false
+		}
+		goto Out
 	}
 	if nonce!= txi.GetNonce() -1 {
 		logrus.WithField("tx", txi).Debug("previous tx  not found for address")
@@ -475,19 +491,23 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		return false
 	}
 	// check txpool queue first
-	_, ok := v.getMyPreviousTx(txi)
-	if !ok {
-		logrus.WithField("tx", txi).Debug("previous tx not found")
-		// fail if not good
-		return ok
+	if dagNonce != nonce {
+		_, ok = v.getMyPreviousTx(txi)
+		if !ok {
+			logrus.WithField("tx", txi).Debug("previous tx not found")
+			// fail if not good
+			return ok
+		}
 	}
+
+	Out :
 
 	switch txi.GetType() {
 	// no additional check
 	case types.TxBaseTypeSequencer:
 		seq := txi.(*tx_types.Sequencer)
 		// to check if there is a lower seq height in the path behind
-		_, ok := v.getPreviousSequencer(seq)
+		_, ok = v.getPreviousSequencer(seq)
 		if !ok {
 			logrus.WithField("tx", txi).Debug("previous seq not found")
 		}

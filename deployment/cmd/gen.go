@@ -200,6 +200,8 @@ func soloChainConfig() {
 	priv, _ := account.GenAccount()
 
 	viper.Set("rpc.port", port)
+	viper.Set("annsensus.campaign", false)
+	viper.Set("annsensus.disable", true)
 	viper.Set("p2p.port", port+1)
 	viper.Set("websocket.port", port+2)
 	viper.Set("profiling.port", port+3)

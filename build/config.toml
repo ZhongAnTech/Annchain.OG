@@ -56,7 +56,6 @@ title = "TOML Example"
   max_peers = 50
   network_id = 1
   no_encryption = false
-  node_key = "6d4ce0f90b69ff9482fee9abe877c7797ab81618a74e97074190c13aa596aa79"
   port = 8001
 
 [profiling]

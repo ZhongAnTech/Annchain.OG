@@ -273,7 +273,7 @@ func (c *CatchupSyncer) notifyProgress() {
 		hash := nodeStatus.CurrentBlock
 		msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentId}
 		data, _ := msg.MarshalMsg(nil)
-		c.Hub.BroadcastMessage(og.MessageTypeSequencerHeader, data)
+		c.Hub.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, data)
 	}
 }
 

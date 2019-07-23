@@ -171,7 +171,7 @@ type TermChangeResponseHandler interface {
 }
 
 func (m *MessageRouter) Start() {
-	m.Hub.BroadcastMessage(MessageTypePing, &p2p_message.MessagePing{Data: []byte{}})
+	m.Hub.BroadcastMessage(p2p_message.MessageTypePing, &p2p_message.MessagePing{Data: []byte{}})
 }
 
 func (m *MessageRouter) Stop() {
@@ -304,19 +304,19 @@ func (m *MessageRouter) RouteTermChangeResponse(msg *p2PMessage) {
 }
 
 // BroadcastMessage send message to all peers
-func (m *MessageRouter) BroadcastMessage(messageType MessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessage(messageType p2p_message.MessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessage(messageType, message)
 }
 
 // MulticastMessage send message to a randomly chosen peer
-func (m *MessageRouter) MulticastMessage(messageType MessageType, message p2p_message.Message) {
+func (m *MessageRouter) MulticastMessage(messageType p2p_message.MessageType, message p2p_message.Message) {
 	m.Hub.MulticastMessage(messageType, message)
 }
 
-func (m *MessageRouter) MulticastToSource(messageType MessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
+func (m *MessageRouter) MulticastToSource(messageType p2p_message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
 
-func (m *MessageRouter) BroadcastMessageWithLink(messageType MessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessageWithLink(messageType p2p_message.MessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }

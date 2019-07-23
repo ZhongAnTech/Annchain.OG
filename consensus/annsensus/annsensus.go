@@ -25,6 +25,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
@@ -34,7 +35,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 )
@@ -695,9 +695,9 @@ func (as *AnnSensus) loop() {
 					continue
 				}
 				msg := p2p_message.MessageTermChangeRequest{
-					Id: og.MsgCounter.Get(),
+					Id: p2p_message.MsgCounter.Get(),
 				}
-				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
+				as.Hub.BroadcastMessage(p2p_message.MessageTypeTermChangeRequest, &msg)
 
 			}
 
@@ -705,9 +705,9 @@ func (as *AnnSensus) loop() {
 
 			if !as.isGenesisPartner && !eventInit {
 				msg := p2p_message.MessageTermChangeRequest{
-					Id: og.MsgCounter.Get(),
+					Id: p2p_message.MsgCounter.Get(),
 				}
-				as.Hub.BroadcastMessage(og.MessageTypeTermChangeRequest, &msg)
+				as.Hub.BroadcastMessage(p2p_message.MessageTypeTermChangeRequest, &msg)
 			}
 			if as.initDone {
 				continue

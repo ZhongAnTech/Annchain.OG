@@ -168,7 +168,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 		if txs != nil && len(txs) != 0 {
 			msgRes.RawTxs = &txs
 		}
-		h.Hub.SendToPeer(peerId, MessageTypeFetchByHashResponse, &msgRes)
+		h.Hub.SendToPeer(peerId, p2p_message.MessageTypeFetchByHashResponse, &msgRes)
 	} else {
 		msgLog.Debug("empty data , did't send")
 	}
@@ -197,7 +197,7 @@ func (h *IncomingMessageHandler) HandleHeaderResponse(headerMsg *p2p_message.Mes
 			msgLog.WithError(err).Debug("Failed to deliver headers")
 		}
 	}
-	msgLog.WithField("headers", headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle MessageTypeHeaderResponse")
+	msgLog.WithField("headers", headerMsg).WithField("header lens", len(seqHeaders)).Debug("handle p2p_message.MessageTypeHeaderResponse")
 }
 
 func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageHeaderRequest, peerId string) {
@@ -294,7 +294,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 		Headers:     &headres,
 		RequestedId: query.RequestId,
 	}
-	h.Hub.SendToPeer(peerId, MessageTypeHeaderResponse, &msgRes)
+	h.Hub.SendToPeer(peerId, p2p_message.MessageTypeHeaderResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageTxsResponse) {
@@ -350,7 +350,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxs
 	} else {
 		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
 	}
-	h.Hub.SendToPeer(peerId, MessageTypeTxsResponse, &msgRes)
+	h.Hub.SendToPeer(peerId, p2p_message.MessageTypeTxsResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.MessageBodiesResponse, peerId string) {
@@ -388,7 +388,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.Messa
 			msgLog.Debug("Failed to deliver bodies", "err", err)
 		}
 	}
-	msgLog.Debug("handle MessageTypeBodiesResponse")
+	msgLog.Debug("handle p2p_message.MessageTypeBodiesResponse")
 	return
 }
 
@@ -422,7 +422,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *p2p_message.Message
 		msgRes.Bodies = append(msgRes.Bodies, p2p_message.RawData(bodyData))
 	}
 	msgRes.RequestedId = msgReq.RequestId
-	h.Hub.SendToPeer(peerId, MessageTypeBodiesResponse, &msgRes)
+	h.Hub.SendToPeer(peerId, p2p_message.MessageTypeBodiesResponse, &msgRes)
 }
 
 func (h *IncomingMessageHandler) HandleSequencerHeader(msgHeader *p2p_message.MessageSequencerHeader, peerId string) {
@@ -569,7 +569,7 @@ func (h *IncomingMessageHandler) processControlMsg() {
 		if item == nil {
 			continue
 		}
-		txkey := newMsgKey(MessageTypeNewTx, k)
+		txkey := p2p_message.NewMsgKey(p2p_message.MessageTypeNewTx, k)
 		if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
 			msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
 			c.remove(k)
@@ -596,7 +596,7 @@ func (h *IncomingMessageHandler) processControlMsg() {
 
 func (h *IncomingMessageHandler) HandlePing(peerId string) {
 	msgLog.Debug("received your ping. Respond you a pong")
-	h.Hub.SendBytesToPeer(peerId, MessageTypePong, []byte{1})
+	h.Hub.SendBytesToPeer(peerId, p2p_message.MessageTypePong, []byte{1})
 }
 
 func (h *IncomingMessageHandler) HandlePong() {
@@ -620,23 +620,23 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 	case types.TxBaseTypeNormal:
 		tx := txi.(*tx_types.Tx)
 		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
-		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
+		h.Hub.SendToPeer(sourcePeerId, p2p_message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeTermChange:
 		tx := txi.(*tx_types.TermChange)
 		response := p2p_message.MessageTermChange{RawTermChange: tx.RawTermChange()}
-		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
+		h.Hub.SendToPeer(sourcePeerId, p2p_message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeCampaign:
 		tx := txi.(*tx_types.Campaign)
 		response := p2p_message.MessageCampaign{RawCampaign: tx.RawCampaign()}
-		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewTx, &response)
+		h.Hub.SendToPeer(sourcePeerId, p2p_message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeSequencer:
 		tx := txi.(*tx_types.Sequencer)
 		response := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
-		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
+		h.Hub.SendToPeer(sourcePeerId, p2p_message.MessageTypeNewSequencer, &response)
 	case types.TxBaseAction:
 		tx := txi.(*tx_types.ActionTx)
 		response := p2p_message.MessageNewActionTx{ActionTx: tx}
-		h.Hub.SendToPeer(sourcePeerId, MessageTypeNewSequencer, &response)
+		h.Hub.SendToPeer(sourcePeerId, p2p_message.MessageTypeNewSequencer, &response)
 	}
 	return
 }
@@ -648,11 +648,11 @@ func (h *IncomingMessageHandler) HandleControlMsg(req *p2p_message.MessageContro
 	}
 
 	if !h.TxEnable() {
-		msgLog.Debug("incremental received MessageTypeControl but receiveTx  disabled")
+		msgLog.Debug("incremental received p2p_message.MessageTypeControl but receiveTx  disabled")
 		return
 	}
 	hash := *req.Hash
-	txkey := newMsgKey(MessageTypeNewTx, hash)
+	txkey := p2p_message.NewMsgKey(p2p_message.MessageTypeNewTx, hash)
 	if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
 		msgLog.WithField("hash ", hash).Trace("already got tx of this control msg")
 		return

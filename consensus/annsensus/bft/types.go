@@ -16,7 +16,6 @@ package bft
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"time"
 )
@@ -67,7 +66,7 @@ func (m StepType) IsAfter(o StepType) bool {
 }
 
 type Message struct {
-	Type    og.MessageType
+	Type    p2p_message.MessageType
 	Payload interface{}
 }
 

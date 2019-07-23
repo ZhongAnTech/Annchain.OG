@@ -22,7 +22,6 @@ import (
 
 	"github.com/annchain/OG/og/txcache"
 
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/bluele/gcache"
 )
@@ -30,10 +29,10 @@ import (
 const BloomFilterRate = 4 //sending 4 req
 
 type MessageSender interface {
-	BroadcastMessage(messageType og.MessageType, message p2p_message.Message)
-	MulticastMessage(messageType og.MessageType, message p2p_message.Message)
-	MulticastToSource(messageType og.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
-	BroadcastMessageWithLink(messageType og.MessageType, message p2p_message.Message)
+	BroadcastMessage(messageType p2p_message.MessageType, message p2p_message.Message)
+	MulticastMessage(messageType p2p_message.MessageType, message p2p_message.Message)
+	MulticastToSource(messageType p2p_message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
+	BroadcastMessageWithLink(messageType p2p_message.MessageType, message p2p_message.Message)
 }
 
 type FireHistory struct {
@@ -151,7 +150,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 		return
 	}
 	req := p2p_message.MessageSyncRequest{
-		RequestId: og.MsgCounter.Get(),
+		RequestId: p2p_message.MsgCounter.Get(),
 	}
 	var source interface{}
 	var err error
@@ -182,17 +181,17 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	}
 	req.Hashes = &reqHashes
 
-	log.WithField("type", og.MessageTypeFetchByHashRequest).
+	log.WithField("type", p2p_message.MessageTypeFetchByHashRequest).
 		WithField("length", len(reqHashes)).WithField("hashes", req.String()).Debugf(
 		"sending message MessageTypeFetchByHashRequest")
 
-	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
+	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
 	//todo optimize later
 	//get source msg
 	soucrHash := source.(common.Hash)
 
-	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &soucrHash)
+	m.messageSender.MulticastToSource(p2p_message.MessageTypeFetchByHashRequest, &req, &soucrHash)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.

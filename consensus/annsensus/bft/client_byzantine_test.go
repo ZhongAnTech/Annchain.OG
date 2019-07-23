@@ -15,7 +15,6 @@ package bft
 
 import (
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -89,7 +88,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 	updatedMessage = msg
 	toSend = true
 	switch msg.Type {
-	case og.MessageTypeProposal:
+	case p2p_message.MessageTypeProposal:
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
@@ -98,7 +97,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 			updatedMessage.Payload = v
 		}
 
-	case og.MessageTypePreVote:
+	case p2p_message.MessageTypePreVote:
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
@@ -106,7 +105,7 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
-	case og.MessageTypePreCommit:
+	case p2p_message.MessageTypePreCommit:
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {

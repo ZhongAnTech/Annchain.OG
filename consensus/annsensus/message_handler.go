@@ -17,7 +17,6 @@ import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus/bft"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )
@@ -160,7 +159,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal
 	a.HandleNewTxi(&seq)
 	log.Debug("response ok")
 	//m := Message{
-	//	Type:    og.MessageTypeProposal,
+	//	Type:    p2p_message.MessageTypeProposal,
 	//	Payload: request,
 	//}
 	//a.pbft.BFTPartner.GetIncomingMessageChannel() <- m
@@ -196,7 +195,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *p2p_message.MessagePreVote, 
 	}
 
 	m := bft.Message{
-		Type:    og.MessageTypePreVote,
+		Type:    p2p_message.MessageTypePreVote,
 		Payload: request,
 	}
 	a.bft.BFTPartner.GetIncomingMessageChannel() <- m
@@ -260,7 +259,7 @@ func (a *AnnSensus) HandleTermChangeRequest(request *p2p_message.MessageTermChan
 	msg := &p2p_message.MessageTermChangeResponse{
 		TermChange: tc,
 	}
-	a.Hub.SendToPeer(peerId, og.MessageTypeTermChangeResponse, msg)
+	a.Hub.SendToPeer(peerId, p2p_message.MessageTypeTermChangeResponse, msg)
 
 	log.WithField("data", msg).WithField("to  peer ", peerId).Debug("send term change")
 }

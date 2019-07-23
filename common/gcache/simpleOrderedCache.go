@@ -236,7 +236,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 		first++
 		if first == len(c.orderedKeys) {
 			c.orderedKeys = keys
-			log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to front")
+			log.WithField("keys", keys).WithField("orderedkeys ", len(c.orderedKeys)).Trace("append keys to front, end")
 			return
 		}
 	}
@@ -275,6 +275,9 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 		smallValue := values[i]
 		smallIndex := c.searchFrom(to, from, smallValue)
 		insertIndex[i] = smallIndex
+		if i==j {
+			break
+		}
 		from = smallIndex
 		bigValue := values[j]
 		if c.searchCmpFunc(smallValue, bigValue) == 0 {
@@ -295,6 +298,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 	}
 	//then insert the values
 	c.insertKeysByIndex(insertIndex, keys)
+	log.WithField("inset index ", insertIndex).WithField("order ", c.orderedKeys).WithField("keys ", keys).WithField("values ",values).Trace("will insert")
 	log.WithFields(log.Fields{"key": keys, "values": values, "ordered keys ": len(c.orderedKeys), "suggestedAt": suggestedAt}).Trace("after insert keys")
 	return
 }

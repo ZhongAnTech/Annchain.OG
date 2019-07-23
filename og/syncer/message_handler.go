@@ -16,6 +16,7 @@ package syncer
 import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
+	"sort"
 )
 
 func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi) {
@@ -163,7 +164,6 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *p2p_message.
 	//var testVal int
 	//testVal = len(syncResponse.RawSequencers)
 	//}
-	if syncResponse.RawTxs != nil {
 		for _, rawTx := range *syncResponse.RawTxs {
 			/*for ; currentIndex < len(syncResponse.RawSequencers) &&
 				uint32(i) == syncResponse.SequencerIndex[currentIndex] ;currentIndex++ {
@@ -197,10 +197,10 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *p2p_message.
 			}
 			txis = append(txis, rawTx.Txi())
 		}
-	}
 	//if testVal!=len(syncResponse.RawSequencers) {
 	//panic(fmt.Sprintf("algorithm err ,len mismatch, %d,%d ",testVal, len(syncResponse.RawSequencers)))
 	//}
+	sort.Sort(txis)
 	err := m.bufferedIncomingTxCache.PrependBatch(txis)
 	if err != nil {
 		log.WithError(err).Warn("add txs error")

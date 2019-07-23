@@ -9,8 +9,6 @@ ENV GO111MODULE on
 WORKDIR /go/src/github.com/annchain/OG
 COPY go.mod .
 COPY go.sum .
-# copy self made lib for replacement
-COPY common/crypto/dedis/kyber ./common/crypto/dedis/kyber
 RUN go mod download
 
 COPY . .

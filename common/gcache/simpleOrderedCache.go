@@ -298,7 +298,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 	}
 	//then insert the values
 	c.insertKeysByIndex(insertIndex, keys)
-	log.WithField("inset index ", insertIndex).WithField("order ", c.orderedKeys).WithField("keys ", keys).WithField("values ",values).Trace("will insert")
+	//log.WithField("inset index ", insertIndex).WithField("order ", c.orderedKeys).WithField("keys ", keys).WithField("values ",values).Trace("will insert")
 	log.WithFields(log.Fields{"key": keys, "values": values, "ordered keys ": len(c.orderedKeys), "suggestedAt": suggestedAt}).Trace("after insert keys")
 	return
 }

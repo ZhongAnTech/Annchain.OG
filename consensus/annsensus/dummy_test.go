@@ -68,6 +68,6 @@ func (d *DummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 	return nil
 }
 
-func (d *DummyDag) GetBalance(addr common.Address, tokenId  int32) *math.BigInt {
+func (d *DummyDag) GetBalance(addr common.Address, tokenId int32) *math.BigInt {
 	return math.NewBigInt(100000)
 }

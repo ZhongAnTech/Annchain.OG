@@ -69,8 +69,8 @@ type AutoClient struct {
 	TestInsertPool bool
 	TestDagPush    bool
 	TestSyncBuffer bool
-	TestSigNature     bool
-	TestSeal         bool
+	TestSigNature  bool
+	TestSeal       bool
 }
 
 func (c *AutoClient) Init() {
@@ -246,7 +246,7 @@ func (c *AutoClient) fireTxs() bool {
 	if m == 0 {
 		m = 1000
 	}
-	c.TestSigNature =  viper.GetBool("auto_client.tx.test_sig")
+	c.TestSigNature = viper.GetBool("auto_client.tx.test_sig")
 	c.TpsTestInit = true
 	logrus.WithField("micro", m).Info("sent interval ")
 	for i := uint64(1); i < 1000000000; i++ {
@@ -260,7 +260,7 @@ func (c *AutoClient) fireTxs() bool {
 			return true
 		}
 		if c.TestSigNature {
-			f :=func() {
+			f := func() {
 				for _, tx := range txis {
 					ok := c.Delegate.TxCreator.TxFormatVerifier.VerifySignature(tx)
 					if !ok {
@@ -288,19 +288,19 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")
 			}
 			continue
-		}else if c.TestSyncBuffer {
-			err := c.Delegate.InsertSyncBuffer(seq,txis)
+		} else if c.TestSyncBuffer {
+			err := c.Delegate.InsertSyncBuffer(seq, txis)
 			if err != nil {
 				logrus.WithField("seq ", seq).WithError(err).Error("syncbuffer add  err")
 			}
-		}else {
+		} else {
 			if c.TestSeal {
 				for k := 0; k < len(txis); {
 					//time.Sleep(time.Duration(m) * time.Microsecond)
 					if c.pause {
 						return true
 					}
-					ok  := c.Delegate.TxCreator.SealTx(txis[k], nil)
+					ok := c.Delegate.TxCreator.SealTx(txis[k], nil)
 					if !ok {
 						logrus.WithField("tx ", txis[k]).Warn("seal tx err")
 					}
@@ -347,7 +347,7 @@ func (c *AutoClient) fireTxs() bool {
 			if err != nil {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
-		} else if !c.TestSeal{
+		} else if !c.TestSeal {
 			c.Delegate.ReceivedNewTxsChan <- types.Txis{seq}
 			//c.Delegate.Announce(seq)
 		}
@@ -410,8 +410,8 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	r := randomArchive{
 		Name:    fmt.Sprintf("%d", ran),
 		RandInt: ran,
-		Num:  archiveNum,
-		From: c.MyAccount.Address.ToBytes()[:5],
+		Num:     archiveNum,
+		From:    c.MyAccount.Address.ToBytes()[:5],
 	}
 	archiveNum++
 	data, _ := json.Marshal(&r)

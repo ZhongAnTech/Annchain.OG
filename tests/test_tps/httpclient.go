@@ -57,22 +57,22 @@ func NewTxClient(Host string) TxClient {
 }
 
 type TxClient struct {
-	httpClient      *http.Client
+	httpClient  *http.Client
 	requestChan chan *rpc.NewTxRequest
 	quit        chan bool
 	Host        string
 }
 
-func (a *TxClient)StartAsyncLoop() {
+func (a *TxClient) StartAsyncLoop() {
 	go a.ConsumeQueue()
 }
 
-func (a *TxClient)Stop() {
+func (a *TxClient) Stop() {
 	close(a.quit)
 }
 
-func (A *TxClient)SendAsyncTx(Req  *rpc.NewTxRequest) {
-	A.requestChan<-Req
+func (A *TxClient) SendAsyncTx(Req *rpc.NewTxRequest) {
+	A.requestChan <- Req
 }
 
 func (o *TxClient) ConsumeQueue() {
@@ -87,7 +87,7 @@ func (o *TxClient) ConsumeQueue() {
 			}
 			resp, err := o.SendNormalTx(data)
 			if err != nil {
-				logrus.WithField("resp",resp).WithError(err).Warnf("failed to send to ledger")
+				logrus.WithField("resp", resp).WithError(err).Warnf("failed to send to ledger")
 			}
 		case <-o.quit:
 			logrus.Info("OgProcessor stopped")
@@ -97,23 +97,23 @@ func (o *TxClient) ConsumeQueue() {
 
 }
 
-func (a *TxClient)SendNormalTx(request *rpc.NewTxRequest) ( string,error  ){
-	return a.sendTx(request,"new_transaction","POST")
+func (a *TxClient) SendNormalTx(request *rpc.NewTxRequest) (string, error) {
+	return a.sendTx(request, "new_transaction", "POST")
 }
 
-func (a *TxClient)SendTokenIPO(request *rpc.NewPublicOfferingRequest) ( string,error ){
-	return a.sendTx(request,"token","POST")
+func (a *TxClient) SendTokenIPO(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "POST")
 }
 
-func (a *TxClient)SendTokenSPO(request *rpc.NewPublicOfferingRequest) ( string,error  ){
-	return a.sendTx(request,"token","PUT")
+func (a *TxClient) SendTokenSPO(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "PUT")
 }
 
-func (a *TxClient)SendTokenDestroy(request *rpc.NewPublicOfferingRequest) ( string,error  ){
-	return a.sendTx(request,"token","DELETE")
+func (a *TxClient) SendTokenDestroy(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "DELETE")
 }
 
-func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( string,error  ) {
+func (a *TxClient) sendTx(request interface{}, uri string, methd string) (string, error) {
 	//req := httplib.NewBeegoRequest(url,"POST")
 	//req.SetTimeout(time.Second*10,time.Second*10)
 	data, err := json.Marshal(request)
@@ -121,13 +121,13 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	url := a.Host+"/"+"uri"
+	url := a.Host + "/" + "uri"
 	req, err := http.NewRequest(methd, url, r)
 
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		return "",err
+		return "", err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -139,20 +139,20 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return "",err
+		return "", err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return "",errors.New(resp.Status)
+		return "", errors.New(resp.Status)
 	}
-	var respStruct struct{
-		Data  string `json:"data"`
+	var respStruct struct {
+		Data string `json:"data"`
 	}
-	err = json.Unmarshal(resDate,&respStruct)
+	err = json.Unmarshal(resDate, &respStruct)
 	if err != nil {
 		fmt.Println(str, err)
-		return "",err
+		return "", err
 	}
 	if debug {
 		fmt.Println(respStruct.Data)
@@ -178,7 +178,7 @@ func (a *TxClient) getNonce(addr common.Address) (nonce uint64) {
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return  0
+		return 0
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
@@ -188,7 +188,7 @@ func (a *TxClient) getNonce(addr common.Address) (nonce uint64) {
 	var nonceResp struct {
 		Nonce uint64 `json:"nonce"`
 	}
-	err = json.Unmarshal(resDate,&nonceResp)
+	err = json.Unmarshal(resDate, &nonceResp)
 	if err != nil {
 		fmt.Println("encode nonce errror ", err)
 		return 0

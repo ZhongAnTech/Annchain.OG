@@ -305,6 +305,3 @@ func (t *Term) ClearCampaigns() {
 func (t *Term) GetFormerPks() []crypto.PublicKey {
 	return t.formerPublicKeys
 }
-
-
-

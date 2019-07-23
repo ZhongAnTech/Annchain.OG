@@ -33,17 +33,17 @@ func newTransport(timeOut time.Duration) *http.Transport {
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   timeOut,
-			KeepAlive: timeOut*3,
+			KeepAlive: timeOut * 3,
 		}).DialContext,
 		MaxIdleConns:          100,
-		IdleConnTimeout:       timeOut*9,
+		IdleConnTimeout:       timeOut * 9,
 		TLSHandshakeTimeout:   timeOut,
-		ExpectContinueTimeout: timeOut/10,
+		ExpectContinueTimeout: timeOut / 10,
 	}
 	return transport
 }
 
-func NewTxClient(Host string,debug bool) TxClient {
+func NewTxClient(Host string, debug bool) TxClient {
 	a := TxClient{
 		httpClient: &http.Client{
 			Timeout:   time.Second * 10,
@@ -51,45 +51,44 @@ func NewTxClient(Host string,debug bool) TxClient {
 		},
 		requestChan: make(chan *rpc.NewTxRequest, 100),
 		quit:        make(chan bool),
-		Host:Host,
-		Debug:debug,
+		Host:        Host,
+		Debug:       debug,
 	}
 	return a
 }
 
-func NewTxClientWIthTimeOut(Host string,debug bool,timeOut time.Duration) TxClient {
+func NewTxClientWIthTimeOut(Host string, debug bool, timeOut time.Duration) TxClient {
 	a := TxClient{
 		httpClient: &http.Client{
-			Timeout:    timeOut,
+			Timeout:   timeOut,
 			Transport: newTransport(timeOut),
 		},
 		requestChan: make(chan *rpc.NewTxRequest, 100),
 		quit:        make(chan bool),
-		Host:Host,
-		Debug:debug,
+		Host:        Host,
+		Debug:       debug,
 	}
 	return a
 }
 
-
 type TxClient struct {
-	httpClient      *http.Client
+	httpClient  *http.Client
 	requestChan chan *rpc.NewTxRequest
 	quit        chan bool
 	Host        string
-	Debug  bool
+	Debug       bool
 }
 
-func (a *TxClient)StartAsyncLoop() {
+func (a *TxClient) StartAsyncLoop() {
 	go a.ConsumeQueue()
 }
 
-func (a *TxClient)Stop() {
+func (a *TxClient) Stop() {
 	close(a.quit)
 }
 
-func (A *TxClient)SendAsyncTx(Req  *rpc.NewTxRequest) {
-	A.requestChan<-Req
+func (A *TxClient) SendAsyncTx(Req *rpc.NewTxRequest) {
+	A.requestChan <- Req
 }
 
 func (o *TxClient) ConsumeQueue() {
@@ -104,7 +103,7 @@ func (o *TxClient) ConsumeQueue() {
 			}
 			resp, err := o.SendNormalTx(data)
 			if err != nil {
-				logrus.WithField("resp",resp).WithError(err).Warnf("failed to send to ledger")
+				logrus.WithField("resp", resp).WithError(err).Warnf("failed to send to ledger")
 			}
 		case <-o.quit:
 			logrus.Info("OgProcessor stopped")
@@ -114,27 +113,27 @@ func (o *TxClient) ConsumeQueue() {
 
 }
 
-func (a *TxClient)SendNormalTx(request *rpc.NewTxRequest) ( string,error  ){
-	return a.sendTx(request,"new_transaction","POST")
+func (a *TxClient) SendNormalTx(request *rpc.NewTxRequest) (string, error) {
+	return a.sendTx(request, "new_transaction", "POST")
 }
 
-func (a *TxClient)SendNormalTxs(request *rpc.NewTxsRequests) ( string,error  ){
-	return a.sendTxs(request,"new_transactions","POST")
+func (a *TxClient) SendNormalTxs(request *rpc.NewTxsRequests) (string, error) {
+	return a.sendTxs(request, "new_transactions", "POST")
 }
 
-func (a *TxClient)SendTokenIPO(request *rpc.NewPublicOfferingRequest) ( string,error ){
-	return a.sendTx(request,"token","POST")
+func (a *TxClient) SendTokenIPO(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "POST")
 }
 
-func (a *TxClient)SendTokenSPO(request *rpc.NewPublicOfferingRequest) ( string,error  ){
-	return a.sendTx(request,"token","PUT")
+func (a *TxClient) SendTokenSPO(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "PUT")
 }
 
-func (a *TxClient)SendTokenDestroy(request *rpc.NewPublicOfferingRequest) ( string,error  ){
-	return a.sendTx(request,"token","DELETE")
+func (a *TxClient) SendTokenDestroy(request *rpc.NewPublicOfferingRequest) (string, error) {
+	return a.sendTx(request, "token", "DELETE")
 }
 
-func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( string,error  ) {
+func (a *TxClient) sendTx(request interface{}, uri string, methd string) (string, error) {
 	//req := httplib.NewBeegoRequest(url,"POST")
 	//req.SetTimeout(time.Second*10,time.Second*10)
 	data, err := json.Marshal(request)
@@ -142,13 +141,13 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	url := a.Host+"/"+uri
+	url := a.Host + "/" + uri
 	req, err := http.NewRequest(methd, url, r)
 
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		//fmt.Println(err)
-		return "",err
+		return "", err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -160,20 +159,20 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return "",err
+		return "", err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return "",errors.New(resp.Status)
+		return "", errors.New(resp.Status)
 	}
-	var respStruct struct{
-		Data  string `json:"data"`
+	var respStruct struct {
+		Data string `json:"data"`
 	}
-	err = json.Unmarshal(resDate,&respStruct)
+	err = json.Unmarshal(resDate, &respStruct)
 	if err != nil {
 		//fmt.Println(str, err)
-		return "",err
+		return "", err
 	}
 	if a.Debug {
 		fmt.Println(respStruct.Data)
@@ -181,7 +180,7 @@ func (a *TxClient) sendTx(request interface{},uri string ,methd string  ) ( stri
 	return respStruct.Data, nil
 }
 
-func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( string,error  ) {
+func (a *TxClient) sendTxs(request interface{}, uri string, methd string) (string, error) {
 	//req := httplib.NewBeegoRequest(url,"POST")
 	//req.SetTimeout(time.Second*10,time.Second*10)
 	data, err := json.Marshal(request)
@@ -189,13 +188,13 @@ func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( str
 		panic(err)
 	}
 	r := bytes.NewReader(data)
-	url := a.Host+"/"+uri
+	url := a.Host + "/" + uri
 	req, err := http.NewRequest(methd, url, r)
 
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		//fmt.Println(err)
-		return "",err
+		return "", err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -207,12 +206,12 @@ func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( str
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return "",err
+		return "", err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode, str)
-		return "",errors.New(resp.Status)
+		return "", errors.New(resp.Status)
 	}
 	//var respStruct struct{
 	//	Data common.Hashes  `json:"data"`
@@ -223,7 +222,6 @@ func (a *TxClient) sendTxs(request interface{},uri string ,methd string  ) ( str
 	return str, nil
 }
 
-
 func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 	uri := fmt.Sprintf("query_nonce?address=%s", addr.Hex())
 	url := a.Host + "/" + uri
@@ -231,7 +229,7 @@ func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		//fmt.Println(err)
-		return 0 ,err
+		return 0, err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -242,37 +240,36 @@ func (a *TxClient) GetNonce(addr common.Address) (nonce uint64, err error) {
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return  0 ,err
+		return 0, err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return 0,err
+		return 0, err
 	}
 	var nonceResp struct {
 		Data uint64 `json:"data"`
 	}
-	err = json.Unmarshal(resDate,&nonceResp)
+	err = json.Unmarshal(resDate, &nonceResp)
 	if err != nil {
 		//fmt.Println("encode nonce errror ", err)
-		return 0,err
+		return 0, err
 	}
 	return nonceResp.Data, nil
 }
 
-
 //type TokenList map[string]string
 
-func (a *TxClient)GetTokenList() ( TokenList string  ,err error ) {
+func (a *TxClient) GetTokenList() (TokenList string, err error) {
 	url := a.Host + "/" + "token/list"
 	req, err := http.NewRequest("GET", url, nil)
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		//fmt.Println(err)
-		return "" ,err
+		return "", err
 	}
 	//now := time.Now()
 	defer resp.Body.Close()
@@ -283,13 +280,12 @@ func (a *TxClient)GetTokenList() ( TokenList string  ,err error ) {
 	str := string(resDate)
 	if err != nil {
 		fmt.Println(str, err)
-		return "" ,err
+		return "", err
 	}
 	if resp.StatusCode != 200 {
 		//panic( resp.StatusCode)
 		fmt.Println(resp.StatusCode)
-		return "" ,errors.New(resp.Status)
+		return "", errors.New(resp.Status)
 	}
 	return str, nil
 }
-

@@ -275,7 +275,7 @@ func (c *SimpleOrderedCache) insertKeys(keys []interface{}, values []interface{}
 		smallValue := values[i]
 		smallIndex := c.searchFrom(to, from, smallValue)
 		insertIndex[i] = smallIndex
-		if i==j {
+		if i == j {
 			break
 		}
 		from = smallIndex

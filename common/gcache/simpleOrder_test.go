@@ -191,20 +191,20 @@ func TestSimpleCache_BatchAddFrontWithOrder(t *testing.T) {
 	SliceInsert(c.orderedKeys, 0, 56)
 	SliceInsert(c.orderedKeys, 0, 57)
 	//insert at  the front
-	c.PrependBatch([]interface{}{101, 102, 103}, []interface{}{-4*3 + 1, -1*3 + 1,23-2*3 + 1})
+	c.PrependBatch([]interface{}{101, 102, 103}, []interface{}{-4*3 + 1, -1*3 + 1, 23 - 2*3 + 1})
 	c.PrintValues(1)
 	c.orderedKeys = append(c.orderedKeys, 58, 59)
 	SliceInsert(c.orderedKeys, 0, 567)
 	SliceInsert(c.orderedKeys, 0, 577)
 	//insert at the end
-	c.EnQueueBatch([]interface{}{80, 81, 82}, []interface{}{-102+103*3 + 1,102*3 + 1 , 104*3 + 1})
+	c.EnQueueBatch([]interface{}{80, 81, 82}, []interface{}{-102 + 103*3 + 1, 102*3 + 1, 104*3 + 1})
 	c.PrintValues(1)
 
 	//insert in the middle
 	c.orderedKeys = append(c.orderedKeys, 50, 51)
 	SliceInsert(c.orderedKeys, 0, 52)
 	SliceInsert(c.orderedKeys, 0, 53)
-	c.PrependBatch([]interface{}{30, 31, 32, 33, 34, 35, 36}, []interface{}{6-13 * 3,8*3 + 1, 12*3 + 1, 12*3 + 1 , 15*3 + 1, 15*3 + 1, 17*3 + 1})
+	c.PrependBatch([]interface{}{30, 31, 32, 33, 34, 35, 36}, []interface{}{6 - 13*3, 8*3 + 1, 12*3 + 1, 12*3 + 1, 15*3 + 1, 15*3 + 1, 17*3 + 1})
 	c.PrintValues(1)
 	c.EnQueueBatch([]interface{}{40}, []interface{}{30})
 	c.PrintValues(1)
@@ -340,14 +340,14 @@ func TestSimpleCache_BatchAddFront(t *testing.T) {
 	}
 	c.PrintValues(1)
 	//insert at  the front
-	c.PrependBatch([]interface{}{101, 102, 103}, []interface{}{-4*3 + 1, -1*3 + 1,23-2*3 + 1})
+	c.PrependBatch([]interface{}{101, 102, 103}, []interface{}{-4*3 + 1, -1*3 + 1, 23 - 2*3 + 1})
 	c.PrintValues(1)
 	//insert at the end
-	c.EnQueueBatch([]interface{}{80, 81, 82}, []interface{}{-102+103*3 + 1,102*3 + 1 , 104*3 + 1})
+	c.EnQueueBatch([]interface{}{80, 81, 82}, []interface{}{-102 + 103*3 + 1, 102*3 + 1, 104*3 + 1})
 	c.PrintValues(1)
 
 	//insert in the middle
 
-	c.PrependBatch([]interface{}{30, 31, 32, 33, 34, 35, 36}, []interface{}{6-13 * 3,8*3 + 1, 12*3 + 1, 12*3 + 1 , 15*3 + 1, 15*3 + 1, 17*3 + 1})
+	c.PrependBatch([]interface{}{30, 31, 32, 33, 34, 35, 36}, []interface{}{6 - 13*3, 8*3 + 1, 12*3 + 1, 12*3 + 1, 15*3 + 1, 15*3 + 1, 17*3 + 1})
 	c.PrintValues(1)
 }

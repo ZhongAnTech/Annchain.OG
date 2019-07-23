@@ -59,7 +59,7 @@ type Txi interface {
 	Msgsize() (s int)
 	GetVersion() byte
 	ToSmallCaseJson() ([]byte, error)
-	IsVerified()verifiedType
+	IsVerified() verifiedType
 	SetVerified(v verifiedType)
 }
 

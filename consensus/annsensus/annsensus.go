@@ -63,7 +63,7 @@ type AnnSensus struct {
 	mu sync.RWMutex
 
 	close                         chan struct{}
-	genesisAccounts              crypto.PublicKeys
+	genesisAccounts               crypto.PublicKeys
 	isGenesisPartner              bool
 	genesisBftIsRunning           uint32
 	UpdateEvent                   chan bool // syner update event
@@ -436,7 +436,7 @@ func (as *AnnSensus) addGenesisCampaigns() {
 		addr := pk.Address()
 		cp := tx_types.Campaign{
 			//DkgPublicKey: pkMsg.DkgPublicKey,
-			Issuer:       &addr,
+			Issuer: &addr,
 			TxBase: types.TxBase{
 				PublicKey: pk.Bytes,
 				Weight:    uint64(id*10 + 10),

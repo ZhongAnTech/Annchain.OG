@@ -409,7 +409,7 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 func (m *IncrementalSyncer) repickHashes() common.Hashes {
 	maps := m.firedTxCache.GetALL(true)
 	sleepDuration := time.Duration(m.config.BatchTimeoutMilliSecond) * time.Millisecond
-	duration := time.Duration(sleepDuration*20)
+	duration := time.Duration(sleepDuration * 20)
 	var result common.Hashes
 	for ik, iv := range maps {
 		v := iv.(FireHistory)

@@ -40,7 +40,6 @@ type TxFormatVerifier struct {
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
 	NoVerifyMindHash  bool
 	NoVerifyMaxTxHash bool
-
 }
 
 //consensus related verification
@@ -48,7 +47,6 @@ type ConsensusVerifier struct {
 	VerifyCampaign   func(cp *tx_types.Campaign) bool
 	VerifyTermChange func(cp *tx_types.TermChange) bool
 	VerifySequencer  func(cp *tx_types.Sequencer) bool
-
 }
 
 func (c *ConsensusVerifier) Verify(t types.Txi) bool {
@@ -75,7 +73,7 @@ func (v *TxFormatVerifier) Name() string {
 	return "TxFormatVerifier"
 }
 
-func (v *TxFormatVerifier)Independent() bool{
+func (v *TxFormatVerifier) Independent() bool {
 	return true
 }
 
@@ -83,7 +81,7 @@ func (c *ConsensusVerifier) Name() string {
 	return "ConsensusVerifier"
 }
 
-func (v *ConsensusVerifier)Independent() bool{
+func (v *ConsensusVerifier) Independent() bool {
 	return false
 }
 
@@ -94,18 +92,16 @@ func (c *TxFormatVerifier) String() string {
 func (c *GraphVerifier) String() string {
 	return c.Name()
 }
-func (v *GraphVerifier)Independent() bool{
+func (v *GraphVerifier) Independent() bool {
 	return false
 }
-
-
 
 func (c *ConsensusVerifier) String() string {
 	return c.Name()
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	if t.IsVerified().IsFormatVerified()  {
+	if t.IsVerified().IsFormatVerified() {
 		return true
 	}
 	if !v.VerifyHash(t) {
@@ -303,7 +299,6 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		return nil, false
 	}
 
-
 	for len(seekingHashes) > 0 {
 		head := seekingHashes[0]
 		seekingHashes = seekingHashes[1:]
@@ -455,7 +450,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	if status.ArchiveMode {
 		if txi.GetType() != types.TxBaseTypeSequencer {
 			logrus.Warn("archive mode , only process archive")
-			return  false
+			return false
 		}
 	}
 
@@ -476,17 +471,17 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		return poolErr != nil
 	}
 	dagNonce, _ := v.Dag.GetLatestNonce(txi.Sender())
-	if poolErr!=nil {
+	if poolErr != nil {
 		//no related tx in txpool ,check dag
-		if dagNonce!= txi.GetNonce() -1 {
-			logrus.WithField("current nonce ", txi.GetNonce() -1).WithField("dag nonce ",dagNonce).WithField("tx", txi).Debug("previous tx  not found for address")
+		if dagNonce != txi.GetNonce()-1 {
+			logrus.WithField("current nonce ", txi.GetNonce()-1).WithField("dag nonce ", dagNonce).WithField("tx", txi).Debug("previous tx  not found for address")
 			// fail if not good
 			return false
 		}
 		goto Out
 	}
-	if nonce!= txi.GetNonce() -1 {
-		logrus.WithField("current nonce ", txi.GetNonce() -1).WithField("pool nonce ",nonce).WithField("tx", txi).Debug("previous tx  not found for address")
+	if nonce != txi.GetNonce()-1 {
+		logrus.WithField("current nonce ", txi.GetNonce()-1).WithField("pool nonce ", nonce).WithField("tx", txi).Debug("previous tx  not found for address")
 		// fail if not good
 		return false
 	}
@@ -500,7 +495,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		}
 	}
 
-	Out :
+Out:
 
 	switch txi.GetType() {
 	// no additional check

@@ -1,7 +1,5 @@
 package tx_client
 
-
-
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
@@ -15,27 +13,27 @@ import (
 )
 
 type RequstGenerator struct {
-	privKey crypto.PrivateKey
+	privKey   crypto.PrivateKey
 	publicKey *crypto.PublicKey
-	address common.Address
-	Nodebug bool
+	address   common.Address
+	Nodebug   bool
 }
 
-func (r *RequstGenerator)Address()common.Address {
+func (r *RequstGenerator) Address() common.Address {
 	return r.address
 }
 
-func NewRequestGenerator(priv crypto.PrivateKey) *RequstGenerator{
+func NewRequestGenerator(priv crypto.PrivateKey) *RequstGenerator {
 	return &RequstGenerator{
-		privKey:priv,
-		publicKey:priv.PublicKey(),
-		address:priv.PublicKey().Address(),
+		privKey:   priv,
+		publicKey: priv.PublicKey(),
+		address:   priv.PublicKey().Address(),
 	}
 }
 
-func (r *RequstGenerator)TokenPublishing(nonce uint64, enableSPO bool, tokenName string, value *math.BigInt) rpc.NewPublicOfferingRequest {
+func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenName string, value *math.BigInt) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
-	from:= r.address
+	from := r.address
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
@@ -75,9 +73,9 @@ func (r *RequstGenerator)TokenPublishing(nonce uint64, enableSPO bool, tokenName
 	return request
 }
 
-func (r *RequstGenerator)TokenDestroy(tokenId int32, nonce uint64) rpc.NewPublicOfferingRequest {
+func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
-	from:= r.address
+	from := r.address
 	//fmt.Println(pub.String(), priv.String(), from.String())
 	fmt.Println(from.String())
 	value := math.NewBigInt(0)
@@ -120,9 +118,9 @@ func (r *RequstGenerator)TokenDestroy(tokenId int32, nonce uint64) rpc.NewPublic
 	return request
 }
 
-func  (r *RequstGenerator)SecondPublicOffering( tokenId int32, nonce uint64, value *math.BigInt) rpc.NewPublicOfferingRequest {
+func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, value *math.BigInt) rpc.NewPublicOfferingRequest {
 	//pub, priv := crypto.Signer.RandomKeyPair()
-	from:= r.address
+	from := r.address
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
@@ -166,7 +164,7 @@ func  (r *RequstGenerator)SecondPublicOffering( tokenId int32, nonce uint64, val
 	return request
 }
 
-func (r *RequstGenerator) NormalTx( tokenId int32, nonce uint64, to common.Address,value *math.BigInt) rpc.NewTxRequest {
+func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Address, value *math.BigInt) rpc.NewTxRequest {
 	from := r.address
 	if !r.Nodebug {
 		fmt.Println(from.String(), to.String())
@@ -201,4 +199,3 @@ func (r *RequstGenerator) NormalTx( tokenId int32, nonce uint64, to common.Addre
 	}
 	return request
 }
-

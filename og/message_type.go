@@ -43,8 +43,6 @@ var ProtocolLengths = []p2p_message.MessageType{p2p_message.MessageTypeOg02Lengt
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
-
-
 type SendingType uint8
 
 const (
@@ -54,8 +52,6 @@ const (
 	sendingTypeBroacastWithFilter
 	sendingTypeBroacastWithLink
 )
-
-
 
 type p2PMessage struct {
 	messageType    p2p_message.MessageType
@@ -159,8 +155,6 @@ var errorToString = map[int]string{
 	ErrSuspendedPeer:           "Suspended peer",
 }
 
-
-
 type MessageCounter struct {
 	requestId uint32
 }
@@ -172,7 +166,6 @@ func (m *MessageCounter) Get() uint32 {
 	}
 	return atomic.AddUint32(&m.requestId, 1)
 }
-
 
 func (p *p2PMessage) GetMarkHashes() common.Hashes {
 	if p.message == nil {
@@ -319,8 +312,8 @@ func (p *p2PMessage) Unmarshal() error {
 		return nil
 	}
 	p.message = p.messageType.GetMsg()
-	if p.message ==nil {
-		 return fmt.Errorf("unkown mssage type %v ", p.messageType)
+	if p.message == nil {
+		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}
 	switch p.messageType {
 
@@ -372,7 +365,6 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
-
 
 	default:
 		return fmt.Errorf("unkown mssage type %v ", p.messageType)

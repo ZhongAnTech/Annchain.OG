@@ -580,7 +580,7 @@ func (ps *peerSet) Close() {
 func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis common.Hash) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
-	var status  p2p_message.StatusData // safe to read after two values have been received from errc
+	var status p2p_message.StatusData // safe to read after two values have been received from errc
 
 	sendStatusFunc := func() {
 		s := p2p_message.StatusData{
@@ -615,7 +615,7 @@ func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis
 	return nil
 }
 
-func (p *peer) readStatus(network uint64, status * p2p_message.StatusData, genesis common.Hash) (err error) {
+func (p *peer) readStatus(network uint64, status *p2p_message.StatusData, genesis common.Hash) (err error) {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err

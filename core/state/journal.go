@@ -35,7 +35,7 @@ type JournalEntry interface {
 // commit. These are tracked to be able to be reverted in case of an execution
 // exception or revertal request.
 type journal struct {
-	entries []JournalEntry        // Current changes tracked by the journal
+	entries []JournalEntry         // Current changes tracked by the journal
 	dirties map[common.Address]int // Dirty accounts and the number of changes
 }
 

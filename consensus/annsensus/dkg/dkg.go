@@ -269,7 +269,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 				d.isValidPartner = true
 				d.dkgOn = true
 			}
-			txs = append(txs,cp)
+			txs = append(txs, cp)
 		}
 		sort.Sort(txs)
 		log.WithField("txs ", txs).Debug("lucky cps")
@@ -377,7 +377,6 @@ func (d *Dkg) addPartner(c *tx_types.Campaign) {
 	log.WithField("cp ", c).Trace("added partner")
 	d.partner.addressIndex[c.Sender()] = len(d.partner.PartPubs) - 1
 }
-
 
 func (d *Dkg) GetBlsSigsets() []*tx_types.SigSet {
 	var sigset []*tx_types.SigSet
@@ -987,7 +986,7 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 type DKGInfo struct {
 	TermId             int                    `json:"term_id"`
 	Id                 uint32                 `json:"id"`
-	PartPubs           []kyber.Point               `json:"part_pubs"`
+	PartPubs           []kyber.Point          `json:"part_pubs"`
 	MyPartSec          kyber.Scalar           `json:"-"`
 	CandidatePartSec   []kyber.Scalar         `json:"-"`
 	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`

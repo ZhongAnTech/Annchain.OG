@@ -7,7 +7,7 @@ import json
 import cgi
 from urllib.parse import parse_qs
 
-ttl = 60 * 5
+ttl = 60 * 2
 PARTNERS = 2
 
 # req:

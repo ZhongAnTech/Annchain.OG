@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata: {name: ognb-ex-2}
+spec:
+  ports:
+  - {name: rpc, nodePort: 32020, port: 8000}
+  - {name: websocket, nodePort: 30022, port: 8002}
+  - {name: profiling, nodePort: 30023, port: 8003}
+  selector: {statefulset.kubernetes.io/pod-name: ognb-2}
+  type: NodePort

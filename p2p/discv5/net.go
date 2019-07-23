@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"net"
 	"time"
 

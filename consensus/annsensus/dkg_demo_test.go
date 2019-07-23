@@ -19,7 +19,7 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/gcache"
+	"github.com/annchain/gcache"
 	"github.com/annchain/OG/consensus/annsensus/test"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"

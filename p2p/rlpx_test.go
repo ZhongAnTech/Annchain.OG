@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common/hexutil"
-	msg2 "github.com/annchain/OG/common/msg"
+	msg2 "github.com/annchain/OG/types/msg"
 	"io"
 	"io/ioutil"
 	"net"

@@ -20,7 +20,7 @@ package enr
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"github.com/tinylib/msgp/msgp"
 	"net"
 )

@@ -3,9 +3,10 @@ module github.com/annchain/OG
 go 1.12
 
 require (
+	github.com/annchain/bloom v2.0.4+incompatible
+	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
-	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/deckarep/golang-set v1.7.1
 	github.com/gin-gonic/gin v1.4.0

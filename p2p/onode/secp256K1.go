@@ -3,7 +3,7 @@ package onode
 import (
 	"crypto/ecdsa"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"github.com/tinylib/msgp/msgp"
 )
 

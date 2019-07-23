@@ -24,7 +24,7 @@ import (
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
-	"github.com/bluele/gcache"
+	"github.com/annchain/gcache"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 )

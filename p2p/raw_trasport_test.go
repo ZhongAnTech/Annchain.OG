@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	msg2 "github.com/annchain/OG/common/msg"
+	msg2 "github.com/annchain/OG/types/msg"
 	"io/ioutil"
 	"net"
 	"reflect"

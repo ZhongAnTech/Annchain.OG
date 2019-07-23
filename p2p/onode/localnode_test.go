@@ -17,7 +17,7 @@
 package onode
 
 import (
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"

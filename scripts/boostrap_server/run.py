@@ -27,7 +27,10 @@ def handle(req, sourceip, requirePartners):
     # partners = req['partners']
     onode: str = req['onode']
     # modify onode's ip to source ip
-    onode = onode[0: onode.index("@") + 1] + sourceip + onode[onode.index(":", 10):]
+    origin_host = onode[onode.index("@") + 1:onode.index(":", 10)]
+    if origin_host == '127.0.0.1':
+        onode = onode[0: onode.index("@") + 1] + sourceip + onode[onode.index(":", 10):]
+        print('replaced %s to %s' % (origin_host, sourceip))
     req['onode'] = onode
 
     if network_id not in networks:

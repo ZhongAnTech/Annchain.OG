@@ -16,7 +16,6 @@ package syncer
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync"
 	"time"
@@ -99,7 +98,7 @@ func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
 	}
 	req := p2p_message.MessageSyncRequest{
 		Filter:    p2p_message.NewDefaultBloomFilter(),
-		RequestId: og.MsgCounter.Get(),
+		RequestId: p2p_message.MsgCounter.Get(),
 	}
 	m.bloomFilterStatus.Set(req.RequestId)
 	height := m.getHeight()
@@ -112,13 +111,13 @@ func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
 	if err != nil {
 		log.WithError(err).Warn("encode filter err")
 	}
-	log.WithField("height ", height).WithField("type", og.MessageTypeFetchByHashRequest).WithField(
+	log.WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
 		"req ", req.String()).WithField("filter length", len(req.Filter.Data)).Debug(
 		"sending bloom filter  MessageTypeFetchByHashRequest")
 
-	//m.messageSender.UnicastMessageRandomly(og.MessageTypeFetchByHashRequest, bytes)
+	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
 	hash := childhash
-	m.messageSender.MulticastToSource(og.MessageTypeFetchByHashRequest, &req, &hash)
+	m.messageSender.MulticastToSource(p2p_message.MessageTypeFetchByHashRequest, &req, &hash)
 	return
 }

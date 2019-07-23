@@ -43,8 +43,8 @@ type Og struct {
 	quit      chan bool
 }
 
-func (og *Og) GetCurrentNodeStatus() StatusData {
-	return StatusData{
+func (og *Og) GetCurrentNodeStatus() p2p_message.StatusData {
+	return p2p_message.StatusData{
 		CurrentBlock:    og.Dag.LatestSequencer().Hash,
 		CurrentId:       og.Dag.LatestSequencer().Height,
 		GenesisBlock:    og.Dag.Genesis().Hash,
@@ -214,7 +214,7 @@ func (og *Og) BroadcastLatestSequencer() {
 			msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			function := func() {
-				og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
+				og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
 		case <-time.After(200 * time.Millisecond):
@@ -229,7 +229,7 @@ func (og *Og) BroadcastLatestSequencer() {
 				msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it
 				function := func() {
-					og.Manager.BroadcastMessage(MessageTypeSequencerHeader, &msg)
+					og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
 

@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/annchain/OG/og"
 	"github.com/sirupsen/logrus"
 )
 
@@ -293,7 +292,7 @@ func (p *DefaultPartner) StartNewEra(height uint64, round int) {
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")
 		// broadcast
-		p.Broadcast(og.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
+		p.Broadcast(p2p_message.MessageTypeProposal, p.CurrentHR, proposal, currState.ValidRound)
 	} else {
 		p.WaitStepTimeout(StepTypePropose, TimeoutPropose, p.CurrentHR, p.OnTimeoutPropose)
 	}
@@ -403,7 +402,7 @@ func (p *DefaultPartner) GetValue(newBlock bool) (p2p_message.Proposal, uint64) 
 }
 
 // Broadcast announce messages to all partners
-func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr p2p_message.HeightRound, content p2p_message.Proposal, validRound int) {
+func (p *DefaultPartner) Broadcast(messageType p2p_message.MessageType, hr p2p_message.HeightRound, content p2p_message.Proposal, validRound int) {
 	m := Message{
 		Type: messageType,
 	}
@@ -420,18 +419,18 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr p2p_message.He
 
 	}
 	switch messageType {
-	case og.MessageTypeProposal:
+	case p2p_message.MessageTypeProposal:
 		m.Payload = &p2p_message.MessageProposal{
 			BasicMessage: basicMessage,
 			Value:        content,
 			ValidRound:   validRound,
 		}
-	case og.MessageTypePreVote:
+	case p2p_message.MessageTypePreVote:
 		m.Payload = &p2p_message.MessagePreVote{
 			BasicMessage: basicMessage,
 			Idv:          idv,
 		}
-	case og.MessageTypePreCommit:
+	case p2p_message.MessageTypePreCommit:
 		m.Payload = &p2p_message.MessagePreCommit{
 			BasicMessage: basicMessage,
 			Idv:          idv,
@@ -445,7 +444,7 @@ func (p *DefaultPartner) Broadcast(messageType og.MessageType, hr p2p_message.He
 func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePropose {
-		p.Broadcast(og.MessageTypePreVote, p.CurrentHR, nil, 0)
+		p.Broadcast(p2p_message.MessageTypePreVote, p.CurrentHR, nil, 0)
 		p.changeStep(StepTypePreVote)
 	}
 }
@@ -454,7 +453,7 @@ func (p *DefaultPartner) OnTimeoutPropose(context WaiterContext) {
 func (p *DefaultPartner) OnTimeoutPreVote(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.CurrentHR && p.States[p.CurrentHR].Step == StepTypePreVote {
-		p.Broadcast(og.MessageTypePreCommit, p.CurrentHR, nil, 0)
+		p.Broadcast(p2p_message.MessageTypePreCommit, p.CurrentHR, nil, 0)
 		p.changeStep(StepTypePreCommit)
 	}
 }
@@ -481,7 +480,7 @@ func (p *DefaultPartner) WaitStepTimeout(stepType StepType, timeout time.Duratio
 
 func (p *DefaultPartner) handleMessage(message Message) {
 	switch message.Type {
-	case og.MessageTypeProposal:
+	case p2p_message.MessageTypeProposal:
 		switch message.Payload.(type) {
 		case *p2p_message.MessageProposal:
 		default:
@@ -501,7 +500,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"value":  msg.Value,
 		}).Debug("In")
 		p.handleProposal(msg)
-	case og.MessageTypePreVote:
+	case p2p_message.MessageTypePreVote:
 		switch message.Payload.(type) {
 		case *p2p_message.MessagePreVote:
 		default:
@@ -521,7 +520,7 @@ func (p *DefaultPartner) handleMessage(message Message) {
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
 		p.handlePreVote(msg)
-	case og.MessageTypePreCommit:
+	case p2p_message.MessageTypePreCommit:
 		switch message.Payload.(type) {
 		case *p2p_message.MessagePreCommit:
 		default:
@@ -552,28 +551,28 @@ func (p *DefaultPartner) handleProposal(proposal *p2p_message.MessageProposal) {
 	state.MessageProposal = proposal
 	////if this is proposed by me , send precommit
 	//if proposal.SourceId == uint16(p.Id)  {
-	//	p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+	//	p.Broadcast(p2p_message.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 	//	p.changeStep(StepTypePreVote)
 	//	return
 	//}
 	// rule line 22
 	if state.Step == StepTypePropose {
 		if p.valid(proposal.Value) && (state.LockedRound == -1 || state.LockedValue.Equal(proposal.Value)) {
-			p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+			p.Broadcast(p2p_message.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 		} else {
-			p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, nil, 0)
+			p.Broadcast(p2p_message.MessageTypePreVote, proposal.HeightRound, nil, 0)
 		}
 		p.changeStep(StepTypePreVote)
 	}
 
 	// rule line 28
-	count := p.count(og.MessageTypePreVote, proposal.HeightRound.Height, proposal.ValidRound, MatchTypeByValue, proposal.Value.GetId())
+	count := p.count(p2p_message.MessageTypePreVote, proposal.HeightRound.Height, proposal.ValidRound, MatchTypeByValue, proposal.Value.GetId())
 	if count >= p.Maj23 {
 		if state.Step == StepTypePropose && (proposal.ValidRound >= 0 && proposal.ValidRound < p.CurrentHR.Round) {
 			if p.valid(proposal.Value) && (state.LockedRound <= proposal.ValidRound || state.LockedValue.Equal(proposal.Value)) {
-				p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+				p.Broadcast(p2p_message.MessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 			} else {
-				p.Broadcast(og.MessageTypePreVote, proposal.HeightRound, nil, 0)
+				p.Broadcast(p2p_message.MessageTypePreVote, proposal.HeightRound, nil, 0)
 			}
 			p.changeStep(StepTypePreVote)
 		}
@@ -581,7 +580,7 @@ func (p *DefaultPartner) handleProposal(proposal *p2p_message.MessageProposal) {
 }
 func (p *DefaultPartner) handlePreVote(vote *p2p_message.MessagePreVote) {
 	// rule line 34
-	count := p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, nil)
+	count := p.count(p2p_message.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, nil)
 	state, ok := p.States[vote.HeightRound]
 	if !ok {
 		panic("should exists: " + vote.HeightRound.String())
@@ -601,7 +600,7 @@ func (p *DefaultPartner) handlePreVote(vote *p2p_message.MessagePreVote) {
 			if state.Step == StepTypePreVote {
 				state.LockedValue = state.MessageProposal.Value
 				state.LockedRound = p.CurrentHR.Round
-				p.Broadcast(og.MessageTypePreCommit, vote.HeightRound, state.MessageProposal.Value, 0)
+				p.Broadcast(p2p_message.MessageTypePreCommit, vote.HeightRound, state.MessageProposal.Value, 0)
 				p.changeStep(StepTypePreCommit)
 			}
 			state.ValidValue = state.MessageProposal.Value
@@ -609,10 +608,10 @@ func (p *DefaultPartner) handlePreVote(vote *p2p_message.MessagePreVote) {
 		}
 	}
 	// rule line 44
-	count = p.count(og.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeNil, nil)
+	count = p.count(p2p_message.MessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeNil, nil)
 	if count >= p.Maj23 && state.Step == StepTypePreVote {
 		logrus.WithField("IM", p.Id).WithField("hr", p.CurrentHR.String()).Debug("prevote counter is more than 2f+1 #3")
-		p.Broadcast(og.MessageTypePreCommit, vote.HeightRound, nil, 0)
+		p.Broadcast(p2p_message.MessageTypePreCommit, vote.HeightRound, nil, 0)
 		p.changeStep(StepTypePreCommit)
 	}
 
@@ -620,7 +619,7 @@ func (p *DefaultPartner) handlePreVote(vote *p2p_message.MessagePreVote) {
 
 func (p *DefaultPartner) handlePreCommit(commit *p2p_message.MessagePreCommit) {
 	// rule line 47
-	count := p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
+	count := p.count(p2p_message.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
 	state := p.States[commit.HeightRound]
 	if count >= p.Maj23 && !state.StepTypeEqualPreCommitTriggered {
 		state.StepTypeEqualPreCommitTriggered = true
@@ -628,7 +627,7 @@ func (p *DefaultPartner) handlePreCommit(commit *p2p_message.MessagePreCommit) {
 	}
 	// rule line 49
 	if state.MessageProposal != nil {
-		count = p.count(og.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
+		count = p.count(p2p_message.MessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
 		if count >= p.Maj23 {
 			if state.Decision == nil {
 				// output decision
@@ -659,7 +658,7 @@ func (p *DefaultPartner) valid(proposal p2p_message.Proposal) bool {
 }
 
 // count votes and commits from others.
-func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
+func (p *DefaultPartner) count(messageType p2p_message.MessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
 	counter := 0
 
 	state, ok := p.States[p2p_message.HeightRound{
@@ -670,7 +669,7 @@ func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validR
 		return 0
 	}
 	switch messageType {
-	case og.MessageTypePreVote:
+	case p2p_message.MessageTypePreVote:
 		target := state.PreVotes
 		for _, m := range target {
 			if m == nil {
@@ -693,7 +692,7 @@ func (p *DefaultPartner) count(messageType og.MessageType, height uint64, validR
 				counter++
 			}
 		}
-	case og.MessageTypePreCommit:
+	case p2p_message.MessageTypePreCommit:
 		target := state.PreCommits
 		for _, m := range target {
 			if m == nil {

@@ -98,7 +98,14 @@ func getOnodeURL(privKey *ecdsa.PrivateKey) string {
 	port := viper.GetString("p2p.port")
 	tcpPort, _ := strconv.Atoi(port)
 	ogNode := onode.NewV4(&privKey.PublicKey, net.ParseIP("127.0.0.1"), tcpPort, tcpPort)
-	return ogNode.String()
+	// if I got the hostname from env (given by kubernetes), use it as my URL
+	// Make sure the hostname is mapped to this pod by kubernetes's Service
+	// Or the IP will be refreshed after restarting the pod
+	s := ogNode.String()
+	if v, ok := os.LookupEnv("HOSTNAME"); ok {
+		s = strings.Replace(s, "127.0.0.1", v, 1)
+	}
+	return s
 }
 
 func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {

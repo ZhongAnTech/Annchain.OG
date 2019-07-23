@@ -174,7 +174,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
-	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 }
+	}
 	value := txnormal.GetValue()
 	err := af.balances[txnormal.TokenId].TrySubBalance(value)
 	if err != nil {

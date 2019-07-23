@@ -803,7 +803,7 @@ func (h *Hub) cacheMessage(m *p2PMessage) (exists bool) {
 }
 
 //getMsgFromCache
-func (h *Hub) getMsgFromCache(m  p2p_message.MessageType, hash common.Hash) []string {
+func (h *Hub) getMsgFromCache(m p2p_message.MessageType, hash common.Hash) []string {
 	key := p2p_message.NewMsgKey(m, hash)
 	if a, err := h.messageCache.GetIFPresent(key); err == nil {
 		var peers []string

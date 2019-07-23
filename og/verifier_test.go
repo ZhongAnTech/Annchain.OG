@@ -195,41 +195,40 @@ func TestConsensusVerifier_Verify(t *testing.T) {
 
 }
 
-func TestVerify(t*testing.T)  {
+func TestVerify(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-    pub,priv := signer.RandomKeyPair()
-    var txis types.Txis
-    //var sigTerGets [][]byte
-    addr := pub.Address()
-	for i:=0;i<10000;i++ {
-		tx:= tx_types.RandomTx()
+	pub, priv := signer.RandomKeyPair()
+	var txis types.Txis
+	//var sigTerGets [][]byte
+	addr := pub.Address()
+	for i := 0; i < 10000; i++ {
+		tx := tx_types.RandomTx()
 		tx.From = &addr
-		tx.Signature= signer.Sign(priv, tx.SignatureTargets()).Bytes
+		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).Bytes
 		tx.PublicKey = pub.Bytes
-		txis = append(txis,tx	)
+		txis = append(txis, tx)
 	}
 	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}
-	now :=time.Now()
-	fmt.Println("start ",now )
-	for i, tx:= range txis{
-		ok:= v.VerifySignature(tx)
+	now := time.Now()
+	fmt.Println("start ", now)
+	for i, tx := range txis {
+		ok := v.VerifySignature(tx)
 		if !ok {
-			t.Fatal(ok,tx,i)
+			t.Fatal(ok, tx, i)
 		}
 	}
-	fmt.Println("used ",time.Since(now) )
-	start:= time.Now()
-	newSginer := &TestSigner {
-	}
+	fmt.Println("used ", time.Since(now))
+	start := time.Now()
+	newSginer := &TestSigner{}
 	crypto.Signer = newSginer
 	fmt.Println(crypto.Signer.CanRecoverPubFromSig())
-	for i, tx:= range txis{
-		ok:= v.VerifySignature(tx)
+	for i, tx := range txis {
+		ok := v.VerifySignature(tx)
 		if !ok {
-			t.Fatal(ok,tx,i)
+			t.Fatal(ok, tx, i)
 		}
 	}
-	fmt.Println("used ",time.Since(start) )
+	fmt.Println("used ", time.Since(start))
 
 }
 
@@ -237,6 +236,6 @@ type TestSigner struct {
 	crypto.SignerSecp256k1
 }
 
-func (s *TestSigner)CanRecoverPubFromSig ()bool {
+func (s *TestSigner) CanRecoverPubFromSig() bool {
 	return true
 }

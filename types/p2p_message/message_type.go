@@ -1,5 +1,3 @@
-
-
 // Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +24,6 @@ import (
 )
 
 //go:generate msgp
-
 
 //global msg counter , generate global msg request id
 var MsgCounter *MessageCounter
@@ -93,7 +90,6 @@ const (
 )
 
 type SendingType uint8
-
 
 func (mt MessageType) IsValid() bool {
 	if mt >= MessageTypeOg02Length {
@@ -200,7 +196,6 @@ func (mt MessageType) Code() p2p.MsgCodeType {
 	return p2p.MsgCodeType(mt)
 }
 
-
 type errCode int
 
 const (
@@ -232,7 +227,6 @@ var errorToString = map[int]string{
 	ErrSuspendedPeer:           "Suspended peer",
 }
 
-
 type MessageCounter struct {
 	requestId uint32
 }
@@ -254,8 +248,6 @@ func MsgCountInit() {
 type MsgKey struct {
 	data [common.HashLength + 2]byte
 }
-
-
 
 func (k MsgKey) GetType() (MessageType, error) {
 	if len(k.data) != common.HashLength+2 {
@@ -284,8 +276,7 @@ func NewMsgKey(m MessageType, hash common.Hash) MsgKey {
 	return key
 }
 
-
-func (m MessageType)GetMsg ()Message {
+func (m MessageType) GetMsg() Message {
 	var message Message
 	switch m {
 	case MessageTypeNewTx:

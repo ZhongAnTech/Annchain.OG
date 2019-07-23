@@ -164,39 +164,39 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *p2p_message.
 	//var testVal int
 	//testVal = len(syncResponse.RawSequencers)
 	//}
-		for _, rawTx := range *syncResponse.RawTxs {
-			/*for ; currentIndex < len(syncResponse.RawSequencers) &&
-				uint32(i) == syncResponse.SequencerIndex[currentIndex] ;currentIndex++ {
-				testVal++
-				tx := syncResponse.RawSequencers[currentIndex].Sequencer()
-				m.firedTxCache.Remove(tx.Hash)
-				if m.isKnownHash(tx.GetTxHash()) {
-					log.WithField("tx ", tx).Debug("duplicated tx received")
-				} else {
-					if !m.Enabled {
-						log.WithField("tx ", tx).Debug("cache seqs for future.")
-					}
-					log.WithField("seq ", tx).Debug("received sync response seq")
-					txis = append(txis, tx)
+	for _, rawTx := range *syncResponse.RawTxs {
+		/*for ; currentIndex < len(syncResponse.RawSequencers) &&
+			uint32(i) == syncResponse.SequencerIndex[currentIndex] ;currentIndex++ {
+			testVal++
+			tx := syncResponse.RawSequencers[currentIndex].Sequencer()
+			m.firedTxCache.Remove(tx.Hash)
+			if m.isKnownHash(tx.GetTxHash()) {
+				log.WithField("tx ", tx).Debug("duplicated tx received")
+			} else {
+				if !m.Enabled {
+					log.WithField("tx ", tx).Debug("cache seqs for future.")
 				}
+				log.WithField("seq ", tx).Debug("received sync response seq")
+				txis = append(txis, tx)
+			}
 
-			}
-			*/
-			if rawTx == nil {
-				log.Warn("nil tx received")
-				continue
-			}
-			m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
-			m.firedTxCache.Remove(rawTx.GetTxHash())
-			if m.isKnownHash(rawTx.GetTxHash()) {
-				log.WithField("tx ", rawTx).Debug("duplicated tx received")
-				continue
-			}
-			if !m.Enabled {
-				log.WithField("tx ", rawTx).Debug("cache txs for future.")
-			}
-			txis = append(txis, rawTx.Txi())
 		}
+		*/
+		if rawTx == nil {
+			log.Warn("nil tx received")
+			continue
+		}
+		m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
+		m.firedTxCache.Remove(rawTx.GetTxHash())
+		if m.isKnownHash(rawTx.GetTxHash()) {
+			log.WithField("tx ", rawTx).Debug("duplicated tx received")
+			continue
+		}
+		if !m.Enabled {
+			log.WithField("tx ", rawTx).Debug("cache txs for future.")
+		}
+		txis = append(txis, rawTx.Txi())
+	}
 	//if testVal!=len(syncResponse.RawSequencers) {
 	//panic(fmt.Sprintf("algorithm err ,len mismatch, %d,%d ",testVal, len(syncResponse.RawSequencers)))
 	//}

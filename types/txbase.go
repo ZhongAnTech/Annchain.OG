@@ -23,7 +23,6 @@ const (
 	TxBaseAction
 )
 
-
 func (t TxBaseType) String() string {
 	switch t {
 	case TxBaseTypeNormal:
@@ -76,7 +75,6 @@ type TxBase struct {
 	verified     verifiedType
 }
 
-
 //msgp:tuple TxBaseJson
 type TxBaseJson struct {
 	Type         TxBaseType    `json:"type"`
@@ -90,8 +88,7 @@ type TxBaseJson struct {
 	Weight       uint64        `json:"weight"`
 	inValid      bool          `json:"in_valid"`
 	Version      byte          `json:"version"`
-	verified     verifiedType     `json:"-"`
-
+	verified     verifiedType  `json:"-"`
 }
 
 func (t *TxBase) ToSmallCase() *TxBaseJson {
@@ -122,14 +119,13 @@ func (t *TxBase) SetInValid(b bool) {
 	t.inValid = b
 }
 
-func (t *TxBase)IsVerified() verifiedType {
-	return  t.verified
+func (t *TxBase) IsVerified() verifiedType {
+	return t.verified
 }
 
-func (t *TxBase)SetVerified(v verifiedType)  {
+func (t *TxBase) SetVerified(v verifiedType) {
 	t.verified = t.verified.merge(v)
 }
-
 
 func (t *TxBase) InValid() bool {
 	return t.inValid

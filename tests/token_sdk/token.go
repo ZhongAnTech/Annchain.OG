@@ -18,4 +18,3 @@ import "github.com/annchain/OG/tests/token_sdk/cmd"
 func main() {
 	cmd.Execute()
 }
-

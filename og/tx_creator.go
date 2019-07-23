@@ -92,8 +92,8 @@ func (f *FIFOTipGenerator) validation() {
 	}
 }
 
-func (f *FIFOTipGenerator)GetByNonce(addr common.Address, nonce uint64) types.Txi {
-	return f.upstream.GetByNonce(addr,nonce)
+func (f *FIFOTipGenerator) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return f.upstream.GetByNonce(addr, nonce)
 }
 
 func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
@@ -160,7 +160,7 @@ type TxCreator struct {
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
 	GetStateRoot       GetStateRoot
-	TxFormatVerifier    TxFormatVerifier
+	TxFormatVerifier   TxFormatVerifier
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -334,7 +334,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		//todo why verify here duplicated verification
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.WithField("tx ",tx).Debug("NOT OK")
+			logrus.WithField("tx ", tx).Debug("NOT OK")
 			return txRet, ok
 		}
 		tx.SetVerified(types.VerifiedGraph)
@@ -395,21 +395,21 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				}
 				connectionTries++
 				var txs types.Txis
-				ancestor := m.TipGenerator.GetByNonce(tx.Sender(),tx.GetNonce()-1)
-				if ancestor!=nil && !ancestor.InValid(){
+				ancestor := m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
+				if ancestor != nil && !ancestor.InValid() {
 					txs = m.TipGenerator.GetRandomTips(2)
-					var include  bool
-					for _,tx:= range txs {
+					var include bool
+					for _, tx := range txs {
 						if tx.GetTxHash() == ancestor.GetTxHash() {
 							include = true
 							break
 						}
 					}
-					if !include &&len(txs) >0 {
+					if !include && len(txs) > 0 {
 						txs[0] = ancestor
 					}
 
-				}else {
+				} else {
 					txs = m.TipGenerator.GetRandomTips(2)
 				}
 
@@ -424,8 +424,8 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				if _, ok := m.tryConnect(tx, txs, priveKey); ok {
 					done = true
 					break
-				}else {
-					logrus.WithField("parents ",txs).WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
+				} else {
+					logrus.WithField("parents ", txs).WithField("connection tries ", connectionTries).WithField("tx ", tx).Debug("NOT OK")
 				}
 			}
 			if mineCount > 1 {

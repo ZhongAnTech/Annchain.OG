@@ -49,13 +49,13 @@ var (
 		Short: "token transfer",
 		Run:   tokenTransfer,
 	}
-	 tokenName =  "btc"
-	 tokenId = int32(0)
-	 enableSPO  bool
+	tokenName = "btc"
+	tokenId   = int32(0)
+	enableSPO bool
 )
 
 func tokenInit() {
-	tokenCmd.AddCommand(tokenIPOCmd, tokenSPOCmd,tokenDestroyCmd,tokenTransferCmd)
+	tokenCmd.AddCommand(tokenIPOCmd, tokenSPOCmd, tokenDestroyCmd, tokenTransferCmd)
 	tokenCmd.PersistentFlags().StringVarP(&priv_key, "priv_key", "k", "", "priv_key ***")
 	tokenIPOCmd.PersistentFlags().Int64VarP(&value, "value", "v", 0, "value 1")
 
@@ -67,13 +67,13 @@ func tokenInit() {
 	tokenCmd.PersistentFlags().Uint64VarP(&nonce, "nonce", "n", 0, "nonce 1")
 	tokenTransferCmd.PersistentFlags().StringVarP(&to, "to", "t", "", "to 0x***")
 	tokenIPOCmd.PersistentFlags().StringVarP(&tokenName, "toke_name", "t", "test_token", "toke_name btc")
-	tokenIPOCmd.PersistentFlags().BoolVarP(&enableSPO, "enable_spo", "e", false , "enable_spo true")
+	tokenIPOCmd.PersistentFlags().BoolVarP(&enableSPO, "enable_spo", "e", false, "enable_spo true")
 
 }
 
 func tokenIPO(cmd *cobra.Command, args []string) {
 
-	if  priv_key == "" || value < 1 || tokenName =="" {
+	if priv_key == "" || value < 1 || tokenName == "" {
 		cmd.HelpFunc()
 	}
 	privKey, err := crypto.PrivateKeyFromString(priv_key)
@@ -81,19 +81,19 @@ func tokenIPO(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	txClient:= tx_client.NewTxClient(Host,true)
-	requester :=tx_client.NewRequestGenerator(privKey)
+	txClient := tx_client.NewTxClient(Host, true)
+	requester := tx_client.NewRequestGenerator(privKey)
 
 	if nonce <= 0 {
-		nonce ,err  = txClient.GetNonce(requester.Address())
-		if err!=nil {
+		nonce, err = txClient.GetNonce(requester.Address())
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}
-	data :=  requester.TokenPublishing(nonce+1,enableSPO, tokenName, math.NewBigInt(value))
-	resp,err := txClient.SendTokenIPO(&data)
-	if err!=nil {
+	data := requester.TokenPublishing(nonce+1, enableSPO, tokenName, math.NewBigInt(value))
+	resp, err := txClient.SendTokenIPO(&data)
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -101,7 +101,7 @@ func tokenIPO(cmd *cobra.Command, args []string) {
 }
 
 func tokenSPO(cmd *cobra.Command, args []string) {
-	if  priv_key == "" || value < 1 {
+	if priv_key == "" || value < 1 {
 		cmd.HelpFunc()
 	}
 	privKey, err := crypto.PrivateKeyFromString(priv_key)
@@ -109,19 +109,19 @@ func tokenSPO(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	txClient:= tx_client.NewTxClient(Host,true)
-	requester :=tx_client.NewRequestGenerator(privKey)
+	txClient := tx_client.NewTxClient(Host, true)
+	requester := tx_client.NewRequestGenerator(privKey)
 
 	if nonce <= 0 {
-		nonce ,err = txClient.GetNonce(requester.Address())
-		if err!=nil {
+		nonce, err = txClient.GetNonce(requester.Address())
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}
-	data :=  requester.SecondPublicOffering(tokenId,nonce+1,math.NewBigInt(value))
-	resp,err := txClient.SendTokenSPO(&data)
-	if err!=nil {
+	data := requester.SecondPublicOffering(tokenId, nonce+1, math.NewBigInt(value))
+	resp, err := txClient.SendTokenSPO(&data)
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -129,7 +129,7 @@ func tokenSPO(cmd *cobra.Command, args []string) {
 }
 
 func tokenDestroy(cmd *cobra.Command, args []string) {
-	if  priv_key == "" {
+	if priv_key == "" {
 		cmd.HelpFunc()
 	}
 	privKey, err := crypto.PrivateKeyFromString(priv_key)
@@ -137,19 +137,19 @@ func tokenDestroy(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	txClient:= tx_client.NewTxClient(Host,true)
-	requester :=tx_client.NewRequestGenerator(privKey)
+	txClient := tx_client.NewTxClient(Host, true)
+	requester := tx_client.NewRequestGenerator(privKey)
 
 	if nonce <= 0 {
-		nonce,err  = txClient.GetNonce(requester.Address())
-		if err!=nil {
+		nonce, err = txClient.GetNonce(requester.Address())
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}
-	data :=  requester.TokenDestroy(tokenId,nonce+1)
-	resp,err := txClient.SendTokenDestroy(&data)
-	if err!=nil {
+	data := requester.TokenDestroy(tokenId, nonce+1)
+	resp, err := txClient.SendTokenDestroy(&data)
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -166,33 +166,31 @@ func tokenTransfer(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	txClient:= tx_client.NewTxClient(Host,true)
-	requester :=tx_client.NewRequestGenerator(privKey)
+	txClient := tx_client.NewTxClient(Host, true)
+	requester := tx_client.NewRequestGenerator(privKey)
 
 	if nonce <= 0 {
-		nonce ,err = txClient.GetNonce(requester.Address())
-		if err!=nil {
+		nonce, err = txClient.GetNonce(requester.Address())
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}
-	data :=  requester.NormalTx(tokenId,nonce+1,toAddr,math.NewBigInt(value))
-	resp,err := txClient.SendNormalTx(&data)
-	if err!=nil {
+	data := requester.NormalTx(tokenId, nonce+1, toAddr, math.NewBigInt(value))
+	resp, err := txClient.SendNormalTx(&data)
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(resp)
 }
 
-
 func tokenList(cmd *cobra.Command, args []string) {
-	txClient:= tx_client.NewTxClient(Host,true)
-	list,err:=  txClient.GetTokenList()
-	if err!=nil {
+	txClient := tx_client.NewTxClient(Host, true)
+	list, err := txClient.GetTokenList()
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(list)
 }
-

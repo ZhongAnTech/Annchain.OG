@@ -68,7 +68,7 @@ func newTestUnsealTx(nonce uint64) *tx_types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk,0)
+	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)

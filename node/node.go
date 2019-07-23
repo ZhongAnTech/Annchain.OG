@@ -187,11 +187,11 @@ func NewNode() *Node {
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
 		TxPool:                           org.TxPool,
-		DependencyCacheExpirationSeconds: 1 * 60*60,
+		DependencyCacheExpirationSeconds: 1 * 60 * 60,
 		DependencyCacheMaxSize:           100000,
 		NewTxQueueSize:                   viper.GetInt("tx_buffer.new_tx_queue_size"),
 		KnownCacheMaxSize:                100000,
-		KnownCacheExpirationSeconds:      1 * 60*60,
+		KnownCacheExpirationSeconds:      1 * 60 * 60,
 		AddedToPoolQueueSize:             10000,
 		TestNoVerify:                     viper.GetBool("tx_buffer.test_no_verify"),
 	})

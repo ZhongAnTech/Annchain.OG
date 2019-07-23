@@ -123,10 +123,10 @@ func (m *MessageNewTx) GetHash() *common.Hash {
 
 //msgp:tuple BloomFilter
 type BloomFilter struct {
-	Data   []byte
-	Count  uint32
-	Capacity  uint32
-	filter *bloom.BloomFilter
+	Data     []byte
+	Count    uint32
+	Capacity uint32
+	filter   *bloom.BloomFilter
 }
 
 func (m *MessageNewTx) String() string {
@@ -170,10 +170,10 @@ func (c *BloomFilter) Encode() error {
 }
 
 func (c *BloomFilter) Decode() error {
-	if c.Capacity ==0 {
+	if c.Capacity == 0 {
 		c.filter = bloom.New(BloomItemNumber, HashFuncNum)
-	}else {
-		c.filter = bloom.New(uint(c.Capacity),HashFuncNum)
+	} else {
+		c.filter = bloom.New(uint(c.Capacity), HashFuncNum)
 	}
 	return c.filter.Decode(c.Data)
 }
@@ -187,7 +187,7 @@ func NewDefaultBloomFilter() *BloomFilter {
 }
 
 func NewBloomFilter(m uint32) *BloomFilter {
-	if m< BloomItemNumber {
+	if m < BloomItemNumber {
 		return NewDefaultBloomFilter()
 	}
 	c := &BloomFilter{}

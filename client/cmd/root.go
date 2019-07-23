@@ -60,4 +60,3 @@ func panicIfError(err error, message string) {
 		panic(err)
 	}
 }
-

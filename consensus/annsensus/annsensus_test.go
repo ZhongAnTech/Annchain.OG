@@ -18,8 +18,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/sirupsen/logrus"
 	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/sirupsen/logrus"
 	"testing"
 )
 

@@ -49,13 +49,13 @@ func txInit() {
 
 //NewTxrequest for RPC request
 type NewTxRequest struct {
-	Nonce      string `json:"nonce"`
-	From       string `json:"from"`
-	To         string `json:"to"`
-	Data       string `json:"data"`
-	Value      string `json:"value"`
-	Signature  string `json:"signature"`
-	Pubkey     string `json:"pubkey"`
+	Nonce     string `json:"nonce"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Data      string `json:"data"`
+	Value     string `json:"value"`
+	Signature string `json:"signature"`
+	Pubkey    string `json:"pubkey"`
 	//CryptoType string `json:"crypto_type"`
 }
 

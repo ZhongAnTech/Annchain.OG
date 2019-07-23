@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/p2p/dns"
 	"net"
 	"net/url"
 	"regexp"
@@ -127,7 +128,11 @@ func parseComplete(rawurl string) (*Node, error) {
 		return nil, fmt.Errorf("invalid host: %v", err)
 	}
 	if ip = net.ParseIP(host); ip == nil {
-		return nil, errors.New("invalid IP address")
+		// try resove IP
+		if ip, err = dns.Lookup(host); err != nil {
+			return nil, errors.New("invalid IP address")
+		}
+
 	}
 	// Ensure the IP is 4 bytes long for IPv4 addresses.
 	if ipv4 := ip.To4(); ipv4 != nil {

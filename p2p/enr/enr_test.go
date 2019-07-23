@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"math/rand"
 	"testing"
 	"time"

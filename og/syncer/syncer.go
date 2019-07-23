@@ -23,7 +23,7 @@ import (
 	"github.com/annchain/OG/og/txcache"
 
 	"github.com/annchain/OG/types"
-	"github.com/bluele/gcache"
+	"github.com/annchain/gcache"
 )
 
 const BloomFilterRate = 4 //sending 4 req

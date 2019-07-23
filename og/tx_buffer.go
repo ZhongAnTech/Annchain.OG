@@ -24,7 +24,7 @@ import (
 	"github.com/annchain/OG/common/math"
 
 	"github.com/annchain/OG/types"
-	"github.com/bluele/gcache"
+	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 )
 

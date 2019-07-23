@@ -37,7 +37,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"sort"
 )
 

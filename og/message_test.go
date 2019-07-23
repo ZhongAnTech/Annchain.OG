@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
-	"github.com/bluele/gcache"
+	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/common/msg"
+	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/p2p/enr"
 	"golang.org/x/crypto/sha3"
 )

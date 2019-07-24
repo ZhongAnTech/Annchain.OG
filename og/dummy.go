@@ -31,6 +31,10 @@ func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
 	return
 }
 
+func (P*dummyTxPoolRandomTx)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return nil
+}
+
 type DummyTxPoolMiniTx struct {
 	poolMap map[common.Hash]types.Txi
 	tipsMap map[common.Hash]types.Txi
@@ -39,6 +43,10 @@ type DummyTxPoolMiniTx struct {
 func (d *DummyTxPoolMiniTx) Init() {
 	d.poolMap = make(map[common.Hash]types.Txi)
 	d.tipsMap = make(map[common.Hash]types.Txi)
+}
+
+func (P*DummyTxPoolMiniTx)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return nil
 }
 
 func (p *DummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
@@ -73,6 +81,10 @@ type dummyTxPoolParents struct {
 
 func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
 	return false
+}
+
+func (P*dummyTxPoolParents)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return nil
 }
 
 func (p *dummyTxPoolParents) GetLatestNonce(addr common.Address) (uint64, error) {

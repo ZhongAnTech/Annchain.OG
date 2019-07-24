@@ -57,7 +57,7 @@ func TestSh256(t *testing.T) {
 	var msg []p2PMessage
 	for i := 0; i < 10000; i++ {
 		var m p2PMessage
-		m.messageType = MessageTypeBodiesResponse
+		m.messageType = p2p_message.MessageTypeBodiesResponse
 		h := common.RandomHash()
 		m.data = append(m.data, h.Bytes[:]...)
 		msg = append(msg, m)
@@ -76,7 +76,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			Data: []byte("this is a test of og message"),
 			Id:   12,
 		}
-		m := p2PMessage{message: &msg, messageType: MessageTypeConsensusDkgDeal}
+		m := p2PMessage{message: &msg, messageType: p2p_message.MessageTypeConsensusDkgDeal}
 		s := crypto.NewSigner(crypto.CryptoType(i))
 		fmt.Println(s.GetCryptoType())
 		pk, sk := s.RandomKeyPair()
@@ -87,7 +87,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(m.data))
-		mm := p2PMessage{data: m.data, messageType: MessageTypeSecret}
+		mm := p2PMessage{data: m.data, messageType: p2p_message.MessageTypeSecret}
 		ok := mm.checkRequiredSize()
 		logrus.Debug(ok)
 		ok = mm.maybeIsforMe(&pk)

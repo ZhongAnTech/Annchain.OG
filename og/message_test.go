@@ -15,6 +15,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/gcache"
@@ -37,12 +38,47 @@ func TestCache(t *testing.T) {
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)
-	p2pM := &p2PMessage{messageType: MessageTypeNewTx, data: data, sourceID: "123", message: msg}
+	p2pM := &p2PMessage{messageType: p2p_message.MessageTypeNewTx, data: data, sourceID: "123", message: msg}
 	p2pM.calculateHash()
 	hub.cacheMessage(p2pM)
-	ids := hub.getMsgFromCache(MessageTypeNewTx, *p2pM.hash)
+	ids := hub.getMsgFromCache(p2p_message.MessageTypeNewTx, *p2pM.hash)
 	fmt.Println(ids)
 	p2pM = nil
-	ids = hub.getMsgFromCache(MessageTypeNewTx, tx.GetTxHash())
+	ids = hub.getMsgFromCache(p2p_message.MessageTypeNewTx, tx.GetTxHash())
 	fmt.Println(ids)
+}
+
+
+func TestP2PMessage_Unmarshal(t *testing.T) {
+	var p2pMsg p2PMessage
+	hash :=common.RandomHash()
+	p2pMsg.messageType = p2p_message.MessageTypePreVote
+	p2pMsg.message = &p2p_message.MessagePreVote{
+		BasicMessage:p2p_message.BasicMessage{
+			SourceId:10,
+			HeightRound:p2p_message.HeightRound{
+				Height:12,
+				Round:15,
+			},
+		},
+		Signature: common.RandomAddress().ToBytes(),
+		PublicKey: common.RandomHash().ToBytes(),
+		Idv: &hash,
+	}
+	err := p2pMsg.Marshal()
+	if err!=nil {
+		t.Fatal(err)
+	}
+	//fmt.Println(p2pMsg)
+	fmt.Println(p2pMsg.message)
+    p2pMsg.message = nil
+    p2pMsg.marshalState = false
+	//fmt.Println(p2pMsg)
+	fmt.Println(p2pMsg.message)
+    err = p2pMsg.Unmarshal()
+	if err!=nil {
+		t.Fatal(err)
+	}
+	//fmt.Println(p2pMsg)
+	fmt.Println(p2pMsg.message)
 }

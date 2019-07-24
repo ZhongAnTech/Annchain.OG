@@ -317,7 +317,7 @@ func (h *Hub) handleMsg(p *peer) error {
 					err = m.Unmarshal()
 					if err != nil {
 						// TODO delete
-						log.Errorf("MessageTypeConsensusDkgDeal error msg: %x", m.data)
+						log.Errorf("unmarshal  error msg: %x", m.data)
 						log.WithField("type ", m.messageType).WithError(err).Warn("handle msg error")
 						return err
 					}

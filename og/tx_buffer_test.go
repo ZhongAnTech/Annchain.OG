@@ -37,6 +37,10 @@ func (d *dummyDag) GetHeight() uint64 {
 	return 0
 }
 
+func (d *dummyDag) GetLatestNonce (addr common.Address) ( uint64, error) {
+	return 0,nil
+}
+
 func (d *dummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
 	return nil
 }
@@ -100,6 +104,10 @@ func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool
 
 func (d *dummyTxPool) GetMaxWeight() uint64 {
 	return 0
+}
+
+func (d *dummyTxPool)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+	return nil
 }
 
 func (d *dummyTxPool) init() {

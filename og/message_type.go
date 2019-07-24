@@ -365,9 +365,7 @@ func (p *p2PMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
-
 	default:
-		return fmt.Errorf("unkown mssage type %v ", p.messageType)
 	}
 	_, err := p.message.UnmarshalMsg(p.data)
 	p.marshalState = true

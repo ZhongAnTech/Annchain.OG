@@ -61,7 +61,7 @@ func TestPeer_MarkMessage(t *testing.T) {
 	}
 	var msgs []p2PMessage
 	for i := 0; i < 100; i++ {
-		msg := p2PMessage{message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, messageType: MessageTypeNewTx}
+		msg := p2PMessage{message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, messageType: p2p_message.MessageTypeNewTx}
 		msg.Marshal()
 		msg.calculateHash()
 		msgs = append(msgs, msg)

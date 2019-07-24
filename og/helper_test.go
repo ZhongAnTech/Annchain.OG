@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/onode"
+	"github.com/annchain/OG/types/p2p_message"
 	"testing"
 )
 
@@ -128,18 +129,18 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
 func (p *testPeer) handshake(t *testing.T, seqId uint64, head common.Hash, genesis common.Hash) {
-	msg := &StatusData{
+	msg := &p2p_message.StatusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkId:       testNetworkId,
 		CurrentId:       seqId,
 		CurrentBlock:    head,
 		GenesisBlock:    genesis,
 	}
-	if err := p2p.ExpectMsg(p.app, StatusMsg.Code(), msg); err != nil {
+	if err := p2p.ExpectMsg(p.app, p2p_message.StatusMsg.Code(), msg); err != nil {
 		t.Fatalf("status recv: %v", err)
 	}
 	data, _ := msg.MarshalMsg(nil)
-	if err := p2p.Send(p.app, StatusMsg.Code(), data); err != nil {
+	if err := p2p.Send(p.app, p2p_message.StatusMsg.Code(), data); err != nil {
 		t.Fatalf("status send: %v", err)
 	}
 }

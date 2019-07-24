@@ -153,15 +153,17 @@ func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Has
 	if ok {
 		return value
 	}
+
 	// load state from trie db.
 	b, err := s.openTrie(db).TryGet(key.ToBytes())
 	if err != nil {
 		log.Errorf("get from trie db error: %v, key: %x", err, key.ToBytes())
 		s.setError(err)
-	} else {
-		s.committedStorage[key] = value
 	}
+
 	value = common.BytesToHash(b)
+	s.committedStorage[key] = value
+
 	return value
 }
 
@@ -236,7 +238,6 @@ func (s *StateObject) updateTrie(db Database) {
 			delete(s.committedStorage, key)
 			continue
 		}
-		//log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
 		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
 		if err != nil {
 			s.setError(err)
@@ -301,9 +302,11 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	s.data = a
 	s.address = a.Address
 	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
+
 	s.committedStorage = make(map[common.Hash]common.Hash)
 	s.dirtyStorage = make(map[common.Hash]common.Hash)
 	s.db = db
+
 	return err
 }
 

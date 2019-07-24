@@ -45,7 +45,7 @@ title = "TOML Example"
   path = "rw/datadir_1"
 
 [log]
-  level = "info"
+  level = "trace"
   log_dir = "log/"
 
 [p2p]

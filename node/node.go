@@ -302,8 +302,9 @@ func NewNode() *Node {
 
 	miner := &miner2.PoWMiner{}
 	txCreator := &og.TxCreator{
-		Miner:              miner,
-		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		Miner: miner,
+		//TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		TipGenerator:       org.TxPool,
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
@@ -415,7 +416,7 @@ func NewNode() *Node {
 		pm.Register(annSensus)
 	}
 
-	accountIds := StringArrayToIntArray([]string{"0", "1"})
+	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	//coinBaseId := accountIds[0] + 100
 
 	autoClientManager.Init(

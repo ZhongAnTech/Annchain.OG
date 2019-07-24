@@ -26,6 +26,7 @@ import (
 	"github.com/annchain/OG/vm/eth/params"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"golang.org/x/crypto/sha3"
+	//log "github.com/sirupsen/logrus"
 )
 
 var (

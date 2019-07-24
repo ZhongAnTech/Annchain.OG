@@ -155,7 +155,7 @@ type TxCreator struct {
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
 	GetStateRoot       GetStateRoot
-	TxFormatVerifier    TxFormatVerifier
+	TxFormatVerifier   TxFormatVerifier
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -328,7 +328,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 		//todo why verify here duplicated verification
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
-			logrus.WithField("tx ",tx).Debug("NOT OK")
+			logrus.WithField("tx ", tx).Debug("NOT OK")
 			return txRet, ok
 		}
 		tx.SetVerified(types.VerifiedGraph)
@@ -401,8 +401,8 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				if _, ok := m.tryConnect(tx, txs, priveKey); ok {
 					done = true
 					break
-				}else {
-					logrus.WithField("parents ",txs).WithField("connection tries ", connectionTries).WithField("tx ",tx).Debug("NOT OK")
+				} else {
+					logrus.WithField("parents ", txs).WithField("connection tries ", connectionTries).WithField("tx ", tx).Debug("NOT OK")
 				}
 			}
 			if mineCount > 1 {
@@ -456,6 +456,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 		}
 		parentHashes := make(common.Hashes, len(parents))
 		for i, parent := range parents {
+			logrus.Tracef("parent hash: %s", parent.GetTxHash().Hex())
 			parentHashes[i] = parent.GetTxHash()
 		}
 

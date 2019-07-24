@@ -144,7 +144,7 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 
 	if !crypto.Signer.CanRecoverPubFromSig() {
 		if t.GetSender() == nil {
-			logrus.Debug("verify sig failed, from is nil")
+			logrus.Warn("verify sig failed, from is nil")
 			return false
 		}
 		ok := crypto.Signer.Verify(

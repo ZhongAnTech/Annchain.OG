@@ -1049,19 +1049,28 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	if tx.GetType() == types.TxBaseTypeSequencer {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSeqSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseTypeCampaign {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusCampaignSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseTypeTermChange {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTermChangeSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseAction {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusActionTxSuccess, "", emptyAddress)
+		txAction := tx.(*tx_types.ActionTx)
+		var pResult interface{}
+		if txAction.Action == tx_types.ActionTxActionIPO {
+			if actionData, ok := txAction.ActionData.(*tx_types.PublicOffering); ok {
+				pResult = actionData.TokenId
+			} else {
+				pResult = ""
+			}
+		}
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, pResult, emptyAddress)
 		return nil, receipt, nil
 	}
 	if tx.GetType() != types.TxBaseTypeNormal {
@@ -1077,7 +1086,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTxSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
@@ -1124,7 +1133,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusTxSuccess, "", contractAddress)
+	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", contractAddress)
 
 	// TODO
 	// not finished yet
@@ -1166,32 +1175,32 @@ func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 }
 
 // Finalize
-func (dag *Dag) Finalize() error {
-	// consensus
-	// TODO
-
-	// state
-
-	// TODO
-	// get new trie root after commit, then compare new root
-	// to the root in seq. If not equal then return error.
-
-	// commit statedb's changes to trie and triedb
-	root, errdb := dag.statedb.Commit()
-	if errdb != nil {
-		log.Errorf("can't Commit statedb, err:  %v", errdb)
-		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
-	}
-	// flush triedb into diskdb.
-	triedb := dag.statedb.Database().TrieDB()
-	err := triedb.Commit(root, false)
-	if err != nil {
-		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-	}
-
-	return nil
-}
+//func (dag *Dag) Finalize() error {
+//	// consensus
+//	// TODO
+//
+//	// state
+//
+//	// TODO
+//	// get new trie root after commit, then compare new root
+//	// to the root in seq. If not equal then return error.
+//
+//	// commit statedb's changes to trie and triedb
+//	root, errdb := dag.statedb.Commit()
+//	if errdb != nil {
+//		log.Errorf("can't Commit statedb, err:  %v", errdb)
+//		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
+//	}
+//	// flush triedb into diskdb.
+//	triedb := dag.statedb.Database().TrieDB()
+//	err := triedb.Commit(root, false)
+//	if err != nil {
+//		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+//		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+//	}
+//
+//	return nil
+//}
 
 type txcached struct {
 	maxsize int

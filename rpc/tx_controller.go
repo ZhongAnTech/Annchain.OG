@@ -16,6 +16,10 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -23,9 +27,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 func (r *RpcController) NewTransaction(c *gin.Context) {
@@ -85,18 +86,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	if txReq.CryptoType == "" {
-		pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
-	} else {
-
-		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
+		txReq.CryptoType = "secp256k1"
+	}
+	pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+		return
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
@@ -214,18 +209,12 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 
 		if txReq.CryptoType == "" {
-			pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
-		} else {
-
-			pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
+			txReq.CryptoType = "secp256k1"
+		}
+		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
+		if err != nil {
+			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+			return
 		}
 
 		sig = crypto.SignatureFromBytes(pub.Type, signature)

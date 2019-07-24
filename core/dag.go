@@ -858,6 +858,8 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		log.Errorf("can't Commit statedb, err: %v", errdb)
 		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
 	}
+	dag.statedb.ClearJournalAndRefund()
+
 	// TODO
 	// compare the state root between seq.StateRoot and root after committing statedb.
 	//if root.Cmp(batch.Seq.StateRoot) != 0 {

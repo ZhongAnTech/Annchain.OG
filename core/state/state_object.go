@@ -158,10 +158,11 @@ func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Has
 	if err != nil {
 		log.Errorf("get from trie db error: %v, key: %x", err, key.ToBytes())
 		s.setError(err)
-	} else {
-		s.committedStorage[key] = value
 	}
+
 	value = common.BytesToHash(b)
+	s.committedStorage[key] = value
+
 	return value
 }
 

@@ -490,7 +490,7 @@ func (sd *StateDB) ForEachStorage(addr common.Address, f func(key, value common.
 	}
 }
 
-// laodState loads a state from current trie.
+// loadState loads a state from current trie.
 func (sd *StateDB) loadStateObject(addr common.Address) (*StateObject, error) {
 	data, err := sd.trie.TryGet(addr.ToBytes())
 	if err != nil {
@@ -615,7 +615,7 @@ func (sd *StateDB) RevertToSnapshot(snapshotid int) {
 	sd.snapshotSet = sd.snapshotSet[:index]
 }
 
-func (sd *StateDB) clearJournalAndRefund() {
+func (sd *StateDB) ClearJournalAndRefund() {
 	sd.journal = newJournal()
 	sd.snapshotID = 0
 	sd.snapshotSet = sd.snapshotSet[:0]

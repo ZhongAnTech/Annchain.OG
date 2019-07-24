@@ -235,7 +235,7 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 			state.dirtycode = false
 		}
 		// commit state's storage
-		if err := state.CommitStorage(pd.db); err != nil {
+		if err := state.CommitStorage(pd.db, true); err != nil {
 			log.Errorf("commit state's storage error: %v", err)
 		}
 		// update state data in current trie.
@@ -253,14 +253,15 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 		}
 		// log.Tracef("onleaf called with address: %s, root: %v, codehash: %v", account.Address.Hex(), account.Root.ToBytes(), account.CodeHash)
 		if account.Root != emptyStateRoot {
-			pd.db.TrieDB().Reference(account.Root, parent)
+			//
+			//pd.db.TrieDB().Reference(account.Root, parent)
 		}
 		codehash := common.BytesToHash(account.CodeHash)
 		if codehash != emptyCodeHash {
-			pd.db.TrieDB().Reference(codehash, parent)
+			//pd.db.TrieDB().Reference(codehash, parent)
 		}
 		return nil
-	})
+	}, true)
 
 	//if trie commit fail ,nil root will write to db
 	if err != nil {

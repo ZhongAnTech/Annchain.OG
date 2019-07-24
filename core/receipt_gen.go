@@ -11,6 +11,7 @@ func (z *Receipt) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 4 {
@@ -19,22 +20,26 @@ func (z *Receipt) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	err = z.TxHash.DecodeMsg(dc)
 	if err != nil {
+		err = msgp.WrapError(err, "TxHash")
 		return
 	}
 	{
 		var zb0002 uint8
 		zb0002, err = dc.ReadUint8()
 		if err != nil {
+			err = msgp.WrapError(err, "Status")
 			return
 		}
 		z.Status = ReceiptStatus(zb0002)
 	}
-	z.ProcessResult, err = dc.ReadString()
+	z.ProcessResult, err = dc.ReadIntf()
 	if err != nil {
+		err = msgp.WrapError(err, "ProcessResult")
 		return
 	}
 	err = z.ContractAddress.DecodeMsg(dc)
 	if err != nil {
+		err = msgp.WrapError(err, "ContractAddress")
 		return
 	}
 	return
@@ -49,18 +54,22 @@ func (z *Receipt) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = z.TxHash.EncodeMsg(en)
 	if err != nil {
+		err = msgp.WrapError(err, "TxHash")
 		return
 	}
 	err = en.WriteUint8(uint8(z.Status))
 	if err != nil {
+		err = msgp.WrapError(err, "Status")
 		return
 	}
-	err = en.WriteString(z.ProcessResult)
+	err = en.WriteIntf(z.ProcessResult)
 	if err != nil {
+		err = msgp.WrapError(err, "ProcessResult")
 		return
 	}
 	err = z.ContractAddress.EncodeMsg(en)
 	if err != nil {
+		err = msgp.WrapError(err, "ContractAddress")
 		return
 	}
 	return
@@ -73,12 +82,18 @@ func (z *Receipt) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x94)
 	o, err = z.TxHash.MarshalMsg(o)
 	if err != nil {
+		err = msgp.WrapError(err, "TxHash")
 		return
 	}
 	o = msgp.AppendUint8(o, uint8(z.Status))
-	o = msgp.AppendString(o, z.ProcessResult)
+	o, err = msgp.AppendIntf(o, z.ProcessResult)
+	if err != nil {
+		err = msgp.WrapError(err, "ProcessResult")
+		return
+	}
 	o, err = z.ContractAddress.MarshalMsg(o)
 	if err != nil {
+		err = msgp.WrapError(err, "ContractAddress")
 		return
 	}
 	return
@@ -89,6 +104,7 @@ func (z *Receipt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 4 {
@@ -97,22 +113,26 @@ func (z *Receipt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	bts, err = z.TxHash.UnmarshalMsg(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "TxHash")
 		return
 	}
 	{
 		var zb0002 uint8
 		zb0002, bts, err = msgp.ReadUint8Bytes(bts)
 		if err != nil {
+			err = msgp.WrapError(err, "Status")
 			return
 		}
 		z.Status = ReceiptStatus(zb0002)
 	}
-	z.ProcessResult, bts, err = msgp.ReadStringBytes(bts)
+	z.ProcessResult, bts, err = msgp.ReadIntfBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "ProcessResult")
 		return
 	}
 	bts, err = z.ContractAddress.UnmarshalMsg(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "ContractAddress")
 		return
 	}
 	o = bts
@@ -121,7 +141,7 @@ func (z *Receipt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Receipt) Msgsize() (s int) {
-	s = 1 + z.TxHash.Msgsize() + msgp.Uint8Size + msgp.StringPrefixSize + len(z.ProcessResult) + z.ContractAddress.Msgsize()
+	s = 1 + z.TxHash.Msgsize() + msgp.Uint8Size + msgp.GuessSize(z.ProcessResult) + z.ContractAddress.Msgsize()
 	return
 }
 
@@ -130,6 +150,7 @@ func (z *ReceiptSet) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0003 uint32
 	zb0003, err = dc.ReadMapHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if (*z) == nil {
@@ -145,11 +166,13 @@ func (z *ReceiptSet) DecodeMsg(dc *msgp.Reader) (err error) {
 		var zb0002 *Receipt
 		zb0001, err = dc.ReadString()
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 			zb0002 = nil
@@ -159,6 +182,7 @@ func (z *ReceiptSet) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 			err = zb0002.DecodeMsg(dc)
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}
@@ -171,11 +195,13 @@ func (z *ReceiptSet) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z ReceiptSet) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteMapHeader(uint32(len(z)))
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0004, zb0005 := range z {
 		err = en.WriteString(zb0004)
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		if zb0005 == nil {
@@ -186,6 +212,7 @@ func (z ReceiptSet) EncodeMsg(en *msgp.Writer) (err error) {
 		} else {
 			err = zb0005.EncodeMsg(en)
 			if err != nil {
+				err = msgp.WrapError(err, zb0004)
 				return
 			}
 		}
@@ -204,6 +231,7 @@ func (z ReceiptSet) MarshalMsg(b []byte) (o []byte, err error) {
 		} else {
 			o, err = zb0005.MarshalMsg(o)
 			if err != nil {
+				err = msgp.WrapError(err, zb0004)
 				return
 			}
 		}
@@ -216,6 +244,7 @@ func (z *ReceiptSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0003 uint32
 	zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if (*z) == nil {
@@ -231,6 +260,7 @@ func (z *ReceiptSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		zb0003--
 		zb0001, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		if msgp.IsNil(bts) {
@@ -245,6 +275,7 @@ func (z *ReceiptSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 			bts, err = zb0002.UnmarshalMsg(bts)
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}
@@ -277,6 +308,7 @@ func (z *ReceiptStatus) DecodeMsg(dc *msgp.Reader) (err error) {
 		var zb0001 uint8
 		zb0001, err = dc.ReadUint8()
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		(*z) = ReceiptStatus(zb0001)
@@ -288,6 +320,7 @@ func (z *ReceiptStatus) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z ReceiptStatus) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteUint8(uint8(z))
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	return
@@ -306,6 +339,7 @@ func (z *ReceiptStatus) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		var zb0001 uint8
 		zb0001, bts, err = msgp.ReadUint8Bytes(bts)
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		(*z) = ReceiptStatus(zb0001)

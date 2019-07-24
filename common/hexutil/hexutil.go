@@ -56,15 +56,15 @@ type decError struct{ msg string }
 
 func (err decError) Error() string { return err.msg }
 
-// Decode decodes a hex string with 0x prefix.
+// Decode decodes a hex string .
 func Decode(input string) ([]byte, error) {
 	if len(input) == 0 {
 		return nil, ErrEmptyString
 	}
-	if !has0xPrefix(input) {
-		return nil, ErrMissingPrefix
+	if has0xPrefix(input) {
+		input = input[2:]
 	}
-	b, err := hex.DecodeString(input[2:])
+	b, err := hex.DecodeString(input)
 	if err != nil {
 		err = mapError(err)
 	}

@@ -60,7 +60,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     nonce,
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
@@ -104,7 +104,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     nonce,
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
@@ -150,7 +150,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     nonce,
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),

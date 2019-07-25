@@ -97,7 +97,7 @@ func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
 		return
 	}
 	req := p2p_message.MessageSyncRequest{
-		Filter:    p2p_message.NewDefaultBloomFilter(),
+		Filter:    p2p_message.NewBloomFilter(15000),
 		RequestId: p2p_message.MsgCounter.Get(),
 	}
 	m.bloomFilterStatus.Set(req.RequestId)

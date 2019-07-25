@@ -872,7 +872,7 @@ func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 	if seqindag != nil {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
-	if pool.dag.latestSequencer.Height != seq.Height+1 {
+	if pool.dag.LatestSequencer().Height+1 != seq.Height {
 		return  fmt.Errorf("bad seq hieght mismatch  height %d old_height %d",seq.Height,pool.dag.latestSequencer.Height  )
 	}
 	return nil

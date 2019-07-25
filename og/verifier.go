@@ -436,6 +436,14 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
+    if txi.GetType() == types.TxBaseTypeSequencer {
+    	seq := txi.(*tx_types.Sequencer)
+    	if err := v.TxPool.IsBadSeq(seq); err!=nil {
+    		logrus.WithField("seq ",seq).WithError(err).Warn("bad seq ")
+    		return false
+		}
+	}
+
 	txi.SetVerified(types.VerifiedGraph)
 	return true
 }

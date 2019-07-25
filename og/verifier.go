@@ -480,13 +480,13 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		}
 		goto Out
 	}
-	if nonce != txi.GetNonce()-1 {
-		logrus.WithField("current nonce ", txi.GetNonce()-1).WithField("pool nonce ", nonce).WithField("tx", txi).Debug("previous tx  not found for address")
+	if nonce <  txi.GetNonce()-1 {
+		logrus.WithField("current nonce ", txi.GetNonce()).WithField("pool nonce ", nonce).WithField("tx", txi).Debug("previous tx  not found for address")
 		// fail if not good
 		return false
 	}
 	// check txpool queue first
-	if dagNonce != nonce {
+	if dagNonce != nonce  {
 		_, ok = v.getMyPreviousTx(txi)
 		if !ok {
 			logrus.WithField("tx", txi).Debug("previous tx not found")

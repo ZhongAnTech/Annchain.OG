@@ -55,6 +55,7 @@ type ITxPool interface {
 	IsLocalHash(hash common.Hash) bool
 	GetMaxWeight() uint64
 	GetByNonce(addr common.Address, nonce uint64) types.Txi
+	IsBadSeq(seq *tx_types.Sequencer) error
 }
 
 type IDag interface {

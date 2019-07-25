@@ -872,9 +872,20 @@ func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 	if seqindag != nil {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
+	if pool.dag.latestSequencer.Height != seq.Height+1 {
+		return  fmt.Errorf("bad seq hieght mismatch  height %d old_height %d",seq.Height,pool.dag.latestSequencer.Height  )
+	}
 	return nil
 }
 
+
+func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
+	// check if the nonce is duplicate
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.isBadSeq(seq)
+}
 // seekElders finds all the unconfirmed elders of baseTx.
 func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, error) {
 	batch := make(map[common.Hash]types.Txi)

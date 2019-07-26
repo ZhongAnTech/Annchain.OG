@@ -110,6 +110,7 @@ func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
 	err := req.Filter.Encode()
 	if err != nil {
 		log.WithError(err).Warn("encode filter err")
+		return
 	}
 	log.WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
 		"req ", req.String()).WithField("filter length", len(req.Filter.Data)).Debug(

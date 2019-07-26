@@ -761,6 +761,10 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
 	//TODO , exists a panic bug in statedb commit , fix later
 	//and recover this later
+	err = pool.IsBadSeq(seq)
+	if err != nil {
+		return common.Hash{}, err
+	}
 	return common.Hash{}, nil
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -873,11 +877,10 @@ func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
 	if pool.dag.LatestSequencer().Height+1 != seq.Height {
-		return  fmt.Errorf("bad seq hieght mismatch  height %d old_height %d",seq.Height,pool.dag.latestSequencer.Height  )
+		return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.latestSequencer.Height)
 	}
 	return nil
 }
-
 
 func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 	// check if the nonce is duplicate
@@ -886,6 +889,7 @@ func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 
 	return pool.isBadSeq(seq)
 }
+
 // seekElders finds all the unconfirmed elders of baseTx.
 func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, error) {
 	batch := make(map[common.Hash]types.Txi)

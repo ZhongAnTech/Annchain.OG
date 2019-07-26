@@ -176,7 +176,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 		reqHashes = append(reqHashes, key)
 		//req.Hashes = append(req.Hashes, key)
 	}
-	if len([]common.Hash(reqHashes)) == 0 {
+	if len(reqHashes) == 0 {
 		return
 	}
 	req.Hashes = &reqHashes

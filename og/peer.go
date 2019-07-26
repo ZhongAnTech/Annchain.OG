@@ -194,8 +194,9 @@ func (p *peer) SendMessages(messages []*p2PMessage) error {
 		return nil
 	}
 	for _, msg := range messages {
-		key := msg.msgKey()
-		p.knownMsg.Add(key)
+		//duplicated
+		//key := msg.msgKey()
+		//p.knownMsg.Add(key)
 		msgType = msg.messageType
 		msgBytes = append(msgBytes, msg.data...)
 	}

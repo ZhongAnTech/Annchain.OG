@@ -388,7 +388,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.Messa
 			msgLog.Debug("Failed to deliver bodies", "err", err)
 		}
 	}
-	msgLog.Debug("handle p2p_message.MessageTypeBodiesResponse")
+	msgLog.Debug("handle MessageTypeBodiesResponse")
 	return
 }
 

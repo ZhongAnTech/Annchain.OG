@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
 
@@ -120,7 +121,11 @@ func (s *SyncBuffer) AddTxs(seq *tx_types.Sequencer, txs types.Txis) error {
 			log.WithError(err).Debug("add txs error")
 			return err
 		}
-		return s.Handle()
+		err = s.Handle()
+		if err!=nil {
+			logrus.WithError(err).WithField("txs ",txs).WithField("seq ",seq).Warn("handle tx error")
+		}
+		return err
 
 	} else {
 		err := fmt.Errorf("addtx busy")
@@ -169,7 +174,7 @@ func (s *SyncBuffer) Handle() error {
 	log.WithField("txs len", count).WithField("seq", s.Seq).Trace("handle txs start")
 	err := s.verifyElders(s.Seq)
 	if err != nil {
-		log.WithField("seq ", s.Seq).WithError(err).Warn("handle fail")
+		log.WithField("txlist ", s.TxsList).WithField("seq ", s.Seq).WithError(err).Warn("handle fail")
 		return err
 	}
 	log.WithField("len ", len(s.Verifiers)).Debug("len sync buffer verifier")

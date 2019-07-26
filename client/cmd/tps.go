@@ -161,7 +161,6 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 		}
 		_, err = reqs.UnmarshalMsg(data)
 		panicIfError(err, "unmarshal err")
-		fmt.Println("sending  data ", i, threadNum, len(reqs.Txs))
 		 j,i:= 0,0
 		for ;  j<len(reqs.Txs);  {
 			var newRequests rpc.NewTxsRequests
@@ -172,16 +171,18 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 				j =len(reqs.Txs)
 			}
 			newRequests.Txs = append(newRequests.Txs,reqs.Txs[i:j]...)
+			txLen := len(newRequests.Txs)
 			i=j
 			resp, err := txClient.SendNormalTxs(&newRequests)
+			fmt.Println("sending  data ", i, threadNum, txLen, j)
 			//panicIfError(err, resp)
 			if err != nil {
 				fmt.Println(err, resp)
 				return
 			}
 			if tpsPerThread > 0 {
-				txLen := len(newRequests.Txs)
-				if txLen < int(tpsPerThread/2) {
+
+				if txLen < int(tpsPerThread/2)-1 {
 					continue
 				}
 				duration := time.Now().Sub(start)

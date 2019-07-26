@@ -78,6 +78,7 @@ node_id = 1
 [hub]
 sync_cycle_ms = 10000
 disable_encrypt_gossip = false
+disable_feedback = true
 
 [crypto]
 # ed25519 or secp256k1

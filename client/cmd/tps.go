@@ -51,7 +51,7 @@ var (
 	times      uint16
 	accountNum uint16
 	ipports    string
-	tpsNum uint16
+	tpsNum     uint16
 )
 
 func tpsInit() {
@@ -132,12 +132,12 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	var wg = &sync.WaitGroup{}
 	hostNum := uint16(len(ipportList))
 	perHost := accountNum / hostNum
-	tpsPerThread := (tpsNum/hostNum)/perHost
+	tpsPerThread := (tpsNum / hostNum) / perHost
 	for i := uint16(0); i < hostNum; i++ {
 		for j := uint16(0); j < perHost; j++ {
 			wg.Add(1)
 			go func(k uint16, host string) {
-				tpsSendData(k, db, host,tpsPerThread)
+				tpsSendData(k, db, host, tpsPerThread)
 				wg.Done()
 			}(i*perHost+j, ipportList[i])
 		}
@@ -161,43 +161,40 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 		}
 		_, err = reqs.UnmarshalMsg(data)
 		panicIfError(err, "unmarshal err")
-		 j,i:= 0,0
-		for ;  j<len(reqs.Txs);  {
+		j, k := 0, 0
+		for j < len(reqs.Txs) {
 			var newRequests rpc.NewTxsRequests
 			if int(tpsPerThread/2) < len(reqs.Txs) {
-				j = i + int(tpsPerThread/2)
+				j = k + int(tpsPerThread/2)
 			}
-			if j>len(reqs.Txs) ||tpsPerThread <=0 {
-				j =len(reqs.Txs)
+			if j > len(reqs.Txs) || tpsPerThread <= 0 {
+				j = len(reqs.Txs)
 			}
-			newRequests.Txs = append(newRequests.Txs,reqs.Txs[i:j]...)
+			newRequests.Txs = append(newRequests.Txs, reqs.Txs[k:j]...)
 			txLen := len(newRequests.Txs)
-			i=j
+			k = j
 			resp, err := txClient.SendNormalTxs(&newRequests)
-			fmt.Println("sending  data ", i, threadNum, txLen, j)
+			fmt.Println("sending  data ", i, j, k, threadNum, txLen)
 			//panicIfError(err, resp)
 			if err != nil {
 				fmt.Println(err, resp)
 				return
 			}
 			if tpsPerThread > 0 {
-
 				if txLen < int(tpsPerThread/2)-1 {
 					continue
 				}
 				duration := time.Now().Sub(start)
-				shoudUseTime := time.Second/2
+				shoudUseTime := time.Second / 2
 				//shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
 				if duration < shoudUseTime {
-					fmt.Println("shoud sellep ", shoudUseTime-duration)
+					fmt.Println("shoud sellep ", i, j, k, shoudUseTime-duration)
 					time.Sleep(shoudUseTime - duration)
 				}
 			}
 		}
 	}
 }
-
-
 
 func generateDb() (ogdb.Database, error) {
 	path := io.FixPrefixPath(viper.GetString("./"), "test_tps_db")

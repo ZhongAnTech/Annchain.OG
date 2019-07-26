@@ -151,7 +151,6 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 	txClient := tx_client.NewTxClientWIthTimeOut(host, false, time.Second*120)
 	Max := 1000000
 	for i := 0; i < Max; i++ {
-		start := time.Now()
 		var reqs rpc.NewTxsRequests
 		key := makeKey(threadNum, uint16(i))
 		data, err := db.Get(key)
@@ -163,6 +162,7 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 		panicIfError(err, "unmarshal err")
 		j, k := 0, 0
 		for j < len(reqs.Txs) {
+			start := time.Now()
 			var newRequests rpc.NewTxsRequests
 			if int(tpsPerThread/2) < len(reqs.Txs) {
 				j = k + int(tpsPerThread/2)

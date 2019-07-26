@@ -162,23 +162,41 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 		_, err = reqs.UnmarshalMsg(data)
 		panicIfError(err, "unmarshal err")
 		fmt.Println("sending  data ", i, threadNum, len(reqs.Txs))
-		resp, err := txClient.SendNormalTxs(&reqs)
-		//panicIfError(err, resp)
-		if err != nil {
-			fmt.Println(err, resp)
-			return
-		}
-		if tpsPerThread >0 {
-			txLen := len(reqs.Txs)
-			duration := time.Now().Sub(start)
-			shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
-			if duration < shoudUseTime {
-                fmt.Println("shoud sellep ",shoudUseTime- duration )
-                time.Sleep(shoudUseTime-duration)
+		 j,i:= 0,0
+		for ;  j<len(reqs.Txs);  {
+			var newRequests rpc.NewTxsRequests
+			if int(tpsPerThread/2) < len(reqs.Txs) {
+				j = i + int(tpsPerThread/2)
+			}
+			if j>len(reqs.Txs) ||tpsPerThread <=0 {
+				j =len(reqs.Txs)
+			}
+			newRequests.Txs = append(newRequests.Txs,reqs.Txs[i:j]...)
+			i=j
+			resp, err := txClient.SendNormalTxs(&newRequests)
+			//panicIfError(err, resp)
+			if err != nil {
+				fmt.Println(err, resp)
+				return
+			}
+			if tpsPerThread > 0 {
+				txLen := len(newRequests.Txs)
+				if txLen < int(tpsPerThread/2) {
+					continue
+				}
+				duration := time.Now().Sub(start)
+				shoudUseTime := time.Second/2
+				//shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
+				if duration < shoudUseTime {
+					fmt.Println("shoud sellep ", shoudUseTime-duration)
+					time.Sleep(shoudUseTime - duration)
+				}
 			}
 		}
 	}
 }
+
+
 
 func generateDb() (ogdb.Database, error) {
 	path := io.FixPrefixPath(viper.GetString("./"), "test_tps_db")

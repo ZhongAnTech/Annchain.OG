@@ -51,6 +51,7 @@ var (
 	times      uint16
 	accountNum uint16
 	ipports    string
+	tpsNum uint16
 )
 
 func tpsInit() {
@@ -59,6 +60,7 @@ func tpsInit() {
 	tpsCmd.PersistentFlags().Uint16VarP(&accountNum, "accounts_num", "a", 4, "accounts_num 1000")
 	tpsCmd.PersistentFlags().StringVarP(&ipports, "ips", "i", "", "accounts_num 1000")
 	tpsGenCmd.PersistentFlags().Uint16VarP(&times, "times", "t", 1000, "times 1000")
+	tpsSendTxCmd.PersistentFlags().Uint16VarP(&tpsNum, "tps", "t", 1000, "tps 1000")
 }
 
 func tepsDataGen(threadNum uint16, db ogdb.Database, total uint16) {
@@ -130,11 +132,12 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	var wg = &sync.WaitGroup{}
 	hostNum := uint16(len(ipportList))
 	perHost := accountNum / hostNum
+	tpsPerThread := (tpsNum/hostNum)/perHost
 	for i := uint16(0); i < hostNum; i++ {
 		for j := uint16(0); j < perHost; j++ {
 			wg.Add(1)
 			go func(k uint16, host string) {
-				tpsSendData(k, db, host)
+				tpsSendData(k, db, host,tpsPerThread)
 				wg.Done()
 			}(i*perHost+j, ipportList[i])
 		}
@@ -144,10 +147,11 @@ func tpsSend(cmd *cobra.Command, args []string) {
 
 }
 
-func tpsSendData(threadNum uint16, db ogdb.Database, host string) {
+func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread uint16) {
 	txClient := tx_client.NewTxClientWIthTimeOut(host, false, time.Second*120)
 	Max := 1000000
 	for i := 0; i < Max; i++ {
+		start := time.Now()
 		var reqs rpc.NewTxsRequests
 		key := makeKey(threadNum, uint16(i))
 		data, err := db.Get(key)
@@ -163,6 +167,15 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string) {
 		if err != nil {
 			fmt.Println(err, resp)
 			return
+		}
+		if tpsPerThread >0 {
+			txLen := len(reqs.Txs)
+			duration := time.Now().Sub(start)
+			shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
+			if duration < shoudUseTime {
+                fmt.Println("shoud sellep ",shoudUseTime- duration )
+                time.Sleep(shoudUseTime-duration)
+			}
 		}
 	}
 }

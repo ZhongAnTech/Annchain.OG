@@ -180,7 +180,9 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 				}
 				txs.Append(txi)
 			}
-			msgLog.WithField("your tx num",len(*syncRequest.HashTerminats)).WithField("our tx num " ,len(allhashs)).WithField("response tx len",len(txs)).Debug("response to hashList")
+			msgLog.WithField("your tx num",len(*syncRequest.HashTerminats)).WithField(
+				"our tx num " ,len(allhashs)).WithField("response tx len",len(txs)).WithField(
+					"to ",peerId).Debug("response to hashList")
 		} else {
 			for _, hash := range allhashs {
 				//if peer miss this tx ,send it

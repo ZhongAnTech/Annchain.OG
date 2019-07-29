@@ -33,6 +33,7 @@ type MessageSender interface {
 	MulticastMessage(messageType p2p_message.MessageType, message p2p_message.Message)
 	MulticastToSource(messageType p2p_message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
 	BroadcastMessageWithLink(messageType p2p_message.MessageType, message p2p_message.Message)
+	SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message)
 }
 
 type FireHistory struct {
@@ -66,6 +67,7 @@ type IncrementalSyncer struct {
 	NewLatestSequencerCh     chan bool
 	bloomFilterStatus        *BloomFilterFireStatus
 	RemoveContrlMsgFromCache func(hash common.Hash)
+	SequencerCache  *SequencerCache
 }
 
 func (m *IncrementalSyncer) GetBenchmarks() map[string]interface{} {
@@ -115,6 +117,7 @@ func NewIncrementalSyncer(config *SyncerConfig, messageSender MessageSender, get
 		getHeight:            getHeight,
 		cacheNewTxEnabled:    cacheNewTxEnabled,
 		bloomFilterStatus:    NewBloomFilterFireStatus(120, 500),
+		SequencerCache:NewSequencerCache(15),
 	}
 }
 
@@ -445,4 +448,37 @@ func (m *IncrementalSyncer) IsCachedHash(hash common.Hash) bool {
 
 func (m *IncrementalSyncer) TxEnable() bool {
 	return m.Enabled
+}
+
+func (m*IncrementalSyncer)SyncHashList(seqHash common.Hash)  {
+	peerId := m.SequencerCache.GetPeer(seqHash)
+	if peerId =="" {
+		log.Warn("nil peer id")
+		return
+	}
+	go m.syncHashList(peerId)
+}
+
+func (m*IncrementalSyncer)syncHashList(peerId string){
+	req := p2p_message.MessageSyncRequest{
+		RequestId: p2p_message.MsgCounter.Get(),
+	}
+	height := m.getHeight()
+	req.Height = &height
+	hashs := m.getTxsHashes()
+	var hashTerminates p2p_message.HashTerminats
+	for _, hash := range hashs {
+		var hashTerminate p2p_message.HashTerminat
+		copy(hashTerminate[:],hash.Bytes[:4])
+		hashTerminates = append(hashTerminates,hashTerminate)
+	}
+	req.HashTerminats = &hashTerminates
+	log.WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
+		"req ", req.String()).WithField("filter length", len(req.Filter.Data)).Debug(
+		"sending bloom filter  MessageTypeFetchByHashRequest")
+
+	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
+	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
+	m.messageSender.SendToPeer(peerId  , p2p_message.MessageTypeFetchByHashRequest, &req)
+	return
 }

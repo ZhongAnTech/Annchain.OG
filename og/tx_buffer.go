@@ -39,6 +39,7 @@ const (
 
 type Syncer interface {
 	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
+	SyncHashList(seqHash common.Hash)
 	ClearQueue()
 	IsCachedHash(hash common.Hash) bool
 }
@@ -577,10 +578,15 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		// add myself to the dependency map
 		if tx.GetType() == types.TxBaseTypeSequencer {
 			seq := tx.(*tx_types.Sequencer)
+			//b.Syncer.SyncHashList(seq.GetTxHash())
 			//proposing seq
+			//why ??
 			if seq.Proposing {
-				return allFetched
+				//return allFetched
+				b.Syncer.SyncHashList(seq.GetTxHash())
 			}
+			//seq.Hash
+
 		}
 		b.updateDependencyMap(tx.GetTxHash(), tx)
 	}

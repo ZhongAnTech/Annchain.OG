@@ -272,10 +272,22 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
-
 	// already in the dag or tx_pool or buffer itself.
 	if b.IsKnownHash(tx.GetTxHash()) {
-		return
+		var overWriteProposalSeq bool
+		//if tx.GetType() ==types.TxBaseTypeSequencer {
+		//	txi := b.GetFromBuffer(tx.GetTxHash())
+		//	if txi.GetType() ==types.TxBaseTypeSequencer && txi.GetTxHash() == tx.GetTxHash(){
+		//		seq :=txi.(*tx_types.Sequencer)
+		//		if seq.Proposing {
+		//			overWriteProposalSeq = true
+		//		}
+		//	}
+		//}
+		if !overWriteProposalSeq {
+			return
+		}
+
 	}
 	//if err := b.verifyTxFormat(tx); err != nil {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
@@ -333,13 +345,28 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 	var validTxs types.Txis
 	for i := range txs {
 		// already in the dag or tx_pool or buffer itself.
-		if b.IsKnownHash(txs[i].GetTxHash()) {
-			continue
+		tx := txs[i]
+		// already in the dag or tx_pool or buffer itself.
+		if b.IsKnownHash(tx.GetTxHash()) {
+			var overWriteProposalSeq bool
+			//if tx.GetType() ==types.TxBaseTypeSequencer {
+			//	txi := b.GetFromBuffer(tx.GetTxHash())
+			//	if txi.GetType() ==types.TxBaseTypeSequencer && txi.GetTxHash() == tx.GetTxHash(){
+			//		seq :=txi.(*tx_types.Sequencer)
+			//		if seq.Proposing {
+			//			overWriteProposalSeq = true
+			//		}
+			//	}
+			//}
+			if !overWriteProposalSeq {
+				continue
+			}
+
 		}
 
 		//b.knownCache.Set(txs[i].GetTxHash(), txs[i])
 		//validTxs = append(validTxs,txs[i])
-		tx := txs[i]
+
 		//logrus.Debug("i ", i, tx)
 		f := func() {
 			//logrus.Debug(tx)

@@ -475,7 +475,7 @@ func (m*IncrementalSyncer)syncHashList(peerId string){
 		hashTerminates = append(hashTerminates,hashTerminate)
 	}
 	req.HashTerminats = &hashTerminates
-	log.WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
+	log.WithField("hash list num ",len(hashTerminates)).WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
 		"req ", req.String()).Debug("sending hashList  MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)

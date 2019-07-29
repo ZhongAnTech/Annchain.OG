@@ -463,7 +463,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			goroutine.New(function)
 			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
 			//
-			 proposingSeq = true
+			proposingSeq = true
 		}
 	}
 
@@ -722,14 +722,17 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 	}
 }
 
-func (d *TxBuffer)Dump() string{
+func (d *TxBuffer) Dump() string {
 	var str string
 	d.affmu.RLock()
 	defer d.affmu.RUnlock()
 	vs := d.dependencyCache.GetALL(false)
-	if vs!=nil {
-		for hash , txi := range vs.(map[common.Hash]types.Txi) {
-             str += " k " + hash.String() + txi.String() + " p " + txi.Parents().String() +" ; "
+	for k, v := range vs {
+		pHash := k.(common.Hash)
+		if v != nil {
+			for hash, txi := range v.(map[common.Hash]types.Txi) {
+				str += " phash " + pHash.String() + " [ " + hash.String() + txi.String() + " p " + txi.Parents().String() + " ]; "
+			}
 		}
 	}
 	return str

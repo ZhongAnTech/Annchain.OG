@@ -34,6 +34,7 @@ import (
 type TipGenerator interface {
 	GetRandomTips(n int) (v []types.Txi)
 	GetByNonce(addr common.Address, nonce uint64) types.Txi
+	IsBadSeq(seq *tx_types.Sequencer) error
 }
 
 type GetStateRoot interface {
@@ -444,7 +445,8 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 	return true
 }
 
-func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, accountNonce uint64, privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer) {
+func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, accountNonce uint64,
+	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, genAgain bool) {
 	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
@@ -466,7 +468,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
 		if m.quit {
 			logrus.Info("got quit signal")
-			return tx
+			return tx,false
 		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
@@ -495,6 +497,9 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 				"tx": tx,
 				"ok": ok,
 			}).Trace("validate graph structure for tx being connected")
+			if err := m.TipGenerator.IsBadSeq(tx);err!=nil {
+				return nil,true
+			}
 			continue
 		} else {
 			//calculate root
@@ -502,7 +507,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			root, err := m.GetStateRoot.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
-				return nil
+				return nil, false
 			}
 			tx.StateRoot = root
 			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
@@ -517,11 +522,11 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			"elapsedns":  time.Since(timeStart).Nanoseconds(),
 			"re-connect": connectionTries,
 		}).Tracef("total time for mining")
-		return tx
+		return tx,false
 	}
 	logrus.WithFields(logrus.Fields{
 		"elapsedns":  time.Since(timeStart).Nanoseconds(),
 		"re-connect": connectionTries,
 	}).Warnf("generate sequencer failed")
-	return nil
+	return nil,false
 }

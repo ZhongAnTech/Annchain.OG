@@ -453,6 +453,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+	var proposingSeq bool
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		seq := tx.(*tx_types.Sequencer)
 		if seq.Proposing {
@@ -461,20 +462,24 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			}
 			goroutine.New(function)
 			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
-			return
+			//
+			 proposingSeq = true
 		}
 	}
 
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	//children := b.children.GetAndRemove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
-	addErr := b.addToTxPool(tx)
-	b.dependencyCache.Remove(tx.GetTxHash())
-	if addErr != nil {
-		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
-	} else {
-		b.Announcer.BroadcastNewTx(tx)
+	if !proposingSeq {
+		addErr := b.addToTxPool(tx)
+		if addErr != nil {
+			logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
+		} else {
+			b.Announcer.BroadcastNewTx(tx)
+		}
 	}
+	b.dependencyCache.Remove(tx.GetTxHash())
+
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {

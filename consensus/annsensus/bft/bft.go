@@ -331,7 +331,7 @@ func (b *BFT) ProduceProposal() (pro p2p_message.Proposal, validHeight uint64) {
 	seq,genAgain := b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, nonce, &me.PrivateKey, blsPub)
 	for i:=0 ; i<7 && seq == nil;i++ {
 		logrus.WithField("times ",i).Warn("gen sequencer failed,try again ")
-		seq,genAgain = b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, nonce, &me.PrivateKey, blsPub)
+		seq,genAgain = b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, b.JudgeNonceFunction(me), &me.PrivateKey, blsPub)
 		_ =genAgain
 	}
 	if seq ==nil {

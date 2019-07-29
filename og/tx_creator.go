@@ -97,6 +97,10 @@ func (f *FIFOTipGenerator) GetByNonce(addr common.Address, nonce uint64) types.T
 	return f.upstream.GetByNonce(addr, nonce)
 }
 
+func (f *FIFOTipGenerator) IsBadSeq(seq *tx_types.Sequencer) error {
+	return f.upstream.IsBadSeq(seq)
+}
+
 func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

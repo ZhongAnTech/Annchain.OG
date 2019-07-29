@@ -478,6 +478,7 @@ func NewNode() *Node {
 		logrus.Info("archive mode")
 	}
 
+
 	//txMetrics
 	txCounter := performance.NewTxCounter()
 

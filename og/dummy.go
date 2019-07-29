@@ -83,6 +83,11 @@ func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
 	return false
 }
 
+func (p *dummyTxPoolParents) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
+}
+
+
 func (P*dummyTxPoolParents)GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }

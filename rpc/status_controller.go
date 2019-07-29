@@ -160,7 +160,19 @@ func (r *RpcController) BftStatus(c *gin.Context) {
 
 func (r *RpcController) GetPoolHashes(c *gin.Context) {
 	cors(c)
+	buffer := c.Query("buffer")
+	if buffer!="" {
+		r.BufferHashes(c)
+		return
+	}
 	s := r.Og.TxPool.GetOrder()
+	Response(c, http.StatusOK, nil, s.String())
+	return
+}
+
+func (r *RpcController) BufferHashes(c *gin.Context) {
+	cors(c)
+	s := r.Og.TxBuffer.Dump()
 	Response(c, http.StatusOK, nil, s)
 	return
 }

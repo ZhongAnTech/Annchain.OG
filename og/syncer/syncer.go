@@ -456,7 +456,9 @@ func (m*IncrementalSyncer)SyncHashList(seqHash common.Hash)  {
 		log.Warn("nil peer id")
 		return
 	}
-	go m.syncHashList(peerId)
+	goroutine.New(func() {
+		m.syncHashList(peerId)
+	})
 }
 
 func (m*IncrementalSyncer)syncHashList(peerId string){
@@ -475,7 +477,7 @@ func (m*IncrementalSyncer)syncHashList(peerId string){
 	req.HashTerminats = &hashTerminates
 	log.WithField("height ", height).WithField("type", p2p_message.MessageTypeFetchByHashRequest).WithField(
 		"req ", req.String()).WithField("filter length", len(req.Filter.Data)).Debug(
-		"sending bloom filter  MessageTypeFetchByHashRequest")
+		"sending hashList  MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it

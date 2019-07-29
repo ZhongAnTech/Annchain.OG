@@ -85,7 +85,7 @@ func (m *MessageSyncRequest) String() string {
 		str = fmt.Sprintf("count: %d", m.Filter.GetCount())
 	}
 	str += fmt.Sprintf("hash num %v", m.Hashes) + fmt.Sprintf("hashterminates %v ", m.HashTerminats)
-	str += m.Hashes.String() + fmt.Sprintf(" requestId %d  ", m.RequestId)
+	str += fmt.Sprintf("hashs %v ",m.Hashes) + fmt.Sprintf(" requestId %d  ", m.RequestId)
     return  str
 }
 

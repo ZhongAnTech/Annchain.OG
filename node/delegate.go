@@ -87,8 +87,11 @@ type SeqRequest struct {
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *tx_types.Sequencer, err error) {
-	seq = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+func (c *Delegate) GenerateSequencer(r SeqRequest) ( *tx_types.Sequencer,  error) {
+	seq, genAgain := c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+	if seq == nil && genAgain  {
+		seq, genAgain = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+	}
 	logrus.WithField("seq", seq).Infof("sequencer generated")
 	//if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
 	//	logrus.Warn("delegate failed to seal seq")
@@ -99,7 +102,7 @@ func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *tx_types.Sequencer, err
 		return nil, errors.New("generate seq failed")
 	}
 	logrus.WithField("seq", seq).Infof("sequencer  connected")
-	return
+	return seq,nil
 }
 
 func (c *Delegate) GetLatestAccountNonce(addr common.Address) (uint64, error) {

@@ -232,7 +232,6 @@ func (og *Og) BroadcastLatestSequencer() {
 					og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
-
 			}
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")

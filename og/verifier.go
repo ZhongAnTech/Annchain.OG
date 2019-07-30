@@ -28,8 +28,9 @@ import (
 )
 
 // GraphVerifier verifies if the tx meets the standards
+
 type Verifier interface {
-	Verify(t types.Txi) bool
+	Verify(t types.Txi) (bool)
 	Name() string
 	String() string
 	Independent() bool

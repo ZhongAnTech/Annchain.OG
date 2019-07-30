@@ -18,6 +18,7 @@ mode="normal"
   partner_number = 4
   term_change_interval = 10
   threshold = 4
+  sequencerTime = 2000
 
 [auto_client]
   nonce_self_discipline = false

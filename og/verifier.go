@@ -41,6 +41,7 @@ type TxFormatVerifier struct {
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
 	NoVerifyMindHash  bool
 	NoVerifyMaxTxHash bool
+	NoVerifySignatrue bool
 }
 
 //consensus related verification
@@ -109,9 +110,11 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	if !v.VerifySignature(t) {
-		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-		return false
+	if v.NoVerifySignatrue{
+		if !v.VerifySignature(t) {
+			logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
+			return false
+		}
 	}
 	t.SetVerified(types.VerifiedFormat)
 	return true

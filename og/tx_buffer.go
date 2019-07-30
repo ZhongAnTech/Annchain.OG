@@ -582,14 +582,15 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		if !b.isLocalHash(parentHash) {
 			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
 			allFetched = false
-
+			//this line is for test , may be can fix
+			b.updateDependencyMap(parentHash, tx)
 			// TODO: identify if this tx is already synced
 			if !b.isBufferedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				pHash := parentHash
-				b.updateDependencyMap(parentHash, tx)
+				//b.updateDependencyMap(parentHash, tx)
 				if !sendBloom && tx.GetWeight() > b.txPool.GetMaxWeight() && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
 					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
 					sendBloom = true

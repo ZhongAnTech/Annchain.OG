@@ -616,6 +616,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			if seq.Proposing {
 				//return allFetched
 				b.Syncer.SyncHashList(seq.GetTxHash())
+				return allFetched
 			}
 			//seq.Hash
 
@@ -733,6 +734,21 @@ func (d *TxBuffer) Dump() string {
 			for hash, txi := range v.(map[common.Hash]types.Txi) {
 				str += " phash " + pHash.String() + " [ " + hash.String() + txi.String() + " p " + txi.Parents().String() + " ]; "
 			}
+		}
+	}
+	return str
+}
+
+func (d *TxBuffer) DumpKnownCache() string {
+	var str string
+	d.affmu.RLock()
+	defer d.affmu.RUnlock()
+	vs := d.knownCache.GetALL(false)
+	for _, v := range vs {
+		//pHash := k.(common.Hash)
+		if v != nil {
+			txi:= v.(types.Txi)
+			str += txi.String()
 		}
 	}
 	return str

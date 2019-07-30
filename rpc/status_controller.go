@@ -161,8 +161,11 @@ func (r *RpcController) BftStatus(c *gin.Context) {
 func (r *RpcController) GetPoolHashes(c *gin.Context) {
 	cors(c)
 	buffer := c.Query("buffer")
-	if buffer!="" {
-		r.BufferHashes(c)
+	if buffer=="dependency" {
+		r.BufferDependencyCache(c)
+		return
+	}else if buffer =="known" {
+		r.BufferKnownCache(c)
 		return
 	}
 	s := r.Og.TxPool.GetOrder()
@@ -170,9 +173,15 @@ func (r *RpcController) GetPoolHashes(c *gin.Context) {
 	return
 }
 
-func (r *RpcController) BufferHashes(c *gin.Context) {
+func (r *RpcController) BufferDependencyCache(c *gin.Context) {
 	cors(c)
 	s := r.Og.TxBuffer.Dump()
+	Response(c, http.StatusOK, nil, s)
+	return
+}
+func (r *RpcController) BufferKnownCache(c *gin.Context) {
+	cors(c)
+	s := r.Og.TxBuffer.DumpKnownCache()
 	Response(c, http.StatusOK, nil, s)
 	return
 }

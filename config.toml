@@ -106,3 +106,6 @@ mode="normal"
 [websocket]
   enabled = true
   port = 8002
+
+[tx_buffer]
+no_verify_signature = false

@@ -133,6 +133,9 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	hostNum := uint16(len(ipportList))
 	perHost := accountNum / hostNum
 	tpsPerThread := (tpsNum / hostNum) / perHost
+	if tpsNum ==0 {
+		tpsPerThread = 0
+	}
 	for i := uint16(0); i < hostNum; i++ {
 		for j := uint16(0); j < perHost; j++ {
 			wg.Add(1)
@@ -188,7 +191,7 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 				shoudUseTime := time.Second / 2
 				//shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
 				if duration < shoudUseTime {
-					fmt.Println("shoud sellep ", i, j, k, shoudUseTime-duration)
+					fmt.Println("should sleep ", i, j, k, shoudUseTime-duration)
 					time.Sleep(shoudUseTime - duration)
 				}
 			}

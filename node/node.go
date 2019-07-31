@@ -179,6 +179,7 @@ func NewNode() *Node {
 		txFormatVerifier.NoVerifyMaxTxHash = true
 		logrus.Info("no verify max tx hash")
 	}
+	txFormatVerifier.NoVerifySignatrue =viper.GetBool("tx_buffer.no_verify_signature")
 	//verify format first , set address and then verify graph
 	verifiers := []og.Verifier{txFormatVerifier, graphVerifier}
 
@@ -477,6 +478,7 @@ func NewNode() *Node {
 	if status.ArchiveMode {
 		logrus.Info("archive mode")
 	}
+
 
 	//txMetrics
 	txCounter := performance.NewTxCounter()

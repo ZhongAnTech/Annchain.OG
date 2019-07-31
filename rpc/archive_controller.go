@@ -63,7 +63,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	logrus.WithField("id ", id).WithField("data  ", string(txReq.Data)).Trace("got archive request")
 	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed"), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
 		return
 	}
 	logrus.WithField("id ", id).WithField("tx", tx).Debugf("tx generated")

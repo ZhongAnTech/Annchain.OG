@@ -39,6 +39,7 @@ const (
 
 type Syncer interface {
 	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
+	SyncHashList(seqHash common.Hash)
 	ClearQueue()
 	IsCachedHash(hash common.Hash) bool
 }
@@ -271,10 +272,22 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
-
 	// already in the dag or tx_pool or buffer itself.
 	if b.IsKnownHash(tx.GetTxHash()) {
-		return
+		var overWriteProposalSeq bool
+		//if tx.GetType() ==types.TxBaseTypeSequencer {
+		//	txi := b.GetFromBuffer(tx.GetTxHash())
+		//	if txi.GetType() ==types.TxBaseTypeSequencer && txi.GetTxHash() == tx.GetTxHash(){
+		//		seq :=txi.(*tx_types.Sequencer)
+		//		if seq.Proposing {
+		//			overWriteProposalSeq = true
+		//		}
+		//	}
+		//}
+		if !overWriteProposalSeq {
+			return
+		}
+
 	}
 	//if err := b.verifyTxFormat(tx); err != nil {
 	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
@@ -332,13 +345,28 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 	var validTxs types.Txis
 	for i := range txs {
 		// already in the dag or tx_pool or buffer itself.
-		if b.IsKnownHash(txs[i].GetTxHash()) {
-			continue
+		tx := txs[i]
+		// already in the dag or tx_pool or buffer itself.
+		if b.IsKnownHash(tx.GetTxHash()) {
+			var overWriteProposalSeq bool
+			//if tx.GetType() ==types.TxBaseTypeSequencer {
+			//	txi := b.GetFromBuffer(tx.GetTxHash())
+			//	if txi.GetType() ==types.TxBaseTypeSequencer && txi.GetTxHash() == tx.GetTxHash(){
+			//		seq :=txi.(*tx_types.Sequencer)
+			//		if seq.Proposing {
+			//			overWriteProposalSeq = true
+			//		}
+			//	}
+			//}
+			if !overWriteProposalSeq {
+				continue
+			}
+
 		}
 
 		//b.knownCache.Set(txs[i].GetTxHash(), txs[i])
 		//validTxs = append(validTxs,txs[i])
-		tx := txs[i]
+
 		//logrus.Debug("i ", i, tx)
 		f := func() {
 			//logrus.Debug(tx)
@@ -425,6 +453,7 @@ func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+	var proposingSeq bool
 	if tx.GetType() == types.TxBaseTypeSequencer {
 		seq := tx.(*tx_types.Sequencer)
 		if seq.Proposing {
@@ -433,20 +462,24 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 			}
 			goroutine.New(function)
 			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
-			return
+			//
+			proposingSeq = true
 		}
 	}
 
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
 	//children := b.children.GetAndRemove(tx.GetTxHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
-	addErr := b.addToTxPool(tx)
-	b.dependencyCache.Remove(tx.GetTxHash())
-	if addErr != nil {
-		logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
-	} else {
-		b.Announcer.BroadcastNewTx(tx)
+	if !proposingSeq {
+		addErr := b.addToTxPool(tx)
+		if addErr != nil {
+			logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
+		} else {
+			b.Announcer.BroadcastNewTx(tx)
+		}
 	}
+	b.dependencyCache.Remove(tx.GetTxHash())
+
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {
@@ -549,14 +582,15 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		if !b.isLocalHash(parentHash) {
 			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
 			allFetched = false
-
+			//this line is for test , may be can fix
+			b.updateDependencyMap(parentHash, tx)
 			// TODO: identify if this tx is already synced
 			if !b.isBufferedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				pHash := parentHash
-				b.updateDependencyMap(parentHash, tx)
+				//b.updateDependencyMap(parentHash, tx)
 				if !sendBloom && tx.GetWeight() > b.txPool.GetMaxWeight() && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
 					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
 					sendBloom = true
@@ -577,10 +611,16 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		// add myself to the dependency map
 		if tx.GetType() == types.TxBaseTypeSequencer {
 			seq := tx.(*tx_types.Sequencer)
+			//b.Syncer.SyncHashList(seq.GetTxHash())
 			//proposing seq
+			//why ??
 			if seq.Proposing {
+				//return allFetched
+				b.Syncer.SyncHashList(seq.GetTxHash())
 				return allFetched
 			}
+			//seq.Hash
+
 		}
 		b.updateDependencyMap(tx.GetTxHash(), tx)
 	}
@@ -682,4 +722,35 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			return
 		}
 	}
+}
+
+func (d *TxBuffer) Dump() string {
+	var str string
+	d.affmu.RLock()
+	defer d.affmu.RUnlock()
+	vs := d.dependencyCache.GetALL(false)
+	for k, v := range vs {
+		pHash := k.(common.Hash)
+		if v != nil {
+			for hash, txi := range v.(map[common.Hash]types.Txi) {
+				str += " phash " + pHash.String() + " [ " + hash.String() + txi.String() + " p " + txi.Parents().String() + " ]; "
+			}
+		}
+	}
+	return str
+}
+
+func (d *TxBuffer) DumpKnownCache() string {
+	var str string
+	d.affmu.RLock()
+	defer d.affmu.RUnlock()
+	vs := d.knownCache.GetALL(false)
+	for _, v := range vs {
+		//pHash := k.(common.Hash)
+		if v != nil {
+			txi:= v.(types.Txi)
+			str += txi.String()
+		}
+	}
+	return str
 }

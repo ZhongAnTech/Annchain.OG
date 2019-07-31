@@ -28,8 +28,9 @@ import (
 )
 
 // GraphVerifier verifies if the tx meets the standards
+
 type Verifier interface {
-	Verify(t types.Txi) bool
+	Verify(t types.Txi) (bool)
 	Name() string
 	String() string
 	Independent() bool
@@ -40,6 +41,7 @@ type TxFormatVerifier struct {
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
 	NoVerifyMindHash  bool
 	NoVerifyMaxTxHash bool
+	NoVerifySignatrue bool
 }
 
 //consensus related verification
@@ -108,9 +110,11 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	if !v.VerifySignature(t) {
-		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-		return false
+	if v.NoVerifySignatrue{
+		if !v.VerifySignature(t) {
+			logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
+			return false
+		}
 	}
 	t.SetVerified(types.VerifiedFormat)
 	return true
@@ -482,7 +486,7 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	if poolErr != nil {
 		//no related tx in txpool ,check dag
 		if dagNonce != txi.GetNonce()-1 {
-			logrus.WithField("current nonce ", txi.GetNonce()-1).WithField("dag nonce ", dagNonce).WithField("tx", txi).Debug("previous tx  not found for address")
+			logrus.WithField("current nonce ", txi.GetNonce()).WithField("dag nonce ", dagNonce).WithField("tx", txi).Debug("previous tx  not found for address")
 			// fail if not good
 			return false
 		}

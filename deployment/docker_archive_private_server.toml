@@ -34,8 +34,8 @@ name = "leveldb"
 
 [leveldb]
 path = "/rw/datadir_1"
-cache = 16
-handles = 16
+cache = 256
+handles = 256
 
 [statedb]
 flush_timer_s = 5
@@ -89,6 +89,7 @@ genesis_path = "genesis.json"
 [annsensus]
 campaign = true
 disable_term_change = true
+sequencerTime = 2000
 #partner_number = 4
 #threshold = 4
 #genesis_pk ="0x0104994735dfcf60eb43bb5286334a7a83b622685fc3feb92247c65cc4b4cd55497fbc767f2e59a222abb650e5f411d9f7b6266b49439cdb348d859e33e89846bcaf;0x01046ce80b57488632dd7fc1488f5c2ed4746b16e2656b9ec7793f6f7d23663a5bd68ba37a00313d55042480c23b98b2cbee334eda939eab12a737f4a5d3e646da93;0x0104329ad4860f4835427efe677cecfda463e9fa0be722b41d64109197499b2804fbe9fa41416191c81fc9f819f83fad0a891a4eb3c5ee7d7122c8a6c948f71c8028;0x0104f25bceb564a148de47ba2725eaa4f88898d54dee044d8bbf75b4f209edd67a0e21ab145e249a5dd236a7bd9d7bb42ef24c30fb9da94d8001faac29588c61c45b"

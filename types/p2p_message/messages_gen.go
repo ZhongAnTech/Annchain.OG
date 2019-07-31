@@ -259,6 +259,121 @@ func (z *HashOrNumber) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *HashTerminat) DecodeMsg(dc *msgp.Reader) (err error) {
+	err = dc.ReadExactBytes((z)[:])
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *HashTerminat) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteBytes((z)[:])
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *HashTerminat) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendBytes(o, (z)[:])
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *HashTerminat) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	bts, err = msgp.ReadExactBytes(bts, (z)[:])
+	if err != nil {
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *HashTerminat) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize + (4 * (msgp.ByteSize))
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *HashTerminats) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0003 uint32
+	zb0003, err = dc.ReadArrayHeader()
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0003) {
+		(*z) = (*z)[:zb0003]
+	} else {
+		(*z) = make(HashTerminats, zb0003)
+	}
+	for zb0001 := range *z {
+		err = dc.ReadExactBytes(((*z)[zb0001])[:])
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z HashTerminats) EncodeMsg(en *msgp.Writer) (err error) {
+	err = en.WriteArrayHeader(uint32(len(z)))
+	if err != nil {
+		return
+	}
+	for zb0004 := range z {
+		err = en.WriteBytes((z[zb0004])[:])
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z HashTerminats) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendArrayHeader(o, uint32(len(z)))
+	for zb0004 := range z {
+		o = msgp.AppendBytes(o, (z[zb0004])[:])
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *HashTerminats) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0003 uint32
+	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	if cap((*z)) >= int(zb0003) {
+		(*z) = (*z)[:zb0003]
+	} else {
+		(*z) = make(HashTerminats, zb0003)
+	}
+	for zb0001 := range *z {
+		bts, err = msgp.ReadExactBytes(bts, ((*z)[zb0001])[:])
+		if err != nil {
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z HashTerminats) Msgsize() (s int) {
+	s = msgp.ArrayHeaderSize + (len(z) * (4 * (msgp.ByteSize)))
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageBodiesRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
@@ -2515,8 +2630,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
 	if dc.IsNil() {
@@ -2539,18 +2654,45 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		z.Filter = nil
+		z.HashTerminats = nil
 	} else {
-		if z.Filter == nil {
-			z.Filter = new(BloomFilter)
+		if z.HashTerminats == nil {
+			z.HashTerminats = new(HashTerminats)
 		}
 		var zb0002 uint32
 		zb0002, err = dc.ReadArrayHeader()
 		if err != nil {
 			return
 		}
-		if zb0002 != 3 {
-			err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		if cap(*z.HashTerminats) >= int(zb0002) {
+			*z.HashTerminats = (*z.HashTerminats)[:zb0002]
+		} else {
+			*z.HashTerminats = make(HashTerminats, zb0002)
+		}
+		for za0001 := range *z.HashTerminats {
+			err = dc.ReadExactBytes(((*z.HashTerminats)[za0001])[:])
+			if err != nil {
+				return
+			}
+		}
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			return
+		}
+		z.Filter = nil
+	} else {
+		if z.Filter == nil {
+			z.Filter = new(BloomFilter)
+		}
+		var zb0003 uint32
+		zb0003, err = dc.ReadArrayHeader()
+		if err != nil {
+			return
+		}
+		if zb0003 != 3 {
+			err = msgp.ArrayError{Wanted: 3, Got: zb0003}
 			return
 		}
 		z.Filter.Data, err = dc.ReadBytes(z.Filter.Data)
@@ -2590,8 +2732,8 @@ func (z *MessageSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
+	// array header, size 5
+	err = en.Append(0x95)
 	if err != nil {
 		return
 	}
@@ -2604,6 +2746,23 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = z.Hashes.EncodeMsg(en)
 		if err != nil {
 			return
+		}
+	}
+	if z.HashTerminats == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = en.WriteArrayHeader(uint32(len(*z.HashTerminats)))
+		if err != nil {
+			return
+		}
+		for za0001 := range *z.HashTerminats {
+			err = en.WriteBytes(((*z.HashTerminats)[za0001])[:])
+			if err != nil {
+				return
+			}
 		}
 	}
 	if z.Filter == nil {
@@ -2651,14 +2810,22 @@ func (z *MessageSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
+	// array header, size 5
+	o = append(o, 0x95)
 	if z.Hashes == nil {
 		o = msgp.AppendNil(o)
 	} else {
 		o, err = z.Hashes.MarshalMsg(o)
 		if err != nil {
 			return
+		}
+	}
+	if z.HashTerminats == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o = msgp.AppendArrayHeader(o, uint32(len(*z.HashTerminats)))
+		for za0001 := range *z.HashTerminats {
+			o = msgp.AppendBytes(o, ((*z.HashTerminats)[za0001])[:])
 		}
 	}
 	if z.Filter == nil {
@@ -2686,8 +2853,8 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -2710,18 +2877,45 @@ func (z *MessageSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.Filter = nil
+		z.HashTerminats = nil
 	} else {
-		if z.Filter == nil {
-			z.Filter = new(BloomFilter)
+		if z.HashTerminats == nil {
+			z.HashTerminats = new(HashTerminats)
 		}
 		var zb0002 uint32
 		zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 		if err != nil {
 			return
 		}
-		if zb0002 != 3 {
-			err = msgp.ArrayError{Wanted: 3, Got: zb0002}
+		if cap(*z.HashTerminats) >= int(zb0002) {
+			*z.HashTerminats = (*z.HashTerminats)[:zb0002]
+		} else {
+			*z.HashTerminats = make(HashTerminats, zb0002)
+		}
+		for za0001 := range *z.HashTerminats {
+			bts, err = msgp.ReadExactBytes(bts, ((*z.HashTerminats)[za0001])[:])
+			if err != nil {
+				return
+			}
+		}
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Filter = nil
+	} else {
+		if z.Filter == nil {
+			z.Filter = new(BloomFilter)
+		}
+		var zb0003 uint32
+		zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		if err != nil {
+			return
+		}
+		if zb0003 != 3 {
+			err = msgp.ArrayError{Wanted: 3, Got: zb0003}
 			return
 		}
 		z.Filter.Data, bts, err = msgp.ReadBytesBytes(bts, z.Filter.Data)
@@ -2767,6 +2961,11 @@ func (z *MessageSyncRequest) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += z.Hashes.Msgsize()
+	}
+	if z.HashTerminats == nil {
+		s += msgp.NilSize
+	} else {
+		s += msgp.ArrayHeaderSize + (len(*z.HashTerminats) * (4 * (msgp.ByteSize)))
 	}
 	if z.Filter == nil {
 		s += msgp.NilSize

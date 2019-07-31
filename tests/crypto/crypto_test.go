@@ -16,17 +16,17 @@ package crypto
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"testing"
 	"time"
 )
 
 func TestRawTx_Tx(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
-	types.Signer = signer
 	var num = 10000
-	var txs types.Txs
-	var rawtxs types.RawTxs
+	var txs tx_types.Txs
+	var rawtxs tx_types.RawTxs
 	for i := 0; i < num; i++ {
 		tx := tx_types.RandomTx()
 		pub, _ := signer.RandomKeyPair()
@@ -43,11 +43,11 @@ func TestRawTx_Tx(t *testing.T) {
 
 func TestRawTx_encode(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
-	types.Signer = signer
+	crypto.Signer = signer
 	var num = 10000
-	var txs types.Txs
+	var txs tx_types.Txs
 	type bytes struct {
-		types.RawData
+		p2p_message.RawData
 	}
 	var rawtxs []bytes
 	for i := 0; i < num; i++ {
@@ -59,7 +59,7 @@ func TestRawTx_encode(t *testing.T) {
 	}
 	start := time.Now()
 	for i := 0; i < num; i++ {
-		var tx types.Tx
+		var tx tx_types.Tx
 		_, err := tx.UnmarshalMsg(rawtxs[i].RawData)
 		if err != nil {
 			panic(err)

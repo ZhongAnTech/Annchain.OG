@@ -122,15 +122,15 @@ func (a *TxClient) SendNormalTxs(request *rpc.NewTxsRequests) (string, error) {
 }
 
 func (a *TxClient) SendTokenIPO(request *rpc.NewPublicOfferingRequest) (string, error) {
-	return a.sendTx(request, "token", "POST")
+	return a.sendTx(request, "token/initial_offering", "POST")
 }
 
 func (a *TxClient) SendTokenSPO(request *rpc.NewPublicOfferingRequest) (string, error) {
-	return a.sendTx(request, "token", "PUT")
+	return a.sendTx(request, "token/second_offering", "POST")
 }
 
 func (a *TxClient) SendTokenDestroy(request *rpc.NewPublicOfferingRequest) (string, error) {
-	return a.sendTx(request, "token", "DELETE")
+	return a.sendTx(request, "token/destroy", "POST")
 }
 
 func (a *TxClient) sendTx(request interface{}, uri string, methd string) (string, error) {

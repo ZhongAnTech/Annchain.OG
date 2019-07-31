@@ -711,7 +711,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				log.WithField("tx ", tx).Warn("token not found")
 				return TxQualityIsFatal
 			}
-			if !token.EnableSPO {
+			if !token.ReIssuable {
 				log.WithField("tx ", tx).Warn("token is disabled for second publishing")
 				return TxQualityIsFatal
 			}
@@ -719,7 +719,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				log.WithField("tx ", tx).Warn("token is destroyed already")
 				return TxQualityIsFatal
 			}
-			if token.Sender != tx.Sender() {
+			if token.Issuer != tx.Sender() {
 				log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
 				return TxQualityIsFatal
 			}
@@ -739,7 +739,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				log.WithField("tx ", tx).Warn("token is destroyed already")
 				return TxQualityIsFatal
 			}
-			if token.Sender != tx.Sender() {
+			if token.Issuer != tx.Sender() {
 				log.WithField("tx ", tx).WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
 				return TxQualityIsFatal
 			}

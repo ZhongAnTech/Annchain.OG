@@ -30,7 +30,7 @@ import (
 // GraphVerifier verifies if the tx meets the standards
 
 type Verifier interface {
-	Verify(t types.Txi) (bool)
+	Verify(t types.Txi) bool
 	Name() string
 	String() string
 	Independent() bool
@@ -110,7 +110,7 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	if v.NoVerifySignatrue{
+	if v.NoVerifySignatrue {
 		if !v.VerifySignature(t) {
 			logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
 			return false
@@ -440,11 +440,11 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
-    if txi.GetType() == types.TxBaseTypeSequencer {
-    	seq := txi.(*tx_types.Sequencer)
-    	if err := v.TxPool.IsBadSeq(seq); err!=nil {
-    		logrus.WithField("seq ",seq).WithError(err).Warn("bad seq ")
-    		return false
+	if txi.GetType() == types.TxBaseTypeSequencer {
+		seq := txi.(*tx_types.Sequencer)
+		if err := v.TxPool.IsBadSeq(seq); err != nil {
+			logrus.WithField("seq ", seq).WithError(err).Warn("bad seq ")
+			return false
 		}
 	}
 
@@ -492,13 +492,13 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 		}
 		goto Out
 	}
-	if nonce <  txi.GetNonce()-1 {
+	if nonce < txi.GetNonce()-1 {
 		logrus.WithField("current nonce ", txi.GetNonce()).WithField("pool nonce ", nonce).WithField("tx", txi).Debug("previous tx  not found for address")
 		// fail if not good
 		return false
 	}
 	// check txpool queue first
-	if dagNonce != nonce  {
+	if dagNonce != nonce {
 		_, ok = v.getMyPreviousTx(txi)
 		if !ok {
 			logrus.WithField("tx", txi).Debug("previous tx not found")

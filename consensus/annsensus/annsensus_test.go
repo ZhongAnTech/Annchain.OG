@@ -16,7 +16,6 @@ package annsensus
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
@@ -51,9 +50,7 @@ func logInit() {
 	Formatter.FullTimestamp = true
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.TraceLevel)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	logrus.SetReportCaller(true)
 	log = logrus.StandardLogger()
 }
 

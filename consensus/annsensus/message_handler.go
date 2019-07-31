@@ -156,7 +156,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal
 	}
 	//cache them and sent to buffer to verify
 	a.bft.CacheProposal(seq.GetTxHash(), request)
-	a.HandleNewTxi(&seq,peerId)
+	a.HandleNewTxi(&seq, peerId)
 	log.Debug("response ok")
 	//m := Message{
 	//	Type:    p2p_message.MessageTypeProposal,
@@ -294,5 +294,3 @@ func (a *AnnSensus) HandleTermChangeResponse(response *p2p_message.MessageTermCh
 	}
 	a.termChangeChan <- tc
 }
-
-

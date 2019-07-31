@@ -133,7 +133,7 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	hostNum := uint16(len(ipportList))
 	perHost := accountNum / hostNum
 	tpsPerThread := (tpsNum / hostNum) / perHost
-	if tpsNum ==0 {
+	if tpsNum == 0 {
 		tpsPerThread = 0
 	}
 	for i := uint16(0); i < hostNum; i++ {

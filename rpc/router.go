@@ -35,7 +35,7 @@ func (rpc *RpcController) NewRouter() *gin.Engine {
 		router.Use(logger)
 	}
 
-	router.Use(gin.Recovery())
+	router.Use(gin.RecoveryWithWriter(logrus.StandardLogger().Out))
 	return rpc.addRouter(router)
 }
 

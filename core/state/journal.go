@@ -21,28 +21,35 @@ import (
 	"github.com/annchain/OG/common/math"
 )
 
+const TokenNotDirtied int32 = -1
+
 // journalEntry is a modification entry in the state change journal that can be
 // reverted on demand.
 type JournalEntry interface {
 	// revert undoes the changes introduced by this journal entry.
 	Revert(db *StateDB)
 
-	// dirtied returns the Ethereum address modified by this journal entry.
+	// dirtied returns the address modified by this journal entry.
 	Dirtied() *common.Address
+
+	// TokenDirtied returns the Token ID modified by this journal entry.
+	TokenDirtied() int32
 }
 
 // journal contains the list of state modifications applied since the last state
 // commit. These are tracked to be able to be reverted in case of an execution
 // exception or revertal request.
 type journal struct {
-	entries []JournalEntry         // Current changes tracked by the journal
-	dirties map[common.Address]int // Dirty accounts and the number of changes
+	entries      []JournalEntry         // Current changes tracked by the journal
+	dirties      map[common.Address]int // Dirty accounts and the number of changes
+	tokenDirties map[int32]int          // Dirty tokens and the number of changes.
 }
 
 // newJournal create a new initialized journal.
 func newJournal() *journal {
 	return &journal{
-		dirties: make(map[common.Address]int),
+		dirties:      make(map[common.Address]int),
+		tokenDirties: make(map[int32]int),
 	}
 }
 
@@ -51,6 +58,9 @@ func (j *journal) append(entry JournalEntry) {
 	j.entries = append(j.entries, entry)
 	if addr := entry.Dirtied(); addr != nil {
 		j.dirties[*addr]++
+	}
+	if tokenID := entry.TokenDirtied(); tokenID > TokenNotDirtied {
+		j.tokenDirties[tokenID]++
 	}
 }
 
@@ -67,6 +77,11 @@ func (j *journal) revert(statedb *StateDB, snapshot int) {
 				delete(j.dirties, *addr)
 			}
 		}
+		if tokenID := j.entries[i].TokenDirtied(); tokenID > TokenNotDirtied {
+			if j.tokenDirties[tokenID]--; j.tokenDirties[tokenID] == 0 {
+				delete(j.tokenDirties, tokenID)
+			}
+		}
 	}
 	j.entries = j.entries[:snapshot]
 }
@@ -74,9 +89,13 @@ func (j *journal) revert(statedb *StateDB, snapshot int) {
 // dirty explicitly sets an address to dirty, even if the change entries would
 // otherwise suggest it as clean. This method is an ugly hack to handle the RIPEMD
 // precompile consensus exception.
-func (j *journal) dirty(addr common.Address) {
-	j.dirties[addr]++
-}
+// func (j *journal) dirty(addr common.Address) {
+//	j.dirties[addr]++
+// }
+
+// func (j *journal) tokenDirty(tokenID int32) {
+// 	j.tokenDirties[tokenID]++
+// }
 
 // length returns the current number of entries in the journal.
 func (j *journal) length() int {
@@ -89,7 +108,8 @@ type (
 		account *common.Address
 	}
 	resetObjectChange struct {
-		prev *StateObject
+		account *common.Address
+		prev    *StateObject
 	}
 	suicideChange struct {
 		account     *common.Address
@@ -131,6 +151,23 @@ type (
 		prev      bool
 		prevDirty bool
 	}
+
+	// Changes to token
+	createTokenChange struct {
+		prevLatestTokenID int32
+		tokenID           int32
+	}
+	resetTokenChange struct {
+		tokenID int32
+		prev    *TokenObject
+	}
+	reIssueChange struct {
+		tokenID int32
+	}
+	destroyChange struct {
+		tokenID       int32
+		prevDestroyed bool
+	}
 )
 
 func (ch createObjectChange) Revert(s *StateDB) {
@@ -142,12 +179,24 @@ func (ch createObjectChange) Dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch createObjectChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch resetObjectChange) Revert(s *StateDB) {
-	s.setStateObject(ch.prev.address, ch.prev)
+	if ch.prev == nil {
+		delete(s.states, *ch.account)
+	} else {
+		s.states[ch.prev.address] = ch.prev
+	}
 }
 
 func (ch resetObjectChange) Dirtied() *common.Address {
-	return nil
+	return &ch.prev.address
+}
+
+func (ch resetObjectChange) TokenDirtied() int32 {
+	return TokenNotDirtied
 }
 
 func (ch suicideChange) Revert(s *StateDB) {
@@ -164,7 +213,9 @@ func (ch suicideChange) Dirtied() *common.Address {
 	return ch.account
 }
 
-var ripemd = common.HexToAddress("0000000000000000000000000000000000000003")
+func (ch suicideChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
 
 func (ch touchChange) Revert(s *StateDB) {
 }
@@ -173,10 +224,14 @@ func (ch touchChange) Dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch touchChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch balanceChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetBalance(ch.tokenID, ch.prev)
+		stobj.setBalance(ch.tokenID, ch.prev)
 	}
 }
 
@@ -184,10 +239,14 @@ func (ch balanceChange) Dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch balanceChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch nonceChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetNonce(ch.prev)
+		stobj.setNonce(ch.prev)
 	}
 }
 
@@ -195,10 +254,14 @@ func (ch nonceChange) Dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch nonceChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch codeChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetCode(common.BytesToHash(ch.prevhash), ch.prevcode)
+		stobj.setCode(common.BytesToHash(ch.prevhash), ch.prevcode)
 	}
 }
 
@@ -206,15 +269,23 @@ func (ch codeChange) Dirtied() *common.Address {
 	return ch.account
 }
 
+func (ch codeChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch storageChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.SetState(s.db, ch.key, ch.prevalue)
+		stobj.setState(ch.key, ch.prevalue)
 	}
 }
 
 func (ch storageChange) Dirtied() *common.Address {
 	return ch.account
+}
+
+func (ch storageChange) TokenDirtied() int32 {
+	return TokenNotDirtied
 }
 
 func (ch refundChange) Revert(s *StateDB) {
@@ -223,6 +294,10 @@ func (ch refundChange) Revert(s *StateDB) {
 
 func (ch refundChange) Dirtied() *common.Address {
 	return nil
+}
+
+func (ch refundChange) TokenDirtied() int32 {
+	return TokenNotDirtied
 }
 
 func (ch addLogChange) Revert(s *StateDB) {
@@ -243,6 +318,10 @@ func (ch addLogChange) Dirtied() *common.Address {
 	return nil
 }
 
+func (ch addLogChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
 func (ch addPreimageChange) Revert(s *StateDB) {
 	// TODO
 	// preimage not implemented yet, comment temporarily this function
@@ -253,4 +332,68 @@ func (ch addPreimageChange) Revert(s *StateDB) {
 
 func (ch addPreimageChange) Dirtied() *common.Address {
 	return nil
+}
+
+func (ch addPreimageChange) TokenDirtied() int32 {
+	return TokenNotDirtied
+}
+
+func (ch createTokenChange) Revert(s *StateDB) {
+	s.latestTokenID = ch.prevLatestTokenID
+	delete(s.tokens, ch.tokenID)
+	delete(s.dirtyTokens, ch.tokenID)
+}
+
+func (ch createTokenChange) Dirtied() *common.Address {
+	return nil
+}
+
+func (ch createTokenChange) TokenDirtied() int32 {
+	return ch.tokenID
+}
+
+func (ch resetTokenChange) Revert(s *StateDB) {
+	if ch.prev == nil {
+		delete(s.tokens, ch.tokenID)
+	} else {
+		s.tokens[ch.prev.TokenID] = ch.prev
+	}
+}
+
+func (ch resetTokenChange) Dirtied() *common.Address {
+	return nil
+}
+
+func (ch resetTokenChange) TokenDirtied() int32 {
+	return ch.prev.TokenID
+}
+
+func (ch reIssueChange) Revert(s *StateDB) {
+	tkObj := s.getTokenObject(ch.tokenID)
+	if tkObj != nil {
+		tkObj.Issues = tkObj.Issues[:len(tkObj.Issues)-1]
+	}
+}
+
+func (ch reIssueChange) Dirtied() *common.Address {
+	return nil
+}
+
+func (ch reIssueChange) TokenDirtied() int32 {
+	return ch.tokenID
+}
+
+func (ch destroyChange) Revert(s *StateDB) {
+	tkObj := s.getTokenObject(ch.tokenID)
+	if tkObj != nil {
+		tkObj.Destroyed = ch.prevDestroyed
+	}
+}
+
+func (ch destroyChange) Dirtied() *common.Address {
+	return nil
+}
+
+func (ch destroyChange) TokenDirtied() int32 {
+	return ch.tokenID
 }

@@ -22,8 +22,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/msg"
 )
 
 //go:generate msgp  never generate automaticly
@@ -41,10 +41,10 @@ type ActionData interface {
 
 //msgp:tuple PublicOffering
 type PublicOffering struct {
-	TokenId int32        `json:"token_id"` //for Secondary Public Offering
+	TokenId int32        `json:"token_id"` //for Secondary Public Issues
 	Value   *math.BigInt `json:"value"`
 	//To      Address       //when publish a token ,to equals from
-	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Offering.
+	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Issues.
 	TokenName string `json:"token_name"`
 }
 

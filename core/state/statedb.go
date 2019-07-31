@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types/token"
+	tkType "github.com/annchain/OG/types/token"
 	"sync"
 	"time"
 
@@ -66,6 +66,12 @@ type StateDB struct {
 	states   map[common.Address]*StateObject
 	dirtyset map[common.Address]struct{}
 
+	// token information
+	latestTokenID      int32
+	dirtyLatestTokenID bool
+	tokens             map[int32]*TokenObject
+	dirtyTokens        map[int32]struct{}
+
 	close chan struct{}
 
 	mu sync.RWMutex
@@ -76,17 +82,27 @@ func NewStateDB(conf StateDBConfig, db Database, root common.Hash) (*StateDB, er
 	if err != nil {
 		return nil, err
 	}
+
+	latestTokenID := int32(0)
+	data, err := tr.TryGet(tkType.LatestTokenIDTrieKey())
+	if err == nil && len(data) >= 4 {
+		latestTokenID = common.GetInt32(data, 0)
+	}
+
 	sd := &StateDB{
-		conf:        conf,
-		db:          db,
-		trie:        tr,
-		states:      make(map[common.Address]*StateObject),
-		dirtyset:    make(map[common.Address]struct{}),
-		journal:     newJournal(),
-		snapshotID:  0,
-		snapshotSet: make([]shot, 0),
-		close:       make(chan struct{}),
-		root:        root,
+		conf:          conf,
+		db:            db,
+		trie:          tr,
+		states:        make(map[common.Address]*StateObject),
+		dirtyset:      make(map[common.Address]struct{}),
+		latestTokenID: latestTokenID,
+		tokens:        make(map[int32]*TokenObject),
+		dirtyTokens:   make(map[int32]struct{}),
+		journal:       newJournal(),
+		snapshotID:    0,
+		snapshotSet:   make([]shot, 0),
+		close:         make(chan struct{}),
+		root:          root,
 	}
 
 	return sd, nil
@@ -104,15 +120,14 @@ func (sd *StateDB) Root() common.Hash {
 	return sd.root
 }
 
-// CreateAccount will create a new state for input address and
-// return the state. If input address already exists in StateDB
-// returns it.
+// CreateAccount will create a new state for input address.
 func (sd *StateDB) CreateAccount(addr common.Address) {
 	newstate := NewStateObject(addr, sd)
 	oldstate := sd.getStateObject(addr)
 	if oldstate != nil {
 		sd.AppendJournal(&resetObjectChange{
-			prev: oldstate,
+			account: &oldstate.address,
+			prev:    oldstate,
 		})
 	} else {
 		sd.AppendJournal(&createObjectChange{
@@ -120,14 +135,13 @@ func (sd *StateDB) CreateAccount(addr common.Address) {
 		})
 	}
 	sd.states[addr] = newstate
-	// sd.beats[addr] = time.Now()
 }
 
 func (sd *StateDB) GetBalance(addr common.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	return sd.getBalance(addr, token.OGTokenID)
+	return sd.getBalance(addr, tkType.OGTokenID)
 }
 
 func (sd *StateDB) GetTokenBalance(addr common.Address, tokenID int32) *math.BigInt {
@@ -254,7 +268,6 @@ func (sd *StateDB) DeleteStateObject(addr common.Address) error {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	//defer sd.refreshbeat(addr)
 	return sd.deleteStateObject(addr)
 }
 func (sd *StateDB) deleteStateObject(addr common.Address) error {
@@ -264,7 +277,6 @@ func (sd *StateDB) deleteStateObject(addr common.Address) error {
 	}
 	delete(sd.states, addr)
 	delete(sd.dirtyset, addr)
-	// delete(sd.beats, addr)
 	return nil
 }
 
@@ -273,7 +285,7 @@ func (sd *StateDB) AddBalance(addr common.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.addBalance(addr, token.OGTokenID, increment)
+	sd.addBalance(addr, tkType.OGTokenID, increment)
 }
 func (sd *StateDB) AddTokenBalance(addr common.Address, tokenID int32, increment *math.BigInt) {
 	sd.mu.Lock()
@@ -295,7 +307,7 @@ func (sd *StateDB) SubBalance(addr common.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.subBalance(addr, token.OGTokenID, decrement)
+	sd.subBalance(addr, tkType.OGTokenID, decrement)
 }
 func (sd *StateDB) SubTokenBalance(addr common.Address, tokenID int32, decrement *math.BigInt) {
 	sd.mu.Lock()
@@ -367,7 +379,7 @@ func (sd *StateDB) SetBalance(addr common.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
-	sd.setBalance(addr, token.OGTokenID, balance)
+	sd.setBalance(addr, tkType.OGTokenID, balance)
 }
 func (sd *StateDB) SetTokenBalance(addr common.Address, tokenID int32, balance *math.BigInt) {
 	sd.mu.Lock()
@@ -412,14 +424,10 @@ func (sd *StateDB) SetStateObject(addr common.Address, stobj *StateObject) {
 	sd.setStateObject(addr, stobj)
 }
 func (sd *StateDB) setStateObject(addr common.Address, stobj *StateObject) {
-	//defer sd.refreshbeat(addr)
-
 	oldobj := sd.getStateObject(addr)
-	if oldobj == nil {
-		return
-	}
 	sd.AppendJournal(&resetObjectChange{
-		prev: oldobj,
+		account: &addr,
+		prev:    oldobj,
 	})
 	sd.states[addr] = stobj
 }
@@ -435,6 +443,91 @@ func (sd *StateDB) SetState(addr common.Address, key, value common.Hash) {
 		return
 	}
 	stobj.SetState(sd.db, key, value)
+}
+
+/**
+Token part
+*/
+
+// IssueToken creates a new token according to offered token information.
+func (sd *StateDB) IssueToken(issuer common.Address, name, symbol string, reIssuable bool, fstIssue *math.BigInt) (int32, error) {
+	tokenID := sd.latestTokenID + 1
+
+	oldToken := sd.getTokenObject(tokenID)
+	if oldToken != nil {
+		return 0, fmt.Errorf("already exist token with tokenID: %d", tokenID)
+	}
+	newToken := NewTokenObject(tokenID, issuer, name, symbol, reIssuable, fstIssue, sd)
+	sd.AppendJournal(&createTokenChange{
+		prevLatestTokenID: sd.latestTokenID,
+		tokenID:           tokenID,
+	})
+	sd.tokens[tokenID] = newToken
+	sd.latestTokenID = tokenID
+	sd.dirtyLatestTokenID = true
+
+	sd.setBalance(issuer, tokenID, fstIssue)
+	return tokenID, nil
+}
+
+func (sd *StateDB) ReIssueToken(tokenID int32, amount *math.BigInt) error {
+	tkObj := sd.getTokenObject(tokenID)
+	if tkObj == nil {
+		return fmt.Errorf("token not exists")
+	}
+	err := tkObj.ReIssue(amount)
+	if err != nil {
+		return err
+	}
+	sd.addBalance(tkObj.Issuer, tokenID, amount)
+	return nil
+}
+
+func (sd *StateDB) DestroyToken(tokenID int32) error {
+	tkObj := sd.getTokenObject(tokenID)
+	if tkObj == nil {
+		return fmt.Errorf("token not exists")
+	}
+	tkObj.Destroy()
+	return nil
+}
+
+// GetTokenObject get token object from StateDB.tokens . If not exists then
+// try to load from trie db.
+func (sd *StateDB) GetTokenObject(tokenID int32) *TokenObject {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+
+	return sd.getTokenObject(tokenID)
+}
+func (sd *StateDB) getTokenObject(tokenID int32) *TokenObject {
+	token, exist := sd.tokens[tokenID]
+	if exist {
+		return token
+	}
+	token, err := sd.loadTokenObject(tokenID)
+	if err != nil {
+		log.Errorf("load token from trie err: %v", err)
+		return nil
+	}
+	if token == nil {
+		return nil
+	}
+	sd.tokens[tokenID] = token
+	return token
+}
+
+func (sd *StateDB) setTokenObject(tokenID int32, tkObj *TokenObject) {
+	oldTkObj := sd.getTokenObject(tokenID)
+	sd.AppendJournal(&resetTokenChange{
+		tokenID: tokenID,
+		prev:    oldTkObj,
+	})
+	sd.tokens[tokenID] = tkObj
+}
+
+func (sd *StateDB) LatestTokenID() int32 {
+	return sd.latestTokenID
 }
 
 func (sd *StateDB) AppendJournal(entry JournalEntry) {
@@ -507,6 +600,23 @@ func (sd *StateDB) loadStateObject(addr common.Address) (*StateObject, error) {
 	return &state, nil
 }
 
+// loadTokenObject loads token object from trie.
+func (sd *StateDB) loadTokenObject(tokenID int32) (*TokenObject, error) {
+	data, err := sd.trie.TryGet(tkType.TokenTrieKey(tokenID))
+	if err != nil {
+		return nil, fmt.Errorf("get token from trie err: %v", err)
+	}
+	if data == nil {
+		return nil, nil
+	}
+	var token TokenObject
+	err = token.Decode(data)
+	if err != nil {
+		return nil, fmt.Errorf("decode token err: %v", err)
+	}
+	return &token, nil
+}
+
 // Commit tries to save dirty data to memory trie db.
 func (sd *StateDB) Commit() (common.Hash, error) {
 	sd.mu.Lock()
@@ -544,6 +654,28 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		}
 		delete(sd.dirtyset, addr)
 	}
+
+	// commit dirty token information
+	for tokenID := range sd.journal.tokenDirties {
+		sd.dirtyTokens[tokenID] = struct{}{}
+	}
+	for tokenID, token := range sd.tokens {
+		if _, isDirty := sd.dirtyTokens[tokenID]; !isDirty {
+			continue
+		}
+		data, _ := token.Encode()
+		if err := sd.trie.TryUpdate(tkType.TokenTrieKey(tokenID), data); err != nil {
+			log.Errorf("commit token %d to trie error: %d", tokenID, err)
+		}
+		delete(sd.dirtyTokens, tokenID)
+	}
+	if sd.dirtyLatestTokenID {
+		if err := sd.trie.TryUpdate(tkType.LatestTokenIDTrieKey(), common.ByteInt32(sd.latestTokenID)); err != nil {
+			log.Errorf("commit latest token id %d to trie error: %d", sd.latestTokenID, err)
+		}
+		sd.dirtyLatestTokenID = false
+	}
+
 	// commit current trie into triedb.
 	rootHash, err := sd.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		account := NewAccountData()
@@ -570,25 +702,6 @@ func (sd *StateDB) commit() (common.Hash, error) {
 
 	return rootHash, err
 }
-
-//func (sd *StateDB) loop() {
-//	if sd.conf.PurgeTimer < time.Millisecond {
-//		sd.conf.PurgeTimer = time.Second
-//	}
-//	purgeTimer := time.NewTicker(sd.conf.PurgeTimer)
-//
-//	for {
-//		select {
-//		case <-sd.close:
-//			purgeTimer.Stop()
-//			return
-//
-//		case <-purgeTimer.C:
-//			sd.mu.Lock()
-//			sd.mu.Unlock()
-//		}
-//	}
-//}
 
 func (sd *StateDB) Snapshot() int {
 	id := sd.snapshotID

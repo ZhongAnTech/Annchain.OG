@@ -20,7 +20,7 @@ func TestMarshalUnmarshalAccountData(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+		t.Errorf("%d bytes Left over after UnmarshalMsg(): %q", len(left), left)
 	}
 
 	left, err = msgp.Skip(bts)
@@ -28,7 +28,7 @@ func TestMarshalUnmarshalAccountData(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+		t.Errorf("%d bytes Left over after Skip(): %q", len(left), left)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestMarshalUnmarshalStateObject(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(left) > 0 {
-		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+		t.Errorf("%d bytes Left over after UnmarshalMsg(): %q", len(left), left)
 	}
 
 	left, err = msgp.Skip(bts)
@@ -141,7 +141,7 @@ func TestMarshalUnmarshalStateObject(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(left) > 0 {
-		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+		t.Errorf("%d bytes Left over after Skip(): %q", len(left), left)
 	}
 }
 

@@ -63,7 +63,6 @@ type Dag struct {
 
 	genesis         *tx_types.Sequencer
 	latestSequencer *tx_types.Sequencer
-	latestTokenId   int32
 
 	txcached *txcached
 
@@ -208,7 +207,6 @@ func (dag *Dag) Init(genesis *tx_types.Sequencer, genesisBalance map[common.Addr
 
 	dag.genesis = genesis
 	dag.latestSequencer = genesis
-	dag.latestTokenId = 0
 
 	log.Infof("Dag finish init")
 	return nil
@@ -231,7 +229,6 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 	} else {
 		dag.latestSequencer = seq
 	}
-	dag.latestTokenId = dag.getLatestTokenId()
 	root := dag.LoadStateRoot()
 
 	return true, root
@@ -653,6 +650,49 @@ func (dag *Dag) getAlltokenBalance(addr common.Address) state.BalanceSet {
 	return dag.statedb.GetAllTokenBalance(addr)
 }
 
+func (dag *Dag) GetToken(tokenId int32) *state.TokenObject {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	if tokenId > dag.statedb.LatestTokenID() {
+		return nil
+	}
+	return dag.getToken(tokenId)
+}
+
+func (dag *Dag) getToken(tokenId int32) *state.TokenObject {
+	return dag.statedb.GetTokenObject(tokenId)
+}
+
+func (dag *Dag) GetLatestTokenId() int32 {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getLatestTokenId()
+}
+
+func (dag *Dag) getLatestTokenId() int32 {
+	return dag.statedb.LatestTokenID()
+}
+
+func (dag *Dag) GetTokens() []*state.TokenObject {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTokens()
+}
+
+func (dag *Dag) getTokens() []*state.TokenObject {
+	tokens := make([]*state.TokenObject, 0)
+	lid := dag.getLatestTokenId()
+
+	for i := int32(0); i <= lid; i++ {
+		token := dag.getToken(i)
+		tokens = append(tokens, token)
+	}
+	return tokens
+}
+
 // GetLatestNonce returns the latest tx of an addresss.
 func (dag *Dag) GetLatestNonce(addr common.Address) (uint64, error) {
 	dag.mu.RLock()
@@ -744,59 +784,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	txhashes := common.Hashes{}
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
-	tokenId := dag.latestTokenId
-	var tokens = make(map[int32]*tx_types.TokenInfo)
+
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
-		if txi.GetType() == types.TxBaseAction {
-			actionTx := txi.(*tx_types.ActionTx)
-			if actionTx.Action == tx_types.ActionTxActionIPO {
-				tokenId++
-				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-				actionData.TokenId = tokenId
-				currentValue := *actionData.Value
-				token := tx_types.TokenInfo{
-					PublicOffering: *actionData,
-					Sender:         txi.Sender(),
-					CurrentValue:   &currentValue,
-				}
-				tokens[tokenId] = &token
-				dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-			} else if actionTx.Action == tx_types.ActionTxActionSPO {
 
-				//spo
-				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-
-				token := tokens[actionData.TokenId]
-				if token == nil {
-					token = dag.getToken(actionData.TokenId)
-				}
-				if token == nil {
-					log.WithField("tx", txi).Error("token not found,shoul never be hera ")
-					return fmt.Errorf("token not found %v", actionData.TokenId)
-				}
-				if token.Destroyed {
-					log.WithField("tx", txi).Error("token is destroyed ,shoul never be hera ,go on never return fail")
-				} else {
-					token.CurrentValue = token.CurrentValue.Add(actionData.Value)
-					dag.statedb.AddTokenBalance(actionTx.Sender(), actionData.TokenId, actionData.Value)
-					tokens[tokenId] = token
-				}
-			} else if actionTx.Action == tx_types.ActionTxActionDestroy {
-				actionData := actionTx.ActionData.(*tx_types.PublicOffering)
-				token := tokens[actionData.TokenId]
-				if token == nil {
-					token = dag.getToken(actionData.TokenId)
-				}
-				if token == nil {
-					log.WithField("tx", txi).Error("token not found,shoul never be hera ")
-					return fmt.Errorf("token not found %v", actionData.TokenId)
-				}
-				token.Destroyed = true
-				dag.statedb.SetTokenBalance(actionTx.Sender(), actionData.TokenId, math.NewBigInt(0))
-				tokens[tokenId] = token
-			}
-		}
 		_, receipt, err := dag.ProcessTransaction(txi, false)
 		if err != nil {
 			dag.statedb.RevertToSnapshot(sId)
@@ -883,16 +874,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		dag.accessor.WriteIndexedTxHashs(dbBatch, batch.Seq.Height, &txhashes)
 	}
 
-	for _, token := range tokens {
-		dag.accessor.WriteToken(dbBatch, token)
-	}
-
-	if len(tokens) > 0 {
-		err = dag.accessor.WriteLatestTokenId(dbBatch, tokenId)
-	}
-	if err != nil {
-		return err
-	}
 	err = dag.accessor.WriteSequencerByHeight(dbBatch, batch.Seq)
 	if err != nil {
 		return err
@@ -908,7 +889,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 	dag.latestSequencer = batch.Seq
-	dag.latestTokenId = tokenId
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
 
@@ -974,55 +954,6 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	return nil
 }
 
-func (dag *Dag) GetToken(tokenId int32) *tx_types.TokenInfo {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	if tokenId > dag.latestTokenId {
-		return nil
-	}
-	return dag.getToken(tokenId)
-}
-
-func (dag *Dag) getToken(tokenId int32) *tx_types.TokenInfo {
-	return dag.accessor.ReadToken(tokenId)
-}
-
-func (dag *Dag) GetLatestTokenId() int32 {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	return dag.latestTokenId
-}
-
-func (dag *Dag) GetTokens() tx_types.TokensInfo {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	return dag.getTokens()
-}
-
-func (dag *Dag) getTokens() tx_types.TokensInfo {
-	var tokens tx_types.TokensInfo
-	lid := dag.latestTokenId
-	for i := int32(0); i <= lid; i++ {
-		token := dag.getToken(i)
-		//if token!=nil {
-		tokens = append(tokens, token)
-		//}
-	}
-	return tokens
-}
-
-func (dag *Dag) getLatestTokenId() int32 {
-	return dag.accessor.RaedLatestTokenId()
-}
-
-func (dag *Dag) WriteToken(putter *Putter, token *tx_types.TokenInfo) error {
-	return dag.accessor.WriteToken(putter, token)
-}
-
-func (dag *Dag) WriteLatestTokenId(putter *Putter, tokenId int32) error {
-	return dag.accessor.WriteLatestTokenId(putter, tokenId)
-}
-
 func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 	return dag.accessor.DeleteTransaction(hash)
 }
@@ -1063,18 +994,14 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseAction {
-		txAction := tx.(*tx_types.ActionTx)
-		var pResult interface{}
-		if txAction.Action == tx_types.ActionTxActionIPO {
-			if actionData, ok := txAction.ActionData.(*tx_types.PublicOffering); ok {
-				pResult = actionData.TokenId
-			} else {
-				pResult = ""
-			}
+		actionTx := tx.(*tx_types.ActionTx)
+		receipt, err := dag.processTokenTransaction(actionTx)
+		if err != nil {
+			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
 		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, pResult, emptyAddress)
 		return nil, receipt, nil
 	}
+
 	if tx.GetType() != types.TxBaseTypeNormal {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
@@ -1144,6 +1071,53 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	// 2. add service fee to coinbase
 	log.Debugf("leftOverGas not used yet, this log is for compiling, ret: %x, leftOverGas: %d", ret, leftOverGas)
 	return ret, receipt, nil
+}
+
+func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error) {
+
+	actionData := tx.ActionData.(*tx_types.PublicOffering)
+	if tx.Action == tx_types.ActionTxActionIPO {
+		issuer := tx.Sender()
+		name := actionData.TokenName
+		reIssuable := actionData.EnableSPO
+		amount := actionData.Value
+
+		tokenID, err := dag.statedb.IssueToken(issuer, name, "", reIssuable, amount)
+		if err != nil {
+			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+			return receipt, err
+		}
+		actionData.TokenId = tokenID
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		return receipt, nil
+	}
+	if tx.Action == tx_types.ActionTxActionSPO {
+		tokenID := actionData.TokenId
+		amount := actionData.Value
+
+		err := dag.statedb.ReIssueToken(tokenID, amount)
+		if err != nil {
+			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+			return receipt, err
+		}
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		return receipt, nil
+	}
+	if tx.Action == tx_types.ActionTxActionDestroy {
+		tokenID := actionData.TokenId
+
+		err := dag.statedb.DestroyToken(tokenID)
+		if err != nil {
+			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+			return receipt, err
+		}
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		return receipt, nil
+	}
+
+	err := fmt.Errorf("unknown tx action: %d", tx.Action)
+	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+	return receipt, err
 }
 
 // CallContract calls contract but disallow any modifications on

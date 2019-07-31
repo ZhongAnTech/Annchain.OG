@@ -74,7 +74,8 @@ func (pd *PreloadDB) CreateAccount(addr common.Address) {
 	oldstate := pd.sd.GetStateObject(addr)
 	if oldstate != nil {
 		pd.AppendJournal(&resetObjectChange{
-			prev: oldstate,
+			account: &oldstate.address,
+			prev:    oldstate,
 		})
 	} else {
 		pd.AppendJournal(&createObjectChange{

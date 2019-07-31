@@ -24,6 +24,7 @@ const (
 	ReceiptStatusSuccess ReceiptStatus = iota
 	ReceiptStatusOVMFailed
 	ReceiptStatusUnknownTxType
+	ReceiptStatusFailed
 )
 
 //go:generate msgp

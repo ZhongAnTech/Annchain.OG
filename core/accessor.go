@@ -46,10 +46,8 @@ var (
 
 	prefixAddrLatestNonceKey = []byte("aln")
 
-	prefixSeqHeightKey        = []byte("sh")
-	prefixTxIndexKey          = []byte("ti")
-	prefixTokenIndexKey       = []byte("toi")
-	prefixLatestTokenindexKey = []byte("latesttoi")
+	prefixSeqHeightKey = []byte("sh")
+	prefixTxIndexKey   = []byte("ti")
 
 	prefixAddressBalanceKey = []byte("ba")
 
@@ -64,10 +62,6 @@ func genesisKey() []byte {
 
 func latestSequencerKey() []byte {
 	return prefixLatestSeqKey
-}
-
-func latestTokenKey() []byte {
-	return prefixLatestTokenindexKey
 }
 
 func receiptKey(seqID uint64) []byte {
@@ -101,10 +95,6 @@ func seqHeightKey(seqID uint64) []byte {
 
 func txIndexKey(seqID uint64) []byte {
 	return append(prefixTxIndexKey, encodeUint64(seqID)...)
-}
-
-func tokenIndexKey(tokenId int32) []byte {
-	return append(prefixTokenIndexKey, encodeInt32(tokenId)...)
 }
 
 type Accessor struct {
@@ -368,48 +358,6 @@ func (da *Accessor) readConfirmTime(SeqHeight uint64) *types.ConfirmTime {
 		return nil
 	}
 	return &cf
-}
-
-func (da *Accessor) WriteToken(putter *Putter, token *tx_types.TokenInfo) error {
-	data, err := token.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
-	key := tokenIndexKey(token.TokenId)
-	err = da.put(putter, key, data)
-	if err != nil {
-		return fmt.Errorf("write token to db err: %v", err)
-	}
-	return nil
-}
-
-func (da *Accessor) WriteLatestTokenId(putter *Putter, tokenIndex int32) error {
-	err := da.put(putter, latestTokenKey(), encodeInt32(tokenIndex))
-	if err != nil {
-		return fmt.Errorf("write token to db err: %v", err)
-	}
-	return nil
-}
-
-func (da *Accessor) RaedLatestTokenId() int32 {
-	data, _ := da.db.Get(latestTokenKey())
-	if len(data) == 0 {
-		return 0
-	}
-	return common.GetInt32(data, 0)
-}
-
-func (da *Accessor) ReadToken(tokenIndex int32) *tx_types.TokenInfo {
-	var token tx_types.TokenInfo
-	data, _ := da.db.Get(tokenIndexKey(tokenIndex))
-	if len(data) == 0 {
-		return nil
-	}
-	_, err := token.UnmarshalMsg(data)
-	if err != nil {
-		return nil
-	}
-	return &token
 }
 
 // WriteReceipts write a receipt map into db.

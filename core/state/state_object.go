@@ -125,6 +125,10 @@ func (s *StateObject) SetBalance(tokenID int32, balance *math.BigInt) {
 		tokenID: tokenID,
 		prev:    s.data.Balances[tokenID],
 	})
+	s.setBalance(tokenID, balance)
+}
+
+func (s *StateObject) setBalance(tokenID int32, balance *math.BigInt) {
 	s.data.Balances[tokenID] = balance
 }
 
@@ -137,6 +141,10 @@ func (s *StateObject) SetNonce(nonce uint64) {
 		account: &s.address,
 		prev:    s.data.Nonce,
 	})
+	s.setNonce(nonce)
+}
+
+func (s *StateObject) setNonce(nonce uint64) {
 	s.data.Nonce = nonce
 }
 
@@ -172,6 +180,10 @@ func (s *StateObject) SetState(db Database, key, value common.Hash) {
 		key:      key,
 		prevalue: s.GetState(db, key),
 	})
+	s.setState(key, value)
+}
+
+func (s *StateObject) setState(key, value common.Hash) {
 	s.dirtyStorage[key] = value
 }
 
@@ -196,6 +208,10 @@ func (s *StateObject) SetCode(codehash common.Hash, code []byte) {
 		prevcode: s.code,
 		prevhash: s.data.CodeHash,
 	})
+	s.setCode(codehash, code)
+}
+
+func (s *StateObject) setCode(codehash common.Hash, code []byte) {
 	s.code = code
 	s.data.CodeHash = codehash.ToBytes()
 	s.dirtycode = true

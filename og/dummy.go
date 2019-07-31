@@ -31,7 +31,7 @@ func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
 	return
 }
 
-func (P*dummyTxPoolRandomTx)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
@@ -45,7 +45,7 @@ func (d *DummyTxPoolMiniTx) Init() {
 	d.tipsMap = make(map[common.Hash]types.Txi)
 }
 
-func (P*DummyTxPoolMiniTx)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *DummyTxPoolMiniTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
@@ -87,8 +87,7 @@ func (p *dummyTxPoolParents) IsBadSeq(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-
-func (P*dummyTxPoolParents)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *dummyTxPoolParents) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 

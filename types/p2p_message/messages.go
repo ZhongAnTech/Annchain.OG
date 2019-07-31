@@ -16,11 +16,11 @@ package p2p_message
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/bloom"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/bloom"
 	"strings"
 )
 
@@ -55,14 +55,13 @@ func (m *MessagePong) String() string {
 
 type HashTerminat [4]byte
 
-
 type HashTerminats []HashTerminat
 
-func (h HashTerminat)String ()string  {
+func (h HashTerminat) String() string {
 	return hexutil.Encode(h[:])
 }
 
-func (h HashTerminats)String ()string  {
+func (h HashTerminats) String() string {
 	var strs []string
 	for _, v := range h {
 		strs = append(strs, v.String())
@@ -72,11 +71,11 @@ func (h HashTerminats)String ()string  {
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
-	Hashes    *common.Hashes
-	HashTerminats  *HashTerminats
-	Filter    *BloomFilter
-	Height    *uint64
-	RequestId uint32 //avoid msg drop
+	Hashes        *common.Hashes
+	HashTerminats *HashTerminats
+	Filter        *BloomFilter
+	Height        *uint64
+	RequestId     uint32 //avoid msg drop
 }
 
 func (m *MessageSyncRequest) String() string {
@@ -84,14 +83,14 @@ func (m *MessageSyncRequest) String() string {
 	if m.Filter != nil {
 		str = fmt.Sprintf("count: %d", m.Filter.GetCount())
 	}
-	if m.Hashes!=nil {
+	if m.Hashes != nil {
 		str += fmt.Sprintf("hash num %v", m.Hashes.String())
 	}
-	if m.HashTerminats!=nil {
+	if m.HashTerminats != nil {
 		str += fmt.Sprintf("hashterminates %v ", m.HashTerminats.String())
 	}
-	str +=  fmt.Sprintf(" requestId %d  ", m.RequestId)
-    return  str
+	str += fmt.Sprintf(" requestId %d  ", m.RequestId)
+	return str
 }
 
 //msgp:tuple MessageSyncResponse

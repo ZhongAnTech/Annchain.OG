@@ -401,7 +401,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				connectionTries++
 				var txs types.Txis
 				var ancestor types.Txi
-				if tx.GetType()!=types.TxBaseTypeArchive {
+				if tx.GetType() != types.TxBaseTypeArchive {
 					ancestor = m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
 				}
 				if ancestor != nil && !ancestor.InValid() {
@@ -475,7 +475,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
 		if m.quit {
 			logrus.Info("got quit signal")
-			return tx,false
+			return tx, false
 		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
@@ -504,8 +504,8 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 				"tx": tx,
 				"ok": ok,
 			}).Trace("validate graph structure for tx being connected")
-			if err := m.TipGenerator.IsBadSeq(tx);err!=nil {
-				return nil,true
+			if err := m.TipGenerator.IsBadSeq(tx); err != nil {
+				return nil, true
 			}
 			continue
 		} else {
@@ -529,11 +529,11 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			"elapsedns":  time.Since(timeStart).Nanoseconds(),
 			"re-connect": connectionTries,
 		}).Tracef("total time for mining")
-		return tx,false
+		return tx, false
 	}
 	logrus.WithFields(logrus.Fields{
 		"elapsedns":  time.Since(timeStart).Nanoseconds(),
 		"re-connect": connectionTries,
 	}).Warnf("generate sequencer failed")
-	return nil,false
+	return nil, false
 }

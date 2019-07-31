@@ -19,7 +19,7 @@ import (
 	"sort"
 )
 
-func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string ) {
+func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
 	// cancel pending requests if it is there
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
@@ -37,8 +37,8 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string ) {
 		log.WithField("tx ", tx).Debug("cache txs for future.")
 	}
 
-	if tx.GetType() ==types.TxBaseTypeSequencer {
-		m.SequencerCache.Add(tx.GetTxHash(),peerId)
+	if tx.GetType() == types.TxBaseTypeSequencer {
+		m.SequencerCache.Add(tx.GetTxHash(), peerId)
 	}
 
 	err := m.bufferedIncomingTxCache.EnQueue(tx)
@@ -58,7 +58,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *p2p_message.MessageNewTx, peerId 
 		log.Debug("empty MessageNewTx")
 		return
 	}
-	m.HandleNewTxi(tx,peerId)
+	m.HandleNewTxi(tx, peerId)
 	log.WithField("q", newTx).Debug("incremental received MessageNewTx")
 
 }
@@ -104,7 +104,7 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *p2p_message.MessageNewSeq
 		log.Debug("empty NewSequence")
 		return
 	}
-	m.HandleNewTxi(seq,peerId)
+	m.HandleNewTxi(seq, peerId)
 	log.WithField("q", newSeq).Debug("incremental received NewSequence")
 }
 
@@ -114,7 +114,7 @@ func (m *IncrementalSyncer) HandleCampaign(request *p2p_message.MessageCampaign,
 		log.Warn("got nil MessageCampaign")
 		return
 	}
-	m.HandleNewTxi(cp,peerId)
+	m.HandleNewTxi(cp, peerId)
 	log.WithField("q", request).Debug("incremental received MessageCampaign")
 
 }
@@ -125,7 +125,7 @@ func (m *IncrementalSyncer) HandleTermChange(request *p2p_message.MessageTermCha
 		log.Warn("got nil MessageCampaign")
 		return
 	}
-	m.HandleNewTxi(cp,peerId)
+	m.HandleNewTxi(cp, peerId)
 	log.WithField("q", request).Debug("incremental received MessageTermChange")
 
 }
@@ -136,7 +136,7 @@ func (m *IncrementalSyncer) HandleArchive(request *p2p_message.MessageNewArchive
 		log.Warn("got nil MessageNewArchive")
 		return
 	}
-	m.HandleNewTxi(ac,peerId)
+	m.HandleNewTxi(ac, peerId)
 	log.WithField("q", request).Debug("incremental received MessageNewArchive")
 
 }
@@ -147,7 +147,7 @@ func (m *IncrementalSyncer) HandleActionTx(request *p2p_message.MessageNewAction
 		log.Warn("got nil MessageNewActionTx")
 		return
 	}
-	m.HandleNewTxi(ax,peerId)
+	m.HandleNewTxi(ax, peerId)
 	log.WithField("q", request).Debug("incremental received MessageNewActionTx")
 }
 

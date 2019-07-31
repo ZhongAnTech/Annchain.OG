@@ -22,8 +22,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/msg"
 )
 
 //go:generate msgp  never generate automaticly

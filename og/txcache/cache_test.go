@@ -16,9 +16,9 @@ package txcache
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/gcache"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"testing"

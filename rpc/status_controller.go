@@ -161,10 +161,10 @@ func (r *RpcController) BftStatus(c *gin.Context) {
 func (r *RpcController) GetPoolHashes(c *gin.Context) {
 	cors(c)
 	buffer := c.Query("buffer")
-	if buffer=="dependency" {
+	if buffer == "dependency" {
 		r.BufferDependencyCache(c)
 		return
-	}else if buffer =="known" {
+	} else if buffer == "known" {
 		r.BufferKnownCache(c)
 		return
 	}

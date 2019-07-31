@@ -321,9 +321,9 @@ func (m *MessageRouter) BroadcastMessageWithLink(messageType p2p_message.Message
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }
 
-func (m*MessageRouter)SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message) {
-	err := m.Hub.SendToPeer(peerId,messageType,msg)
-	if err!=nil {
+func (m *MessageRouter) SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message) {
+	err := m.Hub.SendToPeer(peerId, messageType, msg)
+	if err != nil {
 		msgLog.WithError(err).Warn("send failed")
 	}
 }

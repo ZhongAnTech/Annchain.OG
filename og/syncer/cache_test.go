@@ -7,17 +7,17 @@ import (
 )
 
 func TestSequencerCache_Add(t *testing.T) {
-	p:= NewSequencerCache(7)
+	p := NewSequencerCache(7)
 	fmt.Println(p)
 	var hashes common.Hashes
-	for i:=0;i<10;i++ {
+	for i := 0; i < 10; i++ {
 		hash := common.RandomHash()
-		hashes = append(hashes,hash)
-		p.Add(hash, fmt.Sprintf("%d",i))
+		hashes = append(hashes, hash)
+		p.Add(hash, fmt.Sprintf("%d", i))
 	}
 	fmt.Println(hashes)
 	fmt.Println(p)
-	for _,hash := range hashes {
-		fmt.Println(p.GetPeer(hash),hash)
+	for _, hash := range hashes {
+		fmt.Println(p.GetPeer(hash), hash)
 	}
 }

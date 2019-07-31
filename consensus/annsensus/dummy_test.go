@@ -31,6 +31,10 @@ func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
+func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64,error) {
+	return 0,nil
+}
+
 func (d *DummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
 	return &tx_types.Sequencer{
 		TxBase: types.TxBase{Height: id},

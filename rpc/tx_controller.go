@@ -107,7 +107,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
 
@@ -258,7 +258,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 			if err != nil {
 				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
-				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
+				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 				return
 			}
 			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")

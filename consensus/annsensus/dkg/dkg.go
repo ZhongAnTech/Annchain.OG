@@ -958,10 +958,10 @@ func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermI
 	jointSig, err = partner.RecoverSig(msg)
 	if err != nil {
 		var sigStr string
-		for _,ss:= range partner.SigShares {
+		for _, ss := range partner.SigShares {
 			sigStr = sigStr + " " + hexutil.Encode(ss)
 		}
-		log.WithField("sigStr ",sigStr).WithField("msg ",hexutil.Encode(msg)).Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
+		log.WithField("sigStr ", sigStr).WithField("msg ", hexutil.Encode(msg)).Warnf("partner %d cannot recover jointSig with %d sigshares: %s\n",
 			partner.Id, len(partner.SigShares), err)
 		return nil, err
 	}

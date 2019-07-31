@@ -122,8 +122,8 @@ func (s *SyncBuffer) AddTxs(seq *tx_types.Sequencer, txs types.Txis) error {
 			return err
 		}
 		err = s.Handle()
-		if err!=nil {
-			logrus.WithError(err).WithField("txs ",txs).WithField("seq ",seq).Warn("handle tx error")
+		if err != nil {
+			logrus.WithError(err).WithField("txs ", txs).WithField("seq ", seq).Warn("handle tx error")
 		}
 		return err
 

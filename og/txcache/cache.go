@@ -15,8 +15,8 @@ package txcache
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/gcache"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/gcache"
 	log "github.com/sirupsen/logrus"
 	"sort"
 	"time"

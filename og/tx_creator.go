@@ -400,7 +400,10 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				}
 				connectionTries++
 				var txs types.Txis
-				ancestor := m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
+				var ancestor types.Txi
+				if tx.GetType()!=types.TxBaseTypeArchive {
+					ancestor = m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
+				}
 				if ancestor != nil && !ancestor.InValid() {
 					txs = m.TipGenerator.GetRandomTips(2)
 					var include bool

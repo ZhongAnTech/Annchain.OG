@@ -748,7 +748,7 @@ func (d *TxBuffer) DumpKnownCache() string {
 	for _, v := range vs {
 		//pHash := k.(common.Hash)
 		if v != nil {
-			txi:= v.(types.Txi)
+			txi := v.(types.Txi)
 			str += txi.String()
 		}
 	}

@@ -48,35 +48,34 @@ func TestCache(t *testing.T) {
 	fmt.Println(ids)
 }
 
-
 func TestP2PMessage_Unmarshal(t *testing.T) {
 	var p2pMsg p2PMessage
-	hash :=common.RandomHash()
+	hash := common.RandomHash()
 	p2pMsg.messageType = p2p_message.MessageTypePreVote
 	p2pMsg.message = &p2p_message.MessagePreVote{
-		BasicMessage:p2p_message.BasicMessage{
-			SourceId:10,
-			HeightRound:p2p_message.HeightRound{
-				Height:12,
-				Round:15,
+		BasicMessage: p2p_message.BasicMessage{
+			SourceId: 10,
+			HeightRound: p2p_message.HeightRound{
+				Height: 12,
+				Round:  15,
 			},
 		},
 		Signature: common.RandomAddress().ToBytes(),
 		PublicKey: common.RandomHash().ToBytes(),
-		Idv: &hash,
+		Idv:       &hash,
 	}
 	err := p2pMsg.Marshal()
-	if err!=nil {
+	if err != nil {
 		t.Fatal(err)
 	}
 	//fmt.Println(p2pMsg)
 	fmt.Println(p2pMsg.message)
-    p2pMsg.message = nil
-    p2pMsg.marshalState = false
+	p2pMsg.message = nil
+	p2pMsg.marshalState = false
 	//fmt.Println(p2pMsg)
 	fmt.Println(p2pMsg.message)
-    err = p2pMsg.Unmarshal()
-	if err!=nil {
+	err = p2pMsg.Unmarshal()
+	if err != nil {
 		t.Fatal(err)
 	}
 	//fmt.Println(p2pMsg)

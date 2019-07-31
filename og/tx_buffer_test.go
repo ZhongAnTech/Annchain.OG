@@ -37,8 +37,8 @@ func (d *dummyDag) GetHeight() uint64 {
 	return 0
 }
 
-func (d *dummyDag) GetLatestNonce (addr common.Address) ( uint64, error) {
-	return 0,nil
+func (d *dummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
+	return 0, nil
 }
 
 func (d *dummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
@@ -102,7 +102,6 @@ func (p *dummyTxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-
 func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
 	return
 }
@@ -111,7 +110,7 @@ func (d *dummyTxPool) GetMaxWeight() uint64 {
 	return 0
 }
 
-func (d *dummyTxPool)GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
@@ -149,7 +148,7 @@ func (d *dummySyncer) ClearQueue() {
 	}
 }
 
-func (d *dummySyncer)SyncHashList(seqHash common.Hash) {
+func (d *dummySyncer) SyncHashList(seqHash common.Hash) {
 	return
 }
 

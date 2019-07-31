@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/OG/types/tx_types"
 )
 

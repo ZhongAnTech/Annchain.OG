@@ -16,7 +16,6 @@ package test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/p2p_message"
 	"golang.org/x/crypto/sha3"
 )

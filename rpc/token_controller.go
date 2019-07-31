@@ -107,7 +107,7 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), txReq.Action, txReq.Nonce,
 		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
@@ -196,7 +196,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, txReq.Action, txReq.Nonce,
 		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
@@ -284,7 +284,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionSPO,
 		txReq.Nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v",err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")

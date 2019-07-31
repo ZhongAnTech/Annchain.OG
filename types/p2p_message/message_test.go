@@ -25,7 +25,6 @@ func TestMessageNewActionTx_MarshalMsg(t *testing.T) {
 	fmt.Println(newTx, newTx.ActionTx, newTx.ActionTx.ActionData)
 }
 
-
 func TestMessageType_GetMsg(t *testing.T) {
 	var m = MessageTypePreVote
 	msg := m.GetMsg()

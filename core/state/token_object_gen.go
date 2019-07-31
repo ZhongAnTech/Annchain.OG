@@ -8,38 +8,38 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (t *TokenObject) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *TokenObject) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 8 {
-		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
+	if zb0001 != 7 {
+		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
-	t.TokenID, err = dc.ReadInt32()
+	z.TokenID, err = dc.ReadInt32()
 	if err != nil {
 		err = msgp.WrapError(err, "TokenID")
 		return
 	}
-	t.Name, err = dc.ReadString()
+	z.Name, err = dc.ReadString()
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
 		return
 	}
-	t.Symbol, err = dc.ReadString()
+	z.Symbol, err = dc.ReadString()
 	if err != nil {
 		err = msgp.WrapError(err, "Symbol")
 		return
 	}
-	err = t.Issuer.DecodeMsg(dc)
+	err = z.Issuer.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "Issuer")
 		return
 	}
-	t.ReIssuable, err = dc.ReadBool()
+	z.ReIssuable, err = dc.ReadBool()
 	if err != nil {
 		err = msgp.WrapError(err, "ReIssuable")
 		return
@@ -50,48 +50,31 @@ func (t *TokenObject) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "Issues")
 		return
 	}
-	if cap(t.Issues) >= int(zb0002) {
-		t.Issues = (t.Issues)[:zb0002]
+	if cap(z.Issues) >= int(zb0002) {
+		z.Issues = (z.Issues)[:zb0002]
 	} else {
-		t.Issues = make([]*math.BigInt, zb0002)
+		z.Issues = make([]*math.BigInt, zb0002)
 	}
-	for za0001 := range t.Issues {
+	for za0001 := range z.Issues {
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
 				err = msgp.WrapError(err, "Issues", za0001)
 				return
 			}
-			t.Issues[za0001] = nil
+			z.Issues[za0001] = nil
 		} else {
-			if t.Issues[za0001] == nil {
-				t.Issues[za0001] = new(math.BigInt)
+			if z.Issues[za0001] == nil {
+				z.Issues[za0001] = new(math.BigInt)
 			}
-			err = t.Issues[za0001].DecodeMsg(dc)
+			err = z.Issues[za0001].DecodeMsg(dc)
 			if err != nil {
 				err = msgp.WrapError(err, "Issues", za0001)
 				return
 			}
 		}
 	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			err = msgp.WrapError(err, "Left")
-			return
-		}
-		t.Left = nil
-	} else {
-		if t.Left == nil {
-			t.Left = new(math.BigInt)
-		}
-		err = t.Left.DecodeMsg(dc)
-		if err != nil {
-			err = msgp.WrapError(err, "Left")
-			return
-		}
-	}
-	t.Destroyed, err = dc.ReadBool()
+	z.Destroyed, err = dc.ReadBool()
 	if err != nil {
 		err = msgp.WrapError(err, "Destroyed")
 		return
@@ -100,69 +83,57 @@ func (t *TokenObject) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (t *TokenObject) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 8
-	err = en.Append(0x98)
+func (z *TokenObject) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 7
+	err = en.Append(0x97)
 	if err != nil {
 		return
 	}
-	err = en.WriteInt32(t.TokenID)
+	err = en.WriteInt32(z.TokenID)
 	if err != nil {
 		err = msgp.WrapError(err, "TokenID")
 		return
 	}
-	err = en.WriteString(t.Name)
+	err = en.WriteString(z.Name)
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
 		return
 	}
-	err = en.WriteString(t.Symbol)
+	err = en.WriteString(z.Symbol)
 	if err != nil {
 		err = msgp.WrapError(err, "Symbol")
 		return
 	}
-	err = t.Issuer.EncodeMsg(en)
+	err = z.Issuer.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "Issuer")
 		return
 	}
-	err = en.WriteBool(t.ReIssuable)
+	err = en.WriteBool(z.ReIssuable)
 	if err != nil {
 		err = msgp.WrapError(err, "ReIssuable")
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(t.Issues)))
+	err = en.WriteArrayHeader(uint32(len(z.Issues)))
 	if err != nil {
 		err = msgp.WrapError(err, "Issues")
 		return
 	}
-	for za0001 := range t.Issues {
-		if t.Issues[za0001] == nil {
+	for za0001 := range z.Issues {
+		if z.Issues[za0001] == nil {
 			err = en.WriteNil()
 			if err != nil {
 				return
 			}
 		} else {
-			err = t.Issues[za0001].EncodeMsg(en)
+			err = z.Issues[za0001].EncodeMsg(en)
 			if err != nil {
 				err = msgp.WrapError(err, "Issues", za0001)
 				return
 			}
 		}
 	}
-	if t.Left == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = t.Left.EncodeMsg(en)
-		if err != nil {
-			err = msgp.WrapError(err, "Left")
-			return
-		}
-	}
-	err = en.WriteBool(t.Destroyed)
+	err = en.WriteBool(z.Destroyed)
 	if err != nil {
 		err = msgp.WrapError(err, "Destroyed")
 		return
@@ -171,77 +142,68 @@ func (t *TokenObject) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (t *TokenObject) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, t.Msgsize())
-	// array header, size 8
-	o = append(o, 0x98)
-	o = msgp.AppendInt32(o, t.TokenID)
-	o = msgp.AppendString(o, t.Name)
-	o = msgp.AppendString(o, t.Symbol)
-	o, err = t.Issuer.MarshalMsg(o)
+func (z *TokenObject) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 7
+	o = append(o, 0x97)
+	o = msgp.AppendInt32(o, z.TokenID)
+	o = msgp.AppendString(o, z.Name)
+	o = msgp.AppendString(o, z.Symbol)
+	o, err = z.Issuer.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Issuer")
 		return
 	}
-	o = msgp.AppendBool(o, t.ReIssuable)
-	o = msgp.AppendArrayHeader(o, uint32(len(t.Issues)))
-	for za0001 := range t.Issues {
-		if t.Issues[za0001] == nil {
+	o = msgp.AppendBool(o, z.ReIssuable)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Issues)))
+	for za0001 := range z.Issues {
+		if z.Issues[za0001] == nil {
 			o = msgp.AppendNil(o)
 		} else {
-			o, err = t.Issues[za0001].MarshalMsg(o)
+			o, err = z.Issues[za0001].MarshalMsg(o)
 			if err != nil {
 				err = msgp.WrapError(err, "Issues", za0001)
 				return
 			}
 		}
 	}
-	if t.Left == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = t.Left.MarshalMsg(o)
-		if err != nil {
-			err = msgp.WrapError(err, "Left")
-			return
-		}
-	}
-	o = msgp.AppendBool(o, t.Destroyed)
+	o = msgp.AppendBool(o, z.Destroyed)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (t *TokenObject) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *TokenObject) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 8 {
-		err = msgp.ArrayError{Wanted: 8, Got: zb0001}
+	if zb0001 != 7 {
+		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
-	t.TokenID, bts, err = msgp.ReadInt32Bytes(bts)
+	z.TokenID, bts, err = msgp.ReadInt32Bytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "TokenID")
 		return
 	}
-	t.Name, bts, err = msgp.ReadStringBytes(bts)
+	z.Name, bts, err = msgp.ReadStringBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Name")
 		return
 	}
-	t.Symbol, bts, err = msgp.ReadStringBytes(bts)
+	z.Symbol, bts, err = msgp.ReadStringBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Symbol")
 		return
 	}
-	bts, err = t.Issuer.UnmarshalMsg(bts)
+	bts, err = z.Issuer.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Issuer")
 		return
 	}
-	t.ReIssuable, bts, err = msgp.ReadBoolBytes(bts)
+	z.ReIssuable, bts, err = msgp.ReadBoolBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "ReIssuable")
 		return
@@ -252,46 +214,30 @@ func (t *TokenObject) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "Issues")
 		return
 	}
-	if cap(t.Issues) >= int(zb0002) {
-		t.Issues = (t.Issues)[:zb0002]
+	if cap(z.Issues) >= int(zb0002) {
+		z.Issues = (z.Issues)[:zb0002]
 	} else {
-		t.Issues = make([]*math.BigInt, zb0002)
+		z.Issues = make([]*math.BigInt, zb0002)
 	}
-	for za0001 := range t.Issues {
+	for za0001 := range z.Issues {
 		if msgp.IsNil(bts) {
 			bts, err = msgp.ReadNilBytes(bts)
 			if err != nil {
 				return
 			}
-			t.Issues[za0001] = nil
+			z.Issues[za0001] = nil
 		} else {
-			if t.Issues[za0001] == nil {
-				t.Issues[za0001] = new(math.BigInt)
+			if z.Issues[za0001] == nil {
+				z.Issues[za0001] = new(math.BigInt)
 			}
-			bts, err = t.Issues[za0001].UnmarshalMsg(bts)
+			bts, err = z.Issues[za0001].UnmarshalMsg(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Issues", za0001)
 				return
 			}
 		}
 	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		t.Left = nil
-	} else {
-		if t.Left == nil {
-			t.Left = new(math.BigInt)
-		}
-		bts, err = t.Left.UnmarshalMsg(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Left")
-			return
-		}
-	}
-	t.Destroyed, bts, err = msgp.ReadBoolBytes(bts)
+	z.Destroyed, bts, err = msgp.ReadBoolBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Destroyed")
 		return
@@ -301,19 +247,14 @@ func (t *TokenObject) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (t *TokenObject) Msgsize() (s int) {
-	s = 1 + msgp.Int32Size + msgp.StringPrefixSize + len(t.Name) + msgp.StringPrefixSize + len(t.Symbol) + t.Issuer.Msgsize() + msgp.BoolSize + msgp.ArrayHeaderSize
-	for za0001 := range t.Issues {
-		if t.Issues[za0001] == nil {
+func (z *TokenObject) Msgsize() (s int) {
+	s = 1 + msgp.Int32Size + msgp.StringPrefixSize + len(z.Name) + msgp.StringPrefixSize + len(z.Symbol) + z.Issuer.Msgsize() + msgp.BoolSize + msgp.ArrayHeaderSize
+	for za0001 := range z.Issues {
+		if z.Issues[za0001] == nil {
 			s += msgp.NilSize
 		} else {
-			s += t.Issues[za0001].Msgsize()
+			s += z.Issues[za0001].Msgsize()
 		}
-	}
-	if t.Left == nil {
-		s += msgp.NilSize
-	} else {
-		s += t.Left.Msgsize()
 	}
 	s += msgp.BoolSize
 	return

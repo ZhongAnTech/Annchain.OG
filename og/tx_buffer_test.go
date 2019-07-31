@@ -98,6 +98,11 @@ func (d *dummyTxPool) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
+func (p *dummyTxPool) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
+}
+
+
 func (d *dummyTxPool) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
 	return
 }
@@ -142,6 +147,10 @@ func (d *dummySyncer) ClearQueue() {
 	for k := range d.dmap {
 		delete(d.dmap, k)
 	}
+}
+
+func (d *dummySyncer)SyncHashList(seqHash common.Hash) {
+	return
 }
 
 func (d *dummySyncer) Know(tx types.Txi) {

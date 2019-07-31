@@ -155,6 +155,44 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 			}
 			txs.Append(txi)
 		}
+	} else if syncRequest.HashTerminats != nil {
+		hashMap := make(map[p2p_message.HashTerminat]int)
+		allhashs := h.Og.TxPool.GetOrder()
+		if len(*syncRequest.HashTerminats) > 0 {
+			//var hashTerminates p2p_message.HashTerminats
+			for i, hash := range allhashs {
+				var hashTerminate p2p_message.HashTerminat
+				copy(hashTerminate[:], hash.Bytes[:4])
+				//hashTerminates = append(hashTerminates, hashTerminate)
+				hashMap[hashTerminate] = i
+			}
+			for _, hash := range *syncRequest.HashTerminats {
+				if _, ok := hashMap[hash]; ok {
+					delete(hashMap, hash)
+				}
+			}
+			for _, v := range hashMap {
+				hash := allhashs[v]
+				//if peer miss this tx ,send it
+				txi := h.Og.TxPool.Get(hash)
+				if txi == nil {
+					txi = h.Og.Dag.GetTx(hash)
+				}
+				txs.Append(txi)
+			}
+			msgLog.WithField("your tx num",len(*syncRequest.HashTerminats)).WithField(
+				"our tx num " ,len(allhashs)).WithField("response tx len",len(txs)).WithField(
+					"to ",peerId).Debug("response to hashList")
+		} else {
+			for _, hash := range allhashs {
+				//if peer miss this tx ,send it
+				txi := h.Og.TxPool.Get(hash)
+				if txi == nil {
+					txi = h.Og.Dag.GetTx(hash)
+				}
+				txs.Append(txi)
+			}
+		}
 	} else {
 		msgLog.Debug("empty MessageSyncRequest")
 		return

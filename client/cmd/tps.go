@@ -51,6 +51,7 @@ var (
 	times      uint16
 	accountNum uint16
 	ipports    string
+	tpsNum     uint16
 )
 
 func tpsInit() {
@@ -59,6 +60,7 @@ func tpsInit() {
 	tpsCmd.PersistentFlags().Uint16VarP(&accountNum, "accounts_num", "a", 4, "accounts_num 1000")
 	tpsCmd.PersistentFlags().StringVarP(&ipports, "ips", "i", "", "accounts_num 1000")
 	tpsGenCmd.PersistentFlags().Uint16VarP(&times, "times", "t", 1000, "times 1000")
+	tpsSendTxCmd.PersistentFlags().Uint16VarP(&tpsNum, "tps", "t", 1000, "tps 1000")
 }
 
 func tepsDataGen(threadNum uint16, db ogdb.Database, total uint16) {
@@ -130,11 +132,15 @@ func tpsSend(cmd *cobra.Command, args []string) {
 	var wg = &sync.WaitGroup{}
 	hostNum := uint16(len(ipportList))
 	perHost := accountNum / hostNum
+	tpsPerThread := (tpsNum / hostNum) / perHost
+	if tpsNum ==0 {
+		tpsPerThread = 0
+	}
 	for i := uint16(0); i < hostNum; i++ {
 		for j := uint16(0); j < perHost; j++ {
 			wg.Add(1)
 			go func(k uint16, host string) {
-				tpsSendData(k, db, host)
+				tpsSendData(k, db, host, tpsPerThread)
 				wg.Done()
 			}(i*perHost+j, ipportList[i])
 		}
@@ -144,7 +150,7 @@ func tpsSend(cmd *cobra.Command, args []string) {
 
 }
 
-func tpsSendData(threadNum uint16, db ogdb.Database, host string) {
+func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread uint16) {
 	txClient := tx_client.NewTxClientWIthTimeOut(host, false, time.Second*120)
 	Max := 1000000
 	for i := 0; i < Max; i++ {
@@ -157,12 +163,38 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string) {
 		}
 		_, err = reqs.UnmarshalMsg(data)
 		panicIfError(err, "unmarshal err")
-		fmt.Println("sending  data ", i, threadNum, len(reqs.Txs))
-		resp, err := txClient.SendNormalTxs(&reqs)
-		//panicIfError(err, resp)
-		if err != nil {
-			fmt.Println(err, resp)
-			return
+		j, k := 0, 0
+		for j < len(reqs.Txs) {
+			start := time.Now()
+			var newRequests rpc.NewTxsRequests
+			if int(tpsPerThread/2) < len(reqs.Txs) {
+				j = k + int(tpsPerThread/2)
+			}
+			if j > len(reqs.Txs) || tpsPerThread <= 0 {
+				j = len(reqs.Txs)
+			}
+			newRequests.Txs = append(newRequests.Txs, reqs.Txs[k:j]...)
+			txLen := len(newRequests.Txs)
+			k = j
+			resp, err := txClient.SendNormalTxs(&newRequests)
+			fmt.Println("sending  data ", i, j, k, threadNum, txLen)
+			//panicIfError(err, resp)
+			if err != nil {
+				fmt.Println(err, resp)
+				return
+			}
+			if tpsPerThread > 0 {
+				if txLen < int(tpsPerThread/2)-1 {
+					continue
+				}
+				duration := time.Now().Sub(start)
+				shoudUseTime := time.Second / 2
+				//shoudUseTime := time.Second * time.Duration(txLen) / time.Duration(tpsPerThread)
+				if duration < shoudUseTime {
+					fmt.Println("should sleep ", i, j, k, shoudUseTime-duration)
+					time.Sleep(shoudUseTime - duration)
+				}
+			}
 		}
 	}
 }

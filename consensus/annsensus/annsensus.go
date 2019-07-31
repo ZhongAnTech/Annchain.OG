@@ -71,7 +71,7 @@ type AnnSensus struct {
 	genesisPkChan                 chan *p2p_message.MessageConsensusDkgGenesisPublicKey
 	NewPeerConnectedEventListener chan string
 	ProposalSeqChan               chan common.Hash
-	HandleNewTxi                  func(tx types.Txi)
+	HandleNewTxi                  func(tx types.Txi, peerId string)
 
 	TxEnable           bool
 	NewLatestSequencer chan bool
@@ -82,7 +82,6 @@ type AnnSensus struct {
 	disableTermChange    bool
 	disable              bool
 	addedGenesisCampaign bool
-
 	initDone bool
 }
 
@@ -136,7 +135,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 
 func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
 	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
-	handleNewTxi func(txi types.Txi), sender announcer.MessageSender) {
+	handleNewTxi func(txi types.Txi, peerId string ), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
 	as.Hub = sender
 	as.dkg.Hub = sender

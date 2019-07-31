@@ -18,6 +18,7 @@ mode="normal"
   partner_number = 4
   term_change_interval = 10
   threshold = 4
+  sequencerTime = 2000
 
 [auto_client]
   nonce_self_discipline = false
@@ -105,3 +106,6 @@ mode="normal"
 [websocket]
   enabled = true
   port = 8002
+
+[tx_buffer]
+no_verify_signature = false

@@ -17,7 +17,7 @@
 package types
 
 import (
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/rlp"
 	"io"

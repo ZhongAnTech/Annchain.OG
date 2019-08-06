@@ -34,7 +34,7 @@ var debug bool
 
 func main() {
 	debug = true
-	a := newTxClient()
+	a := NewTxClient()
 	nonce := 6
 	priv, pub, addr := getkey()
 	tokenName := "btcdh"
@@ -98,7 +98,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     uint64(nonce),
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
@@ -141,7 +141,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     uint64(nonce),
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
@@ -187,7 +187,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		panic("not ok")
 	}
 	request := rpc.NewPublicOfferingRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:     uint64(nonce),
 		From:      tx.From.Hex(),
 		Value:     value.String(),
 		Signature: tx.Signature.String(),

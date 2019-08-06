@@ -11,16 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package og
+package txmaker
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og"
 	"testing"
 	"time"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
@@ -49,7 +50,7 @@ func (a *AllOkVerifier) Independent() bool {
 func Init() *TxCreator {
 	crypto.Signer = &crypto.SignerEd25519{}
 	txc := TxCreator{
-		TipGenerator:       &dummyTxPoolRandomTx{},
+		TipGenerator:       &og.DummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 100,
 		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
@@ -65,7 +66,18 @@ func TestTxCreator(t *testing.T) {
 	tx := txc.TipGenerator.GetRandomTips(1)[0].(*tx_types.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
-	txSigned := txc.NewSignedTx(*tx.From, tx.To, tx.Value, tx.AccountNonce, priv, 0)
+
+	txSigned := txc.NewSignedTx(SignedTxBuildRequest{
+		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+			From:         *tx.From,
+			To:           tx.To,
+			Value:        tx.Value,
+			AccountNonce: tx.AccountNonce,
+			TokenId:      0,
+		},
+		PrivateKey: priv,
+	})
+
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
@@ -90,7 +102,14 @@ func TestSequencerCreator(t *testing.T) {
 	// for copy
 	randomSeq := tx_types.RandomSequencer()
 
-	txSigned := txc.NewSignedSequencer(common.Address{}, randomSeq.Height, randomSeq.AccountNonce, priv)
+	txSigned := txc.NewSignedSequencer(SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
+			Height:       randomSeq.Height,
+			AccountNonce: randomSeq.AccountNonce,
+			Issuer:       common.Address{},
+		},
+		PrivateKey: priv,
+	})
 	logrus.Infof("total time for Signing: %d ns", time.Since(time1).Nanoseconds())
 	ok := txc.SealTx(txSigned, &priv)
 	logrus.Infof("result: %t %v", ok, txSigned)
@@ -113,7 +132,7 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 func TestBuildDag(t *testing.T) {
 	crypto.Signer = &crypto.SignerEd25519{}
 	logrus.SetLevel(logrus.DebugLevel)
-	pool := &DummyTxPoolMiniTx{}
+	pool := &og.DummyTxPoolMiniTx{}
 	pool.Init()
 	txc := TxCreator{
 		TipGenerator:       pool,
@@ -127,15 +146,61 @@ func TestBuildDag(t *testing.T) {
 	_, privateKey := crypto.Signer.RandomKeyPair()
 
 	txs := []types.Txi{
-		txc.NewSignedSequencer(common.Address{}, 0, 0, privateKey),
-		txc.NewSignedTx(common.HexToAddress("0x01"), common.HexToAddress("0x02"), math.NewBigInt(10),
-			0, privateKey, 0),
-		txc.NewSignedSequencer(common.Address{}, 1, 1, privateKey),
-		txc.NewSignedTx(common.HexToAddress("0x02"), common.HexToAddress("0x03"), math.NewBigInt(9),
-			0, privateKey, 0),
-		txc.NewSignedTx(common.HexToAddress("0x03"), common.HexToAddress("0x04"), math.NewBigInt(8),
-			0, privateKey, 0),
-		txc.NewSignedSequencer(common.Address{}, 2, 2, privateKey),
+		txc.NewSignedSequencer(SignedSequencerBuildRequest{
+			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
+				Issuer:       common.Address{},
+				Height:       0,
+				AccountNonce: 0,
+			},
+			PrivateKey: privateKey,
+		}),
+
+		txc.NewSignedTx(SignedTxBuildRequest{
+			UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+				From:         common.HexToAddress("0x01"),
+				To:           common.HexToAddress("0x02"),
+				Value:        math.NewBigInt(10),
+				AccountNonce: 0,
+				TokenId:      0,
+			},
+			PrivateKey: privateKey,
+		}),
+		txc.NewSignedSequencer(SignedSequencerBuildRequest{
+			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
+				Issuer:       common.Address{},
+				Height:       1,
+				AccountNonce: 1,
+			},
+			PrivateKey: privateKey,
+		}),
+		txc.NewSignedTx(SignedTxBuildRequest{
+			UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+				From:         common.HexToAddress("0x02"),
+				To:           common.HexToAddress("0x03"),
+				Value:        math.NewBigInt(9),
+				AccountNonce: 0,
+				TokenId:      0,
+			},
+			PrivateKey: privateKey,
+		}),
+		txc.NewSignedTx(SignedTxBuildRequest{
+			UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+				From:         common.HexToAddress("0x03"),
+				To:           common.HexToAddress("0x04"),
+				Value:        math.NewBigInt(8),
+				AccountNonce: 0,
+				TokenId:      0,
+			},
+			PrivateKey: privateKey,
+		}),
+		txc.NewSignedSequencer(SignedSequencerBuildRequest{
+			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
+				Issuer:       common.Address{},
+				Height:       2,
+				AccountNonce: 2,
+			},
+			PrivateKey: privateKey,
+		}),
 	}
 
 	txs[0].GetBase().Hash = txs[0].CalcTxHash()
@@ -149,7 +214,7 @@ func TestBuildDag(t *testing.T) {
 
 func TestNewFIFOTIpGenerator(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	f := NewFIFOTIpGenerator(&dummyTxPoolRandomTx{}, 15)
+	f := NewFIFOTIpGenerator(&og.DummyTxPoolRandomTx{}, 15)
 	fmt.Println(f.fifoRing)
 	f.GetRandomTips(3)
 	fmt.Println(f.fifoRing)

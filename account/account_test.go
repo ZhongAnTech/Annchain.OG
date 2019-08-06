@@ -3,32 +3,27 @@ package account
 import (
 	"fmt"
 	"testing"
-
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 )
 
-func TestSignature(t *testing.T) {
-	acc := NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", 00))
-
-	tx := &types.Tx{
-		From:  acc.Address,
-		To:    common.HexToAddress("0x1234567812345678"),
-		Value: math.NewBigInt(0xAABBCCDDEEFF),
-		TxBase: types.TxBase{
-			PublicKey: acc.PublicKey.Bytes,
-			Height:    10,
-		},
-	}
-	signer := &crypto.SignerSecp256k1{}
-
-	beforeSign := tx.SignatureTargets()
-	fmt.Println(hexutil.Encode(beforeSign))
-	sig := signer.Sign(acc.PrivateKey, tx.SignatureTargets())
-	fmt.Println(hexutil.Encode(sig.Bytes))
-}
+//func TestSignature(t *testing.T) {
+//	acc := NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", 00))
+//
+//	tx := &types.Tx{
+//		From:  acc.Address,
+//		To:    common.HexToAddress("0x1234567812345678"),
+//		Value: math.NewBigInt(0xAABBCCDDEEFF),
+//		TxBase: types.TxBase{
+//			PublicKey: acc.PublicKey.Bytes,
+//			Height:    10,
+//		},
+//	}
+//	signer := &crypto.SignerSecp256k1{}
+//
+//	beforeSign := tx.SignatureTargets()
+//	fmt.Println(hexutil.Encode(beforeSign))
+//	sig := signer.Sign(acc.PrivateKey, tx.SignatureTargets())
+//	fmt.Println(hexutil.Encode(sig.Bytes))
+//}
 
 func TestSampleAccounts(t *testing.T) {
 	MaxAccountCount := 255

@@ -16,6 +16,7 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	"github.com/annchain/OG/txmaker"
 	"net/http"
 	"strconv"
 	"time"
@@ -105,7 +106,17 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
 		return
 	}
-	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+
+	tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+		From:    from,
+		To:      to,
+		Value:   value,
+		Data:    data,
+		Nonce:   nonce,
+		Pubkey:  pub,
+		Sig:     sig,
+		TokenId: txReq.TokenId,
+	})
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
@@ -238,7 +249,16 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 			return
 		}
-		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+		tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+			From:    from,
+			To:      to,
+			Value:   value,
+			Data:    data,
+			Nonce:   nonce,
+			Pubkey:  pub,
+			Sig:     sig,
+			TokenId: txReq.TokenId,
+		})
 		if err != nil {
 			//try second time
 			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed , try again")
@@ -255,7 +275,16 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 				return
 			}
 			time.Sleep(time.Microsecond * 2)
-			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+			tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+				From:    from,
+				To:      to,
+				Value:   value,
+				Data:    data,
+				Nonce:   nonce,
+				Pubkey:  pub,
+				Sig:     sig,
+				TokenId: txReq.TokenId,
+			})
 			if err != nil {
 				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)

@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/status"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/p2p_message"
 	"time"
 
@@ -37,8 +38,6 @@ import (
 
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
-
-	"github.com/annchain/OG/core"
 
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/p2p"
@@ -303,9 +302,9 @@ func NewNode() *Node {
 	SetupCallbacksOG32(mr32, hub)
 
 	miner := &miner2.PoWMiner{}
-	txCreator := &og.TxCreator{
+	txCreator := &txmaker.TxCreator{
 		Miner:              miner,
-		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		TipGenerator:       txmaker.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
@@ -349,11 +348,6 @@ func NewNode() *Node {
 		status.ArchiveMode = true
 	}
 
-	autoClientManager := &AutoClientManager{
-		SampleAccounts:         core.GetSampleAccounts(),
-		NodeStatusDataProvider: org,
-	}
-
 	disableConsensus := viper.GetBool("annsensus.disable")
 	//TODO temperary , delete this after demo
 	//if archiveMode {
@@ -377,10 +371,7 @@ func NewNode() *Node {
 		termChangeInterval := viper.GetInt("annsensus.term_change_interval")
 		annSensus = annsensus.NewAnnSensus(termChangeInterval, disableConsensus, cryptoType, campaign,
 			partnerNum, genesisAccounts, consensFilePath, disableTermChange)
-		// TODO
-		// RegisterNewTxHandler is not for AnnSensus sending txs out.
-		// Not suitable to be used here.
-		autoClientManager.RegisterReceiver = annSensus.RegisterNewTxHandler
+
 		// TODO
 		// set annsensus's private key to be coinbase.
 
@@ -392,7 +383,7 @@ func NewNode() *Node {
 		txBuffer.Verifiers = append(txBuffer.Verifiers, consensusVerifier)
 
 		annSensus.InitAccount(myAcount, time.Millisecond*time.Duration(sequencerTime),
-			autoClientManager.JudgeNonce, txCreator, org.Dag, txBuffer.SelfGeneratedNewTxChan,
+			delegate.JudgeNonce, txCreator, org.Dag, txBuffer.SelfGeneratedNewTxChan,
 			syncManager.IncrementalSyncer.HandleNewTxi, hub)
 		logrus.Info("my pk ", annSensus.MyAccount.PublicKey.String())
 		hub.SetEncryptionKey(&annSensus.MyAccount.PrivateKey)
@@ -417,17 +408,6 @@ func NewNode() *Node {
 		pm.Register(annSensus)
 	}
 
-	accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
-	//coinBaseId := accountIds[0] + 100
-
-	autoClientManager.Init(
-		accountIds,
-		delegate,
-		myAcount,
-	)
-
-	n.Components = append(n.Components, autoClientManager)
-	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
 	//init msg requst id
@@ -455,10 +435,9 @@ func NewNode() *Node {
 		rpcServer.C.Og = org
 		rpcServer.C.TxBuffer = txBuffer
 		rpcServer.C.TxCreator = txCreator
-		// just for debugging, ignoring index OOR
-		rpcServer.C.NewRequestChan = autoClientManager.Clients[0].ManualChan
+
 		rpcServer.C.SyncerManager = syncManager
-		rpcServer.C.AutoTxCli = autoClientManager
+
 		if !disableConsensus {
 			rpcServer.C.AnnSensus = annSensus
 		}

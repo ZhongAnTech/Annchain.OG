@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/annchain/OG/common/utilfuncs"
 )
 
 type BinaryWriter struct {
@@ -20,7 +21,7 @@ func (s *BinaryWriter) Write(datas ...interface{}) {
 		s.buf = &bytes.Buffer{}
 	}
 	for _, data := range datas {
-		panicIfError(binary.Write(s.buf, binary.BigEndian, data))
+		utilfuncs.PanicIfError(binary.Write(s.buf, binary.BigEndian, data), "binary writer")
 	}
 }
 

@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/utilfuncs"
 	"os"
 	"path"
 	"strings"
@@ -102,7 +103,7 @@ func privateChainWithServerConfig() {
 		account.SavePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
 		//viper.Set("dag.my_private_key", privateSet[i])
 		err = viper.WriteConfigAs(path.Join(configDir, configFileName))
-		panicIfError(err, "error on dump config")
+		utilfuncs.PanicIfError(err, "error on dump config")
 		io.CopyFile("genesis.json", path.Join(configDir, "genesis.json"))
 	}
 }
@@ -153,7 +154,7 @@ func privateChainConfig() {
 	viper.Set("leveldb.path", "rw/datadir_0")
 	viper.Set("annsensus.consensus_path", "consensus0.json")
 	err = viper.WriteConfigAs(path.Join(privateDirNode0, configFileName))
-	panicIfError(err, "error on dump config")
+	utilfuncs.PanicIfError(err, "error on dump config")
 
 	// copy genesis
 	io.CopyFile("genesis.json", path.Join(privateDirNode0, "genesis.json"))
@@ -181,7 +182,7 @@ func privateChainConfig() {
 		account.SavePrivateKey(path.Join(configDir, privateKeyFile), privateSet[i])
 		//viper.Set("dag.my_private_key", privateSet[i])
 		err = viper.WriteConfigAs(path.Join(configDir, configFileName))
-		panicIfError(err, "error on dump config")
+		utilfuncs.PanicIfError(err, "error on dump config")
 		io.CopyFile("genesis.json", path.Join(configDir, "genesis.json"))
 	}
 }
@@ -214,7 +215,7 @@ func soloChainConfig() {
 	// viper.Set("dag.my_private_key", priv.String())
 	account.SavePrivateKey(path.Join(soloDir, privateKeyFile), priv.String())
 	err = viper.WriteConfigAs(path.Join(soloDir, configFileName))
-	panicIfError(err, "error on dump config")
+	utilfuncs.PanicIfError(err, "error on dump config")
 	io.CopyFile("genesis.json", path.Join(soloDir, "genesis.json"))
 }
 
@@ -240,7 +241,7 @@ func mainChainConfig() {
 	//viper.Set("dag.my_private_key", priv.String())
 	account.SavePrivateKey(path.Join(mainNetDir, privateKeyFile), priv.String())
 	err = viper.WriteConfigAs(path.Join(mainNetDir, configFileName))
-	panicIfError(err, "error on dump config")
+	utilfuncs.PanicIfError(err, "error on dump config")
 	io.CopyFile("genesis.json", path.Join(mainNetDir, "genesis.json"))
 }
 
@@ -259,19 +260,11 @@ func gen(cmd *cobra.Command, args []string) {
 
 func readConfig() {
 	file, err := os.Open(configFileName)
-	panicIfError(err, "open file error")
+	utilfuncs.PanicIfError(err, "open file error")
 	defer file.Close()
 
 	viper.SetConfigType("toml")
 	err = viper.MergeConfig(file)
 
-	panicIfError(err, "merge viper config err")
-}
-
-func panicIfError(err error, message string) {
-	if err != nil {
-		fmt.Println(message)
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
+	utilfuncs.PanicIfError(err, "merge viper config err")
 }

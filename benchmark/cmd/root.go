@@ -24,9 +24,9 @@ var Host string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "OGtool",
-	Short: "OGtool: The next generation of DLT",
-	Long:  `OG to da moon`,
+	Use:   "AutoClient",
+	Short: "AutoClient generates the txs periodically.",
+	Long:  `AutoClient generates the txs periodically.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -40,15 +40,6 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&Host, "server", "s", "http://127.0.0.1:8000", fmt.Sprintf("serverurl,default: http://127.0.0.1:8000"))
-	InfoCmd.AddCommand(netInfoCmd)
-	rootCmd.AddCommand(InfoCmd)
-	txInit()
-	rootCmd.AddCommand(txCmd)
-	accountInit()
-	rootCmd.AddCommand(accountCmd)
-	rootCmd.AddCommand(tokenCmd)
-	tokenInit()
-	rootCmd.AddCommand(tpsCmd)
-	tpsInit()
+	rootCmd.AddCommand(autoTxCmd)
 
 }

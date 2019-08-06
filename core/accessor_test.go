@@ -16,6 +16,7 @@ package core_test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/tx_types"
 	"io/ioutil"
 	"math/rand"
@@ -25,7 +26,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 )
@@ -64,22 +64,38 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 }
 
 func newTestUnsealTx(nonce uint64) *tx_types.Tx {
-	txCreator := &og.TxCreator{}
+	txCreator := &txmaker.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+			From:         addr,
+			To:           addr,
+			Value:        math.NewBigInt(0),
+			AccountNonce: nonce,
+			TokenId:      0,
+		},
+		PrivateKey: pk,
+	})
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)
 }
 
 func newTestSeq(nonce uint64) *tx_types.Sequencer {
-	txCreator := &og.TxCreator{}
+	txCreator := &txmaker.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(addr, nonce, nonce, pk)
+	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
+			Issuer:       addr,
+			Height:       nonce,
+			AccountNonce: nonce,
+		},
+		PrivateKey: pk,
+	})
 	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*tx_types.Sequencer)

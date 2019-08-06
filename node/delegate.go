@@ -16,13 +16,14 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/tx_types"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +40,7 @@ type TxRequest struct {
 type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
 
 type Delegate struct {
-	TxCreator          *og.TxCreator
+	TxCreator          *txmaker.TxCreator
 	ReceivedNewTxsChan chan []types.Txi
 	ReceivedNewTxChan  chan types.Txi
 	TxPool             *core.TxPool
@@ -59,8 +60,8 @@ func (d *Delegate) TooMoreTx() bool {
 	return false
 }
 
-func (c *Delegate) GenerateTx(r TxRequest) (tx types.Txi, err error) {
-	tx = c.TxCreator.NewSignedTx(r.AddrFrom, r.AddrTo, r.Value, r.Nonce, r.PrivateKey, r.TokenId)
+func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx types.Txi, err error) {
+	tx = c.TxCreator.NewSignedTx(r)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {
 		logrus.Warn("delegate failed to seal tx")
@@ -129,5 +130,21 @@ func (c *Delegate) GetLatestDagSequencer() *tx_types.Sequencer {
 func (c *Delegate) Announce(txi types.Txi) {
 	for _, ch := range c.OnNewTxiGenerated {
 		ch <- txi
+	}
+}
+
+func (c *Delegate) JudgeNonce(me *account.SampleAccount) uint64 {
+
+	var n uint64
+	//NonceSelfDiscipline
+	// fetch from db every time
+	n, err := c.GetLatestAccountNonce(me.Address)
+	me.SetNonce(n)
+	if err != nil {
+		// not exists, set to 0
+		return 0
+	} else {
+		n, _ = me.ConsumeNonce()
+		return n
 	}
 }

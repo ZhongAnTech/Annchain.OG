@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
@@ -38,7 +39,7 @@ type BFT struct {
 	resetChan          chan bool
 	mu                 sync.RWMutex
 	quit               chan bool
-	creator            *og.TxCreator
+	creator            *txmaker.TxCreator
 	JudgeNonceFunction func(account *account.SampleAccount) uint64
 	decisionChan       chan *commitDecision
 	//Verifiers     []og.Verifier
@@ -104,7 +105,7 @@ func MajorityTwoThird(n int) int {
 }
 
 func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
-	txCreator *og.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
+	txCreator *txmaker.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
 	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	ogBftPartner := &OGBFTPartner{
 		BFTPartner: partner,
@@ -228,14 +229,14 @@ func (b *BFT) sendToPartners(msgType p2p_message.MessageType, request p2p_messag
 
 func (b *BFT) loop() {
 	outCh := b.BFTPartner.GetOutgoingMessageChannel()
-	log := log.WithField("me", b.BFTPartner.GetId())
+	logev := log.WithField("me", b.BFTPartner.GetId())
 	for {
 		select {
 		case <-b.quit:
-			log.Info("got quit signal, BFT loop")
+			logev.Info("got quit signal, BFT loop")
 			return
 		case <-b.startBftChan:
-			log.Info("bft got start gossip signal")
+			logev.Info("bft got start gossip signal")
 			if !b.started {
 				goroutine.New(func() {
 					b.BFTPartner.StartNewEra(b.dag.GetHeight(), 0)
@@ -244,7 +245,7 @@ func (b *BFT) loop() {
 			b.started = true
 
 		case msg := <-outCh:
-			log.Tracef("got msg %v", msg)
+			logev.Tracef("got msg %v", msg)
 			switch msg.Type {
 			case p2p_message.MessageTypeProposal:
 				proposal := msg.Payload.(*p2p_message.MessageProposal)
@@ -260,10 +261,10 @@ func (b *BFT) loop() {
 			case p2p_message.MessageTypePreCommit:
 				preCommit := msg.Payload.(*p2p_message.MessagePreCommit)
 				if preCommit.Idv != nil {
-					log.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
+					logev.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
 					sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
 					if err != nil {
-						log.WithError(err).Error("sign error")
+						logev.WithError(err).Error("sign error")
 						panic(err)
 					}
 					preCommit.BlsSignature = sig
@@ -288,16 +289,16 @@ func (b *BFT) loop() {
 				//}
 				//blsSigsets = append(blsSigsets, blsSig)
 				if commit == nil {
-					log.WithField("i ", i).Debug("commit is nil")
+					logev.WithField("i ", i).Debug("commit is nil")
 					continue
 				}
-				log.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
-				log.Debug("commit ", commit)
+				logev.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
+				logev.Debug("commit ", commit)
 				sigShares = append(sigShares, commit.BlsSignature)
 			}
 			jointSig, err := b.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), b.DKGTermId)
 			if err != nil {
-				log.WithField("termId ", b.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
+				logev.WithField("termId ", b.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
 
 				decision.callbackChan <- err
 				continue
@@ -306,7 +307,7 @@ func (b *BFT) loop() {
 			}
 
 			sequencerProposal.BlsJointSig = jointSig
-			log.Debug("will send buffer")
+			logev.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub
 			sequencerProposal.Sequencer.Proposing = false
 			b.OnSelfGenTxi <- &sequencerProposal.Sequencer

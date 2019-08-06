@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/status"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/gin-gonic/gin"
@@ -104,9 +105,23 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 	}
 
 	fmt.Println(fmt.Sprintf("tx req action: %x", txReq.Action))
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, math.NewBigInt(0), txReq.Action, txReq.Nonce,
-		txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
+
+	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+			From:         from,
+			To:           common.Address{},
+			Value:        math.NewBigInt(0),
+			AccountNonce: txReq.Nonce,
+			TokenId:      0,
+		},
+		Action:    txReq.Action,
+		EnableSpo: txReq.EnableSPO,
+		TokenName: txReq.TokenName,
+		Pubkey:    pub,
+		Sig:       sig,
+	})
 	if err != nil {
+		logrus.WithError(err).Warn("failed to seal tx")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
@@ -193,9 +208,22 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, txReq.Action, txReq.Nonce,
-		txReq.EnableSPO, 0, txReq.TokenName, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+			From:         from,
+			To:           common.Address{},
+			Value:        value,
+			AccountNonce: txReq.Nonce,
+			TokenId:      0,
+		},
+		Action:    txReq.Action,
+		EnableSpo: txReq.EnableSPO,
+		TokenName: txReq.TokenName,
+		Pubkey:    pub,
+		Sig:       sig,
+	})
 	if err != nil {
+		logrus.WithError(err).Warn("failed to seal tx")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}
@@ -281,9 +309,22 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(from, common.Address{}, value, tx_types.ActionTxActionSPO,
-		txReq.Nonce, txReq.EnableSPO, txReq.TokenId, txReq.TokenName, pub, sig)
+	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+			From:         from,
+			To:           common.Address{},
+			Value:        value,
+			AccountNonce: txReq.Nonce,
+			TokenId:      0,
+		},
+		Action:    tx_types.ActionTxActionSPO,
+		EnableSpo: txReq.EnableSPO,
+		TokenName: txReq.TokenName,
+		Pubkey:    pub,
+		Sig:       sig,
+	})
 	if err != nil {
+		logrus.WithError(err).Warn("failed to seal tx")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
 		return
 	}

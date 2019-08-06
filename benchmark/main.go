@@ -11,23 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package types
 
-import (
-	"time"
-)
+package main
 
-func ChannelHandler(timer *time.Timer, receiver chan interface{}, data interface{}) {
-	for {
-		if !timer.Stop() {
-			<-timer.C
-		}
-		timer.Reset(time.Second * 10)
-		select {
-		case <-timer.C:
-			// log.Warn("timeout on channel writing: batch confirmed")
-		case receiver <- data:
-			break
-		}
-	}
+import "github.com/annchain/OG/benchmark/cmd"
+
+func main() {
+	cmd.Execute()
 }

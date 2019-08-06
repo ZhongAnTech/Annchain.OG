@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/txmaker"
 	"testing"
 
 	"github.com/annchain/OG/common"
@@ -26,7 +27,6 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/og"
 )
 
 var (
@@ -57,11 +57,20 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequence
 }
 
 func newTestDagTx(nonce uint64) *tx_types.Tx {
-	txCreator := &og.TxCreator{}
+	txCreator := &txmaker.TxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+			From:         addr,
+			To:           addr,
+			Value:        math.NewBigInt(0),
+			AccountNonce: nonce,
+			TokenId:      0,
+		},
+		PrivateKey: pk,
+	})
 	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*tx_types.Tx)

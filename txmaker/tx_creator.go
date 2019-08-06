@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package og
+package txmaker
 
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types/tx_types"
 	"sync/atomic"
 	"time"
@@ -159,13 +160,13 @@ type TxCreator struct {
 	MaxMinedHash       common.Hash  // The difficultiy of MinedHash
 	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
 	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
-	GraphVerifier      Verifier     // To verify the graph structure
+	GraphVerifier      og.Verifier  // To verify the graph structure
 	quit               bool
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
 	GetStateRoot       GetStateRoot
-	TxFormatVerifier   TxFormatVerifier
+	TxFormatVerifier   og.TxFormatVerifier
 }
 
 func (t *TxCreator) GetArchiveNonce() uint64 {
@@ -176,14 +177,14 @@ func (t *TxCreator) Stop() {
 	t.quit = true
 }
 
-func (m *TxCreator) NewUnsignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64, tokenId int32) types.Txi {
+func (m *TxCreator) NewUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
 	tx := tx_types.Tx{
-		Value:   value,
-		To:      to,
-		From:    &from,
-		TokenId: tokenId,
+		Value:   req.Value,
+		To:      req.To,
+		From:    &req.From,
+		TokenId: req.TokenId,
 		TxBase: types.TxBase{
-			AccountNonce: accountNonce,
+			AccountNonce: req.AccountNonce,
 			Type:         types.TxBaseTypeNormal,
 		},
 	}
@@ -209,23 +210,33 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	return tx, nil
 }
 
-func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value *math.BigInt, data []byte,
-	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature, tokenId int32) (tx types.Txi, err error) {
+type TxWithSealBuildRequest struct {
+	From    common.Address
+	To      common.Address
+	Value   *math.BigInt
+	Data    []byte
+	Nonce   uint64
+	Pubkey  crypto.PublicKey
+	Sig     crypto.Signature
+	TokenId int32
+}
+
+func (m *TxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err error) {
 	tx = &tx_types.Tx{
-		From: &from,
+		From: &req.From,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
-		To:      to,
-		Value:   value,
-		Data:    data,
-		TokenId: tokenId,
+		To:      req.To,
+		Value:   req.Value,
+		Data:    req.Data,
+		TokenId: req.TokenId,
 		TxBase: types.TxBase{
-			AccountNonce: nonce,
+			AccountNonce: req.Nonce,
 			Type:         types.TxBaseTypeNormal,
 		},
 	}
-	tx.GetBase().Signature = sig.Bytes
-	tx.GetBase().PublicKey = pubkey.Bytes
+	tx.GetBase().Signature = req.Sig.Bytes
+	tx.GetBase().PublicKey = req.Pubkey.Bytes
 
 	if ok := m.SealTx(tx, nil); !ok {
 		logrus.Warn("failed to seal tx")
@@ -237,29 +248,27 @@ func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value 
 	return tx, nil
 }
 
-func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, value *math.BigInt, action byte,
-	nonce uint64, enableSpo bool, TokenId int32, tokenName string, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
+func (m *TxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi, err error) {
 	tx = &tx_types.ActionTx{
-		From: &from,
+		From: &req.From,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
 		TxBase: types.TxBase{
-			AccountNonce: nonce,
+			AccountNonce: req.AccountNonce,
 			Type:         types.TxBaseAction,
 		},
-		Action: action,
+		Action: req.Action,
 		ActionData: &tx_types.PublicOffering{
-			Value:     value,
-			EnableSPO: enableSpo,
-			TokenId:   TokenId,
-			TokenName: tokenName,
+			Value:     req.Value,
+			EnableSPO: req.EnableSpo,
+			TokenId:   req.TokenId,
+			TokenName: req.TokenName,
 		},
 	}
-	tx.GetBase().Signature = sig.Bytes
-	tx.GetBase().PublicKey = pubkey.Bytes
+	tx.GetBase().Signature = req.Sig.Bytes
+	tx.GetBase().PublicKey = req.Pubkey.Bytes
 
 	if ok := m.SealTx(tx, nil); !ok {
-		logrus.Warn("failed to seal tx")
 		err = fmt.Errorf("failed to seal tx")
 		return
 	}
@@ -268,42 +277,74 @@ func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, 
 	return tx, nil
 }
 
-func (m *TxCreator) NewSignedTx(from common.Address, to common.Address, value *math.BigInt, accountNonce uint64,
-	privateKey crypto.PrivateKey, tokenId int32) types.Txi {
-	if privateKey.Type != crypto.Signer.GetCryptoType() {
+type UnsignedTxBuildRequest struct {
+	From         common.Address
+	To           common.Address
+	Value        *math.BigInt
+	AccountNonce uint64
+	TokenId      int32
+}
+
+type SignedTxBuildRequest struct {
+	UnsignedTxBuildRequest
+	PrivateKey crypto.PrivateKey
+}
+
+type ActionTxBuildRequest struct {
+	UnsignedTxBuildRequest
+	Action    byte
+	EnableSpo bool
+	TokenName string
+	Pubkey    crypto.PublicKey
+	Sig       crypto.Signature
+}
+
+func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
+	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedTx(from, to, value, accountNonce, tokenId)
+	tx := m.NewUnsignedTx(req.UnsignedTxBuildRequest)
 	// do sign work
-	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
+	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(privateKey).Bytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).Bytes
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(issuer common.Address, Height uint64, accountNonce uint64) *tx_types.Sequencer {
+type UnsignedSequencerBuildRequest struct {
+	Issuer       common.Address
+	Height       uint64
+	AccountNonce uint64
+}
+
+type SignedSequencerBuildRequest struct {
+	UnsignedSequencerBuildRequest
+	PrivateKey crypto.PrivateKey
+}
+
+func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_types.Sequencer {
 	tx := tx_types.Sequencer{
-		Issuer: &issuer,
+		Issuer: &req.Issuer,
 		TxBase: types.TxBase{
-			AccountNonce: accountNonce,
+			AccountNonce: req.AccountNonce,
 			Type:         types.TxBaseTypeSequencer,
-			Height:       Height,
+			Height:       req.Height,
 		},
 	}
 	return &tx
 }
 
 //NewSignedSequencer this function is for test
-func (m *TxCreator) NewSignedSequencer(issuer common.Address, height uint64, accountNonce uint64, privateKey crypto.PrivateKey) types.Txi {
-	if privateKey.Type != crypto.Signer.GetCryptoType() {
+func (m *TxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.Txi {
+	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedSequencer(issuer, height, accountNonce)
+	tx := m.NewUnsignedSequencer(req.UnsignedSequencerBuildRequest)
 	// do sign work
 	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
-	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
+	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(privateKey).Bytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).Bytes
 	return tx
 }
 
@@ -452,9 +493,14 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 	return true
 }
 
-func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, accountNonce uint64,
+func (m *TxCreator) GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
 	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, genAgain bool) {
-	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
+
+	tx := m.NewUnsignedSequencer(UnsignedSequencerBuildRequest{
+		Height:       height,
+		Issuer:       issuer,
+		AccountNonce: accountNonce,
+	})
 	//for sequencer no mined nonce
 	// record the mining times.
 	pubkey := crypto.Signer.PubKey(*privateKey)

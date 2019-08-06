@@ -62,7 +62,8 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("new_transaction", rpc.NewTransaction)
 	router.POST("new_transactions", rpc.NewTransactions)
 	router.POST("new_account", rpc.NewAccount)
-	router.GET("auto_tx", rpc.AutoTx)
+	// TODO: recover this
+	//router.GET("auto_tx", rpc.AutoTx)
 
 	// query API
 	router.GET("query", rpc.Query)

@@ -24,11 +24,11 @@ import "encoding/hex"
 //
 // Deprecated: use hexutil.Encode instead.
 func ToHex(b []byte) string {
-	hex := Bytes2Hex(b)
-	if len(hex) == 0 {
-		hex = "0"
+	hexstr := Bytes2Hex(b)
+	if len(hexstr) == 0 {
+		hexstr = "0"
 	}
-	return "0x" + hex
+	return "0x" + hexstr
 }
 
 // FromHex returns the bytes represented by the hexadecimal string s.

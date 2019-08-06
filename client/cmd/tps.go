@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/common/utilfuncs"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/rpc"
 	"github.com/spf13/cobra"
@@ -76,10 +77,10 @@ func tepsDataGen(threadNum uint16, db ogdb.Database, total uint16) {
 			reqs.Txs = append(reqs.Txs, txReq)
 		}
 		data, err := reqs.MarshalMsg(nil)
-		panicIfError(err, "marshal err")
+		utilfuncs.PanicIfError(err, "marshal err")
 		key := makeKey(threadNum, i)
 		err = db.Put(key, data)
-		panicIfError(err, "db err")
+		utilfuncs.PanicIfError(err, "db err")
 		fmt.Println("gen tx ", i, threadNum)
 	}
 }
@@ -94,7 +95,7 @@ func makeKey(i, j uint16) []byte {
 
 func tpsGen(cmd *cobra.Command, args []string) {
 	db, err := generateDb()
-	panicIfError(err, "")
+	utilfuncs.PanicIfError(err, "")
 	defer db.Close()
 	start := time.Now()
 	//mp:= runtime.GOMAXPROCS(0)
@@ -115,7 +116,7 @@ func tpsGen(cmd *cobra.Command, args []string) {
 
 func tpsSend(cmd *cobra.Command, args []string) {
 	db, err := generateDb()
-	panicIfError(err, "")
+	utilfuncs.PanicIfError(err, "")
 	defer db.Close()
 	start := time.Now()
 	//mp:= runtime.GOMAXPROCS(0)
@@ -162,7 +163,7 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 			break
 		}
 		_, err = reqs.UnmarshalMsg(data)
-		panicIfError(err, "unmarshal err")
+		utilfuncs.PanicIfError(err, "unmarshal err")
 		j, k := 0, 0
 		for j < len(reqs.Txs) {
 			start := time.Now()
@@ -178,7 +179,7 @@ func tpsSendData(threadNum uint16, db ogdb.Database, host string, tpsPerThread u
 			k = j
 			resp, err := txClient.SendNormalTxs(&newRequests)
 			fmt.Println("sending  data ", i, j, k, threadNum, txLen)
-			//panicIfError(err, resp)
+			//utilfuncs.PanicIfError(err, resp)
 			if err != nil {
 				fmt.Println(err, resp)
 				return

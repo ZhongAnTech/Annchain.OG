@@ -26,6 +26,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
@@ -125,16 +126,16 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	if partnerNum < 2 {
 		panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
 	}
-	dkg := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
-	dkg.ConfigFilePath = configFile
-	ann.dkg = dkg
+	dkger := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
+	dkger.ConfigFilePath = configFile
+	ann.dkg = dkger
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
 
 	return ann
 }
 
 func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txCreator *og.TxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
+	judgeNonce func(me *account.SampleAccount) uint64, txCreator *txmaker.TxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
 	handleNewTxi func(txi types.Txi, peerId string), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
 	as.Hub = sender

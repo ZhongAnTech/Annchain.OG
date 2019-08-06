@@ -11,23 +11,23 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package node
+package auto
 
-import (
-	"testing"
-	"time"
-)
-
-func TestAutoClient_Stop(t *testing.T) {
-	a := &AutoClient{}
-	a.IntervalMode = IntervalModeRandom
-	a.SequencerIntervalUs = 500000
-	a.TxIntervalUs = 100000
-	a.AutoTxEnabled = false
-	a.AutoSequencerEnabled = false
-	go a.loop()
-	time.Sleep(30 * time.Millisecond)
-	a.Resume()
-	time.Sleep(3 * time.Second)
-	return
-}
+//import (
+//	"testing"
+//	"time"
+//)
+//
+//func TestAutoClient_Stop(t *testing.T) {
+//	a := &AutoClient{}
+//	IntervalMode = IntervalModeRandom
+//	SequencerIntervalUs = 500000
+//	TxIntervalUs = 100000
+//	AutoTxEnabled = false
+//	AutoSequencerEnabled = false
+//	go loop()
+//	time.Sleep(30 * time.Millisecond)
+//	Resume()
+//	time.Sleep(3 * time.Second)
+//	return
+//}

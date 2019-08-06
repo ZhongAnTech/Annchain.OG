@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
 
@@ -38,17 +39,12 @@ type RpcController struct {
 	P2pServer          *p2p.Server
 	Og                 *og.Og
 	TxBuffer           *og.TxBuffer
-	TxCreator          *og.TxCreator
+	TxCreator          *txmaker.TxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor
-	AutoTxCli          AutoTxClient
 	NewRequestChan     chan types.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
 	FormatVerifier     *og.TxFormatVerifier
-}
-
-type AutoTxClient interface {
-	SetTxIntervalUs(i int)
 }
 
 //TxRequester
@@ -297,19 +293,6 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 		"pubkey":  pub.String(),
 		"privkey": priv.String(),
 	})
-	return
-}
-
-func (r *RpcController) AutoTx(c *gin.Context) {
-	intervalStr := c.Query("interval_us")
-	interval, err := strconv.Atoi(intervalStr)
-	if err != nil || interval < 0 {
-		Response(c, http.StatusBadRequest, fmt.Errorf("interval format err"), nil)
-		return
-	}
-	r.AutoTxCli.SetTxIntervalUs(interval)
-
-	Response(c, http.StatusOK, nil, nil)
 	return
 }
 

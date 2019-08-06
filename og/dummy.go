@@ -21,23 +21,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type dummyTxPoolRandomTx struct {
+type DummyTxPoolRandomTx struct {
 }
 
-func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
+func (p *DummyTxPoolRandomTx) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
+}
+
+func (p *DummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
 	for i := 0; i < n; i++ {
 		v = append(v, tx_types.RandomTx())
 	}
 	return
 }
 
-func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *DummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
 type DummyTxPoolMiniTx struct {
 	poolMap map[common.Hash]types.Txi
 	tipsMap map[common.Hash]types.Txi
+}
+
+func (d *DummyTxPoolMiniTx) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
 }
 
 func (d *DummyTxPoolMiniTx) Init() {
@@ -75,43 +83,43 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 		v.String(), len(p.tipsMap), len(p.poolMap))
 }
 
-type dummyTxPoolParents struct {
+type DummyTxPoolParents struct {
 	poolMap map[common.Hash]types.Txi
 }
 
-func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
+func (p *DummyTxPoolParents) IsLocalHash(h common.Hash) bool {
 	return false
 }
 
-func (p *dummyTxPoolParents) IsBadSeq(seq *tx_types.Sequencer) error {
+func (p *DummyTxPoolParents) IsBadSeq(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (P *dummyTxPoolParents) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *DummyTxPoolParents) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
-func (p *dummyTxPoolParents) GetLatestNonce(addr common.Address) (uint64, error) {
+func (p *DummyTxPoolParents) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
-func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
+func (p *DummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
 	return
 }
 
-func (p *dummyTxPoolParents) Init() {
+func (p *DummyTxPoolParents) Init() {
 	p.poolMap = make(map[common.Hash]types.Txi)
 }
 
-func (p *dummyTxPoolParents) Get(hash common.Hash) types.Txi {
+func (p *DummyTxPoolParents) Get(hash common.Hash) types.Txi {
 	return p.poolMap[hash]
 }
 
-func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi, b bool) error {
+func (p *DummyTxPoolParents) AddRemoteTx(tx types.Txi, b bool) error {
 	p.poolMap[tx.GetTxHash()] = tx
 	return nil
 }
 
-func (p *dummyTxPoolParents) GetMaxWeight() uint64 {
+func (p *DummyTxPoolParents) GetMaxWeight() uint64 {
 	return 0
 }

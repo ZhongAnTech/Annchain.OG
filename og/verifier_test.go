@@ -55,7 +55,7 @@ func judge(t *testing.T, actual interface{}, want interface{}, id int) {
 
 // A3: Nodes produced by same source must be sequential (tx nonce ++).
 func TestA3(t *testing.T) {
-	pool := &dummyTxPoolParents{}
+	pool := &DummyTxPoolParents{}
 	pool.Init()
 	dag := &dummyDag{}
 	dag.init()
@@ -118,7 +118,7 @@ func TestA3(t *testing.T) {
 
 // A6: [My job] Node cannot reference two un-ordered nodes as its parents
 func TestA6(t *testing.T) {
-	pool := &dummyTxPoolParents{}
+	pool := &DummyTxPoolParents{}
 	pool.Init()
 	dag := &dummyDag{}
 	dag.init()

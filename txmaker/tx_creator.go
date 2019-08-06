@@ -285,11 +285,6 @@ type UnsignedTxBuildRequest struct {
 	TokenId      int32
 }
 
-type SignedTxBuildRequest struct {
-	UnsignedTxBuildRequest
-	PrivateKey crypto.PrivateKey
-}
-
 type ActionTxBuildRequest struct {
 	UnsignedTxBuildRequest
 	Action    byte
@@ -297,6 +292,11 @@ type ActionTxBuildRequest struct {
 	TokenName string
 	Pubkey    crypto.PublicKey
 	Sig       crypto.Signature
+}
+
+type SignedTxBuildRequest struct {
+	UnsignedTxBuildRequest
+	PrivateKey crypto.PrivateKey
 }
 
 func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
@@ -317,11 +317,6 @@ type UnsignedSequencerBuildRequest struct {
 	AccountNonce uint64
 }
 
-type SignedSequencerBuildRequest struct {
-	UnsignedSequencerBuildRequest
-	PrivateKey crypto.PrivateKey
-}
-
 func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_types.Sequencer {
 	tx := tx_types.Sequencer{
 		Issuer: &req.Issuer,
@@ -332,6 +327,11 @@ func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_
 		},
 	}
 	return &tx
+}
+
+type SignedSequencerBuildRequest struct {
+	UnsignedSequencerBuildRequest
+	PrivateKey crypto.PrivateKey
 }
 
 //NewSignedSequencer this function is for test

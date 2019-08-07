@@ -69,7 +69,6 @@ type Dag struct {
 	OnConsensusTXConfirmed chan []types.Txi
 	close                  chan struct{}
 
-	wg sync.WaitGroup
 	mu sync.RWMutex
 }
 
@@ -124,10 +123,7 @@ func (dag *Dag) Start() {
 
 func (dag *Dag) Stop() {
 	close(dag.close)
-	dag.wg.Wait()
-	// TODO
-	// the state root should be stored in sequencer rather than stored seperately.
-	dag.SaveStateRoot()
+
 	dag.statedb.Stop()
 	log.Infof("Dag Stopped")
 }
@@ -136,26 +132,8 @@ func (dag *Dag) Stop() {
 // This is a temp function to solve the not working problem when
 // restart the node. The perfect solution is to load the root from
 // latest sequencer every time restart the node.
-func (dag *Dag) SaveStateRoot() {
-	key := []byte("stateroot")
-	root := dag.statedb.Root()
-	// Debug code
-	if root.Empty() && dag.GetHeight() > 0 {
-		log.Error("empty hash slove this")
-		return
-	}
-	dag.db.Put(key, dag.statedb.Root().ToBytes())
-	log.Infof("stateroot saved: %x", dag.statedb.Root().ToBytes())
-}
-
-// TODO
-// This is a temp function to solve the not working problem when
-// restart the node. The perfect solution is to load the root from
-// latest sequencer every time restart the node.
 func (dag *Dag) LoadStateRoot() common.Hash {
-	key := []byte("stateroot")
-	rootbyte, _ := dag.db.Get(key)
-	return common.BytesToHash(rootbyte)
+	return dag.accessor.ReadLastStateRoot()
 }
 
 // StateDatabase is for testing only
@@ -878,11 +856,19 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO
+	// this is a temp function, the state root should be stored in latest seq.
+	err = dag.accessor.WriteLastStateRoot(dbBatch, root)
+	if err != nil {
+		return err
+	}
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
 	if err != nil {
 		return err
 	}
+
 	err = dbBatch.Write()
 	if err != nil {
 		log.WithError(err).Warn("dbbatch write error")
@@ -1149,34 +1135,6 @@ func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 	ret, _, err := ogvm.StaticCall(vmtypes.AccountRef(txContext.From), addr, txContext.Data, txContext.GasLimit)
 	return ret, err
 }
-
-// Finalize
-//func (dag *Dag) Finalize() error {
-//	// consensus
-//	// TODO
-//
-//	// state
-//
-//	// TODO
-//	// get new trie root after commit, then compare new root
-//	// to the root in seq. If not equal then return error.
-//
-//	// commit statedb's changes to trie and triedb
-//	root, errdb := dag.statedb.Commit()
-//	if errdb != nil {
-//		log.Errorf("can't Commit statedb, err:  %v", errdb)
-//		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
-//	}
-//	// flush triedb into diskdb.
-//	triedb := dag.statedb.Database().TrieDB()
-//	err := triedb.Commit(root, false)
-//	if err != nil {
-//		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-//		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-//	}
-//
-//	return nil
-//}
 
 type txcached struct {
 	maxsize int

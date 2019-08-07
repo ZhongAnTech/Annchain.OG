@@ -22,11 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"math/rand"
-	"sync"
-
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -38,118 +34,8 @@ type TipGenerator interface {
 	IsBadSeq(seq *tx_types.Sequencer) error
 }
 
-type GetStateRoot interface {
+type StateRootProvider interface {
 	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
-}
-
-type FIFOTipGenerator struct {
-	maxCacheSize int
-	upstream     TipGenerator
-	fifoRing     []types.Txi
-	fifoRingPos  int
-	fifoRingFull bool
-	mu           sync.RWMutex
-}
-
-func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenerator {
-	return &FIFOTipGenerator{
-		upstream:     upstream,
-		maxCacheSize: maxCacheSize,
-		fifoRing:     make([]types.Txi, maxCacheSize),
-	}
-}
-
-func (f *FIFOTipGenerator) validation() {
-	var k int
-	for i := 0; i < f.maxCacheSize; i++ {
-		if f.fifoRing[i] == nil {
-			if f.fifoRingPos > i {
-				f.fifoRingPos = i
-			}
-			break
-		}
-		//if the tx is became fatal tx ,remove it from tips
-		if f.fifoRing[i].InValid() {
-			logrus.WithField("tx ", f.fifoRing[i]).Debug("found invalid tx")
-			if !f.fifoRingFull {
-				if f.fifoRingPos > 0 {
-					if f.fifoRingPos-1 == i {
-						f.fifoRing[i] = nil
-					} else if f.fifoRingPos-1 > i {
-						f.fifoRing[i] = f.fifoRing[f.fifoRingPos-1]
-					} else {
-						f.fifoRing[i] = nil
-						break
-					}
-					f.fifoRingPos--
-				}
-			} else {
-				f.fifoRing[i] = f.fifoRing[f.maxCacheSize-k-1]
-				f.fifoRing[f.maxCacheSize-k-1] = nil
-				i--
-				k++
-				f.fifoRingFull = false
-			}
-		}
-	}
-}
-
-func (f *FIFOTipGenerator) GetByNonce(addr common.Address, nonce uint64) types.Txi {
-	return f.upstream.GetByNonce(addr, nonce)
-}
-
-func (f *FIFOTipGenerator) IsBadSeq(seq *tx_types.Sequencer) error {
-	return f.upstream.IsBadSeq(seq)
-}
-
-func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	upstreamTips := f.upstream.GetRandomTips(n)
-	//checkValidation
-	f.validation()
-	// update fifoRing
-	for _, upstreamTip := range upstreamTips {
-		duplicated := false
-		for i := 0; i < f.maxCacheSize; i++ {
-			if f.fifoRing[i] != nil && f.fifoRing[i].GetTxHash() == upstreamTip.GetTxHash() {
-				// duplicate, ignore directly
-				duplicated = true
-				break
-			}
-		}
-		if !duplicated {
-			// advance ring and put it in the fifo ring
-			f.fifoRing[f.fifoRingPos] = upstreamTip
-			f.fifoRingPos++
-			// round
-			if f.fifoRingPos == f.maxCacheSize {
-				f.fifoRingPos = 0
-				f.fifoRingFull = true
-			}
-		}
-	}
-	// randomly pick n from fifo cache
-	randIndices := make(map[int]bool)
-	ringSize := f.fifoRingPos
-	if f.fifoRingFull {
-		ringSize = f.maxCacheSize
-	}
-	pickSize := n
-	if !f.fifoRingFull && f.fifoRingPos < n {
-		pickSize = f.fifoRingPos
-	}
-
-	for len(randIndices) != pickSize {
-		randIndices[rand.Intn(ringSize)] = true
-	}
-
-	// dump those txs
-	for k := range randIndices {
-		v = append(v, f.fifoRing[k])
-	}
-	return
-
 }
 
 // TxCreator creates tx and do the signing and mining
@@ -165,7 +51,7 @@ type TxCreator struct {
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
-	GetStateRoot       GetStateRoot
+	StateRootProvider  StateRootProvider
 	TxFormatVerifier   og.TxFormatVerifier
 }
 
@@ -208,17 +94,6 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	logrus.WithField("tx", tx).Debugf("tx generated")
 
 	return tx, nil
-}
-
-type TxWithSealBuildRequest struct {
-	From    common.Address
-	To      common.Address
-	Value   *math.BigInt
-	Data    []byte
-	Nonce   uint64
-	Pubkey  crypto.PublicKey
-	Sig     crypto.Signature
-	TokenId int32
 }
 
 func (m *TxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err error) {
@@ -277,28 +152,6 @@ func (m *TxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi,
 	return tx, nil
 }
 
-type UnsignedTxBuildRequest struct {
-	From         common.Address
-	To           common.Address
-	Value        *math.BigInt
-	AccountNonce uint64
-	TokenId      int32
-}
-
-type ActionTxBuildRequest struct {
-	UnsignedTxBuildRequest
-	Action    byte
-	EnableSpo bool
-	TokenName string
-	Pubkey    crypto.PublicKey
-	Sig       crypto.Signature
-}
-
-type SignedTxBuildRequest struct {
-	UnsignedTxBuildRequest
-	PrivateKey crypto.PrivateKey
-}
-
 func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
@@ -311,12 +164,6 @@ func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	return tx
 }
 
-type UnsignedSequencerBuildRequest struct {
-	Issuer       common.Address
-	Height       uint64
-	AccountNonce uint64
-}
-
 func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_types.Sequencer {
 	tx := tx_types.Sequencer{
 		Issuer: &req.Issuer,
@@ -327,11 +174,6 @@ func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_
 		},
 	}
 	return &tx
-}
-
-type SignedSequencerBuildRequest struct {
-	UnsignedSequencerBuildRequest
-	PrivateKey crypto.PrivateKey
 }
 
 //NewSignedSequencer this function is for test
@@ -557,7 +399,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, height uint64, acco
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.GetStateRoot.PreConfirm(tx)
+			root, err := m.StateRootProvider.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
 				return nil, false

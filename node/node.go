@@ -304,7 +304,7 @@ func NewNode() *Node {
 	miner := &miner2.PoWMiner{}
 	txCreator := &txmaker.TxCreator{
 		Miner:              miner,
-		TipGenerator:       txmaker.NewFIFOTIpGenerator(org.TxPool, 6),
+		TipGenerator:       org.TxPool,
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
@@ -312,7 +312,7 @@ func NewNode() *Node {
 		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,
-		GetStateRoot:       org.TxPool,
+		StateRootProvider:  org.TxPool,
 	}
 
 	// TODO: move to (embeded) client. It is not part of OG

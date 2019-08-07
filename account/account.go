@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-type SampleAccount struct {
+type Account struct {
 	Id          int
 	PrivateKey  crypto.PrivateKey
 	PublicKey   crypto.PublicKey
@@ -19,8 +19,8 @@ type SampleAccount struct {
 	InitBalance uint64
 }
 
-func NewAccount(privateKeyHex string) *SampleAccount {
-	s := &SampleAccount{}
+func NewAccount(privateKeyHex string) *Account {
+	s := &Account{}
 	pv, err := crypto.PrivateKeyFromString(privateKeyHex)
 	if err != nil {
 		panic(err)
@@ -34,7 +34,7 @@ func NewAccount(privateKeyHex string) *SampleAccount {
 	return s
 }
 
-func (s *SampleAccount) ConsumeNonce() (uint64, error) {
+func (s *Account) ConsumeNonce() (uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -45,7 +45,7 @@ func (s *SampleAccount) ConsumeNonce() (uint64, error) {
 	return s.nonce.Load(), nil
 }
 
-func (s *SampleAccount) GetNonce() (uint64, error) {
+func (s *Account) GetNonce() (uint64, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if !s.nonceInited {
@@ -54,7 +54,7 @@ func (s *SampleAccount) GetNonce() (uint64, error) {
 	return s.nonce.Load(), nil
 }
 
-func (s *SampleAccount) SetNonce(lastUsedNonce uint64) {
+func (s *Account) SetNonce(lastUsedNonce uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.nonce.Store(lastUsedNonce)

@@ -62,7 +62,7 @@ type Dkg struct {
 	isValidPartner    bool
 
 	mu        sync.RWMutex
-	myAccount *account.SampleAccount
+	myAccount *account.Account
 	term      *term.Term
 	Hub       announcer.MessageSender
 
@@ -110,7 +110,7 @@ func (d *Dkg) SetId(id int) {
 	d.partner.Id = uint32(id)
 }
 
-func (d *Dkg) SetAccount(myAccount *account.SampleAccount) {
+func (d *Dkg) SetAccount(myAccount *account.Account) {
 	d.myAccount = myAccount
 }
 

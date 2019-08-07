@@ -98,8 +98,8 @@ func GetGenesisAccounts(genesisPath string) *GenesisAccounts {
 
 }
 
-func GetSampleAccounts() []*account.SampleAccount {
-	var accounts []*account.SampleAccount
+func GetSampleAccounts() []*account.Account {
+	var accounts []*account.Account
 	if crypto.Signer.GetCryptoType() == crypto.CryptoTypeSecp256k1 {
 		logrus.WithField("len", MaxAccountCount).Debug("Generating secp256k1 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {

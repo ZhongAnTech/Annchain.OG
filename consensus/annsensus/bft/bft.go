@@ -32,16 +32,16 @@ import (
 	"time"
 )
 
-//BFT is og sequencer consensus system based on BFT consensus
+//BFT the consensus module for partner to
 type BFT struct {
-	BFTPartner         *OGBFTPartner `json:"bft_partner"`
-	startBftChan       chan bool
-	resetChan          chan bool
-	mu                 sync.RWMutex
-	quit               chan bool
-	creator            *txmaker.OGTxCreator
-	JudgeNonceFunction func(account *account.SampleAccount) uint64
-	decisionChan       chan *commitDecision
+	BFTPartner   *OGBFTPartner `json:"bft_partner"`
+	startBftChan chan bool
+	resetChan    chan bool
+	mu           sync.RWMutex
+	quit         chan bool
+	creator      *txmaker.OGTxCreator
+
+	decisionChan chan *commitDecision
 	//Verifiers     []protocol.Verifier
 	proposalCache map[common.Hash]*p2p_message.MessageProposal
 
@@ -55,7 +55,7 @@ type BFT struct {
 
 	dag og.IDag
 
-	myAccount *account.SampleAccount
+	myAccount *account.Account
 
 	started bool
 
@@ -104,8 +104,8 @@ func MajorityTwoThird(n int) int {
 	return 2*n/3 + 1
 }
 
-func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
-	txCreator *txmaker.OGTxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
+func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.Account) uint64,
+	txCreator *txmaker.OGTxCreator, dag og.IDag, myAccount *account.Account, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
 	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	ogBftPartner := &OGBFTPartner{
 		BFTPartner: partner,
@@ -318,30 +318,6 @@ func (b *BFT) loop() {
 		}
 
 	}
-}
-
-func (b *BFT) ProduceProposal() (pro p2p_message.Proposal, validHeight uint64) {
-	me := b.myAccount
-	nonce := b.JudgeNonceFunction(me)
-	logrus.WithField(" nonce ", nonce).Debug("gen seq")
-	blsPub, err := b.dkg.GetJoinPublicKey(b.DKGTermId).MarshalBinary()
-	if err != nil {
-		logrus.WithError(err).Error("unmarshal fail")
-		panic(err)
-	}
-	seq, genAgain := b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, nonce, &me.PrivateKey, blsPub)
-	for i := 0; i < 7 && seq == nil; i++ {
-		logrus.WithField("times ", i).Warn("gen sequencer failed,try again ")
-		seq, genAgain = b.creator.GenerateSequencer(me.Address, b.dag.GetHeight()+1, b.JudgeNonceFunction(me), &me.PrivateKey, blsPub)
-		_ = genAgain
-	}
-	if seq == nil {
-		panic("gen sequencer failed")
-	}
-	proposal := p2p_message.SequencerProposal{
-		Sequencer: *seq,
-	}
-	return &proposal, seq.Height
 }
 
 func (b *BFT) VerifyProposal(proposal *p2p_message.MessageProposal, pubkey crypto.PublicKey) bool {

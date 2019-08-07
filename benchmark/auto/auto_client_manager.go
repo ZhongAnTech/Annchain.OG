@@ -13,168 +13,168 @@
 // limitations under the License.
 package auto
 
-//import (
-//	"github.com/annchain/OG/account"
-//	"github.com/annchain/OG/common/goroutine"
-//	"github.com/annchain/OG/node"
-//	"github.com/annchain/OG/og"
-//	"github.com/annchain/OG/types"
-//	"github.com/sirupsen/logrus"
-//	"github.com/spf13/viper"
-//	"sync"
-//)
-//
-//type AutoClientManager struct {
-//	Clients                []*AutoClient
-//	SampleAccounts         []*account.SampleAccount
-//	UpToDateEventListener  chan bool
-//	NodeStatusDataProvider og.NodeStatusDataProvider
-//	quit                   chan bool
-//	wg                     sync.WaitGroup
-//	RegisterReceiver       func(c chan types.Txi)
-//	delegate               *node.Delegate
-//}
-//
-//func (m *AutoClientManager) Init(accountIndices []int, delegate *node.Delegate, coinBaseAccount *account.SampleAccount) {
-//	m.Clients = []*AutoClient{}
-//	m.UpToDateEventListener = make(chan bool)
-//	m.quit = make(chan bool)
-//	m.delegate = delegate
-//	// to make sure we have only one sequencer per node
-//	sequencers := 1
-//	mode := viper.GetString("mode")
-//	var tpsTest bool
-//	if mode == "tps_test" {
-//		tpsTest = true
-//		accountIndices = []int{0}
-//	}
-//	for _, accountIndex := range accountIndices {
-//		client := &AutoClient{
-//			Delegate:             delegate,
-//			SampleAccounts:       m.SampleAccounts,
-//			MyIndex:              accountIndex,
-//			MyAccount:            m.SampleAccounts[accountIndex],
-//			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
-//			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-//			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
-//			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
-//			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
-//			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
-//			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
-//			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
-//			TpsTest:              tpsTest,
-//			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
-//			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-//			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
-//			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
-//		}
-//		Init()
-//		m.Clients = append(m.Clients, client)
-//		if AutoSequencerEnabled {
-//			sequencers--
-//		}
-//
-//	}
-//	if !tpsTest && sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
-//		// add pure sequencer， never produce tx
-//		client := &AutoClient{
-//			Delegate:             delegate,
-//			SampleAccounts:       m.SampleAccounts,
-//			MyAccount:            m.SampleAccounts[0],
-//			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
-//			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-//			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
-//			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
-//			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
-//			AutoSequencerEnabled: true,
-//			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
-//			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
-//			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
-//			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-//			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
-//			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
-//		}
-//		Init()
-//		m.Clients = append(m.Clients, client)
-//	}
-//
-//	if !tpsTest && viper.GetBool("annsensus.campaign") {
-//		// add pure sequencer
-//		client := &AutoClient{
-//			Delegate:             delegate,
-//			SampleAccounts:       m.SampleAccounts,
-//			MyAccount:            coinBaseAccount,
-//			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
-//			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
-//			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
-//			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
-//			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
-//			AutoSequencerEnabled: false,
-//			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
-//			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
-//			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
-//			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
-//			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
-//			CampainEnable:        true,
-//		}
-//		Init()
-//		m.RegisterReceiver(NewRawTx)
-//		m.Clients = append(m.Clients, client)
-//	}
-//}
-//
-//func (m *AutoClientManager) SetTxIntervalUs(interval int) {
-//	for i := 0; i < len(m.Clients); i++ {
-//		if m.Clients[i] != nil {
-//			SetTxIntervalUs(interval)
-//		}
-//	}
-//}
-//
-//func (m *AutoClientManager) Start() {
-//	for _, client := range m.Clients {
-//		m.wg.Add(1)
-//		Start()
-//	}
-//	m.wg.Add(1)
-//	goroutine.New(m.eventLoop)
-//}
-//
-//func (m *AutoClientManager) Stop() {
-//	close(m.quit)
-//	m.wg.Wait()
-//}
-//
-//func (m *AutoClientManager) Name() string {
-//	return "AutoClientManager"
-//}
-//
-//func (c *AutoClientManager) eventLoop() {
-//	defer c.wg.Done()
-//	for {
-//		select {
-//		case v := <-c.UpToDateEventListener:
-//			for _, client := range c.Clients {
-//				if !v {
-//					logrus.Info("pausing client")
-//					Pause()
-//				} else {
-//					logrus.Info("resuming client")
-//					Resume()
-//				}
-//			}
-//		//case <-time.After(time.Second * 20):
-//		//continue
-//		case <-c.quit:
-//			logrus.Info("got quit signal")
-//			// wait for all clients to stop
-//			for _, client := range c.Clients {
-//				Stop()
-//				c.wg.Done()
-//			}
-//			return
-//		}
-//
-//	}
-//
-//}
+import (
+	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/node"
+	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"sync"
+)
+
+type AutoClientManager struct {
+	Clients                []*AutoClient
+	SampleAccounts         []*account.Account
+	UpToDateEventListener  chan bool
+	NodeStatusDataProvider og.NodeStatusDataProvider
+	quit                   chan bool
+	wg                     sync.WaitGroup
+	RegisterReceiver       func(c chan types.Txi)
+	delegate               *node.Delegate
+}
+
+func (m *AutoClientManager) Init(accountIndices []int, delegate *node.Delegate, coinBaseAccount *account.Account) {
+	m.Clients = []*AutoClient{}
+	m.UpToDateEventListener = make(chan bool)
+	m.quit = make(chan bool)
+	m.delegate = delegate
+	// to make sure we have only one sequencer per node
+	sequencers := 1
+	mode := viper.GetString("mode")
+	var tpsTest bool
+	if mode == "tps_test" {
+		tpsTest = true
+		accountIndices = []int{0}
+	}
+	for _, accountIndex := range accountIndices {
+		client := &AutoClient{
+			Delegate:             delegate,
+			SampleAccounts:       m.SampleAccounts,
+			MyIndex:              accountIndex,
+			MyAccount:            m.SampleAccounts[accountIndex],
+			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
+			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
+			AutoTxEnabled:        viper.GetBool("auto_client.tx.enabled"),
+			AutoSequencerEnabled: viper.GetBool("auto_client.sequencer.enabled") && sequencers > 0 && accountIndex == 0,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TpsTest:              tpsTest,
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
+		}
+		Init()
+		m.Clients = append(m.Clients, client)
+		if AutoSequencerEnabled {
+			sequencers--
+		}
+
+	}
+	if !tpsTest && sequencers != 0 && viper.GetBool("auto_client.sequencer.enabled") {
+		// add pure sequencer， never produce tx
+		client := &AutoClient{
+			Delegate:             delegate,
+			SampleAccounts:       m.SampleAccounts,
+			MyAccount:            m.SampleAccounts[0],
+			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
+			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
+			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
+			AutoSequencerEnabled: true,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
+			TestSeal:             viper.GetBool("auto_client.tx.test_seal"),
+		}
+		Init()
+		m.Clients = append(m.Clients, client)
+	}
+
+	if !tpsTest && viper.GetBool("annsensus.campaign") {
+		// add pure sequencer
+		client := &AutoClient{
+			Delegate:             delegate,
+			SampleAccounts:       m.SampleAccounts,
+			MyAccount:            coinBaseAccount,
+			NonceSelfDiscipline:  viper.GetBool("auto_client.nonce_self_discipline"),
+			IntervalMode:         viper.GetString("auto_client.tx.interval_mode"),
+			SequencerIntervalUs:  viper.GetInt("auto_client.sequencer.interval_us"),
+			TxIntervalUs:         viper.GetInt("auto_client.tx.interval_us"),
+			AutoTxEnabled:        false, // always false. If a sequencer is also a tx maker, it will be already added above
+			AutoSequencerEnabled: false,
+			AutoArchiveEnabled:   viper.GetBool("auto_client.archive.enabled"),
+			ArchiveInterValUs:    viper.GetInt("auto_client.archive.interval_us"),
+			TestInsertPool:       viper.GetBool("auto_client.tx.test_insert_pool"),
+			TestDagPush:          viper.GetBool("auto_client.tx.test_dag_push"),
+			TestSyncBuffer:       viper.GetBool("auto_client.tx.test_sync_buffer"),
+			CampainEnable:        true,
+		}
+		Init()
+		m.RegisterReceiver(NewRawTx)
+		m.Clients = append(m.Clients, client)
+	}
+}
+
+func (m *AutoClientManager) SetTxIntervalUs(interval int) {
+	for i := 0; i < len(m.Clients); i++ {
+		if m.Clients[i] != nil {
+			SetTxIntervalUs(interval)
+		}
+	}
+}
+
+func (m *AutoClientManager) Start() {
+	for _, client := range m.Clients {
+		m.wg.Add(1)
+		Start()
+	}
+	m.wg.Add(1)
+	goroutine.New(m.eventLoop)
+}
+
+func (m *AutoClientManager) Stop() {
+	close(m.quit)
+	m.wg.Wait()
+}
+
+func (m *AutoClientManager) Name() string {
+	return "AutoClientManager"
+}
+
+func (c *AutoClientManager) eventLoop() {
+	defer c.wg.Done()
+	for {
+		select {
+		case v := <-c.UpToDateEventListener:
+			for _, client := range c.Clients {
+				if !v {
+					logrus.Info("pausing client")
+					Pause()
+				} else {
+					logrus.Info("resuming client")
+					Resume()
+				}
+			}
+		//case <-time.After(time.Second * 20):
+		//continue
+		case <-c.quit:
+			logrus.Info("got quit signal")
+			// wait for all clients to stop
+			for _, client := range c.Clients {
+				Stop()
+				c.wg.Done()
+			}
+			return
+		}
+
+	}
+
+}

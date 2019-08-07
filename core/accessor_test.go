@@ -16,7 +16,7 @@ package core_test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types/tx_types"
 	"io/ioutil"
 	"math/rand"
@@ -64,7 +64,7 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 }
 
 func newTestUnsealTx(nonce uint64) *tx_types.Tx {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
@@ -84,7 +84,7 @@ func newTestUnsealTx(nonce uint64) *tx_types.Tx {
 }
 
 func newTestSeq(nonce uint64) *tx_types.Sequencer {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 

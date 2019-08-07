@@ -23,7 +23,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
@@ -39,10 +39,10 @@ type BFT struct {
 	resetChan          chan bool
 	mu                 sync.RWMutex
 	quit               chan bool
-	creator            *txmaker.TxCreator
+	creator            *txmaker.OGTxCreator
 	JudgeNonceFunction func(account *account.SampleAccount) uint64
 	decisionChan       chan *commitDecision
-	//Verifiers     []og.Verifier
+	//Verifiers     []protocol.Verifier
 	proposalCache map[common.Hash]*p2p_message.MessageProposal
 
 	DKGTermId     int           `json:"dkg_term_id"`
@@ -105,7 +105,7 @@ func MajorityTwoThird(n int) int {
 }
 
 func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceFunction func(me *account.SampleAccount) uint64,
-	txCreator *txmaker.TxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
+	txCreator *txmaker.OGTxCreator, dag og.IDag, myAccount *account.SampleAccount, OnSelfGenTxi chan types.Txi, dkg *dkg.Dkg) *BFT {
 	partner := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	ogBftPartner := &OGBFTPartner{
 		BFTPartner: partner,

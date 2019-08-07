@@ -1,94 +1,19 @@
-// Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-package og
+package verifier
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
-	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
-	"math/big"
 )
 
-// GraphVerifier verifies if the tx meets the standards
-
-type Verifier interface {
-	Verify(t types.Txi) bool
-	Name() string
-	String() string
-	Independent() bool
-}
-
-type TxFormatVerifier struct {
-	MaxTxHash         common.Hash // The difficulty of TxHash
-	MaxMinedHash      common.Hash // The difficulty of MinedHash
-	NoVerifyMindHash  bool
-	NoVerifyMaxTxHash bool
-	NoVerifySignatrue bool
-}
-
-//consensus related verification
-type ConsensusVerifier struct {
-	VerifyCampaign   func(cp *tx_types.Campaign) bool
-	VerifyTermChange func(cp *tx_types.TermChange) bool
-	VerifySequencer  func(cp *tx_types.Sequencer) bool
-}
-
-func (c *ConsensusVerifier) Verify(t types.Txi) bool {
-	switch tx := t.(type) {
-	case *tx_types.Tx:
-		return true
-	case *tx_types.Archive:
-		return true
-	case *tx_types.ActionTx:
-		return true
-	case *tx_types.Sequencer:
-		return c.VerifySequencer(tx)
-	case *tx_types.Campaign:
-		return c.VerifyCampaign(tx)
-	case *tx_types.TermChange:
-		return c.VerifyTermChange(tx)
-	default:
-		return false
-	}
-	return false
-}
-
-func (v *TxFormatVerifier) Name() string {
-	return "TxFormatVerifier"
-}
-
-func (v *TxFormatVerifier) Independent() bool {
-	return true
-}
-
-func (c *ConsensusVerifier) Name() string {
-	return "ConsensusVerifier"
-}
-
-func (v *ConsensusVerifier) Independent() bool {
-	return false
-}
-
-func (c *TxFormatVerifier) String() string {
-	return c.Name()
+// GraphVerifier verifies if the tx meets the OG hash and graph standards.
+type GraphVerifier struct {
+	Dag    og.IDag
+	TxPool og.ITxPool
+	//Buffer *TxBuffer
 }
 
 func (c *GraphVerifier) String() string {
@@ -96,148 +21,6 @@ func (c *GraphVerifier) String() string {
 }
 func (v *GraphVerifier) Independent() bool {
 	return false
-}
-
-func (c *ConsensusVerifier) String() string {
-	return c.Name()
-}
-
-func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	if t.IsVerified().IsFormatVerified() {
-		return true
-	}
-	if !v.VerifyHash(t) {
-		logrus.WithField("tx", t).Debug("Hash not valid")
-		return false
-	}
-	if v.NoVerifySignatrue {
-		if !v.VerifySignature(t) {
-			logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-			return false
-		}
-	}
-	t.SetVerified(types.VerifiedFormat)
-	return true
-}
-
-func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	if !v.NoVerifyMindHash {
-		calMinedHash := t.CalcMinedHash()
-		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
-			logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
-			return false
-		}
-	}
-	if calcHash := t.CalcTxHash(); calcHash != t.GetTxHash() {
-		logrus.WithField("calcHash ", calcHash).WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
-		return false
-	}
-
-	if !v.NoVerifyMaxTxHash && !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not less than MaxTxHash")
-		return false
-	}
-	return true
-}
-
-func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
-	if t.GetType() == types.TxBaseTypeArchive {
-		return true
-	}
-	base := t.GetBase()
-
-	if !crypto.Signer.CanRecoverPubFromSig() {
-		if t.GetSender() == nil {
-			logrus.Warn("verify sig failed, from is nil")
-			return false
-		}
-		ok := crypto.Signer.Verify(
-			crypto.Signer.PublicKeyFromBytes(base.PublicKey),
-			crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
-			t.SignatureTargets())
-		return ok
-	}
-
-	R, S, Vb, err := v.SignatureValues(base.Signature)
-	if err != nil {
-		logrus.WithError(err).Debug("verify sig failed")
-		return false
-	}
-	if Vb.BitLen() > 8 {
-		logrus.WithError(err).Debug("v len error")
-		return false
-	}
-	V := byte(Vb.Uint64() - 27)
-	if !crypto.ValidateSignatureValues(V, R, S, false) {
-		logrus.WithError(err).Debug("v len error")
-		return false
-	}
-	// encode the signature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r):32], r)
-	copy(sig[64-len(s):64], s)
-	sig[64] = V
-	sighash := Sha256(t.SignatureTargets())
-	// recover the public key from the signature
-	pub, err := crypto.Ecrecover(sighash[:], sig)
-	if err != nil {
-		logrus.WithError(err).Debug("sig verify failed")
-	}
-	if len(pub) == 0 || pub[0] != 4 {
-		err := errors.New("invalid public key")
-		logrus.WithError(err).Debug("verify sig failed")
-	}
-	var addr common.Address
-	copy(addr.Bytes[:], crypto.Keccak256(pub[1:])[12:])
-	t.SetSender(addr)
-	return true
-}
-
-func Sha256(bytes []byte) []byte {
-	hasher := sha256.New()
-	hasher.Write(bytes)
-	return hasher.Sum(nil)
-}
-
-// SignatureValues returns signature values. This signature
-// needs to be in the [R || S || V] format where V is 0 or 1.
-func (t *TxFormatVerifier) SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
-	if len(sig) != 65 {
-		return r, s, v, fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
-	}
-	r = new(big.Int).SetBytes(sig[:32])
-	s = new(big.Int).SetBytes(sig[32:64])
-	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
-	return r, s, v, nil
-}
-
-func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
-	if crypto.Signer.CanRecoverPubFromSig() {
-		//address was set by recovering signature ,
-		return true
-	}
-	switch t.(type) {
-	case *tx_types.Tx:
-		return t.(*tx_types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Sequencer:
-		return t.(*tx_types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Campaign:
-		return t.(*tx_types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.TermChange:
-		return t.(*tx_types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Archive:
-		return true
-	default:
-		return true
-	}
-}
-
-// GraphVerifier verifies if the tx meets the OG hash and graph standards.
-type GraphVerifier struct {
-	Dag    IDag
-	TxPool ITxPool
-	//Buffer *TxBuffer
 }
 
 func (v *GraphVerifier) Name() string {

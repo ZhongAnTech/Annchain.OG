@@ -17,7 +17,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/consensus/annsensus"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
+	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
 
@@ -39,12 +40,12 @@ type RpcController struct {
 	P2pServer          *p2p.Server
 	Og                 *og.Og
 	TxBuffer           *og.TxBuffer
-	TxCreator          *txmaker.TxCreator
+	TxCreator          *txmaker.OGTxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor
 	NewRequestChan     chan types.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
-	FormatVerifier     *og.TxFormatVerifier
+	FormatVerifier     *verifier.TxFormatVerifier
 }
 
 //TxRequester

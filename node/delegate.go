@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types/tx_types"
 
 	"github.com/annchain/OG/common/crypto"
@@ -40,7 +40,7 @@ type TxRequest struct {
 type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
 
 type Delegate struct {
-	TxCreator          *txmaker.TxCreator
+	TxCreator          *txmaker.OGTxCreator
 	ReceivedNewTxsChan chan []types.Txi
 	ReceivedNewTxChan  chan types.Txi
 	TxPool             *core.TxPool
@@ -94,7 +94,7 @@ func (c *Delegate) GenerateSequencer(r SeqRequest) (*tx_types.Sequencer, error) 
 		seq, genAgain = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	}
 	logrus.WithField("seq", seq).Infof("sequencer generated")
-	//if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
+	//if ok := c.OGTxCreator.SealTx(seq, &r.PrivateKey); !ok {
 	//	logrus.Warn("delegate failed to seal seq")
 	//	err = fmt.Errorf("delegate failed to seal seq")
 	//	return

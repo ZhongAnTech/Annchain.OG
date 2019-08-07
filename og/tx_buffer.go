@@ -15,6 +15,7 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/protocol"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync"
@@ -78,7 +79,7 @@ type IDag interface {
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
 	dag                    IDag
-	Verifiers              []Verifier
+	Verifiers              []protocol.Verifier
 	Syncer                 Syncer
 	Announcer              Announcer
 	txPool                 ITxPool
@@ -174,7 +175,7 @@ func (b *TxBuffer) GetBenchmarks() map[string]interface{} {
 
 type TxBufferConfig struct {
 	Dag                              IDag
-	Verifiers                        []Verifier
+	Verifiers                        []protocol.Verifier
 	Syncer                           Syncer
 	TxAnnouncer                      Announcer
 	TxPool                           ITxPool

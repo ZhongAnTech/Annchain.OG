@@ -91,14 +91,14 @@ func (b *Bloom) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("Bloom", input, b[:])
 }
 
-func CreateBloom(receipts Receipts) Bloom {
-	bin := new(big.Int)
-	for _, receipt := range receipts {
-		bin.Or(bin, LogsBloom(receipt.Logs))
-	}
-
-	return BytesToBloom(bin.Bytes())
-}
+//func CreateBloom(receipts Receipts) Bloom {
+//	bin := new(big.Int)
+//	for _, receipt := range receipts {
+//		bin.Or(bin, LogsBloom(receipt.Logs))
+//	}
+//
+//	return BytesToBloom(bin.Bytes())
+//}
 
 func LogsBloom(logs []*Log) *big.Int {
 	bin := new(big.Int)

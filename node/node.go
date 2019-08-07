@@ -19,10 +19,12 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/og/txmaker"
+	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/p2p/ioperformance"
+	"github.com/annchain/OG/protocol"
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/txmaker"
 	"github.com/annchain/OG/types/p2p_message"
 	"time"
 
@@ -160,13 +162,13 @@ func NewNode() *Node {
 	}
 
 	// transaction verifiers
-	graphVerifier := &og.GraphVerifier{
+	graphVerifier := &verifier.GraphVerifier{
 		Dag:    org.Dag,
 		TxPool: org.TxPool,
 		//Buffer: txBuffer,
 	}
 
-	txFormatVerifier := &og.TxFormatVerifier{
+	txFormatVerifier := &verifier.TxFormatVerifier{
 		MaxTxHash:    common.HexToHash(viper.GetString("max_tx_hash")),
 		MaxMinedHash: common.HexToHash(viper.GetString("max_mined_hash")),
 	}
@@ -180,7 +182,7 @@ func NewNode() *Node {
 	}
 	txFormatVerifier.NoVerifySignatrue = viper.GetBool("tx_buffer.no_verify_signature")
 	//verify format first , set address and then verify graph
-	verifiers := []og.Verifier{txFormatVerifier, graphVerifier}
+	verifiers := []protocol.Verifier{txFormatVerifier, graphVerifier}
 
 	// txBuffer
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
@@ -302,7 +304,7 @@ func NewNode() *Node {
 	SetupCallbacksOG32(mr32, hub)
 
 	miner := &miner2.PoWMiner{}
-	txCreator := &txmaker.TxCreator{
+	txCreator := &txmaker.OGTxCreator{
 		Miner:              miner,
 		TipGenerator:       org.TxPool,
 		MaxConnectingTries: 100,
@@ -375,7 +377,7 @@ func NewNode() *Node {
 		// TODO
 		// set annsensus's private key to be coinbase.
 
-		consensusVerifier := &og.ConsensusVerifier{
+		consensusVerifier := &verifier.ConsensusVerifier{
 			VerifyTermChange: annSensus.VerifyTermChange,
 			VerifySequencer:  annSensus.VerifySequencer,
 			VerifyCampaign:   annSensus.VerifyCampaign,

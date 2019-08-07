@@ -15,7 +15,7 @@ package core_test
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types/tx_types"
 	"testing"
 
@@ -58,7 +58,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *tx_types.Sequencer, 
 }
 
 func newTestPoolTx(nonce uint64) *tx_types.Tx {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
@@ -78,7 +78,7 @@ func newTestPoolTx(nonce uint64) *tx_types.Tx {
 }
 
 func newTestPoolBadTx() *tx_types.Tx {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
 

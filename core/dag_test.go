@@ -14,7 +14,7 @@
 package core_test
 
 import (
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"testing"
 
 	"github.com/annchain/OG/common"
@@ -57,7 +57,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequence
 }
 
 func newTestDagTx(nonce uint64) *tx_types.Tx {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 

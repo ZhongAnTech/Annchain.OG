@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/protocol"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -37,16 +38,16 @@ type SyncBuffer struct {
 	dag        og.IDag
 	acceptTxs  uint32
 	quitHandel bool
-	Verifiers  []og.Verifier
+	Verifiers  []protocol.Verifier
 }
 
 type SyncBufferConfig struct {
 	TxPool    og.ITxPool
-	Verifiers []og.Verifier
+	Verifiers []protocol.Verifier
 	Dag       og.IDag
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, Verifiers []og.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, Verifiers []protocol.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:    txPool,
 		Dag:       dag,

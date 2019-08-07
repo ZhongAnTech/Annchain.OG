@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/protocol"
 	"github.com/annchain/OG/types/tx_types"
 	"sync/atomic"
 	"time"
@@ -38,32 +38,31 @@ type StateRootProvider interface {
 	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
 }
 
-// TxCreator creates tx and do the signing and mining
-type TxCreator struct {
+// OGTxCreator creates tx and do the signing and mining for OG.
+type OGTxCreator struct {
 	Miner              miner.Miner
-	TipGenerator       TipGenerator // usually tx_pool
-	MaxTxHash          common.Hash  // The difficultiy of TxHash
-	MaxMinedHash       common.Hash  // The difficultiy of MinedHash
-	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
-	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
-	GraphVerifier      og.Verifier  // To verify the graph structure
+	TipGenerator       TipGenerator      // usually tx_pool
+	MaxTxHash          common.Hash       // The difficultiy of TxHash
+	MaxMinedHash       common.Hash       // The difficultiy of MinedHash
+	MaxConnectingTries int               // Max number of times to find a pair of parents. If exceeded, try another nonce.
+	DebugNodeId        int               // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
+	GraphVerifier      protocol.Verifier // To verify the graph structure
 	quit               bool
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
 	StateRootProvider  StateRootProvider
-	TxFormatVerifier   og.TxFormatVerifier
 }
 
-func (t *TxCreator) GetArchiveNonce() uint64 {
+func (t *OGTxCreator) GetArchiveNonce() uint64 {
 	return atomic.AddUint64(&t.archiveNonce, 1)
 }
 
-func (t *TxCreator) Stop() {
+func (t *OGTxCreator) Stop() {
 	t.quit = true
 }
 
-func (m *TxCreator) NewUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
+func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
 	tx := tx_types.Tx{
 		Value:   req.Value,
 		To:      req.To,
@@ -77,7 +76,7 @@ func (m *TxCreator) NewUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
 	return &tx
 }
 
-func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
+func (m *OGTxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	tx = &tx_types.Archive{
 		TxBase: types.TxBase{
 			AccountNonce: m.GetArchiveNonce(),
@@ -96,7 +95,7 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	return tx, nil
 }
 
-func (m *TxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err error) {
+func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err error) {
 	tx = &tx_types.Tx{
 		From: &req.From,
 		// TODO
@@ -123,7 +122,7 @@ func (m *TxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err
 	return tx, nil
 }
 
-func (m *TxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi, err error) {
+func (m *OGTxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi, err error) {
 	tx = &tx_types.ActionTx{
 		From: &req.From,
 		// TODO
@@ -152,11 +151,11 @@ func (m *TxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi,
 	return tx, nil
 }
 
-func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
+func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedTx(req.UnsignedTxBuildRequest)
+	tx := m.newUnsignedTx(req.UnsignedTxBuildRequest)
 	// do sign work
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.GetBase().Signature = signature.Bytes
@@ -164,7 +163,7 @@ func (m *TxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	return tx
 }
 
-func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_types.Sequencer {
+func (m *OGTxCreator) newUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_types.Sequencer {
 	tx := tx_types.Sequencer{
 		Issuer: &req.Issuer,
 		TxBase: types.TxBase{
@@ -177,11 +176,11 @@ func (m *TxCreator) NewUnsignedSequencer(req UnsignedSequencerBuildRequest) *tx_
 }
 
 //NewSignedSequencer this function is for test
-func (m *TxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.Txi {
+func (m *OGTxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.Txi {
 	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedSequencer(req.UnsignedSequencerBuildRequest)
+	tx := m.newUnsignedSequencer(req.UnsignedSequencerBuildRequest)
 	// do sign work
 	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
@@ -191,7 +190,7 @@ func (m *TxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.Tx
 }
 
 // validateGraphStructure validates if parents are not conflicted, not double spending or other misbehaviors
-func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
+func (m *OGTxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 	ok = true
 	for _, parent := range parents {
 		ok = ok && m.GraphVerifier.Verify(parent)
@@ -202,7 +201,7 @@ func (m *TxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 	return
 }
 
-func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
+func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()
@@ -246,7 +245,7 @@ func (m *TxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *cr
 
 // SealTx do mining first, then pick up parents from tx pool which could leads to a proper hash.
 // If there is no proper parents, Mine again.
-func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) {
+func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) {
 	// record the mining times.
 	mineCount := 0
 	connectionTries := 0
@@ -273,7 +272,9 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 		}
 		select {
 		case minedNonce = <-respChan:
-			tx.GetBase().MineNonce = minedNonce // Actually, this value is already set during mining.
+			// Actually, this value is already set during mining.
+			// Incase that other implementation does not do that, re-assign
+			tx.GetBase().MineNonce = minedNonce
 			//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
@@ -287,6 +288,9 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				if tx.GetType() != types.TxBaseTypeArchive {
 					ancestor = m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
 				}
+				// if there is a previous my tx that is in current seq,
+				// use it as my parent.
+				// it is required to accelerate validating
 				if ancestor != nil && !ancestor.InValid() {
 					txs = m.TipGenerator.GetRandomTips(2)
 					var include bool
@@ -323,6 +327,7 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 				return false
 			}
 		case <-time.NewTimer(time.Minute * 5).C:
+			m.Miner.Stop()
 			return false
 		}
 	}
@@ -335,10 +340,10 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 	return true
 }
 
-func (m *TxCreator) GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
+func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
 	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, genAgain bool) {
 
-	tx := m.NewUnsignedSequencer(UnsignedSequencerBuildRequest{
+	tx := m.newUnsignedSequencer(UnsignedSequencerBuildRequest{
 		Height:       height,
 		Issuer:       issuer,
 		AccountNonce: accountNonce,

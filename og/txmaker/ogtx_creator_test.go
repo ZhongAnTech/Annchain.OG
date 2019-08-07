@@ -16,7 +16,6 @@ package txmaker
 import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og"
 	"testing"
 	"time"
 
@@ -47,10 +46,10 @@ func (a *AllOkVerifier) Independent() bool {
 	return false
 }
 
-func Init() *TxCreator {
+func Init() *OGTxCreator {
 	crypto.Signer = &crypto.SignerEd25519{}
-	txc := TxCreator{
-		TipGenerator:       &og.DummyTxPoolRandomTx{},
+	txc := OGTxCreator{
+		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 100,
 		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
@@ -132,9 +131,9 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 func TestBuildDag(t *testing.T) {
 	crypto.Signer = &crypto.SignerEd25519{}
 	logrus.SetLevel(logrus.DebugLevel)
-	pool := &og.DummyTxPoolMiniTx{}
+	pool := &dummyTxPoolMiniTx{}
 	pool.Init()
-	txc := TxCreator{
+	txc := OGTxCreator{
 		TipGenerator:       pool,
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 10,
@@ -214,7 +213,7 @@ func TestBuildDag(t *testing.T) {
 
 func TestNewFIFOTIpGenerator(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	f := NewFIFOTIpGenerator(&og.DummyTxPoolRandomTx{}, 15)
+	f := NewFIFOTIpGenerator(&dummyTxPoolRandomTx{}, 15)
 	fmt.Println(f.fifoRing)
 	f.GetRandomTips(3)
 	fmt.Println(f.fifoRing)

@@ -26,7 +26,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus/dkg"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
@@ -135,7 +135,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 }
 
 func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txCreator *txmaker.TxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
+	judgeNonce func(me *account.SampleAccount) uint64, txCreator *txmaker.OGTxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
 	handleNewTxi func(txi types.Txi, peerId string), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
 	as.Hub = sender

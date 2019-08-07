@@ -14,7 +14,7 @@
 package core_test
 
 import (
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"testing"
 
 	"github.com/annchain/OG/core/state"
@@ -26,7 +26,7 @@ import (
 )
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
-	txCreator := &txmaker.TxCreator{}
+	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 

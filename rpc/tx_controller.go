@@ -16,7 +16,7 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
-	"github.com/annchain/OG/txmaker"
+	"github.com/annchain/OG/og/txmaker"
 	"net/http"
 	"strconv"
 	"time"

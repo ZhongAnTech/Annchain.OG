@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types/p2p_message"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -480,7 +480,7 @@ func (ps *peerSet) GetPeers(ids []string, n int) []*peer {
 			all = append(all, peer)
 		}
 	}
-	indices := generateRandomIndices(n, len(all))
+	indices := math.GenerateRandomIndices(n, len(all))
 	for _, i := range indices {
 		list = append(list, all[i])
 	}
@@ -495,30 +495,11 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 	for _, p := range ps.peers {
 		all = append(all, p)
 	}
-	indices := generateRandomIndices(n, len(all))
+	indices := math.GenerateRandomIndices(n, len(all))
 	for _, i := range indices {
 		list = append(list, all[i])
 	}
 	return list
-}
-
-// generate [count] unique random numbers within range [0, upper)
-// if count > upper, use all available indices
-func generateRandomIndices(count int, upper int) []int {
-	if count > upper {
-		count = upper
-	}
-	// avoid dup
-	generated := make(map[int]struct{})
-	for count > len(generated) {
-		i := rand.Intn(upper)
-		generated[i] = struct{}{}
-	}
-	arr := make([]int, 0, len(generated))
-	for k := range generated {
-		arr = append(arr, k)
-	}
-	return arr
 }
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction

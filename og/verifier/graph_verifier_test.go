@@ -1,28 +1,12 @@
-// Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-package og
+package verifier
 
 import (
-	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og/dummy"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
-	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"testing"
-	"time"
 )
 
 func buildTx(from common.Address, accountNonce uint64) *tx_types.Tx {
@@ -118,7 +102,7 @@ func TestA3(t *testing.T) {
 
 // A6: [My job] Node cannot reference two un-ordered nodes as its parents
 func TestA6(t *testing.T) {
-	pool := &DummyTxPoolParents{}
+	pool := &dummy.DummyTxPoolParents{}
 	pool.Init()
 	dag := &dummyDag{}
 	dag.init()
@@ -169,73 +153,4 @@ func TestA6(t *testing.T) {
 		judge(t, verifier.verifyA3(tx), truth[i] == 1, i)
 	}
 
-}
-
-func TestConsensusVerifier_Verify(t *testing.T) {
-	logrus.SetLevel(logrus.TraceLevel)
-	tx := tx_types.RandomTx()
-	//fmt.Println(tx)
-	pub, priv := crypto.Signer.RandomKeyPair()
-	tx.From = nil
-	fmt.Println(tx.SignatureTargets())
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes
-	tx.SetHash(tx.CalcTxHash())
-	tx.From = nil
-	//fmt.Println(tx,"hehe")
-	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}
-	ok := v.Verify(tx)
-	fmt.Println(tx, "hihi")
-	if !ok {
-		t.Fatal(ok)
-	}
-	if *tx.From != pub.Address() {
-		t.Fatal(tx.From, pub.Address())
-	}
-	fmt.Println(tx.From, pub.Address())
-
-}
-
-func TestVerify(t *testing.T) {
-	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	pub, priv := signer.RandomKeyPair()
-	var txis types.Txis
-	//var sigTerGets [][]byte
-	addr := pub.Address()
-	for i := 0; i < 10000; i++ {
-		tx := tx_types.RandomTx()
-		tx.From = &addr
-		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).Bytes
-		tx.PublicKey = pub.Bytes
-		txis = append(txis, tx)
-	}
-	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}
-	now := time.Now()
-	fmt.Println("start ", now)
-	for i, tx := range txis {
-		ok := v.VerifySignature(tx)
-		if !ok {
-			t.Fatal(ok, tx, i)
-		}
-	}
-	fmt.Println("used ", time.Since(now))
-	start := time.Now()
-	newSginer := &TestSigner{}
-	crypto.Signer = newSginer
-	fmt.Println(crypto.Signer.CanRecoverPubFromSig())
-	for i, tx := range txis {
-		ok := v.VerifySignature(tx)
-		if !ok {
-			t.Fatal(ok, tx, i)
-		}
-	}
-	fmt.Println("used ", time.Since(start))
-
-}
-
-type TestSigner struct {
-	crypto.SignerSecp256k1
-}
-
-func (s *TestSigner) CanRecoverPubFromSig() bool {
-	return true
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
@@ -52,7 +52,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
 		target := tx.SignatureTargets()
@@ -96,7 +96,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
 		target := tx.SignatureTargets()
@@ -140,7 +140,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
 	fmt.Println(hexutil.Encode(target))
@@ -181,7 +181,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 		To:      to,
 	}
 	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
 		target := tx.SignatureTargets()

@@ -68,7 +68,7 @@ func TestVrfSelections_Le(t *testing.T) {
 	return
 }
 
-func getRandomAccount() *account.SampleAccount {
+func getRandomAccount() *account.Account {
 	_, priv := crypto.Signer.RandomKeyPair()
 	return account.NewAccount(priv.String())
 }

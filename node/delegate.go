@@ -133,7 +133,7 @@ func (c *Delegate) Announce(txi types.Txi) {
 	}
 }
 
-func (c *Delegate) JudgeNonce(me *account.SampleAccount) uint64 {
+func (c *Delegate) JudgeNonce(me *account.Account) uint64 {
 
 	var n uint64
 	//NonceSelfDiscipline

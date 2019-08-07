@@ -57,7 +57,7 @@ type AnnSensus struct {
 	Hub  announcer.MessageSender
 	Idag og.IDag
 
-	MyAccount      *account.SampleAccount
+	MyAccount      *account.Account
 	Threshold      int
 	NbParticipants int
 
@@ -77,11 +77,10 @@ type AnnSensus struct {
 	TxEnable           bool
 	NewLatestSequencer chan bool
 
-	ConfigFilePath       string
-	termChangeChan       chan *tx_types.TermChange
-	currentTermChange    *tx_types.TermChange
-	disableTermChange    bool
-	disable              bool
+	ConfigFilePath    string
+	termChangeChan    chan *tx_types.TermChange
+	currentTermChange *tx_types.TermChange
+
 	addedGenesisCampaign bool
 	initDone             bool
 }
@@ -89,17 +88,17 @@ type AnnSensus struct {
 func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int,
 	genesisAccounts crypto.PublicKeys, configFile string, disableTermChange bool) *AnnSensus {
 	ann := &AnnSensus{}
-	ann.disable = disableConsensus
-	if disableConsensus {
-		disableTermChange = true
-	}
-	ann.disableTermChange = disableTermChange
-	if termChangeInterval <= 0 && !ann.disableTermChange {
-		panic("require termChangeInterval ")
-	}
-	if len(genesisAccounts) < partnerNum && !ann.disableTermChange {
-		panic("need more account")
-	}
+	//ann.disable = disableConsensus
+	//if disableConsensus {
+	//	disableTermChange = true
+	//}
+	//ann.disableTermChange = disableTermChange
+	//if termChangeInterval <= 0 && !ann.disableTermChange {
+	//	panic("require termChangeInterval ")
+	//}
+	//if len(genesisAccounts) < partnerNum && !ann.disableTermChange {
+	//	panic("need more account")
+	//}
 	ann.close = make(chan struct{})
 	ann.newTxHandlers = []chan types.Txi{}
 	ann.campaignFlag = campaign
@@ -123,9 +122,9 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	ann.termChangeChan = make(chan *tx_types.TermChange)
 	//todo fix this later ,bft consensus
 	//"The latest gossip on BFT consensus " 2f+1
-	if partnerNum < 2 {
-		panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
-	}
+	//if partnerNum < 2 {
+	//	panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
+	//}
 	dkger := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
 	dkger.ConfigFilePath = configFile
 	ann.dkg = dkger
@@ -134,8 +133,8 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	return ann
 }
 
-func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime time.Duration,
-	judgeNonce func(me *account.SampleAccount) uint64, txCreator *txmaker.OGTxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
+func (as *AnnSensus) InitAccount(myAccount *account.Account, sequencerTime time.Duration,
+	judgeNonce func(me *account.Account) uint64, txCreator *txmaker.OGTxCreator, Idag og.IDag, onSelfGenTxi chan types.Txi,
 	handleNewTxi func(txi types.Txi, peerId string), sender announcer.MessageSender) {
 	as.MyAccount = myAccount
 	as.Hub = sender
@@ -160,11 +159,11 @@ func (as *AnnSensus) InitAccount(myAccount *account.SampleAccount, sequencerTime
 }
 
 func (as *AnnSensus) Start() {
-	log.Info("AnnSensus Start")
-	if as.disable {
-		log.Warn("annsensus disabled")
-		return
-	}
+	//log.Info("AnnSensus Start")
+	//if as.disable {
+	//	log.Warn("annsensus disabled")
+	//	return
+	//}
 	as.dkg.Start()
 	as.bft.Start()
 	goroutine.New(as.loop)
@@ -448,7 +447,7 @@ func (as *AnnSensus) addGenesisCampaigns() {
 
 func (as *AnnSensus) addBftPartner() {
 	log.Debug("add bft partners")
-	//should participate in genesis  bft process
+	//should participate in genesis bft process
 	as.dkg.On()
 
 	var peers []bft.BFTPartner
@@ -479,7 +478,7 @@ func (as *AnnSensus) loop() {
 	for {
 		select {
 		case <-as.close:
-			log.Info("got quit signal , annsensus loop stopped")
+			log.Info("got quit signal, annsensus loop stopped")
 			return
 
 		//TODO sequencer generate a random seed ,use random seed to select candidate peers

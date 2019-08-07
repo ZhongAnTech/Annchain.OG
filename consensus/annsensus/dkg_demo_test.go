@@ -275,12 +275,12 @@ func run(n int) {
 		return
 	}
 
-	var accounts []account.SampleAccount
+	var accounts []account.Account
 	var pks []crypto.PublicKey
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 	for j := 0; j < n; j++ {
 		pub, priv := signer.RandomKeyPair()
-		account := account.SampleAccount{
+		account := account.Account{
 			PrivateKey: priv,
 			PublicKey:  pub,
 			Address:    pub.Address(),

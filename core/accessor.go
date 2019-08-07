@@ -52,6 +52,8 @@ var (
 	prefixAddressBalanceKey = []byte("ba")
 
 	prefixConfirmtime = []byte("cf")
+
+	prefixStateRootKey = []byte("stateroot")
 )
 
 // TODO encode uint to specific length bytes
@@ -97,6 +99,10 @@ func txIndexKey(seqID uint64) []byte {
 	return append(prefixTxIndexKey, encodeUint64(seqID)...)
 }
 
+func stateRootKey() []byte {
+	return prefixStateRootKey
+}
+
 type Accessor struct {
 	db ogdb.Database
 }
@@ -124,7 +130,7 @@ func (da *Accessor) put(putter *Putter, key []byte, data []byte) error {
 	if putter == nil || putter.Batch == nil {
 		err := da.db.Put(key, data)
 		if err != nil {
-			log.Errorf("write tx to db batch err: %v", err)
+			log.Errorf("write data to db batch err: %v", err)
 		}
 		return err
 	}
@@ -222,6 +228,23 @@ func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *tx_types.Sequencer
 		return err
 	}
 	return da.put(putter, latestSequencerKey(), data)
+}
+
+// ReadLastStateRoot read latest state root from db.
+// TODO
+// this is a temp function. The latest state root should be stored
+// in latest sequencer.
+func (da *Accessor) ReadLastStateRoot() common.Hash {
+	rootbyte, _ := da.db.Get(stateRootKey())
+	return common.BytesToHash(rootbyte)
+}
+
+// WriteLastStateRoot write latest state root into db.
+// TODO
+// this is a temp function. The latest state root should be stored
+// in latest sequencer.
+func (da *Accessor) WriteLastStateRoot(putter *Putter, root common.Hash) error {
+	return da.db.Put(stateRootKey(), root.ToBytes())
 }
 
 // ReadTransaction get tx or sequencer from ogdb.

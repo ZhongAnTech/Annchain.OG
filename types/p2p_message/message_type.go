@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/p2p"
 	"sync/atomic"
 )
@@ -75,9 +76,10 @@ const (
 
 	MessageTypeSecret //encrypted message
 
-	MessageTypeProposal
-	MessageTypePreVote
-	MessageTypePreCommit
+	// move to bft package
+	//MessageTypeProposal
+	//MessageTypePreVote
+	//MessageTypePreCommit
 
 	MessageTypeOg01Length //og01 length
 
@@ -167,12 +169,12 @@ func (mt MessageType) String() string {
 	case MessageTypeSecret:
 		return "MessageTypeSecret"
 
-	case MessageTypeProposal:
-		return "MessageTypeProposal"
-	case MessageTypePreVote:
-		return "MessageTypePreVote"
-	case MessageTypePreCommit:
-		return "MessageTypePreCommit"
+	//case MessageTypeProposal:
+	//	return "MessageTypeProposal"
+	//case MessageTypePreVote:
+	//	return "MessageTypePreVote"
+	//case MessageTypePreCommit:
+	//	return "MessageTypePreCommit"
 
 	case MessageTypeOg01Length: //og01 length
 		return "MessageTypeOg01Length"
@@ -311,13 +313,13 @@ func (m MessageType) GetMsg() Message {
 		message = &MessageNewActionTx{}
 
 	case MessageTypeProposal:
-		message = &MessageProposal{
-			Value: &SequencerProposal{},
+		message = &bft.MessageProposal{
+			Value: &bft.SequencerProposal{},
 		}
 	case MessageTypePreVote:
-		message = &MessagePreVote{}
+		message = &bft.MessagePreVote{}
 	case MessageTypePreCommit:
-		message = &MessagePreCommit{}
+		message = &bft.MessagePreCommit{}
 	case MessageTypeNewTxs:
 		message = &MessageNewTxs{}
 	case MessageTypeSequencerHeader:

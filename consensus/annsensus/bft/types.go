@@ -16,7 +16,6 @@ package bft
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/types/p2p_message"
 	"time"
 )
 
@@ -65,8 +64,29 @@ func (m StepType) IsAfter(o StepType) bool {
 	return m > o
 }
 
+type BftMessageType int
+
+func (m BftMessageType) String() string {
+	switch m {
+	case BftMessageTypeProposal:
+		return "BFTProposal"
+	case BftMessageTypePreVote:
+		return "BFTPreVote"
+	case BftMessageTypePreCommit:
+		return "BFTPreCommit"
+	default:
+		return "BFTUnknown"
+	}
+}
+
+const (
+	BftMessageTypeProposal BftMessageType = iota
+	BftMessageTypePreVote
+	BftMessageTypePreCommit
+)
+
 type Message struct {
-	Type    p2p_message.MessageType
+	Type    BftMessageType
 	Payload interface{}
 }
 
@@ -76,11 +96,11 @@ func (m *Message) String() string {
 
 type ChangeStateEvent struct {
 	NewStepType StepType
-	HeightRound p2p_message.HeightRound
+	HeightRound HeightRound
 }
 
 type TendermintContext struct {
-	HeightRound p2p_message.HeightRound
+	HeightRound HeightRound
 	StepType    StepType
 }
 

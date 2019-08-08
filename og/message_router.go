@@ -15,6 +15,7 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/annchain/OG/types/p2p_message"
 )
 
@@ -152,15 +153,15 @@ type ConsensusDkgGenesisPublicKeyHandler interface {
 	HandleConsensusDkgGenesisPublicKey(request *p2p_message.MessageConsensusDkgGenesisPublicKey, peerId string)
 }
 type ConsensusPreVoteHandler interface {
-	HandleConsensusPreVote(request *p2p_message.MessagePreVote, peerId string)
+	HandleConsensusPreVote(request *bft.MessagePreVote, peerId string)
 }
 
 type ConsensusPreCommitHandler interface {
-	HandleConsensusPreCommit(request *p2p_message.MessagePreCommit, peerId string)
+	HandleConsensusPreCommit(request *bft.MessagePreCommit, peerId string)
 }
 
 type ConsensusProposalHandler interface {
-	HandleConsensusProposal(request *p2p_message.MessageProposal, peerId string)
+	HandleConsensusProposal(request *bft.MessageProposal, peerId string)
 }
 
 type TermChangeRequestHandler interface {
@@ -285,14 +286,14 @@ func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *p2PMessage) {
 }
 
 func (m *MessageRouter) RouteConsensusProposal(msg *p2PMessage) {
-	m.ConsensusProposalHandler.HandleConsensusProposal(msg.message.(*p2p_message.MessageProposal), msg.sourceID)
+	m.ConsensusProposalHandler.HandleConsensusProposal(msg.message.(*bft.MessageProposal), msg.sourceID)
 }
 
 func (m *MessageRouter) RouteConsensusPreVote(msg *p2PMessage) {
-	m.ConsensusPreVoteHandler.HandleConsensusPreVote(msg.message.(*p2p_message.MessagePreVote), msg.sourceID)
+	m.ConsensusPreVoteHandler.HandleConsensusPreVote(msg.message.(*bft.MessagePreVote), msg.sourceID)
 }
 func (m *MessageRouter) RouteConsensusPreCommit(msg *p2PMessage) {
-	m.ConsensusPreCommitHandler.HandleConsensusPreCommit(msg.message.(*p2p_message.MessagePreCommit), msg.sourceID)
+	m.ConsensusPreCommitHandler.HandleConsensusPreCommit(msg.message.(*bft.MessagePreCommit), msg.sourceID)
 }
 
 func (m *MessageRouter) RouteTermChangeRequest(msg *p2PMessage) {

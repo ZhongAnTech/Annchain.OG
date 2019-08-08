@@ -88,28 +88,28 @@ func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toS
 	updatedMessage = msg
 	toSend = true
 	switch msg.Type {
-	case p2p_message.MessageTypeProposal:
+	case BftMessageTypeProposal:
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
-			v := updatedMessage.Payload.(*p2p_message.MessageProposal)
+			v := updatedMessage.Payload.(*MessageProposal)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
 
-	case p2p_message.MessageTypePreVote:
+	case BftMessageTypePreVote:
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
-			v := updatedMessage.Payload.(*p2p_message.MessagePreVote)
+			v := updatedMessage.Payload.(*MessagePreVote)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}
-	case p2p_message.MessageTypePreCommit:
+	case BftMessageTypePreCommit:
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {
-			v := updatedMessage.Payload.(*p2p_message.MessagePreCommit)
+			v := updatedMessage.Payload.(*MessagePreCommit)
 			v.HeightRound.Round++
 			updatedMessage.Payload = v
 		}

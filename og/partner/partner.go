@@ -2,18 +2,23 @@ package partner
 
 import (
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus/bft"
-	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 )
 
-// partner is a proposal generator
+// partner is a participant in the consensus group.
+// partner does not care which consensus method is being used in the bottom layer.
+// it only provides necessary functions and infomation to support consensus module.
+// e.g., produce proposal, broadcast messages, receive message and update consensus state
 type OGPartner struct {
 	JudgeNonceFunction func(account *account.Account) uint64
 }
 
-func (o *OGPartner) ProduceProposal() (proposal p2p_message.Proposal, validCondition bft.ProposalCondition) {
+func NewOGPartner(myAccount *account.Account) *OGPartner {
+
+}
+
+func (o *OGPartner) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
 	me := o.myAccount
 	nonce := o.JudgeNonceFunction(me)
 	logrus.WithField(" nonce ", nonce).Debug("gen seq")
@@ -31,7 +36,7 @@ func (o *OGPartner) ProduceProposal() (proposal p2p_message.Proposal, validCondi
 	if seq == nil {
 		panic("gen sequencer failed")
 	}
-	proposal := p2p_message.SequencerProposal{
+	proposal := bft.SequencerProposal{
 		Sequencer: *seq,
 	}
 	return &proposal, seq.Height

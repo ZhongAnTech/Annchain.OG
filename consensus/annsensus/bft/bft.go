@@ -43,17 +43,17 @@ type BFT struct {
 
 	decisionChan chan *commitDecision
 	//Verifiers     []protocol.Verifier
-	proposalCache map[common.Hash]*p2p_message.MessageProposal
+	proposalCache map[common.Hash]*MessageProposal
 
-	DKGTermId     int           `json:"dkg_term_id"`
+	//DKGTermId     int           `json:"dkg_term_id"`
 	SequencerTime time.Duration `json:"sequencer_time"`
-	dkg           *dkg.Dkg
+	//dkg           *dkg.Dkg
 
 	//NbParticipants int
 
 	Hub announcer.MessageSender
 
-	dag og.IDag
+	//dag og.IDag
 
 	myAccount *account.Account
 
@@ -69,15 +69,8 @@ type commitDecision struct {
 
 //OGBFTPartner implements BFTPartner
 type OGBFTPartner struct {
-	BFTPartner
 	PeerInfo
 	PeersInfo []PeerInfo `json:"peers_info"`
-}
-
-type PeerInfo struct {
-	PublicKey      crypto.PublicKey `json:"-"`
-	Address        common.Address   `json:"address"`
-	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
 }
 
 func (p *OGBFTPartner) EventLoop() {
@@ -122,16 +115,16 @@ func NewBFT(nbParticipants int, Id int, sequencerTime time.Duration, judgeNonceF
 		resetChan:     make(chan bool),
 		decisionChan:  make(chan *commitDecision),
 		creator:       txCreator,
-		proposalCache: make(map[common.Hash]*p2p_message.MessageProposal),
+		proposalCache: make(map[common.Hash]*MessageProposal),
 	}
 	bft.BFTPartner.SetProposalFunc(bft.ProduceProposal)
 	bft.BFTPartner.SetGetHeightFunc(dag.GetHeight)
 	bft.JudgeNonceFunction = judgeNonceFunction
 	bft.SequencerTime = sequencerTime
 	bft.OnSelfGenTxi = OnSelfGenTxi
-	bft.dag = dag
+	//bft.dag = dag
 	bft.myAccount = myAccount
-	bft.dkg = dkg
+	//bft.dkg = dkg
 	//bft.NbParticipants
 	ogBftPartner.RegisterDecisionReceiveFunc(bft.commitDecision)
 	return bft
@@ -197,7 +190,7 @@ func (b *BFT) commitDecision(state *HeightRoundState) error {
 	return nil
 }
 
-func (b *BFT) sendToPartners(msgType p2p_message.MessageType, request p2p_message.Message) {
+func (b *BFT) sendToPartners(msgType BftMessageType, request p2p_message.Message) {
 	inChan := b.BFTPartner.GetIncomingMessageChannel()
 	peers := b.BFTPartner.GetPeers()
 	for _, peer := range peers {
@@ -247,19 +240,19 @@ func (b *BFT) loop() {
 		case msg := <-outCh:
 			logev.Tracef("got msg %v", msg)
 			switch msg.Type {
-			case p2p_message.MessageTypeProposal:
-				proposal := msg.Payload.(*p2p_message.MessageProposal)
+			case BftMessageTypeProposal:
+				proposal := msg.Payload.(*MessageProposal)
 				proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
 				proposal.TermId = uint32(b.DKGTermId)
 				b.sendToPartners(msg.Type, proposal)
-			case p2p_message.MessageTypePreVote:
-				prevote := msg.Payload.(*p2p_message.MessagePreVote)
+			case BftMessageTypePreVote:
+				prevote := msg.Payload.(*MessagePreVote)
 				prevote.PublicKey = b.myAccount.PublicKey.Bytes
 				prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
 				prevote.TermId = uint32(b.DKGTermId)
 				b.sendToPartners(msg.Type, prevote)
-			case p2p_message.MessageTypePreCommit:
-				preCommit := msg.Payload.(*p2p_message.MessagePreCommit)
+			case BftMessageTypePreCommit:
+				preCommit := msg.Payload.(*MessagePreCommit)
 				if preCommit.Idv != nil {
 					logev.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
 					sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
@@ -281,7 +274,7 @@ func (b *BFT) loop() {
 			state := decision.state
 			//set nil first
 			var sigShares [][]byte
-			sequencerProposal := state.Decision.(*p2p_message.SequencerProposal)
+			sequencerProposal := state.Decision.(*SequencerProposal)
 			for i, commit := range state.PreCommits {
 				//blsSig := &types.BlsSigSet{
 				//	PublicKey:    commit.PublicKey,
@@ -311,7 +304,7 @@ func (b *BFT) loop() {
 			//seq.BlsJointPubKey = blsPub
 			sequencerProposal.Sequencer.Proposing = false
 			b.OnSelfGenTxi <- &sequencerProposal.Sequencer
-			//b.ann.Hub.BroadcastMessage(p2p_message.MessageTypeNewSequencer, seq.RawSequencer())
+			//b.ann.Hub.BroadcastMessage(BftMessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-b.resetChan:
 			//todo
@@ -320,7 +313,7 @@ func (b *BFT) loop() {
 	}
 }
 
-func (b *BFT) VerifyProposal(proposal *p2p_message.MessageProposal, pubkey crypto.PublicKey) bool {
+func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey) bool {
 	h := proposal.BasicMessage.HeightRound
 	id := b.BFTPartner.Proposer(h)
 	if uint16(id) != proposal.SourceId {
@@ -363,7 +356,7 @@ func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) boo
 
 }
 
-func (b *BFT) GetProposalCache(hash common.Hash) *p2p_message.MessageProposal {
+func (b *BFT) GetProposalCache(hash common.Hash) *MessageProposal {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.proposalCache[hash]
@@ -374,7 +367,7 @@ func (b *BFT) DeleteProposalCache(hash common.Hash) {
 	defer b.mu.RUnlock()
 	delete(b.proposalCache, hash)
 }
-func (b *BFT) CacheProposal(hash common.Hash, proposal *p2p_message.MessageProposal) {
+func (b *BFT) CacheProposal(hash common.Hash, proposal *MessageProposal) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	b.proposalCache[hash] = proposal
@@ -397,17 +390,17 @@ type BFTInfo struct {
 	Partners      []PeerInfo    `json:"partners"`
 }
 
-func (b *BFT) HandlePreCommit(request *p2p_message.MessagePreCommit) {
+func (b *BFT) HandlePreCommit(request *MessagePreCommit) {
 	m := Message{
-		Type:    p2p_message.MessageTypePreCommit,
+		Type:    BftMessageTypePreCommit,
 		Payload: request,
 	}
 	b.BFTPartner.GetIncomingMessageChannel() <- m
 }
 
-func (b *BFT) HandlePreVote(request *p2p_message.MessagePreVote) {
+func (b *BFT) HandlePreVote(request *MessagePreVote) {
 	m := Message{
-		Type:    p2p_message.MessageTypePreVote,
+		Type:    BftMessageTypePreVote,
 		Payload: request,
 	}
 	b.BFTPartner.GetIncomingMessageChannel() <- m
@@ -418,7 +411,7 @@ func (b *BFT) HandleProposal(hash common.Hash) {
 	if request != nil {
 		b.DeleteProposalCache(hash)
 		m := Message{
-			Type:    p2p_message.MessageTypeProposal,
+			Type:    BftMessageTypeProposal,
 			Payload: request,
 		}
 		b.BFTPartner.GetIncomingMessageChannel() <- m

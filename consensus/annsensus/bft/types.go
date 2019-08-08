@@ -85,12 +85,12 @@ const (
 	BftMessageTypePreCommit
 )
 
-type Message struct {
+type BftMessage struct {
 	Type    BftMessageType
 	Payload interface{}
 }
 
-func (m *Message) String() string {
+func (m *BftMessage) String() string {
 	return fmt.Sprintf("%s %+v", m.Type.String(), m.Payload)
 }
 

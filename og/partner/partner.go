@@ -2,6 +2,7 @@ package partner
 
 import (
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/sirupsen/logrus"
 )
@@ -12,9 +13,14 @@ import (
 // e.g., produce proposal, broadcast messages, receive message and update consensus state
 type OGPartner struct {
 	JudgeNonceFunction func(account *account.Account) uint64
+	MessageSigner      crypto.ISigner
 }
 
 func NewOGPartner(myAccount *account.Account) *OGPartner {
+
+}
+
+func (o *OGPartner) Sign(msg bft.BftMessage) {
 
 }
 

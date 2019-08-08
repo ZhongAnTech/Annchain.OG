@@ -31,6 +31,7 @@ type WaiterRequest struct {
 
 // Waiter provides a way to wait for some context to be changed in a certain time.
 // If the context is not changed, callback function will be triggered.
+// TODO: replace it with context package
 type Waiter struct {
 	currentRequest      *WaiterRequest
 	requestChannel      chan *WaiterRequest

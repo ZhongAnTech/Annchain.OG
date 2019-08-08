@@ -119,7 +119,7 @@ func (a *AnnSensus) HandleConsensusDkgSigSets(request *p2p_message.MessageConsen
 }
 
 //HandleConsensusProposal
-func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal, peerId string) {
+func (a *AnnSensus) HandleConsensusProposal(request *bft.MessageProposal, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -134,12 +134,12 @@ func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal
 		return
 	}
 	switch msg := request.Value.(type) {
-	case *p2p_message.SequencerProposal:
+	case *bft.SequencerProposal:
 	default:
 		log.WithField("request ", msg).Warn("unsupported proposal type")
 		return
 	}
-	seq := request.Value.(*p2p_message.SequencerProposal).Sequencer
+	seq := request.Value.(*bft.SequencerProposal).Sequencer
 	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft proposal data")
 	pk := crypto.PublicKeyFromBytes(a.cryptoType, seq.PublicKey)
 	s := crypto.NewSigner(pk.Type)
@@ -167,7 +167,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *p2p_message.MessageProposal
 }
 
 //HandleConsensusPreVote
-func (a *AnnSensus) HandleConsensusPreVote(request *p2p_message.MessagePreVote, peerId string) {
+func (a *AnnSensus) HandleConsensusPreVote(request *bft.MessagePreVote, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return
@@ -203,7 +203,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *p2p_message.MessagePreVote, 
 }
 
 //HandleConsensusPreCommit
-func (a *AnnSensus) HandleConsensusPreCommit(request *p2p_message.MessagePreCommit, peerId string) {
+func (a *AnnSensus) HandleConsensusPreCommit(request *bft.MessagePreCommit, peerId string) {
 	if a.disable {
 		log.WithField("from ", peerId).WithField("reqest ", request).Warn("annsensus disabled")
 		return

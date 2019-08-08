@@ -33,7 +33,6 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/kyber/v3"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/annchain/kyber/v3/share/dkg/pedersen"
@@ -57,7 +56,6 @@ type Dkg struct {
 	dealSigSetsCache  map[common.Address]*p2p_message.MessageConsensusDkgSigSets
 	respWaitingCache  map[uint32][]*p2p_message.MessageConsensusDkgDealResponse
 	blsSigSets        map[common.Address]*tx_types.SigSet
-	dag               og.IDag
 	ready             bool
 	isValidPartner    bool
 
@@ -71,7 +69,7 @@ type Dkg struct {
 	ConfigFilePath    string
 }
 
-func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
+func NewDkg(dkgOn bool, numParts, threshold int,
 	dkgPulicKeyChan chan kyber.Point, genesisPkChan chan *p2p_message.MessageConsensusDkgGenesisPublicKey, t *term.Term) *Dkg {
 	p := NewDKGPartner(bn256.NewSuiteG2())
 	p.NbParticipants = numParts
@@ -98,7 +96,6 @@ func NewDkg(dkgOn bool, numParts, threshold int, dag og.IDag,
 	d.blsSigSets = make(map[common.Address]*tx_types.SigSet)
 	d.ready = false
 	d.isValidPartner = false
-	d.dag = dag
 	d.OndkgPulicKeyChan = dkgPulicKeyChan
 	d.OngenesisPkChan = genesisPkChan
 	d.term = t

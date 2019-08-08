@@ -15,7 +15,7 @@ type HeightProvider interface {
 }
 
 type PeerCommunicator interface {
-	Broadcast(msg Message, peers []PeerInfo)
-	Unicast(msg Message, peer PeerInfo)
-	GetIncomingChannel() chan Message
+	Broadcast(msg BftMessage, peers []PeerInfo)
+	Unicast(msg BftMessage, peer PeerInfo)
+	GetIncomingChannel() chan BftMessage
 }

@@ -31,14 +31,14 @@ type ByzantineFeatures struct {
 
 // ByzantinePartner implements a Tendermint client according to "The latest gossip on BFT consensus"
 type ByzantinePartner struct {
-	*DefaultPartner
+	*BftPartner
 	// consider updating resetStatus() if you want to add things here
 	ByzantineFeatures ByzantineFeatures
 }
 
 func NewByzantinePartner(nbParticipants int, id int, blockTime time.Duration, byzantineFeatures ByzantineFeatures) *ByzantinePartner {
 	p := &ByzantinePartner{
-		DefaultPartner:    NewBFTPartner(nbParticipants, id, blockTime),
+		BftPartner:        NewBFTPartner(nbParticipants, id, blockTime),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return p
@@ -84,7 +84,7 @@ func (p *ByzantinePartner) send() {
 	}
 }
 
-func (p *ByzantinePartner) doBadThings(msg Message) (updatedMessage Message, toSend bool) {
+func (p *ByzantinePartner) doBadThings(msg BftMessage) (updatedMessage BftMessage, toSend bool) {
 	updatedMessage = msg
 	toSend = true
 	switch msg.Type {

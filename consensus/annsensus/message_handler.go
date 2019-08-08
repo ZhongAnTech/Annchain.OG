@@ -158,7 +158,7 @@ func (a *AnnSensus) HandleConsensusProposal(request *bft.MessageProposal, peerId
 	a.bft.CacheProposal(seq.GetTxHash(), request)
 	a.HandleNewTxi(&seq, peerId)
 	log.Debug("response ok")
-	//m := Message{
+	//m := BftMessage{
 	//	Type:    p2p_message.MessageTypeProposal,
 	//	Payload: request,
 	//}
@@ -194,7 +194,7 @@ func (a *AnnSensus) HandleConsensusPreVote(request *bft.MessagePreVote, peerId s
 		return
 	}
 
-	m := bft.Message{
+	m := bft.BftMessage{
 		Type:    p2p_message.MessageTypePreVote,
 		Payload: request,
 	}

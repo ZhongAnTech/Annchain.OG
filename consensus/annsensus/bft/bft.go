@@ -67,19 +67,6 @@ type commitDecision struct {
 	state        *HeightRoundState
 }
 
-//OGBFTPartner implements BFTPartner
-type OGBFTPartner struct {
-	PeerInfo
-	PeersInfo []PeerInfo `json:"peers_info"`
-}
-
-func (p *OGBFTPartner) EventLoop() {
-	loop := func() {
-		p.BFTPartner.(*DefaultPartner).receive()
-	}
-	goroutine.New(loop)
-}
-
 func NewOgBftPeer(pk crypto.PublicKey, nbParticipants, Id int, sequencerTime time.Duration) *OGBFTPartner {
 	p := NewBFTPartner(nbParticipants, Id, sequencerTime)
 	bft := &OGBFTPartner{
@@ -206,7 +193,7 @@ func (b *BFT) sendToPartners(msgType BftMessageType, request p2p_message.Message
 			goroutine.New(
 				func() {
 					time.Sleep(10 * time.Millisecond)
-					msg := Message{
+					msg := BftMessage{
 						Type:    msgType,
 						Payload: request,
 					}
@@ -239,36 +226,36 @@ func (b *BFT) loop() {
 
 		case msg := <-outCh:
 			logev.Tracef("got msg %v", msg)
-			switch msg.Type {
-			case BftMessageTypeProposal:
-				proposal := msg.Payload.(*MessageProposal)
-				proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
-				proposal.TermId = uint32(b.DKGTermId)
-				b.sendToPartners(msg.Type, proposal)
-			case BftMessageTypePreVote:
-				prevote := msg.Payload.(*MessagePreVote)
-				prevote.PublicKey = b.myAccount.PublicKey.Bytes
-				prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
-				prevote.TermId = uint32(b.DKGTermId)
-				b.sendToPartners(msg.Type, prevote)
-			case BftMessageTypePreCommit:
-				preCommit := msg.Payload.(*MessagePreCommit)
-				if preCommit.Idv != nil {
-					logev.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
-					sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
-					if err != nil {
-						logev.WithError(err).Error("sign error")
-						panic(err)
-					}
-					preCommit.BlsSignature = sig
-				}
-				preCommit.PublicKey = b.myAccount.PublicKey.Bytes
-				preCommit.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
-				preCommit.TermId = uint32(b.DKGTermId)
-				b.sendToPartners(msg.Type, preCommit)
-			default:
-				panic("never come here unknown type")
-			}
+			//switch msg.Type {
+			//case BftMessageTypeProposal:
+			//	proposal := msg.Payload.(*MessageProposal)
+			//	proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
+			//	proposal.TermId = uint32(b.DKGTermId)
+			//	b.sendToPartners(msg.Type, proposal)
+			//case BftMessageTypePreVote:
+			//	prevote := msg.Payload.(*MessagePreVote)
+			//	prevote.PublicKey = b.myAccount.PublicKey.Bytes
+			//	prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
+			//	prevote.TermId = uint32(b.DKGTermId)
+			//	b.sendToPartners(msg.Type, prevote)
+			//case BftMessageTypePreCommit:
+			//	preCommit := msg.Payload.(*MessagePreCommit)
+			//	if preCommit.Idv != nil {
+			//		logev.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
+			//		sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
+			//		if err != nil {
+			//			logev.WithError(err).Error("sign error")
+			//			panic(err)
+			//		}
+			//		preCommit.BlsSignature = sig
+			//	}
+			//	preCommit.PublicKey = b.myAccount.PublicKey.Bytes
+			//	preCommit.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
+			//	preCommit.TermId = uint32(b.DKGTermId)
+			//	b.sendToPartners(msg.Type, preCommit)
+			//default:
+			//	panic("never come here unknown type")
+			//}
 
 		case decision := <-b.decisionChan:
 			state := decision.state
@@ -390,35 +377,36 @@ type BFTInfo struct {
 	Partners      []PeerInfo    `json:"partners"`
 }
 
-func (b *BFT) HandlePreCommit(request *MessagePreCommit) {
-	m := Message{
-		Type:    BftMessageTypePreCommit,
-		Payload: request,
-	}
-	b.BFTPartner.GetIncomingMessageChannel() <- m
-}
-
-func (b *BFT) HandlePreVote(request *MessagePreVote) {
-	m := Message{
-		Type:    BftMessageTypePreVote,
-		Payload: request,
-	}
-	b.BFTPartner.GetIncomingMessageChannel() <- m
-}
-
-func (b *BFT) HandleProposal(hash common.Hash) {
-	request := b.GetProposalCache(hash)
-	if request != nil {
-		b.DeleteProposalCache(hash)
-		m := Message{
-			Type:    BftMessageTypeProposal,
-			Payload: request,
-		}
-		b.BFTPartner.GetIncomingMessageChannel() <- m
-
-	}
-}
-
-func (b *BFT) GetStatus() interface{} {
-	return b.BFTPartner.Status()
-}
+//
+//func (b *BFT) HandlePreCommit(request *MessagePreCommit) {
+//	m := BftMessage{
+//		Type:    BftMessageTypePreCommit,
+//		Payload: request,
+//	}
+//	b.BFTPartner.GetIncomingMessageChannel() <- m
+//}
+//
+//func (b *BFT) HandlePreVote(request *MessagePreVote) {
+//	m := BftMessage{
+//		Type:    BftMessageTypePreVote,
+//		Payload: request,
+//	}
+//	b.BFTPartner.GetIncomingMessageChannel() <- m
+//}
+//
+//func (b *BFT) HandleProposal(hash common.Hash) {
+//	request := b.GetProposalCache(hash)
+//	if request != nil {
+//		b.DeleteProposalCache(hash)
+//		m := BftMessage{
+//			Type:    BftMessageTypeProposal,
+//			Payload: request,
+//		}
+//		b.BFTPartner.GetIncomingMessageChannel() <- m
+//
+//	}
+//}
+//
+//func (b *BFT) GetStatus() interface{} {
+//	return b.BFTPartner.Status()
+//}

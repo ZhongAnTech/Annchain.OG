@@ -102,7 +102,6 @@ type SequencerProposal struct {
 type BasicMessage struct {
 	SourceId    uint16
 	HeightRound HeightRound
-	TermId      uint32
 }
 
 //msgp:tuple MessageProposal
@@ -110,8 +109,6 @@ type MessageProposal struct {
 	BasicMessage
 	Value      Proposal //TODO
 	ValidRound int
-	//PublicKey  []byte
-	Signature hexutil.Bytes
 }
 
 func (m MessageProposal) Copy() *MessageProposal {
@@ -124,9 +121,7 @@ func (m MessageProposal) Copy() *MessageProposal {
 //msgp:tuple MessagePreVote
 type MessagePreVote struct {
 	BasicMessage
-	Idv       *common.Hash // ID of the proposal, usually be the hash of the proposal
-	Signature hexutil.Bytes
-	PublicKey hexutil.Bytes
+	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
 //msgp:tuple MessagePreCommit
@@ -134,8 +129,6 @@ type MessagePreCommit struct {
 	BasicMessage
 	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
-	Signature    hexutil.Bytes
-	PublicKey    hexutil.Bytes
 }
 
 func (m BasicMessage) String() string {
@@ -143,7 +136,7 @@ func (m BasicMessage) String() string {
 }
 
 func (m MessageProposal) String() string {
-	return fmt.Sprintf("bm %s, value %s, vaildRound %d", m.BasicMessage, m.Value, m.ValidRound)
+	return fmt.Sprintf("bm %s, value %s", m.BasicMessage, m.Value)
 }
 
 func (m MessagePreVote) String() string {
@@ -183,7 +176,8 @@ func (m *MessageProposal) SignatureTargets() []byte {
 	if idv := m.Value.GetId(); idv != nil {
 		w.Write(idv.Bytes)
 	}
-	w.Write(m.HeightRound.Height, uint64(m.HeightRound.Round), m.SourceId, uint64(m.ValidRound))
+	//w.Write(m.HeightRound.Height, uint64(m.HeightRound.Round), m.SourceId, uint64(m.ValidRound))
+	w.Write(m.HeightRound.Height, uint64(m.HeightRound.Round), m.SourceId)
 	return w.Bytes()
 }
 

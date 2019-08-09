@@ -14,7 +14,7 @@ type HeightProvider interface {
 	CurrentHeight() uint64
 }
 
-type PeerCommunicator interface {
+type BftPeerCommunicator interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)
 	GetIncomingChannel() chan BftMessage

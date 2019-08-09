@@ -226,36 +226,7 @@ func (b *BFT) loop() {
 
 		case msg := <-outCh:
 			logev.Tracef("got msg %v", msg)
-			//switch msg.Type {
-			//case BftMessageTypeProposal:
-			//	proposal := msg.Payload.(*MessageProposal)
-			//	proposal.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, proposal.SignatureTargets()).Bytes
-			//	proposal.TermId = uint32(b.DKGTermId)
-			//	b.sendToPartners(msg.Type, proposal)
-			//case BftMessageTypePreVote:
-			//	prevote := msg.Payload.(*MessagePreVote)
-			//	prevote.PublicKey = b.myAccount.PublicKey.Bytes
-			//	prevote.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, prevote.SignatureTargets()).Bytes
-			//	prevote.TermId = uint32(b.DKGTermId)
-			//	b.sendToPartners(msg.Type, prevote)
-			//case BftMessageTypePreCommit:
-			//	preCommit := msg.Payload.(*MessagePreCommit)
-			//	if preCommit.Idv != nil {
-			//		logev.WithField("dkg id ", b.dkg.GetId()).WithField("term id ", b.DKGTermId).Debug("signed ")
-			//		sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
-			//		if err != nil {
-			//			logev.WithError(err).Error("sign error")
-			//			panic(err)
-			//		}
-			//		preCommit.BlsSignature = sig
-			//	}
-			//	preCommit.PublicKey = b.myAccount.PublicKey.Bytes
-			//	preCommit.Signature = crypto.Signer.Sign(b.myAccount.PrivateKey, preCommit.SignatureTargets()).Bytes
-			//	preCommit.TermId = uint32(b.DKGTermId)
-			//	b.sendToPartners(msg.Type, preCommit)
-			//default:
-			//	panic("never come here unknown type")
-			//}
+			// sign and send msg
 
 		case decision := <-b.decisionChan:
 			state := decision.state
@@ -328,37 +299,37 @@ func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey)
 	return true
 }
 
-func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
-	peers := b.BFTPartner.GetPeers()
-	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
-		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
-		return false
-	}
-	partner := peers[sourcePartner].(*OGBFTPartner)
-	if bytes.Equal(partner.PublicKey.Bytes, publicKey.Bytes) {
-		return true
-	}
-	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
-	return false
+//func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
+//	peers := b.BFTPartner.GetPeers()
+//	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
+//		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
+//		return false
+//	}
+//	partner := peers[sourcePartner].(*OGBFTPartner)
+//	if bytes.Equal(partner.PublicKey.Bytes, publicKey.Bytes) {
+//		return true
+//	}
+//	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
+//	return false
+//
+//}
 
-}
-
-func (b *BFT) GetProposalCache(hash common.Hash) *MessageProposal {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.proposalCache[hash]
-}
-
-func (b *BFT) DeleteProposalCache(hash common.Hash) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	delete(b.proposalCache, hash)
-}
-func (b *BFT) CacheProposal(hash common.Hash, proposal *MessageProposal) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	b.proposalCache[hash] = proposal
-}
+//func (b *BFT) GetProposalCache(hash common.Hash) *MessageProposal {
+//	b.mu.RLock()
+//	defer b.mu.RUnlock()
+//	return b.proposalCache[hash]
+//}
+//
+//func (b *BFT) DeleteProposalCache(hash common.Hash) {
+//	b.mu.RLock()
+//	defer b.mu.RUnlock()
+//	delete(b.proposalCache, hash)
+//}
+//func (b *BFT) CacheProposal(hash common.Hash, proposal *MessageProposal) {
+//	b.mu.RLock()
+//	defer b.mu.RUnlock()
+//	b.proposalCache[hash] = proposal
+//}
 
 func (b *BFT) GetInfo() *BFTInfo {
 	bftInfo := BFTInfo{

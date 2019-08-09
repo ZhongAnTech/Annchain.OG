@@ -15,7 +15,6 @@ package bft
 
 import (
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -31,14 +30,14 @@ type ByzantineFeatures struct {
 
 // ByzantinePartner implements a Tendermint client according to "The latest gossip on BFT consensus"
 type ByzantinePartner struct {
-	*BftPartner
+	*BftOperator
 	// consider updating resetStatus() if you want to add things here
 	ByzantineFeatures ByzantineFeatures
 }
 
 func NewByzantinePartner(nbParticipants int, id int, blockTime time.Duration, byzantineFeatures ByzantineFeatures) *ByzantinePartner {
 	p := &ByzantinePartner{
-		BftPartner:        NewBFTPartner(nbParticipants, id, blockTime),
+		BftOperator:       NewBFTPartner(nbParticipants, id, blockTime),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return p

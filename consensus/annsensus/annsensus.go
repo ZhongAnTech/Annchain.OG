@@ -40,6 +40,7 @@ import (
 	"github.com/annchain/kyber/v3"
 )
 
+// Annsensus processes campaign election.
 type AnnSensus struct {
 	//id           int
 	campaignFlag bool

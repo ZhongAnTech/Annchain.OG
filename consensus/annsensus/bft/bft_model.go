@@ -1,9 +1,9 @@
 package bft
 
 import (
-	"crypto"
 	"encoding/json"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"time"
 )

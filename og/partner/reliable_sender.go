@@ -106,12 +106,12 @@ func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
 }
 
 func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.PublicKey, sourcePartner int) bool {
-	peers := b.BFTPartner.GetPeers()
+	peers := b.TermProvider.LatestPeers()
 	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
 		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
 		return false
 	}
-	partner := peers[sourcePartner].(*OGBFTPartner)
+	partner := peers[sourcePartner]
 	if bytes.Equal(partner.PublicKey.Bytes, publicKey.Bytes) {
 		return true
 	}

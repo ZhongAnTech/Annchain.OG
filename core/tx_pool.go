@@ -101,13 +101,12 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived        map[channelName]chan types.Txi   // for notifications of new txs.
-	OnConsensusTXConfirmed []chan map[common.Hash]types.Txi // for notifications of  consensus tx confirmation.
-	OnBatchConfirmed       []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
-	txNum                  uint32
-	maxWeight              uint64
-	confirmStatus          *ConfirmStatus
+	onNewTxReceived      map[channelName]chan types.Txi   // for notifications of new txs.
+	OnBatchConfirmed     []chan map[common.Hash]types.Txi // for notifications of confirmation.
+	OnNewLatestSequencer []chan bool                      //for broadcasting new latest sequencer to record height
+
+	maxWeight     uint64
+	confirmStatus *ConfirmStatus
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -129,19 +128,18 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		conf.ConfirmStatusRefreshTime = 30
 	}
 	pool := &TxPool{
-		conf:                   conf,
-		dag:                    d,
-		queue:                  make(chan *txEvent, conf.QueueSize),
-		tips:                   NewTxMap(),
-		badtxs:                 NewTxMap(),
-		pendings:               NewTxMap(),
-		flows:                  NewAccountFlows(),
-		txLookup:               newTxLookUp(),
-		close:                  make(chan struct{}),
-		onNewTxReceived:        make(map[channelName]chan types.Txi),
-		OnBatchConfirmed:       []chan map[common.Hash]types.Txi{},
-		OnConsensusTXConfirmed: []chan map[common.Hash]types.Txi{},
-		confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
+		conf:             conf,
+		dag:              d,
+		queue:            make(chan *txEvent, conf.QueueSize),
+		tips:             NewTxMap(),
+		badtxs:           NewTxMap(),
+		pendings:         NewTxMap(),
+		flows:            NewAccountFlows(),
+		txLookup:         newTxLookUp(),
+		close:            make(chan struct{}),
+		onNewTxReceived:  make(map[channelName]chan types.Txi),
+		OnBatchConfirmed: []chan map[common.Hash]types.Txi{},
+		confirmStatus:    &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
 
 	return pool
@@ -239,8 +237,11 @@ func (pool *TxPool) Get(hash common.Hash) types.Txi {
 	return pool.get(hash)
 }
 
-func (pool *TxPool) GetTxNum() uint32 {
-	return atomic.LoadUint32(&pool.txNum)
+func (pool *TxPool) GetTxNum() int {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.txLookup.Count()
 }
 
 func (pool *TxPool) GetMaxWeight() uint64 {
@@ -476,7 +477,6 @@ func (pool *TxPool) loop() {
 				if err != nil {
 					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
 				} else {
-					atomic.StoreUint32(&pool.txNum, 0)
 					maxWeight := atomic.LoadUint64(&pool.maxWeight)
 					if maxWeight < tx.GetWeight() {
 						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
@@ -486,7 +486,6 @@ func (pool *TxPool) loop() {
 				err = pool.commit(tx)
 				//if err is not nil , item removed inside commit
 				if err == nil {
-					atomic.AddUint32(&pool.txNum, 1)
 					maxWeight := atomic.LoadUint64(&pool.maxWeight)
 					if maxWeight < tx.GetWeight() {
 						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())

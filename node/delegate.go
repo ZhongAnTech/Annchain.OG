@@ -48,7 +48,7 @@ type Delegate struct {
 	InsertSyncBuffer   insertTxsFn
 }
 
-func (d *Delegate) GetTxNum() uint32 {
+func (d *Delegate) GetTxNum() int {
 	return d.TxPool.GetTxNum()
 }
 

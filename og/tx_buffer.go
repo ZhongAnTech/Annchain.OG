@@ -420,17 +420,10 @@ func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 
 func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
-	if self == nil {
-		logrus.WithFields(logrus.Fields{
-			"parent": parentHash,
-			"child":  nil,
-		}).Debugf("updating dependency map")
-	} else {
-		logrus.WithFields(logrus.Fields{
-			"parent": parentHash,
-			"child":  self,
-		}).Debugf("updating dependency map")
-	}
+	logrus.WithFields(logrus.Fields{
+		"parent": parentHash,
+		"child":  self,
+	}).Debugf("updating dependency map")
 
 	b.affmu.Lock()
 	v, err := b.dependencyCache.GetIFPresent(parentHash)
@@ -579,30 +572,31 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	var sendBloom bool
 	for _, parentHash := range tx.Parents() {
-		if !b.isLocalHash(parentHash) {
-			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
-			allFetched = false
-			//this line is for test , may be can fix
-			b.updateDependencyMap(parentHash, tx)
-			// TODO: identify if this tx is already synced
-			if !b.isBufferedHash(parentHash) {
-				// not in cache, never synced before.
-				// sync.
-				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
-				pHash := parentHash
-				//b.updateDependencyMap(parentHash, tx)
-				if !sendBloom && tx.GetWeight() > b.txPool.GetMaxWeight() && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
-					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
-					sendBloom = true
-				} else {
-					b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
-				}
-				//b.children.AddChildren(parentHash, tx.GetTxHash())
-			} else {
-				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
-				b.Syncer.Enqueue(nil, common.Hash{}, false)
-			}
+		// check if parent is in pool or dag.
+		if b.isLocalHash(parentHash) {
+			continue
 		}
+
+		logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
+		allFetched = false
+		b.updateDependencyMap(parentHash, tx)
+		if b.isBufferedHash(parentHash) {
+			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
+			b.Syncer.Enqueue(nil, common.Hash{}, false)
+			continue
+		}
+		// not in cache, never synced before.
+		// sync.
+		logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
+		pHash := parentHash
+		//b.updateDependencyMap(parentHash, tx)
+		if !sendBloom && tx.GetWeight()-b.txPool.GetMaxWeight() > 20 {
+			b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
+			sendBloom = true
+		} else {
+			b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
+		}
+		//b.children.AddChildren(parentHash, tx.GetTxHash())
 	}
 	if !allFetched {
 		//missingHashes := b.getMissingHashes(tx)

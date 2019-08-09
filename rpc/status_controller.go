@@ -70,7 +70,7 @@ func (r *RpcController) syncStatus() SyncStatus {
 		status.BestPeer = peerId
 
 	}
-	status.Txid = r.Og.TxPool.GetTxNum()
+	status.Txid = uint32(r.Og.TxPool.GetTxNum())
 	return status
 }
 

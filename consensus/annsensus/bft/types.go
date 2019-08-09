@@ -85,9 +85,13 @@ const (
 	BftMessageTypePreCommit
 )
 
+type Signable interface {
+	SignatureTargets() []byte
+}
+
 type BftMessage struct {
 	Type    BftMessageType
-	Payload interface{}
+	Payload Signable
 }
 
 func (m *BftMessage) String() string {

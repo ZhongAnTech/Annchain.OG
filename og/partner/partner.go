@@ -1,10 +1,10 @@
 package partner
 
 import (
-	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus/bft"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // partner is a participant in the consensus group.
@@ -12,21 +12,46 @@ import (
 // it only provides necessary functions and infomation to support consensus module.
 // e.g., produce proposal, broadcast messages, receive message and update consensus state
 type OGPartner struct {
-	JudgeNonceFunction func(account *account.Account) uint64
-	MessageSigner      crypto.ISigner
+	accountNonceProvider AccountNonceProvider
+	peerCommunicator     bft.BftPeerCommunicator
+	bftPartnerMyself     *bft.BftOperator
 }
 
-func NewOGPartner(myAccount *account.Account) *OGPartner {
-
+func (o *OGPartner) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+	panic("implement me")
 }
 
-func (o *OGPartner) Sign(msg bft.BftMessage) {
+func (o *OGPartner) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+	panic("implement me")
+}
 
+func (o *OGPartner) GetIncomingChannel() chan bft.BftMessage {
+	panic("implement me")
+}
+
+type dummyTermProvider struct {
+}
+
+func (dummyTermProvider) CurrentDkgTerm() uint32 {
+	return 1
+}
+
+func NewOGPartner(signer crypto.ISigner, accountProvider ConsensusAccountProvider,
+	accountNonceProvider AccountNonceProvider, nParticipants int, id int,
+	blockTime time.Duration) *OGPartner {
+	termProvider := dummyTermProvider{}
+	trustfulPeerCommunicator := NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
+
+	return &OGPartner{
+		peerCommunicator:     trustfulPeerCommunicator,
+		bftPartnerMyself:     bft.NewBFTPartner(nParticipants, id, blockTime),
+		accountNonceProvider: accountNonceProvider,
+	}
 }
 
 func (o *OGPartner) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
 	me := o.myAccount
-	nonce := o.JudgeNonceFunction(me)
+	nonce := o.accountNonceProvider.GetNonce(me)
 	logrus.WithField(" nonce ", nonce).Debug("gen seq")
 	blsPub, err := b.dkg.GetJoinPublicKey(b.DKGTermId).MarshalBinary()
 	if err != nil {

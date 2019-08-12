@@ -1,17 +1,23 @@
 package bft
 
+import "github.com/annchain/OG/consensus/model"
+
 type ProposalCondition struct {
 	ValidHeight uint64
 }
 
 // ProposalGenerator is called when a proposal is needed
 type ProposalGenerator interface {
-	ProduceProposal() (proposal Proposal, validCondition ProposalCondition)
+	ProduceProposal() (proposal model.Proposal, validCondition ProposalCondition)
 }
 
 // ProposalGenerator is called when a proposal is needed
 type ProposalValidator interface {
-	ValidateProposal(proposal Proposal) error
+	ValidateProposal(proposal model.Proposal) error
+}
+
+type DecisionValidator interface {
+	ValidateProposal(proposal model.Proposal, state *HeightRoundState) (model.ConsensusDecision, error)
 }
 
 // HeightProvider is called when a height is needed

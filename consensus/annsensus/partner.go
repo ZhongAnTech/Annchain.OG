@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/communicator"
+	"github.com/annchain/OG/consensus/model"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -17,6 +18,10 @@ type AnnsensusPartner struct {
 	accountNonceProvider AccountNonceProvider
 	peerCommunicator     bft.BftPeerCommunicator
 	bftPartnerMyself     *bft.BftOperator
+}
+
+func (o *AnnsensusPartner) GetConsensusDecisionMadeEventChannel() chan model.ConsensusDecision {
+	panic("implement me")
 }
 
 // ValidateProposal is called once a proposal is received from
@@ -71,11 +76,12 @@ func NewAnnsensusPartner(signer crypto.ISigner, accountProvider communicator.Con
 	termProvider := dummyTermProvider{}
 	trustfulPeerCommunicator := communicator.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
 
-	return &AnnsensusPartner{
+	ap := &AnnsensusPartner{
 		peerCommunicator:     trustfulPeerCommunicator,
 		bftPartnerMyself:     bft.NewBFTPartner(nParticipants, id, blockTime),
 		accountNonceProvider: accountNonceProvider,
 	}
+	ap.bftPartnerMyself.RegisterConsensusReachedListener(ap)
 }
 
 func (o *AnnsensusPartner) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {

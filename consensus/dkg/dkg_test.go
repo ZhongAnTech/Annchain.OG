@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"testing"

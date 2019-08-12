@@ -14,14 +14,13 @@
 package bft
 
 import (
-	"bytes"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
-	"github.com/annchain/OG/consensus/annsensus/dkg"
+	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types"
@@ -260,8 +259,8 @@ func (b *BFT) loop() {
 			sequencerProposal.BlsJointSig = jointSig
 			logev.Debug("will send buffer")
 			//seq.BlsJointPubKey = blsPub
-			sequencerProposal.Sequencer.Proposing = false
-			b.OnSelfGenTxi <- &sequencerProposal.Sequencer
+			Sequencer.Proposing = false
+			b.OnSelfGenTxi <- &Sequencer
 			//b.ann.Hub.BroadcastMessage(BftMessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-b.resetChan:
@@ -271,33 +270,33 @@ func (b *BFT) loop() {
 	}
 }
 
-func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey) bool {
-	h := proposal.BasicMessage.HeightRound
-	id := b.BFTPartner.Proposer(h)
-	if uint16(id) != proposal.SourceId {
-		if proposal.BasicMessage.TermId == uint32(b.DKGTermId)-1 {
-			//former term message
-			//TODO optimize in the future
-		}
-		logrus.Warn("not your turn")
-		return false
-	}
-
-	if !b.VerifyIsPartNer(pubkey, int(id)) {
-		logrus.Warn("verify pubkey error")
-		return false
-	}
-	//will verified in buffer
-	//msg := proposal.Value.(*tx_types.SequencerProposal)
-	//
-	//for _, verifier := range b.Verifiers {
-	//	if !verifier.Verify(&msg.Sequencer) {
-	//		logrus.Warn("sequencer verify failed")
-	//		return false
-	//	}
-	//}
-	return true
-}
+//func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey) bool {
+//	h := proposal.BasicMessage.HeightRound
+//	id := b.BFTPartner.Proposer(h)
+//	if uint16(id) != proposal.SourceId {
+//		if proposal.BasicMessage.TermId == uint32(b.DKGTermId)-1 {
+//			//former term message
+//			//TODO optimize in the future
+//		}
+//		logrus.Warn("not your turn")
+//		return false
+//	}
+//
+//	if !b.VerifyIsPartNer(pubkey, int(id)) {
+//		logrus.Warn("verify pubkey error")
+//		return false
+//	}
+//	//will verified in buffer
+//	//msg := proposal.Value.(*tx_types.SequencerProposal)
+//	//
+//	//for _, verifier := range b.Verifiers {
+//	//	if !verifier.Verify(&msg.Sequencer) {
+//	//		logrus.Warn("sequencer verify failed")
+//	//		return false
+//	//	}
+//	//}
+//	return true
+//}
 
 //func (b *BFT) VerifyIsPartNer(publicKey crypto.PublicKey, sourcePartner int) bool {
 //	peers := b.BFTPartner.GetPeers()
@@ -331,22 +330,22 @@ func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey)
 //	b.proposalCache[hash] = proposal
 //}
 
-func (b *BFT) GetInfo() *BFTInfo {
-	bftInfo := BFTInfo{
-		BFTPartner:    b.BFTPartner.PeerInfo,
-		Partners:      b.BFTPartner.PeersInfo,
-		DKGTermId:     b.DKGTermId,
-		SequencerTime: b.SequencerTime,
-	}
-	return &bftInfo
-}
-
-type BFTInfo struct {
-	BFTPartner    PeerInfo      `json:"bft_partner"`
-	DKGTermId     int           `json:"dkg_term_id"`
-	SequencerTime time.Duration `json:"sequencer_time"`
-	Partners      []PeerInfo    `json:"partners"`
-}
+//func (b *BFT) GetInfo() *BFTInfo {
+//	bftInfo := BFTInfo{
+//		BFTPartner:    b.BFTPartner.PeerInfo,
+//		Partners:      b.BFTPartner.PeersInfo,
+//		DKGTermId:     b.DKGTermId,
+//		SequencerTime: b.SequencerTime,
+//	}
+//	return &bftInfo
+//}
+//
+//type BFTInfo struct {
+//	BFTPartner    PeerInfo      `json:"bft_partner"`
+//	DKGTermId     int           `json:"dkg_term_id"`
+//	SequencerTime time.Duration `json:"sequencer_time"`
+//	Partners      []PeerInfo    `json:"partners"`
+//}
 
 //
 //func (b *BFT) HandlePreCommit(request *MessagePreCommit) {

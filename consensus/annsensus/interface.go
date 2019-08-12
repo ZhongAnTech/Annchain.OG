@@ -1,8 +1,8 @@
-package partner
+package annsensus
 
 import (
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/consensus/annsensus/bft"
+	"github.com/annchain/OG/consensus/bft"
 )
 
 // DkgTermProvider provide Dkg term that will be changed every term switching.

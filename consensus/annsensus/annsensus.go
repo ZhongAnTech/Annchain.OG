@@ -46,9 +46,9 @@ type AnnSensus struct {
 	campaignFlag bool
 	cryptoType   crypto.CryptoType
 
-	dkg  *dkg.Dkg
+	//dkg  *dkg.Dkg
 	term *term.Term
-	bft  *bft.BFT // tendermint protocal
+	//bft  *bft.BFT // tendermint protocal
 
 	dkgPulicKeyChan      chan kyber.Point // channel for receiving dkg response.
 	newTxHandlers        []chan types.Txi // channels to send txs.

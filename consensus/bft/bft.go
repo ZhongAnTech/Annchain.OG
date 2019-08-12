@@ -228,40 +228,40 @@ func (b *BFT) loop() {
 			// sign and send msg
 
 		case decision := <-b.decisionChan:
-			state := decision.state
-			//set nil first
-			var sigShares [][]byte
-			sequencerProposal := state.Decision.(*SequencerProposal)
-			for i, commit := range state.PreCommits {
-				//blsSig := &types.BlsSigSet{
-				//	PublicKey:    commit.PublicKey,
-				//	BlsSignature: commit.BlsSignature,
-				//}
-				//blsSigsets = append(blsSigsets, blsSig)
-				if commit == nil {
-					logev.WithField("i ", i).Debug("commit is nil")
-					continue
-				}
-				logev.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
-				logev.Debug("commit ", commit)
-				sigShares = append(sigShares, commit.BlsSignature)
-			}
-			jointSig, err := b.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), b.DKGTermId)
-			if err != nil {
-				logev.WithField("termId ", b.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
-
-				decision.callbackChan <- err
-				continue
-			} else {
-				decision.callbackChan <- nil
-			}
-
-			sequencerProposal.BlsJointSig = jointSig
-			logev.Debug("will send buffer")
-			//seq.BlsJointPubKey = blsPub
-			Sequencer.Proposing = false
-			b.OnSelfGenTxi <- &Sequencer
-			//b.ann.Hub.BroadcastMessage(BftMessageTypeNewSequencer, seq.RawSequencer())
+			//state := decision.state
+			////set nil first
+			//var sigShares [][]byte
+			//sequencerProposal := state.Decision.(*SequencerProposal)
+			//for i, commit := range state.PreCommits {
+			//	//blsSig := &types.BlsSigSet{
+			//	//	PublicKey:    commit.PublicKey,
+			//	//	BlsSignature: commit.BlsSignature,
+			//	//}
+			//	//blsSigsets = append(blsSigsets, blsSig)
+			//	if commit == nil {
+			//		logev.WithField("i ", i).Debug("commit is nil")
+			//		continue
+			//	}
+			//	logev.WithField("len ", len(commit.BlsSignature)).WithField("sigs ", hexutil.Encode(commit.BlsSignature))
+			//	logev.Debug("commit ", commit)
+			//	sigShares = append(sigShares, commit.BlsSignature)
+			//}
+			//jointSig, err := b.dkg.RecoverAndVerifySignature(sigShares, sequencerProposal.GetId().ToBytes(), b.DKGTermId)
+			//if err != nil {
+			//	logev.WithField("termId ", b.DKGTermId).WithError(err).Warnf("joinsig verify failed ")
+			//
+			//	decision.callbackChan <- err
+			//	continue
+			//} else {
+			//	decision.callbackChan <- nil
+			//}
+			//
+			//sequencerProposal.BlsJointSig = jointSig
+			//logev.Debug("will send buffer")
+			////seq.BlsJointPubKey = blsPub
+			//Sequencer.Proposing = false
+			//b.OnSelfGenTxi <- &Sequencer
+			////b.ann.Hub.BroadcastMessage(BftMessageTypeNewSequencer, seq.RawSequencer())
 
 		case <-b.resetChan:
 			//todo

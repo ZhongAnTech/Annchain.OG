@@ -16,8 +16,8 @@ type ProposalValidator interface {
 	ValidateProposal(proposal model.Proposal) error
 }
 
-type DecisionValidator interface {
-	ValidateProposal(proposal model.Proposal, state *HeightRoundState) (model.ConsensusDecision, error)
+type DecisionMaker interface {
+	MakeDecision(proposal model.Proposal, state *HeightRoundState) (model.ConsensusDecision, error)
 }
 
 // HeightProvider is called when a height is needed

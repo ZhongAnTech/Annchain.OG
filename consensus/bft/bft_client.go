@@ -37,7 +37,7 @@ type BftOperator struct {
 	PeerCommunicator  BftPeerCommunicator
 	proposalGenerator ProposalGenerator
 	proposalValidator ProposalValidator
-	decisionValidator DecisionValidator
+	decisionMaker     DecisionMaker
 
 	WaiterTimeoutChannel chan *WaiterRequest
 	quit                 chan bool
@@ -536,7 +536,7 @@ func (p *BftOperator) handlePreCommit(commit *MessagePreCommit) {
 			if state.Decision == nil {
 				// try to validate if we really got a decision
 				// This step is usually for value validation
-				decision, err := p.decisionValidator.ValidateProposal(state.MessageProposal.Value, state)
+				decision, err := p.decisionMaker.MakeDecision(state.MessageProposal.Value, state)
 				if err != nil {
 					logrus.WithError(err).WithField("hr", p.BftStatus.CurrentHR).Warn("validation failed for decision")
 					if count == p.BftStatus.N {

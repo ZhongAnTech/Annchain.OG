@@ -41,7 +41,7 @@ import (
 )
 
 type Dkg struct {
-	TermId            int
+	TermId            uint32
 	dkgOn             bool
 	myPublicKey       []byte
 	partner           *DKGPartner
@@ -503,7 +503,7 @@ func (d *Dkg) ProcessWaitingResponse(deal *dkg.Deal) {
 	}
 }
 
-func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId int) {
+func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId uint32) {
 	//for generating deals, we use n partPubs, including our partPub. it generates  n-1 deals, excluding our own deal
 	//skip myself
 	log := d.log()
@@ -938,7 +938,7 @@ func (d *Dkg) GetJoinPublicKey(termId int) kyber.Point {
 	return partner.jointPubKey
 }
 
-func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId int) (jointSig []byte, err error) {
+func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId uint32) (jointSig []byte, err error) {
 	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()

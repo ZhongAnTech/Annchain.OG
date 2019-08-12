@@ -11,9 +11,9 @@ import (
 //go:generate msgp
 
 type Proposal interface {
+	msg.Message
 	Equal(Proposal) bool
 	GetId() *common.Hash
-	msg.Message
 	String() string
 	Copy() Proposal
 }
@@ -77,3 +77,5 @@ func (s SequencerProposal) Copy() Proposal {
 	r = s
 	return &r
 }
+
+type ConsensusDecision Proposal

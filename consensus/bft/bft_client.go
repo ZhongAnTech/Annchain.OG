@@ -37,6 +37,7 @@ type BftOperator struct {
 	PeerCommunicator  BftPeerCommunicator
 	proposalGenerator ProposalGenerator
 	proposalValidator ProposalValidator
+	decisionValidator DecisionValidator
 
 	WaiterTimeoutChannel chan *WaiterRequest
 	quit                 chan bool
@@ -77,23 +78,20 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *BftOper
 	}
 
 	p.waiter = NewWaiter(p.WaiterTimeoutChannel)
-	p.RegisterDecisionReceiveFunc(deFaultDecisionFunc)
 
 	logrus.WithField("n", p.BftStatus.N).WithField("F", p.BftStatus.F).
 		WithField("maj23", p.BftStatus.Maj23).Debug("new bft")
 	return p
 }
 
-func deFaultDecisionFunc(state *HeightRoundState) error {
-	return nil
-}
-
 func (p *BftOperator) SetHeightProvider(heightProvider HeightProvider) {
 	p.heightProvider = heightProvider
 }
 
-func (p *BftOperator) RegisterDecisionReceiveFunc(decisionFunc func(state *HeightRoundState) error) {
-	p.decisionFunc = decisionFunc
+// RegisterConsensusReachedListener registers callback for decision made event
+// TODO: In the future, protected the array so that it can handle term change
+func (p *BftOperator) RegisterConsensusReachedListener(listener model.ConsensusReachedListener) {
+	p.ConsensusReachedListeners = append(p.ConsensusReachedListeners, listener)
 }
 
 func (p *BftOperator) Stop() {
@@ -536,21 +534,31 @@ func (p *BftOperator) handlePreCommit(commit *MessagePreCommit) {
 		count = p.count(BftMessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeByValue, state.MessageProposal.Value.GetId())
 		if count >= p.BftStatus.Maj23 {
 			if state.Decision == nil {
+				// try to validate if we really got a decision
+				// This step is usually for value validation
+				decision, err := p.decisionValidator.ValidateProposal(state.MessageProposal.Value, state)
+				if err != nil {
+					logrus.WithError(err).WithField("hr", p.BftStatus.CurrentHR).Warn("validation failed for decision")
+					if count == p.BftStatus.N {
+						logrus.WithField("hr", p.BftStatus.CurrentHR).Warn("all messages received but not a good decision. Abandom this round")
+						p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round+1)
+					} else {
+						logrus.Warn("wait for more correct messages coming")
+					}
+					return
+				}
+
 				// output decision
-				state.Decision = state.MessageProposal.Value
+				state.Decision = decision
 				logrus.WithFields(logrus.Fields{
 					"IM":    p.Id,
 					"hr":    p.BftStatus.CurrentHR.String(),
-					"value": state.MessageProposal.Value,
-				}).Info("Decision")
+					"value": state.Decision,
+				}).Info("Decision made")
+
 				//send the decision to upper client to process
-				err := p.decisionFunc(state)
-				if err != nil {
-					logrus.WithError(err).Warn("commit decision error")
-					p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round+1)
-				} else {
-					p.StartNewEra(p.BftStatus.CurrentHR.Height+1, 0)
-				}
+				p.notifyDecisionMade(p.BftStatus.CurrentHR, state.Decision)
+				p.StartNewEra(p.BftStatus.CurrentHR.Height+1, 0)
 			}
 		}
 	}
@@ -752,4 +760,10 @@ func (p *BftOperator) Status() interface{} {
 	status.States = p.BftStatus.States
 	status.Now = time.Now()
 	return &status
+}
+
+func (p *BftOperator) notifyDecisionMade(round HeightRound, decision model.ConsensusDecision) {
+	for _, listener := range p.ConsensusReachedListeners {
+		listener.GetConsensusDecisionMadeEventChannel() <- decision
+	}
 }

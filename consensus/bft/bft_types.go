@@ -17,6 +17,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
 	"time"
 )
@@ -47,7 +49,7 @@ const (
 func (m StepType) String() string {
 	switch m {
 	case StepTypePropose:
-		return "Proposal"
+		return "Decision"
 	case StepTypePreVote:
 		return "PreVote"
 	case StepTypePreCommit:
@@ -141,14 +143,14 @@ type HeightRoundState struct {
 	LockedRound                           int
 	ValidValue                            model.Proposal
 	ValidRound                            int
-	Decision                              interface{}         // final decision of mine in this round
-	PreVotes                              []*MessagePreVote   // other peers' PreVotes
-	PreCommits                            []*MessagePreCommit // other peers' PreCommits
-	Sources                               map[uint16]bool     // for line 55, who send future round so that I may advance?
-	StepTypeEqualPreVoteTriggered         bool                // for line 34, FIRST time trigger
-	StepTypeEqualOrLargerPreVoteTriggered bool                // for line 36, FIRST time trigger
-	StepTypeEqualPreCommitTriggered       bool                // for line 47, FIRST time trigger
-	Step                                  StepType            // current step in this round
+	Decision                              model.ConsensusDecision // final decision of mine in this round
+	PreVotes                              []*MessagePreVote       // other peers' PreVotes
+	PreCommits                            []*MessagePreCommit     // other peers' PreCommits
+	Sources                               map[uint16]bool         // for line 55, who send future round so that I may advance?
+	StepTypeEqualPreVoteTriggered         bool                    // for line 34, FIRST time trigger
+	StepTypeEqualOrLargerPreVoteTriggered bool                    // for line 36, FIRST time trigger
+	StepTypeEqualPreCommitTriggered       bool                    // for line 47, FIRST time trigger
+	Step                                  StepType                // current step in this round
 	StartAt                               time.Time
 }
 

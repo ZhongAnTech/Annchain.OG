@@ -23,7 +23,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
-	"github.com/annchain/OG/consensus/annsensus/term"
+	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"

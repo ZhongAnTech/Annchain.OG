@@ -16,7 +16,7 @@ package annsensus
 import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/consensus/annsensus/bft"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )

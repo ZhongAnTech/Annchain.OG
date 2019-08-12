@@ -16,7 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/consensus/annsensus/bft"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/gcache"

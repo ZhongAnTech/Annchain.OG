@@ -1,10 +1,12 @@
-package partner
+package communicator
 
 import (
 	"bytes"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/consensus/annsensus/bft"
+	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/og/partner"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,11 +22,11 @@ type ConsensusAccountProvider interface {
 type TrustfulPartnerCommunicator struct {
 	incomingChannel   chan bft.BftMessage
 	Signer            crypto.ISigner
-	TermProvider      DkgTermProvider //TODO：not its job.
+	TermProvider      annsensus.DkgTermProvider //TODO：not its job.
 	MyAccountProvider ConsensusAccountProvider
 }
 
-func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider DkgTermProvider,
+func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.DkgTermProvider,
 	myAccountProvider ConsensusAccountProvider) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
 		incomingChannel:   make(chan bft.BftMessage, 20),
@@ -49,8 +51,8 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 	signed := SignedOgParnterMessage{
 		BftMessage: msg,
 		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), msg.Payload.SignatureTargets()).Bytes,
-		TermId:     r.TermProvider.CurrentDkgTerm(),
-		PublicKey:  r.MyAccountProvider.PublicKey().Bytes,
+		//TermId:     partner.CurrentDkgTerm(),
+		PublicKey: r.MyAccountProvider.PublicKey().Bytes,
 	}
 	return signed
 	//
@@ -100,13 +102,14 @@ func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerI
 	// TODO: send using p2p
 }
 
-// GetIncomingChannel provides a channel for
+// GetIncomingChannel provides a channel for downstream component consume the messages
+// that are already verified by communicator
 func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
 	return r.incomingChannel
 }
 
 func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.PublicKey, sourcePartner int) bool {
-	peers := b.TermProvider.LatestPeers()
+	peers := partner.LatestPeers()
 	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
 		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
 		return false

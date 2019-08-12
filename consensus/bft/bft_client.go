@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/consensus/model"
 	"strings"
 	"time"
 
@@ -35,11 +36,16 @@ type BftOperator struct {
 	heightProvider    HeightProvider
 	PeerCommunicator  BftPeerCommunicator
 	proposalGenerator ProposalGenerator
+	proposalValidator ProposalValidator
 
 	WaiterTimeoutChannel chan *WaiterRequest
 	quit                 chan bool
 	waiter               *Waiter
-	decisionFunc         func(state *HeightRoundState) error
+
+	// event listener for a decision once made
+	ConsensusReachedListeners []model.ConsensusReachedListener
+
+	decisionFunc func(state *HeightRoundState) error
 
 	testFlag bool
 
@@ -165,7 +171,7 @@ func (p *BftOperator) StartNewEra(height uint64, round int) {
 
 	if p.Id == p.Proposer(p.BftStatus.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.BftStatus.CurrentHR.String()).Trace("I'm the proposer")
-		var proposal Proposal
+		var proposal model.Proposal
 		var validCondition ProposalCondition
 		if currState.ValidValue != nil {
 			logrus.WithField("hr ", hr).Trace("will got valid value")
@@ -278,7 +284,7 @@ func (p *BftOperator) Proposer(hr HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *BftOperator) GetValue(newBlock bool) (Proposal, ProposalCondition) {
+func (p *BftOperator) GetValue(newBlock bool) (model.Proposal, ProposalCondition) {
 	//don't sleep for the same height new round
 	blockTime := time.After(p.blockTime)
 	if newBlock {
@@ -297,13 +303,13 @@ func (p *BftOperator) GetValue(newBlock bool) (Proposal, ProposalCondition) {
 		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
-	s := StringProposal(v)
+	s := model.StringProposal(v)
 	logrus.WithField("proposal ", s).Debug("proposal gen ")
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 
 // Broadcast announce messages to all partners
-func (p *BftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
+func (p *BftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content model.Proposal, validRound int) {
 	m := BftMessage{
 		Type: messageType,
 	}
@@ -548,13 +554,13 @@ func (p *BftOperator) handlePreCommit(commit *MessagePreCommit) {
 			}
 		}
 	}
-
 }
 
 // valid checks proposal validation
 // TODO: inject so that valid will call a function to validate the proposal
-func (p *BftOperator) valid(proposal Proposal) bool {
-	return true
+func (p *BftOperator) valid(proposal model.Proposal) bool {
+	err := p.proposalValidator.ValidateProposal(proposal)
+	return err == nil
 }
 
 // count votes and commits from others.

@@ -322,7 +322,7 @@ func (m *IncrementalSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-m.EnableEvent:
-			log.WithField("enable", v).Info("incremental syncer got enable event ")
+			log.WithField("enable", v).Info("incremental syncer got enable event")
 			//old := m.Enabled
 			m.Enabled = v
 			m.notifyTxEvent <- true

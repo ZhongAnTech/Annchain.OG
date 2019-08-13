@@ -282,7 +282,7 @@ func (c *CatchupSyncer) eventLoop() {
 	for {
 		select {
 		case v := <-c.EnableEvent:
-			log.WithField("enable", v).Info("catchup syncer got enable event ")
+			log.WithField("enable", v).Info("catchup syncer got enable event")
 			c.Enabled = v
 		case <-c.quitLoopEvent:
 			log.Debug("catchup syncer eventLoop received quit message. Quitting...")

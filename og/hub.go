@@ -753,7 +753,7 @@ func (h *Hub) multicastMessage(msg *p2PMessage) error {
 //multicastMessageToSource
 func (h *Hub) multicastMessageToSource(msg *p2PMessage) error {
 	if msg.sourceHash == nil {
-		msgLog.Warn("source msg hash is nil , multicast to random ")
+		msgLog.Warn("source msg hash is nil , multicast to random")
 		return h.multicastMessage(msg)
 	}
 	ids := h.getMsgFromCache(p2p_message.MessageTypeControl, *msg.sourceHash)
@@ -808,7 +808,7 @@ func (h *Hub) getMsgFromCache(m p2p_message.MessageType, hash common.Hash) []str
 	if a, err := h.messageCache.GetIFPresent(key); err == nil {
 		var peers []string
 		peers = a.([]string)
-		msgLog.WithField("peers ", peers).Trace("get peers from cache ")
+		msgLog.WithField("peers", peers).Trace("get peers from cache")
 		return peers
 	}
 	return nil

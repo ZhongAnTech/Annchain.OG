@@ -15,11 +15,11 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		seq := tx_types.RandomSequencer()
 
 		if bytes >= softResponseLimit {
-			msgLog.Debug("reached softResponseLimit ")
+			msgLog.Debug("reached softResponseLimit")
 			break
 		}
 		if len(msgRes.Bodies) >= 400000 {
-			msgLog.Debug("reached MaxBlockFetch 128 ")
+			msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
 		var body p2p_message.MessageBodyData

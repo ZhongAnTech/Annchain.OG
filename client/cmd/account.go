@@ -65,7 +65,7 @@ func accountGen(cmd *cobra.Command, args []string) {
 func accountCal(cmd *cobra.Command, args []string) {
 
 	if priv_key == "" {
-		fmt.Println("need private key ")
+		fmt.Println("need private key")
 		return
 	}
 	privKey, err := crypto.PrivateKeyFromString(priv_key)

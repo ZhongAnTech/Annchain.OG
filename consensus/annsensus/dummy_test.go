@@ -31,8 +31,8 @@ func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
-func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64,error) {
-	return 0,nil
+func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
+	return 0, nil
 }
 
 func (d *DummyDag) GetSequencerByHeight(id uint64) *tx_types.Sequencer {
@@ -74,4 +74,11 @@ func (d *DummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 
 func (d *DummyDag) GetBalance(addr common.Address, tokenId int32) *math.BigInt {
 	return math.NewBigInt(100000)
+}
+
+type DummyTermProvider struct {
+}
+
+func (DummyTermProvider) CurrentDkgTerm() uint32 {
+	return 1
 }

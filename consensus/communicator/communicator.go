@@ -10,23 +10,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ConsensusAccountProvider provides public key and private key for signing consensus messages
-type ConsensusAccountProvider interface {
-	PublicKey() crypto.PublicKey
-	PrivateKey() crypto.PrivateKey
-}
-
 // TrustfulPartnerCommunicator signs and validate messages using pubkey/privkey given by DKG/BLS
 // It provides Trustful communication between partners with pubkeys
 // All messages received from TrustfulPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulPartnerCommunicator struct {
 	incomingChannel   chan bft.BftMessage
 	Signer            crypto.ISigner
-	TermProvider      annsensus.DkgTermProvider //TODO：not its job.
+	TermProvider      annsensus.TermProvider //TODO：not its job.
 	MyAccountProvider ConsensusAccountProvider
 }
 
-func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.DkgTermProvider,
+func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
 	myAccountProvider ConsensusAccountProvider) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
 		incomingChannel:   make(chan bft.BftMessage, 20),
@@ -51,7 +45,7 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 	signed := SignedOgParnterMessage{
 		BftMessage: msg,
 		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), msg.Payload.SignatureTargets()).Bytes,
-		//TermId:     partner.CurrentDkgTerm(),
+		//TermId:     partner.CurrentTerm(),
 		PublicKey: r.MyAccountProvider.PublicKey().Bytes,
 	}
 	return signed
@@ -64,7 +58,7 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 	//	signed := SignedOgParnterMessage{
 	//		BftMessage: msg,
 	//		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), prevote.SignatureTargets()).Bytes,
-	//		TermId:     r.TermProvider.CurrentDkgTerm(),
+	//		TermId:     r.TermProvider.CurrentTerm(),
 	//		PublicKey:  r.MyAccountProvider.PublicKey().Bytes,
 	//	}
 	//	return signed
@@ -73,7 +67,7 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 	//	signed := SignedOgParnterMessage{
 	//		BftMessage: msg,
 	//		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), preCommit.SignatureTargets()).Bytes,
-	//		TermId:     r.TermProvider.CurrentDkgTerm(),
+	//		TermId:     r.TermProvider.CurrentTerm(),
 	//		PublicKey:  r.MyAccountProvider.PublicKey().Bytes,
 	//	}
 	//
@@ -108,8 +102,8 @@ func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
 	return r.incomingChannel
 }
 
-func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.PublicKey, sourcePartner int) bool {
-	peers := partner.LatestPeers()
+func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.PublicKey, sourcePartner int, termId uint32) bool {
+	peers := b.TermProvider.Peers(termId)
 	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
 		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
 		return false

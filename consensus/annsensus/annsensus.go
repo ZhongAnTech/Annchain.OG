@@ -226,7 +226,7 @@ func (as *AnnSensus) produceCampaign() {
 	//generate new dkg public key for every campaign
 	if as.term.HasCampaign(as.MyAccount.Address) {
 		log.WithField("als", as.term.Alsorans()).WithField("cps ",
-			as.term.Campaigns()).WithField("candidates", as.term.Candidates()).Debug("has campaign ")
+			as.term.Campaigns()).WithField("candidates", as.term.Candidates()).Debug("has campaign")
 		return
 	}
 	candidatePublicKey := as.dkg.GenerateDkg()
@@ -254,7 +254,7 @@ func (as *AnnSensus) commit(camps []*tx_types.Campaign) {
 	for i, c := range camps {
 		if as.isTermChanging() {
 			// add those unsuccessful camps into alsoran list.
-			log.Debug("is termchanging ")
+			log.Debug("is termchanging")
 			as.AddAlsorans(camps[i:])
 			return
 		}
@@ -280,19 +280,19 @@ func (as *AnnSensus) commit(camps []*tx_types.Campaign) {
 func (as *AnnSensus) AddCampaign(cp *tx_types.Campaign) error {
 
 	if as.term.HasCampaign(cp.Sender()) {
-		log.WithField("id ", as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign ")
-		return fmt.Errorf("duplicate ")
+		log.WithField("id", as.dkg.GetId()).WithField("campaign", cp).Debug("duplicate campaign")
+		return fmt.Errorf("duplicate")
 	}
 
 	pubkey := cp.GetDkgPublicKey()
 	if pubkey == nil {
 		log.WithField("nil PartPubf for campaign", cp).Warn("add campaign")
-		return fmt.Errorf("pubkey is nil ")
+		return fmt.Errorf("pubkey is nil")
 	}
 
 	//as.dkg.AddPartner(cp, &as.MyAccount.PublicKey)
 	as.term.AddCampaign(cp)
-	log.WithField("me ", as.dkg.GetId()).WithField("add cp", cp).Debug("added")
+	log.WithField("me", as.dkg.GetId()).WithField("add cp", cp).Debug("added")
 	return nil
 }
 
@@ -348,7 +348,7 @@ func (as *AnnSensus) termChangeLoop() {
 			//term change is finished
 			as.term.SwitchFlag(false)
 			sigset := as.dkg.GetBlsSigsets()
-			log.WithField("sig sets ", sigset).Info("got sigsets ")
+			log.WithField("sig sets ", sigset).Info("got sigsets")
 			//continue //for test case commit this
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {
@@ -716,7 +716,7 @@ func (as *AnnSensus) loop() {
 				peerNum++
 			}
 
-			log.WithField("num ", peerNum).Debug("peer num ")
+			log.WithField("num", peerNum).Debug("peer num")
 			if (peerNum == as.NbParticipants-1 || peerID == "temp peer") && atomic.LoadUint32(&as.genesisBftIsRunning) == 1 {
 				log.Info("start dkg genesis consensus")
 				goroutine.New(func() {

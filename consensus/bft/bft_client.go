@@ -33,7 +33,6 @@ type BftOperator struct {
 	Id                int
 	BftStatus         BftStatus
 	blockTime         time.Duration
-	heightProvider    HeightProvider
 	PeerCommunicator  BftPeerCommunicator
 	proposalGenerator ProposalGenerator
 	proposalValidator ProposalValidator
@@ -84,10 +83,6 @@ func NewBFTPartner(nbParticipants int, id int, blockTime time.Duration) *BftOper
 	return p
 }
 
-func (p *BftOperator) SetHeightProvider(heightProvider HeightProvider) {
-	p.heightProvider = heightProvider
-}
-
 // RegisterConsensusReachedListener registers callback for decision made event
 // TODO: In the future, protected the array so that it can handle term change
 func (p *BftOperator) RegisterConsensusReachedListener(listener model.ConsensusReachedListener) {
@@ -116,21 +111,21 @@ func (p *BftOperator) Reset(nbParticipants int, id int) {
 	return
 }
 
-func (p *BftOperator) RestartNewEra() {
-	s := p.BftStatus.States[p.BftStatus.CurrentHR]
-	if s != nil {
-		if s.Decision != nil {
-			//p.BftStatus.States = make(map[p2p_message.HeightRound]*HeightRoundState)
-			p.StartNewEra(p.BftStatus.CurrentHR.Height+1, 0)
-			return
-		}
-		p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round+1)
-		return
-	}
-	//p.BftStatus.States = make(map[p2p_message.HeightRound]*HeightRoundState)
-	p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
-	return
-}
+//func (p *BftOperator) RestartNewEra() {
+//	s := p.BftStatus.States[p.BftStatus.CurrentHR]
+//	if s != nil {
+//		if s.Decision != nil {
+//			//p.BftStatus.States = make(map[p2p_message.HeightRound]*HeightRoundState)
+//			p.StartNewEra(p.BftStatus.CurrentHR.Height+1, 0)
+//			return
+//		}
+//		p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round+1)
+//		return
+//	}
+//	//p.BftStatus.States = make(map[p2p_message.HeightRound]*HeightRoundState)
+//	p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
+//	return
+//}
 
 func (p *BftOperator) WaiterLoop() {
 	goroutine.New(p.waiter.StartEventLoop)
@@ -138,15 +133,6 @@ func (p *BftOperator) WaiterLoop() {
 
 // StartNewEra is called once height or round needs to be changed.
 func (p *BftOperator) StartNewEra(height uint64, round int) {
-	if p.heightProvider != nil {
-		ledgerHeight := p.heightProvider.CurrentHeight()
-		if ledgerHeight > height {
-			height = ledgerHeight
-			// TODO: verify if the round needs to reset to 0 once the node is left behind
-			round = 0
-			logrus.WithField("height ", height).WithField("round", round).Debug("height reset")
-		}
-	}
 	hr := p.BftStatus.CurrentHR
 	if height-hr.Height > 1 {
 		logrus.WithField("height", height).Warn("height is much higher than current. Indicating packet loss or severe behind.")
@@ -297,12 +283,12 @@ func (p *BftOperator) GetValue(newBlock bool) (model.Proposal, ProposalCondition
 
 	if p.proposalGenerator != nil {
 		pro, validHeight := p.proposalGenerator.ProduceProposal()
-		logrus.WithField("proposal ", pro).Debug("proposal gen ")
+		logrus.WithField("proposal", pro).Debug("proposal gen")
 		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
 	s := model.StringProposal(v)
-	logrus.WithField("proposal ", s).Debug("proposal gen ")
+	logrus.WithField("proposal", s).Debug("proposal gen")
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 
@@ -558,6 +544,9 @@ func (p *BftOperator) handlePreCommit(commit *MessagePreCommit) {
 
 				//send the decision to upper client to process
 				p.notifyDecisionMade(p.BftStatus.CurrentHR, state.Decision)
+				// TODO: StartNewEra should be called outside the bft in order to reflect term change.
+				// You cannot start new era with height++ by yourself since you are not sure whether you are in the next group
+				// Annsensus knows that.
 				p.StartNewEra(p.BftStatus.CurrentHR.Height+1, 0)
 			}
 		}
@@ -565,7 +554,6 @@ func (p *BftOperator) handlePreCommit(commit *MessagePreCommit) {
 }
 
 // valid checks proposal validation
-// TODO: inject so that valid will call a function to validate the proposal
 func (p *BftOperator) valid(proposal model.Proposal) bool {
 	err := p.proposalValidator.ValidateProposal(proposal)
 	return err == nil

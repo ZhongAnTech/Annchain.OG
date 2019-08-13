@@ -201,7 +201,7 @@ func (b *BFT) sendToPartners(msgType BftMessageType, request p2p_message.Message
 			continue
 		}
 		//send to others
-		logrus.WithField("msg ", request).Debug("send msg ")
+		logrus.WithField("msg", request).Debug("send msg")
 		b.Hub.SendToAnynomous(msgType, request, &bftPeer.PublicKey)
 	}
 }

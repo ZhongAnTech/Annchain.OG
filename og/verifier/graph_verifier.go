@@ -226,7 +226,7 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	if txi.GetType() == types.TxBaseTypeSequencer {
 		seq := txi.(*tx_types.Sequencer)
 		if err := v.TxPool.IsBadSeq(seq); err != nil {
-			logrus.WithField("seq ", seq).WithError(err).Warn("bad seq ")
+			logrus.WithField("seq ", seq).WithError(err).Warn("bad seq")
 			return false
 		}
 	}

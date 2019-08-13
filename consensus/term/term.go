@@ -185,15 +185,15 @@ func (t *Term) HasCampaign(address common.Address) bool {
 
 func (t *Term) hasCampaign(address common.Address) bool {
 	if _, exists := t.candidates[address]; exists {
-		log.Debug("exist in candidates ")
+		log.Debug("exist in candidates")
 		return true
 	}
 	if _, exists := t.campaigns[address]; exists {
-		log.Debug("exist in campaigns ")
+		log.Debug("exist in campaigns")
 		return true
 	}
 	if _, exists := t.alsorans[address]; exists {
-		log.Debug("exist in alsorans ")
+		log.Debug("exist in alsorans")
 		return true
 	}
 	return false

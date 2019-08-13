@@ -662,7 +662,7 @@ func (q *queue) DeliverHeaders(id string, headers []*tx_types.SequencerHeader, h
 		} else if headers[len(headers)-1].GetHash() != target {
 			clog.WithField("number", headers[len(headers)-1].SequencerId()).WithField(
 				"hash", headers[len(headers)-1].GetHash()).WithField("expected", target).Trace(
-				"Last header broke skeleton structure ")
+				"Last header broke skeleton structure")
 			accepted = false
 		}
 	}

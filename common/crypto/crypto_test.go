@@ -73,7 +73,7 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	if ecdsapub.X.Cmp(pub2.X) != 0 || ecdsapub.Y.Cmp(pub2.Y) != 0 {
 		fmt.Println(*pub2)
 		fmt.Println(ecdsapub)
-		panic("not equal ")
+		panic("not equal")
 	}
 	eciesPub := ecies.ImportECDSAPublic(pub2)
 	cf, err := ecies.Encrypt(rand.Reader, eciesPub, msg, nil, nil)

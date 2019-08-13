@@ -256,7 +256,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 			if s.txPool.IsLocalHash(elderHash) {
 				continue
 			}
-			err := fmt.Errorf("parent not found ")
+			err := fmt.Errorf("parent not found")
 			log.WithField("hash", elderHash.String()).Warn("parent not found")
 			return err
 		}

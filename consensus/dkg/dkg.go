@@ -198,12 +198,12 @@ func (d *Dkg) generateDkg() []byte {
 	//d.partner.PartPubs = []kyber.Point{pub}??
 	pk, _ := pub.MarshalBinary()
 	d.partner.CandidatePublicKey = append(d.partner.CandidatePublicKey, pk)
-	log.WithField("pk ", hexutil.Encode(pk[:5])).WithField("len pk ", len(d.partner.CandidatePublicKey)).WithField("sk ", sec).Debug("gen dkg ")
+	log.WithField("pk", hexutil.Encode(pk[:5])).WithField("len pk", len(d.partner.CandidatePublicKey)).WithField("sk", sec).Debug("gen dkg")
 	return pk
 }
 
 func (d *Dkg) log() *logrus.Entry {
-	return log.WithField("me ", d.partner.Id).WithField("termId ", d.TermId)
+	return log.WithField("me", d.partner.Id).WithField("termId", d.TermId)
 }
 
 func (d *Dkg) GenerateDkg() []byte {
@@ -321,7 +321,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 		d.term.AddCandidate(cp, publicKey)
 		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
 		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
-			log.Debug("congratulation i am a partner of dkg ")
+			log.Debug("congratulation i am a partner of dkg")
 			d.isValidPartner = true
 			d.partner.Id = uint32(j)
 		}
@@ -329,7 +329,7 @@ func (d *Dkg) SelectCandidates(seq *tx_types.Sequencer) {
 		d.addPartner(cp)
 	}
 	if !d.isValidPartner {
-		log.Debug("unfortunately  i am not a partner of dkg ")
+		log.Debug("unfortunately i am not a partner of dkg")
 	} else {
 		d.dkgOn = true
 		//d.generateDkg()
@@ -424,7 +424,7 @@ func (d *Dkg) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 			continue
 		}
 		d.Hub.SendToAnynomous(p2p_message.MessageTypeConsensusDkgGenesisPublicKey, msg, &genesisAccounts[i])
-		log.WithField("msg ", msg).WithField("peer ", i).Debug("send genesis pk to ")
+		log.WithField("msg", msg).WithField("peer", i).Debug("send genesis pk to")
 	}
 }
 
@@ -459,8 +459,8 @@ func (d *Dkg) sendUnhandledTochan(unhandledDeal []*p2p_message.MessageConsensusD
 		for _, v := range unhandledResponse {
 			d.gossipRespCh <- v
 		}
-		log.WithField("unhandledDeal deals ", len(unhandledDeal)).WithField(
-			"unhandledResponse", len(unhandledResponse)).Debug("processed ")
+		log.WithField("unhandledDeal deals", len(unhandledDeal)).WithField(
+			"unhandledResponse", len(unhandledResponse)).Debug("processed")
 	}
 }
 
@@ -694,7 +694,7 @@ func (d *Dkg) gossiploop() {
 			// send public key to changeTerm loop.
 			// TODO
 			// this channel may be changed later.
-			log.WithField("bls key ", jointPub).Trace("joint pubkey ")
+			log.WithField("bls key", jointPub).Trace("joint pubkey")
 			//d.ann.dkgPkCh <- jointPub
 			var msg p2p_message.MessageConsensusDkgSigSets
 			msg.PkBls, _ = jointPub.MarshalBinary()
@@ -887,7 +887,7 @@ func (t DealsMap) TerminateString() string {
 	return strings.Join(str, ",")
 }
 
-func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId int) bool {
+func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId uint32) bool {
 	log := d.log()
 	pubKey, err := bn256.UnmarshalBinaryPointG2(jointPub)
 	if err != nil {
@@ -920,7 +920,7 @@ func (d *Dkg) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termId int) 
 	// d.partner.jointPubKey
 }
 
-func (d *Dkg) Sign(msg []byte, termId int) (partSig []byte, err error) {
+func (d *Dkg) Sign(msg []byte, termId uint32) (partSig []byte, err error) {
 	partner := d.partner
 	if termId < d.TermId {
 		partner = d.formerPartner
@@ -929,7 +929,7 @@ func (d *Dkg) Sign(msg []byte, termId int) (partSig []byte, err error) {
 	return partner.Sig(msg)
 }
 
-func (d *Dkg) GetJoinPublicKey(termId int) kyber.Point {
+func (d *Dkg) GetJoinPublicKey(termId uint32) kyber.Point {
 	partner := d.partner
 	if termId < d.TermId {
 		partner = d.formerPartner
@@ -966,14 +966,14 @@ func (d *Dkg) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermI
 	// verify if JointSig meets the JointPubkey
 	err = partner.VerifyByDksPublic(msg, jointSig)
 	if err != nil {
-		log.WithError(err).Warnf("joinsig verify failed ")
+		log.WithError(err).Warnf("joinsig verify failed")
 		return nil, err
 	}
 
 	// verify if JointSig meets the JointPubkey
 	err = partner.VerifyByPubPoly(msg, jointSig)
 	if err != nil {
-		log.WithError(err).Warnf("joinsig verify failed ")
+		log.WithError(err).Warnf("joinsig verify failed")
 		return nil, err
 	}
 	return jointSig, nil
@@ -985,7 +985,7 @@ func (d *Dkg) SetJointPk(pk kyber.Point) {
 }
 
 type DKGInfo struct {
-	TermId             int                    `json:"term_id"`
+	TermId             uint32                 `json:"term_id"`
 	Id                 uint32                 `json:"id"`
 	PartPubs           []kyber.Point          `json:"part_pubs"`
 	MyPartSec          kyber.Scalar           `json:"-"`

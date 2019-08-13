@@ -14,6 +14,7 @@
 package txmaker
 
 import (
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
@@ -341,7 +342,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 }
 
 func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
-	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, genAgain bool) {
+	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, reterr error, genAgain bool) {
 
 	tx := m.newUnsignedSequencer(UnsignedSequencerBuildRequest{
 		Height:       height,
@@ -359,7 +360,6 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 		tx.Proposing = true
 	}
 	// else it is proposed by delegate for solo
-
 	connectionTries := 0
 	timeStart := time.Now()
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
@@ -368,7 +368,8 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
 		if m.quit {
 			logrus.Info("got quit signal")
-			return tx, false
+			reterr = errors.New("quit")
+			return nil, reterr, false
 		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
@@ -397,8 +398,8 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 				"tx": tx,
 				"ok": ok,
 			}).Trace("validate graph structure for tx being connected")
-			if err := m.TipGenerator.IsBadSeq(tx); err != nil {
-				return nil, true
+			if reterr = m.TipGenerator.IsBadSeq(tx); reterr != nil {
+				return nil, reterr, true
 			}
 			continue
 		} else {
@@ -407,7 +408,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 			root, err := m.StateRootProvider.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
-				return nil, false
+				return nil, err, false
 			}
 			tx.StateRoot = root
 			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
@@ -422,11 +423,11 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 			"elapsedns":  time.Since(timeStart).Nanoseconds(),
 			"re-connect": connectionTries,
 		}).Tracef("total time for mining")
-		return tx, false
+		return tx, nil, false
 	}
 	logrus.WithFields(logrus.Fields{
 		"elapsedns":  time.Since(timeStart).Nanoseconds(),
 		"re-connect": connectionTries,
 	}).Warnf("generate sequencer failed")
-	return nil, false
+	return nil, nil, false
 }

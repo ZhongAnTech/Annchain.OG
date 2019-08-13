@@ -20,11 +20,6 @@ type DecisionMaker interface {
 	MakeDecision(proposal model.Proposal, state *HeightRoundState) (model.ConsensusDecision, error)
 }
 
-// HeightProvider is called when a height is needed
-type HeightProvider interface {
-	CurrentHeight() uint64
-}
-
 type BftPeerCommunicator interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)

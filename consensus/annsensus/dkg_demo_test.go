@@ -188,7 +188,7 @@ func (t *TestHub) loop() {
 				msg.MessageType = pMsg.msgType
 				msg.Message = &p2p_message.MessageConsensusDkgSigSets{}
 			default:
-				elog.Warn(pMsg, " unkown meg type will panic ")
+				elog.Warn(pMsg, "unkown meg type will panic")
 				panic(pMsg)
 			}
 			_, err := msg.UnmarshalMsg(pMsg.data)
@@ -226,10 +226,10 @@ func (t *TestHub) loop() {
 				}
 				go t.As.HandleConsensusDkgSigSets(request, fmt.Sprintf("%s", msg.From.TerminalString()))
 			default:
-				elog.Info("never come here , msg loop ")
+				elog.Info("never come here, msg loop")
 				return
 			}
-			elog.WithField("msg ", msg).Debug("i got a msg")
+			elog.WithField("msg", msg).Debug("i got a msg")
 			t.msgCache.Set(hash, struct{}{})
 		case <-t.quit:
 			elog.Debug("stopped")
@@ -384,7 +384,7 @@ func (as *TestAnnSensus) loop() {
 			//term change is finished
 			as.term.SwitchFlag(false)
 			sigset := as.dkg.GetBlsSigsets()
-			log.WithField("sig sets ", sigset).Info("got sigsets ")
+			log.WithField("sig sets", sigset).Info("got sigsets")
 			//continue //for test case commit this
 			tc := as.genTermChg(pk, sigset)
 			if tc == nil {

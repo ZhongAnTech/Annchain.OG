@@ -54,7 +54,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	}
 	//c.Request.Context()
 	if len(txReq.Data) == 0 {
-		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data "), nil)
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data"), nil)
 		return
 	}
 	var buf bytes.Buffer

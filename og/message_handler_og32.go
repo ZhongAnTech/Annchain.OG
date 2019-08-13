@@ -20,7 +20,7 @@ type IncomingMessageHandlerOG02 struct {
 }
 
 func (h *IncomingMessageHandlerOG02) HandleGetNodeDataMsg(peerId string) {
-	msgLog.Warn("got GetNodeDataMsg ")
+	msgLog.Warn("got GetNodeDataMsg")
 	//todo
 	//p.SendNodeData(nil)
 	msgLog.Debug("need send node data")

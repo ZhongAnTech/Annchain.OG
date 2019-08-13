@@ -560,7 +560,7 @@ func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *tx_types.Seque
 	switch tx := tx.(type) {
 	case *tx_types.Sequencer:
 		if tx.Height != seqHeight {
-			log.Warn("seq height mismatch ")
+			log.Warn("seq height mismatch")
 			return nil
 		}
 		return tx

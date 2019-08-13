@@ -556,7 +556,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	if txquality == TxQualityIsFatal {
 		pool.remove(tx, removeFromEnd)
 		tx.SetInValid(true)
-		log.WithField("tx ", tx).Debug("set invalid ")
+		log.WithField("tx", tx).Debug("set invalid")
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
 	}
 	if txquality == TxQualityIsBad {

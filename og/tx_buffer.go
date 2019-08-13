@@ -462,7 +462,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 				b.OnProposalSeqCh <- seq.GetTxHash()
 			}
 			goroutine.New(function)
-			logrus.WithField("seq ", seq).Debug("is a proposiong seq ")
+			logrus.WithField("seq", seq).Debug("is a proposiong seq")
 			//
 			proposingSeq = true
 		}

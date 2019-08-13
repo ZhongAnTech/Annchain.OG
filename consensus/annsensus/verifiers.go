@@ -26,13 +26,13 @@ import (
 // consensus related verification
 func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
 	if a.disable {
-		log.WithField("t ", t).Warn("annsensus disabled ")
+		log.WithField("t ", t).Warn("annsensus disabled")
 		return true
 	}
 	//check balance
 	if t.TermID <= a.term.ID() {
 		//small term id senstors will be dropped , just verify format and bls keys
-		log.Debug("small term id ")
+		log.Debug("small term id")
 	} else {
 		if a.GetCandidate(t.Sender()) == nil {
 			log.WithField("candidates ", a.term.Candidates()).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
@@ -56,7 +56,7 @@ func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
 			return false
 		}
 	}
-	log.WithField("tc ", t).Trace("verify ok ")
+	log.WithField("tc ", t).Trace("verify ok")
 	return true
 
 }
@@ -65,7 +65,7 @@ func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
 func (a *AnnSensus) VerifySequencer(seq *tx_types.Sequencer) bool {
 
 	if a.disable {
-		log.WithField("seq ", seq).Debug("annsensus disabled ")
+		log.WithField("seq ", seq).Debug("annsensus disabled")
 		return true
 	}
 
@@ -113,7 +113,7 @@ func (a *AnnSensus) VerifySequencer(seq *tx_types.Sequencer) bool {
 func (a *AnnSensus) VerifyCampaign(cp *tx_types.Campaign) bool {
 
 	if a.disable {
-		log.WithField("cp ", cp).Warn("annsensus disabled ")
+		log.WithField("cp", cp).Warn("annsensus disabled")
 		return true
 	}
 
@@ -140,18 +140,18 @@ func (a *AnnSensus) VerifyCampaign(cp *tx_types.Campaign) bool {
 		return false
 	}
 	if a.HasCampaign(cp.Sender()) {
-		log.WithField("campaign", cp).Debug("duplicate campaign ")
+		log.WithField("campaign", cp).Debug("duplicate campaign")
 		//todo  if a node dose not cacht up yet  returning false will cause fail
 		//return false
 	}
-	log.WithField("cp ", cp).Trace("verify ok ")
+	log.WithField("cp ", cp).Trace("verify ok")
 	return true
 }
 
 func (a *AnnSensus) VerifyRequestedTermChange(t *tx_types.TermChange) bool {
 
 	if a.disable {
-		log.WithField("t ", t).Warn("annsensus disabled ")
+		log.WithField("t ", t).Warn("annsensus disabled")
 		return true
 	}
 
@@ -182,6 +182,6 @@ func (a *AnnSensus) VerifyRequestedTermChange(t *tx_types.TermChange) bool {
 			return false
 		}
 	}
-	log.WithField("tc ", t).Trace("verify ok ")
+	log.WithField("tc", t).Trace("verify ok")
 	return true
 }

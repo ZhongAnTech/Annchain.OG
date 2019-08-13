@@ -249,7 +249,7 @@ func (c *AutoClient) fireTxs() bool {
 	}
 	c.TestSigNature = viper.GetBool("auto_client.tx.test_sig")
 	c.TpsTestInit = true
-	logrus.WithField("micro", m).Info("sent interval ")
+	logrus.WithField("micro", m).Info("sent interval")
 	for i := uint64(1); i < 1000000000; i++ {
 		if c.pause {
 			logrus.Info("tx generate stopped")
@@ -257,7 +257,7 @@ func (c *AutoClient) fireTxs() bool {
 		}
 		txis, seq := c.Delegate.Dag.GetTestTxisByNumber(i)
 		if seq == nil {
-			logrus.WithField("seq ", seq).Error("seq is nil ")
+			logrus.WithField("seq", seq).Error("seq is nil")
 			return true
 		}
 		if c.TestSigNature {

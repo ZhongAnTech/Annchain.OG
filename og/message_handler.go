@@ -342,8 +342,8 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageT
 		rawTxs = *request.RawTxs
 	}
 	if request.RawSequencer != nil {
-		msgLog.WithField("len rawTx ", len(rawTxs)).WithField("seq height", request.RawSequencer.Height).Trace(
-			"got response txs ")
+		msgLog.WithField("len rawTx", len(rawTxs)).WithField("seq height", request.RawSequencer.Height).Trace(
+			"got response txs")
 	} else {
 		msgLog.Warn("got nil sequencer")
 		return
@@ -386,7 +386,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxs
 		}
 
 	} else {
-		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request ")
+		msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request")
 	}
 	h.Hub.SendToPeer(peerId, p2p_message.MessageTypeTxsResponse, &msgRes)
 }
@@ -420,7 +420,7 @@ func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.Messa
 		transactions = h.Hub.Fetcher.FilterBodies(peerId, transactions, sequencers, time.Now())
 	}
 	if len(transactions) > 0 || len(sequencers) > 0 || !filter {
-		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Trace("deliver bodies ")
+		msgLog.WithField("txs len", len(transactions)).WithField("seq len", len(sequencers)).Trace("deliver bodies")
 		err := h.Hub.Downloader.DeliverBodies(peerId, transactions, sequencers)
 		if err != nil {
 			msgLog.Debug("Failed to deliver bodies", "err", err)
@@ -441,11 +441,11 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *p2p_message.Message
 			break
 		}
 		if bytes >= softResponseLimit {
-			msgLog.Debug("reached softResponseLimit ")
+			msgLog.Debug("reached softResponseLimit")
 			break
 		}
 		if len(msgRes.Bodies) >= downloader.MaxBlockFetch {
-			msgLog.Debug("reached MaxBlockFetch 128 ")
+			msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
 		var body p2p_message.MessageBodyData
@@ -643,7 +643,7 @@ func (h *IncomingMessageHandler) HandlePong() {
 
 func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, sourcePeerId string) {
 	if msg == nil || msg.Hash == nil {
-		msgLog.Warn("msg is nil ")
+		msgLog.Warn("msg is nil")
 		return
 	}
 	txi := h.Og.TxPool.Get(*msg.Hash)

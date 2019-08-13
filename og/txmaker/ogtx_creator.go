@@ -431,3 +431,8 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	}).Warnf("generate sequencer failed")
 	return nil, nil, false
 }
+
+func (t *OGTxCreator) ValidateSequencer(seq tx_types.Sequencer) error {
+	// TODO: validate sequencer's graph structure and txs being confirmed.
+	// using Preconfirm in tx_pool
+}

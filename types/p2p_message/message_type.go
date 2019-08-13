@@ -60,6 +60,7 @@ const (
 	//for consensus
 	MessageTypeCampaign
 	MessageTypeTermChange
+	MessageTypeConsensus
 
 	MessageTypeArchive
 	MessageTypeActionTX
@@ -68,7 +69,6 @@ const (
 	MessageTypeConsensusDkgDeal
 	MessageTypeConsensusDkgDealResponse
 	MessageTypeConsensusDkgSigSets
-
 	MessageTypeConsensusDkgGenesisPublicKey
 
 	MessageTypeTermChangeRequest
@@ -147,6 +147,8 @@ func (mt MessageType) String() string {
 		return "MessageTypeCampaign"
 	case MessageTypeTermChange:
 		return "MessageTypeTermChange"
+	case MessageTypeConsensus:
+		return "MessageTypeConsensus"
 	case MessageTypeArchive:
 		return "MessageTypeArchive"
 	case MessageTypeActionTX:

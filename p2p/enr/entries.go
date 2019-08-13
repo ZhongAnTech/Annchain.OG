@@ -32,13 +32,13 @@ import (
 // also implement rlp.Decoder if additional checks are needed on the value.
 type Entry interface {
 	ENRKey() string
-	msg.Message
+	msg.MsgpMember
 }
 
 type generic struct {
 	key string
 	//value interface{}
-	value msg.Message
+	value msg.MsgpMember
 }
 
 func (g generic) ENRKey() string { return g.key }
@@ -66,7 +66,7 @@ func (g generic) EncodeMsg(en *msgp.Writer) (err error) {
 // WithEntry wraps any value with a key name. It can be used to set and load arbitrary values
 // in a record. The value v must be supported by rlp. To use WithEntry with Load, the value
 // must be a pointer.
-func WithEntry(k string, v msg.Message) Entry {
+func WithEntry(k string, v msg.MsgpMember) Entry {
 	return &generic{key: k, value: v}
 }
 

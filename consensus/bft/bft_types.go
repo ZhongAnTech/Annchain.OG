@@ -15,15 +15,12 @@ package bft
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
 	"time"
 )
-
-//go:generate msgp
 
 const (
 	TimeoutPropose   = time.Duration(8) * time.Second
@@ -68,41 +65,6 @@ func (m *StepType) MarshalJSON() ([]byte, error) {
 
 func (m StepType) IsAfter(o StepType) bool {
 	return m > o
-}
-
-type BftMessageType int
-
-func (m BftMessageType) String() string {
-	switch m {
-	case BftMessageTypeProposal:
-		return "BFTProposal"
-	case BftMessageTypePreVote:
-		return "BFTPreVote"
-	case BftMessageTypePreCommit:
-		return "BFTPreCommit"
-	default:
-		return "BFTUnknown"
-	}
-}
-
-const (
-	BftMessageTypeProposal BftMessageType = iota
-	BftMessageTypePreVote
-	BftMessageTypePreCommit
-)
-
-type Signable interface {
-	SignatureTargets() []byte
-}
-
-//msgp:tuple BftMessage
-type BftMessage struct {
-	Type    BftMessageType
-	Payload Signable
-}
-
-func (m *BftMessage) String() string {
-	return fmt.Sprintf("%s %+v", m.Type.String(), m.Payload)
 }
 
 type ChangeStateEvent struct {

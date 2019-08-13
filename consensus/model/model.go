@@ -11,7 +11,7 @@ import (
 //go:generate msgp
 
 type Proposal interface {
-	msg.Message
+	msg.MsgpMember
 	Equal(Proposal) bool
 	GetId() *common.Hash
 	String() string

@@ -19,7 +19,7 @@ import (
 
 //go:generate msgp
 
-type Message interface {
+type MsgpMember interface {
 	msgp.MarshalSizer
 	msgp.Unmarshaler
 	msgp.Encodable
@@ -64,6 +64,6 @@ type Strings []string
 
 type Uints []uint
 
-type Messages []Message
+type Messages []MsgpMember
 
 //add new basic type here

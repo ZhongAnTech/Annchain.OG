@@ -149,9 +149,9 @@ func (o *AnnsensusPartner) ProduceProposal() (proposal model.Proposal, validCond
 	var seq *tx_types.Sequencer
 
 	for i := 0; i < SequencerGenerationRetryTimes; i++ {
-		innerSequencer, genAgain := o.sequencerProducer.GenerateSequencer(me.Address, targetHeight, nonce, &me.PrivateKey, blsPub)
-		if innerSequencer == nil {
-			logrus.WithField("times", i).Warn("gen sequencer failed")
+		innerSequencer, err, genAgain := o.sequencerProducer.GenerateSequencer(me.Address, targetHeight, nonce, &me.PrivateKey, blsPub)
+		if err != nil {
+			logrus.WithError(err).WithField("times", i).Warn("gen sequencer failed")
 			if !genAgain {
 				break
 			}
@@ -177,9 +177,9 @@ func (o *AnnsensusPartner) loop() {
 		select {
 		case <-o.quit:
 			break
-		case term := <-o.termProvider.GetTermChangeEventChannel():
+		case newTerm := <-o.termProvider.GetTermChangeEventChannel():
 			// term changed, init term
-			o.handleTermChanged(term)
+			o.handleTermChanged(newTerm)
 		case decision := <-o.consensusReachedChannel:
 			o.handleConsensusReached(decision)
 		}
@@ -194,5 +194,6 @@ func (o *AnnsensusPartner) handleConsensusReached(decision model.ConsensusDecisi
 
 func (o *AnnsensusPartner) handleTermChanged(term *term.Term) {
 	// init a bft
+	bft := bft.NewBFTPartner()
 	fmt.Println(term)
 }

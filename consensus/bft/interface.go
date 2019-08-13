@@ -11,7 +11,7 @@ type ProposalGenerator interface {
 	ProduceProposal() (proposal model.Proposal, validCondition ProposalCondition)
 }
 
-// ProposalGenerator is called when a proposal is needed
+// ProposalValidator is called when a proposal is needed to be verified
 type ProposalValidator interface {
 	ValidateProposal(proposal model.Proposal) error
 }

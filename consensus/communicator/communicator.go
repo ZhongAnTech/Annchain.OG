@@ -3,10 +3,9 @@ package communicator
 import (
 	"bytes"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/og/partner"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,77 +16,36 @@ type TrustfulPartnerCommunicator struct {
 	incomingChannel   chan bft.BftMessage
 	Signer            crypto.ISigner
 	TermProvider      annsensus.TermProvider //TODO：not its job.
+	P2PSender         P2PSender
 	MyAccountProvider ConsensusAccountProvider
 }
 
 func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
-	myAccountProvider ConsensusAccountProvider) *TrustfulPartnerCommunicator {
+	myAccountProvider ConsensusAccountProvider, p2pSender P2PSender) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
 		incomingChannel:   make(chan bft.BftMessage, 20),
 		Signer:            signer,
 		TermProvider:      termProvider,
 		MyAccountProvider: myAccountProvider,
+		P2PSender:         p2pSender,
 	}
-}
-
-// SignedOgParnterMessage is the message that is signed by partner.
-// Consensus layer does not need to care about the signing. It is TrustfulPartnerCommunicator's job
-type SignedOgParnterMessage struct {
-	bft.BftMessage
-	TermId     uint32
-	ValidRound int
-	//PublicKey  []byte
-	Signature hexutil.Bytes
-	PublicKey hexutil.Bytes
 }
 
 func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMessage {
+	account := r.MyAccountProvider.Account()
 	signed := SignedOgParnterMessage{
 		BftMessage: msg,
-		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), msg.Payload.SignatureTargets()).Bytes,
+		Signature:  r.Signer.Sign(account.PrivateKey, msg.Payload.SignatureTargets()).Bytes,
 		//TermId:     partner.CurrentTerm(),
-		PublicKey: r.MyAccountProvider.PublicKey().Bytes,
+		PublicKey: account.PublicKey.Bytes,
 	}
 	return signed
-	//
-	//switch msg.Type {
-	//case bft.BftMessageTypeProposal:
-	//
-	//case bft.BftMessageTypePreVote:
-	//	prevote := msg.Payload.(*bft.MessagePreVote)
-	//	signed := SignedOgParnterMessage{
-	//		BftMessage: msg,
-	//		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), prevote.SignatureTargets()).Bytes,
-	//		TermId:     r.TermProvider.CurrentTerm(),
-	//		PublicKey:  r.MyAccountProvider.PublicKey().Bytes,
-	//	}
-	//	return signed
-	//case bft.BftMessageTypePreCommit:
-	//	preCommit := msg.Payload.(bft.MessagePreCommit)
-	//	signed := SignedOgParnterMessage{
-	//		BftMessage: msg,
-	//		Signature:  r.Signer.Sign(r.MyAccountProvider.PrivateKey(), preCommit.SignatureTargets()).Bytes,
-	//		TermId:     r.TermProvider.CurrentTerm(),
-	//		PublicKey:  r.MyAccountProvider.PublicKey().Bytes,
-	//	}
-	//
-	//	// TODO: dkg sign
-	//	//if preCommit.Idv != nil {
-	//	//	sig, err := b.dkg.Sign(preCommit.Idv.ToBytes(), b.DKGTermId)
-	//	//	if err != nil {
-	//	//		logev.WithError(err).Error("sign error")
-	//	//		panic(err)
-	//	//	}
-	//	//	preCommit.BlsSignature = sig
-	//	//}
-	//	return signed
-	//default:
-	//	panic("never come here unknown type")
-	//}
 }
 
 func (r *TrustfulPartnerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
-	// signed := r.Sign(msg)
+	signed := r.Sign(msg)
+	p2pmsg := p2p_message.MessageConsensus{}
+	r.P2PSender.BroadcastMessage(p2p_message.MessageTypeConsensus, p2p_message.Message(&signed))
 	// TODO: send using p2p
 }
 
@@ -114,5 +72,10 @@ func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.Pub
 	}
 	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
 	return false
+
+}
+
+// handler for hub
+func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(request *bft.BftMessage, peerId string) {
 
 }

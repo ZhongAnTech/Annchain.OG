@@ -44,11 +44,6 @@ type BftOperator struct {
 
 	// event listener for a decision once made
 	ConsensusReachedListeners []model.ConsensusReachedListener
-
-	decisionFunc func(state *HeightRoundState) error
-
-	testFlag bool
-
 	//wg sync.WaitGroup
 }
 

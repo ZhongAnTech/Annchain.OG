@@ -23,6 +23,8 @@ import (
 	"time"
 )
 
+//go:generate msgp
+
 const (
 	TimeoutPropose   = time.Duration(8) * time.Second
 	TimeoutPreVote   = time.Duration(8) * time.Second
@@ -93,6 +95,7 @@ type Signable interface {
 	SignatureTargets() []byte
 }
 
+//msgp:tuple BftMessage
 type BftMessage struct {
 	Type    BftMessageType
 	Payload Signable

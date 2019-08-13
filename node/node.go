@@ -398,7 +398,7 @@ func NewNode() *Node {
 		m.ConsensusDkgDealHandler = annSensus
 		m.ConsensusDkgDealResponseHandler = annSensus
 		m.ConsensusDkgSigSetsHandler = annSensus
-		m.ConsensusProposalHandler = annSensus
+		m.ConsensusHandler = annSensus
 		m.ConsensusPreCommitHandler = annSensus
 		m.ConsensusPreVoteHandler = annSensus
 		m.ConsensusDkgGenesisPublicKeyHandler = annSensus
@@ -542,9 +542,10 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[p2p_message.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[p2p_message.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
 	hub.CallbackRegistry[p2p_message.MessageTypeConsensusDkgGenesisPublicKey] = m.RouteConsensusDkgGenesisPublicKey
-	hub.CallbackRegistry[p2p_message.MessageTypeProposal] = m.RouteConsensusProposal
-	hub.CallbackRegistry[p2p_message.MessageTypePreVote] = m.RouteConsensusPreVote
-	hub.CallbackRegistry[p2p_message.MessageTypePreCommit] = m.RouteConsensusPreCommit
+	hub.CallbackRegistry[p2p_message.MessageTypeConsensus] = m.RouteConsensus
+	//hub.CallbackRegistry[p2p_message.MessageTypeProposal] = m.RouteConsensusProposal
+	//hub.CallbackRegistry[p2p_message.MessageTypePreVote] = m.RouteConsensusPreVote
+	//hub.CallbackRegistry[p2p_message.MessageTypePreCommit] = m.RouteConsensusPreCommit
 
 	hub.CallbackRegistry[p2p_message.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
 	hub.CallbackRegistry[p2p_message.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse

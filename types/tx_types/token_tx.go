@@ -35,7 +35,7 @@ const (
 )
 
 type ActionData interface {
-	msg.Message
+	msg.MsgpMember
 	String() string
 }
 

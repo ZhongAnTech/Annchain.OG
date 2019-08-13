@@ -32,7 +32,7 @@ const (
 )
 
 type Message interface {
-	msg.Message
+	msg.MsgpMember
 	String() string //string is for logging
 }
 

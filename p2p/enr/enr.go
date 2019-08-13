@@ -235,7 +235,7 @@ func (r *Record) SetSig(s IdentityScheme, sig []byte) error {
 }
 
 // AppendElements appends the sequence number and entries to the given slice.
-func (r *Record) AppendElements(list []msg.Message) []msg.Message {
+func (r *Record) AppendElements(list []msg.MsgpMember) []msg.MsgpMember {
 	seq := msg.Uint64(r.Seq)
 	list = append(list, &seq)
 	for _, p := range r.Pairs {
@@ -248,7 +248,7 @@ func (r *Record) AppendElements(list []msg.Message) []msg.Message {
 
 /*
 func (r *Record) encode(sig []byte) (raw []byte, err error) {
-	list := make([]msg.Message, 1, 2*len(r.Pairs)+1)
+	list := make([]msg.MsgpMember, 1, 2*len(r.Pairs)+1)
 	bs := msg.Bytes(sig)
 	list[0] = &bs
 	msg := msg.Messages(r.AppendElements(list))

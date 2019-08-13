@@ -1250,7 +1250,7 @@ func (net *Network) checkTopicRegister(data *TopicRegister) (*Pong, error) {
 	return pongpkt.data.(*Pong), nil
 }
 
-func rlpHash(x msg.Message) (h common.Hash) {
+func rlpHash(x msg.MsgpMember) (h common.Hash) {
 	hw := sha3.NewLegacyKeccak256()
 	//rlp.Encode(hw, x)
 	d, _ := x.MarshalMsg(nil)

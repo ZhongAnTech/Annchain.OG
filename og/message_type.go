@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )
@@ -39,7 +40,7 @@ var ProtocolName = "og"
 var ProtocolVersions = []uint32{OG02, OG01}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []p2p_message.MessageType{p2p_message.MessageTypeOg02Length, p2p_message.MessageTypeOg01Length}
+var ProtocolLengths = []message.MessageType{message.MessageTypeOg02Length, message.MessageTypeOg01Length}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -54,7 +55,7 @@ const (
 )
 
 type OGMessage struct {
-	messageType    p2p_message.MessageType
+	messageType    message.MessageType
 	data           []byte
 	hash           *common.Hash //inner use to avoid resend a message to the same peer
 	sourceID       string       // the source that this message  coming from , outgoing if it is nil
@@ -76,44 +77,44 @@ func (m *OGMessage) calculateHash() {
 	data := m.data
 	var hash *common.Hash
 	switch m.messageType {
-	case p2p_message.MessageTypeNewTx:
+	case message.MessageTypeNewTx:
 		msg := m.message.(*p2p_message.MessageNewTx)
 		hash = msg.GetHash()
 		var msgHash common.Hash
 		msgHash = *hash
 		m.hash = &msgHash
 		return
-	case p2p_message.MessageTypeControl:
+	case message.MessageTypeControl:
 		msg := m.message.(*p2p_message.MessageControl)
 		var msgHash common.Hash
 		msgHash = *msg.Hash
 		m.hash = &msgHash
 		return
 
-	case p2p_message.MessageTypeNewSequencer:
+	case message.MessageTypeNewSequencer:
 		msg := m.message.(*p2p_message.MessageNewSequencer)
 		hash = msg.GetHash()
 		var msgHash common.Hash
 		msgHash = *hash
 		m.hash = &msgHash
 		return
-	case p2p_message.MessageTypeTxsRequest:
+	case message.MessageTypeTxsRequest:
 		data = append(data, []byte(m.sourceID+"txs")...)
-	case p2p_message.MessageTypeBodiesRequest:
+	case message.MessageTypeBodiesRequest:
 		data = append(data, []byte(m.sourceID+"bq")...)
-	case p2p_message.MessageTypeTermChangeRequest:
+	case message.MessageTypeTermChangeRequest:
 		data = append(data, []byte(m.sourceID+"tq")...)
-	case p2p_message.MessageTypeFetchByHashRequest:
+	case message.MessageTypeFetchByHashRequest:
 		data = append(data, []byte(m.sourceID+"fe")...)
-	case p2p_message.MessageTypeHeaderRequest:
+	case message.MessageTypeHeaderRequest:
 		data = append(data, []byte(m.sourceID+"hq")...)
-	case p2p_message.MessageTypeHeaderResponse:
+	case message.MessageTypeHeaderResponse:
 		data = append(data, []byte(m.sourceID+"hp")...)
-	case p2p_message.MessageTypeBodiesResponse:
+	case message.MessageTypeBodiesResponse:
 		data = append(data, []byte(m.sourceID+"bp")...)
-	case p2p_message.MessageTypeSequencerHeader:
+	case message.MessageTypeSequencerHeader:
 		data = append(data, []byte(m.sourceID+"sq")...)
-	case p2p_message.MessageTypeGetMsg:
+	case message.MessageTypeGetMsg:
 		data = append(data, []byte(m.sourceID+"gm")...)
 	default:
 	}
@@ -172,13 +173,13 @@ func (p *OGMessage) GetMarkHashes() common.Hashes {
 		panic("unmarshal first")
 	}
 	switch p.messageType {
-	case p2p_message.MessageTypeFetchByHashResponse:
+	case message.MessageTypeFetchByHashResponse:
 		msg := p.message.(*p2p_message.MessageSyncResponse)
 		return msg.Hashes()
-	case p2p_message.MessageTypeNewTxs:
+	case message.MessageTypeNewTxs:
 		msg := p.message.(*p2p_message.MessageNewTxs)
 		return msg.Hashes()
-	case p2p_message.MessageTypeTxsResponse:
+	case message.MessageTypeTxsResponse:
 		msg := p.message.(*p2p_message.MessageTxsResponse)
 		return msg.Hashes()
 	default:
@@ -210,7 +211,7 @@ func (m *OGMessage) appendGossipTarget(pub *crypto.PublicKey) error {
 	m.data = append(m.data, b[:]...)
 	m.disableEncrypt = true
 	m.data = append(m.data, pub.Bytes[:8]...)
-	m.messageType = p2p_message.MessageTypeSecret
+	m.messageType = message.MessageTypeSecret
 	return nil
 }
 
@@ -220,7 +221,7 @@ func (m *OGMessage) Encrypt(pub *crypto.PublicKey) error {
 	//use one key for tx and sequencer
 	binary.BigEndian.PutUint16(b, uint16(m.messageType))
 	m.data = append(m.data, b[:]...)
-	m.messageType = p2p_message.MessageTypeSecret
+	m.messageType = message.MessageTypeSecret
 	ct, err := pub.Encrypt(m.data)
 	if err != nil {
 		return err
@@ -232,7 +233,7 @@ func (m *OGMessage) Encrypt(pub *crypto.PublicKey) error {
 }
 
 func (m *OGMessage) checkRequiredSize() bool {
-	if m.messageType == p2p_message.MessageTypeSecret {
+	if m.messageType == message.MessageTypeSecret {
 		if m.disableEncrypt {
 			if len(m.data) < 8 {
 				return false
@@ -246,7 +247,7 @@ func (m *OGMessage) checkRequiredSize() bool {
 }
 
 func (m *OGMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
-	if m.messageType != p2p_message.MessageTypeSecret {
+	if m.messageType != message.MessageTypeSecret {
 		panic("not a secret message")
 	}
 	//check target
@@ -275,7 +276,7 @@ func (m *OGMessage) removeGossipTarget() error {
 	b := make([]byte, 2)
 	copy(b, msg[len(msg)-2:])
 	mType := binary.BigEndian.Uint16(b)
-	m.messageType = p2p_message.MessageType(mType)
+	m.messageType = message.MessageType(mType)
 	if !m.messageType.IsValid() {
 		return fmt.Errorf("message type error %s", m.messageType.String())
 	}
@@ -284,7 +285,7 @@ func (m *OGMessage) removeGossipTarget() error {
 }
 
 func (m *OGMessage) Decrypt(priv *crypto.PrivateKey) error {
-	if m.messageType != p2p_message.MessageTypeSecret {
+	if m.messageType != message.MessageTypeSecret {
 		panic("not a secret message")
 	}
 	d := make([]byte, len(m.data)-3)
@@ -299,7 +300,7 @@ func (m *OGMessage) Decrypt(priv *crypto.PrivateKey) error {
 	b := make([]byte, 2)
 	copy(b, msg[len(msg)-2:])
 	mType := binary.BigEndian.Uint16(b)
-	m.messageType = p2p_message.MessageType(mType)
+	m.messageType = message.MessageType(mType)
 	if !m.messageType.IsValid() {
 		return fmt.Errorf("message type error %s", m.messageType.String())
 	}
@@ -317,7 +318,7 @@ func (p *OGMessage) Unmarshal() error {
 	}
 	switch p.messageType {
 
-	case p2p_message.MessageTypeNewTx:
+	case message.MessageTypeNewTx:
 		msg := &p2p_message.MessageNewTx{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
@@ -329,7 +330,7 @@ func (p *OGMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
-	case p2p_message.MessageTypeNewSequencer:
+	case message.MessageTypeNewSequencer:
 		msg := &p2p_message.MessageNewSequencer{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
@@ -341,7 +342,7 @@ func (p *OGMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
-	case p2p_message.MessageTypeGetMsg:
+	case message.MessageTypeGetMsg:
 		msg := &p2p_message.MessageGetMsg{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
@@ -353,7 +354,7 @@ func (p *OGMessage) Unmarshal() error {
 		p.message = msg
 		p.marshalState = true
 		return nil
-	case p2p_message.MessageTypeControl:
+	case message.MessageTypeControl:
 		msg := &p2p_message.MessageControl{}
 		_, err := msg.UnmarshalMsg(p.data)
 		if err != nil {
@@ -374,9 +375,9 @@ func (p *OGMessage) Unmarshal() error {
 
 //
 func (m *OGMessage) sendDuplicateMsg() bool {
-	return m.messageType == p2p_message.MessageTypeNewTx || m.messageType == p2p_message.MessageTypeNewSequencer
+	return m.messageType == message.MessageTypeNewTx || m.messageType == message.MessageTypeNewSequencer
 }
 
-func (m *OGMessage) msgKey() p2p_message.MsgKey {
-	return p2p_message.NewMsgKey(m.messageType, *m.hash)
+func (m *OGMessage) msgKey() message.MsgKey {
+	return message.NewMsgKey(m.messageType, *m.hash)
 }

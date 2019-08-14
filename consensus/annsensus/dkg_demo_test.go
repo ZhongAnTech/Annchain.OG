@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus/test"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
@@ -62,7 +63,7 @@ func GetAnn(anns []TestAnnSensus, Addr common.Address) *TestAnnSensus {
 
 type p2pMsg struct {
 	data    []byte
-	msgType p2p_message.MessageType
+	msgType message.MessageType
 }
 
 type TestHub struct {
@@ -92,7 +93,7 @@ func newtestHub(id common.Address, peers []common.Address, sendMsgToChan sendMsg
 	}
 }
 
-func (t *TestHub) BroadcastMessage(messageType p2p_message.MessageType, message p2p_message.Message) {
+func (t *TestHub) BroadcastMessage(messageType message.MessageType, message p2p_message.Message) {
 	var sent bool
 	for _, peer := range t.Peers {
 		tMsg := test.TestMsg{
@@ -110,11 +111,11 @@ func (t *TestHub) BroadcastMessage(messageType p2p_message.MessageType, message 
 	}
 }
 
-func (t *TestHub) SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message) error {
+func (t *TestHub) SendToPeer(peerId string, messageType message.MessageType, msg p2p_message.Message) error {
 	return nil
 }
 
-func (t *TestHub) AnonymousSendMessage(messageType p2p_message.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
+func (t *TestHub) AnonymousSendMessage(messageType message.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 	tMsg := test.TestMsg{
 		MessageType: messageType,
 		Message:     message,
@@ -178,13 +179,13 @@ func (t *TestHub) loop() {
 		case pMsg := <-t.OutMsg:
 			var msg test.TestMsg
 			switch pMsg.msgType {
-			case p2p_message.MessageTypeConsensusDkgDeal:
+			case message.MessageTypeConsensusDkgDeal:
 				msg.MessageType = pMsg.msgType
 				msg.Message = &p2p_message.MessageConsensusDkgDeal{}
-			case p2p_message.MessageTypeConsensusDkgDealResponse:
+			case message.MessageTypeConsensusDkgDealResponse:
 				msg.MessageType = pMsg.msgType
 				msg.Message = &p2p_message.MessageConsensusDkgDealResponse{}
-			case p2p_message.MessageTypeConsensusDkgSigSets:
+			case message.MessageTypeConsensusDkgSigSets:
 				msg.MessageType = pMsg.msgType
 				msg.Message = &p2p_message.MessageConsensusDkgSigSets{}
 			default:
@@ -198,7 +199,7 @@ func (t *TestHub) loop() {
 			time.Sleep(10 * time.Millisecond)
 			hash := msg.GetHash()
 			switch msg.MessageType {
-			case p2p_message.MessageTypeConsensusDkgDeal:
+			case message.MessageTypeConsensusDkgDeal:
 				request := msg.Message.(*p2p_message.MessageConsensusDkgDeal)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
@@ -207,7 +208,7 @@ func (t *TestHub) loop() {
 					continue
 				}
 				go t.As.HandleConsensusDkgDeal(request, fmt.Sprintf("%s", msg.From.TerminalString()))
-			case p2p_message.MessageTypeConsensusDkgDealResponse:
+			case message.MessageTypeConsensusDkgDealResponse:
 				request := msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
@@ -216,7 +217,7 @@ func (t *TestHub) loop() {
 					continue
 				}
 				go t.As.HandleConsensusDkgDealResponse(request, fmt.Sprintf("%s", msg.From.TerminalString()))
-			case p2p_message.MessageTypeConsensusDkgSigSets:
+			case message.MessageTypeConsensusDkgSigSets:
 				request := msg.Message.(*p2p_message.MessageConsensusDkgSigSets)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
@@ -250,7 +251,7 @@ func run(n int) {
 		ann := GetAnn(Anns, addr)
 		ann.Hub.(*TestHub).OutMsg <- pMsg
 		var resp *p2p_message.MessageConsensusDkgDealResponse
-		if msg.MessageType == p2p_message.MessageTypeConsensusDkgDealResponse {
+		if msg.MessageType == message.MessageTypeConsensusDkgDealResponse {
 			resp = msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 		}
 		logrus.WithField("me ", msg.From).WithField("to peer ", ann.Aid().String()).WithField("type ",
@@ -312,7 +313,7 @@ func run(n int) {
 
 	//start here
 	//collect campaigns
-	p2p_message.MsgCountInit()
+	message.MsgCountInit()
 	for i := range Anns {
 		Anns[i].Start()
 	}

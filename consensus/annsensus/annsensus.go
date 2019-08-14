@@ -26,6 +26,7 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
@@ -695,9 +696,9 @@ func (as *AnnSensus) loop() {
 					continue
 				}
 				msg := p2p_message.MessageTermChangeRequest{
-					Id: p2p_message.MsgCounter.Get(),
+					Id: message.MsgCounter.Get(),
 				}
-				as.Hub.BroadcastMessage(p2p_message.MessageTypeTermChangeRequest, &msg)
+				as.Hub.BroadcastMessage(message.MessageTypeTermChangeRequest, &msg)
 
 			}
 
@@ -705,9 +706,9 @@ func (as *AnnSensus) loop() {
 
 			if !as.isGenesisPartner && !eventInit {
 				msg := p2p_message.MessageTermChangeRequest{
-					Id: p2p_message.MsgCounter.Get(),
+					Id: message.MsgCounter.Get(),
 				}
-				as.Hub.BroadcastMessage(p2p_message.MessageTypeTermChangeRequest, &msg)
+				as.Hub.BroadcastMessage(message.MessageTypeTermChangeRequest, &msg)
 			}
 			if as.initDone {
 				continue

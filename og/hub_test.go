@@ -18,7 +18,10 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
@@ -57,7 +60,7 @@ func TestSh256(t *testing.T) {
 	var msg []OGMessage
 	for i := 0; i < 10000; i++ {
 		var m OGMessage
-		m.messageType = p2p_message.MessageTypeBodiesResponse
+		m.messageType = message.MessageTypeBodiesResponse
 		h := common.RandomHash()
 		m.data = append(m.data, h.Bytes[:]...)
 		msg = append(msg, m)
@@ -76,7 +79,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			Data: []byte("this is a test of og message"),
 			Id:   12,
 		}
-		m := OGMessage{message: &msg, messageType: p2p_message.MessageTypeConsensusDkgDeal}
+		m := OGMessage{message: &msg, messageType: message.MessageTypeConsensusDkgDeal}
 		s := crypto.NewSigner(crypto.CryptoType(i))
 		fmt.Println(s.GetCryptoType())
 		pk, sk := s.RandomKeyPair()
@@ -87,7 +90,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(m.data))
-		mm := OGMessage{data: m.data, messageType: p2p_message.MessageTypeSecret}
+		mm := OGMessage{data: m.data, messageType: message.MessageTypeSecret}
 		ok := mm.checkRequiredSize()
 		logrus.Debug(ok)
 		ok = mm.maybeIsforMe(&pk)
@@ -108,4 +111,27 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 		logrus.Debug(dkgMsg.Id, " ", string(dkgMsg.Data))
 		logrus.Debug(mm.message)
 	}
+}
+
+
+func TestCache(t *testing.T) {
+	config := DefaultHubConfig()
+	hub := &Hub{
+		messageCache: gcache.New(config.MessageCacheMaxSize).LRU().
+			Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build(),
+	}
+
+	tx := tx_types.SampleTx()
+	msg := &p2p_message.MessageNewTx{
+		RawTx: tx.RawTx(),
+	}
+	data, _ := msg.MarshalMsg(nil)
+	p2pM := &OGMessage{messageType: message.MessageTypeNewTx, data: data, sourceID: "123", message: msg}
+	p2pM.calculateHash()
+	hub.cacheMessage(p2pM)
+	ids := hub.getMsgFromCache(message.MessageTypeNewTx, *p2pM.hash)
+	fmt.Println(ids)
+	p2pM = nil
+	ids = hub.getMsgFromCache(message.MessageTypeNewTx, tx.GetTxHash())
+	fmt.Println(ids)
 }

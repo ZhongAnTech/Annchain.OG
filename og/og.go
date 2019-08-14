@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"sync"
@@ -43,8 +44,8 @@ type Og struct {
 	quit      chan bool
 }
 
-func (og *Og) GetCurrentNodeStatus() p2p_message.StatusData {
-	return p2p_message.StatusData{
+func (og *Og) GetCurrentNodeStatus() message.StatusData {
+	return message.StatusData{
 		CurrentBlock:    og.Dag.LatestSequencer().Hash,
 		CurrentId:       og.Dag.LatestSequencer().Height,
 		GenesisBlock:    og.Dag.Genesis().Hash,
@@ -214,7 +215,7 @@ func (og *Og) BroadcastLatestSequencer() {
 			msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			function := func() {
-				og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
+				og.Manager.BroadcastMessage(message.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
 		case <-time.After(200 * time.Millisecond):
@@ -229,7 +230,7 @@ func (og *Og) BroadcastLatestSequencer() {
 				msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it
 				function := func() {
-					og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
+					og.Manager.BroadcastMessage(message.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
 			}

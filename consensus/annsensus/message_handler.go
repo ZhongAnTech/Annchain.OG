@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )
@@ -259,7 +260,7 @@ func (a *AnnSensus) HandleTermChangeRequest(request *p2p_message.MessageTermChan
 	msg := &p2p_message.MessageTermChangeResponse{
 		TermChange: tc,
 	}
-	a.Hub.SendToPeer(peerId, p2p_message.MessageTypeTermChangeResponse, msg)
+	a.Hub.SendToPeer(peerId, message.MessageTypeTermChangeResponse, msg)
 
 	log.WithField("data", msg).WithField("to  peer ", peerId).Debug("send term change")
 }

@@ -16,6 +16,7 @@ package og
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 )
 
@@ -161,7 +162,7 @@ type TermChangeResponseHandler interface {
 }
 
 func (m *MessageRouter) Start() {
-	m.Hub.BroadcastMessage(p2p_message.MessageTypePing, &p2p_message.MessagePing{Data: []byte{}})
+	m.Hub.BroadcastMessage(message.MessageTypePing, &p2p_message.MessagePing{Data: []byte{}})
 }
 
 func (m *MessageRouter) Stop() {
@@ -287,26 +288,26 @@ func (m *MessageRouter) RouteTermChangeResponse(msg *OGMessage) {
 }
 
 // BroadcastMessage send message to all peers
-func (m *MessageRouter) BroadcastMessage(messageType p2p_message.MessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessage(messageType message.MessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessage(messageType, message)
 }
 
 // MulticastMessage send message to a randomly chosen peer
-func (m *MessageRouter) MulticastMessage(messageType p2p_message.MessageType, message p2p_message.Message) {
+func (m *MessageRouter) MulticastMessage(messageType message.MessageType, message p2p_message.Message) {
 	m.Hub.MulticastMessage(messageType, message)
 }
 
-func (m *MessageRouter) MulticastToSource(messageType p2p_message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
+func (m *MessageRouter) MulticastToSource(messageType message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
 
-func (m *MessageRouter) BroadcastMessageWithLink(messageType p2p_message.MessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessageWithLink(messageType message.MessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }
 
-func (m *MessageRouter) SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message) {
+func (m *MessageRouter) SendToPeer(peerId string, messageType message.MessageType, msg p2p_message.Message) {
 	err := m.Hub.SendToPeer(peerId, messageType, msg)
 	if err != nil {
-		msgLog.WithError(err).Warn("send failed")
+		message.msgLog.WithError(err).Warn("send failed")
 	}
 }

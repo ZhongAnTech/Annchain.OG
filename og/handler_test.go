@@ -2,6 +2,7 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
@@ -15,11 +16,11 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		seq := tx_types.RandomSequencer()
 
 		if bytes >= softResponseLimit {
-			msgLog.Debug("reached softResponseLimit")
+			message.msgLog.Debug("reached softResponseLimit")
 			break
 		}
 		if len(msgRes.Bodies) >= 400000 {
-			msgLog.Debug("reached MaxBlockFetch 128")
+			message.msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
 		var body p2p_message.MessageBodyData

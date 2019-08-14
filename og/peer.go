@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"sync"
 	"time"
@@ -107,13 +108,13 @@ func (p *peer) broadcast() {
 		select {
 		case msg := <-p.queuedMsg:
 			if err := p.SendMessages(msg); err != nil {
-				msgLog.WithError(err).Warn("send msg failed,quiting")
+				message.msgLog.WithError(err).Warn("send msg failed,quiting")
 				return
 			}
-			msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
+			message.msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
 
 		case <-p.term:
-			msgLog.Debug("peer terminating,quiting")
+			message.msgLog.Debug("peer terminating,quiting")
 			return
 		}
 	}
@@ -176,19 +177,19 @@ func (p *peer) SetHead(hash common.Hash, seqId uint64) {
 
 // MarkMessage marks a message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkMessage(m p2p_message.MessageType, hash common.Hash) {
+func (p *peer) MarkMessage(m message.MessageType, hash common.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
 	}
-	key := p2p_message.NewMsgKey(m, hash)
+	key := message.NewMsgKey(m, hash)
 	p.knownMsg.Add(key)
 }
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendMessages(messages []*OGMessage) error {
-	var msgType p2p_message.MessageType
+	var msgType message.MessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
 		return nil
@@ -203,8 +204,8 @@ func (p *peer) SendMessages(messages []*OGMessage) error {
 	return p.sendRawMessage(msgType, msgBytes)
 }
 
-func (p *peer) sendRawMessage(msgType p2p_message.MessageType, msgBytes []byte) error {
-	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
+func (p *peer) sendRawMessage(msgType message.MessageType, msgBytes []byte) error {
+	message.msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 
 }
@@ -219,7 +220,7 @@ func (p *peer) AsyncSendMessages(messages []*OGMessage) {
 			p.knownMsg.Add(key)
 		}
 	default:
-		msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
+		message.msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
 	}
 }
 
@@ -231,30 +232,30 @@ func (p *peer) AsyncSendMessage(msg *OGMessage) {
 		key := msg.msgKey()
 		p.knownMsg.Add(key)
 	default:
-		msgLog.Debug("Dropping transaction propagation")
+		message.msgLog.Debug("Dropping transaction propagation")
 	}
 }
 
 // SendNodeData sends a batch of arbitrary internal data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
-	return p.sendRawMessage(p2p_message.NodeDataMsg, data)
+	return p.sendRawMessage(message.NodeDataMsg, data)
 }
 
 // RequestNodeData fetches a batch of arbitrary data from a node's known state
 // data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes common.Hashes) error {
-	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
+	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
 	hashsStruct := common.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
-	return p.sendRawMessage(p2p_message.GetNodeDataMsg, b)
+	return p.sendRawMessage(message.GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes common.Hashes) error {
-	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
+	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
-	return p.sendRawMessage(p2p_message.GetReceiptsMsg, b)
+	return p.sendRawMessage(message.GetReceiptsMsg, b)
 }
 
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
@@ -264,34 +265,34 @@ func (p *peer) RequestTxsByHash(seqHash common.Hash, seqId uint64) error {
 	msg := &p2p_message.MessageTxsRequest{
 		SeqHash:   &hash,
 		Id:        &seqId,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeTxsRequest, msg)
+	return p.sendRequest(message.MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestTxs(hashs common.Hashes) error {
 	msg := &p2p_message.MessageTxsRequest{
 		Hashes:    &hashs,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
 
-	return p.sendRequest(p2p_message.MessageTypeTxsRequest, msg)
+	return p.sendRequest(message.MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestTxsById(seqId uint64) error {
 	msg := &p2p_message.MessageTxsRequest{
 		Id:        &seqId,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeTxsRequest, msg)
+	return p.sendRequest(message.MessageTypeTxsRequest, msg)
 }
 
 func (p *peer) RequestBodies(seqHashs common.Hashes) error {
 	msg := &p2p_message.MessageBodiesRequest{
 		SeqHashes: seqHashs,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeBodiesRequest, msg)
+	return p.sendRequest(message.MessageTypeBodiesRequest, msg)
 }
 
 func (h *Hub) RequestOneHeader(peerId string, hash common.Hash) error {
@@ -319,9 +320,9 @@ func (p *peer) RequestOneHeader(hash common.Hash) error {
 		Amount:    uint64(1),
 		Skip:      uint64(0),
 		Reverse:   false,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeHeaderRequest, msg)
+	return p.sendRequest(message.MessageTypeHeaderRequest, msg)
 }
 
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
@@ -334,9 +335,9 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 		Amount:    uint64(amount),
 		Skip:      uint64(skip),
 		Reverse:   reverse,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeHeaderRequest, msg)
+	return p.sendRequest(message.MessageTypeHeaderRequest, msg)
 }
 
 func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reverse bool) error {
@@ -348,13 +349,13 @@ func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reve
 		Amount:    uint64(amount),
 		Skip:      uint64(skip),
 		Reverse:   reverse,
-		RequestId: p2p_message.MsgCounter.Get(),
+		RequestId: message.MsgCounter.Get(),
 	}
-	return p.sendRequest(p2p_message.MessageTypeHeaderRequest, msg)
+	return p.sendRequest(message.MessageTypeHeaderRequest, msg)
 }
 
-func (p *peer) sendRequest(msgType p2p_message.MessageType, request p2p_message.Message) error {
-	clog := msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
+func (p *peer) sendRequest(msgType message.MessageType, request p2p_message.Message) error {
+	clog := message.msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
 		clog.WithError(err).Warn("encode request error")
@@ -504,14 +505,14 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m p2p_message.MessageType) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message.MessageType) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
-	if m == p2p_message.MessageTypeNewTx || m == p2p_message.MessageTypeNewSequencer {
-		keyControl := p2p_message.NewMsgKey(p2p_message.MessageTypeControl, hash)
-		key := p2p_message.NewMsgKey(m, hash)
+	if m == message.MessageTypeNewTx || m == message.MessageTypeNewSequencer {
+		keyControl := message.NewMsgKey(message.MessageTypeControl, hash)
+		key := message.NewMsgKey(m, hash)
 		for _, p := range ps.peers {
 			if !p.knownMsg.Contains(key) && !p.knownMsg.Contains(keyControl) {
 				list = append(list, p)
@@ -519,7 +520,7 @@ func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m p2p_message.MessageType) 
 		}
 		return list
 	}
-	key := p2p_message.NewMsgKey(m, hash)
+	key := message.NewMsgKey(m, hash)
 	for _, p := range ps.peers {
 		if !p.knownMsg.Contains(key) {
 			list = append(list, p)
@@ -562,10 +563,10 @@ func (ps *peerSet) Close() {
 func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis common.Hash) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
-	var status p2p_message.StatusData // safe to read after two values have been received from errc
+	var status message.StatusData // safe to read after two values have been received from errc
 
 	sendStatusFunc := func() {
-		s := p2p_message.StatusData{
+		s := message.StatusData{
 			ProtocolVersion: uint32(p.version),
 			NetworkId:       network,
 			CurrentBlock:    head,
@@ -573,7 +574,7 @@ func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis
 			GenesisBlock:    genesis,
 		}
 		data, _ := s.MarshalMsg(nil)
-		errc <- p2p.Send(p.rw, p2p.MsgCodeType(p2p_message.StatusMsg), data)
+		errc <- p2p.Send(p.rw, p2p.MsgCodeType(message.StatusMsg), data)
 	}
 	goroutine.New(sendStatusFunc)
 	readFunc := func() {
@@ -597,13 +598,13 @@ func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis
 	return nil
 }
 
-func (p *peer) readStatus(network uint64, status *p2p_message.StatusData, genesis common.Hash) (err error) {
+func (p *peer) readStatus(network uint64, status *message.StatusData, genesis common.Hash) (err error) {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
 	}
-	if msg.Code != p2p.MsgCodeType(p2p_message.StatusMsg) {
-		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, p2p_message.StatusMsg)
+	if msg.Code != p2p.MsgCodeType(message.StatusMsg) {
+		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, message.StatusMsg)
 	}
 	if msg.Size > ProtocolMaxMsgSize {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)

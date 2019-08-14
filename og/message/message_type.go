@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package p2p_message
+package message
 
 import (
 	"encoding/binary"
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/p2p"
+	"github.com/annchain/OG/types/p2p_message"
 	"sync/atomic"
 )
 
@@ -284,39 +285,39 @@ func NewMsgKey(m MessageType, hash common.Hash) MsgKey {
 	return key
 }
 
-func (m MessageType) GetMsg() Message {
-	var message Message
+func (m MessageType) GetMsg() p2p_message.Message {
+	var message p2p_message.Message
 	switch m {
 	case MessageTypeNewTx:
-		message = &MessageNewTx{}
+		message = &p2p_message.MessageNewTx{}
 	case MessageTypeNewSequencer:
-		message = &MessageNewSequencer{}
+		message = &p2p_message.MessageNewSequencer{}
 	case MessageTypeGetMsg:
-		message = &MessageGetMsg{}
+		message = &p2p_message.MessageGetMsg{}
 	case MessageTypeControl:
-		message = &MessageControl{}
+		message = &p2p_message.MessageControl{}
 	case MessageTypeCampaign:
-		message = &MessageCampaign{}
+		message = &p2p_message.MessageCampaign{}
 	case MessageTypeTermChange:
-		message = &MessageTermChange{}
+		message = &p2p_message.MessageTermChange{}
 	case MessageTypeConsensusDkgDeal:
-		message = &MessageConsensusDkgDeal{}
+		message = &p2p_message.MessageConsensusDkgDeal{}
 	case MessageTypeConsensusDkgDealResponse:
-		message = &MessageConsensusDkgDealResponse{}
+		message = &p2p_message.MessageConsensusDkgDealResponse{}
 	case MessageTypeConsensusDkgSigSets:
-		message = &MessageConsensusDkgSigSets{}
+		message = &p2p_message.MessageConsensusDkgSigSets{}
 	case MessageTypeConsensusDkgGenesisPublicKey:
-		message = &MessageConsensusDkgGenesisPublicKey{}
+		message = &p2p_message.MessageConsensusDkgGenesisPublicKey{}
 
 	case MessageTypeTermChangeResponse:
-		message = &MessageTermChangeResponse{}
+		message = &p2p_message.MessageTermChangeResponse{}
 	case MessageTypeTermChangeRequest:
-		message = &MessageTermChangeRequest{}
+		message = &p2p_message.MessageTermChangeRequest{}
 
 	case MessageTypeArchive:
-		message = &MessageNewArchive{}
+		message = &p2p_message.MessageNewArchive{}
 	case MessageTypeActionTX:
-		message = &MessageNewActionTx{}
+		message = &p2p_message.MessageNewActionTx{}
 
 	//case MessageTypeProposal:
 	//	message = &bft.MessageProposal{
@@ -327,34 +328,34 @@ func (m MessageType) GetMsg() Message {
 	//case MessageTypePreCommit:
 	//	message = &bft.MessagePreCommit{}
 	case MessageTypeNewTxs:
-		message = &MessageNewTxs{}
+		message = &p2p_message.MessageNewTxs{}
 	case MessageTypeSequencerHeader:
-		message = &MessageSequencerHeader{}
+		message = &p2p_message.MessageSequencerHeader{}
 
 	case MessageTypeBodiesRequest:
-		message = &MessageBodiesRequest{}
+		message = &p2p_message.MessageBodiesRequest{}
 	case MessageTypeBodiesResponse:
-		message = &MessageBodiesResponse{}
+		message = &p2p_message.MessageBodiesResponse{}
 
 	case MessageTypeTxsRequest:
-		message = &MessageTxsRequest{}
+		message = &p2p_message.MessageTxsRequest{}
 	case MessageTypeTxsResponse:
-		message = &MessageTxsResponse{}
+		message = &p2p_message.MessageTxsResponse{}
 	case MessageTypeHeaderRequest:
-		message = &MessageHeaderRequest{}
+		message = &p2p_message.MessageHeaderRequest{}
 	case MessageTypeHeaderResponse:
-		message = &MessageHeaderResponse{}
+		message = &p2p_message.MessageHeaderResponse{}
 	case MessageTypeDuplicate:
-		var dup MessageDuplicate
+		var dup p2p_message.MessageDuplicate
 		message = &dup
 	case MessageTypePing:
-		message = &MessagePing{}
+		message = &p2p_message.MessagePing{}
 	case MessageTypePong:
-		message = &MessagePong{}
+		message = &p2p_message.MessagePong{}
 	case MessageTypeFetchByHashRequest:
-		message = &MessageSyncRequest{}
+		message = &p2p_message.MessageSyncRequest{}
 	case MessageTypeFetchByHashResponse:
-		message = &MessageSyncResponse{}
+		message = &p2p_message.MessageSyncResponse{}
 	default:
 		return nil
 	}

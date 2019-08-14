@@ -14,6 +14,7 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
@@ -34,31 +35,31 @@ func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 	switch tx := txi.(type) {
 	case *tx_types.Tx:
 		msgTx := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
-		m.messageSender.BroadcastMessageWithLink(p2p_message.MessageTypeNewTx, &msgTx)
+		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewTx, &msgTx)
 	case *tx_types.Sequencer:
 		msgTx := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
-		m.messageSender.BroadcastMessageWithLink(p2p_message.MessageTypeNewSequencer, &msgTx)
+		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewSequencer, &msgTx)
 	case *tx_types.Campaign:
 		msg := p2p_message.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
 		}
-		m.messageSender.BroadcastMessage(p2p_message.MessageTypeCampaign, &msg)
+		m.messageSender.BroadcastMessage(message.MessageTypeCampaign, &msg)
 	case *tx_types.TermChange:
 		msg := p2p_message.MessageTermChange{
 			RawTermChange: tx.RawTermChange(),
 		}
-		m.messageSender.BroadcastMessage(p2p_message.MessageTypeTermChange, &msg)
+		m.messageSender.BroadcastMessage(message.MessageTypeTermChange, &msg)
 
 	case *tx_types.Archive:
 		msg := p2p_message.MessageNewArchive{
 			Archive: tx,
 		}
-		m.messageSender.BroadcastMessage(p2p_message.MessageTypeArchive, &msg)
+		m.messageSender.BroadcastMessage(message.MessageTypeArchive, &msg)
 	case *tx_types.ActionTx:
 		msg := p2p_message.MessageNewActionTx{
 			ActionTx: tx,
 		}
-		m.messageSender.BroadcastMessage(p2p_message.MessageTypeActionTX, &msg)
+		m.messageSender.BroadcastMessage(message.MessageTypeActionTX, &msg)
 
 	default:
 		log.Warn("never come here, unknown tx type ", tx)

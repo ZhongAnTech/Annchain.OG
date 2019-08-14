@@ -16,6 +16,7 @@ package test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"golang.org/x/crypto/sha3"
 )
@@ -24,7 +25,7 @@ import (
 //msgp:tuple TestMsg
 type TestMsg struct {
 	Message     p2p_message.Message
-	MessageType p2p_message.MessageType
+	MessageType message.MessageType
 	From        common.Address
 }
 

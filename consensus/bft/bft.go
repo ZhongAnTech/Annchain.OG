@@ -202,7 +202,7 @@ func (b *BFT) sendToPartners(msgType BftMessageType, request p2p_message.Message
 		}
 		//send to others
 		logrus.WithField("msg", request).Debug("send msg")
-		b.Hub.SendToAnynomous(msgType, request, &bftPeer.PublicKey)
+		b.Hub.AnonymousSendMessage(msgType, request, &bftPeer.PublicKey)
 	}
 }
 
@@ -271,10 +271,10 @@ func (b *BFT) loop() {
 }
 
 //func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey) bool {
-//	h := proposal.BasicMessage.HeightRound
+//	h := proposal.MessageConsensus.HeightRound
 //	id := b.BFTPartner.Proposer(h)
 //	if uint16(id) != proposal.SourceId {
-//		if proposal.BasicMessage.TermId == uint32(b.DKGTermId)-1 {
+//		if proposal.MessageConsensus.TermId == uint32(b.DKGTermId)-1 {
 //			//former term message
 //			//TODO optimize in the future
 //		}

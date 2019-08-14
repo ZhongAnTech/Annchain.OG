@@ -42,16 +42,19 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 	return signed
 }
 
+// Broadcast must be anonymous since it is actually among all partners, not all nodes.
 func (r *TrustfulPartnerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	signed := r.Sign(msg)
-	p2pmsg := p2p_message.MessageConsensus{}
-	r.P2PSender.BroadcastMessage(p2p_message.MessageTypeConsensus, p2p_message.Message(&signed))
-	// TODO: send using p2p
+	for _, peer := range peers {
+		r.P2PSender.AnonymousSendMessage(p2p_message.MessageTypeConsensus, &signed, &peer.PublicKey)
+	}
+
 }
 
+// Unicast must be anonymous
 func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
-	// signed := r.Sign(msg)
-	// TODO: send using p2p
+	signed := r.Sign(msg)
+	r.P2PSender.AnonymousSendMessage(p2p_message.MessageTypeConsensus, &signed, &peer.PublicKey)
 }
 
 // GetIncomingChannel provides a channel for downstream component consume the messages
@@ -76,6 +79,10 @@ func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.Pub
 }
 
 // handler for hub
-func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(request *bft.BftMessage, peerId string) {
-
+func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg *bft.BftMessage, peerId string) {
+	switch msg.Type {
+	case bft.BftMessageTypeProposal:
+	case bft.BftMessageTypePreVote:
+	case bft.BftMessageTypePreCommit:
+	}
 }

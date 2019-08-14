@@ -234,7 +234,7 @@ func (p *BftOperator) receive() {
 		timer.Reset(time.Second * 7)
 		select {
 		case <-p.quit:
-			logrus.Info("got quit msg , bft partner receive routine will stop")
+			logrus.Info("got quit msg, bft partner receive routine will stop")
 			return
 		case v := <-p.WaiterTimeoutChannel:
 			context := v.Context.(*TendermintContext)
@@ -288,11 +288,12 @@ func (p *BftOperator) GetValue(newBlock bool) (model.Proposal, ProposalCondition
 }
 
 // Broadcast announce messages to all partners
+//
 func (p *BftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content model.Proposal, validRound int) {
 	m := BftMessage{
 		Type: messageType,
 	}
-	basicMessage := BasicMessage{
+	basicMessage := MessageConsensus{
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
@@ -307,19 +308,19 @@ func (p *BftOperator) Broadcast(messageType BftMessageType, hr HeightRound, cont
 	switch messageType {
 	case BftMessageTypeProposal:
 		m.Payload = &MessageProposal{
-			BasicMessage: basicMessage,
-			Value:        content,
-			ValidRound:   validRound,
+			MessageConsensus: basicMessage,
+			Value:            content,
+			ValidRound:       validRound,
 		}
 	case BftMessageTypePreVote:
 		m.Payload = &MessagePreVote{
-			BasicMessage: basicMessage,
-			Idv:          idv,
+			MessageConsensus: basicMessage,
+			Idv:              idv,
 		}
 	case BftMessageTypePreCommit:
 		m.Payload = &MessagePreCommit{
-			BasicMessage: basicMessage,
-			Idv:          idv,
+			MessageConsensus: basicMessage,
+			Idv:              idv,
 		}
 	}
 	p.PeerCommunicator.Broadcast(m, p.BftStatus.Peers)
@@ -372,7 +373,7 @@ func (p *BftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessageProposal)
-		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -392,7 +393,7 @@ func (p *BftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessagePreVote)
-		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -412,7 +413,7 @@ func (p *BftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessagePreCommit)
-		if needHandle := p.checkRound(&msg.BasicMessage); !needHandle {
+		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -626,7 +627,7 @@ func (p *BftOperator) count(messageType BftMessageType, height uint64, validRoun
 
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
-func (p *BftOperator) checkRound(message *BasicMessage) (needHandle bool) {
+func (p *BftOperator) checkRound(message *MessageConsensus) (needHandle bool) {
 	// rule line 55
 	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
 	if message.HeightRound.IsAfter(p.BftStatus.CurrentHR) {

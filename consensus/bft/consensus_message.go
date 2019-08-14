@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/types"
 )
 
@@ -53,15 +54,15 @@ func (h *HeightRound) IsBefore(o HeightRound) bool {
 		(h.Height == o.Height && h.Round < o.Round)
 }
 
-//msgp:tuple BasicMessage
-type BasicMessage struct {
+//msgp:tuple MessageConsensus
+type MessageConsensus struct {
 	SourceId    uint16
 	HeightRound HeightRound
 }
 
 //msgp:tuple MessageProposal
 type MessageProposal struct {
-	BasicMessage
+	MessageConsensus
 	Value      model.Proposal //TODO
 	ValidRound int
 }
@@ -75,31 +76,31 @@ func (m MessageProposal) Copy() *MessageProposal {
 
 //msgp:tuple MessagePreVote
 type MessagePreVote struct {
-	BasicMessage
+	MessageConsensus
 	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
 //msgp:tuple MessagePreCommit
 type MessagePreCommit struct {
-	BasicMessage
+	MessageConsensus
 	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
 }
 
-func (m BasicMessage) String() string {
-	return fmt.Sprintf("SourceId:%d ,hr:%d", m.SourceId, m.HeightRound)
+func (m MessageConsensus) String() string {
+	return fmt.Sprintf("SourceId:%d, hr:%d", m.SourceId, m.HeightRound)
 }
 
 func (m MessageProposal) String() string {
-	return fmt.Sprintf("bm %s, value %s", m.BasicMessage, m.Value)
+	return fmt.Sprintf("bm %s, value %s", m.MessageConsensus, m.Value)
 }
 
 func (m MessagePreVote) String() string {
-	return fmt.Sprintf("bm %s, idv %s", m.BasicMessage, m.Idv)
+	return fmt.Sprintf("bm %s, idv %s", m.MessageConsensus, m.Idv)
 }
 
 func (m MessagePreCommit) String() string {
-	return fmt.Sprintf("bm %s, idv %s", m.BasicMessage, m.Idv)
+	return fmt.Sprintf("bm %s, idv %s", m.MessageConsensus, m.Idv)
 }
 
 func (m *MessagePreVote) SignatureTargets() []byte {
@@ -134,4 +135,11 @@ func (m *MessageProposal) SignatureTargets() []byte {
 	//w.Write(m.HeightRound.Height, uint64(m.HeightRound.Round), m.SourceId, uint64(m.ValidRound))
 	w.Write(m.HeightRound.Height, uint64(m.HeightRound.Round), m.SourceId)
 	return w.Bytes()
+}
+
+type MessageConsensusUnmarshaller struct {
+}
+
+func (m MessageConsensusUnmarshaller) DoUnmarshal(message *og.p2PMessage) error {
+
 }

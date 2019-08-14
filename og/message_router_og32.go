@@ -43,13 +43,13 @@ func (m *MessageRouterOG02) Name() string {
 }
 
 func (m *MessageRouterOG02) RouteGetNodeDataMsg(msg *OGMessage) {
-	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.sourceID)
+	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.SourceID)
 }
 
 func (m *MessageRouterOG02) RouteNodeDataMsg(msg *OGMessage) {
-	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.sourceID)
+	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.SourceID)
 }
 
 func (m *MessageRouterOG02) RouteGetReceiptsMsg(msg *OGMessage) {
-	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.sourceID)
+	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.SourceID)
 }

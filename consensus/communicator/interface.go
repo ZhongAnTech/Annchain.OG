@@ -8,9 +8,9 @@ import (
 )
 
 type P2PSender interface {
-	BroadcastMessage(messageType message.MessageType, message p2p_message.Message)
-	AnonymousSendMessage(messageType message.MessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey)
-	SendToPeer(messageType message.MessageType, msg p2p_message.Message, peerId string) error
+	BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message)
+	AnonymousSendMessage(messageType message.OGMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey)
+	SendToPeer(messageType message.OGMessageType, msg p2p_message.Message, peerId string) error
 }
 
 // ConsensusAccountProvider provides public key and private key for signing consensus messages

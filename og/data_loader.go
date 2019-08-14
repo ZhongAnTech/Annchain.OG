@@ -40,8 +40,8 @@ func (d *DataLoader) Name() string {
 	return "DataLoader"
 }
 
-// LoadLocalData will load all necessary data (db, status, etc) from local database.
-// If there is no data or data corrupted, rebuild.
+// LoadLocalData will load all necessary Data (db, status, etc) from local database.
+// If there is no Data or Data corrupted, rebuild.
 func (d *DataLoader) LoadLocalData() {
 	genesis := d.Dag.Genesis()
 	if genesis == nil {

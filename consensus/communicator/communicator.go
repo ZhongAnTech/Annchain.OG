@@ -46,7 +46,7 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMe
 func (r *TrustfulPartnerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	signed := r.Sign(msg)
 	for _, peer := range peers {
-		r.P2PSender.AnonymousSendMessage(message.MessageTypeConsensus, &signed, &peer.PublicKey)
+		r.P2PSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
 	}
 
 }
@@ -54,7 +54,7 @@ func (r *TrustfulPartnerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.
 // Unicast must be anonymous
 func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	signed := r.Sign(msg)
-	r.P2PSender.AnonymousSendMessage(message.MessageTypeConsensus, &signed, &peer.PublicKey)
+	r.P2PSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
 }
 
 // GetIncomingChannel provides a channel for downstream component consume the messages

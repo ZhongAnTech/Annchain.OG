@@ -112,7 +112,7 @@ func NewOg(config OGConfig) (*Og, error) {
 
 	// // initialize
 	// if !og.Dag.LoadLastState() {
-	// 	logrus.Trace("no existing data found in db")
+	// 	logrus.Trace("no existing Data found in db")
 	// 	// TODO use config to load the genesis
 	// 	seq, balance := core.DefaultGenesis(config.CryptoType)
 	// 	if err := og.Dag.Init(seq, balance); err != nil {
@@ -235,7 +235,7 @@ func (og *Og) BroadcastLatestSequencer() {
 				goroutine.New(function)
 			}
 		case <-og.quit:
-			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
+			logrus.Info("hub BroadcastLatestSequencer received quit Message. Quitting...")
 			return
 		}
 	}

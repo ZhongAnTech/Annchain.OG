@@ -230,7 +230,7 @@ func (b *TxBuffer) loop() {
 	for {
 		select {
 		case <-b.quit:
-			logrus.Info("tx buffer received quit message. Quitting...")
+			logrus.Info("tx buffer received quit Message. Quitting...")
 			return
 		case v := <-b.ReceivedNewTxChan:
 			b.handleTx(v)
@@ -512,20 +512,20 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 }
 
 //// isLocalHash tests if the tx has already been in the txpool or dag.
-//func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
+//func (b *TxBuffer) isLocalHash(Hash common.Hash) bool {
 //	//just get once
 //	var poolTx, dagTx types.Txi
 //	ok := false
-//	if poolTx = b.txPool.Get(hash); poolTx != nil {
+//	if poolTx = b.txPool.Get(Hash); poolTx != nil {
 //		ok = true
-//	} else if dagTx = b.dag.GetTx(hash); dagTx != nil {
+//	} else if dagTx = b.dag.GetTx(Hash); dagTx != nil {
 //		ok = true
 //	}
 //	//logrus.WithFields(logrus.Fields{
 //	//	"TxPool": poolTx,
 //	//	"DAG":    dagTx,
-//	//	"Hash":   hash,
-//	//	//"Buffer": b.GetFromBuffer(hash),
+//	//	"Hash":   Hash,
+//	//	//"Buffer": b.GetFromBuffer(Hash),
 //	//}).Trace("transaction location")
 //	return ok
 //}
@@ -554,8 +554,8 @@ func (b *TxBuffer) IsReceivedHash(hash common.Hash) bool {
 }
 
 // tryResolve triggered when a Tx is added or resolved by other Tx
-// It will check if the given hash has no more dependencies in the cache.
-// If so, resolve this hash and try resolve its children
+// It will check if the given Hash has no more dependencies in the cache.
+// If so, resolve this Hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) {
 	logrus.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.Parents() {
@@ -647,7 +647,7 @@ func (b *TxBuffer) getMissingHashes(txi types.Txi) common.Hashes {
 	for len(l) != 0 {
 		hash := l[0]
 		l = l[1:]
-		// hash := l.Remove(l.Front()).(common.Hash)
+		// Hash := l.Remove(l.Front()).(common.Hash)
 		if _, ok := visited[hash]; ok {
 			// already there, continue
 			continue
@@ -703,9 +703,9 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 
 					}
 
-					//for _, hash := range children {
+					//for _, Hash := range children {
 					//var txi types.Txi
-					// v, err := b.knownCache.GetIFPresent(hash)
+					// v, err := b.knownCache.GetIFPresent(Hash)
 					//if err == nil {
 					//continue
 					//}
@@ -719,7 +719,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 
 			}
 		case <-b.quit:
-			logrus.Info("tx buffer releaseCacheLoop received quit message. Quitting...")
+			logrus.Info("tx buffer releaseCacheLoop received quit Message. Quitting...")
 			return
 		}
 	}

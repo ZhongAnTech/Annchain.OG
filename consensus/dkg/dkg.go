@@ -22,7 +22,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
@@ -62,7 +61,7 @@ type Dkg struct {
 	mu        sync.RWMutex
 	myAccount *account.Account
 	term      *term.Term
-	Hub       announcer.MessageSender
+	Hub       P2PSender
 
 	OndkgPulicKeyChan chan kyber.Point
 	OngenesisPkChan   chan *p2p_message.MessageConsensusDkgGenesisPublicKey
@@ -423,7 +422,7 @@ func (d *Dkg) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 			d.OngenesisPkChan <- msg
 			continue
 		}
-		d.Hub.SendToAnynomous(p2p_message.MessageTypeConsensusDkgGenesisPublicKey, msg, &genesisAccounts[i])
+		d.Hub.AnonymousSendMessage(p2p_message.MessageTypeConsensusDkgGenesisPublicKey, msg, &genesisAccounts[i])
 		log.WithField("msg", msg).WithField("peer", i).Debug("send genesis pk to")
 	}
 }
@@ -533,7 +532,7 @@ func (d *Dkg) sendDealsToCorrespondingPartner(deals DealsMap, termId uint32) {
 		pk := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 		log.WithField("to ", addr.TerminalString()).WithField("deal",
 			deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
-		d.Hub.SendToAnynomous(p2p_message.MessageTypeConsensusDkgDeal, msg, &pk)
+		d.Hub.AnonymousSendMessage(p2p_message.MessageTypeConsensusDkgDeal, msg, &pk)
 	}
 	return
 }
@@ -634,7 +633,7 @@ func (d *Dkg) gossiploop() {
 				msgCopy := response
 				pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
 				goroutine.New(func() {
-					d.Hub.SendToAnynomous(p2p_message.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
+					d.Hub.AnonymousSendMessage(p2p_message.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
 				})
 			}
 			//and sent to myself ? already processed inside dkg,skip myself
@@ -708,7 +707,7 @@ func (d *Dkg) gossiploop() {
 				msgCopy := msg
 				pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
 				goroutine.New(func() {
-					d.Hub.SendToAnynomous(p2p_message.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
+					d.Hub.AnonymousSendMessage(p2p_message.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
 				})
 			}
 

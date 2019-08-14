@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/p2p"
 	"sync/atomic"
 )
@@ -32,9 +31,14 @@ var MsgCounter *MessageCounter
 type MessageType uint16
 
 // og protocol message codes
+// TODO: use MessageTypeManager to manage global messages
+// basic messages ids range from [0, 100)
+// bft consensus: [100, 200)
+// dkg: [200, 300)
+// og: [300, 400)
 const (
 	// Protocol messages belonging to OG/01
-	StatusMsg MessageType = iota
+	StatusMsg MessageType = iota + 0
 	MessageTypePing
 	MessageTypePong
 	MessageTypeFetchByHashRequest
@@ -314,14 +318,14 @@ func (m MessageType) GetMsg() Message {
 	case MessageTypeActionTX:
 		message = &MessageNewActionTx{}
 
-	case MessageTypeProposal:
-		message = &bft.MessageProposal{
-			Value: &bft.SequencerProposal{},
-		}
-	case MessageTypePreVote:
-		message = &bft.MessagePreVote{}
-	case MessageTypePreCommit:
-		message = &bft.MessagePreCommit{}
+	//case MessageTypeProposal:
+	//	message = &bft.MessageProposal{
+	//		Value: &bft.SequencerProposal{},
+	//	}
+	//case MessageTypePreVote:
+	//	message = &bft.MessagePreVote{}
+	//case MessageTypePreCommit:
+	//	message = &bft.MessagePreCommit{}
 	case MessageTypeNewTxs:
 		message = &MessageNewTxs{}
 	case MessageTypeSequencerHeader:

@@ -172,117 +172,117 @@ func (m *MessageRouter) Name() string {
 	return "MessageRouter"
 }
 
-func (m *MessageRouter) RoutePing(msg *p2PMessage) {
+func (m *MessageRouter) RoutePing(msg *OGMessage) {
 	m.PingHandler.HandlePing(msg.sourceID)
 }
 
-func (m *MessageRouter) RoutePong(*p2PMessage) {
+func (m *MessageRouter) RoutePong(*OGMessage) {
 	m.PongHandler.HandlePong()
 }
-func (m *MessageRouter) RouteFetchByHashRequest(msg *p2PMessage) {
+func (m *MessageRouter) RouteFetchByHashRequest(msg *OGMessage) {
 	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.message.(*p2p_message.MessageSyncRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteFetchByHashResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteFetchByHashResponse(msg *OGMessage) {
 	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.message.(*p2p_message.MessageSyncResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteNewTx(msg *p2PMessage) {
+func (m *MessageRouter) RouteNewTx(msg *OGMessage) {
 	m.NewTxHandler.HandleNewTx(msg.message.(*p2p_message.MessageNewTx), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteNewTxs(msg *p2PMessage) {
+func (m *MessageRouter) RouteNewTxs(msg *OGMessage) {
 	//maybe received more transactions
 	m.NewTxsHandler.HandleNewTxs(msg.message.(*p2p_message.MessageNewTxs), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteNewSequencer(msg *p2PMessage) {
+func (m *MessageRouter) RouteNewSequencer(msg *OGMessage) {
 	m.NewSequencerHandler.HandleNewSequencer(msg.message.(*p2p_message.MessageNewSequencer), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteGetMsg(msg *p2PMessage) {
+func (m *MessageRouter) RouteGetMsg(msg *OGMessage) {
 	m.GetMsgHandler.HandleGetMsg(msg.message.(*p2p_message.MessageGetMsg), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteControlMsg(msg *p2PMessage) {
+func (m *MessageRouter) RouteControlMsg(msg *OGMessage) {
 	m.ControlMsgHandler.HandleControlMsg(msg.message.(*p2p_message.MessageControl), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteSequencerHeader(msg *p2PMessage) {
+func (m *MessageRouter) RouteSequencerHeader(msg *OGMessage) {
 	m.SequencerHeaderHandler.HandleSequencerHeader(msg.message.(*p2p_message.MessageSequencerHeader), msg.sourceID)
 }
-func (m *MessageRouter) RouteBodiesRequest(msg *p2PMessage) {
+func (m *MessageRouter) RouteBodiesRequest(msg *OGMessage) {
 
 	m.BodiesRequestHandler.HandleBodiesRequest(msg.message.(*p2p_message.MessageBodiesRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteBodiesResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteBodiesResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
 	m.BodiesResponseHandler.HandleBodiesResponse(msg.message.(*p2p_message.MessageBodiesResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteTxsRequest(msg *p2PMessage) {
+func (m *MessageRouter) RouteTxsRequest(msg *OGMessage) {
 	// Decode the retrieval message
 	m.TxsRequestHandler.HandleTxsRequest(msg.message.(*p2p_message.MessageTxsRequest), msg.sourceID)
 
 }
-func (m *MessageRouter) RouteTxsResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteTxsResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
 	m.TxsResponseHandler.HandleTxsResponse(msg.message.(*p2p_message.MessageTxsResponse))
 
 }
-func (m *MessageRouter) RouteHeaderRequest(msg *p2PMessage) {
+func (m *MessageRouter) RouteHeaderRequest(msg *OGMessage) {
 	// Decode the complex header query
 	m.HeaderRequestHandler.HandleHeaderRequest(msg.message.(*p2p_message.MessageHeaderRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteHeaderResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteHeaderResponse(msg *OGMessage) {
 	// A batch of headers arrived to one of our previous requests
 	m.HeaderResponseHandler.HandleHeaderResponse(msg.message.(*p2p_message.MessageHeaderResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteCampaign(msg *p2PMessage) {
+func (m *MessageRouter) RouteCampaign(msg *OGMessage) {
 	// A batch of headers arrived to one of our previous requests
 	m.CampaignHandler.HandleCampaign(msg.message.(*p2p_message.MessageCampaign), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteTermChange(msg *p2PMessage) {
+func (m *MessageRouter) RouteTermChange(msg *OGMessage) {
 	m.TermChangeHandler.HandleTermChange(msg.message.(*p2p_message.MessageTermChange), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteArchive(msg *p2PMessage) {
+func (m *MessageRouter) RouteArchive(msg *OGMessage) {
 	m.ArchiveHandler.HandleArchive(msg.message.(*p2p_message.MessageNewArchive), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteActionTx(msg *p2PMessage) {
+func (m *MessageRouter) RouteActionTx(msg *OGMessage) {
 	m.ActionTxHandler.HandleActionTx(msg.message.(*p2p_message.MessageNewActionTx), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteConsensusDkgDeal(msg *p2PMessage) {
+func (m *MessageRouter) RouteConsensusDkgDeal(msg *OGMessage) {
 	m.ConsensusDkgDealHandler.HandleConsensusDkgDeal(msg.message.(*p2p_message.MessageConsensusDkgDeal), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *OGMessage) {
 	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.message.(*p2p_message.MessageConsensusDkgDealResponse), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteConsensusDkgSigSets(msg *p2PMessage) {
+func (m *MessageRouter) RouteConsensusDkgSigSets(msg *OGMessage) {
 	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.message.(*p2p_message.MessageConsensusDkgSigSets), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *p2PMessage) {
+func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *OGMessage) {
 	m.ConsensusDkgGenesisPublicKeyHandler.HandleConsensusDkgGenesisPublicKey(msg.message.(*p2p_message.MessageConsensusDkgGenesisPublicKey), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteConsensus(msg *p2PMessage) {
+func (m *MessageRouter) RouteConsensus(msg *OGMessage) {
 	m.ConsensusHandler.HandleConsensus(msg.message.(bft.BftMessage), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteTermChangeRequest(msg *p2PMessage) {
+func (m *MessageRouter) RouteTermChangeRequest(msg *OGMessage) {
 	m.TermChangeRequestHandler.HandleTermChangeRequest(msg.message.(*p2p_message.MessageTermChangeRequest), msg.sourceID)
 }
 
-func (m *MessageRouter) RouteTermChangeResponse(msg *p2PMessage) {
+func (m *MessageRouter) RouteTermChangeResponse(msg *OGMessage) {
 	m.TermChangeResponseHandler.HandleTermChangeResponse(msg.message.(*p2p_message.MessageTermChangeResponse), msg.sourceID)
 }
 

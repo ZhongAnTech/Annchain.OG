@@ -114,7 +114,7 @@ func (t *TestHub) SendToPeer(peerId string, messageType p2p_message.MessageType,
 	return nil
 }
 
-func (t *TestHub) SendToAnynomous(messageType p2p_message.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
+func (t *TestHub) AnonymousSendMessage(messageType p2p_message.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 	tMsg := test.TestMsg{
 		MessageType: messageType,
 		Message:     message,

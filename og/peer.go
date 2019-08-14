@@ -66,9 +66,9 @@ type peer struct {
 	head      common.Hash
 	seqId     uint64
 	lock      sync.RWMutex
-	knownMsg  mapset.Set         // Set of transaction hashes known to be known by this peer
-	queuedMsg chan []*p2PMessage // Queue of transactions to broadcast to the peer
-	term      chan struct{}      // Termination channel to stop the broadcaster
+	knownMsg  mapset.Set        // Set of transaction hashes known to be known by this peer
+	queuedMsg chan []*OGMessage // Queue of transactions to broadcast to the peer
+	term      chan struct{}     // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
 	inBound   bool
@@ -91,7 +91,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*p2PMessage, maxqueuedMsg),
+		queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
@@ -187,7 +187,7 @@ func (p *peer) MarkMessage(m p2p_message.MessageType, hash common.Hash) {
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
-func (p *peer) SendMessages(messages []*p2PMessage) error {
+func (p *peer) SendMessages(messages []*OGMessage) error {
 	var msgType p2p_message.MessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
@@ -211,7 +211,7 @@ func (p *peer) sendRawMessage(msgType p2p_message.MessageType, msgBytes []byte) 
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendMessages(messages []*p2PMessage) {
+func (p *peer) AsyncSendMessages(messages []*OGMessage) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
@@ -223,8 +223,8 @@ func (p *peer) AsyncSendMessages(messages []*p2PMessage) {
 	}
 }
 
-func (p *peer) AsyncSendMessage(msg *p2PMessage) {
-	var messages []*p2PMessage
+func (p *peer) AsyncSendMessage(msg *OGMessage) {
+	var messages []*OGMessage
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:

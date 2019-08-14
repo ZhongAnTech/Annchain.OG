@@ -53,11 +53,11 @@ var errIncompatibleConfig = errors.New("incompatible configuration")
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 // DO NOT INVOLVE ANY BUSINESS LOGICS HERE.
 type Hub struct {
-	outgoing             chan *p2PMessage
-	incoming             chan *p2PMessage
+	outgoing             chan *OGMessage
+	incoming             chan *OGMessage
 	quit                 chan bool
-	CallbackRegistry     map[p2p_message.MessageType]func(*p2PMessage) // All callbacks
-	CallbackRegistryOG02 map[p2p_message.MessageType]func(*p2PMessage) // All callbacks of OG02
+	CallbackRegistry     map[p2p_message.MessageType]func(*OGMessage) // All callbacks
+	CallbackRegistryOG02 map[p2p_message.MessageType]func(*OGMessage) // All callbacks of OG02
 	StatusDataProvider   NodeStatusDataProvider
 	peers                *peerSet
 	SubProtocols         []p2p.Protocol
@@ -81,6 +81,7 @@ type Hub struct {
 	encryptionPrivKey    *crypto.PrivateKey
 	encryptionPubKey     *crypto.PublicKey
 	disableEncryptGossip bool
+	MessageUnmarshaller  MessageUnmarshalManager
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -143,8 +144,8 @@ func DefaultHubConfig() HubConfig {
 }
 
 func (h *Hub) Init(config *HubConfig) {
-	h.outgoing = make(chan *p2PMessage, config.OutgoingBufferSize)
-	h.incoming = make(chan *p2PMessage, config.IncomingBufferSize)
+	h.outgoing = make(chan *OGMessage, config.OutgoingBufferSize)
+	h.incoming = make(chan *OGMessage, config.IncomingBufferSize)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
@@ -153,8 +154,8 @@ func (h *Hub) Init(config *HubConfig) {
 	h.quitSync = make(chan bool)
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
-	h.CallbackRegistry = make(map[p2p_message.MessageType]func(*p2PMessage))
-	h.CallbackRegistryOG02 = make(map[p2p_message.MessageType]func(*p2PMessage))
+	h.CallbackRegistry = make(map[p2p_message.MessageType]func(*OGMessage))
+	h.CallbackRegistryOG02 = make(map[p2p_message.MessageType]func(*OGMessage))
 	h.broadCastMode = config.BroadCastMode
 	h.disableEncryptGossip = config.DisableEncryptGossip
 }
@@ -277,7 +278,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	defer msg.Discard()
 	// Handle the message depending on its contents
 	data, err := msg.GetPayLoad()
-	m := p2PMessage{messageType: p2p_message.MessageType(msg.Code), data: data, sourceID: p.id, version: p.version}
+	m := OGMessage{messageType: p2p_message.MessageType(msg.Code), data: data, sourceID: p.id, version: p.version}
 	//log.Debug("start handle p2p message ",p2pMsg.messageType)
 	switch m.messageType {
 	case p2p_message.StatusMsg:
@@ -314,7 +315,8 @@ func (h *Hub) handleMsg(p *peer) error {
 					e = m.Decrypt(h.encryptionPrivKey)
 				}
 				if e == nil {
-					err = m.Unmarshal()
+					err := h.MessageUnmarshaller.Unmarshal(&m)
+					//err = m.Unmarshal()
 					if err != nil {
 						// TODO delete
 						log.Errorf("unmarshal  error msg: %x", m.data)
@@ -369,7 +371,7 @@ func (h *Hub) handleMsg(p *peer) error {
 				}
 				var dup p2p_message.MessageDuplicate
 				p.SetInPath(false)
-				return h.SendToPeer(p.id, p2p_message.MessageTypeDuplicate, &dup)
+				return h.SendToPeer(p2p_message.MessageTypeDuplicate, &dup, p.id)
 			}
 			return nil
 		}
@@ -451,7 +453,7 @@ func (h *Hub) loopSend() {
 			//bug fix , don't use go routine to send here
 			// start a new routine in order not to block other communications
 			switch m.sendingType {
-			case sendingTypeBroacast:
+			case sendingTypeBroadcast:
 				h.broadcastMessage(m)
 			case sendingTypeMulticast:
 				h.multicastMessage(m)
@@ -489,7 +491,7 @@ func (h *Hub) loopReceive() {
 
 //MulticastToSource  multicast msg to source , for example , send tx request to the peer which hash the tx
 func (h *Hub) MulticastToSource(messageType p2p_message.MessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticastToSource, sourceHash: sourceMsgHash}
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticastToSource, sourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
@@ -502,10 +504,10 @@ func (h *Hub) MulticastToSource(messageType p2p_message.MessageType, msg p2p_mes
 
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessage(messageType p2p_message.MessageType, msg p2p_message.Message) {
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroadcast}
 	err := msgOut.Marshal()
 	if err != nil {
-		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
+		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg err")
 		return
 	}
 	msgOut.calculateHash()
@@ -520,7 +522,7 @@ func (h *Hub) BroadcastMessageWithLink(messageType p2p_message.MessageType, msg 
 		h.BroadcastMessage(messageType, msg)
 		return
 	}
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithLink}
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithLink}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
@@ -533,7 +535,7 @@ func (h *Hub) BroadcastMessageWithLink(messageType p2p_message.MessageType, msg 
 
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessageWithFilter(messageType p2p_message.MessageType, msg p2p_message.Message) {
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithFilter}
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacastWithFilter}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
@@ -546,7 +548,7 @@ func (h *Hub) BroadcastMessageWithFilter(messageType p2p_message.MessageType, ms
 
 //MulticastMessage multicast message to some peer
 func (h *Hub) MulticastMessage(messageType p2p_message.MessageType, msg p2p_message.Message) {
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticast}
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeMulticast}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast message init msg  err")
@@ -557,39 +559,43 @@ func (h *Hub) MulticastMessage(messageType p2p_message.MessageType, msg p2p_mess
 	h.outgoing <- msgOut
 }
 
-//SendToAnynomous send msg by  Anynomous
-func (h *Hub) SendToAnynomous(messageType p2p_message.MessageType, msg p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
-	msgOut := &p2PMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroacast}
+// AnonymousSendMessage use a pubkey to encrypt the message and then broadcast it
+// Only the one who has the private key can decrypt the message and become the receiver.
+// the message will append the target receiver pubkey to accelerate filtering on the target side.
+// TODO: support multi encryption keys in one message
+// TODO: encrypt the message whatever disableEncryptGossip is on or not
+func (h *Hub) AnonymousSendMessage(messageType p2p_message.MessageType, msg p2p_message.Message, encryptionKey *crypto.PublicKey) {
+	msgOut := &OGMessage{messageType: messageType, message: msg, sendingType: sendingTypeBroadcast}
 	if h.disableEncryptGossip {
 		msgOut.disableEncrypt = true
 	}
 	err := msgOut.Marshal()
 	if err != nil {
-		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message init msg  err")
+		msgLog.WithError(err).WithField("type", messageType).Warn("AnonymousSendMessage message init msg err")
 		return
 	}
 	beforeEncSize := len(msgOut.data)
 	if h.disableEncryptGossip {
-		err = msgOut.appendGossipTarget(anyNomousPubKey)
+		err = msgOut.appendGossipTarget(encryptionKey)
 	} else {
-		err = msgOut.Encrypt(anyNomousPubKey)
+		err = msgOut.Encrypt(encryptionKey)
 	}
 	if err != nil {
-		msgLog.WithError(err).WithField("type", messageType).Warn("SendToAnynomous message encrypt msg  err")
+		msgLog.WithError(err).WithField("type", messageType).Warn("AnonymousSendMessage message encrypt msg err")
 		return
 	}
 	msgOut.calculateHash()
-	msgLog.WithField("before enc size ", beforeEncSize).WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("SendToAnynomous message")
+	msgLog.WithField("before enc size ", beforeEncSize).WithField("size", len(msgOut.data)).WithField("type", messageType).Trace("AnonymousSendMessage message")
 	h.outgoing <- msgOut
 
 }
 
-func (h *Hub) RelayMessage(msgOut *p2PMessage) {
+func (h *Hub) RelayMessage(msgOut *OGMessage) {
 	msgLog.WithField("size", len(msgOut.data)).WithField("type", msgOut.messageType).Trace("relay message")
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) SendToPeer(peerId string, messageType p2p_message.MessageType, msg p2p_message.Message) error {
+func (h *Hub) SendToPeer(messageType p2p_message.MessageType, msg p2p_message.Message, peerId string) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -600,12 +606,10 @@ func (h *Hub) SendToPeer(peerId string, messageType p2p_message.MessageType, msg
 func (h *Hub) SendGetMsg(peerId string, msg *p2p_message.MessageGetMsg) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
-		if p == nil {
-			ids := h.getMsgFromCache(p2p_message.MessageTypeControl, *msg.Hash)
-			ps := h.peers.GetPeers(ids, 1)
-			if len(ps) != 0 {
-				p = ps[0]
-			}
+		ids := h.getMsgFromCache(p2p_message.MessageTypeControl, *msg.Hash)
+		ps := h.peers.GetPeers(ids, 1)
+		if len(ps) != 0 {
+			p = ps[0]
 		}
 	}
 	if p == nil {
@@ -669,7 +673,7 @@ func (h *Hub) BestPeerId() (peerId string, err error) {
 }
 
 //broadcastMessage
-func (h *Hub) broadcastMessage(msg *p2PMessage) {
+func (h *Hub) broadcastMessage(msg *OGMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
 	peers = h.peers.PeersWithoutMsg(*msg.hash, msg.messageType)
@@ -679,13 +683,13 @@ func (h *Hub) broadcastMessage(msg *p2PMessage) {
 	return
 }
 
-func (h *Hub) broadcastMessageWithLink(msg *p2PMessage) {
+func (h *Hub) broadcastMessageWithLink(msg *OGMessage) {
 	var peers []*peer
 	// choose all  peer and then send.
 	var hash common.Hash
 	hash = *msg.hash
 	c := p2p_message.MessageControl{Hash: &hash}
-	var pMsg = &p2PMessage{messageType: p2p_message.MessageTypeControl, message: &c}
+	var pMsg = &OGMessage{messageType: p2p_message.MessageTypeControl, message: &c}
 	//outgoing msg
 	if err := pMsg.Marshal(); err != nil {
 		msgLog.Error(err)
@@ -706,7 +710,7 @@ func (h *Hub) broadcastMessageWithLink(msg *p2PMessage) {
 }
 
 /*
-func (h *Hub) broadcastMessageWithFilter(msg *p2PMessage) {
+func (h *Hub) broadcastMessageWithFilter(msg *OGMessage) {
 	newSeq := msg.Message.(*p2p_message.MessageNewSequencer)
 	if newSeq.Filter == nil {
 		newSeq.Filter = types.NewDefaultBloomFilter()
@@ -741,7 +745,7 @@ func (h *Hub) broadcastMessageWithFilter(msg *p2PMessage) {
 */
 
 //multicastMessage
-func (h *Hub) multicastMessage(msg *p2PMessage) error {
+func (h *Hub) multicastMessage(msg *OGMessage) error {
 	peers := h.peers.GetRandomPeers(3)
 	// choose random peer and then send.
 	for _, peer := range peers {
@@ -751,7 +755,7 @@ func (h *Hub) multicastMessage(msg *p2PMessage) error {
 }
 
 //multicastMessageToSource
-func (h *Hub) multicastMessageToSource(msg *p2PMessage) error {
+func (h *Hub) multicastMessageToSource(msg *OGMessage) error {
 	if msg.sourceHash == nil {
 		msgLog.Warn("source msg hash is nil , multicast to random")
 		return h.multicastMessage(msg)
@@ -778,7 +782,7 @@ func (h *Hub) multicastMessageToSource(msg *p2PMessage) error {
 }
 
 //cacheMessge save msg to cache
-func (h *Hub) cacheMessage(m *p2PMessage) (exists bool) {
+func (h *Hub) cacheMessage(m *OGMessage) (exists bool) {
 	if m.hash == nil {
 		return false
 	}
@@ -814,7 +818,7 @@ func (h *Hub) getMsgFromCache(m p2p_message.MessageType, hash common.Hash) []str
 	return nil
 }
 
-func (h *Hub) receiveMessage(msg *p2PMessage) {
+func (h *Hub) receiveMessage(msg *OGMessage) {
 	// route to specific callbacks according to the registry.
 	if msg.version >= OG02 {
 		if v, ok := h.CallbackRegistryOG02[msg.messageType]; ok {

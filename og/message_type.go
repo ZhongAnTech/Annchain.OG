@@ -46,14 +46,14 @@ const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a prot
 type SendingType uint8
 
 const (
-	sendingTypeBroacast SendingType = iota
+	sendingTypeBroadcast SendingType = iota
 	sendingTypeMulticast
 	sendingTypeMulticastToSource
 	sendingTypeBroacastWithFilter
 	sendingTypeBroacastWithLink
 )
 
-type p2PMessage struct {
+type OGMessage struct {
 	messageType    p2p_message.MessageType
 	data           []byte
 	hash           *common.Hash //inner use to avoid resend a message to the same peer
@@ -66,7 +66,7 @@ type p2PMessage struct {
 	disableEncrypt bool
 }
 
-func (m *p2PMessage) calculateHash() {
+func (m *OGMessage) calculateHash() {
 	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
 	//for request ,if source id is different they were different  msg ,don't drop it
 	//if we dropped header response because of duplicate , header request will time out
@@ -167,7 +167,7 @@ func (m *MessageCounter) Get() uint32 {
 	return atomic.AddUint32(&m.requestId, 1)
 }
 
-func (p *p2PMessage) GetMarkHashes() common.Hashes {
+func (p *OGMessage) GetMarkHashes() common.Hashes {
 	if p.message == nil {
 		panic("unmarshal first")
 	}
@@ -187,7 +187,7 @@ func (p *p2PMessage) GetMarkHashes() common.Hashes {
 	return nil
 }
 
-func (m *p2PMessage) Marshal() error {
+func (m *OGMessage) Marshal() error {
 	if m.marshalState {
 		return nil
 	}
@@ -203,7 +203,7 @@ func (m *p2PMessage) Marshal() error {
 	return err
 }
 
-func (m *p2PMessage) appendGossipTarget(pub *crypto.PublicKey) error {
+func (m *OGMessage) appendGossipTarget(pub *crypto.PublicKey) error {
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
 	binary.BigEndian.PutUint16(b, uint16(m.messageType))
@@ -214,7 +214,7 @@ func (m *p2PMessage) appendGossipTarget(pub *crypto.PublicKey) error {
 	return nil
 }
 
-func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {
+func (m *OGMessage) Encrypt(pub *crypto.PublicKey) error {
 	//if m.messageType == MessageTypeConsensusDkgDeal || m.messageType == MessageTypeConsensusDkgDealResponse {
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
@@ -231,7 +231,7 @@ func (m *p2PMessage) Encrypt(pub *crypto.PublicKey) error {
 	return nil
 }
 
-func (m *p2PMessage) checkRequiredSize() bool {
+func (m *OGMessage) checkRequiredSize() bool {
 	if m.messageType == p2p_message.MessageTypeSecret {
 		if m.disableEncrypt {
 			if len(m.data) < 8 {
@@ -245,7 +245,7 @@ func (m *p2PMessage) checkRequiredSize() bool {
 	return true
 }
 
-func (m *p2PMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
+func (m *OGMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
 	if m.messageType != p2p_message.MessageTypeSecret {
 		panic("not a secret message")
 	}
@@ -266,7 +266,7 @@ func (m *p2PMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
 	return true
 }
 
-func (m *p2PMessage) removeGossipTarget() error {
+func (m *OGMessage) removeGossipTarget() error {
 	msg := make([]byte, len(m.data)-8)
 	copy(msg, m.data[:len(m.data)-8])
 	if len(msg) < 3 {
@@ -283,7 +283,7 @@ func (m *p2PMessage) removeGossipTarget() error {
 	return nil
 }
 
-func (m *p2PMessage) Decrypt(priv *crypto.PrivateKey) error {
+func (m *OGMessage) Decrypt(priv *crypto.PrivateKey) error {
 	if m.messageType != p2p_message.MessageTypeSecret {
 		panic("not a secret message")
 	}
@@ -307,13 +307,13 @@ func (m *p2PMessage) Decrypt(priv *crypto.PrivateKey) error {
 	return nil
 }
 
-func (p *p2PMessage) Unmarshal() error {
+func (p *OGMessage) Unmarshal() error {
 	if p.marshalState {
 		return nil
 	}
 	p.message = p.messageType.GetMsg()
 	if p.message == nil {
-		return fmt.Errorf("unkown mssage type %v ", p.messageType)
+		return fmt.Errorf("unknown message type %v ", p.messageType)
 	}
 	switch p.messageType {
 
@@ -373,10 +373,10 @@ func (p *p2PMessage) Unmarshal() error {
 }
 
 //
-func (m *p2PMessage) sendDuplicateMsg() bool {
+func (m *OGMessage) sendDuplicateMsg() bool {
 	return m.messageType == p2p_message.MessageTypeNewTx || m.messageType == p2p_message.MessageTypeNewSequencer
 }
 
-func (m *p2PMessage) msgKey() p2p_message.MsgKey {
+func (m *OGMessage) msgKey() p2p_message.MsgKey {
 	return p2p_message.NewMsgKey(m.messageType, *m.hash)
 }

@@ -32,7 +32,7 @@ func TestPeerSet_GetRandomPeers(t *testing.T) {
 			version:   1,
 			id:        fmt.Sprintf("%d", i),
 			knownMsg:  mapset.NewSet(),
-			queuedMsg: make(chan []*p2PMessage, maxqueuedMsg),
+			queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
 			term:      make(chan struct{}),
 		}
 		set.Register(p)
@@ -56,12 +56,12 @@ func TestPeer_MarkMessage(t *testing.T) {
 		version:   1,
 		id:        "111",
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*p2PMessage, maxqueuedMsg),
+		queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 	}
-	var msgs []p2PMessage
+	var msgs []OGMessage
 	for i := 0; i < 100; i++ {
-		msg := p2PMessage{message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, messageType: p2p_message.MessageTypeNewTx}
+		msg := OGMessage{message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, messageType: p2p_message.MessageTypeNewTx}
 		msg.Marshal()
 		msg.calculateHash()
 		msgs = append(msgs, msg)

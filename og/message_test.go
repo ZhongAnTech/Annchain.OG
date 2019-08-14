@@ -39,7 +39,7 @@ func TestCache(t *testing.T) {
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)
-	p2pM := &p2PMessage{messageType: p2p_message.MessageTypeNewTx, data: data, sourceID: "123", message: msg}
+	p2pM := &OGMessage{messageType: p2p_message.MessageTypeNewTx, data: data, sourceID: "123", message: msg}
 	p2pM.calculateHash()
 	hub.cacheMessage(p2pM)
 	ids := hub.getMsgFromCache(p2p_message.MessageTypeNewTx, *p2pM.hash)
@@ -50,11 +50,11 @@ func TestCache(t *testing.T) {
 }
 
 func TestP2PMessage_Unmarshal(t *testing.T) {
-	var p2pMsg p2PMessage
+	var p2pMsg OGMessage
 	hash := common.RandomHash()
 	p2pMsg.messageType = p2p_message.MessageTypePreVote
 	p2pMsg.message = &bft.MessagePreVote{
-		BasicMessage: bft.BasicMessage{
+		MessageConsensus: bft.MessageConsensus{
 			SourceId: 10,
 			HeightRound: bft.HeightRound{
 				Height: 12,

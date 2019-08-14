@@ -89,7 +89,8 @@ type SeqRequest struct {
 
 //discarded function
 func (c *Delegate) GenerateSequencer(r SeqRequest) (tx_types.Sequencer, error) {
-	seq, genAgain := c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+	// TODO: why twice?
+	seq, err, genAgain := c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	if seq == nil && genAgain {
 		seq, genAgain = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	}

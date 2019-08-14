@@ -60,9 +60,9 @@ func TestSh256(t *testing.T) {
 	var msg []OGMessage
 	for i := 0; i < 10000; i++ {
 		var m OGMessage
-		m.messageType = message.MessageTypeBodiesResponse
+		m.MessageType = message.MessageTypeBodiesResponse
 		h := common.RandomHash()
-		m.data = append(m.data, h.Bytes[:]...)
+		m.Data = append(m.Data, h.Bytes[:]...)
 		msg = append(msg, m)
 	}
 	start := time.Now()
@@ -76,21 +76,21 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		logrus.SetLevel(logrus.TraceLevel)
 		msg := p2p_message.MessageConsensusDkgDeal{
-			Data: []byte("this is a test of og message"),
+			Data: []byte("this is a test of og Message"),
 			Id:   12,
 		}
-		m := OGMessage{message: &msg, messageType: message.MessageTypeConsensusDkgDeal}
+		m := OGMessage{Message: &msg, MessageType: message.MessageTypeConsensusDkgDeal}
 		s := crypto.NewSigner(crypto.CryptoType(i))
 		fmt.Println(s.GetCryptoType())
 		pk, sk := s.RandomKeyPair()
 		m.Marshal()
-		logrus.Debug(len(m.data))
+		logrus.Debug(len(m.Data))
 		err := m.Encrypt(&pk)
 		if err != nil {
 			t.Fatal(err)
 		}
-		logrus.Debug(len(m.data))
-		mm := OGMessage{data: m.data, messageType: message.MessageTypeSecret}
+		logrus.Debug(len(m.Data))
+		mm := OGMessage{Data: m.Data, MessageType: message.MessageTypeSecret}
 		ok := mm.checkRequiredSize()
 		logrus.Debug(ok)
 		ok = mm.maybeIsforMe(&pk)
@@ -101,15 +101,15 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		logrus.Debug(len(mm.data), mm.messageType)
+		logrus.Debug(len(mm.Data), mm.MessageType)
 		err = mm.Unmarshal()
 		if err != nil {
 			t.Fatal(err)
 		}
-		logrus.Debug(len(mm.data))
-		dkgMsg := mm.message.(*p2p_message.MessageConsensusDkgDeal)
+		logrus.Debug(len(mm.Data))
+		dkgMsg := mm.Message.(*p2p_message.MessageConsensusDkgDeal)
 		logrus.Debug(dkgMsg.Id, " ", string(dkgMsg.Data))
-		logrus.Debug(mm.message)
+		logrus.Debug(mm.Message)
 	}
 }
 
@@ -126,10 +126,10 @@ func TestCache(t *testing.T) {
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)
-	p2pM := &OGMessage{messageType: message.MessageTypeNewTx, data: data, sourceID: "123", message: msg}
+	p2pM := &OGMessage{MessageType: message.MessageTypeNewTx, Data: data, SourceID: "123", Message: msg}
 	p2pM.calculateHash()
 	hub.cacheMessage(p2pM)
-	ids := hub.getMsgFromCache(message.MessageTypeNewTx, *p2pM.hash)
+	ids := hub.getMsgFromCache(message.MessageTypeNewTx, *p2pM.Hash)
 	fmt.Println(ids)
 	p2pM = nil
 	ids = hub.getMsgFromCache(message.MessageTypeNewTx, tx.GetTxHash())

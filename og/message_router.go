@@ -174,138 +174,134 @@ func (m *MessageRouter) Name() string {
 }
 
 func (m *MessageRouter) RoutePing(msg *OGMessage) {
-	m.PingHandler.HandlePing(msg.sourceID)
+	m.PingHandler.HandlePing(msg.SourceID)
 }
 
 func (m *MessageRouter) RoutePong(*OGMessage) {
 	m.PongHandler.HandlePong()
 }
 func (m *MessageRouter) RouteFetchByHashRequest(msg *OGMessage) {
-	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.message.(*p2p_message.MessageSyncRequest), msg.sourceID)
+	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.Message.(*p2p_message.MessageSyncRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteFetchByHashResponse(msg *OGMessage) {
-	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.message.(*p2p_message.MessageSyncResponse), msg.sourceID)
+	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.Message.(*p2p_message.MessageSyncResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewTx(msg *OGMessage) {
-	m.NewTxHandler.HandleNewTx(msg.message.(*p2p_message.MessageNewTx), msg.sourceID)
+	m.NewTxHandler.HandleNewTx(msg.Message.(*p2p_message.MessageNewTx), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewTxs(msg *OGMessage) {
 	//maybe received more transactions
-	m.NewTxsHandler.HandleNewTxs(msg.message.(*p2p_message.MessageNewTxs), msg.sourceID)
+	m.NewTxsHandler.HandleNewTxs(msg.Message.(*p2p_message.MessageNewTxs), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewSequencer(msg *OGMessage) {
-	m.NewSequencerHandler.HandleNewSequencer(msg.message.(*p2p_message.MessageNewSequencer), msg.sourceID)
+	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*p2p_message.MessageNewSequencer), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteGetMsg(msg *OGMessage) {
-	m.GetMsgHandler.HandleGetMsg(msg.message.(*p2p_message.MessageGetMsg), msg.sourceID)
+	m.GetMsgHandler.HandleGetMsg(msg.Message.(*p2p_message.MessageGetMsg), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteControlMsg(msg *OGMessage) {
-	m.ControlMsgHandler.HandleControlMsg(msg.message.(*p2p_message.MessageControl), msg.sourceID)
+	m.ControlMsgHandler.HandleControlMsg(msg.Message.(*p2p_message.MessageControl), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteSequencerHeader(msg *OGMessage) {
-	m.SequencerHeaderHandler.HandleSequencerHeader(msg.message.(*p2p_message.MessageSequencerHeader), msg.sourceID)
+	m.SequencerHeaderHandler.HandleSequencerHeader(msg.Message.(*p2p_message.MessageSequencerHeader), msg.SourceID)
 }
 func (m *MessageRouter) RouteBodiesRequest(msg *OGMessage) {
 
-	m.BodiesRequestHandler.HandleBodiesRequest(msg.message.(*p2p_message.MessageBodiesRequest), msg.sourceID)
+	m.BodiesRequestHandler.HandleBodiesRequest(msg.Message.(*p2p_message.MessageBodiesRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteBodiesResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.BodiesResponseHandler.HandleBodiesResponse(msg.message.(*p2p_message.MessageBodiesResponse), msg.sourceID)
+	m.BodiesResponseHandler.HandleBodiesResponse(msg.Message.(*p2p_message.MessageBodiesResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteTxsRequest(msg *OGMessage) {
-	// Decode the retrieval message
-	m.TxsRequestHandler.HandleTxsRequest(msg.message.(*p2p_message.MessageTxsRequest), msg.sourceID)
+	// Decode the retrieval Message
+	m.TxsRequestHandler.HandleTxsRequest(msg.Message.(*p2p_message.MessageTxsRequest), msg.SourceID)
 
 }
 func (m *MessageRouter) RouteTxsResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.TxsResponseHandler.HandleTxsResponse(msg.message.(*p2p_message.MessageTxsResponse))
+	m.TxsResponseHandler.HandleTxsResponse(msg.Message.(*p2p_message.MessageTxsResponse))
 
 }
 func (m *MessageRouter) RouteHeaderRequest(msg *OGMessage) {
 	// Decode the complex header query
-	m.HeaderRequestHandler.HandleHeaderRequest(msg.message.(*p2p_message.MessageHeaderRequest), msg.sourceID)
+	m.HeaderRequestHandler.HandleHeaderRequest(msg.Message.(*p2p_message.MessageHeaderRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteHeaderResponse(msg *OGMessage) {
 	// A batch of headers arrived to one of our previous requests
-	m.HeaderResponseHandler.HandleHeaderResponse(msg.message.(*p2p_message.MessageHeaderResponse), msg.sourceID)
+	m.HeaderResponseHandler.HandleHeaderResponse(msg.Message.(*p2p_message.MessageHeaderResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteCampaign(msg *OGMessage) {
 	// A batch of headers arrived to one of our previous requests
-	m.CampaignHandler.HandleCampaign(msg.message.(*p2p_message.MessageCampaign), msg.sourceID)
+	m.CampaignHandler.HandleCampaign(msg.Message.(*p2p_message.MessageCampaign), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteTermChange(msg *OGMessage) {
-	m.TermChangeHandler.HandleTermChange(msg.message.(*p2p_message.MessageTermChange), msg.sourceID)
+	m.TermChangeHandler.HandleTermChange(msg.Message.(*p2p_message.MessageTermChange), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteArchive(msg *OGMessage) {
-	m.ArchiveHandler.HandleArchive(msg.message.(*p2p_message.MessageNewArchive), msg.sourceID)
+	m.ArchiveHandler.HandleArchive(msg.Message.(*p2p_message.MessageNewArchive), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteActionTx(msg *OGMessage) {
-	m.ActionTxHandler.HandleActionTx(msg.message.(*p2p_message.MessageNewActionTx), msg.sourceID)
+	m.ActionTxHandler.HandleActionTx(msg.Message.(*p2p_message.MessageNewActionTx), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgDeal(msg *OGMessage) {
-	m.ConsensusDkgDealHandler.HandleConsensusDkgDeal(msg.message.(*p2p_message.MessageConsensusDkgDeal), msg.sourceID)
+	m.ConsensusDkgDealHandler.HandleConsensusDkgDeal(msg.Message.(*p2p_message.MessageConsensusDkgDeal), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *OGMessage) {
-	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.message.(*p2p_message.MessageConsensusDkgDealResponse), msg.sourceID)
+	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.Message.(*p2p_message.MessageConsensusDkgDealResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgSigSets(msg *OGMessage) {
-	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.message.(*p2p_message.MessageConsensusDkgSigSets), msg.sourceID)
+	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.Message.(*p2p_message.MessageConsensusDkgSigSets), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *OGMessage) {
-	m.ConsensusDkgGenesisPublicKeyHandler.HandleConsensusDkgGenesisPublicKey(msg.message.(*p2p_message.MessageConsensusDkgGenesisPublicKey), msg.sourceID)
-}
-
-func (m *MessageRouter) RouteConsensus(msg *OGMessage) {
-	m.ConsensusHandler.HandleConsensus(msg.message.(bft.BftMessage), msg.sourceID)
+	m.ConsensusDkgGenesisPublicKeyHandler.HandleConsensusDkgGenesisPublicKey(msg.Message.(*p2p_message.MessageConsensusDkgGenesisPublicKey), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteTermChangeRequest(msg *OGMessage) {
-	m.TermChangeRequestHandler.HandleTermChangeRequest(msg.message.(*p2p_message.MessageTermChangeRequest), msg.sourceID)
+	m.TermChangeRequestHandler.HandleTermChangeRequest(msg.Message.(*p2p_message.MessageTermChangeRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteTermChangeResponse(msg *OGMessage) {
-	m.TermChangeResponseHandler.HandleTermChangeResponse(msg.message.(*p2p_message.MessageTermChangeResponse), msg.sourceID)
+	m.TermChangeResponseHandler.HandleTermChangeResponse(msg.Message.(*p2p_message.MessageTermChangeResponse), msg.SourceID)
 }
 
-// BroadcastMessage send message to all peers
-func (m *MessageRouter) BroadcastMessage(messageType message.MessageType, message p2p_message.Message) {
+// BroadcastMessage send Message to all peers
+func (m *MessageRouter) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessage(messageType, message)
 }
 
-// MulticastMessage send message to a randomly chosen peer
-func (m *MessageRouter) MulticastMessage(messageType message.MessageType, message p2p_message.Message) {
+// MulticastMessage send Message to a randomly chosen peer
+func (m *MessageRouter) MulticastMessage(messageType message.OGMessageType, message p2p_message.Message) {
 	m.Hub.MulticastMessage(messageType, message)
 }
 
-func (m *MessageRouter) MulticastToSource(messageType message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
+func (m *MessageRouter) MulticastToSource(messageType message.OGMessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
 
-func (m *MessageRouter) BroadcastMessageWithLink(messageType message.MessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessageWithLink(messageType message.OGMessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }
 
-func (m *MessageRouter) SendToPeer(peerId string, messageType message.MessageType, msg p2p_message.Message) {
+func (m *MessageRouter) SendToPeer(peerId string, messageType message.OGMessageType, msg p2p_message.Message) {
 	err := m.Hub.SendToPeer(peerId, messageType, msg)
 	if err != nil {
 		message.msgLog.WithError(err).Warn("send failed")

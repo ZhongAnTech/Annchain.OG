@@ -22,5 +22,5 @@ var msgLog *logrus.Logger
 
 func InitLoggers(logger *logrus.Logger, logdir string) {
 	msgLog = mylog.InitLogger(logger, logdir, "og_msg")
-	logrus.Debug("message logger initialized.")
+	logrus.Debug("Message logger initialized.")
 }

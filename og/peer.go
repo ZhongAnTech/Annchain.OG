@@ -61,7 +61,7 @@ type peer struct {
 	*p2p.Peer
 	rw p2p.MsgReadWriter
 
-	version  int         // Protocol version negotiated
+	version  int         // Protocol Version negotiated
 	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
 	head      common.Hash
@@ -76,9 +76,9 @@ type peer struct {
 }
 
 type PeerInfo struct {
-	Version     int    `json:"version"`      // Ethereum protocol version negotiated
+	Version     int    `json:"Version"`      // Ethereum protocol Version negotiated
 	SequencerId uint64 `json:"sequencer_id"` // Total difficulty of the peer's blockchain
-	Head        string `json:"head"`         // SHA3 hash of the peer's best owned block
+	Head        string `json:"head"`         // SHA3 Hash of the peer's best owned block
 	ShortId     string `json:"short_id"`
 	Link        bool   `json:"link"`
 	Addrs       string `json:"addrs"`
@@ -156,7 +156,7 @@ func (p *peer) Info() *PeerInfo {
 	}
 }
 
-// Head retrieves a copy of the current head hash and total difficulty of the
+// Head retrieves a copy of the current head Hash and total difficulty of the
 // peer.
 func (p *peer) Head() (hash common.Hash, seqId uint64) {
 	p.lock.RLock()
@@ -166,7 +166,7 @@ func (p *peer) Head() (hash common.Hash, seqId uint64) {
 	return hash, p.seqId
 }
 
-// SetHead updates the head hash and total difficulty of the peer.
+// SetHead updates the head Hash and total difficulty of the peer.
 func (p *peer) SetHead(hash common.Hash, seqId uint64) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -175,10 +175,10 @@ func (p *peer) SetHead(hash common.Hash, seqId uint64) {
 	p.seqId = seqId
 }
 
-// MarkMessage marks a message as known for the peer, ensuring that it
+// MarkMessage marks a Message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkMessage(m message.MessageType, hash common.Hash) {
-	// If we reached the memory allowance, drop a previously known transaction hash
+func (p *peer) MarkMessage(m message.OGMessageType, hash common.Hash) {
+	// If we reached the memory allowance, drop a previously known transaction Hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
 	}
@@ -187,9 +187,9 @@ func (p *peer) MarkMessage(m message.MessageType, hash common.Hash) {
 }
 
 // SendTransactions sends transactions to the peer and includes the hashes
-// in its transaction hash set for future reference.
+// in its transaction Hash set for future reference.
 func (p *peer) SendMessages(messages []*OGMessage) error {
-	var msgType message.MessageType
+	var msgType message.OGMessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
 		return nil
@@ -198,13 +198,13 @@ func (p *peer) SendMessages(messages []*OGMessage) error {
 		//duplicated
 		//key := msg.msgKey()
 		//p.knownMsg.Add(key)
-		msgType = msg.messageType
-		msgBytes = append(msgBytes, msg.data...)
+		msgType = msg.MessageType
+		msgBytes = append(msgBytes, msg.Data...)
 	}
 	return p.sendRawMessage(msgType, msgBytes)
 }
 
-func (p *peer) sendRawMessage(msgType message.MessageType, msgBytes []byte) error {
+func (p *peer) sendRawMessage(msgType message.OGMessageType, msgBytes []byte) error {
 	message.msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 
@@ -236,16 +236,16 @@ func (p *peer) AsyncSendMessage(msg *OGMessage) {
 	}
 }
 
-// SendNodeData sends a batch of arbitrary internal data, corresponding to the
+// SendNodeData sends a batch of arbitrary internal Data, corresponding to the
 // hashes requested.
 func (p *peer) SendNodeData(data []byte) error {
 	return p.sendRawMessage(message.NodeDataMsg, data)
 }
 
-// RequestNodeData fetches a batch of arbitrary data from a node's known state
-// data, corresponding to the specified hashes.
+// RequestNodeData fetches a batch of arbitrary Data from a node's known state
+// Data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes common.Hashes) error {
-	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state data")
+	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state Data")
 	hashsStruct := common.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
 	return p.sendRawMessage(message.GetNodeDataMsg, b)
@@ -259,7 +259,7 @@ func (p *peer) RequestReceipts(hashes common.Hashes) error {
 }
 
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
-// specified header query, based on the hash of an origin block.
+// specified header query, based on the Hash of an origin block.
 func (p *peer) RequestTxsByHash(seqHash common.Hash, seqId uint64) error {
 	hash := seqHash
 	msg := &p2p_message.MessageTxsRequest{
@@ -354,7 +354,7 @@ func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reve
 	return p.sendRequest(message.MessageTypeHeaderRequest, msg)
 }
 
-func (p *peer) sendRequest(msgType message.MessageType, request p2p_message.Message) error {
+func (p *peer) sendRequest(msgType message.OGMessageType, request p2p_message.Message) error {
 	clog := message.msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
@@ -505,7 +505,7 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message.MessageType) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message.OGMessageType) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -558,7 +558,7 @@ func (ps *peerSet) Close() {
 	ps.closed = true
 }
 
-// Handshake executes the og protocol handshake, negotiating version number,
+// Handshake executes the og protocol handshake, negotiating Version number,
 // network IDs, head and genesis blocks.
 func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis common.Hash) error {
 	// Send out own handshake in a new thread

@@ -29,17 +29,16 @@ import (
 //global msg counter , generate global msg request id
 var MsgCounter *MessageCounter
 
-type MessageType uint16
+type OGMessageType uint16
 
 // og protocol message codes
 // TODO: use MessageTypeManager to manage global messages
 // basic messages ids range from [0, 100)
 // bft consensus: [100, 200)
 // dkg: [200, 300)
-// og: [300, 400)
 const (
 	// Protocol messages belonging to OG/01
-	StatusMsg MessageType = iota + 0
+	StatusMsg OGMessageType = iota + 0
 	MessageTypePing
 	MessageTypePong
 	MessageTypeFetchByHashRequest
@@ -65,7 +64,6 @@ const (
 	//for consensus
 	MessageTypeCampaign
 	MessageTypeTermChange
-	MessageTypeConsensus
 
 	MessageTypeArchive
 	MessageTypeActionTX
@@ -98,14 +96,14 @@ const (
 
 type SendingType uint8
 
-func (mt MessageType) IsValid() bool {
+func (mt OGMessageType) IsValid() bool {
 	if mt >= MessageTypeOg02Length {
 		return false
 	}
 	return true
 }
 
-func (mt MessageType) String() string {
+func (mt OGMessageType) String() string {
 	switch mt {
 	case StatusMsg:
 		return "StatusMsg"
@@ -152,8 +150,6 @@ func (mt MessageType) String() string {
 		return "MessageTypeCampaign"
 	case MessageTypeTermChange:
 		return "MessageTypeTermChange"
-	case MessageTypeConsensus:
-		return "MessageTypeConsensus"
 	case MessageTypeArchive:
 		return "MessageTypeArchive"
 	case MessageTypeActionTX:
@@ -201,7 +197,7 @@ func (mt MessageType) String() string {
 	}
 }
 
-func (mt MessageType) Code() p2p.MsgCodeType {
+func (mt OGMessageType) Code() p2p.MsgCodeType {
 	return p2p.MsgCodeType(mt)
 }
 
@@ -258,11 +254,11 @@ type MsgKey struct {
 	data [common.HashLength + 2]byte
 }
 
-func (k MsgKey) GetType() (MessageType, error) {
+func (k MsgKey) GetType() (OGMessageType, error) {
 	if len(k.data) != common.HashLength+2 {
 		return 0, errors.New("size err")
 	}
-	return MessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
+	return OGMessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
 }
 
 func (k MsgKey) GetHash() (common.Hash, error) {
@@ -272,7 +268,7 @@ func (k MsgKey) GetHash() (common.Hash, error) {
 	return common.BytesToHash(k.data[2:]), nil
 }
 
-func NewMsgKey(m MessageType, hash common.Hash) MsgKey {
+func NewMsgKey(m OGMessageType, hash common.Hash) MsgKey {
 	var key MsgKey
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
@@ -285,7 +281,7 @@ func NewMsgKey(m MessageType, hash common.Hash) MsgKey {
 	return key
 }
 
-func (m MessageType) GetMsg() p2p_message.Message {
+func (m OGMessageType) GetMsg() p2p_message.Message {
 	var message p2p_message.Message
 	switch m {
 	case MessageTypeNewTx:

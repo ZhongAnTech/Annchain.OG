@@ -30,11 +30,11 @@ import (
 const BloomFilterRate = 4 //sending 4 req
 
 type MessageSender interface {
-	BroadcastMessage(messageType message.MessageType, message p2p_message.Message)
-	MulticastMessage(messageType message.MessageType, message p2p_message.Message)
-	MulticastToSource(messageType message.MessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
-	BroadcastMessageWithLink(messageType message.MessageType, message p2p_message.Message)
-	SendToPeer(peerId string, messageType message.MessageType, msg p2p_message.Message)
+	BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message)
+	MulticastMessage(messageType message.OGMessageType, message p2p_message.Message)
+	MulticastToSource(messageType message.OGMessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
+	BroadcastMessageWithLink(messageType message.OGMessageType, message p2p_message.Message)
+	SendToPeer(peerId string, messageType message.OGMessageType, msg p2p_message.Message)
 }
 
 type FireHistory struct {

@@ -111,17 +111,17 @@ func (d *dummySyncer) IsCachedHash(hash common.Hash) bool {
 
 func (d *dummySyncer) Enqueue(hash *common.Hash, childHash common.Hash, b bool) {
 	if _, err := d.acquireTxDedupCache.Get(*hash); err == nil {
-		logrus.WithField("hash", hash).Debugf("duplicate sync task")
+		logrus.WithField("Hash", hash).Debugf("duplicate sync task")
 		return
 	}
 	d.acquireTxDedupCache.Set(hash, struct{}{})
 
 	if v, ok := d.dmap[*hash]; ok {
 		<-ffchan.NewTimeoutSenderShort(d.buffer.ReceivedNewTxChan, v, "test").C
-		logrus.WithField("hash", hash).Infof("syncer added tx")
-		logrus.WithField("hash", hash).Infof("syncer returned tx")
+		logrus.WithField("Hash", hash).Infof("syncer added tx")
+		logrus.WithField("Hash", hash).Infof("syncer returned tx")
 	} else {
-		logrus.WithField("hash", hash).Infof("syncer does not know tx")
+		logrus.WithField("Hash", hash).Infof("syncer does not know tx")
 	}
 
 }

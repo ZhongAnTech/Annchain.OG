@@ -62,11 +62,11 @@ func TestPeer_MarkMessage(t *testing.T) {
 	}
 	var msgs []OGMessage
 	for i := 0; i < 100; i++ {
-		msg := OGMessage{message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, messageType: message.MessageTypeNewTx}
+		msg := OGMessage{Message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
 		msg.Marshal()
 		msg.calculateHash()
 		msgs = append(msgs, msg)
-		p.MarkMessage(msg.messageType, *msg.hash)
+		p.MarkMessage(msg.MessageType, *msg.Hash)
 	}
 
 	for i, val := range msgs {

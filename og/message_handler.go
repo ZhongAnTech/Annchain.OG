@@ -46,7 +46,7 @@ type hashAndSourceId struct {
 	sourceId string
 }
 
-//msg request cache ,don't send duplicate message
+//msg request cache ,don't send duplicate Message
 type ControlMsgCache struct {
 	cache      map[common.Hash]*controlItem
 	mu         sync.RWMutex
@@ -209,7 +209,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 		}
 		h.Hub.SendToPeer(peerId, message.MessageTypeFetchByHashResponse, &msgRes)
 	} else {
-		message.msgLog.Debug("empty data , did't send")
+		message.msgLog.Debug("empty Data , did't send")
 	}
 	return
 }
@@ -246,7 +246,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 		query.Origin.Number = &i
 	}
 	first := true
-	message.msgLog.WithField("hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
+	message.msgLog.WithField("Hash", query.Origin.Hash).WithField("number", query.Origin.Number).WithField(
 		"hashmode", hashMode).WithField("amount", query.Amount).WithField("skip", query.Skip).Trace("requests")
 	// Gather headers until the fetch or network limits is reached
 	var (
@@ -387,7 +387,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxs
 		}
 
 	} else {
-		message.msgLog.WithField("id", msgReq.Id).WithField("hash", msgReq.SeqHash).Warn("seq was not found for request")
+		message.msgLog.WithField("id", msgReq.Id).WithField("Hash", msgReq.SeqHash).Warn("seq was not found for request")
 	}
 	h.Hub.SendToPeer(peerId, message.MessageTypeTxsResponse, &msgRes)
 }
@@ -438,7 +438,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *p2p_message.Message
 	for i := 0; i < len(msgReq.SeqHashes); i++ {
 		seq := h.Og.Dag.GetSequencerByHash(msgReq.SeqHashes[i])
 		if seq == nil {
-			message.msgLog.WithField("hash", msgReq.SeqHashes[i]).Warn("seq is nil")
+			message.msgLog.WithField("Hash", msgReq.SeqHashes[i]).Warn("seq is nil")
 			break
 		}
 		if bytes >= softResponseLimit {
@@ -610,20 +610,20 @@ func (h *IncomingMessageHandler) processControlMsg() {
 		}
 		txkey := message.NewMsgKey(message.MessageTypeNewTx, k)
 		if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
-			message.msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+			message.msgLog.WithField("Hash ", k).Trace("already received tx of this control msg")
 			c.remove(k)
 			continue
 		}
 		if item.receivedAt.Add(2 * time.Millisecond).Before(time.Now()) {
 			if h.Hub.IsReceivedHash(k) {
-				message.msgLog.WithField("hash ", k).Trace("already received tx of this control msg")
+				message.msgLog.WithField("Hash ", k).Trace("already received tx of this control msg")
 				c.remove(k)
 				continue
 			}
 			if item.receivedAt.Add(c.ExpireTime).Before(time.Now()) {
 				hash := k
 				msg := &p2p_message.MessageGetMsg{Hash: &hash}
-				message.msgLog.WithField("hash ", k).Debug("send GetTx msg")
+				message.msgLog.WithField("Hash ", k).Debug("send GetTx msg")
 				goroutine.New(func() {
 					h.Hub.SendGetMsg(item.sourceId, msg)
 				})
@@ -652,7 +652,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		txi = h.Og.Dag.GetTx(*msg.Hash)
 	}
 	if txi == nil {
-		message.msgLog.WithField("for hash ", *msg.Hash).Warn("txi not found")
+		message.msgLog.WithField("for Hash ", *msg.Hash).Warn("txi not found")
 		return
 	}
 	switch txi.GetType() {
@@ -682,7 +682,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 
 func (h *IncomingMessageHandler) HandleControlMsg(req *p2p_message.MessageControl, sourceId string) {
 	if req.Hash == nil {
-		message.msgLog.WithError(fmt.Errorf("miss hash")).Debug("control msg request err")
+		message.msgLog.WithError(fmt.Errorf("miss Hash")).Debug("control msg request err")
 		return
 	}
 
@@ -693,28 +693,28 @@ func (h *IncomingMessageHandler) HandleControlMsg(req *p2p_message.MessageContro
 	hash := *req.Hash
 	txkey := message.NewMsgKey(message.MessageTypeNewTx, hash)
 	if _, err := h.Hub.messageCache.GetIFPresent(txkey); err == nil {
-		message.msgLog.WithField("hash ", hash).Trace("already got tx of this control msg")
+		message.msgLog.WithField("Hash ", hash).Trace("already got tx of this control msg")
 		return
 	}
 	if item := h.controlMsgCache.get(hash); item != nil {
-		message.msgLog.WithField("hash ", hash).Trace("duplicated control msg")
+		message.msgLog.WithField("Hash ", hash).Trace("duplicated control msg")
 		return
 	}
 	if h.Hub.IsReceivedHash(hash) {
-		message.msgLog.WithField("hash ", hash).Trace("already received tx of this control msg")
+		message.msgLog.WithField("Hash ", hash).Trace("already received tx of this control msg")
 	}
 	h.controlMsgCache.set(hash, sourceId)
-	message.msgLog.WithField("hash ", hash).Trace("already received tx of this control msg")
+	message.msgLog.WithField("Hash ", hash).Trace("already received tx of this control msg")
 }
 
 func (m *IncomingMessageHandler) Start() {
 	goroutine.New(m.loop)
-	message.msgLog.Info("message handler started")
+	message.msgLog.Info("Message handler started")
 }
 
 func (m *IncomingMessageHandler) Stop() {
 	close(m.quit)
-	message.msgLog.Info("message handler stopped")
+	message.msgLog.Info("Message handler stopped")
 }
 
 func (m *IncomingMessageHandler) Name() string {

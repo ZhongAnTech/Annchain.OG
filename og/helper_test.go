@@ -93,7 +93,7 @@ type testPeer struct {
 
 // newTestPeer creates a new peer registered at the given protocol manager.
 func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-chan error) {
-	// Create a message pipe to communicate through
+	// Create a Message pipe to communicate through
 	app, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer
@@ -155,6 +155,6 @@ func TestDatasize(t *testing.T) {
 	var r common.Hash
 	data, _ := r.MarshalMsg(nil)
 	if len(data) == r.Msgsize() {
-		t.Fatal("msg size not equal", "len data", len(data), "msgSize", r.Msgsize())
+		t.Fatal("msg size not equal", "len Data", len(data), "msgSize", r.Msgsize())
 	}
 }

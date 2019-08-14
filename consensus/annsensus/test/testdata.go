@@ -25,7 +25,7 @@ import (
 //msgp:tuple TestMsg
 type TestMsg struct {
 	Message     p2p_message.Message
-	MessageType message.MessageType
+	MessageType message.OGMessageType
 	From        common.Address
 }
 

@@ -14,12 +14,15 @@
 package bft
 
 import (
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/p2p_message"
 )
 
 //go:generate msgp
@@ -53,6 +56,28 @@ func (h *HeightRound) IsBefore(o HeightRound) bool {
 	return h.Height < o.Height ||
 		(h.Height == o.Height && h.Round < o.Round)
 }
+
+//msgp:tuple BftMessageType
+type BftMessageType message.OGMessageType
+
+func (m BftMessageType) String() string {
+	switch m {
+	case BftMessageTypeProposal:
+		return "BFTProposal"
+	case BftMessageTypePreVote:
+		return "BFTPreVote"
+	case BftMessageTypePreCommit:
+		return "BFTPreCommit"
+	default:
+		return "BFTUnknown"
+	}
+}
+
+const (
+	BftMessageTypeProposal BftMessageType = iota + 100
+	BftMessageTypePreVote
+	BftMessageTypePreCommit
+)
 
 //msgp:tuple MessageConsensus
 type MessageConsensus struct {
@@ -140,6 +165,23 @@ func (m *MessageProposal) SignatureTargets() []byte {
 type MessageConsensusUnmarshaller struct {
 }
 
-func (m MessageConsensusUnmarshaller) DoUnmarshal(message *og.p2PMessage) error {
+func (m MessageConsensusUnmarshaller) DoUnmarshal(message *og.OGMessage) error {
+	var inner p2p_message.Message
+	switch BftMessageType(message.MessageType) {
+	case BftMessageTypeProposal:
+		inner = &MessageProposal{}
+	case BftMessageTypePreVote:
+		inner = &MessagePreVote{}
+	case BftMessageTypePreCommit:
+		inner = &MessagePreCommit{}
+	default:
+		return errors.New("unsupported type")
+	}
+	_, err := inner.UnmarshalMsg(message.Data)
+	if err != nil{
+		return err
+	}
+	message.Message = inner
+	return nil
 
 }

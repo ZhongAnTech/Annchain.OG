@@ -63,7 +63,7 @@ func GetAnn(anns []TestAnnSensus, Addr common.Address) *TestAnnSensus {
 
 type p2pMsg struct {
 	data    []byte
-	msgType message.MessageType
+	msgType message.OGMessageType
 }
 
 type TestHub struct {
@@ -93,7 +93,7 @@ func newtestHub(id common.Address, peers []common.Address, sendMsgToChan sendMsg
 	}
 }
 
-func (t *TestHub) BroadcastMessage(messageType message.MessageType, message p2p_message.Message) {
+func (t *TestHub) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
 	var sent bool
 	for _, peer := range t.Peers {
 		tMsg := test.TestMsg{
@@ -111,11 +111,11 @@ func (t *TestHub) BroadcastMessage(messageType message.MessageType, message p2p_
 	}
 }
 
-func (t *TestHub) SendToPeer(peerId string, messageType message.MessageType, msg p2p_message.Message) error {
+func (t *TestHub) SendToPeer(peerId string, messageType message.OGMessageType, msg p2p_message.Message) error {
 	return nil
 }
 
-func (t *TestHub) AnonymousSendMessage(messageType message.MessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
+func (t *TestHub) AnonymousSendMessage(messageType message.OGMessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 	tMsg := test.TestMsg{
 		MessageType: messageType,
 		Message:     message,
@@ -203,7 +203,7 @@ func (t *TestHub) loop() {
 				request := msg.Message.(*p2p_message.MessageConsensusDkgDeal)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
-					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+					//	msg.OGMessageType).WithField("msg ", len(request.Data)).WithField("hash ",
 					//	msg.GetHash()).Warn("duplicate dkg msg")
 					continue
 				}
@@ -212,7 +212,7 @@ func (t *TestHub) loop() {
 				request := msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
-					//	msg.MessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+					//	msg.OGMessageType).WithField("msg ", len(request.Data)).WithField("hash ",
 					//	msg.GetHash()).Warn("duplicate response  msg")
 					continue
 				}
@@ -221,7 +221,7 @@ func (t *TestHub) loop() {
 				request := msg.Message.(*p2p_message.MessageConsensusDkgSigSets)
 				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 					//elog.WithField("from ", msg.From).WithField("msg type",
-					//	msg.MessageType).WithField("msg ", len(request.PkBls)).WithField("hash ",
+					//	msg.OGMessageType).WithField("msg ", len(request.PkBls)).WithField("hash ",
 					//	msg.GetHash()).Warn("duplicate response  msg")
 					continue
 				}

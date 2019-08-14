@@ -177,7 +177,9 @@ func NewHub(config *HubConfig) *Hub {
 		h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
 			Name:    ProtocolName,
 			Version: version,
-			Length:  p2p.MsgCodeType(ProtocolLengths[i]),
+			// TODO: fix 777
+			//Length:  p2p.MsgCodeType(ProtocolLengths[i]),
+			Length:  p2p.MsgCodeType(777),
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				peer := h.newPeer(int(version), p, rw)
 				select {

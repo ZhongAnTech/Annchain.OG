@@ -29,8 +29,10 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetFormatter(Formatter)
+	//logrus.SetReportCaller(true)
+
 	//filenameHook := filename.NewHook()
 	//filenameHook.Field = "line"
 	//logrus.AddHook(filenameHook)
@@ -43,45 +45,61 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 
 	var peers []BftOperator
 	var peerChans []chan BftMessage
+	var peerInfo []PeerInfo
 
 	total := good + bad
 	i := 0
 	for ; i < good; i++ {
 		peer := NewDefaultBFTPartner(total, i, BlockTime)
-		pc := NewDummyBftPeerCommunicator(total, i)
+		pc := NewDummyBftPeerCommunicator(i)
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
 		peerChans = append(peerChans, pc.Incoming)
+		peerInfo = append(peerInfo, PeerInfo{Id:i})
 	}
 	for ; i < total; i++ {
 		peer := NewByzantinePartner(total, i, BlockTime, bf)
-		pc := NewDummyBftPeerCommunicator(total, i)
+		pc := NewDummyBftPeerCommunicator(i)
 		peer.DefaultBftOperator.PeerCommunicator = pc
 		peer.DefaultBftOperator.ProposalGenerator = pg
 		peer.DefaultBftOperator.ProposalValidator = pv
 		peer.DefaultBftOperator.DecisionMaker = dm
 		peers = append(peers, peer)
 		peerChans = append(peerChans, pc.Incoming)
+		peerInfo = append(peerInfo, PeerInfo{Id:i})
 	}
 	// build communication channel
 	for i := 0; i < total; i++ {
-		pc := peers[i].GetPeerCommunicator()
+		peer := peers[i]
+		pc := peer.GetPeerCommunicator()
 		pc.(*dummyBftPeerCommunicator).Peers = peerChans
+		switch peer.(type){
+		case *DefaultBftOperator:
+			peer.(*DefaultBftOperator).BftStatus.Peers = peerInfo
+		case *ByzantinePartner:
+			peer.(*ByzantinePartner).BftStatus.Peers = peerInfo
+		}
+
 
 	}
 	return peers
 }
 
 func start(peers []BftOperator, second int) {
+	logrus.Info("starting")
+	for _, peer := range peers{
+		go peer.StartNewEra(0, 0)
+		break
+	}
+	time.Sleep(time.Second * time.Duration(second))
 	for _, peer := range peers {
-		peer.StartNewEra(0, 0)
 		go peer.WaiterLoop()
 		go peer.EventLoop()
 	}
-	time.Sleep(time.Second * time.Duration(second))
+	time.Sleep(time.Second * 3)
 	joinAllPeers(peers)
 }
 
@@ -98,7 +116,7 @@ func joinAllPeers(peers []BftOperator) {
 
 func TestAllNonByzantine(t *testing.T) {
 	peers := setupPeers(4, 0, ByzantineFeatures{})
-	start(peers, 10)
+	start(peers, 30)
 }
 
 func TestByzantineButOK(t *testing.T) {

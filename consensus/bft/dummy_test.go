@@ -10,23 +10,27 @@ type dummyBftPeerCommunicator struct {
 
 func (d *dummyBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
 	for _, peer := range peers {
-		d.Peers[peer.Id] <- msg
+		go func() {
+			d.Peers[peer.Id] <- msg
+		}()
 	}
 }
 
 func (d *dummyBftPeerCommunicator) Unicast(msg BftMessage, peer PeerInfo) {
-	d.Peers[peer.Id] <- msg
+	go func() {
+		d.Peers[peer.Id] <- msg
+	}()
 }
 
 func (d *dummyBftPeerCommunicator) GetIncomingChannel() chan BftMessage {
 	return d.Peers[d.Myid]
 }
 
-func NewDummyBftPeerCommunicator(peerCount int, myid int) *dummyBftPeerCommunicator {
+func NewDummyBftPeerCommunicator(myid int) *dummyBftPeerCommunicator {
 	d := &dummyBftPeerCommunicator{
 		Peers:    []chan BftMessage{},
 		Myid:     myid,
-		Incoming: make(chan BftMessage),
+		Incoming: make(chan BftMessage, 5),
 	}
 	return d
 }

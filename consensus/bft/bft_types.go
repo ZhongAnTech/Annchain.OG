@@ -48,7 +48,7 @@ const (
 func (m StepType) String() string {
 	switch m {
 	case StepTypePropose:
-		return "Decision"
+		return "Proposal"
 	case StepTypePreVote:
 		return "PreVote"
 	case StepTypePreCommit:

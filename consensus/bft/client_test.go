@@ -15,7 +15,6 @@ package bft
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"testing"
@@ -32,20 +31,63 @@ func init() {
 	Formatter.FullTimestamp = true
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(Formatter)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	//filenameHook := filename.NewHook()
+	//filenameHook.Field = "line"
+	//logrus.AddHook(filenameHook)
 }
 
-func start(peers []BFTPartner, second int) {
+func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
+	pg := &dummyProposalGenerator{}
+	pv := &dummyProposalValidator{}
+	dm := &dummyDecisionMaker{}
+
+	var peers []BftOperator
+	var peerChans []chan BftMessage
+
+	total := good + bad
+	i := 0
+	for ; i < good; i++ {
+		peer := NewDefaultBFTPartner(total, i, BlockTime)
+		pc := NewDummyBftPeerCommunicator(total, i)
+		peer.PeerCommunicator = pc
+		peer.ProposalGenerator = pg
+		peer.ProposalValidator = pv
+		peer.DecisionMaker = dm
+		peers = append(peers, peer)
+		peerChans = append(peerChans, pc.Incoming)
+	}
+	for ; i < total; i++ {
+		peer := NewByzantinePartner(total, i, BlockTime, bf)
+		pc := NewDummyBftPeerCommunicator(total, i)
+		peer.DefaultBftOperator.PeerCommunicator = pc
+		peer.DefaultBftOperator.ProposalGenerator = pg
+		peer.DefaultBftOperator.ProposalValidator = pv
+		peer.DefaultBftOperator.DecisionMaker = dm
+		peers = append(peers, peer)
+		peerChans = append(peerChans, pc.Incoming)
+	}
+	// build communication channel
+	for i := 0; i < total; i++ {
+		pc := peers[i].GetPeerCommunicator()
+		pc.(*dummyBftPeerCommunicator).Peers = peerChans
+
+	}
+	return peers
+}
+
+func start(peers []BftOperator, second int) {
 	for _, peer := range peers {
-		peer.SetPeers(peers)
 		peer.StartNewEra(0, 0)
 		go peer.WaiterLoop()
 		go peer.EventLoop()
 	}
+	time.Sleep(time.Second * time.Duration(second))
+	joinAllPeers(peers)
+}
+
+func joinAllPeers(peers []BftOperator) {
 	for {
-		time.Sleep(time.Second * time.Duration(second))
+		time.Sleep(time.Second * 2)
 		for _, peer := range peers {
 			peer.Stop()
 		}
@@ -55,109 +97,52 @@ func start(peers []BFTPartner, second int) {
 }
 
 func TestAllNonByzantine(t *testing.T) {
-	total := 4
-	var peers []BFTPartner
-	for i := 0; i < total; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
+	peers := setupPeers(4, 0, ByzantineFeatures{})
 	start(peers, 10)
 }
 
 func TestByzantineButOK(t *testing.T) {
-	total := 4
-	byzantines := 1
-	var peers []BFTPartner
-	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
-	for i := total - byzantines; i < total; i++ {
-		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
-			ByzantineFeatures{
-				SilenceProposal:  true,
-				SilencePreVote:   true,
-				SilencePreCommit: true,
-			}))
-	}
+	peers := setupPeers(3, 1, ByzantineFeatures{
+		SilenceProposal:  true,
+		SilencePreVote:   true,
+		SilencePreCommit: true,
+	})
 	start(peers, 10)
 }
 
 func TestByzantineNotOK(t *testing.T) {
-	total := 4
-	byzantines := 2
-	var peers []BFTPartner
-	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
-	for i := total - byzantines; i < total; i++ {
-		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
-			ByzantineFeatures{
-				//SilenceProposal: true,
-				SilencePreVote: true,
-				//SilencePreCommit: true,
-			}))
-	}
-	start(peers, 60)
+	peers := setupPeers(2, 2, ByzantineFeatures{
+		SilenceProposal:  true,
+		SilencePreVote:   true,
+		SilencePreCommit: true,
+	})
+	start(peers, 10)
 }
 
 func TestBadByzantineOK(t *testing.T) {
-	total := 4
-	byzantines := 1
-	var peers []BFTPartner
-	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
-	for i := total - byzantines; i < total; i++ {
-		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
-			ByzantineFeatures{
-				BadPreCommit: true,
-				BadPreVote:   true,
-				BadProposal:  true,
-			}))
-	}
+	peers := setupPeers(2, 2, ByzantineFeatures{
+		BadPreCommit: true,
+		BadPreVote:   true,
+		BadProposal:  true,
+	})
 	start(peers, 10)
 }
 
 func TestManyBadByzantineOK(t *testing.T) {
-	total := 22
-	byzantines := 7
-	var peers []BFTPartner
-	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
-	for i := total - byzantines; i < total; i++ {
-		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
-			ByzantineFeatures{
-				BadPreCommit: true,
-				BadPreVote:   true,
-				BadProposal:  true,
-			}))
-	}
+	peers := setupPeers(15, 7, ByzantineFeatures{
+		BadPreCommit: true,
+		BadPreVote:   true,
+		BadProposal:  true,
+	})
 	start(peers, 10)
 }
 
-func TestBFT_GetInfo(t *testing.T) {
-	total := 1
-	var peers []BFTPartner
-	for i := 0; i < total; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime*1000))
-	}
-	start(peers, 3)
-}
 
 func TestByzantineButOKBUG(t *testing.T) {
-	total := 6
-	byzantines := 3
-	var peers []BFTPartner
-	for i := 0; i < total-byzantines; i++ {
-		peers = append(peers, NewBFTPartner(total, i, BlockTime))
-	}
-	for i := total - byzantines; i < total; i++ {
-		peers = append(peers, NewByzantinePartner(total, i, BlockTime,
-			ByzantineFeatures{
-				SilenceProposal:  true,
-				SilencePreVote:   true,
-				SilencePreCommit: true,
-			}))
-	}
+	peers := setupPeers(3, 3, ByzantineFeatures{
+		SilenceProposal:  true,
+		SilencePreVote:   true,
+		SilencePreCommit: true,
+	})
 	start(peers, 10)
 }

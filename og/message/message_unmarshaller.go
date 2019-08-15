@@ -2,11 +2,10 @@ package message
 
 import (
 	"errors"
-	"github.com/annchain/OG/og"
 )
 
 type OGMessageUnmarshaller interface {
-	DoUnmarshal(message *og.OGMessage) error
+	DoUnmarshal(message *OGMessage) error
 }
 
 type OGMessageUnmarshalManager struct {
@@ -17,7 +16,7 @@ func (ma *OGMessageUnmarshalManager) RegisterUnmarshall(m OGMessageUnmarshaller)
 	ma.unmarshallers = append(ma.unmarshallers, m)
 }
 
-func (ma *OGMessageUnmarshalManager) Unmarshal(message *og.OGMessage) error {
+func (ma *OGMessageUnmarshalManager) Unmarshal(message *OGMessage) error {
 	// try plugins
 	for _, m := range ma.unmarshallers {
 		err := m.DoUnmarshal(message)
@@ -32,7 +31,7 @@ func (ma *OGMessageUnmarshalManager) Unmarshal(message *og.OGMessage) error {
 type OGBasicMessageUnmarshaller struct {
 }
 
-func (d OGBasicMessageUnmarshaller) DoUnmarshal(message *og.OGMessage) error {
+func (d OGBasicMessageUnmarshaller) DoUnmarshal(message *OGMessage) error {
 	err := message.Unmarshal()
 	return err
 }

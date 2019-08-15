@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
-	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
@@ -165,7 +164,7 @@ func (m *MessageProposal) SignatureTargets() []byte {
 type MessageConsensusUnmarshaller struct {
 }
 
-func (m MessageConsensusUnmarshaller) DoUnmarshal(message *og.OGMessage) error {
+func (m MessageConsensusUnmarshaller) DoUnmarshal(message *message.OGMessage) error {
 	var inner p2p_message.Message
 	switch BftMessageType(message.MessageType) {
 	case BftMessageTypeProposal:

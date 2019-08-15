@@ -378,7 +378,7 @@ func init() {
 	}
 	logrus.SetOutput(f)
 	log = logrus.StandardLogger()
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	//filenameHook := filename.NewHook()
+	//filenameHook.Field = "line"
+	//logrus.AddHook(filenameHook)
 }

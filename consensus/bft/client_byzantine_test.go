@@ -14,7 +14,6 @@
 package bft
 
 import (
-	"github.com/annchain/OG/ffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -30,15 +29,15 @@ type ByzantineFeatures struct {
 
 // ByzantinePartner implements a Tendermint client according to "The latest gossip on BFT consensus"
 type ByzantinePartner struct {
-	*BftOperator
+	DefaultBftOperator
 	// consider updating resetStatus() if you want to add things here
 	ByzantineFeatures ByzantineFeatures
 }
 
 func NewByzantinePartner(nbParticipants int, id int, blockTime time.Duration, byzantineFeatures ByzantineFeatures) *ByzantinePartner {
 	p := &ByzantinePartner{
-		BftOperator:       NewBFTPartner(nbParticipants, id, blockTime),
-		ByzantineFeatures: byzantineFeatures,
+		DefaultBftOperator: *NewDefaultBFTPartner(nbParticipants, id, blockTime),
+		ByzantineFeatures:  byzantineFeatures,
 	}
 	return p
 }
@@ -59,26 +58,26 @@ func (p *ByzantinePartner) send() {
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
 			p.dumpAll("blocked reading outgoing(byzantine)")
-		case msg := <-p.OutgoingMessageChannel:
-			msg, tosend := p.doBadThings(msg)
-			if !tosend {
-				// don't send it
-				logrus.WithFields(logrus.Fields{
-					"IM---BAD": p.Id,
-					"from":     p.Id,
-					"msg":      msg.String(),
-				}).Info("Eat message")
-				continue
-			}
-			for _, peer := range p.Peers {
-				logrus.WithFields(logrus.Fields{
-					"IM---BAD": p.Id,
-					"from":     p.Id,
-					"to":       peer.GetId(),
-					"msg":      msg.String(),
-				}).Tracef("Outgoing message")
-				ffchan.NewTimeoutSenderShort(peer.GetIncomingMessageChannel(), msg, "")
-			}
+			//case msg := <-p..OutgoingMessageChannel:
+			//	msg, tosend := p.doBadThings(msg)
+			//	if !tosend {
+			//		// don't send it
+			//		logrus.WithFields(logrus.Fields{
+			//			"IM---BAD": p.Id,
+			//			"from":     p.Id,
+			//			"msg":      msg.String(),
+			//		}).Info("Eat message")
+			//		continue
+			//	}
+			//	for _, peer := range p.Peers {
+			//		logrus.WithFields(logrus.Fields{
+			//			"IM---BAD": p.Id,
+			//			"from":     p.Id,
+			//			"to":       peer.GetId(),
+			//			"msg":      msg.String(),
+			//		}).Tracef("Outgoing message")
+			//		ffchan.NewTimeoutSenderShort(peer.GetIncomingMessageChannel(), msg, "")
+			//	}
 		}
 	}
 }
@@ -115,4 +114,8 @@ func (p *ByzantinePartner) doBadThings(msg BftMessage) (updatedMessage BftMessag
 
 	}
 	return
+}
+
+func (p *ByzantinePartner) GetPeerCommunicator() BftPeerCommunicator {
+	return p.PeerCommunicator
 }

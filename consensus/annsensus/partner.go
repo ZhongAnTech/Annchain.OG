@@ -50,7 +50,7 @@ func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunic
 
 	ap := &AnnsensusPartner{
 		peerCommunicator:     trustfulPeerCommunicator,
-		bftPartnerMyself:     bft.NewBFTPartner(nParticipants, id, blockTime),
+		bftPartnerMyself:     bft.NewDefaultBFTPartner(nParticipants, id, blockTime),
 		accountNonceProvider: accountNonceProvider,
 	}
 	ap.bftPartnerMyself.RegisterConsensusReachedListener(ap)
@@ -194,6 +194,6 @@ func (o *AnnsensusPartner) handleConsensusReached(decision model.ConsensusDecisi
 
 func (o *AnnsensusPartner) handleTermChanged(term *term.Term) {
 	// init a bft
-	bft := bft.NewBFTPartner()
+	bft := bft.NewDefaultBFTPartner()
 	fmt.Println(term)
 }

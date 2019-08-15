@@ -38,9 +38,9 @@ func logInit() {
 	Formatter.FullTimestamp = true
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.TraceLevel)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	//filenameHook := filename.NewHook()
+	//filenameHook.Field = "line"
+	//logrus.AddHook(filenameHook)
 	log = logrus.StandardLogger()
 }
 func TestVrfSelections_Le(t *testing.T) {

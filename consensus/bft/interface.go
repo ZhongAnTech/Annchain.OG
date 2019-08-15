@@ -25,3 +25,12 @@ type BftPeerCommunicator interface {
 	Unicast(msg BftMessage, peer PeerInfo)
 	GetIncomingChannel() chan BftMessage
 }
+
+type BftOperator interface{
+	StartNewEra(height uint64, round int)
+	WaiterLoop()
+	EventLoop()
+	GetPeerCommunicator() BftPeerCommunicator
+	Stop()
+}
+

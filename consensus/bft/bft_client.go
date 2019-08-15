@@ -31,7 +31,7 @@ import (
 // Note: Destroy and use a new one upon peers changing.
 type DefaultBftOperator struct {
 	Id                int
-	BftStatus         BftStatus
+	BftStatus         *BftStatus
 	blockTime         time.Duration
 	PeerCommunicator  BftPeerCommunicator
 	ProposalGenerator ProposalGenerator
@@ -52,13 +52,13 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *
 		panic(0)
 	}
 	p := &DefaultBftOperator{
-		Id:                   id,
-		BftStatus: BftStatus{
+		Id: id,
+		BftStatus: &BftStatus{
 			N:      nbParticipants,
 			F:      (nbParticipants - 1) / 3,
 			States: make(map[HeightRound]*HeightRoundState),
 		},
-		blockTime:            blockTime,
+		blockTime: blockTime,
 
 		WaiterTimeoutChannel: make(chan *WaiterRequest, 10),
 		quit:                 make(chan bool),
@@ -169,14 +169,14 @@ func (p *DefaultBftOperator) StartNewEra(height uint64, round int) {
 				proposal, validCondition = p.GetValue(false)
 			}
 			if validCondition.ValidHeight != p.BftStatus.CurrentHR.Height {
-				if p.BftStatus.CurrentHR.Height > validCondition.ValidHeight {
-					//TODO
-					logrus.WithField("height", p.BftStatus.CurrentHR).WithField("valid height ", validCondition).Warn("height mismatch //TODO")
-				} else {
-					//
-					logrus.WithField("height", p.BftStatus.CurrentHR).WithField("valid height ", validCondition).Debug("height mismatch //TODO")
-				}
-
+				//	if p.BftStatus.CurrentHR.Height > validCondition.ValidHeight {
+				//		//TODO： I received a history message. should be ok?
+				//		logrus.WithField("height", p.BftStatus.CurrentHR).WithField("valid height ", validCondition).Warn("height mismatch //TODO")
+				//	} else {
+				//		//
+				//		logrus.WithField("height", p.BftStatus.CurrentHR).WithField("valid height ", validCondition).Debug("height mismatch //TODO")
+				//	}
+				//
 			}
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")
@@ -437,6 +437,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 func (p *DefaultBftOperator) handleProposal(proposal *MessageProposal) {
 	state, ok := p.BftStatus.States[proposal.HeightRound]
 	if !ok {
+		logrus.WithField("IM", p.Id).WithField("hr", proposal.HeightRound).Error("proposal height round not in states")
 		panic("must exists")
 	}
 	state.MessageProposal = proposal
@@ -633,19 +634,28 @@ func (p *DefaultBftOperator) count(messageType BftMessageType, height uint64, va
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
 func (p *DefaultBftOperator) checkRound(message *MessageConsensus) (needHandle bool) {
-	// rule line 55
-	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
-	if message.HeightRound.IsAfter(p.BftStatus.CurrentHR) {
-		state, ok := p.BftStatus.States[message.HeightRound]
+	// check status storage first
+	if message.HeightRound.IsAfterOrEqual(p.BftStatus.CurrentHR){
+		_, ok := p.BftStatus.States[message.HeightRound]
 		if !ok {
 			// create one
 			// TODO: verify if someone is generating garbage height
-			d, c := p.initHeightRound(message.HeightRound)
-			state = d
-			if c != len(p.BftStatus.States) {
-				panic("number not aligned")
-			}
+			p.initHeightRound(message.HeightRound)
 		}
+	}
+	// rule line 55
+	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
+	if message.HeightRound.IsAfter(p.BftStatus.CurrentHR) {
+		state, _ := p.BftStatus.States[message.HeightRound]
+		//if !ok {
+		//	// create one
+		//
+		//	d, c := p.initHeightRound(message.HeightRound)
+		//	state = d
+		//	if c != len(p.BftStatus.States) {
+		//		panic("number not aligned")
+		//	}
+		//}
 		state.Sources[message.SourceId] = true
 		logrus.WithField("IM", p.Id).Tracef("Set source: %d at %s, %+v", message.SourceId, message.HeightRound.String(), state.Sources)
 		logrus.WithField("IM", p.Id).Tracef("%d's %s state is %+v, after receiving message %s from %d", p.Id, p.BftStatus.CurrentHR.String(), p.BftStatus.States[p.BftStatus.CurrentHR].Sources, message.HeightRound.String(), message.SourceId)
@@ -737,11 +747,9 @@ func (p *DefaultBftOperator) initHeightRound(hr HeightRound) (*HeightRoundState,
 	return p.BftStatus.States[hr], len(p.BftStatus.States)
 }
 
-func (p *DefaultBftOperator) GetPeerCommunicator() BftPeerCommunicator{
+func (p *DefaultBftOperator) GetPeerCommunicator() BftPeerCommunicator {
 	return p.PeerCommunicator
 }
-
-
 
 type BftStatusReport struct {
 	HeightRound HeightRound

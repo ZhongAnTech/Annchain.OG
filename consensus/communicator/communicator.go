@@ -15,7 +15,7 @@ import (
 // It provides Trustful communication between partners with pubkeys
 // All messages received from TrustfulPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulPartnerCommunicator struct {
-	incomingChannel   chan *SignedOgPartnerMessage
+	incomingChannel   chan *bft.SignedOgPartnerMessage
 	Signer            crypto.ISigner
 	TermProvider      annsensus.TermProvider //TODO：not its job.
 	P2PSender         P2PSender
@@ -25,7 +25,7 @@ type TrustfulPartnerCommunicator struct {
 func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
 	myAccountProvider ConsensusAccountProvider, p2pSender P2PSender) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
-		incomingChannel:   make(chan *SignedOgPartnerMessage, 20),
+		incomingChannel:   make(chan *bft.SignedOgPartnerMessage, 20),
 		Signer:            signer,
 		TermProvider:      termProvider,
 		MyAccountProvider: myAccountProvider,
@@ -33,9 +33,9 @@ func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.T
 	}
 }
 
-func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgPartnerMessage {
+func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) bft.SignedOgPartnerMessage {
 	account := r.MyAccountProvider.Account()
-	signed := SignedOgPartnerMessage{
+	signed := bft.SignedOgPartnerMessage{
 		BftMessage: msg,
 		Signature:  r.Signer.Sign(account.PrivateKey, msg.Payload.SignatureTargets()).Bytes,
 		//TermId:     partner.CurrentTerm(),
@@ -61,11 +61,11 @@ func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerI
 
 // GetIncomingChannel provides a channel for downstream component consume the messages
 // that are already verified by communicator
-func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan *SignedOgPartnerMessage {
+func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan *bft.SignedOgPartnerMessage {
 	return r.incomingChannel
 }
 
-func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(signedMsg *SignedOgPartnerMessage) error {
+func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(signedMsg *bft.SignedOgPartnerMessage) error {
 	peers := b.TermProvider.Peers(signedMsg.TermId)
 	// use public key to find sourcePartner
 	for _, peer := range peers {
@@ -76,7 +76,7 @@ func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(signedMsg *SignedOgP
 	return errors.New("public key not found in current term")
 }
 
-func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(signedMsg *SignedOgPartnerMessage) error {
+func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(signedMsg *bft.SignedOgPartnerMessage) error {
 	ok := crypto.VerifySignature(signedMsg.PublicKey, signedMsg.Payload.SignatureTargets(), signedMsg.Signature)
 	if !ok {
 		return errors.New("signature invalid")
@@ -87,7 +87,7 @@ func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(signedMsg *SignedOg
 // handler for hub
 func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg p2p_message.Message) {
 	// Only allows SignedOgPartnerMessage
-	signedMsg, ok := msg.(*SignedOgPartnerMessage)
+	signedMsg, ok := msg.(*bft.SignedOgPartnerMessage)
 	if !ok {
 		logrus.Warn("message received is not a proper type for bft")
 		return

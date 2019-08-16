@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/consensus/model"
 	"strings"
 	"time"
 
@@ -43,7 +42,7 @@ type DefaultBftOperator struct {
 	waiter               *Waiter
 
 	// event listener for a decision once made
-	ConsensusReachedListeners []model.ConsensusReachedListener
+	ConsensusReachedListeners []ConsensusReachedListener
 	//wg sync.WaitGroup
 }
 
@@ -82,7 +81,7 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *
 
 // RegisterConsensusReachedListener registers callback for decision made event
 // TODO: In the future, protected the array so that it can handle term change
-func (p *DefaultBftOperator) RegisterConsensusReachedListener(listener model.ConsensusReachedListener) {
+func (p *DefaultBftOperator) RegisterConsensusReachedListener(listener ConsensusReachedListener) {
 	p.ConsensusReachedListeners = append(p.ConsensusReachedListeners, listener)
 }
 
@@ -156,7 +155,7 @@ func (p *DefaultBftOperator) StartNewEra(height uint64, round int) {
 
 	if p.Id == p.Proposer(p.BftStatus.CurrentHR) {
 		logrus.WithField("IM", p.Id).WithField("hr", p.BftStatus.CurrentHR.String()).Trace("I'm the proposer")
-		var proposal model.Proposal
+		var proposal Proposal
 		var validCondition ProposalCondition
 		if currState.ValidValue != nil {
 			logrus.WithField("hr ", hr).Trace("will got valid value")
@@ -194,41 +193,6 @@ func (p *DefaultBftOperator) EventLoop() {
 	goroutine.New(p.receive)
 	//p.wg.Add(1)
 }
-
-// send is just for outgoing messages. It should not change any state of local tendermint
-//func (p *DefaultBftOperator) send() {
-//	//defer p.wg.Done()
-//	timer := time.NewTimer(time.Second * 7)
-//	for {
-//		timer.Reset(time.Second * 7)
-//		select {
-//		case <-p.quit:
-//			logrus.Info("got quit msg , bft partner send routine will stop")
-//			return
-//		case <-timer.C:
-//			logrus.WithField("IM", p.Id).Warn("Blocked reading outgoing")
-//			p.dumpAll("blocked reading outgoing")
-//		case msg := <-p.OutgoingMessageChannel:
-//			for _, peer := range p.BftStatus.Peers {
-//				logrus.WithFields(logrus.Fields{
-//					"IM":   p.Id,
-//					"hr":   p.BftStatus.CurrentHR.String(),
-//					"from": p.Id,
-//					"to":   peer.Id,
-//					"msg":  msg.String(),
-//				}).Debug("Out")
-//				//todo may be bug
-//				targetPeer := peer
-//				goroutine.New(func() {
-//					//time.Sleep(time.Duration(300 + rand.Intn(100)) * time.Millisecond)
-//					//ffchan.NewTimeoutSenderShort(targetPeer.GetIncomingMessageChannel(), msg, "broadcasting")
-//					targetPeer.GetIncomingMessageChannel() <- msg
-//				})
-//
-//			}
-//		}
-//	}
-//}
 
 // receive prevents concurrent state updates by allowing only one channel to be read per loop
 // Any action which involves state updates should be in this select clause
@@ -269,7 +233,7 @@ func (p *DefaultBftOperator) Proposer(hr HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultBftOperator) GetValue(newBlock bool) (model.Proposal, ProposalCondition) {
+func (p *DefaultBftOperator) GetValue(newBlock bool) (Proposal, ProposalCondition) {
 	//don't sleep for the same height new round
 	blockTime := time.After(p.blockTime)
 	if newBlock {
@@ -288,14 +252,14 @@ func (p *DefaultBftOperator) GetValue(newBlock bool) (model.Proposal, ProposalCo
 		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
-	s := model.StringProposal(v)
+	s := StringProposal(v)
 	logrus.WithField("proposal", s).Debug("proposal gen")
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 
 // Broadcast announce messages to all partners
 //
-func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content model.Proposal, validRound int) {
+func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
 	m := BftMessage{
 		Type: messageType,
 	}
@@ -557,7 +521,7 @@ func (p *DefaultBftOperator) handlePreCommit(commit *MessagePreCommit) {
 }
 
 // valid checks proposal validation
-func (p *DefaultBftOperator) valid(proposal model.Proposal) bool {
+func (p *DefaultBftOperator) valid(proposal Proposal) bool {
 	err := p.ProposalValidator.ValidateProposal(proposal)
 	return err == nil
 }
@@ -776,7 +740,7 @@ func (p *DefaultBftOperator) Status() interface{} {
 	return &status
 }
 
-func (p *DefaultBftOperator) notifyDecisionMade(round HeightRound, decision model.ConsensusDecision) {
+func (p *DefaultBftOperator) notifyDecisionMade(round HeightRound, decision ConsensusDecision) {
 	for _, listener := range p.ConsensusReachedListeners {
 		listener.GetConsensusDecisionMadeEventChannel() <- decision
 	}

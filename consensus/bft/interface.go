@@ -1,23 +1,21 @@
 package bft
 
-import "github.com/annchain/OG/consensus/model"
-
 type ProposalCondition struct {
 	ValidHeight uint64
 }
 
 // ProposalGenerator is called when a proposal is needed
 type ProposalGenerator interface {
-	ProduceProposal() (proposal model.Proposal, validCondition ProposalCondition)
+	ProduceProposal() (proposal Proposal, validCondition ProposalCondition)
 }
 
 // ProposalValidator is called when a proposal is needed to be verified
 type ProposalValidator interface {
-	ValidateProposal(proposal model.Proposal) error
+	ValidateProposal(proposal Proposal) error
 }
 
 type DecisionMaker interface {
-	MakeDecision(proposal model.Proposal, state *HeightRoundState) (model.ConsensusDecision, error)
+	MakeDecision(proposal Proposal, state *HeightRoundState) (ConsensusDecision, error)
 }
 
 type BftPeerCommunicator interface {
@@ -26,7 +24,7 @@ type BftPeerCommunicator interface {
 	GetIncomingChannel() chan BftMessage
 }
 
-type BftOperator interface{
+type BftOperator interface {
 	StartNewEra(height uint64, round int)
 	WaiterLoop()
 	EventLoop()
@@ -34,3 +32,6 @@ type BftOperator interface{
 	Stop()
 }
 
+type ConsensusReachedListener interface {
+	GetConsensusDecisionMadeEventChannel() chan ConsensusDecision
+}

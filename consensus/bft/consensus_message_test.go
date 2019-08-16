@@ -1,7 +1,9 @@
 package bft
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/model"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
@@ -32,7 +34,7 @@ func TestMarshal(t *testing.T) {
 	}
 
 	mp := MessageProposal{
-		MessageConsensus: MessageConsensus{
+		BftBasicInfo: BftBasicInfo{
 			SourceId: 777,
 			HeightRound: HeightRound{
 				Height: 22,
@@ -43,8 +45,10 @@ func TestMarshal(t *testing.T) {
 		ValidRound: 0,
 	}
 	var buffer []byte
-	_, err := mp.MarshalMsg(buffer)
+	buffer, err := mp.MarshalMsg(buffer)
 	if err != nil{
 		panic(err)
 	}
+	fmt.Println(hexutil.Encode(buffer))
+
 }

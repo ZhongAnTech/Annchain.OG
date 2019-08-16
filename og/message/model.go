@@ -25,7 +25,7 @@ type OGMessage struct {
 	DisableEncrypt bool
 }
 
-func (m *OGMessage) calculateHash() {
+func (m *OGMessage) CalculateHash() {
 	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
 	//for request ,if source id is different they were different  msg ,don't drop it
 	//if we dropped header response because of duplicate , header request will time out
@@ -119,7 +119,7 @@ func (m *OGMessage) Marshal() error {
 	return err
 }
 
-func (m *OGMessage) appendGossipTarget(pub *crypto.PublicKey) error {
+func (m *OGMessage) AppendGossipTarget(pub *crypto.PublicKey) error {
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
 	binary.BigEndian.PutUint16(b, uint16(m.MessageType))
@@ -147,7 +147,7 @@ func (m *OGMessage) Encrypt(pub *crypto.PublicKey) error {
 	return nil
 }
 
-func (m *OGMessage) checkRequiredSize() bool {
+func (m *OGMessage) CheckRequiredSize() bool {
 	if m.MessageType == MessageTypeSecret {
 		if m.DisableEncrypt {
 			if len(m.Data) < 8 {
@@ -161,7 +161,7 @@ func (m *OGMessage) checkRequiredSize() bool {
 	return true
 }
 
-func (m *OGMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
+func (m *OGMessage) MaybeIsforMe(myPub *crypto.PublicKey) bool {
 	if m.MessageType != MessageTypeSecret {
 		panic("not a secret Message")
 	}
@@ -182,7 +182,7 @@ func (m *OGMessage) maybeIsforMe(myPub *crypto.PublicKey) bool {
 	return true
 }
 
-func (m *OGMessage) removeGossipTarget() error {
+func (m *OGMessage) RemoveGossipTarget() error {
 	msg := make([]byte, len(m.Data)-8)
 	copy(msg, m.Data[:len(m.Data)-8])
 	if len(msg) < 3 {
@@ -289,10 +289,10 @@ func (p *OGMessage) Unmarshal() error {
 }
 
 //
-func (m *OGMessage) sendDuplicateMsg() bool {
+func (m *OGMessage) AllowSendDuplicateMsg() bool {
 	return m.MessageType == MessageTypeNewTx || m.MessageType == MessageTypeNewSequencer
 }
 
-func (m *OGMessage) msgKey() MsgKey {
+func (m *OGMessage) MsgKey() MsgKey {
 	return NewMsgKey(m.MessageType, *m.Hash)
 }

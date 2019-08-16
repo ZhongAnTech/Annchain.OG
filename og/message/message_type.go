@@ -96,6 +96,14 @@ const (
 
 type SendingType uint8
 
+const (
+	SendingTypeBroadcast SendingType = iota
+	SendingTypeMulticast
+	SendingTypeMulticastToSource
+	SendingTypeBroacastWithFilter
+	SendingTypeBroacastWithLink
+)
+
 func (mt OGMessageType) IsValid() bool {
 	if mt >= MessageTypeOg02Length {
 		return false
@@ -199,37 +207,6 @@ func (mt OGMessageType) String() string {
 
 func (mt OGMessageType) Code() p2p.MsgCodeType {
 	return p2p.MsgCodeType(mt)
-}
-
-type errCode int
-
-const (
-	ErrMsgTooLarge = iota
-	ErrDecode
-	ErrInvalidMsgCode
-	ErrProtocolVersionMismatch
-	ErrNetworkIdMismatch
-	ErrGenesisBlockMismatch
-	ErrNoStatusMsg
-	ErrExtraStatusMsg
-	ErrSuspendedPeer
-)
-
-func (e errCode) String() string {
-	return errorToString[int(e)]
-}
-
-// XXX change once legacy code is out
-var errorToString = map[int]string{
-	ErrMsgTooLarge:             "Message too long",
-	ErrDecode:                  "Invalid message",
-	ErrInvalidMsgCode:          "Invalid message code",
-	ErrProtocolVersionMismatch: "Protocol version mismatch",
-	ErrNetworkIdMismatch:       "NetworkId mismatch",
-	ErrGenesisBlockMismatch:    "Genesis block mismatch",
-	ErrNoStatusMsg:             "No status message",
-	ErrExtraStatusMsg:          "Extra status message",
-	ErrSuspendedPeer:           "Suspended peer",
 }
 
 type MessageCounter struct {

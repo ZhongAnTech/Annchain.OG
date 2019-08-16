@@ -64,13 +64,13 @@ func TestPeer_MarkMessage(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		msg := OGMessage{Message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
 		msg.Marshal()
-		msg.calculateHash()
+		msg.CalculateHash()
 		msgs = append(msgs, msg)
 		p.MarkMessage(msg.MessageType, *msg.Hash)
 	}
 
 	for i, val := range msgs {
-		key := val.msgKey()
+		key := val.MsgKey()
 		if !p.knownMsg.Contains(key) {
 			t.Fatal(i, val, key)
 		}

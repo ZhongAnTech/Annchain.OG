@@ -78,15 +78,15 @@ const (
 	BftMessageTypePreCommit
 )
 
-//msgp:tuple MessageConsensus
-type MessageConsensus struct {
+//msgp:tuple BftBasicInfo
+type BftBasicInfo struct {
 	SourceId    uint16
 	HeightRound HeightRound
 }
 
 //msgp:tuple MessageProposal
 type MessageProposal struct {
-	MessageConsensus
+	BftBasicInfo
 	Value      model.Proposal //TODO
 	ValidRound int
 }
@@ -100,31 +100,31 @@ func (m MessageProposal) Copy() *MessageProposal {
 
 //msgp:tuple MessagePreVote
 type MessagePreVote struct {
-	MessageConsensus
+	BftBasicInfo
 	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
 //msgp:tuple MessagePreCommit
 type MessagePreCommit struct {
-	MessageConsensus
+	BftBasicInfo
 	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
 }
 
-func (m MessageConsensus) String() string {
+func (m BftBasicInfo) String() string {
 	return fmt.Sprintf("SourceId:%d, hr:%d", m.SourceId, m.HeightRound)
 }
 
 func (m MessageProposal) String() string {
-	return fmt.Sprintf("bm %s, value %s", m.MessageConsensus, m.Value)
+	return fmt.Sprintf("bm %s, value %s", m.BftBasicInfo, m.Value)
 }
 
 func (m MessagePreVote) String() string {
-	return fmt.Sprintf("bm %s, idv %s", m.MessageConsensus, m.Idv)
+	return fmt.Sprintf("bm %s, idv %s", m.BftBasicInfo, m.Idv)
 }
 
 func (m MessagePreCommit) String() string {
-	return fmt.Sprintf("bm %s, idv %s", m.MessageConsensus, m.Idv)
+	return fmt.Sprintf("bm %s, idv %s", m.BftBasicInfo, m.Idv)
 }
 
 func (m *MessagePreVote) SignatureTargets() []byte {
@@ -177,7 +177,7 @@ func (m MessageConsensusUnmarshaller) DoUnmarshal(message *message.OGMessage) er
 		return errors.New("unsupported type")
 	}
 	_, err := inner.UnmarshalMsg(message.Data)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	message.Message = inner

@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,14 +76,21 @@ func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.Pub
 	}
 	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
 	return false
-
 }
 
-// handler for hub
-func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg *bft.BftMessage, peerId string) {
+func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(msg *bft.BftMessage){
 	switch msg.Type {
 	case bft.BftMessageTypeProposal:
+		msg.Payload.(bft.MessageProposal).SignatureTargets()
 	case bft.BftMessageTypePreVote:
 	case bft.BftMessageTypePreCommit:
 	}
+}
+
+// handler for hub
+func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg p2p_message.Message, peerId string) {
+	// Only allows
+	if
+	b.VerifyParnterIdentity(msg)
+	b.incomingChannel <- msg
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestMarshalUnmarshalBasicMessage(t *testing.T) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestMarshalUnmarshalBasicMessage(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgBasicMessage(b *testing.B) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -42,7 +42,7 @@ func BenchmarkMarshalMsgBasicMessage(b *testing.B) {
 }
 
 func BenchmarkAppendMsgBasicMessage(b *testing.B) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -54,7 +54,7 @@ func BenchmarkAppendMsgBasicMessage(b *testing.B) {
 }
 
 func BenchmarkUnmarshalBasicMessage(b *testing.B) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -68,7 +68,7 @@ func BenchmarkUnmarshalBasicMessage(b *testing.B) {
 }
 
 func TestEncodeDecodeBasicMessage(t *testing.T) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -77,7 +77,7 @@ func TestEncodeDecodeBasicMessage(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeBasicMessage Msgsize() is inaccurate")
 	}
 
-	vn := MessageConsensus{}
+	vn := BftBasicInfo{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -92,7 +92,7 @@ func TestEncodeDecodeBasicMessage(t *testing.T) {
 }
 
 func BenchmarkEncodeBasicMessage(b *testing.B) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -106,7 +106,7 @@ func BenchmarkEncodeBasicMessage(b *testing.B) {
 }
 
 func BenchmarkDecodeBasicMessage(b *testing.B) {
-	v := MessageConsensus{}
+	v := BftBasicInfo{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

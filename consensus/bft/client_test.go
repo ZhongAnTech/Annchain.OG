@@ -64,7 +64,6 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
-		peerChans = append(peerChans, pc.Incoming)
 		peerInfo = append(peerInfo, PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
@@ -75,7 +74,6 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
-		peerChans = append(peerChans, pc.Incoming)
 		peerInfo = append(peerInfo, PeerInfo{Id: i})
 	}
 	// build known peers
@@ -84,6 +82,8 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		switch peer.(type) {
 		case *DefaultBftOperator:
 			peer.(*DefaultBftOperator).BftStatus.Peers = peerInfo
+		default:
+			panic("not supported")
 		}
 
 	}
@@ -95,6 +95,7 @@ func start(peers []BftOperator, second int) {
 	for _, peer := range peers {
 		go peer.WaiterLoop()
 		go peer.EventLoop()
+
 	}
 	time.Sleep(time.Second * 2)
 	logrus.Info("starting new era")

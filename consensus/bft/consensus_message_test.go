@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/consensus/model"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
 	"testing"
 )
 
 func TestMarshal(t *testing.T) {
-	sp := model.SequencerProposal{
+	sp := SequencerProposal{
 		tx_types.Sequencer{
 			TxBase: types.TxBase{
 				Type:         0,

@@ -14,7 +14,6 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
@@ -88,22 +87,21 @@ type SeqRequest struct {
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (tx_types.Sequencer, error) {
+func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *tx_types.Sequencer, err error) {
 	// TODO: why twice?
-	seq, err, genAgain := c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
-	if seq == nil && genAgain {
-		seq, genAgain = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+	seq, err, _ = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
+	if err != nil {
+		return
 	}
-	logrus.WithField("seq", seq).Infof("sequencer generated")
-	//if ok := c.OGTxCreator.SealTx(seq, &r.PrivateKey); !ok {
-	//	logrus.Warn("delegate failed to seal seq")
-	//	err = fmt.Errorf("delegate failed to seal seq")
-	//	return
+	//if seq == nil && genAgain {
+	//	seq, genAgain = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	//}
-	if seq == nil {
-		return nil, errors.New("generate seq failed")
+	logrus.WithField("seq", seq).Infof("sequencer generated")
+	if ok := c.TxCreator.SealTx(seq, &r.PrivateKey); !ok {
+		err = fmt.Errorf("delegate failed to seal seq")
+		return
 	}
-	logrus.WithField("seq", seq).Infof("sequencer  connected")
+	logrus.WithField("seq", seq).Infof("sequencer connected")
 	return seq, nil
 }
 

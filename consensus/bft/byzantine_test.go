@@ -1,6 +1,8 @@
 package bft
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 type ByzantineFeatures struct {
 	SilenceProposal  bool
@@ -12,10 +14,10 @@ type ByzantineFeatures struct {
 }
 
 type dummyByzantineBftPeerCommunicator struct {
-	Myid              int
-	Peers             []chan BftMessage
-	Incoming          chan BftMessage
-	ByzantineFeatures ByzantineFeatures
+	Myid                   int
+	Peers                  []chan BftMessage
+	Incoming               chan BftMessage
+	ByzantineFeatures      ByzantineFeatures
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
@@ -54,7 +56,7 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg BftMessage, peer PeerInf
 }
 
 func (d *dummyByzantineBftPeerCommunicator) GetIncomingChannel() chan BftMessage {
-	return d.Peers[d.Myid]
+	return d.Incoming
 }
 
 func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan BftMessage, peers []chan BftMessage,

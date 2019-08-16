@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/communicator"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/consensus/model"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
@@ -30,7 +29,7 @@ type AnnsensusPartner struct {
 	termProvider            TermProvider
 	heightProvider          HeightProvider
 	sequencerProducer       SequencerProducer
-	consensusReachedChannel chan model.ConsensusDecision
+	consensusReachedChannel chan bft.ConsensusDecision
 	quit                    chan bool
 }
 
@@ -43,7 +42,7 @@ func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunic
 		peerCommunicator:        peerCommunicator,
 		termProvider:            termProvider,
 		sequencerProducer:       sequencerProducer,
-		consensusReachedChannel: make(chan model.ConsensusDecision),
+		consensusReachedChannel: make(chan bft.ConsensusDecision),
 		quit:                    make(chan bool),
 	}
 	trustfulPeerCommunicator := communicator.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
@@ -73,9 +72,9 @@ func (o *AnnsensusPartner) Name() string {
 
 // MakeDecision here is the final validator for recovering BLS threshold signature for this Proposal.
 // It is not the same as the one in verifiers. Those are for normal tx validation for all nodes.
-func (o *AnnsensusPartner) MakeDecision(proposal model.Proposal, state *bft.HeightRoundState) (model.ConsensusDecision, error) {
+func (o *AnnsensusPartner) MakeDecision(proposal bft.Proposal, state *bft.HeightRoundState) (bft.ConsensusDecision, error) {
 	var sigShares [][]byte
-	sequencerProposal := proposal.(*model.SequencerProposal)
+	sequencerProposal := proposal.(*bft.SequencerProposal)
 	// reform bls signature
 	for i, commit := range state.PreCommits {
 		if commit == nil {
@@ -101,39 +100,19 @@ func (o *AnnsensusPartner) MakeDecision(proposal model.Proposal, state *bft.Heig
 	return sequencerProposal, nil
 }
 
-func (o *AnnsensusPartner) GetConsensusDecisionMadeEventChannel() chan model.ConsensusDecision {
+func (o *AnnsensusPartner) GetConsensusDecisionMadeEventChannel() chan bft.ConsensusDecision {
 	return o.consensusReachedChannel
 }
 
 // ValidateProposal is called once a proposal is received from consensus peers
 //
-func (o *AnnsensusPartner) ValidateProposal(proposal model.Proposal) error {
-	if err := o.validateSignature(proposal); err != nil {
-		return err
-	}
-	if err := o.validateTerm(proposal); err != nil {
-		return err
-	}
-
-	h := proposal.BasicMessage.HeightRound
-	id := b.BFTPartner.Proposer(h)
-	if uint16(id) != proposal.SourceId {
-		if proposal.BasicMessage.TermId == uint32(b.DKGTermId)-1 {
-			//former term message
-			//TODO optimize in the future
-		}
-		logrus.Warn("not your turn")
-		return false
-	}
-
-	if !b.VerifyIsPartNer(pubkey, int(id)) {
-		logrus.Warn("verify pubkey error")
-		return false
-	}
-	return true
+func (o *AnnsensusPartner) ValidateProposal(proposal bft.Proposal) error {
+	// validate sequencer
+	err := o.sequencerProducer.ValidateSequencer(proposal.(*bft.SequencerProposal).Sequencer)
+	return err
 }
 
-func (o *AnnsensusPartner) ProduceProposal() (proposal model.Proposal, validCondition bft.ProposalCondition) {
+func (o *AnnsensusPartner) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
 	me := o.accountProvider.Account()
 	nonce := o.accountNonceProvider.GetNonce(me)
 	logrus.WithField("nonce", nonce).Debug("gen seq")
@@ -164,7 +143,7 @@ func (o *AnnsensusPartner) ProduceProposal() (proposal model.Proposal, validCond
 		logrus.WithField("height", targetHeight).WithField("term", targetTermId).Error("failed to generate sequencer")
 		return
 	}
-	return &model.SequencerProposal{Sequencer: *seq}, bft.ProposalCondition{ValidHeight: targetHeight}
+	return &bft.SequencerProposal{Sequencer: *seq}, bft.ProposalCondition{ValidHeight: targetHeight}
 }
 
 func (o *AnnsensusPartner) loop() {
@@ -186,7 +165,7 @@ func (o *AnnsensusPartner) loop() {
 	}
 }
 
-func (o *AnnsensusPartner) handleConsensusReached(decision model.ConsensusDecision) {
+func (o *AnnsensusPartner) handleConsensusReached(decision bft.ConsensusDecision) {
 	// decision is made, broadcast to others
 	fmt.Println(decision)
 	logrus.Warn("Here you need to broadcast decision to other non-consensus nodes")

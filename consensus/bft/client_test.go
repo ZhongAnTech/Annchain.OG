@@ -68,12 +68,12 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		peerInfo = append(peerInfo, PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
-		peer := NewByzantinePartner(total, i, BlockTime, bf)
-		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
-		peer.DefaultBftOperator.PeerCommunicator = pc
-		peer.DefaultBftOperator.ProposalGenerator = pg
-		peer.DefaultBftOperator.ProposalValidator = pv
-		peer.DefaultBftOperator.DecisionMaker = dm
+		peer := NewDefaultBFTPartner(total, i, BlockTime)
+		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
+		peer.PeerCommunicator = pc
+		peer.ProposalGenerator = pg
+		peer.ProposalValidator = pv
+		peer.DecisionMaker = dm
 		peers = append(peers, peer)
 		peerChans = append(peerChans, pc.Incoming)
 		peerInfo = append(peerInfo, PeerInfo{Id: i})
@@ -84,8 +84,6 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		switch peer.(type) {
 		case *DefaultBftOperator:
 			peer.(*DefaultBftOperator).BftStatus.Peers = peerInfo
-		case *ByzantinePartner:
-			peer.(*ByzantinePartner).BftStatus.Peers = peerInfo
 		}
 
 	}
@@ -131,7 +129,7 @@ func TestByzantineButOK(t *testing.T) {
 		SilencePreVote:   true,
 		SilencePreCommit: true,
 	})
-	start(peers, 10)
+	start(peers, 60)
 }
 
 func TestByzantineNotOK(t *testing.T) {
@@ -140,7 +138,7 @@ func TestByzantineNotOK(t *testing.T) {
 		SilencePreVote:   true,
 		SilencePreCommit: true,
 	})
-	start(peers, 10)
+	start(peers, 60)
 }
 
 func TestBadByzantineOK(t *testing.T) {
@@ -149,7 +147,7 @@ func TestBadByzantineOK(t *testing.T) {
 		BadPreVote:   true,
 		BadProposal:  true,
 	})
-	start(peers, 10)
+	start(peers, 60)
 }
 
 func TestManyBadByzantineOK(t *testing.T) {
@@ -158,7 +156,16 @@ func TestManyBadByzantineOK(t *testing.T) {
 		BadPreVote:   true,
 		BadProposal:  true,
 	})
-	start(peers, 10)
+	start(peers, 60)
+}
+
+func TestGreatManyBadByzantineOK(t *testing.T) {
+	peers := setupPeers(201, 100, ByzantineFeatures{
+		BadPreCommit: true,
+		BadPreVote:   true,
+		BadProposal:  true,
+	})
+	start(peers, 60)
 }
 
 func TestByzantineButOKBUG(t *testing.T) {
@@ -167,5 +174,5 @@ func TestByzantineButOKBUG(t *testing.T) {
 		SilencePreVote:   true,
 		SilencePreCommit: true,
 	})
-	start(peers, 10)
+	start(peers, 60)
 }

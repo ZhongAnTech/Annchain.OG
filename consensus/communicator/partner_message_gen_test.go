@@ -10,7 +10,7 @@ import (
 )
 
 func TestMarshalUnmarshalSignedOgParnterMessage(t *testing.T) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestMarshalUnmarshalSignedOgParnterMessage(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgSignedOgParnterMessage(b *testing.B) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -42,7 +42,7 @@ func BenchmarkMarshalMsgSignedOgParnterMessage(b *testing.B) {
 }
 
 func BenchmarkAppendMsgSignedOgParnterMessage(b *testing.B) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -54,7 +54,7 @@ func BenchmarkAppendMsgSignedOgParnterMessage(b *testing.B) {
 }
 
 func BenchmarkUnmarshalSignedOgParnterMessage(b *testing.B) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -68,7 +68,7 @@ func BenchmarkUnmarshalSignedOgParnterMessage(b *testing.B) {
 }
 
 func TestEncodeDecodeSignedOgParnterMessage(t *testing.T) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -77,7 +77,7 @@ func TestEncodeDecodeSignedOgParnterMessage(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeSignedOgParnterMessage Msgsize() is inaccurate")
 	}
 
-	vn := SignedOgParnterMessage{}
+	vn := SignedOgPartnerMessage{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -92,7 +92,7 @@ func TestEncodeDecodeSignedOgParnterMessage(t *testing.T) {
 }
 
 func BenchmarkEncodeSignedOgParnterMessage(b *testing.B) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -106,7 +106,7 @@ func BenchmarkEncodeSignedOgParnterMessage(b *testing.B) {
 }
 
 func BenchmarkDecodeSignedOgParnterMessage(b *testing.B) {
-	v := SignedOgParnterMessage{}
+	v := SignedOgPartnerMessage{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

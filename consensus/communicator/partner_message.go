@@ -7,10 +7,10 @@ import (
 
 //go:generate msgp
 
-// SignedOgParnterMessage is the message that is signed by partner.
+// SignedOgPartnerMessage is the message that is signed by partner.
 // Consensus layer does not need to care about the signing. It is TrustfulPartnerCommunicator's job
-//msgp:tuple SignedOgParnterMessage
-type SignedOgParnterMessage struct {
+//msgp:tuple SignedOgPartnerMessage
+type SignedOgPartnerMessage struct {
 	bft.BftMessage
 	TermId     uint32
 	ValidRound int

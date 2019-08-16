@@ -2,6 +2,7 @@ package communicator
 
 import (
 	"bytes"
+	"errors"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
@@ -14,7 +15,7 @@ import (
 // It provides Trustful communication between partners with pubkeys
 // All messages received from TrustfulPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulPartnerCommunicator struct {
-	incomingChannel   chan bft.BftMessage
+	incomingChannel   chan *SignedOgPartnerMessage
 	Signer            crypto.ISigner
 	TermProvider      annsensus.TermProvider //TODO：not its job.
 	P2PSender         P2PSender
@@ -24,7 +25,7 @@ type TrustfulPartnerCommunicator struct {
 func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
 	myAccountProvider ConsensusAccountProvider, p2pSender P2PSender) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
-		incomingChannel:   make(chan bft.BftMessage, 20),
+		incomingChannel:   make(chan *SignedOgPartnerMessage, 20),
 		Signer:            signer,
 		TermProvider:      termProvider,
 		MyAccountProvider: myAccountProvider,
@@ -32,9 +33,9 @@ func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.T
 	}
 }
 
-func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgParnterMessage {
+func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) SignedOgPartnerMessage {
 	account := r.MyAccountProvider.Account()
-	signed := SignedOgParnterMessage{
+	signed := SignedOgPartnerMessage{
 		BftMessage: msg,
 		Signature:  r.Signer.Sign(account.PrivateKey, msg.Payload.SignatureTargets()).Bytes,
 		//TermId:     partner.CurrentTerm(),
@@ -60,37 +61,47 @@ func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerI
 
 // GetIncomingChannel provides a channel for downstream component consume the messages
 // that are already verified by communicator
-func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
+func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan *SignedOgPartnerMessage {
 	return r.incomingChannel
 }
 
-func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(publicKey crypto.PublicKey, sourcePartner int, termId uint32) bool {
-	peers := b.TermProvider.Peers(termId)
-	if sourcePartner < 0 || sourcePartner > len(peers)-1 {
-		logrus.WithField("len partner ", len(peers)).WithField("sr ", sourcePartner).Warn("sourceId error")
-		return false
+func (b *TrustfulPartnerCommunicator) VerifyParnterIdentity(signedMsg *SignedOgPartnerMessage) error {
+	peers := b.TermProvider.Peers(signedMsg.TermId)
+	// use public key to find sourcePartner
+	for _, peer := range peers {
+		if bytes.Equal(peer.PublicKey.Bytes, signedMsg.PublicKey) {
+			return nil
+		}
 	}
-	partner := peers[sourcePartner]
-	if bytes.Equal(partner.PublicKey.Bytes, publicKey.Bytes) {
-		return true
-	}
-	logrus.Trace(publicKey.String(), " ", partner.PublicKey.String())
-	return false
+	return errors.New("public key not found in current term")
 }
 
-func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(msg *bft.BftMessage){
-	switch msg.Type {
-	case bft.BftMessageTypeProposal:
-		msg.Payload.(bft.MessageProposal).SignatureTargets()
-	case bft.BftMessageTypePreVote:
-	case bft.BftMessageTypePreCommit:
+func (b *TrustfulPartnerCommunicator) VerifyMessageSignature(signedMsg *SignedOgPartnerMessage) error {
+	ok := crypto.VerifySignature(signedMsg.PublicKey, signedMsg.Payload.SignatureTargets(), signedMsg.Signature)
+	if !ok {
+		return errors.New("signature invalid")
 	}
+	return nil
 }
 
 // handler for hub
-func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg p2p_message.Message, peerId string) {
-	// Only allows
-	if
-	b.VerifyParnterIdentity(msg)
-	b.incomingChannel <- msg
+func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg p2p_message.Message) {
+	// Only allows SignedOgPartnerMessage
+	signedMsg, ok := msg.(*SignedOgPartnerMessage)
+	if !ok {
+		logrus.Warn("message received is not a proper type for bft")
+		return
+	}
+	err := b.VerifyParnterIdentity(signedMsg)
+	if err != nil {
+		logrus.WithField("term", signedMsg.TermId).WithError(err).Warn("bft message partner identity is not valid")
+		return
+	}
+	err = b.VerifyMessageSignature(signedMsg)
+	if err != nil {
+		logrus.WithError(err).Warn("bft message signature is not valid")
+		return
+	}
+
+	b.incomingChannel <- signedMsg
 }

@@ -7,7 +7,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *SignedOgParnterMessage) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *SignedOgPartnerMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -47,7 +47,7 @@ func (z *SignedOgParnterMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *SignedOgParnterMessage) EncodeMsg(en *msgp.Writer) (err error) {
+func (z *SignedOgPartnerMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 5
 	err = en.Append(0x95)
 	if err != nil {
@@ -82,7 +82,7 @@ func (z *SignedOgParnterMessage) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *SignedOgParnterMessage) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *SignedOgPartnerMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 5
 	o = append(o, 0x95)
@@ -107,7 +107,7 @@ func (z *SignedOgParnterMessage) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *SignedOgParnterMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *SignedOgPartnerMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -148,7 +148,7 @@ func (z *SignedOgParnterMessage) UnmarshalMsg(bts []byte) (o []byte, err error) 
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *SignedOgParnterMessage) Msgsize() (s int) {
+func (z *SignedOgPartnerMessage) Msgsize() (s int) {
 	s = 1 + z.BftMessage.Msgsize() + msgp.Uint32Size + msgp.IntSize + z.Signature.Msgsize() + z.PublicKey.Msgsize()
 	return
 }

@@ -68,7 +68,7 @@ type peer struct {
 	seqId     uint64
 	lock      sync.RWMutex
 	knownMsg  mapset.Set        // Set of transaction hashes known to be known by this peer
-	queuedMsg chan []*OGMessage // Queue of transactions to broadcast to the peer
+	queuedMsg chan []*message.OGMessage // Queue of transactions to broadcast to the peer
 	term      chan struct{}     // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
@@ -92,7 +92,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
+		queuedMsg: make(chan []*message.OGMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
@@ -108,13 +108,13 @@ func (p *peer) broadcast() {
 		select {
 		case msg := <-p.queuedMsg:
 			if err := p.SendMessages(msg); err != nil {
-				message.msgLog.WithError(err).Warn("send msg failed,quiting")
+				msgLog.WithError(err).Warn("send msg failed,quiting")
 				return
 			}
-			message.msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
+			msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
 
 		case <-p.term:
-			message.msgLog.Debug("peer terminating,quiting")
+			msgLog.Debug("peer terminating,quiting")
 			return
 		}
 	}
@@ -188,7 +188,7 @@ func (p *peer) MarkMessage(m message.OGMessageType, hash common.Hash) {
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction Hash set for future reference.
-func (p *peer) SendMessages(messages []*OGMessage) error {
+func (p *peer) SendMessages(messages []*message.OGMessage) error {
 	var msgType message.OGMessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
@@ -196,7 +196,7 @@ func (p *peer) SendMessages(messages []*OGMessage) error {
 	}
 	for _, msg := range messages {
 		//duplicated
-		//key := msg.msgKey()
+		//key := msg.MsgKey()
 		//p.knownMsg.Add(key)
 		msgType = msg.MessageType
 		msgBytes = append(msgBytes, msg.Data...)
@@ -205,34 +205,34 @@ func (p *peer) SendMessages(messages []*OGMessage) error {
 }
 
 func (p *peer) sendRawMessage(msgType message.OGMessageType, msgBytes []byte) error {
-	message.msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
+	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 
 }
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendMessages(messages []*OGMessage) {
+func (p *peer) AsyncSendMessages(messages []*message.OGMessage) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
-			key := msg.msgKey()
+			key := msg.MsgKey()
 			p.knownMsg.Add(key)
 		}
 	default:
-		message.msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
+		msgLog.WithField("count", len(messages)).Debug("Dropping transaction propagation")
 	}
 }
 
-func (p *peer) AsyncSendMessage(msg *OGMessage) {
-	var messages []*OGMessage
+func (p *peer) AsyncSendMessage(msg *message.OGMessage) {
+	var messages []*message.OGMessage
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:
-		key := msg.msgKey()
+		key := msg.MsgKey()
 		p.knownMsg.Add(key)
 	default:
-		message.msgLog.Debug("Dropping transaction propagation")
+		msgLog.Debug("Dropping transaction propagation")
 	}
 }
 
@@ -245,7 +245,7 @@ func (p *peer) SendNodeData(data []byte) error {
 // RequestNodeData fetches a batch of arbitrary Data from a node's known state
 // Data, corresponding to the specified hashes.
 func (p *peer) RequestNodeData(hashes common.Hashes) error {
-	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state Data")
+	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state Data")
 	hashsStruct := common.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
 	return p.sendRawMessage(message.GetNodeDataMsg, b)
@@ -253,7 +253,7 @@ func (p *peer) RequestNodeData(hashes common.Hashes) error {
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
 func (p *peer) RequestReceipts(hashes common.Hashes) error {
-	message.msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
+	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
 	return p.sendRawMessage(message.GetReceiptsMsg, b)
 }
@@ -355,7 +355,7 @@ func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reve
 }
 
 func (p *peer) sendRequest(msgType message.OGMessageType, request p2p_message.Message) error {
-	clog := message.msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
+	clog := msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
 		clog.WithError(err).Warn("encode request error")
@@ -604,28 +604,28 @@ func (p *peer) readStatus(network uint64, status *message.StatusData, genesis co
 		return err
 	}
 	if msg.Code != p2p.MsgCodeType(message.StatusMsg) {
-		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, message.StatusMsg)
+		return ErrResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, message.StatusMsg)
 	}
 	if msg.Size > ProtocolMaxMsgSize {
-		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
+		return ErrResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
 	}
 	data, err := msg.GetPayLoad()
 	if err != nil {
-		return errResp(ErrDecode, "msg %v: %v", msg, err)
+		return ErrResp(ErrDecode, "msg %v: %v", msg, err)
 	}
 	_, err = status.UnmarshalMsg(data)
 	// Decode the handshake and make sure everything matches
 	if err != nil {
-		return errResp(ErrDecode, "msg %v: %v", msg, err)
+		return ErrResp(ErrDecode, "msg %v: %v", msg, err)
 	}
 	if status.GenesisBlock != genesis {
-		return errResp(ErrGenesisBlockMismatch, "%x (!= %x)", status.GenesisBlock.Bytes[:8], genesis.Bytes[:8])
+		return ErrResp(ErrGenesisBlockMismatch, "%x (!= %x)", status.GenesisBlock.Bytes[:8], genesis.Bytes[:8])
 	}
 	if status.NetworkId != network {
-		return errResp(ErrNetworkIdMismatch, "%d (!= %d)", status.NetworkId, network)
+		return ErrResp(ErrNetworkIdMismatch, "%d (!= %d)", status.NetworkId, network)
 	}
 	if int(status.ProtocolVersion) != p.version {
-		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
+		return ErrResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	return nil
 }

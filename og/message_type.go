@@ -13,6 +13,8 @@
 // limitations under the License.
 package og
 
+import "fmt"
+
 ////go:generate msgp
 
 const (
@@ -31,13 +33,38 @@ var ProtocolVersions = []uint32{OG02, OG01}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol Message
 
-type SendingType uint8
+
+type ErrCode int
 
 const (
-	sendingTypeBroadcast SendingType = iota
-	sendingTypeMulticast
-	sendingTypeMulticastToSource
-	sendingTypeBroacastWithFilter
-	sendingTypeBroacastWithLink
+	ErrMsgTooLarge = iota
+	ErrDecode
+	ErrInvalidMsgCode
+	ErrProtocolVersionMismatch
+	ErrNetworkIdMismatch
+	ErrGenesisBlockMismatch
+	ErrNoStatusMsg
+	ErrExtraStatusMsg
+	ErrSuspendedPeer
 )
 
+func (e ErrCode) String() string {
+	return errorToString[int(e)]
+}
+
+func ErrResp(code ErrCode, format string, v ...interface{}) error {
+	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
+}
+
+// XXX change once legacy code is out
+var errorToString = map[int]string{
+	ErrMsgTooLarge:             "Message too long",
+	ErrDecode:                  "Invalid message",
+	ErrInvalidMsgCode:          "Invalid message code",
+	ErrProtocolVersionMismatch: "Protocol version mismatch",
+	ErrNetworkIdMismatch:       "NetworkId mismatch",
+	ErrGenesisBlockMismatch:    "Genesis block mismatch",
+	ErrNoStatusMsg:             "No status message",
+	ErrExtraStatusMsg:          "Extra status message",
+	ErrSuspendedPeer:           "Suspended peer",
+}

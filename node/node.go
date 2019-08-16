@@ -542,10 +542,11 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[message.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
 	hub.CallbackRegistry[message.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
 	hub.CallbackRegistry[message.MessageTypeConsensusDkgGenesisPublicKey] = m.RouteConsensusDkgGenesisPublicKey
-	hub.CallbackRegistry[message.MessageTypeConsensus] = m.RouteConsensus
+	// Callbacks fot BFT were moved to bft package
 	//hub.CallbackRegistry[p2p_message.MessageTypeProposal] = m.RouteConsensusProposal
 	//hub.CallbackRegistry[p2p_message.MessageTypePreVote] = m.RouteConsensusPreVote
 	//hub.CallbackRegistry[p2p_message.MessageTypePreCommit] = m.RouteConsensusPreCommit
+	// TODO: move dkg callbacks to consensus package
 
 	hub.CallbackRegistry[message.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
 	hub.CallbackRegistry[message.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse

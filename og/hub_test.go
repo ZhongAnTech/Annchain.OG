@@ -67,7 +67,7 @@ func TestSh256(t *testing.T) {
 	}
 	start := time.Now()
 	for _, m := range msg {
-		m.calculateHash()
+		m.CalculateHash()
 	}
 	fmt.Println("used time ", time.Now().Sub(start))
 }
@@ -93,7 +93,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 		mm := OGMessage{Data: m.Data, MessageType: message.MessageTypeSecret}
 		ok := mm.checkRequiredSize()
 		logrus.Debug(ok)
-		ok = mm.maybeIsforMe(&pk)
+		ok = mm.MaybeIsforMe(&pk)
 		if !ok {
 			t.Fatal(ok)
 		}
@@ -127,7 +127,7 @@ func TestCache(t *testing.T) {
 	}
 	data, _ := msg.MarshalMsg(nil)
 	p2pM := &OGMessage{MessageType: message.MessageTypeNewTx, Data: data, SourceID: "123", Message: msg}
-	p2pM.calculateHash()
+	p2pM.CalculateHash()
 	hub.cacheMessage(p2pM)
 	ids := hub.getMsgFromCache(message.MessageTypeNewTx, *p2pM.Hash)
 	fmt.Println(ids)

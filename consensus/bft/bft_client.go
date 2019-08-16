@@ -299,7 +299,7 @@ func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRoun
 	m := BftMessage{
 		Type: messageType,
 	}
-	basicMessage := MessageConsensus{
+	basicInfo := BftBasicInfo{
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
@@ -314,19 +314,19 @@ func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRoun
 	switch messageType {
 	case BftMessageTypeProposal:
 		m.Payload = &MessageProposal{
-			MessageConsensus: basicMessage,
-			Value:            content,
-			ValidRound:       validRound,
+			BftBasicInfo: basicInfo,
+			Value:        content,
+			ValidRound:   validRound,
 		}
 	case BftMessageTypePreVote:
 		m.Payload = &MessagePreVote{
-			MessageConsensus: basicMessage,
-			Idv:              idv,
+			BftBasicInfo: basicInfo,
+			Idv:          idv,
 		}
 	case BftMessageTypePreCommit:
 		m.Payload = &MessagePreCommit{
-			MessageConsensus: basicMessage,
-			Idv:              idv,
+			BftBasicInfo: basicInfo,
+			Idv:          idv,
 		}
 	}
 	p.PeerCommunicator.Broadcast(m, p.BftStatus.Peers)
@@ -379,7 +379,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessageProposal)
-		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
+		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -399,7 +399,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessagePreVote)
-		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
+		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -419,7 +419,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
 		}
 		msg := message.Payload.(*MessagePreCommit)
-		if needHandle := p.checkRound(&msg.MessageConsensus); !needHandle {
+		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
 		}
@@ -634,7 +634,7 @@ func (p *DefaultBftOperator) count(messageType BftMessageType, height uint64, va
 
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
-func (p *DefaultBftOperator) checkRound(message *MessageConsensus) (needHandle bool) {
+func (p *DefaultBftOperator) checkRound(message *BftBasicInfo) (needHandle bool) {
 	// check status storage first
 	if message.HeightRound.IsAfterOrEqual(p.BftStatus.CurrentHR) {
 		_, ok := p.BftStatus.States[message.HeightRound]

@@ -267,10 +267,10 @@ package bft
 //}
 
 //func (b *BFT) VerifyProposal(proposal *MessageProposal, pubkey crypto.PublicKey) bool {
-//	h := proposal.MessageConsensus.HeightRound
+//	h := proposal.BftBasicInfo.HeightRound
 //	id := b.BFTPartner.Proposer(h)
 //	if uint16(id) != proposal.SourceId {
-//		if proposal.MessageConsensus.TermId == uint32(b.DKGTermId)-1 {
+//		if proposal.BftBasicInfo.TermId == uint32(b.DKGTermId)-1 {
 //			//former term message
 //			//TODO optimize in the future
 //		}

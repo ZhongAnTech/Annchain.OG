@@ -181,7 +181,7 @@ func (p *DefaultBftOperator) StartNewEra(height uint64, round int) {
 			}
 		}
 		logrus.WithField("proposal ", proposal).Trace("new proposal")
-		// broadcast
+		// broadcastWaiterTimeoutChannel
 		p.Broadcast(BftMessageTypeProposal, p.BftStatus.CurrentHR, proposal, currState.ValidRound)
 	} else {
 		p.WaitStepTimeout(StepTypePropose, TimeoutPropose, p.BftStatus.CurrentHR, p.OnTimeoutPropose)
@@ -543,7 +543,7 @@ func (p *DefaultBftOperator) handlePreCommit(commit *MessagePreCommit) {
 					"IM":    p.Id,
 					"hr":    p.BftStatus.CurrentHR.String(),
 					"value": state.Decision,
-				}).Info("Decision made")
+				}).Debug("Decision made")
 
 				//send the decision to upper client to process
 				p.notifyDecisionMade(p.BftStatus.CurrentHR, state.Decision)
@@ -636,13 +636,17 @@ func (p *DefaultBftOperator) count(messageType BftMessageType, height uint64, va
 // It also check if the message is out of date, or advanced too much
 func (p *DefaultBftOperator) checkRound(message *MessageConsensus) (needHandle bool) {
 	// check status storage first
-	if message.HeightRound.IsAfterOrEqual(p.BftStatus.CurrentHR){
+	if message.HeightRound.IsAfterOrEqual(p.BftStatus.CurrentHR) {
 		_, ok := p.BftStatus.States[message.HeightRound]
 		if !ok {
 			// create one
 			// TODO: verify if someone is generating garbage height
 			p.initHeightRound(message.HeightRound)
 		}
+	} else {
+		// this is an old message. just discard it since we don't need to process old messages.
+		logrus.WithField("IM", p.Id).WithField("hr", message.HeightRound).Warn("received an old message")
+		return false
 	}
 	// rule line 55
 	// slightly changed this so that if there is f+1 newer HeightRound(instead of just round), catch up to this HeightRound
@@ -659,7 +663,12 @@ func (p *DefaultBftOperator) checkRound(message *MessageConsensus) (needHandle b
 		//}
 		state.Sources[message.SourceId] = true
 		logrus.WithField("IM", p.Id).Tracef("Set source: %d at %s, %+v", message.SourceId, message.HeightRound.String(), state.Sources)
-		logrus.WithField("IM", p.Id).Tracef("%d's %s state is %+v, after receiving message %s from %d", p.Id, p.BftStatus.CurrentHR.String(), p.BftStatus.States[p.BftStatus.CurrentHR].Sources, message.HeightRound.String(), message.SourceId)
+		if _, ok := p.BftStatus.States[message.HeightRound]; !ok {
+			panic(fmt.Sprintf("fuck %d %s", p.Id, p.BftStatus.CurrentHR.String()))
+		}
+		//logrus.WithField("IM", p.Id).Tracef("%d's %s state is %+v, after receiving message %s from %d",
+		//	p.Id, p.BftStatus.CurrentHR.String(),
+		//	p.BftStatus.States[p.BftStatus.CurrentHR].Sources, message.HeightRound.String(), message.SourceId)
 
 		if len(state.Sources) >= p.BftStatus.F+1 {
 			p.dumpAll("New era received")
@@ -744,6 +753,7 @@ func (p *DefaultBftOperator) initHeightRound(hr HeightRound) (*HeightRoundState,
 	if _, ok := p.BftStatus.States[hr]; !ok {
 		// init one
 		p.BftStatus.States[hr] = NewHeightRoundState(p.BftStatus.N)
+		logrus.WithField("hr", hr).WithField("IM", p.Id).Debug("inited heightround")
 	}
 	return p.BftStatus.States[hr], len(p.BftStatus.States)
 }

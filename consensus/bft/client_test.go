@@ -29,7 +29,7 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 	logrus.SetFormatter(Formatter)
 	//logrus.SetReportCaller(true)
 
@@ -49,40 +49,44 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 
 	total := good + bad
 	i := 0
-	for ; i < good; i++ {
+
+	// prepare incoming channels
+	for ; i < total; i++ {
+		peerChans = append(peerChans, make(chan BftMessage, 5))
+	}
+
+	// building communication channels
+	for i = 0; i < good; i++ {
 		peer := NewDefaultBFTPartner(total, i, BlockTime)
-		pc := NewDummyBftPeerCommunicator(i)
+		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
 		peerChans = append(peerChans, pc.Incoming)
-		peerInfo = append(peerInfo, PeerInfo{Id:i})
+		peerInfo = append(peerInfo, PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
 		peer := NewByzantinePartner(total, i, BlockTime, bf)
-		pc := NewDummyBftPeerCommunicator(i)
+		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
 		peer.DefaultBftOperator.PeerCommunicator = pc
 		peer.DefaultBftOperator.ProposalGenerator = pg
 		peer.DefaultBftOperator.ProposalValidator = pv
 		peer.DefaultBftOperator.DecisionMaker = dm
 		peers = append(peers, peer)
 		peerChans = append(peerChans, pc.Incoming)
-		peerInfo = append(peerInfo, PeerInfo{Id:i})
+		peerInfo = append(peerInfo, PeerInfo{Id: i})
 	}
-	// build communication channel
-	for i := 0; i < total; i++ {
+	// build known peers
+	for i = 0; i < total; i++ {
 		peer := peers[i]
-		pc := peer.GetPeerCommunicator()
-		pc.(*dummyBftPeerCommunicator).Peers = peerChans
-		switch peer.(type){
+		switch peer.(type) {
 		case *DefaultBftOperator:
 			peer.(*DefaultBftOperator).BftStatus.Peers = peerInfo
 		case *ByzantinePartner:
 			peer.(*ByzantinePartner).BftStatus.Peers = peerInfo
 		}
-
 
 	}
 	return peers
@@ -90,16 +94,18 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 
 func start(peers []BftOperator, second int) {
 	logrus.Info("starting")
-	for _, peer := range peers{
-		go peer.StartNewEra(0, 0)
-		break
-	}
-	time.Sleep(time.Second * time.Duration(second))
 	for _, peer := range peers {
 		go peer.WaiterLoop()
 		go peer.EventLoop()
 	}
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
+	logrus.Info("starting new era")
+	for _, peer := range peers {
+		go peer.StartNewEra(0, 0)
+		break
+	}
+	time.Sleep(time.Second * time.Duration(second))
+
 	joinAllPeers(peers)
 }
 
@@ -154,7 +160,6 @@ func TestManyBadByzantineOK(t *testing.T) {
 	})
 	start(peers, 10)
 }
-
 
 func TestByzantineButOKBUG(t *testing.T) {
 	peers := setupPeers(3, 3, ByzantineFeatures{

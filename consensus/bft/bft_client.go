@@ -75,6 +75,7 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *
 	p.waiter = NewWaiter(p.WaiterTimeoutChannel)
 
 	logrus.WithField("n", p.BftStatus.N).WithField("F", p.BftStatus.F).
+		WithField("IM", p.Id).
 		WithField("maj23", p.BftStatus.Maj23).Debug("new bft")
 	return p
 }

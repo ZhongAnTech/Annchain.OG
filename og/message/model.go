@@ -296,3 +296,5 @@ func (m *OGMessage) AllowSendDuplicateMsg() bool {
 func (m *OGMessage) MsgKey() MsgKey {
 	return NewMsgKey(m.MessageType, *m.Hash)
 }
+
+

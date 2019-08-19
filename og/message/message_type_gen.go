@@ -381,3 +381,135 @@ func (z *StatusData) Msgsize() (s int) {
 	s = 1 + msgp.Uint32Size + msgp.Uint64Size + z.CurrentBlock.Msgsize() + z.GenesisBlock.Msgsize() + msgp.Uint64Size
 	return
 }
+
+
+// DecodeMsg implements msgp.Decodable
+func (z *SignedOgPartnerMessage) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	err = z.BftMessage.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "BftMessage")
+		return
+	}
+	z.TermId, err = dc.ReadUint32()
+	if err != nil {
+		err = msgp.WrapError(err, "TermId")
+		return
+	}
+	err = z.Signature.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	err = z.PublicKey.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *SignedOgPartnerMessage) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 4
+	err = en.Append(0x94)
+	if err != nil {
+		return
+	}
+	err = z.BftMessage.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "BftMessage")
+		return
+	}
+	err = en.WriteUint32(z.TermId)
+	if err != nil {
+		err = msgp.WrapError(err, "TermId")
+		return
+	}
+	err = z.Signature.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	err = z.PublicKey.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *SignedOgPartnerMessage) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 4
+	o = append(o, 0x94)
+	o, err = z.BftMessage.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "BftMessage")
+		return
+	}
+	o = msgp.AppendUint32(o, z.TermId)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *SignedOgPartnerMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	bts, err = z.BftMessage.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "BftMessage")
+		return
+	}
+	z.TermId, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "TermId")
+		return
+	}
+	bts, err = z.Signature.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *SignedOgPartnerMessage) Msgsize() (s int) {
+	s = 1 + z.BftMessage.Msgsize() + msgp.Uint32Size + z.Signature.Msgsize() + z.PublicKey.Msgsize()
+	return
+}

@@ -15,15 +15,11 @@ package bft
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/msg"
-	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 )
 
 //go:generate msgp
@@ -59,7 +55,7 @@ func (h *HeightRound) IsBefore(o HeightRound) bool {
 }
 
 //msgp:tuple BftMessageType
-type BftMessageType message.OGMessageType
+type BftMessageType uint16
 
 func (m BftMessageType) String() string {
 	switch m {
@@ -163,42 +159,6 @@ func (m *MessageProposal) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-type MessageConsensusUnmarshaller struct {
-}
-
-func (m MessageConsensusUnmarshaller) DoUnmarshal(message *message.OGMessage) error {
-	var inner p2p_message.Message
-	switch BftMessageType(message.MessageType) {
-	case BftMessageTypeProposal:
-		inner = &MessageProposal{}
-	case BftMessageTypePreVote:
-		inner = &MessagePreVote{}
-	case BftMessageTypePreCommit:
-		inner = &MessagePreCommit{}
-	default:
-		return errors.New("unsupported type")
-	}
-	_, err := inner.UnmarshalMsg(message.Data)
-	if err != nil {
-		return err
-	}
-	message.Message = inner
-	return nil
-}
-
-// SignedOgPartnerMessage is the message that is signed by partner.
-// Consensus layer does not need to care about the signing. It is TrustfulPartnerCommunicator's job
-//msgp:tuple SignedOgPartnerMessage
-type SignedOgPartnerMessage struct {
-	BftMessage
-	TermId     uint32
-	//ValidRound int
-	//PublicKey  []byte
-	Signature hexutil.Bytes
-	PublicKey hexutil.Bytes
-}
-
-
 type Proposal interface {
 	msg.MsgpMember
 	Equal(Proposal) bool
@@ -236,36 +196,6 @@ func (s StringProposal) GetId() *common.Hash {
 
 func (s StringProposal) String() string {
 	return string(s)
-}
-
-//msgp:tuple SequencerProposal
-type SequencerProposal struct {
-	tx_types.Sequencer
-}
-
-func (s *SequencerProposal) String() string {
-	return fmt.Sprintf("seqProposal") + s.Sequencer.String()
-}
-
-func (s SequencerProposal) Equal(o Proposal) bool {
-	v, ok := o.(*SequencerProposal)
-	if !ok || v == nil {
-		return false
-	}
-	return s.GetTxHash() == v.GetTxHash()
-}
-
-func (s SequencerProposal) GetId() *common.Hash {
-	//should copy ?
-	var hash common.Hash
-	hash.MustSetBytes(s.GetTxHash().ToBytes(), common.PaddingNone)
-	return &hash
-}
-
-func (s SequencerProposal) Copy() Proposal {
-	var r SequencerProposal
-	r = s
-	return &r
 }
 
 type ConsensusDecision Proposal

@@ -39,6 +39,9 @@ import (
 	"github.com/annchain/kyber/v3/sign/bls"
 )
 
+// DkgPartner is the parter in a DKG group built to discuss a pub/privkey
+// It will receive DKG messages and update the status.
+// Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
 	TermId            uint32
 	dkgOn             bool
@@ -619,8 +622,8 @@ func (d *DkgPartner) gossiploop() {
 					"not found  dkg  context or campaign msg for address  of this  deal")
 				continue
 			}
-			if !pkBls.Equal(d.context.jointPubKey) {
-				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.context.jointPubKey).Warn("pk bls mismatch")
+			if !pkBls.Equal(d.context.JointPubKey) {
+				log.WithField("got pkbls ", pkBls).WithField("joint pk ", d.context.JointPubKey).Warn("pk bls mismatch")
 				continue
 			}
 			d.addSigsets(addr, &tx_types.SigSet{PublicKey: response.PublicKey, Signature: response.Signature})
@@ -631,7 +634,7 @@ func (d *DkgPartner) gossiploop() {
 				if err != nil {
 					log.WithError(err).Error("key share err")
 				}
-				d.OnDkgPulicKeyChan <- d.context.jointPubKey
+				d.OnDkgPulicKeyChan <- d.context.JointPubKey
 				d.ready = false
 				d.clearCache()
 
@@ -698,7 +701,7 @@ func (d *DkgPartner) CacheDealsIfNotReady(addr common.Address, request *p2p_mess
 func (d *DkgPartner) CacheSigSetsIfNotReady(addr common.Address, response *p2p_message.MessageConsensusDkgSigSets) bool {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	if !d.ready || d.context.jointPubKey == nil {
+	if !d.ready || d.context.JointPubKey == nil {
 		if _, ok := d.dealSigSetsCache[addr]; !ok {
 			d.dealSigSetsCache[addr] = response
 		}
@@ -773,8 +776,8 @@ func (d *DkgPartner) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termI
 		return false
 	}
 	if termId < d.TermId {
-		if !pubKey.Equal(d.formerContext.jointPubKey) {
-			log.WithField("termId ", termId).WithField("seq pk ", pubKey).WithField("our joint pk ", d.formerContext.jointPubKey).Warn("different")
+		if !pubKey.Equal(d.formerContext.JointPubKey) {
+			log.WithField("termId ", termId).WithField("seq pk ", pubKey).WithField("our joint pk ", d.formerContext.JointPubKey).Warn("different")
 			return false
 		}
 		err = bls.Verify(d.formerContext.Suite, pubKey, msg, sig)
@@ -784,8 +787,8 @@ func (d *DkgPartner) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termI
 		}
 		return true
 	}
-	if !pubKey.Equal(d.context.jointPubKey) {
-		log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.context.jointPubKey).Warn("different")
+	if !pubKey.Equal(d.context.JointPubKey) {
+		log.WithField("seq pk ", pubKey).WithField("our joint pk ", d.context.JointPubKey).Warn("different")
 		return false
 	}
 	err = bls.Verify(d.context.Suite, pubKey, msg, sig)
@@ -795,7 +798,7 @@ func (d *DkgPartner) VerifyBlsSig(msg []byte, sig []byte, jointPub []byte, termI
 	}
 	return true
 	//Todo how to verify when term change
-	// d.context.jointPubKey
+	// d.context.JointPubKey
 }
 
 func (d *DkgPartner) Sign(msg []byte, termId uint32) (partSig []byte, err error) {
@@ -804,7 +807,7 @@ func (d *DkgPartner) Sign(msg []byte, termId uint32) (partSig []byte, err error)
 		partner = d.formerContext
 		log.Trace("use former context to sign")
 	}
-	return partner.Sig(msg)
+	return partner.PartSig(msg)
 }
 
 func (d *DkgPartner) GetJoinPublicKey(termId uint32) kyber.Point {
@@ -813,7 +816,7 @@ func (d *DkgPartner) GetJoinPublicKey(termId uint32) kyber.Point {
 		partner = d.formerContext
 		log.Trace("use former context to sign")
 	}
-	return partner.jointPubKey
+	return partner.JointPubKey
 }
 
 func (d *DkgPartner) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, dkgTermId uint32) (jointSig []byte, err error) {
@@ -859,7 +862,7 @@ func (d *DkgPartner) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, d
 }
 
 func (d *DkgPartner) SetJointPk(pk kyber.Point) {
-	d.context.jointPubKey = pk
+	d.context.JointPubKey = pk
 }
 
 type DKGInfo struct {

@@ -125,7 +125,7 @@ func TestBLS(t *testing.T) {
 		if err != nil {
 			fmt.Printf("Partner %d cannot partSig: %s\n", partner.ID, err)
 		} else {
-			fmt.Printf("Sig %d %s\n", i, hexutil.Encode(sig))
+			fmt.Printf("PartSig %d %s\n", i, hexutil.Encode(sig))
 			sigShares = append(sigShares, sig)
 		}
 	}

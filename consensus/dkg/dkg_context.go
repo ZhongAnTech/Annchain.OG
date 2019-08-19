@@ -25,23 +25,23 @@ import (
 )
 
 type DkgContext struct {
-	Id                    uint32
-	PartPubs              []kyber.Point
-	MyPartSec             kyber.Scalar
-	CandidatePartSec      []kyber.Scalar
-	CandidatePublicKey    [][]byte
-	addressIndex          map[common.Address]int
+	Id        uint32
+	PartPubs  []kyber.Point
+	MyPartSec kyber.Scalar
+	//CandidatePartSec      []kyber.Scalar
+	//CandidatePublicKey    [][]byte
+	//addressIndex          map[common.Address]int
 	SecretKeyContribution map[common.Address]kyber.Scalar
 	Suite                 *bn256.Suite
 	Dkger                 *dkg.DistKeyGenerator
 	Resps                 map[common.Address]*dkg.Response
-	dealsIndex            map[uint32]bool
-	Threshold             int
-	NbParticipants        int
-	jointPubKey           kyber.Point
-	responseNumber        int
-	SigShares             [][]byte
-	KeyShare              *dkg.DistKeyShare
+	//dealsIndex            map[uint32]bool
+	Threshold      int
+	NbParticipants int
+	JointPubKey    kyber.Point
+	//responseNumber        int
+	SigShares [][]byte
+	KeyShare  *dkg.DistKeyShare // cache of the DistKeyShare to avoid recovery multiple times
 }
 
 func NewDkgContext(s *bn256.Suite) *DkgContext {
@@ -63,7 +63,7 @@ func genPartnerPair(p *DkgContext) (kyber.Scalar, kyber.Point) {
 // Then it is possible to sign and verify data.
 func (p *DkgContext) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
-	log.WithField(" len", len(p.PartPubs)).Debug("my part pbus")
+	log.WithField(" len", len(p.PartPubs)).Debug("part public keys")
 	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
 	if err != nil {
 		log.WithField("dkger", dkger).WithError(err).Error("generate dkg error")
@@ -74,8 +74,7 @@ func (p *DkgContext) GenerateDKGer() error {
 	return nil
 }
 
-// VerifyByPubPoly
-func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
+func (p *DkgContext) ensureKeyShare() (err error) {
 	dks := p.KeyShare
 	if dks == nil {
 		dks, err = p.Dkger.DistKeyShare()
@@ -83,65 +82,59 @@ func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 			return
 		}
 	}
-	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
-	if pubPoly.Commit() != dks.Public() {
+	return nil
+}
+
+// VerifyByPubPoly
+func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
+	if err := p.ensureKeyShare(); err != nil {
+		return
+	}
+	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
+
+	//TODO： remove these check. It is only for debugging
+	if pubPoly.Commit() != p.KeyShare.Public() {
 		err = errors.New("PubPoly not aligned to dksPublic")
 		return
 	}
 
 	err = bls.Verify(p.Suite, pubPoly.Commit(), msg, sig)
 	log.Tracef(" pubPolyCommit [%s] dksPublic [%s] dksCommitments [%s]\n",
-		pubPoly.Commit(), dks.Public(), dks.Commitments())
+		pubPoly.Commit(), p.KeyShare.Public(), p.KeyShare.Commitments())
 	return
 }
 
 func (p *DkgContext) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
-	dks := p.KeyShare
-	if dks == nil {
-		dks, err = p.Dkger.DistKeyShare()
-		if err != nil {
-			return
-		}
+	if err := p.ensureKeyShare(); err != nil {
+		return
 	}
-	err = bls.Verify(p.Suite, dks.Public(), msg, sig)
+	err = bls.Verify(p.Suite, p.KeyShare.Public(), msg, sig)
 	return
 }
 
 func (p *DkgContext) RecoverSig(msg []byte) (jointSig []byte, err error) {
-	dks := p.KeyShare
-	if dks == nil {
-		dks, err = p.Dkger.DistKeyShare()
-		if err != nil {
-			return
-		}
+	if err := p.ensureKeyShare(); err != nil {
+		return
 	}
-	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
+	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
 	jointSig, err = tbls.Recover(p.Suite, pubPoly, msg, p.SigShares, p.Threshold, p.NbParticipants)
 	return
 }
 
 func (p *DkgContext) RecoverPub() (jointPubKey kyber.Point, err error) {
-	dks := p.KeyShare
-	if dks == nil {
-		dks, err = p.Dkger.DistKeyShare()
-		if err != nil {
-			return
-		}
+	if err := p.ensureKeyShare(); err != nil {
+		return
 	}
-	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), dks.Commitments())
+	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
 	jointPubKey = pubPoly.Commit()
-	p.jointPubKey = jointPubKey
+	p.JointPubKey = jointPubKey
 	return
 }
 
-func (p *DkgContext) Sig(msg []byte) (partSig []byte, err error) {
-	dks := p.KeyShare
-	if dks == nil {
-		dks, err = p.Dkger.DistKeyShare()
-		if err != nil {
-			return
-		}
+func (p *DkgContext) PartSig(msg []byte) (partSig []byte, err error) {
+	if err := p.ensureKeyShare(); err != nil {
+		return
 	}
-	partSig, err = tbls.Sign(p.Suite, dks.PriShare(), msg)
+	partSig, err = tbls.Sign(p.Suite, p.KeyShare.PriShare(), msg)
 	return
 }

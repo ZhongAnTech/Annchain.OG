@@ -103,7 +103,7 @@ func (d *DkgPartner) SaveConsensusData() error {
 func (d *DkgPartner) generateConfig() DkgConfig {
 	var config DkgConfig
 	config.keyShare = d.context.KeyShare
-	pk, err := d.context.jointPubKey.MarshalBinary()
+	pk, err := d.context.JointPubKey.MarshalBinary()
 	if err != nil {
 		log.WithError(err).Error("joint publickey error")
 	}
@@ -198,7 +198,7 @@ func (d *DkgPartner) SetConfig(config *DkgConfig) {
 	d.dkgOn = true
 	d.ready = true
 	d.context.MyPartSec = config.secretKey
-	d.context.jointPubKey = config.jointPubKey
+	d.context.JointPubKey = config.jointPubKey
 	d.context.Id = config.PartnerId
 	d.blsSigSets = config.SigSets
 	d.isValidPartner = true

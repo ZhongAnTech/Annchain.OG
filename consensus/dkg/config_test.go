@@ -52,7 +52,7 @@ func TestAnnSensus_SaveConsensusData(t *testing.T) {
 		},
 		PrivatePoly: scalars,
 	}
-	d.context.jointPubKey = genPoint(suite)
+	d.context.JointPubKey = genPoint(suite)
 	d.context.MyPartSec = genScaler(suite)
 	fmt.Println(d.generateConfig())
 	d.SaveConsensusData()

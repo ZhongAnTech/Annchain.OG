@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/types"
 	"strings"
 
@@ -54,7 +55,7 @@ type RawSequencer struct {
 type RawCampaign struct {
 	types.TxBase
 	DkgPublicKey []byte
-	Vrf          VrfInfo
+	Vrf          vrf.VrfInfo
 }
 
 //msgp:tuple RawTermChange

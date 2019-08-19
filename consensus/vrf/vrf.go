@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package annsensus
+package vrf
 
 import (
 	"crypto/rand"
@@ -24,13 +24,20 @@ import (
 
 //go:generate msgp
 
-func (as *AnnSensus) GenerateVrf() *tx_types.VrfInfo {
+type Vrf struct{
+	
+}
+
+func (as *Vrf) GenerateVrf() *VrfInfo {
 	sk, err := vrf.GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 	pk, _ := sk.Public()
-	_, data := as.GetProofData(as.Idag.LatestSequencer().Height)
+	//TODO: recover this. currently just comment out for compiler
+	//_, data := as.GetProofData(as.Idag.LatestSequencer().Height)
+	var data []byte
+
 	Vrf := sk.Compute(data)
 	ok := as.VrfCondition(Vrf)
 	if !ok {
@@ -38,7 +45,7 @@ func (as *AnnSensus) GenerateVrf() *tx_types.VrfInfo {
 	}
 	VRFFromProof, proof := sk.Prove(data)
 	_ = VRFFromProof ///todo ???
-	var VrfInfo tx_types.VrfInfo
+	var VrfInfo VrfInfo
 	VrfInfo.Vrf = Vrf
 	VrfInfo.PublicKey = pk
 	VrfInfo.Proof = proof
@@ -54,27 +61,27 @@ type VrfData struct {
 }
 
 //GetProofData get data
-func (as *AnnSensus) GetProofData(height uint64) (*VrfData, []byte) {
-	var sq *tx_types.Sequencer
-	if height == 0 {
-		sq = as.Idag.LatestSequencer()
-	} else {
-		sq = as.Idag.GetSequencerByHeight(height)
-	}
-	if sq == nil {
-		logrus.WithField("height ", height).Warn("we don't have this sequencer yet")
-		return nil, nil
-	}
-	txs := as.Idag.GetTxisByNumber(sq.Height)
-	vd := &VrfData{}
-	vd.SeqHash = sq.Hash
-	vd.Height = sq.Height
-	vd.TxNum = len(txs)
-	data, _ := vd.MarshalMsg(nil)
-	return vd, data
-}
+//func (as *Vrf) GetProofData(height uint64) (*VrfData, []byte) {
+//	var sq *Sequencer
+//	if height == 0 {
+//		sq = as.Idag.LatestSequencer()
+//	} else {
+//		sq = as.Idag.GetSequencerByHeight(height)
+//	}
+//	if sq == nil {
+//		logrus.WithField("height ", height).Warn("we don't have this sequencer yet")
+//		return nil, nil
+//	}
+//	txs := as.Idag.GetTxisByNumber(sq.Height)
+//	vd := &VrfData{}
+//	vd.SeqHash = sq.Hash
+//	vd.Height = sq.Height
+//	vd.TxNum = len(txs)
+//	data, _ := vd.MarshalMsg(nil)
+//	return vd, data
+//}
 
-func (as *AnnSensus) VrfCondition(Vrf []byte) bool {
+func (as *Vrf) VrfCondition(Vrf []byte) bool {
 	if len(Vrf) != vrf.Size {
 		logrus.WithField("len", len(Vrf)).Warn("vrf length error")
 		return false
@@ -89,7 +96,7 @@ func (as *AnnSensus) VrfCondition(Vrf []byte) bool {
 
 }
 
-func (as *AnnSensus) VerifyVrfData(data []byte) error {
+func (as *Vrf) VerifyVrfData(data []byte) error {
 	var vd VrfData
 	_, err := vd.UnmarshalMsg(data)
 	if err != nil {
@@ -106,7 +113,7 @@ func (as *AnnSensus) VerifyVrfData(data []byte) error {
 	return nil
 }
 
-func (as *AnnSensus) VrfVerify(Vrf []byte, pk []byte, data []byte, proof []byte) (err error) {
+func (as *Vrf) VrfVerify(Vrf []byte, pk []byte, data []byte, proof []byte) (err error) {
 	if !as.VrfCondition(Vrf) {
 		return fmt.Errorf("not your turn ; vrf condition mismatch")
 	}

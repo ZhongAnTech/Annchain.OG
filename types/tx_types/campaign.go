@@ -14,9 +14,9 @@
 package tx_types
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"
@@ -30,17 +30,9 @@ import (
 type Campaign struct {
 	types.TxBase
 	DkgPublicKey []byte
-	Vrf          VrfInfo
+	Vrf          vrf.VrfInfo
 	Issuer       *common.Address
 	dkgPublicKey kyber.Point
-}
-
-//msgp:tuple VrfInfo
-type VrfInfo struct {
-	Message   []byte
-	Proof     []byte
-	PublicKey []byte
-	Vrf       []byte
 }
 
 //msgp:tuple Campaigns
@@ -153,14 +145,6 @@ func (c *Campaign) MarshalDkgKey() error {
 	}
 	c.DkgPublicKey = d
 	return nil
-}
-
-func (v *VrfInfo) String() string {
-	if v == nil {
-		return ""
-	}
-	return fmt.Sprintf("Msg:%s, vrf :%s , proof :%s, pubKey :%s", hex.EncodeToString(v.Message), hex.EncodeToString(v.Vrf),
-		hex.EncodeToString(v.Proof), hex.EncodeToString(v.PublicKey))
 }
 
 func (c *Campaign) RawTxi() types.RawTxi {

@@ -47,7 +47,7 @@ type AnnSensus struct {
 	campaignFlag bool
 	cryptoType   crypto.CryptoType
 
-	//dkg  *dkg.Dkg
+	//dkg  *dkg.DkgPartner
 	term *term.Term
 	//bft  *bft.BFT // tendermint protocal
 
@@ -127,7 +127,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	//if partnerNum < 2 {
 	//	panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
 	//}
-	dkger := dkg.NewDkg(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.Idag, ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
+	dkger := dkg.NewDkgPartner(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
 	dkger.ConfigFilePath = configFile
 	ann.dkg = dkger
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")

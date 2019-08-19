@@ -35,7 +35,7 @@ func genPoint(p *bn256.Suite) kyber.Point {
 
 func TestAnnSensus_SaveConsensusData(t *testing.T) {
 	logInit()
-	d := NewDkg(true, 21, 15, nil, nil, nil, nil)
+	d := NewDkgPartner(true, 21, 15, nil, nil, nil, nil)
 	d.ConfigFilePath = "test.json"
 	d.GenerateDkg()
 	suite := bn256.NewSuiteG2()
@@ -44,7 +44,7 @@ func TestAnnSensus_SaveConsensusData(t *testing.T) {
 	points = append(points, genPoint(suite), genPoint(suite))
 	var scalars []kyber.Scalar
 	scalars = append(scalars, genScaler(suite), genScaler(suite), genScaler(suite))
-	d.partner.KeyShare = &dkg.DistKeyShare{
+	d.context.KeyShare = &dkg.DistKeyShare{
 		Commits: points,
 		Share: &share.PriShare{
 			I: 3,
@@ -52,8 +52,8 @@ func TestAnnSensus_SaveConsensusData(t *testing.T) {
 		},
 		PrivatePoly: scalars,
 	}
-	d.partner.jointPubKey = genPoint(suite)
-	d.partner.MyPartSec = genScaler(suite)
+	d.context.jointPubKey = genPoint(suite)
+	d.context.MyPartSec = genScaler(suite)
 	fmt.Println(d.generateConfig())
 	d.SaveConsensusData()
 	config, _ := d.LoadConsensusData()

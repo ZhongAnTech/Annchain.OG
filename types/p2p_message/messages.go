@@ -546,7 +546,7 @@ func (m MessageConsensusDkgDealResponse) String() string {
 }
 
 func (m *MessageConsensusDkgDealResponse) SignatureTargets() []byte {
-	d := []byte(m.Data)
+	d := m.Data
 	w := types.NewBinaryWriter()
 	w.Write(d, m.Id)
 	return w.Bytes()

@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types/tx_types"
@@ -46,7 +45,7 @@ func logInit() {
 func TestVrfSelections_Le(t *testing.T) {
 	logInit()
 
-	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
+	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
 	tm := term.NewTerm(1, 21, 4)
 	d.term = tm
 	for i := 0; i < 21; i++ {
@@ -75,23 +74,23 @@ func getRandomAccount() *account.Account {
 
 func TestDKgLog(t *testing.T) {
 	logInit()
-	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
+	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
 	log := log.WithField("me", d.GetId())
 	log.Debug("hi")
-	d.partner.Id = 10
+	d.context.Id = 10
 	log.Info("hi hi")
 }
 
 func TestReset(t *testing.T) {
 	logInit()
-	d := NewDkg(true, 4, 3, nil, nil, nil, nil)
-	log.Debug("sk ", d.partner.MyPartSec)
+	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
+	log.Debug("sk ", d.context.MyPartSec)
 	d.Reset(nil)
-	log.Debug("sk ", d.partner.MyPartSec)
+	log.Debug("sk ", d.context.MyPartSec)
 	d.GenerateDkg()
-	log.Debug("sk ", d.partner.MyPartSec)
+	log.Debug("sk ", d.context.MyPartSec)
 	d.Reset(nil)
-	log.Debug("sk ", d.partner.MyPartSec)
+	log.Debug("sk ", d.context.MyPartSec)
 
 }
 
@@ -101,9 +100,9 @@ func TestNewDKGPartner(t *testing.T) {
 		fmt.Println(j, j*2/3+1)
 	}
 	for i := 0; i < 4; i++ {
-		d := NewDkg(true, 4, 3, nil, nil, nil, nil)
+		d := NewDkgPartner(true, 4, 3, nil, nil, nil)
 		fmt.Println(hexutil.Encode(d.PublicKey()))
-		fmt.Println(d.partner.MyPartSec)
+		fmt.Println(d.context.MyPartSec)
 	}
 
 }

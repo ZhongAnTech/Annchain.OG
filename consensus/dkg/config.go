@@ -56,7 +56,7 @@ func (c DkgConfig) String() string {
 }
 
 //SaveConsensusData
-func (d *Dkg) SaveConsensusData() error {
+func (d *DkgPartner) SaveConsensusData() error {
 	config := d.generateConfig()
 	//
 	for i := 0; i < len(config.keyShare.Commits); i++ {
@@ -100,25 +100,25 @@ func (d *Dkg) SaveConsensusData() error {
 	return nil
 }
 
-func (d *Dkg) generateConfig() DkgConfig {
+func (d *DkgPartner) generateConfig() DkgConfig {
 	var config DkgConfig
-	config.keyShare = d.partner.KeyShare
-	pk, err := d.partner.jointPubKey.MarshalBinary()
+	config.keyShare = d.context.KeyShare
+	pk, err := d.context.jointPubKey.MarshalBinary()
 	if err != nil {
 		log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgJointPublicKey = pk
-	sk, err := d.partner.MyPartSec.MarshalBinary()
+	sk, err := d.context.MyPartSec.MarshalBinary()
 	if err != nil {
 		log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgSecretKey = sk
-	config.PartnerId = d.partner.Id
+	config.PartnerId = d.context.Id
 	config.SigSets = d.blsSigSets
 	return config
 }
 
-func (d *Dkg) LoadConsensusData() (*DkgConfig, error) {
+func (d *DkgPartner) LoadConsensusData() (*DkgConfig, error) {
 	suit := bn256.NewSuiteG2()
 	var config DkgConfig
 	keyShare := dkg.DistKeyShare{}
@@ -193,13 +193,13 @@ func (d *Dkg) LoadConsensusData() (*DkgConfig, error) {
 	return &config, nil
 }
 
-func (d *Dkg) SetConfig(config *DkgConfig) {
-	d.partner.KeyShare = config.keyShare
+func (d *DkgPartner) SetConfig(config *DkgConfig) {
+	d.context.KeyShare = config.keyShare
 	d.dkgOn = true
 	d.ready = true
-	d.partner.MyPartSec = config.secretKey
-	d.partner.jointPubKey = config.jointPubKey
-	d.partner.Id = config.PartnerId
+	d.context.MyPartSec = config.secretKey
+	d.context.jointPubKey = config.jointPubKey
+	d.context.Id = config.PartnerId
 	d.blsSigSets = config.SigSets
 	d.isValidPartner = true
 }

@@ -19,8 +19,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
 	"sync/atomic"
 )
 
@@ -349,3 +352,48 @@ func (s *StatusData) String() string {
 	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %d",
 		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
 }
+
+
+// SignedOgPartnerMessage is the message that is signed by partner.
+// Consensus layer does not need to care about the signing. It is TrustfulPartnerCommunicator's job
+//msgp:tuple SignedOgPartnerMessage
+type SignedOgPartnerMessage struct {
+	bft.BftMessage
+	TermId     uint32
+	//ValidRound int
+	//PublicKey  []byte
+	Signature hexutil.Bytes
+	PublicKey hexutil.Bytes
+}
+
+
+//msgp:tuple SequencerProposal
+type SequencerProposal struct {
+	tx_types.Sequencer
+}
+
+func (s *SequencerProposal) String() string {
+	return fmt.Sprintf("seqProposal") + s.Sequencer.String()
+}
+
+func (s SequencerProposal) Equal(o bft.Proposal) bool {
+	v, ok := o.(*SequencerProposal)
+	if !ok || v == nil {
+		return false
+	}
+	return s.GetTxHash() == v.GetTxHash()
+}
+
+func (s SequencerProposal) GetId() *common.Hash {
+	//should copy ?
+	var hash common.Hash
+	hash.MustSetBytes(s.GetTxHash().ToBytes(), common.PaddingNone)
+	return &hash
+}
+
+func (s SequencerProposal) Copy() bft.Proposal {
+	var r SequencerProposal
+	r = s
+	return &r
+}
+

@@ -71,11 +71,11 @@ const (
 	MessageTypeArchive
 	MessageTypeActionTX
 
-	//for consensus dkg
-	MessageTypeConsensusDkgDeal
-	MessageTypeConsensusDkgDealResponse
-	MessageTypeConsensusDkgSigSets
-	MessageTypeConsensusDkgGenesisPublicKey
+	//move to dkg package
+	//MessageTypeConsensusDkgDeal
+	//MessageTypeConsensusDkgDealResponse
+	//MessageTypeConsensusDkgSigSets
+	//MessageTypeConsensusDkgGenesisPublicKey
 
 	MessageTypeTermChangeRequest
 	MessageTypeTermChangeResponse
@@ -166,16 +166,14 @@ func (mt OGMessageType) String() string {
 	case MessageTypeActionTX:
 		return "MessageTypeActionTX"
 
-	case MessageTypeConsensusDkgDeal:
-		return "MessageTypeConsensusDkgDeal"
-	case MessageTypeConsensusDkgDealResponse:
-		return "MessageTypeConsensusDkgDealResponse"
-
-	case MessageTypeConsensusDkgSigSets:
-		return "MessageTypeDkgSigSets"
-
-	case MessageTypeConsensusDkgGenesisPublicKey:
-		return "MessageTypeConsensusDkgGenesisPublicKey"
+	//case MessageTypeConsensusDkgDeal:
+	//	return "MessageTypeConsensusDkgDeal"
+	//case MessageTypeConsensusDkgDealResponse:
+	//	return "MessageTypeConsensusDkgDealResponse"
+	//case MessageTypeConsensusDkgSigSets:
+	//	return "MessageTypeDkgSigSets"
+	//case MessageTypeConsensusDkgGenesisPublicKey:
+	//	return "MessageTypeConsensusDkgGenesisPublicKey"
 	case MessageTypeTermChangeRequest:
 		return "MessageTypeTermChangeRequest"
 	case MessageTypeTermChangeResponse:
@@ -276,14 +274,14 @@ func (m OGMessageType) GetMsg() p2p_message.Message {
 		message = &p2p_message.MessageCampaign{}
 	case MessageTypeTermChange:
 		message = &p2p_message.MessageTermChange{}
-	case MessageTypeConsensusDkgDeal:
-		message = &p2p_message.MessageConsensusDkgDeal{}
-	case MessageTypeConsensusDkgDealResponse:
-		message = &p2p_message.MessageConsensusDkgDealResponse{}
-	case MessageTypeConsensusDkgSigSets:
-		message = &p2p_message.MessageConsensusDkgSigSets{}
-	case MessageTypeConsensusDkgGenesisPublicKey:
-		message = &p2p_message.MessageConsensusDkgGenesisPublicKey{}
+	//case MessageTypeConsensusDkgDeal:
+	//	message = &p2p_message.MessageConsensusDkgDeal{}
+	//case MessageTypeConsensusDkgDealResponse:
+	//	message = &p2p_message.MessageConsensusDkgDealResponse{}
+	//case MessageTypeConsensusDkgSigSets:
+	//	message = &p2p_message.MessageConsensusDkgSigSets{}
+	//case MessageTypeConsensusDkgGenesisPublicKey:
+	//	message = &p2p_message.MessageConsensusDkgGenesisPublicKey{}
 
 	case MessageTypeTermChangeResponse:
 		message = &p2p_message.MessageTermChangeResponse{}

@@ -2,31 +2,11 @@ package bft
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types/msg"
 	"time"
 )
-
-//go:generate msgp
-
-type Signable interface {
-	msg.MsgpMember
-	SignatureTargets() []byte
-}
-
-//msgp:tuple BftMessage
-type BftMessage struct {
-	Type    BftMessageType
-	Payload Signable
-}
-
-func (m *BftMessage) String() string {
-	return fmt.Sprintf("%s %+v", m.Type.String(), m.Payload)
-}
-
 
 const (
 	TimeoutPropose   = time.Duration(8) * time.Second

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/consensus/communicator"
-	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/consensus/dkg/archive"
 	"github.com/annchain/OG/consensus/term"
+	bft2 "github.com/annchain/OG/og/communicator/bft"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
@@ -25,7 +25,7 @@ type AnnsensusPartner struct {
 	accountProvider         ConsensusAccountProvider
 	peerCommunicator        bft.BftPeerCommunicator // AnnsensusPartner is a BftPeerCommunicator, peerCommunicator is a PeerCommunicator
 	bftPartnerMyself        *bft.BftOperator
-	dkg                     *dkg.DkgPartner
+	dkg                     *archive.DkgPartner
 	termProvider            TermProvider
 	heightProvider          HeightProvider
 	sequencerProducer       SequencerProducer
@@ -45,7 +45,7 @@ func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunic
 		consensusReachedChannel: make(chan bft.ConsensusDecision),
 		quit:                    make(chan bool),
 	}
-	trustfulPeerCommunicator := communicator.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
+	trustfulPeerCommunicator := bft2.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
 
 	ap := &AnnsensusPartner{
 		peerCommunicator:     trustfulPeerCommunicator,

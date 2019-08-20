@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dkg
+package archive
 
 import (
 	"encoding/hex"
@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
+	dkg2 "github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3"
 
@@ -56,7 +57,7 @@ func (c DkgConfig) String() string {
 }
 
 //SaveConsensusData
-func (d *DkgPartner) SaveConsensusData() error {
+func (d *archive.DkgPartner) SaveConsensusData() error {
 	config := d.generateConfig()
 	//
 	for i := 0; i < len(config.keyShare.Commits); i++ {
@@ -100,17 +101,17 @@ func (d *DkgPartner) SaveConsensusData() error {
 	return nil
 }
 
-func (d *DkgPartner) generateConfig() DkgConfig {
+func (d *archive.DkgPartner) generateConfig() DkgConfig {
 	var config DkgConfig
 	config.keyShare = d.context.KeyShare
 	pk, err := d.context.JointPubKey.MarshalBinary()
 	if err != nil {
-		log.WithError(err).Error("joint publickey error")
+		dkg2.log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgJointPublicKey = pk
 	sk, err := d.context.MyPartSec.MarshalBinary()
 	if err != nil {
-		log.WithError(err).Error("joint publickey error")
+		dkg2.log.WithError(err).Error("joint publickey error")
 	}
 	config.DKgSecretKey = sk
 	config.PartnerId = d.context.Id
@@ -118,7 +119,7 @@ func (d *DkgPartner) generateConfig() DkgConfig {
 	return config
 }
 
-func (d *DkgPartner) LoadConsensusData() (*DkgConfig, error) {
+func (d *archive.DkgPartner) LoadConsensusData() (*DkgConfig, error) {
 	suit := bn256.NewSuiteG2()
 	var config DkgConfig
 	keyShare := dkg.DistKeyShare{}
@@ -142,7 +143,7 @@ func (d *DkgPartner) LoadConsensusData() (*DkgConfig, error) {
 		k += config.CommitLen[i]
 		q, err := bn256.UnmarshalBinaryPointG2(data)
 		if err != nil {
-			log.WithError(err).Error("unmarshal key share Commits error")
+			dkg2.log.WithError(err).Error("unmarshal key share Commits error")
 			return nil, err
 		}
 		keyShare.Commits = append(keyShare.Commits, q)
@@ -153,10 +154,10 @@ func (d *DkgPartner) LoadConsensusData() (*DkgConfig, error) {
 		copy(data, config.PrivPolyData[k:k+config.PolyLen[i]])
 		k += config.PolyLen[i]
 		s := mod.NewInt64(0, bn256.Order)
-		log.Debugln(k, config.PolyLen[i], hex.EncodeToString(data))
+		dkg2.log.Debugln(k, config.PolyLen[i], hex.EncodeToString(data))
 		err = s.UnmarshalBinary(data)
 		if err != nil {
-			log.WithError(err).Error("unmarshal key share Commits error")
+			dkg2.log.WithError(err).Error("unmarshal key share Commits error")
 			return nil, err
 		}
 		keyShare.PrivatePoly = append(keyShare.PrivatePoly, s)
@@ -168,32 +169,32 @@ func (d *DkgPartner) LoadConsensusData() (*DkgConfig, error) {
 	}
 	err = json.Unmarshal(config.ShareData, keyShare.Share)
 	if err != nil {
-		log.WithError(err).Error("unmarshal PrivatePoly  error")
+		dkg2.log.WithError(err).Error("unmarshal PrivatePoly  error")
 		return nil, err
 	}
 
 	if err != nil {
-		log.WithError(err).Error("unmarshal key share key error")
+		dkg2.log.WithError(err).Error("unmarshal key share key error")
 	} else {
 		config.keyShare = &keyShare
 	}
 	q, err := bn256.UnmarshalBinaryPointG2(config.DKgJointPublicKey)
 	if err != nil {
-		log.WithError(err).Error("unmarshal public key error")
+		dkg2.log.WithError(err).Error("unmarshal public key error")
 		return nil, err
 	}
 	config.jointPubKey = q
 	g := suit.Scalar()
 	err = g.UnmarshalBinary(config.DKgSecretKey)
 	if err != nil {
-		log.WithError(err).Error("unmarshal sk  error")
+		dkg2.log.WithError(err).Error("unmarshal sk  error")
 		return nil, err
 	}
 	config.secretKey = g
 	return &config, nil
 }
 
-func (d *DkgPartner) SetConfig(config *DkgConfig) {
+func (d *archive.DkgPartner) SetConfig(config *DkgConfig) {
 	d.context.KeyShare = config.keyShare
 	d.dkgOn = true
 	d.ready = true

@@ -1,4 +1,4 @@
-package communicator
+package bft
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 // It provides Trustful communication between partners with pubkeys
 // All messages received from TrustfulPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulPartnerCommunicator struct {
-	incomingChannel   chan *message.SignedOgPartnerMessage
+	incomingChannel   chan bft.BftMessage
 	Signer            crypto.ISigner
 	TermProvider      annsensus.TermProvider //TODO：not its job.
 	P2PSender         P2PSender
@@ -25,7 +25,7 @@ type TrustfulPartnerCommunicator struct {
 func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
 	myAccountProvider ConsensusAccountProvider, p2pSender P2PSender) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
-		incomingChannel:   make(chan *message.SignedOgPartnerMessage, 20),
+		incomingChannel:   make(chan bft.BftMessage, 20),
 		Signer:            signer,
 		TermProvider:      termProvider,
 		MyAccountProvider: myAccountProvider,
@@ -61,7 +61,7 @@ func (r *TrustfulPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerI
 
 // GetIncomingChannel provides a channel for downstream component consume the messages
 // that are already verified by communicator
-func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan *message.SignedOgPartnerMessage {
+func (r *TrustfulPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
 	return r.incomingChannel
 }
 
@@ -103,5 +103,5 @@ func (b *TrustfulPartnerCommunicator) HandleIncomingMessage(msg p2p_message.Mess
 		return
 	}
 
-	b.incomingChannel <- signedMsg
+	b.incomingChannel <- signedMsg.BftMessage
 }

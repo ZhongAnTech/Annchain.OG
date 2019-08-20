@@ -169,13 +169,23 @@ func (p *DkgPartner) handleMessage(message DkgMessage) {
 }
 
 func (p *DkgPartner) handleDeal(msg *MessageDkgDeal) {
-	var deal dkger.Deal
-	_, err := deal.UnmarshalMsg(msg.Data)
+	deal, err := msg.GetDeal()
 	if err != nil {
 		logrus.Warn("failed to unmarshal dkg deal message")
 		return
 	}
-	p.DealReceivingCache[]
+	key := msg.PublicKey.String()
+	v, ok := p.DealReceivingCache[key]
+	if !ok {
+		v = &DkgDiscussion{}
+	}
+
+	discussion := v.(*DkgDiscussion)
+	discussion.Deal = deal
+	// update state
+	p.DealReceivingCache[msg.PublicKey.String()] = discussion
+	// give deal response
+
 }
 
 func (p *DkgPartner) handleDealResponse(msg *MessageDkgDealResponse) {

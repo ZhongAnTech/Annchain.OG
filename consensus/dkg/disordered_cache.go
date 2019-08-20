@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"github.com/annchain/OG/common"
 	dkg "github.com/annchain/kyber/v3/share/dkg/pedersen"
 )
 
@@ -15,7 +14,7 @@ const (
 )
 
 // DisorderedCache collects necessary prerequisites to make message in order
-type DisorderedCache map[common.Address]Stagable
+type DisorderedCache map[string]Stagable
 
 // Stagable will justify which stage it is currently on, depending on the messages it received
 // e.g., if the messages received are 1,2,6,7,8, then the current stage is 2

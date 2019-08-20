@@ -359,9 +359,8 @@ type SignedOgPartnerMessage struct {
 	bft.BftMessage
 	TermId     uint32
 	//ValidRound int
-	//PublicKey  []byte
 	Signature hexutil.Bytes
-	PublicKey hexutil.Bytes
+	//PublicKey hexutil.Bytes
 }
 
 

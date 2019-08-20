@@ -204,10 +204,12 @@ type Signable interface {
 	msg.MsgpMember
 	SignatureTargets() []byte
 }
+
 //msgp:tuple BftMessage
 type BftMessage struct {
-	Type    BftMessageType
-	Payload Signable
+	Type      BftMessageType
+	PublicKey hexutil.Bytes
+	Payload   Signable
 }
 
 func (m *BftMessage) String() string {

@@ -2,8 +2,10 @@ package dkg
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/msg"
+	dkg "github.com/annchain/kyber/v3/share/dkg/pedersen"
 )
 
 //go:generate msgp
@@ -50,7 +52,8 @@ func (m *DkgMessage) String() string {
 
 //msgp:tuple BftBasicInfo
 type DkgBasicInfo struct {
-	TermId uint64
+	TermId    uint64
+	PublicKey crypto.PublicKey
 }
 
 //msgp:tuple MessageDkgGenesisPublicKey
@@ -92,6 +95,12 @@ type MessageDkgDeal struct {
 	Data []byte
 }
 
+func (m *MessageDkgDeal) GetDeal() (*dkg.Deal, error){
+	var d dkg.Deal
+	_, err := d.UnmarshalMsg(m.Data)
+	return &d, err
+}
+
 func (m *MessageDkgDeal) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	d := m.Data
@@ -110,7 +119,7 @@ func (m MessageDkgDeal) String() string {
 //msgp:tuple MessageDkgDealResponse
 type MessageDkgDealResponse struct {
 	DkgBasicInfo
-	Id   uint32
+	//Id   uint32
 	Data []byte
 	//PublicKey []byte
 	//Signature []byte
@@ -122,12 +131,13 @@ func (m MessageDkgDealResponse) String() string {
 	//if len(m.PublicKey) > 10 {
 	//	pkstr = hexutil.Encode(m.PublicKey[:5])
 	//}
-	return "dkgresponse " + fmt.Sprintf(" id %d , len %d  tid %d", m.Id, len(m.Data), m.TermId) // + " pk-" + pkstr
+	return "dkgresponse " + fmt.Sprintf(" pk %s , len %d  tid %d", m.PublicKey.String(), len(m.Data), m.TermId) // + " pk-" + pkstr
 }
 
 func (m *MessageDkgDealResponse) SignatureTargets() []byte {
 	d := m.Data
 	w := types.NewBinaryWriter()
 	w.Write(d, m.Id)
+	w.Write(d)
 	return w.Bytes()
 }

@@ -23,7 +23,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/consensus/dkg/archive"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/message"
@@ -127,7 +127,7 @@ func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType cryp
 	//if partnerNum < 2 {
 	//	panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", partnerNum))
 	//}
-	dkger := dkg.NewDkgPartner(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
+	dkger := archive.NewDkgPartner(!disableConsensus, partnerNum, bft.MajorityTwoThird(partnerNum), ann.dkgPulicKeyChan, ann.genesisPkChan, ann.term)
 	dkger.ConfigFilePath = configFile
 	ann.dkg = dkger
 	log.WithField("NbParticipants ", ann.NbParticipants).Info("new ann")
@@ -804,8 +804,8 @@ func (as *AnnSensus) loop() {
 }
 
 type ConsensusInfo struct {
-	Dkg *dkg.DKGInfo `json:"dkg"`
-	Bft *bft.BFTInfo `json:"bft"`
+	Dkg *archive.DKGInfo `json:"dkg"`
+	Bft *bft.BFTInfo     `json:"bft"`
 }
 
 func (a *AnnSensus) GetInfo() *ConsensusInfo {

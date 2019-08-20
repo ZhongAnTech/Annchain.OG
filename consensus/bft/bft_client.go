@@ -216,7 +216,7 @@ func (p *DefaultBftOperator) receive() {
 			p.dumpAll("wait step timeout")
 			v.TimeoutCallback(v.Context)
 		case <-timer.C:
-			logrus.WithField("IM", p.Id).Debug("Blocked reading incoming")
+			logrus.WithField("IM", p.Id).Debug("Blocked reading incoming bft")
 			p.dumpAll("blocked reading incoming")
 		case msg := <-incomingChannel:
 			p.handleMessage(msg)
@@ -340,7 +340,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 		switch message.Payload.(type) {
 		case *MessageProposal:
 		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+			logrus.WithField("message.Payload", message.Payload).Warn("bft msg payload error")
 		}
 		msg := message.Payload.(*MessageProposal)
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
@@ -397,7 +397,10 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
 		p.handlePreCommit(msg)
+	default:
+		logrus.WithField("type", message.Type).Warn("unknown bft message type")
 	}
+
 }
 func (p *DefaultBftOperator) handleProposal(proposal *MessageProposal) {
 	state, ok := p.BftStatus.States[proposal.HeightRound]

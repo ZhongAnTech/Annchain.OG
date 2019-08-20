@@ -24,39 +24,39 @@ import (
 	"github.com/annchain/kyber/v3/sign/tbls"
 )
 
+// DkgContext stores the DKG info collected from other peers.
+// It can sign messages individually and recover the joint sig once enough peers share their partSigs
+// It is the core algorithm of DKG
 type DkgContext struct {
-	Id        uint32
-	PartPubs  []kyber.Point
-	MyPartSec kyber.Scalar
+	Id       uint32
+	TermId   uint64
+	PartPubs []PartPub // must be ordered from the outside
+	Me       PartSec
 	//CandidatePartSec      []kyber.Scalar
 	//CandidatePublicKey    [][]byte
 	//addressIndex          map[common.Address]int
 	SecretKeyContribution map[common.Address]kyber.Scalar
 	Suite                 *bn256.Suite
-	Dkger                 *dkg.DistKeyGenerator
+	Dkger                 *dkg.DistKeyGenerator // backend algorithm
 	Resps                 map[common.Address]*dkg.Response
 	//dealsIndex            map[uint32]bool
 	Threshold      int
 	NbParticipants int
 	JointPubKey    kyber.Point
 	//responseNumber        int
-	SigShares [][]byte
-	KeyShare  *dkg.DistKeyShare // cache of the DistKeyShare to avoid recovery multiple times
+	//SigShares [][]byte
+	KeyShare *dkg.DistKeyShare // cache of the DistKeyShare to avoid recovery multiple times
 }
 
-func NewDkgContext(s *bn256.Suite) *DkgContext {
+func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
 	return &DkgContext{
-		Suite:                 s,
-		addressIndex:          make(map[common.Address]int),
+		Suite: s,
+		//addressIndex:          make(map[common.Address]int),
 		SecretKeyContribution: make(map[common.Address]kyber.Scalar),
 		Resps:                 make(map[common.Address]*dkg.Response),
-		dealsIndex:            make(map[uint32]bool),
+		TermId:                termId,
+		//dealsIndex:            make(map[uint32]bool),
 	}
-}
-
-func genPartnerPair(p *DkgContext) (kyber.Scalar, kyber.Point) {
-	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
-	return sc, p.Suite.Point().Mul(sc, nil)
 }
 
 // GenerateDKGer inits a dkg by all part-public keys and my part-private key
@@ -64,7 +64,8 @@ func genPartnerPair(p *DkgContext) (kyber.Scalar, kyber.Point) {
 func (p *DkgContext) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
 	log.WithField(" len", len(p.PartPubs)).Debug("part public keys")
-	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.MyPartSec, p.PartPubs, p.Threshold)
+	participants := PartPubs(p.PartPubs).Points()
+	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.Me.Scalar, participants, p.Threshold)
 	if err != nil {
 		log.WithField("dkger", dkger).WithError(err).Error("generate dkg error")
 		return err
@@ -85,7 +86,7 @@ func (p *DkgContext) ensureKeyShare() (err error) {
 	return nil
 }
 
-// VerifyByPubPoly
+// VerifyByPubPoly verifies signature for msg
 func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	if err := p.ensureKeyShare(); err != nil {
 		return
@@ -104,6 +105,7 @@ func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 	return
 }
 
+// VerifyByDksPublic verifies signature for msg
 func (p *DkgContext) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	if err := p.ensureKeyShare(); err != nil {
 		return
@@ -112,15 +114,17 @@ func (p *DkgContext) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 	return
 }
 
-func (p *DkgContext) RecoverSig(msg []byte) (jointSig []byte, err error) {
+// RecoverSig builds a jointSignature from sigShares collected from enough participants
+func (p *DkgContext) RecoverSig(msg []byte, sigShares [][]byte) (jointSig []byte, err error) {
 	if err := p.ensureKeyShare(); err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
-	jointSig, err = tbls.Recover(p.Suite, pubPoly, msg, p.SigShares, p.Threshold, p.NbParticipants)
+	jointSig, err = tbls.Recover(p.Suite, pubPoly, msg, sigShares, p.Threshold, p.NbParticipants)
 	return
 }
 
+// RecoverPub builds a joint public key from keyshares collected from all other participants
 func (p *DkgContext) RecoverPub() (jointPubKey kyber.Point, err error) {
 	if err := p.ensureKeyShare(); err != nil {
 		return
@@ -131,6 +135,7 @@ func (p *DkgContext) RecoverPub() (jointPubKey kyber.Point, err error) {
 	return
 }
 
+// PartSig signs the message into a single sigShare.
 func (p *DkgContext) PartSig(msg []byte) (partSig []byte, err error) {
 	if err := p.ensureKeyShare(); err != nil {
 		return

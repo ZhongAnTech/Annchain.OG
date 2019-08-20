@@ -395,13 +395,13 @@ func NewNode() *Node {
 		org.Dag.OnConsensusTXConfirmed = annSensus.ConsensusTXConfirmed
 
 		n.Components = append(n.Components, annSensus)
-		m.ConsensusDkgDealHandler = annSensus
-		m.ConsensusDkgDealResponseHandler = annSensus
-		m.ConsensusDkgSigSetsHandler = annSensus
-		m.ConsensusHandler = annSensus
-		m.ConsensusPreCommitHandler = annSensus
-		m.ConsensusPreVoteHandler = annSensus
-		m.ConsensusDkgGenesisPublicKeyHandler = annSensus
+		//m.ConsensusDkgDealHandler = annSensus
+		//m.ConsensusDkgDealResponseHandler = annSensus
+		//m.ConsensusDkgSigSetsHandler = annSensus
+		//m.ConsensusHandler = annSensus
+		//m.ConsensusPreCommitHandler = annSensus
+		//m.ConsensusPreVoteHandler = annSensus
+		//m.ConsensusDkgGenesisPublicKeyHandler = annSensus
 		m.TermChangeResponseHandler = annSensus
 		m.TermChangeRequestHandler = annSensus
 		txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
@@ -538,10 +538,11 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	hub.CallbackRegistry[message.MessageTypeTermChange] = m.RouteTermChange
 	hub.CallbackRegistry[message.MessageTypeArchive] = m.RouteArchive
 	hub.CallbackRegistry[message.MessageTypeActionTX] = m.RouteActionTx
-	hub.CallbackRegistry[message.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
-	hub.CallbackRegistry[message.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
-	hub.CallbackRegistry[message.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
-	hub.CallbackRegistry[message.MessageTypeConsensusDkgGenesisPublicKey] = m.RouteConsensusDkgGenesisPublicKey
+	// Callbacks for DKG were moved to dkg package
+	//hub.CallbackRegistry[message.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
+	//hub.CallbackRegistry[message.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
+	//hub.CallbackRegistry[message.MessageTypeConsensusDkgSigSets] = m.RouteConsensusDkgSigSets
+	//hub.CallbackRegistry[message.MessageTypeConsensusDkgGenesisPublicKey] = m.RouteConsensusDkgGenesisPublicKey
 	// Callbacks fot BFT were moved to bft package
 	//hub.CallbackRegistry[p2p_message.MessageTypeProposal] = m.RouteConsensusProposal
 	//hub.CallbackRegistry[p2p_message.MessageTypePreVote] = m.RouteConsensusPreVote

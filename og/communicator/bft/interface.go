@@ -1,4 +1,4 @@
-package communicator
+package bft
 
 import (
 	"github.com/annchain/OG/account"
@@ -17,3 +17,5 @@ type P2PSender interface {
 type ConsensusAccountProvider interface {
 	Account() *account.Account
 }
+
+

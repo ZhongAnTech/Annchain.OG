@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dkg
+package archive
 
 import (
 	"fmt"
@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
@@ -40,7 +41,7 @@ func logInit() {
 	//filenameHook := filename.NewHook()
 	//filenameHook.Field = "line"
 	//logrus.AddHook(filenameHook)
-	log = logrus.StandardLogger()
+	dkg.log = logrus.StandardLogger()
 }
 func TestVrfSelections_Le(t *testing.T) {
 	logInit()
@@ -75,7 +76,7 @@ func getRandomAccount() *account.Account {
 func TestDKgLog(t *testing.T) {
 	logInit()
 	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
-	log := log.WithField("me", d.GetId())
+	log := dkg.log.WithField("me", d.GetId())
 	log.Debug("hi")
 	d.context.Id = 10
 	log.Info("hi hi")
@@ -84,13 +85,13 @@ func TestDKgLog(t *testing.T) {
 func TestReset(t *testing.T) {
 	logInit()
 	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
-	log.Debug("sk ", d.context.MyPartSec)
+	dkg.log.Debug("sk ", d.context.MyPartSec)
 	d.Reset(nil)
-	log.Debug("sk ", d.context.MyPartSec)
+	dkg.log.Debug("sk ", d.context.MyPartSec)
 	d.GenerateDkg()
-	log.Debug("sk ", d.context.MyPartSec)
+	dkg.log.Debug("sk ", d.context.MyPartSec)
 	d.Reset(nil)
-	log.Debug("sk ", d.context.MyPartSec)
+	dkg.log.Debug("sk ", d.context.MyPartSec)
 
 }
 

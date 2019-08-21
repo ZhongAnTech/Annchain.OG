@@ -38,7 +38,7 @@ func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) message.SignedOgP
 	signed := message.SignedOgPartnerMessage{
 		BftMessage: msg,
 		Signature:  r.Signer.Sign(account.PrivateKey, msg.Payload.SignatureTargets()).Bytes,
-		//TermId:     partner.CurrentTerm(),
+		//SessionId:     partner.CurrentTerm(),
 		PublicKey: account.PublicKey.Bytes,
 	}
 	return signed

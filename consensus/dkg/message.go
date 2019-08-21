@@ -95,7 +95,7 @@ type MessageDkgDeal struct {
 	Data []byte
 }
 
-func (m *MessageDkgDeal) GetDeal() (*dkg.Deal, error){
+func (m *MessageDkgDeal) GetDeal() (*dkg.Deal, error) {
 	var d dkg.Deal
 	_, err := d.UnmarshalMsg(m.Data)
 	return &d, err
@@ -119,11 +119,11 @@ func (m MessageDkgDeal) String() string {
 //msgp:tuple MessageDkgDealResponse
 type MessageDkgDealResponse struct {
 	DkgBasicInfo
-	//Id   uint32
+	//MyIndex   uint32
 	Data []byte
 	//PublicKey []byte
 	//Signature []byte
-	//TermId uint64
+	//SessionId uint64
 }
 
 func (m MessageDkgDealResponse) String() string {
@@ -137,7 +137,13 @@ func (m MessageDkgDealResponse) String() string {
 func (m *MessageDkgDealResponse) SignatureTargets() []byte {
 	d := m.Data
 	w := types.NewBinaryWriter()
-	w.Write(d, m.Id)
+	//w.Write(d, m.Id)
 	w.Write(d)
 	return w.Bytes()
+}
+
+func (m *MessageDkgDealResponse) GetResponse() (response *dkg.Response, err error) {
+	var d dkg.Response
+	_, err = d.UnmarshalMsg(m.Data)
+	return &d, err
 }

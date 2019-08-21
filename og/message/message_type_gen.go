@@ -402,7 +402,7 @@ func (z *SignedOgPartnerMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.TermId, err = dc.ReadUint32()
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	err = z.Signature.DecodeMsg(dc)
@@ -432,7 +432,7 @@ func (z *SignedOgPartnerMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint32(z.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	err = z.Signature.EncodeMsg(en)
@@ -491,7 +491,7 @@ func (z *SignedOgPartnerMessage) UnmarshalMsg(bts []byte) (o []byte, err error) 
 	}
 	z.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	bts, err = z.Signature.UnmarshalMsg(bts)

@@ -171,7 +171,7 @@ func (z *MessageDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.Id, err = dc.ReadUint32()
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	z.Data, err = dc.ReadBytes(z.Data)
@@ -181,7 +181,7 @@ func (z *MessageDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.TermId, err = dc.ReadUint64()
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -196,7 +196,7 @@ func (z *MessageDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint32(z.Id)
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	err = en.WriteBytes(z.Data)
@@ -206,7 +206,7 @@ func (z *MessageDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint64(z.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -237,7 +237,7 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
@@ -247,7 +247,7 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -274,7 +274,7 @@ func (z *MessageDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.Id, err = dc.ReadUint32()
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	z.Data, err = dc.ReadBytes(z.Data)
@@ -284,7 +284,7 @@ func (z *MessageDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.TermId, err = dc.ReadUint64()
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -299,7 +299,7 @@ func (z *MessageDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint32(z.Id)
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	err = en.WriteBytes(z.Data)
@@ -309,7 +309,7 @@ func (z *MessageDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint64(z.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -340,7 +340,7 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 	}
 	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		err = msgp.WrapError(err, "MyIndex")
 		return
 	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
@@ -350,7 +350,7 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 	}
 	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -392,7 +392,7 @@ func (z *MessageDkgGenesisPublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.TermId, err = dc.ReadUint64()
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -422,7 +422,7 @@ func (z *MessageDkgGenesisPublicKey) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint64(z.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -469,7 +469,7 @@ func (z *MessageDkgGenesisPublicKey) UnmarshalMsg(bts []byte) (o []byte, err err
 	}
 	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -501,7 +501,7 @@ func (z *MessageDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.TermId, err = dc.ReadUint64()
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -521,7 +521,7 @@ func (z *MessageDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteUint64(z.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -556,7 +556,7 @@ func (z *MessageDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "TermId")
+		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts

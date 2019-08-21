@@ -44,7 +44,7 @@ import (
 // It is the handler for maintaining the DkgContext.
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
-	//TermId            uint32
+	//SessionId            uint32
 	//dkgOn             bool
 	myPublircKey      []byte
 	context           *dkg2.DkgContext
@@ -114,7 +114,7 @@ func NewDkgPartner(dkgOn bool, numParts, threshold int, dkgPublicKeyJointChan ch
 }
 
 //func (d *DkgPartner) SetId(id int) {
-//	d.context.Id = uint32(id)
+//	d.context.MyIndex = uint32(id)
 //}
 //
 //func (d *DkgPartner) SetAccount(myAccount *account.Account) {
@@ -169,7 +169,7 @@ func NewDkgPartner(dkgOn bool, numParts, threshold int, dkgPublicKeyJointChan ch
 //	}
 //	d.dkgOn = false
 //	d.context = p
-//	d.TermId++
+//	d.SessionId++
 //
 //	//d.dealCache = make(map[common.Address]*p2p_message.MessageConsensusDkgDeal)
 //	//d.dealResponseCache = make(map[common.Address][]*p2p_message.MessageConsensusDkgDealResponse)
@@ -177,7 +177,7 @@ func NewDkgPartner(dkgOn bool, numParts, threshold int, dkgPublicKeyJointChan ch
 //	d.dealSigSetsCache = make(map[common.Address]*p2p_message.MessageConsensusDkgSigSets)
 //	d.blsSigSets = make(map[common.Address]*tx_types.SigSet)
 //	d.ready = false
-//	log.WithField("len candidate pk", len(d.context.CandidatePublicKey)).WithField("termId", d.TermId).Debug("dkg will reset")
+//	log.WithField("len candidate pk", len(d.context.CandidatePublicKey)).WithField("termId", d.SessionId).Debug("dkg will reset")
 //}
 
 func (d *DkgPartner) Start() {
@@ -217,7 +217,7 @@ func (d *DkgPartner) Stop() {
 //}
 
 //func (d *DkgPartner) log() *logrus.Entry {
-//	return log.WithField("me", d.context.Id).WithField("termId", d.TermId)
+//	return log.WithField("me", d.context.MyIndex).WithField("termId", d.SessionId)
 //}
 
 //func (d *DkgPartner) GenerateDkg() []byte {
@@ -260,8 +260,8 @@ func (d *DkgPartner) getDeals() (DealsMap, error) {
 func (d *DkgPartner) addPartner(c *tx_types.Campaign) {
 	d.context.PartPubs = append(d.context.PartPubs, c.GetDkgPublicKey())
 	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
-		d.context.Id = uint32(len(d.context.PartPubs) - 1)
-		dkg2.log.WithField("id ", d.context.Id).Trace("my id")
+		d.context.MyIndex = uint32(len(d.context.PartPubs) - 1)
+		dkg2.log.WithField("id ", d.context.MyIndex).Trace("my id")
 	}
 	dkg2.log.WithField("cp ", c).Trace("added context")
 	d.context.addressIndex[c.Sender()] = len(d.context.PartPubs) - 1
@@ -309,8 +309,8 @@ func (d *DkgPartner) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
 			PublicKey:    d.myAccount.PublicKey.Bytes,
 		}
 		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
-		if uint32(i) == d.context.Id {
-			log.Tracef("escape me %d ", d.context.Id)
+		if uint32(i) == d.context.MyIndex {
+			log.Tracef("escape me %d ", d.context.MyIndex)
 			//myself
 			d.OnGenesisPkChan <- msg
 			continue
@@ -403,7 +403,7 @@ func (d *DkgPartner) ProcessWaitingResponse(deal *dkg.Deal) {
 //		data, _ := deal.MarshalMsg(nil)
 //		msg := &p2p_message.MessageConsensusDkgDeal{
 //			Data: data,
-//			Id:   message.MsgCounter.Get(),
+//			MyIndex:   message.MsgCounter.Get(),
 //		}
 //		addr := d.GetPartnerAddressByIndex(i)
 //		if addr == nil {
@@ -434,7 +434,7 @@ func (d *DkgPartner) GetId() uint32 {
 	if d.context == nil {
 		return 0
 	}
-	return d.context.Id
+	return d.context.MyIndex
 }
 
 func (d *DkgPartner) gossiploop() {
@@ -455,7 +455,7 @@ func (d *DkgPartner) gossiploop() {
 		//	}
 		//	d.mu.RLock()
 		//	deals, err := d.getDeals()
-		//	termid := d.TermId
+		//	termid := d.SessionId
 		//	d.mu.RUnlock()
 		//	if err != nil {
 		//		log.WithError(err).Error("generate dkg deal error")
@@ -511,8 +511,8 @@ func (d *DkgPartner) gossiploop() {
 
 			//response := p2p_message.MessageConsensusDkgDealResponse{
 			//	Data: respData,
-			//	//Id:   request.Id,
-			//	Id: message.MsgCounter.Get(),
+			//	//MyIndex:   request.MyIndex,
+			//	MyIndex: message.MsgCounter.Get(),
 			//}
 			//response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).Bytes
 			//response.PublicKey = d.myAccount.PublicKey.Bytes
@@ -533,18 +533,18 @@ func (d *DkgPartner) gossiploop() {
 			d.ProcessWaitingResponse(&deal)
 
 		case response := <-d.gossipRespCh:
-			log := d.log()
-			var resp dkg.Response
-			_, err := resp.UnmarshalMsg(response.Data)
-			if err != nil {
-				log.WithError(err).Warn("verify signature failed")
-				continue
-			}
-			if !d.dkgOn {
-				//not a consensus context
-				log.Warn("why send to me")
-				continue
-			}
+			//log := d.log()
+			//var resp dkg.Response
+			//_, err := resp.UnmarshalMsg(response.Data)
+			//if err != nil {
+			//	log.WithError(err).Warn("verify signature failed")
+			//	continue
+			//}
+			//if !d.dkgOn {
+			//	//not a consensus context
+			//	log.Warn("why send to me")
+			//	continue
+			//}
 			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheResponseIfNotReady(addr, response) {
 				log.WithField("response ", resp).Debug("process later ,not ready yet")
@@ -670,7 +670,7 @@ func (d *DkgPartner) CacheResponseIfDealNotReceived(resp *dkg.Response, response
 	log := d.log()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	if v := d.context.dealsIndex[resp.Index]; !v && resp.Index != d.context.Id {
+	if v := d.context.dealsIndex[resp.Index]; !v && resp.Index != d.context.MyIndex {
 		//if addr is my address , it  is not in the index list ,process them
 		resps, _ := d.respWaitingCache[resp.Index]
 		resps = append(resps, response)
@@ -851,10 +851,10 @@ func (d *DkgPartner) RecoverAndVerifySignature(sigShares [][]byte, msg []byte, d
 			sigStr = sigStr + " " + hexutil.Encode(ss)
 		}
 		log.WithField("sigStr ", sigStr).WithField("msg ", hexutil.Encode(msg)).Warnf("context %d cannot recover jointSig with %d sigshares: %s\n",
-			partner.Id, len(partner.SigShares), err)
+			partner.MyIndex, len(partner.SigShares), err)
 		return nil, err
 	}
-	log.Tracef("threshold signature from context %d: %s\n", partner.Id, hexutil.Encode(jointSig))
+	log.Tracef("threshold signature from context %d: %s\n", partner.MyIndex, hexutil.Encode(jointSig))
 	// verify if JointSig meets the JointPubkey
 	err = partner.VerifyByDksPublic(msg, jointSig)
 	if err != nil {
@@ -889,7 +889,7 @@ type DKGInfo struct {
 func (dkg *DkgPartner) GetInfo() *DKGInfo {
 	dkgInfo := DKGInfo{
 		TermId:           dkg.TermId,
-		Id:               dkg.context.Id,
+		Id:               dkg.context.MyIndex,
 		PartPubs:         dkg.context.PartPubs,
 		MyPartSec:        dkg.context.MyPartSec,
 		CandidatePartSec: dkg.context.CandidatePartSec,

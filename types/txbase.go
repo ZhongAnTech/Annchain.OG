@@ -56,7 +56,7 @@ func (t TxBaseType) String() string {
 // | Tx   | To                |                1 |                     |                 |
 // | Tx   | Value             |                1 |                     |                 |
 // | Tx   | Data              |                1 |                     |                 |
-// | Seq  | Id                |                1 |                     |                 |
+// | Seq  | MyIndex                |                1 |                     |                 |
 // | Seq  | ContractHashOrder |                1 |                     |                 |
 
 //msgp:tuple TxBase

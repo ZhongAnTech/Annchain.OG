@@ -102,9 +102,9 @@ func (p *DkgPartner) gossipLoop() {
 			logrus.Debug("dkg gossip quit")
 			return
 		case <-timer.C:
-			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Debug("Blocked reading incoming dkg")
+			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
 		case msg := <-incomingChannel:
-			logrus.WithField("type", msg.Type.String()).Debug("received a message")
+			logrus.WithField("type", msg.Type.String()).Trace("received a message")
 			p.handleMessage(msg)
 		}
 	}
@@ -136,7 +136,7 @@ func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 		Data: data,
 	}
 	logrus.WithField("from", deal.Index).WithField("to", id).
-		Debug("unicasting deal message")
+		Trace("unicasting deal message")
 	p.PeerCommunicator.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
 		p.context.PartPubs[id].Peer)
 	// after this, you are expecting a response from the target peers
@@ -156,7 +156,7 @@ func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 		},
 		Data: data,
 	}
-	logrus.WithField("from", response.Response.Index).Debug("broadcasting response message")
+	logrus.WithField("from", response.Response.Index).Trace("broadcasting response message")
 	p.PeerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
@@ -210,9 +210,9 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 			Deal:      nil,
 			Responses: []*dkger.Response{},
 		}
-		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Debug("new deal is coming")
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("new deal is coming")
 	} else {
-		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Debug("duplicate deal is coming")
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("duplicate deal is coming")
 	}
 
 	// give deal response
@@ -275,12 +275,12 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	if ok {
 		logrus.WithField("me", p.context.MyIndex).
 			WithField("from", resp.Response.Index).
-			WithField("deal", resp.Index).Debug("new resp is being processed")
+			WithField("deal", resp.Index).Trace("new resp is being processed")
 		p.handleResponse(resp)
 	} else {
 		logrus.WithField("me", p.context.MyIndex).
 			WithField("from", resp.Response.Index).
-			WithField("deal", resp.Index).Debug("new resp is being cached")
+			WithField("deal", resp.Index).Trace("new resp is being cached")
 	}
 }
 
@@ -298,7 +298,7 @@ func (p *DkgPartner) handleResponse(resp *dkger.Response) {
 	}
 	logrus.WithField("me", p.context.MyIndex).
 		WithField("from", resp.Response.Index).
-		WithField("deal", resp.Index).Debug("response is ok")
+		WithField("deal", resp.Index).Trace("response is ok")
 	if !p.notified && p.context.Dkger.ThresholdCertified() {
 		_, err := p.context.RecoverPub()
 		if err != nil {

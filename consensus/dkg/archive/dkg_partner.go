@@ -387,11 +387,11 @@ func (d *DkgPartner) ProcessWaitingResponse(deal *dkg.Deal) {
 	delete(d.respWaitingCache, deal.Index)
 	d.mu.RUnlock()
 	if len(resps) != 0 {
-		log.WithField("for index ", deal.Index).WithField("resps ", resps).Debug("will process cached response")
+		log.WithField("for index ", deal.Index).WithField("resps ", resps).trace("will process cached response")
 		for _, r := range resps {
 			d.gossipRespCh <- r
 		}
-		log.WithField("resps ", resps).Debug("processed cached response")
+		log.WithField("resps ", resps).trace("processed cached response")
 	}
 }
 
@@ -424,7 +424,7 @@ func (d *DkgPartner) ProcessWaitingResponse(deal *dkg.Deal) {
 //		msg.PublicKey = d.myAccount.PublicKey.Bytes
 //		pk := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 //		log.WithField("to ", addr.TerminalString()).WithField("deal",
-//			deal.TerminateString()).WithField("msg", msg).Debug("send dkg deal to")
+//			deal.TerminateString()).WithField("msg", msg).trace("send dkg deal to")
 //		dkg2.AnonymousSendMessage(message.MessageTypeConsensusDkgDeal, msg, &pk)
 //	}
 //	return
@@ -442,7 +442,7 @@ func (d *DkgPartner) gossiploop() {
 		select {
 		case <-d.gossipStartCh:
 		//	log := d.log()
-		//	log.Debug("gossip dkg started")
+		//	log.trace("gossip dkg started")
 		//	if !d.dkgOn {
 		//		//i am not a consensus context
 		//		log.Warn("why send to me")
@@ -466,7 +466,7 @@ func (d *DkgPartner) gossiploop() {
 			//dkg is ready now, can process dkg msg
 			d.ready = true
 			d.mu.RUnlock()
-			log.Debug("dkg is ready")
+			log.trace("dkg is ready")
 			d.sendDealsToCorrespondingPartner(deals, termid)
 			//process unhandled(cached) dkg msg
 			d.sendUnhandledTochan(unhandledDeal, unhandledResponse)
@@ -481,7 +481,7 @@ func (d *DkgPartner) gossiploop() {
 
 			addr := crypto.Signer.AddressFromPubKeyBytes(request.PublicKey)
 			if !d.CacheDealsIfNotReady(addr, request) {
-				log.WithField("deal ", request).Debug("process later ,not ready yet")
+				log.WithField("deal ", request).trace("process later ,not ready yet")
 				continue
 			}
 			var deal dkg.Deal
@@ -516,7 +516,7 @@ func (d *DkgPartner) gossiploop() {
 			//}
 			//response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).Bytes
 			//response.PublicKey = d.myAccount.PublicKey.Bytes
-			//log.WithField("to request ", request).WithField("response ", &response).Debug("will send response")
+			//log.WithField("to request ", request).WithField("response ", &response).trace("will send response")
 			//broadcast response to all context
 
 			//for k, v := range d.term.Candidates() {
@@ -547,7 +547,7 @@ func (d *DkgPartner) gossiploop() {
 			//}
 			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheResponseIfNotReady(addr, response) {
-				log.WithField("response ", resp).Debug("process later ,not ready yet")
+				log.WithField("response ", resp).trace("process later ,not ready yet")
 				continue
 			}
 
@@ -557,7 +557,7 @@ func (d *DkgPartner) gossiploop() {
 				continue
 			}
 			if !d.CacheResponseIfDealNotReceived(&resp, response) {
-				log.WithField("addr ", addr.TerminalString()).WithField("for index ", resp.Index).Debug("deal  not received yet")
+				log.WithField("addr ", addr.TerminalString()).WithField("for index ", resp.Index).trace("deal  not received yet")
 				continue
 			}
 
@@ -575,7 +575,7 @@ func (d *DkgPartner) gossiploop() {
 			if d.context.responseNumber < (d.context.NbParticipants-1)*(d.context.NbParticipants-1) {
 				continue
 			}
-			log.Debug("got response done")
+			log.trace("got response done")
 			d.mu.RLock()
 			jointPub, err := d.context.RecoverPub()
 			d.mu.RUnlock()
@@ -625,7 +625,7 @@ func (d *DkgPartner) gossiploop() {
 			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 			if !d.CacheSigSetsIfNotReady(addr, response) {
 				log.WithField("response ",
-					response).Debug("process later sigsets ,not ready yet")
+					response).trace("process later sigsets ,not ready yet")
 				continue
 			}
 			if !d.CheckAddress(addr) {
@@ -675,7 +675,7 @@ func (d *DkgPartner) CacheResponseIfDealNotReceived(resp *dkg.Response, response
 		resps, _ := d.respWaitingCache[resp.Index]
 		resps = append(resps, response)
 		d.respWaitingCache[resp.Index] = resps
-		log.WithField("cached resps ", resps).Debug("cached")
+		log.WithField("cached resps ", resps).trace("cached")
 		return false
 	}
 	return true

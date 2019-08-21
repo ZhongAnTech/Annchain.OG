@@ -28,7 +28,7 @@ import (
 // It is the core algorithm of DKG
 type DkgContext struct {
 	SessionId uint64
-	MyIndex   uint32
+	MyIndex   int
 	Me        PartSec
 	PartPubs  []PartPub // must be ordered from the outside
 
@@ -49,7 +49,7 @@ type DkgContext struct {
 }
 
 func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
-	return &DkgContext{
+	c := &DkgContext{
 		Suite: s,
 		//addressIndex:          make(map[common.Address]int),
 		//SecretKeyContribution: make(map[common.Address]kyber.Scalar),
@@ -57,6 +57,7 @@ func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
 		SessionId:             termId,
 		//dealsIndex:            make(map[uint32]bool),
 	}
+	return c
 }
 
 // GenerateDKGer inits a dkg by all part-public keys and my part-private key
@@ -82,13 +83,14 @@ func (p *DkgContext) ensureKeyShare() (err error) {
 		if err != nil {
 			return
 		}
+		p.KeyShare = dks
 	}
 	return nil
 }
 
 // VerifyByPubPoly verifies signature for msg
 func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
-	if err := p.ensureKeyShare(); err != nil {
+	if err = p.ensureKeyShare(); err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
@@ -107,7 +109,7 @@ func (p *DkgContext) VerifyByPubPoly(msg []byte, sig []byte) (err error) {
 
 // VerifyByDksPublic verifies signature for msg
 func (p *DkgContext) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
-	if err := p.ensureKeyShare(); err != nil {
+	if err = p.ensureKeyShare(); err != nil {
 		return
 	}
 	err = bls.Verify(p.Suite, p.KeyShare.Public(), msg, sig)
@@ -116,7 +118,7 @@ func (p *DkgContext) VerifyByDksPublic(msg []byte, sig []byte) (err error) {
 
 // RecoverSig builds a jointSignature from sigShares collected from enough participants
 func (p *DkgContext) RecoverSig(msg []byte, sigShares [][]byte) (jointSig []byte, err error) {
-	if err := p.ensureKeyShare(); err != nil {
+	if err = p.ensureKeyShare(); err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
@@ -126,7 +128,7 @@ func (p *DkgContext) RecoverSig(msg []byte, sigShares [][]byte) (jointSig []byte
 
 // RecoverPub builds a joint public key from keyshares collected from all other participants
 func (p *DkgContext) RecoverPub() (jointPubKey kyber.Point, err error) {
-	if err := p.ensureKeyShare(); err != nil {
+	if err = p.ensureKeyShare(); err != nil {
 		return
 	}
 	pubPoly := share.NewPubPoly(p.Suite, p.Suite.Point().Base(), p.KeyShare.Commitments())
@@ -137,7 +139,7 @@ func (p *DkgContext) RecoverPub() (jointPubKey kyber.Point, err error) {
 
 // PartSig signs the message into a single sigShare.
 func (p *DkgContext) PartSig(msg []byte) (partSig []byte, err error) {
-	if err := p.ensureKeyShare(); err != nil {
+	if err = p.ensureKeyShare(); err != nil {
 		return
 	}
 	partSig, err = tbls.Sign(p.Suite, p.KeyShare.PriShare(), msg)

@@ -7,6 +7,109 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *DkgBasicInfo) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.TermId, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "TermId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z DkgBasicInfo) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 1
+	// write "TermId"
+	err = en.Append(0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.TermId)
+	if err != nil {
+		err = msgp.WrapError(err, "TermId")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z DkgBasicInfo) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 1
+	// string "TermId"
+	o = append(o, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	o = msgp.AppendUint64(o, z.TermId)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *DkgBasicInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "TermId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z DkgBasicInfo) Msgsize() (s int) {
+	s = 1 + 7 + msgp.Uint64Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *DkgMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
@@ -165,23 +268,43 @@ func (z *MessageDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Id, err = dc.ReadUint32()
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, err = dc.ReadMapHeader()
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo")
 		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.Data, err = dc.ReadBytes(z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	z.TermId, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -189,24 +312,21 @@ func (z *MessageDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 2
+	// map header, size 1
+	// write "TermId"
+	err = en.Append(0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint32(z.Id)
+	err = en.WriteUint64(z.DkgBasicInfo.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
 	}
 	err = en.WriteBytes(z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	err = en.WriteUint64(z.TermId)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -215,11 +335,12 @@ func (z *MessageDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageDkgDeal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
-	o = msgp.AppendUint32(o, z.Id)
+	// array header, size 2
+	// map header, size 1
+	// string "TermId"
+	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.Data)
-	o = msgp.AppendUint64(o, z.TermId)
 	return
 }
 
@@ -231,23 +352,43 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo")
 		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -256,7 +397,7 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgDeal) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.Uint64Size
+	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 
@@ -268,23 +409,43 @@ func (z *MessageDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Id, err = dc.ReadUint32()
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, err = dc.ReadMapHeader()
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo")
 		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.Data, err = dc.ReadBytes(z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	z.TermId, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -292,24 +453,21 @@ func (z *MessageDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 2
+	// map header, size 1
+	// write "TermId"
+	err = en.Append(0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
 	if err != nil {
 		return
 	}
-	err = en.WriteUint32(z.Id)
+	err = en.WriteUint64(z.DkgBasicInfo.TermId)
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
 	}
 	err = en.WriteBytes(z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	err = en.WriteUint64(z.TermId)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -318,11 +476,12 @@ func (z *MessageDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageDkgDealResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
-	o = msgp.AppendUint32(o, z.Id)
+	// array header, size 2
+	// map header, size 1
+	// string "TermId"
+	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.Data)
-	o = msgp.AppendUint64(o, z.TermId)
 	return
 }
 
@@ -334,23 +493,43 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Id, bts, err = msgp.ReadUint32Bytes(bts)
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "MyIndex")
+		err = msgp.WrapError(err, "DkgBasicInfo")
 		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
 	if err != nil {
 		err = msgp.WrapError(err, "Data")
-		return
-	}
-	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -359,7 +538,7 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgDealResponse) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data) + msgp.Uint64Size
+	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 
@@ -371,28 +550,43 @@ func (z *MessageDkgGenesisPublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
+	}
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo")
+		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.DkgPublicKey, err = dc.ReadBytes(z.DkgPublicKey)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgPublicKey")
-		return
-	}
-	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
-	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
-		return
-	}
-	z.Signature, err = dc.ReadBytes(z.Signature)
-	if err != nil {
-		err = msgp.WrapError(err, "Signature")
-		return
-	}
-	z.TermId, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -400,29 +594,21 @@ func (z *MessageDkgGenesisPublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageDkgGenesisPublicKey) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
+	// array header, size 2
+	// map header, size 1
+	// write "TermId"
+	err = en.Append(0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
 	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
 	}
 	err = en.WriteBytes(z.DkgPublicKey)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgPublicKey")
-		return
-	}
-	err = en.WriteBytes(z.PublicKey)
-	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
-		return
-	}
-	err = en.WriteBytes(z.Signature)
-	if err != nil {
-		err = msgp.WrapError(err, "Signature")
-		return
-	}
-	err = en.WriteUint64(z.TermId)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -431,12 +617,12 @@ func (z *MessageDkgGenesisPublicKey) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageDkgGenesisPublicKey) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
+	// array header, size 2
+	// map header, size 1
+	// string "TermId"
+	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.DkgPublicKey)
-	o = msgp.AppendBytes(o, z.PublicKey)
-	o = msgp.AppendBytes(o, z.Signature)
-	o = msgp.AppendUint64(o, z.TermId)
 	return
 }
 
@@ -448,28 +634,43 @@ func (z *MessageDkgGenesisPublicKey) UnmarshalMsg(bts []byte) (o []byte, err err
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
+	}
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo")
+		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
 	}
 	z.DkgPublicKey, bts, err = msgp.ReadBytesBytes(bts, z.DkgPublicKey)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgPublicKey")
-		return
-	}
-	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
-	if err != nil {
-		err = msgp.WrapError(err, "PublicKey")
-		return
-	}
-	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
-	if err != nil {
-		err = msgp.WrapError(err, "Signature")
-		return
-	}
-	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -478,7 +679,7 @@ func (z *MessageDkgGenesisPublicKey) UnmarshalMsg(bts []byte) (o []byte, err err
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgGenesisPublicKey) Msgsize() (s int) {
-	s = 1 + msgp.BytesPrefixSize + len(z.DkgPublicKey) + msgp.BytesPrefixSize + len(z.PublicKey) + msgp.BytesPrefixSize + len(z.Signature) + msgp.Uint64Size
+	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.DkgPublicKey)
 	return
 }
 
@@ -494,14 +695,39 @@ func (z *MessageDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo")
+		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
+	}
 	z.PkBls, err = dc.ReadBytes(z.PkBls)
 	if err != nil {
 		err = msgp.WrapError(err, "PkBls")
-		return
-	}
-	z.TermId, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -510,18 +736,20 @@ func (z *MessageDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *MessageDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 2
-	err = en.Append(0x92)
+	// map header, size 1
+	// write "TermId"
+	err = en.Append(0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
 	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
 	}
 	err = en.WriteBytes(z.PkBls)
 	if err != nil {
 		err = msgp.WrapError(err, "PkBls")
-		return
-	}
-	err = en.WriteUint64(z.TermId)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	return
@@ -531,9 +759,11 @@ func (z *MessageDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *MessageDkgSigSets) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
-	o = append(o, 0x92)
+	// map header, size 1
+	// string "TermId"
+	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
+	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.PkBls)
-	o = msgp.AppendUint64(o, z.TermId)
 	return
 }
 
@@ -549,14 +779,39 @@ func (z *MessageDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
+	var field []byte
+	_ = field
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "DkgBasicInfo")
+		return
+	}
+	for zb0002 > 0 {
+		zb0002--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "DkgBasicInfo")
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "TermId":
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "DkgBasicInfo")
+				return
+			}
+		}
+	}
 	z.PkBls, bts, err = msgp.ReadBytesBytes(bts, z.PkBls)
 	if err != nil {
 		err = msgp.WrapError(err, "PkBls")
-		return
-	}
-	z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "SessionId")
 		return
 	}
 	o = bts
@@ -565,6 +820,6 @@ func (z *MessageDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgSigSets) Msgsize() (s int) {
-	s = 1 + msgp.BytesPrefixSize + len(z.PkBls) + msgp.Uint64Size
+	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PkBls)
 	return
 }

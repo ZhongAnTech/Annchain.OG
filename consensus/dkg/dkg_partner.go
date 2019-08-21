@@ -15,12 +15,14 @@ import (
 // It is the handler for maintaining the DkgContext.
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
-	context                 *DkgContext
-	PeerCommunicator        DkgPeerCommunicator
-	DealReceivingCache      DisorderedCache // map[deal_sender_address]Deal
-	gossipStartCh           chan bool
-	quit                    chan bool
-	OnDkgPublicKeyJointChan chan bool // joint pubkey is got
+	context               *DkgContext
+	PeerCommunicator      DkgPeerCommunicator
+	DealReceivingCache    DisorderedCache // map[deal_sender_address]Deal
+	gossipStartCh         chan bool
+	quit                  chan bool
+	otherPeers            []PeerInfo
+	notified              bool
+	DkgGeneratedListeners []DkgGeneratedListener // joint pubkey is got
 }
 
 // NewDkgPartner inits a dkg group. All public keys should be already generated
@@ -28,19 +30,39 @@ type DkgPartner struct {
 // This may be done by publishing partPub to the blockchain
 // termId is still needed to identify different Dkg groups
 // allPeers needs to be sorted and globally order identical
-func NewDkgPartner(termId uint64, numParts, threshold int, allPeers []PartPub, me PartSec) (*DkgPartner, error) {
-	c := NewDkgContext(bn256.NewSuiteG2(), termId)
+func NewDkgPartner(suite *bn256.Suite, termId uint64, numParts, threshold int, allPeers []PartPub, me PartSec) (*DkgPartner, error) {
+	c := NewDkgContext(suite, termId)
 	c.NbParticipants = numParts
 	c.Threshold = threshold
 
 	c.PartPubs = allPeers
 	c.Me = me
+	c.MyIndex = -1
+	for i := 0; i < len(allPeers); i++ {
+		if allPeers[i].Point.Equal(me.Point) {
+			// That's me
+			c.MyIndex = i
+			break
+		}
+	}
+	if c.MyIndex == -1 {
+		panic("did not find myself")
+	}
 
 	d := &DkgPartner{}
 	d.context = c
 	d.gossipStartCh = make(chan bool)
 	d.quit = make(chan bool)
 	d.DealReceivingCache = make(DisorderedCache)
+
+	// init all other peers
+	d.otherPeers = []PeerInfo{}
+	for i := 0; i < len(allPeers); i++ {
+		if i == c.MyIndex {
+			continue
+		}
+		d.otherPeers = append(d.otherPeers, allPeers[i].Peer)
+	}
 
 	if err := c.GenerateDKGer(); err != nil {
 		// cannot build dkg group using these pubkeys
@@ -51,9 +73,9 @@ func NewDkgPartner(termId uint64, numParts, threshold int, allPeers []PartPub, m
 }
 
 // GenPartnerPair generates a part private/public key for discussing with others.
-func GenPartnerPair(p *DkgContext) (kyber.Scalar, kyber.Point) {
-	sc := p.Suite.Scalar().Pick(p.Suite.RandomStream())
-	return sc, p.Suite.Point().Mul(sc, nil)
+func GenPartnerPair(suite *bn256.Suite) (kyber.Scalar, kyber.Point) {
+	sc := suite.Scalar().Pick(suite.RandomStream())
+	return sc, suite.Point().Mul(sc, nil)
 }
 
 func (p *DkgPartner) Start() {
@@ -70,12 +92,11 @@ func (p *DkgPartner) gossipLoop() {
 		logrus.Debug("dkg gossip quit")
 		return
 	}
-	timer := time.NewTimer(time.Second * 7)
 	incomingChannel := p.PeerCommunicator.GetIncomingChannel()
-
+	// send the deals to all other partners
+	go p.announceDeals()
 	for {
-		// send the deals to all other partners
-		p.announceDeals()
+		timer := time.NewTimer(time.Second * 7)
 		select {
 		case <-p.quit:
 			logrus.Debug("dkg gossip quit")
@@ -83,6 +104,7 @@ func (p *DkgPartner) gossipLoop() {
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Debug("Blocked reading incoming dkg")
 		case msg := <-incomingChannel:
+			logrus.WithField("type", msg.Type.String()).Debug("received a message")
 			p.handleMessage(msg)
 		}
 	}
@@ -111,15 +133,16 @@ func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 		DkgBasicInfo: DkgBasicInfo{
 			TermId: p.context.SessionId,
 		},
-		Id:   0,
 		Data: data,
 	}
+	logrus.WithField("from", deal.Index).WithField("to", id).
+		Debug("unicasting deal message")
 	p.PeerCommunicator.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
 		p.context.PartPubs[id].Peer)
 	// after this, you are expecting a response from the target peers
 }
 
-func (p *DkgPartner) sendResponseToAllPartners(response *dkger.Response) {
+func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 	data, err := response.MarshalMsg(nil)
 	if err != nil {
 		// TODO: change it to warn maybe
@@ -133,9 +156,8 @@ func (p *DkgPartner) sendResponseToAllPartners(response *dkger.Response) {
 		},
 		Data: data,
 	}
-
-	p.PeerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg),
-		PartPubs(p.context.PartPubs).Peers())
+	logrus.WithField("from", response.Response.Index).Debug("broadcasting response message")
+	p.PeerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
 func (p *DkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
@@ -188,6 +210,9 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 			Deal:      nil,
 			Responses: []*dkger.Response{},
 		}
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Debug("new deal is coming")
+	} else {
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Debug("duplicate deal is coming")
 	}
 
 	// give deal response
@@ -206,15 +231,12 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 	p.DealReceivingCache[issuerIndex] = discussion
 
 	// send response to all other partners except itself
-	p.sendResponseToAllPartners(resp)
+	p.sendResponseToAllRestPartners(resp)
 	if !ok && discussion.GetCurrentStage() >= StageDealReceived {
 		// now deal is just coming. Process the previous deal Responses
 		for _, response := range discussion.Responses {
 			p.handleResponse(response)
 		}
-	}
-	if p.context.Dkger.Certified() {
-		logrus.WithField("pk", p.context.JointPubKey.String()).Warn("DKG has been generated")
 	}
 }
 
@@ -251,18 +273,42 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 
 	// if deal is already there, process this response
 	if ok {
+		logrus.WithField("me", p.context.MyIndex).
+			WithField("from", resp.Response.Index).
+			WithField("deal", resp.Index).Debug("new resp is being processed")
 		p.handleResponse(resp)
+	} else {
+		logrus.WithField("me", p.context.MyIndex).
+			WithField("from", resp.Response.Index).
+			WithField("deal", resp.Index).Debug("new resp is being cached")
 	}
 }
 
 func (p *DkgPartner) handleResponse(resp *dkger.Response) {
 	justification, err := p.context.Dkger.ProcessResponse(resp)
 	if err != nil {
-		logrus.WithError(err).Warn("error on processing response")
+		logrus.WithError(err).WithField("me", p.context.MyIndex).
+			WithField("from", resp.Response.Index).
+			WithField("deal", resp.Index).Warn("error on processing response")
+		return
 	}
 	if justification != nil {
 		logrus.Warn("justification not nil")
 		// TODO: broadcast the justificaiton to the others to inform that this is a bad node
+	}
+	logrus.WithField("me", p.context.MyIndex).
+		WithField("from", resp.Response.Index).
+		WithField("deal", resp.Index).Debug("response is ok")
+	if !p.notified && p.context.Dkger.ThresholdCertified() {
+		_, err := p.context.RecoverPub()
+		if err != nil {
+			logrus.WithField("me", p.context.MyIndex).Warn("DKG has been generated but pubkey reccovery failed")
+		} else {
+			logrus.WithField("me", p.context.MyIndex).WithField("pk", p.context.JointPubKey.String()).Warn("DKG has been generated")
+			p.notifyListeners()
+
+		}
+
 	}
 }
 
@@ -274,4 +320,12 @@ func (p *DkgPartner) verifyResponseSender(response *MessageDkgDealResponse, deal
 
 	return nil
 
+}
+
+// notifyListeners notifies listeners who has been registered for dkg generated events
+func (p *DkgPartner) notifyListeners() {
+	for _, listener := range p.DkgGeneratedListeners {
+		listener.GetDkgGeneratedEventChannel() <- true
+	}
+	p.notified = true
 }

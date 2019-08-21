@@ -9,6 +9,16 @@ type dummyBftPeerCommunicator struct {
 	messageProviderChannel chan BftMessage
 }
 
+func NewDummyBftPeerCommunicator(myid int, incoming chan BftMessage, peers []chan BftMessage) *dummyBftPeerCommunicator {
+	d := &dummyBftPeerCommunicator{
+		Peers:                  peers,
+		Myid:                   myid,
+		ReceiverChannel:        incoming,
+		messageProviderChannel: make(chan BftMessage),
+	}
+	return d
+}
+
 func (d *dummyBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
 	for _, peer := range peers {
 		go func(peer PeerInfo) {
@@ -29,13 +39,13 @@ func (d *dummyBftPeerCommunicator) GetIncomingChannel() chan BftMessage {
 	return d.messageProviderChannel
 }
 
-func NewDummyBftPeerCommunicator(myid int, incoming chan BftMessage, peers []chan BftMessage) *dummyBftPeerCommunicator {
-	d := &dummyBftPeerCommunicator{
-		Peers:           peers,
-		Myid:            myid,
-		ReceiverChannel: incoming,
-	}
-	return d
+func (d *dummyBftPeerCommunicator) Run() {
+	go func() {
+		for {
+			v := <-d.ReceiverChannel
+			d.messageProviderChannel <- v
+		}
+	}()
 }
 
 type dummyProposalGenerator struct {

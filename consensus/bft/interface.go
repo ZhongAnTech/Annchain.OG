@@ -22,6 +22,7 @@ type BftPeerCommunicator interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)
 	GetIncomingChannel() chan BftMessage
+	Run()
 }
 
 type BftOperator interface {

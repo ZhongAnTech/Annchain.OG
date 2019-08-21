@@ -59,6 +59,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 	for i = 0; i < good; i++ {
 		peer := NewDefaultBFTPartner(total, i, BlockTime)
 		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
+		pc.Run()
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
@@ -69,6 +70,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 	for ; i < total; i++ {
 		peer := NewDefaultBFTPartner(total, i, BlockTime)
 		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
+		pc.Run()
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv

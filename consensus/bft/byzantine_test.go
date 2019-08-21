@@ -20,6 +20,10 @@ type dummyByzantineBftPeerCommunicator struct {
 	ByzantineFeatures      ByzantineFeatures
 }
 
+func (d *dummyByzantineBftPeerCommunicator) Run() {
+	// nothing to do
+}
+
 func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
 	msg, toSend := d.doBadThings(msg)
 	if !toSend {

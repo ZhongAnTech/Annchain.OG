@@ -410,7 +410,7 @@ func (p *DefaultBftOperator) handleProposal(proposal *MessageProposal) {
 	}
 	state.MessageProposal = proposal
 	////if this is proposed by me , send precommit
-	//if proposal.SourceId == uint16(p.Id)  {
+	//if proposal.SourceId == uint16(p.MyIndex)  {
 	//	p.Broadcast(BftMessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 	//	p.changeStep(StepTypePreVote)
 	//	return
@@ -633,8 +633,8 @@ func (p *DefaultBftOperator) checkRound(message *BftBasicInfo) (needHandle bool)
 		if _, ok := p.BftStatus.States[message.HeightRound]; !ok {
 			panic(fmt.Sprintf("fuck %d %s", p.Id, p.BftStatus.CurrentHR.String()))
 		}
-		//logrus.WithField("IM", p.Id).Tracef("%d's %s state is %+v, after receiving message %s from %d",
-		//	p.Id, p.BftStatus.CurrentHR.String(),
+		//logrus.WithField("IM", p.MyIndex).Tracef("%d's %s state is %+v, after receiving message %s from %d",
+		//	p.MyIndex, p.BftStatus.CurrentHR.String(),
 		//	p.BftStatus.States[p.BftStatus.CurrentHR].Sources, message.HeightRound.String(), message.SourceId)
 
 		if len(state.Sources) >= p.BftStatus.F+1 {

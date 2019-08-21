@@ -78,7 +78,7 @@ func TestDKgLog(t *testing.T) {
 	d := NewDkgPartner(true, 4, 3, nil, nil, nil)
 	log := dkg.log.WithField("me", d.GetId())
 	log.Debug("hi")
-	d.context.Id = 10
+	d.context.MyIndex = 10
 	log.Info("hi hi")
 }
 

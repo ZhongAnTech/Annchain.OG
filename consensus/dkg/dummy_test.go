@@ -13,7 +13,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg DkgMessage, peers []PeerInfo) {
 	for _, peer := range peers {
 		go func(peer PeerInfo) {
 			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-			//d.Peers[peer.Id] <- msg
+			//d.Peers[peer.MyIndex] <- msg
 		}(peer)
 	}
 }
@@ -21,7 +21,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg DkgMessage, peers []PeerInfo) {
 func (d *dummyDkgPeerCommunicator) Unicast(msg DkgMessage, peer PeerInfo) {
 	go func() {
 		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-		//d.Peers[peer.Id] <- msg
+		//d.Peers[peer.MyIndex] <- msg
 	}()
 }
 

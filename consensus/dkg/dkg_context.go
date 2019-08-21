@@ -15,7 +15,6 @@ package dkg
 
 import (
 	"errors"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/kyber/v3"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/annchain/kyber/v3/share"
@@ -28,17 +27,18 @@ import (
 // It can sign messages individually and recover the joint sig once enough peers share their partSigs
 // It is the core algorithm of DKG
 type DkgContext struct {
-	Id       uint32
-	TermId   uint64
-	PartPubs []PartPub // must be ordered from the outside
-	Me       PartSec
+	SessionId uint64
+	MyIndex   uint32
+	Me        PartSec
+	PartPubs  []PartPub // must be ordered from the outside
+
 	//CandidatePartSec      []kyber.Scalar
 	//CandidatePublicKey    [][]byte
 	//addressIndex          map[common.Address]int
-	SecretKeyContribution map[common.Address]kyber.Scalar
+	//SecretKeyContribution map[common.Address]kyber.Scalar
 	Suite                 *bn256.Suite
 	Dkger                 *dkg.DistKeyGenerator // backend algorithm
-	Resps                 map[common.Address]*dkg.Response
+	//Resps                 map[common.Address]*dkg.Response
 	//dealsIndex            map[uint32]bool
 	Threshold      int
 	NbParticipants int
@@ -52,9 +52,9 @@ func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
 	return &DkgContext{
 		Suite: s,
 		//addressIndex:          make(map[common.Address]int),
-		SecretKeyContribution: make(map[common.Address]kyber.Scalar),
-		Resps:                 make(map[common.Address]*dkg.Response),
-		TermId:                termId,
+		//SecretKeyContribution: make(map[common.Address]kyber.Scalar),
+		//Resps:                 make(map[common.Address]*dkg.Response),
+		SessionId:             termId,
 		//dealsIndex:            make(map[uint32]bool),
 	}
 }

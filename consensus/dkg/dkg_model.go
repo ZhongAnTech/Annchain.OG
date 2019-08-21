@@ -57,7 +57,7 @@ func (h PartPubs) Len() int {
 //}
 //
 //type PeerInfo struct {
-//	Id        int
+//	MyIndex        int
 //	PublicKey crypto.PublicKey `json:"-"`
 //
 //	Part kyber.Point

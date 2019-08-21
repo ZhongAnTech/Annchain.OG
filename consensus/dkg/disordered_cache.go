@@ -14,7 +14,7 @@ const (
 )
 
 // DisorderedCache collects necessary prerequisites to make message in order
-type DisorderedCache map[string]Stagable
+type DisorderedCache map[uint32]Stagable
 
 // Stagable will justify which stage it is currently on, depending on the messages it received
 // e.g., if the messages received are 1,2,6,7,8, then the current stage is 2
@@ -23,7 +23,8 @@ type Stagable interface {
 }
 
 type DkgDiscussion struct {
-	Deal *dkg.Deal
+	Deal      *dkg.Deal
+	Responses []*dkg.Response
 }
 
 func (d *DkgDiscussion) GetCurrentStage() Stage {
@@ -31,5 +32,4 @@ func (d *DkgDiscussion) GetCurrentStage() Stage {
 		return StageStart
 	}
 	return StageDealReceived
-
 }

@@ -13,7 +13,7 @@ func (d *dummyBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
 	for _, peer := range peers {
 		go func(peer PeerInfo) {
 			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-			//d.Peers[peer.Id] <- msg
+			//d.Peers[peer.MyIndex] <- msg
 		}(peer)
 	}
 }
@@ -21,7 +21,7 @@ func (d *dummyBftPeerCommunicator) Broadcast(msg BftMessage, peers []PeerInfo) {
 func (d *dummyBftPeerCommunicator) Unicast(msg BftMessage, peer PeerInfo) {
 	go func() {
 		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-		//d.Peers[peer.Id] <- msg
+		//d.Peers[peer.MyIndex] <- msg
 	}()
 }
 

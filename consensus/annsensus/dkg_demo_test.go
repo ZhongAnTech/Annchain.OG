@@ -107,7 +107,7 @@ func (t *TestHub) BroadcastMessage(messageType message.OGMessageType, message p2
 			t.msgCache.Set(hash, struct{}{})
 			sent = true
 		}
-		//logrus.WithField("me ", t.Id).WithField("to peer ", peer).WithField("type ", messageType).Trace("send msg")
+		//logrus.WithField("me ", t.MyIndex).WithField("to peer ", peer).WithField("type ", messageType).Trace("send msg")
 	}
 }
 

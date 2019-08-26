@@ -1,6 +1,8 @@
 package dkg
 
-import "github.com/annchain/OG/ffchan"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 type dummyDkgPeerCommunicator struct {
 	Myid                   int
@@ -21,17 +23,18 @@ func NewDummyDkgPeerCommunicator(myid int, incoming chan DkgMessage, peers []cha
 
 func (d *dummyDkgPeerCommunicator) Broadcast(msg DkgMessage, peers []PeerInfo) {
 	for _, peer := range peers {
+		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting message")
 		go func(peer PeerInfo) {
-			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-			//d.Peers[peer.MyIndex] <- msg
+			//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+			d.Peers[peer.Id] <- msg
 		}(peer)
 	}
 }
 
 func (d *dummyDkgPeerCommunicator) Unicast(msg DkgMessage, peer PeerInfo) {
 	go func() {
-		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-		//d.Peers[peer.MyIndex] <- msg
+		//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+		d.Peers[peer.Id] <- msg
 	}()
 }
 

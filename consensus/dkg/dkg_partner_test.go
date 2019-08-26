@@ -15,7 +15,7 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetFormatter(Formatter)
 	//logrus.SetReportCaller(true)
 
@@ -50,7 +50,7 @@ func generatePeers(suite *bn256.Suite, n int) []PartSec {
 	return peerInfos
 }
 
-func setupPartners(termId uint64, numParts int, threshold int, ) ([]*DkgPartner, []PartSec) {
+func setupPartners(termId uint64, numParts int, threshold int) ([]*DkgPartner, []PartSec) {
 	suite := bn256.NewSuiteG2()
 
 	// generate PeerInfos
@@ -113,7 +113,7 @@ func TestDkgPartner(t *testing.T) {
 	// simulate 4 dkg partners
 	termId := uint64(0)
 	numParts := 4
-	threshold := 3
+	threshold := 4
 
 	partners, _ := setupPartners(termId, numParts, threshold)
 	wg := sync.WaitGroup{}

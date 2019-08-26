@@ -768,7 +768,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 		_, receipt, err := dag.ProcessTransaction(txi, false)
 		if err != nil {
-			dag.statedb.RevertToSnapshot(sId)
+			dag.Revert(sId, nil)
 			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
 				"process tx error , revert to snap short")
 			return err
@@ -789,13 +789,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
 			log.WithError(err).Error("write tx error, normally never happen")
-			dag.statedb.RevertToSnapshot(sId)
-			for _, txi := range writedTxs {
-				e := dag.DeleteTransaction(txi.GetTxHash())
-				if e != nil {
-					log.WithField("tx ", txi).WithError(e).Error("delete tx error")
-				}
-			}
+			dag.Revert(sId, writedTxs)
 			return fmt.Errorf("write tx into db error: %v", err)
 		}
 		tx := txi
@@ -1134,6 +1128,16 @@ func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 
 	ret, _, err := ogvm.StaticCall(vmtypes.AccountRef(txContext.From), addr, txContext.Data, txContext.GasLimit)
 	return ret, err
+}
+
+func (dag *Dag) Revert(snapShotID int, txs types.Txis) {
+	dag.statedb.RevertToSnapshot(snapShotID)
+	for _, txi := range txs {
+		err := dag.DeleteTransaction(txi.GetTxHash())
+		if err != nil {
+			log.WithField("tx ", txi).WithError(err).Error("delete tx error")
+		}
+	}
 }
 
 type txcached struct {

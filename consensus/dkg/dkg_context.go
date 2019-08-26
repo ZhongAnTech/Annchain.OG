@@ -28,7 +28,7 @@ import (
 // It is the core algorithm of DKG
 type DkgContext struct {
 	SessionId uint64
-	MyIndex   int
+	MyIndex   uint32
 	Me        PartSec
 	PartPubs  []PartPub // must be ordered from the outside
 
@@ -36,8 +36,8 @@ type DkgContext struct {
 	//CandidatePublicKey    [][]byte
 	//addressIndex          map[common.Address]int
 	//SecretKeyContribution map[common.Address]kyber.Scalar
-	Suite                 *bn256.Suite
-	Dkger                 *dkg.DistKeyGenerator // backend algorithm
+	Suite *bn256.Suite
+	Dkger *dkg.DistKeyGenerator // backend algorithm
 	//Resps                 map[common.Address]*dkg.Response
 	//dealsIndex            map[uint32]bool
 	Threshold      int
@@ -54,7 +54,7 @@ func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
 		//addressIndex:          make(map[common.Address]int),
 		//SecretKeyContribution: make(map[common.Address]kyber.Scalar),
 		//Resps:                 make(map[common.Address]*dkg.Response),
-		SessionId:             termId,
+		SessionId: termId,
 		//dealsIndex:            make(map[uint32]bool),
 	}
 	return c

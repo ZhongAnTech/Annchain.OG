@@ -37,17 +37,19 @@ func NewDkgPartner(suite *bn256.Suite, termId uint64, numParts, threshold int, a
 
 	c.PartPubs = allPeers
 	c.Me = me
-	c.MyIndex = -1
+
+	myIndex := -1
 	for i := 0; i < len(allPeers); i++ {
 		if allPeers[i].Point.Equal(me.Point) {
 			// That's me
-			c.MyIndex = i
+			myIndex = i
 			break
 		}
 	}
-	if c.MyIndex == -1 {
+	if myIndex == -1 {
 		panic("did not find myself")
 	}
+	c.MyIndex = uint32(myIndex)
 
 	d := &DkgPartner{}
 	d.context = c
@@ -58,7 +60,7 @@ func NewDkgPartner(suite *bn256.Suite, termId uint64, numParts, threshold int, a
 	// init all other peers
 	d.otherPeers = []PeerInfo{}
 	for i := 0; i < len(allPeers); i++ {
-		if i == c.MyIndex {
+		if i == int(c.MyIndex) {
 			continue
 		}
 		d.otherPeers = append(d.otherPeers, allPeers[i].Peer)
@@ -104,7 +106,7 @@ func (p *DkgPartner) gossipLoop() {
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
 		case msg := <-incomingChannel:
-			logrus.WithField("type", msg.Type.String()).Trace("received a message")
+			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.Type.String()).Trace("received a message")
 			p.handleMessage(msg)
 		}
 	}
@@ -272,7 +274,7 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	//verifierIndex := resp.Response.Index
 
 	// if deal is already there, process this response
-	if ok {
+	if discussion.Deal != nil  || dealerIndex == p.context.MyIndex{
 		logrus.WithField("me", p.context.MyIndex).
 			WithField("from", resp.Response.Index).
 			WithField("deal", resp.Index).Trace("new resp is being processed")

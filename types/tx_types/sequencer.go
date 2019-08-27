@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
@@ -35,6 +36,7 @@ type Sequencer struct {
 	BlsJointSig    hexutil.Bytes
 	BlsJointPubKey hexutil.Bytes
 	StateRoot      common.Hash
+	Treasure       *math.BigInt
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
@@ -119,14 +121,18 @@ func RandomSequencer() *Sequencer {
 func (t *Sequencer) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
-	w.Write(t.BlsJointPubKey, t.AccountNonce)
-	if !types.CanRecoverPubFromSig {
-		w.Write(t.Issuer.Bytes)
-	}
-	w.Write(t.Height, t.Weight, t.StateRoot.Bytes)
 	for _, parent := range t.Parents() {
 		w.Write(parent.Bytes)
 	}
+	w.Write(t.BlsJointPubKey)
+	w.Write(t.AccountNonce)
+	if !types.CanRecoverPubFromSig {
+		w.Write(t.Issuer.Bytes)
+	}
+	w.Write(t.Height)
+	w.Write(t.Weight)
+	w.Write(t.StateRoot.Bytes)
+
 	return w.Bytes()
 }
 

@@ -33,12 +33,13 @@ type Txs []*Tx
 //msgp:tuple Tx
 type Tx struct {
 	types.TxBase
-	From    *common.Address
-	To      common.Address
-	Value   *math.BigInt
-	TokenId int32
-	Data    []byte
-	confirm time.Time
+	From      *common.Address
+	To        common.Address
+	Value     *math.BigInt
+	Guarantee *math.BigInt
+	TokenId   int32
+	Data      []byte
+	confirm   time.Time
 }
 
 func (t *Tx) GetConfirm() time.Duration {
@@ -94,11 +95,19 @@ func (t *Tx) SignatureTargets() []byte {
 
 	w := types.NewBinaryWriter()
 
+	for _, parentHash := range t.ParentsHash {
+		w.Write(parentHash.Bytes)
+	}
 	w.Write(t.AccountNonce)
 	if !types.CanRecoverPubFromSig {
 		w.Write(t.From.Bytes)
 	}
-	w.Write(t.To.Bytes, t.Value.GetSigBytes(), t.Data, t.TokenId)
+	w.Write(t.To.Bytes)
+	w.Write(t.Value.GetSigBytes())
+	w.Write(t.Guarantee.GetSigBytes())
+	w.Write(t.Data)
+	w.Write(t.TokenId)
+
 	return w.Bytes()
 }
 

@@ -13,19 +13,22 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 6 {
-		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
+	if zb0001 != 7 {
+		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
 	err = z.TxBase.DecodeMsg(dc)
 	if err != nil {
+		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	if dc.IsNil() {
 		err = dc.ReadNil()
 		if err != nil {
+			err = msgp.WrapError(err, "From")
 			return
 		}
 		z.From = nil
@@ -35,16 +38,19 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		err = z.From.DecodeMsg(dc)
 		if err != nil {
+			err = msgp.WrapError(err, "From")
 			return
 		}
 	}
 	err = z.To.DecodeMsg(dc)
 	if err != nil {
+		err = msgp.WrapError(err, "To")
 		return
 	}
 	if dc.IsNil() {
 		err = dc.ReadNil()
 		if err != nil {
+			err = msgp.WrapError(err, "Value")
 			return
 		}
 		z.Value = nil
@@ -54,15 +60,35 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		err = z.Value.DecodeMsg(dc)
 		if err != nil {
+			err = msgp.WrapError(err, "Value")
+			return
+		}
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "Guarantee")
+			return
+		}
+		z.Guarantee = nil
+	} else {
+		if z.Guarantee == nil {
+			z.Guarantee = new(math.BigInt)
+		}
+		err = z.Guarantee.DecodeMsg(dc)
+		if err != nil {
+			err = msgp.WrapError(err, "Guarantee")
 			return
 		}
 	}
 	z.TokenId, err = dc.ReadInt32()
 	if err != nil {
+		err = msgp.WrapError(err, "TokenId")
 		return
 	}
 	z.Data, err = dc.ReadBytes(z.Data)
 	if err != nil {
+		err = msgp.WrapError(err, "Data")
 		return
 	}
 	return
@@ -70,13 +96,14 @@ func (z *Tx) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 6
-	err = en.Append(0x96)
+	// array header, size 7
+	err = en.Append(0x97)
 	if err != nil {
 		return
 	}
 	err = z.TxBase.EncodeMsg(en)
 	if err != nil {
+		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	if z.From == nil {
@@ -87,11 +114,13 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 	} else {
 		err = z.From.EncodeMsg(en)
 		if err != nil {
+			err = msgp.WrapError(err, "From")
 			return
 		}
 	}
 	err = z.To.EncodeMsg(en)
 	if err != nil {
+		err = msgp.WrapError(err, "To")
 		return
 	}
 	if z.Value == nil {
@@ -102,15 +131,30 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 	} else {
 		err = z.Value.EncodeMsg(en)
 		if err != nil {
+			err = msgp.WrapError(err, "Value")
+			return
+		}
+	}
+	if z.Guarantee == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Guarantee.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "Guarantee")
 			return
 		}
 	}
 	err = en.WriteInt32(z.TokenId)
 	if err != nil {
+		err = msgp.WrapError(err, "TokenId")
 		return
 	}
 	err = en.WriteBytes(z.Data)
 	if err != nil {
+		err = msgp.WrapError(err, "Data")
 		return
 	}
 	return
@@ -119,10 +163,11 @@ func (z *Tx) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 6
-	o = append(o, 0x96)
+	// array header, size 7
+	o = append(o, 0x97)
 	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
+		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	if z.From == nil {
@@ -130,11 +175,13 @@ func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 	} else {
 		o, err = z.From.MarshalMsg(o)
 		if err != nil {
+			err = msgp.WrapError(err, "From")
 			return
 		}
 	}
 	o, err = z.To.MarshalMsg(o)
 	if err != nil {
+		err = msgp.WrapError(err, "To")
 		return
 	}
 	if z.Value == nil {
@@ -142,6 +189,16 @@ func (z *Tx) MarshalMsg(b []byte) (o []byte, err error) {
 	} else {
 		o, err = z.Value.MarshalMsg(o)
 		if err != nil {
+			err = msgp.WrapError(err, "Value")
+			return
+		}
+	}
+	if z.Guarantee == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Guarantee.MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "Guarantee")
 			return
 		}
 	}
@@ -155,14 +212,16 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 6 {
-		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
+	if zb0001 != 7 {
+		err = msgp.ArrayError{Wanted: 7, Got: zb0001}
 		return
 	}
 	bts, err = z.TxBase.UnmarshalMsg(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "TxBase")
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -177,11 +236,13 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		bts, err = z.From.UnmarshalMsg(bts)
 		if err != nil {
+			err = msgp.WrapError(err, "From")
 			return
 		}
 	}
 	bts, err = z.To.UnmarshalMsg(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "To")
 		return
 	}
 	if msgp.IsNil(bts) {
@@ -196,15 +257,34 @@ func (z *Tx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		bts, err = z.Value.UnmarshalMsg(bts)
 		if err != nil {
+			err = msgp.WrapError(err, "Value")
+			return
+		}
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Guarantee = nil
+	} else {
+		if z.Guarantee == nil {
+			z.Guarantee = new(math.BigInt)
+		}
+		bts, err = z.Guarantee.UnmarshalMsg(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "Guarantee")
 			return
 		}
 	}
 	z.TokenId, bts, err = msgp.ReadInt32Bytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "TokenId")
 		return
 	}
 	z.Data, bts, err = msgp.ReadBytesBytes(bts, z.Data)
 	if err != nil {
+		err = msgp.WrapError(err, "Data")
 		return
 	}
 	o = bts
@@ -225,6 +305,11 @@ func (z *Tx) Msgsize() (s int) {
 	} else {
 		s += z.Value.Msgsize()
 	}
+	if z.Guarantee == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Guarantee.Msgsize()
+	}
 	s += msgp.Int32Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
@@ -234,6 +319,7 @@ func (z *Txs) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -245,6 +331,7 @@ func (z *Txs) DecodeMsg(dc *msgp.Reader) (err error) {
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 			(*z)[zb0001] = nil
@@ -254,6 +341,7 @@ func (z *Txs) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 			err = (*z)[zb0001].DecodeMsg(dc)
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}
@@ -265,6 +353,7 @@ func (z *Txs) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z Txs) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0003 := range z {
@@ -276,6 +365,7 @@ func (z Txs) EncodeMsg(en *msgp.Writer) (err error) {
 		} else {
 			err = z[zb0003].EncodeMsg(en)
 			if err != nil {
+				err = msgp.WrapError(err, zb0003)
 				return
 			}
 		}
@@ -293,6 +383,7 @@ func (z Txs) MarshalMsg(b []byte) (o []byte, err error) {
 		} else {
 			o, err = z[zb0003].MarshalMsg(o)
 			if err != nil {
+				err = msgp.WrapError(err, zb0003)
 				return
 			}
 		}
@@ -305,6 +396,7 @@ func (z *Txs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -325,6 +417,7 @@ func (z *Txs) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 			if err != nil {
+				err = msgp.WrapError(err, zb0001)
 				return
 			}
 		}

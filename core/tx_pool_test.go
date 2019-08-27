@@ -85,16 +85,6 @@ func TestPoolInit(t *testing.T) {
 	pool, _, genesis, finish := newTestTxPool(t)
 	defer finish()
 
-	// check if genesis is the only tip
-	tips := pool.GetAllTips()
-	if len(tips) != 1 {
-		t.Fatalf("should have only one tip")
-	}
-	tip := tips[genesis.GetTxHash()]
-	if tip == nil {
-		t.Fatalf("genesis not stored in tips")
-	}
-
 	// check if genesis is in txLookUp
 	ge := pool.Get(genesis.GetTxHash())
 	if ge == nil {

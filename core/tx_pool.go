@@ -360,11 +360,14 @@ func generateRandomIndices(count int, upper int) []int {
 }
 
 // GetAllTips returns all the tips in TxPool.
-func (pool *TxPool) GetAllTips() map[common.Hash]types.Txi {
+func (pool *TxPool) GetAllTips() (v []types.Txi) {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
-	return pool.tips.txs
+	for _, txi := range pool.tips.txs {
+		v = append(v, txi)
+	}
+	return v
 }
 
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.

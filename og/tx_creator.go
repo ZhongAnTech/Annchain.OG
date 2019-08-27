@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types/tx_types"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -35,10 +36,15 @@ type TipGenerator interface {
 	GetRandomTips(n int) (v []types.Txi)
 	GetByNonce(addr common.Address, nonce uint64) types.Txi
 	IsBadSeq(seq *tx_types.Sequencer) error
+	GetAllTips() []types.Txi
 }
 
-type GetStateRoot interface {
+type TxPoolInterface interface {
 	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
+}
+
+type DagInterface interface {
+	GetHeight() uint64
 }
 
 type FIFOTipGenerator struct {
@@ -151,6 +157,10 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 
 }
 
+func (f *FIFOTipGenerator) GetAllTips() []types.Txi {
+	return f.upstream.GetAllTips()
+}
+
 // TxCreator creates tx and do the signing and mining
 type TxCreator struct {
 	Miner              miner.Miner
@@ -164,7 +174,7 @@ type TxCreator struct {
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
 	NoVerifyMaxTxHash  bool
-	GetStateRoot       GetStateRoot
+	TxPool             TxPoolInterface
 	TxFormatVerifier   TxFormatVerifier
 }
 
@@ -477,7 +487,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			logrus.Info("got quit signal")
 			return tx, false
 		}
-		parents := m.TipGenerator.GetRandomTips(2)
+		parents := m.TipGenerator.GetAllTips()
 
 		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
 		if len(parents) == 0 {
@@ -511,7 +521,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.GetStateRoot.PreConfirm(tx)
+			root, err := m.TxPool.PreConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
 				return nil, false
@@ -536,4 +546,72 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 		"re-connect": connectionTries,
 	}).Warnf("generate sequencer failed")
 	return nil, false
+}
+
+type SeqGenerator struct {
+	InitTreasure *math.BigInt
+	MaxTreasure  *math.BigInt
+
+	MaxTreasureHeight uint64
+	ActFunc           ActivationFunc
+}
+
+func NewSeqGenerator(init, max *math.BigInt, maxHeight uint64) *SeqGenerator {
+	return &SeqGenerator{
+		InitTreasure:      init,
+		MaxTreasure:       max,
+		MaxTreasureHeight: maxHeight,
+		ActFunc:           NewQuadraticFunc(init.Value, max.Value, maxHeight),
+	}
+}
+
+func (sg *SeqGenerator) GenUnsignedSequencer(issuer common.Address, height uint64, accountNonce uint64) *tx_types.Sequencer {
+	base := types.TxBase{
+		AccountNonce: accountNonce,
+		Type:         types.TxBaseTypeSequencer,
+		Height:       height,
+	}
+
+	seq := tx_types.Sequencer{}
+	seq.Issuer = &issuer
+	seq.TxBase = base
+	seq.Treasure = sg.calTreasure(height)
+
+	return &seq
+}
+
+func (sg *SeqGenerator) calTreasure(height uint64) *math.BigInt {
+	y := sg.ActFunc.GetY(height)
+	return math.NewBigIntFromBigInt(y)
+}
+
+type ActivationFunc interface {
+	GetY(x uint64) (y *big.Int)
+}
+
+type QuadraticFunc struct {
+	// Y = K * X^2 + B
+	K *big.Int
+	B *big.Int
+}
+
+func NewQuadraticFunc(initTreasure, maxTreasure *big.Int, maxHeight uint64) *QuadraticFunc {
+	f := QuadraticFunc{}
+
+	f.B = big.NewInt(0).SetBytes(initTreasure.Bytes())
+
+	deltaTreasure := big.NewInt(0).Sub(maxTreasure, initTreasure)
+	heightSquare := big.NewInt(0).Mul(big.NewInt(int64(maxHeight)), big.NewInt(int64(maxHeight)))
+	f.K = big.NewInt(0).Div(deltaTreasure, heightSquare)
+
+	return &f
+}
+
+func (f *QuadraticFunc) GetY(x uint64) (y *big.Int) {
+	// y = K * x^2 + B
+	y = big.NewInt(0).Mul(big.NewInt(int64(x)), big.NewInt(int64(x)))
+	y.Mul(y, f.K)
+	y.Add(y, f.B)
+
+	return y
 }

@@ -108,7 +108,7 @@ func (r *RpcController) DebugCreateTxAndSendToBuffer(from, to common.Address, va
 	sigb, _ := hex.DecodeString(sigstr)
 	sig := crypto.SignatureFromBytes(crypto.CryptoTypeSecp256k1, sigb)
 
-	tx, err := r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, 0)
+	tx, err := r.TxCreator.NewTxWithSeal(from, to, value, nil, data, nonce, pub, sig, 0)
 	if err != nil {
 		return err
 	}

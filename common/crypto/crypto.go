@@ -91,6 +91,10 @@ func PublicKeyFromString(value string) (pub PublicKey, err error) {
 	return
 }
 
+func Secp256k1PublicKeyFromString(pkStr string) (pub PublicKey, err error) {
+	return PublicKeyFromStringWithCryptoType("secp256k1", pkStr)
+}
+
 func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err error) {
 	cryptoType, ok := CryptoNameMap[ct]
 	if !ok {

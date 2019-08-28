@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/status"
@@ -303,9 +304,15 @@ func NewNode() *Node {
 	SetupCallbacksOG32(mr32, hub)
 
 	miner := &miner2.PoWMiner{}
+
+	initTreasure, _ := math.NewBigIntFromString(viper.GetString("tx_creator.init_treasure"), 10)
+	maxTreasure, _ := math.NewBigIntFromString(viper.GetString("tx_creator.max_treasure"), 10)
+	maxTreasureHeight := viper.GetInt64("tx_creator.max_treasure_height")
+
 	txCreator := &og.TxCreator{
 		Miner:              miner,
 		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		SeqGenerator:       og.NewSeqGenerator(initTreasure, maxTreasure, uint64(maxTreasureHeight)),
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,

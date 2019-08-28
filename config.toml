@@ -109,3 +109,8 @@ mode="normal"
 
 [tx_buffer]
 no_verify_signature = false
+
+[tx_creator]
+  init_treasure = 1000
+  max_treasure = 100000000
+  max_treasure_height = 30000

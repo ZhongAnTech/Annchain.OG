@@ -40,10 +40,12 @@ type TipGenerator interface {
 }
 
 type TxPoolInterface interface {
+	Get(hash common.Hash) types.Txi
 	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
 }
 
 type DagInterface interface {
+	GetTx(hash common.Hash) types.Txi
 	GetHeight() uint64
 }
 
@@ -165,11 +167,12 @@ func (f *FIFOTipGenerator) GetAllTips() []types.Txi {
 type TxCreator struct {
 	Miner              miner.Miner
 	TipGenerator       TipGenerator // usually tx_pool
-	MaxTxHash          common.Hash  // The difficultiy of TxHash
-	MaxMinedHash       common.Hash  // The difficultiy of MinedHash
-	MaxConnectingTries int          // Max number of times to find a pair of parents. If exceeded, try another nonce.
-	DebugNodeId        int          // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
-	GraphVerifier      Verifier     // To verify the graph structure
+	SeqGenerator       *SeqGenerator
+	MaxTxHash          common.Hash // The difficultiy of TxHash
+	MaxMinedHash       common.Hash // The difficultiy of MinedHash
+	MaxConnectingTries int         // Max number of times to find a pair of parents. If exceeded, try another nonce.
+	DebugNodeId        int         // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
+	GraphVerifier      Verifier    // To verify the graph structure
 	quit               bool
 	archiveNonce       uint64
 	NoVerifyMindHash   bool
@@ -219,16 +222,17 @@ func (m *TxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
 	return tx, nil
 }
 
-func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value *math.BigInt, data []byte,
+func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value *math.BigInt, guarantee *math.BigInt, data []byte,
 	nonce uint64, pubkey crypto.PublicKey, sig crypto.Signature, tokenId int32) (tx types.Txi, err error) {
 	tx = &tx_types.Tx{
 		From: &from,
 		// TODO
 		// should consider the case that to is nil. (contract creation)
-		To:      to,
-		Value:   value,
-		Data:    data,
-		TokenId: tokenId,
+		To:        to,
+		Value:     value,
+		Guarantee: guarantee,
+		Data:      data,
+		TokenId:   tokenId,
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
@@ -243,6 +247,38 @@ func (m *TxCreator) NewTxWithSeal(from common.Address, to common.Address, value 
 		return
 	}
 	logrus.WithField("tx", tx).Debugf("tx generated")
+
+	return tx, nil
+}
+
+func (m *TxCreator) NewTxForHackathon(from common.Address, to common.Address, value *math.BigInt, guarantee *math.BigInt, data []byte,
+	nonce uint64, parentsHash []common.Hash, pubkey crypto.PublicKey, sig crypto.Signature, tokenId int32) (tx types.Txi, err error) {
+	tx = &tx_types.Tx{
+		From: &from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
+		To:        to,
+		Value:     value,
+		Guarantee: guarantee,
+		Data:      data,
+		TokenId:   tokenId,
+		TxBase: types.TxBase{
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+		},
+	}
+	tx.GetBase().Signature = sig.Bytes
+	tx.GetBase().PublicKey = pubkey.Bytes
+
+	var parents []types.Txi
+	for _, hash := range parentsHash {
+		p := m.TxPool.Get(hash)
+		if p == nil {
+			return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
+		}
+		parents = append(parents, p)
+	}
+	tx.GetBase().Weight = tx.CalculateWeight(parents)
 
 	return tx, nil
 }
@@ -292,15 +328,7 @@ func (m *TxCreator) NewSignedTx(from common.Address, to common.Address, value *m
 }
 
 func (m *TxCreator) NewUnsignedSequencer(issuer common.Address, Height uint64, accountNonce uint64) *tx_types.Sequencer {
-	tx := tx_types.Sequencer{
-		Issuer: &issuer,
-		TxBase: types.TxBase{
-			AccountNonce: accountNonce,
-			Type:         types.TxBaseTypeSequencer,
-			Height:       Height,
-		},
-	}
-	return &tx
+	return m.SeqGenerator.GenUnsignedSequencer(issuer, Height, accountNonce)
 }
 
 //NewSignedSequencer this function is for test
@@ -308,7 +336,7 @@ func (m *TxCreator) NewSignedSequencer(issuer common.Address, height uint64, acc
 	if privateKey.Type != crypto.Signer.GetCryptoType() {
 		panic("crypto type mismatch")
 	}
-	tx := m.NewUnsignedSequencer(issuer, height, accountNonce)
+	tx := m.SeqGenerator.GenUnsignedSequencer(issuer, height, accountNonce)
 	// do sign work
 	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
 	signature := crypto.Signer.Sign(privateKey, tx.SignatureTargets())
@@ -463,17 +491,17 @@ func (m *TxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool) 
 }
 
 func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, accountNonce uint64,
-	privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, genAgain bool) {
-	tx := m.NewUnsignedSequencer(issuer, Height, accountNonce)
+	privateKey *crypto.PrivateKey, blsPubKey []byte) (*tx_types.Sequencer, bool) {
+	seq := m.SeqGenerator.GenUnsignedSequencer(issuer, Height, accountNonce)
 	//for sequencer no mined nonce
 	// record the mining times.
 	pubkey := crypto.Signer.PubKey(*privateKey)
-	tx.GetBase().PublicKey = pubkey.Bytes
-	tx.SetSender(pubkey.Address())
+	seq.GetBase().PublicKey = pubkey.Bytes
+	seq.SetSender(pubkey.Address())
 	if blsPubKey != nil {
 		// proposed by bft
-		tx.BlsJointPubKey = blsPubKey
-		tx.Proposing = true
+		seq.BlsJointPubKey = blsPubKey
+		seq.Proposing = true
 	}
 	// else it is proposed by delegate for solo
 
@@ -485,11 +513,11 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 	for connectionTries = 0; connectionTries < m.MaxConnectingTries; connectionTries++ {
 		if m.quit {
 			logrus.Info("got quit signal")
-			return tx, false
+			return seq, false
 		}
 		parents := m.TipGenerator.GetAllTips()
 
-		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
+		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(seq.Parents()))
 		if len(parents) == 0 {
 			// Impossible. At least genesis is there
 			logrus.Warn("at least genesis is there. Wait for loading")
@@ -502,35 +530,35 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 		}
 
 		//calculate weight
-		tx.GetBase().Weight = tx.CalculateWeight(parents)
-		tx.GetBase().ParentsHash = parentHashes
+		seq.GetBase().Weight = seq.CalculateWeight(parents)
+		seq.GetBase().ParentsHash = parentHashes
 		// verify if the hash of the structure meet the standard.
-		logrus.WithField("id ", tx.GetHeight()).WithField("parent", tx.Parents()).Trace("new tx connected")
+		logrus.WithField("id ", seq.GetHeight()).WithField("parent", seq.Parents()).Trace("new seq connected")
 		//ok = m.validateGraphStructure(parents)
-		ok = m.GraphVerifier.Verify(tx)
+		ok = m.GraphVerifier.Verify(seq)
 		if !ok {
 			logrus.Debug("NOT OK")
 			logrus.WithFields(logrus.Fields{
-				"tx": tx,
-				"ok": ok,
-			}).Trace("validate graph structure for tx being connected")
-			if err := m.TipGenerator.IsBadSeq(tx); err != nil {
+				"seq": seq,
+				"ok":  ok,
+			}).Trace("validate graph structure for seq being connected")
+			if err := m.TipGenerator.IsBadSeq(seq); err != nil {
 				return nil, true
 			}
 			continue
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.TxPool.PreConfirm(tx)
+			root, err := m.TxPool.PreConfirm(seq)
 			if err != nil {
-				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
+				logrus.WithField("seq ", seq).Errorf("CalculateStateRoot err  %v", err)
 				return nil, false
 			}
-			tx.StateRoot = root
-			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
-			tx.GetBase().Hash = tx.CalcTxHash()
-			tx.SetVerified(types.VerifiedGraph)
-			tx.SetVerified(types.VerifiedFormat)
+			seq.StateRoot = root
+			seq.GetBase().Signature = crypto.Signer.Sign(*privateKey, seq.SignatureTargets()).Bytes
+			seq.GetBase().Hash = seq.CalcTxHash()
+			seq.SetVerified(types.VerifiedGraph)
+			seq.SetVerified(types.VerifiedFormat)
 			break
 		}
 	}
@@ -539,7 +567,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 			"elapsedns":  time.Since(timeStart).Nanoseconds(),
 			"re-connect": connectionTries,
 		}).Tracef("total time for mining")
-		return tx, false
+		return seq, false
 	}
 	logrus.WithFields(logrus.Fields{
 		"elapsedns":  time.Since(timeStart).Nanoseconds(),

@@ -29,6 +29,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	BaseTokenID int32 = 0
+)
+
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
 		tx    types.Txi
@@ -47,6 +51,17 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
 		return
 	}
+
+	var parentsHash []common.Hash
+	for _, hashStr := range txReq.Parents {
+		hash := common.HexToHash(hashStr)
+		if hash.Empty() {
+			Response(c, http.StatusBadRequest, fmt.Errorf("invalid parent hash: %b", hash.Bytes), nil)
+			return
+		}
+		parentsHash = append(parentsHash, hash)
+	}
+
 	from, err := common.StringToAddress(txReq.From)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
@@ -67,9 +82,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	data := common.FromHex(txReq.Data)
-	if data == nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("data not hex"), nil)
+	guarantee, ok := math.NewBigIntFromString(txReq.Guarantee, 10)
+	if !ok {
+		err = fmt.Errorf("convert guarantee to big int error")
+	}
+	if err != nil {
+		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
 
@@ -85,19 +103,10 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	if txReq.CryptoType == "" {
-		pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
-	} else {
-
-		pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-			return
-		}
+	pub, err = crypto.Secp256k1PublicKeyFromString(txReq.Pubkey)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+		return
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
@@ -105,9 +114,10 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
 		return
 	}
-	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+
+	tx, err = r.TxCreator.NewTxForHackathon(from, to, value, guarantee, []byte{}, nonce, parentsHash, pub, sig, BaseTokenID)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed: %v", err), nil)
 		return
 	}
 
@@ -139,15 +149,17 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 //NewTxrequest for RPC request
 //msgp:tuple NewTxRequest
 type NewTxRequest struct {
-	Nonce      string `json:"nonce"`
-	From       string `json:"from"`
-	To         string `json:"to"`
-	Value      string `json:"value"`
-	Data       string `json:"data"`
-	CryptoType string `json:"crypto_type"`
-	Signature  string `json:"signature"`
-	Pubkey     string `json:"pubkey"`
-	TokenId    int32  `json:"token_id"`
+	Parents   []string `json:"parents"`
+	Nonce     string   `json:"nonce"`
+	From      string   `json:"from"`
+	To        string   `json:"to"`
+	Value     string   `json:"value"`
+	Guarantee string   `json:"guarantee"`
+	//Data      string `json:"data"`
+	//CryptoType string `json:"crypto_type"`
+	Signature string `json:"signature"`
+	Pubkey    string `json:"pubkey"`
+	//TokenId   int32  `json:"token_id"`
 }
 
 //msgp:tuple NewTxsRequests
@@ -196,9 +208,12 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 
-		data := common.FromHex(txReq.Data)
-		if data == nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("data not hex"), nil)
+		guarantee, ok := math.NewBigIntFromString(txReq.Guarantee, 10)
+		if !ok {
+			err = fmt.Errorf("convert guarantee to big int error")
+		}
+		if err != nil {
+			Response(c, http.StatusBadRequest, err, nil)
 			return
 		}
 
@@ -214,19 +229,10 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 
-		if txReq.CryptoType == "" {
-			pub, err = crypto.PublicKeyFromString(txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
-		} else {
-
-			pub, err = crypto.PublicKeyFromStringWithCryptoType(txReq.CryptoType, txReq.Pubkey)
-			if err != nil {
-				Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-				return
-			}
+		pub, err = crypto.Secp256k1PublicKeyFromString(txReq.Pubkey)
+		if err != nil {
+			Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+			return
 		}
 
 		sig = crypto.SignatureFromBytes(pub.Type, signature)
@@ -238,7 +244,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 			return
 		}
-		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+		tx, err = r.TxCreator.NewTxWithSeal(from, to, value, guarantee, nil, nonce, pub, sig, BaseTokenID)
 		if err != nil {
 			//try second time
 			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed , try again")
@@ -255,7 +261,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 				return
 			}
 			time.Sleep(time.Microsecond * 2)
-			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
+			tx, err = r.TxCreator.NewTxWithSeal(from, to, value, guarantee, nil, nonce, pub, sig, BaseTokenID)
 			if err != nil {
 				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("gen tx failed")
 				Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)

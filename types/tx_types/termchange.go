@@ -15,6 +15,7 @@ package tx_types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"strings"
 
@@ -42,22 +43,26 @@ type SigSet struct {
 //msgp:tuple TermChanges
 type TermChanges []*TermChange
 
-func (tc *TermChange) GetBase() *types.TxBase {
-	return &tc.TxBase
+func (t *TermChange) GetBase() *types.TxBase {
+	return &t.TxBase
 }
 
-func (tc *TermChange) Sender() common.Address {
-	return *tc.Issuer
+func (t *TermChange) Sender() common.Address {
+	return *t.Issuer
 }
 
-func (tc *TermChange) GetSender() *common.Address {
-	return tc.Issuer
+func (t *TermChange) GetSender() *common.Address {
+	return t.Issuer
 }
 
-func (tc *TermChange) Compare(tx types.Txi) bool {
+func (t *TermChange) GetGuarantee() *math.BigInt {
+	return nil
+}
+
+func (t *TermChange) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *TermChange:
-		if tc.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
 			return true
 		}
 		return false
@@ -66,23 +71,23 @@ func (tc *TermChange) Compare(tx types.Txi) bool {
 	}
 }
 
-func (tc *TermChange) IsSameTermInfo(ctc *TermChange) bool {
+func (t *TermChange) IsSameTermInfo(ctc *TermChange) bool {
 	// compare term id.
-	if tc.TermID != ctc.TermID {
+	if t.TermID != ctc.TermID {
 		return false
 	}
 	// compare bls public key.
-	if !common.IsSameBytes(tc.PkBls, ctc.PkBls) {
+	if !common.IsSameBytes(t.PkBls, ctc.PkBls) {
 		return false
 	}
 	// compare sigset
-	if len(tc.SigSet) != len(ctc.SigSet) {
+	if len(t.SigSet) != len(ctc.SigSet) {
 		return false
 	}
 	oTcMap := map[string][]byte{}
 	cTcMap := map[string][]byte{}
-	for i := range tc.SigSet {
-		oss := tc.SigSet[i]
+	for i := range t.SigSet {
+		oss := t.SigSet[i]
 		oTcMap[common.Bytes2Hex(oss.PublicKey)] = oss.Signature
 		css := ctc.SigSet[i]
 		cTcMap[common.Bytes2Hex(css.PublicKey)] = css.Signature
@@ -100,41 +105,41 @@ func (tc *TermChange) IsSameTermInfo(ctc *TermChange) bool {
 	return true
 }
 
-func (tc *TermChange) Dump() string {
+func (t *TermChange) Dump() string {
 	var phashes []string
-	for _, p := range tc.ParentsHash {
+	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
 	var sigs []string
-	for _, v := range tc.SigSet {
+	for _, v := range t.SigSet {
 		sigs = append(sigs, fmt.Sprintf("[pubkey: %x, sig: %x]", v.PublicKey, v.Signature))
 	}
 	return fmt.Sprintf("hash: %s, pHash: [%s], issuer: %s, nonce: %d , signatute: %s, pubkey %s ,"+
-		"PkBls: %x, sigs: [%s]", tc.Hash.Hex(),
-		strings.Join(phashes, ", "), tc.Issuer, tc.AccountNonce, hexutil.Encode(tc.Signature), hexutil.Encode(tc.PublicKey),
-		tc.PkBls, strings.Join(sigs, ", "))
+		"PkBls: %x, sigs: [%s]", t.Hash.Hex(),
+		strings.Join(phashes, ", "), t.Issuer, t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey),
+		t.PkBls, strings.Join(sigs, ", "))
 }
 
-func (tc *TermChange) SignatureTargets() []byte {
+func (t *TermChange) SignatureTargets() []byte {
 	// add parents infornmation.
 	w := types.NewBinaryWriter()
 
-	w.Write(tc.AccountNonce)
+	w.Write(t.AccountNonce)
 	if !types.CanRecoverPubFromSig {
-		w.Write(tc.Issuer.Bytes)
+		w.Write(t.Issuer.Bytes)
 	}
-	w.Write(tc.PkBls)
-	for _, signatrue := range tc.SigSet {
+	w.Write(t.PkBls)
+	for _, signatrue := range t.SigSet {
 		w.Write(signatrue.PublicKey, signatrue.Signature)
 	}
 	return w.Bytes()
 }
 
-func (tc *TermChange) String() string {
-	if tc.GetSender() == nil {
-		return fmt.Sprintf("%s-[nil]-id-%d-termChange", tc.TxBase.String(), tc.TermID)
+func (t *TermChange) String() string {
+	if t.GetSender() == nil {
+		return fmt.Sprintf("%s-[nil]-id-%d-termChange", t.TxBase.String(), t.TermID)
 	}
-	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", tc.TxBase.String(), tc.Issuer.String(), tc.TermID)
+	return fmt.Sprintf("%s-[%.10s]-id-%d-termChange", t.TxBase.String(), t.Issuer.String(), t.TermID)
 }
 
 func (c TermChanges) String() string {
@@ -145,15 +150,15 @@ func (c TermChanges) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (c *TermChange) RawTermChange() *RawTermChange {
-	if c == nil {
+func (t *TermChange) RawTermChange() *RawTermChange {
+	if t == nil {
 		return nil
 	}
 	rc := &RawTermChange{
-		TxBase: c.TxBase,
-		TermId: c.TermID,
-		PkBls:  c.PkBls,
-		SigSet: c.SigSet,
+		TxBase: t.TxBase,
+		TermId: t.TermID,
+		PkBls:  t.PkBls,
+		SigSet: t.SigSet,
 	}
 	return rc
 }
@@ -170,8 +175,8 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 	return rawTcs
 }
 
-func (c *TermChange) RawTxi() types.RawTxi {
-	return c.RawTermChange()
+func (t *TermChange) RawTxi() types.RawTxi {
+	return t.RawTermChange()
 }
 
 func (t *TermChange) SetSender(addr common.Address) {

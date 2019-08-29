@@ -96,7 +96,7 @@ func (z *BlsSigSet) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
+func (s *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -107,7 +107,7 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
-	err = z.TxBase.DecodeMsg(dc)
+	err = s.TxBase.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -118,28 +118,28 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 			err = msgp.WrapError(err, "Issuer")
 			return
 		}
-		z.Issuer = nil
+		s.Issuer = nil
 	} else {
-		if z.Issuer == nil {
-			z.Issuer = new(common.Address)
+		if s.Issuer == nil {
+			s.Issuer = new(common.Address)
 		}
-		err = z.Issuer.DecodeMsg(dc)
+		err = s.Issuer.DecodeMsg(dc)
 		if err != nil {
 			err = msgp.WrapError(err, "Issuer")
 			return
 		}
 	}
-	err = z.BlsJointSig.DecodeMsg(dc)
+	err = s.BlsJointSig.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointSig")
 		return
 	}
-	err = z.BlsJointPubKey.DecodeMsg(dc)
+	err = s.BlsJointPubKey.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointPubKey")
 		return
 	}
-	err = z.StateRoot.DecodeMsg(dc)
+	err = s.StateRoot.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "StateRoot")
 		return
@@ -150,12 +150,12 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 			err = msgp.WrapError(err, "Treasure")
 			return
 		}
-		z.Treasure = nil
+		s.Treasure = nil
 	} else {
-		if z.Treasure == nil {
-			z.Treasure = new(math.BigInt)
+		if s.Treasure == nil {
+			s.Treasure = new(math.BigInt)
 		}
-		err = z.Treasure.DecodeMsg(dc)
+		err = s.Treasure.DecodeMsg(dc)
 		if err != nil {
 			err = msgp.WrapError(err, "Treasure")
 			return
@@ -165,51 +165,51 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
+func (s *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 6
 	err = en.Append(0x96)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.EncodeMsg(en)
+	err = s.TxBase.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
 	}
-	if z.Issuer == nil {
+	if s.Issuer == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.Issuer.EncodeMsg(en)
+		err = s.Issuer.EncodeMsg(en)
 		if err != nil {
 			err = msgp.WrapError(err, "Issuer")
 			return
 		}
 	}
-	err = z.BlsJointSig.EncodeMsg(en)
+	err = s.BlsJointSig.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointSig")
 		return
 	}
-	err = z.BlsJointPubKey.EncodeMsg(en)
+	err = s.BlsJointPubKey.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointPubKey")
 		return
 	}
-	err = z.StateRoot.EncodeMsg(en)
+	err = s.StateRoot.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "StateRoot")
 		return
 	}
-	if z.Treasure == nil {
+	if s.Treasure == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.Treasure.EncodeMsg(en)
+		err = s.Treasure.EncodeMsg(en)
 		if err != nil {
 			err = msgp.WrapError(err, "Treasure")
 			return
@@ -219,43 +219,43 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
+func (s *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, s.Msgsize())
 	// array header, size 6
 	o = append(o, 0x96)
-	o, err = z.TxBase.MarshalMsg(o)
+	o, err = s.TxBase.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
 	}
-	if z.Issuer == nil {
+	if s.Issuer == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.Issuer.MarshalMsg(o)
+		o, err = s.Issuer.MarshalMsg(o)
 		if err != nil {
 			err = msgp.WrapError(err, "Issuer")
 			return
 		}
 	}
-	o, err = z.BlsJointSig.MarshalMsg(o)
+	o, err = s.BlsJointSig.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointSig")
 		return
 	}
-	o, err = z.BlsJointPubKey.MarshalMsg(o)
+	o, err = s.BlsJointPubKey.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointPubKey")
 		return
 	}
-	o, err = z.StateRoot.MarshalMsg(o)
+	o, err = s.StateRoot.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "StateRoot")
 		return
 	}
-	if z.Treasure == nil {
+	if s.Treasure == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.Treasure.MarshalMsg(o)
+		o, err = s.Treasure.MarshalMsg(o)
 		if err != nil {
 			err = msgp.WrapError(err, "Treasure")
 			return
@@ -265,7 +265,7 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (s *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -276,7 +276,7 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 6, Got: zb0001}
 		return
 	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
+	bts, err = s.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -286,28 +286,28 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.Issuer = nil
+		s.Issuer = nil
 	} else {
-		if z.Issuer == nil {
-			z.Issuer = new(common.Address)
+		if s.Issuer == nil {
+			s.Issuer = new(common.Address)
 		}
-		bts, err = z.Issuer.UnmarshalMsg(bts)
+		bts, err = s.Issuer.UnmarshalMsg(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "Issuer")
 			return
 		}
 	}
-	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
+	bts, err = s.BlsJointSig.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointSig")
 		return
 	}
-	bts, err = z.BlsJointPubKey.UnmarshalMsg(bts)
+	bts, err = s.BlsJointPubKey.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "BlsJointPubKey")
 		return
 	}
-	bts, err = z.StateRoot.UnmarshalMsg(bts)
+	bts, err = s.StateRoot.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "StateRoot")
 		return
@@ -317,12 +317,12 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.Treasure = nil
+		s.Treasure = nil
 	} else {
-		if z.Treasure == nil {
-			z.Treasure = new(math.BigInt)
+		if s.Treasure == nil {
+			s.Treasure = new(math.BigInt)
 		}
-		bts, err = z.Treasure.UnmarshalMsg(bts)
+		bts, err = s.Treasure.UnmarshalMsg(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "Treasure")
 			return
@@ -333,18 +333,18 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize()
-	if z.Issuer == nil {
+func (s *Sequencer) Msgsize() (s int) {
+	s = 1 + s.TxBase.Msgsize()
+	if s.Issuer == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.Issuer.Msgsize()
+		s += s.Issuer.Msgsize()
 	}
-	s += z.BlsJointSig.Msgsize() + z.BlsJointPubKey.Msgsize() + z.StateRoot.Msgsize()
-	if z.Treasure == nil {
+	s += s.BlsJointSig.Msgsize() + s.BlsJointPubKey.Msgsize() + s.StateRoot.Msgsize()
+	if s.Treasure == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.Treasure.Msgsize()
+		s += s.Treasure.Msgsize()
 	}
 	return
 }

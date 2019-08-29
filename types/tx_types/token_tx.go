@@ -84,6 +84,10 @@ func (t *ActionTx) Setconfirm() {
 	t.confirm = time.Now()
 }
 
+func (t *ActionTx) GetGuarantee() *math.BigInt {
+	return nil
+}
+
 func (t *ActionTx) String() string {
 	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-ATX", t.TxBase.String(), t.AccountNonce)

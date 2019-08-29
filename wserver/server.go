@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
@@ -74,7 +73,7 @@ type Server struct {
 	NewTxReceivedChan chan types.Txi
 
 	// to receive confirmation events
-	BatchConfirmedChan chan map[common.Hash]types.Txi
+	BatchConfirmedChan chan []types.Txi
 
 	wh     *websocketHandler
 	ph     *pushHandler
@@ -111,7 +110,7 @@ func NewServer(addr string) *Server {
 		WSPath:             serverDefaultWSPath,
 		PushPath:           serverDefaultPushPath,
 		NewTxReceivedChan:  make(chan types.Txi, 10000),
-		BatchConfirmedChan: make(chan map[common.Hash]types.Txi, 1000),
+		BatchConfirmedChan: make(chan []types.Txi, 1000),
 		quit:               make(chan bool),
 	}
 
@@ -238,7 +237,7 @@ func (s *Server) publishTxs(uidata *UIData) {
 	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(uidata.Nodes)).Trace("push to ws")
 	s.Push(messageTypeNewUnit, string(bs))
 }
-func (s *Server) publishBatch(elders map[common.Hash]types.Txi) {
+func (s *Server) publishBatch(elders []types.Txi) {
 	logrus.WithFields(logrus.Fields{
 		"len": len(elders),
 	}).Trace("push confirmation to ws")

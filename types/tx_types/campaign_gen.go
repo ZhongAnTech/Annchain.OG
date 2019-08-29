@@ -8,7 +8,7 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
+func (c *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
@@ -18,15 +18,15 @@ func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	err = z.TxBase.DecodeMsg(dc)
+	err = c.TxBase.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
-	z.DkgPublicKey, err = dc.ReadBytes(z.DkgPublicKey)
+	c.DkgPublicKey, err = dc.ReadBytes(c.DkgPublicKey)
 	if err != nil {
 		return
 	}
-	err = z.Vrf.DecodeMsg(dc)
+	err = c.Vrf.DecodeMsg(dc)
 	if err != nil {
 		return
 	}
@@ -35,12 +35,12 @@ func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 		if err != nil {
 			return
 		}
-		z.Issuer = nil
+		c.Issuer = nil
 	} else {
-		if z.Issuer == nil {
-			z.Issuer = new(common.Address)
+		if c.Issuer == nil {
+			c.Issuer = new(common.Address)
 		}
-		err = z.Issuer.DecodeMsg(dc)
+		err = c.Issuer.DecodeMsg(dc)
 		if err != nil {
 			return
 		}
@@ -49,31 +49,31 @@ func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *Campaign) EncodeMsg(en *msgp.Writer) (err error) {
+func (c *Campaign) EncodeMsg(en *msgp.Writer) (err error) {
 	// array header, size 4
 	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
-	err = z.TxBase.EncodeMsg(en)
+	err = c.TxBase.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.DkgPublicKey)
+	err = en.WriteBytes(c.DkgPublicKey)
 	if err != nil {
 		return
 	}
-	err = z.Vrf.EncodeMsg(en)
+	err = c.Vrf.EncodeMsg(en)
 	if err != nil {
 		return
 	}
-	if z.Issuer == nil {
+	if c.Issuer == nil {
 		err = en.WriteNil()
 		if err != nil {
 			return
 		}
 	} else {
-		err = z.Issuer.EncodeMsg(en)
+		err = c.Issuer.EncodeMsg(en)
 		if err != nil {
 			return
 		}
@@ -82,23 +82,23 @@ func (z *Campaign) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *Campaign) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
+func (c *Campaign) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, c.Msgsize())
 	// array header, size 4
 	o = append(o, 0x94)
-	o, err = z.TxBase.MarshalMsg(o)
+	o, err = c.TxBase.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	o = msgp.AppendBytes(o, z.DkgPublicKey)
-	o, err = z.Vrf.MarshalMsg(o)
+	o = msgp.AppendBytes(o, c.DkgPublicKey)
+	o, err = c.Vrf.MarshalMsg(o)
 	if err != nil {
 		return
 	}
-	if z.Issuer == nil {
+	if c.Issuer == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.Issuer.MarshalMsg(o)
+		o, err = c.Issuer.MarshalMsg(o)
 		if err != nil {
 			return
 		}
@@ -107,7 +107,7 @@ func (z *Campaign) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (c *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -117,15 +117,15 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
+	bts, err = c.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
-	z.DkgPublicKey, bts, err = msgp.ReadBytesBytes(bts, z.DkgPublicKey)
+	c.DkgPublicKey, bts, err = msgp.ReadBytesBytes(bts, c.DkgPublicKey)
 	if err != nil {
 		return
 	}
-	bts, err = z.Vrf.UnmarshalMsg(bts)
+	bts, err = c.Vrf.UnmarshalMsg(bts)
 	if err != nil {
 		return
 	}
@@ -134,12 +134,12 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if err != nil {
 			return
 		}
-		z.Issuer = nil
+		c.Issuer = nil
 	} else {
-		if z.Issuer == nil {
-			z.Issuer = new(common.Address)
+		if c.Issuer == nil {
+			c.Issuer = new(common.Address)
 		}
-		bts, err = z.Issuer.UnmarshalMsg(bts)
+		bts, err = c.Issuer.UnmarshalMsg(bts)
 		if err != nil {
 			return
 		}
@@ -149,12 +149,12 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Campaign) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.DkgPublicKey) + z.Vrf.Msgsize()
-	if z.Issuer == nil {
+func (c *Campaign) Msgsize() (s int) {
+	s = 1 + c.TxBase.Msgsize() + msgp.BytesPrefixSize + len(c.DkgPublicKey) + c.Vrf.Msgsize()
+	if c.Issuer == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.Issuer.Msgsize()
+		s += c.Issuer.Msgsize()
 	}
 	return
 }

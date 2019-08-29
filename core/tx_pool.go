@@ -41,17 +41,17 @@ const (
 	TxTypeRejudge
 )
 
-type TxStatus uint8
+type TxStatusInPool uint8
 
 const (
-	TxStatusNotExist TxStatus = iota
+	TxStatusNotExist TxStatusInPool = iota
 	TxStatusQueue
 	TxStatusTip
 	TxStatusBadTx
 	TxStatusPending
 )
 
-func (ts *TxStatus) String() string {
+func (ts *TxStatusInPool) String() string {
 	switch *ts {
 	case TxStatusBadTx:
 		return "BadTx"
@@ -101,9 +101,9 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived      map[channelName]chan types.Txi   // for notifications of new txs.
-	OnBatchConfirmed     []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer []chan bool                      //for broadcasting new latest sequencer to record height
+	onNewTxReceived      map[channelName]chan types.Txi // for notifications of new txs.
+	OnBatchConfirmed     []chan []types.Txi             // for notifications of confirmation.
+	OnNewLatestSequencer []chan bool                    //for broadcasting new latest sequencer to record height
 
 	maxWeight     uint64
 	confirmStatus *ConfirmStatus
@@ -138,7 +138,7 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		txLookup:         newTxLookUp(),
 		close:            make(chan struct{}),
 		onNewTxReceived:  make(map[channelName]chan types.Txi),
-		OnBatchConfirmed: []chan map[common.Hash]types.Txi{},
+		OnBatchConfirmed: []chan []types.Txi{},
 		confirmStatus:    &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
 
@@ -180,7 +180,7 @@ type txEvent struct {
 type txEnvelope struct {
 	tx         types.Txi
 	txType     TxType
-	status     TxStatus
+	status     TxStatusInPool
 	noFeedBack bool
 }
 
@@ -299,14 +299,14 @@ func (pool *TxPool) GetLatestNonce(addr common.Address) (uint64, error) {
 }
 
 // GetStatus gets the current status of a tx
-func (pool *TxPool) GetStatus(hash common.Hash) TxStatus {
+func (pool *TxPool) GetStatus(hash common.Hash) TxStatusInPool {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
 	return pool.getStatus(hash)
 }
 
-func (pool *TxPool) getStatus(hash common.Hash) TxStatus {
+func (pool *TxPool) getStatus(hash common.Hash) TxStatusInPool {
 	return pool.txLookup.Status(hash)
 }
 
@@ -582,12 +582,16 @@ func (pool *TxPool) commit(tx types.Txi) error {
 				Warn("parent status is tip but can not find in tips")
 			continue
 		}
-		// remove sequencer from pool
-		if parent.GetType() == types.TxBaseTypeSequencer {
-			pool.tips.Remove(pHash)
-			pool.txLookup.Remove(pHash, removeFromFront)
-			continue
-		}
+
+		// hackathon needs the sequencer stay in confirm batch.
+		//
+		//// remove sequencer from pool
+		//if parent.GetType() == types.TxBaseTypeSequencer {
+		//	pool.tips.Remove(pHash)
+		//	pool.txLookup.Remove(pHash, removeFromFront)
+		//	continue
+		//}
+
 		// move parent to pending
 		pool.tips.Remove(pHash)
 		pool.pendings.Add(parent)
@@ -625,16 +629,14 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			}
 			continue
 		}
-		// check if tx in dag
-		if pool.dag.GetTx(parentHash) == nil {
-			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash)
-			return TxQualityIsFatal
-		}
+		// According to hackathon rules, a tx's parents must be in pool or be a sequencer.
+		// If a parent is already confirmed, this tx should be ignored.
+		return TxQualityIsFatal
 	}
 
-	if tx.GetType() == types.TxBaseTypeArchive {
-		return TxQualityIsGood
-	}
+	//if tx.GetType() == types.TxBaseTypeArchive {
+	//	return TxQualityIsGood
+	//}
 
 	// check if nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
@@ -768,24 +770,25 @@ func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err e
 		return common.Hash{}, err
 	}
 	return common.Hash{}, nil
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
 
-	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
-		return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
-			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
-	}
-	elders, batch, err := pool.confirmHelper(seq)
-	if err != nil {
-		log.WithField("error", err).Errorf("confirm error: %v", err)
-		return common.Hash{}, err
-	}
-	rootHash, err := pool.dag.PrePush(batch)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
-	return rootHash, nil
+	//pool.mu.Lock()
+	//defer pool.mu.Unlock()
+	//
+	//if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
+	//	return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
+	//		"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
+	//}
+	//elders, batch, err := pool.confirmHelper(seq)
+	//if err != nil {
+	//	log.WithField("error", err).Errorf("confirm error: %v", err)
+	//	return common.Hash{}, err
+	//}
+	//rootHash, err := pool.dag.PrePush(batch)
+	//if err != nil {
+	//	return common.Hash{}, err
+	//}
+	//pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
+	//return rootHash, nil
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
@@ -794,7 +797,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 
 	var err error
 	var batch *ConfirmBatch
-	var elders map[common.Hash]types.Txi
+	var elders []types.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
 		batch = &ConfirmBatch{
 			Seq: seq,
@@ -851,7 +854,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) ([]types.Txi, *ConfirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -893,8 +896,9 @@ func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 }
 
 // seekElders finds all the unconfirmed elders of baseTx.
-func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, error) {
+func (pool *TxPool) seekElders(baseTx types.Txi) ([]types.Txi, error) {
 	batch := make(map[common.Hash]types.Txi)
+	elders := make([]types.Txi, 0)
 
 	inSeekingPool := map[common.Hash]int{}
 	seekingPool := common.Hashes{}
@@ -915,6 +919,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 		}
 		if batch[elder.GetTxHash()] == nil {
 			batch[elder.GetTxHash()] = elder
+			elders = append(elders, elder)
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
@@ -923,28 +928,30 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 			}
 		}
 	}
-	return batch, nil
+	return elders, nil
 }
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*ConfirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
 	cTxs := types.Txis{}
+	txStatusSet := make(TxStatusSet)
 	batch := map[common.Address]*BatchDetail{}
 	for _, txi := range elders {
 		if txi.GetType() != types.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
 		}
+		txStatusSet.CreateStatus(txi)
 
-		if txi.GetType() == types.TxBaseTypeArchive {
-			continue
-		}
-
-		if txi.GetType() == types.TxBaseTypeNormal {
-		}
+		//if txi.GetType() == types.TxBaseTypeArchive {
+		//	continue
+		//}
+		//
+		//if txi.GetType() == types.TxBaseTypeNormal {
+		//}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
@@ -1002,6 +1009,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 	cb := &ConfirmBatch{}
 	cb.Seq = seq
 	cb.Txs = cTxs
+	cb.Status = txStatusSet
 	return cb, nil
 }
 
@@ -1115,10 +1123,10 @@ type cachedConfirm struct {
 	seq     *tx_types.Sequencer
 	root    common.Hash
 	txs     types.Txis
-	elders  map[common.Hash]types.Txi
+	elders  []types.Txi
 }
 
-func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
+func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders []types.Txi) *cachedConfirm {
 	return &cachedConfirm{
 		seqHash: seq.GetTxHash(),
 		seq:     seq,
@@ -1128,15 +1136,14 @@ func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis,
 	}
 }
 
-func (c *cachedConfirm) SeqHash() common.Hash              { return c.seqHash }
-func (c *cachedConfirm) Seq() *tx_types.Sequencer          { return c.seq }
-func (c *cachedConfirm) Root() common.Hash                 { return c.root }
-func (c *cachedConfirm) Txs() types.Txis                   { return c.txs }
-func (c *cachedConfirm) Elders() map[common.Hash]types.Txi { return c.elders }
+func (c *cachedConfirm) SeqHash() common.Hash     { return c.seqHash }
+func (c *cachedConfirm) Seq() *tx_types.Sequencer { return c.seq }
+func (c *cachedConfirm) Root() common.Hash        { return c.root }
+func (c *cachedConfirm) Txs() types.Txis          { return c.txs }
+func (c *cachedConfirm) Elders() []types.Txi      { return c.elders }
 
 type TxMap struct {
 	txs map[common.Hash]types.Txi
-	mu  sync.RWMutex
 }
 
 func NewTxMap() *TxMap {
@@ -1147,23 +1154,14 @@ func NewTxMap() *TxMap {
 }
 
 func (tm *TxMap) Count() int {
-	tm.mu.RLock()
-	defer tm.mu.RUnlock()
-
 	return len(tm.txs)
 }
 
 func (tm *TxMap) Get(hash common.Hash) types.Txi {
-	tm.mu.RLock()
-	defer tm.mu.RUnlock()
-
 	return tm.txs[hash]
 }
 
 func (tm *TxMap) GetAllKeys() common.Hashes {
-	tm.mu.RLock()
-	defer tm.mu.RUnlock()
-
 	var keys common.Hashes
 	// slice of keys
 	for k := range tm.txs {
@@ -1173,9 +1171,6 @@ func (tm *TxMap) GetAllKeys() common.Hashes {
 }
 
 func (tm *TxMap) GetAllValues() []types.Txi {
-	tm.mu.RLock()
-	defer tm.mu.RUnlock()
-
 	var values []types.Txi
 	// slice of keys
 	for _, v := range tm.txs {
@@ -1185,24 +1180,15 @@ func (tm *TxMap) GetAllValues() []types.Txi {
 }
 
 func (tm *TxMap) Exists(tx types.Txi) bool {
-	tm.mu.RLock()
-	defer tm.mu.RUnlock()
-
 	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
 		return false
 	}
 	return true
 }
 func (tm *TxMap) Remove(hash common.Hash) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
 	delete(tm.txs, hash)
 }
 func (tm *TxMap) Add(tx types.Txi) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
 	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
 		tm.txs[tx.GetTxHash()] = tx
 	}
@@ -1373,14 +1359,14 @@ func (t *txLookUp) stats() (int, int, int) {
 }
 
 // Status returns the status of a tx
-func (t *txLookUp) Status(h common.Hash) TxStatus {
+func (t *txLookUp) Status(h common.Hash) TxStatusInPool {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.status(h)
 }
 
-func (t *txLookUp) status(h common.Hash) TxStatus {
+func (t *txLookUp) status(h common.Hash) TxStatusInPool {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.status
 	}
@@ -1388,14 +1374,14 @@ func (t *txLookUp) status(h common.Hash) TxStatus {
 }
 
 // SwitchStatus switches the tx status
-func (t *txLookUp) SwitchStatus(h common.Hash, status TxStatus) {
+func (t *txLookUp) SwitchStatus(h common.Hash, status TxStatusInPool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.switchstatus(h, status)
 }
 
-func (t *txLookUp) switchstatus(h common.Hash, status TxStatus) {
+func (t *txLookUp) switchstatus(h common.Hash, status TxStatusInPool) {
 	if txEnv := t.txs[h]; txEnv != nil {
 		txEnv.status = status
 	}

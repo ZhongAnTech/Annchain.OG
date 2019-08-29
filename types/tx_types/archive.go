@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 	"math/rand"
@@ -46,6 +47,10 @@ func (a *Archive) ToSmallCaseJson() ([]byte, error) {
 		Data:       a.Data,
 	}
 	return json.Marshal(&j)
+}
+
+func (a *Archive) GetGuarantee() *math.BigInt {
+	return nil
 }
 
 //msgp:tuple Campaigns

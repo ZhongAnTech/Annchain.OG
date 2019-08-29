@@ -16,6 +16,7 @@ package types
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
 	"github.com/tinylib/msgp/msgp"
 	"strings"
 )
@@ -30,6 +31,7 @@ type Txi interface {
 	GetWeight() uint64
 	GetTxHash() common.Hash
 	GetNonce() uint64
+	GetGuarantee() *math.BigInt
 	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
 	SetHash(h common.Hash)
 	String() string

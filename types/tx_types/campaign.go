@@ -17,6 +17,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"
@@ -54,8 +55,12 @@ func (c *Campaign) Sender() common.Address {
 	return *c.Issuer
 }
 
-func (tc *Campaign) GetSender() *common.Address {
-	return tc.Issuer
+func (c *Campaign) GetSender() *common.Address {
+	return c.Issuer
+}
+
+func (c *Campaign) GetGuarantee() *math.BigInt {
+	return nil
 }
 
 func (c *Campaign) Compare(tx types.Txi) bool {
@@ -167,6 +172,6 @@ func (c *Campaign) RawTxi() types.RawTxi {
 	return c.RawCampaign()
 }
 
-func (t *Campaign) SetSender(addr common.Address) {
-	t.Issuer = &addr
+func (c *Campaign) SetSender(addr common.Address) {
+	c.Issuer = &addr
 }

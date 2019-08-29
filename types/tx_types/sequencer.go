@@ -64,13 +64,17 @@ func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
 	return json.Marshal(&j)
 }
 
-func (t *Sequencer) String() string {
-	if t.GetSender() == nil {
-		return fmt.Sprintf("%s-[nil]-%d-Seq", t.TxBase.String(), t.AccountNonce)
+func (s *Sequencer) String() string {
+	if s.GetSender() == nil {
+		return fmt.Sprintf("%s-[nil]-%d-Seq", s.TxBase.String(), s.AccountNonce)
 	} else {
-		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+		return fmt.Sprintf("%s-[%.10s]-%d-Seq", s.TxBase.String(), s.Sender().String(), s.AccountNonce)
 	}
 
+}
+
+func (s *Sequencer) GetGuarantee() *math.BigInt {
+	return s.Treasure
 }
 
 //msgp:tuple BlsSigSet
@@ -118,44 +122,44 @@ func RandomSequencer() *Sequencer {
 	return seq
 }
 
-func (t *Sequencer) SignatureTargets() []byte {
+func (s *Sequencer) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
-	for _, parent := range t.Parents() {
+	for _, parent := range s.Parents() {
 		w.Write(parent.Bytes)
 	}
-	w.Write(t.BlsJointPubKey)
-	w.Write(t.AccountNonce)
+	w.Write(s.BlsJointPubKey)
+	w.Write(s.AccountNonce)
 	if !types.CanRecoverPubFromSig {
-		w.Write(t.Issuer.Bytes)
+		w.Write(s.Issuer.Bytes)
 	}
-	w.Write(t.Height)
-	w.Write(t.Weight)
-	w.Write(t.StateRoot.Bytes)
+	w.Write(s.Height)
+	w.Write(s.Weight)
+	w.Write(s.StateRoot.Bytes)
 
 	return w.Bytes()
 }
 
-func (t *Sequencer) Sender() common.Address {
-	return *t.Issuer
+func (s *Sequencer) Sender() common.Address {
+	return *s.Issuer
 }
 
-func (t *Sequencer) GetSender() *common.Address {
-	return t.Issuer
+func (s *Sequencer) GetSender() *common.Address {
+	return s.Issuer
 }
 
-func (t *Sequencer) Parents() common.Hashes {
-	return t.ParentsHash
+func (s *Sequencer) Parents() common.Hashes {
+	return s.ParentsHash
 }
 
-func (t *Sequencer) Number() uint64 {
-	return t.GetHeight()
+func (s *Sequencer) Number() uint64 {
+	return s.GetHeight()
 }
 
-func (t *Sequencer) Compare(tx types.Txi) bool {
+func (s *Sequencer) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:
-		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if s.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
 			return true
 		}
 		return false
@@ -164,29 +168,29 @@ func (t *Sequencer) Compare(tx types.Txi) bool {
 	}
 }
 
-func (t *Sequencer) GetBase() *types.TxBase {
-	return &t.TxBase
+func (s *Sequencer) GetBase() *types.TxBase {
+	return &s.TxBase
 }
 
-func (t *Sequencer) GetHead() *SequencerHeader {
-	return NewSequencerHead(t.GetTxHash(), t.Height)
+func (s *Sequencer) GetHead() *SequencerHeader {
+	return NewSequencerHead(s.GetTxHash(), s.Height)
 }
 
-func (t *Sequencer) Dump() string {
+func (s *Sequencer) Dump() string {
 	var phashes []string
-	for _, p := range t.ParentsHash {
+	for _, p := range s.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
 	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s root: %s",
 		strings.Join(phashes, " ,"),
-		t.Issuer.Hex(),
-		t.Height,
-		t.Weight,
-		t.AccountNonce,
-		t.BlsJointPubKey,
-		hexutil.Encode(t.PublicKey),
-		hexutil.Encode(t.Signature),
-		t.StateRoot.Hex(),
+		s.Issuer.Hex(),
+		s.Height,
+		s.Weight,
+		s.AccountNonce,
+		s.BlsJointPubKey,
+		hexutil.Encode(s.PublicKey),
+		hexutil.Encode(s.Signature),
+		s.StateRoot.Hex(),
 	)
 }
 
@@ -234,10 +238,10 @@ func (seqs Sequencers) ToRawSequencers() RawSequencers {
 	return rawSeqs
 }
 
-func (c *Sequencer) RawTxi() types.RawTxi {
-	return c.RawSequencer()
+func (s *Sequencer) RawTxi() types.RawTxi {
+	return s.RawSequencer()
 }
 
-func (t *Sequencer) SetSender(addr common.Address) {
-	t.Issuer = &addr
+func (s *Sequencer) SetSender(addr common.Address) {
+	s.Issuer = &addr
 }

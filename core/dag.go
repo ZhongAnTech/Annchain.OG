@@ -1172,8 +1172,9 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq *tx_types.Sequencer
-	Txs types.Txis
+	Seq    *tx_types.Sequencer
+	Txs    types.Txis
+	Status TxStatusSet
 }
 
 func (c *ConfirmBatch) String() string {

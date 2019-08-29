@@ -131,6 +131,10 @@ func (t *Tx) Parents() common.Hashes {
 	return t.ParentsHash
 }
 
+func (t *Tx) GetGuarantee() *math.BigInt {
+	return t.Guarantee
+}
+
 func (t *Tx) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *Tx:

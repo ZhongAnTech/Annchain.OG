@@ -85,7 +85,8 @@ func NewOg(config OGConfig) (*Og, error) {
 	if err != nil {
 		return nil, err
 	}
-	dagConfig := core.DagConfig{GenesisPath: config.GenesisPath}
+	dagConfig := core.DefaultDagConfig()
+	dagConfig.GenesisPath = config.GenesisPath
 	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),

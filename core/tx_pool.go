@@ -937,21 +937,13 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
+
+	var prevSeq *tx_types.Sequencer
 	cTxs := types.Txis{}
 	txStatusSet := make(TxStatusSet)
 	batch := map[common.Address]*BatchDetail{}
-	for _, txi := range elders {
-		if txi.GetType() != types.TxBaseTypeSequencer {
-			cTxs = append(cTxs, txi)
-		}
-		txStatusSet.CreateStatus(txi)
 
-		//if txi.GetType() == types.TxBaseTypeArchive {
-		//	continue
-		//}
-		//
-		//if txi.GetType() == types.TxBaseTypeNormal {
-		//}
+	for _, txi := range elders {
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
@@ -961,9 +953,13 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 
 		switch tx := txi.(type) {
 		case *tx_types.Sequencer:
+			prevSeq = tx
 			break
 
 		case *tx_types.Tx:
+			cTxs = append(cTxs, txi)
+			txStatusSet.CreateStatus(txi)
+
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
@@ -974,6 +970,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 			}
 			batchFrom.TxList.put(tx)
 			batchFrom.AddNeg(tx.TokenId, tx.Value)
+			batchFrom.AddNeg(tx.TokenId, tx.Guarantee)
 
 		default:
 			batchFrom, okFrom := batch[tx.Sender()]
@@ -1007,6 +1004,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 	}
 
 	cb := &ConfirmBatch{}
+	cb.PrevSeq = prevSeq
 	cb.Seq = seq
 	cb.Txs = cTxs
 	cb.Status = txStatusSet

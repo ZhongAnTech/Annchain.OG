@@ -48,7 +48,14 @@ var (
 )
 
 type DagConfig struct {
+	RobRate     int
 	GenesisPath string
+}
+
+func DefaultDagConfig() DagConfig {
+	return DagConfig{
+		RobRate: 30,
+	}
 }
 
 type Dag struct {
@@ -109,10 +116,6 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		}
 	}
 	return dag, nil
-}
-
-func DefaultDagConfig() DagConfig {
-	return DagConfig{}
 }
 
 func (dag *Dag) Start() {
@@ -735,7 +738,7 @@ func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
 
 	dag.preloadDB.Reset()
 	for _, txi := range batch.Txs {
-		_, _, err := dag.ProcessTransaction(txi, true)
+		_, _, err := dag.ProcessTransaction(txi, nil, true)
 		if err != nil {
 			return common.Hash{}, fmt.Errorf("process tx error: %v", err)
 		}
@@ -766,7 +769,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 
-		_, receipt, err := dag.ProcessTransaction(txi, false)
+		_, receipt, err := dag.ProcessTransaction(txi, batch.Status, false)
 		if err != nil {
 			dag.Revert(sId, nil)
 			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
@@ -803,7 +806,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	_, receipt, err := dag.ProcessTransaction(batch.Seq, false)
+	_, receipt, err := dag.ProcessTransaction(batch.Seq, nil, false)
 	if err != nil {
 		return err
 	}
@@ -942,7 +945,7 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 //
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
-func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
+func (dag *Dag) ProcessTransaction(tx types.Txi, txStatusSet TxStatusSet, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
 	if tx.GetType() == types.TxBaseTypeArchive {
 		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
@@ -987,6 +990,15 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, nil
 	}
 
+	// calculate tx rob system
+	robLeft, guaranteeLost := dag.calTxRobSystem(tx, txStatusSet)
+	if robLeft != nil {
+		db.AddBalance(tx.Sender(), robLeft)
+	}
+	if guaranteeLost != nil {
+		db.SubBalance(tx.Sender(), guaranteeLost)
+	}
+
 	// transfer balance
 	txnormal := tx.(*tx_types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
@@ -1029,13 +1041,12 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	ogvm := ovm.NewOVM(vmContext, []ovm.Interpreter{evmInterpreter}, ovmconf)
 
 	var ret []byte
-	var leftOverGas uint64
 	var contractAddress = emptyAddress
 	var err error
 	if txnormal.To.Bytes == emptyAddress.Bytes {
-		ret, contractAddress, leftOverGas, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
-		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, _, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
@@ -1045,12 +1056,39 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", contractAddress)
 
 	// TODO
-	// not finished yet
-	//
-	// 1. refund gas
-	// 2. add service fee to coinbase
-	log.Debugf("leftOverGas not used yet, this log is for compiling, ret: %x, leftOverGas: %d", ret, leftOverGas)
+	// gas not calculated yet.
+
 	return ret, receipt, nil
+}
+
+func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.BigInt, *math.BigInt) {
+	txStatus := txStatusSet[txi.GetTxHash()]
+	if txStatus == nil {
+		return nil, nil
+	}
+
+	robbedLeft := math.NewBigIntFromBigInt(txStatus.robbed.Value)
+	guaranteeLost := math.NewBigInt(0)
+	for _, child := range txStatus.Children() {
+		childStatus := txStatusSet.Get(child.GetTxHash())
+		if childStatus == nil {
+			continue
+		}
+
+		var robbedAmount, guaranteeAmount *math.BigInt
+		if txi.GetType() == types.TxBaseTypeSequencer {
+			robbedAmount, guaranteeAmount = txStatusSet.airdrop(child.GetTxHash(), txi.GetTxHash())
+		} else if child.GetType() == types.TxBaseTypeSequencer {
+			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash())
+		} else {
+			robbedAmount, guaranteeAmount = txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate)
+		}
+
+		robbedLeft = robbedLeft.Sub(robbedAmount)
+		guaranteeLost = guaranteeLost.Add(guaranteeAmount)
+	}
+
+	return robbedLeft, guaranteeLost
 }
 
 func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error) {
@@ -1172,9 +1210,10 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq    *tx_types.Sequencer
-	Txs    types.Txis
-	Status TxStatusSet
+	PrevSeq *tx_types.Sequencer
+	Seq     *tx_types.Sequencer
+	Txs     types.Txis
+	Status  TxStatusSet
 }
 
 func (c *ConfirmBatch) String() string {

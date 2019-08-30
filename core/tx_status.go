@@ -71,17 +71,8 @@ func (t *TxStatusSet) airdrop(txHash common.Hash, seqHash common.Hash) (*math.Bi
 }
 
 // forfeit simulates seq taking all of the robbed and guarantee money from its parent.
-func (t *TxStatusSet) forfeit(seqHash common.Hash, txHash common.Hash) (*math.BigInt, *math.BigInt) {
-	seqStatus := t.Get(seqHash)
-	if seqStatus == nil {
-		return nil, nil
-	}
-	txStatus := t.Get(txHash)
-	if txStatus == nil {
-		return nil, nil
-	}
-	return math.NewBigIntFromBigInt(txStatus.robbed.Value),
-		math.NewBigIntFromBigInt(txStatus.guarantee.Value)
+func (t *TxStatusSet) forfeit(seqHash common.Hash, txHash common.Hash, robRate int) (*math.BigInt, *math.BigInt) {
+	return t.rob(seqHash, txHash, robRate)
 }
 
 type TxStatus struct {

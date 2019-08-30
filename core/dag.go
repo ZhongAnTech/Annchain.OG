@@ -766,6 +766,9 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 
+	// calculate previous sequencer to let seq airdrop happen.
+	dag.calTxRobSystem(batch.PrevSeq, batch.Status)
+
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 
@@ -1083,7 +1086,7 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 		if txi.GetType() == types.TxBaseTypeSequencer {
 			robbedAmount, guaranteeAmount = txStatusSet.airdrop(child.GetTxHash(), txi.GetTxHash())
 		} else if child.GetType() == types.TxBaseTypeSequencer {
-			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash())
+			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate*2)
 		} else {
 			robbedAmount, guaranteeAmount = txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate)
 		}

@@ -622,16 +622,15 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	// check if the tx's parents exists and if is badtx
 	for _, parentHash := range tx.Parents() {
 		// check if tx in pool
-		if pool.get(parentHash) != nil {
-			if pool.getStatus(parentHash) == TxStatusBadTx {
-				log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
-				return TxQualityIsBad
-			}
-			continue
+		if pool.get(parentHash) == nil {
+			// According to hackathon rules, a tx's parents must be in pool or be a sequencer.
+			// If a parent is already confirmed, this tx should be ignored.
+			return TxQualityIsFatal
 		}
-		// According to hackathon rules, a tx's parents must be in pool or be a sequencer.
-		// If a parent is already confirmed, this tx should be ignored.
-		return TxQualityIsFatal
+		if pool.getStatus(parentHash) == TxStatusBadTx {
+			log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
+			return TxQualityIsBad
+		}
 	}
 
 	//if tx.GetType() == types.TxBaseTypeArchive {
@@ -954,11 +953,16 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		switch tx := txi.(type) {
 		case *tx_types.Sequencer:
 			prevSeq = tx
+			txStatusSet.CreateStatus(txi)
 			break
 
 		case *tx_types.Tx:
 			cTxs = append(cTxs, txi)
 			txStatusSet.CreateStatus(txi)
+			for _, pHash := range tx.Parents() {
+				parent := pool.get(pHash)
+				txStatusSet.BindChild(parent, tx)
+			}
 
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
@@ -1001,6 +1005,12 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		if nErr := pool.verifyNonce(addr, &nonces, seq); nErr != nil {
 			return nil, nErr
 		}
+	}
+
+	// bind confirm sequencer to be a child of its parents.
+	for _, pHash := range seq.Parents() {
+		parent := pool.get(pHash)
+		txStatusSet.BindChild(parent, seq)
 	}
 
 	cb := &ConfirmBatch{}

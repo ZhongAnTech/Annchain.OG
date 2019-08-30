@@ -1062,6 +1062,10 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, txStatusSet TxStatusSet, preloa
 }
 
 func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.BigInt, *math.BigInt) {
+	if txStatusSet == nil {
+		return nil, nil
+	}
+
 	txStatus := txStatusSet[txi.GetTxHash()]
 	if txStatus == nil {
 		return nil, nil

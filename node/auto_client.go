@@ -282,7 +282,10 @@ func (c *AutoClient) fireTxs() bool {
 
 		}
 		if c.TestDagPush {
-			batch := &core.ConfirmBatch{seq, txis}
+			batch := &core.ConfirmBatch{
+				Seq: seq,
+				Txs: txis,
+			}
 			err := c.Delegate.Dag.Push(batch)
 			if err != nil {
 				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")

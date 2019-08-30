@@ -14,7 +14,6 @@
 package performance
 
 import (
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types"
 	"go.uber.org/atomic"
@@ -31,15 +30,15 @@ type TxCounter struct {
 	StartupTime        time.Time     `json:"startupTime"`        // timestamp of the program started.
 
 	// listeners
-	NewTxReceivedChan  chan types.Txi                 `json:"-"`
-	NewTxGeneratedChan chan types.Txi                 `json:"-"`
-	BatchConfirmedChan chan map[common.Hash]types.Txi `json:"-"`
-	quit               chan bool                      `json:"-"`
+	NewTxReceivedChan  chan types.Txi   `json:"-"`
+	NewTxGeneratedChan chan types.Txi   `json:"-"`
+	BatchConfirmedChan chan []types.Txi `json:"-"`
+	quit               chan bool        `json:"-"`
 }
 
 func NewTxCounter() *TxCounter {
 	return &TxCounter{
-		BatchConfirmedChan: make(chan map[common.Hash]types.Txi),
+		BatchConfirmedChan: make(chan []types.Txi),
 		NewTxReceivedChan:  make(chan types.Txi),
 		NewTxGeneratedChan: make(chan types.Txi),
 		quit:               make(chan bool),

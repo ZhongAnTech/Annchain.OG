@@ -3,11 +3,19 @@ package annsensus
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/types/p2p_message"
 )
 
+// AnnsensusProcessor integrates dkg, bft and term change with vrf.
+// It receives messages from
 type AnnsensusProcessor struct {
-	config AnnsensusProcessorConfig
+	config            AnnsensusProcessorConfig
+	signer            crypto.ISigner
+	p2pSender         communicator.P2PSender
+	myAccountProvider ConsensusAccountProvider
+
+	quit chan bool
 }
 
 type AnnsensusProcessorConfig struct {
@@ -36,6 +44,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig) *AnnsensusProcessor 
 
 	return &AnnsensusProcessor{
 		config: config,
+		quit:   make(chan bool),
 	}
 }
 
@@ -45,12 +54,21 @@ func (ap *AnnsensusProcessor) Start() {
 		log.Warn("annsensus disabled")
 		return
 	}
+loop:
+	for {
+		select {
+		case <-ap.quit:
+			break loop
+		case
+		}
+	}
+
 }
 
 func (AnnsensusProcessor) Stop() {
 	panic("implement me")
 }
 
-func (AnnsensusProcessor) HandleMessage(message p2p_message.Message) {
+func (AnnsensusProcessor) HandleConsensusMessage(message p2p_message.Message) {
 	panic("implement me")
 }

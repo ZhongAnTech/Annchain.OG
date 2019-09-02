@@ -9,5 +9,5 @@ type ConsensusProcessor interface {
 	// stop processing consensus
 	Stop()
 	// receive incoming message
-	HandleMessage(message p2p_message.Message)
+	HandleConsensusMessage(message p2p_message.Message)
 }

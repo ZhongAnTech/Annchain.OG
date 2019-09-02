@@ -114,7 +114,7 @@ func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err err
 
 func (k *PrivateKey) String() string {
 	var bytes []byte
-	bytes = append(bytes, byte(k.Type))
+	//bytes = append(bytes, byte(k.Type))
 	bytes = append(bytes, k.Bytes...)
 	return hexutil.Encode(bytes)
 }
@@ -167,7 +167,7 @@ func (p *PublicKey) Address() common.Address {
 
 func (p *PublicKey) String() string {
 	var bytes []byte
-	bytes = append(bytes, byte(p.Type))
+	//bytes = append(bytes, byte(p.Type))
 	bytes = append(bytes, p.Bytes...)
 	return hexutil.Encode(bytes)
 }

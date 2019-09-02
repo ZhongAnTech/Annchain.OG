@@ -97,7 +97,7 @@ title = "OG configuration"
 
 [tx_creator]
   init_treasure = 1000
-  max_treasure = 100000000
+  max_treasure = 1000
   max_treasure_height = 30000
 
 [txpool]

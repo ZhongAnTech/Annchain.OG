@@ -370,6 +370,19 @@ func (pool *TxPool) GetAllTips() (v []types.Txi) {
 	return v
 }
 
+func (pool *TxPool) GetAllTxs() (txs []types.Txi) {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	for _, hash := range pool.getHashOrder() {
+		tx := pool.get(hash)
+		if tx != nil {
+			txs = append(txs, tx)
+		}
+	}
+	return txs
+}
+
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
 // AddLocalTx only process tx that sent by local node.
 func (pool *TxPool) AddLocalTx(tx types.Txi, noFeedBack bool) error {

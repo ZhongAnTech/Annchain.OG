@@ -15,7 +15,7 @@ func init() {
 	Formatter.DisableColors = true
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 	logrus.SetFormatter(Formatter)
 	//logrus.SetReportCaller(true)
 
@@ -64,7 +64,7 @@ func setupPartners(termId uint64, numParts int, threshold int) ([]*DkgPartner, [
 
 	// prepare incoming channels
 	for i := 0; i < numParts; i++ {
-		peerChans = append(peerChans, make(chan DkgMessage, 5))
+		peerChans = append(peerChans, make(chan DkgMessage, 5000))
 	}
 
 	var partners []*DkgPartner
@@ -84,21 +84,22 @@ func setupPartners(termId uint64, numParts int, threshold int) ([]*DkgPartner, [
 }
 
 type dummyDkgGeneratedListener struct {
-	Wg *sync.WaitGroup
-	c  chan bool
+	Wg       *sync.WaitGroup
+	c        chan bool
+	finished bool
 }
 
 func NewDummyDkgGeneratedListener(wg *sync.WaitGroup) *dummyDkgGeneratedListener {
-	d :=  &dummyDkgGeneratedListener{
+	d := &dummyDkgGeneratedListener{
 		Wg: wg,
 		c:  make(chan bool),
 	}
-	go func(){
+	go func() {
 		for {
-			<- d.c
+			<-d.c
 			d.Wg.Done()
 			logrus.Info("Dkg is generated")
-			break
+			//break
 		}
 	}()
 	return d
@@ -108,23 +109,23 @@ func (d dummyDkgGeneratedListener) GetDkgGeneratedEventChannel() chan bool {
 	return d.c
 }
 
-
 func TestDkgPartner(t *testing.T) {
 	// simulate 4 dkg partners
 	termId := uint64(0)
-	numParts := 4
-	threshold := 4
+	numParts := TestNodes
+	threshold := TestNodes
 
 	partners, _ := setupPartners(termId, numParts, threshold)
 	wg := sync.WaitGroup{}
 
+	wg.Add(len(partners))
+	listener := NewDummyDkgGeneratedListener(&wg)
+
 	for _, partner := range partners {
-		partner.DkgGeneratedListeners = append(partner.DkgGeneratedListeners,
-			NewDummyDkgGeneratedListener(&wg))
-		wg.Add(1)
+		partner.DkgGeneratedListeners = append(partner.DkgGeneratedListeners, listener)
 		partner.Start()
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 5)
 	for _, partner := range partners {
 		partner.gossipStartCh <- true
 	}

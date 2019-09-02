@@ -25,11 +25,6 @@ type AccountNonceProvider interface {
 	GetNonce(account *account.Account) uint64
 }
 
-// ConsensusAccountProvider provides public key and private key for signing consensus messages
-type ConsensusAccountProvider interface {
-	Account() *account.Account
-}
-
 // HeightProvider is called when a height is needed
 type HeightProvider interface {
 	CurrentHeight() uint64

@@ -1,4 +1,4 @@
-package bft
+package communicator
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
@@ -16,30 +17,32 @@ import (
 // All messages received from TrustfulPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulPartnerCommunicator struct {
 	incomingChannel   chan bft.BftMessage
-	Signer            crypto.ISigner
+	SignatureProvider account.SignatureProvider
 	TermProvider      annsensus.TermProvider //TODO：not its job.
-	P2PSender         P2PSender
-	MyAccountProvider ConsensusAccountProvider
+	P2PSender         P2PSender              // upstream message sender
 }
 
-func NewTrustfulPeerCommunicator(signer crypto.ISigner, termProvider annsensus.TermProvider,
-	myAccountProvider ConsensusAccountProvider, p2pSender P2PSender) *TrustfulPartnerCommunicator {
+func (r *TrustfulPartnerCommunicator) Run() {
+	// no need to do anything since it is a passive middle layer communicator.
+	// it just delegate all communication to the upstream communicator
+}
+
+func NewTrustfulPeerCommunicator(signatureProvider account.SignatureProvider, termProvider annsensus.TermProvider,
+	p2pSender P2PSender) *TrustfulPartnerCommunicator {
 	return &TrustfulPartnerCommunicator{
 		incomingChannel:   make(chan bft.BftMessage, 20),
-		Signer:            signer,
+		SignatureProvider: signatureProvider,
 		TermProvider:      termProvider,
-		MyAccountProvider: myAccountProvider,
 		P2PSender:         p2pSender,
 	}
 }
 
 func (r *TrustfulPartnerCommunicator) Sign(msg bft.BftMessage) message.SignedOgPartnerMessage {
-	account := r.MyAccountProvider.Account()
 	signed := message.SignedOgPartnerMessage{
 		BftMessage: msg,
-		Signature:  r.Signer.Sign(account.PrivateKey, msg.Payload.SignatureTargets()).Bytes,
+		Signature:  r.SignatureProvider.Sign(msg.Payload.SignatureTargets()),
 		//SessionId:     partner.CurrentTerm(),
-		PublicKey: account.PublicKey.Bytes,
+		//PublicKey: account.PublicKey.Bytes,
 	}
 	return signed
 }
@@ -50,7 +53,6 @@ func (r *TrustfulPartnerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.
 	for _, peer := range peers {
 		r.P2PSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
 	}
-
 }
 
 // Unicast must be anonymous

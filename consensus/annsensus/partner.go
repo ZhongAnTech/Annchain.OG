@@ -6,7 +6,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg/archive"
 	"github.com/annchain/OG/consensus/term"
-	bft2 "github.com/annchain/OG/og/communicator/bft"
+	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
@@ -45,7 +45,7 @@ func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunic
 		consensusReachedChannel: make(chan bft.ConsensusDecision),
 		quit:                    make(chan bool),
 	}
-	trustfulPeerCommunicator := bft2.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
+	trustfulPeerCommunicator := communicator.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
 
 	ap := &AnnsensusPartner{
 		peerCommunicator:     trustfulPeerCommunicator,

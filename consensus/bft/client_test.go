@@ -82,8 +82,8 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 	for i = 0; i < total; i++ {
 		peer := peers[i]
 		switch peer.(type) {
-		case *DefaultBftOperator:
-			peer.(*DefaultBftOperator).BftStatus.Peers = peerInfo
+		case *DefaultBftPartner:
+			peer.(*DefaultBftPartner).BftStatus.Peers = peerInfo
 		default:
 			panic("not supported")
 		}

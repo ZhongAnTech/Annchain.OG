@@ -9,6 +9,7 @@ import (
 	dkger "github.com/annchain/kyber/v3/share/dkg/pedersen"
 	vss "github.com/annchain/kyber/v3/share/vss/pedersen"
 	"github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -17,17 +18,25 @@ import (
 // It is the handler for maintaining the DkgContext.
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
-	context               *DkgContext
-	PeerCommunicator      DkgPeerCommunicator
-	DealReceivingCache    DisorderedCache // map[deal_sender_index]Deal
-	gossipStartCh         chan bool
-	quit                  chan bool
+	context            *DkgContext
+	PeerCommunicator   DkgPeerCommunicator
+	DealReceivingCache DisorderedCache // map[deal_sender_index]Deal
+	gossipStartCh      chan bool
+
 	otherPeers            []PeerInfo
 	notified              bool
-	DkgGeneratedListeners []DkgGeneratedListener  // joint pubkey is got
 	DealResponseCache     map[int]*dkger.Response //my response for such deal should not be generated twice
 	ResponseCache         map[string]bool         // duplicate response should not be processed twice.
 	total                 int
+	DkgGeneratedListeners []DkgGeneratedListener // joint pubkey is got
+
+	quit      chan bool
+	quitWg sync.WaitGroup
+}
+
+func (p *DkgPartner) Stop() {
+	close(p.quit)
+	p.quitWg.Wait()
 }
 
 // NewDkgPartner inits a dkg group. All public keys should be already generated
@@ -89,6 +98,7 @@ func GenPartnerPair(suite *bn256.Suite) (kyber.Scalar, kyber.Point) {
 
 func (p *DkgPartner) Start() {
 	// start to gossipLoop and share the deals
+	p.quitWg.Add(1)
 	goroutine.New(p.gossipLoop)
 }
 
@@ -109,6 +119,7 @@ func (p *DkgPartner) gossipLoop() {
 		select {
 		case <-p.quit:
 			logrus.Warn("dkg gossip quit")
+			p.quitWg.Done()
 			return
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
@@ -118,6 +129,7 @@ func (p *DkgPartner) gossipLoop() {
 			p.handleMessage(msg)
 		}
 	}
+
 }
 
 // announceDeals sends deals to all other partners to build up a dkg group
@@ -386,6 +398,15 @@ func (p *DkgPartner) notifyListeners() {
 	}
 	p.notified = true
 }
+
+func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
+	p.DkgGeneratedListeners = append(p.DkgGeneratedListeners, l)
+}
+
+func (p *DkgPartner) GetPeerCommunicator() DkgPeerCommunicator {
+	return p.PeerCommunicator
+}
+
 //
 //func (p *DkgPartner) checkWaitingForWhat() {
 //

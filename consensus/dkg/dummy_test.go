@@ -5,7 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var TestNodes = 20
+var TestNodes = 70
 
 type dummyDkgPeerCommunicator struct {
 	Myid                   int

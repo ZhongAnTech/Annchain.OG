@@ -10,3 +10,10 @@ type DkgPeerCommunicator interface {
 type DkgGeneratedListener interface {
 	GetDkgGeneratedEventChannel() chan bool
 }
+
+type DkgOperator interface {
+	Start()
+	Stop()
+	GetPeerCommunicator() DkgPeerCommunicator
+	RegisterDkgGeneratedListener(l DkgGeneratedListener)
+}

@@ -1,19 +1,9 @@
 package account
 
 import (
-	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 )
-
-type SignatureProvider interface {
-	Sign(data []byte) []byte
-}
-
-// AccountProvider provides public key and private key for signing consensus messages
-type AccountProvider interface {
-	Account() *account.Account
-}
 
 type AccountSignerSignatureProvider struct {
 	Signer          crypto.ISigner

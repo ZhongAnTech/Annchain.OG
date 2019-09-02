@@ -27,10 +27,12 @@ type BftPeerCommunicator interface {
 
 type BftOperator interface {
 	StartNewEra(height uint64, round int)
+	Stop()
 	WaiterLoop()
 	EventLoop()
+
 	GetPeerCommunicator() BftPeerCommunicator
-	Stop()
+	RegisterConsensusReachedListener(listener ConsensusReachedListener)
 }
 
 type ConsensusReachedListener interface {

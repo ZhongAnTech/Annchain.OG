@@ -24,11 +24,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DefaultBftOperator implements a Tendermint client according to "The latest gossip on BFT consensus"
-// DefaultBftOperator is the action performer manipulating the BftStatus.
+// DefaultBftPartner implements a Tendermint client according to "The latest gossip on BFT consensus"
+// DefaultBftPartner is the action performer manipulating the BftStatus.
 // It listens to the conditions changed outside (by message or by time) and perform actions.
 // Note: Destroy and use a new one upon peers changing.
-type DefaultBftOperator struct {
+type DefaultBftPartner struct {
 	Id                int
 	BftStatus         *BftStatus
 	blockTime         time.Duration
@@ -46,11 +46,11 @@ type DefaultBftOperator struct {
 	//wg sync.WaitGroup
 }
 
-func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultBftOperator {
+func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultBftPartner {
 	if nbParticipants < 2 {
 		panic(0)
 	}
-	p := &DefaultBftOperator{
+	p := &DefaultBftPartner{
 		Id: id,
 		BftStatus: &BftStatus{
 			N:      nbParticipants,
@@ -81,11 +81,11 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *
 
 // RegisterConsensusReachedListener registers callback for decision made event
 // TODO: In the future, protected the array so that it can handle term change
-func (p *DefaultBftOperator) RegisterConsensusReachedListener(listener ConsensusReachedListener) {
+func (p *DefaultBftPartner) RegisterConsensusReachedListener(listener ConsensusReachedListener) {
 	p.ConsensusReachedListeners = append(p.ConsensusReachedListeners, listener)
 }
 
-func (p *DefaultBftOperator) Stop() {
+func (p *DefaultBftPartner) Stop() {
 	//quit channal is used by two or more go routines , use close instead of send values to channel
 	close(p.quit)
 	close(p.waiter.quit)
@@ -97,7 +97,7 @@ func MajorityTwoThird(n int) int {
 	return 2*n/3 + 1
 }
 
-func (p *DefaultBftOperator) Reset(nbParticipants int, id int) {
+func (p *DefaultBftPartner) Reset(nbParticipants int, id int) {
 	p.BftStatus.N = nbParticipants
 	p.BftStatus.F = (nbParticipants - 1) / 3
 	p.Id = id
@@ -111,7 +111,7 @@ func (p *DefaultBftOperator) Reset(nbParticipants int, id int) {
 	return
 }
 
-//func (p *DefaultBftOperator) RestartNewEra() {
+//func (p *DefaultBftPartner) RestartNewEra() {
 //	s := p.BftStatus.States[p.BftStatus.CurrentHR]
 //	if s != nil {
 //		if s.Decision != nil {
@@ -127,12 +127,12 @@ func (p *DefaultBftOperator) Reset(nbParticipants int, id int) {
 //	return
 //}
 
-func (p *DefaultBftOperator) WaiterLoop() {
+func (p *DefaultBftPartner) WaiterLoop() {
 	goroutine.New(p.waiter.StartEventLoop)
 }
 
 // StartNewEra is called once height or round needs to be changed.
-func (p *DefaultBftOperator) StartNewEra(height uint64, round int) {
+func (p *DefaultBftPartner) StartNewEra(height uint64, round int) {
 	hr := p.BftStatus.CurrentHR
 	if height-hr.Height > 1 {
 		logrus.WithField("height", height).Warn("height is much higher than current. Indicating packet loss or severe behind.")
@@ -187,7 +187,7 @@ func (p *DefaultBftOperator) StartNewEra(height uint64, round int) {
 	}
 }
 
-func (p *DefaultBftOperator) EventLoop() {
+func (p *DefaultBftPartner) EventLoop() {
 	//goroutine.New(p.send)
 	//p.wg.Add(1)
 	goroutine.New(p.receive)
@@ -196,7 +196,7 @@ func (p *DefaultBftOperator) EventLoop() {
 
 // receive prevents concurrent state updates by allowing only one channel to be read per loop
 // Any action which involves state updates should be in this select clause
-func (p *DefaultBftOperator) receive() {
+func (p *DefaultBftPartner) receive() {
 	//defer p.wg.Done()
 	timer := time.NewTimer(time.Second * 7)
 	incomingChannel := p.PeerCommunicator.GetIncomingChannel()
@@ -225,7 +225,7 @@ func (p *DefaultBftOperator) receive() {
 }
 
 // Proposer returns current round proposer. Now simply round robin
-func (p *DefaultBftOperator) Proposer(hr HeightRound) int {
+func (p *DefaultBftPartner) Proposer(hr HeightRound) int {
 	//return 3
 	//return (hr.Height + hr.Round) % p.N
 	//maybe overflow
@@ -233,7 +233,7 @@ func (p *DefaultBftOperator) Proposer(hr HeightRound) int {
 }
 
 // GetValue generates the value requiring consensus
-func (p *DefaultBftOperator) GetValue(newBlock bool) (Proposal, ProposalCondition) {
+func (p *DefaultBftPartner) GetValue(newBlock bool) (Proposal, ProposalCondition) {
 	//don't sleep for the same height new round
 	blockTime := time.After(p.blockTime)
 	if newBlock {
@@ -259,7 +259,7 @@ func (p *DefaultBftOperator) GetValue(newBlock bool) (Proposal, ProposalConditio
 
 // Broadcast announce messages to all partners
 //
-func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
+func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
 	m := BftMessage{
 		Type: messageType,
 	}
@@ -297,7 +297,7 @@ func (p *DefaultBftOperator) Broadcast(messageType BftMessageType, hr HeightRoun
 }
 
 // OnTimeoutPropose is the callback after staying too long on propose step
-func (p *DefaultBftOperator) OnTimeoutPropose(context WaiterContext) {
+func (p *DefaultBftPartner) OnTimeoutPropose(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.BftStatus.CurrentHR && p.BftStatus.States[p.BftStatus.CurrentHR].Step == StepTypePropose {
 		p.Broadcast(BftMessageTypePreVote, p.BftStatus.CurrentHR, nil, 0)
@@ -306,7 +306,7 @@ func (p *DefaultBftOperator) OnTimeoutPropose(context WaiterContext) {
 }
 
 // OnTimeoutPreVote is the callback after staying too long on prevote step
-func (p *DefaultBftOperator) OnTimeoutPreVote(context WaiterContext) {
+func (p *DefaultBftPartner) OnTimeoutPreVote(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.BftStatus.CurrentHR && p.BftStatus.States[p.BftStatus.CurrentHR].Step == StepTypePreVote {
 		p.Broadcast(BftMessageTypePreCommit, p.BftStatus.CurrentHR, nil, 0)
@@ -315,7 +315,7 @@ func (p *DefaultBftOperator) OnTimeoutPreVote(context WaiterContext) {
 }
 
 // OnTimeoutPreCommit is the callback after staying too long on precommit step
-func (p *DefaultBftOperator) OnTimeoutPreCommit(context WaiterContext) {
+func (p *DefaultBftPartner) OnTimeoutPreCommit(context WaiterContext) {
 	v := context.(*TendermintContext)
 	if v.HeightRound == p.BftStatus.CurrentHR {
 		p.StartNewEra(v.HeightRound.Height, v.HeightRound.Round+1)
@@ -323,7 +323,7 @@ func (p *DefaultBftOperator) OnTimeoutPreCommit(context WaiterContext) {
 }
 
 // WaitStepTimeout waits for a centain time if stepType stays too long
-func (p *DefaultBftOperator) WaitStepTimeout(stepType StepType, timeout time.Duration, hr HeightRound, timeoutCallback func(WaiterContext)) {
+func (p *DefaultBftPartner) WaitStepTimeout(stepType StepType, timeout time.Duration, hr HeightRound, timeoutCallback func(WaiterContext)) {
 	p.waiter.UpdateRequest(&WaiterRequest{
 		WaitTime:        timeout,
 		TimeoutCallback: timeoutCallback,
@@ -334,7 +334,7 @@ func (p *DefaultBftOperator) WaitStepTimeout(stepType StepType, timeout time.Dur
 	})
 }
 
-func (p *DefaultBftOperator) handleMessage(message BftMessage) {
+func (p *DefaultBftPartner) handleMessage(message BftMessage) {
 	switch message.Type {
 	case BftMessageTypeProposal:
 		switch message.Payload.(type) {
@@ -402,7 +402,7 @@ func (p *DefaultBftOperator) handleMessage(message BftMessage) {
 	}
 
 }
-func (p *DefaultBftOperator) handleProposal(proposal *MessageProposal) {
+func (p *DefaultBftPartner) handleProposal(proposal *MessageProposal) {
 	state, ok := p.BftStatus.States[proposal.HeightRound]
 	if !ok {
 		logrus.WithField("IM", p.Id).WithField("hr", proposal.HeightRound).Error("proposal height round not in states")
@@ -438,7 +438,7 @@ func (p *DefaultBftOperator) handleProposal(proposal *MessageProposal) {
 		}
 	}
 }
-func (p *DefaultBftOperator) handlePreVote(vote *MessagePreVote) {
+func (p *DefaultBftPartner) handlePreVote(vote *MessagePreVote) {
 	// rule line 34
 	count := p.count(BftMessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, nil)
 	state, ok := p.BftStatus.States[vote.HeightRound]
@@ -477,7 +477,7 @@ func (p *DefaultBftOperator) handlePreVote(vote *MessagePreVote) {
 
 }
 
-func (p *DefaultBftOperator) handlePreCommit(commit *MessagePreCommit) {
+func (p *DefaultBftPartner) handlePreCommit(commit *MessagePreCommit) {
 	// rule line 47
 	count := p.count(BftMessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
 	state := p.BftStatus.States[commit.HeightRound]
@@ -524,13 +524,13 @@ func (p *DefaultBftOperator) handlePreCommit(commit *MessagePreCommit) {
 }
 
 // valid checks proposal validation
-func (p *DefaultBftOperator) valid(proposal Proposal) bool {
+func (p *DefaultBftPartner) valid(proposal Proposal) bool {
 	err := p.ProposalValidator.ValidateProposal(proposal)
 	return err == nil
 }
 
 // count votes and commits from others.
-func (p *DefaultBftOperator) count(messageType BftMessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
+func (p *DefaultBftPartner) count(messageType BftMessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
 	counter := 0
 
 	state, ok := p.BftStatus.States[HeightRound{
@@ -601,7 +601,7 @@ func (p *DefaultBftOperator) count(messageType BftMessageType, height uint64, va
 
 // checkRound will init all data structure this message needs.
 // It also check if the message is out of date, or advanced too much
-func (p *DefaultBftOperator) checkRound(message *BftBasicInfo) (needHandle bool) {
+func (p *DefaultBftPartner) checkRound(message *BftBasicInfo) (needHandle bool) {
 	// check status storage first
 	if message.HeightRound.IsAfterOrEqual(p.BftStatus.CurrentHR) {
 		_, ok := p.BftStatus.States[message.HeightRound]
@@ -647,7 +647,7 @@ func (p *DefaultBftOperator) checkRound(message *BftBasicInfo) (needHandle bool)
 }
 
 // changeStep updates the step and then notify the waiter.
-func (p *DefaultBftOperator) changeStep(stepType StepType) {
+func (p *DefaultBftPartner) changeStep(stepType StepType) {
 	p.BftStatus.States[p.BftStatus.CurrentHR].Step = stepType
 	p.waiter.UpdateContext(&TendermintContext{
 		HeightRound: p.BftStatus.CurrentHR,
@@ -656,7 +656,7 @@ func (p *DefaultBftOperator) changeStep(stepType StepType) {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultBftOperator) dumpVotes(votes []*MessagePreVote) string {
+func (p *DefaultBftPartner) dumpVotes(votes []*MessagePreVote) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -673,7 +673,7 @@ func (p *DefaultBftOperator) dumpVotes(votes []*MessagePreVote) string {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultBftOperator) dumpCommits(votes []*MessagePreCommit) string {
+func (p *DefaultBftPartner) dumpCommits(votes []*MessagePreCommit) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -689,7 +689,7 @@ func (p *DefaultBftOperator) dumpCommits(votes []*MessagePreCommit) string {
 	return sb.String()
 }
 
-func (p *DefaultBftOperator) dumpAll(reason string) {
+func (p *DefaultBftPartner) dumpAll(reason string) {
 	//return
 	state := p.BftStatus.States[p.BftStatus.CurrentHR]
 	if state == nil {
@@ -703,7 +703,7 @@ func (p *DefaultBftOperator) dumpAll(reason string) {
 	logrus.WithField("IM", p.Id).WithField("hr", p.BftStatus.CurrentHR).Debugf("%+v %d", state.Sources, len(state.Sources))
 }
 
-func (p *DefaultBftOperator) WipeOldStates() {
+func (p *DefaultBftPartner) WipeOldStates() {
 	var toRemove []HeightRound
 	for hr := range p.BftStatus.States {
 		if hr.IsBefore(p.BftStatus.CurrentHR) {
@@ -715,7 +715,7 @@ func (p *DefaultBftOperator) WipeOldStates() {
 	}
 }
 
-func (p *DefaultBftOperator) initHeightRound(hr HeightRound) (*HeightRoundState, int) {
+func (p *DefaultBftPartner) initHeightRound(hr HeightRound) (*HeightRoundState, int) {
 	// first check if there is previous message received
 	if _, ok := p.BftStatus.States[hr]; !ok {
 		// init one
@@ -725,7 +725,7 @@ func (p *DefaultBftOperator) initHeightRound(hr HeightRound) (*HeightRoundState,
 	return p.BftStatus.States[hr], len(p.BftStatus.States)
 }
 
-func (p *DefaultBftOperator) GetPeerCommunicator() BftPeerCommunicator {
+func (p *DefaultBftPartner) GetPeerCommunicator() BftPeerCommunicator {
 	return p.PeerCommunicator
 }
 
@@ -735,7 +735,7 @@ type BftStatusReport struct {
 	Now         time.Time
 }
 
-func (p *DefaultBftOperator) Status() interface{} {
+func (p *DefaultBftPartner) Status() interface{} {
 	status := BftStatusReport{}
 	status.HeightRound = p.BftStatus.CurrentHR
 	status.States = p.BftStatus.States
@@ -743,7 +743,7 @@ func (p *DefaultBftOperator) Status() interface{} {
 	return &status
 }
 
-func (p *DefaultBftOperator) notifyDecisionMade(round HeightRound, decision ConsensusDecision) {
+func (p *DefaultBftPartner) notifyDecisionMade(round HeightRound, decision ConsensusDecision) {
 	for _, listener := range p.ConsensusReachedListeners {
 		listener.GetConsensusDecisionMadeEventChannel() <- decision
 	}

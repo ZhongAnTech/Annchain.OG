@@ -2,6 +2,8 @@ package dkg
 
 import (
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/kyber/v3"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	dkger "github.com/annchain/kyber/v3/share/dkg/pedersen"
@@ -17,12 +19,15 @@ import (
 type DkgPartner struct {
 	context               *DkgContext
 	PeerCommunicator      DkgPeerCommunicator
-	DealReceivingCache    DisorderedCache // map[deal_sender_address]Deal
+	DealReceivingCache    DisorderedCache // map[deal_sender_index]Deal
 	gossipStartCh         chan bool
 	quit                  chan bool
 	otherPeers            []PeerInfo
 	notified              bool
-	DkgGeneratedListeners []DkgGeneratedListener // joint pubkey is got
+	DkgGeneratedListeners []DkgGeneratedListener  // joint pubkey is got
+	DealResponseCache     map[int]*dkger.Response //my response for such deal should not be generated twice
+	ResponseCache         map[string]bool         // duplicate response should not be processed twice.
+	total                 int
 }
 
 // NewDkgPartner inits a dkg group. All public keys should be already generated
@@ -56,6 +61,8 @@ func NewDkgPartner(suite *bn256.Suite, termId uint64, numParts, threshold int, a
 	d.gossipStartCh = make(chan bool)
 	d.quit = make(chan bool)
 	d.DealReceivingCache = make(DisorderedCache)
+	d.DealResponseCache = make(map[int]*dkger.Response)
+	d.ResponseCache = make(map[string]bool)
 
 	// init all other peers
 	d.otherPeers = []PeerInfo{}
@@ -98,13 +105,14 @@ func (p *DkgPartner) gossipLoop() {
 	// send the deals to all other partners
 	go p.announceDeals()
 	for {
-		timer := time.NewTimer(time.Second * 7)
+		timer := time.NewTimer(time.Second * 10)
 		select {
 		case <-p.quit:
-			logrus.Debug("dkg gossip quit")
+			logrus.Warn("dkg gossip quit")
 			return
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
+			//p.checkWaitingForWhat()
 		case msg := <-incomingChannel:
 			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.Type.String()).Trace("received a message")
 			p.handleMessage(msg)
@@ -122,6 +130,15 @@ func (p *DkgPartner) announceDeals() {
 	for i, deal := range deals {
 		p.sendDealToPartner(i, deal)
 	}
+
+	// in case of package loss, keep resending
+	//for {
+	//	time.Sleep(time.Second * 60)
+	//	logrus.Warn("RESEND")
+	//	for i, deal := range deals {
+	//		p.sendDealToPartner(i, deal)
+	//	}
+	//}
 }
 
 // sendDealToPartner unicast a deal message to some specific partner
@@ -158,7 +175,7 @@ func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 		},
 		Data: data,
 	}
-	logrus.WithField("from", response.Response.Index).Trace("broadcasting response message")
+	logrus.WithField("me", p.context.MyIndex).WithField("from", response.Response.Index).Trace("broadcasting response message")
 	p.PeerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
@@ -205,40 +222,64 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 		logrus.WithError(err).Warn("wrong sender for dkg deal")
 		return
 	}
+
 	issuerIndex := deal.Index
-	v, ok := p.DealReceivingCache[issuerIndex]
-	if !ok {
+	v, hasPreviousDiscussion := p.DealReceivingCache[issuerIndex]
+	if !hasPreviousDiscussion {
 		v = &DkgDiscussion{
 			Deal:      nil,
 			Responses: []*dkger.Response{},
 		}
-		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("new deal is coming")
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("no previous discussion found in cache. new deal.")
 	} else {
-		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("duplicate deal is coming")
+		logrus.WithField("me", p.context.MyIndex).WithField("from", deal.Index).Trace("previous discussion found in cache.")
 	}
 
-	// give deal response
-	resp, err := p.context.Dkger.ProcessDeal(deal)
-	if err != nil {
-		logrus.WithError(err).Warn("failed to process deal")
-	}
-	if resp.Response.Status != vss.StatusApproval {
-		logrus.Warn("received a deal for rejection")
-	}
-
-	// cache the deal
-	discussion := v.(*DkgDiscussion)
-	discussion.Deal = deal
-	// update state
-	p.DealReceivingCache[issuerIndex] = discussion
-
-	// send response to all other partners except itself
-	p.sendResponseToAllRestPartners(resp)
-	if !ok && discussion.GetCurrentStage() >= StageDealReceived {
-		// now deal is just coming. Process the previous deal Responses
-		for _, response := range discussion.Responses {
-			p.handleResponse(response)
+	//resp, inDealResponseCache := p.DealResponseCache[hexutil.Encode(deal.Signature)]
+	resp, inDealResponseCache := p.DealResponseCache[int(deal.Index)]
+	// if the resp is already generated, do not generate for the second time since it will error out.
+	if !inDealResponseCache {
+		// generate response and send out
+		//p.dumpDeal(deal)
+		//p.writeMessage(fmt.Sprintf("Process Deal %d", deal.Index))
+		resp, err := p.context.Dkger.ProcessDeal(deal)
+		if err != nil {
+			logrus.WithError(err).Warn("failed to process deal")
+			return
 		}
+		if resp.Response.Status != vss.StatusApproval {
+			logrus.Warn("received a deal for rejection")
+		}
+		// cache the deal
+		discussion := v.(*DkgDiscussion)
+		discussion.Deal = deal
+
+		// update state
+		p.DealReceivingCache[issuerIndex] = discussion
+
+		// send response to all other partners except itself
+		//p.writeMessage(fmt.Sprintf("Send Resp %d %d", resp.Index, resp.Response.Index))
+		p.sendResponseToAllRestPartners(resp)
+		// avoid response regeneration
+		//p.DealResponseCache[hexutil.Encode(deal.Signature)] = resp
+		p.DealResponseCache[int(deal.Index)] = resp
+
+		// TODO： BUGGY
+		if hasPreviousDiscussion && discussion.GetCurrentStage() >= StageDealReceived {
+			// now deal is just coming. Process the previous deal Responses
+			for _, response := range discussion.Responses {
+				//p.writeMessage(fmt.Sprintf("Process cached Resp %d %d", response.Index, response.Response.Index))
+				p.handleResponse(response)
+			}
+			// clear the discussion response list since we won't process it twice
+			discussion.Responses = []*dkger.Response{}
+		} else {
+			//p.writeMessage(fmt.Sprintf("not a cached way: %d", discussion.Deal.Index))
+		}
+	} else {
+		// RE-send response to all other partners except itself
+		//p.writeMessage(fmt.Sprintf("Send Resp %d %d", resp.Index, resp.Response.Index))
+		p.sendResponseToAllRestPartners(resp)
 	}
 }
 
@@ -248,12 +289,25 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 		logrus.Warn("failed to unmarshal dkg response message")
 		return
 	}
+	//p.dumpDealResponseMessage(resp, "received")
 	// verify if response's sender has a unified index and pubkey to avoid fake messages.
 	err = p.verifyResponseSender(msg, resp)
 	if err != nil {
 		logrus.WithError(err).Warn("wrong sender for dkg response")
 		return
 	}
+	// avoid duplication
+	signatureKey := hexutil.Encode(resp.Response.Signature)
+	_, responseDuplicated := p.ResponseCache[signatureKey]
+	if responseDuplicated {
+		logrus.WithField("me", p.context.MyIndex).
+			WithField("from", resp.Response.Index).
+			WithField("deal", resp.Index).Trace("duplicate response, drop")
+		return
+	} else {
+		p.ResponseCache[signatureKey] = true
+	}
+
 	// check if the correspondant deal is in the cache
 	// if not, hang on
 	dealerIndex := resp.Index
@@ -274,19 +328,22 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	//verifierIndex := resp.Response.Index
 
 	// if deal is already there, process this response
-	if discussion.Deal != nil  || dealerIndex == p.context.MyIndex{
+	if discussion.Deal != nil || dealerIndex == p.context.MyIndex {
 		logrus.WithField("me", p.context.MyIndex).
 			WithField("from", resp.Response.Index).
 			WithField("deal", resp.Index).Trace("new resp is being processed")
+		//p.writeMessage(fmt.Sprintf("Process Resp %d %d", resp.Index, resp.Response.Index))
 		p.handleResponse(resp)
 	} else {
 		logrus.WithField("me", p.context.MyIndex).
 			WithField("from", resp.Response.Index).
 			WithField("deal", resp.Index).Trace("new resp is being cached")
+		//p.writeMessage(fmt.Sprintf("Cached Resp %d %d", resp.Index, resp.Response.Index))
 	}
 }
 
 func (p *DkgPartner) handleResponse(resp *dkger.Response) {
+	//p.dumpDealResponseMessage(resp, "realin")
 	justification, err := p.context.Dkger.ProcessResponse(resp)
 	if err != nil {
 		logrus.WithError(err).WithField("me", p.context.MyIndex).
@@ -306,11 +363,10 @@ func (p *DkgPartner) handleResponse(resp *dkger.Response) {
 		if err != nil {
 			logrus.WithField("me", p.context.MyIndex).Warn("DKG has been generated but pubkey reccovery failed")
 		} else {
-			logrus.WithField("me", p.context.MyIndex).WithField("pk", p.context.JointPubKey.String()).Warn("DKG has been generated")
+			logrus.WithField("me", p.context.MyIndex).WithField("pk", p.context.JointPubKey.String()).Info("DKG has been generated")
 			p.notifyListeners()
-
+			//p.checkWaitingForWhat()
 		}
-
 	}
 }
 
@@ -319,15 +375,113 @@ func (p *DkgPartner) verifyDealSender(deal *MessageDkgDeal, deal2 *dkger.Deal) e
 }
 
 func (p *DkgPartner) verifyResponseSender(response *MessageDkgDealResponse, deal *dkger.Response) error {
-
 	return nil
-
 }
 
 // notifyListeners notifies listeners who has been registered for dkg generated events
 func (p *DkgPartner) notifyListeners() {
 	for _, listener := range p.DkgGeneratedListeners {
-		listener.GetDkgGeneratedEventChannel() <- true
+		ffchan.NewTimeoutSenderShort(listener.GetDkgGeneratedEventChannel(), true, "listener")
+		//listener.GetDkgGeneratedEventChannel() <- true
 	}
 	p.notified = true
 }
+//
+//func (p *DkgPartner) checkWaitingForWhat() {
+//
+//	//if p.context.MyIndex != 0 {notified
+//	//	return
+//	//}
+//	total := TestNodes
+//	if !p.notified {
+//		logrus.WithField("IM", p.context.MyIndex).
+//			WithField("qual", p.context.Dkger.QUAL()).
+//			Warn("not notified")
+//	} else {
+//		return
+//	}
+//	logrus.WithField("me", p.context.MyIndex).
+//		WithField("qual", len(p.context.Dkger.QUAL())).
+//		WithField("notified", p.notified).
+//		Info("check waiting for what")
+//
+//	var dealers []int
+//
+//	for dealer, v := range p.DealReceivingCache {
+//		dealers = append(dealers, int(dealer))
+//		discussion := v.(*DkgDiscussion)
+//		if dealer != p.context.MyIndex && len(discussion.Responses) != total-2 {
+//			logrus.WithFields(logrus.Fields{
+//				"IM":  p.context.MyIndex,
+//				"len": len(discussion.Responses),
+//			}).Warn("missing")
+//			for _, response := range discussion.Responses {
+//				logrus.WithField("IM", p.context.MyIndex).WithField("deal index", response.Index).
+//					WithField("resp index", response.Response.Index).Warn("resp index")
+//			}
+//		} else if dealer == p.context.MyIndex && len(discussion.Responses) != total-1 {
+//			logrus.WithFields(logrus.Fields{
+//				"IM":  p.context.MyIndex,
+//				"len": len(discussion.Responses),
+//			}).Warn("missing")
+//			for _, response := range discussion.Responses {
+//				logrus.WithField("IM", p.context.MyIndex).WithField("deal index", response.Index).
+//					WithField("resp index", response.Response.Index).Warn("resp index")
+//			}
+//		}
+//	}
+//	sort.Ints(dealers)
+//	logrus.WithField("dealers", dealers).WithField("ok", len(dealers) == total).WithField("IM", p.context.MyIndex).Info("all deals")
+//}
+//
+//func (p *DkgPartner) dumpDeal(deal *dkger.Deal) {
+//	return
+//	debugPath := "D:/tmp/debug"
+//	file, err := os.OpenFile(
+//		path.Join(debugPath, fmt.Sprintf("deal_%02d.txt", p.context.MyIndex)),
+//		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer file.Close()
+//	_, err = fmt.Fprintf(file, "%d\r\n", deal.Index)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+//
+//func (p *DkgPartner) dumpDealResponseMessage(response *dkger.Response, msg string) {
+//	p.total += 1
+//	if p.context.MyIndex == 0  && p.total % 20 == 0{
+//		fmt.Println(p.total)
+//	}
+//	return
+//	debugPath := "D:/tmp/debug"
+//	file, err := os.OpenFile(
+//		path.Join(debugPath, fmt.Sprintf("resp_%02d_%s.txt", p.context.MyIndex, msg)),
+//		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer file.Close()
+//	_, err = fmt.Fprintf(file, "%d %d\r\n", response.Index, response.Response.Index)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+//
+//func (p *DkgPartner) writeMessage(msg string) {
+//	return
+//	debugPath := "D:/tmp/debug"
+//	file, err := os.OpenFile(
+//		path.Join(debugPath, fmt.Sprintf("log_%d.txt", p.context.MyIndex)),
+//		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer file.Close()
+//	_, err = fmt.Fprintf(file, "%s\r\n", msg)
+//	if err != nil {
+//		panic(err)
+//	}
+//}

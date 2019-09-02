@@ -3,19 +3,28 @@ package annsensus
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/types/p2p_message"
+	"github.com/sirupsen/logrus"
+	"sync"
 )
 
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 // It receives messages from
 type AnnsensusProcessor struct {
+	incomingChannel   chan p2p_message.Message
 	config            AnnsensusProcessorConfig
-	signer            crypto.ISigner
 	p2pSender         communicator.P2PSender
-	myAccountProvider ConsensusAccountProvider
+	myAccountProvider account.AccountProvider
 
-	quit chan bool
+	BftOperator bft.BftOperator
+	DkgOperator dkg.DkgOperator
+
+	quit   chan bool
+	quitWg sync.WaitGroup
 }
 
 type AnnsensusProcessorConfig struct {
@@ -54,21 +63,31 @@ func (ap *AnnsensusProcessor) Start() {
 		log.Warn("annsensus disabled")
 		return
 	}
+	ap.quitWg.Add(1)
+
 loop:
 	for {
 		select {
 		case <-ap.quit:
+			ap.BftOperator.Stop()
+			ap.DkgOperator.Stop()
+			ap.quitWg.Done()
 			break loop
-		case
+		case msg := <-ap.incomingChannel:
+			ap.HandleConsensusMessage(msg)
 		}
 	}
 
 }
 
-func (AnnsensusProcessor) Stop() {
-	panic("implement me")
+func (ap *AnnsensusProcessor) Stop() {
+	ap.quitWg.Wait()
+	logrus.Debug("AnnsensusProcessor stopped")
 }
 
 func (AnnsensusProcessor) HandleConsensusMessage(message p2p_message.Message) {
-	panic("implement me")
+	switch message.(type) {
+	case bft.BftMessage:
+
+	}
 }

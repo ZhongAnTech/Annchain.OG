@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
@@ -21,9 +20,6 @@ type TermProvider interface {
 	GetTermChangeEventChannel() chan *term.Term
 }
 
-type AccountNonceProvider interface {
-	GetNonce(account *account.Account) uint64
-}
 
 // HeightProvider is called when a height is needed
 type HeightProvider interface {

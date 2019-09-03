@@ -11,10 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package bft
+package bft_test
 
 import (
 	"fmt"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"testing"
@@ -38,37 +39,35 @@ func init() {
 	//logrus.AddHook(filenameHook)
 }
 
-func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
+func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
 	pg := &dummyProposalGenerator{}
 	pv := &dummyProposalValidator{}
 	dm := &dummyDecisionMaker{}
 
-	var peers []BftOperator
-	var peerChans []chan BftMessage
-	var peerInfo []PeerInfo
+	var peers []bft.BftOperator
+	var peerChans []chan bft.BftMessage
+	var peerInfo []bft.PeerInfo
 
 	total := good + bad
 	i := 0
 
 	// prepare incoming channels
 	for ; i < total; i++ {
-		peerChans = append(peerChans, make(chan BftMessage, 5))
+		peerChans = append(peerChans, make(chan bft.BftMessage, 5))
 	}
 
 	// building communication channels
 	for i = 0; i < good; i++ {
-		peer := NewDefaultBFTPartner(total, i, BlockTime)
 		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
 		pc.Run()
-		peer.PeerCommunicator = pc
-		peer.ProposalGenerator = pg
-		peer.ProposalValidator = pv
-		peer.DecisionMaker = dm
+
+		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pg, pv,dm)
+
 		peers = append(peers, peer)
-		peerInfo = append(peerInfo, PeerInfo{Id: i})
+		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
-		peer := NewDefaultBFTPartner(total, i, BlockTime)
+		peer := bft.NewDefaultBFTPartner(total, i, BlockTime)
 		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
 		pc.Run()
 		peer.PeerCommunicator = pc
@@ -76,14 +75,14 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
-		peerInfo = append(peerInfo, PeerInfo{Id: i})
+		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
 	}
 	// build known peers
 	for i = 0; i < total; i++ {
 		peer := peers[i]
 		switch peer.(type) {
-		case *DefaultBftPartner:
-			peer.(*DefaultBftPartner).BftStatus.Peers = peerInfo
+		case *bft.DefaultBftPartner:
+			peer.(*bft.DefaultBftPartner).BftStatus.Peers = peerInfo
 		default:
 			panic("not supported")
 		}
@@ -92,17 +91,17 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []BftOperator {
 	return peers
 }
 
-func start(peers []BftOperator, second int) {
+func start(peers []bft.BftOperator, second int) {
 	logrus.Info("starting")
 	for _, peer := range peers {
-		go peer.WaiterLoop()
-		go peer.EventLoop()
+		go bft.WaiterLoop()
+		go bft.EventLoop()
 
 	}
 	time.Sleep(time.Second * 2)
 	logrus.Info("starting new era")
 	for _, peer := range peers {
-		go peer.StartNewEra(0, 0)
+		go bft.StartNewEra(0, 0)
 		break
 	}
 	time.Sleep(time.Second * time.Duration(second))
@@ -110,11 +109,11 @@ func start(peers []BftOperator, second int) {
 	joinAllPeers(peers)
 }
 
-func joinAllPeers(peers []BftOperator) {
+func joinAllPeers(peers []bft.BftOperator) {
 	for {
 		time.Sleep(time.Second * 2)
 		for _, peer := range peers {
-			peer.Stop()
+			bft.Stop()
 		}
 		fmt.Println(runtime.NumGoroutine())
 		return

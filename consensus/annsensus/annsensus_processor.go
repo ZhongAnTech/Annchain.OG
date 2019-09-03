@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/bft_test"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -45,9 +45,9 @@ func (tc *TermComposer) Stop() {
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 // It receives messages from
 type AnnsensusProcessor struct {
-	incomingChannel   chan p2p_message.Message
-	config            AnnsensusProcessorConfig
-	p2pSender         communicator.P2PSender
+	incomingChannel chan *message.OGMessage
+	config          AnnsensusProcessorConfig
+
 	myAccountProvider account.AccountProvider
 	signatureProvider account.SignatureProvider
 	contextProvider   ConsensusContextProvider
@@ -55,8 +55,7 @@ type AnnsensusProcessor struct {
 	proposalGenerator bft.ProposalGenerator
 	proposalValidator bft.ProposalValidator
 	decisionMaker     bft.DecisionMaker
-
-	termProvider TermProvider
+	termProvider      TermProvider
 
 	// in case of disordered message, cache the terms and the correspondent processors.
 	termMap map[uint32]*TermComposer
@@ -73,7 +72,15 @@ type AnnsensusProcessorConfig struct {
 	PartnerNum         int
 }
 
-func NewAnnsensusProcessor(config AnnsensusProcessorConfig) *AnnsensusProcessor {
+func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
+	myAccountProvider account.AccountProvider,
+	signatureProvider account.SignatureProvider,
+	contextProvider ConsensusContextProvider,
+	peerCommunicator bft.BftPeerCommunicator,
+	proposalGenerator bft.ProposalGenerator,
+	proposalValidator bft.ProposalValidator,
+	decisionMaker bft.DecisionMaker,
+	termProvider TermProvider) *AnnsensusProcessor {
 	if config.DisabledConsensus {
 		config.DisableTermChange = true
 	}
@@ -89,30 +96,35 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig) *AnnsensusProcessor 
 		}
 	}
 	ap := &AnnsensusProcessor{
-		config: config,
-		quit:   make(chan bool),
+		incomingChannel:   make(chan *message.OGMessage),
+		config:            config,
+		myAccountProvider: myAccountProvider,
+		signatureProvider: signatureProvider,
+		contextProvider:   contextProvider,
+		peerCommunicator:  peerCommunicator,
+		proposalGenerator: proposalGenerator,
+		proposalValidator: proposalValidator,
+		decisionMaker:     decisionMaker,
+		termProvider:      termProvider,
+		termMap:           make(map[uint32]*TermComposer),
+		quit:              make(chan bool),
+		quitWg:            sync.WaitGroup{},
 	}
-
-	//ap.signatureProvider =
-
 	return ap
 }
 
 func (ap *AnnsensusProcessor) Start() {
-	log.Info("AnnSensus Start")
 	if ap.config.DisabledConsensus {
 		log.Warn("annsensus disabled")
 		return
 	}
-
 	ap.quitWg.Add(1)
+	log.Info("AnnSensus Started")
 
 loop:
 	for {
 		select {
 		case <-ap.quit:
-			ap.BftOperator.Stop()
-			ap.DkgOperator.Stop()
 			ap.quitWg.Done()
 			break loop
 		case msg := <-ap.incomingChannel:
@@ -127,8 +139,8 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 	// may need lots of information to build this term
 	term := ap.buildTerm(termId)
 
-	// build a reliable bft, dkg and term
-	bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
+	//build a reliable bft, dkg and term
+	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
 
 	dkgPartner, err := dkg.NewDkgPartner(
 		ap.contextProvider.GetSuite(),
@@ -156,6 +168,7 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 		DkgOperator: dkgPartner,
 	}
 	ap.termMap[termId] = tc
+	return nil
 }
 
 func (ap *AnnsensusProcessor) Stop() {

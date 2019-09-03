@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/announcer"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/bft_test"
 	"github.com/annchain/OG/consensus/dkg/archive"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og"

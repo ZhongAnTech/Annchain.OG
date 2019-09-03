@@ -42,6 +42,7 @@ type Term struct {
 	currentTermChange *tx_types.TermChange
 	genesisTermChange *tx_types.TermChange
 	started           bool
+
 }
 
 func NewTerm(id uint64, participantNumber int, termChangeInterval int) *Term {

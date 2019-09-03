@@ -344,7 +344,8 @@ func (h *Hub) handleMsg(p *peer) error {
 		return nil
 	default:
 		//for incoming msg
-		err = m.Unmarshal()
+		err := h.MessageUnmarshaller.Unmarshal(&m)
+		//err = m.Unmarshal()
 		if err != nil {
 			log.WithField("type ", m.MessageType).WithError(err).Warn("handle msg error")
 			return err

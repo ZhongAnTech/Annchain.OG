@@ -44,7 +44,7 @@ func (p *DkgPartner) Stop() {
 // This may be done by publishing partPub to the blockchain
 // termId is still needed to identify different Dkg groups
 // allPeers needs to be sorted and globally order identical
-func NewDkgPartner(suite *bn256.Suite, termId uint64, numParts, threshold int, allPeers []PartPub, me PartSec) (*DkgPartner, error) {
+func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec) (*DkgPartner, error) {
 	c := NewDkgContext(suite, termId)
 	c.NbParticipants = numParts
 	c.Threshold = threshold

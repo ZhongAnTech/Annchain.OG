@@ -4,8 +4,11 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/kyber/v3/pairing/bn256"
+	"time"
 )
 
 // TermProvider provide Dkg term that will be changed every term switching.
@@ -20,6 +23,16 @@ type TermProvider interface {
 	GetTermChangeEventChannel() chan *term.Term
 }
 
+type ConsensusContextProvider interface {
+	GetNbParticipants() int
+	GetNbParts() int
+	GetThreshold() int
+	GetMyBftId() int
+	GetBlockTime() time.Duration
+	GetSuite() *bn256.Suite
+	GetAllPartPubs() []dkg.PartPub
+	GetMyPartSec() dkg.PartSec
+}
 
 // HeightProvider is called when a height is needed
 type HeightProvider interface {

@@ -27,7 +27,7 @@ import (
 // It can sign messages individually and recover the joint sig once enough peers share their partSigs
 // It is the core algorithm of DKG
 type DkgContext struct {
-	SessionId uint64
+	SessionId uint32
 	MyIndex   uint32
 	Me        PartSec
 	PartPubs  []PartPub // must be ordered from the outside
@@ -48,7 +48,7 @@ type DkgContext struct {
 	KeyShare *dkg.DistKeyShare // cache of the DistKeyShare to avoid recovery multiple times
 }
 
-func NewDkgContext(s *bn256.Suite, termId uint64) *DkgContext {
+func NewDkgContext(s *bn256.Suite, termId uint32) *DkgContext {
 	c := &DkgContext{
 		Suite: s,
 		//addressIndex:          make(map[common.Address]int),

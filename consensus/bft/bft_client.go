@@ -46,7 +46,11 @@ type DefaultBftPartner struct {
 	//wg sync.WaitGroup
 }
 
-func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *DefaultBftPartner {
+func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
+	peerCommunicator BftPeerCommunicator,
+	proposalGenerator ProposalGenerator,
+	proposalValidator ProposalValidator,
+	decisionMaker DecisionMaker) *DefaultBftPartner {
 	if nbParticipants < 2 {
 		panic(0)
 	}
@@ -57,8 +61,11 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration) *
 			F:      (nbParticipants - 1) / 3,
 			States: make(map[HeightRound]*HeightRoundState),
 		},
-		blockTime: blockTime,
-
+		blockTime:            blockTime,
+		PeerCommunicator:     peerCommunicator,
+		ProposalGenerator:    proposalGenerator,
+		ProposalValidator:    proposalValidator,
+		DecisionMaker:        decisionMaker,
 		WaiterTimeoutChannel: make(chan *WaiterRequest, 10),
 		quit:                 make(chan bool),
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/bft_test"
 	"github.com/annchain/OG/consensus/dkg/archive"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/communicator"

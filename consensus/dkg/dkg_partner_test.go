@@ -50,7 +50,7 @@ func generatePeers(suite *bn256.Suite, n int) []PartSec {
 	return peerInfos
 }
 
-func setupPartners(termId uint64, numParts int, threshold int) ([]*DkgPartner, []PartSec) {
+func setupPartners(termId uint32, numParts int, threshold int) ([]*DkgPartner, []PartSec) {
 	suite := bn256.NewSuiteG2()
 
 	// generate PeerInfos
@@ -111,7 +111,7 @@ func (d dummyDkgGeneratedListener) GetDkgGeneratedEventChannel() chan bool {
 
 func TestDkgPartner(t *testing.T) {
 	// simulate 4 dkg partners
-	termId := uint64(0)
+	termId := uint32(0)
 	numParts := TestNodes
 	threshold := TestNodes
 

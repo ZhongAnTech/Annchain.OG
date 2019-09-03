@@ -956,7 +956,6 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 	batch := map[common.Address]*BatchDetail{}
 
 	for _, txi := range elders {
-
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
@@ -966,7 +965,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		switch tx := txi.(type) {
 		case *tx_types.Sequencer:
 			prevSeq = tx
-			txStatusSet.CreateStatus(txi)
+			if txStatusSet.Get(tx.GetTxHash()) == nil {
+				txStatusSet.CreateStatus(txi)
+			}
 			break
 
 		case *tx_types.Tx:

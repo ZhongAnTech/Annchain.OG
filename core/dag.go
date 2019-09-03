@@ -1095,6 +1095,7 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 		guaranteeLost = guaranteeLost.Add(guaranteeAmount)
 	}
 
+	log.Tracef("status: %s, robbedLeft: %s, guaranteeLost: %s", txStatus.String(), robbedLeft.String(), guaranteeLost.String())
 	return robbedLeft, guaranteeLost
 }
 

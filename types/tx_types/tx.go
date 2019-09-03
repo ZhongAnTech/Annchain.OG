@@ -105,8 +105,8 @@ func (t *Tx) SignatureTargets() []byte {
 	w.Write(t.To.Bytes)
 	w.Write(t.Value.GetSigBytes())
 	w.Write(t.Guarantee.GetSigBytes())
-	w.Write(t.Data)
-	w.Write(t.TokenId)
+	//w.Write(t.Data)
+	//w.Write(t.TokenId)
 
 	return w.Bytes()
 }

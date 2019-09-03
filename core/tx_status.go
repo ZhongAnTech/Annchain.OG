@@ -1,10 +1,12 @@
 package core
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"math/big"
+	"strings"
 )
 
 type TxStatusSet map[common.Hash]*TxStatus
@@ -13,14 +15,10 @@ func (t *TxStatusSet) Get(hash common.Hash) *TxStatus {
 	return (*t)[hash]
 }
 
-// TODO
-// try not to detect the tx type in this function
 func (t *TxStatusSet) CreateStatus(txi types.Txi) {
 	t.Set(txi.GetTxHash(), NewTxStatus(txi))
 }
 
-// TODO
-// try not to detect the tx type in this function
 func (t *TxStatusSet) BindChild(parent types.Txi, child types.Txi) {
 	pHash := parent.GetTxHash()
 	txStatus := t.Get(pHash)
@@ -104,4 +102,18 @@ func (t *TxStatus) AddChild(child types.Txi) {
 	if child.GetGuarantee() != nil {
 		t.childrenGuarantees = t.childrenGuarantees.Add(child.GetGuarantee())
 	}
+}
+
+func (t *TxStatus) String() string {
+	var gStr string
+	if t.guarantee != nil {
+		gStr = t.guarantee.String()
+	}
+
+	var children []string
+	for _, child := range t.children {
+		children = append(children, child.GetTxHash().String())
+	}
+	childrenStr := strings.Join(children, ", ")
+	return fmt.Sprintf("tx %s, children: [%s], status: [robbed: %s, guarantee: %s, childGuarantee: %s]", t.tx.GetTxHash().String(), childrenStr, t.robbed.String(), gStr, t.childrenGuarantees.String())
 }

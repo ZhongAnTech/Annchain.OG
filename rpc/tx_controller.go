@@ -17,7 +17,6 @@ package rpc
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/annchain/OG/common"
@@ -91,11 +90,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-		return
-	}
+	nonce := txReq.Nonce
 
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil || txReq.Signature == "" {
@@ -150,7 +145,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 //msgp:tuple NewTxRequest
 type NewTxRequest struct {
 	Parents   []string `json:"parents"`
-	Nonce     string   `json:"nonce"`
+	Nonce     uint64   `json:"nonce"`
 	From      string   `json:"from"`
 	To        string   `json:"to"`
 	Value     string   `json:"value"`
@@ -217,11 +212,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 
-		nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-			return
-		}
+		nonce := txReq.Nonce
 
 		signature := common.FromHex(txReq.Signature)
 		if signature == nil {

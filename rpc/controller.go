@@ -482,7 +482,7 @@ func Response(c *gin.Context, status int, err error, data interface{}) {
 		msg = err.Error()
 	}
 	c.JSON(status, gin.H{
-		"message": msg,
-		"data":    data,
+		"err":  msg,
+		"data": data,
 	})
 }

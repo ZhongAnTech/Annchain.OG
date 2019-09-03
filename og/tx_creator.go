@@ -263,6 +263,7 @@ func (m *TxCreator) NewTxForHackathon(from common.Address, to common.Address, va
 		Data:      data,
 		TokenId:   tokenId,
 		TxBase: types.TxBase{
+			ParentsHash:  parentsHash,
 			AccountNonce: nonce,
 			Type:         types.TxBaseTypeNormal,
 		},
@@ -279,6 +280,8 @@ func (m *TxCreator) NewTxForHackathon(from common.Address, to common.Address, va
 		parents = append(parents, p)
 	}
 	tx.GetBase().Weight = tx.CalculateWeight(parents)
+
+	tx.GetBase().Hash = tx.CalcTxHash()
 
 	return tx, nil
 }

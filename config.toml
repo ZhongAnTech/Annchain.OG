@@ -65,7 +65,7 @@ title = "OG configuration"
   path = "rw/datadir_0"
 
 [log]
-  level = "debug"
+  level = "trace"
   log_dir = "log/"
 
 [p2p]

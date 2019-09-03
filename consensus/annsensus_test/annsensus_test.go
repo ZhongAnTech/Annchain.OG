@@ -14,10 +14,9 @@
 package annsensus_test
 
 import (
-	"fmt"
-	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -53,21 +52,10 @@ func logInit() {
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetReportCaller(true)
-	annsensus.log = logrus.StandardLogger()
 }
 
 func init() {
 	logInit()
-}
-
-func sampleAccounts(count int) []*account.Account {
-	accounts := []*account.Account{}
-	for i := 0; i < count; i++ {
-		acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
-		fmt.Println(fmt.Sprintf("account address: %s, pubkey: %s, privkey: %s", acc.Address.String(), acc.PublicKey.String(), acc.PrivateKey.String()))
-		accounts = append(accounts, acc)
-	}
-	return accounts
 }
 
 func TestAnnSensusTwoNodes(t *testing.T) {
@@ -84,8 +72,17 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		GenesisAccounts:    nil,
 		PartnerNum:         nodes,
 	}
+
+	// prepare bft channels
+	var peerChans []chan *message.OGMessage
 	for i := 0; i < nodes; i++ {
-		annsensus := annsensus.NewAnnsensusProcessor(config,
+		peerChans = append(peerChans, make(chan *message.OGMessage, 5))
+	}
+
+	var aps []*annsensus.AnnsensusProcessor
+
+	for i := 0; i < nodes; i++ {
+		ann := annsensus.NewAnnsensusProcessor(config,
 			&dummyAccountProvider{
 				MyAccount: accounts[i],
 			},
@@ -100,15 +97,16 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 				AllPartPubs:    nil,
 				MyPartSec:      dkg.PartSec{},
 			},
-			&dummyPeerCommunicator{},
+			NewDummyBftPeerCommunicator(i, peerChans[i], peerChans),
 			&dummyProposalGenerator{},
 			&dummyProposalValidator{},
 			&dummyDecisionMaker{},
 			&dummyTermProvider{},
 		)
-
+		aps = append(aps, ann)
 	}
-
-
-	annsensus.
+	for i := 0; i < nodes; i++ {
+		aps[i].Start()
+		// TODO: how to start?
+	}
 }

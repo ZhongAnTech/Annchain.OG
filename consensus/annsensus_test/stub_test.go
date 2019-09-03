@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
@@ -69,49 +70,81 @@ func (d dummyContextProvider) GetMyPartSec() dkg.PartSec {
 	return d.MyPartSec
 }
 
-type dummyPeerCommunicator struct {
+type dummyBftPeerCommunicator struct {
+	Myid                   int
+	Peers                  []chan *message.OGMessage
+	ReceiverChannel        chan *message.OGMessage
+	messageProviderChannel chan bft.BftMessage
 }
 
-func (d dummyPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
-	panic("implement me")
+func (d *dummyBftPeerCommunicator) GetReceivingChannel() chan *message.OGMessage {
+	return d.ReceiverChannel
 }
 
-func (d dummyPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
-	panic("implement me")
+
+func NewDummyBftPeerCommunicator(myid int, incoming chan *message.OGMessage, peers []chan *message.OGMessage) *dummyBftPeerCommunicator {
+	d := &dummyBftPeerCommunicator{
+		Peers:                  peers,
+		Myid:                   myid,
+		ReceiverChannel:        incoming,
+		messageProviderChannel: make(chan bft.BftMessage),
+	}
+	return d
 }
 
-func (d dummyPeerCommunicator) GetIncomingChannel() chan bft.BftMessage {
-	panic("implement me")
+func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+	for _, peer := range peers {
+		go func(peer bft.PeerInfo) {
+			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
+			//d.Peers[peer.MyIndex] <- msg
+		}(peer)
+	}
 }
 
-func (d dummyPeerCommunicator) GetReceivingChannel() chan *message.OGMessage {
-	panic("implement me")
+func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+	go func() {
+		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
+		//d.Peers[peer.MyIndex] <- msg
+	}()
 }
 
-func (d dummyPeerCommunicator) Run() {
-	panic("implement me")
+func (d *dummyBftPeerCommunicator) GetIncomingChannel() chan bft.BftMessage {
+	return d.messageProviderChannel
+}
+
+func (d *dummyBftPeerCommunicator) Run() {
+	go func() {
+		for {
+			v := <-d.ReceiverChannel
+			vv := v.Message.(*bft.BftMessage)
+			d.messageProviderChannel <- *vv
+		}
+	}()
 }
 
 type dummyProposalGenerator struct {
+	CurrentHeight uint64
 }
 
 func (d dummyProposalGenerator) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
-	panic("implement me")
+	p := bft.StringProposal("xxx")
+	return &p, bft.ProposalCondition{ValidHeight: d.CurrentHeight}
 }
 
 type dummyProposalValidator struct {
 }
 
 func (d dummyProposalValidator) ValidateProposal(proposal bft.Proposal) error {
-	panic("implement me")
+	return nil
 }
 
 type dummyDecisionMaker struct {
 }
 
 func (d dummyDecisionMaker) MakeDecision(proposal bft.Proposal, state *bft.HeightRoundState) (bft.ConsensusDecision, error) {
-	panic("implement me")
+	return proposal, nil
 }
+
 
 type dummyTermProvider struct {
 }

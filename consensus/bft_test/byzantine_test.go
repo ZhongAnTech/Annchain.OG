@@ -2,6 +2,7 @@ package bft_test
 
 import (
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,6 +20,11 @@ type dummyByzantineBftPeerCommunicator struct {
 	Peers                  []chan bft.BftMessage
 	Incoming               chan bft.BftMessage
 	ByzantineFeatures      ByzantineFeatures
+}
+
+func (d *dummyByzantineBftPeerCommunicator) GetReceivingChannel() chan *message.OGMessage {
+	// TODO: return a chan
+	return nil
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Run() {

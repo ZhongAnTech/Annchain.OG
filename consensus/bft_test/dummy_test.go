@@ -3,7 +3,6 @@ package bft_test
 import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/message"
 )
 
 type dummyBftPeerCommunicator struct {
@@ -13,7 +12,7 @@ type dummyBftPeerCommunicator struct {
 	messageProviderChannel chan bft.BftMessage
 }
 
-func (d *dummyBftPeerCommunicator) GetReceivingChannel() chan *message.OGMessage {
+func (d *dummyBftPeerCommunicator) GetReceivingChannel() chan bft.BftMessage {
 	return d.ReceiverChannel
 }
 

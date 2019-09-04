@@ -27,6 +27,10 @@ type TrustfulBftPartnerCommunicator struct {
 	quitWg sync.WaitGroup
 }
 
+func (r *TrustfulBftPartnerCommunicator) GetReceivingChannel() chan *message.OGMessage {
+	return r.receivingChannel
+}
+
 func (r *TrustfulBftPartnerCommunicator) Run() {
 	// keep receiving OG messages and decrypt to incoming channel
 	for {
@@ -35,7 +39,7 @@ func (r *TrustfulBftPartnerCommunicator) Run() {
 			r.quitWg.Done()
 			return
 		case msg := <-r.receivingChannel:
-			ogMsg := r.handleOGMessage(msg)
+			ogMsg := r.handleOgMessage(msg)
 			if ogMsg == nil {
 				continue
 			}
@@ -85,10 +89,6 @@ func (r *TrustfulBftPartnerCommunicator) GetIncomingChannel() chan bft.BftMessag
 	return r.incomingChannel
 }
 
-func (r *TrustfulBftPartnerCommunicator) GetReceivingChannel() chan *message.OGMessage {
-	return r.receivingChannel
-}
-
 func (b *TrustfulBftPartnerCommunicator) VerifyParnterIdentity(signedMsg *message.SignedOgPartnerMessage) error {
 	peers := b.TermProvider.Peers(signedMsg.TermId)
 	// use public key to find sourcePartner
@@ -109,28 +109,28 @@ func (b *TrustfulBftPartnerCommunicator) VerifyMessageSignature(signedMsg *messa
 }
 
 // handler for hub or upstream annsensus module
-func (b *TrustfulBftPartnerCommunicator) HandleIncomingMessage(msg *message.OGMessage) {
-	ffchan.NewTimeoutSenderShort(b.receivingChannel, *msg, "trustcomm")
-	//b.receivingChannel <- msg
+func (r *TrustfulBftPartnerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
+	r.receivingChannel <- msg
 }
 
-func (b *TrustfulBftPartnerCommunicator) handleOGMessage(msg *message.OGMessage) *bft.BftMessage {
-	// Only allows SignedOgPartnerMessage
-	signedMsg, ok := msg.Message.(*message.SignedOgPartnerMessage)
+func (b *TrustfulBftPartnerCommunicator) AdaptOgMessage(incomingMsg *message.OGMessage) (msg bft.BftMessage, err error) {	// Only allows SignedOgPartnerMessage
+	signedMsg, ok := incomingMsg.Message.(*message.SignedOgPartnerMessage)
 	if !ok {
-		logrus.Warn("message received is not a proper type for bft")
-		return nil
+		err = errors.New("message received is not a proper type for bft")
+		return
 	}
 	err := b.VerifyParnterIdentity(signedMsg)
 	if err != nil {
 		logrus.WithField("term", signedMsg.TermId).WithError(err).Warn("bft message partner identity is not valid")
-		return nil
+		err = errors.New("bft message partner identity is not valid")
+		return
 	}
 	err = b.VerifyMessageSignature(signedMsg)
 	if err != nil {
 		logrus.WithError(err).Warn("bft message signature is not valid")
-		return nil
+		err = errors.New("bft message signature is not valid")
+		return
 	}
 
-	return &signedMsg.BftMessage
+	return signedMsg.BftMessage, nil
 }

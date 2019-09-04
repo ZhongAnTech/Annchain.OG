@@ -2,7 +2,7 @@ package bft_test
 
 import (
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/ffchan"
+	"github.com/annchain/OG/og/message"
 )
 
 type dummyBftPeerCommunicator struct {
@@ -16,6 +16,11 @@ func (d *dummyBftPeerCommunicator) GetReceivingChannel() chan bft.BftMessage {
 	return d.ReceiverChannel
 }
 
+func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
+	d.ReceiverChannel <- msg
+}
+
+
 func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage) *dummyBftPeerCommunicator {
 	d := &dummyBftPeerCommunicator{
 		Peers:                  peers,
@@ -26,19 +31,34 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers [
 	return d
 }
 
+func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage{
+	return &message.OGMessage{
+		MessageType:    message.OGMessageType(msg.Type),
+		Data:           nil,
+		Hash:           nil,
+		SourceID:       "",
+		SendingType:    0,
+		Version:        0,
+		Message:        msg.Payload,
+		SourceHash:     nil,
+		MarshalState:   false,
+		DisableEncrypt: false,
+	}
+}
+
 func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
-			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-			//d.Peers[peer.MyIndex] <- msg
+			//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
+			d.Peers[peer.Id] <-msg
 		}(peer)
 	}
 }
 
 func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	go func() {
-		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-		//d.Peers[peer.MyIndex] <- msg
+		//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
+		d.Peers[peer.Id] <- msg
 	}()
 }
 
@@ -50,6 +70,7 @@ func (d *dummyBftPeerCommunicator) Run() {
 	go func() {
 		for {
 			v := <-d.ReceiverChannel
+			//vv := v.Message.(*bft.BftMessage)
 			d.messageProviderChannel <- v
 		}
 	}()

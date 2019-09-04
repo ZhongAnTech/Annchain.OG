@@ -2,7 +2,6 @@ package bft_test
 
 import (
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,17 +17,23 @@ type ByzantineFeatures struct {
 type dummyByzantineBftPeerCommunicator struct {
 	Myid                   int
 	Peers                  []chan bft.BftMessage
-	Incoming               chan bft.BftMessage
+	ReceiverChannel        chan bft.BftMessage
+	messageProviderChannel chan bft.BftMessage
 	ByzantineFeatures      ByzantineFeatures
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetReceivingChannel() chan *message.OGMessage {
-	// TODO: return a chan
-	return nil
+func (d *dummyByzantineBftPeerCommunicator) GetReceivingChannel() chan bft.BftMessage {
+	return d.ReceiverChannel
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Run() {
-	// nothing to do
+	go func() {
+		for {
+			v := <-d.ReceiverChannel
+			//vv := v.Message.(*bft.BftMessage)
+			d.messageProviderChannel <- v
+		}
+	}()
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
@@ -67,16 +72,17 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft
 }
 
 func (d *dummyByzantineBftPeerCommunicator) GetIncomingChannel() chan bft.BftMessage {
-	return d.Incoming
+	return d.messageProviderChannel
 }
 
 func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage,
 	byzantineFeatures ByzantineFeatures) *dummyByzantineBftPeerCommunicator {
 	d := &dummyByzantineBftPeerCommunicator{
-		Peers:             peers,
-		Myid:              myid,
-		Incoming:          incoming,
-		ByzantineFeatures: byzantineFeatures,
+		Peers:                  peers,
+		Myid:                   myid,
+		ReceiverChannel:        incoming,
+		messageProviderChannel: make(chan bft.BftMessage),
+		ByzantineFeatures:      byzantineFeatures,
 	}
 	return d
 }

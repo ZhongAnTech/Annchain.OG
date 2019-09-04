@@ -1,7 +1,5 @@
 package bft
 
-import "github.com/annchain/OG/og/message"
-
 type ProposalCondition struct {
 	ValidHeight uint64
 }
@@ -24,7 +22,7 @@ type BftPeerCommunicator interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)
 	GetIncomingChannel() chan BftMessage
-	GetReceivingChannel() chan *message.OGMessage
+	HandleIncomingMessage(msg BftMessage)
 	Run()
 }
 

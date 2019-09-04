@@ -1,6 +1,6 @@
 module github.com/annchain/OG
 
-go 1.12
+go 1.13
 
 require (
 	github.com/annchain/bloom v2.0.4+incompatible

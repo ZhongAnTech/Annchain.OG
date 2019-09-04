@@ -46,7 +46,7 @@ func (t *Tx) GetConfirm() time.Duration {
 	return time.Since(t.confirm)
 }
 
-func (t *Tx) Setconfirm() {
+func (t *Tx) SetConfirm() {
 	t.confirm = time.Now()
 }
 

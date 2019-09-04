@@ -80,10 +80,15 @@ func (r *RpcController) Query(c *gin.Context) {
 	Response(c, http.StatusOK, nil, "not implemented yet")
 }
 
+type TxiResp struct {
+	Type types.TxBaseType `json:"type"`
+	Tx   interface{}      `json:"tx"`
+}
+
 //Transaction  get  transaction
 func (r *RpcController) Transaction(c *gin.Context) {
-	hashtr := c.Query("hash")
-	hash, err := common.HexStringToHash(hashtr)
+	hashStr := c.Query("hash")
+	hash, err := common.HexStringToHash(hashStr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -94,31 +99,16 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		txi = r.Og.TxPool.Get(hash)
 	}
 	if txi == nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("tx not found"), nil)
+		Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 		return
 	}
-	switch tx := txi.(type) {
-	case *tx_types.Tx:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.Sequencer:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.Archive:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.Campaign:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.TermChange:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.ActionTx:
-		Response(c, http.StatusOK, nil, tx)
+	if txi.GetType() != types.TxBaseTypeNormal {
+		Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 		return
 	}
 
-	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
+	resp := txHelper(txi).(*TxResp)
+	Response(c, http.StatusOK, nil, resp)
 }
 
 //Confirm checks if tx has already been confirmed.
@@ -155,48 +145,42 @@ func (r *RpcController) Confirm(c *gin.Context) {
 
 //Transactions query Transactions
 func (r *RpcController) Transactions(c *gin.Context) {
-	seqId := c.Query("seq_id")
+	height := c.Query("height")
 	address := c.Query("address")
 	cors(c)
+
+	var txis []types.Txi
 	if address == "" {
-		id, err := strconv.Atoi(seqId)
-		if err != nil || id < 0 {
-			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
+		height, err := strconv.Atoi(height)
+		if err != nil || height < 0 {
+			Response(c, http.StatusOK, fmt.Errorf("height format error"), nil)
 			return
 		}
-		if r.Og.Dag.GetHeight() < uint64(id) {
+		if r.Og.Dag.GetHeight() < uint64(height) {
 			Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
 			return
 		}
-		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
-		var txsResponse struct {
-			Total int        `json:"total"`
-			Txs   types.Txis `json:"txs"`
-		}
-		txsResponse.Total = len(txs)
-		txsResponse.Txs = txs
-		Response(c, http.StatusOK, nil, txsResponse)
-		return
+		txis = r.Og.Dag.GetTxisByNumber(uint64(height))
+
 	} else {
 		addr, err := common.StringToAddress(address)
 		if err != nil {
 			Response(c, http.StatusOK, fmt.Errorf("address format error"), nil)
 			return
 		}
-		txs := r.Og.Dag.GetTxsByAddress(addr)
-		var txsResponse struct {
-			Total int         `json:"total"`
-			Txs   []types.Txi `json:"txs"`
-		}
-		if len(txs) != 0 {
-			txsResponse.Total = len(txs)
-			txsResponse.Txs = txs
-			Response(c, http.StatusOK, nil, txsResponse)
-			return
-		}
-		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
-		return
+		txis = r.Og.Dag.GetTxsByAddress(addr)
 	}
+
+	var txsResp []*TxResp
+	for _, txi := range txis {
+		if txi.GetType() != types.TxBaseTypeNormal {
+			continue
+		}
+		tx := txHelper(txi)
+		txsResp = append(txsResp, tx.(*TxResp))
+	}
+	Response(c, http.StatusOK, nil, txsResp)
+	return
 
 }
 
@@ -214,37 +198,39 @@ func (r *RpcController) Genesis(c *gin.Context) {
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
 	var sq *tx_types.Sequencer
-	hashtr := c.Query("hash")
-	seqId := c.Query("seq_id")
-	if seqId == "" {
-		seqId = c.Query("id")
+	hashStr := c.Query("hash")
+	heightStr := c.Query("heightStr")
+	if heightStr == "" {
+		heightStr = c.Query("id")
 	}
-	if seqId != "" {
-		id, err := strconv.Atoi(seqId)
-		if err != nil || id < 0 {
-			Response(c, http.StatusBadRequest, fmt.Errorf("id format error"), nil)
+	if heightStr != "" {
+		height, err := strconv.Atoi(heightStr)
+		if err != nil || height < 0 {
+			Response(c, http.StatusBadRequest, fmt.Errorf("height format error"), nil)
 			return
 		}
-		sq = r.Og.Dag.GetSequencerByHeight(uint64(id))
-		if sq != nil {
-			Response(c, http.StatusOK, nil, sq)
+		sq = r.Og.Dag.GetSequencerByHeight(uint64(height))
+		seq := txHelper(sq).(*SeqResp)
+		if seq != nil {
+			Response(c, http.StatusOK, nil, seq)
 			return
 		} else {
 			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
 			return
 		}
 	}
-	if hashtr == "" {
+	if hashStr == "" {
 		sq = r.Og.Dag.LatestSequencer()
-		if sq != nil {
-			Response(c, http.StatusOK, nil, sq)
+		seq := txHelper(sq).(*SeqResp)
+		if seq != nil {
+			Response(c, http.StatusOK, nil, seq)
 			return
 		} else {
 			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
 			return
 		}
 	} else {
-		hash, err := common.HexStringToHash(hashtr)
+		hash, err := common.HexStringToHash(hashStr)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 			return
@@ -257,17 +243,17 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
 			return
 		}
-		switch t := txi.(type) {
+		switch seq := txi.(type) {
 		case *tx_types.Sequencer:
-			Response(c, http.StatusOK, nil, t)
+			seqResp := txHelper(seq).(*SeqResp)
+			Response(c, http.StatusOK, nil, seqResp)
 			return
 		default:
 			Response(c, http.StatusNotFound, fmt.Errorf("tx not sequencer"), nil)
 			return
 		}
 	}
-	Response(c, http.StatusNotFound, fmt.Errorf("not found"), nil)
-	return
+
 }
 
 func (r *RpcController) NewAccount(c *gin.Context) {

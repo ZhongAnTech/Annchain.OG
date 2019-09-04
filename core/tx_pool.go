@@ -535,7 +535,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 	}
 
 	if normalTx, ok := tx.(*tx_types.Tx); ok {
-		normalTx.Setconfirm()
+		normalTx.SetConfirm()
 		pool.confirmStatus.AddTxNum()
 	}
 

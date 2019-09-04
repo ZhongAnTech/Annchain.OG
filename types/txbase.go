@@ -66,7 +66,7 @@ type TxBase struct {
 	ParentsHash  common.Hashes
 	AccountNonce uint64
 	Height       uint64
-	PublicKey    PublicKey //
+	PublicKey    PublicKey
 	Signature    hexutil.Bytes
 	MineNonce    uint64
 	Weight       uint64

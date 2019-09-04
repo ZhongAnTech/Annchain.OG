@@ -203,6 +203,7 @@ type ConsensusDecision Proposal
 type Signable interface {
 	msg.MsgpMember
 	SignatureTargets() []byte
+	String() string
 }
 
 //msgp:tuple BftMessage

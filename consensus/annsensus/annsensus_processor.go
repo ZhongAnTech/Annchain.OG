@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/consensus/bft_test"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/communicator"
+	cbft "github.com/annchain/OG/og/communicator/bft"
 	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -52,6 +51,7 @@ type AnnsensusProcessor struct {
 	signatureProvider account.SignatureProvider
 	contextProvider   ConsensusContextProvider
 	peerCommunicator  bft.BftPeerCommunicator
+	bftAdapter        cbft.BftCommunicatorAdapter
 	proposalGenerator bft.ProposalGenerator
 	proposalValidator bft.ProposalValidator
 	decisionMaker     bft.DecisionMaker
@@ -77,6 +77,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	signatureProvider account.SignatureProvider,
 	contextProvider ConsensusContextProvider,
 	peerCommunicator bft.BftPeerCommunicator,
+	bftAdapter cbft.BftCommunicatorAdapter,
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
@@ -102,6 +103,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 		signatureProvider: signatureProvider,
 		contextProvider:   contextProvider,
 		peerCommunicator:  peerCommunicator,
+		bftAdapter:        bftAdapter,
 		proposalGenerator: proposalGenerator,
 		proposalValidator: proposalValidator,
 		decisionMaker:     decisionMaker,
@@ -119,6 +121,7 @@ func (ap *AnnsensusProcessor) Start() {
 		return
 	}
 	ap.quitWg.Add(1)
+
 	log.Info("AnnSensus Started")
 
 loop:
@@ -182,12 +185,35 @@ func (ap *AnnsensusProcessor) Stop() {
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
 func (ap *AnnsensusProcessor) HandleConsensusMessage(msg *message.OGMessage) {
 	switch msg.MessageType {
+	case message.OGMessageType(bft.BftMessageTypeProposal):
+		fallthrough
+	case message.OGMessageType(bft.BftMessageTypePreVote):
+		fallthrough
 	case message.OGMessageType(bft.BftMessageTypePreCommit):
-		ap.BftOperator.GetPeerCommunicator().GetIncomingChannel()
+		ap.handleBftMessage(msg)
 	}
 }
 
 // buildTerm collects information from the info provider, to start a new term
 func (ap *AnnsensusProcessor) buildTerm(u uint32) *term.Term {
 	return nil
+}
+
+// according to the height, get term, and send to the bft operator in that term.
+func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
+	height := ogMessage.Message.(*bft.BftBasicInfo).HeightRound.Height
+	// judge term
+	termId := ap.termProvider.HeightTerm(height)
+	msgTerm, ok := ap.termMap[termId]
+	if !ok {
+		logrus.Warn("term not found while handling bft message")
+		return
+	}
+	// message adapter
+	bftMessage, err := ap.bftAdapter.AdaptOgMessage(ogMessage)
+	if err != nil {
+		logrus.WithError(err).Warn("cannot adapt ogMessage to bftMessage")
+		return
+	}
+	msgTerm.BftOperator.GetPeerCommunicator().HandleIncomingMessage(bftMessage)
 }

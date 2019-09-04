@@ -108,5 +108,6 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
 		// TODO: how to start?
+
 	}
 }

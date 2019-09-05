@@ -505,8 +505,18 @@ func NewNode() *Node {
 	pm.Register(txCounter)
 
 	n.Components = append(n.Components, pm)
+
 	ioPerformance := ioperformance.Init()
 	n.Components = append(n.Components, ioPerformance)
+
+	// Kafka producer for hackathon
+	kp, err := og.NewKafkaProducer(viper.GetString("hack.kafka.url"), viper.GetString("hack.kafka.topic"), viper.GetInt("hack.kafka.timeout"))
+	if err != nil {
+		panic(fmt.Sprintf("init kafka producer error: %v", err))
+	}
+	org.TxPool.RegisterOnNewTxReceived(kp.NewTxReceiver, "KafkaProducer.NewTxReceiver", true)
+	n.Components = append(n.Components, kp)
+
 	return n
 }
 

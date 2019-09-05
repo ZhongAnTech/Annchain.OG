@@ -112,5 +112,5 @@ title = "OG configuration"
   tx_verify_time = 2
 
 [websocket]
-  enabled = true
+  enabled = false
   port = 8002

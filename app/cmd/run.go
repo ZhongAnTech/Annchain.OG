@@ -129,9 +129,9 @@ func readConfig() {
 	}
 
 	mergeEnvConfig()
-	b, err := common.PrettyJson(viper.AllSettings())
+	_, err := common.PrettyJson(viper.AllSettings())
 	panicIfError(err, "dump json")
-	fmt.Println(b)
+	//fmt.Println(b)
 }
 
 func mergeEnvConfig() {

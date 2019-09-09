@@ -53,6 +53,9 @@ func (t *TxStatusSet) rob(robber common.Hash, victim common.Hash, robRate int) (
 
 	if robRate != 100 {
 		robFromRobbed = robFromRobbed.Mul(robFromRobbed, big.NewInt(int64(robRate)))
+		robFromRobbed = robFromRobbed.Div(robFromRobbed, big.NewInt(int64(100)))
+
+		robFromGuarantee = robFromGuarantee.Mul(robFromGuarantee, big.NewInt(int64(robRate)))
 		robFromGuarantee = robFromGuarantee.Div(robFromGuarantee, big.NewInt(int64(100)))
 	}
 	robAmount := math.NewBigIntFromBigInt(big.NewInt(0).Add(robFromRobbed, robFromGuarantee))

@@ -1076,10 +1076,17 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 
 		var robbedAmount, guaranteeAmount *math.BigInt
 		if txi.GetType() == types.TxBaseTypeSequencer {
+			// case seq <- seq, nothing need to do
+			if child.GetType() == types.TxBaseTypeSequencer {
+				continue
+			}
+			// case seq <- tx, start airdrop, tx rob treasure from sequencer.
 			robbedAmount, guaranteeAmount = txStatusSet.airdrop(child.GetTxHash(), txi.GetTxHash())
 		} else if child.GetType() == types.TxBaseTypeSequencer {
+			// case tx <- seq, start forfeit, sequencer rob money from tx.
 			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate*2)
 		} else {
+			// case tx <- tx, start normal rob between txs.
 			robbedAmount, guaranteeAmount = txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate)
 		}
 

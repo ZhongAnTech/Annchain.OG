@@ -6,6 +6,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func NewKafkaProducer(url, topic string, timeOutSec int) (*KafkaProducer, error)
 	kp.Topic = topic
 	kp.NewTxReceiver = make(chan types.Txi)
 
-	producer, err := sarama.NewAsyncProducer([]string{"localhost:9092"}, nil)
+	producer, err := sarama.NewAsyncProducer([]string{kp.Url}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create sarama kafka producer error: %v", err)
 	}
@@ -41,10 +42,12 @@ func NewKafkaProducer(url, topic string, timeOutSec int) (*KafkaProducer, error)
 }
 
 func (kp *KafkaProducer) Start() {
+	logrus.Trace("KafkaProducer started")
 	go kp.loop()
 }
 
 func (kp *KafkaProducer) Stop() {
+	logrus.Trace("KafkaProducer stopped")
 	close(kp.close)
 }
 
@@ -91,6 +94,8 @@ type KafkaMsgTx struct {
 }
 
 func (kp *KafkaProducer) handleNewTx(txi types.Txi) {
+	logrus.Tracef("kafka producer handle new tx: %s", txi.GetTxHash().String())
+
 	txMsg := KafkaMsg{}
 	txMsg.Type = int(txi.GetType())
 	txMsg.Data = txHelper(txi)
@@ -104,8 +109,10 @@ func (kp *KafkaProducer) handleNewTx(txi types.Txi) {
 	timer := time.NewTimer(time.Second * time.Duration(kp.KafkaTimeOut))
 	select {
 	case kp.Producer.Input() <- msg:
+		logrus.Tracef("produce kafka msg success: %s", txi.GetTxHash().String())
 		return
 	case <-timer.C:
+		logrus.Tracef("produce kafka msg timeout: %s", txi.GetTxHash().String())
 		return
 	}
 

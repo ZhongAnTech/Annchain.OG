@@ -125,7 +125,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	ok = r.FormatVerifier.VerifySourceAddress(tx)
 	if !ok {
 		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
-		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
 		return
 	}
 	tx.SetVerified(types.VerifiedFormat)
@@ -248,7 +248,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			ok = r.FormatVerifier.VerifySourceAddress(tx)
 			if !ok {
 				logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
-				Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+				Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
 				return
 			}
 			time.Sleep(time.Microsecond * 2)
@@ -276,7 +276,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		ok = r.FormatVerifier.VerifySourceAddress(tx)
 		if !ok {
 			logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
-			Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+			Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
 			return
 		}
 		//we don't verify hash , since we calculated the hash

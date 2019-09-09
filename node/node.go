@@ -510,7 +510,7 @@ func NewNode() *Node {
 	n.Components = append(n.Components, ioPerformance)
 
 	// Kafka producer for hackathon
-	kp, err := og.NewKafkaProducer(viper.GetString("hack.kafka.url"), viper.GetString("hack.kafka.topic"), viper.GetInt("hack.kafka.timeout"))
+	kp, err := og.NewKafkaProducer(viper.GetString("kafka.url"), viper.GetString("kafka.topic"), viper.GetInt("kafka.timeout"))
 	if err != nil {
 		panic(fmt.Sprintf("init kafka producer error: %v", err))
 	}

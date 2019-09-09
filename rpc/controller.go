@@ -199,7 +199,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
 	var sq *tx_types.Sequencer
 	hashStr := c.Query("hash")
-	heightStr := c.Query("heightStr")
+	heightStr := c.Query("height")
 	if heightStr == "" {
 		heightStr = c.Query("id")
 	}

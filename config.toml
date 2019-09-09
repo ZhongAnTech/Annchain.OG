@@ -59,6 +59,11 @@ title = "OG configuration"
   outgoing_buffer_size = 100
   sync_cycle_ms = 10000
 
+[kafka]
+  timeout = 2
+  topic = "hack-final-test"
+  url = "localhost:9092"
+
 [leveldb]
   cache = 16
   handles = 16

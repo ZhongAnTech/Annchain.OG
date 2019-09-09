@@ -46,7 +46,7 @@ func (r *RpcController) QueryAllTxsInPool(c *gin.Context) {
 func txHelper(txi types.Txi) interface{} {
 	switch tx := txi.(type) {
 	case *tx_types.Tx:
-		txResp := TxResp{}
+		txResp := &TxResp{}
 		txResp.Type = tx.Type
 		txResp.Hash = tx.Hash.Hex()
 
@@ -63,7 +63,7 @@ func txHelper(txi types.Txi) interface{} {
 		return txResp
 
 	case *tx_types.Sequencer:
-		seqResp := SeqResp{}
+		seqResp := &SeqResp{}
 		seqResp.Type = tx.Type
 		seqResp.Hash = tx.Hash.Hex()
 

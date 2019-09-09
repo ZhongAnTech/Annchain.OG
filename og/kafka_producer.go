@@ -80,6 +80,7 @@ type KafkaMsgSeq struct {
 	Nonce    uint64   `json:"nonce"`
 	Treasure string   `json:"treasure"`
 	Height   uint64   `json:"height"`
+	Weight   uint64   `json:"weight"`
 }
 
 type KafkaMsgTx struct {
@@ -91,6 +92,7 @@ type KafkaMsgTx struct {
 	Nonce     uint64   `json:"nonce"`
 	Guarantee string   `json:"guarantee"`
 	Value     string   `json:"value"`
+	Weight    uint64   `json:"weight"`
 }
 
 func (kp *KafkaProducer) handleNewTx(txi types.Txi) {
@@ -134,6 +136,7 @@ func txHelper(txi types.Txi) interface{} {
 		txMsg.Nonce = tx.AccountNonce
 		txMsg.Guarantee = tx.Guarantee.String()
 		txMsg.Value = tx.Value.String()
+		txMsg.Weight = tx.Weight
 
 		return txMsg
 
@@ -150,6 +153,7 @@ func txHelper(txi types.Txi) interface{} {
 		seqMsg.Nonce = tx.AccountNonce
 		seqMsg.Treasure = tx.Treasure.String()
 		seqMsg.Height = tx.Height
+		seqMsg.Weight = tx.Weight
 
 		return seqMsg
 

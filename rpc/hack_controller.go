@@ -21,6 +21,7 @@ type TxResp struct {
 	Nonce     uint64           `json:"nonce"`
 	Guarantee string           `json:"guarantee"`
 	Value     string           `json:"value"`
+	Weight    uint64           `json:"weight"`
 }
 
 type SeqResp struct {
@@ -31,6 +32,7 @@ type SeqResp struct {
 	Nonce    uint64           `json:"nonce"`
 	Treasure string           `json:"treasure"`
 	Height   uint64           `json:"height"`
+	Weight   uint64           `json:"weight"`
 }
 
 func (r *RpcController) QueryAllTips(c *gin.Context) {
@@ -59,6 +61,7 @@ func txHelper(txi types.Txi) interface{} {
 		txResp.Nonce = tx.AccountNonce
 		txResp.Guarantee = tx.Guarantee.String()
 		txResp.Value = tx.Value.String()
+		txResp.Weight = tx.Weight
 
 		return txResp
 
@@ -75,6 +78,7 @@ func txHelper(txi types.Txi) interface{} {
 		seqResp.Nonce = tx.AccountNonce
 		seqResp.Treasure = tx.Treasure.String()
 		seqResp.Height = tx.Height
+		seqResp.Weight = tx.Weight
 
 		return seqResp
 

@@ -979,14 +979,6 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, txStatusSet TxStatusSet, preloa
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == types.TxBaseAction {
-		actionTx := tx.(*tx_types.ActionTx)
-		receipt, err := dag.processTokenTransaction(actionTx)
-		if err != nil {
-			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
-		}
-		return nil, receipt, nil
-	}
 
 	if tx.GetType() != types.TxBaseTypeNormal {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)

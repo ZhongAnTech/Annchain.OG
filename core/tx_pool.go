@@ -1022,6 +1022,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 	}
 
 	// bind confirm sequencer to be a child of its parents.
+	txStatusSet.CreateStatus(seq)
 	for _, pHash := range seq.Parents() {
 		parent := pool.get(pHash)
 		txStatusSet.BindChild(parent, seq)

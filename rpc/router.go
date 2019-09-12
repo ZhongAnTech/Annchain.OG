@@ -68,6 +68,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("query", rpc.Query)
 	router.GET("query_nonce", rpc.QueryNonce)
 	router.GET("query_balance", rpc.QueryBalance)
+	router.GET("query_tx_num", rpc.QueryTxNumByHeight)
 	router.GET("query_share", rpc.QueryShare)
 	router.GET("contract_payload", rpc.ContractPayload)
 	router.GET("query_receipt", rpc.QueryReceipt)

@@ -184,6 +184,25 @@ func (r *RpcController) Transactions(c *gin.Context) {
 
 }
 
+func (r *RpcController) QueryTxNumByHeight(c *gin.Context) {
+	heightStr := c.Query("height")
+
+	var txis []types.Txi
+
+	height, err := strconv.Atoi(heightStr)
+	if err != nil || height < 0 {
+		Response(c, http.StatusOK, fmt.Errorf("height format error"), nil)
+		return
+	}
+	if r.Og.Dag.GetHeight() < uint64(height) {
+		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		return
+	}
+	txis = r.Og.Dag.GetTxisByNumber(uint64(height))
+
+	Response(c, http.StatusOK, nil, len(txis))
+}
+
 func (r *RpcController) Genesis(c *gin.Context) {
 	cors(c)
 	sq := r.Og.Dag.Genesis()

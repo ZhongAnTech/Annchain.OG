@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -95,6 +96,7 @@ func (t *Tx) SignatureTargets() []byte {
 
 	w := types.NewBinaryWriter()
 
+	sort.Sort(t.ParentsHash)
 	for _, parentHash := range t.ParentsHash {
 		w.Write(parentHash.Bytes)
 	}

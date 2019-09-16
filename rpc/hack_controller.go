@@ -88,7 +88,7 @@ func txHelper(txi types.Txi) interface{} {
 }
 
 func txsHelper(txiList []types.Txi) TxsResp {
-	var seq SeqResp
+	var seq *SeqResp
 	var txs = make([]TxResp, 0)
 	for _, txi := range txiList {
 		switch tx := txi.(type) {
@@ -123,7 +123,7 @@ func txsHelper(txiList []types.Txi) TxsResp {
 			resp.Treasure = tx.Treasure.String()
 			resp.Height = tx.Height
 
-			seq = resp
+			seq = &resp
 
 		default:
 			continue
@@ -131,7 +131,7 @@ func txsHelper(txiList []types.Txi) TxsResp {
 	}
 
 	resp := TxsResp{}
-	resp.Sequencer = &seq
+	resp.Sequencer = seq
 	resp.Transactions = txs
 	return resp
 }

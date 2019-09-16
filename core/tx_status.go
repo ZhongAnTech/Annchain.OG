@@ -45,6 +45,10 @@ func (t *TxStatusSet) rob(robber common.Hash, victim common.Hash, robRate int) (
 		return nil, nil
 	}
 
+	if victimStatus.childrenGuarantees.Value.Cmp(big.NewInt(0)) <= 0 {
+		return nil, nil
+	}
+
 	robFromRobbed := big.NewInt(0).Mul(victimStatus.robbed.Value, robberStatus.guarantee.Value)
 	robFromRobbed = robFromRobbed.Div(robFromRobbed, victimStatus.childrenGuarantees.Value)
 

@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
+	"sort"
 	"strings"
 
 	"github.com/annchain/OG/common/hexutil"
@@ -125,6 +126,7 @@ func RandomSequencer() *Sequencer {
 func (s *Sequencer) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
+	sort.Sort(s.ParentsHash)
 	for _, parent := range s.Parents() {
 		w.Write(parent.Bytes)
 	}

@@ -453,6 +453,19 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 }
 
 func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
+	// check parents number
+	if len(txi.Parents()) > 2 || len(txi.Parents()) == 0 {
+		return false
+	}
+
+	// check if parents are sent by txi's sender.
+	for _, pHash := range txi.Parents() {
+		p, _ := v.getTxFromAnywhere(pHash)
+		if p.Sender().Hex() == txi.Sender().Hex() {
+			return false
+		}
+	}
+
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 1
 
@@ -473,15 +486,6 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 
 	// first tx check
 	nonce, poolErr := v.TxPool.GetLatestNonce(txi.Sender())
-	if txi.GetNonce() == 1 {
-		// test claim: whether it should be 0
-
-		if poolErr == nil {
-			logrus.Debugf("nonce should not be 0. Latest nonce is %d and you should be larger than it", nonce)
-		}
-		// not found is good
-		return poolErr != nil
-	}
 	dagNonce, _ := v.Dag.GetLatestNonce(txi.Sender())
 	if poolErr != nil {
 		//no related tx in txpool ,check dag
@@ -522,6 +526,7 @@ Out:
 		return ok
 	default:
 	}
+
 	return true
 }
 

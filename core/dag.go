@@ -1090,8 +1090,10 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 			robbedAmount, guaranteeAmount = txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate)
 		}
 
-		robbedLeft = robbedLeft.Sub(robbedAmount)
-		guaranteeLost = guaranteeLost.Add(guaranteeAmount)
+		if robbedAmount != nil && guaranteeAmount != nil {
+			robbedLeft = robbedLeft.Sub(robbedAmount)
+			guaranteeLost = guaranteeLost.Add(guaranteeAmount)
+		}
 	}
 
 	log.Tracef("status: %s, robbedLeft: %s, guaranteeLost: %s", txStatus.String(), robbedLeft.String(), guaranteeLost.String())

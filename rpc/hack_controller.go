@@ -8,7 +8,7 @@ import (
 )
 
 type TxsResp struct {
-	Sequencer    SeqResp  `json:"sequencer"`
+	Sequencer    *SeqResp `json:"sequencer"`
 	Transactions []TxResp `json:"transactions"`
 }
 
@@ -131,7 +131,7 @@ func txsHelper(txiList []types.Txi) TxsResp {
 	}
 
 	resp := TxsResp{}
-	resp.Sequencer = seq
+	resp.Sequencer = &seq
 	resp.Transactions = txs
 	return resp
 }

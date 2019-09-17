@@ -19,14 +19,20 @@ func (t *TxStatusSet) CreateStatus(txi types.Txi) {
 	t.Set(txi.GetTxHash(), NewTxStatus(txi))
 }
 
+func (t *TxStatusSet) CreateIfNotExist(txi types.Txi) {
+	if t.Get(txi.GetTxHash()) == nil {
+		t.CreateStatus(txi)
+	}
+}
+
 func (t *TxStatusSet) BindChild(parent types.Txi, child types.Txi) {
 	pHash := parent.GetTxHash()
-	txStatus := t.Get(pHash)
-	if txStatus == nil {
-		txStatus = NewTxStatus(parent)
+	parentStatus := t.Get(pHash)
+	if parentStatus == nil {
+		parentStatus = NewTxStatus(parent)
 	}
-	txStatus.AddChild(child)
-	t.Set(pHash, txStatus)
+	parentStatus.AddChild(child)
+	t.Set(pHash, parentStatus)
 }
 
 func (t *TxStatusSet) Set(hash common.Hash, status *TxStatus) {

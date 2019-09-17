@@ -965,14 +965,13 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		switch tx := txi.(type) {
 		case *tx_types.Sequencer:
 			prevSeq = tx
-			if txStatusSet.Get(tx.GetTxHash()) == nil {
-				txStatusSet.CreateStatus(txi)
-			}
+			txStatusSet.CreateIfNotExist(tx)
 			break
 
 		case *tx_types.Tx:
 			cTxs = append(cTxs, txi)
-			txStatusSet.CreateStatus(txi)
+
+			txStatusSet.CreateIfNotExist(tx)
 			for _, pHash := range tx.Parents() {
 				parent := pool.get(pHash)
 				txStatusSet.BindChild(parent, tx)
@@ -1022,7 +1021,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 	}
 
 	// bind confirm sequencer to be a child of its parents.
-	txStatusSet.CreateStatus(seq)
+	txStatusSet.CreateIfNotExist(seq)
 	for _, pHash := range seq.Parents() {
 		parent := pool.get(pHash)
 		txStatusSet.BindChild(parent, seq)

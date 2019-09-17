@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
+	"github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
 )
@@ -26,9 +27,12 @@ func (t *TxStatusSet) CreateIfNotExist(txi types.Txi) {
 }
 
 func (t *TxStatusSet) BindChild(parent types.Txi, child types.Txi) {
+	logrus.Tracef("tx status bind child, parent: %s, child: %s", parent.GetTxHash(), child.GetTxHash())
+
 	pHash := parent.GetTxHash()
 	parentStatus := t.Get(pHash)
 	if parentStatus == nil {
+		logrus.Tracef("parent status nil, p: %s", parent.GetTxHash())
 		parentStatus = NewTxStatus(parent)
 	}
 	parentStatus.AddChild(child)

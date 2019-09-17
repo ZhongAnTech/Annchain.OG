@@ -459,10 +459,12 @@ func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	}
 
 	// check if parents are sent by txi's sender.
-	for _, pHash := range txi.Parents() {
-		p, _ := v.getTxFromAnywhere(pHash)
-		if p.Sender().Hex() == txi.Sender().Hex() {
-			return false
+	if txi.GetType() != types.TxBaseTypeSequencer {
+		for _, pHash := range txi.Parents() {
+			p, _ := v.getTxFromAnywhere(pHash)
+			if p.Sender().Hex() == txi.Sender().Hex() {
+				return false
+			}
 		}
 	}
 

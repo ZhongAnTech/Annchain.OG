@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
+	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -697,19 +698,19 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			stateFrom = NewBalanceState(originBalance)
 		}
 
+		txSpent := big.NewInt(0).Add(tx.Value.Value, tx.Guarantee.Value)
 		// if tx's value is larger than its balance, return fatal.
-		if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
+		if txSpent.Cmp(stateFrom.OriginBalance().Value) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
 		}
 		// if ( the value that 'from' already spent )
 		// 	+ ( the value that 'from' newly spent )
 		// 	> ( balance of 'from' in db )
-		totalspent := math.NewBigInt(0)
-		if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
-			stateFrom.originBalance.Value) > 0 {
+		totalspent := big.NewInt(0).Add(stateFrom.spent.Value, txSpent)
+		if totalspent.Cmp(stateFrom.originBalance.Value) > 0 {
 			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
-			return TxQualityIsBad
+			return TxQualityIsFatal
 		}
 	case *tx_types.ActionTx:
 		if tx.Action == tx_types.ActionTxActionIPO {

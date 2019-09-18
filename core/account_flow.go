@@ -176,7 +176,9 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
 	}
 	value := txnormal.GetValue()
-	err := af.balances[txnormal.TokenId].TrySubBalance(value)
+	guarantee := txnormal.GetGuarantee()
+	spent := value.Add(guarantee)
+	err := af.balances[txnormal.TokenId].TrySubBalance(spent)
 	if err != nil {
 		return err
 	}

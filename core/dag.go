@@ -1066,6 +1066,14 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 		return nil, nil
 	}
 
+	if len(txStatus.Children()) == 1 {
+		child := txStatus.Children()[0]
+		if child.Sender().Hex() == txi.Sender().Hex() {
+			txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), 100)
+			return math.NewBigInt(0), math.NewBigIntFromBigInt(txi.GetGuarantee().Value)
+		}
+	}
+
 	robbedLeft := math.NewBigIntFromBigInt(txStatus.robbed.Value)
 	guaranteeLost := math.NewBigInt(0)
 	for _, child := range txStatus.Children() {

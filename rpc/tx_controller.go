@@ -16,6 +16,7 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -66,20 +67,11 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 		return
 	}
-	to, err := common.StringToAddress(txReq.To)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("to address format error: %v", err), nil)
-		return
-	}
 
-	value, ok := math.NewBigIntFromString(txReq.Value, 10)
-	if !ok {
-		err = fmt.Errorf("new Big Int error")
-	}
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("value format error: %v", err), nil)
-		return
-	}
+	// empty address
+	to := common.BytesToAddress(nil)
+	// 0 bigint
+	value := math.NewBigInt(0)
 
 	guarantee, ok := math.NewBigIntFromString(txReq.Guarantee, 10)
 	if !ok {
@@ -87,6 +79,10 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 	if err != nil {
 		Response(c, http.StatusBadRequest, err, nil)
+		return
+	}
+	if guarantee.Value.Cmp(big.NewInt(100)) < 0 {
+		Response(c, http.StatusBadRequest, fmt.Errorf("guarantee should be larger than 100"), nil)
 		return
 	}
 
@@ -144,12 +140,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 //NewTxrequest for RPC request
 //msgp:tuple NewTxRequest
 type NewTxRequest struct {
-	Parents   []string `json:"parents"`
-	Nonce     uint64   `json:"nonce"`
-	From      string   `json:"from"`
-	To        string   `json:"to"`
-	Value     string   `json:"value"`
-	Guarantee string   `json:"guarantee"`
+	Parents []string `json:"parents"`
+	Nonce   uint64   `json:"nonce"`
+	From    string   `json:"from"`
+	//To        string   `json:"to"`
+	//Value     string   `json:"value"`
+	Guarantee string `json:"guarantee"`
 	//Data      string `json:"data"`
 	//CryptoType string `json:"crypto_type"`
 	Signature string `json:"signature"`
@@ -188,20 +184,11 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
 			return
 		}
-		to, err := common.StringToAddress(txReq.To)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("to address format error: %v", err), nil)
-			return
-		}
 
-		value, ok := math.NewBigIntFromString(txReq.Value, 10)
-		if !ok {
-			err = fmt.Errorf("new Big Int error")
-		}
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("value format error: %v", err), nil)
-			return
-		}
+		// empty address
+		to := common.BytesToAddress(nil)
+		// 0 bigint
+		value := math.NewBigInt(0)
 
 		guarantee, ok := math.NewBigIntFromString(txReq.Guarantee, 10)
 		if !ok {

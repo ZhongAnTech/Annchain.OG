@@ -283,6 +283,9 @@ func (r *RpcController) NextSeq(c *gin.Context) {
 	} else {
 		resp.TimeLeft = uint64(r.NextSeqTime.Sub(now).Nanoseconds() / 1000000)
 	}
+
+	Response(c, http.StatusOK, nil, resp)
+	return
 }
 
 type NextSeqResp struct {

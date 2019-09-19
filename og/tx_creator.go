@@ -622,8 +622,10 @@ type ActivationFunc interface {
 
 type QuadraticFunc struct {
 	// Y = K * X^2 + B
-	K *big.Int
-	B *big.Int
+	//K *big.Int
+	KUp   *big.Int
+	KDown *big.Int
+	B     *big.Int
 }
 
 func NewQuadraticFunc(initTreasure, maxTreasure *big.Int, maxHeight uint64) *QuadraticFunc {
@@ -631,9 +633,9 @@ func NewQuadraticFunc(initTreasure, maxTreasure *big.Int, maxHeight uint64) *Qua
 
 	f.B = big.NewInt(0).SetBytes(initTreasure.Bytes())
 
-	deltaTreasure := big.NewInt(0).Sub(maxTreasure, initTreasure)
-	heightSquare := big.NewInt(0).Mul(big.NewInt(int64(maxHeight)), big.NewInt(int64(maxHeight)))
-	f.K = big.NewInt(0).Div(deltaTreasure, heightSquare)
+	f.KUp = big.NewInt(0).Sub(maxTreasure, initTreasure)
+	f.KDown = big.NewInt(0).Mul(big.NewInt(int64(maxHeight)), big.NewInt(int64(maxHeight)))
+	//f.K = big.NewInt(0).Div(deltaTreasure, heightSquare)
 
 	return &f
 }
@@ -641,7 +643,8 @@ func NewQuadraticFunc(initTreasure, maxTreasure *big.Int, maxHeight uint64) *Qua
 func (f *QuadraticFunc) GetY(x uint64) (y *big.Int) {
 	// y = K * x^2 + B
 	y = big.NewInt(0).Mul(big.NewInt(int64(x)), big.NewInt(int64(x)))
-	y.Mul(y, f.K)
+	y.Mul(y, f.KUp)
+	y.Div(y, f.KDown)
 	y.Add(y, f.B)
 
 	return y

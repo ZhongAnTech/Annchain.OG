@@ -454,6 +454,8 @@ func NewNode() *Node {
 	var rpcServer *rpc.RpcServer
 	if viper.GetBool("rpc.enabled") {
 		rpcServer = rpc.NewRpcServer(viper.GetString("rpc.port"))
+
+		delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, rpcServer.C.NewTxChan)
 		n.Components = append(n.Components, rpcServer)
 	}
 

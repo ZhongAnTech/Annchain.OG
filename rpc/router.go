@@ -78,6 +78,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("query_contract", rpc.QueryContract)
 	router.GET("query_pool_tips", rpc.QueryAllTips)
 	router.GET("query_pool_txs", rpc.QueryAllTxsInPool)
+	router.GET("query_next_seq", rpc.NextSeq)
 
 	router.GET("net_io", rpc.NetIo)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math/big"
 	"net/http"
+	"time"
 )
 
 type TxsResp struct {
@@ -270,4 +271,21 @@ type NewSecretTxRequest struct {
 	Signature string `json:"signature"`
 	Pubkey    string `json:"pubkey"`
 	//TokenId   int32  `json:"token_id"`
+}
+
+func (r *RpcController) NextSeq(c *gin.Context) {
+	resp := NextSeqResp{}
+	resp.Height = r.NextSeqHeight
+
+	now := time.Now()
+	if !now.Before(r.NextSeqTime) {
+		resp.TimeLeft = 0
+	} else {
+		resp.TimeLeft = uint64(r.NextSeqTime.Sub(now).Nanoseconds() / 1000000)
+	}
+}
+
+type NextSeqResp struct {
+	Height   uint64 `json:"height"`
+	TimeLeft uint64 `json:"time_left"`
 }

@@ -19,6 +19,8 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/spf13/viper"
+	"time"
 
 	"github.com/annchain/OG/common"
 	"net/http"
@@ -45,6 +47,36 @@ type RpcController struct {
 	NewRequestChan     chan types.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
 	FormatVerifier     *og.TxFormatVerifier
+
+	NewTxChan     chan types.Txi
+	NextSeqHeight uint64
+	NextSeqTime   time.Time
+}
+
+func NewRpcController() RpcController {
+	r := RpcController{
+		NewTxChan:     make(chan types.Txi),
+		NextSeqHeight: 0,
+		NextSeqTime:   time.Now(),
+	}
+
+	go r.loop()
+	return r
+}
+
+func (r *RpcController) loop() {
+	seqIntervalUs := viper.GetInt("auto_client.sequencer.interval_us")
+
+	for {
+		select {
+		case txi := <-r.NewTxChan:
+			if txi.GetType() == types.TxBaseTypeSequencer {
+				seq := txi.(*tx_types.Sequencer)
+				r.NextSeqHeight = seq.Height + 1
+				r.NextSeqTime = time.Now().Add(time.Microsecond * time.Duration(seqIntervalUs))
+			}
+		}
+	}
 }
 
 type AutoTxClient interface {

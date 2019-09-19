@@ -33,7 +33,7 @@ type RpcServer struct {
 }
 
 func NewRpcServer(port string) *RpcServer {
-	c := RpcController{}
+	c := NewRpcController()
 	router := c.NewRouter()
 	server := &http.Server{
 		Addr:    ":" + port,

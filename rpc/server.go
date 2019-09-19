@@ -44,7 +44,7 @@ func NewRpcServer(port string) *RpcServer {
 		port:   port,
 		router: router,
 		server: server,
-		C:      &c,
+		C:      c,
 	}
 	return rpc
 }

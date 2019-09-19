@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"time"
 
@@ -53,8 +54,8 @@ type RpcController struct {
 	NextSeqTime   time.Time
 }
 
-func NewRpcController() RpcController {
-	r := RpcController{
+func NewRpcController() *RpcController {
+	r := &RpcController{
 		NewTxChan:     make(chan types.Txi),
 		NextSeqHeight: 0,
 		NextSeqTime:   time.Now(),
@@ -72,6 +73,8 @@ func (r *RpcController) loop() {
 		case txi := <-r.NewTxChan:
 			if txi.GetType() == types.TxBaseTypeSequencer {
 				seq := txi.(*tx_types.Sequencer)
+				logrus.Tracef("new seq get in rpc controller, seq hash: %s", seq.GetTxHash().String())
+
 				r.NextSeqHeight = seq.Height + 1
 				r.NextSeqTime = time.Now().Add(time.Microsecond * time.Duration(seqIntervalUs))
 			}

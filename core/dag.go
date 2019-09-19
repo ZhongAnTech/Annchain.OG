@@ -55,8 +55,8 @@ type DagConfig struct {
 
 func DefaultDagConfig() DagConfig {
 	return DagConfig{
-		RobRate:    40,
-		SeqRobRate: 50,
+		RobRate:    60,
+		SeqRobRate: 65,
 	}
 }
 

@@ -49,12 +49,14 @@ var (
 
 type DagConfig struct {
 	RobRate     int
+	SeqRobRate  int
 	GenesisPath string
 }
 
 func DefaultDagConfig() DagConfig {
 	return DagConfig{
-		RobRate: 30,
+		RobRate:    40,
+		SeqRobRate: 50,
 	}
 }
 
@@ -1092,7 +1094,7 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 			robbedAmount, guaranteeAmount = txStatusSet.airdrop(child.GetTxHash(), txi.GetTxHash())
 		} else if child.GetType() == types.TxBaseTypeSequencer {
 			// case tx <- seq, start forfeit, sequencer rob money from tx.
-			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate*2)
+			robbedAmount, guaranteeAmount = txStatusSet.forfeit(child.GetTxHash(), txi.GetTxHash(), dag.conf.SeqRobRate)
 		} else {
 			// case tx <- tx, start normal rob between txs.
 			robbedAmount, guaranteeAmount = txStatusSet.rob(child.GetTxHash(), txi.GetTxHash(), dag.conf.RobRate)

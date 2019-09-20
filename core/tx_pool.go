@@ -643,7 +643,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 		if pool.getStatus(parentHash) == TxStatusBadTx {
 			log.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
-			return TxQualityIsBad
+			return TxQualityIsFatal
 		}
 	}
 
@@ -659,7 +659,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			return TxQualityIsFatal
 		}
 		log.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
-		return TxQualityIsBad
+		return TxQualityIsFatal
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {

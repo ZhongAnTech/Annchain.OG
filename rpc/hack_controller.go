@@ -292,3 +292,13 @@ type NextSeqResp struct {
 	Height   uint64 `json:"height"`
 	TimeLeft uint64 `json:"time_left"`
 }
+
+func (r *RpcController) ReduceBalance(c *gin.Context) {
+	amountStr := c.Query("amount")
+
+	amount, _ := math.NewBigIntFromString(amountStr, 10)
+	err := r.Og.Dag.FakePush(amount)
+
+	Response(c, http.StatusOK, err, nil)
+	return
+}

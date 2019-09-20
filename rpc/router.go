@@ -80,6 +80,9 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("query_pool_txs", rpc.QueryAllTxsInPool)
 	router.GET("query_next_seq", rpc.NextSeq)
 
+	// hack only
+	//router.GET("reduce_balance", rpc.ReduceBalance)
+
 	router.GET("net_io", rpc.NetIo)
 
 	router.GET("debug", rpc.Debug)

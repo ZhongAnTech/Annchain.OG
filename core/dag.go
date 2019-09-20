@@ -748,6 +748,50 @@ func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
 	return dag.preloadDB.Commit()
 }
 
+func (dag *Dag) FakePush(reduceAmount *math.BigInt) error {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+
+	sId := dag.statedb.Snapshot()
+
+	addressSet := []string{
+		"c55bda8b731dd486644d480495d539576c9a44e2",
+		"39498354b2897b0a93161501a507668bd655886a",
+		"7e94b0dbfc889144f36e5287c8db1bf5f55bdf0f",
+		"9ff71b29bb0aabfa77c018e7ec16d9d4cc8484b6",
+		"8426d1f54a02da69dacb27d0b989767588216d13",
+		"f3b27b86040956a13daffe46b05d9402b5acff8b",
+		"415cb4b14b9663c267b98f29fffe32f83fd0b966",
+		"325641d6b1be10e5da5ee359e612082b986403a6",
+		"1e2d3ead0238d656cd6a58034da7c15399bc8121",
+	}
+
+	for _, account := range addressSet {
+		dag.statedb.SubBalance(common.HexToAddress(account), reduceAmount)
+	}
+	root, err := dag.statedb.Commit()
+	if err != nil {
+		log.Errorf("can't fake push Commit statedb, err: %v", err)
+		return fmt.Errorf("can't fake push Commit statedb, err: %v", err)
+	}
+	dag.statedb.ClearJournalAndRefund()
+
+	err = dag.accessor.WriteLastStateRoot(nil, root)
+	if err != nil {
+		return err
+	}
+
+	triedb := dag.statedb.Database().TrieDB()
+	err = triedb.Commit(root, false)
+	if err != nil {
+		log.Errorf("can't fake push flush trie from triedb into diskdb, err: %v", err)
+		dag.statedb.RevertToSnapshot(sId)
+		return fmt.Errorf("can't fake push flush trie from triedb into diskdb, err: %v", err)
+	}
+
+	return nil
+}
+
 func (dag *Dag) push(batch *ConfirmBatch) error {
 	log.Tracef("push the batch: %s", batch.String())
 

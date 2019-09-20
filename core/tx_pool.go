@@ -698,9 +698,12 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			stateFrom = NewBalanceState(originBalance)
 		}
 
+		SevenMillion, _ := big.NewInt(0).SetString("7000000", 10)
+		trueBalance := big.NewInt(0).Sub(stateFrom.OriginBalance().Value, SevenMillion)
+
 		txSpent := big.NewInt(0).Add(tx.Value.Value, tx.Guarantee.Value)
 		// if tx's value is larger than its balance, return fatal.
-		if txSpent.Cmp(stateFrom.OriginBalance().Value) > 0 {
+		if txSpent.Cmp(trueBalance) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
 		}
@@ -708,8 +711,8 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		// 	+ ( the value that 'from' newly spent )
 		// 	> ( balance of 'from' in db )
 		totalspent := big.NewInt(0).Add(stateFrom.spent.Value, txSpent)
-		if totalspent.Cmp(stateFrom.originBalance.Value) > 0 {
-			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
+		if totalspent.Cmp(trueBalance) > 0 {
+			log.WithField("tx", tx).Tracef("bad tx, total spent larger than balance")
 			return TxQualityIsFatal
 		}
 	case *tx_types.ActionTx:

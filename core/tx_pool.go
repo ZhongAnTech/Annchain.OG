@@ -135,13 +135,13 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		tips:             NewTxMap(),
 		badtxs:           NewTxMap(),
 		pendings:         NewTxMap(),
-		flows:            NewAccountFlows(),
 		txLookup:         newTxLookUp(),
 		close:            make(chan struct{}),
 		onNewTxReceived:  make(map[channelName]chan types.Txi),
 		OnBatchConfirmed: []chan []types.Txi{},
 		confirmStatus:    &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
+	pool.flows = NewAccountFlows(pool)
 
 	return pool
 }
@@ -457,7 +457,7 @@ func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
-	pool.flows = NewAccountFlows()
+	pool.flows = NewAccountFlows(pool)
 	pool.txLookup = newTxLookUp()
 }
 
@@ -617,10 +617,6 @@ func (pool *TxPool) commit(tx types.Txi) error {
 			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
 		}
 	}
-	if tx.GetType() == types.TxBaseTypeNormal {
-		txn := tx.(*tx_types.Tx)
-		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
-	}
 	pool.flows.Add(tx)
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
@@ -698,12 +694,9 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			stateFrom = NewBalanceState(originBalance)
 		}
 
-		SevenMillion, _ := big.NewInt(0).SetString("7000000", 10)
-		trueBalance := big.NewInt(0).Sub(stateFrom.OriginBalance().Value, SevenMillion)
-
 		txSpent := big.NewInt(0).Add(tx.Value.Value, tx.Guarantee.Value)
 		// if tx's value is larger than its balance, return fatal.
-		if txSpent.Cmp(trueBalance) > 0 {
+		if txSpent.Cmp(stateFrom.OriginBalance().Value) > 0 {
 			log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
 		}
@@ -711,8 +704,8 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		// 	+ ( the value that 'from' newly spent )
 		// 	> ( balance of 'from' in db )
 		totalspent := big.NewInt(0).Add(stateFrom.spent.Value, txSpent)
-		if totalspent.Cmp(trueBalance) > 0 {
-			log.WithField("tx", tx).Tracef("bad tx, total spent larger than balance")
+		if totalspent.Cmp(stateFrom.OriginBalance().Value) > 0 {
+			log.WithField("tx", tx).Tracef("fatal tx, total spent larger than balance")
 			return TxQualityIsFatal
 		}
 	case *tx_types.ActionTx:
@@ -1010,8 +1003,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		// for every token, if balance < outcome, then verify failed
 		for tokenID, spent := range batchDetail.Neg {
 			confirmedBalance := pool.dag.GetBalance(addr, tokenID)
+
 			if confirmedBalance.Value.Cmp(spent.Value) < 0 {
-				return nil, fmt.Errorf("the balance of addr %s is not enough", addr)
+				return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 			}
 		}
 		// check nonce order

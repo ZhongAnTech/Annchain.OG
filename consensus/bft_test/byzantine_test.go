@@ -15,23 +15,23 @@ type ByzantineFeatures struct {
 }
 
 type dummyByzantineBftPeerCommunicator struct {
-	Myid                   int
-	Peers                  []chan bft.BftMessage
-	ReceiverChannel        chan bft.BftMessage
-	messageProviderChannel chan bft.BftMessage
-	ByzantineFeatures      ByzantineFeatures
+	Myid              int
+	PeerPipeIns       []chan bft.BftMessage
+	pipeIn            chan bft.BftMessage
+	pipeOut           chan bft.BftMessage
+	ByzantineFeatures ByzantineFeatures
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetReceivingChannel() chan bft.BftMessage {
-	return d.ReceiverChannel
+func (d *dummyByzantineBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
+	d.pipeIn <- msg
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Run() {
 	go func() {
 		for {
-			v := <-d.ReceiverChannel
+			v := <-d.pipeIn
 			//vv := v.Message.(*bft.BftMessage)
-			d.messageProviderChannel <- v
+			d.pipeOut <- v
 		}
 	}()
 }
@@ -49,7 +49,7 @@ func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers 
 	}
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
-			d.Peers[peer.Id] <- msg
+			d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
 	}
 }
@@ -67,22 +67,26 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft
 		return
 	}
 	go func() {
-		d.Peers[peer.Id] <- msg
+		d.PeerPipeIns[peer.Id] <- msg
 	}()
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetIncomingChannel() chan bft.BftMessage {
-	return d.messageProviderChannel
+func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+	return d.pipeIn
+}
+
+func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+	return d.pipeOut
 }
 
 func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage,
 	byzantineFeatures ByzantineFeatures) *dummyByzantineBftPeerCommunicator {
 	d := &dummyByzantineBftPeerCommunicator{
-		Peers:                  peers,
-		Myid:                   myid,
-		ReceiverChannel:        incoming,
-		messageProviderChannel: make(chan bft.BftMessage),
-		ByzantineFeatures:      byzantineFeatures,
+		PeerPipeIns:       peers,
+		Myid:              myid,
+		pipeIn:            incoming,
+		pipeOut:           make(chan bft.BftMessage),
+		ByzantineFeatures: byzantineFeatures,
 	}
 	return d
 }

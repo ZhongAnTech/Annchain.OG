@@ -83,9 +83,9 @@ func (r *TrustfulBftPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.Pe
 	r.P2PSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
 }
 
-// GetIncomingChannel provides a channel for downstream component consume the messages
+// GetPipeOut provides a channel for downstream component consume the messages
 // that are already verified by communicator
-func (r *TrustfulBftPartnerCommunicator) GetIncomingChannel() chan bft.BftMessage {
+func (r *TrustfulBftPartnerCommunicator) GetPipeOut() chan bft.BftMessage {
 	return r.incomingChannel
 }
 

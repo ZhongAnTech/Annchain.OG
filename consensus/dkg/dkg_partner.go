@@ -111,7 +111,7 @@ func (p *DkgPartner) gossipLoop() {
 		logrus.Debug("dkg gossip quit")
 		return
 	}
-	incomingChannel := p.PeerCommunicator.GetIncomingChannel()
+	pipeOutChannel := p.PeerCommunicator.GetPipeOut()
 	// send the deals to all other partners
 	go p.announceDeals()
 	for {
@@ -124,7 +124,7 @@ func (p *DkgPartner) gossipLoop() {
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
 			//p.checkWaitingForWhat()
-		case msg := <-incomingChannel:
+		case msg := <-pipeOutChannel:
 			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.Type.String()).Trace("received a message")
 			p.handleMessage(msg)
 		}

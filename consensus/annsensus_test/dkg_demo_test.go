@@ -68,7 +68,7 @@ package annsensus_test
 //
 //type TestHub struct {
 //	Id              common.Address
-//	Peers           []common.Address
+//	PeerPipeIns           []common.Address
 //	sendMsgToChan   sendMsgToChanFunc
 //	sendMsgByPubKey sendMsgByPubKeyFunc
 //	OutMsg          chan p2pMsg
@@ -83,7 +83,7 @@ package annsensus_test
 //func newtestHub(id common.Address, peers []common.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
 //	return &TestHub{
 //		Id:              id,
-//		Peers:           peers,
+//		PeerPipeIns:           peers,
 //		OutMsg:          make(chan p2pMsg, 100),
 //		sendMsgToChan:   sendMsgToChan,
 //		sendMsgByPubKey: sendMsgByPubKey,
@@ -95,7 +95,7 @@ package annsensus_test
 //
 //func (t *TestHub) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
 //	var sent bool
-//	for _, peer := range t.Peers {
+//	for _, peer := range t.PeerPipeIns {
 //		tMsg := test.TestMsg{
 //			MessageType: messageType,
 //			Message:     message,

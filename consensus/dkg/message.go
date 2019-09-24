@@ -51,7 +51,7 @@ func (m *DkgMessage) String() string {
 
 //msgp:tuple BftBasicInfo
 type DkgBasicInfo struct {
-	TermId    uint64
+	TermId uint32
 	//PublicKey PublicKeyMarshallable
 }
 

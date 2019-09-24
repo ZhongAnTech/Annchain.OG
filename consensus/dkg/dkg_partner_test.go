@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var TestNodes = 4
+
 func init() {
 	Formatter := new(logrus.TextFormatter)
 	//Formatter.ForceColors = false

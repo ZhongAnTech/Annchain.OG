@@ -206,7 +206,7 @@ func (p *DefaultBftPartner) EventLoop() {
 func (p *DefaultBftPartner) receive() {
 	//defer p.wg.Done()
 	timer := time.NewTimer(time.Second * 7)
-	incomingChannel := p.PeerCommunicator.GetIncomingChannel()
+	pipeOutChannel := p.PeerCommunicator.GetPipeOut()
 	for {
 		timer.Reset(time.Second * 7)
 		select {
@@ -225,7 +225,7 @@ func (p *DefaultBftPartner) receive() {
 		case <-timer.C:
 			logrus.WithField("IM", p.Id).Debug("Blocked reading incoming bft")
 			p.dumpAll("blocked reading incoming")
-		case msg := <-incomingChannel:
+		case msg := <-pipeOutChannel:
 			p.handleMessage(msg)
 		}
 	}

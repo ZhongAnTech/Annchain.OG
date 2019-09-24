@@ -51,7 +51,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
 	total := good + bad
 	i := 0
 
-	// prepare incoming channels
+	// prepare pipeIn channels
 	for ; i < total; i++ {
 		peerChans = append(peerChans, make(chan bft.BftMessage, 5))
 	}
@@ -67,9 +67,9 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
 		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
-		peer := bft.NewDefaultBFTPartner(total, i, BlockTime)
 		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
 		pc.Run()
+		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pg, pv, dm)
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
@@ -94,14 +94,14 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
 func start(peers []bft.BftOperator, second int) {
 	logrus.Info("starting")
 	for _, peer := range peers {
-		go bft.WaiterLoop()
-		go bft.EventLoop()
+		go peer.WaiterLoop()
+		go peer.EventLoop()
 
 	}
 	time.Sleep(time.Second * 2)
 	logrus.Info("starting new era")
 	for _, peer := range peers {
-		go bft.StartNewEra(0, 0)
+		go peer.StartNewEra(0, 0)
 		break
 	}
 	time.Sleep(time.Second * time.Duration(second))
@@ -113,7 +113,7 @@ func joinAllPeers(peers []bft.BftOperator) {
 	for {
 		time.Sleep(time.Second * 2)
 		for _, peer := range peers {
-			bft.Stop()
+			peer.Stop()
 		}
 		fmt.Println(runtime.NumGoroutine())
 		return

@@ -6,27 +6,24 @@ import (
 )
 
 type dummyBftPeerCommunicator struct {
-	Myid                   int
-	Peers                  []chan bft.BftMessage
-	ReceiverChannel        chan bft.BftMessage
-	messageProviderChannel chan bft.BftMessage
+	Myid    int
+	PeerIns []chan bft.BftMessage
+	pipeIn  chan bft.BftMessage //pipeIn is the receiver of the outside messages
+	pipeOut chan bft.BftMessage //pipeOut is the providing channel for new messages parsed from pipeIn
 }
 
-func (d *dummyBftPeerCommunicator) GetReceivingChannel() chan bft.BftMessage {
-	return d.ReceiverChannel
-}
 
 func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
-	d.ReceiverChannel <- msg
+	d.pipeIn <- msg
 }
 
 
 func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage) *dummyBftPeerCommunicator {
 	d := &dummyBftPeerCommunicator{
-		Peers:                  peers,
-		Myid:                   myid,
-		ReceiverChannel:        incoming,
-		messageProviderChannel: make(chan bft.BftMessage),
+		PeerIns: peers,
+		Myid:    myid,
+		pipeIn:  incoming,
+		pipeOut: make(chan bft.BftMessage),
 	}
 	return d
 }
@@ -49,29 +46,33 @@ func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OG
 func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
-			//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-			d.Peers[peer.Id] <-msg
+			//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
+			d.PeerIns[peer.Id] <- msg
 		}(peer)
 	}
 }
 
 func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	go func() {
-		//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "bft")
-		d.Peers[peer.Id] <- msg
+		//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
+		d.PeerIns[peer.Id] <- msg
 	}()
 }
 
-func (d *dummyBftPeerCommunicator) GetIncomingChannel() chan bft.BftMessage {
-	return d.messageProviderChannel
+func (d *dummyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+	return d.pipeIn
+}
+
+func (d *dummyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+	return d.pipeOut
 }
 
 func (d *dummyBftPeerCommunicator) Run() {
 	go func() {
 		for {
-			v := <-d.ReceiverChannel
+			v := <-d.pipeIn
 			//vv := v.Message.(*bft.BftMessage)
-			d.messageProviderChannel <- v
+			d.pipeOut <- v
 		}
 	}()
 }

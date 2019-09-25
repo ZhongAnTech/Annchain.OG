@@ -17,8 +17,8 @@ import (
 // It provides Trustful communication between partners with pubkeys
 // All messages received from TrustfulBftPartnerCommunicator is considered crypto safe and sender verified.
 type TrustfulBftPartnerCommunicator struct {
-	incomingChannel   chan bft.BftMessage     // the channel for subscribers to consume outside message.
-	receivingChannel  chan *message.OGMessage // the channel for communicator to receive msg from outside
+	pipeOut           chan bft.BftMessage     // the channel for subscribers to consume outside message.
+	pipeIn            chan *message.OGMessage // the channel for communicator to receive msg from outside
 	SignatureProvider account.SignatureProvider
 	TermProvider      annsensus.TermProvider // TODO：not its job.
 	P2PSender         P2PSender              // upstream message sender
@@ -27,8 +27,8 @@ type TrustfulBftPartnerCommunicator struct {
 	quitWg sync.WaitGroup
 }
 
-func (r *TrustfulBftPartnerCommunicator) GetReceivingChannel() chan *message.OGMessage {
-	return r.receivingChannel
+func (r *TrustfulBftPartnerCommunicator) GetPipiIn() chan *message.OGMessage {
+	return r.pipeIn
 }
 
 func (r *TrustfulBftPartnerCommunicator) Run() {
@@ -38,21 +38,21 @@ func (r *TrustfulBftPartnerCommunicator) Run() {
 		case <-r.quit:
 			r.quitWg.Done()
 			return
-		case msg := <-r.receivingChannel:
-			ogMsg := r.handleOgMessage(msg)
-			if ogMsg == nil {
-				continue
+		case msg := <-r.pipeIn:
+			ogMsg, err := r.AdaptOgMessage(msg)
+			if err != nil {
+				logrus.WithError(err).Warn("TrustfulBftPartnerCommunicator AdaptOgMessage error")
 			}
-			ffchan.NewTimeoutSenderShort(r.incomingChannel, ogMsg, "trustre")
-			//r.incomingChannel <- ogMsg
+			ffchan.NewTimeoutSenderShort(r.pipeOut, ogMsg, "trustre")
+			//r.pipeOut <- ogMsg
 		}
 	}
 }
 
-func NewTrustfulPeerCommunicator(signatureProvider account.SignatureProvider, termProvider annsensus.TermProvider,
+func NewTrustfulBftPeerCommunicator(signatureProvider account.SignatureProvider, termProvider annsensus.TermProvider,
 	p2pSender P2PSender) *TrustfulBftPartnerCommunicator {
 	return &TrustfulBftPartnerCommunicator{
-		incomingChannel:   make(chan bft.BftMessage, 20),
+		pipeOut:           make(chan bft.BftMessage, 20),
 		SignatureProvider: signatureProvider,
 		TermProvider:      termProvider,
 		P2PSender:         p2pSender,
@@ -86,7 +86,7 @@ func (r *TrustfulBftPartnerCommunicator) Unicast(msg bft.BftMessage, peer bft.Pe
 // GetPipeOut provides a channel for downstream component consume the messages
 // that are already verified by communicator
 func (r *TrustfulBftPartnerCommunicator) GetPipeOut() chan bft.BftMessage {
-	return r.incomingChannel
+	return r.pipeOut
 }
 
 func (b *TrustfulBftPartnerCommunicator) VerifyParnterIdentity(signedMsg *message.SignedOgPartnerMessage) error {
@@ -108,18 +108,13 @@ func (b *TrustfulBftPartnerCommunicator) VerifyMessageSignature(signedMsg *messa
 	return nil
 }
 
-// handler for hub or upstream annsensus module
-func (r *TrustfulBftPartnerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
-	r.receivingChannel <- msg
-}
-
 func (b *TrustfulBftPartnerCommunicator) AdaptOgMessage(incomingMsg *message.OGMessage) (msg bft.BftMessage, err error) {	// Only allows SignedOgPartnerMessage
 	signedMsg, ok := incomingMsg.Message.(*message.SignedOgPartnerMessage)
 	if !ok {
 		err = errors.New("message received is not a proper type for bft")
 		return
 	}
-	err := b.VerifyParnterIdentity(signedMsg)
+	err = b.VerifyParnterIdentity(signedMsg)
 	if err != nil {
 		logrus.WithField("term", signedMsg.TermId).WithError(err).Warn("bft message partner identity is not valid")
 		err = errors.New("bft message partner identity is not valid")

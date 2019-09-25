@@ -72,13 +72,12 @@ func setupPartners(termId uint32, numParts int, threshold int) ([]*DkgPartner, [
 	var partners []*DkgPartner
 
 	for i := 0; i < numParts; i++ {
-		partner, err := NewDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i])
+		communicator := NewDummyDkgPeerCommunicator(i, peerChans[i], peerChans)
+		communicator.Run()
+		partner, err := NewDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i], communicator)
 		if err != nil {
 			panic(err)
 		}
-		communicator := NewDummyDkgPeerCommunicator(i, peerChans[i], peerChans)
-		partner.PeerCommunicator = communicator
-		communicator.Run()
 
 		partners = append(partners, partner)
 	}
@@ -124,7 +123,7 @@ func TestDkgPartner(t *testing.T) {
 	listener := NewDummyDkgGeneratedListener(&wg)
 
 	for _, partner := range partners {
-		partner.DkgGeneratedListeners = append(partner.DkgGeneratedListeners, listener)
+		partner.dkgGeneratedListeners = append(partner.dkgGeneratedListeners, listener)
 		partner.Start()
 	}
 	time.Sleep(time.Second * 5)

@@ -19,8 +19,8 @@ import (
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
 	context            *DkgContext
-	PeerCommunicator   DkgPeerCommunicator
-	DealReceivingCache DisorderedCache // map[deal_sender_index]Deal
+	peerCommunicator   DkgPeerCommunicator
+	dealReceivingCache DisorderedCache // map[deal_sender_index]Deal
 	gossipStartCh      chan bool
 
 	otherPeers            []PeerInfo
@@ -28,9 +28,9 @@ type DkgPartner struct {
 	DealResponseCache     map[int]*dkger.Response //my response for such deal should not be generated twice
 	ResponseCache         map[string]bool         // duplicate response should not be processed twice.
 	total                 int
-	DkgGeneratedListeners []DkgGeneratedListener // joint pubkey is got
+	dkgGeneratedListeners []DkgGeneratedListener // joint pubkey is got
 
-	quit      chan bool
+	quit   chan bool
 	quitWg sync.WaitGroup
 }
 
@@ -44,14 +44,16 @@ func (p *DkgPartner) Stop() {
 // This may be done by publishing partPub to the blockchain
 // termId is still needed to identify different Dkg groups
 // allPeers needs to be sorted and globally order identical
-func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec) (*DkgPartner, error) {
+func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec,
+	dkgPeerCommunicator DkgPeerCommunicator) (*DkgPartner, error) {
+	// new dkg context
 	c := NewDkgContext(suite, termId)
 	c.NbParticipants = numParts
 	c.Threshold = threshold
-
 	c.PartPubs = allPeers
 	c.Me = me
 
+	// find Who am I
 	myIndex := -1
 	for i := 0; i < len(allPeers); i++ {
 		if allPeers[i].Point.Equal(me.Point) {
@@ -65,16 +67,23 @@ func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, a
 	}
 	c.MyIndex = uint32(myIndex)
 
-	d := &DkgPartner{}
-	d.context = c
-	d.gossipStartCh = make(chan bool)
-	d.quit = make(chan bool)
-	d.DealReceivingCache = make(DisorderedCache)
-	d.DealResponseCache = make(map[int]*dkger.Response)
-	d.ResponseCache = make(map[string]bool)
+	// setup partner
+	d := &DkgPartner{
+		context:               c,
+		peerCommunicator:      dkgPeerCommunicator,
+		dealReceivingCache:    make(DisorderedCache),
+		gossipStartCh:         make(chan bool),
+		otherPeers:            []PeerInfo{},
+		notified:              false,
+		DealResponseCache:     make(map[int]*dkger.Response),
+		ResponseCache:         make(map[string]bool),
+		total:                 0,
+		dkgGeneratedListeners: []DkgGeneratedListener{},
+		quit:                  make(chan bool),
+		quitWg:                sync.WaitGroup{},
+	}
 
-	// init all other peers
-	d.otherPeers = []PeerInfo{}
+	// init all other peers so that I can do broadcast
 	for i := 0; i < len(allPeers); i++ {
 		if i == int(c.MyIndex) {
 			continue
@@ -111,7 +120,7 @@ func (p *DkgPartner) gossipLoop() {
 		logrus.Debug("dkg gossip quit")
 		return
 	}
-	pipeOutChannel := p.PeerCommunicator.GetPipeOut()
+	pipeOutChannel := p.peerCommunicator.GetPipeOut()
 	// send the deals to all other partners
 	go p.announceDeals()
 	for {
@@ -168,7 +177,7 @@ func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 	}
 	logrus.WithField("from", deal.Index).WithField("to", id).
 		Trace("unicasting deal message")
-	p.PeerCommunicator.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
+	p.peerCommunicator.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
 		p.context.PartPubs[id].Peer)
 	// after this, you are expecting a response from the target peers
 }
@@ -188,7 +197,7 @@ func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 		Data: data,
 	}
 	logrus.WithField("me", p.context.MyIndex).WithField("from", response.Response.Index).Trace("broadcasting response message")
-	p.PeerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
+	p.peerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
 func (p *DkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
@@ -236,7 +245,7 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 	}
 
 	issuerIndex := deal.Index
-	v, hasPreviousDiscussion := p.DealReceivingCache[issuerIndex]
+	v, hasPreviousDiscussion := p.dealReceivingCache[issuerIndex]
 	if !hasPreviousDiscussion {
 		v = &DkgDiscussion{
 			Deal:      nil,
@@ -267,7 +276,7 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 		discussion.Deal = deal
 
 		// update state
-		p.DealReceivingCache[issuerIndex] = discussion
+		p.dealReceivingCache[issuerIndex] = discussion
 
 		// send response to all other partners except itself
 		//p.writeMessage(fmt.Sprintf("Send Resp %d %d", resp.Index, resp.Response.Index))
@@ -323,7 +332,7 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	// check if the correspondant deal is in the cache
 	// if not, hang on
 	dealerIndex := resp.Index
-	v, ok := p.DealReceivingCache[dealerIndex]
+	v, ok := p.dealReceivingCache[dealerIndex]
 	if !ok {
 		// deal from this sender has not been received. put the response to the cache
 		v = &DkgDiscussion{
@@ -336,7 +345,7 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	discussion := v.(*DkgDiscussion)
 	discussion.Responses = append(discussion.Responses, resp)
 	// update state
-	p.DealReceivingCache[dealerIndex] = discussion
+	p.dealReceivingCache[dealerIndex] = discussion
 	//verifierIndex := resp.Response.Index
 
 	// if deal is already there, process this response
@@ -392,7 +401,7 @@ func (p *DkgPartner) verifyResponseSender(response *MessageDkgDealResponse, deal
 
 // notifyListeners notifies listeners who has been registered for dkg generated events
 func (p *DkgPartner) notifyListeners() {
-	for _, listener := range p.DkgGeneratedListeners {
+	for _, listener := range p.dkgGeneratedListeners {
 		ffchan.NewTimeoutSenderShort(listener.GetDkgGeneratedEventChannel(), true, "listener")
 		//listener.GetDkgGeneratedEventChannel() <- true
 	}
@@ -400,11 +409,11 @@ func (p *DkgPartner) notifyListeners() {
 }
 
 func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
-	p.DkgGeneratedListeners = append(p.DkgGeneratedListeners, l)
+	p.dkgGeneratedListeners = append(p.dkgGeneratedListeners, l)
 }
 
 func (p *DkgPartner) GetPeerCommunicator() DkgPeerCommunicator {
-	return p.PeerCommunicator
+	return p.peerCommunicator
 }
 
 //
@@ -428,7 +437,7 @@ func (p *DkgPartner) GetPeerCommunicator() DkgPeerCommunicator {
 //
 //	var dealers []int
 //
-//	for dealer, v := range p.DealReceivingCache {
+//	for dealer, v := range p.dealReceivingCache {
 //		dealers = append(dealers, int(dealer))
 //		discussion := v.(*DkgDiscussion)
 //		if dealer != p.context.MyIndex && len(discussion.Responses) != total-2 {

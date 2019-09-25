@@ -22,7 +22,6 @@ type BftPeerCommunicator interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)
 	GetPipeOut() chan BftMessage
-	HandleIncomingMessage(msg BftMessage)
 	Run()
 }
 
@@ -31,7 +30,7 @@ type BftOperator interface {
 	Stop()
 	WaiterLoop()
 	EventLoop()
-	GetPeerCommunicator() BftPeerCommunicator
+	GetBftPeerCommunicator() BftPeerCommunicator
 	RegisterConsensusReachedListener(listener ConsensusReachedListener)
 }
 

@@ -15,8 +15,8 @@ package annsensus_test
 
 import (
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -74,14 +74,15 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare bft channels
-	var peerChans []chan *message.OGMessage
+	var peerChans []chan bft.BftMessage
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan *message.OGMessage, 5))
+		peerChans = append(peerChans, make(chan bft.BftMessage, 5))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor
 
 	for i := 0; i < nodes; i++ {
+		commuicator := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
 		ann := annsensus.NewAnnsensusProcessor(config,
 			&dummyAccountProvider{
 				MyAccount: accounts[i],
@@ -97,7 +98,8 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 				AllPartPubs:    nil,
 				MyPartSec:      dkg.PartSec{},
 			},
-			NewDummyBftPeerCommunicator(i, peerChans[i], peerChans),
+			commuicator,
+			commuicator,
 			&dummyProposalGenerator{},
 			&dummyProposalValidator{},
 			&dummyDecisionMaker{},

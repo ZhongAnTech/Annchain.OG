@@ -24,7 +24,7 @@ var (
 type AnnsensusPartner struct {
 	accountNonceProvider    AccountNonceProvider
 	accountProvider         ConsensusAccountProvider
-	peerCommunicator        bft.BftPeerCommunicator // AnnsensusPartner is a BftPeerCommunicator, peerCommunicator is a PeerCommunicator
+	peerCommunicator        bft.BftPeerCommunicator // AnnsensusPartner is a BftPeerCommunicator, bftPeerCommunicator is a peerCommunicator
 	bftPartnerMyself        *bft.BftOperator
 	dkg                     *archive.DkgPartner
 	termProvider            TermProvider
@@ -36,17 +36,23 @@ type AnnsensusPartner struct {
 
 func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunicator bft.BftPeerCommunicator,
 	termProvider TermProvider, accountProvider ConsensusAccountProvider, sequencerProducer SequencerProducer) *AnnsensusPartner {
+	// init bft related components
 
+	// init dkg related components
+	// init annsensus partner as an integration center
 	ap := &AnnsensusPartner{
 		accountNonceProvider:    accountNonceProvider,
 		accountProvider:         accountProvider,
 		peerCommunicator:        peerCommunicator,
+		bftPartnerMyself:        nil,
+		dkg:                     nil,
 		termProvider:            termProvider,
+		heightProvider:          nil,
 		sequencerProducer:       sequencerProducer,
 		consensusReachedChannel: make(chan bft.ConsensusDecision),
 		quit:                    make(chan bool),
 	}
-	trustfulPeerCommunicator := communicator.NewTrustfulPeerCommunicator(signer, termProvider, accountProvider)
+	trustfulPeerCommunicator := communicator.NewTrustfulBftPeerCommunicator(signer, termProvider, accountProvider)
 
 	ap := &AnnsensusPartner{
 		peerCommunicator:     trustfulPeerCommunicator,

@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/account"
-	cbft "github.com/annchain/OG/og/communicator/bft"
 	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -44,18 +43,18 @@ func (tc *TermComposer) Stop() {
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 // It receives messages from
 type AnnsensusProcessor struct {
-	incomingChannel chan *message.OGMessage
-	config          AnnsensusProcessorConfig
+	pipeIn chan *message.OGMessage
+	config AnnsensusProcessorConfig
 
-	myAccountProvider account.AccountProvider
-	signatureProvider account.SignatureProvider
-	contextProvider   ConsensusContextProvider
-	peerCommunicator  bft.BftPeerCommunicator
-	bftAdapter        cbft.BftCommunicatorAdapter
-	proposalGenerator bft.ProposalGenerator
-	proposalValidator bft.ProposalValidator
-	decisionMaker     bft.DecisionMaker
-	termProvider      TermProvider
+	myAccountProvider   account.AccountProvider
+	signatureProvider   account.SignatureProvider
+	contextProvider     ConsensusContextProvider
+	bftPeerCommunicator bft.BftPeerCommunicator
+	dkgPeerCommunicator dkg.DkgPeerCommunicator
+	proposalGenerator   bft.ProposalGenerator
+	proposalValidator   bft.ProposalValidator
+	decisionMaker       bft.DecisionMaker
+	termProvider        TermProvider
 
 	// in case of disordered message, cache the terms and the correspondent processors.
 	termMap map[uint32]*TermComposer
@@ -77,7 +76,6 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	signatureProvider account.SignatureProvider,
 	contextProvider ConsensusContextProvider,
 	peerCommunicator bft.BftPeerCommunicator,
-	bftAdapter cbft.BftCommunicatorAdapter,
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
@@ -97,20 +95,19 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 		}
 	}
 	ap := &AnnsensusProcessor{
-		incomingChannel:   make(chan *message.OGMessage),
-		config:            config,
-		myAccountProvider: myAccountProvider,
-		signatureProvider: signatureProvider,
-		contextProvider:   contextProvider,
-		peerCommunicator:  peerCommunicator,
-		bftAdapter:        bftAdapter,
-		proposalGenerator: proposalGenerator,
-		proposalValidator: proposalValidator,
-		decisionMaker:     decisionMaker,
-		termProvider:      termProvider,
-		termMap:           make(map[uint32]*TermComposer),
-		quit:              make(chan bool),
-		quitWg:            sync.WaitGroup{},
+		pipeIn:              make(chan *message.OGMessage),
+		config:              config,
+		myAccountProvider:   myAccountProvider,
+		signatureProvider:   signatureProvider,
+		contextProvider:     contextProvider,
+		bftPeerCommunicator: peerCommunicator,
+		proposalGenerator:   proposalGenerator,
+		proposalValidator:   proposalValidator,
+		decisionMaker:       decisionMaker,
+		termProvider:        termProvider,
+		termMap:             make(map[uint32]*TermComposer),
+		quit:                make(chan bool),
+		quitWg:              sync.WaitGroup{},
 	}
 	return ap
 }
@@ -130,7 +127,7 @@ loop:
 		case <-ap.quit:
 			ap.quitWg.Done()
 			break loop
-		case msg := <-ap.incomingChannel:
+		case msg := <-ap.pipeIn:
 			ap.HandleConsensusMessage(msg)
 		}
 	}
@@ -151,7 +148,8 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 		ap.contextProvider.GetNbParts(),
 		ap.contextProvider.GetThreshold(),
 		ap.contextProvider.GetAllPartPubs(),
-		ap.contextProvider.GetMyPartSec())
+		ap.contextProvider.GetMyPartSec(),
+		ap.dkgPeerCommunicator)
 	if err != nil {
 		return err
 	}
@@ -163,7 +161,7 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 			ap.contextProvider.GetNbParticipants(),
 			ap.contextProvider.GetMyBftId(),
 			ap.contextProvider.GetBlockTime(),
-			ap.peerCommunicator,
+			ap.bftPeerCommunicator,
 			ap.proposalGenerator,
 			ap.proposalValidator,
 			ap.decisionMaker,
@@ -215,5 +213,5 @@ func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
 		logrus.WithError(err).Warn("cannot adapt ogMessage to bftMessage")
 		return
 	}
-	msgTerm.BftOperator.GetPeerCommunicator().HandleIncomingMessage(bftMessage)
+	msgTerm.BftOperator.GetBftPeerCommunicator().HandleIncomingMessage(bftMessage)
 }

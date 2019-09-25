@@ -130,7 +130,7 @@ func (p *DefaultBftPartner) Reset(nbParticipants int, id int) {
 //		return
 //	}
 //	//p.BftStatus.States = make(map[p2p_message.HeightRound]*HeightRoundState)
-//	p.StartNewEra(p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
+//	p.StartNewEra(p.BftStatus.Curren R.Height, p.BftStatus.CurrentHR.Round)
 //	return
 //}
 
@@ -732,7 +732,7 @@ func (p *DefaultBftPartner) initHeightRound(hr HeightRound) (*HeightRoundState, 
 	return p.BftStatus.States[hr], len(p.BftStatus.States)
 }
 
-func (p *DefaultBftPartner) GetPeerCommunicator() BftPeerCommunicator {
+func (p *DefaultBftPartner) GetBftPeerCommunicator() BftPeerCommunicator {
 	return p.PeerCommunicator
 }
 

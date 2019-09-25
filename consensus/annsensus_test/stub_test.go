@@ -5,8 +5,10 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -186,4 +188,52 @@ func (d dummyTermProvider) Peers(termId uint32) []bft.PeerInfo {
 
 func (d dummyTermProvider) GetTermChangeEventChannel() chan *term.Term {
 	panic("implement me")
+}
+
+type dummyDkgPeerCommunicator struct {
+	Myid    int
+	Peers   []chan dkg.DkgMessage
+	pipeIn  chan dkg.DkgMessage
+	pipeOut chan dkg.DkgMessage
+}
+
+func NewDummyDkgPeerCommunicator(myid int, incoming chan dkg.DkgMessage, peers []chan dkg.DkgMessage) *dummyDkgPeerCommunicator {
+	d := &dummyDkgPeerCommunicator{
+		Peers:   peers,
+		Myid:    myid,
+		pipeIn:  incoming,
+		pipeOut: make(chan dkg.DkgMessage, 10000), // must be big enough to avoid blocking issue
+	}
+	return d
+}
+
+func (d *dummyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
+	for _, peer := range peers {
+		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting message")
+		go func(peer dkg.PeerInfo) {
+			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+			//d.Peers[peer.Id] <- msg
+		}(peer)
+	}
+}
+
+func (d *dummyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo) {
+	go func(peerId int) {
+		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+		//d.Peers[peerId] <- msg
+	}(peer.Id)
+}
+
+func (d *dummyDkgPeerCommunicator) GetPipeOut() chan dkg.DkgMessage {
+	return d.pipeOut
+}
+
+func (d *dummyDkgPeerCommunicator) Run() {
+	go func() {
+		for {
+			v := <-d.pipeIn
+			ffchan.NewTimeoutSenderShort(d.pipeOut, v, "pc")
+			//d.pipeOut <- v
+		}
+	}()
 }

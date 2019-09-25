@@ -74,15 +74,20 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare bft channels
-	var peerChans []chan bft.BftMessage
+	var peerChansBft []chan bft.BftMessage
+	var peerChansDkg []chan dkg.DkgMessage
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan bft.BftMessage, 5))
+		peerChansBft = append(peerChansBft, make(chan bft.BftMessage, 5))
+		peerChansDkg = append(peerChansDkg, make(chan dkg.DkgMessage, 5))
 	}
+
 
 	var aps []*annsensus.AnnsensusProcessor
 
 	for i := 0; i < nodes; i++ {
-		commuicator := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
+		commuicatorBft := NewDummyBftPeerCommunicator(i, peerChansBft[i], peerChansBft)
+		commuicatorDkg := NewDummyDkgPeerCommunicator(i, peerChansDkg[i], peerChansDkg)
+
 		ann := annsensus.NewAnnsensusProcessor(config,
 			&dummyAccountProvider{
 				MyAccount: accounts[i],
@@ -98,8 +103,8 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 				AllPartPubs:    nil,
 				MyPartSec:      dkg.PartSec{},
 			},
-			commuicator,
-			commuicator,
+			commuicatorBft,
+			commuicatorDkg,
 			&dummyProposalGenerator{},
 			&dummyProposalValidator{},
 			&dummyDecisionMaker{},

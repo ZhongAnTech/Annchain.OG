@@ -20,6 +20,16 @@ type TermComposer struct {
 	quitWg      sync.WaitGroup
 }
 
+func NewTermComposer(term *term.Term, bftOperator bft.BftOperator, dkgOperator dkg.DkgOperator) *TermComposer {
+	return &TermComposer{
+		Term:        term,
+		BftOperator: bftOperator,
+		DkgOperator: dkgOperator,
+		quit:        make(chan bool),
+		quitWg:      sync.WaitGroup{},
+	}
+}
+
 func (tc *TermComposer) Start() {
 	// start all operators for this term.
 	tc.quitWg.Add(1)
@@ -76,6 +86,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	signatureProvider account.SignatureProvider,
 	contextProvider ConsensusContextProvider,
 	peerCommunicator bft.BftPeerCommunicator,
+	dkgPeerCommunicator dkg.DkgPeerCommunicator,
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
@@ -101,6 +112,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 		signatureProvider:   signatureProvider,
 		contextProvider:     contextProvider,
 		bftPeerCommunicator: peerCommunicator,
+		dkgPeerCommunicator: dkgPeerCommunicator,
 		proposalGenerator:   proposalGenerator,
 		proposalValidator:   proposalValidator,
 		decisionMaker:       decisionMaker,
@@ -131,17 +143,20 @@ loop:
 			ap.HandleConsensusMessage(msg)
 		}
 	}
+}
 
+// buildTerm collects information from the info provider, to start a new term
+func (ap *AnnsensusProcessor) buildTerm(u uint32) *term.Term {
+	return nil
 }
 
 func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 	// build a new Term
 	// may need lots of information to build this term
-	term := ap.buildTerm(termId)
+	newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
-
 	dkgPartner, err := dkg.NewDkgPartner(
 		ap.contextProvider.GetSuite(),
 		termId,
@@ -154,20 +169,16 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 		return err
 	}
 
-	tc := &TermComposer{
-		Term: term,
-		// TODO: check the parameters
-		BftOperator: bft.NewDefaultBFTPartner(
-			ap.contextProvider.GetNbParticipants(),
-			ap.contextProvider.GetMyBftId(),
-			ap.contextProvider.GetBlockTime(),
-			ap.bftPeerCommunicator,
-			ap.proposalGenerator,
-			ap.proposalValidator,
-			ap.decisionMaker,
-		),
-		DkgOperator: dkgPartner,
-	}
+	bftPartner := bft.NewDefaultBFTPartner(
+		ap.contextProvider.GetNbParticipants(),
+		ap.contextProvider.GetMyBftId(),
+		ap.contextProvider.GetBlockTime(),
+		ap.bftPeerCommunicator,
+		ap.proposalGenerator,
+		ap.proposalValidator,
+		ap.decisionMaker,
+	)
+	tc := NewTermComposer(newTerm, bftPartner, dkgPartner)
 	ap.termMap[termId] = tc
 	return nil
 }
@@ -192,10 +203,6 @@ func (ap *AnnsensusProcessor) HandleConsensusMessage(msg *message.OGMessage) {
 	}
 }
 
-// buildTerm collects information from the info provider, to start a new term
-func (ap *AnnsensusProcessor) buildTerm(u uint32) *term.Term {
-	return nil
-}
 
 // according to the height, get term, and send to the bft operator in that term.
 func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {

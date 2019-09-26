@@ -13,11 +13,13 @@ import (
 )
 
 type TermComposer struct {
-	Term        *term.Term
-	BftOperator bft.BftOperator
-	DkgOperator dkg.DkgOperator
-	quit        chan bool
-	quitWg      sync.WaitGroup
+	Term                   *term.Term
+	BftOperator            bft.BftOperator
+	DkgOperator            dkg.DkgOperator
+	bftCommunicatorAdapter BftCommunicatorAdapter
+	dkgCommunicatorAdapter DkgCommunicatorAdapter
+	quit                   chan bool
+	quitWg                 sync.WaitGroup
 }
 
 func NewTermComposer(term *term.Term, bftOperator bft.BftOperator, dkgOperator dkg.DkgOperator) *TermComposer {
@@ -59,14 +61,14 @@ type AnnsensusProcessor struct {
 	myAccountProvider   account.AccountProvider
 	signatureProvider   account.SignatureProvider
 	contextProvider     ConsensusContextProvider
-	bftPeerCommunicator bft.BftPeerCommunicator
-	dkgPeerCommunicator dkg.DkgPeerCommunicator
+
 	proposalGenerator   bft.ProposalGenerator
 	proposalValidator   bft.ProposalValidator
 	decisionMaker       bft.DecisionMaker
 	termProvider        TermProvider
 
 	// in case of disordered message, cache the terms and the correspondent processors.
+	// TODO: wipe it constantly
 	termMap map[uint32]*TermComposer
 
 	quit   chan bool
@@ -188,20 +190,6 @@ func (ap *AnnsensusProcessor) Stop() {
 	logrus.Debug("AnnsensusProcessor stopped")
 }
 
-// HandleConsensusMessage is a sub-router for routing consensus message to either bft,dkg or term.
-// As part of Annsensus, bft,dkg and term may not be regarded as a separate component of OG.
-// Annsensus itself is also a plugin of OG supporting consensus messages.
-// Do not block the pipe for any message processing. Router should not be blocked. Use channel.
-func (ap *AnnsensusProcessor) HandleConsensusMessage(msg *message.OGMessage) {
-	switch msg.MessageType {
-	case message.OGMessageType(bft.BftMessageTypeProposal):
-		fallthrough
-	case message.OGMessageType(bft.BftMessageTypePreVote):
-		fallthrough
-	case message.OGMessageType(bft.BftMessageTypePreCommit):
-		ap.handleBftMessage(msg)
-	}
-}
 
 
 // according to the height, get term, and send to the bft operator in that term.
@@ -220,5 +208,7 @@ func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
 		logrus.WithError(err).Warn("cannot adapt ogMessage to bftMessage")
 		return
 	}
-	msgTerm.BftOperator.GetBftPeerCommunicator().HandleIncomingMessage(bftMessage)
+	// how to adapt the message?
+	msgTerm.BftOperator.GetBftPeerCommunicator()
+	msgTerm.BftOperator.GetBftPeerCommunicator()(bftMessage)
 }

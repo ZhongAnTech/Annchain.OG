@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
@@ -43,4 +44,16 @@ type SequencerProducer interface {
 	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
 		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, err error, genAgain bool)
 	ValidateSequencer(seq tx_types.Sequencer) error
+}
+
+// BftCommunicatorAdapter converts messages.
+// During the converting process there may be some validation and signing operations.
+type BftCommunicatorAdapter interface {
+	AdaptOgMessage(incomingMsg *message.OGMessage) (bft.BftMessage, error)
+	AdaptBftMessage(outgoingMsg *bft.BftMessage) (*message.OGMessage, error)
+}
+
+type DkgCommunicatorAdapter interface {
+	AdaptOgMessage(incomingMsg *message.OGMessage) (dkg.DkgMessage, error)
+	AdaptDkgMessage(outgoingMsg *dkg.DkgMessage) (*message.OGMessage, error)
 }

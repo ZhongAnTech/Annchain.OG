@@ -138,6 +138,7 @@ func (d *dummyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
 }
 
 func (d *dummyBftPeerCommunicator) Run() {
+	logrus.Info("dummyBftPeerCommunicator running")
 	go func() {
 		for {
 			v := <-d.pipeIn
@@ -229,6 +230,7 @@ func (d *dummyDkgPeerCommunicator) GetPipeOut() chan dkg.DkgMessage {
 }
 
 func (d *dummyDkgPeerCommunicator) Run() {
+	logrus.Info("dummyDkgPeerCommunicator running")
 	go func() {
 		for {
 			v := <-d.pipeIn

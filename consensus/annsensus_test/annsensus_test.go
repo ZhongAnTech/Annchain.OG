@@ -81,7 +81,6 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		peerChansDkg = append(peerChansDkg, make(chan dkg.DkgMessage, 5))
 	}
 
-
 	var aps []*annsensus.AnnsensusProcessor
 
 	for i := 0; i < nodes; i++ {
@@ -111,6 +110,9 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 			&dummyTermProvider{},
 		)
 		aps = append(aps, ann)
+		// start two communicators
+		go commuicatorBft.Run()
+		go commuicatorDkg.Run()
 	}
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()

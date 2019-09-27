@@ -12,32 +12,27 @@ import (
 // AnnsensusCommunicator routes ogmessages and judge which adapter to use and to receive.
 // Do IO work only.
 type AnnsensusCommunicator struct {
-	pipeIn                      chan *message.OGMessage
-	p2pSender                   communicator.P2PSender // upstream message sender
-	bftMessageAdapter           BftMessageAdapter
-	dkgMessageAdapter           DkgMessageAdapter
-	bftPeerCommunicatorIncoming bft.BftPeerCommunicatorIncoming
-	dkgPeerCommunicatorIncoming dkg.DkgPeerCommunicatorIncoming
-
-	quit   chan bool
-	quitWg sync.WaitGroup
+	pipeIn            chan *message.OGMessage
+	p2pSender         communicator.P2PSender // upstream message sender
+	bftMessageAdapter BftMessageAdapter
+	dkgMessageAdapter DkgMessageAdapter
+	bftTermHolder     TermHolder
+	quit              chan bool
+	quitWg            sync.WaitGroup
 }
 
 func NewAnnsensusCommunicator(p2PSender communicator.P2PSender,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
-//bftPeerCommunicatorIncoming bft.BftPeerCommunicatorIncoming,
-//dkgPeerCommunicatorIncoming dkg.DkgPeerCommunicatorIncoming,
-) *AnnsensusCommunicator {
+	bftTermHolder TermHolder) *AnnsensusCommunicator {
 	return &AnnsensusCommunicator{
 		pipeIn:            make(chan *message.OGMessage),
 		p2pSender:         p2PSender,
 		bftMessageAdapter: bftMessageAdapter,
 		dkgMessageAdapter: dkgMessageAdapter,
-		//bftPeerCommunicatorIncoming: bftPeerCommunicatorIncoming,
-		//dkgPeerCommunicatorIncoming: dkgPeerCommunicatorIncoming,
-		quit:                        nil,
-		quitWg:                      sync.WaitGroup{},
+		bftTermHolder:     bftTermHolder,
+		quit:              nil,
+		quitWg:            sync.WaitGroup{},
 	}
 }
 
@@ -70,7 +65,12 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
 		}
 		// send to bft
-		ap.bftPeerCommunicatorIncoming.GetPipeIn() <- bftMessage
+		msgTerm, err := ap.bftTermHolder.GetBftTerm(msg)
+		if err != nil {
+			logrus.WithError(err).Warn("failed to find appropriate term for msg")
+			return
+		}
+		msgTerm.BftOperator.GetBftPeerCommunicatorIncoming().GetPipeIn() <- bftMessage
 		break
 	case message.OGMessageType(dkg.DkgMessageTypeDeal):
 		fallthrough
@@ -84,6 +84,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
 		}
 		// send to dkg
+
 		ap.dkgPeerCommunicatorIncoming.GetPipeIn() <- dkgMessage
 		break
 	}
@@ -116,4 +117,9 @@ func (ap *AnnsensusCommunicator) BroadcastDkg(msg *dkg.DkgMessage, peers []dkg.P
 
 func (ap *AnnsensusCommunicator) UnicastDkg(msg *dkg.DkgMessage, peer dkg.PeerInfo) {
 	panic("implement me")
+}
+
+func (ap *AnnsensusCommunicator) Stop() {
+	ap.quit <- true
+	ap.quitWg.Wait()
 }

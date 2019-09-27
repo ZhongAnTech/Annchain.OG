@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
+	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
@@ -24,9 +25,12 @@ type TermProvider interface {
 	GetTermChangeEventChannel() chan *term.Term
 }
 
+type TermHolder interface {
+	GetBftTerm(ogMessage *message.OGMessage) (msgTerm *TermComposer, err error)
+}
+
 type ConsensusContextProvider interface {
 	GetNbParticipants() int
-	GetNbParts() int
 	GetThreshold() int
 	GetMyBftId() int
 	GetBlockTime() time.Duration

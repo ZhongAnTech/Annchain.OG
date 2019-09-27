@@ -8,20 +8,19 @@ import (
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/communicator"
-	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
 
 type TermComposer struct {
-	Term                   *term.Term
-	BftOperator            bft.BftOperator
-	DkgOperator            dkg.DkgOperator
-	quit                   chan bool
-	quitWg                 sync.WaitGroup
+	Term        *term.Term
+	BftOperator bft.BftPartner
+	DkgOperator dkg.DkgPartner
+	quit        chan bool
+	quitWg      sync.WaitGroup
 }
 
-func NewTermComposer(term *term.Term, bftOperator bft.BftOperator, dkgOperator dkg.DkgOperator) *TermComposer {
+func NewTermComposer(term *term.Term, bftOperator bft.BftPartner, dkgOperator dkg.DkgPartner) *TermComposer {
 	return &TermComposer{
 		Term:        term,
 		BftOperator: bftOperator,
@@ -52,7 +51,6 @@ func (tc *TermComposer) Stop() {
 }
 
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
-// It receives messages from
 type AnnsensusProcessor struct {
 	config            AnnsensusProcessorConfig
 	myAccountProvider account.AccountProvider
@@ -61,18 +59,12 @@ type AnnsensusProcessor struct {
 	proposalGenerator bft.ProposalGenerator
 	proposalValidator bft.ProposalValidator
 	decisionMaker     bft.DecisionMaker
-	termProvider      TermProvider
 
 	// message handlers
-	bftAdapter BftMessageAdapter
-	dkgAdapter DkgMessageAdapter
-
-	// in case of disordered message, cache the terms and the correspondent processors.
-	// TODO: wipe it constantly
-	termMap map[uint32]*TermComposer
-
-	quit   chan bool
-	quitWg sync.WaitGroup
+	bftAdapter            BftMessageAdapter
+	dkgAdapter            DkgMessageAdapter
+	annsensusCommunicator *AnnsensusCommunicator
+	termHolder            TermHolder
 }
 
 type AnnsensusProcessorConfig struct {
@@ -100,7 +92,7 @@ func checkConfig(config AnnsensusProcessorConfig) {
 	}
 }
 
-func NewAnnsensusProcessor1(config AnnsensusProcessorConfig,
+func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	myAccountProvider account.AccountProvider,
 	signatureProvider account.SignatureProvider,
 	termProvider TermProvider,
@@ -108,7 +100,7 @@ func NewAnnsensusProcessor1(config AnnsensusProcessorConfig,
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
-) {
+) *AnnsensusProcessor {
 	// Prepare common facilities that will be reused during each term
 	// Prepare adapters
 	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
@@ -122,19 +114,19 @@ func NewAnnsensusProcessor1(config AnnsensusProcessorConfig,
 	annsensusCommunicator.bftPeerCommunicatorIncoming = bftCommunicator
 	annsensusCommunicator.dkgPeerCommunicatorIncoming = dkgCommunicator
 
+	termHolder := NewBftTermHolder(termProvider)
+
 	// Prepare process itself.
 	ap := &AnnsensusProcessor{
-		config:            AnnsensusProcessorConfig{},
-		myAccountProvider: myAccountProvider,
-		proposalGenerator: proposalGenerator,
-		proposalValidator: proposalValidator,
-		decisionMaker:     decisionMaker,
-		termProvider:      termProvider,
-		bftAdapter:        bftAdapter,
-		dkgAdapter:        dkgAdapter,
-		termMap:           make(map[uint32]*TermComposer),
-		quit:              make(chan bool),
-		quitWg:            sync.WaitGroup{},
+		config:                config,
+		myAccountProvider:     myAccountProvider,
+		proposalGenerator:     proposalGenerator,
+		proposalValidator:     proposalValidator,
+		decisionMaker:         decisionMaker,
+		bftAdapter:            bftAdapter,
+		dkgAdapter:            dkgAdapter,
+		annsensusCommunicator: annsensusCommunicator,
+		termHolder:            termHolder,
 	}
 	return ap
 }
@@ -144,52 +136,44 @@ func (ap *AnnsensusProcessor) Start() {
 		log.Warn("annsensus disabled")
 		return
 	}
-	ap.quitWg.Add(1)
-
+	go ap.annsensusCommunicator.Run()
 	log.Info("AnnSensus Started")
-
-loop:
-	for {
-		select {
-		case <-ap.quit:
-			ap.quitWg.Done()
-			break loop
-		case msg := <-ap.pipeIn:
-			ap.HandleConsensusMessage(msg)
-		}
-	}
 }
 
 // buildTerm collects information from the info provider, to start a new term
-func (ap *AnnsensusProcessor) buildTerm(u uint32) *term.Term {
-	return nil
+func (ap *AnnsensusProcessor) buildTerm(termId uint32) *term.Term {
+	term := term.NewTerm(termId)
 }
 
-func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
+func (ap *AnnsensusProcessor) StartNewTerm(termId uint32, context ConsensusContextProvider) error {
 	// build a new Term
 	// may need lots of information to build this term
 	newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
-	dkgPartner, err := dkg.NewDkgPartner(
-		ap.contextProvider.GetSuite(),
+	dkgComm := NewProxyDkgPeerCommunicator(ap.annsensusCommunicator)
+	dkgPartner, err := dkg.NewDefaultDkgPartner(
+		context.GetSuite(),
 		termId,
-		ap.contextProvider.GetNbParts(),
-		ap.contextProvider.GetThreshold(),
-		ap.contextProvider.GetAllPartPubs(),
-		ap.contextProvider.GetMyPartSec(),
-		ap.dkgPeerCommunicator,
-		ap.dkgPeerCommunicator)
+		context.GetNbParticipants(),
+		context.GetThreshold(),
+		context.GetAllPartPubs(),
+		context.GetMyPartSec(),
+		dkgComm,
+		dkgComm)
 	if err != nil {
 		return err
 	}
 
+	bftComm := NewProxyBftPeerCommunicator(ap.annsensusCommunicator)
+
 	bftPartner := bft.NewDefaultBFTPartner(
-		ap.contextProvider.GetNbParticipants(),
-		ap.contextProvider.GetMyBftId(),
-		ap.contextProvider.GetBlockTime(),
-		ap.bftPeerCommunicator,
+		context.GetNbParticipants(),
+		context.GetMyBftId(),
+		context.GetBlockTime(),
+		bftComm,
+		bftComm,
 		ap.proposalGenerator,
 		ap.proposalValidator,
 		ap.decisionMaker,
@@ -200,26 +184,6 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 }
 
 func (ap *AnnsensusProcessor) Stop() {
-	ap.quitWg.Wait()
+	ap.annsensusCommunicator.Stop()
 	logrus.Debug("AnnsensusProcessor stopped")
-}
-
-// according to the height, get term, and send to the bft operator in that term.
-func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
-	height := ogMessage.Message.(*bft.BftBasicInfo).HeightRound.Height
-	// judge term
-	termId := ap.termProvider.HeightTerm(height)
-	msgTerm, ok := ap.termMap[termId]
-	if !ok {
-		logrus.Warn("term not found while handling bft message")
-		return
-	}
-	// message adapter
-	bftMessage, err := ap.bftAdapter.AdaptOgMessage(ogMessage.Message)
-	if err != nil {
-		logrus.WithError(err).Warn("cannot adapt ogMessage to bftMessage")
-		return
-	}
-
-	msgTerm.BftOperator.GetBftPeerCommunicatorIncoming().GetPipeOut() <- bftMessage
 }

@@ -43,10 +43,6 @@ func (d dummyContextProvider) GetNbParticipants() int {
 	return d.NbParticipants
 }
 
-func (d dummyContextProvider) GetNbParts() int {
-	return d.NbParts
-}
-
 func (d dummyContextProvider) GetThreshold() int {
 	return d.Threshold
 }

@@ -19,15 +19,15 @@ type DecisionMaker interface {
 }
 
 type BftPeerCommunicatorOutgoing interface {
-	Broadcast(msg BftMessage, peers []PeerInfo)
-	Unicast(msg BftMessage, peer PeerInfo)
+	Broadcast(msg *BftMessage, peers []PeerInfo)
+	Unicast(msg *BftMessage, peer PeerInfo)
 }
 type BftPeerCommunicatorIncoming interface {
 	GetPipeIn() chan BftMessage
 	GetPipeOut() chan BftMessage
 }
 
-type BftOperator interface {
+type BftPartner interface {
 	StartNewEra(height uint64, round int)
 	Stop()
 	WaiterLoop()

@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-// DkgPartner is the parter in a DKG group built to discuss a pub/privkey
+// DefaultDkgPartner is the parter in a DKG group built to discuss a pub/privkey
 // It will receive DKG messages and update the status.
 // It is the handler for maintaining the DkgContext.
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
-type DkgPartner struct {
+type DefaultDkgPartner struct {
 	context                  *DkgContext
 	peerCommunicatorIncoming DkgPeerCommunicatorIncoming
 	peerCommunicatorOutgoing DkgPeerCommunicatorOutgoing
@@ -35,19 +35,19 @@ type DkgPartner struct {
 	quitWg sync.WaitGroup
 }
 
-func (p *DkgPartner) Stop() {
+func (p *DefaultDkgPartner) Stop() {
 	close(p.quit)
 	p.quitWg.Wait()
 }
 
-// NewDkgPartner inits a dkg group. All public keys should be already generated
+// NewDefaultDkgPartner inits a dkg group. All public keys should be already generated
 // The public keys are shared before the Dkg group can be formed.
 // This may be done by publishing partPub to the blockchain
 // termId is still needed to identify different Dkg groups
 // allPeers needs to be sorted and globally order identical
-func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec,
+func NewDefaultDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec,
 	dkgPeerCommunicatorIncoming DkgPeerCommunicatorIncoming,
-	dkgPeerCommunicatorOutgoing DkgPeerCommunicatorOutgoing) (*DkgPartner, error) {
+	dkgPeerCommunicatorOutgoing DkgPeerCommunicatorOutgoing) (*DefaultDkgPartner, error) {
 	// new dkg context
 	c := NewDkgContext(suite, termId)
 	c.NbParticipants = numParts
@@ -70,7 +70,7 @@ func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, a
 	c.MyIndex = uint32(myIndex)
 
 	// setup partner
-	d := &DkgPartner{
+	d := &DefaultDkgPartner{
 		context:                  c,
 		peerCommunicatorIncoming: dkgPeerCommunicatorIncoming,
 		peerCommunicatorOutgoing: dkgPeerCommunicatorOutgoing,
@@ -108,13 +108,13 @@ func GenPartnerPair(suite *bn256.Suite) (kyber.Scalar, kyber.Point) {
 	return sc, suite.Point().Mul(sc, nil)
 }
 
-func (p *DkgPartner) Start() {
+func (p *DefaultDkgPartner) Start() {
 	// start to gossipLoop and share the deals
 	p.quitWg.Add(1)
 	goroutine.New(p.gossipLoop)
 }
 
-func (p *DkgPartner) gossipLoop() {
+func (p *DefaultDkgPartner) gossipLoop() {
 	select {
 	case <-p.gossipStartCh:
 		logrus.Debug("dkg gossip started")
@@ -145,7 +145,7 @@ func (p *DkgPartner) gossipLoop() {
 }
 
 // announceDeals sends deals to all other partners to build up a dkg group
-func (p *DkgPartner) announceDeals() {
+func (p *DefaultDkgPartner) announceDeals() {
 	// get all deals that needs to be sent to other partners
 	deals, err := p.context.Dkger.Deals()
 	if err != nil {
@@ -166,7 +166,7 @@ func (p *DkgPartner) announceDeals() {
 }
 
 // sendDealToPartner unicast a deal message to some specific partner
-func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
+func (p *DefaultDkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 	data, err := deal.MarshalMsg(nil)
 	if err != nil {
 		logrus.WithError(err).Fatal("cannot marshal dkg deal")
@@ -185,7 +185,7 @@ func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 	// after this, you are expecting a response from the target peers
 }
 
-func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
+func (p *DefaultDkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 	data, err := response.MarshalMsg(nil)
 	if err != nil {
 		// TODO: change it to warn maybe
@@ -203,7 +203,7 @@ func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 	p.peerCommunicatorOutgoing.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
-func (p *DkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
+func (p *DefaultDkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
 	m := DkgMessage{
 		Type:    messageType,
 		Payload: signable,
@@ -211,7 +211,7 @@ func (p *DkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) 
 	return m
 }
 
-func (p *DkgPartner) handleMessage(message DkgMessage) {
+func (p *DefaultDkgPartner) handleMessage(message DkgMessage) {
 	switch message.Type {
 	case DkgMessageTypeDeal:
 		switch message.Payload.(type) {
@@ -234,7 +234,7 @@ func (p *DkgPartner) handleMessage(message DkgMessage) {
 	}
 }
 
-func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
+func (p *DefaultDkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 	deal, err := msg.GetDeal()
 	if err != nil {
 		logrus.Warn("failed to unmarshal dkg deal message")
@@ -307,7 +307,7 @@ func (p *DkgPartner) handleDealMessage(msg *MessageDkgDeal) {
 	}
 }
 
-func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
+func (p *DefaultDkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	resp, err := msg.GetResponse()
 	if err != nil {
 		logrus.Warn("failed to unmarshal dkg response message")
@@ -366,7 +366,7 @@ func (p *DkgPartner) handleDealResponseMessage(msg *MessageDkgDealResponse) {
 	}
 }
 
-func (p *DkgPartner) handleResponse(resp *dkger.Response) {
+func (p *DefaultDkgPartner) handleResponse(resp *dkger.Response) {
 	//p.dumpDealResponseMessage(resp, "realin")
 	justification, err := p.context.Dkger.ProcessResponse(resp)
 	if err != nil {
@@ -394,16 +394,16 @@ func (p *DkgPartner) handleResponse(resp *dkger.Response) {
 	}
 }
 
-func (p *DkgPartner) verifyDealSender(deal *MessageDkgDeal, deal2 *dkger.Deal) error {
+func (p *DefaultDkgPartner) verifyDealSender(deal *MessageDkgDeal, deal2 *dkger.Deal) error {
 	return nil
 }
 
-func (p *DkgPartner) verifyResponseSender(response *MessageDkgDealResponse, deal *dkger.Response) error {
+func (p *DefaultDkgPartner) verifyResponseSender(response *MessageDkgDealResponse, deal *dkger.Response) error {
 	return nil
 }
 
 // notifyListeners notifies listeners who has been registered for dkg generated events
-func (p *DkgPartner) notifyListeners() {
+func (p *DefaultDkgPartner) notifyListeners() {
 	for _, listener := range p.dkgGeneratedListeners {
 		ffchan.NewTimeoutSenderShort(listener.GetDkgGeneratedEventChannel(), true, "listener")
 		//listener.GetDkgGeneratedEventChannel() <- true
@@ -411,20 +411,20 @@ func (p *DkgPartner) notifyListeners() {
 	p.notified = true
 }
 
-func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
+func (p *DefaultDkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
 	p.dkgGeneratedListeners = append(p.dkgGeneratedListeners, l)
 }
 
-//func (p *DkgPartner) GetPeerCommunicatorOutgoing() DkgPeerCommunicatorOutgoing {
+//func (p *DefaultDkgPartner) GetPeerCommunicatorOutgoing() DkgPeerCommunicatorOutgoing {
 //	return p.peerCommunicatorOutgoing
 //}
 //
-//func (p *DkgPartner) GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
+//func (p *DefaultDkgPartner) GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
 //	return p.peerCommunicatorIncoming
 //}
 
 //
-//func (p *DkgPartner) checkWaitingForWhat() {
+//func (p *DefaultDkgPartner) checkWaitingForWhat() {
 //
 //	//if p.context.MyIndex != 0 {notified
 //	//	return
@@ -471,7 +471,7 @@ func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
 //	logrus.WithField("dealers", dealers).WithField("ok", len(dealers) == total).WithField("IM", p.context.MyIndex).Info("all deals")
 //}
 //
-//func (p *DkgPartner) dumpDeal(deal *dkger.Deal) {
+//func (p *DefaultDkgPartner) dumpDeal(deal *dkger.Deal) {
 //	return
 //	debugPath := "D:/tmp/debug"
 //	file, err := os.OpenFile(
@@ -487,7 +487,7 @@ func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
 //	}
 //}
 //
-//func (p *DkgPartner) dumpDealResponseMessage(response *dkger.Response, msg string) {
+//func (p *DefaultDkgPartner) dumpDealResponseMessage(response *dkger.Response, msg string) {
 //	p.total += 1
 //	if p.context.MyIndex == 0  && p.total % 20 == 0{
 //		fmt.Println(p.total)
@@ -507,7 +507,7 @@ func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
 //	}
 //}
 //
-//func (p *DkgPartner) writeMessage(msg string) {
+//func (p *DefaultDkgPartner) writeMessage(msg string) {
 //	return
 //	debugPath := "D:/tmp/debug"
 //	file, err := os.OpenFile(

@@ -18,10 +18,11 @@ import (
 // It is the handler for maintaining the DkgContext.
 // Campaign or term change is not part of DKGPartner. Do their job in their own module.
 type DkgPartner struct {
-	context            *DkgContext
-	peerCommunicator   DkgPeerCommunicator
-	dealReceivingCache DisorderedCache // map[deal_sender_index]Deal
-	gossipStartCh      chan bool
+	context                  *DkgContext
+	peerCommunicatorIncoming DkgPeerCommunicatorIncoming
+	peerCommunicatorOutgoing DkgPeerCommunicatorOutgoing
+	dealReceivingCache       DisorderedCache // map[deal_sender_index]Deal
+	gossipStartCh            chan bool
 
 	otherPeers            []PeerInfo
 	notified              bool
@@ -45,7 +46,8 @@ func (p *DkgPartner) Stop() {
 // termId is still needed to identify different Dkg groups
 // allPeers needs to be sorted and globally order identical
 func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, allPeers []PartPub, me PartSec,
-	dkgPeerCommunicator DkgPeerCommunicator) (*DkgPartner, error) {
+	dkgPeerCommunicatorIncoming DkgPeerCommunicatorIncoming,
+	dkgPeerCommunicatorOutgoing DkgPeerCommunicatorOutgoing) (*DkgPartner, error) {
 	// new dkg context
 	c := NewDkgContext(suite, termId)
 	c.NbParticipants = numParts
@@ -69,18 +71,19 @@ func NewDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold int, a
 
 	// setup partner
 	d := &DkgPartner{
-		context:               c,
-		peerCommunicator:      dkgPeerCommunicator,
-		dealReceivingCache:    make(DisorderedCache),
-		gossipStartCh:         make(chan bool),
-		otherPeers:            []PeerInfo{},
-		notified:              false,
-		DealResponseCache:     make(map[int]*dkger.Response),
-		ResponseCache:         make(map[string]bool),
-		total:                 0,
-		dkgGeneratedListeners: []DkgGeneratedListener{},
-		quit:                  make(chan bool),
-		quitWg:                sync.WaitGroup{},
+		context:                  c,
+		peerCommunicatorIncoming: dkgPeerCommunicatorIncoming,
+		peerCommunicatorOutgoing: dkgPeerCommunicatorOutgoing,
+		dealReceivingCache:       make(DisorderedCache),
+		gossipStartCh:            make(chan bool),
+		otherPeers:               []PeerInfo{},
+		notified:                 false,
+		DealResponseCache:        make(map[int]*dkger.Response),
+		ResponseCache:            make(map[string]bool),
+		total:                    0,
+		dkgGeneratedListeners:    []DkgGeneratedListener{},
+		quit:                     make(chan bool),
+		quitWg:                   sync.WaitGroup{},
 	}
 
 	// init all other peers so that I can do broadcast
@@ -120,7 +123,7 @@ func (p *DkgPartner) gossipLoop() {
 		logrus.Debug("dkg gossip quit")
 		return
 	}
-	pipeOutChannel := p.peerCommunicator.GetPipeOut()
+	pipeOutChannel := p.peerCommunicatorIncoming.GetPipeOut()
 	// send the deals to all other partners
 	go p.announceDeals()
 	for {
@@ -177,7 +180,7 @@ func (p *DkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 	}
 	logrus.WithField("from", deal.Index).WithField("to", id).
 		Trace("unicasting deal message")
-	p.peerCommunicator.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
+	p.peerCommunicatorOutgoing.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
 		p.context.PartPubs[id].Peer)
 	// after this, you are expecting a response from the target peers
 }
@@ -197,7 +200,7 @@ func (p *DkgPartner) sendResponseToAllRestPartners(response *dkger.Response) {
 		Data: data,
 	}
 	logrus.WithField("me", p.context.MyIndex).WithField("from", response.Response.Index).Trace("broadcasting response message")
-	p.peerCommunicator.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
+	p.peerCommunicatorOutgoing.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
 func (p *DkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
@@ -412,9 +415,13 @@ func (p *DkgPartner) RegisterDkgGeneratedListener(l DkgGeneratedListener) {
 	p.dkgGeneratedListeners = append(p.dkgGeneratedListeners, l)
 }
 
-func (p *DkgPartner) GetPeerCommunicator() DkgPeerCommunicator {
-	return p.peerCommunicator
-}
+//func (p *DkgPartner) GetPeerCommunicatorOutgoing() DkgPeerCommunicatorOutgoing {
+//	return p.peerCommunicatorOutgoing
+//}
+//
+//func (p *DkgPartner) GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
+//	return p.peerCommunicatorIncoming
+//}
 
 //
 //func (p *DkgPartner) checkWaitingForWhat() {

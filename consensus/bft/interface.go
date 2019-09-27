@@ -18,11 +18,12 @@ type DecisionMaker interface {
 	MakeDecision(proposal Proposal, state *HeightRoundState) (ConsensusDecision, error)
 }
 
-type BftPeerCommunicator interface {
+type BftPeerCommunicatorOutgoing interface {
 	Broadcast(msg BftMessage, peers []PeerInfo)
 	Unicast(msg BftMessage, peer PeerInfo)
+}
+type BftPeerCommunicatorIncoming interface {
 	GetPipeOut() chan BftMessage
-	Run()
 }
 
 type BftOperator interface {
@@ -30,7 +31,7 @@ type BftOperator interface {
 	Stop()
 	WaiterLoop()
 	EventLoop()
-	GetBftPeerCommunicator() BftPeerCommunicator
+	GetBftPeerCommunicatorIncoming() BftPeerCommunicatorIncoming
 	RegisterConsensusReachedListener(listener ConsensusReachedListener)
 }
 

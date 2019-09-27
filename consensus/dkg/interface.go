@@ -1,10 +1,12 @@
 package dkg
 
-type DkgPeerCommunicator interface {
+type DkgPeerCommunicatorOutgoing interface {
 	Broadcast(msg DkgMessage, peers []PeerInfo)
 	Unicast(msg DkgMessage, peer PeerInfo)
+}
+
+type DkgPeerCommunicatorIncoming interface {
 	GetPipeOut() chan DkgMessage
-	Run()
 }
 
 type DkgGeneratedListener interface {

@@ -16,8 +16,8 @@ type TermComposer struct {
 	Term                   *term.Term
 	BftOperator            bft.BftOperator
 	DkgOperator            dkg.DkgOperator
-	bftCommunicatorAdapter BftCommunicatorAdapter
-	dkgCommunicatorAdapter DkgCommunicatorAdapter
+	bftCommunicatorAdapter BftMessageAdapter
+	dkgCommunicatorAdapter DkgMessageAdapter
 	quit                   chan bool
 	quitWg                 sync.WaitGroup
 }
@@ -58,14 +58,17 @@ type AnnsensusProcessor struct {
 	pipeIn chan *message.OGMessage
 	config AnnsensusProcessorConfig
 
-	myAccountProvider   account.AccountProvider
-	signatureProvider   account.SignatureProvider
-	contextProvider     ConsensusContextProvider
+	myAccountProvider account.AccountProvider
+	contextProvider   ConsensusContextProvider
 
-	proposalGenerator   bft.ProposalGenerator
-	proposalValidator   bft.ProposalValidator
-	decisionMaker       bft.DecisionMaker
-	termProvider        TermProvider
+	proposalGenerator bft.ProposalGenerator
+	proposalValidator bft.ProposalValidator
+	decisionMaker     bft.DecisionMaker
+	termProvider      TermProvider
+
+	// message handlers
+	bftAdapter BftMessageAdapter
+	dkgAdapter DkgMessageAdapter
 
 	// in case of disordered message, cache the terms and the correspondent processors.
 	// TODO: wipe it constantly
@@ -87,8 +90,6 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	myAccountProvider account.AccountProvider,
 	signatureProvider account.SignatureProvider,
 	contextProvider ConsensusContextProvider,
-	peerCommunicator bft.BftPeerCommunicator,
-	dkgPeerCommunicator dkg.DkgPeerCommunicator,
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
@@ -108,20 +109,19 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 		}
 	}
 	ap := &AnnsensusProcessor{
-		pipeIn:              make(chan *message.OGMessage),
-		config:              config,
-		myAccountProvider:   myAccountProvider,
-		signatureProvider:   signatureProvider,
-		contextProvider:     contextProvider,
-		bftPeerCommunicator: peerCommunicator,
-		dkgPeerCommunicator: dkgPeerCommunicator,
-		proposalGenerator:   proposalGenerator,
-		proposalValidator:   proposalValidator,
-		decisionMaker:       decisionMaker,
-		termProvider:        termProvider,
-		termMap:             make(map[uint32]*TermComposer),
-		quit:                make(chan bool),
-		quitWg:              sync.WaitGroup{},
+		pipeIn:            make(chan *message.OGMessage),
+		config:            config,
+		myAccountProvider: myAccountProvider,
+		contextProvider:   contextProvider,
+		proposalGenerator: proposalGenerator,
+		proposalValidator: proposalValidator,
+		decisionMaker:     decisionMaker,
+		termProvider:      termProvider,
+		bftAdapter:        NewTrustfulBftAdapter(signatureProvider, termProvider),
+		dkgAdapter:        nil,
+		termMap:           make(map[uint32]*TermComposer),
+		quit:              make(chan bool),
+		quitWg:            sync.WaitGroup{},
 	}
 	return ap
 }
@@ -166,6 +166,7 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32) error {
 		ap.contextProvider.GetThreshold(),
 		ap.contextProvider.GetAllPartPubs(),
 		ap.contextProvider.GetMyPartSec(),
+		ap.dkgPeerCommunicator,
 		ap.dkgPeerCommunicator)
 	if err != nil {
 		return err
@@ -190,8 +191,6 @@ func (ap *AnnsensusProcessor) Stop() {
 	logrus.Debug("AnnsensusProcessor stopped")
 }
 
-
-
 // according to the height, get term, and send to the bft operator in that term.
 func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
 	height := ogMessage.Message.(*bft.BftBasicInfo).HeightRound.Height
@@ -203,12 +202,11 @@ func (ap *AnnsensusProcessor) handleBftMessage(ogMessage *message.OGMessage) {
 		return
 	}
 	// message adapter
-	bftMessage, err := ap.bftAdapter.AdaptOgMessage(ogMessage)
+	bftMessage, err := ap.bftAdapter.AdaptOgMessage(ogMessage.Message)
 	if err != nil {
 		logrus.WithError(err).Warn("cannot adapt ogMessage to bftMessage")
 		return
 	}
-	// how to adapt the message?
-	msgTerm.BftOperator.GetBftPeerCommunicator()
-	msgTerm.BftOperator.GetBftPeerCommunicator()(bftMessage)
+
+	msgTerm.BftOperator.GetBftPeerCommunicatorIncoming().GetPipeOut() <- bftMessage
 }

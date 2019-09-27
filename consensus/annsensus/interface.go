@@ -6,7 +6,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
-	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
@@ -20,7 +20,7 @@ type TermProvider interface {
 	HeightTerm(height uint64) (termId uint32)
 	CurrentTerm() (termId uint32)
 	// Peers returns all peers at given term
-	Peers(termId uint32) []bft.PeerInfo
+	Peers(termId uint32) ([]bft.PeerInfo, error)
 	GetTermChangeEventChannel() chan *term.Term
 }
 
@@ -46,14 +46,14 @@ type SequencerProducer interface {
 	ValidateSequencer(seq tx_types.Sequencer) error
 }
 
-// BftCommunicatorAdapter converts messages.
+// BftMessageAdapter converts messages.
 // During the converting process there may be some validation and signing operations.
-type BftCommunicatorAdapter interface {
-	AdaptOgMessage(incomingMsg *message.OGMessage) (bft.BftMessage, error)
-	AdaptBftMessage(outgoingMsg *bft.BftMessage) (*message.OGMessage, error)
+type BftMessageAdapter interface {
+	AdaptOgMessage(incomingMsg p2p_message.Message) (bft.BftMessage, error)
+	AdaptBftMessage(outgoingMsg *bft.BftMessage) (p2p_message.Message, error)
 }
 
-type DkgCommunicatorAdapter interface {
-	AdaptOgMessage(incomingMsg *message.OGMessage) (dkg.DkgMessage, error)
-	AdaptDkgMessage(outgoingMsg *dkg.DkgMessage) (*message.OGMessage, error)
+type DkgMessageAdapter interface {
+	AdaptOgMessage(incomingMsg p2p_message.Message) (dkg.DkgMessage, error)
+	AdaptDkgMessage(outgoingMsg *dkg.DkgMessage) (p2p_message.Message, error)
 }

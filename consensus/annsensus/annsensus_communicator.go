@@ -13,8 +13,7 @@ import (
 // Do IO work only.
 type AnnsensusCommunicator struct {
 	pipeIn                      chan *message.OGMessage
-	pipeOut                     chan *message.OGMessage
-	P2PSender                   communicator.P2PSender // upstream message sender
+	p2pSender                   communicator.P2PSender // upstream message sender
 	bftMessageAdapter           BftMessageAdapter
 	dkgMessageAdapter           DkgMessageAdapter
 	bftPeerCommunicatorIncoming bft.BftPeerCommunicatorIncoming
@@ -27,15 +26,16 @@ type AnnsensusCommunicator struct {
 func NewAnnsensusCommunicator(p2PSender communicator.P2PSender,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
+//bftPeerCommunicatorIncoming bft.BftPeerCommunicatorIncoming,
+//dkgPeerCommunicatorIncoming dkg.DkgPeerCommunicatorIncoming,
 ) *AnnsensusCommunicator {
 	return &AnnsensusCommunicator{
-		pipeIn:                      make(chan *message.OGMessage),
-		pipeOut:                     make(chan *message.OGMessage),
-		P2PSender:                   p2PSender,
-		bftMessageAdapter:           bftMessageAdapter,
-		dkgMessageAdapter:           dkgMessageAdapter,
-		bftPeerCommunicatorIncoming: NewProxyBftPeerCommunicator(),
-		dkgPeerCommunicatorIncoming: nil,
+		pipeIn:            make(chan *message.OGMessage),
+		p2pSender:         p2PSender,
+		bftMessageAdapter: bftMessageAdapter,
+		dkgMessageAdapter: dkgMessageAdapter,
+		//bftPeerCommunicatorIncoming: bftPeerCommunicatorIncoming,
+		//dkgPeerCommunicatorIncoming: dkgPeerCommunicatorIncoming,
 		quit:                        nil,
 		quitWg:                      sync.WaitGroup{},
 	}
@@ -70,7 +70,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
 		}
 		// send to bft
-		ap.bftPeerCommunicator.GetPipeOut() <- bftMessage
+		ap.bftPeerCommunicatorIncoming.GetPipeIn() <- bftMessage
 		break
 	case message.OGMessageType(dkg.DkgMessageTypeDeal):
 		fallthrough
@@ -84,7 +84,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
 		}
 		// send to dkg
-		ap.dkgPeerCommunicator.GetPipeOut() <- dkgMessage
+		ap.dkgPeerCommunicatorIncoming.GetPipeIn() <- dkgMessage
 		break
 	}
 }
@@ -97,12 +97,17 @@ func (ap *AnnsensusCommunicator) BroadcastBft(msg *bft.BftMessage, peers []bft.P
 	}
 
 	for _, peer := range peers {
-		ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
+		ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), signed, &peer.PublicKey)
 	}
 }
 
 func (ap *AnnsensusCommunicator) UnicastBft(msg *bft.BftMessage, peer bft.PeerInfo) {
-	panic("implement me")
+	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
+	if err != nil {
+		logrus.WithError(err).Warn("failed to adapt bft message to og message")
+		return
+	}
+	ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), signed, &peer.PublicKey)
 }
 
 func (ap *AnnsensusCommunicator) BroadcastDkg(msg *dkg.DkgMessage, peers []dkg.PeerInfo) {

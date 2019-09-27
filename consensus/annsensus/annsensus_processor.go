@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/account"
+	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/og/message"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -16,8 +17,6 @@ type TermComposer struct {
 	Term                   *term.Term
 	BftOperator            bft.BftOperator
 	DkgOperator            dkg.DkgOperator
-	bftCommunicatorAdapter BftMessageAdapter
-	dkgCommunicatorAdapter DkgMessageAdapter
 	quit                   chan bool
 	quitWg                 sync.WaitGroup
 }
@@ -55,11 +54,9 @@ func (tc *TermComposer) Stop() {
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 // It receives messages from
 type AnnsensusProcessor struct {
-	pipeIn chan *message.OGMessage
-	config AnnsensusProcessorConfig
-
+	config            AnnsensusProcessorConfig
 	myAccountProvider account.AccountProvider
-	contextProvider   ConsensusContextProvider
+	//contextProvider   ConsensusContextProvider
 
 	proposalGenerator bft.ProposalGenerator
 	proposalValidator bft.ProposalValidator
@@ -86,14 +83,7 @@ type AnnsensusProcessorConfig struct {
 	PartnerNum         int
 }
 
-func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
-	myAccountProvider account.AccountProvider,
-	signatureProvider account.SignatureProvider,
-	contextProvider ConsensusContextProvider,
-	proposalGenerator bft.ProposalGenerator,
-	proposalValidator bft.ProposalValidator,
-	decisionMaker bft.DecisionMaker,
-	termProvider TermProvider) *AnnsensusProcessor {
+func checkConfig(config AnnsensusProcessorConfig) {
 	if config.DisabledConsensus {
 		config.DisableTermChange = true
 	}
@@ -108,17 +98,40 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 			panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", config.PartnerNum))
 		}
 	}
+}
+
+func NewAnnsensusProcessor1(config AnnsensusProcessorConfig,
+	myAccountProvider account.AccountProvider,
+	signatureProvider account.SignatureProvider,
+	termProvider TermProvider,
+	p2pSender communicator.P2PSender,
+	proposalGenerator bft.ProposalGenerator,
+	proposalValidator bft.ProposalValidator,
+	decisionMaker bft.DecisionMaker,
+) {
+	// Prepare common facilities that will be reused during each term
+	// Prepare adapters
+	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
+	dkgAdapter := NewDkgAdapter()
+	// Prepare annsensus communicator
+	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter)
+	// Prepare component communicator
+	bftCommunicator := NewProxyBftPeerCommunicator(annsensusCommunicator)
+	dkgCommunicator := NewProxyDkgPeerCommunicator(annsensusCommunicator)
+	// register in annsensus communicator
+	annsensusCommunicator.bftPeerCommunicatorIncoming = bftCommunicator
+	annsensusCommunicator.dkgPeerCommunicatorIncoming = dkgCommunicator
+
+	// Prepare process itself.
 	ap := &AnnsensusProcessor{
-		pipeIn:            make(chan *message.OGMessage),
-		config:            config,
+		config:            AnnsensusProcessorConfig{},
 		myAccountProvider: myAccountProvider,
-		contextProvider:   contextProvider,
 		proposalGenerator: proposalGenerator,
 		proposalValidator: proposalValidator,
 		decisionMaker:     decisionMaker,
 		termProvider:      termProvider,
-		bftAdapter:        NewTrustfulBftAdapter(signatureProvider, termProvider),
-		dkgAdapter:        nil,
+		bftAdapter:        bftAdapter,
+		dkgAdapter:        dkgAdapter,
 		termMap:           make(map[uint32]*TermComposer),
 		quit:              make(chan bool),
 		quitWg:            sync.WaitGroup{},

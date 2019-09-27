@@ -29,13 +29,14 @@ import (
 // It listens to the conditions changed outside (by message or by time) and perform actions.
 // Note: Destroy and use a new one upon peers changing.
 type DefaultBftPartner struct {
-	Id                int
-	BftStatus         *BftStatus
-	blockTime         time.Duration
-	PeerCommunicator  BftPeerCommunicator
-	ProposalGenerator ProposalGenerator
-	ProposalValidator ProposalValidator
-	DecisionMaker     DecisionMaker
+	Id                       int
+	BftStatus                *BftStatus
+	blockTime                time.Duration
+	peerCommunicatorIncoming BftPeerCommunicatorIncoming
+	peerCommunicatorOutgoing BftPeerCommunicatorOutgoing
+	ProposalGenerator        ProposalGenerator
+	ProposalValidator        ProposalValidator
+	DecisionMaker            DecisionMaker
 
 	WaiterTimeoutChannel chan *WaiterRequest
 	quit                 chan bool
@@ -47,7 +48,8 @@ type DefaultBftPartner struct {
 }
 
 func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
-	peerCommunicator BftPeerCommunicator,
+	peerCommunicatorIncoming BftPeerCommunicatorIncoming,
+	peerCommunicatorOutgoing BftPeerCommunicatorOutgoing,
 	proposalGenerator ProposalGenerator,
 	proposalValidator ProposalValidator,
 	decisionMaker DecisionMaker) *DefaultBftPartner {
@@ -61,13 +63,14 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 			F:      (nbParticipants - 1) / 3,
 			States: make(map[HeightRound]*HeightRoundState),
 		},
-		blockTime:            blockTime,
-		PeerCommunicator:     peerCommunicator,
-		ProposalGenerator:    proposalGenerator,
-		ProposalValidator:    proposalValidator,
-		DecisionMaker:        decisionMaker,
-		WaiterTimeoutChannel: make(chan *WaiterRequest, 10),
-		quit:                 make(chan bool),
+		blockTime:                blockTime,
+		peerCommunicatorIncoming: peerCommunicatorIncoming,
+		peerCommunicatorOutgoing: peerCommunicatorOutgoing,
+		ProposalGenerator:        proposalGenerator,
+		ProposalValidator:        proposalValidator,
+		DecisionMaker:            decisionMaker,
+		WaiterTimeoutChannel:     make(chan *WaiterRequest, 10),
+		quit:                     make(chan bool),
 	}
 
 	// TODO: verify if the count is correct
@@ -206,7 +209,7 @@ func (p *DefaultBftPartner) EventLoop() {
 func (p *DefaultBftPartner) receive() {
 	//defer p.wg.Done()
 	timer := time.NewTimer(time.Second * 7)
-	pipeOutChannel := p.PeerCommunicator.GetPipeOut()
+	pipeOutChannel := p.peerCommunicatorIncoming.GetPipeOut()
 	for {
 		timer.Reset(time.Second * 7)
 		select {
@@ -300,7 +303,7 @@ func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound
 			Idv:          idv,
 		}
 	}
-	p.PeerCommunicator.Broadcast(m, p.BftStatus.Peers)
+	p.peerCommunicatorOutgoing.Broadcast(m, p.BftStatus.Peers)
 }
 
 // OnTimeoutPropose is the callback after staying too long on propose step
@@ -730,10 +733,6 @@ func (p *DefaultBftPartner) initHeightRound(hr HeightRound) (*HeightRoundState, 
 		logrus.WithField("hr", hr).WithField("IM", p.Id).Debug("inited heightround")
 	}
 	return p.BftStatus.States[hr], len(p.BftStatus.States)
-}
-
-func (p *DefaultBftPartner) GetBftPeerCommunicator() BftPeerCommunicator {
-	return p.PeerCommunicator
 }
 
 type BftStatusReport struct {

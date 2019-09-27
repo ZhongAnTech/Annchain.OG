@@ -10,17 +10,35 @@ import (
 )
 
 // AnnsensusCommunicator routes ogmessages and judge which adapter to use and to receive.
+// Do IO work only.
 type AnnsensusCommunicator struct {
-	pipeIn              chan *message.OGMessage
-	pipeOut             chan *message.OGMessage
-	P2PSender           communicator.P2PSender // upstream message sender
-	bftMessageAdapter   BftCommunicatorAdapter
-	dkgMessageAdapter   DkgCommunicatorAdapter
-	bftPeerCommunicator bft.BftPeerCommunicator
-	dkgPeerCommunicator dkg.DkgPeerCommunicator
+	pipeIn                      chan *message.OGMessage
+	pipeOut                     chan *message.OGMessage
+	P2PSender                   communicator.P2PSender // upstream message sender
+	bftMessageAdapter           BftMessageAdapter
+	dkgMessageAdapter           DkgMessageAdapter
+	bftPeerCommunicatorIncoming bft.BftPeerCommunicatorIncoming
+	dkgPeerCommunicatorIncoming dkg.DkgPeerCommunicatorIncoming
 
 	quit   chan bool
 	quitWg sync.WaitGroup
+}
+
+func NewAnnsensusCommunicator(p2PSender communicator.P2PSender,
+	bftMessageAdapter BftMessageAdapter,
+	dkgMessageAdapter DkgMessageAdapter,
+) *AnnsensusCommunicator {
+	return &AnnsensusCommunicator{
+		pipeIn:                      make(chan *message.OGMessage),
+		pipeOut:                     make(chan *message.OGMessage),
+		P2PSender:                   p2PSender,
+		bftMessageAdapter:           bftMessageAdapter,
+		dkgMessageAdapter:           dkgMessageAdapter,
+		bftPeerCommunicatorIncoming: NewProxyBftPeerCommunicator(),
+		dkgPeerCommunicatorIncoming: nil,
+		quit:                        nil,
+		quitWg:                      sync.WaitGroup{},
+	}
 }
 
 func (r *AnnsensusCommunicator) Run() {
@@ -47,7 +65,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 	case message.OGMessageType(bft.BftMessageTypePreVote):
 		fallthrough
 	case message.OGMessageType(bft.BftMessageTypePreCommit):
-		bftMessage, err := ap.bftMessageAdapter.AdaptOgMessage(msg)
+		bftMessage, err := ap.bftMessageAdapter.AdaptOgMessage(msg.Message)
 		if err != nil {
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
 		}
@@ -61,7 +79,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 	case message.OGMessageType(dkg.DkgMessageTypeSigSets):
 		fallthrough
 	case message.OGMessageType(dkg.DkgMessageTypeGenesisPublicKey):
-		dkgMessage, err := ap.dkgMessageAdapter.AdaptOgMessage(msg)
+		dkgMessage, err := ap.dkgMessageAdapter.AdaptOgMessage(msg.Message)
 		if err != nil {
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
 		}
@@ -69,4 +87,28 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 		ap.dkgPeerCommunicator.GetPipeOut() <- dkgMessage
 		break
 	}
+}
+
+func (ap *AnnsensusCommunicator) BroadcastBft(msg *bft.BftMessage, peers []bft.PeerInfo) {
+	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
+	if err != nil {
+		logrus.WithError(err).Warn("failed to adapt bft message to og message")
+		return
+	}
+
+	for _, peer := range peers {
+		ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
+	}
+}
+
+func (ap *AnnsensusCommunicator) UnicastBft(msg *bft.BftMessage, peer bft.PeerInfo) {
+	panic("implement me")
+}
+
+func (ap *AnnsensusCommunicator) BroadcastDkg(msg *dkg.DkgMessage, peers []dkg.PeerInfo) {
+	panic("implement me")
+}
+
+func (ap *AnnsensusCommunicator) UnicastDkg(msg *dkg.DkgMessage, peer dkg.PeerInfo) {
+	panic("implement me")
 }

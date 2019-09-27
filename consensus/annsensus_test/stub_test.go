@@ -183,7 +183,7 @@ func (d dummyTermProvider) CurrentTerm() (termId uint32) {
 	panic("implement me")
 }
 
-func (d dummyTermProvider) Peers(termId uint32) []bft.PeerInfo {
+func (d dummyTermProvider) Peers(termId uint32) ([]bft.PeerInfo, error) {
 	panic("implement me")
 }
 

@@ -1,8 +1,8 @@
 package dkg
 
 type DkgPeerCommunicatorOutgoing interface {
-	Broadcast(msg DkgMessage, peers []PeerInfo)
-	Unicast(msg DkgMessage, peer PeerInfo)
+	Broadcast(msg *DkgMessage, peers []PeerInfo)
+	Unicast(msg *DkgMessage, peer PeerInfo)
 }
 
 type DkgPeerCommunicatorIncoming interface {
@@ -14,7 +14,7 @@ type DkgGeneratedListener interface {
 	GetDkgGeneratedEventChannel() chan bool
 }
 
-type DkgOperator interface {
+type DkgPartner interface {
 	Start()
 	Stop()
 	GetPeerCommunicator() DkgPeerCommunicator

@@ -39,12 +39,12 @@ func init() {
 	//logrus.AddHook(filenameHook)
 }
 
-func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
+func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 	pg := &dummyProposalGenerator{}
 	pv := &dummyProposalValidator{}
 	dm := &dummyDecisionMaker{}
 
-	var peers []bft.BftOperator
+	var peers []bft.BftPartner
 	var peerChans []chan bft.BftMessage
 	var peerInfo []bft.PeerInfo
 
@@ -91,7 +91,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftOperator {
 	return peers
 }
 
-func start(peers []bft.BftOperator, second int) {
+func start(peers []bft.BftPartner, second int) {
 	logrus.Info("starting")
 	for _, peer := range peers {
 		go peer.WaiterLoop()
@@ -109,7 +109,7 @@ func start(peers []bft.BftOperator, second int) {
 	joinAllPeers(peers)
 }
 
-func joinAllPeers(peers []bft.BftOperator) {
+func joinAllPeers(peers []bft.BftPartner) {
 	for {
 		time.Sleep(time.Second * 2)
 		for _, peer := range peers {

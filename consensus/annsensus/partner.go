@@ -25,7 +25,7 @@ type AnnsensusPartner struct {
 	accountNonceProvider    AccountNonceProvider
 	accountProvider         ConsensusAccountProvider
 	peerCommunicator        bft.BftPeerCommunicator // AnnsensusPartner is a BftPeerCommunicator, bftPeerCommunicator is a peerCommunicator
-	bftPartnerMyself        *bft.BftOperator
+	bftPartnerMyself        *bft.BftPartner
 	dkg                     *archive.DkgPartner
 	termProvider            TermProvider
 	heightProvider          HeightProvider

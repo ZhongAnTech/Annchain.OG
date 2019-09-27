@@ -52,7 +52,7 @@ func generatePeers(suite *bn256.Suite, n int) []PartSec {
 	return peerInfos
 }
 
-func setupPartners(termId uint32, numParts int, threshold int) ([]*DkgPartner, []PartSec) {
+func setupPartners(termId uint32, numParts int, threshold int) ([]*DefaultDkgPartner, []PartSec) {
 	suite := bn256.NewSuiteG2()
 
 	// generate PeerInfos
@@ -69,12 +69,12 @@ func setupPartners(termId uint32, numParts int, threshold int) ([]*DkgPartner, [
 		peerChans = append(peerChans, make(chan DkgMessage, 5000))
 	}
 
-	var partners []*DkgPartner
+	var partners []*DefaultDkgPartner
 
 	for i := 0; i < numParts; i++ {
 		communicator := NewDummyDkgPeerCommunicator(i, peerChans[i], peerChans)
 		communicator.Run()
-		partner, err := NewDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i], communicator)
+		partner, err := NewDefaultDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i], communicator)
 		if err != nil {
 			panic(err)
 		}

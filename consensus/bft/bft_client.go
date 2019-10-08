@@ -47,6 +47,10 @@ type DefaultBftPartner struct {
 	//wg sync.WaitGroup
 }
 
+func (p *DefaultBftPartner) GetBftPeerCommunicatorIncoming() BftPeerCommunicatorIncoming {
+	return p.peerCommunicatorIncoming
+}
+
 func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 	peerCommunicatorIncoming BftPeerCommunicatorIncoming,
 	peerCommunicatorOutgoing BftPeerCommunicatorOutgoing,
@@ -303,7 +307,7 @@ func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound
 			Idv:          idv,
 		}
 	}
-	p.peerCommunicatorOutgoing.Broadcast(m, p.BftStatus.Peers)
+	p.peerCommunicatorOutgoing.Broadcast(&m, p.BftStatus.Peers)
 }
 
 // OnTimeoutPropose is the callback after staying too long on propose step

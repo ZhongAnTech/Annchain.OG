@@ -35,6 +35,10 @@ type DefaultDkgPartner struct {
 	quitWg sync.WaitGroup
 }
 
+func (p *DefaultDkgPartner) GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
+	return p.peerCommunicatorIncoming
+}
+
 func (p *DefaultDkgPartner) Stop() {
 	close(p.quit)
 	p.quitWg.Wait()
@@ -203,12 +207,12 @@ func (p *DefaultDkgPartner) sendResponseToAllRestPartners(response *dkger.Respon
 	p.peerCommunicatorOutgoing.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
 }
 
-func (p *DefaultDkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) DkgMessage {
+func (p *DefaultDkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) *DkgMessage {
 	m := DkgMessage{
 		Type:    messageType,
 		Payload: signable,
 	}
-	return m
+	return &m
 }
 
 func (p *DefaultDkgPartner) handleMessage(message DkgMessage) {

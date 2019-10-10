@@ -92,7 +92,7 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	// Prepare common facilities that will be reused during each term
 	// Prepare adapters
 	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
-	dkgAdapter := NewDkgAdapter()
+	dkgAdapter := NewTrustfulDkgAdapter()
 	termHolder := NewBftTermHolder(termProvider)
 	// Prepare annsensus communicator
 	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter, termHolder)

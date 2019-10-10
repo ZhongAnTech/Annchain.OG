@@ -83,10 +83,12 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	var aps []*annsensus.AnnsensusProcessor
 	annsensusPartnerProvider := NewDummyAnnsensusPartnerProivder(peerChansBft, peerChansDkg)
 
-
 	for i := 0; i < nodes; i++ {
-		commuicatorBft := NewDummyBftPeerCommunicator(i, peerChansBft[i], peerChansBft)
-		commuicatorDkg := NewDummyDkgPeerCommunicator(i, peerChansDkg[i], peerChansDkg)
+		// init AnnsensusCommunicator for each node
+		bftAdapter := annsensus.PlainBftAdapter{}
+
+		annsensusCommunicator := annsensus.NewAnnsensusCommunicator()
+
 
 		ann := annsensus.NewAnnsensusProcessor(config,
 			&dummySignatureProvider{},

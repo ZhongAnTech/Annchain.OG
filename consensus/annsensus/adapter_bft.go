@@ -97,3 +97,24 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (ms
 
 	return signedMsg.BftMessage, nil
 }
+
+type PlainBftAdapter struct {
+}
+
+func (p PlainBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (msg bft.BftMessage, err error) {
+	signedMsg, ok := incomingMsg.(*message.SignedOgPartnerMessage)
+	if !ok {
+		err = errors.New("message received is not a proper type for bft")
+		return
+	}
+	msg = signedMsg.BftMessage
+	return
+
+}
+
+func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg *bft.BftMessage) (p2p_message.Message, error) {
+	signed := message.SignedOgPartnerMessage{
+		BftMessage: *outgoingMsg,
+	}
+	return &signed, nil
+}

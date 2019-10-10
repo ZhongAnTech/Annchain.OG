@@ -23,11 +23,11 @@ import (
 )
 
 type Term struct {
-	id                     uint64 `json:"id"`
+	id                     uint32 `json:"id"`
 	flag                   bool
 	partsNum               int
 	senators               Senators            `json:"senators"`
-	formerSenators         map[uint64]Senators `json:"former_senators"`
+	formerSenators         map[uint32]Senators `json:"former_senators"`
 	candidates             map[common.Address]*tx_types.Campaign
 	publicKeys             []crypto.PublicKey
 	formerPublicKeys       []crypto.PublicKey
@@ -42,31 +42,30 @@ type Term struct {
 	currentTermChange *tx_types.TermChange
 	genesisTermChange *tx_types.TermChange
 	started           bool
-
 }
 
-func NewTerm(id uint64, participantNumber int, termChangeInterval int) *Term {
+func NewTerm(id uint32, participantNumber int, termChangeInterval int) *Term {
 	return &Term{
 		id:                 id,
 		flag:               false,
 		partsNum:           participantNumber,
 		termChangeInterval: termChangeInterval,
 		senators:           make(Senators),
-		formerSenators:     make(map[uint64]Senators),
+		formerSenators:     make(map[uint32]Senators),
 		candidates:         make(map[common.Address]*tx_types.Campaign),
 		alsorans:           make(map[common.Address]*tx_types.Campaign),
 		campaigns:          make(map[common.Address]*tx_types.Campaign),
 	}
 }
 
-func (t *Term) ID() uint64 {
+func (t *Term) ID() uint32 {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.id
 }
 
-func (t *Term) UpdateID(id uint64) {
+func (t *Term) UpdateID(id uint32) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

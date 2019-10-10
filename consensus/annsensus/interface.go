@@ -26,10 +26,12 @@ type TermProvider interface {
 }
 
 type TermHolder interface {
-	GetBftTerm(ogMessage *message.OGMessage) (msgTerm *TermComposer, err error)
+	GetTermCollection(ogMessage *message.OGMessage) (msgTerm *TermCollection, err error)
+	SetTerm(u uint32, composer *TermCollection)
 }
 
 type ConsensusContextProvider interface {
+	GetTermId() uint32
 	GetNbParticipants() int
 	GetThreshold() int
 	GetMyBftId() int

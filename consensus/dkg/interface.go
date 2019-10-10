@@ -6,8 +6,8 @@ type DkgPeerCommunicatorOutgoing interface {
 }
 
 type DkgPeerCommunicatorIncoming interface {
-	GetPipeIn() chan DkgMessage
-	GetPipeOut() chan DkgMessage
+	GetPipeIn() chan *DkgMessage
+	GetPipeOut() chan *DkgMessage
 }
 
 type DkgGeneratedListener interface {

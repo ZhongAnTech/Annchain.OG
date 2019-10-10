@@ -215,7 +215,7 @@ func (p *DefaultDkgPartner) wrapMessage(messageType DkgMessageType, signable Sig
 	return &m
 }
 
-func (p *DefaultDkgPartner) handleMessage(message DkgMessage) {
+func (p *DefaultDkgPartner) handleMessage(message *DkgMessage) {
 	switch message.Type {
 	case DkgMessageTypeDeal:
 		switch message.Payload.(type) {

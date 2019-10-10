@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-type TermComposer struct {
+type TermCollection struct {
 	Term       *term.Term
 	BftPartner bft.BftPartner
 	DkgPartner dkg.DkgPartner
@@ -20,8 +20,8 @@ type TermComposer struct {
 	quitWg     sync.WaitGroup
 }
 
-func NewTermComposer(term *term.Term, bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermComposer {
-	return &TermComposer{
+func NewTermCollection(term *term.Term, bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermCollection {
+	return &TermCollection{
 		Term:       term,
 		BftPartner: bftPartner,
 		DkgPartner: dkgPartner,
@@ -30,7 +30,7 @@ func NewTermComposer(term *term.Term, bftPartner bft.BftPartner, dkgPartner dkg.
 	}
 }
 
-func (tc *TermComposer) Start() {
+func (tc *TermCollection) Start() {
 	// start all operators for this term.
 	tc.quitWg.Add(1)
 loop:
@@ -45,26 +45,18 @@ loop:
 	}
 }
 
-func (tc *TermComposer) Stop() {
+func (tc *TermCollection) Stop() {
 	close(tc.quit)
 	tc.quitWg.Wait()
 }
 
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 type AnnsensusProcessor struct {
-	config            AnnsensusProcessorConfig
-	myAccountProvider account.AccountProvider
-	//contextProvider   ConsensusContextProvider
-
-	proposalGenerator bft.ProposalGenerator
-	proposalValidator bft.ProposalValidator
-	decisionMaker     bft.DecisionMaker
-
-	// message handlers
-	bftAdapter            BftMessageAdapter
-	dkgAdapter            DkgMessageAdapter
-	annsensusCommunicator *AnnsensusCommunicator
-	termHolder            TermHolder
+	config                AnnsensusProcessorConfig
+	bftAdapter            BftMessageAdapter      // message handlers in common. Injected into commuinicator
+	dkgAdapter            DkgMessageAdapter      // message handlers in common. Injected into commuinicator
+	annsensusCommunicator *AnnsensusCommunicator // interface to the p2p
+	termHolder            TermHolder             // hold information for each term
 }
 
 type AnnsensusProcessorConfig struct {
@@ -93,13 +85,9 @@ func checkConfig(config AnnsensusProcessorConfig) {
 }
 
 func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
-	myAccountProvider account.AccountProvider,
 	signatureProvider account.SignatureProvider,
 	termProvider TermProvider,
 	p2pSender communicator.P2PSender,
-	proposalGenerator bft.ProposalGenerator,
-	proposalValidator bft.ProposalValidator,
-	decisionMaker bft.DecisionMaker,
 ) *AnnsensusProcessor {
 	// Prepare common facilities that will be reused during each term
 	// Prepare adapters
@@ -108,21 +96,10 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	termHolder := NewBftTermHolder(termProvider)
 	// Prepare annsensus communicator
 	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter, termHolder)
-	// Prepare component communicator
-	bftCommunicator := NewProxyBftPeerCommunicator(annsensusCommunicator)
-	dkgCommunicator := NewProxyDkgPeerCommunicator(annsensusCommunicator)
-	// register in annsensus communicator
-	annsensusCommunicator.bftPeerCommunicatorIncoming = bftCommunicator
-	annsensusCommunicator.dkgPeerCommunicatorIncoming = dkgCommunicator
-
 
 	// Prepare process itself.
 	ap := &AnnsensusProcessor{
 		config:                config,
-		myAccountProvider:     myAccountProvider,
-		proposalGenerator:     proposalGenerator,
-		proposalValidator:     proposalValidator,
-		decisionMaker:         decisionMaker,
 		bftAdapter:            bftAdapter,
 		dkgAdapter:            dkgAdapter,
 		annsensusCommunicator: annsensusCommunicator,
@@ -152,34 +129,8 @@ func (ap *AnnsensusProcessor) StartNewTerm(termId uint32, context ConsensusConte
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
-	dkgComm := NewProxyDkgPeerCommunicator(ap.annsensusCommunicator)
-	dkgPartner, err := dkg.NewDefaultDkgPartner(
-		context.GetSuite(),
-		termId,
-		context.GetNbParticipants(),
-		context.GetThreshold(),
-		context.GetAllPartPubs(),
-		context.GetMyPartSec(),
-		dkgComm,
-		dkgComm)
-	if err != nil {
-		return err
-	}
-
-	bftComm := NewProxyBftPeerCommunicator(ap.annsensusCommunicator)
-
-	bftPartner := bft.NewDefaultBFTPartner(
-		context.GetNbParticipants(),
-		context.GetMyBftId(),
-		context.GetBlockTime(),
-		bftComm,
-		bftComm,
-		ap.proposalGenerator,
-		ap.proposalValidator,
-		ap.decisionMaker,
-	)
-	tc := NewTermComposer(newTerm, bftPartner, dkgPartner)
-	ap.termMap[termId] = tc
+	tc := NewTermCollection(newTerm, bftPartner, dkgPartner)
+	ap.termHolder.SetTerm(termId, tc)
 	return nil
 }
 

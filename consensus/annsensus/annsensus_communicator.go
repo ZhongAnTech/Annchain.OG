@@ -65,12 +65,12 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
 		}
 		// send to bft
-		msgTerm, err := ap.termHolder.GetBftTerm(msg)
+		msgTerm, err := ap.termHolder.GetTermCollection(msg)
 		if err != nil {
 			logrus.WithError(err).Warn("failed to find appropriate term for msg")
 			return
 		}
-		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- bftMessage
+		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- &bftMessage
 		break
 	case message.OGMessageType(dkg.DkgMessageTypeDeal):
 		fallthrough
@@ -84,7 +84,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
 		}
 		// send to dkg
-		msgTerm, err := ap.termHolder.GetBftTerm(msg)
+		msgTerm, err := ap.termHolder.GetTermCollection(msg)
 		if err != nil {
 			logrus.WithError(err).Warn("failed to find appropriate term for msg")
 			return

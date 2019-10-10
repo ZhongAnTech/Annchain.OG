@@ -1,6 +1,7 @@
 package annsensus_test
 
 import (
+	"crypto"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
@@ -8,8 +9,10 @@ import (
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -288,4 +291,44 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 		&dummyDecisionMaker{},
 	)
 	return bftPartner
+}
+
+type dummyP2pSender struct {
+	Myid    int
+	Peers   []chan p2p_message.Message
+	pipeIn  chan p2p_message.Message
+	pipeOut chan p2p_message.Message
+}
+
+func (d *dummyP2pSender) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
+	logrus.WithField("me", d.Myid).Debug("broadcasting message")
+	for _, peer := range d.Peers {
+		ffchan.NewTimeoutSenderShort(peer, message, "dkg")
+		//go func(peer chan p2p_message.Message) {
+		//
+		//}(peer)f
+	}
+}
+
+func (d *dummyP2pSender) AnonymousSendMessage(messageType message.OGMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey) {
+	panic("not supported yet")
+}
+
+func (d *dummyP2pSender) SendToPeer(messageType message.OGMessageType, msg p2p_message.Message, peerId string) error {
+	// in the dummy take peerId as int
+	iPeerId, err := strconv.Atoi(peerId)
+	if err != nil {
+		return err
+	}
+	ffchan.NewTimeoutSenderShort(d.Peers[iPeerId], msg, "dkg")
+}
+
+func NewDummyP2pSender(myid int, incoming chan p2p_message.Message, peers []chan p2p_message.Message) *dummyP2pSender {
+	d := &dummyP2pSender{
+		Peers:   peers,
+		Myid:    myid,
+		pipeIn:  incoming,
+		pipeOut: make(chan p2p_message.Message, 10), // must be big enough to avoid blocking issue
+	}
+	return d
 }

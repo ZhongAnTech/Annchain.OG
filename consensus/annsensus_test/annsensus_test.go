@@ -86,8 +86,14 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	for i := 0; i < nodes; i++ {
 		// init AnnsensusCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
+		dkgAdapter := annsensus.PlainDkgAdapter{}
 
-		annsensusCommunicator := annsensus.NewAnnsensusCommunicator()
+		annsensusCommunicator := annsensus.NewAnnsensusCommunicator(
+
+			bftAdapter,
+			dkgAdapter,
+
+		)
 
 
 		ann := annsensus.NewAnnsensusProcessor(config,

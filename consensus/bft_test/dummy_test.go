@@ -7,9 +7,9 @@ import (
 
 type dummyBftPeerCommunicator struct {
 	Myid    int
-	PeerIns []chan bft.BftMessage
-	pipeIn  chan bft.BftMessage //pipeIn is the receiver of the outside messages
-	pipeOut chan bft.BftMessage //pipeOut is the providing channel for new messages parsed from pipeIn
+	PeerIns []chan *bft.BftMessage
+	pipeIn  chan *bft.BftMessage //pipeIn is the receiver of the outside messages
+	pipeOut chan *bft.BftMessage //pipeOut is the providing channel for new messages parsed from pipeIn
 }
 
 
@@ -17,13 +17,12 @@ func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
 	d.pipeIn <- msg
 }
 
-
-func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage) *dummyBftPeerCommunicator {
+func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessage, peers []chan *bft.BftMessage) *dummyBftPeerCommunicator {
 	d := &dummyBftPeerCommunicator{
 		PeerIns: peers,
 		Myid:    myid,
 		pipeIn:  incoming,
-		pipeOut: make(chan bft.BftMessage),
+		pipeOut: make(chan *bft.BftMessage),
 	}
 	return d
 }
@@ -59,11 +58,11 @@ func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo
 	}()
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+func (d *dummyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
 	return d.pipeIn
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+func (d *dummyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
 	return d.pipeOut
 }
 

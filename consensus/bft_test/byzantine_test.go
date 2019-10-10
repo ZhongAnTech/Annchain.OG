@@ -16,9 +16,9 @@ type ByzantineFeatures struct {
 
 type dummyByzantineBftPeerCommunicator struct {
 	Myid              int
-	PeerPipeIns       []chan bft.BftMessage
-	pipeIn            chan bft.BftMessage
-	pipeOut           chan bft.BftMessage
+	PeerPipeIns       []chan *bft.BftMessage
+	pipeIn            chan *bft.BftMessage
+	pipeOut           chan *bft.BftMessage
 	ByzantineFeatures ByzantineFeatures
 }
 
@@ -71,21 +71,21 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft
 	}()
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
 	return d.pipeIn
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
 	return d.pipeOut
 }
 
-func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage,
+func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan *bft.BftMessage, peers []chan *bft.BftMessage,
 	byzantineFeatures ByzantineFeatures) *dummyByzantineBftPeerCommunicator {
 	d := &dummyByzantineBftPeerCommunicator{
 		PeerPipeIns:       peers,
 		Myid:              myid,
 		pipeIn:            incoming,
-		pipeOut:           make(chan bft.BftMessage),
+		pipeOut:           make(chan *bft.BftMessage),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return d

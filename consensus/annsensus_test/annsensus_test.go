@@ -20,7 +20,6 @@ import (
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
-	"time"
 )
 
 //func genPublicKeys(num int) (accounts []crypto.PublicKey) {
@@ -74,39 +73,33 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare bft channels
-	var peerChansBft []chan bft.BftMessage
-	var peerChansDkg []chan dkg.DkgMessage
+	var peerChansBft []chan *bft.BftMessage
+	var peerChansDkg []chan *dkg.DkgMessage
 	for i := 0; i < nodes; i++ {
-		peerChansBft = append(peerChansBft, make(chan bft.BftMessage, 5))
-		peerChansDkg = append(peerChansDkg, make(chan dkg.DkgMessage, 5))
+		peerChansBft = append(peerChansBft, make(chan *bft.BftMessage, 5))
+		peerChansDkg = append(peerChansDkg, make(chan *dkg.DkgMessage, 5))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor
+	annsensusPartnerProvider := NewDummyAnnsensusPartnerProivder(peerChansBft, peerChansDkg)
+
 
 	for i := 0; i < nodes; i++ {
 		commuicatorBft := NewDummyBftPeerCommunicator(i, peerChansBft[i], peerChansBft)
 		commuicatorDkg := NewDummyDkgPeerCommunicator(i, peerChansDkg[i], peerChansDkg)
 
 		ann := annsensus.NewAnnsensusProcessor(config,
-			&dummyAccountProvider{
-				MyAccount: accounts[i],
-			},
 			&dummySignatureProvider{},
-			&dummyContextProvider{
-				NbParticipants: nodes,
-				NbParts:        nodes,
-				Threshold:      nodes,
-				MyBftId:        i,
-				BlockTime:      time.Second * 100,
-				Suite:          suite,
-				AllPartPubs:    nil,
-				MyPartSec:      dkg.PartSec{},
-			},
-			commuicatorBft,
-			commuicatorDkg,
-			&dummyProposalGenerator{},
-			&dummyProposalValidator{},
-			&dummyDecisionMaker{},
+			//&dummyContextProvider{
+			//	NbParticipants: nodes,
+			//	NbParts:        nodes,
+			//	Threshold:      nodes,
+			//	MyBftId:        i,
+			//	BlockTime:      time.Second * 100,
+			//	Suite:          suite,
+			//	AllPartPubs:    nil,
+			//	MyPartSec:      dkg.PartSec{},
+			//},
 			&dummyTermProvider{},
 		)
 		aps = append(aps, ann)

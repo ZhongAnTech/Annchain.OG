@@ -23,8 +23,8 @@ type BftPeerCommunicatorOutgoing interface {
 	Unicast(msg *BftMessage, peer PeerInfo)
 }
 type BftPeerCommunicatorIncoming interface {
-	GetPipeIn() chan BftMessage
-	GetPipeOut() chan BftMessage
+	GetPipeIn() chan *BftMessage
+	GetPipeOut() chan *BftMessage
 }
 
 type BftPartner interface {

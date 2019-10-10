@@ -62,11 +62,11 @@ func setupPartners(termId uint32, numParts int, threshold int) ([]*DefaultDkgPar
 		partPubs = append(partPubs, peer.PartPub)
 	}
 
-	var peerChans []chan DkgMessage
+	var peerChans []chan *DkgMessage
 
 	// prepare incoming channels
 	for i := 0; i < numParts; i++ {
-		peerChans = append(peerChans, make(chan DkgMessage, 5000))
+		peerChans = append(peerChans, make(chan *DkgMessage, 5000))
 	}
 
 	var partners []*DefaultDkgPartner

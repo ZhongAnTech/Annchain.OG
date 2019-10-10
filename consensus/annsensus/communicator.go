@@ -7,13 +7,13 @@ import (
 
 type ProxyBftPeerCommunicator struct {
 	annsensusCommunicator *AnnsensusCommunicator
-	pipe                  chan bft.BftMessage
+	pipe                  chan *bft.BftMessage
 }
 
 func NewProxyBftPeerCommunicator(annsensusCommunicator *AnnsensusCommunicator) *ProxyBftPeerCommunicator {
 	return &ProxyBftPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
-		pipe:                  make(chan bft.BftMessage),
+		pipe:                  make(chan *bft.BftMessage),
 	}
 }
 
@@ -27,12 +27,12 @@ func (p *ProxyBftPeerCommunicator) Unicast(msg *bft.BftMessage, peer bft.PeerInf
 	p.annsensusCommunicator.UnicastBft(msg, peer)
 }
 
-func (p *ProxyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+func (p *ProxyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
 	// the channel to be consumed by the downstream.
 	return p.pipe
 }
 
-func (p *ProxyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+func (p *ProxyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
 	// the channel to be fed by other peers
 	return p.pipe
 }
@@ -44,13 +44,13 @@ func (p *ProxyBftPeerCommunicator) Run() {
 
 type ProxyDkgPeerCommunicator struct {
 	annsensusCommunicator *AnnsensusCommunicator
-	pipe                  chan dkg.DkgMessage
+	pipe                  chan *dkg.DkgMessage
 }
 
 func NewProxyDkgPeerCommunicator(annsensusCommunicator *AnnsensusCommunicator) *ProxyDkgPeerCommunicator {
 	return &ProxyDkgPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
-		pipe:                  make(chan dkg.DkgMessage),
+		pipe:                  make(chan *dkg.DkgMessage),
 	}
 }
 
@@ -64,12 +64,12 @@ func (p *ProxyDkgPeerCommunicator) Unicast(msg *dkg.DkgMessage, peer dkg.PeerInf
 	p.annsensusCommunicator.UnicastDkg(msg, peer)
 }
 
-func (p *ProxyDkgPeerCommunicator) GetPipeOut() chan dkg.DkgMessage {
+func (p *ProxyDkgPeerCommunicator) GetPipeOut() chan *dkg.DkgMessage {
 	// the channel to be consumed by the downstream.
 	return p.pipe
 }
 
-func (p *ProxyDkgPeerCommunicator) GetPipeIn() chan dkg.DkgMessage {
+func (p *ProxyDkgPeerCommunicator) GetPipeIn() chan *dkg.DkgMessage {
 	// the channel to be fed by other peers
 	return p.pipe
 }

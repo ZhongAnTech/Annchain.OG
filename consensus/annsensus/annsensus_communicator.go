@@ -89,7 +89,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("failed to find appropriate term for msg")
 			return
 		}
-		msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- dkgMessage
+		msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- &dkgMessage
 		break
 	}
 }

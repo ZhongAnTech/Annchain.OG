@@ -13,20 +13,20 @@ import (
 )
 
 type TermComposer struct {
-	Term        *term.Term
-	BftOperator bft.BftPartner
-	DkgOperator dkg.DkgPartner
-	quit        chan bool
-	quitWg      sync.WaitGroup
+	Term       *term.Term
+	BftPartner bft.BftPartner
+	DkgPartner dkg.DkgPartner
+	quit       chan bool
+	quitWg     sync.WaitGroup
 }
 
-func NewTermComposer(term *term.Term, bftOperator bft.BftPartner, dkgOperator dkg.DkgPartner) *TermComposer {
+func NewTermComposer(term *term.Term, bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermComposer {
 	return &TermComposer{
-		Term:        term,
-		BftOperator: bftOperator,
-		DkgOperator: dkgOperator,
-		quit:        make(chan bool),
-		quitWg:      sync.WaitGroup{},
+		Term:       term,
+		BftPartner: bftPartner,
+		DkgPartner: dkgPartner,
+		quit:       make(chan bool),
+		quitWg:     sync.WaitGroup{},
 	}
 }
 
@@ -37,8 +37,8 @@ loop:
 	for {
 		select {
 		case <-tc.quit:
-			tc.BftOperator.Stop()
-			tc.DkgOperator.Stop()
+			tc.BftPartner.Stop()
+			tc.DkgPartner.Stop()
 			tc.quitWg.Done()
 			break loop
 		}
@@ -105,8 +105,9 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	// Prepare adapters
 	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
 	dkgAdapter := NewDkgAdapter()
+	termHolder := NewBftTermHolder(termProvider)
 	// Prepare annsensus communicator
-	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter)
+	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter, termHolder)
 	// Prepare component communicator
 	bftCommunicator := NewProxyBftPeerCommunicator(annsensusCommunicator)
 	dkgCommunicator := NewProxyDkgPeerCommunicator(annsensusCommunicator)
@@ -114,7 +115,6 @@ func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 	annsensusCommunicator.bftPeerCommunicatorIncoming = bftCommunicator
 	annsensusCommunicator.dkgPeerCommunicatorIncoming = dkgCommunicator
 
-	termHolder := NewBftTermHolder(termProvider)
 
 	// Prepare process itself.
 	ap := &AnnsensusProcessor{

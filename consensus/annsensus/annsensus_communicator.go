@@ -16,7 +16,7 @@ type AnnsensusCommunicator struct {
 	p2pSender         communicator.P2PSender // upstream message sender
 	bftMessageAdapter BftMessageAdapter
 	dkgMessageAdapter DkgMessageAdapter
-	bftTermHolder     TermHolder
+	termHolder        TermHolder
 	quit              chan bool
 	quitWg            sync.WaitGroup
 }
@@ -24,13 +24,13 @@ type AnnsensusCommunicator struct {
 func NewAnnsensusCommunicator(p2PSender communicator.P2PSender,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
-	bftTermHolder TermHolder) *AnnsensusCommunicator {
+	termHolder TermHolder) *AnnsensusCommunicator {
 	return &AnnsensusCommunicator{
 		pipeIn:            make(chan *message.OGMessage),
 		p2pSender:         p2PSender,
 		bftMessageAdapter: bftMessageAdapter,
 		dkgMessageAdapter: dkgMessageAdapter,
-		bftTermHolder:     bftTermHolder,
+		termHolder:        termHolder,
 		quit:              nil,
 		quitWg:            sync.WaitGroup{},
 	}
@@ -65,12 +65,12 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
 		}
 		// send to bft
-		msgTerm, err := ap.bftTermHolder.GetBftTerm(msg)
+		msgTerm, err := ap.termHolder.GetBftTerm(msg)
 		if err != nil {
 			logrus.WithError(err).Warn("failed to find appropriate term for msg")
 			return
 		}
-		msgTerm.BftOperator.GetBftPeerCommunicatorIncoming().GetPipeIn() <- bftMessage
+		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- bftMessage
 		break
 	case message.OGMessageType(dkg.DkgMessageTypeDeal):
 		fallthrough
@@ -84,8 +84,12 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
 		}
 		// send to dkg
-
-		ap.dkgPeerCommunicatorIncoming.GetPipeIn() <- dkgMessage
+		msgTerm, err := ap.termHolder.GetBftTerm(msg)
+		if err != nil {
+			logrus.WithError(err).Warn("failed to find appropriate term for msg")
+			return
+		}
+		msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- dkgMessage
 		break
 	}
 }

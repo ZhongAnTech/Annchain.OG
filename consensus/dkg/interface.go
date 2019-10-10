@@ -17,6 +17,6 @@ type DkgGeneratedListener interface {
 type DkgPartner interface {
 	Start()
 	Stop()
-	GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming
+	GetDkgPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming
 	RegisterDkgGeneratedListener(l DkgGeneratedListener)
 }

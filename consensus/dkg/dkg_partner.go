@@ -35,7 +35,7 @@ type DefaultDkgPartner struct {
 	quitWg sync.WaitGroup
 }
 
-func (p *DefaultDkgPartner) GetPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
+func (p *DefaultDkgPartner) GetDkgPeerCommunicatorIncoming() DkgPeerCommunicatorIncoming {
 	return p.peerCommunicatorIncoming
 }
 

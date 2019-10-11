@@ -29,6 +29,7 @@ type BftPeerCommunicatorIncoming interface {
 
 type BftPartner interface {
 	StartNewEra(height uint64, round int)
+	Start()
 	Stop()
 	WaiterLoop()
 	EventLoop()

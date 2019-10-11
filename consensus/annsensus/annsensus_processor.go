@@ -11,20 +11,22 @@ import (
 )
 
 type TermCollection struct {
-	Term       *term.Term
-	BftPartner bft.BftPartner
-	DkgPartner dkg.DkgPartner
-	quit       chan bool
-	quitWg     sync.WaitGroup
+	contextProvider ConsensusContextProvider
+	BftPartner      bft.BftPartner
+	DkgPartner      dkg.DkgPartner
+	quit            chan bool
+	quitWg          sync.WaitGroup
 }
 
-func NewTermCollection(term *term.Term, bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermCollection {
+func NewTermCollection(
+	contextProvider ConsensusContextProvider,
+	bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermCollection {
 	return &TermCollection{
-		Term:       term,
-		BftPartner: bftPartner,
-		DkgPartner: dkgPartner,
-		quit:       make(chan bool),
-		quitWg:     sync.WaitGroup{},
+		contextProvider: contextProvider,
+		BftPartner:      bftPartner,
+		DkgPartner:      dkgPartner,
+		quit:            make(chan bool),
+		quitWg:          sync.WaitGroup{},
 	}
 }
 
@@ -54,9 +56,10 @@ type AnnsensusProcessor struct {
 	bftAdapter            BftMessageAdapter      // message handlers in common. Injected into commuinicator
 	dkgAdapter            DkgMessageAdapter      // message handlers in common. Injected into commuinicator
 	annsensusCommunicator *AnnsensusCommunicator // interface to the p2p
-	termHolder            TermHolder             // hold information for each term
-	bftPartnerProvider    BftPartnerProvider     // factory method to generate a bft partner for each term
-	dkgPartnerProvider    DkgPartnerProvider     // factory method to generate a dkg partner for each term
+	termProvider          TermProvider
+	termHolder            TermHolder         // hold information for each term
+	bftPartnerProvider    BftPartnerProvider // factory method to generate a bft partner for each term
+	dkgPartnerProvider    DkgPartnerProvider // factory method to generate a dkg partner for each term
 
 }
 
@@ -65,10 +68,15 @@ func NewAnnsensusProcessor(
 	bftAdapter BftMessageAdapter,
 	dkgAdapter DkgMessageAdapter,
 	annsensusCommunicator *AnnsensusCommunicator,
+	termProvider TermProvider,
 	termHolder TermHolder,
 	bftPartnerProvider BftPartnerProvider,
 	dkgPartnerProvider DkgPartnerProvider) *AnnsensusProcessor {
-	return &AnnsensusProcessor{config: config, bftAdapter: bftAdapter, dkgAdapter: dkgAdapter, annsensusCommunicator: annsensusCommunicator, termHolder: termHolder, bftPartnerProvider: bftPartnerProvider, dkgPartnerProvider: dkgPartnerProvider}
+	return &AnnsensusProcessor{config: config, bftAdapter: bftAdapter,
+		dkgAdapter: dkgAdapter, annsensusCommunicator: annsensusCommunicator,
+		termProvider: termProvider,
+		termHolder:   termHolder, bftPartnerProvider: bftPartnerProvider,
+		dkgPartnerProvider: dkgPartnerProvider}
 }
 
 type AnnsensusProcessorConfig struct {
@@ -126,6 +134,7 @@ func (ap *AnnsensusProcessor) Start() {
 	}
 	// start the receiver
 	go ap.annsensusCommunicator.Run()
+	go ap.loop()
 
 	log.Info("AnnSensus Started")
 }
@@ -137,24 +146,52 @@ func (ap *AnnsensusProcessor) buildTerm(termId uint32) *term.Term {
 	return t
 }
 
-func (ap *AnnsensusProcessor) StartNewTerm(termId uint32, context ConsensusContextProvider) error { // build a new Term
+func (ap *AnnsensusProcessor) StartNewTerm(context ConsensusContextProvider) error { // build a new Term
 	// may need lots of information to build this term
-	newTerm := ap.buildTerm(termId)
+	//newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
+
+	logrus.WithField("context", context).Debug("starting new term")
+	// the bft instance for this term
 	bftPartner := ap.bftPartnerProvider.GetBftPartnerInstance(context)
+	// the dkg instance for this term to generate next term
 	dkgPartner, err := ap.dkgPartnerProvider.GetDkgPartnerInstance(context)
 	if err != nil {
 		return err
 	}
 
-	tc := NewTermCollection(newTerm, bftPartner, dkgPartner)
-	ap.termHolder.SetTerm(termId, tc)
+	tc := NewTermCollection(context, bftPartner, dkgPartner)
+	ap.termHolder.SetTerm(context.GetTermId(), tc)
+	// start to generate proposals, vote and generate sequencers
+	go bftPartner.Start()
+	bftPartner.StartNewEra(0, 0)
+	// start to discuss next committee
+	go dkgPartner.Start()
 	return nil
 }
 
 func (ap *AnnsensusProcessor) Stop() {
 	ap.annsensusCommunicator.Stop()
 	logrus.Debug("AnnsensusProcessor stopped")
+}
+
+func (ap *AnnsensusProcessor) loop() {
+	for {
+		select {
+		case context := <-ap.termProvider.GetTermChangeEventChannel():
+			// new term is coming.
+			// it is coming because of either:
+			// 1, someone told you that you are keep up-to-date with latest seq
+			// 2, (just for debugging) bootstrap
+			// Note that in real case, bootstrap will not trigger a direct term change event
+			// Since there must be a communication first to get the latest seq.
+			err := ap.StartNewTerm(context)
+			if err != nil {
+				logrus.WithError(err).WithField("context", context).Error("failed to start a new term")
+			}
+			//
+		}
+	}
 }

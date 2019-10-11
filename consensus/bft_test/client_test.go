@@ -94,9 +94,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 func start(peers []bft.BftPartner, second int) {
 	logrus.Info("starting")
 	for _, peer := range peers {
-		go peer.WaiterLoop()
-		go peer.EventLoop()
-
+		peer.Start()
 	}
 	time.Sleep(time.Second * 2)
 	logrus.Info("starting new era")

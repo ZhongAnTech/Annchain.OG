@@ -14,10 +14,14 @@
 package annsensus_test
 
 import (
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
+	"time"
 )
 
 //func genPublicKeys(num int) (accounts []crypto.PublicKey) {
@@ -55,11 +59,37 @@ func init() {
 	logInit()
 }
 
+func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
+	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+	var peerInfos []dkg.PartSec
+	for i := 0; i < n; i++ {
+		pubKey, privKey := signer.RandomKeyPair()
+		address := pubKey.Address()
+		// dkg kyber pub/priv key
+		dkgPrivKey, dkgPubKey := dkg.GenPartnerPair(suite)
+
+		peerInfos = append(peerInfos, dkg.PartSec{
+			PartPub: dkg.PartPub{
+				Point: dkgPubKey,
+				Peer: dkg.PeerInfo{
+					Id:             i,
+					PublicKey:      pubKey,
+					Address:        address,
+					PublicKeyBytes: nil,
+				},
+			},
+			Scalar:     dkgPrivKey,
+			PrivateKey: privKey,
+		})
+	}
+	return peerInfos
+}
+
 func TestAnnSensusTwoNodes(t *testing.T) {
 	nodes := 2
 	accounts := sampleAccounts(nodes)
 
-	//suite := bn256.NewSuiteG2()
+	suite := bn256.NewSuiteG2()
 
 	// build an annsensus
 	config := annsensus.AnnsensusProcessorConfig{
@@ -77,6 +107,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	var aps []*annsensus.AnnsensusProcessor
+	var termProviders []annsensus.TermProvider
 
 	for i := 0; i < nodes; i++ {
 		// init AnnsensusCommunicator for each node
@@ -84,7 +115,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 
 		p2pSender := NewDummyP2pSender(i, peerChans[i], peerChans)
-		termProvider := dummyTermProvider{}
+		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
 		annsensusCommunicator := annsensus.NewAnnsensusCommunicator(
 			p2pSender,
@@ -101,14 +132,44 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		)
 
 		ann := annsensus.NewAnnsensusProcessor(config,
-			bftAdapter, dkgAdapter, annsensusCommunicator, termHolder,
+			bftAdapter, dkgAdapter, annsensusCommunicator,
+			termProvider, termHolder,
 			defaultAnnsensusPartnerProvider,
 			defaultAnnsensusPartnerProvider,
 		)
 		aps = append(aps, ann)
+		termProviders = append(termProviders, termProvider)
 	}
+
+	// genesis accounts for dkg. Only partpub is shared.
+	// message is encrypted using partpub. TODO: is that possible? or we need an account public key
+	peers := generatePeers(suite, nodes)
+	var pubs []dkg.PartPub
+	for _, peer := range peers {
+		pubs = append(pubs, peer.PartPub)
+	}
+
+
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
+		c := termProviders[i].GetTermChangeEventChannel()
 
+		// make a new term
+		//tm := term.NewTerm(1,nodes,0)
+		contextProvider := dummyContextProvider{
+			TermId:         0,
+			NbParticipants: nodes,
+			NbParts:        nodes,
+			Threshold:      nodes,
+			MyBftId:        i,
+			BlockTime:      time.Second * 30,
+			Suite:          suite,
+			AllPartPubs:    pubs,
+			MyPartSec:      peers[i],
+		}
+
+		c <- contextProvider
 	}
+
+	time.Sleep(time.Hour * 1)
 }

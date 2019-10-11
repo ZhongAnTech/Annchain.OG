@@ -1,12 +1,12 @@
 package annsensus_test
 
 import (
+	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
@@ -42,6 +42,10 @@ type dummyContextProvider struct {
 	Suite          *bn256.Suite
 	AllPartPubs    []dkg.PartPub
 	MyPartSec      dkg.PartSec
+}
+
+func (d dummyContextProvider) String() string {
+	return fmt.Sprintf("term %d, participants %d My %d", d.TermId, d.NbParticipants, d.MyBftId)
 }
 
 func (d dummyContextProvider) GetTermId() uint32 {
@@ -176,11 +180,11 @@ func (d dummyDecisionMaker) MakeDecision(proposal bft.Proposal, state *bft.Heigh
 }
 
 type dummyTermProvider struct {
-	termChangeEventChan chan *term.Term
+	termChangeEventChan chan annsensus.ConsensusContextProvider
 }
 
 func NewDummyTermProvider() *dummyTermProvider {
-	return &dummyTermProvider{termChangeEventChan: make(chan *term.Term)}
+	return &dummyTermProvider{termChangeEventChan: make(chan annsensus.ConsensusContextProvider)}
 }
 
 func (d dummyTermProvider) HeightTerm(height uint64) (termId uint32) {
@@ -195,8 +199,8 @@ func (d dummyTermProvider) Peers(termId uint32) ([]bft.PeerInfo, error) {
 	panic("implement me")
 }
 
-func (d dummyTermProvider) GetTermChangeEventChannel() chan *term.Term {
-	panic("implement me")
+func (d dummyTermProvider) GetTermChangeEventChannel() chan annsensus.ConsensusContextProvider {
+	return d.termChangeEventChan
 }
 
 type dummyDkgPeerCommunicator struct {

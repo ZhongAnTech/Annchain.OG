@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
@@ -22,7 +21,7 @@ type TermProvider interface {
 	CurrentTerm() (termId uint32)
 	// Peers returns all peers at given term
 	Peers(termId uint32) ([]bft.PeerInfo, error)
-	GetTermChangeEventChannel() chan *term.Term
+	GetTermChangeEventChannel() chan ConsensusContextProvider
 }
 
 type TermHolder interface {

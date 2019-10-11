@@ -99,6 +99,11 @@ func (p *DefaultBftPartner) RegisterConsensusReachedListener(listener ConsensusR
 	p.ConsensusReachedListeners = append(p.ConsensusReachedListeners, listener)
 }
 
+func (p *DefaultBftPartner) Start() {
+	go p.WaiterLoop()
+	go p.EventLoop()
+}
+
 func (p *DefaultBftPartner) Stop() {
 	//quit channal is used by two or more go routines , use close instead of send values to channel
 	close(p.quit)

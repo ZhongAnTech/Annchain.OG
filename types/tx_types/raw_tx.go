@@ -18,6 +18,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/vrf"
+
+	//"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/types"
 	"strings"
 

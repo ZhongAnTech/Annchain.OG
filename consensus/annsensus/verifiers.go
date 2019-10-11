@@ -13,175 +13,176 @@
 // limitations under the License.
 package annsensus
 
-import (
-	"bytes"
-	"github.com/annchain/OG/types/token"
-	"github.com/annchain/OG/types/tx_types"
-	"time"
-
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/kyber/v3/pairing/bn256"
-)
-
-// consensus related verification
-func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
-	if a.disable {
-		log.WithField("t ", t).Warn("annsensus disabled")
-		return true
-	}
-	//check balance
-	if t.TermID <= a.term.ID() {
-		//small term id senstors will be dropped , just verify format and bls keys
-		log.Debug("small term id")
-	} else {
-		if a.GetCandidate(t.Sender()) == nil {
-			log.WithField("candidates ", a.term.Candidates()).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
-			return false
-		}
-	}
-	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
-		log.WithField("len ", len(t.SigSet)).WithField("need ",
-			a.dkg.GetParticipantNumber()).Warn("not eoungh sigsets")
-		return false
-	}
-	signer := crypto.NewSigner(a.cryptoType)
-	for _, sig := range t.SigSet {
-		if sig == nil {
-			log.Warn("nil sig")
-			return false
-		}
-		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
-		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
-			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
-			return false
-		}
-	}
-	log.WithField("tc ", t).Trace("verify ok")
-	return true
-
-}
-
-// consensus related verification
-func (a *AnnSensus) VerifySequencer(seq *tx_types.Sequencer) bool {
-
-	if a.disable {
-		log.WithField("seq ", seq).Debug("annsensus disabled")
-		return true
-	}
-
-	if senator := a.term.GetSenator(seq.Sender()); senator == nil {
-		log.WithField("address ", seq.Issuer.ShortString()).Warn("not found senator for address")
-		return false
-	}
-	if seq.Proposing {
-		log.WithField("hash ", seq).Debug("proposing seq")
-		return true
-	}
-	log.WithField("hash ", seq).Debug("normal seq")
-
-	if !a.term.Started() {
-		if seq.Height > 1 {
-			log.Warn("dkg is not ready yet")
-			return false
-		}
-		//wait 2 second
-		for {
-			select {
-			case <-time.After(50 * time.Millisecond):
-				if a.term.Started() {
-					break
-				}
-			case <-a.close:
-				return false
-			case <-time.After(2 * time.Second):
-				log.Warn("dkg is not ready yet")
-				return false
-			}
-		}
-
-	}
-	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey, a.bft.DKGTermId)
-
-	if !ok {
-		return false
-	}
-	//TODO more consensus verifications
-	return true
-}
-
-// consensus related verification
-func (a *AnnSensus) VerifyCampaign(cp *tx_types.Campaign) bool {
-
-	if a.disable {
-		log.WithField("cp", cp).Warn("annsensus disabled")
-		return true
-	}
-
-	//check balance
-	balance := a.Idag.GetBalance(*cp.Issuer, token.OGTokenID)
-	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
-		log.WithField("addr ", cp.Issuer).Warn("your balance is not enough to generate campaign")
-		return false
-	}
-
-	err := a.VrfVerify(cp.Vrf.Vrf, cp.Vrf.PublicKey, cp.Vrf.Message, cp.Vrf.Proof)
-	if err != nil {
-		log.WithError(err).Debug("vrf verify failed")
-		return false
-	}
-
-	err = cp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
-	if err != nil {
-		log.WithField("cp", cp).WithError(err).Debug("dkg Public key  verify failed")
-		return false
-	}
-	if cp.GetDkgPublicKey() == nil {
-		log.WithField("cp", cp).WithField("data ", cp.PublicKey).Warn("dkgPub is nil")
-		return false
-	}
-	if a.HasCampaign(cp.Sender()) {
-		log.WithField("campaign", cp).Debug("duplicate campaign")
-		//todo  if a node dose not cacht up yet  returning false will cause fail
-		//return false
-	}
-	log.WithField("cp ", cp).Trace("verify ok")
-	return true
-}
-
-func (a *AnnSensus) VerifyRequestedTermChange(t *tx_types.TermChange) bool {
-
-	if a.disable {
-		log.WithField("t ", t).Warn("annsensus disabled")
-		return true
-	}
-
-	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
-		log.WithField("len ", len(t.SigSet)).WithField("need ",
-			a.dkg.GetParticipantNumber()).Warn("not enough sigsets")
-		return false
-	}
-	signer := crypto.NewSigner(a.cryptoType)
-	for _, sig := range t.SigSet {
-		if sig == nil {
-			log.Warn("nil sig")
-			return false
-		}
-		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
-		var ok bool
-		for _, gPk := range a.genesisAccounts {
-			if bytes.Equal(pk.Bytes, gPk.Bytes) {
-				ok = true
-			}
-		}
-		if !ok {
-			log.WithField("pk ", pk).Warn("not a consensus participater")
-			return false
-		}
-		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
-			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
-			return false
-		}
-	}
-	log.WithField("tc", t).Trace("verify ok")
-	return true
-}
+//
+//import (
+//	"bytes"
+//	"github.com/annchain/OG/types/token"
+//	"github.com/annchain/OG/types/tx_types"
+//	"time"
+//
+//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/kyber/v3/pairing/bn256"
+//)
+//
+//// consensus related verification
+//func (a *AnnSensus) VerifyTermChange(t *tx_types.TermChange) bool {
+//	if a.disable {
+//		log.WithField("t ", t).Warn("annsensus disabled")
+//		return true
+//	}
+//	//check balance
+//	if t.TermID <= a.term.ID() {
+//		//small term id senstors will be dropped , just verify format and bls keys
+//		log.Debug("small term id")
+//	} else {
+//		if a.GetCandidate(t.Sender()) == nil {
+//			log.WithField("candidates ", a.term.Candidates()).WithField("addr ", t.Issuer.TerminalString()).Warn("not found campaign for termChange")
+//			return false
+//		}
+//	}
+//	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
+//		log.WithField("len ", len(t.SigSet)).WithField("need ",
+//			a.dkg.GetParticipantNumber()).Warn("not eoungh sigsets")
+//		return false
+//	}
+//	signer := crypto.NewSigner(a.cryptoType)
+//	for _, sig := range t.SigSet {
+//		if sig == nil {
+//			log.Warn("nil sig")
+//			return false
+//		}
+//		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+//		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
+//			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
+//			return false
+//		}
+//	}
+//	log.WithField("tc ", t).Trace("verify ok")
+//	return true
+//
+//}
+//
+//// consensus related verification
+//func (a *AnnSensus) VerifySequencer(seq *tx_types.Sequencer) bool {
+//
+//	if a.disable {
+//		log.WithField("seq ", seq).Debug("annsensus disabled")
+//		return true
+//	}
+//
+//	if senator := a.term.GetSenator(seq.Sender()); senator == nil {
+//		log.WithField("address ", seq.Issuer.ShortString()).Warn("not found senator for address")
+//		return false
+//	}
+//	if seq.Proposing {
+//		log.WithField("hash ", seq).Debug("proposing seq")
+//		return true
+//	}
+//	log.WithField("hash ", seq).Debug("normal seq")
+//
+//	if !a.term.Started() {
+//		if seq.Height > 1 {
+//			log.Warn("dkg is not ready yet")
+//			return false
+//		}
+//		//wait 2 second
+//		for {
+//			select {
+//			case <-time.After(50 * time.Millisecond):
+//				if a.term.Started() {
+//					break
+//				}
+//			case <-a.close:
+//				return false
+//			case <-time.After(2 * time.Second):
+//				log.Warn("dkg is not ready yet")
+//				return false
+//			}
+//		}
+//
+//	}
+//	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey, a.bft.DKGTermId)
+//
+//	if !ok {
+//		return false
+//	}
+//	//TODO more consensus verifications
+//	return true
+//}
+//
+//// consensus related verification
+//func (a *AnnSensus) VerifyCampaign(cp *tx_types.Campaign) bool {
+//
+//	if a.disable {
+//		log.WithField("cp", cp).Warn("annsensus disabled")
+//		return true
+//	}
+//
+//	//check balance
+//	balance := a.Idag.GetBalance(*cp.Issuer, token.OGTokenID)
+//	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {
+//		log.WithField("addr ", cp.Issuer).Warn("your balance is not enough to generate campaign")
+//		return false
+//	}
+//
+//	err := a.VrfVerify(cp.Vrf.Vrf, cp.Vrf.PublicKey, cp.Vrf.Message, cp.Vrf.Proof)
+//	if err != nil {
+//		log.WithError(err).Debug("vrf verify failed")
+//		return false
+//	}
+//
+//	err = cp.UnmarshalDkgKey(bn256.UnmarshalBinaryPointG2)
+//	if err != nil {
+//		log.WithField("cp", cp).WithError(err).Debug("dkg Public key  verify failed")
+//		return false
+//	}
+//	if cp.GetDkgPublicKey() == nil {
+//		log.WithField("cp", cp).WithField("data ", cp.PublicKey).Warn("dkgPub is nil")
+//		return false
+//	}
+//	if a.HasCampaign(cp.Sender()) {
+//		log.WithField("campaign", cp).Debug("duplicate campaign")
+//		//todo  if a node dose not cacht up yet  returning false will cause fail
+//		//return false
+//	}
+//	log.WithField("cp ", cp).Trace("verify ok")
+//	return true
+//}
+//
+//func (a *AnnSensus) VerifyRequestedTermChange(t *tx_types.TermChange) bool {
+//
+//	if a.disable {
+//		log.WithField("t ", t).Warn("annsensus disabled")
+//		return true
+//	}
+//
+//	if len(t.SigSet) < a.dkg.GetParticipantNumber() {
+//		log.WithField("len ", len(t.SigSet)).WithField("need ",
+//			a.dkg.GetParticipantNumber()).Warn("not enough sigsets")
+//		return false
+//	}
+//	signer := crypto.NewSigner(a.cryptoType)
+//	for _, sig := range t.SigSet {
+//		if sig == nil {
+//			log.Warn("nil sig")
+//			return false
+//		}
+//		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+//		var ok bool
+//		for _, gPk := range a.genesisAccounts {
+//			if bytes.Equal(pk.Bytes, gPk.Bytes) {
+//				ok = true
+//			}
+//		}
+//		if !ok {
+//			log.WithField("pk ", pk).Warn("not a consensus participater")
+//			return false
+//		}
+//		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
+//			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
+//			return false
+//		}
+//	}
+//	log.WithField("tc", t).Trace("verify ok")
+//	return true
+//}

@@ -23,8 +23,10 @@ type DefaultAnnsensusPartnerProvider struct {
 }
 
 func NewDefaultAnnsensusPartnerProvider(
-	myAccountProvider account.AccountProvider, proposalGenerator bft.ProposalGenerator,
-	proposalValidator bft.ProposalValidator, decisionMaker bft.DecisionMaker,
+	myAccountProvider account.AccountProvider,
+	proposalGenerator bft.ProposalGenerator,
+	proposalValidator bft.ProposalValidator,
+	decisionMaker bft.DecisionMaker,
 	annsensusCommunicator *AnnsensusCommunicator) *DefaultAnnsensusPartnerProvider {
 	return &DefaultAnnsensusPartnerProvider{
 		myAccountProvider:     myAccountProvider,

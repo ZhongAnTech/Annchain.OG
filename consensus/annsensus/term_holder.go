@@ -21,7 +21,7 @@ func (b *AnnsensusTermHolder) SetTerm(termId uint32, termCollection *TermCollect
 	b.termMap[termId] = termCollection
 }
 
-func NewBftTermHolder(termProvider TermProvider) *AnnsensusTermHolder {
+func NewAnnsensusTermHolder(termProvider TermProvider) *AnnsensusTermHolder {
 	return &AnnsensusTermHolder{
 		termProvider: termProvider,
 		termMap:      make(map[uint32]*TermCollection),

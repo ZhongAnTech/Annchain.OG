@@ -15,9 +15,7 @@ package annsensus_test
 
 import (
 	"github.com/annchain/OG/consensus/annsensus"
-	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/kyber/v3/pairing/bn256"
+	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -61,7 +59,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	nodes := 2
 	accounts := sampleAccounts(nodes)
 
-	suite := bn256.NewSuiteG2()
+	//suite := bn256.NewSuiteG2()
 
 	// build an annsensus
 	config := annsensus.AnnsensusProcessorConfig{
@@ -72,52 +70,45 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		PartnerNum:         nodes,
 	}
 
-	// prepare bft channels
-	var peerChansBft []chan *bft.BftMessage
-	var peerChansDkg []chan *dkg.DkgMessage
+	// prepare message channel for each peer
+	var peerChans []chan p2p_message.Message
 	for i := 0; i < nodes; i++ {
-		peerChansBft = append(peerChansBft, make(chan *bft.BftMessage, 5))
-		peerChansDkg = append(peerChansDkg, make(chan *dkg.DkgMessage, 5))
+		peerChans = append(peerChans, make(chan p2p_message.Message, 5))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor
-	annsensusPartnerProvider := NewDummyAnnsensusPartnerProivder(peerChansBft, peerChansDkg)
 
 	for i := 0; i < nodes; i++ {
 		// init AnnsensusCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 
+		p2pSender := NewDummyP2pSender(i, peerChans[i], peerChans)
+		termProvider := dummyTermProvider{}
+		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
 		annsensusCommunicator := annsensus.NewAnnsensusCommunicator(
-
+			p2pSender,
 			bftAdapter,
 			dkgAdapter,
-
+			termHolder,
 		)
-
+		defaultAnnsensusPartnerProvider := annsensus.NewDefaultAnnsensusPartnerProvider(
+			&dummyAccountProvider{MyAccount: accounts[i]},
+			&dummyProposalGenerator{},
+			&dummyProposalValidator{},
+			&dummyDecisionMaker{},
+			annsensusCommunicator,
+		)
 
 		ann := annsensus.NewAnnsensusProcessor(config,
-			&dummySignatureProvider{},
-			//&dummyContextProvider{
-			//	NbParticipants: nodes,
-			//	NbParts:        nodes,
-			//	Threshold:      nodes,
-			//	MyBftId:        i,
-			//	BlockTime:      time.Second * 100,
-			//	Suite:          suite,
-			//	AllPartPubs:    nil,
-			//	MyPartSec:      dkg.PartSec{},
-			//},
-			&dummyTermProvider{},
+			bftAdapter, dkgAdapter, annsensusCommunicator, termHolder,
+			defaultAnnsensusPartnerProvider,
+			defaultAnnsensusPartnerProvider,
 		)
 		aps = append(aps, ann)
-		// start two communicators
-		go commuicatorBft.Run()
-		go commuicatorDkg.Run()
 	}
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
-		// TODO: how to start?
 
 	}
 }

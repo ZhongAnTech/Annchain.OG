@@ -1,8 +1,8 @@
 package annsensus_test
 
 import (
-	"crypto"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
@@ -176,6 +176,11 @@ func (d dummyDecisionMaker) MakeDecision(proposal bft.Proposal, state *bft.Heigh
 }
 
 type dummyTermProvider struct {
+	termChangeEventChan chan *term.Term
+}
+
+func NewDummyTermProvider() *dummyTermProvider {
+	return &dummyTermProvider{termChangeEventChan: make(chan *term.Term)}
 }
 
 func (d dummyTermProvider) HeightTerm(height uint64) (termId uint32) {
@@ -321,6 +326,7 @@ func (d *dummyP2pSender) SendToPeer(messageType message.OGMessageType, msg p2p_m
 		return err
 	}
 	ffchan.NewTimeoutSenderShort(d.Peers[iPeerId], msg, "dkg")
+	return nil
 }
 
 func NewDummyP2pSender(myid int, incoming chan p2p_message.Message, peers []chan p2p_message.Message) *dummyP2pSender {

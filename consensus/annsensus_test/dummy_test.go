@@ -75,10 +75,3 @@ func (d *DummyDag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 func (d *DummyDag) GetBalance(addr common.Address, tokenId int32) *math.BigInt {
 	return math.NewBigInt(100000)
 }
-
-type DummyTermProvider struct {
-}
-
-func (DummyTermProvider) CurrentDkgTerm() uint32 {
-	return 1
-}

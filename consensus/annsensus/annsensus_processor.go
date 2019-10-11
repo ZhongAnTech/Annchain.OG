@@ -6,8 +6,6 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
-	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/communicator"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -57,6 +55,20 @@ type AnnsensusProcessor struct {
 	dkgAdapter            DkgMessageAdapter      // message handlers in common. Injected into commuinicator
 	annsensusCommunicator *AnnsensusCommunicator // interface to the p2p
 	termHolder            TermHolder             // hold information for each term
+	bftPartnerProvider    BftPartnerProvider     // factory method to generate a bft partner for each term
+	dkgPartnerProvider    DkgPartnerProvider     // factory method to generate a dkg partner for each term
+
+}
+
+func NewAnnsensusProcessor(
+	config AnnsensusProcessorConfig,
+	bftAdapter BftMessageAdapter,
+	dkgAdapter DkgMessageAdapter,
+	annsensusCommunicator *AnnsensusCommunicator,
+	termHolder TermHolder,
+	bftPartnerProvider BftPartnerProvider,
+	dkgPartnerProvider DkgPartnerProvider) *AnnsensusProcessor {
+	return &AnnsensusProcessor{config: config, bftAdapter: bftAdapter, dkgAdapter: dkgAdapter, annsensusCommunicator: annsensusCommunicator, termHolder: termHolder, bftPartnerProvider: bftPartnerProvider, dkgPartnerProvider: dkgPartnerProvider}
 }
 
 type AnnsensusProcessorConfig struct {
@@ -84,51 +96,59 @@ func checkConfig(config AnnsensusProcessorConfig) {
 	}
 }
 
-func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
-	signatureProvider account.SignatureProvider,
-	termProvider TermProvider,
-	p2pSender communicator.P2PSender,
-) *AnnsensusProcessor {
-	// Prepare common facilities that will be reused during each term
-	// Prepare adapters
-	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
-	dkgAdapter := NewTrustfulDkgAdapter()
-	termHolder := NewBftTermHolder(termProvider)
-	// Prepare annsensus communicator
-	annsensusCommunicator := NewAnnsensusCommunicator(p2pSender, bftAdapter, dkgAdapter, termHolder)
+//func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
+//	signatureProvider account.SignatureProvider,
+//	termProvider TermProvider,
+//	annsensusCommunicator *AnnsensusCommunicator,
+//) *AnnsensusProcessor {
+//	// Prepare common facilities that will be reused during each term
+//	// Prepare adapters
+//	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
+//	dkgAdapter := NewTrustfulDkgAdapter()
+//	termHolder := NewAnnsensusTermHolder(termProvider)
+//
+//	// Prepare process itself.
+//	ap := &AnnsensusProcessor{
+//		config:                config,
+//		bftAdapter:            bftAdapter,
+//		dkgAdapter:            dkgAdapter,
+//		annsensusCommunicator: annsensusCommunicator,
+//		termHolder:            termHolder,
+//	}
+//	return ap
+//}
 
-	// Prepare process itself.
-	ap := &AnnsensusProcessor{
-		config:                config,
-		bftAdapter:            bftAdapter,
-		dkgAdapter:            dkgAdapter,
-		annsensusCommunicator: annsensusCommunicator,
-		termHolder:            termHolder,
-	}
-	return ap
-}
-
+// Start makes AnnsensusProcessor receive and handle consensus messages.
 func (ap *AnnsensusProcessor) Start() {
 	if ap.config.DisabledConsensus {
 		log.Warn("annsensus disabled")
 		return
 	}
+	// start the receiver
 	go ap.annsensusCommunicator.Run()
+
 	log.Info("AnnSensus Started")
 }
 
 // buildTerm collects information from the info provider, to start a new term
 func (ap *AnnsensusProcessor) buildTerm(termId uint32) *term.Term {
-	term := term.NewTerm(termId)
+	//TODO
+	t := term.NewTerm(termId, 0, 0)
+	return t
 }
 
-func (ap *AnnsensusProcessor) StartNewTerm(termId uint32, context ConsensusContextProvider) error {
-	// build a new Term
+func (ap *AnnsensusProcessor) StartNewTerm(termId uint32, context ConsensusContextProvider) error { // build a new Term
 	// may need lots of information to build this term
 	newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
+	bftPartner := ap.bftPartnerProvider.GetBftPartnerInstance(context)
+	dkgPartner, err := ap.dkgPartnerProvider.GetDkgPartnerInstance(context)
+	if err != nil {
+		return err
+	}
+
 	tc := NewTermCollection(newTerm, bftPartner, dkgPartner)
 	ap.termHolder.SetTerm(termId, tc)
 	return nil

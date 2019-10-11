@@ -25,7 +25,7 @@ func (z *DkgBasicInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.TermId, err = dc.ReadUint64()
+			z.TermId, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "TermId")
 				return
@@ -49,7 +49,7 @@ func (z DkgBasicInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.TermId)
+	err = en.WriteUint32(z.TermId)
 	if err != nil {
 		err = msgp.WrapError(err, "TermId")
 		return
@@ -63,7 +63,7 @@ func (z DkgBasicInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 1
 	// string "TermId"
 	o = append(o, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.TermId)
+	o = msgp.AppendUint32(o, z.TermId)
 	return
 }
 
@@ -86,7 +86,7 @@ func (z *DkgBasicInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			z.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "TermId")
 				return
@@ -105,7 +105,7 @@ func (z *DkgBasicInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z DkgBasicInfo) Msgsize() (s int) {
-	s = 1 + 7 + msgp.Uint64Size
+	s = 1 + 7 + msgp.Uint32Size
 	return
 }
 
@@ -289,7 +289,7 @@ func (z *MessageDkgDeal) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			z.DkgBasicInfo.TermId, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -319,7 +319,7 @@ func (z *MessageDkgDeal) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	err = en.WriteUint32(z.DkgBasicInfo.TermId)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
@@ -339,7 +339,7 @@ func (z *MessageDkgDeal) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 1
 	// string "TermId"
 	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
+	o = msgp.AppendUint32(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.Data)
 	return
 }
@@ -373,7 +373,7 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -397,7 +397,7 @@ func (z *MessageDkgDeal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgDeal) Msgsize() (s int) {
-	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.Data)
+	s = 1 + 1 + 7 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 
@@ -430,7 +430,7 @@ func (z *MessageDkgDealResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			z.DkgBasicInfo.TermId, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -460,7 +460,7 @@ func (z *MessageDkgDealResponse) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	err = en.WriteUint32(z.DkgBasicInfo.TermId)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
@@ -480,7 +480,7 @@ func (z *MessageDkgDealResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 1
 	// string "TermId"
 	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
+	o = msgp.AppendUint32(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.Data)
 	return
 }
@@ -514,7 +514,7 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -538,7 +538,7 @@ func (z *MessageDkgDealResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgDealResponse) Msgsize() (s int) {
-	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.Data)
+	s = 1 + 1 + 7 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.Data)
 	return
 }
 
@@ -571,7 +571,7 @@ func (z *MessageDkgGenesisPublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			z.DkgBasicInfo.TermId, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -601,7 +601,7 @@ func (z *MessageDkgGenesisPublicKey) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	err = en.WriteUint32(z.DkgBasicInfo.TermId)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
@@ -621,7 +621,7 @@ func (z *MessageDkgGenesisPublicKey) MarshalMsg(b []byte) (o []byte, err error) 
 	// map header, size 1
 	// string "TermId"
 	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
+	o = msgp.AppendUint32(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.DkgPublicKey)
 	return
 }
@@ -655,7 +655,7 @@ func (z *MessageDkgGenesisPublicKey) UnmarshalMsg(bts []byte) (o []byte, err err
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -679,7 +679,7 @@ func (z *MessageDkgGenesisPublicKey) UnmarshalMsg(bts []byte) (o []byte, err err
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgGenesisPublicKey) Msgsize() (s int) {
-	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.DkgPublicKey)
+	s = 1 + 1 + 7 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.DkgPublicKey)
 	return
 }
 
@@ -712,7 +712,7 @@ func (z *MessageDkgSigSets) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, err = dc.ReadUint64()
+			z.DkgBasicInfo.TermId, err = dc.ReadUint32()
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -742,7 +742,7 @@ func (z *MessageDkgSigSets) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint64(z.DkgBasicInfo.TermId)
+	err = en.WriteUint32(z.DkgBasicInfo.TermId)
 	if err != nil {
 		err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 		return
@@ -762,7 +762,7 @@ func (z *MessageDkgSigSets) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 1
 	// string "TermId"
 	o = append(o, 0x92, 0x81, 0xa6, 0x54, 0x65, 0x72, 0x6d, 0x49, 0x64)
-	o = msgp.AppendUint64(o, z.DkgBasicInfo.TermId)
+	o = msgp.AppendUint32(o, z.DkgBasicInfo.TermId)
 	o = msgp.AppendBytes(o, z.PkBls)
 	return
 }
@@ -796,7 +796,7 @@ func (z *MessageDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "TermId":
-			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint64Bytes(bts)
+			z.DkgBasicInfo.TermId, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "DkgBasicInfo", "TermId")
 				return
@@ -820,6 +820,6 @@ func (z *MessageDkgSigSets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageDkgSigSets) Msgsize() (s int) {
-	s = 1 + 1 + 7 + msgp.Uint64Size + msgp.BytesPrefixSize + len(z.PkBls)
+	s = 1 + 1 + 7 + msgp.Uint32Size + msgp.BytesPrefixSize + len(z.PkBls)
 	return
 }

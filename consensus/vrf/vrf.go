@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/poc/vrf"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -104,12 +103,12 @@ func (as *Vrf) VerifyVrfData(data []byte) error {
 	}
 	//todo need more condition
 
-	shouldVD, _ := as.GetProofData(vd.Height)
-
-	if shouldVD == nil || *shouldVD != vd {
-		logrus.WithField("vrf data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
-		return fmt.Errorf("vfr data mismatch")
-	}
+	//shouldVD, _ := as.GetProofData(vd.Height)
+	//
+	//if shouldVD == nil || *shouldVD != vd {
+	//	logrus.WithField("vrf data ", vd).WithField("want ", shouldVD).Debug("vrf data mismatch")
+	//	return fmt.Errorf("vfr data mismatch")
+	//}
 	return nil
 }
 

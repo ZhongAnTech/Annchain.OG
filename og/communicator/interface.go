@@ -7,9 +7,9 @@ import (
 )
 
 type P2PSender interface {
-	BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message)
-	AnonymousSendMessage(messageType message.OGMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey)
-	SendToPeer(messageType message.OGMessageType, msg p2p_message.Message, peerId string) error
+	BroadcastMessage(messageType message.BinaryMessageType, message p2p_message.BinaryMessage)
+	AnonymousSendMessage(messageType message.BinaryMessageType, msg p2p_message.BinaryMessage, anonymousPubKey *crypto.PublicKey)
+	SendToPeer(messageType message.BinaryMessageType, msg p2p_message.BinaryMessage, peerId string) error
 }
 
 // P2PReceiver provides a channel for consumer to receive messages from p2p

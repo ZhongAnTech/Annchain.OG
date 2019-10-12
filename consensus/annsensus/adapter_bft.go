@@ -43,14 +43,14 @@ func (r *TrustfulBftAdapter) Sign(msg *bft.BftMessage) message.SignedOgPartnerMe
 //func (r *TrustfulBftAdapter) Broadcast(msg *bft.BftMessage, peers []bft.PeerInfo) {
 //	signed := r.Sign(msg)
 //	for _, peer := range peers {
-//		r.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
+//		r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //	}
 //}
 //
 //// Unicast must be anonymous
 //func (r *TrustfulBftAdapter) Unicast(msg *bft.BftMessage, peer bft.PeerInfo) {
 //	signed := r.Sign(msg)
-//	r.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), &signed, &peer.PublicKey)
+//	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
 
 func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *message.SignedOgPartnerMessage) error {

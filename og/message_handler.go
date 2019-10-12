@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
@@ -86,7 +87,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_message.MessageSyncRequest, peerId string) {
-	var txs tx_types.TxisMarshaler
+	var txs protocol_message.TxisMarshaler
 	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
@@ -337,7 +338,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageTxsResponse) {
-	var rawTxs tx_types.TxisMarshaler
+	var rawTxs protocol_message.TxisMarshaler
 	var txis types.Txis
 	if request.RawTxs != nil {
 		rawTxs = *request.RawTxs

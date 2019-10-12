@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 	"math/rand"
@@ -104,21 +105,21 @@ func (as Archives) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (a *Archive) RawArchive() *RawArchive {
+func (a *Archive) RawArchive() *protocol_message.RawArchive {
 	if a == nil {
 		return nil
 	}
-	ra := RawArchive{
+	ra := protocol_message.RawArchive{
 		Archive: *a,
 	}
 	return &ra
 }
 
-func (cs Archives) RawArchives() RawArchives {
+func (cs Archives) RawArchives() protocol_message.RawArchives {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawCps RawArchives
+	var rawCps protocol_message.RawArchives
 	for _, v := range cs {
 		rasSeq := v.RawArchive()
 		rawCps = append(rawCps, rasSeq)

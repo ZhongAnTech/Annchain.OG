@@ -11,13 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package tx_types
+package protocol_message
 
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/vrf"
+	"github.com/annchain/OG/types/tx_types"
 
 	//"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/types"
@@ -42,7 +43,7 @@ type RawTx struct {
 type RawActionTx struct {
 	types.TxBase
 	Action     uint8
-	ActionData ActionData
+	ActionData tx_types.ActionData
 }
 
 //msgp:tuple RawSequencer
@@ -65,12 +66,12 @@ type RawTermChange struct {
 	types.TxBase
 	TermId uint64
 	PkBls  []byte
-	SigSet []*SigSet
+	SigSet []*tx_types.SigSet
 }
 
 //msgp:tuple RawArchive
 type RawArchive struct {
-	Archive
+	tx_types.Archive
 }
 
 //msgp:tuple RawArchive
@@ -91,11 +92,11 @@ type RawActionTxs []*RawActionTx
 //msgp:tuple RawTxs
 type RawTxs []*RawTx
 
-func (t *RawTx) Tx() *Tx {
+func (t *RawTx) Tx() *tx_types.Tx {
 	if t == nil {
 		return nil
 	}
-	tx := &Tx{
+	tx := &tx_types.Tx{
 		TxBase:  t.TxBase,
 		To:      t.To,
 		Value:   t.Value,
@@ -108,11 +109,11 @@ func (t *RawTx) Tx() *Tx {
 	return tx
 }
 
-func (t *RawSequencer) Sequencer() *Sequencer {
+func (t *RawSequencer) Sequencer() *tx_types.Sequencer {
 	if t == nil {
 		return nil
 	}
-	tx := &Sequencer{
+	tx := &tx_types.Sequencer{
 		TxBase:         t.TxBase,
 		BlsJointPubKey: t.BlsJointPubKey,
 		BlsJointSig:    t.BlsJointSig,
@@ -125,14 +126,14 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 	return tx
 }
 
-func (t *RawActionTx) ActionTx() *ActionTx {
+func (t *RawActionTx) ActionTx() *tx_types.ActionTx {
 	if t == nil {
 		return nil
 	}
 	if t == nil {
 		return nil
 	}
-	tx := &ActionTx{
+	tx := &tx_types.ActionTx{
 		TxBase:     t.TxBase,
 		Action:     t.Action,
 		ActionData: t.ActionData,
@@ -165,11 +166,11 @@ func (t *RawCampaign) String() string {
 	return fmt.Sprintf("%s-%d_%d-RawCP", t.TxBase.String(), t.AccountNonce, t.Height)
 }
 
-func (r RawTxs) Txs() Txs {
+func (r RawTxs) Txs() tx_types.Txs {
 	if len(r) == 0 {
 		return nil
 	}
-	var txs Txs
+	var txs tx_types.Txs
 	for _, v := range r {
 		tx := v.Tx()
 		txs = append(txs, tx)
@@ -189,11 +190,11 @@ func (r RawTxs) Txis() types.Txis {
 	return txis
 }
 
-func (r RawSequencers) Sequencers() Sequencers {
+func (r RawSequencers) Sequencers() tx_types.Sequencers {
 	if len(r) == 0 {
 		return nil
 	}
-	var seqs Sequencers
+	var seqs tx_types.Sequencers
 	for _, v := range r {
 		seq := v.Sequencer()
 		seqs = append(seqs, seq)
@@ -213,13 +214,13 @@ func (r RawSequencers) Txis() types.Txis {
 	return txis
 }
 
-func (seqs RawSequencers) ToHeaders() SequencerHeaders {
+func (seqs RawSequencers) ToHeaders() tx_types.SequencerHeaders {
 	if len(seqs) == 0 {
 		return nil
 	}
-	var headers SequencerHeaders
+	var headers tx_types.SequencerHeaders
 	for _, v := range seqs {
-		head := NewSequencerHead(v.Hash, v.Height)
+		head := tx_types.NewSequencerHead(v.Hash, v.Height)
 		headers = append(headers, head)
 	}
 	return headers
@@ -241,11 +242,11 @@ func (r RawSequencers) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (rc *RawCampaign) Campaign() *Campaign {
+func (rc *RawCampaign) Campaign() *tx_types.Campaign {
 	if rc == nil {
 		return nil
 	}
-	cp := &Campaign{
+	cp := &tx_types.Campaign{
 		TxBase:       rc.TxBase,
 		DkgPublicKey: rc.DkgPublicKey,
 		Vrf:          rc.Vrf,
@@ -257,11 +258,11 @@ func (rc *RawCampaign) Campaign() *Campaign {
 	return cp
 }
 
-func (r *RawTermChange) TermChange() *TermChange {
+func (r *RawTermChange) TermChange() *tx_types.TermChange {
 	if r == nil {
 		return nil
 	}
-	t := &TermChange{
+	t := &tx_types.TermChange{
 		TxBase: r.TxBase,
 		PkBls:  r.PkBls,
 		SigSet: r.SigSet,
@@ -274,11 +275,11 @@ func (r *RawTermChange) TermChange() *TermChange {
 	return t
 }
 
-func (r RawCampaigns) Campaigns() Campaigns {
+func (r RawCampaigns) Campaigns() tx_types.Campaigns {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs Campaigns
+	var cs tx_types.Campaigns
 	for _, v := range r {
 		c := v.Campaign()
 		cs = append(cs, c)
@@ -286,11 +287,11 @@ func (r RawCampaigns) Campaigns() Campaigns {
 	return cs
 }
 
-func (r RawTermChanges) TermChanges() TermChanges {
+func (r RawTermChanges) TermChanges() tx_types.TermChanges {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs TermChanges
+	var cs tx_types.TermChanges
 	for _, v := range r {
 		c := v.TermChange()
 		cs = append(cs, c)
@@ -366,42 +367,7 @@ func (r *RawTermChanges) Len() int {
 	return len(*r)
 }
 
-func (r *Txs) Len() int {
-	if r == nil {
-		return 0
-	}
-	return len(*r)
-}
-
-func (r *Campaigns) Len() int {
-	if r == nil {
-		return 0
-	}
-	return len(*r)
-}
-
-func (r *TermChanges) Len() int {
-	if r == nil {
-		return 0
-	}
-	return len(*r)
-}
-
-func (r *Sequencers) Len() int {
-	if r == nil {
-		return 0
-	}
-	return len(*r)
-}
-
-func (r *ActionTxs) Len() int {
-	if r == nil {
-		return 0
-	}
-	return len(*r)
-}
-
-type TxisMarshaler []*RawTxMarshaler
+type TxisMarshaler []*tx_types.RawTxMarshaler
 
 func (t *TxisMarshaler) Append(tx types.Txi) {
 	if tx == nil {
@@ -411,7 +377,7 @@ func (t *TxisMarshaler) Append(tx types.Txi) {
 	if raw == nil {
 		return
 	}
-	m := RawTxMarshaler{raw}
+	m := tx_types.RawTxMarshaler{raw}
 	if t == nil {
 		panic("t is nil ")
 	}

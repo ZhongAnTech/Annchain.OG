@@ -284,24 +284,24 @@ func (m *MessageRouter) RouteTermChangeResponse(msg *OGMessage) {
 }
 
 // BroadcastMessage send Message to all peers
-func (m *MessageRouter) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessage(messageType message.BinaryMessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessage(messageType, message)
 }
 
 // MulticastMessage send Message to a randomly chosen peer
-func (m *MessageRouter) MulticastMessage(messageType message.OGMessageType, message p2p_message.Message) {
+func (m *MessageRouter) MulticastMessage(messageType message.BinaryMessageType, message p2p_message.Message) {
 	m.Hub.MulticastMessage(messageType, message)
 }
 
-func (m *MessageRouter) MulticastToSource(messageType message.OGMessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
+func (m *MessageRouter) MulticastToSource(messageType message.BinaryMessageType, message p2p_message.Message, sourceMsgHash *common.Hash) {
 	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 }
 
-func (m *MessageRouter) BroadcastMessageWithLink(messageType message.OGMessageType, message p2p_message.Message) {
+func (m *MessageRouter) BroadcastMessageWithLink(messageType message.BinaryMessageType, message p2p_message.Message) {
 	m.Hub.BroadcastMessageWithLink(messageType, message)
 }
 
-func (m *MessageRouter) SendToPeer(peerId string, messageType message.OGMessageType, msg p2p_message.Message) {
+func (m *MessageRouter) SendToPeer(peerId string, messageType message.BinaryMessageType, msg p2p_message.Message) {
 	err := m.Hub.SendToPeer(peerId, messageType, msg)
 	if err != nil {
 		message.msgLog.WithError(err).Warn("send failed")

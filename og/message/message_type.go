@@ -32,71 +32,6 @@ import (
 //global msg counter , generate global msg request id
 var MsgCounter *MessageCounter
 
-type OGMessageType uint16
-
-// og protocol message codes
-// TODO: use MessageTypeManager to manage global messages
-// basic messages ids range from [0, 100)
-// bft consensus: [100, 200)
-// dkg: [200, 300)
-const (
-	// Protocol messages belonging to OG/01
-	StatusMsg OGMessageType = iota + 0
-	MessageTypePing
-	MessageTypePong
-	MessageTypeFetchByHashRequest
-	MessageTypeFetchByHashResponse
-	MessageTypeNewTx
-	MessageTypeNewSequencer
-	MessageTypeNewTxs
-	MessageTypeSequencerHeader
-
-	MessageTypeBodiesRequest
-	MessageTypeBodiesResponse
-
-	MessageTypeTxsRequest
-	MessageTypeTxsResponse
-	MessageTypeHeaderRequest
-	MessageTypeHeaderResponse
-
-	//for optimizing network
-	MessageTypeGetMsg
-	MessageTypeDuplicate
-	MessageTypeControl
-
-	//for consensus
-	MessageTypeCampaign
-	MessageTypeTermChange
-
-	MessageTypeArchive
-	MessageTypeActionTX
-
-	//move to dkg package
-	//MessageTypeConsensusDkgDeal
-	//MessageTypeConsensusDkgDealResponse
-	//MessageTypeConsensusDkgSigSets
-	//MessageTypeConsensusDkgGenesisPublicKey
-
-	MessageTypeTermChangeRequest
-	MessageTypeTermChangeResponse
-
-	MessageTypeSecret //encrypted message
-
-	// move to bft package
-	//MessageTypeProposal
-	//MessageTypePreVote
-	//MessageTypePreCommit
-
-	MessageTypeOg01Length //og01 length
-
-	// Protocol messages belonging to og/02
-
-	GetNodeDataMsg
-	NodeDataMsg
-	GetReceiptsMsg
-	MessageTypeOg02Length
-)
-
 type SendingType uint8
 
 const (
@@ -107,14 +42,14 @@ const (
 	SendingTypeBroacastWithLink
 )
 
-func (mt OGMessageType) IsValid() bool {
+func (mt BinaryMessageType) IsValid() bool {
 	if mt >= MessageTypeOg02Length {
 		return false
 	}
 	return true
 }
 
-func (mt OGMessageType) String() string {
+func (mt BinaryMessageType) String() string {
 	switch mt {
 	case StatusMsg:
 		return "StatusMsg"
@@ -206,7 +141,7 @@ func (mt OGMessageType) String() string {
 	}
 }
 
-func (mt OGMessageType) Code() p2p.MsgCodeType {
+func (mt BinaryMessageType) Code() p2p.MsgCodeType {
 	return p2p.MsgCodeType(mt)
 }
 
@@ -232,11 +167,11 @@ type MsgKey struct {
 	data [common.HashLength + 2]byte
 }
 
-func (k MsgKey) GetType() (OGMessageType, error) {
+func (k MsgKey) GetType() (BinaryMessageType, error) {
 	if len(k.data) != common.HashLength+2 {
 		return 0, errors.New("size err")
 	}
-	return OGMessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
+	return BinaryMessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
 }
 
 func (k MsgKey) GetHash() (common.Hash, error) {
@@ -246,7 +181,7 @@ func (k MsgKey) GetHash() (common.Hash, error) {
 	return common.BytesToHash(k.data[2:]), nil
 }
 
-func NewMsgKey(m OGMessageType, hash common.Hash) MsgKey {
+func NewMsgKey(m BinaryMessageType, hash common.Hash) MsgKey {
 	var key MsgKey
 	b := make([]byte, 2)
 	//use one key for tx and sequencer
@@ -259,7 +194,7 @@ func NewMsgKey(m OGMessageType, hash common.Hash) MsgKey {
 	return key
 }
 
-func (m OGMessageType) GetMsg() p2p_message.Message {
+func (m BinaryMessageType) GetMsg() p2p_message.Message {
 	var message p2p_message.Message
 	switch m {
 	case MessageTypeNewTx:

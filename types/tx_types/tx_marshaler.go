@@ -17,6 +17,7 @@ package tx_types
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"github.com/tinylib/msgp/msgp"
 )
@@ -36,7 +37,7 @@ func (t *RawTxMarshaler) MarshalMsg(b []byte) (o []byte, err error) {
 	binary.BigEndian.PutUint16(head, uint16(t.GetType()))
 	b = append(b, head...)
 	if t.GetType() == types.TxBaseAction {
-		r := t.RawTxi.(*RawActionTx)
+		r := t.RawTxi.(*protocol_message.RawActionTx)
 		b = append(b, r.Action)
 	}
 	return t.RawTxi.MarshalMsg(b)
@@ -49,17 +50,17 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	tp := binary.BigEndian.Uint16(bts)
 	switch types.TxBaseType(tp) {
 	case types.TxBaseTypeNormal:
-		t.RawTxi = &RawTx{TxBase: types.TxBase{Type: types.TxBaseTypeNormal}}
+		t.RawTxi = &protocol_message.RawTx{TxBase: types.TxBase{Type: types.TxBaseTypeNormal}}
 	case types.TxBaseTypeCampaign:
-		t.RawTxi = &RawCampaign{TxBase: types.TxBase{Type: types.TxBaseTypeCampaign}}
+		t.RawTxi = &protocol_message.RawCampaign{TxBase: types.TxBase{Type: types.TxBaseTypeCampaign}}
 	case types.TxBaseTypeTermChange:
-		t.RawTxi = &RawTermChange{TxBase: types.TxBase{Type: types.TxBaseTypeTermChange}}
+		t.RawTxi = &protocol_message.RawTermChange{TxBase: types.TxBase{Type: types.TxBaseTypeTermChange}}
 	case types.TxBaseTypeSequencer:
-		t.RawTxi = &RawSequencer{TxBase: types.TxBase{Type: types.TxBaseTypeSequencer}}
+		t.RawTxi = &protocol_message.RawSequencer{TxBase: types.TxBase{Type: types.TxBaseTypeSequencer}}
 	case types.TxBaseTypeArchive:
-		t.RawTxi = &RawArchive{Archive: Archive{TxBase: types.TxBase{Type: types.TxBaseTypeArchive}}}
+		t.RawTxi = &protocol_message.RawArchive{Archive: Archive{TxBase: types.TxBase{Type: types.TxBaseTypeArchive}}}
 	case types.TxBaseAction:
-		rawTx := &RawActionTx{TxBase: types.TxBase{Type: types.TxBaseAction}}
+		rawTx := &protocol_message.RawActionTx{TxBase: types.TxBase{Type: types.TxBaseAction}}
 		action := bts[3]
 		if action == ActionRequestDomainName {
 			rawTx.ActionData = &RequestDomain{}
@@ -95,17 +96,17 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 	tp := binary.BigEndian.Uint16(head)
 	switch types.TxBaseType(tp) {
 	case types.TxBaseTypeNormal:
-		t.RawTxi = &RawTx{TxBase: types.TxBase{Type: types.TxBaseTypeNormal}}
+		t.RawTxi = &protocol_message.RawTx{TxBase: types.TxBase{Type: types.TxBaseTypeNormal}}
 	case types.TxBaseTypeCampaign:
-		t.RawTxi = &RawCampaign{TxBase: types.TxBase{Type: types.TxBaseTypeCampaign}}
+		t.RawTxi = &protocol_message.RawCampaign{TxBase: types.TxBase{Type: types.TxBaseTypeCampaign}}
 	case types.TxBaseTypeTermChange:
-		t.RawTxi = &RawTermChange{TxBase: types.TxBase{Type: types.TxBaseTypeTermChange}}
+		t.RawTxi = &protocol_message.RawTermChange{TxBase: types.TxBase{Type: types.TxBaseTypeTermChange}}
 	case types.TxBaseTypeSequencer:
-		t.RawTxi = &RawSequencer{TxBase: types.TxBase{Type: types.TxBaseTypeSequencer}}
+		t.RawTxi = &protocol_message.RawSequencer{TxBase: types.TxBase{Type: types.TxBaseTypeSequencer}}
 	case types.TxBaseTypeArchive:
-		t.RawTxi = &RawArchive{Archive: Archive{TxBase: types.TxBase{Type: types.TxBaseTypeArchive}}}
+		t.RawTxi = &protocol_message.RawArchive{Archive: Archive{TxBase: types.TxBase{Type: types.TxBaseTypeArchive}}}
 	case types.TxBaseAction:
-		rawTx := &RawActionTx{TxBase: types.TxBase{Type: types.TxBaseAction}}
+		rawTx := &protocol_message.RawActionTx{TxBase: types.TxBase{Type: types.TxBaseAction}}
 		head := make([]byte, 1)
 		_, err := dc.ReadFull(head)
 		if err != nil {
@@ -141,7 +142,7 @@ func (t *RawTxMarshaler) EncodeMsg(en *msgp.Writer) (err error) {
 		return err
 	}
 	if t.GetType() == types.TxBaseAction {
-		r := t.RawTxi.(*RawActionTx)
+		r := t.RawTxi.(*protocol_message.RawActionTx)
 		err = en.WriteByte(r.Action)
 	}
 	if err != nil {
@@ -155,25 +156,25 @@ func (t *RawTxMarshaler) Txi() types.Txi {
 		return nil
 	}
 	switch raw := t.RawTxi.(type) {
-	case *RawTx:
+	case *protocol_message.RawTx:
 		return raw.Tx()
-	case *RawSequencer:
+	case *protocol_message.RawSequencer:
 		return raw.Sequencer()
-	case *RawCampaign:
+	case *protocol_message.RawCampaign:
 		return raw.Campaign()
-	case *RawTermChange:
+	case *protocol_message.RawTermChange:
 		return raw.TermChange()
-	case *RawArchive:
+	case *protocol_message.RawArchive:
 		return &raw.Archive
-	case *RawActionTx:
+	case *protocol_message.RawActionTx:
 		return raw.ActionTx()
 	default:
 		return nil
 	}
 }
 
-func NewTxisMarshaler(t types.Txis) TxisMarshaler {
-	var txs TxisMarshaler
+func NewTxisMarshaler(t types.Txis) protocol_message.TxisMarshaler {
+	var txs protocol_message.TxisMarshaler
 	for _, tx := range t {
 		txs.Append(tx)
 	}

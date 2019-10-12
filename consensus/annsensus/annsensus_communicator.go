@@ -57,11 +57,11 @@ func (r *AnnsensusCommunicator) Run() {
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
 func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) {
 	switch msg.MessageType {
-	case message.OGMessageType(bft.BftMessageTypeProposal):
+	case message.BinaryMessageType(bft.BftMessageTypeProposal):
 		fallthrough
-	case message.OGMessageType(bft.BftMessageTypePreVote):
+	case message.BinaryMessageType(bft.BftMessageTypePreVote):
 		fallthrough
-	case message.OGMessageType(bft.BftMessageTypePreCommit):
+	case message.BinaryMessageType(bft.BftMessageTypePreCommit):
 		bftMessage, err := ap.bftMessageAdapter.AdaptOgMessage(msg.Message)
 		if err != nil {
 			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
@@ -74,13 +74,13 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 		}
 		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- &bftMessage
 		break
-	case message.OGMessageType(dkg.DkgMessageTypeDeal):
+	case message.BinaryMessageType(dkg.DkgMessageTypeDeal):
 		fallthrough
-	case message.OGMessageType(dkg.DkgMessageTypeDealResponse):
+	case message.BinaryMessageType(dkg.DkgMessageTypeDealResponse):
 		fallthrough
-	case message.OGMessageType(dkg.DkgMessageTypeSigSets):
+	case message.BinaryMessageType(dkg.DkgMessageTypeSigSets):
 		fallthrough
-	case message.OGMessageType(dkg.DkgMessageTypeGenesisPublicKey):
+	case message.BinaryMessageType(dkg.DkgMessageTypeGenesisPublicKey):
 		dkgMessage, err := ap.dkgMessageAdapter.AdaptOgMessage(msg.Message)
 		if err != nil {
 			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
@@ -104,7 +104,7 @@ func (ap *AnnsensusCommunicator) BroadcastBft(msg *bft.BftMessage, peers []bft.P
 	}
 
 	for _, peer := range peers {
-		ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), signed, &peer.PublicKey)
+		ap.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), signed, &peer.PublicKey)
 	}
 }
 
@@ -114,7 +114,7 @@ func (ap *AnnsensusCommunicator) UnicastBft(msg *bft.BftMessage, peer bft.PeerIn
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
-	ap.p2pSender.AnonymousSendMessage(message.OGMessageType(msg.Type), signed, &peer.PublicKey)
+	ap.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), signed, &peer.PublicKey)
 }
 
 func (ap *AnnsensusCommunicator) BroadcastDkg(msg *dkg.DkgMessage, peers []dkg.PeerInfo) {

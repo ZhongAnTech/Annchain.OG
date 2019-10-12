@@ -177,7 +177,7 @@ func (p *peer) SetHead(hash common.Hash, seqId uint64) {
 
 // MarkMessage marks a Message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkMessage(m message.OGMessageType, hash common.Hash) {
+func (p *peer) MarkMessage(m message.BinaryMessageType, hash common.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction Hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
@@ -189,7 +189,7 @@ func (p *peer) MarkMessage(m message.OGMessageType, hash common.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction Hash set for future reference.
 func (p *peer) SendMessages(messages []*message.OGMessage) error {
-	var msgType message.OGMessageType
+	var msgType message.BinaryMessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
 		return nil
@@ -204,7 +204,7 @@ func (p *peer) SendMessages(messages []*message.OGMessage) error {
 	return p.sendRawMessage(msgType, msgBytes)
 }
 
-func (p *peer) sendRawMessage(msgType message.OGMessageType, msgBytes []byte) error {
+func (p *peer) sendRawMessage(msgType message.BinaryMessageType, msgBytes []byte) error {
 	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 
@@ -354,7 +354,7 @@ func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reve
 	return p.sendRequest(message.MessageTypeHeaderRequest, msg)
 }
 
-func (p *peer) sendRequest(msgType message.OGMessageType, request p2p_message.Message) error {
+func (p *peer) sendRequest(msgType message.BinaryMessageType, request p2p_message.Message) error {
 	clog := msgLog.WithField("msgType", msgType).WithField("request ", request).WithField("to", p.id)
 	data, err := request.MarshalMsg(nil)
 	if err != nil {
@@ -505,7 +505,7 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message.OGMessageType) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message.BinaryMessageType) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

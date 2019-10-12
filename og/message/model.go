@@ -13,7 +13,7 @@ import (
 )
 
 type OGMessage struct {
-	MessageType    OGMessageType
+	MessageType    BinaryMessageType
 	Data           []byte
 	Hash           *common.Hash //inner use to avoid resend a Message to the same peer
 	SourceID       string       // the source that this Message  coming from , outgoing if it is nil
@@ -191,7 +191,7 @@ func (m *OGMessage) RemoveGossipTarget() error {
 	b := make([]byte, 2)
 	copy(b, msg[len(msg)-2:])
 	mType := binary.BigEndian.Uint16(b)
-	m.MessageType = OGMessageType(mType)
+	m.MessageType = BinaryMessageType(mType)
 	if !m.MessageType.IsValid() {
 		return fmt.Errorf("Message type error %s", m.MessageType.String())
 	}
@@ -215,7 +215,7 @@ func (m *OGMessage) Decrypt(priv *crypto.PrivateKey) error {
 	b := make([]byte, 2)
 	copy(b, msg[len(msg)-2:])
 	mType := binary.BigEndian.Uint16(b)
-	m.MessageType = OGMessageType(mType)
+	m.MessageType = BinaryMessageType(mType)
 	if !m.MessageType.IsValid() {
 		return fmt.Errorf("Message type error %s", m.MessageType.String())
 	}

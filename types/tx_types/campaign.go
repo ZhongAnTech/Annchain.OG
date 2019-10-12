@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"
@@ -101,11 +102,11 @@ func (c Campaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (c *Campaign) RawCampaign() *RawCampaign {
+func (c *Campaign) RawCampaign() *protocol_message.RawCampaign {
 	if c == nil {
 		return nil
 	}
-	rc := &RawCampaign{
+	rc := &protocol_message.RawCampaign{
 		TxBase:       c.TxBase,
 		DkgPublicKey: c.DkgPublicKey,
 		Vrf:          c.Vrf,
@@ -113,11 +114,11 @@ func (c *Campaign) RawCampaign() *RawCampaign {
 	return rc
 }
 
-func (cs Campaigns) RawCampaigns() RawCampaigns {
+func (cs Campaigns) RawCampaigns() protocol_message.RawCampaigns {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawCps RawCampaigns
+	var rawCps protocol_message.RawCampaigns
 	for _, v := range cs {
 		rasSeq := v.RawCampaign()
 		rawCps = append(rawCps, rasSeq)
@@ -153,4 +154,11 @@ func (c *Campaign) RawTxi() types.RawTxi {
 
 func (t *Campaign) SetSender(addr common.Address) {
 	t.Issuer = &addr
+}
+
+func (r *Campaigns) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

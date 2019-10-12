@@ -16,6 +16,7 @@ package crypto
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"testing"
@@ -26,7 +27,7 @@ func TestRawTx_Tx(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	var num = 10000
 	var txs tx_types.Txs
-	var rawtxs tx_types.RawTxs
+	var rawtxs protocol_message.RawTxs
 	for i := 0; i < num; i++ {
 		tx := tx_types.RandomTx()
 		pub, _ := signer.RandomKeyPair()

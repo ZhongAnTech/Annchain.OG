@@ -108,7 +108,7 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessage,
 
 func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage {
 	return &message.OGMessage{
-		MessageType:    message.OGMessageType(msg.Type),
+		MessageType:    message.BinaryMessageType(msg.Type),
 		Data:           nil,
 		Hash:           nil,
 		SourceID:       "",
@@ -317,7 +317,7 @@ func (d *dummyP2pSender) GetMessageChannel() chan p2p_message.Message {
 	return d.pipeOut
 }
 
-func (d *dummyP2pSender) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
+func (d *dummyP2pSender) BroadcastMessage(messageType message.BinaryMessageType, message p2p_message.Message) {
 	logrus.WithField("me", d.Myid).Debug("broadcasting message")
 	for _, peer := range d.Peers {
 		peer <- message
@@ -330,11 +330,11 @@ func (d *dummyP2pSender) BroadcastMessage(messageType message.OGMessageType, mes
 
 type dummyEncryptedMessage struct {
 	p2p_message.Message
-	innerMessageType message.OGMessageType
+	innerMessageType message.BinaryMessageType
 	anonymousPubKey  *crypto.PublicKey
 }
 
-func (d *dummyP2pSender) AnonymousSendMessage(messageType message.OGMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey) {
+func (d *dummyP2pSender) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey) {
 	d.BroadcastMessage(message.MessageTypeSecret, dummyEncryptedMessage{
 		Message:          msg,
 		innerMessageType: messageType,
@@ -342,7 +342,7 @@ func (d *dummyP2pSender) AnonymousSendMessage(messageType message.OGMessageType,
 	})
 }
 
-func (d *dummyP2pSender) SendToPeer(messageType message.OGMessageType, msg p2p_message.Message, peerId string) error {
+func (d *dummyP2pSender) SendToPeer(messageType message.BinaryMessageType, msg p2p_message.Message, peerId string) error {
 	// in the dummy take peerId as int
 	iPeerId, err := strconv.Atoi(peerId)
 	if err != nil {

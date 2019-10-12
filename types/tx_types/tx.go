@@ -16,6 +16,7 @@ package tx_types
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"math/rand"
 	"strings"
@@ -149,11 +150,11 @@ func (t *Tx) Dump() string {
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight, t.Data)
 }
 
-func (t *Tx) RawTx() *RawTx {
+func (t *Tx) RawTx() *protocol_message.RawTx {
 	if t == nil {
 		return nil
 	}
-	rawTx := &RawTx{
+	rawTx := &protocol_message.RawTx{
 		TxBase:  t.TxBase,
 		To:      t.To,
 		Value:   t.Value,
@@ -171,16 +172,23 @@ func (t Txs) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (t Txs) ToRawTxs() RawTxs {
+func (t Txs) ToRawTxs() protocol_message.RawTxs {
 	if len(t) == 0 {
 		return nil
 	}
-	var rawTxs []*RawTx
+	var rawTxs []*protocol_message.RawTx
 	for _, v := range t {
 		rasTx := v.RawTx()
 		rawTxs = append(rawTxs, rasTx)
 	}
 	return rawTxs
+}
+
+func (r *Txs) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }
 
 func (c *Tx) RawTxi() types.RawTxi {

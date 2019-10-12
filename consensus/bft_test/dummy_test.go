@@ -29,7 +29,7 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessage, peers 
 
 func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage{
 	return &message.OGMessage{
-		MessageType:    message.OGMessageType(msg.Type),
+		MessageType:    message.BinaryMessageType(msg.Type),
 		Data:           nil,
 		Hash:           nil,
 		SourceID:       "",

@@ -15,6 +15,7 @@ package tx_types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"math/rand"
 	"strings"
 	"time"
@@ -219,11 +220,11 @@ func (t *ActionTx) Dump() string {
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey),
 		t.Height, t.MineNonce, t.Type, t.Weight, t.Action, t.ActionData)
 }
-func (t *ActionTx) RawActionTx() *RawActionTx {
+func (t *ActionTx) RawActionTx() *protocol_message.RawActionTx {
 	if t == nil {
 		return nil
 	}
-	rawTx := &RawActionTx{
+	rawTx := &protocol_message.RawActionTx{
 		TxBase:     t.TxBase,
 		Action:     t.Action,
 		ActionData: t.ActionData,
@@ -241,11 +242,11 @@ func (t ActionTxs) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (t ActionTxs) ToRawTxs() RawActionTxs {
+func (t ActionTxs) ToRawTxs() protocol_message.RawActionTxs {
 	if len(t) == 0 {
 		return nil
 	}
-	var rawTxs RawActionTxs
+	var rawTxs protocol_message.RawActionTxs
 	for _, v := range t {
 		rasTx := v.RawActionTx()
 		rawTxs = append(rawTxs, rasTx)
@@ -259,4 +260,11 @@ func (c *ActionTx) RawTxi() types.RawTxi {
 
 func (c *ActionTx) SetSender(addr common.Address) {
 	c.From = &addr
+}
+
+func (r *ActionTxs) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

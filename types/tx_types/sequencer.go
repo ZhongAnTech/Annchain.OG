@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
@@ -184,11 +185,11 @@ func (t *Sequencer) Dump() string {
 	)
 }
 
-func (s *Sequencer) RawSequencer() *RawSequencer {
+func (s *Sequencer) RawSequencer() *protocol_message.RawSequencer {
 	if s == nil {
 		return nil
 	}
-	return &RawSequencer{
+	return &protocol_message.RawSequencer{
 		TxBase:         s.TxBase,
 		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
@@ -216,11 +217,11 @@ func (s Sequencers) ToHeaders() SequencerHeaders {
 	return headers
 }
 
-func (seqs Sequencers) ToRawSequencers() RawSequencers {
+func (seqs Sequencers) ToRawSequencers() protocol_message.RawSequencers {
 	if len(seqs) == 0 {
 		return nil
 	}
-	var rawSeqs RawSequencers
+	var rawSeqs protocol_message.RawSequencers
 	for _, v := range seqs {
 		rasSeq := v.RawSequencer()
 		rawSeqs = append(rawSeqs, rasSeq)
@@ -234,4 +235,11 @@ func (c *Sequencer) RawTxi() types.RawTxi {
 
 func (t *Sequencer) SetSender(addr common.Address) {
 	t.Issuer = &addr
+}
+
+func (r *Sequencers) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

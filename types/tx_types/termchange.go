@@ -15,6 +15,7 @@ package tx_types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"strings"
 
@@ -145,11 +146,11 @@ func (c TermChanges) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (c *TermChange) RawTermChange() *RawTermChange {
+func (c *TermChange) RawTermChange() *protocol_message.RawTermChange {
 	if c == nil {
 		return nil
 	}
-	rc := &RawTermChange{
+	rc := &protocol_message.RawTermChange{
 		TxBase: c.TxBase,
 		TermId: c.TermID,
 		PkBls:  c.PkBls,
@@ -158,11 +159,11 @@ func (c *TermChange) RawTermChange() *RawTermChange {
 	return rc
 }
 
-func (cs TermChanges) RawTermChanges() RawTermChanges {
+func (cs TermChanges) RawTermChanges() protocol_message.RawTermChanges {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawTcs RawTermChanges
+	var rawTcs protocol_message.RawTermChanges
 	for _, v := range cs {
 		rawTc := v.RawTermChange()
 		rawTcs = append(rawTcs, rawTc)
@@ -176,4 +177,10 @@ func (c *TermChange) RawTxi() types.RawTxi {
 
 func (t *TermChange) SetSender(addr common.Address) {
 	t.Issuer = &addr
+}
+func (r *TermChanges) Len() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

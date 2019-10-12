@@ -56,7 +56,9 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 	peerCommunicatorOutgoing BftPeerCommunicatorOutgoing,
 	proposalGenerator ProposalGenerator,
 	proposalValidator ProposalValidator,
-	decisionMaker DecisionMaker) *DefaultBftPartner {
+	decisionMaker DecisionMaker,
+	peerInfo []PeerInfo,
+) *DefaultBftPartner {
 	if nbParticipants < 2 {
 		panic(0)
 	}
@@ -65,6 +67,7 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 		BftStatus: &BftStatus{
 			N:      nbParticipants,
 			F:      (nbParticipants - 1) / 3,
+			Peers:  peerInfo,
 			States: make(map[HeightRound]*HeightRoundState),
 		},
 		blockTime:                blockTime,

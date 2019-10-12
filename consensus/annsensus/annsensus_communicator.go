@@ -12,8 +12,8 @@ import (
 // AnnsensusCommunicator routes ogmessages and judge which adapter to use and to receive.
 // Do IO work only.
 type AnnsensusCommunicator struct {
-	pipeIn            chan *message.OGMessage
 	p2pSender         communicator.P2PSender // upstream message sender
+	p2pReceiver       communicator.P2PReceiver
 	bftMessageAdapter BftMessageAdapter
 	dkgMessageAdapter DkgMessageAdapter
 	termHolder        TermHolder
@@ -21,13 +21,15 @@ type AnnsensusCommunicator struct {
 	quitWg            sync.WaitGroup
 }
 
-func NewAnnsensusCommunicator(p2PSender communicator.P2PSender,
+func NewAnnsensusCommunicator(
+	p2PSender communicator.P2PSender,
+	p2pReceiver communicator.P2PReceiver,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
 	termHolder TermHolder) *AnnsensusCommunicator {
 	return &AnnsensusCommunicator{
-		pipeIn:            make(chan *message.OGMessage),
 		p2pSender:         p2PSender,
+		p2pReceiver:       p2pReceiver,
 		bftMessageAdapter: bftMessageAdapter,
 		dkgMessageAdapter: dkgMessageAdapter,
 		termHolder:        termHolder,
@@ -43,7 +45,7 @@ func (r *AnnsensusCommunicator) Run() {
 		case <-r.quit:
 			r.quitWg.Done()
 			return
-		case msg := <-r.pipeIn:
+		case msg := <-r.p2pReceiver.GetMessageChannel():
 			r.HandleAnnsensusMessage(msg)
 		}
 	}

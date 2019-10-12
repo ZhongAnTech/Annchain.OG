@@ -63,6 +63,20 @@ func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context Consensus
 		d.proposalGenerator,
 		d.proposalValidator,
 		d.decisionMaker,
+		DkgToBft(context.GetAllPartPubs()),
 	)
 	return bftPartner
+}
+
+func DkgToBft(dkgInfo []dkg.PartPub) []bft.PeerInfo {
+	var peerInfos []bft.PeerInfo
+	for _, peer := range dkgInfo {
+		peerInfos = append(peerInfos, bft.PeerInfo{
+			Id:             peer.Peer.Id,
+			PublicKey:      peer.Peer.PublicKey,
+			Address:        peer.Peer.Address,
+			PublicKeyBytes: peer.Peer.PublicKeyBytes,
+		})
+	}
+	return peerInfos
 }

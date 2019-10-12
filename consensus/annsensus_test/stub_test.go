@@ -289,6 +289,9 @@ func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.
 func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.ConsensusContextProvider) bft.BftPartner {
 	myId := context.GetMyBftId()
 	commuicatorBft := NewDummyBftPeerCommunicator(myId, d.peerChansBft[myId], d.peerChansBft)
+
+	peerInfos := annsensus.DkgToBft(context.GetAllPartPubs())
+
 	bftPartner := bft.NewDefaultBFTPartner(
 		context.GetNbParticipants(),
 		context.GetMyBftId(),
@@ -298,6 +301,7 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 		&dummyProposalGenerator{},
 		&dummyProposalValidator{},
 		&dummyDecisionMaker{},
+		peerInfos,
 	)
 	return bftPartner
 }
@@ -309,18 +313,33 @@ type dummyP2pSender struct {
 	pipeOut chan p2p_message.Message
 }
 
+func (d *dummyP2pSender) GetMessageChannel() chan p2p_message.Message {
+	return d.pipeOut
+}
+
 func (d *dummyP2pSender) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
 	logrus.WithField("me", d.Myid).Debug("broadcasting message")
 	for _, peer := range d.Peers {
-		ffchan.NewTimeoutSenderShort(peer, message, "dkg")
+		peer <- message
+		//ffchan.NewTimeoutSenderShort(, "dkg")
 		//go func(peer chan p2p_message.Message) {
 		//
 		//}(peer)f
 	}
 }
 
+type dummyEncryptedMessage struct {
+	p2p_message.Message
+	innerMessageType message.OGMessageType
+	anonymousPubKey  *crypto.PublicKey
+}
+
 func (d *dummyP2pSender) AnonymousSendMessage(messageType message.OGMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey) {
-	panic("not supported yet")
+	d.BroadcastMessage(message.MessageTypeSecret, dummyEncryptedMessage{
+		Message:          msg,
+		innerMessageType: messageType,
+		anonymousPubKey:  anonymousPubKey,
+	})
 }
 
 func (d *dummyP2pSender) SendToPeer(messageType message.OGMessageType, msg p2p_message.Message, peerId string) error {
@@ -329,7 +348,8 @@ func (d *dummyP2pSender) SendToPeer(messageType message.OGMessageType, msg p2p_m
 	if err != nil {
 		return err
 	}
-	ffchan.NewTimeoutSenderShort(d.Peers[iPeerId], msg, "dkg")
+	d.Peers[iPeerId] <- msg
+	//ffchan.NewTimeoutSenderShort(d.Peers[iPeerId], msg, "dkg")
 	return nil
 }
 
@@ -338,7 +358,7 @@ func NewDummyP2pSender(myid int, incoming chan p2p_message.Message, peers []chan
 		Peers:   peers,
 		Myid:    myid,
 		pipeIn:  incoming,
-		pipeOut: make(chan p2p_message.Message, 10), // must be big enough to avoid blocking issue
+		pipeOut: incoming, // must be big enough to avoid blocking issue
 	}
 	return d
 }

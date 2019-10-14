@@ -6,19 +6,42 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/general_message"
 	"github.com/sirupsen/logrus"
 )
 
-// TrustfulBftAdapter signs and validate messages using pubkey/privkey given by DKG/BLS
-type TrustfulBftAdapter struct {
-	signatureProvider account.SignatureProvider
-	termProvider      TermProvider
+type BftMessageUnmarshaller struct {
 }
 
-func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg p2p_message.Message, err error) {
+func (b *BftMessageUnmarshaller) Unmarshal(messageType general_message.BinaryMessageType, message []byte) (outMsg bft.BftMessage, err error) {
+	switch bft.BftMessageType(messageType) {
+	case bft.BftMessageTypeProposal:
+		m := &bft.MessageProposal{}
+		_, err = m.UnmarshalMsg(message)
+		outMsg = m
+	case bft.BftMessageTypePreVote:
+		m := &bft.MessagePreVote{}
+		_, err = m.UnmarshalMsg(message)
+		outMsg = m
+	case bft.BftMessageTypePreCommit:
+		m := &bft.MessagePreCommit{}
+		_, err = m.UnmarshalMsg(message)
+		outMsg = m
+	default:
+		err = errors.New("message type of Bft not supported")
+	}
+	return
+}
+
+// TrustfulBftAdapter signs and validate messages using pubkey/privkey given by DKG/BLS
+type TrustfulBftAdapter struct {
+	signatureProvider      account.SignatureProvider
+	termProvider           TermProvider
+	bftMessageUnmarshaller *BftMessageUnmarshaller
+}
+
+func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg general_message.TransportableMessage, err error) {
 	signed := r.Sign(outgoingMsg)
 	msg = &signed
 	return
@@ -32,14 +55,11 @@ func NewTrustfulBftAdapter(
 
 func (r *TrustfulBftAdapter) Sign(msg bft.BftMessage) protocol_message.MessageSigned {
 	signed := protocol_message.MessageSigned{
-		InnerMessageType: general_message.BinaryMessageType(msg.Type),
-		InnerMessage:     msg.Payload.SignatureTargets(),
-		Signature:        nil,
-		PublicKey:        nil,
+		InnerMessageType: general_message.BinaryMessageType(msg.GetType()),
+		InnerMessage:     msg.SignatureTargets(),
+		Signature:        r.signatureProvider.Sign(msg.SignatureTargets()),
+		PublicKey:        msg.PublicKey(),
 	}
-BftMessage:
-	*msg,
-		Signature:  r.signatureProvider.Sign(msg.Payload.SignatureTargets()),
 	//SessionId:     partner.CurrentTerm(),
 	//PublicKey: account.PublicKey.Bytes,
 	return signed
@@ -59,7 +79,7 @@ BftMessage:
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
 
-func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *message.SignedOgPartnerMessage) error {
+func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *protocol_message.MessageSigned) error {
 	peers, err := b.termProvider.Peers(signedMsg.TermId)
 	if err != nil {
 		// this term is unknown.
@@ -74,18 +94,23 @@ func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *message.SignedOgPa
 	return errors.New("public key not found in current term")
 }
 
-func (b *TrustfulBftAdapter) VerifyMessageSignature(signedMsg *message.SignedOgPartnerMessage) error {
-	ok := crypto.VerifySignature(signedMsg.PublicKey, signedMsg.Payload.SignatureTargets(), signedMsg.Signature)
+func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, signature []byte) error {
+	ok := crypto.VerifySignature(outMsg.PublicKey(), outMsg.SignatureTargets(), signature)
 	if !ok {
 		return errors.New("signature invalid")
 	}
 	return nil
 }
 
-func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	signedMsg, ok := incomingMsg.(*message.SignedOgPartnerMessage)
+func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg general_message.TransportableMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
+	if incomingMsg.GetType() != general_message.MessageTypeSigned {
+		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
+		return
+	}
+
+	signedMsg, ok := incomingMsg.(*protocol_message.MessageSigned)
 	if !ok {
-		err = errors.New("message received is not a proper type for bft")
+		err = errors.New("TrustfulBftAdapter received a message of type MessageSigned but it is not.")
 		return
 	}
 	err = b.VerifyParnterIdentity(signedMsg)
@@ -94,33 +119,83 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (ms
 		err = errors.New("bft message partner identity is not valid or unknown")
 		return
 	}
-	err = b.VerifyMessageSignature(signedMsg)
+
+	bftMessage, err := b.bftMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), incomingMsg.GetData())
+	if err != nil {
+		return
+	}
+
+	err = b.VerifyMessageSignature(bftMessage, signedMsg.Signature)
 	if err != nil {
 		logrus.WithError(err).Warn("bft message signature is not valid")
 		err = errors.New("bft message signature is not valid")
 		return
 	}
 
-	return signedMsg.BftMessage, nil
+	return bftMessage, nil
 }
 
+// PlainBftAdapter will not wrap the message using MessageTypeSigned
 type PlainBftAdapter struct {
+	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (p PlainBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (msg bft.BftMessage, err error) {
-	signedMsg, ok := incomingMsg.(*message.SignedOgPartnerMessage)
-	if !ok {
-		err = errors.New("message received is not a proper type for bft")
+func (p PlainBftAdapter) AdaptOgMessage(incomingMsg general_message.TransportableMessage) (msg bft.BftMessage, err error) {
+	if incomingMsg.GetType() != general_message.MessageTypePlain {
+		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
-	msg = signedMsg.BftMessage
+	iMsg := incomingMsg.(*protocol_message.MessagePlain)
+
+	switch bft.BftMessageType(iMsg.GetType()) {
+	case bft.BftMessageTypeProposal:
+		fallthrough
+	case bft.BftMessageTypePreVote:
+		fallthrough
+	case bft.BftMessageTypePreCommit:
+		msg, err = p.bftMessageUnmarshaller.Unmarshal(iMsg.GetType(), iMsg.GetData())
+	default:
+		err = errors.New("PlainBftAdapter received a message of an unsupported inner type")
+	}
 	return
 
 }
 
-func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (p2p_message.Message, error) {
-	signed := message.SignedOgPartnerMessage{
-		BftMessage: *outgoingMsg,
+func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg general_message.TransportableMessage, err error) {
+	switch outgoingMsg.GetType() {
+	case bft.BftMessageTypeProposal:
+		omsg := outgoingMsg.(*bft.MessageProposal)
+		msgBytes, err := omsg.MarshalMsg(nil)
+		if err != nil {
+			return
+		}
+		msg = protocol_message.MessagePlain{
+			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+			InnerMessage:     msgBytes,
+		}
+	case bft.BftMessageTypePreVote:
+		omsg := outgoingMsg.(*bft.MessagePreVote)
+		msgBytes, err := omsg.MarshalMsg(nil)
+		if err != nil {
+			return
+		}
+		msg = protocol_message.MessagePlain{
+			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+			InnerMessage:     msgBytes,
+		}
+	case bft.BftMessageTypePreCommit:
+		omsg := outgoingMsg.(*bft.MessagePreCommit)
+		msgBytes, err := omsg.MarshalMsg(nil)
+		if err != nil {
+			return
+		}
+		msg = protocol_message.MessagePlain{
+			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+			InnerMessage:     msgBytes,
+		}
+	default:
+		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 	}
-	return &signed, nil
+	return
 }
+

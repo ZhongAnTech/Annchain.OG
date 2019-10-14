@@ -806,12 +806,42 @@ func (m *MessageNewActionTx) String() string {
 	return m.ActionTx.String()
 }
 
+type MessagePlain struct {
+	InnerMessageType general_message.BinaryMessageType
+	InnerMessage     []byte
+}
+
+func (m MessagePlain) GetType() general_message.BinaryMessageType {
+	return general_message.MessageTypePlain
+}
+
+func (m MessagePlain) GetData() []byte {
+	return m.InnerMessage
+}
+
+func (m MessagePlain) ToBinary() general_message.BinaryMessage {
+	return general_message.BinaryMessage{
+		Type: m.InnerMessageType,
+		Data: m.InnerMessage,
+	}
+}
+
+func (m MessagePlain) FromBinary(bs []byte) error {
+	m.InnerMessageType = general_message.MessageTypePlain
+	m.InnerMessage = bs
+}
+
+func (m MessagePlain) String() string {
+	return "MessagePlain"
+}
+
 //msgp:tuple MessageSigned
 type MessageSigned struct {
 	InnerMessageType general_message.BinaryMessageType
 	InnerMessage     []byte
 	Signature        hexutil.Bytes
 	PublicKey        hexutil.Bytes
+	TermId           uint32
 }
 
 func (m MessageSigned) GetType() general_message.BinaryMessageType {

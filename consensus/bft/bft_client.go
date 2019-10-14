@@ -279,12 +279,11 @@ func (p *DefaultBftPartner) GetValue(newBlock bool) (Proposal, ProposalCondition
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 
-// Broadcast announce messages to all partners
+// Broadcast encapsulate messages to all partners
 //
 func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
-	m := BftMessage{
-		Type: messageType,
-	}
+	var m BftMessage
+
 	basicInfo := BftBasicInfo{
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
@@ -299,23 +298,23 @@ func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound
 	}
 	switch messageType {
 	case BftMessageTypeProposal:
-		m.Payload = &MessageProposal{
+		m = &MessageProposal{
 			BftBasicInfo: basicInfo,
 			Value:        content,
 			ValidRound:   validRound,
 		}
 	case BftMessageTypePreVote:
-		m.Payload = &MessagePreVote{
+		m = &MessagePreVote{
 			BftBasicInfo: basicInfo,
 			Idv:          idv,
 		}
 	case BftMessageTypePreCommit:
-		m.Payload = &MessagePreCommit{
+		m = &MessagePreCommit{
 			BftBasicInfo: basicInfo,
 			Idv:          idv,
 		}
 	}
-	p.peerCommunicatorOutgoing.Broadcast(&m, p.BftStatus.Peers)
+	p.peerCommunicatorOutgoing.Broadcast(m, p.BftStatus.Peers)
 }
 
 // OnTimeoutPropose is the callback after staying too long on propose step
@@ -356,15 +355,15 @@ func (p *DefaultBftPartner) WaitStepTimeout(stepType StepType, timeout time.Dura
 	})
 }
 
-func (p *DefaultBftPartner) handleMessage(message *BftMessage) {
-	switch message.Type {
+func (p *DefaultBftPartner) handleMessage(message BftMessage) {
+	switch message.GetType() {
 	case BftMessageTypeProposal:
-		switch message.Payload.(type) {
-		case *MessageProposal:
-		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("bft msg payload error")
+		msg, ok := message.(*MessageProposal)
+		if !ok {
+			logrus.Warn("it claims to be a MessageProposal but the payload does not align")
+			return
 		}
-		msg := message.Payload.(*MessageProposal)
+
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -372,19 +371,18 @@ func (p *DefaultBftPartner) handleMessage(message *BftMessage) {
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.BftStatus.CurrentHR.String(),
-			"type":   message.Type.String(),
+			"type":   message.GetType().String(),
 			"from":   msg.SourceId,
 			"fromHr": msg.HeightRound.String(),
 			"value":  msg.Value,
 		}).Debug("In")
 		p.handleProposal(msg)
 	case BftMessageTypePreVote:
-		switch message.Payload.(type) {
-		case *MessagePreVote:
-		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+		msg, ok := message.(*MessagePreVote)
+		if !ok {
+			logrus.Warn("it claims to be a MessagePreVote but the payload does not align")
+			return
 		}
-		msg := message.Payload.(*MessagePreVote)
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -393,18 +391,17 @@ func (p *DefaultBftPartner) handleMessage(message *BftMessage) {
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.BftStatus.CurrentHR.String(),
-			"type":   message.Type.String(),
+			"type":   message.GetType().String(),
 			"from":   msg.SourceId,
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
 		p.handlePreVote(msg)
 	case BftMessageTypePreCommit:
-		switch message.Payload.(type) {
-		case *MessagePreCommit:
-		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("msg payload error")
+		msg, ok := message.(*MessagePreCommit)
+		if !ok {
+			logrus.Warn("it claims to be a MessagePreCommit but the payload does not align")
+			return
 		}
-		msg := message.Payload.(*MessagePreCommit)
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
 			// out-of-date messages, ignore
 			break
@@ -414,13 +411,13 @@ func (p *DefaultBftPartner) handleMessage(message *BftMessage) {
 		logrus.WithFields(logrus.Fields{
 			"IM":     p.Id,
 			"hr":     p.BftStatus.CurrentHR.String(),
-			"type":   message.Type.String(),
+			"type":   message.GetType().String(),
 			"from":   msg.SourceId,
 			"fromHr": msg.HeightRound.String(),
 		}).Debug("In")
 		p.handlePreCommit(msg)
 	default:
-		logrus.WithField("type", message.Type).Warn("unknown bft message type")
+		logrus.WithField("type", message.GetType()).Warn("unknown bft message type")
 	}
 
 }

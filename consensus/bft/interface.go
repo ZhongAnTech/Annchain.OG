@@ -19,12 +19,12 @@ type DecisionMaker interface {
 }
 
 type BftPeerCommunicatorOutgoing interface {
-	Broadcast(msg *BftMessage, peers []PeerInfo)
-	Unicast(msg *BftMessage, peer PeerInfo)
+	Broadcast(msg BftMessage, peers []PeerInfo)
+	Unicast(msg BftMessage, peer PeerInfo)
 }
 type BftPeerCommunicatorIncoming interface {
-	GetPipeIn() chan *BftMessage
-	GetPipeOut() chan *BftMessage
+	GetPipeIn() chan BftMessage
+	GetPipeOut() chan BftMessage
 }
 
 type BftPartner interface {

@@ -24,6 +24,18 @@ import (
 
 //go:generate msgp
 
+type Signable interface {
+	SignatureTargets() []byte
+	PublicKey() []byte
+}
+
+// TransportableMessage is the message that can be convert to BinaryMessage
+type BftMessage interface {
+	GetType() BftMessageType
+	GetData() BftMessage
+	String() string
+}
+
 // HeightRound is the current progress of the consensus.
 // Height is the block height, round is the sub-progress if no consensus can be easily reached
 //msgp:tuple HeightRound
@@ -78,8 +90,9 @@ const (
 
 //msgp:tuple BftBasicInfo
 type BftBasicInfo struct {
-	SourceId    uint16
-	HeightRound HeightRound
+	SourceId       uint16
+	HeightRound    HeightRound
+	PublicKeyBytes hexutil.Bytes
 }
 
 //msgp:tuple MessageProposal
@@ -89,11 +102,16 @@ type MessageProposal struct {
 	ValidRound int
 }
 
-func (m MessageProposal) Copy() *MessageProposal {
-	var r MessageProposal
-	r = m
-	r.Value = m.Value.Copy()
-	return &r
+func (m *MessageProposal) GetType() BftMessageType {
+	return BftMessageTypeProposal
+}
+
+func (m *MessageProposal) GetData() BftMessage {
+	return m
+}
+
+func (m *MessageProposal) PublicKey() []byte {
+	return m.PublicKeyBytes
 }
 
 //msgp:tuple MessagePreVote
@@ -102,11 +120,35 @@ type MessagePreVote struct {
 	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
+func (z *MessagePreVote) GetType() BftMessageType {
+	return BftMessageTypePreVote
+}
+
+func (z *MessagePreVote) GetData() BftMessage {
+	return z
+}
+
+func (z *MessagePreVote) PublicKey() []byte {
+	return z.PublicKeyBytes
+}
+
 //msgp:tuple MessagePreCommit
 type MessagePreCommit struct {
 	BftBasicInfo
 	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
+}
+
+func (z *MessagePreCommit) PublicKey() []byte {
+	return z.PublicKeyBytes
+}
+
+func (z *MessagePreCommit) GetType() BftMessageType {
+	return BftMessageTypePreCommit
+}
+
+func (z *MessagePreCommit) GetData() BftMessage {
+	return z
 }
 
 func (m BftBasicInfo) String() string {
@@ -199,20 +241,3 @@ func (s StringProposal) String() string {
 }
 
 type ConsensusDecision Proposal
-
-type Signable interface {
-	msg.MsgpMember
-	SignatureTargets() []byte
-	String() string
-}
-
-//msgp:tuple BftMessage
-type BftMessage struct {
-	Type      BftMessageType
-	PublicKey hexutil.Bytes
-	Payload   Signable
-}
-
-func (m *BftMessage) String() string {
-	return fmt.Sprintf("%s %+v", m.Type.String(), m.Payload)
-}

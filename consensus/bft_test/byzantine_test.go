@@ -16,9 +16,9 @@ type ByzantineFeatures struct {
 
 type dummyByzantineBftPeerCommunicator struct {
 	Myid              int
-	PeerPipeIns       []chan *bft.BftMessage
-	pipeIn            chan *bft.BftMessage
-	pipeOut           chan *bft.BftMessage
+	PeerPipeIns       []chan bft.BftMessage
+	pipeIn            chan bft.BftMessage
+	pipeOut           chan bft.BftMessage
 	ByzantineFeatures ByzantineFeatures
 }
 
@@ -30,7 +30,7 @@ func (d *dummyByzantineBftPeerCommunicator) Run() {
 	go func() {
 		for {
 			v := <-d.pipeIn
-			//vv := v.Message.(*bft.BftMessage)
+			//vv := v.Message.(bft.BftMessage)
 			d.pipeOut <- v
 		}
 	}()
@@ -71,21 +71,21 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft
 	}()
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
 	return d.pipeIn
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
 	return d.pipeOut
 }
 
-func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan *bft.BftMessage, peers []chan *bft.BftMessage,
+func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage,
 	byzantineFeatures ByzantineFeatures) *dummyByzantineBftPeerCommunicator {
 	d := &dummyByzantineBftPeerCommunicator{
 		PeerPipeIns:       peers,
 		Myid:              myid,
 		pipeIn:            incoming,
-		pipeOut:           make(chan *bft.BftMessage),
+		pipeOut:           make(chan bft.BftMessage),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return d
@@ -94,31 +94,31 @@ func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan *bft.BftMessag
 func (p *dummyByzantineBftPeerCommunicator) doBadThings(msg bft.BftMessage) (updatedMessage bft.BftMessage, toSend bool) {
 	updatedMessage = msg
 	toSend = true
-	switch msg.Type {
+	switch msg.GetType() {
 	case bft.BftMessageTypeProposal:
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
-			v := updatedMessage.Payload.(*bft.MessageProposal)
+			v := updatedMessage.(*bft.MessageProposal)
 			v.HeightRound.Round++
-			updatedMessage.Payload = v
+			updatedMessage = v
 		}
 
 	case bft.BftMessageTypePreVote:
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
-			v := updatedMessage.Payload.(*bft.MessagePreVote)
+			v := updatedMessage.(*bft.MessagePreVote)
 			v.HeightRound.Round++
-			updatedMessage.Payload = v
+			updatedMessage = v
 		}
 	case bft.BftMessageTypePreCommit:
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {
-			v := updatedMessage.Payload.(*bft.MessagePreCommit)
+			v := updatedMessage.(*bft.MessagePreCommit)
 			v.HeightRound.Round++
-			updatedMessage.Payload = v
+			updatedMessage = v
 		}
 
 	}

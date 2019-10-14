@@ -7,7 +7,8 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/types/general_message"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,7 +18,7 @@ type TrustfulBftAdapter struct {
 	termProvider      TermProvider
 }
 
-func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg *bft.BftMessage) (msg p2p_message.Message, err error) {
+func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg p2p_message.Message, err error) {
 	signed := r.Sign(outgoingMsg)
 	msg = &signed
 	return
@@ -29,18 +30,23 @@ func NewTrustfulBftAdapter(
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
 }
 
-func (r *TrustfulBftAdapter) Sign(msg *bft.BftMessage) message.SignedOgPartnerMessage {
-	signed := message.SignedOgPartnerMessage{
-		BftMessage: *msg,
-		Signature:  r.signatureProvider.Sign(msg.Payload.SignatureTargets()),
-		//SessionId:     partner.CurrentTerm(),
-		//PublicKey: account.PublicKey.Bytes,
+func (r *TrustfulBftAdapter) Sign(msg bft.BftMessage) protocol_message.MessageSigned {
+	signed := protocol_message.MessageSigned{
+		InnerMessageType: general_message.BinaryMessageType(msg.Type),
+		InnerMessage:     msg.Payload.SignatureTargets(),
+		Signature:        nil,
+		PublicKey:        nil,
 	}
+BftMessage:
+	*msg,
+		Signature:  r.signatureProvider.Sign(msg.Payload.SignatureTargets()),
+	//SessionId:     partner.CurrentTerm(),
+	//PublicKey: account.PublicKey.Bytes,
 	return signed
 }
 
 // Broadcast must be anonymous since it is actually among all partners, not all nodes.
-//func (r *TrustfulBftAdapter) Broadcast(msg *bft.BftMessage, peers []bft.PeerInfo) {
+//func (r *TrustfulBftAdapter) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 //	signed := r.Sign(msg)
 //	for _, peer := range peers {
 //		r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
@@ -48,7 +54,7 @@ func (r *TrustfulBftAdapter) Sign(msg *bft.BftMessage) message.SignedOgPartnerMe
 //}
 //
 //// Unicast must be anonymous
-//func (r *TrustfulBftAdapter) Unicast(msg *bft.BftMessage, peer bft.PeerInfo) {
+//func (r *TrustfulBftAdapter) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 //	signed := r.Sign(msg)
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
@@ -112,7 +118,7 @@ func (p PlainBftAdapter) AdaptOgMessage(incomingMsg p2p_message.Message) (msg bf
 
 }
 
-func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg *bft.BftMessage) (p2p_message.Message, error) {
+func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (p2p_message.Message, error) {
 	signed := message.SignedOgPartnerMessage{
 		BftMessage: *outgoingMsg,
 	}

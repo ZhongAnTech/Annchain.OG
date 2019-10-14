@@ -15,16 +15,10 @@
 package message
 
 import (
-	"encoding/binary"
-	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
-	"sync/atomic"
 )
 
 //go:generate msgp
@@ -42,157 +36,13 @@ const (
 	SendingTypeBroacastWithLink
 )
 
-func (mt BinaryMessageType) IsValid() bool {
-	if mt >= MessageTypeOg02Length {
-		return false
-	}
-	return true
-}
+//func (mt BinaryMessageType) IsValid() bool {
+//	if mt >= MessageTypeOg02Length {
+//		return false
+//	}
+//	return true
+//}
 
-func (mt BinaryMessageType) String() string {
-	switch mt {
-	case StatusMsg:
-		return "StatusMsg"
-	case MessageTypePing:
-		return "MessageTypePing"
-	case MessageTypePong:
-		return "MessageTypePong"
-	case MessageTypeFetchByHashRequest:
-		return "MessageTypeFetchByHashRequest"
-	case MessageTypeFetchByHashResponse:
-		return "MessageTypeFetchByHashResponse"
-	case MessageTypeNewTx:
-		return "MessageTypeNewTx"
-	case MessageTypeNewSequencer:
-		return "MessageTypeNewSequencer"
-	case MessageTypeNewTxs:
-		return "MessageTypeNewTxs"
-	case MessageTypeSequencerHeader:
-		return "MessageTypeSequencerHeader"
-
-	case MessageTypeBodiesRequest:
-		return "MessageTypeBodiesRequest"
-	case MessageTypeBodiesResponse:
-		return "MessageTypeBodiesResponse"
-	case MessageTypeTxsRequest:
-		return "MessageTypeTxsRequest"
-	case MessageTypeTxsResponse:
-		return "MessageTypeTxsResponse"
-	case MessageTypeHeaderRequest:
-		return "MessageTypeHeaderRequest"
-	case MessageTypeHeaderResponse:
-		return "MessageTypeHeaderResponse"
-
-		//for optimizing network
-	case MessageTypeGetMsg:
-		return "MessageTypeGetMsg"
-	case MessageTypeDuplicate:
-		return "MessageTypeDuplicate"
-	case MessageTypeControl:
-		return "MessageTypeControl"
-
-		//for consensus
-	case MessageTypeCampaign:
-		return "MessageTypeCampaign"
-	case MessageTypeTermChange:
-		return "MessageTypeTermChange"
-	case MessageTypeArchive:
-		return "MessageTypeArchive"
-	case MessageTypeActionTX:
-		return "MessageTypeActionTX"
-
-	//case MessageTypeConsensusDkgDeal:
-	//	return "MessageTypeConsensusDkgDeal"
-	//case MessageTypeConsensusDkgDealResponse:
-	//	return "MessageTypeConsensusDkgDealResponse"
-	//case MessageTypeConsensusDkgSigSets:
-	//	return "MessageTypeDkgSigSets"
-	//case MessageTypeConsensusDkgGenesisPublicKey:
-	//	return "MessageTypeConsensusDkgGenesisPublicKey"
-	case MessageTypeTermChangeRequest:
-		return "MessageTypeTermChangeRequest"
-	case MessageTypeTermChangeResponse:
-		return "MessageTypeTermChangeResponse"
-	case MessageTypeSecret:
-		return "MessageTypeSecret"
-
-	//case MessageTypeProposal:
-	//	return "MessageTypeProposal"
-	//case MessageTypePreVote:
-	//	return "MessageTypePreVote"
-	//case MessageTypePreCommit:
-	//	return "MessageTypePreCommit"
-
-	case MessageTypeOg01Length: //og01 length
-		return "MessageTypeOg01Length"
-
-		// Protocol messages belonging to og/02
-
-	case GetNodeDataMsg:
-		return "GetNodeDataMsg"
-	case NodeDataMsg:
-		return "NodeDataMsg"
-	case GetReceiptsMsg:
-		return "GetReceiptsMsg"
-	case MessageTypeOg02Length:
-		return "MessageTypeOg02Length"
-	default:
-		return fmt.Sprintf("unkown message type %d", mt)
-	}
-}
-
-func (mt BinaryMessageType) Code() p2p.MsgCodeType {
-	return p2p.MsgCodeType(mt)
-}
-
-type MessageCounter struct {
-	requestId uint32
-}
-
-//get current request id
-func (m *MessageCounter) Get() uint32 {
-	if m.requestId > uint32(1<<30) {
-		atomic.StoreUint32(&m.requestId, 10)
-	}
-	return atomic.AddUint32(&m.requestId, 1)
-}
-
-func MsgCountInit() {
-	MsgCounter = &MessageCounter{
-		requestId: 1,
-	}
-}
-
-type MsgKey struct {
-	data [common.HashLength + 2]byte
-}
-
-func (k MsgKey) GetType() (BinaryMessageType, error) {
-	if len(k.data) != common.HashLength+2 {
-		return 0, errors.New("size err")
-	}
-	return BinaryMessageType(binary.BigEndian.Uint16(k.data[0:2])), nil
-}
-
-func (k MsgKey) GetHash() (common.Hash, error) {
-	if len(k.data) != common.HashLength+2 {
-		return common.Hash{}, errors.New("size err")
-	}
-	return common.BytesToHash(k.data[2:]), nil
-}
-
-func NewMsgKey(m BinaryMessageType, hash common.Hash) MsgKey {
-	var key MsgKey
-	b := make([]byte, 2)
-	//use one key for tx and sequencer
-	if m == MessageTypeNewSequencer {
-		m = MessageTypeNewTx
-	}
-	binary.BigEndian.PutUint16(b, uint16(m))
-	copy(key.data[:], b)
-	copy(key.data[2:], hash.ToBytes())
-	return key
-}
 
 func (m BinaryMessageType) GetMsg() p2p_message.Message {
 	var message p2p_message.Message
@@ -269,33 +119,6 @@ func (m BinaryMessageType) GetMsg() p2p_message.Message {
 		return nil
 	}
 	return message
-}
-
-// statusData is the network packet for the status message.
-//msgp:tuple StatusData
-type StatusData struct {
-	ProtocolVersion uint32
-	NetworkId       uint64
-	CurrentBlock    common.Hash
-	GenesisBlock    common.Hash
-	CurrentId       uint64
-}
-
-func (s *StatusData) String() string {
-	return fmt.Sprintf("ProtocolVersion  %d   NetworkId %d  CurrentBlock %s  GenesisBlock %s  CurrentId %d",
-		s.ProtocolVersion, s.NetworkId, s.CurrentBlock, s.GenesisBlock, s.CurrentId)
-}
-
-
-// SignedOgPartnerMessage is the message that is signed by partner.
-// Consensus layer does not need to care about the signing. It is TrustfulPartnerCommunicator's job
-//msgp:tuple SignedOgPartnerMessage
-type SignedOgPartnerMessage struct {
-	bft.BftMessage
-	TermId     uint32
-	//ValidRound int
-	Signature hexutil.Bytes
-	//PublicKey hexutil.Bytes
 }
 
 

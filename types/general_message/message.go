@@ -5,6 +5,10 @@
 
 package general_message
 
+import (
+	"fmt"
+)
+
 type BinaryMessageType uint16
 
 // BinaryMessage stores data that can be directly sent to the others, or be wrapped by another BinaryMessage.
@@ -13,6 +17,7 @@ type BinaryMessage struct {
 	Data []byte
 }
 
+
 // TransportableMessage is the message that can be convert to BinaryMessage
 type TransportableMessage interface {
 	GetType() BinaryMessageType
@@ -20,6 +25,11 @@ type TransportableMessage interface {
 	ToBinary() BinaryMessage
 	FromBinary([]byte) error
 	String() string
+}
+
+type SignableTransportableMessage interface {
+	TransportableMessage
+	Signable
 }
 
 // og protocol message codes
@@ -88,4 +98,107 @@ const (
 
 	MessageTypeNewArchive
 	MessageTypeNewActionTx
+	MessageTypeEncrypted
+	MessageTypeSigned
 )
+
+func (mt BinaryMessageType) String() string {
+	switch mt {
+	case StatusMsg:
+		return "StatusMsg"
+	case MessageTypePing:
+		return "MessageTypePing"
+	case MessageTypePong:
+		return "MessageTypePong"
+	case MessageTypeFetchByHashRequest:
+		return "MessageTypeFetchByHashRequest"
+	case MessageTypeFetchByHashResponse:
+		return "MessageTypeFetchByHashResponse"
+	case MessageTypeNewTx:
+		return "MessageTypeNewTx"
+	case MessageTypeNewSequencer:
+		return "MessageTypeNewSequencer"
+	case MessageTypeNewTxs:
+		return "MessageTypeNewTxs"
+	case MessageTypeSequencerHeader:
+		return "MessageTypeSequencerHeader"
+
+	case MessageTypeBodiesRequest:
+		return "MessageTypeBodiesRequest"
+	case MessageTypeBodiesResponse:
+		return "MessageTypeBodiesResponse"
+	case MessageTypeTxsRequest:
+		return "MessageTypeTxsRequest"
+	case MessageTypeTxsResponse:
+		return "MessageTypeTxsResponse"
+	case MessageTypeHeaderRequest:
+		return "MessageTypeHeaderRequest"
+	case MessageTypeHeaderResponse:
+		return "MessageTypeHeaderResponse"
+
+		//for optimizing network
+	case MessageTypeGetMsg:
+		return "MessageTypeGetMsg"
+	case MessageTypeDuplicate:
+		return "MessageTypeDuplicate"
+	case MessageTypeControl:
+		return "MessageTypeControl"
+
+		//for consensus
+	case MessageTypeCampaign:
+		return "MessageTypeCampaign"
+	case MessageTypeTermChange:
+		return "MessageTypeTermChange"
+	case MessageTypeArchive:
+		return "MessageTypeArchive"
+	case MessageTypeActionTX:
+		return "MessageTypeActionTX"
+
+	//case MessageTypeConsensusDkgDeal:
+	//	return "MessageTypeConsensusDkgDeal"
+	//case MessageTypeConsensusDkgDealResponse:
+	//	return "MessageTypeConsensusDkgDealResponse"
+	//case MessageTypeConsensusDkgSigSets:
+	//	return "MessageTypeDkgSigSets"
+	//case MessageTypeConsensusDkgGenesisPublicKey:
+	//	return "MessageTypeConsensusDkgGenesisPublicKey"
+	case MessageTypeTermChangeRequest:
+		return "MessageTypeTermChangeRequest"
+	case MessageTypeTermChangeResponse:
+		return "MessageTypeTermChangeResponse"
+	case MessageTypeSecret:
+		return "MessageTypeSecret"
+
+	//case MessageTypeProposal:
+	//	return "MessageTypeProposal"
+	//case MessageTypePreVote:
+	//	return "MessageTypePreVote"
+	//case MessageTypePreCommit:
+	//	return "MessageTypePreCommit"
+
+	case MessageTypeOg01Length: //og01 length
+		return "MessageTypeOg01Length"
+
+		// Protocol messages belonging to og/02
+
+	case GetNodeDataMsg:
+		return "GetNodeDataMsg"
+	case NodeDataMsg:
+		return "NodeDataMsg"
+	case GetReceiptsMsg:
+		return "GetReceiptsMsg"
+	case MessageTypeOg02Length:
+		return "MessageTypeOg02Length"
+	case MessageTypeEncrypted:
+		return "MessageTypeEncrypted"
+	case MessageTypeSigned:
+		return "MessageTypeSigned"
+	default:
+		return fmt.Sprintf("unkown message type %d", mt)
+	}
+}
+
+//
+//func (mt BinaryMessageType) Code() p2p.MsgCodeType {
+//	return p2p.MsgCodeType(mt)
+//}

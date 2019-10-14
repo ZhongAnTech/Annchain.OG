@@ -152,7 +152,7 @@ type ConsensusDkgGenesisPublicKeyHandler interface {
 	HandleConsensusDkgGenesisPublicKey(request *p2p_message.MessageConsensusDkgGenesisPublicKey, peerId string)
 }
 type ConsensusHandler interface {
-	HandleConsensus(request *bft.BftMessage, peerId string)
+	HandleConsensus(request bft.BftMessage, peerId string)
 }
 type TermChangeRequestHandler interface {
 	HandleTermChangeRequest(request *p2p_message.MessageTermChangeRequest, peerId string)

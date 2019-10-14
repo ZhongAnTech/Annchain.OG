@@ -82,26 +82,26 @@ func (d dummyContextProvider) GetMyPartSec() dkg.PartSec {
 
 type dummyBftPeerCommunicator struct {
 	Myid        int
-	PeerPipeIns []chan *bft.BftMessage
-	pipeIn      chan *bft.BftMessage
-	pipeOut     chan *bft.BftMessage
+	PeerPipeIns []chan bft.BftMessage
+	pipeIn      chan bft.BftMessage
+	pipeOut     chan bft.BftMessage
 }
 
 func (d *dummyBftPeerCommunicator) AdaptOgMessage(incomingMsg *message.OGMessage) (bft.BftMessage, error) {
 	panic("implement me")
 }
 
-func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg *bft.BftMessage) {
+func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
 	d.pipeIn <- msg
 }
 
-func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessage,
-	peers []chan *bft.BftMessage) *dummyBftPeerCommunicator {
+func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage,
+	peers []chan bft.BftMessage) *dummyBftPeerCommunicator {
 	d := &dummyBftPeerCommunicator{
 		PeerPipeIns: peers,
 		Myid:        myid,
 		pipeIn:      incoming,
-		pipeOut:     make(chan *bft.BftMessage),
+		pipeOut:     make(chan bft.BftMessage),
 	}
 	return d
 }
@@ -121,7 +121,7 @@ func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OG
 	}
 }
 
-func (d *dummyBftPeerCommunicator) Broadcast(msg *bft.BftMessage, peers []bft.PeerInfo) {
+func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
 			//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
@@ -130,18 +130,18 @@ func (d *dummyBftPeerCommunicator) Broadcast(msg *bft.BftMessage, peers []bft.Pe
 	}
 }
 
-func (d *dummyBftPeerCommunicator) Unicast(msg *bft.BftMessage, peer bft.PeerInfo) {
+func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
 		d.PeerPipeIns[peer.Id] <- msg
 	}()
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
+func (d *dummyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
 	return d.pipeIn
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
+func (d *dummyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
 	return d.pipeOut
 }
 
@@ -150,7 +150,7 @@ func (d *dummyBftPeerCommunicator) Run() {
 	go func() {
 		for {
 			v := <-d.pipeIn
-			//vv := v.Message.(*bft.BftMessage)
+			//vv := v.Message.(bft.BftMessage)
 			d.pipeOut <- v
 		}
 	}()
@@ -257,11 +257,11 @@ func (d *dummyDkgPeerCommunicator) Run() {
 }
 
 type dummyAnnsensusPartnerProvider struct {
-	peerChansBft []chan *bft.BftMessage
+	peerChansBft []chan bft.BftMessage
 	peerChansDkg []chan *dkg.DkgMessage
 }
 
-func NewDummyAnnsensusPartnerProivder(peerChansBft []chan *bft.BftMessage, peerChansDkg []chan *dkg.DkgMessage) *dummyAnnsensusPartnerProvider {
+func NewDummyAnnsensusPartnerProivder(peerChansBft []chan bft.BftMessage, peerChansDkg []chan *dkg.DkgMessage) *dummyAnnsensusPartnerProvider {
 	dapp := &dummyAnnsensusPartnerProvider{
 		peerChansBft: peerChansBft,
 		peerChansDkg: peerChansDkg,

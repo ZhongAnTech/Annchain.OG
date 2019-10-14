@@ -114,15 +114,17 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg general_message.Transpor
 		err = errors.New("TrustfulBftAdapter received a message of type MessageSigned but it is not.")
 		return
 	}
+
+	// check inner type
+	bftMessage, err := b.bftMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), incomingMsg.GetData())
+	if err != nil {
+		return
+	}
+
 	err = b.VerifyParnterIdentity(signedMsg)
 	if err != nil {
 		logrus.WithField("term", signedMsg.TermId).WithError(err).Warn("bft message partner identity is not valid or unknown")
 		err = errors.New("bft message partner identity is not valid or unknown")
-		return
-	}
-
-	bftMessage, err := b.bftMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), incomingMsg.GetData())
-	if err != nil {
 		return
 	}
 

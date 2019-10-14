@@ -26,14 +26,12 @@ import (
 
 type Signable interface {
 	SignatureTargets() []byte
-	PublicKey() []byte
 }
 
 // TransportableMessage is the message that can be convert to BinaryMessage
 type BftMessage interface {
 	Signable
 	GetType() BftMessageType
-	GetData() BftMessage
 	String() string
 }
 
@@ -107,10 +105,6 @@ func (m *MessageProposal) GetType() BftMessageType {
 	return BftMessageTypeProposal
 }
 
-func (m *MessageProposal) GetData() BftMessage {
-	return m
-}
-
 func (m *MessageProposal) PublicKey() []byte {
 	return m.PublicKeyBytes
 }
@@ -123,10 +117,6 @@ type MessagePreVote struct {
 
 func (z *MessagePreVote) GetType() BftMessageType {
 	return BftMessageTypePreVote
-}
-
-func (z *MessagePreVote) GetData() BftMessage {
-	return z
 }
 
 func (z *MessagePreVote) PublicKey() []byte {
@@ -146,10 +136,6 @@ func (z *MessagePreCommit) PublicKey() []byte {
 
 func (z *MessagePreCommit) GetType() BftMessageType {
 	return BftMessageTypePreCommit
-}
-
-func (z *MessagePreCommit) GetData() BftMessage {
-	return z
 }
 
 func (m BftBasicInfo) String() string {

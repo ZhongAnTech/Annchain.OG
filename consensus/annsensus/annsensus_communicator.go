@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/communicator"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/types/general_message"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -55,44 +56,38 @@ func (r *AnnsensusCommunicator) Run() {
 // As part of Annsensus, bft,dkg and term may not be regarded as a separate component of OG.
 // Annsensus itself is also a plugin of OG supporting consensus messages.
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
-func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) {
-	switch msg.MessageType {
-	case message.BinaryMessageType(bft.BftMessageTypeProposal):
+func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg general_message.TransportableMessage) {
+	switch msg.GetType() {
+	case general_message.MessageTypeSigned:
 		fallthrough
-	case message.BinaryMessageType(bft.BftMessageTypePreVote):
-		fallthrough
-	case message.BinaryMessageType(bft.BftMessageTypePreCommit):
-		bftMessage, err := ap.bftMessageAdapter.AdaptOgMessage(msg.Message)
-		if err != nil {
-			logrus.WithError(err).Warn("error on adapting OG message to BFT message")
-		}
-		// send to bft
-		msgTerm, err := ap.termHolder.GetTermCollection(msg)
-		if err != nil {
-			logrus.WithError(err).Warn("failed to find appropriate term for msg")
+	case general_message.MessageTypePlain:
+		// let bft and dkg handle this message since I don't know the content
+		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(msg)
+		if err == nil {
+			// send to bft
+			msgTerm, err := ap.termHolder.GetTermCollection(bmsg)
+			if err != nil {
+				logrus.WithError(err).Warn("failed to find appropriate term for msg")
+				return
+			}
+			msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- bmsg
 			return
 		}
-		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- &bftMessage
-		break
-	case message.BinaryMessageType(dkg.DkgMessageTypeDeal):
-		fallthrough
-	case message.BinaryMessageType(dkg.DkgMessageTypeDealResponse):
-		fallthrough
-	case message.BinaryMessageType(dkg.DkgMessageTypeSigSets):
-		fallthrough
-	case message.BinaryMessageType(dkg.DkgMessageTypeGenesisPublicKey):
-		dkgMessage, err := ap.dkgMessageAdapter.AdaptOgMessage(msg.Message)
-		if err != nil {
-			logrus.WithError(err).Warn("error on adapting OG message to DKG message")
-		}
-		// send to dkg
-		msgTerm, err := ap.termHolder.GetTermCollection(msg)
-		if err != nil {
-			logrus.WithError(err).Warn("failed to find appropriate term for msg")
+
+		dmsg, err := ap.dkgMessageAdapter.AdaptOgMessage(msg)
+		if err == nil {
+			// send to dkg
+			msgTerm, err := ap.termHolder.GetTermCollection(dmsg)
+			if err != nil {
+				logrus.WithError(err).Warn("failed to find appropriate term for msg")
+				return
+			}
+			msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- dmsg
 			return
 		}
-		msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- &dkgMessage
-		break
+
+		logrus.WithError(err).Warn("error on handling annsensus message")
+		return
 	}
 }
 

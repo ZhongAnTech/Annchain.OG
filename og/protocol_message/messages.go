@@ -3,6 +3,7 @@ package protocol_message
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types/general_message"
 	"github.com/annchain/OG/types/tx_types"
 )
@@ -803,4 +804,76 @@ func (m *MessageNewActionTx) String() string {
 		return "nil"
 	}
 	return m.ActionTx.String()
+}
+
+//msgp:tuple MessageSigned
+type MessageSigned struct {
+	InnerMessageType general_message.BinaryMessageType
+	InnerMessage     []byte
+	Signature        hexutil.Bytes
+	PublicKey        hexutil.Bytes
+}
+
+func (m MessageSigned) GetType() general_message.BinaryMessageType {
+	return general_message.MessageTypeSigned
+}
+
+func (m MessageSigned) GetData() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m MessageSigned) ToBinary() general_message.BinaryMessage {
+	return general_message.BinaryMessage{
+		Type: m.GetType(),
+		Data: m.GetData(),
+	}
+}
+
+func (m MessageSigned) FromBinary(bs []byte) error {
+	_, err := m.UnmarshalMsg(bs)
+	return err
+}
+
+func (m MessageSigned) String() string {
+	return "MessageSigned"
+}
+
+//msgp:tuple MessageEncrypted
+type MessageEncrypted struct {
+	InnerMessageType      general_message.BinaryMessageType
+	InnerMessageEncrypted []byte
+	PublicKey             hexutil.Bytes
+}
+
+func (z *MessageEncrypted) GetType() general_message.BinaryMessageType {
+	return general_message.MessageTypeEncrypted
+}
+
+func (z *MessageEncrypted) GetData() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *MessageEncrypted) ToBinary() general_message.BinaryMessage {
+	return general_message.BinaryMessage{
+		Type: m.GetType(),
+		Data: m.GetData(),
+	}
+}
+
+func (z *MessageEncrypted) FromBinary([]byte) error {
+	_, err := m.UnmarshalMsg(bs)
+	return err
+}
+
+func (z *MessageEncrypted) String() string {
+	return "MessageEncrypted"
+
 }

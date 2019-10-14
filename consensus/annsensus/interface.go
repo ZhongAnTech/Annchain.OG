@@ -55,7 +55,7 @@ type SequencerProducer interface {
 // During the converting process there may be some validation and signing operations.
 type BftMessageAdapter interface {
 	AdaptOgMessage(incomingMsg p2p_message.Message) (bft.BftMessage, error)
-	AdaptBftMessage(outgoingMsg *bft.BftMessage) (p2p_message.Message, error)
+	AdaptBftMessage(outgoingMsg bft.BftMessage) (p2p_message.Message, error)
 }
 
 type DkgMessageAdapter interface {

@@ -7,32 +7,32 @@ import (
 
 type ProxyBftPeerCommunicator struct {
 	annsensusCommunicator *AnnsensusCommunicator
-	pipe                  chan *bft.BftMessage
+	pipe                  chan bft.BftMessage
 }
 
 func NewProxyBftPeerCommunicator(annsensusCommunicator *AnnsensusCommunicator) *ProxyBftPeerCommunicator {
 	return &ProxyBftPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
-		pipe:                  make(chan *bft.BftMessage),
+		pipe:                  make(chan bft.BftMessage),
 	}
 }
 
-func (p *ProxyBftPeerCommunicator) Broadcast(msg *bft.BftMessage, peers []bft.PeerInfo) {
+func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	// adapt the interface so that the request can be handled by annsensus
 	p.annsensusCommunicator.BroadcastBft(msg, peers)
 }
 
-func (p *ProxyBftPeerCommunicator) Unicast(msg *bft.BftMessage, peer bft.PeerInfo) {
+func (p *ProxyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	// adapt the interface so that the request can be handled by annsensus
 	p.annsensusCommunicator.UnicastBft(msg, peer)
 }
 
-func (p *ProxyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessage {
+func (p *ProxyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
 	// the channel to be consumed by the downstream.
 	return p.pipe
 }
 
-func (p *ProxyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessage {
+func (p *ProxyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
 	// the channel to be fed by other peers
 	return p.pipe
 }

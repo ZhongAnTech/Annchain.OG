@@ -511,6 +511,117 @@ func (z MessageDuplicate) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *MessageEncrypted) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	err = z.InnerMessageType.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	z.InnerMessageEncrypted, err = dc.ReadBytes(z.InnerMessageEncrypted)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageEncrypted")
+		return
+	}
+	err = z.PublicKey.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageEncrypted) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 3
+	err = en.Append(0x93)
+	if err != nil {
+		return
+	}
+	err = z.InnerMessageType.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	err = en.WriteBytes(z.InnerMessageEncrypted)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageEncrypted")
+		return
+	}
+	err = z.PublicKey.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageEncrypted) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 3
+	o = append(o, 0x93)
+	o, err = z.InnerMessageType.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	o = msgp.AppendBytes(o, z.InnerMessageEncrypted)
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageEncrypted) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	bts, err = z.InnerMessageType.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	z.InnerMessageEncrypted, bts, err = msgp.ReadBytesBytes(bts, z.InnerMessageEncrypted)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageEncrypted")
+		return
+	}
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageEncrypted) Msgsize() (s int) {
+	s = 1 + z.InnerMessageType.Msgsize() + msgp.BytesPrefixSize + len(z.InnerMessageEncrypted) + z.PublicKey.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *MessageGetMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
@@ -1740,6 +1851,137 @@ func (z *MessageSequencerHeader) Msgsize() (s int) {
 	} else {
 		s += msgp.Uint64Size
 	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *MessageSigned) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	err = z.InnerMessageType.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	z.InnerMessage, err = dc.ReadBytes(z.InnerMessage)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessage")
+		return
+	}
+	err = z.Signature.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	err = z.PublicKey.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *MessageSigned) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 4
+	err = en.Append(0x94)
+	if err != nil {
+		return
+	}
+	err = z.InnerMessageType.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	err = en.WriteBytes(z.InnerMessage)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessage")
+		return
+	}
+	err = z.Signature.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	err = z.PublicKey.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *MessageSigned) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 4
+	o = append(o, 0x94)
+	o, err = z.InnerMessageType.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	o = msgp.AppendBytes(o, z.InnerMessage)
+	o, err = z.Signature.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	o, err = z.PublicKey.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *MessageSigned) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+		return
+	}
+	bts, err = z.InnerMessageType.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
+	}
+	z.InnerMessage, bts, err = msgp.ReadBytesBytes(bts, z.InnerMessage)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessage")
+		return
+	}
+	bts, err = z.Signature.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	bts, err = z.PublicKey.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "PublicKey")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *MessageSigned) Msgsize() (s int) {
+	s = 1 + z.InnerMessageType.Msgsize() + msgp.BytesPrefixSize + len(z.InnerMessage) + z.Signature.Msgsize() + z.PublicKey.Msgsize()
 	return
 }
 

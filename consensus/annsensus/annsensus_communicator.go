@@ -96,7 +96,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg *message.OGMessage) 
 	}
 }
 
-func (ap *AnnsensusCommunicator) BroadcastBft(msg *bft.BftMessage, peers []bft.PeerInfo) {
+func (ap *AnnsensusCommunicator) BroadcastBft(msg bft.BftMessage, peers []bft.PeerInfo) {
 	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
@@ -108,7 +108,7 @@ func (ap *AnnsensusCommunicator) BroadcastBft(msg *bft.BftMessage, peers []bft.P
 	}
 }
 
-func (ap *AnnsensusCommunicator) UnicastBft(msg *bft.BftMessage, peer bft.PeerInfo) {
+func (ap *AnnsensusCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInfo) {
 	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")

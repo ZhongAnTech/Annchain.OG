@@ -4,7 +4,6 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/communicator"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/general_message"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -92,24 +91,24 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg general_message.Tran
 }
 
 func (ap *AnnsensusCommunicator) BroadcastBft(msg bft.BftMessage, peers []bft.PeerInfo) {
-	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
+	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
 
 	for _, peer := range peers {
-		ap.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), signed, &peer.PublicKey)
+		ap.p2pSender.AnonymousSendMessage(adaptedMessage, &peer.PublicKey)
 	}
 }
 
 func (ap *AnnsensusCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInfo) {
-	signed, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
+	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
-	ap.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), signed, &peer.PublicKey)
+	ap.p2pSender.AnonymousSendMessage(adaptedMessage, &peer.PublicKey)
 }
 
 func (ap *AnnsensusCommunicator) BroadcastDkg(msg dkg.DkgMessage, peers []dkg.PeerInfo) {

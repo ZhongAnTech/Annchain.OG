@@ -60,5 +60,5 @@ type BftMessageAdapter interface {
 
 type DkgMessageAdapter interface {
 	AdaptOgMessage(incomingMsg general_message.TransportableMessage) (dkg.DkgMessage, error)
-	AdaptDkgMessage(outgoingMsg *dkg.DkgMessage) (general_message.TransportableMessage, error)
+	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (general_message.TransportableMessage, error)
 }

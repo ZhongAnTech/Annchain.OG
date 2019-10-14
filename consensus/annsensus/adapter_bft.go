@@ -54,11 +54,12 @@ func NewTrustfulBftAdapter(
 }
 
 func (r *TrustfulBftAdapter) Sign(msg bft.BftMessage) protocol_message.MessageSigned {
+	publicKey, signature := r.signatureProvider.Sign(msg.SignatureTargets())
 	signed := protocol_message.MessageSigned{
 		InnerMessageType: general_message.BinaryMessageType(msg.GetType()),
 		InnerMessage:     msg.SignatureTargets(),
-		Signature:        r.signatureProvider.Sign(msg.SignatureTargets()),
-		PublicKey:        msg.PublicKey(),
+		Signature:        signature,
+		PublicKey:        publicKey,
 	}
 	//SessionId:     partner.CurrentTerm(),
 	//PublicKey: account.PublicKey.Bytes,
@@ -94,8 +95,8 @@ func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *protocol_message.M
 	return errors.New("public key not found in current term")
 }
 
-func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, signature []byte) error {
-	ok := crypto.VerifySignature(outMsg.PublicKey(), outMsg.SignatureTargets(), signature)
+func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publicKey []byte, signature []byte) error {
+	ok := crypto.VerifySignature(publicKey, outMsg.SignatureTargets(), signature)
 	if !ok {
 		return errors.New("signature invalid")
 	}
@@ -125,7 +126,7 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg general_message.Transpor
 		return
 	}
 
-	err = b.VerifyMessageSignature(bftMessage, signedMsg.Signature)
+	err = b.VerifyMessageSignature(bftMessage, signedMsg.PublicKey, signedMsg.Signature)
 	if err != nil {
 		logrus.WithError(err).Warn("bft message signature is not valid")
 		err = errors.New("bft message signature is not valid")
@@ -198,4 +199,3 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg genera
 	}
 	return
 }
-

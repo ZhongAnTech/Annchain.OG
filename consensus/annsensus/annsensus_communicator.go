@@ -117,11 +117,11 @@ func (ap *AnnsensusCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInf
 	ap.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), signed, &peer.PublicKey)
 }
 
-func (ap *AnnsensusCommunicator) BroadcastDkg(msg *dkg.DkgMessage, peers []dkg.PeerInfo) {
+func (ap *AnnsensusCommunicator) BroadcastDkg(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
 	panic("implement me")
 }
 
-func (ap *AnnsensusCommunicator) UnicastDkg(msg *dkg.DkgMessage, peer dkg.PeerInfo) {
+func (ap *AnnsensusCommunicator) UnicastDkg(msg dkg.DkgMessage, peer dkg.PeerInfo) {
 	panic("implement me")
 }
 

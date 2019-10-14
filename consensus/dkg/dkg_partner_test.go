@@ -62,11 +62,11 @@ func setupPartners(termId uint32, numParts int, threshold int) ([]*DefaultDkgPar
 		partPubs = append(partPubs, peer.PartPub)
 	}
 
-	var peerChans []chan *DkgMessage
+	var peerChans []chan DkgMessage
 
 	// prepare incoming channels
 	for i := 0; i < numParts; i++ {
-		peerChans = append(peerChans, make(chan *DkgMessage, 5000))
+		peerChans = append(peerChans, make(chan DkgMessage, 5000))
 	}
 
 	var partners []*DefaultDkgPartner
@@ -74,7 +74,8 @@ func setupPartners(termId uint32, numParts int, threshold int) ([]*DefaultDkgPar
 	for i := 0; i < numParts; i++ {
 		communicator := NewDummyDkgPeerCommunicator(i, peerChans[i], peerChans)
 		communicator.Run()
-		partner, err := NewDefaultDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i], communicator)
+		partner, err := NewDefaultDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i],
+			communicator, communicator)
 		if err != nil {
 			panic(err)
 		}

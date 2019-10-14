@@ -3,13 +3,12 @@ package dkg
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/msg"
 	dkg "github.com/annchain/kyber/v3/share/dkg/pedersen"
 )
 
 //go:generate msgp
 
-//msgp:tuple BftMessageType
+//msgp:tuple DkgMessageType
 type DkgMessageType uint16
 
 const (
@@ -30,26 +29,21 @@ func (m DkgMessageType) String() string {
 	case DkgMessageTypeGenesisPublicKey:
 		return "DkgMessageTypeGenesisPublicKey"
 	default:
-		return "BFTUnknown"
+		return "DkgUnknown"
 	}
 }
 
 type Signable interface {
-	msg.MsgpMember
 	SignatureTargets() []byte
 }
 
-//msgp:tuple DkgMessage
-type DkgMessage struct {
-	Type    DkgMessageType
-	Payload Signable
+type DkgMessage interface {
+	Signable
+	GetType() DkgMessageType
+	String() string
 }
 
-func (m *DkgMessage) String() string {
-	return fmt.Sprintf("%s %+v", m.Type.String(), m.Payload)
-}
-
-//msgp:tuple BftBasicInfo
+//msgp:tuple DkgBasicInfo
 type DkgBasicInfo struct {
 	TermId uint32
 	//PublicKey PublicKeyMarshallable
@@ -58,17 +52,21 @@ type DkgBasicInfo struct {
 //msgp:tuple MessageDkgGenesisPublicKey
 type MessageDkgGenesisPublicKey struct {
 	DkgBasicInfo
-	DkgPublicKey []byte
+	PublicKeyBytes []byte
 	//PublicKey    []byte
 	//Signature    []byte
 }
 
-func (m *MessageDkgGenesisPublicKey) SignatureTargets() []byte {
-	return m.DkgPublicKey
+func (z *MessageDkgGenesisPublicKey) GetType() DkgMessageType {
+	return DkgMessageTypeGenesisPublicKey
 }
 
-func (m *MessageDkgGenesisPublicKey) String() string {
-	return fmt.Sprintf("DkgGenesisPublicKey  len %d ", len(m.DkgPublicKey))
+func (z *MessageDkgGenesisPublicKey) String() string {
+	return "DkgMessageTypeGenesisPublicKey"
+}
+
+func (z *MessageDkgGenesisPublicKey) SignatureTargets() []byte {
+	return z.PublicKeyBytes
 }
 
 //msgp:tuple MessageDkgSigSets
@@ -77,14 +75,18 @@ type MessageDkgSigSets struct {
 	PkBls []byte
 }
 
+func (z *MessageDkgSigSets) GetType() DkgMessageType {
+	return DkgMessageTypeSigSets
+}
+
+func (z *MessageDkgSigSets) String() string {
+	return "DkgMessageTypeSigSets"
+}
+
 func (m *MessageDkgSigSets) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	w.Write(m.PkBls)
 	return w.Bytes()
-}
-
-func (m *MessageDkgSigSets) String() string {
-	return "dkgSigsets" + fmt.Sprintf("len %d", len(m.PkBls))
 }
 
 //msgp:tuple MessageDkgDeal
@@ -92,6 +94,10 @@ type MessageDkgDeal struct {
 	DkgBasicInfo
 	//Id   uint32
 	Data []byte
+}
+
+func (z *MessageDkgDeal) GetType() DkgMessageType {
+	return DkgMessageTypeDeal
 }
 
 func (m *MessageDkgDeal) GetDeal() (*dkg.Deal, error) {
@@ -124,6 +130,10 @@ type MessageDkgDealResponse struct {
 	//PublicKey []byte
 	//Signature []byte
 	//SessionId uint64
+}
+
+func (m MessageDkgDealResponse) GetType() DkgMessageType {
+	return DkgMessageTypeDealResponse
 }
 
 func (m MessageDkgDealResponse) String() string {

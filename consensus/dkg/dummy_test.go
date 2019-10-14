@@ -7,17 +7,17 @@ import (
 
 type dummyDkgPeerCommunicator struct {
 	Myid    int
-	Peers   []chan *DkgMessage
-	pipeIn  chan *DkgMessage
-	pipeOut chan *DkgMessage
+	Peers   []chan DkgMessage
+	pipeIn  chan DkgMessage
+	pipeOut chan DkgMessage
 }
 
-func NewDummyDkgPeerCommunicator(myid int, incoming chan *DkgMessage, peers []chan *DkgMessage) *dummyDkgPeerCommunicator {
+func NewDummyDkgPeerCommunicator(myid int, incoming chan DkgMessage, peers []chan DkgMessage) *dummyDkgPeerCommunicator {
 	d := &dummyDkgPeerCommunicator{
 		Peers:   peers,
 		Myid:    myid,
 		pipeIn:  incoming,
-		pipeOut: make(chan *DkgMessage, 10000), // must be big enough to avoid blocking issue
+		pipeOut: make(chan DkgMessage, 10000), // must be big enough to avoid blocking issue
 	}
 	return d
 }
@@ -39,8 +39,12 @@ func (d *dummyDkgPeerCommunicator) Unicast(msg DkgMessage, peer PeerInfo) {
 	}(peer.Id)
 }
 
-func (d *dummyDkgPeerCommunicator) GetPipeOut() chan *DkgMessage {
+func (d *dummyDkgPeerCommunicator) GetPipeOut() chan DkgMessage {
 	return d.pipeOut
+}
+
+func (d *dummyDkgPeerCommunicator) GetPipeIn() chan DkgMessage {
+	return d.pipeIn
 }
 
 func (d *dummyDkgPeerCommunicator) Run() {

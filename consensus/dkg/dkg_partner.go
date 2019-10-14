@@ -141,7 +141,7 @@ func (p *DefaultDkgPartner) gossipLoop() {
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
 			//p.checkWaitingForWhat()
 		case msg := <-pipeOutChannel:
-			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.Type.String()).Trace("received a message")
+			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.GetType()).Trace("received a message")
 			p.handleMessage(msg)
 		}
 	}
@@ -176,7 +176,7 @@ func (p *DefaultDkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 		logrus.WithError(err).Fatal("cannot marshal dkg deal")
 	}
 
-	msg := MessageDkgDeal{
+	msg := &MessageDkgDeal{
 		DkgBasicInfo: DkgBasicInfo{
 			TermId: p.context.SessionId,
 		},
@@ -184,8 +184,7 @@ func (p *DefaultDkgPartner) sendDealToPartner(id int, deal *dkger.Deal) {
 	}
 	logrus.WithField("from", deal.Index).WithField("to", id).
 		Trace("unicasting deal message")
-	p.peerCommunicatorOutgoing.Unicast(p.wrapMessage(DkgMessageTypeDeal, &msg),
-		p.context.PartPubs[id].Peer)
+	p.peerCommunicatorOutgoing.Unicast(msg, p.context.PartPubs[id].Peer)
 	// after this, you are expecting a response from the target peers
 }
 
@@ -197,44 +196,34 @@ func (p *DefaultDkgPartner) sendResponseToAllRestPartners(response *dkger.Respon
 		return
 	}
 
-	msg := MessageDkgDealResponse{
+	msg := &MessageDkgDealResponse{
 		DkgBasicInfo: DkgBasicInfo{
 			TermId: p.context.SessionId,
 		},
 		Data: data,
 	}
 	logrus.WithField("me", p.context.MyIndex).WithField("from", response.Response.Index).Trace("broadcasting response message")
-	p.peerCommunicatorOutgoing.Broadcast(p.wrapMessage(DkgMessageTypeDealResponse, &msg), p.otherPeers)
+	p.peerCommunicatorOutgoing.Broadcast(msg, p.otherPeers)
 }
 
-func (p *DefaultDkgPartner) wrapMessage(messageType DkgMessageType, signable Signable) *DkgMessage {
-	m := DkgMessage{
-		Type:    messageType,
-		Payload: signable,
-	}
-	return &m
-}
-
-func (p *DefaultDkgPartner) handleMessage(message *DkgMessage) {
-	switch message.Type {
+func (p *DefaultDkgPartner) handleMessage(message DkgMessage) {
+	switch message.GetType() {
 	case DkgMessageTypeDeal:
-		switch message.Payload.(type) {
-		case *MessageDkgDeal:
-		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("dkg msg payload error")
+		msg, ok := message.(*MessageDkgDeal)
+		if !ok {
+			logrus.Warn("it claims to be a MessageDkgDeal but the payload does not align")
+			return
 		}
-		msg := message.Payload.(*MessageDkgDeal)
 		p.handleDealMessage(msg)
 	case DkgMessageTypeDealResponse:
-		switch message.Payload.(type) {
-		case *MessageDkgDealResponse:
-		default:
-			logrus.WithField("message.Payload", message.Payload).Warn("dkg msg payload error")
+		msg, ok := message.(*MessageDkgDealResponse)
+		if !ok {
+			logrus.Warn("it claims to be a MessageDkgDealResponse but the payload does not align")
+			return
 		}
-		msg := message.Payload.(*MessageDkgDealResponse)
 		p.handleDealResponseMessage(msg)
 	default:
-		logrus.WithField("type", message.Type).Warn("unknown dkg message type")
+		logrus.WithField("type", message.GetType()).Warn("unknown dkg message type")
 	}
 }
 

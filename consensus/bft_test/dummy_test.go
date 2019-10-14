@@ -3,6 +3,7 @@ package bft_test
 import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/types/general_message"
 )
 
 type dummyBftPeerCommunicator struct {
@@ -29,7 +30,7 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers [
 
 func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage{
 	return &message.OGMessage{
-		MessageType:    message.BinaryMessageType(msg.GetType()),
+		MessageType:    general_message.BinaryMessageType(msg.GetType()),
 		Data:           nil,
 		Hash:           nil,
 		SourceID:       "",

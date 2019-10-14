@@ -40,13 +40,19 @@ type Signable interface {
 type DkgMessage interface {
 	Signable
 	GetType() DkgMessageType
+	ProvideHeight() uint64
 	String() string
 }
 
 //msgp:tuple DkgBasicInfo
 type DkgBasicInfo struct {
-	TermId uint32
+	//TermId uint32
+	Height uint64
 	//PublicKey PublicKeyMarshallable
+}
+
+func (d *DkgBasicInfo) ProvideHeight() uint64 {
+	return d.Height
 }
 
 //msgp:tuple MessageDkgGenesisPublicKey
@@ -119,7 +125,7 @@ func (m MessageDkgDeal) String() string {
 	//if len(m.PublicKey) > 10 {
 	//	pkstr = hexutil.Encode(m.PublicKey[:5])
 	//}
-	return "dkg " + fmt.Sprintf("len %d  tid %d",len(m.Data), m.TermId) //  + " pk-" + pkstr
+	return "dkg " + fmt.Sprintf("len %d  height %d", len(m.Data), m.Height) //  + " pk-" + pkstr
 }
 
 //msgp:tuple MessageDkgDealResponse

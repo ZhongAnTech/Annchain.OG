@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/types/general_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
@@ -25,7 +24,7 @@ type TermProvider interface {
 }
 
 type TermHolder interface {
-	GetTermCollection(ogMessage *message.OGMessage) (msgTerm *TermCollection, err error)
+	GetTermCollection(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
 	SetTerm(u uint32, composer *TermCollection)
 }
 

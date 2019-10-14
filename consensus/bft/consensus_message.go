@@ -32,6 +32,7 @@ type Signable interface {
 type BftMessage interface {
 	Signable
 	GetType() BftMessageType
+	ProvideHeight() uint64
 	String() string
 }
 
@@ -92,6 +93,10 @@ type BftBasicInfo struct {
 	SourceId       uint16
 	HeightRound    HeightRound
 	PublicKeyBytes hexutil.Bytes
+}
+
+func (b *BftBasicInfo) ProvideHeight() uint64 {
+	return b.HeightRound.Height
 }
 
 //msgp:tuple MessageProposal

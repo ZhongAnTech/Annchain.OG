@@ -17,7 +17,6 @@ type BinaryMessage struct {
 	Data []byte
 }
 
-
 // TransportableMessage is the message that can be convert to BinaryMessage
 type TransportableMessage interface {
 	GetType() BinaryMessageType
@@ -25,11 +24,6 @@ type TransportableMessage interface {
 	ToBinary() BinaryMessage
 	FromBinary([]byte) error
 	String() string
-}
-
-type SignableTransportableMessage interface {
-	TransportableMessage
-	Signable
 }
 
 // og protocol message codes
@@ -100,6 +94,7 @@ const (
 	MessageTypeNewActionTx
 	MessageTypeEncrypted
 	MessageTypeSigned
+	MessageTypePlain
 )
 
 func (mt BinaryMessageType) String() string {

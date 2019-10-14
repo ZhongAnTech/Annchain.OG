@@ -31,6 +31,7 @@ type Signable interface {
 
 // TransportableMessage is the message that can be convert to BinaryMessage
 type BftMessage interface {
+	Signable
 	GetType() BftMessageType
 	GetData() BftMessage
 	String() string

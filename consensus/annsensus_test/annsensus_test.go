@@ -50,9 +50,10 @@ func logInit() {
 	Formatter := new(logrus.TextFormatter)
 	Formatter.TimestampFormat = "15:04:05.000000"
 	Formatter.FullTimestamp = true
+	Formatter.ForceColors = true
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.TraceLevel)
-	logrus.SetReportCaller(true)
+	//logrus.SetReportCaller(true)
 }
 
 func init() {

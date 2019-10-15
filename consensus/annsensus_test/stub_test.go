@@ -107,6 +107,7 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage,
 }
 
 func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+	logrus.Debug("broadcasting by dummyBftPeerCommunicator")
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
 			//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
@@ -116,6 +117,7 @@ func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.Pee
 }
 
 func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+	logrus.Debug("unicasting by dummyBftPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
 		d.PeerPipeIns[peer.Id] <- msg
@@ -136,6 +138,7 @@ func (d *dummyBftPeerCommunicator) Run() {
 		for {
 			v := <-d.pipeIn
 			//vv := v.Message.(bft.BftMessage)
+			logrus.WithField("type", v.GetType()).Debug("dummyBftPeerCommunicator received a message")
 			d.pipeOut <- v
 		}
 	}()

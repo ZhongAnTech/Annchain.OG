@@ -58,6 +58,7 @@ func (r *AnnsensusCommunicator) Run() {
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
 func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
 	switch annsensusMessage.GetType() {
+	// TODO: MessageTypeEncrypted
 	case protocol_message.MessageTypeSigned:
 		fallthrough
 	case protocol_message.MessageTypePlain:

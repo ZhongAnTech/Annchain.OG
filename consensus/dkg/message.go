@@ -46,7 +46,7 @@ type DkgMessage interface {
 
 //msgp:tuple DkgBasicInfo
 type DkgBasicInfo struct {
-	//TermId uint32
+	TermId uint32
 	Height uint64
 	//PublicKey PublicKeyMarshallable
 }

@@ -74,7 +74,7 @@ func TestEncodeDecodeBlsSigSet(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeBlsSigSet Msgsize() is inaccurate")
 	}
 
 	vn := BlsSigSet{}
@@ -187,7 +187,7 @@ func TestEncodeDecodeSequencer(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeSequencer Msgsize() is inaccurate")
 	}
 
 	vn := Sequencer{}
@@ -300,7 +300,7 @@ func TestEncodeDecodeSequencerJson(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeSequencerJson Msgsize() is inaccurate")
 	}
 
 	vn := SequencerJson{}
@@ -413,7 +413,7 @@ func TestEncodeDecodeSequencers(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeSequencers Msgsize() is inaccurate")
 	}
 
 	vn := Sequencers{}

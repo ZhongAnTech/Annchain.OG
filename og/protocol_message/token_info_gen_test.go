@@ -74,7 +74,7 @@ func TestEncodeDecodeTokenInfo(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTokenInfo Msgsize() is inaccurate")
 	}
 
 	vn := TokenInfo{}
@@ -187,7 +187,7 @@ func TestEncodeDecodeTokensInfo(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTokensInfo Msgsize() is inaccurate")
 	}
 
 	vn := TokensInfo{}

@@ -96,10 +96,11 @@ func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 }
 
 func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMessage msg.TransportableMessage, err error) {
+	var msgBytes []byte
 	switch outgoingMsg.GetType() {
 	case dkg.DkgMessageTypeDeal:
 		omsg := outgoingMsg.(*dkg.MessageDkgDeal)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}
@@ -109,7 +110,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		}
 	case dkg.DkgMessageTypeDealResponse:
 		omsg := outgoingMsg.(*dkg.MessageDkgDealResponse)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}
@@ -119,7 +120,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		}
 	case dkg.DkgMessageTypeGenesisPublicKey:
 		omsg := outgoingMsg.(*dkg.MessageDkgGenesisPublicKey)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}
@@ -129,7 +130,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		}
 	case dkg.DkgMessageTypeSigSets:
 		omsg := outgoingMsg.(*dkg.MessageDkgSigSets)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}

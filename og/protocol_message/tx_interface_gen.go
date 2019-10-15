@@ -11,6 +11,7 @@ func (z *RawTxis) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -19,8 +20,9 @@ func (z *RawTxis) DecodeMsg(dc *msgp.Reader) (err error) {
 		(*z) = make(RawTxis, zb0002)
 	}
 	for zb0001 := range *z {
-		err = DecodeMsg(dc)
+		err = (*z)[zb0001].DecodeMsg(dc)
 		if err != nil {
+			err = msgp.WrapError(err, zb0001)
 			return
 		}
 	}
@@ -31,11 +33,13 @@ func (z *RawTxis) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z RawTxis) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0003 := range z {
-		err = EncodeMsg(en)
+		err = z[zb0003].EncodeMsg(en)
 		if err != nil {
+			err = msgp.WrapError(err, zb0003)
 			return
 		}
 	}
@@ -47,8 +51,9 @@ func (z RawTxis) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
 	for zb0003 := range z {
-		o, err = MarshalMsg(o)
+		o, err = z[zb0003].MarshalMsg(o)
 		if err != nil {
+			err = msgp.WrapError(err, zb0003)
 			return
 		}
 	}
@@ -60,6 +65,7 @@ func (z *RawTxis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -68,8 +74,9 @@ func (z *RawTxis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		(*z) = make(RawTxis, zb0002)
 	}
 	for zb0001 := range *z {
-		bts, err = UnmarshalMsg(bts)
+		bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 		if err != nil {
+			err = msgp.WrapError(err, zb0001)
 			return
 		}
 	}
@@ -81,7 +88,7 @@ func (z *RawTxis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z RawTxis) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
 	for zb0003 := range z {
-		s += Msgsize()
+		s += z[zb0003].Msgsize()
 	}
 	return
 }
@@ -91,14 +98,16 @@ func (z *TxiSmallCaseMarshal) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 1 {
 		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
-	err = DecodeMsg(dc)
+	err = z.Txi.DecodeMsg(dc)
 	if err != nil {
+		err = msgp.WrapError(err, "Txi")
 		return
 	}
 	return
@@ -111,8 +120,9 @@ func (z *TxiSmallCaseMarshal) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = EncodeMsg(en)
+	err = z.Txi.EncodeMsg(en)
 	if err != nil {
+		err = msgp.WrapError(err, "Txi")
 		return
 	}
 	return
@@ -123,8 +133,9 @@ func (z *TxiSmallCaseMarshal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 1
 	o = append(o, 0x91)
-	o, err = MarshalMsg(o)
+	o, err = z.Txi.MarshalMsg(o)
 	if err != nil {
+		err = msgp.WrapError(err, "Txi")
 		return
 	}
 	return
@@ -135,14 +146,16 @@ func (z *TxiSmallCaseMarshal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if zb0001 != 1 {
 		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
 		return
 	}
-	bts, err = UnmarshalMsg(bts)
+	bts, err = z.Txi.UnmarshalMsg(bts)
 	if err != nil {
+		err = msgp.WrapError(err, "Txi")
 		return
 	}
 	o = bts
@@ -151,7 +164,7 @@ func (z *TxiSmallCaseMarshal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxiSmallCaseMarshal) Msgsize() (s int) {
-	s = 1 + Msgsize()
+	s = 1 + z.Txi.Msgsize()
 	return
 }
 
@@ -160,6 +173,7 @@ func (z *Txis) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -168,8 +182,9 @@ func (z *Txis) DecodeMsg(dc *msgp.Reader) (err error) {
 		(*z) = make(Txis, zb0002)
 	}
 	for zb0001 := range *z {
-		err = DecodeMsg(dc)
+		err = (*z)[zb0001].DecodeMsg(dc)
 		if err != nil {
+			err = msgp.WrapError(err, zb0001)
 			return
 		}
 	}
@@ -180,11 +195,13 @@ func (z *Txis) DecodeMsg(dc *msgp.Reader) (err error) {
 func (z Txis) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0003 := range z {
-		err = EncodeMsg(en)
+		err = z[zb0003].EncodeMsg(en)
 		if err != nil {
+			err = msgp.WrapError(err, zb0003)
 			return
 		}
 	}
@@ -196,8 +213,9 @@ func (z Txis) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
 	for zb0003 := range z {
-		o, err = MarshalMsg(o)
+		o, err = z[zb0003].MarshalMsg(o)
 		if err != nil {
+			err = msgp.WrapError(err, zb0003)
 			return
 		}
 	}
@@ -209,6 +227,7 @@ func (z *Txis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	if cap((*z)) >= int(zb0002) {
@@ -217,8 +236,9 @@ func (z *Txis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		(*z) = make(Txis, zb0002)
 	}
 	for zb0001 := range *z {
-		bts, err = UnmarshalMsg(bts)
+		bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 		if err != nil {
+			err = msgp.WrapError(err, zb0001)
 			return
 		}
 	}
@@ -230,7 +250,7 @@ func (z *Txis) UnmarshalMsg(bts []byte) (o []byte, err error) {
 func (z Txis) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize
 	for zb0003 := range z {
-		s += Msgsize()
+		s += z[zb0003].Msgsize()
 	}
 	return
 }

@@ -74,7 +74,7 @@ func TestEncodeDecodeSigSet(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeSigSet Msgsize() is inaccurate")
 	}
 
 	vn := SigSet{}
@@ -187,7 +187,7 @@ func TestEncodeDecodeTermChange(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTermChange Msgsize() is inaccurate")
 	}
 
 	vn := TermChange{}
@@ -300,7 +300,7 @@ func TestEncodeDecodeTermChanges(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTermChanges Msgsize() is inaccurate")
 	}
 
 	vn := TermChanges{}

@@ -18,7 +18,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/msg"
 	"sync"
 	"time"
 
@@ -30,11 +30,11 @@ import (
 const BloomFilterRate = 4 //sending 4 req
 
 type MessageSender interface {
-	BroadcastMessage(messageType message.BinaryMessageType, message p2p_message.Message)
-	MulticastMessage(messageType message.BinaryMessageType, message p2p_message.Message)
-	MulticastToSource(messageType message.BinaryMessageType, message p2p_message.Message, sourceMsgHash *common.Hash)
-	BroadcastMessageWithLink(messageType message.BinaryMessageType, message p2p_message.Message)
-	SendToPeer(peerId string, messageType message.BinaryMessageType, msg p2p_message.Message)
+	BroadcastMessage(message msg.TransportableMessage)
+	MulticastMessage(message msg.TransportableMessage)
+	MulticastToSource(message msg.TransportableMessage, sourceMsgHash *common.Hash)
+	BroadcastMessageWithLink(message msg.TransportableMessage)
+	SendToPeer(peerId string, msg msg.TransportableMessage)
 }
 
 type FireHistory struct {
@@ -153,7 +153,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	if len(buffer) == 0 {
 		return
 	}
-	req := p2p_message.MessageSyncRequest{
+	req := protocol_message.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	var source interface{}
@@ -185,9 +185,9 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	}
 	req.Hashes = &reqHashes
 
-	log.WithField("type", message.MessageTypeFetchByHashRequest).
+	log.WithField("type", req.GetType()).
 		WithField("length", len(reqHashes)).WithField("hashes", req.String()).Debugf(
-		"sending message MessageTypeFetchByHashRequest")
+		"sending message")
 
 	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
@@ -195,7 +195,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	//get source msg
 	soucrHash := source.(common.Hash)
 
-	m.messageSender.MulticastToSource(message.MessageTypeFetchByHashRequest, &req, &soucrHash)
+	m.messageSender.MulticastToSource(&req, &soucrHash)
 }
 
 // LoopSync checks if there is new hash to fetch. Dedup.
@@ -463,24 +463,26 @@ func (m *IncrementalSyncer) SyncHashList(seqHash common.Hash) {
 }
 
 func (m *IncrementalSyncer) syncHashList(peerId string) {
-	req := p2p_message.MessageSyncRequest{
+	req := protocol_message.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	height := m.getHeight()
 	req.Height = &height
 	hashs := m.getTxsHashes()
-	var hashTerminates p2p_message.HashTerminats
+	var hashTerminates protocol_message.HashTerminats
 	for _, hash := range hashs {
-		var hashTerminate p2p_message.HashTerminat
+		var hashTerminate protocol_message.HashTerminat
 		copy(hashTerminate[:], hash.Bytes[:4])
 		hashTerminates = append(hashTerminates, hashTerminate)
 	}
 	req.HashTerminats = &hashTerminates
-	log.WithField("to ", peerId).WithField("hash list num ", len(hashTerminates)).WithField("height ", height).WithField("type", message.MessageTypeFetchByHashRequest).WithField(
-		"len ", req.HashTerminats).Debug("sending hashList  MessageTypeFetchByHashRequest")
+	log.WithField("to ", peerId).WithField("hash list num ", len(hashTerminates)).
+		WithField("height ", height).
+		WithField("type", req.GetType()).
+		WithField("len ", req.HashTerminats).Debug("sending hashList MessageTypeFetchByHashRequest")
 
 	//m.messageSender.UnicastMessageRandomly(p2p_message.MessageTypeFetchByHashRequest, bytes)
 	//if the random peer dose't have this txs ,we will get nil response ,so broadcast it
-	m.messageSender.SendToPeer(peerId, message.MessageTypeFetchByHashRequest, &req)
+	m.messageSender.SendToPeer(peerId, &req)
 	return
 }

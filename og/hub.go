@@ -102,7 +102,7 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 }
 
 type NodeStatusDataProvider interface {
-	GetCurrentNodeStatus() message.StatusData
+	GetCurrentNodeStatus() StatusData
 	GetHeight() uint64
 }
 

@@ -11,10 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package protocol_message
+package campaign
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"strings"
 
@@ -26,7 +27,7 @@ import (
 
 //msgp:tuple TermChange
 type TermChange struct {
-	TxBase
+	protocol_message.TxBase
 	TermID uint64
 	PkBls  hexutil.Bytes
 	SigSet []*SigSet
@@ -42,7 +43,7 @@ type SigSet struct {
 //msgp:tuple TermChanges
 type TermChanges []*TermChange
 
-func (tc *TermChange) GetBase() *TxBase {
+func (tc *TermChange) GetBase() *protocol_message.TxBase {
 	return &tc.TxBase
 }
 
@@ -54,7 +55,7 @@ func (tc *TermChange) GetSender() *common.Address {
 	return tc.Issuer
 }
 
-func (tc *TermChange) Compare(tx Txi) bool {
+func (tc *TermChange) Compare(tx protocol_message.Txi) bool {
 	switch tx := tx.(type) {
 	case *TermChange:
 		if tc.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
@@ -120,7 +121,7 @@ func (tc *TermChange) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
 	w.Write(tc.AccountNonce)
-	if !CanRecoverPubFromSig {
+	if !protocol_message.CanRecoverPubFromSig {
 		w.Write(tc.Issuer.Bytes)
 	}
 	w.Write(tc.PkBls)
@@ -170,7 +171,7 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 	return rawTcs
 }
 
-func (c *TermChange) RawTxi() RawTxi {
+func (c *TermChange) RawTxi() protocol_message.RawTxi {
 	return c.RawTermChange()
 }
 

@@ -102,11 +102,11 @@ func (c Campaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (c *Campaign) RawCampaign() *protocol_message.RawCampaign {
+func (c *Campaign) RawCampaign() *RawCampaign {
 	if c == nil {
 		return nil
 	}
-	rc := &protocol_message.RawCampaign{
+	rc := &RawCampaign{
 		TxBase:       c.TxBase,
 		DkgPublicKey: c.DkgPublicKey,
 		Vrf:          c.Vrf,
@@ -114,11 +114,11 @@ func (c *Campaign) RawCampaign() *protocol_message.RawCampaign {
 	return rc
 }
 
-func (cs Campaigns) RawCampaigns() protocol_message.RawCampaigns {
+func (cs Campaigns) RawCampaigns() RawCampaigns {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawCps protocol_message.RawCampaigns
+	var rawCps RawCampaigns
 	for _, v := range cs {
 		rasSeq := v.RawCampaign()
 		rawCps = append(rawCps, rasSeq)

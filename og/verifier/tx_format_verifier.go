@@ -138,8 +138,8 @@ func (v *TxFormatVerifier) VerifySourceAddress(t protocol_message.Txi) bool {
 		return t.(*protocol_message.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *campaign.Campaign:
 		return t.(*campaign.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *protocol_message.TermChange:
-		return t.(*protocol_message.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *campaign.TermChange:
+		return t.(*campaign.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *archive.Archive:
 		return true
 	default:

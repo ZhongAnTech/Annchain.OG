@@ -17,7 +17,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/campaign"
-	"github.com/annchain/OG/og/protocol_message"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -40,8 +39,8 @@ type Term struct {
 	termChangeInterval     int
 
 	mu                sync.RWMutex
-	currentTermChange *protocol_message.TermChange
-	genesisTermChange *protocol_message.TermChange
+	currentTermChange *campaign.TermChange
+	genesisTermChange *campaign.TermChange
 	started           bool
 }
 
@@ -85,7 +84,7 @@ func (t *Term) SetStartedHeight(h uint64) {
 	t.startedHeight = h
 }
 
-func (t *Term) GetGenesisTermChange() *protocol_message.TermChange {
+func (t *Term) GetGenesisTermChange() *campaign.TermChange {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.genesisTermChange
@@ -228,7 +227,7 @@ func (t *Term) CanChange(lastHeight uint64, isGenesis bool) bool {
 	return true
 }
 
-func (t *Term) ChangeTerm(tc *protocol_message.TermChange, lastHeight uint64) error {
+func (t *Term) ChangeTerm(tc *campaign.TermChange, lastHeight uint64) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

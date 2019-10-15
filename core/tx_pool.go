@@ -747,7 +747,7 @@ func (pool *TxPool) isBadTx(tx protocol_message.Txi) TxQuality {
 		}
 	case *campaign.Campaign:
 		// TODO
-	case *protocol_message.TermChange:
+	case *campaign.TermChange:
 		// TODO
 	default:
 		// TODO

@@ -107,7 +107,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *campaign.Campaign:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *protocol_message.TermChange:
+	case *campaign.TermChange:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	case *protocol_message.ActionTx:

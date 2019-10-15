@@ -14,6 +14,7 @@ import (
 // basic messages ids range from [0, 100)
 // bft consensus: [100, 200)
 // dkg: [200, 300)
+// campaign: [300, 400)
 const (
 	// Protocol messages belonging to OG/01
 	StatusMsg msg.BinaryMessageType = iota + 0
@@ -41,9 +42,9 @@ const (
 	MessageTypeDuplicate
 	MessageTypeControl
 
-	//for consensus
-	MessageTypeCampaign
-	MessageTypeTermChange
+	//move to campaign
+	//MessageTypeCampaign
+	//MessageTypeTermChange
 
 	MessageTypeArchive
 	MessageTypeActionTX
@@ -54,8 +55,9 @@ const (
 	//MessageTypeConsensusDkgSigSets
 	//MessageTypeConsensusDkgGenesisPublicKey
 
-	MessageTypeTermChangeRequest
-	MessageTypeTermChangeResponse
+	//move to campaign
+	//MessageTypeTermChangeRequest
+	//MessageTypeTermChangeResponse
 
 	MessageTypeSecret //encrypted message
 

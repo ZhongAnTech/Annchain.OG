@@ -330,7 +330,7 @@ func (dag *Dag) getTestTx(hash common.Hash) protocol_message.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc protocol_message.TermChange
+		var tc campaign.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")

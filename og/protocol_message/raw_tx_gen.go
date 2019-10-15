@@ -4,6 +4,7 @@ package protocol_message
 
 import (
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -1120,7 +1121,7 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.SigSet) >= int(zb0002) {
 		z.SigSet = (z.SigSet)[:zb0002]
 	} else {
-		z.SigSet = make([]*SigSet, zb0002)
+		z.SigSet = make([]*campaign.SigSet, zb0002)
 	}
 	for za0001 := range z.SigSet {
 		if dc.IsNil() {
@@ -1132,7 +1133,7 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			z.SigSet[za0001] = nil
 		} else {
 			if z.SigSet[za0001] == nil {
-				z.SigSet[za0001] = new(SigSet)
+				z.SigSet[za0001] = new(campaign.SigSet)
 			}
 			err = z.SigSet[za0001].DecodeMsg(dc)
 			if err != nil {
@@ -1251,7 +1252,7 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap(z.SigSet) >= int(zb0002) {
 		z.SigSet = (z.SigSet)[:zb0002]
 	} else {
-		z.SigSet = make([]*SigSet, zb0002)
+		z.SigSet = make([]*campaign.SigSet, zb0002)
 	}
 	for za0001 := range z.SigSet {
 		if msgp.IsNil(bts) {
@@ -1262,7 +1263,7 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.SigSet[za0001] = nil
 		} else {
 			if z.SigSet[za0001] == nil {
-				z.SigSet[za0001] = new(SigSet)
+				z.SigSet[za0001] = new(campaign.SigSet)
 			}
 			bts, err = z.SigSet[za0001].UnmarshalMsg(bts)
 			if err != nil {

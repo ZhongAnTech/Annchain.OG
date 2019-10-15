@@ -4,6 +4,7 @@ package protocol_message
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -2511,7 +2512,7 @@ func (z *MessageTermChangeResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.TermChange = nil
 	} else {
 		if z.TermChange == nil {
-			z.TermChange = new(TermChange)
+			z.TermChange = new(campaign.TermChange)
 		}
 		err = z.TermChange.DecodeMsg(dc)
 		if err != nil {
@@ -2592,7 +2593,7 @@ func (z *MessageTermChangeResponse) UnmarshalMsg(bts []byte) (o []byte, err erro
 		z.TermChange = nil
 	} else {
 		if z.TermChange == nil {
-			z.TermChange = new(TermChange)
+			z.TermChange = new(campaign.TermChange)
 		}
 		bts, err = z.TermChange.UnmarshalMsg(bts)
 		if err != nil {

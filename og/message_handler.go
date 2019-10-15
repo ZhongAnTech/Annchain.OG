@@ -662,7 +662,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeTermChange:
-		tx := txi.(*protocol_message.TermChange)
+		tx := txi.(*campaign.TermChange)
 		response := p2p_message.MessageTermChange{RawTermChange: tx.RawTermChange()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeCampaign:

@@ -9,7 +9,7 @@ import (
 //consensus related verification
 type ConsensusVerifier struct {
 	VerifyCampaign   func(cp *campaign.Campaign) bool
-	VerifyTermChange func(cp *protocol_message.TermChange) bool
+	VerifyTermChange func(cp *campaign.TermChange) bool
 	VerifySequencer  func(cp *protocol_message.Sequencer) bool
 }
 
@@ -25,7 +25,7 @@ func (c *ConsensusVerifier) Verify(t protocol_message.Txi) bool {
 		return c.VerifySequencer(tx)
 	case *campaign.Campaign:
 		return c.VerifyCampaign(tx)
-	case *protocol_message.TermChange:
+	case *campaign.TermChange:
 		return c.VerifyTermChange(tx)
 	default:
 		return false

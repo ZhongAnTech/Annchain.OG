@@ -439,7 +439,7 @@ func (c *AutoClient) doRawTx(txi protocol_message.Txi) bool {
 		cp := txi.(*campaign.Campaign)
 		cp.Issuer = &me.Address
 	} else if txi.GetType() == protocol_message.TxBaseTypeTermChange {
-		cp := txi.(*protocol_message.TermChange)
+		cp := txi.(*campaign.TermChange)
 		cp.Issuer = &me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)

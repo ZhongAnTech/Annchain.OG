@@ -286,7 +286,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc protocol_message.TermChange
+		var tc campaign.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")
@@ -432,7 +432,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx protocol_message.Txi) er
 	case *campaign.Campaign:
 		prefix = contentPrefixCampaign
 		data, err = tx.MarshalMsg(nil)
-	case *protocol_message.TermChange:
+	case *campaign.TermChange:
 		prefix = contentPrefixTermChg
 		data, err = tx.MarshalMsg(nil)
 	case *archive.Archive:

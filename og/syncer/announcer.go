@@ -45,7 +45,7 @@ func (m *Announcer) BroadcastNewTx(txi protocol_message.Txi) {
 			RawCampaign: tx.RawCampaign(),
 		}
 		m.messageSender.BroadcastMessage(message.MessageTypeCampaign, &msg)
-	case *protocol_message.TermChange:
+	case *campaign.TermChange:
 		msg := p2p_message.MessageTermChange{
 			RawTermChange: tx.RawTermChange(),
 		}

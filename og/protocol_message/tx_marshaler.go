@@ -49,10 +49,10 @@ func (t *RawTxMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	switch TxBaseType(tp) {
 	case TxBaseTypeNormal:
 		t.RawTxi = &RawTx{TxBase: TxBase{Type: TxBaseTypeNormal}}
-	case TxBaseTypeCampaign:
-		t.RawTxi = &RawCampaign{TxBase: TxBase{Type: TxBaseTypeCampaign}}
-	case TxBaseTypeTermChange:
-		t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
+	//case TxBaseTypeCampaign:
+	//	t.RawTxi = &RawCampaign{TxBase: TxBase{Type: TxBaseTypeCampaign}}
+	//case TxBaseTypeTermChange:
+	//	t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
 	case TxBaseTypeSequencer:
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
 	//case types.TxBaseTypeArchive:
@@ -95,10 +95,10 @@ func (t *RawTxMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 	switch TxBaseType(tp) {
 	case TxBaseTypeNormal:
 		t.RawTxi = &RawTx{TxBase: TxBase{Type: TxBaseTypeNormal}}
-	case TxBaseTypeCampaign:
-		t.RawTxi = &RawCampaign{TxBase: TxBase{Type: TxBaseTypeCampaign}}
-	case TxBaseTypeTermChange:
-		t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
+	//case TxBaseTypeCampaign:
+	//	t.RawTxi = &RawCampaign{TxBase: TxBase{Type: TxBaseTypeCampaign}}
+	//case TxBaseTypeTermChange:
+	//	t.RawTxi = &RawTermChange{TxBase: TxBase{Type: TxBaseTypeTermChange}}
 	case TxBaseTypeSequencer:
 		t.RawTxi = &RawSequencer{TxBase: TxBase{Type: TxBaseTypeSequencer}}
 	//case types.TxBaseTypeArchive:

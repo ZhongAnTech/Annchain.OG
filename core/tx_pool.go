@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/status"
@@ -744,7 +745,7 @@ func (pool *TxPool) isBadTx(tx protocol_message.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 		}
-	case *protocol_message.Campaign:
+	case *campaign.Campaign:
 		// TODO
 	case *protocol_message.TermChange:
 		// TODO

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/sirupsen/logrus"
@@ -135,8 +136,8 @@ func (v *TxFormatVerifier) VerifySourceAddress(t protocol_message.Txi) bool {
 		return t.(*protocol_message.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *protocol_message.Sequencer:
 		return t.(*protocol_message.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *protocol_message.Campaign:
-		return t.(*protocol_message.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *campaign.Campaign:
+		return t.(*campaign.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *protocol_message.TermChange:
 		return t.(*protocol_message.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *archive.Archive:

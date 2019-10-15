@@ -1,6 +1,8 @@
 package archive
 
-import "github.com/annchain/OG/types/general_message"
+import (
+	"github.com/annchain/OG/types/msg"
+)
 
 //go:generate msgp
 
@@ -9,8 +11,8 @@ type MessageNewArchive struct {
 	Archive *Archive
 }
 
-func (m *MessageNewArchive) GetType() general_message.BinaryMessageType {
-	return general_message.MessageTypeNewArchive
+func (m *MessageNewArchive) GetType() msg.BinaryMessageType {
+	return msg.MessageTypeNewArchive
 }
 
 func (m *MessageNewArchive) GetData() []byte {
@@ -21,8 +23,8 @@ func (m *MessageNewArchive) GetData() []byte {
 	return b
 }
 
-func (m *MessageNewArchive) ToBinary() general_message.BinaryMessage {
-	return general_message.BinaryMessage{
+func (m *MessageNewArchive) ToBinary() msg.BinaryMessage {
+	return msg.BinaryMessage{
 		Type: m.GetType(),
 		Data: m.GetData(),
 	}

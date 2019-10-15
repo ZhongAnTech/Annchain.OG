@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
@@ -665,7 +666,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		response := p2p_message.MessageTermChange{RawTermChange: tx.RawTermChange()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeCampaign:
-		tx := txi.(*protocol_message.Campaign)
+		tx := txi.(*campaign.Campaign)
 		response := p2p_message.MessageCampaign{RawCampaign: tx.RawCampaign()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeSequencer:

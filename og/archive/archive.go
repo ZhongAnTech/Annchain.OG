@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
@@ -69,7 +70,7 @@ func (tc *Archive) GetSender() *common.Address {
 
 func (c *Archive) Compare(tx protocol_message.Txi) bool {
 	switch tx := tx.(type) {
-	case *protocol_message.Campaign:
+	case *campaign.Campaign:
 		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
 			return true
 		}

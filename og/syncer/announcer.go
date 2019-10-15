@@ -14,6 +14,7 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol_message"
@@ -39,7 +40,7 @@ func (m *Announcer) BroadcastNewTx(txi protocol_message.Txi) {
 	case *protocol_message.Sequencer:
 		msgTx := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewSequencer, &msgTx)
-	case *protocol_message.Campaign:
+	case *campaign.Campaign:
 		msg := p2p_message.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
 		}

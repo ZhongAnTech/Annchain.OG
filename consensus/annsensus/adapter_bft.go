@@ -7,14 +7,14 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/general_message"
+	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 )
 
 type BftMessageUnmarshaller struct {
 }
 
-func (b *BftMessageUnmarshaller) Unmarshal(messageType general_message.BinaryMessageType, message []byte) (outMsg bft.BftMessage, err error) {
+func (b *BftMessageUnmarshaller) Unmarshal(messageType msg.BinaryMessageType, message []byte) (outMsg bft.BftMessage, err error) {
 	switch bft.BftMessageType(messageType) {
 	case bft.BftMessageTypeProposal:
 		m := &bft.MessageProposal{}
@@ -41,7 +41,7 @@ type TrustfulBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg general_message.TransportableMessage, err error) {
+func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg msg.TransportableMessage, err error) {
 	signed := r.Sign(outgoingMsg)
 	msg = &signed
 	return
@@ -53,17 +53,17 @@ func NewTrustfulBftAdapter(
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
 }
 
-func (r *TrustfulBftAdapter) Sign(msg bft.BftMessage) protocol_message.MessageSigned {
-	publicKey, signature := r.signatureProvider.Sign(msg.SignatureTargets())
-	signed := protocol_message.MessageSigned{
-		InnerMessageType: general_message.BinaryMessageType(msg.GetType()),
-		InnerMessage:     msg.SignatureTargets(),
+func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) protocol_message.MessageSigned {
+	publicKey, signature := r.signatureProvider.Sign(rawMessage.SignatureTargets())
+	signedMessage := protocol_message.MessageSigned{
+		InnerMessageType: msg.BinaryMessageType(rawMessage.GetType()),
+		InnerMessage:     rawMessage.SignatureTargets(),
 		Signature:        signature,
 		PublicKey:        publicKey,
 	}
 	//SessionId:     partner.CurrentTerm(),
 	//PublicKey: account.PublicKey.Bytes,
-	return signed
+	return signedMessage
 }
 
 // Broadcast must be anonymous since it is actually among all partners, not all nodes.
@@ -103,8 +103,8 @@ func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publi
 	return nil
 }
 
-func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg general_message.TransportableMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	if incomingMsg.GetType() != general_message.MessageTypeSigned {
+func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
+	if incomingMsg.GetType() != protocol_message.MessageTypeSigned {
 		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
 		return
 	}
@@ -143,8 +143,8 @@ type PlainBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (p PlainBftAdapter) AdaptOgMessage(incomingMsg general_message.TransportableMessage) (msg bft.BftMessage, err error) {
-	if incomingMsg.GetType() != general_message.MessageTypePlain {
+func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) {
+	if incomingMsg.GetType() != protocol_message.MessageTypePlain {
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
@@ -164,7 +164,7 @@ func (p PlainBftAdapter) AdaptOgMessage(incomingMsg general_message.Transportabl
 
 }
 
-func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg general_message.TransportableMessage, err error) {
+func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMessage msg.TransportableMessage, err error) {
 	switch outgoingMsg.GetType() {
 	case bft.BftMessageTypeProposal:
 		omsg := outgoingMsg.(*bft.MessageProposal)
@@ -172,8 +172,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg genera
 		if err != nil {
 			return
 		}
-		msg = protocol_message.MessagePlain{
-			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = protocol_message.MessagePlain{
+			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreVote:
@@ -182,8 +182,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg genera
 		if err != nil {
 			return
 		}
-		msg = protocol_message.MessagePlain{
-			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = protocol_message.MessagePlain{
+			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreCommit:
@@ -192,8 +192,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg genera
 		if err != nil {
 			return
 		}
-		msg = protocol_message.MessagePlain{
-			InnerMessageType: general_message.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = protocol_message.MessagePlain{
+			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	default:

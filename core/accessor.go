@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/ogdb"
@@ -276,7 +277,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 		return &sq
 	}
 	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp protocol_message.Campaign
+		var cp campaign.Campaign
 		_, err := cp.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal camp error")
@@ -428,7 +429,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx protocol_message.Txi) er
 	case *protocol_message.Sequencer:
 		prefix = contentPrefixSequencer
 		data, err = tx.MarshalMsg(nil)
-	case *protocol_message.Campaign:
+	case *campaign.Campaign:
 		prefix = contentPrefixCampaign
 		data, err = tx.MarshalMsg(nil)
 	case *protocol_message.TermChange:

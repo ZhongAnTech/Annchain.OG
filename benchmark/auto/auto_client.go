@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og/protocol_message"
@@ -435,7 +436,7 @@ func (c *AutoClient) doRawTx(txi protocol_message.Txi) bool {
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
 	if txi.GetType() == protocol_message.TxBaseTypeCampaign {
-		cp := txi.(*protocol_message.Campaign)
+		cp := txi.(*campaign.Campaign)
 		cp.Issuer = &me.Address
 	} else if txi.GetType() == protocol_message.TxBaseTypeTermChange {
 		cp := txi.(*protocol_message.TermChange)

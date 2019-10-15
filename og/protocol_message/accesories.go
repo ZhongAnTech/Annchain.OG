@@ -60,7 +60,7 @@ func NewBloomFilter(m uint32) *BloomFilter {
 	c := &BloomFilter{}
 	c.filter = bloom.New(uint(m), HashFuncNum)
 	c.Count = 0
-	c.Capacity = uint32(m)
+	c.Capacity = m
 	return c
 }
 

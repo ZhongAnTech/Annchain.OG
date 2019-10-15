@@ -17,7 +17,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/types/general_message"
+	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -101,9 +101,9 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare message channel for each peer
-	var peerChans []chan general_message.TransportableMessage
+	var peerChans []chan msg.TransportableMessage
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan general_message.TransportableMessage, 5))
+		peerChans = append(peerChans, make(chan msg.TransportableMessage, 5))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor

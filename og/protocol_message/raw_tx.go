@@ -17,9 +17,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/consensus/vrf"
-	//"github.com/annchain/OG/consensus/vrf"
-	"github.com/annchain/OG/types"
+
 	"strings"
 
 	"github.com/annchain/OG/common/math"
@@ -39,7 +39,7 @@ type RawTx struct {
 
 //msgp:tuple RawActionTx
 type RawActionTx struct {
-	types.TxBase
+	TxBase
 	Action     uint8
 	ActionData ActionData
 }
@@ -93,7 +93,7 @@ func (t *RawTx) Tx() *Tx {
 		Data:    t.Data,
 		TokenId: t.TokenId,
 	}
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		tx.SetSender(crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey))
 	}
 	return tx
@@ -109,7 +109,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		BlsJointSig:    t.BlsJointSig,
 		StateRoot:      t.StateRoot,
 	}
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.Issuer = &addr
 	}
@@ -129,7 +129,7 @@ func (t *RawActionTx) ActionTx() *ActionTx {
 		ActionData: t.ActionData,
 	}
 
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.From = &addr
 	}
@@ -168,11 +168,11 @@ func (r RawTxs) Txs() Txs {
 	return txs
 }
 
-func (r RawTxs) Txis() types.Txis {
+func (r RawTxs) Txis() Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var txis types.Txis
+	var txis Txis
 	for _, v := range r {
 		tx := v.Tx()
 		txis = append(txis, tx)
@@ -192,11 +192,11 @@ func (r RawSequencers) Sequencers() Sequencers {
 	return seqs
 }
 
-func (r RawSequencers) Txis() types.Txis {
+func (r RawSequencers) Txis() Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var txis types.Txis
+	var txis Txis
 	for _, v := range r {
 		seq := v.Sequencer()
 		txis = append(txis, seq)
@@ -232,16 +232,16 @@ func (r RawSequencers) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (rc *RawCampaign) Campaign() *Campaign {
+func (rc *RawCampaign) Campaign() *campaign.Campaign {
 	if rc == nil {
 		return nil
 	}
-	cp := &Campaign{
+	cp := &campaign.Campaign{
 		TxBase:       rc.TxBase,
 		DkgPublicKey: rc.DkgPublicKey,
 		Vrf:          rc.Vrf,
 	}
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(rc.PublicKey)
 		cp.Issuer = &addr
 	}
@@ -258,18 +258,18 @@ func (r *RawTermChange) TermChange() *TermChange {
 		SigSet: r.SigSet,
 		TermID: r.TermId,
 	}
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(r.PublicKey)
 		t.Issuer = &addr
 	}
 	return t
 }
 
-func (r RawCampaigns) Campaigns() Campaigns {
+func (r RawCampaigns) Campaigns() campaign.Campaigns {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs Campaigns
+	var cs campaign.Campaigns
 	for _, v := range r {
 		c := v.Campaign()
 		cs = append(cs, c)
@@ -305,11 +305,11 @@ func (r RawCampaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (r RawTermChanges) Txis() types.Txis {
+func (r RawTermChanges) Txis() Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs types.Txis
+	var cs Txis
 	for _, v := range r {
 		c := v.TermChange()
 		cs = append(cs, c)
@@ -317,11 +317,11 @@ func (r RawTermChanges) Txis() types.Txis {
 	return cs
 }
 
-func (r RawCampaigns) Txis() types.Txis {
+func (r RawCampaigns) Txis() Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs types.Txis
+	var cs Txis
 	for _, v := range r {
 		c := v.Campaign()
 		cs = append(cs, c)
@@ -359,7 +359,7 @@ func (r *RawTermChanges) Len() int {
 
 type TxisMarshaler []*RawTxMarshaler
 
-func (t *TxisMarshaler) Append(tx types.Txi) {
+func (t *TxisMarshaler) Append(tx Txi) {
 	if tx == nil {
 		return
 	}
@@ -389,11 +389,11 @@ func (t TxisMarshaler) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (t TxisMarshaler) Txis() types.Txis {
+func (t TxisMarshaler) Txis() Txis {
 	if t == nil {
 		return nil
 	}
-	var txis types.Txis
+	var txis Txis
 	for _, v := range t {
 		if v == nil {
 			continue
@@ -403,23 +403,23 @@ func (t TxisMarshaler) Txis() types.Txis {
 	return txis
 }
 
-func (t *RawTx) Txi() types.Txi {
+func (t *RawTx) Txi() Txi {
 	return t.Tx()
 }
 
-func (t *RawSequencer) Txi() types.Txi {
+func (t *RawSequencer) Txi() Txi {
 	return t.Sequencer()
 }
 
-func (t *RawTermChange) Txi() types.Txi {
+func (t *RawTermChange) Txi() Txi {
 	return t.TermChange()
 }
 
-func (t *RawCampaign) Txi() types.Txi {
+func (t *RawCampaign) Txi() Txi {
 	return t.Campaign()
 }
 
-func (a *RawActionTx) Txi() types.Txi {
+func (a *RawActionTx) Txi() Txi {
 	return a.ActionTx()
 }
 

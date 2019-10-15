@@ -25,7 +25,7 @@ import (
 //msgp:tuple Txi
 type Txi interface {
 	// Implemented by TxBase
-	GetType() protocol_message.TxBaseType
+	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
 	GetTxHash() common.Hash
@@ -41,7 +41,7 @@ type Txi interface {
 	InValid() bool
 
 	// implemented by each tx type
-	GetBase() *protocol_message.TxBase
+	GetBase() *TxBase
 	Sender() common.Address
 	GetSender() *common.Address
 	SetSender(addr common.Address)
@@ -59,12 +59,12 @@ type Txi interface {
 	Msgsize() (s int)
 	GetVersion() byte
 	ToSmallCaseJson() ([]byte, error)
-	IsVerified() protocol_message.VerifiedType
-	SetVerified(v protocol_message.VerifiedType)
+	IsVerified() VerifiedType
+	SetVerified(v VerifiedType)
 }
 
 type RawTxi interface {
-	GetType() protocol_message.TxBaseType
+	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
 	GetTxHash() common.Hash

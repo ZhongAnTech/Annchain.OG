@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package protocol_message
+package campaign
 
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"
@@ -28,7 +29,7 @@ import (
 
 //msgp:tuple Campaign
 type Campaign struct {
-	TxBase
+	protocol_message.TxBase
 	DkgPublicKey []byte
 	Vrf          vrf.VrfInfo
 	Issuer       *common.Address
@@ -38,7 +39,7 @@ type Campaign struct {
 //msgp:tuple Campaigns
 type Campaigns []*Campaign
 
-func (c *Campaign) GetBase() *TxBase {
+func (c *Campaign) GetBase() *protocol_message.TxBase {
 	return &c.TxBase
 }
 
@@ -50,7 +51,7 @@ func (tc *Campaign) GetSender() *common.Address {
 	return tc.Issuer
 }
 
-func (c *Campaign) Compare(tx Txi) bool {
+func (c *Campaign) Compare(tx protocol_message.Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
 		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
@@ -79,7 +80,7 @@ func (c *Campaign) SignatureTargets() []byte {
 
 	w.Write(c.DkgPublicKey, c.Vrf.Vrf, c.Vrf.PublicKey, c.Vrf.Proof, c.Vrf.Message, c.AccountNonce)
 
-	if !CanRecoverPubFromSig {
+	if !protocol_message.CanRecoverPubFromSig {
 		w.Write(c.Issuer.Bytes)
 	}
 
@@ -101,11 +102,11 @@ func (c Campaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (c *Campaign) RawCampaign() *RawCampaign {
+func (c *Campaign) RawCampaign() *protocol_message.RawCampaign {
 	if c == nil {
 		return nil
 	}
-	rc := &RawCampaign{
+	rc := &protocol_message.RawCampaign{
 		TxBase:       c.TxBase,
 		DkgPublicKey: c.DkgPublicKey,
 		Vrf:          c.Vrf,
@@ -113,11 +114,11 @@ func (c *Campaign) RawCampaign() *RawCampaign {
 	return rc
 }
 
-func (cs Campaigns) RawCampaigns() RawCampaigns {
+func (cs Campaigns) RawCampaigns() protocol_message.RawCampaigns {
 	if len(cs) == 0 {
 		return nil
 	}
-	var rawCps RawCampaigns
+	var rawCps protocol_message.RawCampaigns
 	for _, v := range cs {
 		rasSeq := v.RawCampaign()
 		rawCps = append(rawCps, rasSeq)
@@ -147,7 +148,7 @@ func (c *Campaign) MarshalDkgKey() error {
 	return nil
 }
 
-func (c *Campaign) RawTxi() RawTxi {
+func (c *Campaign) RawTxi() protocol_message.RawTxi {
 	return c.RawCampaign()
 }
 

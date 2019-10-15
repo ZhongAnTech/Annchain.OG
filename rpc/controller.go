@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
@@ -103,7 +104,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *archive.Archive:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *protocol_message.Campaign:
+	case *campaign.Campaign:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	case *protocol_message.TermChange:

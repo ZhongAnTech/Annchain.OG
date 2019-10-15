@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types/p2p_message"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
@@ -57,8 +56,8 @@ type Hub struct {
 	outgoing             chan *message.OGMessage
 	incoming             chan *message.OGMessage
 	quit                 chan bool
-	CallbackRegistry     map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks
-	CallbackRegistryOG02 map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks of OG02
+	//CallbackRegistry     map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks
+	//CallbackRegistryOG02 map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks of OG02
 	StatusDataProvider   NodeStatusDataProvider
 	peers                *peerSet
 	SubProtocols         []p2p.Protocol
@@ -155,8 +154,8 @@ func (h *Hub) Init(config *HubConfig) {
 	h.quitSync = make(chan bool)
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
-	h.CallbackRegistry = make(map[message.BinaryMessageType]func(*message.OGMessage))
-	h.CallbackRegistryOG02 = make(map[message.BinaryMessageType]func(*message.OGMessage))
+
+	//h.CallbackRegistryOG02 = make(map[message.BinaryMessageType]func(*message.OGMessage))
 	h.broadCastMode = config.BroadCastMode
 	h.disableEncryptGossip = config.DisableEncryptGossip
 }

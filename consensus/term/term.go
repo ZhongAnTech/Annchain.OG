@@ -16,6 +16,7 @@ package term
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol_message"
 	"sync"
 
@@ -28,11 +29,11 @@ type Term struct {
 	partsNum               int
 	senators               Senators            `json:"senators"`
 	formerSenators         map[uint32]Senators `json:"former_senators"`
-	candidates             map[common.Address]*protocol_message.Campaign
+	candidates             map[common.Address]*campaign.Campaign
 	publicKeys             []crypto.PublicKey
 	formerPublicKeys       []crypto.PublicKey
-	alsorans               map[common.Address]*protocol_message.Campaign
-	campaigns              map[common.Address]*protocol_message.Campaign
+	alsorans               map[common.Address]*campaign.Campaign
+	campaigns              map[common.Address]*campaign.Campaign
 	startedHeight          uint64
 	generateCampaignHeight uint64
 	newTerm                bool
@@ -52,9 +53,9 @@ func NewTerm(id uint32, participantNumber int, termChangeInterval int) *Term {
 		termChangeInterval: termChangeInterval,
 		senators:           make(Senators),
 		formerSenators:     make(map[uint32]Senators),
-		candidates:         make(map[common.Address]*protocol_message.Campaign),
-		alsorans:           make(map[common.Address]*protocol_message.Campaign),
-		campaigns:          make(map[common.Address]*protocol_message.Campaign),
+		candidates:         make(map[common.Address]*campaign.Campaign),
+		alsorans:           make(map[common.Address]*campaign.Campaign),
+		campaigns:          make(map[common.Address]*campaign.Campaign),
 	}
 }
 
@@ -101,21 +102,21 @@ func (t *Term) Started() bool {
 	return t.started
 }
 
-func (t *Term) GetCandidate(addr common.Address) *protocol_message.Campaign {
+func (t *Term) GetCandidate(addr common.Address) *campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.candidates[addr]
 }
 
-func (t *Term) Candidates() map[common.Address]*protocol_message.Campaign {
+func (t *Term) Candidates() map[common.Address]*campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.candidates
 }
 
-func (t *Term) AddCandidate(c *protocol_message.Campaign, publicKey crypto.PublicKey) {
+func (t *Term) AddCandidate(c *campaign.Campaign, publicKey crypto.PublicKey) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -124,42 +125,42 @@ func (t *Term) AddCandidate(c *protocol_message.Campaign, publicKey crypto.Publi
 	//sort.Sort(t.publicKeys)
 }
 
-func (t *Term) AddCampaign(c *protocol_message.Campaign) {
+func (t *Term) AddCampaign(c *campaign.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.campaigns[c.Sender()] = c
 }
 
-func (t *Term) GetCampaign(addr common.Address) *protocol_message.Campaign {
+func (t *Term) GetCampaign(addr common.Address) *campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.campaigns[addr]
 }
 
-func (t *Term) Campaigns() map[common.Address]*protocol_message.Campaign {
+func (t *Term) Campaigns() map[common.Address]*campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.campaigns
 }
 
-func (t *Term) GetAlsoran(addr common.Address) *protocol_message.Campaign {
+func (t *Term) GetAlsoran(addr common.Address) *campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.alsorans[addr]
 }
 
-func (t *Term) Alsorans() map[common.Address]*protocol_message.Campaign {
+func (t *Term) Alsorans() map[common.Address]*campaign.Campaign {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.alsorans
 }
 
-func (t *Term) AddAlsorans(camps []*protocol_message.Campaign) {
+func (t *Term) AddAlsorans(camps []*campaign.Campaign) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -244,9 +245,9 @@ func (t *Term) ChangeTerm(tc *protocol_message.TermChange, lastHeight uint64) er
 
 	t.currentTermChange = tc
 
-	t.candidates = make(map[common.Address]*protocol_message.Campaign)
-	t.alsorans = make(map[common.Address]*protocol_message.Campaign)
-	t.campaigns = make(map[common.Address]*protocol_message.Campaign)
+	t.candidates = make(map[common.Address]*campaign.Campaign)
+	t.alsorans = make(map[common.Address]*campaign.Campaign)
+	t.campaigns = make(map[common.Address]*campaign.Campaign)
 	t.publicKeys = nil
 
 	formerSnts := t.senators

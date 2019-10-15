@@ -28,13 +28,14 @@ type RawTxMarshaler struct {
 }
 
 func (t *RawTxMarshaler) MarshalMsg(b []byte) (o []byte, err error) {
+	if t == nil || t.RawTxi == nil {
 		panic("nil txi")
 	}
 	head := make([]byte, 2)
 	binary.BigEndian.PutUint16(head, uint16(t.GetType()))
 	b = append(b, head...)
-	if t.GetType() == protocol_message.TxBaseAction {
-		r := t.RawTxi.(*protocol_message.RawActionTx)
+	if t.GetType() == TxBaseAction {
+		r := t.RawTxi.(*RawActionTx)
 		b = append(b, r.Action)
 	}
 	return t.RawTxi.MarshalMsg(b)

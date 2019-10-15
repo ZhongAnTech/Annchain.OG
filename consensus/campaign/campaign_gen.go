@@ -19,7 +19,7 @@ func (z *Campaign) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	err = TxBase.DecodeMsg(dc)
+	err = z.TxBase.DecodeMsg(dc)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -61,7 +61,7 @@ func (z *Campaign) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = TxBase.EncodeMsg(en)
+	err = z.TxBase.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -96,7 +96,7 @@ func (z *Campaign) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 4
 	o = append(o, 0x94)
-	o, err = TxBase.MarshalMsg(o)
+	o, err = z.TxBase.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -131,7 +131,7 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
-	bts, err = TxBase.UnmarshalMsg(bts)
+	bts, err = z.TxBase.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "TxBase")
 		return
@@ -168,7 +168,7 @@ func (z *Campaign) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Campaign) Msgsize() (s int) {
-	s = 1 + TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.DkgPublicKey) + z.Vrf.Msgsize()
+	s = 1 + z.TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.DkgPublicKey) + z.Vrf.Msgsize()
 	if z.Issuer == nil {
 		s += msgp.NilSize
 	} else {

@@ -67,7 +67,7 @@ type TxBase struct {
 	ParentsHash  common.Hashes
 	AccountNonce uint64
 	Height       uint64
-	PublicKey    types.PublicKey //
+	PublicKey    PublicKey //
 	Signature    hexutil.Bytes
 	MineNonce    uint64
 	Weight       uint64
@@ -78,18 +78,18 @@ type TxBase struct {
 
 //msgp:tuple TxBaseJson
 type TxBaseJson struct {
-	Type         TxBaseType      `json:"type"`
-	Hash         common.Hash     `json:"hash"`
-	ParentsHash  common.Hashes   `json:"parents_hash"`
-	AccountNonce uint64          `json:"account_nonce"`
-	Height       uint64          `json:"height"`
-	PublicKey    types.PublicKey `json:"public_key"`
-	Signature    hexutil.Bytes   `json:"signature"`
-	MineNonce    uint64          `json:"mine_nonce"`
-	Weight       uint64          `json:"weight"`
-	inValid      bool            `json:"in_valid"`
-	Version      byte            `json:"version"`
-	verified     VerifiedType    `json:"-"`
+	Type         TxBaseType    `json:"type"`
+	Hash         common.Hash   `json:"hash"`
+	ParentsHash  common.Hashes `json:"parents_hash"`
+	AccountNonce uint64        `json:"account_nonce"`
+	Height       uint64        `json:"height"`
+	PublicKey    PublicKey     `json:"public_key"`
+	Signature    hexutil.Bytes `json:"signature"`
+	MineNonce    uint64        `json:"mine_nonce"`
+	Weight       uint64        `json:"weight"`
+	inValid      bool          `json:"in_valid"`
+	Version      byte          `json:"version"`
+	verified     VerifiedType  `json:"-"`
 }
 
 func (t *TxBase) ToSmallCase() *TxBaseJson {

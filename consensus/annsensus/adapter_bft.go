@@ -165,10 +165,11 @@ func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 }
 
 func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMessage msg.TransportableMessage, err error) {
+	var msgBytes []byte
 	switch outgoingMsg.GetType() {
 	case bft.BftMessageTypeProposal:
 		omsg := outgoingMsg.(*bft.MessageProposal)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}
@@ -178,7 +179,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		}
 	case bft.BftMessageTypePreVote:
 		omsg := outgoingMsg.(*bft.MessagePreVote)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}
@@ -188,7 +189,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		}
 	case bft.BftMessageTypePreCommit:
 		omsg := outgoingMsg.(*bft.MessagePreCommit)
-		msgBytes, err := omsg.MarshalMsg(nil)
+		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
 		}

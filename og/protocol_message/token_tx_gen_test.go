@@ -74,7 +74,7 @@ func TestEncodeDecodeActionTx(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeActionTx Msgsize() is inaccurate")
 	}
 
 	vn := ActionTx{}
@@ -187,7 +187,7 @@ func TestEncodeDecodeActionTxs(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeActionTxs Msgsize() is inaccurate")
 	}
 
 	vn := ActionTxs{}
@@ -300,7 +300,7 @@ func TestEncodeDecodePublicOffering(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodePublicOffering Msgsize() is inaccurate")
 	}
 
 	vn := PublicOffering{}
@@ -413,7 +413,7 @@ func TestEncodeDecodeRequestDomain(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeRequestDomain Msgsize() is inaccurate")
 	}
 
 	vn := RequestDomain{}

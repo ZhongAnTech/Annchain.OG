@@ -74,7 +74,7 @@ func TestEncodeDecodeRawTxis(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeRawTxis Msgsize() is inaccurate")
 	}
 
 	vn := RawTxis{}
@@ -187,7 +187,7 @@ func TestEncodeDecodeTxiSmallCaseMarshal(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTxiSmallCaseMarshal Msgsize() is inaccurate")
 	}
 
 	vn := TxiSmallCaseMarshal{}
@@ -300,7 +300,7 @@ func TestEncodeDecodeTxis(t *testing.T) {
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Logf("WARNING: Msgsize() for %v is inaccurate", v)
+		t.Log("WARNING: TestEncodeDecodeTxis Msgsize() is inaccurate")
 	}
 
 	vn := Txis{}

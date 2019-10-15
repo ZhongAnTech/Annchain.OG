@@ -5,6 +5,9 @@
 
 package msg
 
+//go:generate msgp
+
+//msgp:tuple BinaryMessageType
 type BinaryMessageType uint16
 
 // BinaryMessage stores data that can be directly sent to the others, or be wrapped by another BinaryMessage.

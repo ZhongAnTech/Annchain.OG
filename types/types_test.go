@@ -17,6 +17,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/og/protocol_message"
 	"math/rand"
 	"sort"
 	"testing"
@@ -46,18 +47,18 @@ func TestCuckooFilter_EncodeMsg(t *testing.T) {
 }
 
 func TestRandomTx(t *testing.T) {
-	var txis Txis
+	var txis protocol_message.Txis
 	for i := 0; i < 50; i++ {
 		if i%10 == 0 {
 			tx := RandomSequencer()
 			tx.Height = uint64(rand.Intn(4))
 			tx.Weight = uint64(rand.Intn(10))
-			txis = append(txis, Txi(tx))
+			txis = append(txis, protocol_message.Txi(tx))
 		} else {
 			tx := RandomTx()
 			tx.Height = uint64(rand.Intn(4))
 			tx.Weight = uint64(rand.Intn(10))
-			txis = append(txis, Txi(tx))
+			txis = append(txis, protocol_message.Txi(tx))
 		}
 	}
 	fmt.Println(len(txis), txis)

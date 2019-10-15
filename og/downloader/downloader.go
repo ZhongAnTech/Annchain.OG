@@ -19,8 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/metrics"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
@@ -106,12 +105,12 @@ type Downloader struct {
 	committed       int32
 
 	// Channels
-	headerCh      chan dataPack                    // [og/01] Channel receiving inbound block headers
-	bodyCh        chan dataPack                    // [og/01] Channel receiving inbound block bodies
-	receiptCh     chan dataPack                    // [eth/63] Channel receiving inbound receipts
-	bodyWakeCh    chan bool                        // [og/01] Channel to signal the block body fetcher of new tasks
-	receiptWakeCh chan bool                        // [eth/63] Channel to signal the receipt fetcher of new tasks
-	headerProcCh  chan []*tx_types.SequencerHeader // [og/01] Channel to feed the header processor new tasks
+	headerCh      chan dataPack                            // [og/01] Channel receiving inbound block headers
+	bodyCh        chan dataPack                            // [og/01] Channel receiving inbound block bodies
+	receiptCh     chan dataPack                            // [eth/63] Channel receiving inbound receipts
+	bodyWakeCh    chan bool                                // [og/01] Channel to signal the block body fetcher of new tasks
+	receiptWakeCh chan bool                                // [eth/63] Channel to signal the receipt fetcher of new tasks
+	headerProcCh  chan []*protocol_message.SequencerHeader // [og/01] Channel to feed the header processor new tasks
 
 	// for stateFetcher
 	stateCh chan dataPack // [eth/63] Channel receiving inbound node state data
@@ -126,14 +125,14 @@ type Downloader struct {
 	quitLock sync.RWMutex  // Lock to prevent double closes
 
 	// Testing hooks
-	syncInitHook    func(uint64, uint64)              // Method to call upon initiating a new sync run
-	bodyFetchHook   func([]*tx_types.SequencerHeader) // Method to call upon starting a block body fetch
-	chainInsertHook func([]*fetchResult)              // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
+	syncInitHook    func(uint64, uint64)                      // Method to call upon initiating a new sync run
+	bodyFetchHook   func([]*protocol_message.SequencerHeader) // Method to call upon starting a block body fetch
+	chainInsertHook func([]*fetchResult)                      // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 }
 
 type IDag interface {
-	LatestSequencer() *tx_types.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *tx_types.Sequencer
+	LatestSequencer() *protocol_message.Sequencer
+	GetSequencer(hash common.Hash, id uint64) *protocol_message.Sequencer
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -153,7 +152,7 @@ func New(mode SyncMode, dag IDag, dropPeer peerDropFn, insertTxs insertTxsFn) *D
 		receiptCh:     make(chan dataPack, 1),
 		bodyWakeCh:    make(chan bool, 1),
 		receiptWakeCh: make(chan bool, 1),
-		headerProcCh:  make(chan []*tx_types.SequencerHeader, 1),
+		headerProcCh:  make(chan []*protocol_message.SequencerHeader, 1),
 		quitCh:        make(chan struct{}),
 		stateCh:       make(chan dataPack),
 	}
@@ -433,7 +432,7 @@ func (d *Downloader) Terminate() {
 
 // fetchHeight retrieves the head header of the remote peer to aid in estimating
 // the total time a pending synchronisation would take.
-func (d *Downloader) fetchHeight(p *peerConnection) (*tx_types.SequencerHeader, error) {
+func (d *Downloader) fetchHeight(p *peerConnection) (*protocol_message.SequencerHeader, error) {
 	log.Debug("Retrieving remote chain height")
 
 	// Request the advertised remote head block and wait for the response
@@ -797,7 +796,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 //
 // The method returns the entire filled skeleton and also the number of headers
 // already forwarded for processing.
-func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*tx_types.SequencerHeader) ([]*tx_types.SequencerHeader, int, error) {
+func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*protocol_message.SequencerHeader) ([]*protocol_message.SequencerHeader, int, error) {
 	log.WithField("from", from).Debug("Filling up skeleton")
 	d.queue.ScheduleSkeleton(from, skeleton)
 
@@ -884,7 +883,7 @@ func (d *Downloader) fetchBodies(from uint64) error {
 //  - kind:        textual label of the type being downloaded to display in log mesages
 func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliver func(dataPack) (int, error), wakeCh chan bool,
 	expire func() map[string]int, pending func() int, inFlight func() bool, throttle func() bool, reserve func(*peerConnection, int) (*fetchRequest, bool, error),
-	fetchHook func([]*tx_types.SequencerHeader), fetch func(*peerConnection, *fetchRequest) error, cancel func(*fetchRequest), capacity func(*peerConnection) int,
+	fetchHook func([]*protocol_message.SequencerHeader), fetch func(*peerConnection, *fetchRequest) error, cancel func(*fetchRequest), capacity func(*peerConnection) int,
 	idle func() ([]*peerConnection, int), setIdle func(*peerConnection, int), kind string) error {
 
 	// Create a ticker to detect expired retrieval tasks
@@ -1193,7 +1192,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 
 // processFastSyncContent takes fetch results from the queue and writes them to the
 // database. It also controls the synchronisation of state nodes of the pivot block.
-func (d *Downloader) processFastSyncContent(latest *tx_types.SequencerHeader) error {
+func (d *Downloader) processFastSyncContent(latest *protocol_message.SequencerHeader) error {
 
 	// Figure out the ideal pivot block. Note, that this goalpost may move if the
 	// sync takes long enough for the chain head to move significantly.
@@ -1247,12 +1246,12 @@ func (d *Downloader) processFastSyncContent(latest *tx_types.SequencerHeader) er
 
 // DeliverHeaders injects a new batch of block headers received from a remote
 // node into the download schedule.
-func (d *Downloader) DeliverHeaders(id string, headers []*tx_types.SequencerHeader) (err error) {
+func (d *Downloader) DeliverHeaders(id string, headers []*protocol_message.SequencerHeader) (err error) {
 	return d.deliver(id, d.headerCh, &headerPack{id, headers}, headerInMeter, headerDropMeter)
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions []types.Txis, sequencers []*tx_types.Sequencer) (err error) {
+func (d *Downloader) DeliverBodies(id string, transactions []protocol_message.Txis, sequencers []*protocol_message.Sequencer) (err error) {
 	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, sequencers}, bodyInMeter, bodyDropMeter)
 }
 

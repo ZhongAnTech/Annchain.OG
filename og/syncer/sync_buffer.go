@@ -17,8 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/protocol"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
@@ -30,9 +30,9 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs        map[common.Hash]types.Txi
+	Txs        map[common.Hash]protocol_message.Txi
 	TxsList    common.Hashes
-	Seq        *tx_types.Sequencer
+	Seq        *protocol_message.Sequencer
 	mu         sync.RWMutex
 	txPool     og.ITxPool
 	dag        og.IDag
@@ -62,7 +62,7 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:       make(map[common.Hash]types.Txi),
+		Txs:       make(map[common.Hash]protocol_message.Txi),
 		txPool:    config.TxPool,
 		dag:       config.Dag,
 		Verifiers: config.Verifiers,
@@ -80,7 +80,7 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs types.Txis, seq *tx_types.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs protocol_message.Txis, seq *protocol_message.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Seq = seq
@@ -102,7 +102,7 @@ func (s *SyncBuffer) addTxs(txs types.Txis, seq *tx_types.Sequencer) error {
 
 }
 
-func (s *SyncBuffer) AddTxs(seq *tx_types.Sequencer, txs types.Txis) error {
+func (s *SyncBuffer) AddTxs(seq *protocol_message.Sequencer, txs protocol_message.Txis) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
@@ -141,7 +141,7 @@ func (s *SyncBuffer) Count() int {
 	return len(s.Txs)
 }
 
-func (s *SyncBuffer) Get(hash common.Hash) types.Txi {
+func (s *SyncBuffer) Get(hash common.Hash) protocol_message.Txi {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.Txs[hash]
@@ -232,7 +232,7 @@ out:
 	return err
 }
 
-func (s *SyncBuffer) verifyElders(seq types.Txi) error {
+func (s *SyncBuffer) verifyElders(seq protocol_message.Txi) error {
 
 	allKeys := s.GetAllKeys()
 	keysMap := make(map[common.Hash]int)

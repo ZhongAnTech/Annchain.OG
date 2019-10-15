@@ -2,14 +2,14 @@ package verifier
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
 func TestConsensusVerifier_Verify(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	tx := tx_types.RandomTx()
+	tx := protocol_message.RandomTx()
 	//fmt.Println(tx)
 	pub, priv := crypto.Signer.RandomKeyPair()
 	tx.From = nil

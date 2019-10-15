@@ -17,13 +17,11 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/txmaker"
-	"github.com/annchain/OG/types/tx_types"
-
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,15 +34,15 @@ type TxRequest struct {
 	TokenId    int32
 }
 
-type insertTxsFn func(seq *tx_types.Sequencer, txs types.Txis) error
+type insertTxsFn func(seq *protocol_message.Sequencer, txs protocol_message.Txis) error
 
 type Delegate struct {
 	TxCreator          *txmaker.OGTxCreator
-	ReceivedNewTxsChan chan []types.Txi
-	ReceivedNewTxChan  chan types.Txi
+	ReceivedNewTxsChan chan []protocol_message.Txi
+	ReceivedNewTxChan  chan protocol_message.Txi
 	TxPool             *core.TxPool
 	Dag                *core.Dag
-	OnNewTxiGenerated  []chan types.Txi
+	OnNewTxiGenerated  []chan protocol_message.Txi
 	InsertSyncBuffer   insertTxsFn
 }
 
@@ -59,7 +57,7 @@ func (d *Delegate) TooMoreTx() bool {
 	return false
 }
 
-func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx types.Txi, err error) {
+func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx protocol_message.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {
@@ -71,7 +69,7 @@ func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx types.Txi, err
 	return
 }
 
-func (c *Delegate) GenerateArchive(data []byte) (tx types.Txi, err error) {
+func (c *Delegate) GenerateArchive(data []byte) (tx protocol_message.Txi, err error) {
 	tx, err = c.TxCreator.NewArchiveWithSeal(data)
 	if err != nil {
 		logrus.WithField("tx", tx).Debugf("tx generated")
@@ -87,7 +85,7 @@ type SeqRequest struct {
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *tx_types.Sequencer, err error) {
+func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *protocol_message.Sequencer, err error) {
 	// TODO: why twice?
 	seq, err, _ = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	if err != nil {
@@ -121,12 +119,12 @@ func (c *Delegate) GetLatestAccountNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("nonce for address not found")
 }
 
-func (c *Delegate) GetLatestDagSequencer() *tx_types.Sequencer {
+func (c *Delegate) GetLatestDagSequencer() *protocol_message.Sequencer {
 	latestSeq := c.Dag.LatestSequencer()
 	return latestSeq
 }
 
-func (c *Delegate) Announce(txi types.Txi) {
+func (c *Delegate) Announce(txi protocol_message.Txi) {
 	for _, ch := range c.OnNewTxiGenerated {
 		ch <- txi
 	}

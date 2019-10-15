@@ -9,7 +9,8 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/types/general_message"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -104,21 +105,6 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage,
 		pipeOut:     make(chan bft.BftMessage),
 	}
 	return d
-}
-
-func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage {
-	return &message.OGMessage{
-		MessageType:    message.BinaryMessageType(msg.Type),
-		Data:           nil,
-		Hash:           nil,
-		SourceID:       "",
-		SendingType:    0,
-		Version:        0,
-		Message:        msg.Payload,
-		SourceHash:     nil,
-		MarshalState:   false,
-		DisableEncrypt: false,
-	}
 }
 
 func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
@@ -307,17 +293,16 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 }
 
 type dummyP2pSender struct {
-	Myid    int
-	Peers   []chan p2p_message.Message
-	pipeIn  chan p2p_message.Message
-	pipeOut chan p2p_message.Message
+	Myid  int
+	Peers []chan general_message.TransportableMessage
+	pipe  chan general_message.TransportableMessage
 }
 
-func (d *dummyP2pSender) GetMessageChannel() chan p2p_message.Message {
-	return d.pipeOut
+func (d *dummyP2pSender) GetMessageChannel() chan general_message.TransportableMessage {
+	return d.pipe
 }
 
-func (d *dummyP2pSender) BroadcastMessage(messageType message.BinaryMessageType, message p2p_message.Message) {
+func (d *dummyP2pSender) BroadcastMessage(message general_message.TransportableMessage) {
 	logrus.WithField("me", d.Myid).Debug("broadcasting message")
 	for _, peer := range d.Peers {
 		peer <- message
@@ -328,21 +313,16 @@ func (d *dummyP2pSender) BroadcastMessage(messageType message.BinaryMessageType,
 	}
 }
 
-type dummyEncryptedMessage struct {
-	p2p_message.Message
-	innerMessageType message.BinaryMessageType
-	anonymousPubKey  *crypto.PublicKey
-}
-
-func (d *dummyP2pSender) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2p_message.Message, anonymousPubKey *crypto.PublicKey) {
-	d.BroadcastMessage(message.MessageTypeSecret, dummyEncryptedMessage{
-		Message:          msg,
-		innerMessageType: messageType,
-		anonymousPubKey:  anonymousPubKey,
+func (d *dummyP2pSender) AnonymousSendMessage(msg general_message.TransportableMessage, anonymousPubKey *crypto.PublicKey) {
+	// fake encryption
+	d.BroadcastMessage(&protocol_message.MessageEncrypted{
+		InnerMessageType:      msg.GetType(),
+		InnerMessageEncrypted: msg.GetData(),
+		PublicKey:             anonymousPubKey.Bytes,
 	})
 }
 
-func (d *dummyP2pSender) SendToPeer(messageType message.BinaryMessageType, msg p2p_message.Message, peerId string) error {
+func (d *dummyP2pSender) SendToPeer(msg general_message.TransportableMessage, peerId string) error {
 	// in the dummy take peerId as int
 	iPeerId, err := strconv.Atoi(peerId)
 	if err != nil {
@@ -353,12 +333,11 @@ func (d *dummyP2pSender) SendToPeer(messageType message.BinaryMessageType, msg p
 	return nil
 }
 
-func NewDummyP2pSender(myid int, incoming chan p2p_message.Message, peers []chan p2p_message.Message) *dummyP2pSender {
+func NewDummyP2pSender(myid int, incoming chan general_message.TransportableMessage, peers []chan general_message.TransportableMessage) *dummyP2pSender {
 	d := &dummyP2pSender{
-		Peers:   peers,
-		Myid:    myid,
-		pipeIn:  incoming,
-		pipeOut: incoming, // must be big enough to avoid blocking issue
+		Peers: peers,
+		Myid:  myid,
+		pipe:  incoming,
 	}
 	return d
 }

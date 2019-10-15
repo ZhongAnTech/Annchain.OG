@@ -5,8 +5,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/general_message"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
 )
@@ -46,8 +46,8 @@ type HeightProvider interface {
 
 type SequencerProducer interface {
 	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
-		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *tx_types.Sequencer, err error, genAgain bool)
-	ValidateSequencer(seq tx_types.Sequencer) error
+		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *protocol_message.Sequencer, err error, genAgain bool)
+	ValidateSequencer(seq protocol_message.Sequencer) error
 }
 
 // BftMessageAdapter converts messages.

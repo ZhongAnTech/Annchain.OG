@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/p2p/ioperformance"
@@ -44,7 +45,6 @@ import (
 	miner2 "github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/performance"
-	"github.com/annchain/OG/types"
 	"github.com/spf13/viper"
 )
 
@@ -73,7 +73,7 @@ func NewNode() *Node {
 	crypto.Signer = crypto.NewSigner(cryptoType)
 	// Setup crypto algorithm
 	if crypto.Signer.CanRecoverPubFromSig() {
-		types.CanRecoverPubFromSig = true
+		protocol_message.CanRecoverPubFromSig = true
 	}
 	// network id is configured either in config.toml or env variable
 	networkId := viper.GetInt64("p2p.network_id")

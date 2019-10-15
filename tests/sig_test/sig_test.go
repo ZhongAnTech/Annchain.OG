@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"testing"
 )
@@ -28,8 +29,8 @@ func TestSig(t *testing.T) {
 	pk, _ := crypto.PublicKeyFromString("0x010490e3c98826e0a530e22d34075e31cf478fead6297654dc5ce7e082fe1a29a3450ca669572bd257d2874c52158180b1cad654dbc091e92c40a983ee07361a17a7")
 	//sk,_:= crypto.PrivateKeyFromString("0x01f2f9cfc3ca3d19654754045454487948448748734784234348079387342789342")
 	tx := types.Tx{
-		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeNormal,
+		TxBase: protocol_message.TxBase{
+			Type:         protocol_message.TxBaseTypeNormal,
 			AccountNonce: 3,
 			Hash:         common.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
 			PublicKey:    pk.Bytes,

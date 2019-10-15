@@ -19,8 +19,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 	"sync"
 	"time"
 
@@ -179,10 +179,10 @@ func GetOldDb() (ogdb.Database, error) {
 	}
 }
 
-func (og *Og) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
+func (og *Og) GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		return tx
 	default:
 		return nil

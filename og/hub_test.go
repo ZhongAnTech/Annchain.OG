@@ -19,8 +19,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -121,7 +121,7 @@ func TestCache(t *testing.T) {
 			Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build(),
 	}
 
-	tx := tx_types.SampleTx()
+	tx := protocol_message.SampleTx()
 	msg := &p2p_message.MessageNewTx{
 		RawTx: tx.RawTx(),
 	}

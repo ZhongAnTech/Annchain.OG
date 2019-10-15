@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
 	log "github.com/sirupsen/logrus"
 	"testing"
@@ -136,8 +136,8 @@ func TestSignBenchMarksCgo(t *testing.T) {
 	signer := SignerSecp256k1cgo{}
 	pk, priv := signer.RandomKeyPair()
 	signer2 := SignerSecp256k1{}
-	var txs1 types.Txis
-	var txs2 types.Txis
+	var txs1 protocol_message.Txis
+	var txs2 protocol_message.Txis
 	N := 10000
 
 	for i := 0; i < N; i++ {

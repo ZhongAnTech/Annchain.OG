@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"sort"
 	"sync"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,11 +37,11 @@ func NewAccountFlows() *AccountFlows {
 	}
 }
 
-func (a *AccountFlows) Add(tx types.Txi) {
+func (a *AccountFlows) Add(tx protocol_message.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if tx.GetType() == types.TxBaseTypeArchive {
+	if tx.GetType() == protocol_message.TxBaseTypeArchive {
 		return
 	}
 
@@ -75,7 +74,7 @@ func (a *AccountFlows) GetBalanceState(addr common.Address, tokenID int32) *Bala
 	return bls[tokenID]
 }
 
-func (a *AccountFlows) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (a *AccountFlows) GetTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -107,7 +106,7 @@ func (a *AccountFlows) ResetFlow(addr common.Address, originBalance state.Balanc
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
-func (a *AccountFlows) Remove(tx types.Txi) {
+func (a *AccountFlows) Remove(tx protocol_message.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -154,23 +153,23 @@ func (af *AccountFlow) Len() int {
 }
 
 // GetTx get a tx from accountflow.
-func (af *AccountFlow) GetTx(nonce uint64) types.Txi {
+func (af *AccountFlow) GetTx(nonce uint64) protocol_message.Txi {
 	return af.txlist.Get(nonce)
 }
 
 // Add new tx into account flow. This function should
 // 1. update account's balance state.
 // 2. add tx into nonce sorted txlist.
-func (af *AccountFlow) Add(tx types.Txi) error {
+func (af *AccountFlow) Add(tx protocol_message.Txi) error {
 	if af.txlist.get(tx.GetNonce()) != nil {
 		log.WithField("tx", tx).Errorf("add tx that has same nonce")
 		return fmt.Errorf("already exists")
 	}
-	if tx.GetType() != types.TxBaseTypeNormal {
+	if tx.GetType() != protocol_message.TxBaseTypeNormal {
 		af.txlist.Put(tx)
 		return nil
 	}
-	txnormal := tx.(*tx_types.Tx)
+	txnormal := tx.(*protocol_message.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
@@ -191,11 +190,11 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	if tx.GetType() != types.TxBaseTypeNormal {
+	if tx.GetType() != protocol_message.TxBaseTypeNormal {
 		af.txlist.Remove(nonce)
 		return nil
 	}
-	txnormal := tx.(*tx_types.Tx)
+	txnormal := tx.(*protocol_message.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Remove(nonce)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
@@ -295,13 +294,13 @@ func (n *nonceHeap) Pop() interface{} {
 
 type TxList struct {
 	keys   *nonceHeap
-	txflow map[uint64]types.Txi
+	txflow map[uint64]protocol_message.Txi
 }
 
 func NewTxList() *TxList {
 	return &TxList{
 		keys:   new(nonceHeap),
-		txflow: make(map[uint64]types.Txi),
+		txflow: make(map[uint64]protocol_message.Txi),
 	}
 }
 
@@ -309,17 +308,17 @@ func (t *TxList) Len() int {
 	return t.keys.Len()
 }
 
-func (t *TxList) Get(nonce uint64) types.Txi {
+func (t *TxList) Get(nonce uint64) protocol_message.Txi {
 	return t.get(nonce)
 }
-func (t *TxList) get(nonce uint64) types.Txi {
+func (t *TxList) get(nonce uint64) protocol_message.Txi {
 	return t.txflow[nonce]
 }
 
-func (t *TxList) Put(txi types.Txi) {
+func (t *TxList) Put(txi protocol_message.Txi) {
 	t.put(txi)
 }
-func (t *TxList) put(txi types.Txi) {
+func (t *TxList) put(txi protocol_message.Txi) {
 	nonce := txi.GetNonce()
 	if _, ok := t.txflow[nonce]; !ok {
 		heap.Push(t.keys, nonce)

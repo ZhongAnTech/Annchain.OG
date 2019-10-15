@@ -15,14 +15,14 @@ package miner
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 	"math"
 )
 
 type PoWMiner struct {
 }
 
-func (m *PoWMiner) StartMine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) {
+func (m *PoWMiner) StartMine(tx protocol_message.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) {
 	// do brute force
 	var i uint64
 	base := tx.GetBase()

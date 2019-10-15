@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -12,7 +13,7 @@ type PublicKey []byte
 
 // DecodeMsg implements msgp.Decodable
 func (z *PublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
-	if CanRecoverPubFromSig {
+	if protocol_message.CanRecoverPubFromSig {
 		return nil
 	}
 	{
@@ -28,7 +29,7 @@ func (z *PublicKey) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z PublicKey) EncodeMsg(en *msgp.Writer) (err error) {
-	if CanRecoverPubFromSig {
+	if protocol_message.CanRecoverPubFromSig {
 		return nil
 	}
 	err = en.WriteBytes([]byte(z))
@@ -40,7 +41,7 @@ func (z PublicKey) EncodeMsg(en *msgp.Writer) (err error) {
 
 // MarshalMsg implements msgp.Marshaler
 func (z PublicKey) MarshalMsg(b []byte) (o []byte, err error) {
-	if CanRecoverPubFromSig {
+	if protocol_message.CanRecoverPubFromSig {
 		return nil, nil
 	}
 	o = msgp.Require(b, z.Msgsize())
@@ -50,7 +51,7 @@ func (z PublicKey) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *PublicKey) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	if CanRecoverPubFromSig {
+	if protocol_message.CanRecoverPubFromSig {
 		return bts, nil
 	}
 	{
@@ -67,7 +68,7 @@ func (z *PublicKey) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z PublicKey) Msgsize() (s int) {
-	if CanRecoverPubFromSig {
+	if protocol_message.CanRecoverPubFromSig {
 		return 0
 	}
 	s = msgp.BytesPrefixSize + len([]byte(z))

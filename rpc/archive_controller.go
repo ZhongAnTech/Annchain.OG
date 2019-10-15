@@ -17,8 +17,8 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -38,7 +38,7 @@ func getArchiveId() uint32 {
 
 func (r *RpcController) NewArchive(c *gin.Context) {
 	var (
-		tx    types.Txi
+		tx    protocol_message.Txi
 		txReq NewArchiveRequest
 	)
 	now := time.Now()

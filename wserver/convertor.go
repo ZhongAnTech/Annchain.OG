@@ -14,7 +14,7 @@
 package wserver
 
 import (
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 )
 
 //type Tx struct {
@@ -57,12 +57,12 @@ type UIData struct {
 }
 
 type BlockDbUIData struct {
-	Nodes []types.TxiSmallCaseMarshal `json:"nodes"`
+	Nodes []protocol_message.TxiSmallCaseMarshal `json:"nodes"`
 	//Type  string `json:"type"`
 	//Edges []Edge `json:"edges"`
 }
 
-func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
+func (u *UIData) AddToBatch(tx protocol_message.Txi, includingEdge bool) {
 	nodeData := NodeData{
 		Unit:   tx.GetTxHash().Hex(),
 		Unit_s: tx.String(),
@@ -72,7 +72,7 @@ func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	}
 
 	switch tx.GetBase().Type {
-	case types.TxBaseTypeSequencer:
+	case protocol_message.TxBaseTypeSequencer:
 		node.Type = "sequencer_unit"
 	default:
 		node.Type = ""

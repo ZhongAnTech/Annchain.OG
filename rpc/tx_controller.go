@@ -16,6 +16,7 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
 	"net/http"
 	"strconv"
@@ -25,14 +26,13 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
-		tx    types.Txi
+		tx    protocol_message.Txi
 		txReq NewTxRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -134,7 +134,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 		return
 	}
-	tx.SetVerified(types.VerifiedFormat)
+	tx.SetVerified(protocol_message.VerifiedFormat)
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
@@ -186,7 +186,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		return
 	}
 	for i, txReq := range txrequsets.Txs {
-		var tx types.Txi
+		var tx protocol_message.Txi
 		from, err := common.StringToAddress(txReq.From)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
@@ -292,7 +292,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			}
 			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
 			//we don't verify hash , since we calculated the hash
-			tx.SetVerified(types.VerifiedFormat)
+			tx.SetVerified(protocol_message.VerifiedFormat)
 			r.TxBuffer.ReceivedNewTxChan <- tx
 			hashes = append(hashes, tx.GetTxHash())
 			continue
@@ -312,7 +312,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 		//we don't verify hash , since we calculated the hash
-		tx.SetVerified(types.VerifiedFormat)
+		tx.SetVerified(protocol_message.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
 		hashes = append(hashes, tx.GetTxHash())
 	}

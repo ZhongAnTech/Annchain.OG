@@ -18,10 +18,9 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -44,7 +43,7 @@ type NewPublicOfferingRequest struct {
 //todo optimize later
 func (r *RpcController) TokenDestroy(c *gin.Context) {
 	var (
-		tx    types.Txi
+		tx    protocol_message.Txi
 		txReq NewPublicOfferingRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -139,7 +138,7 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 
 func (r *RpcController) NewPublicOffering(c *gin.Context) {
 	var (
-		tx    types.Txi
+		tx    protocol_message.Txi
 		txReq NewPublicOfferingRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -241,7 +240,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 
 func (r *RpcController) NewSecondOffering(c *gin.Context) {
 	var (
-		tx    types.Txi
+		tx    protocol_message.Txi
 		txReq NewPublicOfferingRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -317,7 +316,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 			AccountNonce: txReq.Nonce,
 			TokenId:      0,
 		},
-		Action:    tx_types.ActionTxActionSPO,
+		Action:    protocol_message.ActionTxActionSPO,
 		EnableSpo: txReq.EnableSPO,
 		TokenName: txReq.TokenName,
 		Pubkey:    pub,

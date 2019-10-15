@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 	"testing"
 	"time"
 )
@@ -26,10 +25,10 @@ import (
 func TestRawTx_Tx(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	var num = 10000
-	var txs tx_types.Txs
+	var txs protocol_message.Txs
 	var rawtxs protocol_message.RawTxs
 	for i := 0; i < num; i++ {
-		tx := tx_types.RandomTx()
+		tx := protocol_message.RandomTx()
 		pub, _ := signer.RandomKeyPair()
 		tx.PublicKey = pub.Bytes[:]
 		rawtxs = append(rawtxs, tx.RawTx())
@@ -46,13 +45,13 @@ func TestRawTx_encode(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	crypto.Signer = signer
 	var num = 10000
-	var txs tx_types.Txs
+	var txs protocol_message.Txs
 	type bytes struct {
 		p2p_message.RawData
 	}
 	var rawtxs []bytes
 	for i := 0; i < num; i++ {
-		tx := tx_types.RandomTx()
+		tx := protocol_message.RandomTx()
 		pub, _ := signer.RandomKeyPair()
 		tx.PublicKey = pub.Bytes[:]
 		data, _ := tx.MarshalMsg(nil)
@@ -60,7 +59,7 @@ func TestRawTx_encode(t *testing.T) {
 	}
 	start := time.Now()
 	for i := 0; i < num; i++ {
-		var tx tx_types.Tx
+		var tx protocol_message.Tx
 		_, err := tx.UnmarshalMsg(rawtxs[i].RawData)
 		if err != nil {
 			panic(err)

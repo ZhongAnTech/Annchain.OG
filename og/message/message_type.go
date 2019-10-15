@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 )
 
 //go:generate msgp
@@ -124,7 +124,7 @@ func (m BinaryMessageType) GetMsg() p2p_message.Message {
 
 //msgp:tuple SequencerProposal
 type SequencerProposal struct {
-	tx_types.Sequencer
+	protocol_message.Sequencer
 }
 
 func (s *SequencerProposal) String() string {

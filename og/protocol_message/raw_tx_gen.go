@@ -4,7 +4,6 @@ package protocol_message
 
 import (
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -1121,7 +1120,7 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.SigSet) >= int(zb0002) {
 		z.SigSet = (z.SigSet)[:zb0002]
 	} else {
-		z.SigSet = make([]*tx_types.SigSet, zb0002)
+		z.SigSet = make([]*SigSet, zb0002)
 	}
 	for za0001 := range z.SigSet {
 		if dc.IsNil() {
@@ -1133,7 +1132,7 @@ func (z *RawTermChange) DecodeMsg(dc *msgp.Reader) (err error) {
 			z.SigSet[za0001] = nil
 		} else {
 			if z.SigSet[za0001] == nil {
-				z.SigSet[za0001] = new(tx_types.SigSet)
+				z.SigSet[za0001] = new(SigSet)
 			}
 			err = z.SigSet[za0001].DecodeMsg(dc)
 			if err != nil {
@@ -1252,7 +1251,7 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap(z.SigSet) >= int(zb0002) {
 		z.SigSet = (z.SigSet)[:zb0002]
 	} else {
-		z.SigSet = make([]*tx_types.SigSet, zb0002)
+		z.SigSet = make([]*SigSet, zb0002)
 	}
 	for za0001 := range z.SigSet {
 		if msgp.IsNil(bts) {
@@ -1263,7 +1262,7 @@ func (z *RawTermChange) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.SigSet[za0001] = nil
 		} else {
 			if z.SigSet[za0001] == nil {
-				z.SigSet[za0001] = new(tx_types.SigSet)
+				z.SigSet[za0001] = new(SigSet)
 			}
 			bts, err = z.SigSet[za0001].UnmarshalMsg(bts)
 			if err != nil {
@@ -1749,7 +1748,7 @@ func (z *TxisMarshaler) DecodeMsg(dc *msgp.Reader) (err error) {
 			(*z)[zb0001] = nil
 		} else {
 			if (*z)[zb0001] == nil {
-				(*z)[zb0001] = new(tx_types.RawTxMarshaler)
+				(*z)[zb0001] = new(RawTxMarshaler)
 			}
 			err = (*z)[zb0001].DecodeMsg(dc)
 			if err != nil {
@@ -1825,7 +1824,7 @@ func (z *TxisMarshaler) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			(*z)[zb0001] = nil
 		} else {
 			if (*z)[zb0001] == nil {
-				(*z)[zb0001] = new(tx_types.RawTxMarshaler)
+				(*z)[zb0001] = new(RawTxMarshaler)
 			}
 			bts, err = (*z)[zb0001].UnmarshalMsg(bts)
 			if err != nil {

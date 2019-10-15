@@ -20,9 +20,10 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
@@ -184,12 +185,12 @@ func (p *Putter) Put(key []byte, data []byte) error {
 
 // ReadGenesis get genesis sequencer from db.
 // return nil if there is no genesis.
-func (da *Accessor) ReadGenesis() *tx_types.Sequencer {
+func (da *Accessor) ReadGenesis() *protocol_message.Sequencer {
 	data, _ := da.db.Get(genesisKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq tx_types.Sequencer
+	var seq protocol_message.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -198,7 +199,7 @@ func (da *Accessor) ReadGenesis() *tx_types.Sequencer {
 }
 
 // WriteGenesis writes geneis into db.
-func (da *Accessor) WriteGenesis(genesis *tx_types.Sequencer) error {
+func (da *Accessor) WriteGenesis(genesis *protocol_message.Sequencer) error {
 	data, err := genesis.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -208,12 +209,12 @@ func (da *Accessor) WriteGenesis(genesis *tx_types.Sequencer) error {
 
 // ReadLatestSequencer get latest sequencer from db.
 // return nil if there is no sequencer.
-func (da *Accessor) ReadLatestSequencer() *tx_types.Sequencer {
+func (da *Accessor) ReadLatestSequencer() *protocol_message.Sequencer {
 	data, _ := da.db.Get(latestSequencerKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq tx_types.Sequencer
+	var seq protocol_message.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -222,7 +223,7 @@ func (da *Accessor) ReadLatestSequencer() *tx_types.Sequencer {
 }
 
 // WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *tx_types.Sequencer) error {
+func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *protocol_message.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -248,7 +249,7 @@ func (da *Accessor) WriteLastStateRoot(putter *Putter, root common.Hash) error {
 }
 
 // ReadTransaction get tx or sequencer from ogdb.
-func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
+func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 	data, _ := da.db.Get(transactionKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -257,7 +258,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx tx_types.Tx
+		var tx protocol_message.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
@@ -266,7 +267,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq tx_types.Sequencer
+		var sq protocol_message.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal seq error")
@@ -275,7 +276,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 		return &sq
 	}
 	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp tx_types.Campaign
+		var cp protocol_message.Campaign
 		_, err := cp.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal camp error")
@@ -284,7 +285,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc tx_types.TermChange
+		var tc protocol_message.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")
@@ -293,7 +294,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 		return &tc
 	}
 	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac tx_types.Archive
+		var ac archive.Archive
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -302,7 +303,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 		return &ac
 	}
 	if bytes.Equal(prefix, contentPrefixActionTx) {
-		var ac tx_types.ActionTx
+		var ac protocol_message.ActionTx
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -315,7 +316,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 }
 
 // ReadTxByNonce get tx from db by sender's address and nonce.
-func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	data, _ := da.db.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil
@@ -415,28 +416,28 @@ func (da *Accessor) ReadReceipt(seqID uint64, hash common.Hash) *Receipt {
 }
 
 // WriteTransaction write the tx or sequencer into ogdb.
-func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
+func (da *Accessor) WriteTransaction(putter *Putter, tx protocol_message.Txi) error {
 	var prefix, data []byte
 	var err error
 
 	// write tx
 	switch tx := tx.(type) {
-	case *tx_types.Tx:
+	case *protocol_message.Tx:
 		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		prefix = contentPrefixSequencer
 		data, err = tx.MarshalMsg(nil)
-	case *tx_types.Campaign:
+	case *protocol_message.Campaign:
 		prefix = contentPrefixCampaign
 		data, err = tx.MarshalMsg(nil)
-	case *tx_types.TermChange:
+	case *protocol_message.TermChange:
 		prefix = contentPrefixTermChg
 		data, err = tx.MarshalMsg(nil)
-	case *tx_types.Archive:
+	case *archive.Archive:
 		prefix = contentPrefixArchive
 		data, err = tx.MarshalMsg(nil)
-	case *tx_types.ActionTx:
+	case *protocol_message.ActionTx:
 		prefix = contentPrefixActionTx
 		data, err = tx.MarshalMsg(nil)
 	default:
@@ -525,12 +526,12 @@ func (da *Accessor) SubBalance(putter *Putter, addr common.Address, amount *math
 }
 
 // ReadSequencerByHeight get sequencer from db by sequencer id.
-func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*tx_types.Sequencer, error) {
+func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*protocol_message.Sequencer, error) {
 	data, _ := da.db.Get(seqHeightKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
-	var seq tx_types.Sequencer
+	var seq protocol_message.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -539,7 +540,7 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*tx_types.Sequencer
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *tx_types.Sequencer) error {
+func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *protocol_message.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err

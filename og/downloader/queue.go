@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 	"sync"
 	"time"
@@ -25,10 +24,10 @@ var (
 
 // fetchRequest is a currently running data retrieval operation.
 type fetchRequest struct {
-	Peer    *peerConnection             // Peer to which the request was sent
-	From    uint64                      // [og/01] Requested chain element index (used for skeleton fills only)
-	Headers []*tx_types.SequencerHeader // [og/01] Requested headers, sorted by request order
-	Time    time.Time                   // Time when the request was made
+	Peer    *peerConnection                     // Peer to which the request was sent
+	From    uint64                              // [og/01] Requested chain element index (used for skeleton fills only)
+	Headers []*protocol_message.SequencerHeader // [og/01] Requested headers, sorted by request order
+	Time    time.Time                           // Time when the request was made
 }
 
 // fetchResult is a struct collecting partial results from data fetchers until
@@ -37,9 +36,9 @@ type fetchResult struct {
 	Pending int         // Number of data fetches still pending
 	Hash    common.Hash // Hash of the header to prevent recalculating
 
-	Header       *tx_types.SequencerHeader
-	Transactions types.Txis
-	Sequencer    *tx_types.Sequencer
+	Header       *protocol_message.SequencerHeader
+	Transactions protocol_message.Txis
+	Sequencer    *protocol_message.Sequencer
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -47,26 +46,26 @@ type queue struct {
 	mode SyncMode // Synchronisation mode to decide on the block parts to schedule for fetching
 
 	// Headers are "special", they download in batches, supported by a skeleton chain
-	headerHead      common.Hash                          // [og/01] Hash of the last queued header to verify order
-	headerTaskPool  map[uint64]*tx_types.SequencerHeader // [og/01] Pending header retrieval tasks, mapping starting indexes to skeleton headers
-	headerTaskQueue *prque.Prque                         // [og/01] Priority queue of the skeleton indexes to fetch the filling headers for
-	headerPeerMiss  map[string]map[uint64]struct{}       // [og/01] Set of per-peer header batches known to be unavailable
-	headerPendPool  map[string]*fetchRequest             // [og/01] Currently pending header retrieval operations
-	headerResults   []*tx_types.SequencerHeader          // [og/01] Result cache accumulating the completed headers
-	headerProced    int                                  // [og/01] Number of headers already processed from the results
-	headerOffset    uint64                               // [og/01] Number of the first header in the result cache
-	headerContCh    chan bool                            // [og/01] Channel to notify when header download finishes
+	headerHead      common.Hash                                  // [og/01] Hash of the last queued header to verify order
+	headerTaskPool  map[uint64]*protocol_message.SequencerHeader // [og/01] Pending header retrieval tasks, mapping starting indexes to skeleton headers
+	headerTaskQueue *prque.Prque                                 // [og/01] Priority queue of the skeleton indexes to fetch the filling headers for
+	headerPeerMiss  map[string]map[uint64]struct{}               // [og/01] Set of per-peer header batches known to be unavailable
+	headerPendPool  map[string]*fetchRequest                     // [og/01] Currently pending header retrieval operations
+	headerResults   []*protocol_message.SequencerHeader          // [og/01] Result cache accumulating the completed headers
+	headerProced    int                                          // [og/01] Number of headers already processed from the results
+	headerOffset    uint64                                       // [og/01] Number of the first header in the result cache
+	headerContCh    chan bool                                    // [og/01] Channel to notify when header download finishes
 
 	// All data retrievals below are based on an already assembles header chain
-	blockTaskPool  map[common.Hash]*tx_types.SequencerHeader // [og/01] Pending block (body) retrieval tasks, mapping hashes to headers
-	blockTaskQueue *prque.Prque                              // [og/01] Priority queue of the headers to fetch the blocks (bodies) for
-	blockPendPool  map[string]*fetchRequest                  // [og/01] Currently pending block (body) retrieval operations
-	blockDonePool  map[common.Hash]struct{}                  // [og/01] Set of the completed block (body) fetches
+	blockTaskPool  map[common.Hash]*protocol_message.SequencerHeader // [og/01] Pending block (body) retrieval tasks, mapping hashes to headers
+	blockTaskQueue *prque.Prque                                      // [og/01] Priority queue of the headers to fetch the blocks (bodies) for
+	blockPendPool  map[string]*fetchRequest                          // [og/01] Currently pending block (body) retrieval operations
+	blockDonePool  map[common.Hash]struct{}                          // [og/01] Set of the completed block (body) fetches
 
-	receiptTaskPool  map[common.Hash]*tx_types.SequencerHeader // [og/02] Pending receipt retrieval tasks, mapping hashes to headers
-	receiptTaskQueue *prque.Prque                              // [og/02] Priority queue of the headers to fetch the receipts for
-	receiptPendPool  map[string]*fetchRequest                  // [og/02] Currently pending receipt retrieval operations
-	receiptDonePool  map[common.Hash]struct{}                  // [og/02] Set of the completed receipt fetches
+	receiptTaskPool  map[common.Hash]*protocol_message.SequencerHeader // [og/02] Pending receipt retrieval tasks, mapping hashes to headers
+	receiptTaskQueue *prque.Prque                                      // [og/02] Priority queue of the headers to fetch the receipts for
+	receiptPendPool  map[string]*fetchRequest                          // [og/02] Currently pending receipt retrieval operations
+	receiptDonePool  map[common.Hash]struct{}                          // [og/02] Set of the completed receipt fetches
 
 	resultCache  []*fetchResult     // Downloaded but not yet delivered fetch results
 	resultOffset uint64             // Offset of the first cached fetch result in the block chain
@@ -83,11 +82,11 @@ func newQueue() *queue {
 	return &queue{
 		headerPendPool:   make(map[string]*fetchRequest),
 		headerContCh:     make(chan bool),
-		blockTaskPool:    make(map[common.Hash]*tx_types.SequencerHeader),
+		blockTaskPool:    make(map[common.Hash]*protocol_message.SequencerHeader),
 		blockTaskQueue:   prque.New(),
 		blockPendPool:    make(map[string]*fetchRequest),
 		blockDonePool:    make(map[common.Hash]struct{}),
-		receiptTaskPool:  make(map[common.Hash]*tx_types.SequencerHeader),
+		receiptTaskPool:  make(map[common.Hash]*protocol_message.SequencerHeader),
 		receiptTaskQueue: prque.New(),
 		receiptPendPool:  make(map[string]*fetchRequest),
 		receiptDonePool:  make(map[common.Hash]struct{}),
@@ -108,12 +107,12 @@ func (q *queue) Reset() {
 	q.headerHead = common.Hash{}
 	q.headerPendPool = make(map[string]*fetchRequest)
 
-	q.blockTaskPool = make(map[common.Hash]*tx_types.SequencerHeader)
+	q.blockTaskPool = make(map[common.Hash]*protocol_message.SequencerHeader)
 	q.blockTaskQueue.Reset()
 	q.blockPendPool = make(map[string]*fetchRequest)
 	q.blockDonePool = make(map[common.Hash]struct{})
 
-	q.receiptTaskPool = make(map[common.Hash]*tx_types.SequencerHeader)
+	q.receiptTaskPool = make(map[common.Hash]*protocol_message.SequencerHeader)
 	q.receiptTaskQueue.Reset()
 	q.receiptPendPool = make(map[string]*fetchRequest)
 	q.receiptDonePool = make(map[common.Hash]struct{})
@@ -246,7 +245,7 @@ func (q *queue) resultSlots(pendPool map[string]*fetchRequest, donePool map[comm
 
 // ScheduleSkeleton adds a batch of header retrieval tasks to the queue to fill
 // up an already retrieved header skeleton.
-func (q *queue) ScheduleSkeleton(from uint64, skeleton []*tx_types.SequencerHeader) {
+func (q *queue) ScheduleSkeleton(from uint64, skeleton []*protocol_message.SequencerHeader) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -255,10 +254,10 @@ func (q *queue) ScheduleSkeleton(from uint64, skeleton []*tx_types.SequencerHead
 		panic("skeleton assembly already in progress")
 	}
 	// Schedule all the header retrieval tasks for the skeleton assembly
-	q.headerTaskPool = make(map[uint64]*tx_types.SequencerHeader)
+	q.headerTaskPool = make(map[uint64]*protocol_message.SequencerHeader)
 	q.headerTaskQueue = prque.New()
 	q.headerPeerMiss = make(map[string]map[uint64]struct{}) // Reset availability to correct invalid chains
-	q.headerResults = make([]*tx_types.SequencerHeader, len(skeleton)*MaxHeaderFetch)
+	q.headerResults = make([]*protocol_message.SequencerHeader, len(skeleton)*MaxHeaderFetch)
 	q.headerProced = 0
 	q.headerOffset = from
 	q.headerContCh = make(chan bool, 1)
@@ -273,7 +272,7 @@ func (q *queue) ScheduleSkeleton(from uint64, skeleton []*tx_types.SequencerHead
 
 // RetrieveHeaders retrieves the header chain assemble based on the scheduled
 // skeleton.
-func (q *queue) RetrieveHeaders() ([]*tx_types.SequencerHeader, int) {
+func (q *queue) RetrieveHeaders() ([]*protocol_message.SequencerHeader, int) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -285,12 +284,12 @@ func (q *queue) RetrieveHeaders() ([]*tx_types.SequencerHeader, int) {
 
 // Schedule adds a set of headers for the download queue for scheduling, returning
 // the new headers encountered.
-func (q *queue) Schedule(headers []*tx_types.SequencerHeader, from uint64) []*tx_types.SequencerHeader {
+func (q *queue) Schedule(headers []*protocol_message.SequencerHeader, from uint64) []*protocol_message.SequencerHeader {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	// Insert all the headers prioritised by the contained block number
-	inserts := make([]*tx_types.SequencerHeader, 0, len(headers))
+	inserts := make([]*protocol_message.SequencerHeader, 0, len(headers))
 	for _, header := range headers {
 		// Make sure chain order is honoured and preserved throughout
 		hash := header.GetHash()
@@ -429,7 +428,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 // previously failed downloads. Beside the next batch of needed fetches, it also
 // returns a flag whether empty blocks were queued requiring processing.
 func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
-	isNoop := func(header *tx_types.SequencerHeader) bool {
+	isNoop := func(header *protocol_message.SequencerHeader) bool {
 		hash := header.GetHash()
 		return hash.Empty()
 	}
@@ -446,8 +445,8 @@ func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool
 // Note, this method expects the queue lock to be already held for writing. The
 // reason the lock is not obtained in here is because the parameters already need
 // to access the queue, so they already need a lock anyway.
-func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*tx_types.SequencerHeader, taskQueue *prque.Prque,
-	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, isNoop func(*tx_types.SequencerHeader) bool) (*fetchRequest, bool, error) {
+func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*protocol_message.SequencerHeader, taskQueue *prque.Prque,
+	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, isNoop func(*protocol_message.SequencerHeader) bool) (*fetchRequest, bool, error) {
 	// Short circuit if the pool has been depleted, or if the peer's already
 	// downloading something (sanity check not to corrupt state)
 	if taskQueue.Empty() {
@@ -460,12 +459,12 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 	space := q.resultSlots(pendPool, donePool)
 
 	// Retrieve a batch of tasks, skipping previously failed ones
-	send := make([]*tx_types.SequencerHeader, 0, count)
-	skip := make([]*tx_types.SequencerHeader, 0)
+	send := make([]*protocol_message.SequencerHeader, 0, count)
+	skip := make([]*protocol_message.SequencerHeader, 0)
 
 	progress := false
 	for proc := 0; proc < space && len(send) < count && !taskQueue.Empty(); proc++ {
-		header := taskQueue.PopItem().(*tx_types.SequencerHeader)
+		header := taskQueue.PopItem().(*protocol_message.SequencerHeader)
 		hash := header.GetHash()
 
 		// If we're the first to request this task, initialise the result container
@@ -637,7 +636,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 // If the headers are accepted, the method makes an attempt to deliver the set
 // of ready headers to the processor to keep the pipeline full. However it will
 // not block to prevent stalling other pending deliveries.
-func (q *queue) DeliverHeaders(id string, headers []*tx_types.SequencerHeader, headerProcCh chan []*tx_types.SequencerHeader) (int, error) {
+func (q *queue) DeliverHeaders(id string, headers []*protocol_message.SequencerHeader, headerProcCh chan []*protocol_message.SequencerHeader) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -703,7 +702,7 @@ func (q *queue) DeliverHeaders(id string, headers []*tx_types.SequencerHeader, h
 	}
 	if ready > 0 {
 		// Headers are ready for delivery, gather them and push forward (non blocking)
-		process := make([]*tx_types.SequencerHeader, ready)
+		process := make([]*protocol_message.SequencerHeader, ready)
 		copy(process, q.headerResults[q.headerProced:q.headerProced+ready])
 
 		select {
@@ -724,11 +723,11 @@ func (q *queue) DeliverHeaders(id string, headers []*tx_types.SequencerHeader, h
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists []types.Txis, sequencers []*tx_types.Sequencer) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists []protocol_message.Txis, sequencers []*protocol_message.Sequencer) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	reconstruct := func(header *tx_types.SequencerHeader, index int, result *fetchResult) error {
+	reconstruct := func(header *protocol_message.SequencerHeader, index int, result *fetchResult) error {
 		seqHeader := sequencers[index].GetHead()
 		if !header.Equal(seqHeader) {
 			log.WithField(" requested header", header.StringFull()).WithField("response seq", seqHeader.StringFull()).Warn(
@@ -747,9 +746,9 @@ func (q *queue) DeliverBodies(id string, txLists []types.Txis, sequencers []*tx_
 // Note, this method expects the queue lock to be already held for writing. The
 // reason the lock is not obtained in here is because the parameters already need
 // to access the queue, so they already need a lock anyway.
-func (q *queue) deliver(id string, taskPool map[common.Hash]*tx_types.SequencerHeader, taskQueue *prque.Prque,
+func (q *queue) deliver(id string, taskPool map[common.Hash]*protocol_message.SequencerHeader, taskQueue *prque.Prque,
 	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, reqTimer metrics.Timer,
-	results int, reconstruct func(header *tx_types.SequencerHeader, index int, result *fetchResult) error) (int, error) {
+	results int, reconstruct func(header *protocol_message.SequencerHeader, index int, result *fetchResult) error) (int, error) {
 
 	// Short circuit if the data was never requested
 	request := pendPool[id]

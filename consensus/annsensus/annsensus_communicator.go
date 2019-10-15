@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/communicator"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -55,13 +56,13 @@ func (r *AnnsensusCommunicator) Run() {
 // As part of Annsensus, bft,dkg and term may not be regarded as a separate component of OG.
 // Annsensus itself is also a plugin of OG supporting consensus messages.
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
-func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg msg.TransportableMessage) {
-	switch msg.GetType() {
-	case msg.MessageTypeSigned:
+func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
+	switch annsensusMessage.GetType() {
+	case protocol_message.MessageTypeSigned:
 		fallthrough
-	case msg.MessageTypePlain:
+	case protocol_message.MessageTypePlain:
 		// let bft and dkg handle this message since I don't know the content
-		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(msg)
+		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(annsensusMessage)
 		if err == nil {
 			// send to bft
 			msgTerm, err := ap.termHolder.GetTermCollection(bmsg)
@@ -73,7 +74,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(msg msg.TransportableMes
 			return
 		}
 
-		dmsg, err := ap.dkgMessageAdapter.AdaptOgMessage(msg)
+		dmsg, err := ap.dkgMessageAdapter.AdaptOgMessage(annsensusMessage)
 		if err == nil {
 			// send to dkg
 			msgTerm, err := ap.termHolder.GetTermCollection(dmsg)

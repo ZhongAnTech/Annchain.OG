@@ -16,13 +16,13 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/types/token"
-	"github.com/annchain/OG/types/tx_types"
-
-	"github.com/annchain/OG/common"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,7 +32,6 @@ import (
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/performance"
-	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,7 +42,7 @@ type RpcController struct {
 	TxCreator          *txmaker.OGTxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor
-	NewRequestChan     chan types.TxBaseType
+	NewRequestChan     chan protocol_message.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
 	FormatVerifier     *verifier.TxFormatVerifier
 }
@@ -95,22 +94,22 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		return
 	}
 	switch tx := txi.(type) {
-	case *tx_types.Tx:
+	case *protocol_message.Tx:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *tx_types.Archive:
+	case *archive.Archive:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *tx_types.Campaign:
+	case *protocol_message.Campaign:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *tx_types.TermChange:
+	case *protocol_message.TermChange:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *tx_types.ActionTx:
+	case *protocol_message.ActionTx:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	}
@@ -167,8 +166,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
-			Total int        `json:"total"`
-			Txs   types.Txis `json:"txs"`
+			Total int                   `json:"total"`
+			Txs   protocol_message.Txis `json:"txs"`
 		}
 		txsResponse.Total = len(txs)
 		txsResponse.Txs = txs
@@ -182,8 +181,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxsByAddress(addr)
 		var txsResponse struct {
-			Total int         `json:"total"`
-			Txs   []types.Txi `json:"txs"`
+			Total int                    `json:"total"`
+			Txs   []protocol_message.Txi `json:"txs"`
 		}
 		if len(txs) != 0 {
 			txsResponse.Total = len(txs)
@@ -210,7 +209,7 @@ func (r *RpcController) Genesis(c *gin.Context) {
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
-	var sq *tx_types.Sequencer
+	var sq *protocol_message.Sequencer
 	hashtr := c.Query("hash")
 	seqId := c.Query("seq_id")
 	if seqId == "" {
@@ -255,7 +254,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 		switch t := txi.(type) {
-		case *tx_types.Sequencer:
+		case *protocol_message.Sequencer:
 			Response(c, http.StatusOK, nil, t)
 			return
 		default:

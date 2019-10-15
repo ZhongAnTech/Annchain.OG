@@ -18,8 +18,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -101,10 +101,10 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived        map[channelName]chan types.Txi   // for notifications of new txs.
-	OnConsensusTXConfirmed []chan map[common.Hash]types.Txi // for notifications of  consensus tx confirmation.
-	OnBatchConfirmed       []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
+	onNewTxReceived        map[channelName]chan protocol_message.Txi   // for notifications of new txs.
+	OnConsensusTXConfirmed []chan map[common.Hash]protocol_message.Txi // for notifications of  consensus tx confirmation.
+	OnBatchConfirmed       []chan map[common.Hash]protocol_message.Txi // for notifications of confirmation.
+	OnNewLatestSequencer   []chan bool                                 //for broadcasting new latest sequencer to record height
 	txNum                  uint32
 	maxWeight              uint64
 	confirmStatus          *ConfirmStatus
@@ -138,9 +138,9 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 		flows:                  NewAccountFlows(),
 		txLookup:               newTxLookUp(),
 		close:                  make(chan struct{}),
-		onNewTxReceived:        make(map[channelName]chan types.Txi),
-		OnBatchConfirmed:       []chan map[common.Hash]types.Txi{},
-		OnConsensusTXConfirmed: []chan map[common.Hash]types.Txi{},
+		onNewTxReceived:        make(map[channelName]chan protocol_message.Txi),
+		OnBatchConfirmed:       []chan map[common.Hash]protocol_message.Txi{},
+		OnConsensusTXConfirmed: []chan map[common.Hash]protocol_message.Txi{},
 		confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
 
@@ -180,7 +180,7 @@ type txEvent struct {
 	callbackChan chan error
 }
 type txEnvelope struct {
-	tx         types.Txi
+	tx         protocol_message.Txi
 	txType     TxType
 	status     TxStatus
 	noFeedBack bool
@@ -200,7 +200,7 @@ func (pool *TxPool) Stop() {
 	log.Infof("TxPool Stopped")
 }
 
-func (pool *TxPool) Init(genesis *tx_types.Sequencer) {
+func (pool *TxPool) Init(genesis *protocol_message.Sequencer) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -232,7 +232,7 @@ func (pool *TxPool) poolStatus() (int, int, int) {
 
 // Get get a transaction or sequencer according to input hash,
 // if tx not exists return nil
-func (pool *TxPool) Get(hash common.Hash) types.Txi {
+func (pool *TxPool) Get(hash common.Hash) protocol_message.Txi {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
@@ -247,7 +247,7 @@ func (pool *TxPool) GetMaxWeight() uint64 {
 	return atomic.LoadUint64(&pool.maxWeight)
 }
 
-func (pool *TxPool) get(hash common.Hash) types.Txi {
+func (pool *TxPool) get(hash common.Hash) protocol_message.Txi {
 	return pool.txLookup.Get(hash)
 }
 
@@ -279,13 +279,13 @@ func (pool *TxPool) getHashOrder() common.Hashes {
 }
 
 // GetByNonce get a tx or sequencer from account flows by sender's address and tx's nonce.
-func (pool *TxPool) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (pool *TxPool) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
 	return pool.getByNonce(addr, nonce)
 }
-func (pool *TxPool) getByNonce(addr common.Address, nonce uint64) types.Txi {
+func (pool *TxPool) getByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	return pool.flows.GetTxByNonce(addr, nonce)
 }
 
@@ -318,14 +318,14 @@ func (c channelName) String() string {
 	return c.name
 }
 
-func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, allTx bool) {
+func (pool *TxPool) RegisterOnNewTxReceived(c chan protocol_message.Txi, chanName string, allTx bool) {
 	log.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
 	chName := channelName{chanName, allTx}
 	pool.onNewTxReceived[chName] = c
 }
 
 // GetRandomTips returns n tips randomly.
-func (pool *TxPool) GetRandomTips(n int) (v []types.Txi) {
+func (pool *TxPool) GetRandomTips(n int) (v []protocol_message.Txi) {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
@@ -359,7 +359,7 @@ func generateRandomIndices(count int, upper int) []int {
 }
 
 // GetAllTips returns all the tips in TxPool.
-func (pool *TxPool) GetAllTips() map[common.Hash]types.Txi {
+func (pool *TxPool) GetAllTips() map[common.Hash]protocol_message.Txi {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
@@ -368,14 +368,14 @@ func (pool *TxPool) GetAllTips() map[common.Hash]types.Txi {
 
 // AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
 // AddLocalTx only process tx that sent by local node.
-func (pool *TxPool) AddLocalTx(tx types.Txi, noFeedBack bool) error {
+func (pool *TxPool) AddLocalTx(tx protocol_message.Txi, noFeedBack bool) error {
 	return pool.addTx(tx, TxTypeLocal, noFeedBack)
 }
 
 // AddLocalTxs adds a list of txs to txpool if they are valid. It returns
 // the process result of each tx with an error list. AddLocalTxs only process
 // txs that sent by local node.
-func (pool *TxPool) AddLocalTxs(txs []types.Txi, noFeedBack bool) []error {
+func (pool *TxPool) AddLocalTxs(txs []protocol_message.Txi, noFeedBack bool) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
 		result = append(result, pool.addTx(tx, TxTypeLocal, noFeedBack))
@@ -386,12 +386,12 @@ func (pool *TxPool) AddLocalTxs(txs []types.Txi, noFeedBack bool) []error {
 // AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
 // sent by remote nodes, and will hold extra functions to prevent from ddos
 // (large amount of invalid tx sent from one node in a short time) attack.
-func (pool *TxPool) AddRemoteTx(tx types.Txi, noFeedBack bool) error {
+func (pool *TxPool) AddRemoteTx(tx protocol_message.Txi, noFeedBack bool) error {
 	return pool.addTx(tx, TxTypeRemote, noFeedBack)
 }
 
 // AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
-func (pool *TxPool) AddRemoteTxs(txs []types.Txi, noFeedBack bool) []error {
+func (pool *TxPool) AddRemoteTxs(txs []protocol_message.Txi, noFeedBack bool) []error {
 	result := make([]error, len(txs))
 	for _, tx := range txs {
 		result = append(result, pool.addTx(tx, TxTypeRemote, noFeedBack))
@@ -401,14 +401,14 @@ func (pool *TxPool) AddRemoteTxs(txs []types.Txi, noFeedBack bool) []error {
 
 // Remove totally removes a tx from pool, it checks badtxs, tips,
 // pendings and txlookup.
-func (pool *TxPool) Remove(tx types.Txi, removeType hashOrderRemoveType) {
+func (pool *TxPool) Remove(tx protocol_message.Txi, removeType hashOrderRemoveType) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	pool.remove(tx, removeType)
 }
 
-func (pool *TxPool) remove(tx types.Txi, removeType hashOrderRemoveType) {
+func (pool *TxPool) remove(tx protocol_message.Txi, removeType hashOrderRemoveType) {
 	status := pool.getStatus(tx.GetTxHash())
 	if status == TxStatusBadTx {
 		pool.badtxs.Remove(tx.GetTxHash())
@@ -471,7 +471,7 @@ func (pool *TxPool) loop() {
 			pool.mu.Lock()
 			pool.txLookup.Add(txEvent.txEnv)
 			switch tx := tx.(type) {
-			case *tx_types.Sequencer:
+			case *protocol_message.Sequencer:
 				err = pool.confirm(tx)
 				if err != nil {
 					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
@@ -506,7 +506,7 @@ func (pool *TxPool) loop() {
 }
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
-func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
+func (pool *TxPool) addTx(tx protocol_message.Txi, senderType TxType, noFeedBack bool) error {
 	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.Parents().String())
 
 	te := &txEvent{
@@ -519,7 +519,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		},
 	}
 
-	if normalTx, ok := tx.(*tx_types.Tx); ok {
+	if normalTx, ok := tx.(*protocol_message.Tx); ok {
 		normalTx.Setconfirm()
 		pool.confirmStatus.AddTxNum()
 	}
@@ -548,7 +548,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 // commit commits tx to tips pool. commit() checks if this tx is bad tx and moves
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in pending.
-func (pool *TxPool) commit(tx types.Txi) error {
+func (pool *TxPool) commit(tx protocol_message.Txi) error {
 	log.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
@@ -581,7 +581,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 			continue
 		}
 		// remove sequencer from pool
-		if parent.GetType() == types.TxBaseTypeSequencer {
+		if parent.GetType() == protocol_message.TxBaseTypeSequencer {
 			pool.tips.Remove(pHash)
 			pool.txLookup.Remove(pHash, removeFromFront)
 			continue
@@ -591,14 +591,14 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
-	if tx.GetType() != types.TxBaseTypeArchive {
+	if tx.GetType() != protocol_message.TxBaseTypeArchive {
 		// add tx to pool
 		if pool.flows.Get(tx.Sender()) == nil {
 			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
 		}
 	}
-	if tx.GetType() == types.TxBaseTypeNormal {
-		txn := tx.(*tx_types.Tx)
+	if tx.GetType() == protocol_message.TxBaseTypeNormal {
+		txn := tx.(*protocol_message.Tx)
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
 	}
 	pool.flows.Add(tx)
@@ -612,7 +612,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	return nil
 }
 
-func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
+func (pool *TxPool) isBadTx(tx protocol_message.Txi) TxQuality {
 	// check if the tx's parents exists and if is badtx
 	for _, parentHash := range tx.Parents() {
 		// check if tx in pool
@@ -630,7 +630,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 	}
 
-	if tx.GetType() == types.TxBaseTypeArchive {
+	if tx.GetType() == protocol_message.TxBaseTypeArchive {
 		return TxQualityIsGood
 	}
 
@@ -673,7 +673,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	}
 
 	switch tx := tx.(type) {
-	case *tx_types.Tx:
+	case *protocol_message.Tx:
 		// check if the tx itself has no conflicts with local ledger
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
@@ -695,13 +695,13 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
-	case *tx_types.ActionTx:
-		if tx.Action == tx_types.ActionTxActionIPO {
+	case *protocol_message.ActionTx:
+		if tx.Action == protocol_message.ActionTxActionIPO {
 			//actionData := tx.ActionData.(*tx_types.PublicOffering)
 			//actionData.TokenId = pool.dag.GetLatestTokenId()
 		}
-		if tx.Action == tx_types.ActionTxActionSPO {
-			actionData := tx.ActionData.(*tx_types.PublicOffering)
+		if tx.Action == protocol_message.ActionTxActionSPO {
+			actionData := tx.ActionData.(*protocol_message.PublicOffering)
 			if actionData.TokenId == 0 {
 				log.WithField("tx ", tx).Warn("og token is disabled for publishing")
 				return TxQualityIsFatal
@@ -724,8 +724,8 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 		}
-		if tx.Action == tx_types.ActionTxActionDestroy {
-			actionData := tx.ActionData.(*tx_types.PublicOffering)
+		if tx.Action == protocol_message.ActionTxActionDestroy {
+			actionData := tx.ActionData.(*protocol_message.PublicOffering)
 			if actionData.TokenId == 0 {
 				log.WithField("tx ", tx).Warn("og token is disabled for withdraw")
 				return TxQualityIsFatal
@@ -744,9 +744,9 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 		}
-	case *tx_types.Campaign:
+	case *protocol_message.Campaign:
 		// TODO
-	case *tx_types.TermChange:
+	case *protocol_message.TermChange:
 		// TODO
 	default:
 		// TODO
@@ -758,7 +758,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 // PreConfirm simulates the confirm process of a sequencer and store the related data
 // into pool.cached. Once a real sequencer with same hash comes, reload cached data without
 // any more calculates.
-func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
+func (pool *TxPool) PreConfirm(seq *protocol_message.Sequencer) (hash common.Hash, err error) {
 	//TODO , exists a panic bug in statedb commit , fix later
 	//and recover this later
 	err = pool.IsBadSeq(seq)
@@ -787,12 +787,12 @@ func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err e
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
-func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
+func (pool *TxPool) confirm(seq *protocol_message.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
 
 	var err error
 	var batch *ConfirmBatch
-	var elders map[common.Hash]types.Txi
+	var elders map[common.Hash]protocol_message.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
 		batch = &ConfirmBatch{
 			Seq: seq,
@@ -815,7 +815,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	}
 
 	for _, tx := range batch.Txs {
-		if normalTx, ok := tx.(*tx_types.Tx); ok {
+		if normalTx, ok := tx.(*protocol_message.Tx); ok {
 			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
 		}
 	}
@@ -849,7 +849,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *protocol_message.Sequencer) (map[common.Hash]protocol_message.Txi, *ConfirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -870,7 +870,7 @@ func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]type
 }
 
 // isBadSeq checks if a sequencer is correct.
-func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
+func (pool *TxPool) isBadSeq(seq *protocol_message.Sequencer) error {
 	// check if the nonce is duplicate
 	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
 	if seqindag != nil {
@@ -882,7 +882,7 @@ func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
+func (pool *TxPool) IsBadSeq(seq *protocol_message.Sequencer) error {
 	// check if the nonce is duplicate
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
@@ -891,8 +891,8 @@ func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 }
 
 // seekElders finds all the unconfirmed elders of baseTx.
-func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, error) {
-	batch := make(map[common.Hash]types.Txi)
+func (pool *TxPool) seekElders(baseTx protocol_message.Txi) (map[common.Hash]protocol_message.Txi, error) {
+	batch := make(map[common.Hash]protocol_message.Txi)
 
 	inSeekingPool := map[common.Hash]int{}
 	seekingPool := common.Hashes{}
@@ -926,22 +926,22 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*ConfirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *protocol_message.Sequencer, elders map[common.Hash]protocol_message.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
-	cTxs := types.Txis{}
+	cTxs := protocol_message.Txis{}
 	batch := map[common.Address]*BatchDetail{}
 	for _, txi := range elders {
-		if txi.GetType() != types.TxBaseTypeSequencer {
+		if txi.GetType() != protocol_message.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
 		}
 
-		if txi.GetType() == types.TxBaseTypeArchive {
+		if txi.GetType() == protocol_message.TxBaseTypeArchive {
 			continue
 		}
 
-		if txi.GetType() == types.TxBaseTypeNormal {
+		if txi.GetType() == protocol_message.TxBaseTypeNormal {
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
@@ -951,10 +951,10 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		}
 
 		switch tx := txi.(type) {
-		case *tx_types.Sequencer:
+		case *protocol_message.Sequencer:
 			break
 
-		case *tx_types.Tx:
+		case *protocol_message.Tx:
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
@@ -1018,7 +1018,7 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
 
-	txsInPool := []types.Txi{}
+	txsInPool := []protocol_message.Txi{}
 	// remove elders from pool
 	for _, tx := range batch.Txs {
 		elderHash := tx.GetTxHash()
@@ -1034,7 +1034,7 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 		// sequencer is removed from txpool later when calling
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
-		if tx.GetType() == types.TxBaseTypeSequencer {
+		if tx.GetType() == protocol_message.TxBaseTypeSequencer {
 			continue
 		}
 		txsInPool = append(txsInPool, tx)
@@ -1058,7 +1058,7 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *tx_types.Sequencer) error {
+func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *protocol_message.Sequencer) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
@@ -1110,13 +1110,13 @@ func (bd *BatchDetail) AddNeg(tokenID int32, amount *math.BigInt) {
 
 type cachedConfirm struct {
 	seqHash common.Hash
-	seq     *tx_types.Sequencer
+	seq     *protocol_message.Sequencer
 	root    common.Hash
-	txs     types.Txis
-	elders  map[common.Hash]types.Txi
+	txs     protocol_message.Txis
+	elders  map[common.Hash]protocol_message.Txi
 }
 
-func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
+func newCachedConfirm(seq *protocol_message.Sequencer, root common.Hash, txs protocol_message.Txis, elders map[common.Hash]protocol_message.Txi) *cachedConfirm {
 	return &cachedConfirm{
 		seqHash: seq.GetTxHash(),
 		seq:     seq,
@@ -1126,20 +1126,20 @@ func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis,
 	}
 }
 
-func (c *cachedConfirm) SeqHash() common.Hash              { return c.seqHash }
-func (c *cachedConfirm) Seq() *tx_types.Sequencer          { return c.seq }
-func (c *cachedConfirm) Root() common.Hash                 { return c.root }
-func (c *cachedConfirm) Txs() types.Txis                   { return c.txs }
-func (c *cachedConfirm) Elders() map[common.Hash]types.Txi { return c.elders }
+func (c *cachedConfirm) SeqHash() common.Hash                         { return c.seqHash }
+func (c *cachedConfirm) Seq() *protocol_message.Sequencer             { return c.seq }
+func (c *cachedConfirm) Root() common.Hash                            { return c.root }
+func (c *cachedConfirm) Txs() protocol_message.Txis                   { return c.txs }
+func (c *cachedConfirm) Elders() map[common.Hash]protocol_message.Txi { return c.elders }
 
 type TxMap struct {
-	txs map[common.Hash]types.Txi
+	txs map[common.Hash]protocol_message.Txi
 	mu  sync.RWMutex
 }
 
 func NewTxMap() *TxMap {
 	tm := &TxMap{
-		txs: make(map[common.Hash]types.Txi),
+		txs: make(map[common.Hash]protocol_message.Txi),
 	}
 	return tm
 }
@@ -1151,7 +1151,7 @@ func (tm *TxMap) Count() int {
 	return len(tm.txs)
 }
 
-func (tm *TxMap) Get(hash common.Hash) types.Txi {
+func (tm *TxMap) Get(hash common.Hash) protocol_message.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
@@ -1170,11 +1170,11 @@ func (tm *TxMap) GetAllKeys() common.Hashes {
 	return keys
 }
 
-func (tm *TxMap) GetAllValues() []types.Txi {
+func (tm *TxMap) GetAllValues() []protocol_message.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	var values []types.Txi
+	var values []protocol_message.Txi
 	// slice of keys
 	for _, v := range tm.txs {
 		values = append(values, v)
@@ -1182,7 +1182,7 @@ func (tm *TxMap) GetAllValues() []types.Txi {
 	return values
 }
 
-func (tm *TxMap) Exists(tx types.Txi) bool {
+func (tm *TxMap) Exists(tx protocol_message.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
@@ -1197,7 +1197,7 @@ func (tm *TxMap) Remove(hash common.Hash) {
 
 	delete(tm.txs, hash)
 }
-func (tm *TxMap) Add(tx types.Txi) {
+func (tm *TxMap) Add(tx protocol_message.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -1220,13 +1220,13 @@ func newTxLookUp() *txLookUp {
 }
 
 // Get tx from txLookUp by hash
-func (t *txLookUp) Get(h common.Hash) types.Txi {
+func (t *txLookUp) Get(h common.Hash) protocol_message.Txi {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.get(h)
 }
-func (t *txLookUp) get(h common.Hash) types.Txi {
+func (t *txLookUp) get(h common.Hash) protocol_message.Txi {
 	if txEnv := t.txs[h]; txEnv != nil {
 		return txEnv.tx
 	}

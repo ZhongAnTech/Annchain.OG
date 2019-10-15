@@ -17,9 +17,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/rpc"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
 	"time"
 )
 
@@ -31,9 +30,9 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 	pub, priv := crypto.Signer.RandomKeyPair()
 	for i := 1; i < N; i++ {
 		from := pub.Address()
-		tx := tx_types.Tx{
-			TxBase: types.TxBase{
-				Type:         types.TxBaseTypeNormal,
+		tx := protocol_message.Tx{
+			TxBase: protocol_message.TxBase{
+				Type:         protocol_message.TxBaseTypeNormal,
 				AccountNonce: uint64(i),
 				PublicKey:    pub.Bytes[:],
 			},

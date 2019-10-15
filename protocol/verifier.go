@@ -1,12 +1,14 @@
 package protocol
 
-import "github.com/annchain/OG/types"
+import (
+	"github.com/annchain/OG/og/protocol_message"
+)
 
 // Verifier defines interface to validate a tx.
 // There may be lots of rules for a tx to be valid across the project
 // such as Consensus(Annsensus), Graph structure(DAG), Tx format(mining), etc
 type Verifier interface {
-	Verify(t types.Txi) bool
+	Verify(t protocol_message.Txi) bool
 	Name() string
 	String() string
 	Independent() bool

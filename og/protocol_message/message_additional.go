@@ -2,10 +2,9 @@ package protocol_message
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
 )
 
-func (m *MessageSyncResponse) Txis() types.Txis {
+func (m *MessageSyncResponse) Txis() Txis {
 	return m.RawTxs.Txis()
 }
 
@@ -55,7 +54,7 @@ func (m *MessageNewSequencer) String() string {
 	return m.RawSequencer.String()
 }
 
-func (m *MessageNewTxs) Txis() types.Txis {
+func (m *MessageNewTxs) Txis() Txis {
 	if m == nil {
 		return nil
 	}

@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"math/rand"
 	"sync"
 	"time"
@@ -54,7 +54,7 @@ type AutoClient struct {
 
 	Delegate *node.Delegate
 
-	ManualChan chan types.TxBaseType
+	ManualChan chan protocol_message.TxBaseType
 	quit       chan bool
 
 	pause bool
@@ -64,7 +64,7 @@ type AutoClient struct {
 	nonceLock      sync.RWMutex
 	txLock         sync.RWMutex
 	archiveLock    sync.RWMutex
-	NewRawTx       chan types.Txi
+	NewRawTx       chan protocol_message.Txi
 	TpsTest        bool
 	TpsTestInit    bool
 	TestInsertPool bool
@@ -76,8 +76,8 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
-	c.ManualChan = make(chan types.TxBaseType)
-	c.NewRawTx = make(chan types.Txi)
+	c.ManualChan = make(chan protocol_message.TxBaseType)
+	c.NewRawTx = make(chan protocol_message.Txi)
 }
 
 func (c *AutoClient) SetTxIntervalUs(i int) {
@@ -112,11 +112,11 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
-func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool) {
+func (c *AutoClient) fireManualTx(txType protocol_message.TxBaseType, force bool) {
 	switch txType {
-	case types.TxBaseTypeNormal:
+	case protocol_message.TxBaseTypeNormal:
 		c.doSampleTx(force)
-	case types.TxBaseTypeSequencer:
+	case protocol_message.TxBaseTypeSequencer:
 		c.doSampleSequencer(force)
 	default:
 		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
@@ -349,7 +349,7 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else if !c.TestSeal {
-			node.ReceivedNewTxsChan <- types.Txis{seq}
+			node.ReceivedNewTxsChan <- protocol_message.Txis{seq}
 			//c.Delegate.Announce(seq)
 		}
 	}
@@ -387,7 +387,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated tx")
-	tx.SetVerified(types.VerifiedFormat)
+	tx.SetVerified(protocol_message.VerifiedFormat)
 	node.Announce(tx)
 	return true
 }
@@ -427,18 +427,18 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	return true
 }
 
-func (c *AutoClient) doRawTx(txi types.Txi) bool {
+func (c *AutoClient) doRawTx(txi protocol_message.Txi) bool {
 	if !c.CampainEnable {
 		return false
 	}
 	me := c.MyAccount
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
-	if txi.GetType() == types.TxBaseTypeCampaign {
-		cp := txi.(*tx_types.Campaign)
+	if txi.GetType() == protocol_message.TxBaseTypeCampaign {
+		cp := txi.(*protocol_message.Campaign)
 		cp.Issuer = &me.Address
-	} else if txi.GetType() == types.TxBaseTypeTermChange {
-		cp := txi.(*tx_types.TermChange)
+	} else if txi.GetType() == protocol_message.TxBaseTypeTermChange {
+		cp := txi.(*protocol_message.TermChange)
 		cp.Issuer = &me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)
@@ -450,7 +450,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated txi")
-	txi.SetVerified(types.VerifiedFormat)
+	txi.SetVerified(protocol_message.VerifiedFormat)
 	node.Announce(txi)
 	return true
 }
@@ -473,7 +473,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
-	seq.SetVerified(types.VerifiedFormat)
+	seq.SetVerified(protocol_message.VerifiedFormat)
 	node.Announce(seq)
 	return true
 }

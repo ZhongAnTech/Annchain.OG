@@ -15,8 +15,8 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/protocol"
-	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"sync"
 	"time"
@@ -24,7 +24,6 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 )
@@ -46,30 +45,30 @@ type Syncer interface {
 }
 
 type Announcer interface {
-	BroadcastNewTx(txi types.Txi)
+	BroadcastNewTx(txi protocol_message.Txi)
 }
 
 type ITxPool interface {
-	Get(hash common.Hash) types.Txi
-	AddRemoteTx(tx types.Txi, noFeedBack bool) error
-	RegisterOnNewTxReceived(c chan types.Txi, name string, allTx bool)
+	Get(hash common.Hash) protocol_message.Txi
+	AddRemoteTx(tx protocol_message.Txi, noFeedBack bool) error
+	RegisterOnNewTxReceived(c chan protocol_message.Txi, name string, allTx bool)
 	GetLatestNonce(addr common.Address) (uint64, error)
 	IsLocalHash(hash common.Hash) bool
 	GetMaxWeight() uint64
-	GetByNonce(addr common.Address, nonce uint64) types.Txi
-	IsBadSeq(seq *tx_types.Sequencer) error
+	GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi
+	IsBadSeq(seq *protocol_message.Sequencer) error
 }
 
 type IDag interface {
-	GetTx(hash common.Hash) types.Txi
-	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
-	GetSequencerByHeight(id uint64) *tx_types.Sequencer
-	GetTxisByNumber(id uint64) types.Txis
-	LatestSequencer() *tx_types.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *tx_types.Sequencer
-	Genesis() *tx_types.Sequencer
+	GetTx(hash common.Hash) protocol_message.Txi
+	GetTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi
+	GetSequencerByHeight(id uint64) *protocol_message.Sequencer
+	GetTxisByNumber(id uint64) protocol_message.Txis
+	LatestSequencer() *protocol_message.Sequencer
+	GetSequencer(hash common.Hash, id uint64) *protocol_message.Sequencer
+	Genesis() *protocol_message.Sequencer
 	GetHeight() uint64
-	GetSequencerByHash(hash common.Hash) *tx_types.Sequencer
+	GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(addr common.Address) (uint64, error)
 }
@@ -85,12 +84,12 @@ type TxBuffer struct {
 	txPool                 ITxPool
 	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx
 	affmu                  sync.RWMutex
-	SelfGeneratedNewTxChan chan types.Txi
-	ReceivedNewTxChan      chan types.Txi
-	ReceivedNewTxsChan     chan []types.Txi
+	SelfGeneratedNewTxChan chan protocol_message.Txi
+	ReceivedNewTxChan      chan protocol_message.Txi
+	ReceivedNewTxsChan     chan []protocol_message.Txi
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
-	txAddedToPoolChan      chan types.Txi
+	txAddedToPoolChan      chan protocol_message.Txi
 	OnProposalSeqCh        chan common.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
@@ -198,10 +197,10 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
 		//todo maybe we need big size channels
-		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
-		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
-		ReceivedNewTxsChan:     make(chan []types.Txi, config.NewTxQueueSize),
-		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
+		SelfGeneratedNewTxChan: make(chan protocol_message.Txi, config.NewTxQueueSize),
+		ReceivedNewTxChan:      make(chan protocol_message.Txi, config.NewTxQueueSize),
+		ReceivedNewTxsChan:     make(chan []protocol_message.Txi, config.NewTxQueueSize),
+		txAddedToPoolChan:      make(chan protocol_message.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
@@ -243,7 +242,7 @@ func (b *TxBuffer) loop() {
 }
 
 // niceTx is the logic triggered when tx's ancestors are all fetched to local
-func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
+func (b *TxBuffer) niceTx(tx protocol_message.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
 	b.knownCache.Remove(tx.GetTxHash())
@@ -266,7 +265,7 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 }
 
 // in parallel
-func (b *TxBuffer) handleTx(tx types.Txi) {
+func (b *TxBuffer) handleTx(tx protocol_message.Txi) {
 	logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
@@ -316,7 +315,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	}
 }
 
-func (b *TxBuffer) verify(tx types.Txi, validTxs *types.Txis) {
+func (b *TxBuffer) verify(tx protocol_message.Txi, validTxs *protocol_message.Txis) {
 	if !b.TestNoVerify {
 		for _, verifier := range b.Verifiers {
 			if !verifier.Independent() {
@@ -336,14 +335,14 @@ func (b *TxBuffer) verify(tx types.Txi, validTxs *types.Txis) {
 }
 
 // in parallel
-func (b *TxBuffer) handleTxs(txs types.Txis) {
+func (b *TxBuffer) handleTxs(txs protocol_message.Txis) {
 	logrus.WithField("tx", txs).Debug("buffer is handling txs")
 	start := time.Now()
 	defer func() {
 		logrus.WithField("txs", time.Now().Sub(start)).WithField("txs", txs).Debug("buffer handled txs")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
-	var validTxs types.Txis
+	var validTxs protocol_message.Txis
 	for i := range txs {
 		// already in the dag or tx_pool or buffer itself.
 		tx := txs[i]
@@ -391,15 +390,15 @@ func (b *TxBuffer) handleTxs(txs types.Txis) {
 	}
 }
 
-func (b *TxBuffer) GetFromBuffer(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromBuffer(hash common.Hash) protocol_message.Txi {
 	a, err := b.knownCache.GetIFPresent(hash)
 	if err == nil {
-		return a.(types.Txi)
+		return a.(protocol_message.Txi)
 	}
 	return nil
 }
 
-func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) protocol_message.Txi {
 	if tx := b.GetFromBuffer(hash); tx != nil {
 		return tx
 	} else if tx := b.GetFromProviders(hash); tx != nil {
@@ -408,7 +407,7 @@ func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromProviders(hash common.Hash) protocol_message.Txi {
 	if poolTx := b.txPool.Get(hash); poolTx != nil {
 		return poolTx
 	} else if dagTx := b.dag.GetTx(hash); dagTx != nil {
@@ -420,7 +419,7 @@ func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 
-func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
+func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self protocol_message.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{
 			"parent": parentHash,
@@ -438,25 +437,25 @@ func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 
 	if err != nil {
 		// key not present, need to build an inner map
-		v = map[common.Hash]types.Txi{self.GetBase().Hash: self}
+		v = map[common.Hash]protocol_message.Txi{self.GetBase().Hash: self}
 	}
-	v.(map[common.Hash]types.Txi)[self.GetBase().Hash] = self
+	v.(map[common.Hash]protocol_message.Txi)[self.GetBase().Hash] = self
 	b.dependencyCache.Set(parentHash, v)
 
 	b.affmu.Unlock()
 }
 
-func (b *TxBuffer) addToTxPool(tx types.Txi) error {
+func (b *TxBuffer) addToTxPool(tx protocol_message.Txi) error {
 	//no need to receive added tx by buffer
 	return b.txPool.AddRemoteTx(tx, true)
 }
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
-func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
+func (b *TxBuffer) resolve(tx protocol_message.Txi, firstTime bool) {
 	var proposingSeq bool
-	if tx.GetType() == types.TxBaseTypeSequencer {
-		seq := tx.(*tx_types.Sequencer)
+	if tx.GetType() == protocol_message.TxBaseTypeSequencer {
+		seq := tx.(*protocol_message.Sequencer)
 		if seq.Proposing {
 			function := func() {
 				b.OnProposalSeqCh <- seq.GetTxHash()
@@ -494,7 +493,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		return
 	}
 	// try resolve the remainings
-	for _, v := range vs.(map[common.Hash]types.Txi) {
+	for _, v := range vs.(map[common.Hash]protocol_message.Txi) {
 		if v.GetTxHash() == tx.GetTxHash() {
 			// self already resolved
 			continue
@@ -556,7 +555,7 @@ func (b *TxBuffer) IsReceivedHash(hash common.Hash) bool {
 // tryResolve triggered when a Tx is added or resolved by other Tx
 // It will check if the given Hash has no more dependencies in the cache.
 // If so, resolve this Hash and try resolve its children
-func (b *TxBuffer) tryResolve(tx types.Txi) {
+func (b *TxBuffer) tryResolve(tx protocol_message.Txi) {
 	logrus.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
@@ -575,7 +574,7 @@ func (b *TxBuffer) tryResolve(tx types.Txi) {
 // buildDependencies examines if all ancestors are in our local cache.
 // If not, goto fetch it and record it in the map for future reference
 // Returns true if all ancestors are local now.
-func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
+func (b *TxBuffer) buildDependencies(tx protocol_message.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
 	var sendBloom bool
@@ -610,8 +609,8 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
-		if tx.GetType() == types.TxBaseTypeSequencer {
-			seq := tx.(*tx_types.Sequencer)
+		if tx.GetType() == protocol_message.TxBaseTypeSequencer {
+			seq := tx.(*protocol_message.Sequencer)
 			//b.Syncer.SyncHashList(seq.GetTxHash())
 			//proposing seq
 			//why ??
@@ -628,7 +627,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	return allFetched
 }
 
-func (b *TxBuffer) getMissingHashes(txi types.Txi) common.Hashes {
+func (b *TxBuffer) getMissingHashes(txi protocol_message.Txi) common.Hashes {
 	start := time.Now()
 	logrus.WithField("tx", txi).Trace("missing hashes start")
 	defer func() {
@@ -692,7 +691,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			if err == nil {
 				//if len(children) != 0 {
 				b.dependencyCache.Remove(tx.GetTxHash())
-				for _, v := range vs.(map[common.Hash]types.Txi) {
+				for _, v := range vs.(map[common.Hash]protocol_message.Txi) {
 					if v.GetTxHash() == tx.GetTxHash() {
 						//self already resolved
 						continue
@@ -733,7 +732,7 @@ func (d *TxBuffer) Dump() string {
 	for k, v := range vs {
 		pHash := k.(common.Hash)
 		if v != nil {
-			for hash, txi := range v.(map[common.Hash]types.Txi) {
+			for hash, txi := range v.(map[common.Hash]protocol_message.Txi) {
 				str += " phash " + pHash.String() + " [ " + hash.String() + txi.String() + " p " + txi.Parents().String() + " ]; "
 			}
 		}
@@ -749,7 +748,7 @@ func (d *TxBuffer) DumpKnownCache() string {
 	for _, v := range vs {
 		//pHash := k.(common.Hash)
 		if v != nil {
-			txi := v.(types.Txi)
+			txi := v.(protocol_message.Txi)
 			str += txi.String()
 		}
 	}

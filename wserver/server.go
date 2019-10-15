@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -71,10 +71,10 @@ type Server struct {
 	PushAuth func(r *http.Request) bool
 
 	// To receive new tx events
-	NewTxReceivedChan chan types.Txi
+	NewTxReceivedChan chan protocol_message.Txi
 
 	// to receive confirmation events
-	BatchConfirmedChan chan map[common.Hash]types.Txi
+	BatchConfirmedChan chan map[common.Hash]protocol_message.Txi
 
 	wh     *websocketHandler
 	ph     *pushHandler
@@ -110,8 +110,8 @@ func NewServer(addr string) *Server {
 		Addr:               addr,
 		WSPath:             serverDefaultWSPath,
 		PushPath:           serverDefaultPushPath,
-		NewTxReceivedChan:  make(chan types.Txi, 10000),
-		BatchConfirmedChan: make(chan map[common.Hash]types.Txi, 1000),
+		NewTxReceivedChan:  make(chan protocol_message.Txi, 10000),
+		BatchConfirmedChan: make(chan map[common.Hash]protocol_message.Txi, 1000),
 		quit:               make(chan bool),
 	}
 
@@ -180,7 +180,7 @@ func (s *Server) WatchNewTxs() {
 					}
 				}
 
-				blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
+				blockdbData.Nodes = append(blockdbData.Nodes, protocol_message.TxiSmallCaseMarshal{tx})
 			}
 
 			//if ac,ok := tx.(*tx_types.Archive);ok {
@@ -238,7 +238,7 @@ func (s *Server) publishTxs(uidata *UIData) {
 	logrus.WithField("len ", len(bs)).WithField("nodeCount", len(uidata.Nodes)).Trace("push to ws")
 	s.Push(messageTypeNewUnit, string(bs))
 }
-func (s *Server) publishBatch(elders map[common.Hash]types.Txi) {
+func (s *Server) publishBatch(elders map[common.Hash]protocol_message.Txi) {
 	logrus.WithFields(logrus.Fields{
 		"len": len(elders),
 	}).Trace("push confirmation to ws")

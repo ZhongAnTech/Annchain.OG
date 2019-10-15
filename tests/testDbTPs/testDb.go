@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
@@ -20,7 +21,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 	var batchs []*core.ConfirmBatch
 	for j := 0; j < totalHeight; j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
-		var txis types.Txis
+		var txis protocol_message.Txis
 		for i := 0; i < txnum; i++ {
 			if archive {
 				ar := types.RandomArchive()

@@ -16,9 +16,9 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/deckarep/golang-set"
 	"testing"
 )
@@ -62,7 +62,7 @@ func TestPeer_MarkMessage(t *testing.T) {
 	}
 	var msgs []OGMessage
 	for i := 0; i < 100; i++ {
-		msg := OGMessage{Message: &p2p_message.MessageNewTx{RawTx: tx_types.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
+		msg := OGMessage{Message: &p2p_message.MessageNewTx{RawTx: protocol_message.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
 		msg.Marshal()
 		msg.CalculateHash()
 		msgs = append(msgs, msg)

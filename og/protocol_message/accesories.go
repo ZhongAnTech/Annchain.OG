@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/bloom"
 	"strings"
 )
@@ -102,8 +101,8 @@ type MessageBodyData struct {
 	RawTxs       *TxisMarshaler
 }
 
-func (m *MessageBodyData) ToTxis() types.Txis {
-	var txis types.Txis
+func (m *MessageBodyData) ToTxis() Txis {
+	var txis Txis
 	if m.RawTxs != nil {
 		txs := m.RawTxs.Txis()
 		txis = append(txis, txs...)

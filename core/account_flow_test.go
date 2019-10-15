@@ -14,18 +14,17 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
 	"testing"
-
-	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/types/tx_types"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/core/state"
 )
 
-func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
+func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *protocol_message.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -42,7 +41,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*tx_types.Tx)
+	return tx.(*protocol_message.Tx)
 }
 
 func TestTxList(t *testing.T) {

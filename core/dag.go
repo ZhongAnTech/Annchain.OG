@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types/tx_types"
 	"sort"
 	"time"
 
@@ -61,8 +62,8 @@ type Dag struct {
 	preloadDB *state.PreloadDB
 	statedb   *state.StateDB
 
-	genesis         *tx_types.Sequencer
-	latestSequencer *tx_types.Sequencer
+	genesis         *protocol_message.Sequencer
+	latestSequencer *protocol_message.Sequencer
 
 	txcached *txcached
 
@@ -142,7 +143,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *tx_types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *protocol_message.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -213,7 +214,7 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 }
 
 // Genesis returns the genesis tx of dag
-func (dag *Dag) Genesis() *tx_types.Sequencer {
+func (dag *Dag) Genesis() *protocol_message.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -221,7 +222,7 @@ func (dag *Dag) Genesis() *tx_types.Sequencer {
 }
 
 // LatestSequencer returns the latest sequencer stored in dag
-func (dag *Dag) LatestSequencer() *tx_types.Sequencer {
+func (dag *Dag) LatestSequencer() *protocol_message.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -301,7 +302,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx tx_types.Tx
+		var tx protocol_message.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -310,7 +311,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq tx_types.Sequencer
+		var sq protocol_message.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -319,7 +320,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		return &sq
 	}
 	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp tx_types.Campaign
+		var cp protocol_message.Campaign
 		_, err := cp.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal camp error")
@@ -328,7 +329,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		return &cp
 	}
 	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc tx_types.TermChange
+		var tc protocol_message.TermChange
 		_, err := tc.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal termchg error")
@@ -337,7 +338,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		return &tc
 	}
 	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac tx_types.Archive
+		var ac archive.Archive
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -430,7 +431,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *tx_types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *protocol_message.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -442,7 +443,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *tx_types.Sequen
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq tx_types.Sequencer
+	var seq protocol_message.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
@@ -500,27 +501,27 @@ func (dag *Dag) GetReceipt(hash common.Hash) *Receipt {
 	return dag.accessor.ReadReceipt(seqid, hash)
 }
 
-func (dag *Dag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
+func (dag *Dag) GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		return tx
 	default:
 		return nil
 	}
 }
 
-func (dag *Dag) GetSequencerByHeight(height uint64) *tx_types.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *protocol_message.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerByHeight(height uint64) *tx_types.Sequencer {
+func (dag *Dag) getSequencerByHeight(height uint64) *protocol_message.Sequencer {
 	if height == 0 {
 		return dag.genesis
 	}
@@ -552,13 +553,13 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *tx_types.Sequencer {
+func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *protocol_message.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		if tx.Height != seqHeight {
 			log.Warn("seq height mismatch")
 			return nil
@@ -907,7 +908,7 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
-	dag.latestSequencer = tx_types.RandomSequencer()
+	dag.latestSequencer = protocol_message.RandomSequencer()
 	dag.latestSequencer.Height = cf.SeqHeight
 	return dag.writeConfirmTime(cf)
 }
@@ -980,7 +981,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseAction {
-		actionTx := tx.(*tx_types.ActionTx)
+		actionTx := tx.(*protocol_message.ActionTx)
 		receipt, err := dag.processTokenTransaction(actionTx)
 		if err != nil {
 			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
@@ -994,7 +995,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	// transfer balance
-	txnormal := tx.(*tx_types.Tx)
+	txnormal := tx.(*protocol_message.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
@@ -1059,10 +1060,10 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	return ret, receipt, nil
 }
 
-func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error) {
+func (dag *Dag) processTokenTransaction(tx *protocol_message.ActionTx) (*Receipt, error) {
 
-	actionData := tx.ActionData.(*tx_types.PublicOffering)
-	if tx.Action == tx_types.ActionTxActionIPO {
+	actionData := tx.ActionData.(*protocol_message.PublicOffering)
+	if tx.Action == protocol_message.ActionTxActionIPO {
 		issuer := tx.Sender()
 		name := actionData.TokenName
 		reIssuable := actionData.EnableSPO
@@ -1077,7 +1078,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == tx_types.ActionTxActionSPO {
+	if tx.Action == protocol_message.ActionTxActionSPO {
 		tokenID := actionData.TokenId
 		amount := actionData.Value
 
@@ -1089,7 +1090,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == tx_types.ActionTxActionDestroy {
+	if tx.Action == protocol_message.ActionTxActionDestroy {
 		tokenID := actionData.TokenId
 
 		err := dag.statedb.DestroyToken(tokenID)
@@ -1168,7 +1169,7 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq *tx_types.Sequencer
+	Seq *protocol_message.Sequencer
 	Txs types.Txis
 }
 

@@ -14,10 +14,10 @@
 package syncer
 
 import (
+	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 )
 
 type Announcer struct {
@@ -31,31 +31,31 @@ func NewAnnouncer(messageSender MessageSender) *Announcer {
 }
 
 //BroadcastNewTx brodcast newly created txi message
-func (m *Announcer) BroadcastNewTx(txi types.Txi) {
+func (m *Announcer) BroadcastNewTx(txi protocol_message.Txi) {
 	switch tx := txi.(type) {
-	case *tx_types.Tx:
+	case *protocol_message.Tx:
 		msgTx := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewTx, &msgTx)
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		msgTx := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewSequencer, &msgTx)
-	case *tx_types.Campaign:
+	case *protocol_message.Campaign:
 		msg := p2p_message.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
 		}
 		m.messageSender.BroadcastMessage(message.MessageTypeCampaign, &msg)
-	case *tx_types.TermChange:
+	case *protocol_message.TermChange:
 		msg := p2p_message.MessageTermChange{
 			RawTermChange: tx.RawTermChange(),
 		}
 		m.messageSender.BroadcastMessage(message.MessageTypeTermChange, &msg)
 
-	case *tx_types.Archive:
+	case *archive.Archive:
 		msg := p2p_message.MessageNewArchive{
 			Archive: tx,
 		}
 		m.messageSender.BroadcastMessage(message.MessageTypeArchive, &msg)
-	case *tx_types.ActionTx:
+	case *protocol_message.ActionTx:
 		msg := p2p_message.MessageNewActionTx{
 			ActionTx: tx,
 		}

@@ -4,7 +4,6 @@ package protocol_message
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -895,7 +894,7 @@ func (z *MessageHeaderResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.Headers = nil
 	} else {
 		if z.Headers == nil {
-			z.Headers = new(tx_types.SequencerHeaders)
+			z.Headers = new(SequencerHeaders)
 		}
 		err = z.Headers.DecodeMsg(dc)
 		if err != nil {
@@ -976,7 +975,7 @@ func (z *MessageHeaderResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.Headers = nil
 	} else {
 		if z.Headers == nil {
-			z.Headers = new(tx_types.SequencerHeaders)
+			z.Headers = new(SequencerHeaders)
 		}
 		bts, err = z.Headers.UnmarshalMsg(bts)
 		if err != nil {
@@ -1026,7 +1025,7 @@ func (z *MessageNewActionTx) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.ActionTx = nil
 	} else {
 		if z.ActionTx == nil {
-			z.ActionTx = new(tx_types.ActionTx)
+			z.ActionTx = new(ActionTx)
 		}
 		err = z.ActionTx.DecodeMsg(dc)
 		if err != nil {
@@ -1096,7 +1095,7 @@ func (z *MessageNewActionTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.ActionTx = nil
 	} else {
 		if z.ActionTx == nil {
-			z.ActionTx = new(tx_types.ActionTx)
+			z.ActionTx = new(ActionTx)
 		}
 		bts, err = z.ActionTx.UnmarshalMsg(bts)
 		if err != nil {
@@ -1115,120 +1114,6 @@ func (z *MessageNewActionTx) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += z.ActionTx.Msgsize()
-	}
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
-func (z *MessageNewArchive) DecodeMsg(dc *msgp.Reader) (err error) {
-	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
-		return
-	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			err = msgp.WrapError(err, "Archive")
-			return
-		}
-		z.Archive = nil
-	} else {
-		if z.Archive == nil {
-			z.Archive = new(tx_types.Archive)
-		}
-		err = z.Archive.DecodeMsg(dc)
-		if err != nil {
-			err = msgp.WrapError(err, "Archive")
-			return
-		}
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *MessageNewArchive) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 1
-	err = en.Append(0x91)
-	if err != nil {
-		return
-	}
-	if z.Archive == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.Archive.EncodeMsg(en)
-		if err != nil {
-			err = msgp.WrapError(err, "Archive")
-			return
-		}
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *MessageNewArchive) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 1
-	o = append(o, 0x91)
-	if z.Archive == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.Archive.MarshalMsg(o)
-		if err != nil {
-			err = msgp.WrapError(err, "Archive")
-			return
-		}
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *MessageNewArchive) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
-		return
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.Archive = nil
-	} else {
-		if z.Archive == nil {
-			z.Archive = new(tx_types.Archive)
-		}
-		bts, err = z.Archive.UnmarshalMsg(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Archive")
-			return
-		}
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *MessageNewArchive) Msgsize() (s int) {
-	s = 1
-	if z.Archive == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.Archive.Msgsize()
 	}
 	return
 }
@@ -2626,7 +2511,7 @@ func (z *MessageTermChangeResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.TermChange = nil
 	} else {
 		if z.TermChange == nil {
-			z.TermChange = new(tx_types.TermChange)
+			z.TermChange = new(TermChange)
 		}
 		err = z.TermChange.DecodeMsg(dc)
 		if err != nil {
@@ -2707,7 +2592,7 @@ func (z *MessageTermChangeResponse) UnmarshalMsg(bts []byte) (o []byte, err erro
 		z.TermChange = nil
 	} else {
 		if z.TermChange == nil {
-			z.TermChange = new(tx_types.TermChange)
+			z.TermChange = new(TermChange)
 		}
 		bts, err = z.TermChange.UnmarshalMsg(bts)
 		if err != nil {

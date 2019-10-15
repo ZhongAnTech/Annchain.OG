@@ -15,10 +15,10 @@ package miner
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 )
 
 type Miner interface {
-	StartMine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64)
+	StartMine(tx protocol_message.Txi, targetMax common.Hash, start uint64, responseChan chan uint64)
 	Stop()
 }

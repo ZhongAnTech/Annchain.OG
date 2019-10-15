@@ -1,30 +1,30 @@
 package verifier
 
 import (
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/protocol_message"
 )
 
 //consensus related verification
 type ConsensusVerifier struct {
-	VerifyCampaign   func(cp *tx_types.Campaign) bool
-	VerifyTermChange func(cp *tx_types.TermChange) bool
-	VerifySequencer  func(cp *tx_types.Sequencer) bool
+	VerifyCampaign   func(cp *protocol_message.Campaign) bool
+	VerifyTermChange func(cp *protocol_message.TermChange) bool
+	VerifySequencer  func(cp *protocol_message.Sequencer) bool
 }
 
-func (c *ConsensusVerifier) Verify(t types.Txi) bool {
+func (c *ConsensusVerifier) Verify(t protocol_message.Txi) bool {
 	switch tx := t.(type) {
-	case *tx_types.Tx:
+	case *protocol_message.Tx:
 		return true
-	case *tx_types.Archive:
+	case *archive.Archive:
 		return true
-	case *tx_types.ActionTx:
+	case *protocol_message.ActionTx:
 		return true
-	case *tx_types.Sequencer:
+	case *protocol_message.Sequencer:
 		return c.VerifySequencer(tx)
-	case *tx_types.Campaign:
+	case *protocol_message.Campaign:
 		return c.VerifyCampaign(tx)
-	case *tx_types.TermChange:
+	case *protocol_message.TermChange:
 		return c.VerifyTermChange(tx)
 	default:
 		return false

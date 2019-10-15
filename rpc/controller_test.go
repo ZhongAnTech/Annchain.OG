@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types"
 	"io"
 	"net/http"
@@ -162,7 +163,7 @@ func sendTx(algorithm string) error {
 
 	for nonce := 0; nonce < 10; nonce++ {
 		tx := types.Tx{
-			TxBase: types.TxBase{
+			TxBase: protocol_message.TxBase{
 				AccountNonce: uint64(nonce),
 			},
 			From:  fromAddr,

@@ -16,21 +16,20 @@ package txmaker
 import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol_message"
 	"testing"
 	"time"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/miner"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/p2p_message"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 )
 
 type AllOkVerifier struct{}
 
-func (AllOkVerifier) Verify(t types.Txi) bool {
+func (AllOkVerifier) Verify(t protocol_message.Txi) bool {
 	return true
 }
 
@@ -62,7 +61,7 @@ func Init() *OGTxCreator {
 func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	tx := txc.TipGenerator.GetRandomTips(1)[0].(*tx_types.Tx)
+	tx := txc.TipGenerator.GetRandomTips(1)[0].(*protocol_message.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 
@@ -99,7 +98,7 @@ func TestSequencerCreator(t *testing.T) {
 	time1 := time.Now()
 
 	// for copy
-	randomSeq := tx_types.RandomSequencer()
+	randomSeq := protocol_message.RandomSequencer()
 
 	txSigned := txc.NewSignedSequencer(SignedSequencerBuildRequest{
 		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
@@ -114,11 +113,11 @@ func TestSequencerCreator(t *testing.T) {
 	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
-func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {
+func sampleTxi(selfHash string, parentsHash []string, baseType protocol_message.TxBaseType) protocol_message.Txi {
 
-	tx := &tx_types.Tx{TxBase: types.TxBase{
+	tx := &protocol_message.Tx{TxBase: protocol_message.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        types.TxBaseTypeNormal,
+		Type:        protocol_message.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}
@@ -144,7 +143,7 @@ func TestBuildDag(t *testing.T) {
 
 	_, privateKey := crypto.Signer.RandomKeyPair()
 
-	txs := []types.Txi{
+	txs := []protocol_message.Txi{
 		txc.NewSignedSequencer(SignedSequencerBuildRequest{
 			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
 				Issuer:       common.Address{},
@@ -227,7 +226,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 }
 
 func TestSlice(t *testing.T) {
-	var parents types.Txis
+	var parents protocol_message.Txis
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()

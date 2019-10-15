@@ -5,15 +5,14 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"testing"
 )
 
 func TestMarshal(t *testing.T) {
 	sp := SequencerProposal{
-		tx_types.Sequencer{
-			TxBase: types.TxBase{
+		protocol_message.Sequencer{
+			TxBase: protocol_message.TxBase{
 				Type:         0,
 				Hash:         common.Hash{},
 				ParentsHash:  nil,

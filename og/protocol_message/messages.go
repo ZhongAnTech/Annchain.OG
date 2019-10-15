@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types/general_message"
-	"github.com/annchain/OG/types/tx_types"
 )
 
 // TODO: move to og package
@@ -398,7 +397,7 @@ func (m *MessageSequencerHeader) String() string {
 
 //msgp:tuple MessageHeaderResponse
 type MessageHeaderResponse struct {
-	Headers     *tx_types.SequencerHeaders
+	Headers     *SequencerHeaders
 	RequestedId uint32 //avoid msg drop
 }
 
@@ -702,7 +701,7 @@ func (m *MessageTermChangeRequest) String() string {
 
 //msgp:tuple MessageTermChangeResponse
 type MessageTermChangeResponse struct {
-	TermChange *tx_types.TermChange
+	TermChange *TermChange
 	Id         uint32
 }
 
@@ -734,45 +733,9 @@ func (m *MessageTermChangeResponse) String() string {
 	return fmt.Sprintf("requst id %d , %v ", m.Id, m.TermChange)
 }
 
-//msgp:tuple MessageNewArchive
-type MessageNewArchive struct {
-	Archive *tx_types.Archive
-}
-
-func (m *MessageNewArchive) GetType() general_message.BinaryMessageType {
-	return general_message.MessageTypeNewArchive
-}
-
-func (m *MessageNewArchive) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *MessageNewArchive) ToBinary() general_message.BinaryMessage {
-	return general_message.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m *MessageNewArchive) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageNewArchive) String() string {
-	if m.Archive == nil {
-		return "nil"
-	}
-	return m.Archive.String()
-}
-
 //msgp:tuple MessageNewActionTx
 type MessageNewActionTx struct {
-	ActionTx *tx_types.ActionTx
+	ActionTx *ActionTx
 }
 
 func (m *MessageNewActionTx) GetType() general_message.BinaryMessageType {
@@ -829,6 +792,7 @@ func (m MessagePlain) ToBinary() general_message.BinaryMessage {
 func (m MessagePlain) FromBinary(bs []byte) error {
 	m.InnerMessageType = general_message.MessageTypePlain
 	m.InnerMessage = bs
+	return nil
 }
 
 func (m MessagePlain) String() string {
@@ -879,11 +843,11 @@ type MessageEncrypted struct {
 	PublicKey             hexutil.Bytes
 }
 
-func (z *MessageEncrypted) GetType() general_message.BinaryMessageType {
+func (m *MessageEncrypted) GetType() general_message.BinaryMessageType {
 	return general_message.MessageTypeEncrypted
 }
 
-func (z *MessageEncrypted) GetData() []byte {
+func (m *MessageEncrypted) GetData() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -891,19 +855,19 @@ func (z *MessageEncrypted) GetData() []byte {
 	return b
 }
 
-func (z *MessageEncrypted) ToBinary() general_message.BinaryMessage {
+func (m *MessageEncrypted) ToBinary() general_message.BinaryMessage {
 	return general_message.BinaryMessage{
 		Type: m.GetType(),
 		Data: m.GetData(),
 	}
 }
 
-func (z *MessageEncrypted) FromBinary([]byte) error {
+func (m *MessageEncrypted) FromBinary(bs []byte) error {
 	_, err := m.UnmarshalMsg(bs)
 	return err
 }
 
-func (z *MessageEncrypted) String() string {
+func (m *MessageEncrypted) String() string {
 	return "MessageEncrypted"
 
 }

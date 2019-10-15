@@ -4,48 +4,47 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/sirupsen/logrus"
 )
 
 type dummyTxPoolRandomTx struct {
 }
 
-func (p *dummyTxPoolRandomTx) IsBadSeq(seq *tx_types.Sequencer) error {
+func (p *dummyTxPoolRandomTx) IsBadSeq(seq *protocol_message.Sequencer) error {
 	return nil
 }
 
-func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []types.Txi) {
+func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []protocol_message.Txi) {
 	for i := 0; i < n; i++ {
-		v = append(v, tx_types.RandomTx())
+		v = append(v, protocol_message.RandomTx())
 	}
 	return
 }
 
-func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	return nil
 }
 
 type dummyTxPoolMiniTx struct {
-	poolMap map[common.Hash]types.Txi
-	tipsMap map[common.Hash]types.Txi
+	poolMap map[common.Hash]protocol_message.Txi
+	tipsMap map[common.Hash]protocol_message.Txi
 }
 
-func (d *dummyTxPoolMiniTx) IsBadSeq(seq *tx_types.Sequencer) error {
+func (d *dummyTxPoolMiniTx) IsBadSeq(seq *protocol_message.Sequencer) error {
 	return nil
 }
 
 func (d *dummyTxPoolMiniTx) Init() {
-	d.poolMap = make(map[common.Hash]types.Txi)
-	d.tipsMap = make(map[common.Hash]types.Txi)
+	d.poolMap = make(map[common.Hash]protocol_message.Txi)
+	d.tipsMap = make(map[common.Hash]protocol_message.Txi)
 }
 
-func (P *dummyTxPoolMiniTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *dummyTxPoolMiniTx) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	return nil
 }
 
-func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
+func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []protocol_message.Txi) {
 	indices := math.GenerateRandomIndices(n, len(p.tipsMap))
 	// slice of keys
 	var keys common.Hashes
@@ -58,7 +57,7 @@ func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 	return v
 }
 
-func (p *dummyTxPoolMiniTx) Add(v types.Txi) {
+func (p *dummyTxPoolMiniTx) Add(v protocol_message.Txi) {
 	p.tipsMap[v.GetTxHash()] = v
 
 	for _, parentHash := range v.Parents() {
@@ -72,18 +71,18 @@ func (p *dummyTxPoolMiniTx) Add(v types.Txi) {
 }
 
 type dummyTxPoolParents struct {
-	poolMap map[common.Hash]types.Txi
+	poolMap map[common.Hash]protocol_message.Txi
 }
 
 func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
 	return false
 }
 
-func (p *dummyTxPoolParents) IsBadSeq(seq *tx_types.Sequencer) error {
+func (p *dummyTxPoolParents) IsBadSeq(seq *protocol_message.Sequencer) error {
 	return nil
 }
 
-func (P *dummyTxPoolParents) GetByNonce(addr common.Address, nonce uint64) types.Txi {
+func (P *dummyTxPoolParents) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
 	return nil
 }
 
@@ -91,19 +90,19 @@ func (p *dummyTxPoolParents) GetLatestNonce(addr common.Address) (uint64, error)
 	return 0, fmt.Errorf("not supported")
 }
 
-func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string, b bool) {
+func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan protocol_message.Txi, s string, b bool) {
 	return
 }
 
 func (p *dummyTxPoolParents) Init() {
-	p.poolMap = make(map[common.Hash]types.Txi)
+	p.poolMap = make(map[common.Hash]protocol_message.Txi)
 }
 
-func (p *dummyTxPoolParents) Get(hash common.Hash) types.Txi {
+func (p *dummyTxPoolParents) Get(hash common.Hash) protocol_message.Txi {
 	return p.poolMap[hash]
 }
 
-func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi, b bool) error {
+func (p *dummyTxPoolParents) AddRemoteTx(tx protocol_message.Txi, b bool) error {
 	p.poolMap[tx.GetTxHash()] = tx
 	return nil
 }

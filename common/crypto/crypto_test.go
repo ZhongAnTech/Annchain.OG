@@ -20,8 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto/ecies"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/protocol_message"
 	"math/big"
 	"testing"
 	"time"
@@ -94,14 +93,14 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 //tese signer benchmarks
 func TestBenchMarks(t *testing.T) {
 	type TestTx struct {
-		types.Txi
+		protocol_message.Txi
 		PlainData  []byte
 		CipherData []byte
 	}
 	var txs []*TestTx
 	var Txlen = 40000
 	for i := 0; i < Txlen; i++ {
-		tx := tx_types.RandomTx()
+		tx := protocol_message.RandomTx()
 		tx.Data = []byte("jhfffhhgfhgf46666856544563544535636568654864546546ewfjnfdjlfjldkjkflkjflkdsl;kfdfkjjkfsd;lsdl;kdfl;kjfjfsj;sd54645656854545435454")
 		testTx := TestTx{tx, tx.SignatureTargets(), nil}
 		txs = append(txs, &testTx)

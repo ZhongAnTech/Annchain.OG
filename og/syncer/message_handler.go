@@ -14,12 +14,12 @@
 package syncer
 
 import (
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/types/p2p_message"
 	"sort"
 )
 
-func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
+func (m *IncrementalSyncer) HandleNewTxi(tx protocol_message.Txi, peerId string) {
 	// cancel pending requests if it is there
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
@@ -37,7 +37,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
 		log.WithField("tx ", tx).Debug("cache txs for future.")
 	}
 
-	if tx.GetType() == types.TxBaseTypeSequencer {
+	if tx.GetType() == protocol_message.TxBaseTypeSequencer {
 		m.SequencerCache.Add(tx.GetTxHash(), peerId)
 	}
 
@@ -68,7 +68,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *p2p_message.MessageNewTxs, peer
 		log.Debug("Empty MessageNewTx")
 		return
 	}
-	var validTxs types.Txis
+	var validTxs protocol_message.Txis
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
 			log.Debug("incremental received nexTx but sync disabled")
@@ -163,7 +163,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *p2p_message.
 	//return
 	//}
 
-	var txis types.Txis
+	var txis protocol_message.Txis
 	//
 	//var currentIndex int
 	//var testVal int

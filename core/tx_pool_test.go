@@ -15,8 +15,8 @@ package core_test
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/txmaker"
-	"github.com/annchain/OG/types/tx_types"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
@@ -26,7 +26,7 @@ import (
 	"github.com/annchain/OG/ogdb"
 )
 
-func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *tx_types.Sequencer, func()) {
+func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *protocol_message.Sequencer, func()) {
 	txpoolconfig := core.TxPoolConfig{
 		QueueSize:     100,
 		TipsSize:      100,
@@ -57,7 +57,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *tx_types.Sequencer, 
 	}
 }
 
-func newTestPoolTx(nonce uint64) *tx_types.Tx {
+func newTestPoolTx(nonce uint64) *protocol_message.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -74,10 +74,10 @@ func newTestPoolTx(nonce uint64) *tx_types.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*tx_types.Tx)
+	return tx.(*protocol_message.Tx)
 }
 
-func newTestPoolBadTx() *tx_types.Tx {
+func newTestPoolBadTx() *protocol_message.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
@@ -94,7 +94,7 @@ func newTestPoolBadTx() *tx_types.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*tx_types.Tx)
+	return tx.(*protocol_message.Tx)
 }
 
 func TestPoolInit(t *testing.T) {

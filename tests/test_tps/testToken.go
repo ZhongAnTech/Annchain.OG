@@ -20,9 +20,8 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/rpc"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
 )
 
 var txurl = "http://172.28.152.101:8000/new_transaction"
@@ -75,15 +74,15 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(8888888)
 
-	tx := tx_types.ActionTx{
-		TxBase: types.TxBase{
-			Type:         types.TxBaseAction,
+	tx := protocol_message.ActionTx{
+		TxBase: protocol_message.TxBase{
+			Type:         protocol_message.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: tx_types.ActionTxActionIPO,
+		Action: protocol_message.ActionTxActionIPO,
 		From:   &from,
-		ActionData: &tx_types.PublicOffering{
+		ActionData: &protocol_message.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSPO,
 			TokenName: tokenName,
@@ -103,7 +102,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    tx_types.ActionTxActionIPO,
+		Action:    protocol_message.ActionTxActionIPO,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -117,15 +116,15 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(0)
 
-	tx := tx_types.ActionTx{
-		TxBase: types.TxBase{
-			Type:         types.TxBaseAction,
+	tx := protocol_message.ActionTx{
+		TxBase: protocol_message.TxBase{
+			Type:         protocol_message.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: tx_types.ActionTxActionDestroy,
+		Action: protocol_message.ActionTxActionDestroy,
 		From:   &from,
-		ActionData: &tx_types.PublicOffering{
+		ActionData: &protocol_message.PublicOffering{
 			Value: value,
 			//EnableSPO:  enableSPO,
 			//TokenName: "test_token",
@@ -146,7 +145,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    tx_types.ActionTxActionDestroy,
+		Action:    protocol_message.ActionTxActionDestroy,
 		//EnableSPO: enableSPO,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -161,15 +160,15 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(100000)
 
-	tx := tx_types.ActionTx{
-		TxBase: types.TxBase{
-			Type:         types.TxBaseAction,
+	tx := protocol_message.ActionTx{
+		TxBase: protocol_message.TxBase{
+			Type:         protocol_message.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: tx_types.ActionTxActionSPO,
+		Action: protocol_message.ActionTxActionSPO,
 		From:   &from,
-		ActionData: &tx_types.PublicOffering{
+		ActionData: &protocol_message.PublicOffering{
 			Value: value,
 			//EnableSPO: true,
 			//TokenName: "test_token",
@@ -192,7 +191,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    tx_types.ActionTxActionSPO,
+		Action:    protocol_message.ActionTxActionSPO,
 		//EnableSPO: true,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -206,9 +205,9 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 	to := topub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String(), to.String())
 
-	tx := tx_types.Tx{
-		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeNormal,
+	tx := protocol_message.Tx{
+		TxBase: protocol_message.TxBase{
+			Type:         protocol_message.TxBaseTypeNormal,
 			PublicKey:    pub.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

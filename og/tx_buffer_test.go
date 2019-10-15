@@ -14,6 +14,7 @@
 package og
 
 import (
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/protocol"
 	"testing"
@@ -22,8 +23,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/gcache"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -42,7 +41,7 @@ func setup() *TxBuffer {
 		KnownCacheMaxSize:                10000,
 		KnownCacheExpirationSeconds:      30,
 	})
-	buffer.Syncer.(*dummySyncer).dmap = make(map[common.Hash]types.Txi)
+	buffer.Syncer.(*dummySyncer).dmap = make(map[common.Hash]protocol_message.Txi)
 	buffer.Syncer.(*dummySyncer).buffer = buffer
 	buffer.Syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
 		Expiration(time.Second * 10).Build()
@@ -56,7 +55,7 @@ func doTest(buffer *TxBuffer) {
 
 	if buffer.dependencyCache.Len(true) != 0 {
 		for k, v := range buffer.dependencyCache.GetALL(true) {
-			for k1 := range v.(map[common.Hash]types.Txi) {
+			for k1 := range v.(map[common.Hash]protocol_message.Txi) {
 				logrus.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
 			}
 		}
@@ -172,9 +171,9 @@ func TestTxBuffer_Handle(t *testing.T) {
 	pub, priv := crypto.Signer.RandomKeyPair()
 	from := pub.Address()
 	N := 20
-	var txs types.Txis
+	var txs protocol_message.Txis
 	for i := 0; i < N; i++ {
-		tx := tx_types.RandomTx()
+		tx := protocol_message.RandomTx()
 		tx.Height = 1
 		tx.Weight = tx.Weight % uint64(N)
 		tx.SetSender(from)

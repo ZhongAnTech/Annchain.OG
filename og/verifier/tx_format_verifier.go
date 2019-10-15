@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/protocol_message"
 	"github.com/sirupsen/logrus"
 	"math/big"
 )
@@ -33,7 +33,7 @@ func (v *TxFormatVerifier) Independent() bool {
 	return true
 }
 
-func (v *TxFormatVerifier) Verify(t types.Txi) bool {
+func (v *TxFormatVerifier) Verify(t protocol_message.Txi) bool {
 	if t.IsVerified().IsFormatVerified() {
 		return true
 	}
@@ -47,11 +47,11 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 			return false
 		}
 	}
-	t.SetVerified(types.VerifiedFormat)
+	t.SetVerified(protocol_message.VerifiedFormat)
 	return true
 }
 
-func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
+func (v *TxFormatVerifier) VerifyHash(t protocol_message.Txi) bool {
 	if !v.NoVerifyMindHash {
 		calMinedHash := t.CalcMinedHash()
 		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
@@ -71,8 +71,8 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 	return true
 }
 
-func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
-	if t.GetType() == types.TxBaseTypeArchive {
+func (v *TxFormatVerifier) VerifySignature(t protocol_message.Txi) bool {
+	if t.GetType() == protocol_message.TxBaseTypeArchive {
 		return true
 	}
 	base := t.GetBase()
@@ -125,21 +125,21 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	return true
 }
 
-func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
+func (v *TxFormatVerifier) VerifySourceAddress(t protocol_message.Txi) bool {
 	if crypto.Signer.CanRecoverPubFromSig() {
 		//address was set by recovering signature ,
 		return true
 	}
 	switch t.(type) {
-	case *tx_types.Tx:
-		return t.(*tx_types.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Sequencer:
-		return t.(*tx_types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Campaign:
-		return t.(*tx_types.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.TermChange:
-		return t.(*tx_types.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *tx_types.Archive:
+	case *protocol_message.Tx:
+		return t.(*protocol_message.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *protocol_message.Sequencer:
+		return t.(*protocol_message.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *protocol_message.Campaign:
+		return t.(*protocol_message.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *protocol_message.TermChange:
+		return t.(*protocol_message.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *archive.Archive:
 		return true
 	default:
 		return true

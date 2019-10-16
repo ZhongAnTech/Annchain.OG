@@ -454,21 +454,6 @@ func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 
 func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 
-	if txi.GetType() != types.TxBaseTypeSequencer {
-		// check parents number
-		if len(txi.Parents()) > 2 || len(txi.Parents()) == 0 {
-			return false
-		}
-
-		//// check if parents are sent by txi's sender.
-		//for _, pHash := range txi.Parents() {
-		//	p, _ := v.getTxFromAnywhere(pHash)
-		//	if p.Sender().Hex() == txi.Sender().Hex() {
-		//		return false
-		//	}
-		//}
-	}
-
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 1
 

@@ -15,12 +15,14 @@ type AnnsensusTermHolder struct {
 	termMap      map[uint32]*TermCollection
 	termProvider TermProvider
 	mu           sync.Mutex
+	debugMyId    int
 }
 
 func (b *AnnsensusTermHolder) SetTerm(termId uint32, termCollection *TermCollection) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.termMap[termId] = termCollection
+	b.debugMyId = termCollection.contextProvider.GetMyBftId()
 }
 
 func NewAnnsensusTermHolder(termProvider TermProvider) *AnnsensusTermHolder {
@@ -39,4 +41,8 @@ func (b *AnnsensusTermHolder) GetTermCollection(heightInfoCarrier HeightInfoCarr
 		err = errors.New("term not found")
 	}
 	return
+}
+
+func (b *AnnsensusTermHolder) DebugMyId() int {
+	return b.debugMyId
 }

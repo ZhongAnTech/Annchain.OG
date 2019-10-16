@@ -17,7 +17,9 @@ type BftMessageUnmarshaller struct {
 func (b *BftMessageUnmarshaller) Unmarshal(messageType msg.BinaryMessageType, message []byte) (outMsg bft.BftMessage, err error) {
 	switch bft.BftMessageType(messageType) {
 	case bft.BftMessageTypeProposal:
-		m := &bft.MessageProposal{}
+		m := &bft.MessageProposal{
+			Value: &bft.StringProposal{},
+		}
 		_, err = m.UnmarshalMsg(message)
 		outMsg = m
 	case bft.BftMessageTypePreVote:
@@ -148,15 +150,15 @@ func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(*protocol_message.MessagePlain)
+	iMsg := incomingMsg.(protocol_message.MessagePlain)
 
-	switch bft.BftMessageType(iMsg.GetType()) {
+	switch bft.BftMessageType(iMsg.InnerMessageType) {
 	case bft.BftMessageTypeProposal:
 		fallthrough
 	case bft.BftMessageTypePreVote:
 		fallthrough
 	case bft.BftMessageTypePreCommit:
-		msg, err = p.bftMessageUnmarshaller.Unmarshal(iMsg.GetType(), iMsg.GetData())
+		msg, err = p.bftMessageUnmarshaller.Unmarshal(iMsg.InnerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainBftAdapter received a message of an unsupported inner type")
 	}

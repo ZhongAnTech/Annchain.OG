@@ -242,7 +242,9 @@ func (p *DefaultPartner) Proposer(hr HeightRound) int {
 
 // GetValue generates the value requiring consensus
 func (p *DefaultPartner) GetValue() Proposal {
+	logrus.WithField("blocktime", p.blockTime).Info("will return a proposal after some time")
 	time.Sleep(p.blockTime)
+	logrus.Info("proposal generated")
 	v := fmt.Sprintf("■■■%d %d■■■", p.CurrentHR.Height, p.CurrentHR.Round)
 	return StringProposal(v)
 }

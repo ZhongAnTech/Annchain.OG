@@ -78,9 +78,9 @@ func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(*protocol_message.MessagePlain)
+	iMsg := incomingMsg.(protocol_message.MessagePlain)
 
-	switch dkg.DkgMessageType(iMsg.GetType()) {
+	switch dkg.DkgMessageType(iMsg.InnerMessageType) {
 	case dkg.DkgMessageTypeDeal:
 		fallthrough
 	case dkg.DkgMessageTypeDealResponse:
@@ -88,7 +88,7 @@ func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 	case dkg.DkgMessageTypeSigSets:
 		fallthrough
 	case dkg.DkgMessageTypeGenesisPublicKey:
-		msg, err = p.dkgMessageUnmarshaller.Unmarshal(iMsg.GetType(), iMsg.GetData())
+		msg, err = p.dkgMessageUnmarshaller.Unmarshal(iMsg.InnerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainDkgAdapter received a message of an unsupported inner type")
 	}

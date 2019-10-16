@@ -87,7 +87,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 }
 
 func TestAnnSensusTwoNodes(t *testing.T) {
-	nodes := 2
+	nodes := 10
 	accounts := sampleAccounts(nodes)
 
 	suite := bn256.NewSuiteG2()
@@ -104,7 +104,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	// prepare message channel for each peer
 	var peerChans []chan msg.TransportableMessage
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan msg.TransportableMessage, 5))
+		peerChans = append(peerChans, make(chan msg.TransportableMessage, 50))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor

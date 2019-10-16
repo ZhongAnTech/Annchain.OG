@@ -149,7 +149,8 @@ type dummyProposalGenerator struct {
 }
 
 func (d dummyProposalGenerator) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
-	p := bft.StringProposal("xxx")
+	currentTime := time.Now()
+	p := bft.StringProposal{Content: currentTime.Format("2006-01-02 15:04:05")}
 	return &p, bft.ProposalCondition{ValidHeight: d.CurrentHeight}
 }
 
@@ -176,7 +177,9 @@ func NewDummyTermProvider() *dummyTermProvider {
 }
 
 func (d dummyTermProvider) HeightTerm(height uint64) (termId uint32) {
-	panic("implement me")
+	// currently always return 0 as a genesis term.
+	return 0
+	// return uint32(height / 10)
 }
 
 func (d dummyTermProvider) CurrentTerm() (termId uint32) {

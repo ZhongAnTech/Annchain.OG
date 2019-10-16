@@ -58,7 +58,7 @@ func (r *AnnsensusCommunicator) Run() {
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
 func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
 	switch annsensusMessage.GetType() {
-	// TODO: MessageTypeEncrypted
+
 	case protocol_message.MessageTypeSigned:
 		fallthrough
 	case protocol_message.MessageTypePlain:
@@ -89,22 +89,24 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.Tra
 
 		logrus.WithError(err).Warn("error on handling annsensus message")
 		return
+	default:
+		logrus.WithField("msg", annsensusMessage).WithField("IM", ap.termHolder.DebugMyId()).Warn("unsupported annsensus message type")
 	}
 }
 
 func (ap *AnnsensusCommunicator) BroadcastBft(msg bft.BftMessage, peers []bft.PeerInfo) {
+	logrus.WithField("msg", msg).Debug("AnnsensusCommunicator is broadcasting bft message")
 	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
 
-	for _, peer := range peers {
-		ap.p2pSender.AnonymousSendMessage(adaptedMessage, &peer.PublicKey)
-	}
+	ap.p2pSender.BroadcastMessage(adaptedMessage)
 }
 
 func (ap *AnnsensusCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInfo) {
+	logrus.WithField("msg", msg).Debug("AnnsensusCommunicator is unicasting bft message")
 	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")

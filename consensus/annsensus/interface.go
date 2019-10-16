@@ -26,6 +26,7 @@ type TermProvider interface {
 type TermHolder interface {
 	GetTermCollection(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
 	SetTerm(u uint32, composer *TermCollection)
+	DebugMyId() int
 }
 
 type ConsensusContextProvider interface {

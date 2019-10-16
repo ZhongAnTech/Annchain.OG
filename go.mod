@@ -8,7 +8,9 @@ require (
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
+	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
+	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.4.0
 	github.com/golang/snappy v0.0.1
 	github.com/google/uuid v1.1.1
@@ -17,18 +19,21 @@ require (
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.6
 	github.com/jackpal/go-nat-pmp v1.0.1
+	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
+	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spaolacci/murmur3 v1.1.0
+	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cobra v0.0.4
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/tebeka/strftime v0.1.3 // indirect
 	github.com/tinylib/msgp v1.1.0
-	github.com/willf/bitset v1.1.10
+	github.com/willf/bitset v1.1.10 // indirect
 	go.uber.org/atomic v1.4.0
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
 	golang.org/x/sys v0.0.0-20190528183647-3626398d7749

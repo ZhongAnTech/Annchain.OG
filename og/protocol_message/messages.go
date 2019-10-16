@@ -733,6 +733,6 @@ func (m *MessageEncrypted) FromBinary(bs []byte) error {
 }
 
 func (m *MessageEncrypted) String() string {
-	return "MessageEncrypted"
+	return "MessageEncrypted " + hexutil.Encode(m.InnerMessageEncrypted)
 
 }

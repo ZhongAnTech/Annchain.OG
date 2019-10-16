@@ -151,7 +151,6 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		pubs = append(pubs, peer.PartPub)
 	}
 
-
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
 		c := termProviders[i].GetTermChangeEventChannel()
@@ -164,7 +163,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 			NbParts:        nodes,
 			Threshold:      nodes,
 			MyBftId:        i,
-			BlockTime:      time.Second * 30,
+			BlockTime:      time.Second * 4,
 			Suite:          suite,
 			AllPartPubs:    pubs,
 			MyPartSec:      peers[i],

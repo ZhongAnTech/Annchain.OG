@@ -698,23 +698,34 @@ func (z *MessageProposal) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *StringProposal) DecodeMsg(dc *msgp.Reader) (err error) {
-	{
-		var zb0001 string
-		zb0001, err = dc.ReadString()
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		(*z) = StringProposal(zb0001)
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Content, err = dc.ReadString()
+	if err != nil {
+		err = msgp.WrapError(err, "Content")
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z StringProposal) EncodeMsg(en *msgp.Writer) (err error) {
-	err = en.WriteString(string(z))
+	// array header, size 1
+	err = en.Append(0x91)
 	if err != nil {
-		err = msgp.WrapError(err)
+		return
+	}
+	err = en.WriteString(z.Content)
+	if err != nil {
+		err = msgp.WrapError(err, "Content")
 		return
 	}
 	return
@@ -723,20 +734,28 @@ func (z StringProposal) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z StringProposal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	o = msgp.AppendString(o, string(z))
+	// array header, size 1
+	o = append(o, 0x91)
+	o = msgp.AppendString(o, z.Content)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *StringProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	{
-		var zb0001 string
-		zb0001, bts, err = msgp.ReadStringBytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		(*z) = StringProposal(zb0001)
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Content, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Content")
+		return
 	}
 	o = bts
 	return
@@ -744,6 +763,6 @@ func (z *StringProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z StringProposal) Msgsize() (s int) {
-	s = msgp.StringPrefixSize + len(string(z))
+	s = 1 + msgp.StringPrefixSize + len(z.Content)
 	return
 }

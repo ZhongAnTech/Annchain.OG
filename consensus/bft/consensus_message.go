@@ -203,25 +203,27 @@ type Proposal interface {
 
 //StringProposal is for test
 //msgp:tuple StringProposal
-type StringProposal string
+type StringProposal struct {
+	Content string
+}
 
 func (s StringProposal) Equal(o Proposal) bool {
 	v, ok := o.(*StringProposal)
 	if !ok || v == nil {
 		return false
 	}
-	return s == *v
+	return s.Content == v.Content
 }
 
 func (s StringProposal) Copy() Proposal {
 	var r StringProposal
-	r = s
+	r.Content = s.Content
 	return &r
 }
 
 func (s StringProposal) GetId() *common.Hash {
 	h := sha256.New()
-	h.Write([]byte(s))
+	h.Write([]byte(s.Content))
 	sum := h.Sum(nil)
 	hash := common.Hash{}
 	hash.MustSetBytes(sum, common.PaddingNone)
@@ -229,7 +231,7 @@ func (s StringProposal) GetId() *common.Hash {
 }
 
 func (s StringProposal) String() string {
-	return string(s)
+	return s.Content
 }
 
 type ConsensusDecision Proposal

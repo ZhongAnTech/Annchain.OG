@@ -176,7 +176,7 @@ func (p *DefaultBftPartner) StartNewEra(height uint64, round int) {
 	p.changeStep(StepTypePropose)
 
 	if p.Id == p.Proposer(p.BftStatus.CurrentHR) {
-		logrus.WithField("IM", p.Id).WithField("hr", p.BftStatus.CurrentHR.String()).Trace("I'm the proposer")
+		logrus.WithField("IM", p.Id).WithField("hr", p.BftStatus.CurrentHR.String()).Debug("I'm the proposer")
 		var proposal Proposal
 		var validCondition ProposalCondition
 		if currState.ValidValue != nil {
@@ -259,6 +259,7 @@ func (p *DefaultBftPartner) GetValue(newBlock bool) (Proposal, ProposalCondition
 	//don't sleep for the same height new round
 	blockTime := time.After(p.blockTime)
 	if newBlock {
+		logrus.WithField("blocktime", p.blockTime).Debug("will return a proposal after some time")
 		select {
 		case <-p.quit:
 			logrus.Info("got stop signal")
@@ -274,8 +275,10 @@ func (p *DefaultBftPartner) GetValue(newBlock bool) (Proposal, ProposalCondition
 		return pro, validHeight
 	}
 	v := fmt.Sprintf("■■■%d %d■■■", p.BftStatus.CurrentHR.Height, p.BftStatus.CurrentHR.Round)
-	s := StringProposal(v)
-	logrus.WithField("proposal", s).Debug("proposal gen")
+	s := StringProposal{
+		Content: v,
+	}
+	logrus.WithField("proposal", s).Info("proposal generated")
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 

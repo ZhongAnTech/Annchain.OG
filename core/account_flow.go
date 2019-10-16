@@ -28,13 +28,15 @@ import (
 )
 
 type AccountFlows struct {
-	afs map[common.Address]*AccountFlow
-	mu  sync.RWMutex
+	afs  map[common.Address]*AccountFlow
+	pool *TxPool
+	mu   sync.RWMutex
 }
 
-func NewAccountFlows() *AccountFlows {
+func NewAccountFlows(pool *TxPool) *AccountFlows {
 	return &AccountFlows{
-		afs: make(map[common.Address]*AccountFlow),
+		afs:  make(map[common.Address]*AccountFlow),
+		pool: pool,
 	}
 }
 
@@ -46,11 +48,19 @@ func (a *AccountFlows) Add(tx types.Txi) {
 		return
 	}
 
-	if a.afs[tx.Sender()] == nil {
-		log.WithField("tx", tx).Warnf("add to account flows failed")
-		return
+	af := a.afs[tx.Sender()]
+	if af == nil {
+		af = NewAccountFlow(state.NewBalanceSet())
 	}
-	a.afs[tx.Sender()].Add(tx)
+	if tx.GetType() == types.TxBaseTypeNormal {
+		txn := tx.(*tx_types.Tx)
+		if af.balances[txn.TokenId] == nil {
+			blc := a.pool.dag.GetBalance(txn.Sender(), txn.TokenId)
+			af.balances[txn.TokenId] = NewBalanceState(blc)
+		}
+	}
+	af.Add(tx)
+	a.afs[tx.Sender()] = af
 }
 
 func (a *AccountFlows) Get(addr common.Address) *AccountFlow {

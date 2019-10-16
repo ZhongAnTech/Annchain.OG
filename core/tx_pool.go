@@ -127,20 +127,22 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	if conf.ConfirmStatusRefreshTime == 0 {
 		conf.ConfirmStatusRefreshTime = 30
 	}
-	pool := &TxPool{
-		conf:             conf,
-		dag:              d,
-		queue:            make(chan *txEvent, conf.QueueSize),
-		tips:             NewTxMap(),
-		badtxs:           NewTxMap(),
-		pendings:         NewTxMap(),
-		flows:            NewAccountFlows(),
-		txLookup:         newTxLookUp(),
-		close:            make(chan struct{}),
-		onNewTxReceived:  make(map[channelName]chan types.Txi),
-		OnBatchConfirmed: []chan map[common.Hash]types.Txi{},
-		confirmStatus:    &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
-	}
+
+	pool := &TxPool{}
+
+	pool.conf = conf
+	pool.dag = d
+	pool.queue = make(chan *txEvent, conf.QueueSize)
+	pool.tips = NewTxMap()
+	pool.badtxs = NewTxMap()
+	pool.pendings = NewTxMap()
+	pool.flows = NewAccountFlows(pool)
+	pool.txLookup = newTxLookUp()
+	pool.close = make(chan struct{})
+
+	pool.onNewTxReceived = make(map[channelName]chan types.Txi)
+	pool.OnBatchConfirmed = []chan map[common.Hash]types.Txi{}
+	pool.confirmStatus = &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)}
 
 	return pool
 }
@@ -440,7 +442,7 @@ func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
-	pool.flows = NewAccountFlows()
+	pool.flows = NewAccountFlows(pool)
 	pool.txLookup = newTxLookUp()
 }
 
@@ -983,7 +985,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		for tokenID, spent := range batchDetail.Neg {
 			confirmedBalance := pool.dag.GetBalance(addr, tokenID)
 			if confirmedBalance.Value.Cmp(spent.Value) < 0 {
-				return nil, fmt.Errorf("the balance of addr %s is not enough", addr)
+				return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 			}
 		}
 		// check nonce order

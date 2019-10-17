@@ -10,7 +10,6 @@ import (
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"math/big"
 	"net/http"
 	"time"
 )
@@ -201,10 +200,10 @@ func (r *RpcController) SecretTransaction(c *gin.Context) {
 		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
-	if guarantee.Value.Cmp(big.NewInt(100)) < 0 {
-		Response(c, http.StatusBadRequest, fmt.Errorf("guarantee should be larger than 100"), nil)
-		return
-	}
+	//if guarantee.Value.Cmp(big.NewInt(100)) < 0 {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("guarantee should be larger than 100"), nil)
+	//	return
+	//}
 
 	nonce := txReq.Nonce
 

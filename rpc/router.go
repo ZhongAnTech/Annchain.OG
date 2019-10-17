@@ -115,7 +115,6 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"net_info":          "",
 		"peers_info":        "",
 		"validators":        "",
-		"sequencer":         "",
 		"og_peers_info":     "",
 		"genesis":           "",
 		"sync_status":       "",
@@ -137,17 +136,19 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query":            "query",
 		"query_nonce":      "address",
 		"query_balance":    "address",
+		"query_tx_num":     "height",
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
 		"query_receipt":    "hash",
 		"transaction":      "hash",
-		"transactions":     "seq_id,address",
+		"transactions":     "height,address",
 		"confirm":          "hash",
 		"query_contract":   "address,data",
 		"token/list":       "",
 		"token":            "id",
 		"new_transactions": "",
+		"sequencer":        "hash,height,id",
 
 		// debug
 		"debug": "f",

@@ -33,7 +33,7 @@ func TestMarshal(t *testing.T) {
 		},
 	}
 
-	mp := bft.MessageProposal{
+	mp := bft.BftMessageProposal{
 		BftBasicInfo: bft.BftBasicInfo{
 			SourceId: 777,
 			HeightRound: bft.HeightRound{

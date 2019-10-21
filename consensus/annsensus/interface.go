@@ -63,3 +63,9 @@ type DkgMessageAdapter interface {
 	AdaptOgMessage(incomingMsg msg.TransportableMessage) (dkg.DkgMessage, error)
 	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg.TransportableMessage, error)
 }
+
+type AnnsensusMessage interface {
+	GetType() AnnsensusMessageType
+	GetData() []byte
+	String() string
+}

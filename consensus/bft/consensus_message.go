@@ -99,47 +99,47 @@ func (b *BftBasicInfo) ProvideHeight() uint64 {
 	return b.HeightRound.Height
 }
 
-//msgp:tuple MessageProposal
-type MessageProposal struct {
+//msgp:tuple BftMessageProposal
+type BftMessageProposal struct {
 	BftBasicInfo
 	Value      Proposal //TODO
 	ValidRound int
 }
 
-func (m *MessageProposal) GetType() BftMessageType {
+func (m *BftMessageProposal) GetType() BftMessageType {
 	return BftMessageTypeProposal
 }
 
-func (m *MessageProposal) PublicKey() []byte {
+func (m *BftMessageProposal) PublicKey() []byte {
 	return m.PublicKeyBytes
 }
 
-//msgp:tuple MessagePreVote
-type MessagePreVote struct {
+//msgp:tuple BftMessagePreVote
+type BftMessagePreVote struct {
 	BftBasicInfo
 	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
-func (z *MessagePreVote) GetType() BftMessageType {
+func (z *BftMessagePreVote) GetType() BftMessageType {
 	return BftMessageTypePreVote
 }
 
-func (z *MessagePreVote) PublicKey() []byte {
+func (z *BftMessagePreVote) PublicKey() []byte {
 	return z.PublicKeyBytes
 }
 
-//msgp:tuple MessagePreCommit
-type MessagePreCommit struct {
+//msgp:tuple BftMessagePreCommit
+type BftMessagePreCommit struct {
 	BftBasicInfo
 	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
 }
 
-func (z *MessagePreCommit) PublicKey() []byte {
+func (z *BftMessagePreCommit) PublicKey() []byte {
 	return z.PublicKeyBytes
 }
 
-func (z *MessagePreCommit) GetType() BftMessageType {
+func (z *BftMessagePreCommit) GetType() BftMessageType {
 	return BftMessageTypePreCommit
 }
 
@@ -147,19 +147,19 @@ func (m BftBasicInfo) String() string {
 	return fmt.Sprintf("SourceId:%d, hr:%d", m.SourceId, m.HeightRound)
 }
 
-func (m MessageProposal) String() string {
+func (m BftMessageProposal) String() string {
 	return fmt.Sprintf("bm %s, value %s", m.BftBasicInfo, m.Value)
 }
 
-func (m MessagePreVote) String() string {
+func (m BftMessagePreVote) String() string {
 	return fmt.Sprintf("bm %s, idv %s", m.BftBasicInfo, m.Idv)
 }
 
-func (m MessagePreCommit) String() string {
+func (m BftMessagePreCommit) String() string {
 	return fmt.Sprintf("bm %s, idv %s", m.BftBasicInfo, m.Idv)
 }
 
-func (m *MessagePreVote) SignatureTargets() []byte {
+func (m *BftMessagePreVote) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	if m.Idv != nil {
 		w.Write(m.Idv.Bytes)
@@ -168,13 +168,13 @@ func (m *MessagePreVote) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (m *MessagePreCommit) SignatureTargets() []byte {
+func (m *BftMessagePreCommit) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	w.Write(m.BlsSignature)
 	return w.Bytes()
 }
 
-func (m *MessagePreCommit) BlsSignatureTargets() []byte {
+func (m *BftMessagePreCommit) BlsSignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	if m.Idv != nil {
 		w.Write(m.Idv.Bytes)
@@ -183,7 +183,7 @@ func (m *MessagePreCommit) BlsSignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (m *MessageProposal) SignatureTargets() []byte {
+func (m *BftMessageProposal) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 	if idv := m.Value.GetId(); idv != nil {
 		w.Write(idv.Bytes)

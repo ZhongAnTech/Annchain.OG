@@ -3,7 +3,6 @@ package ogmessage
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -634,105 +633,6 @@ func (m *MessageNewActionTx) String() string {
 	return m.ActionTx.String()
 }
 
-type MessagePlain struct {
-	InnerMessageType msg.BinaryMessageType
-	InnerMessage     []byte
-}
-
-func (m MessagePlain) GetType() msg.BinaryMessageType {
-	return MessageTypePlain
-}
-
-func (m MessagePlain) GetData() []byte {
-	return m.InnerMessage
-}
-
-func (m MessagePlain) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.InnerMessageType,
-		Data: m.InnerMessage,
-	}
-}
-
-func (m MessagePlain) FromBinary(bs []byte) error {
-	m.InnerMessageType = MessageTypePlain
-	m.InnerMessage = bs
-	return nil
-}
-
-func (m MessagePlain) String() string {
-	return "MessagePlain"
-}
-
-//msgp:tuple MessageSigned
-type MessageSigned struct {
-	InnerMessageType msg.BinaryMessageType
-	InnerMessage     []byte
-	Signature        hexutil.Bytes
-	PublicKey        hexutil.Bytes
-	TermId           uint32
-}
-
-func (m MessageSigned) GetType() msg.BinaryMessageType {
-	return MessageTypeSigned
-}
-
-func (m MessageSigned) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m MessageSigned) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m MessageSigned) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m MessageSigned) String() string {
-	return "MessageSigned"
-}
-
-//msgp:tuple MessageEncrypted
-type MessageEncrypted struct {
-	InnerMessageType      msg.BinaryMessageType
-	InnerMessageEncrypted []byte
-	PublicKey             hexutil.Bytes
-}
-
-func (m *MessageEncrypted) GetType() msg.BinaryMessageType {
-	return MessageTypeEncrypted
-}
-
-func (m *MessageEncrypted) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *MessageEncrypted) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m *MessageEncrypted) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageEncrypted) String() string {
-	return "MessageEncrypted " + hexutil.Encode(m.InnerMessageEncrypted)
+func (m *MessageAnnsensus) struct {
 
 }

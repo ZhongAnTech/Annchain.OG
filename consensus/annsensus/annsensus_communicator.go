@@ -60,9 +60,9 @@ func (r *AnnsensusCommunicator) Run() {
 func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
 	switch annsensusMessage.GetType() {
 
-	case ogmessage.MessageTypeSigned:
+	case ogmessage.MessageTypeAnnsensusSigned:
 		fallthrough
-	case ogmessage.MessageTypePlain:
+	case ogmessage.MessageTypeAnnsensusPlain:
 		// let bft and dkg handle this message since I don't know the content
 		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(annsensusMessage)
 		if err == nil {

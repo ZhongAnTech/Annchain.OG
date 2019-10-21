@@ -236,7 +236,7 @@ func BenchmarkDecodeHeightRound(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessagePreCommit(t *testing.T) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -259,7 +259,7 @@ func TestMarshalUnmarshalMessagePreCommit(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessagePreCommit(b *testing.B) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -268,7 +268,7 @@ func BenchmarkMarshalMsgMessagePreCommit(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessagePreCommit(b *testing.B) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -280,7 +280,7 @@ func BenchmarkAppendMsgMessagePreCommit(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessagePreCommit(b *testing.B) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -294,7 +294,7 @@ func BenchmarkUnmarshalMessagePreCommit(b *testing.B) {
 }
 
 func TestEncodeDecodeMessagePreCommit(t *testing.T) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -303,7 +303,7 @@ func TestEncodeDecodeMessagePreCommit(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeMessagePreCommit Msgsize() is inaccurate")
 	}
 
-	vn := MessagePreCommit{}
+	vn := BftMessagePreCommit{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -318,7 +318,7 @@ func TestEncodeDecodeMessagePreCommit(t *testing.T) {
 }
 
 func BenchmarkEncodeMessagePreCommit(b *testing.B) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -332,7 +332,7 @@ func BenchmarkEncodeMessagePreCommit(b *testing.B) {
 }
 
 func BenchmarkDecodeMessagePreCommit(b *testing.B) {
-	v := MessagePreCommit{}
+	v := BftMessagePreCommit{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -349,7 +349,7 @@ func BenchmarkDecodeMessagePreCommit(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessagePreVote(t *testing.T) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -372,7 +372,7 @@ func TestMarshalUnmarshalMessagePreVote(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessagePreVote(b *testing.B) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -381,7 +381,7 @@ func BenchmarkMarshalMsgMessagePreVote(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessagePreVote(b *testing.B) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -393,7 +393,7 @@ func BenchmarkAppendMsgMessagePreVote(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessagePreVote(b *testing.B) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -407,7 +407,7 @@ func BenchmarkUnmarshalMessagePreVote(b *testing.B) {
 }
 
 func TestEncodeDecodeMessagePreVote(t *testing.T) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -416,7 +416,7 @@ func TestEncodeDecodeMessagePreVote(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeMessagePreVote Msgsize() is inaccurate")
 	}
 
-	vn := MessagePreVote{}
+	vn := BftMessagePreVote{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -431,7 +431,7 @@ func TestEncodeDecodeMessagePreVote(t *testing.T) {
 }
 
 func BenchmarkEncodeMessagePreVote(b *testing.B) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -445,7 +445,7 @@ func BenchmarkEncodeMessagePreVote(b *testing.B) {
 }
 
 func BenchmarkDecodeMessagePreVote(b *testing.B) {
-	v := MessagePreVote{}
+	v := BftMessagePreVote{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -462,7 +462,7 @@ func BenchmarkDecodeMessagePreVote(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessageProposal(t *testing.T) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -485,7 +485,7 @@ func TestMarshalUnmarshalMessageProposal(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessageProposal(b *testing.B) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -494,7 +494,7 @@ func BenchmarkMarshalMsgMessageProposal(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessageProposal(b *testing.B) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -506,7 +506,7 @@ func BenchmarkAppendMsgMessageProposal(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessageProposal(b *testing.B) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -520,7 +520,7 @@ func BenchmarkUnmarshalMessageProposal(b *testing.B) {
 }
 
 func TestEncodeDecodeMessageProposal(t *testing.T) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -529,7 +529,7 @@ func TestEncodeDecodeMessageProposal(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeMessageProposal Msgsize() is inaccurate")
 	}
 
-	vn := MessageProposal{}
+	vn := BftMessageProposal{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -544,7 +544,7 @@ func TestEncodeDecodeMessageProposal(t *testing.T) {
 }
 
 func BenchmarkEncodeMessageProposal(b *testing.B) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -558,7 +558,7 @@ func BenchmarkEncodeMessageProposal(b *testing.B) {
 }
 
 func BenchmarkDecodeMessageProposal(b *testing.B) {
-	v := MessageProposal{}
+	v := BftMessageProposal{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

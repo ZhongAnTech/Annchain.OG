@@ -301,18 +301,18 @@ func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound
 	}
 	switch messageType {
 	case BftMessageTypeProposal:
-		m = &MessageProposal{
+		m = &BftMessageProposal{
 			BftBasicInfo: basicInfo,
 			Value:        content,
 			ValidRound:   validRound,
 		}
 	case BftMessageTypePreVote:
-		m = &MessagePreVote{
+		m = &BftMessagePreVote{
 			BftBasicInfo: basicInfo,
 			Idv:          idv,
 		}
 	case BftMessageTypePreCommit:
-		m = &MessagePreCommit{
+		m = &BftMessagePreCommit{
 			BftBasicInfo: basicInfo,
 			Idv:          idv,
 		}
@@ -361,9 +361,9 @@ func (p *DefaultBftPartner) WaitStepTimeout(stepType StepType, timeout time.Dura
 func (p *DefaultBftPartner) handleMessage(message BftMessage) {
 	switch message.GetType() {
 	case BftMessageTypeProposal:
-		msg, ok := message.(*MessageProposal)
+		msg, ok := message.(*BftMessageProposal)
 		if !ok {
-			logrus.Warn("it claims to be a MessageProposal but the payload does not align")
+			logrus.Warn("it claims to be a BftMessageProposal but the payload does not align")
 			return
 		}
 
@@ -381,9 +381,9 @@ func (p *DefaultBftPartner) handleMessage(message BftMessage) {
 		}).Debug("In")
 		p.handleProposal(msg)
 	case BftMessageTypePreVote:
-		msg, ok := message.(*MessagePreVote)
+		msg, ok := message.(*BftMessagePreVote)
 		if !ok {
-			logrus.Warn("it claims to be a MessagePreVote but the payload does not align")
+			logrus.Warn("it claims to be a BftMessagePreVote but the payload does not align")
 			return
 		}
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
@@ -400,9 +400,9 @@ func (p *DefaultBftPartner) handleMessage(message BftMessage) {
 		}).Debug("In")
 		p.handlePreVote(msg)
 	case BftMessageTypePreCommit:
-		msg, ok := message.(*MessagePreCommit)
+		msg, ok := message.(*BftMessagePreCommit)
 		if !ok {
-			logrus.Warn("it claims to be a MessagePreCommit but the payload does not align")
+			logrus.Warn("it claims to be a BftMessagePreCommit but the payload does not align")
 			return
 		}
 		if needHandle := p.checkRound(&msg.BftBasicInfo); !needHandle {
@@ -424,7 +424,7 @@ func (p *DefaultBftPartner) handleMessage(message BftMessage) {
 	}
 
 }
-func (p *DefaultBftPartner) handleProposal(proposal *MessageProposal) {
+func (p *DefaultBftPartner) handleProposal(proposal *BftMessageProposal) {
 	state, ok := p.BftStatus.States[proposal.HeightRound]
 	if !ok {
 		logrus.WithField("IM", p.Id).WithField("hr", proposal.HeightRound).Error("proposal height round not in states")
@@ -460,7 +460,7 @@ func (p *DefaultBftPartner) handleProposal(proposal *MessageProposal) {
 		}
 	}
 }
-func (p *DefaultBftPartner) handlePreVote(vote *MessagePreVote) {
+func (p *DefaultBftPartner) handlePreVote(vote *BftMessagePreVote) {
 	// rule line 34
 	count := p.count(BftMessageTypePreVote, vote.HeightRound.Height, vote.HeightRound.Round, MatchTypeAny, nil)
 	state, ok := p.BftStatus.States[vote.HeightRound]
@@ -499,7 +499,7 @@ func (p *DefaultBftPartner) handlePreVote(vote *MessagePreVote) {
 
 }
 
-func (p *DefaultBftPartner) handlePreCommit(commit *MessagePreCommit) {
+func (p *DefaultBftPartner) handlePreCommit(commit *BftMessagePreCommit) {
 	// rule line 47
 	count := p.count(BftMessageTypePreCommit, commit.HeightRound.Height, commit.HeightRound.Round, MatchTypeAny, nil)
 	state := p.BftStatus.States[commit.HeightRound]
@@ -678,7 +678,7 @@ func (p *DefaultBftPartner) changeStep(stepType StepType) {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultBftPartner) dumpVotes(votes []*MessagePreVote) string {
+func (p *DefaultBftPartner) dumpVotes(votes []*BftMessagePreVote) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {
@@ -695,7 +695,7 @@ func (p *DefaultBftPartner) dumpVotes(votes []*MessagePreVote) string {
 }
 
 // dumpVotes prints all current votes received
-func (p *DefaultBftPartner) dumpCommits(votes []*MessagePreCommit) string {
+func (p *DefaultBftPartner) dumpCommits(votes []*BftMessagePreCommit) string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
 	for _, vote := range votes {

@@ -2,6 +2,7 @@ package communicator
 
 import (
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -14,4 +15,21 @@ type P2PSender interface {
 // P2PReceiver provides a channel for consumer to receive messages from p2p
 type P2PReceiver interface {
 	GetMessageChannel() chan msg.TransportableMessage
+}
+
+type AnnsensusMessageAdapter interface {
+	AdaptOgMessage(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
+	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error)
+}
+
+type OgPeerInfo struct {
+}
+
+type OgPeerCommunicatorOutgoing interface {
+	Broadcast(msg OgMessage, peers []PeerInfo)
+	Unicast(msg OgMessage, peer PeerInfo)
+}
+type OgPeerCommunicatorIncoming interface {
+	GetPipeIn() chan OgMessage
+	GetPipeOut() chan OgMessage
 }

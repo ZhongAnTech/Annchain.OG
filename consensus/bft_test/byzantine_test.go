@@ -99,7 +99,7 @@ func (p *dummyByzantineBftPeerCommunicator) doBadThings(msg bft.BftMessage) (upd
 		if p.ByzantineFeatures.SilenceProposal {
 			toSend = false
 		} else if p.ByzantineFeatures.BadProposal {
-			v := updatedMessage.(*bft.MessageProposal)
+			v := updatedMessage.(*bft.BftMessageProposal)
 			v.HeightRound.Round++
 			updatedMessage = v
 		}
@@ -108,7 +108,7 @@ func (p *dummyByzantineBftPeerCommunicator) doBadThings(msg bft.BftMessage) (upd
 		if p.ByzantineFeatures.SilencePreVote {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreVote {
-			v := updatedMessage.(*bft.MessagePreVote)
+			v := updatedMessage.(*bft.BftMessagePreVote)
 			v.HeightRound.Round++
 			updatedMessage = v
 		}
@@ -116,7 +116,7 @@ func (p *dummyByzantineBftPeerCommunicator) doBadThings(msg bft.BftMessage) (upd
 		if p.ByzantineFeatures.SilencePreCommit {
 			toSend = false
 		} else if p.ByzantineFeatures.BadPreCommit {
-			v := updatedMessage.(*bft.MessagePreCommit)
+			v := updatedMessage.(*bft.BftMessagePreCommit)
 			v.HeightRound.Round++
 			updatedMessage = v
 		}

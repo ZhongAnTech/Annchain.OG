@@ -15,20 +15,20 @@ import (
 type BftMessageUnmarshaller struct {
 }
 
-func (b *BftMessageUnmarshaller) Unmarshal(messageType msg.BinaryMessageType, message []byte) (outMsg bft.BftMessage, err error) {
-	switch bft.BftMessageType(messageType) {
+func (b *BftMessageUnmarshaller) Unmarshal(messageType bft.BftMessageType, message []byte) (outMsg bft.BftMessage, err error) {
+	switch messageType {
 	case bft.BftMessageTypeProposal:
-		m := &bft.MessageProposal{
+		m := &bft.BftMessageProposal{
 			Value: &bft.StringProposal{},
 		}
 		_, err = m.UnmarshalMsg(message)
 		outMsg = m
 	case bft.BftMessageTypePreVote:
-		m := &bft.MessagePreVote{}
+		m := &bft.BftMessagePreVote{}
 		_, err = m.UnmarshalMsg(message)
 		outMsg = m
 	case bft.BftMessageTypePreCommit:
-		m := &bft.MessagePreCommit{}
+		m := &bft.BftMessagePreCommit{}
 		_, err = m.UnmarshalMsg(message)
 		outMsg = m
 	default:
@@ -56,9 +56,9 @@ func NewTrustfulBftAdapter(
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
 }
 
-func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) ogmessage.MessageSigned {
+func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSigned {
 	publicKey, signature := r.signatureProvider.Sign(rawMessage.SignatureTargets())
-	signedMessage := ogmessage.MessageSigned{
+	signedMessage := AnnsensusMessageSigned{
 		InnerMessageType: msg.BinaryMessageType(rawMessage.GetType()),
 		InnerMessage:     rawMessage.SignatureTargets(),
 		Signature:        signature,
@@ -83,7 +83,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) ogmessage.MessageSi
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
 
-func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *ogmessage.MessageSigned) error {
+func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageSigned) error {
 	peers, err := b.termProvider.Peers(signedMsg.TermId)
 	if err != nil {
 		// this term is unknown.
@@ -106,15 +106,15 @@ func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publi
 	return nil
 }
 
-func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	if incomingMsg.GetType() != ogmessage.MessageTypeSigned {
+func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
+	if AnnsensusMessageType(incomingMsg.GetType()) != AnnsensusMessageTypeSigned {
 		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
 		return
 	}
 
-	signedMsg, ok := incomingMsg.(*ogmessage.MessageSigned)
+	signedMsg, ok := incomingMsg.(*AnnsensusMessageSigned)
 	if !ok {
-		err = errors.New("TrustfulBftAdapter received a message of type MessageSigned but it is not.")
+		err = errors.New("TrustfulBftAdapter received a message of type AnnsensusMessageSigned but it is not.")
 		return
 	}
 
@@ -141,13 +141,13 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage
 	return bftMessage, nil
 }
 
-// PlainBftAdapter will not wrap the message using MessageTypeSigned
+// PlainBftAdapter will not wrap the message using MessageTypeAnnsensusSigned
 type PlainBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
 func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) {
-	if incomingMsg.GetType() != ogmessage.MessageTypePlain {
+	if incomingMsg.GetType() != ogmessage.MessageTypeAnnsensus {
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
@@ -171,7 +171,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 	var msgBytes []byte
 	switch outgoingMsg.GetType() {
 	case bft.BftMessageTypeProposal:
-		omsg := outgoingMsg.(*bft.MessageProposal)
+		omsg := outgoingMsg.(*bft.BftMessageProposal)
 		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
@@ -181,7 +181,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreVote:
-		omsg := outgoingMsg.(*bft.MessagePreVote)
+		omsg := outgoingMsg.(*bft.BftMessagePreVote)
 		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return
@@ -191,7 +191,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreCommit:
-		omsg := outgoingMsg.(*bft.MessagePreCommit)
+		omsg := outgoingMsg.(*bft.BftMessagePreCommit)
 		msgBytes, err = omsg.MarshalMsg(nil)
 		if err != nil {
 			return

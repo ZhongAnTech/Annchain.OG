@@ -78,13 +78,13 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 		message = &ogmessage.MessageNewActionTx{}
 
 	//case MessageTypeProposal:
-	//	message = &bft.MessageProposal{
+	//	message = &bft.BftMessageProposal{
 	//		Value: &bft.SequencerProposal{},
 	//	}
 	//case MessageTypePreVote:
-	//	message = &bft.MessagePreVote{}
+	//	message = &bft.BftMessagePreVote{}
 	//case MessageTypePreCommit:
-	//	message = &bft.MessagePreCommit{}
+	//	message = &bft.BftMessagePreCommit{}
 	case MessageTypeNewTxs:
 		message = &ogmessage.MessageNewTxs{}
 	case MessageTypeSequencerHeader:

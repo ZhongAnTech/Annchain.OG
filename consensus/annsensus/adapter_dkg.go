@@ -75,7 +75,7 @@ type PlainDkgAdapter struct {
 }
 
 func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) {
-	if incomingMsg.GetType() != ogmessage.MessageTypePlain {
+	if incomingMsg.GetType() != ogmessage.MessageTypeAnnsensusPlain {
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}

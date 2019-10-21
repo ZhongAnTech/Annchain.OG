@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
 
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
 	log "github.com/sirupsen/logrus"
 	"testing"

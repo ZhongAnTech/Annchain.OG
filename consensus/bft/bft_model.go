@@ -89,19 +89,19 @@ type PeerInfo struct {
 // HeightRoundState is the structure for each Height/Round
 // Always keep this state that is higher than current in Partner.States map in order not to miss future things
 type HeightRoundState struct {
-	MessageProposal                       *MessageProposal // the proposal received in this round
+	MessageProposal                       *BftMessageProposal // the proposal received in this round
 	LockedValue                           Proposal
 	LockedRound                           int
 	ValidValue                            Proposal
 	ValidRound                            int
-	Decision                              ConsensusDecision   // final decision of mine in this round
-	PreVotes                              []*MessagePreVote   // other peers' PreVotes
-	PreCommits                            []*MessagePreCommit // other peers' PreCommits
-	Sources                               map[uint16]bool     // for line 55, who send future round so that I may advance?
-	StepTypeEqualPreVoteTriggered         bool                // for line 34, FIRST time trigger
-	StepTypeEqualOrLargerPreVoteTriggered bool                // for line 36, FIRST time trigger
-	StepTypeEqualPreCommitTriggered       bool                // for line 47, FIRST time trigger
-	Step                                  StepType            // current step in this round
+	Decision                              ConsensusDecision      // final decision of mine in this round
+	PreVotes                              []*BftMessagePreVote   // other peers' PreVotes
+	PreCommits                            []*BftMessagePreCommit // other peers' PreCommits
+	Sources                               map[uint16]bool        // for line 55, who send future round so that I may advance?
+	StepTypeEqualPreVoteTriggered         bool                   // for line 34, FIRST time trigger
+	StepTypeEqualOrLargerPreVoteTriggered bool                   // for line 36, FIRST time trigger
+	StepTypeEqualPreCommitTriggered       bool                   // for line 47, FIRST time trigger
+	Step                                  StepType               // current step in this round
 	StartAt                               time.Time
 }
 
@@ -109,8 +109,8 @@ func NewHeightRoundState(total int) *HeightRoundState {
 	return &HeightRoundState{
 		LockedRound: -1,
 		ValidRound:  -1,
-		PreVotes:    make([]*MessagePreVote, total),
-		PreCommits:  make([]*MessagePreCommit, total),
+		PreVotes:    make([]*BftMessagePreVote, total),
+		PreCommits:  make([]*BftMessagePreCommit, total),
 		Sources:     make(map[uint16]bool),
 		StartAt:     time.Now(),
 	}

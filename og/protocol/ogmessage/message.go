@@ -77,9 +77,7 @@ const (
 
 	MessageTypeNewArchive
 	MessageTypeNewActionTx
-	MessageTypeEncrypted
-	MessageTypeSigned
-	MessageTypePlain
+	MessageTypeAnnsensus
 )
 
 //func (mt msg.BinaryMessageType) String() string {
@@ -169,10 +167,10 @@ const (
 //		return "GetReceiptsMsg"
 //	case MessageTypeOg02Length:
 //		return "MessageTypeOg02Length"
-//	case MessageTypeEncrypted:
-//		return "MessageTypeEncrypted"
-//	case MessageTypeSigned:
-//		return "MessageTypeSigned"
+//	case MessageTypeAnnsensusEncrypted:
+//		return "MessageTypeAnnsensusEncrypted"
+//	case MessageTypeAnnsensusSigned:
+//		return "MessageTypeAnnsensusSigned"
 //	default:
 //		return fmt.Sprintf("unkown message type %d", mt)
 //	}

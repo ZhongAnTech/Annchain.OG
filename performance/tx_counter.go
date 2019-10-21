@@ -16,7 +16,8 @@ package performance
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"go.uber.org/atomic"
 	"time"
 )
@@ -31,17 +32,17 @@ type TxCounter struct {
 	StartupTime        time.Time     `json:"startupTime"`        // timestamp of the program started.
 
 	// listeners
-	NewTxReceivedChan  chan protocol_message.Txi                 `json:"-"`
-	NewTxGeneratedChan chan protocol_message.Txi                 `json:"-"`
-	BatchConfirmedChan chan map[common.Hash]protocol_message.Txi `json:"-"`
-	quit               chan bool                                 `json:"-"`
+	NewTxReceivedChan  chan ogmessage.Txi                 `json:"-"`
+	NewTxGeneratedChan chan ogmessage.Txi                 `json:"-"`
+	BatchConfirmedChan chan map[common.Hash]ogmessage.Txi `json:"-"`
+	quit               chan bool                          `json:"-"`
 }
 
 func NewTxCounter() *TxCounter {
 	return &TxCounter{
-		BatchConfirmedChan: make(chan map[common.Hash]protocol_message.Txi),
-		NewTxReceivedChan:  make(chan protocol_message.Txi),
-		NewTxGeneratedChan: make(chan protocol_message.Txi),
+		BatchConfirmedChan: make(chan map[common.Hash]ogmessage.Txi),
+		NewTxReceivedChan:  make(chan ogmessage.Txi),
+		NewTxGeneratedChan: make(chan ogmessage.Txi),
 		quit:               make(chan bool),
 		StartupTime:        time.Now(),
 	}
@@ -55,7 +56,7 @@ func (t *TxCounter) loop() {
 		case tx := <-t.NewTxReceivedChan:
 			switch tx.GetType() {
 
-			case protocol_message.TxBaseTypeSequencer:
+			case ogmessage.TxBaseTypeSequencer:
 				t.SequencerReceived.Inc()
 			default:
 				t.TxReceived.Inc()
@@ -64,7 +65,7 @@ func (t *TxCounter) loop() {
 		case batch := <-t.BatchConfirmedChan:
 			for _, tx := range batch {
 				switch tx.GetType() {
-				case protocol_message.TxBaseTypeSequencer:
+				case ogmessage.TxBaseTypeSequencer:
 					t.SequencerConfirmed.Inc()
 				default:
 					t.TxConfirmed.Inc()
@@ -73,7 +74,7 @@ func (t *TxCounter) loop() {
 			}
 		case tx := <-t.NewTxGeneratedChan:
 			switch tx.GetType() {
-			case protocol_message.TxBaseTypeSequencer:
+			case ogmessage.TxBaseTypeSequencer:
 				t.SequencerGenerated.Inc()
 			default:
 				t.TxGenerated.Inc()

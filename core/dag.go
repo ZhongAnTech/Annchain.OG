@@ -20,7 +20,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"sort"
@@ -63,12 +64,12 @@ type Dag struct {
 	preloadDB *state.PreloadDB
 	statedb   *state.StateDB
 
-	genesis         *protocol_message.Sequencer
-	latestSequencer *protocol_message.Sequencer
+	genesis         *ogmessage.Sequencer
+	latestSequencer *ogmessage.Sequencer
 
 	txcached *txcached
 
-	OnConsensusTXConfirmed chan []protocol_message.Txi
+	OnConsensusTXConfirmed chan []ogmessage.Txi
 	close                  chan struct{}
 
 	mu sync.RWMutex
@@ -144,7 +145,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *protocol_message.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *ogmessage.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -215,7 +216,7 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 }
 
 // Genesis returns the genesis tx of dag
-func (dag *Dag) Genesis() *protocol_message.Sequencer {
+func (dag *Dag) Genesis() *ogmessage.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -223,7 +224,7 @@ func (dag *Dag) Genesis() *protocol_message.Sequencer {
 }
 
 // LatestSequencer returns the latest sequencer stored in dag
-func (dag *Dag) LatestSequencer() *protocol_message.Sequencer {
+func (dag *Dag) LatestSequencer() *ogmessage.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -263,13 +264,13 @@ func (dag *Dag) PrePush(batch *ConfirmBatch) (common.Hash, error) {
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
 // ogdb only.
-func (dag *Dag) GetTx(hash common.Hash) protocol_message.Txi {
+func (dag *Dag) GetTx(hash common.Hash) ogmessage.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTx(hash)
 }
-func (dag *Dag) getTx(hash common.Hash) protocol_message.Txi {
+func (dag *Dag) getTx(hash common.Hash) ogmessage.Txi {
 	tx := dag.txcached.get(hash)
 	if tx != nil {
 		return tx
@@ -286,14 +287,14 @@ func (dag *Dag) Exist(addr common.Address) bool {
 }
 
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
-func (dag *Dag) GetTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (dag *Dag) GetTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag *Dag) getTestTx(hash common.Hash) protocol_message.Txi {
+func (dag *Dag) getTestTx(hash common.Hash) ogmessage.Txi {
 	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
 		log.Info("tx not found")
@@ -303,7 +304,7 @@ func (dag *Dag) getTestTx(hash common.Hash) protocol_message.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx protocol_message.Tx
+		var tx ogmessage.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -312,7 +313,7 @@ func (dag *Dag) getTestTx(hash common.Hash) protocol_message.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq protocol_message.Sequencer
+		var sq ogmessage.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -351,7 +352,7 @@ func (dag *Dag) getTestTx(hash common.Hash) protocol_message.Txi {
 	return nil
 }
 
-func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if dag.testDb == nil {
@@ -367,20 +368,20 @@ func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) pr
 	return dag.getTestTx(hash)
 }
 
-func (dag *Dag) getTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (dag *Dag) getTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	return dag.accessor.ReadTxByNonce(addr, nonce)
 }
 
 // GetTxs get a bundle of txs according to a hash list.
-func (dag *Dag) GetTxis(hashs common.Hashes) protocol_message.Txis {
+func (dag *Dag) GetTxis(hashs common.Hashes) ogmessage.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxis(hashs)
 }
 
-func (dag *Dag) getTxis(hashs common.Hashes) protocol_message.Txis {
-	var txs protocol_message.Txis
+func (dag *Dag) getTxis(hashs common.Hashes) ogmessage.Txis {
+	var txs ogmessage.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
 		if tx != nil {
@@ -390,8 +391,8 @@ func (dag *Dag) getTxis(hashs common.Hashes) protocol_message.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs common.Hashes, baseType protocol_message.TxBaseType) protocol_message.Txis {
-	var txs protocol_message.Txis
+func (dag *Dag) getTxisByType(hashs common.Hashes, baseType ogmessage.TxBaseType) ogmessage.Txis {
+	var txs ogmessage.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
 		if tx != nil && tx.GetType() == baseType {
@@ -417,7 +418,7 @@ func (dag *Dag) getTxConfirmHeight(hash common.Hash) (uint64, error) {
 	return tx.GetBase().GetHeight(), nil
 }
 
-func (dag *Dag) GetTxisByNumber(height uint64) protocol_message.Txis {
+func (dag *Dag) GetTxisByNumber(height uint64) ogmessage.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -432,7 +433,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) protocol_message.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (protocol_message.Txis, *protocol_message.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -444,7 +445,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (protocol_message.Txis, *prot
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq protocol_message.Sequencer
+	var seq ogmessage.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
@@ -465,7 +466,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (protocol_message.Txis, *prot
 		return nil, &seq
 	}
 	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
-	var txs protocol_message.Txis
+	var txs ogmessage.Txis
 	for _, hash := range hashs {
 		tx := dag.getTestTx(hash)
 		if tx != nil {
@@ -475,7 +476,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (protocol_message.Txis, *prot
 	return txs, &seq
 }
 
-func (dag *Dag) GetTxsByNumberAndType(height uint64, txType protocol_message.TxBaseType) protocol_message.Txis {
+func (dag *Dag) GetTxsByNumberAndType(height uint64, txType ogmessage.TxBaseType) ogmessage.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -502,27 +503,27 @@ func (dag *Dag) GetReceipt(hash common.Hash) *Receipt {
 	return dag.accessor.ReadReceipt(seqid, hash)
 }
 
-func (dag *Dag) GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer {
+func (dag *Dag) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		return tx
 	default:
 		return nil
 	}
 }
 
-func (dag *Dag) GetSequencerByHeight(height uint64) *protocol_message.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *ogmessage.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerByHeight(height uint64) *protocol_message.Sequencer {
+func (dag *Dag) getSequencerByHeight(height uint64) *ogmessage.Sequencer {
 	if height == 0 {
 		return dag.genesis
 	}
@@ -554,13 +555,13 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *protocol_message.Sequencer {
+func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *ogmessage.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		if tx.Height != seqHeight {
 			log.Warn("seq height mismatch")
 			return nil
@@ -699,20 +700,20 @@ func (dag *Dag) getState(addr common.Address, key common.Hash) common.Hash {
 }
 
 //GetTxsByAddress get all txs from this address
-func (dag *Dag) GetTxsByAddress(addr common.Address) []protocol_message.Txi {
+func (dag *Dag) GetTxsByAddress(addr common.Address) []ogmessage.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxsByAddress(addr)
 }
 
-func (dag *Dag) getTxsByAddress(addr common.Address) []protocol_message.Txi {
+func (dag *Dag) getTxsByAddress(addr common.Address) []ogmessage.Txi {
 	nonce, err := dag.getLatestNonce(addr)
 	if (err != nil) || (nonce == 0) {
 		return nil
 	}
 	var i int64
-	var txs []protocol_message.Txi
+	var txs []ogmessage.Txi
 	for i = int64(nonce); i > 0; i-- {
 		tx := dag.getTxByNonce(addr, uint64(i))
 		if tx != nil {
@@ -762,7 +763,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
 	txhashes := common.Hashes{}
-	consTxs := []protocol_message.Txi{}
+	consTxs := []ogmessage.Txi{}
 	sId := dag.statedb.Snapshot()
 
 	for _, txi := range batch.Txs {
@@ -782,11 +783,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		// Consensus related txs should not some specific types, should be
 		// changed to a modular way.
 		txType := txi.GetType()
-		if txType == protocol_message.TxBaseTypeCampaign || txType == protocol_message.TxBaseTypeTermChange {
+		if txType == ogmessage.TxBaseTypeCampaign || txType == ogmessage.TxBaseTypeTermChange {
 			consTxs = append(consTxs, txi)
 		}
 	}
-	var writedTxs protocol_message.Txis
+	var writedTxs ogmessage.Txis
 	for _, txi := range batch.Txs {
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
@@ -909,7 +910,7 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
-	dag.latestSequencer = protocol_message.RandomSequencer()
+	dag.latestSequencer = ogmessage.RandomSequencer()
 	dag.latestSequencer.Height = cf.SeqHeight
 	return dag.writeConfirmTime(cf)
 }
@@ -922,10 +923,10 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
 // relation into db, finally write the tx itself. Data will be overwritten
 // if it already exists in db.
-func (dag *Dag) WriteTransaction(putter *Putter, tx protocol_message.Txi) error {
+func (dag *Dag) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	if tx.GetType() != protocol_message.TxBaseTypeArchive {
+	if tx.GetType() != ogmessage.TxBaseTypeArchive {
 		err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
 		if err != nil {
 			return fmt.Errorf("write latest nonce err: %v", err)
@@ -950,9 +951,9 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 //
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
-func (dag *Dag) ProcessTransaction(tx protocol_message.Txi, preload bool) ([]byte, *Receipt, error) {
+func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
-	if tx.GetType() == protocol_message.TxBaseTypeArchive {
+	if tx.GetType() == ogmessage.TxBaseTypeArchive {
 		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
 		return nil, nil, nil
 	}
@@ -969,20 +970,20 @@ func (dag *Dag) ProcessTransaction(tx protocol_message.Txi, preload bool) ([]byt
 		db.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
-	if tx.GetType() == protocol_message.TxBaseTypeSequencer {
+	if tx.GetType() == ogmessage.TxBaseTypeSequencer {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == protocol_message.TxBaseTypeCampaign {
+	if tx.GetType() == ogmessage.TxBaseTypeCampaign {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == protocol_message.TxBaseTypeTermChange {
+	if tx.GetType() == ogmessage.TxBaseTypeTermChange {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == protocol_message.TxBaseAction {
-		actionTx := tx.(*protocol_message.ActionTx)
+	if tx.GetType() == ogmessage.TxBaseAction {
+		actionTx := tx.(*ogmessage.ActionTx)
 		receipt, err := dag.processTokenTransaction(actionTx)
 		if err != nil {
 			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
@@ -990,13 +991,13 @@ func (dag *Dag) ProcessTransaction(tx protocol_message.Txi, preload bool) ([]byt
 		return nil, receipt, nil
 	}
 
-	if tx.GetType() != protocol_message.TxBaseTypeNormal {
+	if tx.GetType() != ogmessage.TxBaseTypeNormal {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
 	// transfer balance
-	txnormal := tx.(*protocol_message.Tx)
+	txnormal := tx.(*ogmessage.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
@@ -1061,10 +1062,10 @@ func (dag *Dag) ProcessTransaction(tx protocol_message.Txi, preload bool) ([]byt
 	return ret, receipt, nil
 }
 
-func (dag *Dag) processTokenTransaction(tx *protocol_message.ActionTx) (*Receipt, error) {
+func (dag *Dag) processTokenTransaction(tx *ogmessage.ActionTx) (*Receipt, error) {
 
-	actionData := tx.ActionData.(*protocol_message.PublicOffering)
-	if tx.Action == protocol_message.ActionTxActionIPO {
+	actionData := tx.ActionData.(*ogmessage.PublicOffering)
+	if tx.Action == ogmessage.ActionTxActionIPO {
 		issuer := tx.Sender()
 		name := actionData.TokenName
 		reIssuable := actionData.EnableSPO
@@ -1079,7 +1080,7 @@ func (dag *Dag) processTokenTransaction(tx *protocol_message.ActionTx) (*Receipt
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == protocol_message.ActionTxActionSPO {
+	if tx.Action == ogmessage.ActionTxActionSPO {
 		tokenID := actionData.TokenId
 		amount := actionData.Value
 
@@ -1091,7 +1092,7 @@ func (dag *Dag) processTokenTransaction(tx *protocol_message.ActionTx) (*Receipt
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == protocol_message.ActionTxActionDestroy {
+	if tx.Action == ogmessage.ActionTxActionDestroy {
 		tokenID := actionData.TokenId
 
 		err := dag.statedb.DestroyToken(tokenID)
@@ -1141,22 +1142,22 @@ func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 type txcached struct {
 	maxsize int
 	order   common.Hashes
-	txs     map[common.Hash]protocol_message.Txi
+	txs     map[common.Hash]ogmessage.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
 		order:   common.Hashes{},
-		txs:     make(map[common.Hash]protocol_message.Txi),
+		txs:     make(map[common.Hash]ogmessage.Txi),
 	}
 }
 
-func (tc *txcached) get(hash common.Hash) protocol_message.Txi {
+func (tc *txcached) get(hash common.Hash) ogmessage.Txi {
 	return tc.txs[hash]
 }
 
-func (tc *txcached) add(tx protocol_message.Txi) {
+func (tc *txcached) add(tx ogmessage.Txi) {
 	if _, ok := tc.txs[tx.GetTxHash()]; ok {
 		return
 	}
@@ -1170,8 +1171,8 @@ func (tc *txcached) add(tx protocol_message.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq *protocol_message.Sequencer
-	Txs protocol_message.Txis
+	Seq *ogmessage.Sequencer
+	Txs ogmessage.Txis
 }
 
 func (c *ConfirmBatch) String() string {

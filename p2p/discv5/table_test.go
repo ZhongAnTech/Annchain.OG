@@ -19,6 +19,7 @@ package discv5
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"math/rand"
 
 	"net"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 )
 
 type nullTransport struct{}

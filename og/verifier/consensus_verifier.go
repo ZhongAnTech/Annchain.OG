@@ -3,25 +3,25 @@ package verifier
 import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 )
 
 //consensus related verification
 type ConsensusVerifier struct {
 	VerifyCampaign   func(cp *campaign.Campaign) bool
 	VerifyTermChange func(cp *campaign.TermChange) bool
-	VerifySequencer  func(cp *protocol_message.Sequencer) bool
+	VerifySequencer  func(cp *ogmessage.Sequencer) bool
 }
 
-func (c *ConsensusVerifier) Verify(t protocol_message.Txi) bool {
+func (c *ConsensusVerifier) Verify(t ogmessage.Txi) bool {
 	switch tx := t.(type) {
-	case *protocol_message.Tx:
+	case *ogmessage.Tx:
 		return true
 	case *archive.Archive:
 		return true
-	case *protocol_message.ActionTx:
+	case *ogmessage.ActionTx:
 		return true
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		return c.VerifySequencer(tx)
 	case *campaign.Campaign:
 		return c.VerifyCampaign(tx)

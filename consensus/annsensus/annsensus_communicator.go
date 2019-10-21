@@ -4,7 +4,8 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/communicator"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -59,9 +60,9 @@ func (r *AnnsensusCommunicator) Run() {
 func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
 	switch annsensusMessage.GetType() {
 
-	case protocol_message.MessageTypeSigned:
+	case ogmessage.MessageTypeSigned:
 		fallthrough
-	case protocol_message.MessageTypePlain:
+	case ogmessage.MessageTypePlain:
 		// let bft and dkg handle this message since I don't know the content
 		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(annsensusMessage)
 		if err == nil {

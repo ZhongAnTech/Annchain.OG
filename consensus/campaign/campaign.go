@@ -17,7 +17,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"
@@ -29,7 +30,7 @@ import (
 
 //msgp:tuple Campaign
 type Campaign struct {
-	protocol_message.TxBase
+	ogmessage.TxBase
 	DkgPublicKey []byte
 	Vrf          vrf.VrfInfo
 	Issuer       *common.Address
@@ -39,7 +40,7 @@ type Campaign struct {
 //msgp:tuple Campaigns
 type Campaigns []*Campaign
 
-func (c *Campaign) GetBase() *protocol_message.TxBase {
+func (c *Campaign) GetBase() *ogmessage.TxBase {
 	return &c.TxBase
 }
 
@@ -51,7 +52,7 @@ func (tc *Campaign) GetSender() *common.Address {
 	return tc.Issuer
 }
 
-func (c *Campaign) Compare(tx protocol_message.Txi) bool {
+func (c *Campaign) Compare(tx ogmessage.Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
 		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
@@ -80,7 +81,7 @@ func (c *Campaign) SignatureTargets() []byte {
 
 	w.Write(c.DkgPublicKey, c.Vrf.Vrf, c.Vrf.PublicKey, c.Vrf.Proof, c.Vrf.Message, c.AccountNonce)
 
-	if !protocol_message.CanRecoverPubFromSig {
+	if !ogmessage.CanRecoverPubFromSig {
 		w.Write(c.Issuer.Bytes)
 	}
 
@@ -148,7 +149,7 @@ func (c *Campaign) MarshalDkgKey() error {
 	return nil
 }
 
-func (c *Campaign) RawTxi() protocol_message.RawTxi {
+func (c *Campaign) RawTxi() ogmessage.RawTxi {
 	return c.RawCampaign()
 }
 

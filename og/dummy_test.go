@@ -5,13 +5,14 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 )
 
 type dummyDag struct {
-	dmap map[common.Hash]protocol_message.Txi
+	dmap map[common.Hash]ogmessage.Txi
 }
 
 func (d *dummyDag) GetHeight() uint64 {
@@ -22,11 +23,11 @@ func (d *dummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, nil
 }
 
-func (d *dummyDag) GetSequencerByHeight(id uint64) *protocol_message.Sequencer {
+func (d *dummyDag) GetSequencerByHeight(id uint64) *ogmessage.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer {
+func (d *dummyDag) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
 	return nil
 }
 
@@ -34,47 +35,47 @@ func (d *dummyDag) GetBalance(address common.Address, tokenId int32) *math.BigIn
 	return math.NewBigInt(0)
 }
 
-func (d *dummyDag) GetTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (d *dummyDag) GetTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	return nil
 }
 
-func (d *dummyDag) GetTxisByNumber(id uint64) protocol_message.Txis {
+func (d *dummyDag) GetTxisByNumber(id uint64) ogmessage.Txis {
 	return nil
 }
 
-func (d *dummyDag) GetTestTxisByNumber(id uint64) protocol_message.Txis {
+func (d *dummyDag) GetTestTxisByNumber(id uint64) ogmessage.Txis {
 	return nil
 }
 
-func (d *dummyDag) LatestSequencer() *protocol_message.Sequencer {
+func (d *dummyDag) LatestSequencer() *ogmessage.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *protocol_message.Sequencer {
+func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *ogmessage.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) Genesis() *protocol_message.Sequencer {
+func (d *dummyDag) Genesis() *ogmessage.Sequencer {
 	return nil
 }
 
 func (d *dummyDag) init() {
-	d.dmap = make(map[common.Hash]protocol_message.Txi)
+	d.dmap = make(map[common.Hash]ogmessage.Txi)
 	tx := sampleTx("0x00", []string{})
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummyDag) GetTx(hash common.Hash) protocol_message.Txi {
+func (d *dummyDag) GetTx(hash common.Hash) ogmessage.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
 	return nil
 }
 
-func sampleTx(selfHash string, parentsHash []string) *protocol_message.Tx {
-	tx := &protocol_message.Tx{TxBase: protocol_message.TxBase{
+func sampleTx(selfHash string, parentsHash []string) *ogmessage.Tx {
+	tx := &ogmessage.Tx{TxBase: ogmessage.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        protocol_message.TxBaseTypeNormal,
+		Type:        ogmessage.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}
@@ -85,7 +86,7 @@ func sampleTx(selfHash string, parentsHash []string) *protocol_message.Tx {
 }
 
 type dummySyncer struct {
-	dmap                map[common.Hash]protocol_message.Txi
+	dmap                map[common.Hash]ogmessage.Txi
 	buffer              *TxBuffer
 	acquireTxDedupCache gcache.Cache
 }
@@ -100,7 +101,7 @@ func (d *dummySyncer) SyncHashList(seqHash common.Hash) {
 	return
 }
 
-func (d *dummySyncer) Know(tx protocol_message.Txi) {
+func (d *dummySyncer) Know(tx ogmessage.Txi) {
 	d.dmap[tx.GetTxHash()] = tx
 }
 
@@ -126,18 +127,18 @@ func (d *dummySyncer) Enqueue(hash *common.Hash, childHash common.Hash, b bool) 
 }
 
 type dummyTxPool struct {
-	dmap map[common.Hash]protocol_message.Txi
+	dmap map[common.Hash]ogmessage.Txi
 }
 
 func (d *dummyTxPool) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("not supported")
 }
 
-func (p *dummyTxPool) IsBadSeq(seq *protocol_message.Sequencer) error {
+func (p *dummyTxPool) IsBadSeq(seq *ogmessage.Sequencer) error {
 	return nil
 }
 
-func (d *dummyTxPool) RegisterOnNewTxReceived(c chan protocol_message.Txi, s string, b bool) {
+func (d *dummyTxPool) RegisterOnNewTxReceived(c chan ogmessage.Txi, s string, b bool) {
 	return
 }
 
@@ -145,24 +146,24 @@ func (d *dummyTxPool) GetMaxWeight() uint64 {
 	return 0
 }
 
-func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	return nil
 }
 
 func (d *dummyTxPool) init() {
-	d.dmap = make(map[common.Hash]protocol_message.Txi)
+	d.dmap = make(map[common.Hash]ogmessage.Txi)
 	tx := sampleTx("0x01", []string{"0x00"})
 	d.dmap[tx.GetTxHash()] = tx
 }
 
-func (d *dummyTxPool) Get(hash common.Hash) protocol_message.Txi {
+func (d *dummyTxPool) Get(hash common.Hash) ogmessage.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
 	return nil
 }
 
-func (d *dummyTxPool) AddRemoteTx(tx protocol_message.Txi, b bool) error {
+func (d *dummyTxPool) AddRemoteTx(tx ogmessage.Txi, b bool) error {
 	d.dmap[tx.GetTxHash()] = tx
 	return nil
 }
@@ -173,7 +174,7 @@ func (d *dummyTxPool) IsLocalHash(hash common.Hash) bool {
 
 type dummyVerifier struct{}
 
-func (d *dummyVerifier) Verify(t protocol_message.Txi) bool {
+func (d *dummyVerifier) Verify(t ogmessage.Txi) bool {
 	return true
 }
 

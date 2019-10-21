@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 )
 
 //go:generate msgp
@@ -43,40 +43,39 @@ const (
 //	return true
 //}
 
-
-func (m BinaryMessageType) GetMsg() p2p_message.Message {
-	var message p2p_message.Message
+func (m BinaryMessageType) GetMsg() ogmessage.Message {
+	var message ogmessage.Message
 	switch m {
 	case MessageTypeNewTx:
-		message = &p2p_message.MessageNewTx{}
+		message = &ogmessage.MessageNewTx{}
 	case MessageTypeNewSequencer:
-		message = &p2p_message.MessageNewSequencer{}
+		message = &ogmessage.MessageNewSequencer{}
 	case MessageTypeGetMsg:
-		message = &p2p_message.MessageGetMsg{}
+		message = &ogmessage.MessageGetMsg{}
 	case MessageTypeControl:
-		message = &p2p_message.MessageControl{}
+		message = &ogmessage.MessageControl{}
 	case MessageTypeCampaign:
-		message = &p2p_message.MessageCampaign{}
+		message = &ogmessage.MessageCampaign{}
 	case MessageTypeTermChange:
-		message = &p2p_message.MessageTermChange{}
+		message = &ogmessage.MessageTermChange{}
 	//case MessageTypeConsensusDkgDeal:
-	//	message = &p2p_message.MessageConsensusDkgDeal{}
+	//	message = &ogmessage.MessageConsensusDkgDeal{}
 	//case MessageTypeConsensusDkgDealResponse:
-	//	message = &p2p_message.MessageConsensusDkgDealResponse{}
+	//	message = &ogmessage.MessageConsensusDkgDealResponse{}
 	//case MessageTypeConsensusDkgSigSets:
-	//	message = &p2p_message.MessageConsensusDkgSigSets{}
+	//	message = &ogmessage.MessageConsensusDkgSigSets{}
 	//case MessageTypeConsensusDkgGenesisPublicKey:
-	//	message = &p2p_message.MessageConsensusDkgGenesisPublicKey{}
+	//	message = &ogmessage.MessageConsensusDkgGenesisPublicKey{}
 
 	case MessageTypeTermChangeResponse:
-		message = &p2p_message.MessageTermChangeResponse{}
+		message = &ogmessage.MessageTermChangeResponse{}
 	case MessageTypeTermChangeRequest:
-		message = &p2p_message.MessageTermChangeRequest{}
+		message = &ogmessage.MessageTermChangeRequest{}
 
 	case MessageTypeArchive:
-		message = &p2p_message.MessageNewArchive{}
+		message = &ogmessage.MessageNewArchive{}
 	case MessageTypeActionTX:
-		message = &p2p_message.MessageNewActionTx{}
+		message = &ogmessage.MessageNewActionTx{}
 
 	//case MessageTypeProposal:
 	//	message = &bft.MessageProposal{
@@ -87,34 +86,34 @@ func (m BinaryMessageType) GetMsg() p2p_message.Message {
 	//case MessageTypePreCommit:
 	//	message = &bft.MessagePreCommit{}
 	case MessageTypeNewTxs:
-		message = &p2p_message.MessageNewTxs{}
+		message = &ogmessage.MessageNewTxs{}
 	case MessageTypeSequencerHeader:
-		message = &p2p_message.MessageSequencerHeader{}
+		message = &ogmessage.MessageSequencerHeader{}
 
 	case MessageTypeBodiesRequest:
-		message = &p2p_message.MessageBodiesRequest{}
+		message = &ogmessage.MessageBodiesRequest{}
 	case MessageTypeBodiesResponse:
-		message = &p2p_message.MessageBodiesResponse{}
+		message = &ogmessage.MessageBodiesResponse{}
 
 	case MessageTypeTxsRequest:
-		message = &p2p_message.MessageTxsRequest{}
+		message = &ogmessage.MessageTxsRequest{}
 	case MessageTypeTxsResponse:
-		message = &p2p_message.MessageTxsResponse{}
+		message = &ogmessage.MessageTxsResponse{}
 	case MessageTypeHeaderRequest:
-		message = &p2p_message.MessageHeaderRequest{}
+		message = &ogmessage.MessageHeaderRequest{}
 	case MessageTypeHeaderResponse:
-		message = &p2p_message.MessageHeaderResponse{}
+		message = &ogmessage.MessageHeaderResponse{}
 	case MessageTypeDuplicate:
-		var dup p2p_message.MessageDuplicate
+		var dup ogmessage.MessageDuplicate
 		message = &dup
 	case MessageTypePing:
-		message = &p2p_message.MessagePing{}
+		message = &ogmessage.MessagePing{}
 	case MessageTypePong:
-		message = &p2p_message.MessagePong{}
+		message = &ogmessage.MessagePong{}
 	case MessageTypeFetchByHashRequest:
-		message = &p2p_message.MessageSyncRequest{}
+		message = &ogmessage.MessageSyncRequest{}
 	case MessageTypeFetchByHashResponse:
-		message = &p2p_message.MessageSyncResponse{}
+		message = &ogmessage.MessageSyncResponse{}
 	default:
 		return nil
 	}
@@ -124,7 +123,7 @@ func (m BinaryMessageType) GetMsg() p2p_message.Message {
 
 //msgp:tuple SequencerProposal
 type SequencerProposal struct {
-	protocol_message.Sequencer
+	ogmessage.Sequencer
 }
 
 func (s *SequencerProposal) String() string {

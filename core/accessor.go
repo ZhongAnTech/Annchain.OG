@@ -22,7 +22,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -186,12 +186,12 @@ func (p *Putter) Put(key []byte, data []byte) error {
 
 // ReadGenesis get genesis sequencer from db.
 // return nil if there is no genesis.
-func (da *Accessor) ReadGenesis() *protocol_message.Sequencer {
+func (da *Accessor) ReadGenesis() *ogmessage.Sequencer {
 	data, _ := da.db.Get(genesisKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq protocol_message.Sequencer
+	var seq ogmessage.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -200,7 +200,7 @@ func (da *Accessor) ReadGenesis() *protocol_message.Sequencer {
 }
 
 // WriteGenesis writes geneis into db.
-func (da *Accessor) WriteGenesis(genesis *protocol_message.Sequencer) error {
+func (da *Accessor) WriteGenesis(genesis *ogmessage.Sequencer) error {
 	data, err := genesis.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -210,12 +210,12 @@ func (da *Accessor) WriteGenesis(genesis *protocol_message.Sequencer) error {
 
 // ReadLatestSequencer get latest sequencer from db.
 // return nil if there is no sequencer.
-func (da *Accessor) ReadLatestSequencer() *protocol_message.Sequencer {
+func (da *Accessor) ReadLatestSequencer() *ogmessage.Sequencer {
 	data, _ := da.db.Get(latestSequencerKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq protocol_message.Sequencer
+	var seq ogmessage.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
@@ -224,7 +224,7 @@ func (da *Accessor) ReadLatestSequencer() *protocol_message.Sequencer {
 }
 
 // WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *protocol_message.Sequencer) error {
+func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *ogmessage.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err
@@ -250,7 +250,7 @@ func (da *Accessor) WriteLastStateRoot(putter *Putter, root common.Hash) error {
 }
 
 // ReadTransaction get tx or sequencer from ogdb.
-func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
+func (da *Accessor) ReadTransaction(hash common.Hash) ogmessage.Txi {
 	data, _ := da.db.Get(transactionKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -259,7 +259,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx protocol_message.Tx
+		var tx ogmessage.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
@@ -268,7 +268,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq protocol_message.Sequencer
+		var sq ogmessage.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal seq error")
@@ -304,7 +304,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 		return &ac
 	}
 	if bytes.Equal(prefix, contentPrefixActionTx) {
-		var ac protocol_message.ActionTx
+		var ac ogmessage.ActionTx
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -317,7 +317,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) protocol_message.Txi {
 }
 
 // ReadTxByNonce get tx from db by sender's address and nonce.
-func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	data, _ := da.db.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil
@@ -417,16 +417,16 @@ func (da *Accessor) ReadReceipt(seqID uint64, hash common.Hash) *Receipt {
 }
 
 // WriteTransaction write the tx or sequencer into ogdb.
-func (da *Accessor) WriteTransaction(putter *Putter, tx protocol_message.Txi) error {
+func (da *Accessor) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
 	var prefix, data []byte
 	var err error
 
 	// write tx
 	switch tx := tx.(type) {
-	case *protocol_message.Tx:
+	case *ogmessage.Tx:
 		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		prefix = contentPrefixSequencer
 		data, err = tx.MarshalMsg(nil)
 	case *campaign.Campaign:
@@ -438,7 +438,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx protocol_message.Txi) er
 	case *archive.Archive:
 		prefix = contentPrefixArchive
 		data, err = tx.MarshalMsg(nil)
-	case *protocol_message.ActionTx:
+	case *ogmessage.ActionTx:
 		prefix = contentPrefixActionTx
 		data, err = tx.MarshalMsg(nil)
 	default:
@@ -527,12 +527,12 @@ func (da *Accessor) SubBalance(putter *Putter, addr common.Address, amount *math
 }
 
 // ReadSequencerByHeight get sequencer from db by sequencer id.
-func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*protocol_message.Sequencer, error) {
+func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*ogmessage.Sequencer, error) {
 	data, _ := da.db.Get(seqHeightKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
-	var seq protocol_message.Sequencer
+	var seq ogmessage.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -541,7 +541,7 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*protocol_message.S
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *protocol_message.Sequencer) error {
+func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *ogmessage.Sequencer) error {
 	data, err := seq.MarshalMsg(nil)
 	if err != nil {
 		return err

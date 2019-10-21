@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"math/rand"
 	"net"
 	"strconv"
@@ -27,8 +28,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/annchain/OG/types"
 )
 
 // In this test, nodes try to randomly resolve each other.

@@ -19,8 +19,9 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/verifier"
+
 	"github.com/annchain/OG/rpc"
 )
 
@@ -45,7 +46,7 @@ func main() {
 	//request := transfer(priv, pub, addr, 3, nonce)
 	//a.sendTx(&request, 0, txurl)
 	request := destroyRequest(priv, pub, addr, 2, nonce)
-	a.sendTx(&request, 0, destroyUrl)
+	a.sendTx(&request, destroyUrl, "POST")
 	return
 }
 
@@ -74,22 +75,22 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(8888888)
 
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionIPO,
+		Action: ogmessage.ActionTxActionIPO,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSPO,
 			TokenName: tokenName,
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
 		target := tx.SignatureTargets()
@@ -102,7 +103,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    protocol_message.ActionTxActionIPO,
+		Action:    ogmessage.ActionTxActionIPO,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -116,15 +117,15 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(0)
 
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionDestroy,
+		Action: ogmessage.ActionTxActionDestroy,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value: value,
 			//EnableSPO:  enableSPO,
 			//TokenName: "test_token",
@@ -132,7 +133,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
 		target := tx.SignatureTargets()
@@ -145,7 +146,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    protocol_message.ActionTxActionDestroy,
+		Action:    ogmessage.ActionTxActionDestroy,
 		//EnableSPO: enableSPO,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -160,15 +161,15 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(100000)
 
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionSPO,
+		Action: ogmessage.ActionTxActionSPO,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value: value,
 			//EnableSPO: true,
 			//TokenName: "test_token",
@@ -176,7 +177,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		},
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
 	fmt.Println(hexutil.Encode(target))
@@ -191,7 +192,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    protocol_message.ActionTxActionSPO,
+		Action:    ogmessage.ActionTxActionSPO,
 		//EnableSPO: true,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -205,9 +206,9 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 	to := topub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String(), to.String())
 
-	tx := protocol_message.Tx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseTypeNormal,
+	tx := ogmessage.Tx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseTypeNormal,
 			PublicKey:    pub.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},
@@ -217,7 +218,7 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 		To:      to,
 	}
 	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
-	v := og.TxFormatVerifier{}
+	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
 	fmt.Println(hexutil.Encode(target))

@@ -18,6 +18,7 @@ package discv5
 
 import (
 	"encoding/binary"
+	"github.com/annchain/OG/common"
 	"testing"
 	"time"
 

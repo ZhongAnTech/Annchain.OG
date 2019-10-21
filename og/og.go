@@ -18,9 +18,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"sync"
 	"time"
 
@@ -44,8 +43,8 @@ type Og struct {
 	quit      chan bool
 }
 
-func (og *Og) GetCurrentNodeStatus() message.StatusData {
-	return message.StatusData{
+func (og *Og) GetCurrentNodeStatus() StatusData {
+	return StatusData{
 		CurrentBlock:    og.Dag.LatestSequencer().Hash,
 		CurrentId:       og.Dag.LatestSequencer().Height,
 		GenesisBlock:    og.Dag.Genesis().Hash,
@@ -179,10 +178,10 @@ func GetOldDb() (ogdb.Database, error) {
 	}
 }
 
-func (og *Og) GetSequencerByHash(hash common.Hash) *protocol_message.Sequencer {
+func (og *Og) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		return tx
 	default:
 		return nil
@@ -212,10 +211,10 @@ func (og *Og) BroadcastLatestSequencer() {
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			number := seq.Number()
-			msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
+			msg := ogmessage.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			function := func() {
-				og.Manager.BroadcastMessage(message.MessageTypeSequencerHeader, &msg)
+				og.Manager.BroadcastMessage(ogmessage.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
 		case <-time.After(200 * time.Millisecond):
@@ -227,10 +226,10 @@ func (og *Og) BroadcastLatestSequencer() {
 				seq := og.Dag.LatestSequencer()
 				hash := seq.GetTxHash()
 				number := seq.Number()
-				msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: &number}
+				msg := ogmessage.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it
 				function := func() {
-					og.Manager.BroadcastMessage(message.MessageTypeSequencerHeader, &msg)
+					og.Manager.BroadcastMessage(ogmessage.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
 			}

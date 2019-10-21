@@ -6,9 +6,9 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	_ "net/http/pprof"
@@ -21,16 +21,16 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 	var batchs []*core.ConfirmBatch
 	for j := 0; j < totalHeight; j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
-		var txis protocol_message.Txis
+		var txis ogmessage.Txis
 		for i := 0; i < txnum; i++ {
 			if archive {
-				ar := types.RandomArchive()
+				ar := archive.RandomArchive()
 				ar.Data = append(ar.Data, pub.Bytes[:]...)
 				ar.Data = append(ar.Data, pub.Bytes[:]...)
 				ar.Data = append(ar.Data, pub.Bytes[:]...)
 				txis = append(txis, ar)
 			} else {
-				tx := tx_types.RandomTx()
+				tx := ogmessage.RandomTx()
 				tx.Value = math.NewBigInt(0)
 				tx.PublicKey = pub.Bytes[:]
 				tx.From = pub.Address()
@@ -39,7 +39,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 				txis = append(txis, tx)
 			}
 		}
-		seq := tx_types.RandomSequencer()
+		seq := ogmessage.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
 		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
 		batch := &core.ConfirmBatch{

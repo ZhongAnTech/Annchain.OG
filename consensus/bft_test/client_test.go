@@ -58,24 +58,30 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 
 	// building communication channels
 	for i = 0; i < good; i++ {
-		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
-		pc.Run()
-
-		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pg, pv,dm)
-
-		peers = append(peers, peer)
 		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
 	}
 	for ; i < total; i++ {
+		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
+	}
+	for i = 0; i < good; i++ {
+		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
+		pc.Run()
+
+		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pc, pg, pv, dm, peerInfo)
+
+		peers = append(peers, peer)
+	}
+
+	for ; i < total; i++ {
 		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
 		pc.Run()
-		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pg, pv, dm)
+		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pc, pg, pv, dm, peerInfo)
 		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm
 		peers = append(peers, peer)
-		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
+
 	}
 	// build known peers
 	for i = 0; i < total; i++ {

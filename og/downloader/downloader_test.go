@@ -17,7 +17,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"math/big"
@@ -42,18 +43,18 @@ func init() {
 type downloadTester struct {
 	downloader *Downloader
 
-	genesis *protocol_message.Sequencer // Genesis blocks used by the tester and peers
-	peerDb  ogdb.Database               // Database of the peers containing all data
+	genesis *ogmessage.Sequencer // Genesis blocks used by the tester and peers
+	peerDb  ogdb.Database        // Database of the peers containing all data
 
-	ownHashes  common.Hashes                                     // Hash chain belonging to the tester
-	ownHeaders map[common.Hash]*protocol_message.SequencerHeader // Headers belonging to the tester
-	ownBlocks  map[common.Hash]*protocol_message.Sequencer       // Blocks belonging to the tester
-	ownChainTd map[common.Hash]uint64                            // id
+	ownHashes  common.Hashes                              // Hash chain belonging to the tester
+	ownHeaders map[common.Hash]*ogmessage.SequencerHeader // Headers belonging to the tester
+	ownBlocks  map[common.Hash]*ogmessage.Sequencer       // Blocks belonging to the tester
+	ownChainTd map[common.Hash]uint64                     // id
 
-	peerHashes   map[string]common.Hashes                                     // Hash chain belonging to different test peers
-	peerHeaders  map[string]map[common.Hash]*protocol_message.SequencerHeader // Headers belonging to different test peers
-	peerBlocks   map[string]map[common.Hash]*protocol_message.Sequencer       // Blocks belonging to different test peers
-	peerChainTds map[string]map[common.Hash]*big.Int                          // Total difficulties of the blocks in the peer chains
+	peerHashes   map[string]common.Hashes                              // Hash chain belonging to different test peers
+	peerHeaders  map[string]map[common.Hash]*ogmessage.SequencerHeader // Headers belonging to different test peers
+	peerBlocks   map[string]map[common.Hash]*ogmessage.Sequencer       // Blocks belonging to different test peers
+	peerChainTds map[string]map[common.Hash]*big.Int                   // Total difficulties of the blocks in the peer chains
 
 	peerMissingStates map[string]map[common.Hash]bool // State entries that fast sync should not return
 
@@ -68,12 +69,12 @@ func newTester() *downloadTester {
 		genesis:           genesis,
 		peerDb:            testdb,
 		ownHashes:         common.Hashes{genesis.GetTxHash()},
-		ownHeaders:        map[common.Hash]*protocol_message.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
-		ownBlocks:         map[common.Hash]*protocol_message.Sequencer{genesis.GetTxHash(): genesis},
+		ownHeaders:        map[common.Hash]*ogmessage.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
+		ownBlocks:         map[common.Hash]*ogmessage.Sequencer{genesis.GetTxHash(): genesis},
 		ownChainTd:        map[common.Hash]uint64{genesis.GetTxHash(): genesis.Number()},
 		peerHashes:        make(map[string]common.Hashes),
-		peerHeaders:       make(map[string]map[common.Hash]*protocol_message.SequencerHeader),
-		peerBlocks:        make(map[string]map[common.Hash]*protocol_message.Sequencer),
+		peerHeaders:       make(map[string]map[common.Hash]*ogmessage.SequencerHeader),
+		peerBlocks:        make(map[string]map[common.Hash]*ogmessage.Sequencer),
 		peerChainTds:      make(map[string]map[common.Hash]*big.Int),
 		peerMissingStates: make(map[string]map[common.Hash]bool),
 	}
@@ -86,7 +87,7 @@ func newTester() *downloadTester {
 func TestHeaderEuqual(t *testing.T) {
 	testHash, _ := common.HexStringToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
 	head := types.NewSequencerHead(testHash, 1447)
-	seq := &protocol_message.Sequencer{}
+	seq := &ogmessage.Sequencer{}
 	seq.Height = 1447
 	seq.Hash = testHash
 	seq.Issuer = &common.Address{}

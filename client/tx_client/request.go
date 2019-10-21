@@ -6,7 +6,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/rpc"
 )
@@ -36,15 +37,15 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionIPO,
+		Action: ogmessage.ActionTxActionIPO,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSPO,
 			TokenName: tokenName,
@@ -64,7 +65,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    protocol_message.ActionTxActionIPO,
+		Action:    ogmessage.ActionTxActionIPO,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -79,15 +80,15 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 	fmt.Println(from.String())
 	value := math.NewBigInt(0)
 
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionDestroy,
+		Action: ogmessage.ActionTxActionDestroy,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value: value,
 			//EnableSPO:  enableSPO,
 			//TokenName: "test_token",
@@ -108,7 +109,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    protocol_message.ActionTxActionDestroy,
+		Action:    ogmessage.ActionTxActionDestroy,
 		//EnableSPO: enableSPO,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -123,15 +124,15 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
-	tx := protocol_message.ActionTx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseAction,
+	tx := ogmessage.ActionTx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: protocol_message.ActionTxActionSPO,
+		Action: ogmessage.ActionTxActionSPO,
 		From:   &from,
-		ActionData: &protocol_message.PublicOffering{
+		ActionData: &ogmessage.PublicOffering{
 			Value: value,
 			//EnableSPO: true,
 			//TokenName: "test_token",
@@ -154,7 +155,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    protocol_message.ActionTxActionSPO,
+		Action:    ogmessage.ActionTxActionSPO,
 		//EnableSPO: true,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -168,9 +169,9 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 	if !r.Nodebug {
 		fmt.Println(from.String(), to.String())
 	}
-	tx := protocol_message.Tx{
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseTypeNormal,
+	tx := ogmessage.Tx{
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseTypeNormal,
 			PublicKey:    r.publicKey.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

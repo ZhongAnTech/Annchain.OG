@@ -19,7 +19,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -42,7 +43,7 @@ func (r *RpcController) DebugQueryContract() ([]byte, error) {
 	contractAddr := crypto.CreateAddress(from, uint64(1))
 
 	calldata := "e5aa3d58"
-	callTx := &protocol_message.Tx{}
+	callTx := &ogmessage.Tx{}
 	callTx.From = &from
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
@@ -129,9 +130,9 @@ func (r *RpcController) Debug(c *gin.Context) {
 	p := c.Request.URL.Query().Get("f")
 	switch p {
 	case "1":
-		r.NewRequestChan <- protocol_message.TxBaseTypeNormal
+		r.NewRequestChan <- ogmessage.TxBaseTypeNormal
 	case "2":
-		r.NewRequestChan <- protocol_message.TxBaseTypeSequencer
+		r.NewRequestChan <- ogmessage.TxBaseTypeSequencer
 	case "cc":
 		err := r.DebugCreateContract()
 		if err != nil {

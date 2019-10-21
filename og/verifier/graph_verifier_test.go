@@ -3,26 +3,27 @@ package verifier
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/dummy"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
-func buildTx(from common.Address, accountNonce uint64) *protocol_message.Tx {
-	tx := protocol_message.RandomTx()
+func buildTx(from common.Address, accountNonce uint64) *ogmessage.Tx {
+	tx := ogmessage.RandomTx()
 	tx.AccountNonce = accountNonce
 	tx.From = &from
 	return tx
 }
 
-func buildSeq(from common.Address, accountNonce uint64, id uint64) *protocol_message.Sequencer {
-	tx := protocol_message.RandomSequencer()
+func buildSeq(from common.Address, accountNonce uint64, id uint64) *ogmessage.Sequencer {
+	tx := ogmessage.RandomSequencer()
 	tx.AccountNonce = accountNonce
 	tx.Issuer = &from
 	return tx
 }
 
-func setParents(tx protocol_message.Txi, parents []protocol_message.Txi) {
+func setParents(tx ogmessage.Txi, parents []ogmessage.Txi) {
 	tx.GetBase().ParentsHash = common.Hashes{}
 	for _, parent := range parents {
 		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetTxHash())
@@ -46,7 +47,7 @@ func TestA3(t *testing.T) {
 	addr1 := common.HexToAddress("0x0001")
 	addr2 := common.HexToAddress("0x0002")
 
-	txs := []protocol_message.Txi{
+	txs := []ogmessage.Txi{
 		buildSeq(addr1, 1, 1),
 		buildTx(addr1, 2),
 		buildTx(addr2, 0),
@@ -63,20 +64,20 @@ func TestA3(t *testing.T) {
 		buildTx(addr1, 3),
 	}
 
-	setParents(txs[0], []protocol_message.Txi{})
-	setParents(txs[1], []protocol_message.Txi{txs[0]})
-	setParents(txs[2], []protocol_message.Txi{txs[1], txs[7]})
-	setParents(txs[3], []protocol_message.Txi{txs[2], txs[8]})
-	setParents(txs[4], []protocol_message.Txi{txs[3], txs[9]})
+	setParents(txs[0], []ogmessage.Txi{})
+	setParents(txs[1], []ogmessage.Txi{txs[0]})
+	setParents(txs[2], []ogmessage.Txi{txs[1], txs[7]})
+	setParents(txs[3], []ogmessage.Txi{txs[2], txs[8]})
+	setParents(txs[4], []ogmessage.Txi{txs[3], txs[9]})
 
-	setParents(txs[5], []protocol_message.Txi{txs[4], txs[10]})
-	setParents(txs[6], []protocol_message.Txi{txs[5]})
-	setParents(txs[7], []protocol_message.Txi{txs[0]})
-	setParents(txs[8], []protocol_message.Txi{txs[7]})
-	setParents(txs[9], []protocol_message.Txi{txs[8]})
+	setParents(txs[5], []ogmessage.Txi{txs[4], txs[10]})
+	setParents(txs[6], []ogmessage.Txi{txs[5]})
+	setParents(txs[7], []ogmessage.Txi{txs[0]})
+	setParents(txs[8], []ogmessage.Txi{txs[7]})
+	setParents(txs[9], []ogmessage.Txi{txs[8]})
 
-	setParents(txs[10], []protocol_message.Txi{txs[9]})
-	setParents(txs[11], []protocol_message.Txi{txs[10]})
+	setParents(txs[10], []ogmessage.Txi{txs[9]})
+	setParents(txs[11], []ogmessage.Txi{txs[10]})
 
 	for _, tx := range txs {
 		pool.AddRemoteTx(tx, true)
@@ -110,7 +111,7 @@ func TestA6(t *testing.T) {
 	addr2 := common.HexToAddress("0x0002")
 	addr3 := common.HexToAddress("0x0003")
 
-	txs := []protocol_message.Txi{
+	txs := []ogmessage.Txi{
 		buildSeq(addr1, 1, 1),
 		buildTx(addr1, 2),
 		buildTx(addr1, 0),
@@ -123,16 +124,16 @@ func TestA6(t *testing.T) {
 		buildTx(addr2, 2),
 	}
 
-	setParents(txs[0], []protocol_message.Txi{})
-	setParents(txs[1], []protocol_message.Txi{txs[0]})
-	setParents(txs[2], []protocol_message.Txi{txs[1], txs[6]})
-	setParents(txs[3], []protocol_message.Txi{txs[2], txs[7]})
-	setParents(txs[4], []protocol_message.Txi{txs[3], txs[8]})
+	setParents(txs[0], []ogmessage.Txi{})
+	setParents(txs[1], []ogmessage.Txi{txs[0]})
+	setParents(txs[2], []ogmessage.Txi{txs[1], txs[6]})
+	setParents(txs[3], []ogmessage.Txi{txs[2], txs[7]})
+	setParents(txs[4], []ogmessage.Txi{txs[3], txs[8]})
 
-	setParents(txs[5], []protocol_message.Txi{txs[4]})
-	setParents(txs[6], []protocol_message.Txi{txs[0]})
-	setParents(txs[7], []protocol_message.Txi{txs[2]})
-	setParents(txs[8], []protocol_message.Txi{txs[7]})
+	setParents(txs[5], []ogmessage.Txi{txs[4]})
+	setParents(txs[6], []ogmessage.Txi{txs[0]})
+	setParents(txs[7], []ogmessage.Txi{txs[2]})
+	setParents(txs[8], []ogmessage.Txi{txs[7]})
 
 	for _, tx := range txs {
 		pool.AddRemoteTx(tx, true)

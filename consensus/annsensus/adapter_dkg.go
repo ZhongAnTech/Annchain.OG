@@ -4,7 +4,8 @@ import (
 	"errors"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -48,9 +49,9 @@ func (r *TrustfulDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg ms
 	return
 }
 
-func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) protocol_message.MessageSigned {
+func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) ogmessage.MessageSigned {
 	publicKey, signature := r.signatureProvider.Sign(message.SignatureTargets())
-	signed := protocol_message.MessageSigned{
+	signed := ogmessage.MessageSigned{
 		InnerMessageType: msg.BinaryMessageType(message.GetType()),
 		InnerMessage:     message.SignatureTargets(),
 		Signature:        signature,
@@ -74,11 +75,11 @@ type PlainDkgAdapter struct {
 }
 
 func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) {
-	if incomingMsg.GetType() != protocol_message.MessageTypePlain {
+	if incomingMsg.GetType() != ogmessage.MessageTypePlain {
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(protocol_message.MessagePlain)
+	iMsg := incomingMsg.(ogmessage.MessagePlain)
 
 	switch dkg.DkgMessageType(iMsg.InnerMessageType) {
 	case dkg.DkgMessageTypeDeal:
@@ -104,7 +105,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -114,7 +115,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -124,7 +125,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -134,7 +135,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}

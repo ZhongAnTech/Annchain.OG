@@ -18,12 +18,12 @@ package discv5
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 )
 
 func TestNetwork_Lookup(t *testing.T) {

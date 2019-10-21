@@ -2,7 +2,7 @@ package ovm
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"math/big"
 	"testing"
 )

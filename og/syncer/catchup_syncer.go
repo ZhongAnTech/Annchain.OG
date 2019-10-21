@@ -15,13 +15,13 @@ package syncer
 
 import (
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	"sync"
 	"time"
 
 	// "github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,7 +78,7 @@ type CatchupSyncer struct {
 	quit          chan bool
 
 	OnWorkingStateChanged         []chan CatchupSyncerStatus
-	OnNewTxiReceived              []chan types.Txi
+	OnNewTxiReceived              []chan ogmessage.Txi
 	NewPeerConnectedEventListener chan string
 	syncFlag                      bool
 	WorkState                     CatchupSyncerStatus

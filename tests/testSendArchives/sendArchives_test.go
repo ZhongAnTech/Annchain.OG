@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"io/ioutil"
 	"net"
 	"net/http"

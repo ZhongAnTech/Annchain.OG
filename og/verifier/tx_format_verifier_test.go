@@ -3,7 +3,8 @@ package verifier
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"testing"
 	"time"
 )
@@ -19,11 +20,11 @@ func (s *TestSigner) CanRecoverPubFromSig() bool {
 func TestVerify(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 	pub, priv := signer.RandomKeyPair()
-	var txis protocol_message.Txis
+	var txis ogmessage.Txis
 	//var sigTerGets [][]byte
 	addr := pub.Address()
 	for i := 0; i < 10000; i++ {
-		tx := protocol_message.RandomTx()
+		tx := ogmessage.RandomTx()
 		tx.From = &addr
 		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).Bytes
 		tx.PublicKey = pub.Bytes

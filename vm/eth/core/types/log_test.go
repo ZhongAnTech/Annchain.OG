@@ -19,10 +19,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"reflect"
 	"testing"
 
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/davecgh/go-spew/spew"
 )

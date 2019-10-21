@@ -16,9 +16,7 @@ package syncer
 import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 )
 
 type Announcer struct {
@@ -32,35 +30,35 @@ func NewAnnouncer(messageSender MessageSender) *Announcer {
 }
 
 //BroadcastNewTx brodcast newly created txi message
-func (m *Announcer) BroadcastNewTx(txi protocol_message.Txi) {
+func (m *Announcer) BroadcastNewTx(txi ogmessage.Txi) {
 	switch tx := txi.(type) {
-	case *protocol_message.Tx:
-		msgTx := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
-		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewTx, &msgTx)
-	case *protocol_message.Sequencer:
-		msgTx := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
-		m.messageSender.BroadcastMessageWithLink(message.MessageTypeNewSequencer, &msgTx)
+	case *ogmessage.Tx:
+		msgTx := ogmessage.MessageNewTx{RawTx: tx.RawTx()}
+		m.messageSender.BroadcastMessageWithLink(ogmessage.MessageTypeNewTx, &msgTx)
+	case *ogmessage.Sequencer:
+		msgTx := ogmessage.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
+		m.messageSender.BroadcastMessageWithLink(ogmessage.MessageTypeNewSequencer, &msgTx)
 	case *campaign.Campaign:
-		msg := p2p_message.MessageCampaign{
+		msg := ogmessage.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
 		}
-		m.messageSender.BroadcastMessage(message.MessageTypeCampaign, &msg)
+		m.messageSender.BroadcastMessage(ogmessage.MessageTypeCampaign, &msg)
 	case *campaign.TermChange:
-		msg := p2p_message.MessageTermChange{
+		msg := ogmessage.MessageTermChange{
 			RawTermChange: tx.RawTermChange(),
 		}
-		m.messageSender.BroadcastMessage(message.MessageTypeTermChange, &msg)
+		m.messageSender.BroadcastMessage(ogmessage.MessageTypeTermChange, &msg)
 
 	case *archive.Archive:
-		msg := p2p_message.MessageNewArchive{
+		msg := ogmessage.MessageNewArchive{
 			Archive: tx,
 		}
-		m.messageSender.BroadcastMessage(message.MessageTypeArchive, &msg)
-	case *protocol_message.ActionTx:
-		msg := p2p_message.MessageNewActionTx{
+		m.messageSender.BroadcastMessage(ogmessage.MessageTypeArchive, &msg)
+	case *ogmessage.ActionTx:
+		msg := ogmessage.MessageNewActionTx{
 			ActionTx: tx,
 		}
-		m.messageSender.BroadcastMessage(message.MessageTypeActionTX, &msg)
+		m.messageSender.BroadcastMessage(ogmessage.MessageTypeActionTX, &msg)
 
 	default:
 		log.Warn("never come here, unknown tx type ", tx)

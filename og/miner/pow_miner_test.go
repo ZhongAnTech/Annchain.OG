@@ -15,20 +15,57 @@ package miner
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 )
 
+type SampleTx struct {
+	ogmessage.TxBase
+}
+
+func (s SampleTx) GetBase() *ogmessage.TxBase {
+	return &s.TxBase
+}
+
+func (s SampleTx) Sender() common.Address {
+	panic("implement me")
+}
+
+func (s SampleTx) GetSender() *common.Address {
+	panic("implement me")
+}
+
+func (s SampleTx) SetSender(addr common.Address) {
+	panic("implement me")
+}
+
+func (s SampleTx) Dump() string {
+	panic("implement me")
+}
+
+func (s SampleTx) Compare(tx ogmessage.Txi) bool {
+	panic("implement me")
+}
+
+func (s SampleTx) SignatureTargets() []byte {
+	panic("implement me")
+}
+
+func (s SampleTx) RawTxi() ogmessage.RawTxi {
+	panic("implement me")
+}
+
 func TestPoW(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	t.Parallel()
 
-	tx := tx_types.SampleTx()
 	miner := PoWMiner{}
 
+	tx := &SampleTx{}
 	responseChan := make(chan uint64)
 	start := time.Now()
 	go miner.StartMine(tx, common.HexToHash("0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)

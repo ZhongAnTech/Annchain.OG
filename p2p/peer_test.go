@@ -19,7 +19,6 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"math/rand"

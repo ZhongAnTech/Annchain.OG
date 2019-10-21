@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/campaign"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 	"math/rand"
@@ -29,13 +30,13 @@ import (
 
 //msgp:tuple Archive
 type Archive struct {
-	protocol_message.TxBase
+	ogmessage.TxBase
 	Data []byte `json:"data"`
 }
 
 //msgp:tuple ArchiveJson
 type ArchiveJson struct {
-	protocol_message.TxBaseJson
+	ogmessage.TxBaseJson
 	Data []byte `json:"data"`
 }
 
@@ -53,7 +54,7 @@ func (a *Archive) ToSmallCaseJson() ([]byte, error) {
 //msgp:tuple Campaigns
 type Archives []*Archive
 
-func (a *Archive) GetBase() *protocol_message.TxBase {
+func (a *Archive) GetBase() *ogmessage.TxBase {
 	return &a.TxBase
 }
 
@@ -68,7 +69,7 @@ func (tc *Archive) GetSender() *common.Address {
 	return nil
 }
 
-func (c *Archive) Compare(tx protocol_message.Txi) bool {
+func (c *Archive) Compare(tx ogmessage.Txi) bool {
 	switch tx := tx.(type) {
 	case *campaign.Campaign:
 		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
@@ -128,16 +129,16 @@ func (cs Archives) RawArchives() RawArchives {
 	return rawCps
 }
 
-func (c *Archive) RawTxi() protocol_message.RawTxi {
+func (c *Archive) RawTxi() ogmessage.RawTxi {
 	return c.RawArchive()
 }
 
 func RandomArchive() *Archive {
-	return &Archive{TxBase: protocol_message.TxBase{
+	return &Archive{TxBase: ogmessage.TxBase{
 		Hash:        common.RandomHash(),
 		Height:      uint64(rand.Int63n(1000)),
 		ParentsHash: common.Hashes{common.RandomHash(), common.RandomHash()},
-		Type:        protocol_message.TxBaseTypeArchive,
+		Type:        ogmessage.TxBaseTypeArchive,
 		//AccountNonce: uint64(rand.Int63n(50000)),
 		Weight: uint64(rand.Int31n(2000)),
 	},

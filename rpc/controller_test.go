@@ -18,11 +18,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"io"
 	"net/http"
 	"os"
@@ -162,11 +163,11 @@ func sendTx(algorithm string) error {
 	}
 
 	for nonce := 0; nonce < 10; nonce++ {
-		tx := types.Tx{
-			TxBase: protocol_message.TxBase{
+		tx := ogmessage.Tx{
+			TxBase: ogmessage.TxBase{
 				AccountNonce: uint64(nonce),
 			},
-			From:  fromAddr,
+			From:  &fromAddr,
 			To:    toAddr,
 			Value: math.NewBigInt(0),
 		}

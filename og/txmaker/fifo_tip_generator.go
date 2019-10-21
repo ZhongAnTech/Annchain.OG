@@ -2,7 +2,8 @@ package txmaker
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
@@ -13,7 +14,7 @@ import (
 type FIFOTipGenerator struct {
 	maxCacheSize int
 	upstream     TipGenerator
-	fifoRing     []protocol_message.Txi
+	fifoRing     []ogmessage.Txi
 	fifoRingPos  int
 	fifoRingFull bool
 	mu           sync.RWMutex
@@ -23,7 +24,7 @@ func NewFIFOTIpGenerator(upstream TipGenerator, maxCacheSize int) *FIFOTipGenera
 	return &FIFOTipGenerator{
 		upstream:     upstream,
 		maxCacheSize: maxCacheSize,
-		fifoRing:     make([]protocol_message.Txi, maxCacheSize),
+		fifoRing:     make([]ogmessage.Txi, maxCacheSize),
 	}
 }
 
@@ -62,15 +63,15 @@ func (f *FIFOTipGenerator) validation() {
 	}
 }
 
-func (f *FIFOTipGenerator) GetByNonce(addr common.Address, nonce uint64) protocol_message.Txi {
+func (f *FIFOTipGenerator) GetByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
 	return f.upstream.GetByNonce(addr, nonce)
 }
 
-func (f *FIFOTipGenerator) IsBadSeq(seq *protocol_message.Sequencer) error {
+func (f *FIFOTipGenerator) IsBadSeq(seq *ogmessage.Sequencer) error {
 	return f.upstream.IsBadSeq(seq)
 }
 
-func (f *FIFOTipGenerator) GetRandomTips(n int) (v []protocol_message.Txi) {
+func (f *FIFOTipGenerator) GetRandomTips(n int) (v []ogmessage.Txi) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	upstreamTips := f.upstream.GetRandomTips(n)

@@ -18,6 +18,7 @@ package discv5
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"math/big"
 	"math/rand"
 	"net"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/types"
 )
 
 func ExampleNewNode() {

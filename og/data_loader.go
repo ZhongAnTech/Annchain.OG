@@ -18,7 +18,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,12 +54,12 @@ func (d *DataLoader) LoadLocalData() {
 	}
 }
 
-func (d *DataLoader) GenerateGenesis() *protocol_message.Sequencer {
+func (d *DataLoader) GenerateGenesis() *ogmessage.Sequencer {
 	from := common.HexToAddress("0x00")
-	return &protocol_message.Sequencer{
+	return &ogmessage.Sequencer{
 		Issuer: &from,
-		TxBase: protocol_message.TxBase{
-			Type:         protocol_message.TxBaseTypeSequencer,
+		TxBase: ogmessage.TxBase{
+			Type:         ogmessage.TxBaseTypeSequencer,
 			Hash:         common.HexToHash("0x00"),
 			Height:       0,
 			AccountNonce: 0,

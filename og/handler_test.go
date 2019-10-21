@@ -3,16 +3,15 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	"testing"
 )
 
 func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
-	var msgRes p2p_message.MessageBodiesResponse
+	var msgRes ogmessage.MessageBodiesResponse
 	var bytes int
 	for i := 0; i < 2; i++ {
-		seq := protocol_message.RandomSequencer()
+		seq := ogmessage.RandomSequencer()
 
 		if bytes >= softResponseLimit {
 			message.msgLog.Debug("reached softResponseLimit")
@@ -22,19 +21,19 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 			message.msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
-		var body p2p_message.MessageBodyData
+		var body ogmessage.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
-		var txs protocol_message.Txis
+		var txs ogmessage.Txis
 		for j := 0; j < 3; j++ {
-			txs = append(txs, protocol_message.RandomTx())
+			txs = append(txs, ogmessage.RandomTx())
 		}
-		rtxs := protocol_message.NewTxisMarshaler(txs)
+		rtxs := ogmessage.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			body.RawTxs = &rtxs
 		}
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
-		msgRes.Bodies = append(msgRes.Bodies, p2p_message.RawData(bodyData))
+		msgRes.Bodies = append(msgRes.Bodies, ogmessage.RawData(bodyData))
 		fmt.Println(body)
 	}
 	fmt.Println(&msgRes)

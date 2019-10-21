@@ -18,11 +18,10 @@ package ovm
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
+	vmtypes "github.com/annchain/OG/vm/types"
 	"math/big"
 	"testing"
-
-	"github.com/annchain/OG/vm/eth/common"
-	vmtypes "github.com/annchain/OG/vm/types"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.

@@ -15,9 +15,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 )
 
 func main() {
@@ -51,14 +52,14 @@ func main() {
 
 }
 
-func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) protocol_message.Txi {
-	tx := tx_types.Sequencer{
-		Issuer:            issuer,
+func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) ogmessage.Txi {
+	tx := ogmessage.Sequencer{
+		Issuer:            &issuer,
 		Id:                id,
 		ContractHashOrder: contractHashOrder,
-		TxBase: protocol_message.TxBase{
+		TxBase: ogmessage.TxBase{
 			AccountNonce: accountNonce,
-			Type:         protocol_message.TxBaseTypeSequencer,
+			Type:         ogmessage.TxBaseTypeSequencer,
 		},
 	}
 	return &tx

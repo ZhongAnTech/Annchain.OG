@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol_message"
+
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
 	log "github.com/sirupsen/logrus"
 	"testing"
@@ -136,15 +136,15 @@ func TestSignBenchMarksCgo(t *testing.T) {
 	signer := SignerSecp256k1cgo{}
 	pk, priv := signer.RandomKeyPair()
 	signer2 := SignerSecp256k1{}
-	var txs1 protocol_message.Txis
-	var txs2 protocol_message.Txis
+	var txs1 ogmessage.Txis
+	var txs2 ogmessage.Txis
 	N := 10000
 
 	for i := 0; i < N; i++ {
-		txs1 = append(txs1, tx_types.RandomTx())
+		txs1 = append(txs1, ogmessage.RandomTx())
 	}
 	for i := 0; i < N; i++ {
-		txs2 = append(txs2, tx_types.RandomTx())
+		txs2 = append(txs2, ogmessage.RandomTx())
 	}
 	fmt.Println("started")
 	start := time.Now()

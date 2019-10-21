@@ -37,7 +37,7 @@ type twoOperandTest struct {
 
 func testTwoOperandOp(t *testing.T, tests []twoOperandTest, opFn func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error)) {
 	var (
-		env            = ovm.NewOVM(vmtypes.Context{}, nil, &ovm.OVMConfig{})
+		env            = ovm.NewOVM(&vmtypes.Context{}, nil, &ovm.OVMConfig{})
 		stack          = newstack()
 		pc             = uint64(0)
 		evmInterpreter = NewEVMInterpreter(&env.Context, &InterpreterConfig{})

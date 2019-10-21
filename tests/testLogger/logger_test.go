@@ -2,7 +2,7 @@ package testLogger
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common"
 	"github.com/sirupsen/logrus"
 	"testing"
 )

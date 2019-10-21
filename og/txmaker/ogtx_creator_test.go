@@ -16,20 +16,20 @@ package txmaker
 import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"testing"
 	"time"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/miner"
-	"github.com/annchain/OG/types/p2p_message"
 	"github.com/sirupsen/logrus"
 )
 
 type AllOkVerifier struct{}
 
-func (AllOkVerifier) Verify(t protocol_message.Txi) bool {
+func (AllOkVerifier) Verify(t ogmessage.Txi) bool {
 	return true
 }
 
@@ -61,7 +61,7 @@ func Init() *OGTxCreator {
 func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	tx := txc.TipGenerator.GetRandomTips(1)[0].(*protocol_message.Tx)
+	tx := txc.TipGenerator.GetRandomTips(1)[0].(*ogmessage.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 
@@ -82,7 +82,7 @@ func TestTxCreator(t *testing.T) {
 	txdata, _ := tx.MarshalMsg(nil)
 	rawtx := tx.RawTx()
 	rawTxData, _ := rawtx.MarshalMsg(nil)
-	msg := p2p_message.MessageNewTx{
+	msg := ogmessage.MessageNewTx{
 		RawTx: rawtx,
 	}
 	msgData, _ := msg.MarshalMsg(nil)
@@ -98,7 +98,7 @@ func TestSequencerCreator(t *testing.T) {
 	time1 := time.Now()
 
 	// for copy
-	randomSeq := protocol_message.RandomSequencer()
+	randomSeq := ogmessage.RandomSequencer()
 
 	txSigned := txc.NewSignedSequencer(SignedSequencerBuildRequest{
 		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
@@ -113,11 +113,11 @@ func TestSequencerCreator(t *testing.T) {
 	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
-func sampleTxi(selfHash string, parentsHash []string, baseType protocol_message.TxBaseType) protocol_message.Txi {
+func sampleTxi(selfHash string, parentsHash []string, baseType ogmessage.TxBaseType) ogmessage.Txi {
 
-	tx := &protocol_message.Tx{TxBase: protocol_message.TxBase{
+	tx := &ogmessage.Tx{TxBase: ogmessage.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        protocol_message.TxBaseTypeNormal,
+		Type:        ogmessage.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}
@@ -143,7 +143,7 @@ func TestBuildDag(t *testing.T) {
 
 	_, privateKey := crypto.Signer.RandomKeyPair()
 
-	txs := []protocol_message.Txi{
+	txs := []ogmessage.Txi{
 		txc.NewSignedSequencer(SignedSequencerBuildRequest{
 			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
 				Issuer:       common.Address{},
@@ -226,7 +226,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 }
 
 func TestSlice(t *testing.T) {
-	var parents protocol_message.Txis
+	var parents ogmessage.Txis
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()

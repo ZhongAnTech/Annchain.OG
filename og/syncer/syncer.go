@@ -17,7 +17,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 	"sync"
 	"time"
@@ -60,7 +61,7 @@ type IncrementalSyncer struct {
 	quitNotifyEvent          chan bool
 	EnableEvent              chan bool
 	Enabled                  bool
-	OnNewTxiReceived         []chan []protocol_message.Txi
+	OnNewTxiReceived         []chan []ogmessage.Txi
 	notifyTxEvent            chan bool
 	notifying                bool
 	cacheNewTxEnabled        func() bool
@@ -141,11 +142,11 @@ func (m *IncrementalSyncer) Name() string {
 	return "IncrementalSyncer"
 }
 
-func (m *IncrementalSyncer) CacheTxs(txs protocol_message.Txis) {
+func (m *IncrementalSyncer) CacheTxs(txs ogmessage.Txis) {
 	m.bufferedIncomingTxCache.EnQueueBatch(txs)
 }
 
-func (m *IncrementalSyncer) CacheTx(tx protocol_message.Txi) {
+func (m *IncrementalSyncer) CacheTx(tx ogmessage.Txi) {
 	m.bufferedIncomingTxCache.EnQueue(tx)
 }
 
@@ -153,7 +154,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	if len(buffer) == 0 {
 		return
 	}
-	req := protocol_message.MessageSyncRequest{
+	req := ogmessage.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	var source interface{}
@@ -377,7 +378,7 @@ func (m *IncrementalSyncer) notifyNewTxi() {
 			break
 		}
 		log.Trace("got txis ", txis)
-		var txs protocol_message.Txis
+		var txs ogmessage.Txis
 		for _, txi := range txis {
 			if txi != nil && !m.isKnownHash(txi.GetTxHash()) {
 				txs = append(txs, txi)
@@ -463,15 +464,15 @@ func (m *IncrementalSyncer) SyncHashList(seqHash common.Hash) {
 }
 
 func (m *IncrementalSyncer) syncHashList(peerId string) {
-	req := protocol_message.MessageSyncRequest{
+	req := ogmessage.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	height := m.getHeight()
 	req.Height = &height
 	hashs := m.getTxsHashes()
-	var hashTerminates protocol_message.HashTerminats
+	var hashTerminates ogmessage.HashTerminats
 	for _, hash := range hashs {
-		var hashTerminate protocol_message.HashTerminat
+		var hashTerminate ogmessage.HashTerminat
 		copy(hashTerminate[:], hash.Bytes[:4])
 		hashTerminates = append(hashTerminates, hashTerminate)
 	}

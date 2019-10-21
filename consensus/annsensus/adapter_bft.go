@@ -6,7 +6,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 )
@@ -55,9 +56,9 @@ func NewTrustfulBftAdapter(
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
 }
 
-func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) protocol_message.MessageSigned {
+func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) ogmessage.MessageSigned {
 	publicKey, signature := r.signatureProvider.Sign(rawMessage.SignatureTargets())
-	signedMessage := protocol_message.MessageSigned{
+	signedMessage := ogmessage.MessageSigned{
 		InnerMessageType: msg.BinaryMessageType(rawMessage.GetType()),
 		InnerMessage:     rawMessage.SignatureTargets(),
 		Signature:        signature,
@@ -82,7 +83,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) protocol_message.Me
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
 
-func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *protocol_message.MessageSigned) error {
+func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *ogmessage.MessageSigned) error {
 	peers, err := b.termProvider.Peers(signedMsg.TermId)
 	if err != nil {
 		// this term is unknown.
@@ -106,12 +107,12 @@ func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publi
 }
 
 func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	if incomingMsg.GetType() != protocol_message.MessageTypeSigned {
+	if incomingMsg.GetType() != ogmessage.MessageTypeSigned {
 		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
 		return
 	}
 
-	signedMsg, ok := incomingMsg.(*protocol_message.MessageSigned)
+	signedMsg, ok := incomingMsg.(*ogmessage.MessageSigned)
 	if !ok {
 		err = errors.New("TrustfulBftAdapter received a message of type MessageSigned but it is not.")
 		return
@@ -146,11 +147,11 @@ type PlainBftAdapter struct {
 }
 
 func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) {
-	if incomingMsg.GetType() != protocol_message.MessageTypePlain {
+	if incomingMsg.GetType() != ogmessage.MessageTypePlain {
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(protocol_message.MessagePlain)
+	iMsg := incomingMsg.(ogmessage.MessagePlain)
 
 	switch bft.BftMessageType(iMsg.InnerMessageType) {
 	case bft.BftMessageTypeProposal:
@@ -175,7 +176,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -185,7 +186,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -195,7 +196,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = protocol_message.MessagePlain{
+		adaptedMessage = ogmessage.MessagePlain{
 			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}

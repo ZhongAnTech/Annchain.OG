@@ -21,7 +21,8 @@ import (
 	"errors"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"math/rand"
 	"time"
 
@@ -43,7 +44,7 @@ var (
 )
 
 // sequencerRetrievalFn is a callback type for retrieving a sequencer from the local chain.
-type sequencerRetrievalFn func(common.Hash) *protocol_message.Sequencer
+type sequencerRetrievalFn func(common.Hash) *ogmessage.Sequencer
 
 // headerRequesterFn is a callback type for sending a header retrieval request.
 type headerRequesterFn func(peerId string, hash common.Hash) error
@@ -55,7 +56,7 @@ type bodyRequesterFn func(peerId string, hashs common.Hashes) error
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(seq *protocol_message.Sequencer, txs protocol_message.Txis) error
+type chainInsertFn func(seq *ogmessage.Sequencer, txs ogmessage.Txis) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -63,10 +64,10 @@ type peerDropFn func(id string)
 // announce is the hash notification of the availability of a new sequencer in the
 // network.
 type announce struct {
-	hash   common.Hash                       // Hash of the sequencer being announced
-	number uint64                            // Number of the sequencer being announced (0 = unknown | old protocol)
-	header *protocol_message.SequencerHeader // Header of the sequencer partially reassembled (new protocol)
-	time   time.Time                         // Timestamp of the announcement
+	hash   common.Hash                // Hash of the sequencer being announced
+	number uint64                     // Number of the sequencer being announced (0 = unknown | old protocol)
+	header *ogmessage.SequencerHeader // Header of the sequencer partially reassembled (new protocol)
+	time   time.Time                  // Timestamp of the announcement
 
 	origin string // Identifier of the peer originating the notification
 
@@ -76,24 +77,24 @@ type announce struct {
 
 // headerFilterTask represents a batch of headers needing fetcher filtering.
 type headerFilterTask struct {
-	peer    string                              // The source peer of sequencer headers
-	headers []*protocol_message.SequencerHeader // Collection of headers to filter
-	time    time.Time                           // Arrival time of the headers
+	peer    string                       // The source peer of sequencer headers
+	headers []*ogmessage.SequencerHeader // Collection of headers to filter
+	time    time.Time                    // Arrival time of the headers
 }
 
 // bodyFilterTask represents a batch of sequencer bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string                  // The source peer of sequencer bodies
-	transactions []protocol_message.Txis // Collection of transactions per sequencer bodies
-	sequencers   []*protocol_message.Sequencer
+	peer         string           // The source peer of sequencer bodies
+	transactions []ogmessage.Txis // Collection of transactions per sequencer bodies
+	sequencers   []*ogmessage.Sequencer
 	time         time.Time // Arrival time of the sequencers' contents
 }
 
 // inject represents a schedules import operation.
 type inject struct {
 	origin    string
-	sequencer *protocol_message.Sequencer
+	sequencer *ogmessage.Sequencer
 }
 
 // Fetcher is responsible for accumulating sequencer announcements from various peers
@@ -103,7 +104,7 @@ type Fetcher struct {
 	notify chan *announce
 	inject chan *inject
 
-	sequencerFilter chan chan []*protocol_message.Sequencer
+	sequencerFilter chan chan []*ogmessage.Sequencer
 	headerFilter    chan chan *headerFilterTask
 	bodyFilter      chan chan *bodyFilterTask
 
@@ -129,11 +130,11 @@ type Fetcher struct {
 	dropPeer    peerDropFn    // Drops a peer for misbehaving
 
 	// Testing hooks
-	announceChangeHook func(common.Hash, bool)                     // Method to call upon adding or deleting a hash from the announce list
-	queueChangeHook    func(common.Hash, bool)                     // Method to call upon adding or deleting a sequencer from the import queue
-	fetchingHook       func(common.Hashes)                         // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
-	completingHook     func(common.Hashes)                         // Method to call upon starting a sequencer body fetch (eth/62)
-	importedHook       func(sequencer *protocol_message.Sequencer) // Method to call upon successful sequencer import (both eth/61 and eth/62)
+	announceChangeHook func(common.Hash, bool)              // Method to call upon adding or deleting a hash from the announce list
+	queueChangeHook    func(common.Hash, bool)              // Method to call upon adding or deleting a sequencer from the import queue
+	fetchingHook       func(common.Hashes)                  // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
+	completingHook     func(common.Hashes)                  // Method to call upon starting a sequencer body fetch (eth/62)
+	importedHook       func(sequencer *ogmessage.Sequencer) // Method to call upon successful sequencer import (both eth/61 and eth/62)
 }
 
 // New creates a sequencer fetcher to retrieve sequencers based on hash announcements.
@@ -141,7 +142,7 @@ func New(getsequencer sequencerRetrievalFn, chainHeight chainHeightFn, insertCha
 	return &Fetcher{
 		notify:          make(chan *announce),
 		inject:          make(chan *inject),
-		sequencerFilter: make(chan chan []*protocol_message.Sequencer),
+		sequencerFilter: make(chan chan []*ogmessage.Sequencer),
 		headerFilter:    make(chan chan *headerFilterTask),
 		bodyFilter:      make(chan chan *bodyFilterTask),
 		done:            make(chan common.Hash),
@@ -194,7 +195,7 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 }
 
 // Enqueue tries to fill gaps the the fetcher's future import queue.
-func (f *Fetcher) Enqueue(peer string, sequencer *protocol_message.Sequencer) error {
+func (f *Fetcher) Enqueue(peer string, sequencer *ogmessage.Sequencer) error {
 	op := &inject{
 		origin:    peer,
 		sequencer: sequencer,
@@ -209,7 +210,7 @@ func (f *Fetcher) Enqueue(peer string, sequencer *protocol_message.Sequencer) er
 
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
-func (f *Fetcher) FilterHeaders(peer string, headers protocol_message.SequencerHeaders, time time.Time) []*protocol_message.SequencerHeader {
+func (f *Fetcher) FilterHeaders(peer string, headers ogmessage.SequencerHeaders, time time.Time) []*ogmessage.SequencerHeader {
 	log.WithField("peer", peer).WithField("headers", headers).Trace(
 		"Filtering headers")
 
@@ -238,7 +239,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers protocol_message.SequencerH
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions []protocol_message.Txis, sequencers protocol_message.Sequencers, time time.Time) []protocol_message.Txis {
+func (f *Fetcher) FilterBodies(peer string, transactions []ogmessage.Txis, sequencers ogmessage.Sequencers, time time.Time) []ogmessage.Txis {
 	log.WithField("txs", len(transactions)).WithField("sequencers ", sequencers).WithField(
 		"peer", peer).Trace("Filtering bodies")
 
@@ -440,7 +441,7 @@ func (f *Fetcher) loop() {
 
 			// Split the batch of headers into unknown ones (to return to the caller),
 			// known incomplete ones (requiring body retrievals) and completed sequencers.
-			unknown, incomplete, complete := []*protocol_message.SequencerHeader{}, []*announce{}, []*protocol_message.Sequencer{}
+			unknown, incomplete, complete := []*ogmessage.SequencerHeader{}, []*announce{}, []*ogmessage.Sequencer{}
 			for _, header := range task.headers {
 				hash := header.GetHash()
 
@@ -505,7 +506,7 @@ func (f *Fetcher) loop() {
 				return
 			}
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
-			sequencers := []*protocol_message.Sequencer{}
+			sequencers := []*ogmessage.Sequencer{}
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
 			select {
 			case filter <- task:
@@ -556,7 +557,7 @@ func (f *Fetcher) rescheduleComplete(complete *time.Timer) {
 
 // enqueue schedules a new future import operation, if the sequencer to be imported
 // has not yet been seen.
-func (f *Fetcher) enqueue(peer string, sequencer *protocol_message.Sequencer) {
+func (f *Fetcher) enqueue(peer string, sequencer *ogmessage.Sequencer) {
 	hash := sequencer.GetTxHash()
 
 	// Ensure the peer isn't DOSing us
@@ -595,7 +596,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *protocol_message.Sequencer) {
 // insert spawns a new goroutine to run a sequencer insertion into the chain. If the
 // sequencer's number is at the same height as the current import phase, it updates
 // the phase states accordingly.
-func (f *Fetcher) insert(peer string, sequencer *protocol_message.Sequencer, txs protocol_message.Txis) {
+func (f *Fetcher) insert(peer string, sequencer *ogmessage.Sequencer, txs ogmessage.Txis) {
 	hash := sequencer.GetTxHash()
 
 	// Run the import on a new thread

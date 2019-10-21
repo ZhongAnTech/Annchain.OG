@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/vrf"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 	"strings"
 )
@@ -20,14 +21,14 @@ const (
 
 //msgp:tuple RawCampaign
 type RawCampaign struct {
-	protocol_message.TxBase
+	ogmessage.TxBase
 	DkgPublicKey []byte
 	Vrf          vrf.VrfInfo
 }
 
 //msgp:tuple RawTermChange
 type RawTermChange struct {
-	protocol_message.TxBase
+	ogmessage.TxBase
 	TermId uint64
 	PkBls  []byte
 	SigSet []*SigSet
@@ -50,7 +51,7 @@ func (rc *RawCampaign) Campaign() *Campaign {
 		DkgPublicKey: rc.DkgPublicKey,
 		Vrf:          rc.Vrf,
 	}
-	if !protocol_message.CanRecoverPubFromSig {
+	if !ogmessage.CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(rc.PublicKey)
 		cp.Issuer = &addr
 	}
@@ -67,17 +68,17 @@ func (r *RawTermChange) TermChange() *TermChange {
 		SigSet: r.SigSet,
 		TermID: r.TermId,
 	}
-	if !protocol_message.CanRecoverPubFromSig {
+	if !ogmessage.CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(r.PublicKey)
 		t.Issuer = &addr
 	}
 	return t
 }
-func (t *RawTermChange) Txi() protocol_message.Txi {
+func (t *RawTermChange) Txi() ogmessage.Txi {
 	return t.TermChange()
 }
 
-func (t *RawCampaign) Txi() protocol_message.Txi {
+func (t *RawCampaign) Txi() ogmessage.Txi {
 	return t.Campaign()
 }
 
@@ -127,11 +128,11 @@ func (r RawCampaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (r RawTermChanges) Txis() protocol_message.Txis {
+func (r RawTermChanges) Txis() ogmessage.Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs protocol_message.Txis
+	var cs ogmessage.Txis
 	for _, v := range r {
 		c := v.TermChange()
 		cs = append(cs, c)
@@ -139,11 +140,11 @@ func (r RawTermChanges) Txis() protocol_message.Txis {
 	return cs
 }
 
-func (r RawCampaigns) Txis() protocol_message.Txis {
+func (r RawCampaigns) Txis() ogmessage.Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs protocol_message.Txis
+	var cs ogmessage.Txis
 	for _, v := range r {
 		c := v.Campaign()
 		cs = append(cs, c)

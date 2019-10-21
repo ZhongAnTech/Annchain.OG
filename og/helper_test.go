@@ -129,7 +129,7 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
 func (p *testPeer) handshake(t *testing.T, seqId uint64, head common.Hash, genesis common.Hash) {
-	msg := &message.StatusData{
+	msg := &og.StatusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkId:       testNetworkId,
 		CurrentId:       seqId,

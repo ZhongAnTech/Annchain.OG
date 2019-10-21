@@ -16,7 +16,8 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/og/txmaker"
 	"net/http"
 	"strconv"
@@ -32,7 +33,7 @@ import (
 
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
-		tx    protocol_message.Txi
+		tx    ogmessage.Txi
 		txReq NewTxRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -134,7 +135,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 		return
 	}
-	tx.SetVerified(protocol_message.VerifiedFormat)
+	tx.SetVerified(ogmessage.VerifiedFormat)
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
@@ -186,7 +187,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		return
 	}
 	for i, txReq := range txrequsets.Txs {
-		var tx protocol_message.Txi
+		var tx ogmessage.Txi
 		from, err := common.StringToAddress(txReq.From)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
@@ -292,7 +293,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			}
 			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
 			//we don't verify hash , since we calculated the hash
-			tx.SetVerified(protocol_message.VerifiedFormat)
+			tx.SetVerified(ogmessage.VerifiedFormat)
 			r.TxBuffer.ReceivedNewTxChan <- tx
 			hashes = append(hashes, tx.GetTxHash())
 			continue
@@ -312,7 +313,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 		//we don't verify hash , since we calculated the hash
-		tx.SetVerified(protocol_message.VerifiedFormat)
+		tx.SetVerified(ogmessage.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
 		hashes = append(hashes, tx.GetTxHash())
 	}

@@ -8,7 +8,8 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
@@ -320,7 +321,7 @@ func (d *dummyP2pSender) BroadcastMessage(message msg.TransportableMessage) {
 
 func (d *dummyP2pSender) AnonymousSendMessage(msg msg.TransportableMessage, anonymousPubKey *crypto.PublicKey) {
 	// fake encryption
-	d.BroadcastMessage(&protocol_message.MessageEncrypted{
+	d.BroadcastMessage(&ogmessage.MessageEncrypted{
 		InnerMessageType:      msg.GetType(),
 		InnerMessageEncrypted: msg.GetData(),
 		PublicKey:             anonymousPubKey.Bytes,

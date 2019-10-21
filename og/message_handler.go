@@ -19,8 +19,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol_message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"sort"
 	"sync/atomic"
 
@@ -87,7 +87,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_message.MessageSyncRequest, peerId string) {
-	var txs protocol_message.TxisMarshaler
+	var txs ogmessage.TxisMarshaler
 	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
@@ -136,7 +136,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 			// uint64(0) -2 >0
 			if height+2 <= ourHeight {
 				dagTxs := h.Og.Dag.GetTxisByNumber(height + 2)
-				rtxs := protocol_message.NewTxisMarshaler(dagTxs)
+				rtxs := ogmessage.NewTxisMarshaler(dagTxs)
 				if rtxs != nil && len(rtxs) != 0 {
 					txs = append(txs, rtxs...)
 				}
@@ -252,12 +252,12 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 	// Gather headers until the fetch or network limits is reached
 	var (
 		bytes   common.StorageSize
-		headers protocol_message.Sequencers
+		headers ogmessage.Sequencers
 		unknown bool
 	)
 	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
 		// Retrieve the next header satisfying the query
-		var origin *protocol_message.Sequencer
+		var origin *ogmessage.Sequencer
 		if hashMode {
 			if first {
 				first = false
@@ -338,7 +338,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageTxsResponse) {
-	var rawTxs protocol_message.TxisMarshaler
+	var rawTxs ogmessage.TxisMarshaler
 	var txis types.Txis
 	if request.RawTxs != nil {
 		rawTxs = *request.RawTxs
@@ -369,7 +369,7 @@ func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageT
 
 func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxsRequest, peerId string) {
 	var msgRes p2p_message.MessageTxsResponse
-	var seq *protocol_message.Sequencer
+	var seq *ogmessage.Sequencer
 	if msgReq.Id == nil {
 		i := uint64(0)
 		msgReq.Id = &i
@@ -382,7 +382,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxs
 	msgRes.RawSequencer = seq.RawSequencer()
 	if seq != nil {
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs := protocol_message.NewTxisMarshaler(txs)
+		rtxs := ogmessage.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			msgRes.RawTxs = &rtxs
 		}
@@ -396,7 +396,7 @@ func (h *IncomingMessageHandler) HandleTxsRequest(msgReq *p2p_message.MessageTxs
 func (h *IncomingMessageHandler) HandleBodiesResponse(request *p2p_message.MessageBodiesResponse, peerId string) {
 	// Deliver them all to the downloader for queuing
 	transactions := make([]types.Txis, len(request.Bodies))
-	sequencers := make([]*protocol_message.Sequencer, len(request.Bodies))
+	sequencers := make([]*ogmessage.Sequencer, len(request.Bodies))
 	for i, bodyData := range request.Bodies {
 		var body p2p_message.MessageBodyData
 		_, err := body.UnmarshalMsg(bodyData)
@@ -453,7 +453,7 @@ func (h *IncomingMessageHandler) HandleBodiesRequest(msgReq *p2p_message.Message
 		var body p2p_message.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
 		txs := h.Og.Dag.GetTxisByNumber(seq.Height)
-		rtxs := protocol_message.NewTxisMarshaler(txs)
+		rtxs := ogmessage.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			body.RawTxs = &rtxs
 		}
@@ -658,7 +658,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 	}
 	switch txi.GetType() {
 	case types.TxBaseTypeNormal:
-		tx := txi.(*protocol_message.Tx)
+		tx := txi.(*ogmessage.Tx)
 		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeTermChange:
@@ -670,11 +670,11 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		response := p2p_message.MessageCampaign{RawCampaign: tx.RawCampaign()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeSequencer:
-		tx := txi.(*protocol_message.Sequencer)
+		tx := txi.(*ogmessage.Sequencer)
 		response := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewSequencer, &response)
 	case types.TxBaseAction:
-		tx := txi.(*protocol_message.ActionTx)
+		tx := txi.(*ogmessage.ActionTx)
 		response := p2p_message.MessageNewActionTx{ActionTx: tx}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewSequencer, &response)
 	}

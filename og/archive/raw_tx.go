@@ -1,8 +1,6 @@
 package archive
 
-import (
-	"github.com/annchain/OG/og/protocol_message"
-)
+import "github.com/annchain/OG/og/protocol/ogmessage"
 
 //go:generate msgp
 
@@ -11,7 +9,7 @@ type RawArchive struct {
 	Archive
 }
 
-func (a *RawArchive) Txi() protocol_message.Txi {
+func (a *RawArchive) Txi() ogmessage.Txi {
 	return &a.Archive
 }
 

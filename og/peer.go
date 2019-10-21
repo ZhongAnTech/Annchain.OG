@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/msg"
 	"sync"
 	"time"
 
@@ -67,9 +67,9 @@ type peer struct {
 	head      common.Hash
 	seqId     uint64
 	lock      sync.RWMutex
-	knownMsg  mapset.Set        // Set of transaction hashes known to be known by this peer
-	queuedMsg chan []*message.OGMessage // Queue of transactions to broadcast to the peer
-	term      chan struct{}     // Termination channel to stop the broadcaster
+	knownMsg  mapset.Set                      // Set of transaction hashes known to be known by this peer
+	queuedMsg chan []msg.TransportableMessage // Queue of transactions to broadcast to the peer
+	term      chan struct{}                   // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
 	inBound   bool
@@ -92,7 +92,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*message.OGMessage, maxqueuedMsg),
+		queuedMsg: make(chan []msg.TransportableMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
@@ -188,8 +188,8 @@ func (p *peer) MarkMessage(m message.BinaryMessageType, hash common.Hash) {
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction Hash set for future reference.
-func (p *peer) SendMessages(messages []*message.OGMessage) error {
-	var msgType message.BinaryMessageType
+func (p *peer) SendMessages(messages []msg.TransportableMessage) error {
+	var msgType msg.BinaryMessageType
 	var msgBytes []byte
 	if len(messages) == 0 {
 		return nil
@@ -204,7 +204,7 @@ func (p *peer) SendMessages(messages []*message.OGMessage) error {
 	return p.sendRawMessage(msgType, msgBytes)
 }
 
-func (p *peer) sendRawMessage(msgType message.BinaryMessageType, msgBytes []byte) error {
+func (p *peer) sendRawMessage(msgType msg.BinaryMessageType, msgBytes []byte) error {
 	msgLog.WithField("to ", p.id).WithField("type ", msgType).WithField("size", len(msgBytes)).Trace("send msg")
 	return p2p.Send(p.rw, msgType.Code(), msgBytes)
 

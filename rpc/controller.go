@@ -20,7 +20,8 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
+
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/types/token"
@@ -43,7 +44,7 @@ type RpcController struct {
 	TxCreator          *txmaker.OGTxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor
-	NewRequestChan     chan protocol_message.TxBaseType
+	NewRequestChan     chan ogmessage.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
 	FormatVerifier     *verifier.TxFormatVerifier
 }
@@ -95,10 +96,10 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		return
 	}
 	switch tx := txi.(type) {
-	case *protocol_message.Tx:
+	case *ogmessage.Tx:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *protocol_message.Sequencer:
+	case *ogmessage.Sequencer:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	case *archive.Archive:
@@ -110,7 +111,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *campaign.TermChange:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *protocol_message.ActionTx:
+	case *ogmessage.ActionTx:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	}
@@ -167,8 +168,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
-			Total int                   `json:"total"`
-			Txs   protocol_message.Txis `json:"txs"`
+			Total int            `json:"total"`
+			Txs   ogmessage.Txis `json:"txs"`
 		}
 		txsResponse.Total = len(txs)
 		txsResponse.Txs = txs
@@ -182,8 +183,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxsByAddress(addr)
 		var txsResponse struct {
-			Total int                    `json:"total"`
-			Txs   []protocol_message.Txi `json:"txs"`
+			Total int             `json:"total"`
+			Txs   []ogmessage.Txi `json:"txs"`
 		}
 		if len(txs) != 0 {
 			txsResponse.Total = len(txs)
@@ -210,7 +211,7 @@ func (r *RpcController) Genesis(c *gin.Context) {
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
-	var sq *protocol_message.Sequencer
+	var sq *ogmessage.Sequencer
 	hashtr := c.Query("hash")
 	seqId := c.Query("seq_id")
 	if seqId == "" {
@@ -255,7 +256,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 		switch t := txi.(type) {
-		case *protocol_message.Sequencer:
+		case *ogmessage.Sequencer:
 			Response(c, http.StatusOK, nil, t)
 			return
 		default:

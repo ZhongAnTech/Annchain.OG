@@ -22,7 +22,6 @@ import (
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.

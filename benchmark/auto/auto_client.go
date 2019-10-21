@@ -21,7 +21,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
-	"github.com/annchain/OG/og/protocol_message"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	"math/rand"
 	"sync"
 	"time"
@@ -55,7 +55,7 @@ type AutoClient struct {
 
 	Delegate *node.Delegate
 
-	ManualChan chan protocol_message.TxBaseType
+	ManualChan chan ogmessage.TxBaseType
 	quit       chan bool
 
 	pause bool
@@ -65,7 +65,7 @@ type AutoClient struct {
 	nonceLock      sync.RWMutex
 	txLock         sync.RWMutex
 	archiveLock    sync.RWMutex
-	NewRawTx       chan protocol_message.Txi
+	NewRawTx       chan ogmessage.Txi
 	TpsTest        bool
 	TpsTestInit    bool
 	TestInsertPool bool
@@ -77,8 +77,8 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
-	c.ManualChan = make(chan protocol_message.TxBaseType)
-	c.NewRawTx = make(chan protocol_message.Txi)
+	c.ManualChan = make(chan ogmessage.TxBaseType)
+	c.NewRawTx = make(chan ogmessage.Txi)
 }
 
 func (c *AutoClient) SetTxIntervalUs(i int) {
@@ -113,11 +113,11 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
-func (c *AutoClient) fireManualTx(txType protocol_message.TxBaseType, force bool) {
+func (c *AutoClient) fireManualTx(txType ogmessage.TxBaseType, force bool) {
 	switch txType {
-	case protocol_message.TxBaseTypeNormal:
+	case ogmessage.TxBaseTypeNormal:
 		c.doSampleTx(force)
-	case protocol_message.TxBaseTypeSequencer:
+	case ogmessage.TxBaseTypeSequencer:
 		c.doSampleSequencer(force)
 	default:
 		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
@@ -350,7 +350,7 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else if !c.TestSeal {
-			node.ReceivedNewTxsChan <- protocol_message.Txis{seq}
+			node.ReceivedNewTxsChan <- ogmessage.Txis{seq}
 			//c.Delegate.Announce(seq)
 		}
 	}
@@ -376,11 +376,11 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	defer c.txLock.RUnlock()
 
 	tx, err := node.GenerateTx(node.TxRequest{
-		node.AddrFrom:   me.Address,
-		node.AddrTo:     c.SampleAccounts[rand.Intn(len(c.SampleAccounts))].Address,
-		node.Nonce:      c.judgeNonce(),
-		node.Value:      math.NewBigInt(0),
-		node.PrivateKey: me.PrivateKey,
+		AddrFrom:   me.Address,
+		AddrTo:     c.SampleAccounts[rand.Intn(len(c.SampleAccounts))].Address,
+		Nonce:      c.judgeNonce(),
+		Value:      math.NewBigInt(0),
+		PrivateKey: me.PrivateKey,
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate tx")
@@ -388,7 +388,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated tx")
-	tx.SetVerified(protocol_message.VerifiedFormat)
+	tx.SetVerified(ogmessage.VerifiedFormat)
 	node.Announce(tx)
 	return true
 }
@@ -428,17 +428,17 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	return true
 }
 
-func (c *AutoClient) doRawTx(txi protocol_message.Txi) bool {
+func (c *AutoClient) doRawTx(txi ogmessage.Txi) bool {
 	if !c.CampainEnable {
 		return false
 	}
 	me := c.MyAccount
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
-	if txi.GetType() == protocol_message.TxBaseTypeCampaign {
+	if txi.GetType() == ogmessage.TxBaseTypeCampaign {
 		cp := txi.(*campaign.Campaign)
 		cp.Issuer = &me.Address
-	} else if txi.GetType() == protocol_message.TxBaseTypeTermChange {
+	} else if txi.GetType() == ogmessage.TxBaseTypeTermChange {
 		cp := txi.(*campaign.TermChange)
 		cp.Issuer = &me.Address
 	}
@@ -451,7 +451,7 @@ func (c *AutoClient) doRawTx(txi protocol_message.Txi) bool {
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated txi")
-	txi.SetVerified(protocol_message.VerifiedFormat)
+	txi.SetVerified(ogmessage.VerifiedFormat)
 	node.Announce(txi)
 	return true
 }
@@ -463,10 +463,10 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	me := c.MyAccount
 
 	seq, err := node.GenerateSequencer(node.SeqRequest{
-		node.Issuer:     me.Address,
-		node.Height:     c.Delegate.GetLatestDagSequencer().Height + 1,
-		node.Nonce:      c.judgeNonce(),
-		node.PrivateKey: me.PrivateKey,
+		Issuer:     me.Address,
+		Height:     c.Delegate.GetLatestDagSequencer().Height + 1,
+		Nonce:      c.judgeNonce(),
+		PrivateKey: me.PrivateKey,
 	})
 	if err != nil {
 		logrus.WithError(err).Error("failed to auto generate seq")
@@ -474,7 +474,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
-	seq.SetVerified(protocol_message.VerifiedFormat)
+	seq.SetVerified(ogmessage.VerifiedFormat)
 	node.Announce(seq)
 	return true
 }

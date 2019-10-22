@@ -3,19 +3,15 @@ package annsensus
 import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/og/communicator"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-
-	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
 
-// AnnsensusCommunicator routes ogmessages and judge which adapter to use and to receive.
+// ProxyAnnsensusPeerCommunicator routes ogmessages and judge which adapter to use and to receive.
 // Do IO work only.
-type AnnsensusCommunicator struct {
-	p2pSender         communicator.P2PSender // upstream message sender
-	p2pReceiver       communicator.P2PReceiver
+type ProxyAnnsensusPeerCommunicator struct {
+	incoming          AnnsensusPeerCommunicatorIncoming
+	outgoing          AnnsensusPeerCommunicatorOutgoing
 	bftMessageAdapter BftMessageAdapter
 	dkgMessageAdapter DkgMessageAdapter
 	termHolder        TermHolder
@@ -24,14 +20,14 @@ type AnnsensusCommunicator struct {
 }
 
 func NewAnnsensusCommunicator(
-	p2PSender communicator.P2PSender,
-	p2pReceiver communicator.P2PReceiver,
+	incoming AnnsensusPeerCommunicatorIncoming,
+	outgoing AnnsensusPeerCommunicatorOutgoing,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
-	termHolder TermHolder) *AnnsensusCommunicator {
-	return &AnnsensusCommunicator{
-		p2pSender:         p2PSender,
-		p2pReceiver:       p2pReceiver,
+	termHolder TermHolder) *ProxyAnnsensusPeerCommunicator {
+	return &ProxyAnnsensusPeerCommunicator{
+		incoming:          incoming,
+		outgoing:          outgoing,
 		bftMessageAdapter: bftMessageAdapter,
 		dkgMessageAdapter: dkgMessageAdapter,
 		termHolder:        termHolder,
@@ -40,14 +36,14 @@ func NewAnnsensusCommunicator(
 	}
 }
 
-func (r *AnnsensusCommunicator) Run() {
+func (r *ProxyAnnsensusPeerCommunicator) Run() {
 	// keep receiving OG messages and decrypt to incoming channel
 	for {
 		select {
 		case <-r.quit:
 			r.quitWg.Done()
 			return
-		case msg := <-r.p2pReceiver.GetMessageChannel():
+		case msg := <-r.incoming.GetPipeIn():
 			r.HandleAnnsensusMessage(msg)
 		}
 	}
@@ -57,14 +53,13 @@ func (r *AnnsensusCommunicator) Run() {
 // As part of Annsensus, bft,dkg and term may not be regarded as a separate component of OG.
 // Annsensus itself is also a plugin of OG supporting consensus messages.
 // Do not block the pipe for any message processing. Router should not be blocked. Use channel.
-func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.TransportableMessage) {
+func (ap *ProxyAnnsensusPeerCommunicator) HandleAnnsensusMessage(annsensusMessage AnnsensusMessage) {
 	switch annsensusMessage.GetType() {
-
-	case ogmessage.MessageTypeAnnsensusSigned:
+	case AnnsensusMessageTypeSigned:
 		fallthrough
-	case ogmessage.MessageTypeAnnsensusPlain:
+	case AnnsensusMessageTypePlain:
 		// let bft and dkg handle this message since I don't know the content
-		bmsg, err := ap.bftMessageAdapter.AdaptOgMessage(annsensusMessage)
+		bmsg, err := ap.bftMessageAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err == nil {
 			// send to bft
 			msgTerm, err := ap.termHolder.GetTermCollection(bmsg)
@@ -76,7 +71,7 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.Tra
 			return
 		}
 
-		dmsg, err := ap.dkgMessageAdapter.AdaptOgMessage(annsensusMessage)
+		dmsg, err := ap.dkgMessageAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err == nil {
 			// send to dkg
 			msgTerm, err := ap.termHolder.GetTermCollection(dmsg)
@@ -95,36 +90,50 @@ func (ap *AnnsensusCommunicator) HandleAnnsensusMessage(annsensusMessage msg.Tra
 	}
 }
 
-func (ap *AnnsensusCommunicator) BroadcastBft(msg bft.BftMessage, peers []bft.PeerInfo) {
-	logrus.WithField("msg", msg).Debug("AnnsensusCommunicator is broadcasting bft message")
+func (ap *ProxyAnnsensusPeerCommunicator) BroadcastBft(msg bft.BftMessage, peers []bft.PeerInfo) {
+	logrus.WithField("msg", msg).Debug("AnnsensusPeerCommunicator is broadcasting bft message")
 	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
+	var annsensusPeers []AnnsensusPeer
+	for _, peer := range peers {
+		annsensusPeers = append(annsensusPeers, AnnsensusPeer{
+			Id:             peer.Id,
+			PublicKey:      peer.PublicKey,
+			Address:        peer.Address,
+			PublicKeyBytes: peer.PublicKeyBytes,
+		})
+	}
 
-	ap.p2pSender.BroadcastMessage(adaptedMessage)
+	ap.outgoing.Broadcast(adaptedMessage, annsensusPeers)
 }
 
-func (ap *AnnsensusCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInfo) {
-	logrus.WithField("msg", msg).Debug("AnnsensusCommunicator is unicasting bft message")
+func (ap *ProxyAnnsensusPeerCommunicator) UnicastBft(msg bft.BftMessage, peer bft.PeerInfo) {
+	logrus.WithField("msg", msg).Debug("AnnsensusPeerCommunicator is unicasting bft message")
 	adaptedMessage, err := ap.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt bft message to og message")
 		return
 	}
-	ap.p2pSender.AnonymousSendMessage(adaptedMessage, &peer.PublicKey)
+	ap.outgoing.Unicast(adaptedMessage, AnnsensusPeer{
+		Id:             peer.Id,
+		PublicKey:      peer.PublicKey,
+		Address:        peer.Address,
+		PublicKeyBytes: peer.PublicKeyBytes,
+	})
 }
 
-func (ap *AnnsensusCommunicator) BroadcastDkg(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
+func (ap *ProxyAnnsensusPeerCommunicator) BroadcastDkg(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
 	panic("implement me")
 }
 
-func (ap *AnnsensusCommunicator) UnicastDkg(msg dkg.DkgMessage, peer dkg.PeerInfo) {
+func (ap *ProxyAnnsensusPeerCommunicator) UnicastDkg(msg dkg.DkgMessage, peer dkg.PeerInfo) {
 	panic("implement me")
 }
 
-func (ap *AnnsensusCommunicator) Stop() {
+func (ap *ProxyAnnsensusPeerCommunicator) Stop() {
 	ap.quit <- true
 	ap.quitWg.Wait()
 }

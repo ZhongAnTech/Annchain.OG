@@ -4,16 +4,14 @@ import (
 	"errors"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-
 	"github.com/annchain/OG/types/msg"
 )
 
 type DkgMessageUnmarshaller struct {
 }
 
-func (b DkgMessageUnmarshaller) Unmarshal(messageType msg.BinaryMessageType, message []byte) (outMsg dkg.DkgMessage, err error) {
-	switch dkg.DkgMessageType(messageType) {
+func (b DkgMessageUnmarshaller) Unmarshal(messageType dkg.DkgMessageType, message []byte) (outMsg dkg.DkgMessage, err error) {
+	switch messageType {
 	case dkg.DkgMessageTypeDeal:
 		m := &dkg.MessageDkgDeal{}
 		_, err = m.UnmarshalMsg(message)
@@ -43,16 +41,16 @@ type TrustfulDkgAdapter struct {
 	dkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 
-func (r *TrustfulDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg msg.TransportableMessage, err error) {
+func (r *TrustfulDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg AnnsensusMessage, err error) {
 	signed := r.Sign(outgoingMsg)
 	msg = &signed
 	return
 }
 
-func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) ogmessage.MessageSigned {
+func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) AnnsensusMessageSigned {
 	publicKey, signature := r.signatureProvider.Sign(message.SignatureTargets())
-	signed := ogmessage.MessageSigned{
-		InnerMessageType: msg.BinaryMessageType(message.GetType()),
+	signed := AnnsensusMessageSigned{
+		InnerMessageType: uint16(message.GetType()),
 		InnerMessage:     message.SignatureTargets(),
 		Signature:        signature,
 		PublicKey:        publicKey,
@@ -66,7 +64,7 @@ func NewTrustfulDkgAdapter() *TrustfulDkgAdapter {
 	return &TrustfulDkgAdapter{}
 }
 
-func (b *TrustfulDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
+func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
 	panic("not implemented yet")
 }
 
@@ -74,14 +72,15 @@ type PlainDkgAdapter struct {
 	dkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 
-func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) {
-	if incomingMsg.GetType() != ogmessage.MessageTypeAnnsensusPlain {
+func (p PlainDkgAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg dkg.DkgMessage, err error) {
+	if incomingMsg.GetType() != AnnsensusMessageTypeSigned {
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(ogmessage.MessagePlain)
+	iMsg := incomingMsg.(*AnnsensusMessageSigned)
+	innerMessageType := dkg.DkgMessageType(iMsg.InnerMessageType)
 
-	switch dkg.DkgMessageType(iMsg.InnerMessageType) {
+	switch innerMessageType {
 	case dkg.DkgMessageTypeDeal:
 		fallthrough
 	case dkg.DkgMessageTypeDealResponse:
@@ -89,14 +88,14 @@ func (p PlainDkgAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 	case dkg.DkgMessageTypeSigSets:
 		fallthrough
 	case dkg.DkgMessageTypeGenesisPublicKey:
-		msg, err = p.dkgMessageUnmarshaller.Unmarshal(iMsg.InnerMessageType, iMsg.InnerMessage)
+		msg, err = p.dkgMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainDkgAdapter received a message of an unsupported inner type")
 	}
 	return
 }
 
-func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMessage msg.TransportableMessage, err error) {
+func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMessage AnnsensusMessage, err error) {
 	var msgBytes []byte
 	switch outgoingMsg.GetType() {
 	case dkg.DkgMessageTypeDeal:
@@ -105,8 +104,8 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case dkg.DkgMessageTypeDealResponse:
@@ -115,8 +114,8 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case dkg.DkgMessageTypeGenesisPublicKey:
@@ -125,8 +124,8 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case dkg.DkgMessageTypeSigSets:
@@ -135,8 +134,8 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	default:

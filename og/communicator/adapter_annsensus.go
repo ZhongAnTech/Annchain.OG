@@ -10,8 +10,8 @@ import (
 type AnnsensusMessageUnmarshaller struct {
 }
 
-func (a AnnsensusMessageUnmarshaller) Unmarshal(messageType msg.BinaryMessageType, message []byte) (outMsg annsensus.AnnsensusMessage, err error) {
-	switch annsensus.AnnsensusMessageType(messageType) {
+func (a AnnsensusMessageUnmarshaller) Unmarshal(messageType annsensus.AnnsensusMessageType, message []byte) (outMsg annsensus.AnnsensusMessage, err error) {
+	switch messageType {
 	case annsensus.AnnsensusMessageTypePlain:
 		m := &annsensus.AnnsensusMessagePlain{}
 		_, err = m.UnmarshalMsg(message)
@@ -39,7 +39,9 @@ func (s SimpleAnnsensusAdapter) AdaptOgMessage(incomingMsg msg.TransportableMess
 		err = errors.New("SimpleAnnsensusAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(ogmessage.MessageAnnsensus)
+	// incomingMsg.GetType() == ogmessage.MessageTypeAnnsensus
+	// incomingMsg.GetData
+	return s.annsensusMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), )
 }
 
 func (s SimpleAnnsensusAdapter) AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error) {

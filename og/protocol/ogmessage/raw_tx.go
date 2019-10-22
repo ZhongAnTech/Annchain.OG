@@ -13,7 +13,7 @@
 //// limitations under the License.
 package ogmessage
 
-//
+
 //import (
 //	"fmt"
 //	"github.com/annchain/OG/common"

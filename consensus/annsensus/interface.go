@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/protocol/ogmessage"
 
-	"github.com/annchain/OG/types/msg"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
 )
@@ -55,17 +54,26 @@ type SequencerProducer interface {
 // BftMessageAdapter converts messages.
 // During the converting process there may be some validation and signing operations.
 type BftMessageAdapter interface {
-	AdaptOgMessage(incomingMsg msg.TransportableMessage) (bft.BftMessage, error)
-	AdaptBftMessage(outgoingMsg bft.BftMessage) (msg.TransportableMessage, error)
+	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (bft.BftMessage, error)
+	AdaptBftMessage(outgoingMsg bft.BftMessage) (AnnsensusMessage, error)
 }
 
 type DkgMessageAdapter interface {
-	AdaptOgMessage(incomingMsg msg.TransportableMessage) (dkg.DkgMessage, error)
-	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg.TransportableMessage, error)
+	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (dkg.DkgMessage, error)
+	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (AnnsensusMessage, error)
 }
 
 type AnnsensusMessage interface {
 	GetType() AnnsensusMessageType
 	GetData() []byte
 	String() string
+}
+
+type AnnsensusPeerCommunicatorOutgoing interface {
+	Broadcast(msg AnnsensusMessage, peers []AnnsensusPeer)
+	Unicast(msg AnnsensusMessage, peer AnnsensusPeer)
+}
+type AnnsensusPeerCommunicatorIncoming interface {
+	GetPipeIn() chan AnnsensusMessage
+	GetPipeOut() chan AnnsensusMessage
 }

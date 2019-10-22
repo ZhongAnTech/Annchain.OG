@@ -2,7 +2,6 @@ package annsensus
 
 import (
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types/msg"
 )
 
 //go:generate msgp
@@ -18,8 +17,16 @@ const (
 
 //msgp:tuple AnnsensusMessagePlain
 type AnnsensusMessagePlain struct {
-	InnerMessageType AnnsensusMessageType
+	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessage     []byte
+}
+
+func (z *AnnsensusMessagePlain) GetData() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 func (z *AnnsensusMessagePlain) GetType() AnnsensusMessageType {
@@ -32,7 +39,7 @@ func (z *AnnsensusMessagePlain) String() string {
 
 //msgp:tuple AnnsensusMessageSigned
 type AnnsensusMessageSigned struct {
-	InnerMessageType AnnsensusMessageType
+	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessage     []byte
 	Signature        hexutil.Bytes
 	PublicKey        hexutil.Bytes
@@ -57,7 +64,7 @@ func (m *AnnsensusMessageSigned) String() string {
 
 //msgp:tuple AnnsensusMessageEncrypted
 type AnnsensusMessageEncrypted struct {
-	InnerMessageType      msg.BinaryMessageType
+	InnerMessageType      uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessageEncrypted []byte
 	PublicKey             hexutil.Bytes
 }

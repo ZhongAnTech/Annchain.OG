@@ -24,12 +24,3 @@ type AnnsensusMessageAdapter interface {
 
 type OgPeerInfo struct {
 }
-
-type OgPeerCommunicatorOutgoing interface {
-	Broadcast(msg OgMessage, peers []PeerInfo)
-	Unicast(msg OgMessage, peer PeerInfo)
-}
-type OgPeerCommunicatorIncoming interface {
-	GetPipeIn() chan OgMessage
-	GetPipeOut() chan OgMessage
-}

@@ -111,7 +111,7 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	var termProviders []annsensus.TermProvider
 
 	for i := 0; i < nodes; i++ {
-		// init AnnsensusCommunicator for each node
+		// init ProxyAnnsensusPeerCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 

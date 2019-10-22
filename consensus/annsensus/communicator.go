@@ -1,16 +1,26 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 )
 
+type AnnsensusPeer struct {
+	Id             int
+	PublicKey      crypto.PublicKey `json:"-"`
+	Address        common.Address   `json:"address"`
+	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
+}
+
 type ProxyBftPeerCommunicator struct {
-	annsensusCommunicator *AnnsensusCommunicator
+	annsensusCommunicator *ProxyAnnsensusPeerCommunicator
 	pipe                  chan bft.BftMessage
 }
 
-func NewProxyBftPeerCommunicator(annsensusCommunicator *AnnsensusCommunicator) *ProxyBftPeerCommunicator {
+func NewProxyBftPeerCommunicator(annsensusCommunicator *ProxyAnnsensusPeerCommunicator) *ProxyBftPeerCommunicator {
 	return &ProxyBftPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
 		pipe:                  make(chan bft.BftMessage),
@@ -43,11 +53,11 @@ func (p *ProxyBftPeerCommunicator) Run() {
 }
 
 type ProxyDkgPeerCommunicator struct {
-	annsensusCommunicator *AnnsensusCommunicator
+	annsensusCommunicator *ProxyAnnsensusPeerCommunicator
 	pipe                  chan dkg.DkgMessage
 }
 
-func NewProxyDkgPeerCommunicator(annsensusCommunicator *AnnsensusCommunicator) *ProxyDkgPeerCommunicator {
+func NewProxyDkgPeerCommunicator(annsensusCommunicator *ProxyAnnsensusPeerCommunicator) *ProxyDkgPeerCommunicator {
 	return &ProxyDkgPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
 		pipe:                  make(chan dkg.DkgMessage),

@@ -6,9 +6,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-
-	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,7 +41,7 @@ type TrustfulBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg msg.TransportableMessage, err error) {
+func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg AnnsensusMessage, err error) {
 	signed := r.Sign(outgoingMsg)
 	msg = &signed
 	return
@@ -59,7 +56,7 @@ func NewTrustfulBftAdapter(
 func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSigned {
 	publicKey, signature := r.signatureProvider.Sign(rawMessage.SignatureTargets())
 	signedMessage := AnnsensusMessageSigned{
-		InnerMessageType: msg.BinaryMessageType(rawMessage.GetType()),
+		InnerMessageType: uint16(rawMessage.GetType()),
 		InnerMessage:     rawMessage.SignatureTargets(),
 		Signature:        signature,
 		PublicKey:        publicKey,
@@ -106,8 +103,8 @@ func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publi
 	return nil
 }
 
-func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	if AnnsensusMessageType(incomingMsg.GetType()) != AnnsensusMessageTypeSigned {
+func (b *TrustfulBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
+	if incomingMsg.GetType() != AnnsensusMessageTypeSigned {
 		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
 		return
 	}
@@ -119,7 +116,7 @@ func (b *TrustfulBftAdapter) AdaptOgMessage(incomingMsg AnnsensusMessage) (msg b
 	}
 
 	// check inner type
-	bftMessage, err := b.bftMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), incomingMsg.GetData())
+	bftMessage, err := b.bftMessageUnmarshaller.Unmarshal(bft.BftMessageType(signedMsg.InnerMessageType), signedMsg.InnerMessage)
 	if err != nil {
 		return
 	}
@@ -146,20 +143,21 @@ type PlainBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg bft.BftMessage, err error) {
-	if incomingMsg.GetType() != ogmessage.MessageTypeAnnsensus {
+func (p PlainBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) {
+	if incomingMsg.GetType() != AnnsensusMessageTypePlain {
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(ogmessage.MessagePlain)
+	iMsg := incomingMsg.(*AnnsensusMessagePlain)
+	innerMessageType := bft.BftMessageType(iMsg.InnerMessageType)
 
-	switch bft.BftMessageType(iMsg.InnerMessageType) {
+	switch innerMessageType {
 	case bft.BftMessageTypeProposal:
 		fallthrough
 	case bft.BftMessageTypePreVote:
 		fallthrough
 	case bft.BftMessageTypePreCommit:
-		msg, err = p.bftMessageUnmarshaller.Unmarshal(iMsg.InnerMessageType, iMsg.InnerMessage)
+		msg, err = p.bftMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainBftAdapter received a message of an unsupported inner type")
 	}
@@ -167,7 +165,7 @@ func (p PlainBftAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (m
 
 }
 
-func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMessage msg.TransportableMessage, err error) {
+func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMessage AnnsensusMessage, err error) {
 	var msgBytes []byte
 	switch outgoingMsg.GetType() {
 	case bft.BftMessageTypeProposal:
@@ -176,8 +174,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreVote:
@@ -186,8 +184,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	case bft.BftMessageTypePreCommit:
@@ -196,8 +194,8 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = ogmessage.MessagePlain{
-			InnerMessageType: msg.BinaryMessageType(omsg.GetType()),
+		adaptedMessage = &AnnsensusMessagePlain{
+			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
 	default:

@@ -3,6 +3,7 @@ package ogmessage
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -633,6 +634,36 @@ func (m *MessageNewActionTx) String() string {
 	return m.ActionTx.String()
 }
 
-func (m *MessageAnnsensus) struct {
+//msgp:tuple MessageAnnsensus
+type MessageAnnsensus struct {
+	InnerMessageType annsensus.AnnsensusMessageType
+	InnerMessage     []byte
+}
 
+func (m MessageAnnsensus) GetType() msg.BinaryMessageType {
+	return MessageTypeAnnsensus
+}
+
+func (m MessageAnnsensus) GetData() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m MessageAnnsensus) ToBinary() msg.BinaryMessage {
+	return msg.BinaryMessage{
+		Type: m.GetType(),
+		Data: m.GetData(),
+	}
+}
+
+func (m MessageAnnsensus) FromBinary([]byte) error {
+	_, err := m.UnmarshalMsg(bs)
+	return err
+}
+
+func (m MessageAnnsensus) String() string {
+	return "MessageAnnsensus"
 }

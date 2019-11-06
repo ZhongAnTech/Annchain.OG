@@ -182,7 +182,10 @@ func NewNode() *Node {
 	}
 	txFormatVerifier.NoVerifySignatrue = viper.GetBool("tx_buffer.no_verify_signature")
 	//verify format first , set address and then verify graph
-	verifiers := []og.Verifier{txFormatVerifier, graphVerifier}
+	//verifiers := []og.Verifier{txFormatVerifier, graphVerifier}
+
+	// 2019-11-06, comments the verifiers for open day viewer.
+	verifiers := []og.Verifier{}
 
 	// txBuffer
 	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
@@ -437,7 +440,7 @@ func NewNode() *Node {
 	syncManager.OnUpToDate = append(syncManager.OnUpToDate, autoClientManager.UpToDateEventListener)
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
-	//init msg requst id
+	//init msg request id
 	p2p_message.MsgCountInit()
 
 	// DataLoader

@@ -286,6 +286,56 @@ func (m *TxCreator) NewTxForHackathon(from common.Address, to common.Address, va
 	return tx, nil
 }
 
+func (m *TxCreator) NewTxForHackathonViewer(from common.Address, to common.Address, value *math.BigInt, guarantee *math.BigInt,
+	data []byte, nonce uint64, parentsHash []common.Hash, tokenId int32, hash common.Hash) (tx types.Txi, err error) {
+	tx = &tx_types.Tx{
+		From: &from,
+		// TODO
+		// should consider the case that to is nil. (contract creation)
+		To:        to,
+		Value:     value,
+		Guarantee: guarantee,
+		Data:      data,
+		TokenId:   tokenId,
+		TxBase: types.TxBase{
+			ParentsHash:  parentsHash,
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeNormal,
+		},
+	}
+	tx.GetBase().Signature = []byte{}
+	tx.GetBase().PublicKey = []byte{}
+
+	var parents []types.Txi
+	for _, hash := range parentsHash {
+		p := m.TxPool.Get(hash)
+		if p == nil {
+			return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
+		}
+		parents = append(parents, p)
+	}
+	tx.GetBase().Weight = tx.CalculateWeight(parents)
+	tx.GetBase().Hash = hash
+
+	return tx, nil
+}
+
+func (m *TxCreator) NewSeqForHackathonViewer(from common.Address, treasure *math.BigInt, nonce uint64, parentsHash []common.Hash, hash common.Hash) (seq types.Txi, err error) {
+	seq = &tx_types.Sequencer{
+		Issuer:   &from,
+		Treasure: treasure,
+		TxBase: types.TxBase{
+			ParentsHash:  parentsHash,
+			AccountNonce: nonce,
+			Type:         types.TxBaseTypeSequencer,
+		},
+	}
+	seq.GetBase().Signature = []byte{}
+	seq.GetBase().PublicKey = []byte{}
+
+	return seq, nil
+}
+
 func (m *TxCreator) NewActionTxWithSeal(from common.Address, to common.Address, value *math.BigInt, action byte,
 	nonce uint64, enableSpo bool, TokenId int32, tokenName string, pubkey crypto.PublicKey, sig crypto.Signature) (tx types.Txi, err error) {
 	tx = &tx_types.ActionTx{

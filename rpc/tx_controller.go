@@ -88,10 +88,10 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	nonce := txReq.Nonce
 
 	signature := common.FromHex(txReq.Signature)
-	if signature == nil || txReq.Signature == "" {
-		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
-		return
-	}
+	//if signature == nil || txReq.Signature == "" {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
+	//	return
+	//}
 
 	pub, err = crypto.Secp256k1PublicKeyFromString(txReq.Pubkey)
 	if err != nil {
@@ -105,24 +105,28 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewTxForHackathon(from, to, value, guarantee, []byte{}, nonce, parentsHash, pub, sig, BaseTokenID)
+	hash := common.HexToHash(txReq.Hash)
+	tx, err = r.TxCreator.NewTxForHackathonViewer(from, to, value, guarantee, []byte{}, nonce, parentsHash, BaseTokenID, hash)
+
+	//tx, err = r.TxCreator.NewTxForHackathon(from, to, value, guarantee, []byte{}, nonce, parentsHash, pub, sig, BaseTokenID)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed: %v", err), nil)
 		return
 	}
 
-	ok = r.FormatVerifier.VerifySignature(tx)
-	if !ok {
-		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
-		Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
-		return
-	}
-	ok = r.FormatVerifier.VerifySourceAddress(tx)
-	if !ok {
-		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
-		Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
-		return
-	}
+	//ok = r.FormatVerifier.VerifySignature(tx)
+	//if !ok {
+	//	logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
+	//	Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
+	//	return
+	//}
+	//ok = r.FormatVerifier.VerifySourceAddress(tx)
+	//if !ok {
+	//	logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
+	//	Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
+	//	return
+	//}
+
 	tx.SetVerified(types.VerifiedFormat)
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
@@ -136,9 +140,93 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	return
 }
 
+func (r *RpcController) NewSequencer(c *gin.Context) {
+	var (
+		seq    types.Txi
+		seqReq NewSeqRequest
+		sig    crypto.Signature
+		pub    crypto.PublicKey
+	)
+
+	err := c.ShouldBindJSON(&seqReq)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
+		return
+	}
+
+	var parentsHash []common.Hash
+	for _, hashStr := range seqReq.Parents {
+		hash := common.HexToHash(hashStr)
+		if hash.Empty() {
+			Response(c, http.StatusBadRequest, fmt.Errorf("invalid parent hash: %b", hash.Bytes), nil)
+			return
+		}
+		parentsHash = append(parentsHash, hash)
+	}
+
+	from, err := common.StringToAddress(seqReq.From)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)
+		return
+	}
+
+	treasure, ok := math.NewBigIntFromString(seqReq.Treasure, 10)
+	if !ok {
+		err = fmt.Errorf("convert guarantee to big int error")
+	}
+	if err != nil {
+		Response(c, http.StatusBadRequest, err, nil)
+		return
+	}
+	//if guarantee.Value.Cmp(big.NewInt(100)) < 0 {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("guarantee should be larger than 100"), nil)
+	//	return
+	//}
+
+	nonce := seqReq.Nonce
+
+	signature := common.FromHex(seqReq.Signature)
+	//if signature == nil || seqReq.Signature == "" {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
+	//	return
+	//}
+
+	pub, err = crypto.Secp256k1PublicKeyFromString(seqReq.Pubkey)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+		return
+	}
+
+	sig = crypto.SignatureFromBytes(pub.Type, signature)
+	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
+		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+		return
+	}
+
+	hash := common.HexToHash(seqReq.Hash)
+	seq, err = r.TxCreator.NewSeqForHackathonViewer(from, treasure, nonce, parentsHash, hash)
+	if err != nil {
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new seq failed: %v", err), nil)
+		return
+	}
+
+	seq.SetVerified(types.VerifiedFormat)
+	logrus.WithField("seq", seq).Debugf("seq generated")
+	if !r.SyncerManager.IncrementalSyncer.Enabled {
+		Response(c, http.StatusOK, fmt.Errorf("seq is disabled when syncing"), nil)
+		return
+	}
+
+	r.TxBuffer.ReceivedNewTxChan <- seq
+
+	Response(c, http.StatusOK, nil, seq.GetTxHash().Hex())
+	return
+}
+
 //NewTxrequest for RPC request
 //msgp:tuple NewTxRequest
 type NewTxRequest struct {
+	Hash    string   `json:"hash"`
 	Parents []string `json:"parents"`
 	Nonce   uint64   `json:"nonce"`
 	From    string   `json:"from"`
@@ -150,6 +238,16 @@ type NewTxRequest struct {
 	Signature string `json:"signature"`
 	Pubkey    string `json:"pubkey"`
 	//TokenId   int32  `json:"token_id"`
+}
+
+type NewSeqRequest struct {
+	Hash      string   `json:"hash"`
+	Parents   []string `json:"parents"`
+	Nonce     uint64   `json:"nonce"`
+	From      string   `json:"from"`
+	Treasure  string   `json:"treasure"`
+	Signature string   `json:"signature"`
+	Pubkey    string   `json:"pubkey"`
 }
 
 //msgp:tuple NewTxsRequests

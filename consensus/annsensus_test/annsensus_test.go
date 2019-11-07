@@ -17,7 +17,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/types/msg"
+	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -87,7 +87,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 }
 
 func TestAnnSensusTwoNodes(t *testing.T) {
-	nodes := 10
+	nodes := 4
 	accounts := sampleAccounts(nodes)
 
 	suite := bn256.NewSuiteG2()
@@ -102,25 +102,25 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare message channel for each peer
-	var peerChans []chan msg.TransportableMessage
+	var peerChans []chan annsensus.AnnsensusMessage
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan msg.TransportableMessage, 50))
+		peerChans = append(peerChans, make(chan annsensus.AnnsensusMessage, 50))
 	}
 
 	var aps []*annsensus.AnnsensusProcessor
-	var termProviders []annsensus.TermProvider
+	var termProviders []annsensus.TermIdProvider
 
 	for i := 0; i < nodes; i++ {
 		// init ProxyAnnsensusPeerCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 
-		p2pSender := NewDummyP2pSender(i, peerChans[i], peerChans)
+		annsensusPeerCommunicator := NewDummyAnnsensusPeerCommunicator(i, peerChans[i], peerChans)
 		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
 		annsensusCommunicator := annsensus.NewAnnsensusCommunicator(
-			p2pSender,
-			p2pSender,
+			annsensusPeerCommunicator,
+			annsensusPeerCommunicator,
 			bftAdapter,
 			dkgAdapter,
 			termHolder,
@@ -146,27 +146,48 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	// genesis accounts for dkg. Only partpub is shared.
 	// message is encrypted using partpub. TODO: is that possible? or we need an account public key
 	peers := generatePeers(suite, nodes)
-	var pubs []dkg.PartPub
-	for _, peer := range peers {
-		pubs = append(pubs, peer.PartPub)
+	pubs := make([]dkg.PartPub, len(peers))
+
+	for i, peer := range peers {
+		pubs[i] = peer.PartPub
 	}
+
+	// for consensus, all peers are participated in the consensus.
+	senators := make([]term.Senator, len(accounts))
+
+	// build a public shared term
+	for i, account := range accounts {
+		senators[i] = term.Senator{
+			Id:           i,
+			Address:      account.Address,
+			PublicKey:    account.PublicKey,
+			BlsPublicKey: pubs[i],
+		}
+	}
+
+	genesisTerm := &term.Term{
+		Id:                0,
+		PartsNum:          len(peers),
+		Threshold:         len(peers)*2/3 + 1,
+		Senators:          senators,
+		AllPartPublicKeys: pubs,
+		PublicKey:         nil,
+		ActivateHeight:    0,
+		Suite:             nil,
+	}
+	// recover the public key now since everyone (including light peers) needs this info to verify txs.
+
+
 
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
 		c := termProviders[i].GetTermChangeEventChannel()
 
-		// make a new term
 		//tm := term.NewTerm(1,nodes,0)
 		contextProvider := dummyContextProvider{
-			TermId:         0,
-			NbParticipants: nodes,
-			NbParts:        nodes,
-			Threshold:      nodes,
-			MyBftId:        i,
-			BlockTime:      time.Second * 4,
-			Suite:          suite,
-			AllPartPubs:    pubs,
-			MyPartSec:      peers[i],
+			term:      genesisTerm,
+			MyBftId:   i,
+			MyPartSec: dkg.PartSec{},
 		}
 
 		c <- contextProvider

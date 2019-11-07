@@ -378,7 +378,7 @@ func (p *DefaultDkgPartner) handleResponse(resp *dkger.Response) {
 	if !p.notified && p.context.Dkger.ThresholdCertified() {
 		_, err := p.context.RecoverPub()
 		if err != nil {
-			logrus.WithField("me", p.context.MyIndex).Warn("DKG has been generated but pubkey reccovery failed")
+			logrus.WithField("me", p.context.MyIndex).Warn("DKG has been generated but pubkey recovery failed")
 		} else {
 			logrus.WithField("me", p.context.MyIndex).WithField("pk", p.context.JointPubKey.String()).Info("DKG has been generated")
 			p.notifyListeners()

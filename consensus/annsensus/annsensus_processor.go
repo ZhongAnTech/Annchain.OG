@@ -5,7 +5,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/consensus/term"
+	"github.com/annchain/OG/consensus/term/archive"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -56,10 +56,10 @@ type AnnsensusProcessor struct {
 	bftAdapter            BftMessageAdapter               // message handlers in common. Injected into commuinicator
 	dkgAdapter            DkgMessageAdapter               // message handlers in common. Injected into commuinicator
 	annsensusCommunicator *ProxyAnnsensusPeerCommunicator // interface to the p2p
-	termProvider          TermProvider
-	termHolder            TermHolder         // hold information for each term
-	bftPartnerProvider    BftPartnerProvider // factory method to generate a bft partner for each term
-	dkgPartnerProvider    DkgPartnerProvider // factory method to generate a dkg partner for each term
+	termProvider          TermIdProvider
+	termHolder            HistoricalTermsHolder // hold information for each term
+	bftPartnerProvider    BftPartnerProvider    // factory method to generate a bft partner for each term
+	dkgPartnerProvider    DkgPartnerProvider    // factory method to generate a dkg partner for each term
 
 }
 
@@ -68,8 +68,8 @@ func NewAnnsensusProcessor(
 	bftAdapter BftMessageAdapter,
 	dkgAdapter DkgMessageAdapter,
 	annsensusCommunicator *ProxyAnnsensusPeerCommunicator,
-	termProvider TermProvider,
-	termHolder TermHolder,
+	termProvider TermIdProvider,
+	termHolder HistoricalTermsHolder,
 	bftPartnerProvider BftPartnerProvider,
 	dkgPartnerProvider DkgPartnerProvider) *AnnsensusProcessor {
 	return &AnnsensusProcessor{config: config, bftAdapter: bftAdapter,
@@ -106,7 +106,7 @@ func checkConfig(config AnnsensusProcessorConfig) {
 
 //func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 //	signatureProvider account.SignatureProvider,
-//	termProvider TermProvider,
+//	termProvider TermIdProvider,
 //	annsensusCommunicator *ProxyAnnsensusPeerCommunicator,
 //) *AnnsensusProcessor {
 //	// Prepare common facilities that will be reused during each term
@@ -140,9 +140,9 @@ func (ap *AnnsensusProcessor) Start() {
 }
 
 // buildTerm collects information from the info provider, to start a new term
-func (ap *AnnsensusProcessor) buildTerm(termId uint32) *term.Term {
+func (ap *AnnsensusProcessor) buildTerm(termId uint32) *archive.Term {
 	//TODO
-	t := term.NewTerm(termId, 0, 0)
+	t := archive.NewTerm(termId, 0, 0)
 	return t
 }
 
@@ -163,7 +163,7 @@ func (ap *AnnsensusProcessor) StartNewTerm(context ConsensusContextProvider) err
 	}
 
 	tc := NewTermCollection(context, bftPartner, dkgPartner)
-	ap.termHolder.SetTerm(context.GetTermId(), tc)
+	ap.termHolder.SetTerm(context.GetTerm().Id, tc)
 	// start to generate proposals, vote and generate sequencers
 	go bftPartner.Start()
 	bftPartner.StartNewEra(0, 0)
@@ -183,7 +183,7 @@ func (ap *AnnsensusProcessor) loop() {
 		case context := <-ap.termProvider.GetTermChangeEventChannel():
 			// new term is coming.
 			// it is coming because of either:
-			// 1, someone told you that you are keep up-to-date with latest seq
+			// 1, someone told you that you are keeping up-to-date with latest seq
 			// 2, (just for debugging) bootstrap
 			// Note that in real case, bootstrap will not trigger a direct term change event
 			// Since there must be a communication first to get the latest seq.

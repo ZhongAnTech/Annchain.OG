@@ -37,7 +37,7 @@ func (b *BftMessageUnmarshaller) Unmarshal(messageType bft.BftMessageType, messa
 // TrustfulBftAdapter signs and validate messages using pubkey/privkey given by DKG/BLS
 type TrustfulBftAdapter struct {
 	signatureProvider      account.SignatureProvider
-	termProvider           TermProvider
+	termProvider           TermIdProvider
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
@@ -49,7 +49,7 @@ func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg An
 
 func NewTrustfulBftAdapter(
 	signatureProvider account.SignatureProvider,
-	termProvider TermProvider) *TrustfulBftAdapter {
+	termProvider TermIdProvider) *TrustfulBftAdapter {
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
 }
 

@@ -37,7 +37,7 @@ func (b DkgMessageUnmarshaller) Unmarshal(messageType dkg.DkgMessageType, messag
 // TrustfulDkgAdapter signs and validate messages using pubkey/privkey given by DKG/BLS
 type TrustfulDkgAdapter struct {
 	signatureProvider      account.SignatureProvider
-	termProvider           TermProvider
+	termProvider           TermIdProvider
 	dkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 

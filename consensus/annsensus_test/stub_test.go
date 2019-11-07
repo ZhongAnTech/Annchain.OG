@@ -1,19 +1,14 @@
 package annsensus_test
 
 import (
-	"fmt"
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-
 	"github.com/annchain/OG/types/msg"
-	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
@@ -34,51 +29,26 @@ func (s dummySignatureProvider) Sign(data []byte) []byte {
 }
 
 type dummyContextProvider struct {
-	TermId         uint32
-	NbParticipants int
-	NbParts        int
-	Threshold      int
-	MyBftId        int
-	BlockTime      time.Duration
-	Suite          *bn256.Suite
-	AllPartPubs    []dkg.PartPub
-	MyPartSec      dkg.PartSec
+	term      *term.Term
+	MyBftId   int
+	MyPartSec dkg.PartSec
+	blockTime time.Duration
 }
 
-func (d dummyContextProvider) String() string {
-	return fmt.Sprintf("term %d, participants %d My %d", d.TermId, d.NbParticipants, d.MyBftId)
-}
-
-func (d dummyContextProvider) GetTermId() uint32 {
-	return d.TermId
-}
-
-func (d dummyContextProvider) GetNbParticipants() int {
-	return d.NbParticipants
-}
-
-func (d dummyContextProvider) GetThreshold() int {
-	return d.Threshold
+func (d dummyContextProvider) GetTerm() *term.Term {
+	return d.term
 }
 
 func (d dummyContextProvider) GetMyBftId() int {
 	return d.MyBftId
 }
 
-func (d dummyContextProvider) GetBlockTime() time.Duration {
-	return d.BlockTime
-}
-
-func (d dummyContextProvider) GetSuite() *bn256.Suite {
-	return d.Suite
-}
-
-func (d dummyContextProvider) GetAllPartPubs() []dkg.PartPub {
-	return d.AllPartPubs
-}
-
 func (d dummyContextProvider) GetMyPartSec() dkg.PartSec {
 	return d.MyPartSec
+}
+
+func (d dummyContextProvider) GetBlockTime() time.Duration {
+	return d.blockTime
 }
 
 type dummyBftPeerCommunicator struct {
@@ -264,12 +234,13 @@ func NewDummyAnnsensusPartnerProivder(peerChansBft []chan bft.BftMessage, peerCh
 func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
 	myId := context.GetMyBftId()
 	communicatorDkg := NewDummyDkgPeerCommunicator(myId, d.peerChansDkg[myId], d.peerChansDkg)
+	term := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
-		context.GetSuite(),
-		context.GetTermId(),
-		context.GetNbParticipants(),
-		context.GetThreshold(),
-		context.GetAllPartPubs(),
+		term.Suite,
+		term.Id,
+		term.PartsNum,
+		term.Threshold,
+		term.AllPartPublicKeys,
 		context.GetMyPartSec(),
 		communicatorDkg,
 		communicatorDkg,
@@ -282,10 +253,12 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 	myId := context.GetMyBftId()
 	commuicatorBft := NewDummyBftPeerCommunicator(myId, d.peerChansBft[myId], d.peerChansBft)
 
-	peerInfos := annsensus.DkgToBft(context.GetAllPartPubs())
+	currentTerm := context.GetTerm()
+
+	peerInfos := annsensus.DkgToBft(currentTerm.AllPartPublicKeys)
 
 	bftPartner := bft.NewDefaultBFTPartner(
-		context.GetNbParticipants(),
+		currentTerm.PartsNum,
 		context.GetMyBftId(),
 		context.GetBlockTime(),
 		commuicatorBft,
@@ -298,51 +271,42 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 	return bftPartner
 }
 
-type dummyP2pSender struct {
+type dummyAnnsensusPeerCommunicator struct {
 	Myid  int
-	Peers []chan msg.TransportableMessage
-	pipe  chan msg.TransportableMessage
+	Peers []chan annsensus.AnnsensusMessage
+	pipe  chan annsensus.AnnsensusMessage
 }
 
-func (d *dummyP2pSender) GetMessageChannel() chan msg.TransportableMessage {
+func (d *dummyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
+	for _, peer := range peers {
+		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting annsensus message")
+		go func(peer annsensus.AnnsensusPeer) {
+			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "annsensus")
+			//d.Peers[peer.Id] <- msg
+		}(peer)
+	}
+}
+
+func (d *dummyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {
+	logrus.Debug("unicasting by dummyBftPeerCommunicator")
+	go func() {
+		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
+		d.Peers[peer.Id] <- msg
+	}()
+}
+
+func (d *dummyAnnsensusPeerCommunicator) GetPipeIn() chan annsensus.AnnsensusMessage {
 	return d.pipe
 }
 
-func (d *dummyP2pSender) BroadcastMessage(message msg.TransportableMessage) {
-	logrus.WithField("me", d.Myid).Debug("broadcasting message")
-	for _, peer := range d.Peers {
-		peer <- message
-		//ffchan.NewTimeoutSenderShort(, "dkg")
-		//go func(peer chan p2p_message.Message) {
-		//
-		//}(peer)f
-	}
+func (d *dummyAnnsensusPeerCommunicator) GetPipeOut() chan annsensus.AnnsensusMessage {
+	return d.pipe
 }
 
-func (d *dummyP2pSender) AnonymousSendMessage(msg msg.TransportableMessage, anonymousPubKey *crypto.PublicKey) {
-	// fake encryption
-	d.BroadcastMessage(&ogmessage.MessageEncrypted{
-		InnerMessageType:      msg.GetType(),
-		InnerMessageEncrypted: msg.GetData(),
-		PublicKey:             anonymousPubKey.Bytes,
-	})
-}
-
-func (d *dummyP2pSender) SendToPeer(msg msg.TransportableMessage, peerId string) error {
-	// in the dummy take peerId as int
-	iPeerId, err := strconv.Atoi(peerId)
-	if err != nil {
-		return err
-	}
-	d.Peers[iPeerId] <- msg
-	//ffchan.NewTimeoutSenderShort(d.Peers[iPeerId], msg, "dkg")
-	return nil
-}
-
-func NewDummyP2pSender(myid int, incoming chan msg.TransportableMessage, peers []chan msg.TransportableMessage) *dummyP2pSender {
-	d := &dummyP2pSender{
-		Peers: peers,
+func NewDummyAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *dummyAnnsensusPeerCommunicator {
+	d := &dummyAnnsensusPeerCommunicator{
 		Myid:  myid,
+		Peers: peers,
 		pipe:  incoming,
 	}
 	return d

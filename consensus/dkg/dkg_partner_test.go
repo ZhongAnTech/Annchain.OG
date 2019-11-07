@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -26,63 +25,43 @@ func init() {
 	//logrus.AddHook(filenameHook)
 }
 
-func generatePeers(suite *bn256.Suite, n int) []PartSec {
-	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	var peerInfos []PartSec
-	for i := 0; i < n; i++ {
-		pubKey, privKey := signer.RandomKeyPair()
-		address := pubKey.Address()
-		// dkg kyber pub/priv key
-		dkgPrivKey, dkgPubKey := GenPartnerPair(suite)
-
-		peerInfos = append(peerInfos, PartSec{
-			PartPub: PartPub{
-				Point: dkgPubKey,
-				Peer: PeerInfo{
-					Id:             i,
-					PublicKey:      pubKey,
-					Address:        address,
-					PublicKeyBytes: nil,
-				},
-			},
-			Scalar:     dkgPrivKey,
-			PrivateKey: privKey,
-		})
-	}
-	return peerInfos
-}
-
-func setupPartners(termId uint32, numParts int, threshold int) ([]*DefaultDkgPartner, []PartSec) {
+func setupPartners(termId uint32, numParts int, threshold int) (dkgPartners []*DefaultDkgPartner, partSecs []PartSec, err error) { // generate dkger
 	suite := bn256.NewSuiteG2()
 
-	// generate PeerInfos
-	PartSecs := generatePeers(suite, numParts)
-	var partPubs []PartPub
-	for _, peer := range PartSecs {
-		partPubs = append(partPubs, peer.PartPub)
+	dkgers, partSecs, err := SetupAllDkgers(suite, numParts, threshold)
+	if err != nil {
+		return
 	}
 
-	var peerChans []chan DkgMessage
+	// setup partners
+	peerChans := make([]chan DkgMessage, numParts)
 
 	// prepare incoming channels
 	for i := 0; i < numParts; i++ {
-		peerChans = append(peerChans, make(chan DkgMessage, 5000))
+		peerChans[i] = make(chan DkgMessage, 5000)
 	}
 
-	var partners []*DefaultDkgPartner
+	dkgPartners = make([]*DefaultDkgPartner, numParts)
+	partPubs := make([]PartPub, numParts)
 
-	for i := 0; i < numParts; i++ {
+	for i, partSec := range partSecs {
+		partPubs[i] = partSec.PartPub
+	}
+
+	for i, dkger := range dkgers {
 		communicator := NewDummyDkgPeerCommunicator(i, peerChans[i], peerChans)
 		communicator.Run()
-		partner, err := NewDefaultDkgPartner(suite, termId, numParts, threshold, partPubs, PartSecs[i],
+
+		partner, err := NewDefaultDkgPartner(suite, termId, numParts, threshold, partPubs, partSecs[i],
 			communicator, communicator)
 		if err != nil {
 			panic(err)
 		}
-
-		partners = append(partners, partner)
+		partner.context.Dkger = dkger
+		dkgPartners[i] = partner
 	}
-	return partners, PartSecs
+	return
+
 }
 
 type dummyDkgGeneratedListener struct {
@@ -117,18 +96,22 @@ func TestDkgPartner(t *testing.T) {
 	numParts := TestNodes
 	threshold := TestNodes
 
-	partners, _ := setupPartners(termId, numParts, threshold)
+	dkgPartners, partSecs, err := setupPartners(termId, numParts, threshold)
+	if err != nil {
+		panic(err)
+	}
+
 	wg := sync.WaitGroup{}
 
-	wg.Add(len(partners))
+	wg.Add(len(partSecs)) // no need to use partSecs, just for note
 	listener := NewDummyDkgGeneratedListener(&wg)
 
-	for _, partner := range partners {
+	for _, partner := range dkgPartners {
 		partner.dkgGeneratedListeners = append(partner.dkgGeneratedListeners, listener)
 		partner.Start()
 	}
 	time.Sleep(time.Second * 5)
-	for _, partner := range partners {
+	for _, partner := range dkgPartners {
 		partner.gossipStartCh <- true
 	}
 

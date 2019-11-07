@@ -5,39 +5,31 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
+	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/og/protocol/ogmessage"
-
-	"github.com/annchain/kyber/v3/pairing/bn256"
 	"time"
 )
 
-// TermProvider provide Dkg term that will be changed every term switching.
-// TermProvider maintains historic Peer info that can be retrieved by height.
-
-type TermProvider interface {
+// TermIdProvider provide Dkg term that will be changed every term switching.
+// TermIdProvider maintains historic Peer info that can be retrieved by height.
+type TermIdProvider interface {
 	// HeightTerm maps height to dkg term
 	HeightTerm(height uint64) (termId uint32)
 	CurrentTerm() (termId uint32)
-	// Peers returns all peers at given term
-	Peers(termId uint32) ([]bft.PeerInfo, error)
 	GetTermChangeEventChannel() chan ConsensusContextProvider
 }
 
-type TermHolder interface {
+type HistoricalTermsHolder interface {
 	GetTermCollection(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
 	SetTerm(u uint32, composer *TermCollection)
 	DebugMyId() int
 }
 
 type ConsensusContextProvider interface {
-	GetTermId() uint32
-	GetNbParticipants() int
-	GetThreshold() int
+	GetTerm() *term.Term
 	GetMyBftId() int
-	GetBlockTime() time.Duration
-	GetSuite() *bn256.Suite
-	GetAllPartPubs() []dkg.PartPub
 	GetMyPartSec() dkg.PartSec
+	GetBlockTime() time.Duration
 }
 
 // HeightProvider is called when a height is needed

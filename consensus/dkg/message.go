@@ -3,6 +3,7 @@ package dkg
 import (
 	"fmt"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/msg"
 	dkg "github.com/annchain/kyber/v3/share/dkg/pedersen"
 )
 
@@ -39,6 +40,7 @@ type Signable interface {
 
 type DkgMessage interface {
 	Signable
+	msg.MsgpMember
 	GetType() DkgMessageType
 	ProvideHeight() uint64
 	String() string

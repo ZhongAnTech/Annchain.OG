@@ -13,7 +13,7 @@ type AnnsensusTermHolder struct {
 	// in case of disordered message, cache the terms and the correspondent processors.
 	// TODO: wipe it constantly
 	termMap      map[uint32]*TermCollection
-	termProvider TermProvider
+	termProvider TermIdProvider
 	mu           sync.Mutex
 	debugMyId    int
 }
@@ -25,7 +25,7 @@ func (b *AnnsensusTermHolder) SetTerm(termId uint32, termCollection *TermCollect
 	b.debugMyId = termCollection.contextProvider.GetMyBftId()
 }
 
-func NewAnnsensusTermHolder(termProvider TermProvider) *AnnsensusTermHolder {
+func NewAnnsensusTermHolder(termProvider TermIdProvider) *AnnsensusTermHolder {
 	return &AnnsensusTermHolder{
 		termProvider: termProvider,
 		termMap:      make(map[uint32]*TermCollection),

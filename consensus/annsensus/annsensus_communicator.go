@@ -14,7 +14,7 @@ type ProxyAnnsensusPeerCommunicator struct {
 	outgoing          AnnsensusPeerCommunicatorOutgoing
 	bftMessageAdapter BftMessageAdapter
 	dkgMessageAdapter DkgMessageAdapter
-	termHolder        TermHolder
+	termHolder        HistoricalTermsHolder
 	quit              chan bool
 	quitWg            sync.WaitGroup
 }
@@ -24,7 +24,7 @@ func NewAnnsensusCommunicator(
 	outgoing AnnsensusPeerCommunicatorOutgoing,
 	bftMessageAdapter BftMessageAdapter,
 	dkgMessageAdapter DkgMessageAdapter,
-	termHolder TermHolder) *ProxyAnnsensusPeerCommunicator {
+	termHolder HistoricalTermsHolder) *ProxyAnnsensusPeerCommunicator {
 	return &ProxyAnnsensusPeerCommunicator{
 		incoming:          incoming,
 		outgoing:          outgoing,

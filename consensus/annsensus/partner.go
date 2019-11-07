@@ -16,7 +16,7 @@ package annsensus
 //	peerCommunicator        bft.BftPeerCommunicator // AnnsensusPartner is a BftPeerCommunicator, bftPeerCommunicator is a peerCommunicator
 //	bftPartnerMyself        *bft.BftPartner
 //	dkg                     *archive.DkgPartner
-//	termProvider            TermProvider
+//	termProvider            TermIdProvider
 //	heightProvider          HeightProvider
 //	sequencerProducer       SequencerProducer
 //	consensusReachedChannel chan bft.ConsensusDecision
@@ -24,7 +24,7 @@ package annsensus
 //}
 //
 //func NewAnnsensusPartner(accountNonceProvider AccountNonceProvider, peerCommunicator bft.BftPeerCommunicator,
-//	termProvider TermProvider, accountProvider ConsensusAccountProvider, sequencerProducer SequencerProducer) *AnnsensusPartner {
+//	termProvider TermIdProvider, accountProvider ConsensusAccountProvider, sequencerProducer SequencerProducer) *AnnsensusPartner {
 //	// init bft related components
 //
 //	// init dkg related components

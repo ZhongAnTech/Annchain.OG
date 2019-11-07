@@ -18,7 +18,7 @@ func (z *AnnsensusMessageEncrypted) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
-	err = z.InnerMessageType.DecodeMsg(dc)
+	z.InnerMessageType, err = dc.ReadUint16()
 	if err != nil {
 		err = msgp.WrapError(err, "InnerMessageType")
 		return
@@ -43,7 +43,7 @@ func (z *AnnsensusMessageEncrypted) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.InnerMessageType.EncodeMsg(en)
+	err = en.WriteUint16(z.InnerMessageType)
 	if err != nil {
 		err = msgp.WrapError(err, "InnerMessageType")
 		return
@@ -66,11 +66,7 @@ func (z *AnnsensusMessageEncrypted) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 3
 	o = append(o, 0x93)
-	o, err = z.InnerMessageType.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "InnerMessageType")
-		return
-	}
+	o = msgp.AppendUint16(o, z.InnerMessageType)
 	o = msgp.AppendBytes(o, z.InnerMessageEncrypted)
 	o, err = z.PublicKey.MarshalMsg(o)
 	if err != nil {
@@ -92,7 +88,7 @@ func (z *AnnsensusMessageEncrypted) UnmarshalMsg(bts []byte) (o []byte, err erro
 		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
-	bts, err = z.InnerMessageType.UnmarshalMsg(bts)
+	z.InnerMessageType, bts, err = msgp.ReadUint16Bytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "InnerMessageType")
 		return
@@ -113,7 +109,7 @@ func (z *AnnsensusMessageEncrypted) UnmarshalMsg(bts []byte) (o []byte, err erro
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *AnnsensusMessageEncrypted) Msgsize() (s int) {
-	s = 1 + z.InnerMessageType.Msgsize() + msgp.BytesPrefixSize + len(z.InnerMessageEncrypted) + z.PublicKey.Msgsize()
+	s = 1 + msgp.Uint16Size + msgp.BytesPrefixSize + len(z.InnerMessageEncrypted) + z.PublicKey.Msgsize()
 	return
 }
 
@@ -129,14 +125,10 @@ func (z *AnnsensusMessagePlain) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	{
-		var zb0002 uint16
-		zb0002, err = dc.ReadUint16()
-		if err != nil {
-			err = msgp.WrapError(err, "InnerMessageType")
-			return
-		}
-		z.InnerMessageType = AnnsensusMessageType(zb0002)
+	z.InnerMessageType, err = dc.ReadUint16()
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
 	}
 	z.InnerMessage, err = dc.ReadBytes(z.InnerMessage)
 	if err != nil {
@@ -153,7 +145,7 @@ func (z *AnnsensusMessagePlain) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(uint16(z.InnerMessageType))
+	err = en.WriteUint16(z.InnerMessageType)
 	if err != nil {
 		err = msgp.WrapError(err, "InnerMessageType")
 		return
@@ -171,7 +163,7 @@ func (z *AnnsensusMessagePlain) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendUint16(o, uint16(z.InnerMessageType))
+	o = msgp.AppendUint16(o, z.InnerMessageType)
 	o = msgp.AppendBytes(o, z.InnerMessage)
 	return
 }
@@ -188,14 +180,10 @@ func (z *AnnsensusMessagePlain) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	{
-		var zb0002 uint16
-		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "InnerMessageType")
-			return
-		}
-		z.InnerMessageType = AnnsensusMessageType(zb0002)
+	z.InnerMessageType, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
 	}
 	z.InnerMessage, bts, err = msgp.ReadBytesBytes(bts, z.InnerMessage)
 	if err != nil {
@@ -224,14 +212,10 @@ func (z *AnnsensusMessageSigned) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
-	{
-		var zb0002 uint16
-		zb0002, err = dc.ReadUint16()
-		if err != nil {
-			err = msgp.WrapError(err, "InnerMessageType")
-			return
-		}
-		z.InnerMessageType = AnnsensusMessageType(zb0002)
+	z.InnerMessageType, err = dc.ReadUint16()
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
 	}
 	z.InnerMessage, err = dc.ReadBytes(z.InnerMessage)
 	if err != nil {
@@ -263,7 +247,7 @@ func (z *AnnsensusMessageSigned) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint16(uint16(z.InnerMessageType))
+	err = en.WriteUint16(z.InnerMessageType)
 	if err != nil {
 		err = msgp.WrapError(err, "InnerMessageType")
 		return
@@ -296,7 +280,7 @@ func (z *AnnsensusMessageSigned) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 5
 	o = append(o, 0x95)
-	o = msgp.AppendUint16(o, uint16(z.InnerMessageType))
+	o = msgp.AppendUint16(o, z.InnerMessageType)
 	o = msgp.AppendBytes(o, z.InnerMessage)
 	o, err = z.Signature.MarshalMsg(o)
 	if err != nil {
@@ -324,14 +308,10 @@ func (z *AnnsensusMessageSigned) UnmarshalMsg(bts []byte) (o []byte, err error) 
 		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
 		return
 	}
-	{
-		var zb0002 uint16
-		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "InnerMessageType")
-			return
-		}
-		z.InnerMessageType = AnnsensusMessageType(zb0002)
+	z.InnerMessageType, bts, err = msgp.ReadUint16Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "InnerMessageType")
+		return
 	}
 	z.InnerMessage, bts, err = msgp.ReadBytesBytes(bts, z.InnerMessage)
 	if err != nil {

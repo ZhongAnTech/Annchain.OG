@@ -62,7 +62,7 @@ func (ap *ProxyAnnsensusPeerCommunicator) HandleAnnsensusMessage(annsensusMessag
 		bmsg, err := ap.bftMessageAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err == nil {
 			// send to bft
-			msgTerm, err := ap.termHolder.GetTermCollection(bmsg)
+			msgTerm, err := ap.termHolder.GetTermByHeight(bmsg)
 			if err != nil {
 				logrus.WithError(err).Warn("failed to find appropriate term for msg")
 				return
@@ -74,7 +74,7 @@ func (ap *ProxyAnnsensusPeerCommunicator) HandleAnnsensusMessage(annsensusMessag
 		dmsg, err := ap.dkgMessageAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err == nil {
 			// send to dkg
-			msgTerm, err := ap.termHolder.GetTermCollection(dmsg)
+			msgTerm, err := ap.termHolder.GetTermByHeight(dmsg)
 			if err != nil {
 				logrus.WithError(err).Warn("failed to find appropriate term for msg")
 				return

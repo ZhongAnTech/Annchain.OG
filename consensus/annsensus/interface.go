@@ -1,17 +1,15 @@
 package annsensus
 
 import (
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
-	"github.com/annchain/OG/og/protocol/ogmessage"
 	"time"
 )
 
 // TermIdProvider provide Dkg term that will be changed every term switching.
 // TermIdProvider maintains historic Peer info that can be retrieved by height.
+// Once a new term is started, the term info will be sent through TermChangeEventChannel
 type TermIdProvider interface {
 	// HeightTerm maps height to dkg term
 	HeightTerm(height uint64) (termId uint32)
@@ -19,12 +17,16 @@ type TermIdProvider interface {
 	GetTermChangeEventChannel() chan ConsensusContextProvider
 }
 
+// HistoricalTermsHolder saves all historical term handlers(bft, dkg) and term info.
+// In case of some slow messages are coming.
 type HistoricalTermsHolder interface {
-	GetTermCollection(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
+	GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
+	GetTermById(u uint32) (msgTerm *TermCollection, err error)
 	SetTerm(u uint32, composer *TermCollection)
 	DebugMyId() int
 }
 
+// ConsensusContextProvider provides not only term info but also the character the node play in this term.
 type ConsensusContextProvider interface {
 	GetTerm() *term.Term
 	GetMyBftId() int
@@ -32,16 +34,17 @@ type ConsensusContextProvider interface {
 	GetBlockTime() time.Duration
 }
 
-// HeightProvider is called when a height is needed
+// HeightProvider is called when a height is needed.
+// It is usually implemented by the chain info
 type HeightProvider interface {
 	CurrentHeight() uint64
 }
 
-type SequencerProducer interface {
-	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
-		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *ogmessage.Sequencer, err error, genAgain bool)
-	ValidateSequencer(seq ogmessage.Sequencer) error
-}
+//type SequencerProducer interface {
+//	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
+//		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *ogmessage.Sequencer, err error, genAgain bool)
+//	ValidateSequencer(seq ogmessage.Sequencer) error
+//}
 
 // BftMessageAdapter converts messages.
 // During the converting process there may be some validation and signing operations.

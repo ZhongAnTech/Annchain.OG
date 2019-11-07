@@ -93,29 +93,29 @@ func (h HashTerminats) String() string {
 }
 
 //msgp:tuple MessageBodyData
-type MessageBodyData struct {
-	//RawTxs         *RawTxs
-	//RawTermChanges *RawTermChanges
-	//RawCampaigns   *RawCampaigns
-	RawSequencer *RawSequencer
-	RawTxs       *TxisMarshaler
-}
-
-func (m *MessageBodyData) ToTxis() Txis {
-	var txis Txis
-	if m.RawTxs != nil {
-		txs := m.RawTxs.Txis()
-		txis = append(txis, txs...)
-	}
-	if len(txis) == 0 {
-		return nil
-	}
-	return txis
-}
-
-func (m *MessageBodyData) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s", m.RawTxs.String(), m.RawSequencer.String())
-}
+//type MessageBodyData struct {
+//	//RawTxs         *RawTxs
+//	//RawTermChanges *RawTermChanges
+//	//RawCampaigns   *RawCampaigns
+//	RawSequencer *RawSequencer
+//	RawTxs       *TxisMarshaler
+//}
+//
+//func (m *MessageBodyData) ToTxis() Txis {
+//	var txis Txis
+//	if m.RawTxs != nil {
+//		txs := m.RawTxs.Txis()
+//		txis = append(txis, txs...)
+//	}
+//	if len(txis) == 0 {
+//		return nil
+//	}
+//	return txis
+//}
+//
+//func (m *MessageBodyData) String() string {
+//	return fmt.Sprintf("txs: [%s], Sequencer: %s", m.RawTxs.String(), m.RawSequencer.String())
+//}
 
 // hashOrNumber is a combined field for specifying an origin block.
 //msgp:tuple HashOrNumber

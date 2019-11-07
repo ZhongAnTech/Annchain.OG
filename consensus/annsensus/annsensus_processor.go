@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
-	"github.com/annchain/OG/consensus/term/archive"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -140,11 +139,20 @@ func (ap *AnnsensusProcessor) Start() {
 }
 
 // buildTerm collects information from the info provider, to start a new term
-func (ap *AnnsensusProcessor) buildTerm(termId uint32) *archive.Term {
-	//TODO
-	t := archive.NewTerm(termId, 0, 0)
-	return t
-}
+//func (ap *AnnsensusProcessor) buildTerm(termId uint32) *term.Term {
+//	//TODO
+//	t := term.Term{
+//		Id:                0,
+//		PartsNum:          ap.config.PartnerNum,
+//		Threshold:         ap.config.PartnerNum*2/3 + 1,
+//		Senators:          nil,
+//		AllPartPublicKeys: nil,
+//		PublicKey:         nil,
+//		ActivateHeight:    0,
+//		Suite:             nil,
+//	}
+//	return t
+//}
 
 func (ap *AnnsensusProcessor) StartNewTerm(context ConsensusContextProvider) error { // build a new Term
 	// may need lots of information to build this term

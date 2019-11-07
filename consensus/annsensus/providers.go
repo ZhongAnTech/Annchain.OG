@@ -39,12 +39,13 @@ func NewDefaultAnnsensusPartnerProvider(
 
 func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
 	dkgComm := NewProxyDkgPeerCommunicator(d.annsensusCommunicator)
+	currentTerm := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
-		context.GetSuite(),
-		context.GetTermId(),
-		context.GetNbParticipants(),
-		context.GetThreshold(),
-		context.GetAllPartPubs(),
+		currentTerm.Suite,
+		currentTerm.Id,
+		currentTerm.PartsNum,
+		currentTerm.Threshold,
+		currentTerm.AllPartPublicKeys,
 		context.GetMyPartSec(),
 		dkgComm,
 		dkgComm)
@@ -55,7 +56,7 @@ func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context Consensus
 	bftComm := NewProxyBftPeerCommunicator(d.annsensusCommunicator)
 
 	bftPartner := bft.NewDefaultBFTPartner(
-		context.GetNbParticipants(),
+		context.GetTerm().PartsNum,
 		context.GetMyBftId(),
 		context.GetBlockTime(),
 		bftComm,
@@ -63,7 +64,7 @@ func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context Consensus
 		d.proposalGenerator,
 		d.proposalValidator,
 		d.decisionMaker,
-		DkgToBft(context.GetAllPartPubs()),
+		DkgToBft(context.GetTerm().AllPartPublicKeys),
 	)
 	return bftPartner
 }

@@ -37,7 +37,7 @@ func (b *BftMessageUnmarshaller) Unmarshal(messageType bft.BftMessageType, messa
 // TrustfulBftAdapter signs and validate messages using pubkey/privkey given by DKG/BLS
 type TrustfulBftAdapter struct {
 	signatureProvider      account.SignatureProvider
-	termProvider           TermIdProvider
+	termHolder             HistoricalTermsHolder
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
@@ -49,8 +49,8 @@ func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg An
 
 func NewTrustfulBftAdapter(
 	signatureProvider account.SignatureProvider,
-	termProvider TermIdProvider) *TrustfulBftAdapter {
-	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termProvider: termProvider}
+	termHolder HistoricalTermsHolder) *TrustfulBftAdapter {
+	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termHolder: termHolder}
 }
 
 func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSigned {
@@ -81,13 +81,14 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSig
 //}
 
 func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageSigned) error {
-	peers, err := b.termProvider.Peers(signedMsg.TermId)
+	term, err := b.termHolder.GetTermById(signedMsg.TermId)
 	if err != nil {
 		// this term is unknown.
 		return err
 	}
+
 	// use public key to find sourcePartner
-	for _, peer := range peers {
+	for _, peer := range term.contextProvider.GetTerm().Senators {
 		if bytes.Equal(peer.PublicKey.Bytes, signedMsg.PublicKey) {
 			return nil
 		}

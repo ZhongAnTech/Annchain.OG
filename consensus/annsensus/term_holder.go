@@ -2,6 +2,7 @@ package annsensus
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -18,6 +19,14 @@ type AnnsensusTermHolder struct {
 	debugMyId    int
 }
 
+func (b *AnnsensusTermHolder) GetTermById(u uint32) (msgTerm *TermCollection, err error) {
+	msgTerm, ok := b.termMap[u]
+	if !ok {
+		err = fmt.Errorf("term not found: %d ", u)
+	}
+	return
+}
+
 func (b *AnnsensusTermHolder) SetTerm(termId uint32, termCollection *TermCollection) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -32,7 +41,7 @@ func NewAnnsensusTermHolder(termProvider TermIdProvider) *AnnsensusTermHolder {
 	}
 }
 
-func (b *AnnsensusTermHolder) GetTermCollection(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error) {
+func (b *AnnsensusTermHolder) GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error) {
 	height := heightInfoCarrier.ProvideHeight()
 	// judge term
 	termId := b.termProvider.HeightTerm(height)

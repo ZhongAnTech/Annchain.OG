@@ -86,7 +86,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 	return peerInfos
 }
 
-func TestAnnSensusTwoNodes(t *testing.T) {
+func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 	nodes := 4
 	accounts := sampleAccounts(nodes)
 
@@ -102,20 +102,23 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 	}
 
 	// prepare message channel for each peer
-	var peerChans []chan annsensus.AnnsensusMessage
+	// both bft and dkg messages will be adapted to AnnsensusMessage
+	peerChans := make([]chan annsensus.AnnsensusMessage, nodes)
 	for i := 0; i < nodes; i++ {
-		peerChans = append(peerChans, make(chan annsensus.AnnsensusMessage, 50))
+		peerChans[i] = make(chan annsensus.AnnsensusMessage, 50)
 	}
 
-	var aps []*annsensus.AnnsensusProcessor
-	var termProviders []annsensus.TermIdProvider
+	aps := make([]*annsensus.AnnsensusProcessor, nodes)
+	termProviders := make([]annsensus.TermIdProvider, nodes)
 
 	for i := 0; i < nodes; i++ {
 		// init ProxyAnnsensusPeerCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 
+		// init communicator for this node
 		annsensusPeerCommunicator := NewDummyAnnsensusPeerCommunicator(i, peerChans[i], peerChans)
+
 		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
 		annsensusCommunicator := annsensus.NewAnnsensusCommunicator(
@@ -176,8 +179,6 @@ func TestAnnSensusTwoNodes(t *testing.T) {
 		Suite:             nil,
 	}
 	// recover the public key now since everyone (including light peers) needs this info to verify txs.
-
-
 
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()

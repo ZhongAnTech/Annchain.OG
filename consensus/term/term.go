@@ -17,12 +17,12 @@ type Senator struct {
 
 // Term holds all public info about the term.
 type Term struct {
-	Id                uint32
-	PartsNum          int
-	Threshold         int
-	Senators          []Senator
-	AllPartPublicKeys []dkg.PartPub
-	PublicKey         kyber.Point
-	ActivateHeight    uint64
-	Suite             *bn256.Suite
+	Id                uint32        // term id starts from 0 (genesis)
+	PartsNum          int           // participants number
+	Threshold         int           // participants number for threshold signature
+	Senators          []Senator     // all senators to discuss out a signature
+	AllPartPublicKeys []dkg.PartPub // their little public keys
+	PublicKey         kyber.Point   // the full public key. Only available after collected all others' dkgs
+	ActivateHeight    uint64        // when the term is activated.
+	Suite             *bn256.Suite  // curve.
 }

@@ -14,10 +14,8 @@
 package ogmessage
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
 	"strings"
@@ -27,16 +25,16 @@ import (
 
 //go:generate msgp
 
-//msgp:tuple Sequencer
-type Sequencer struct {
-	// TODO: need more states in sequencer to differentiate multiple chains
-	TxBase
-	Issuer         *common.Address
-	BlsJointSig    hexutil.Bytes
-	BlsJointPubKey hexutil.Bytes
-	StateRoot      common.Hash
-	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
-}
+////msgp:tuple Sequencer
+//type Sequencer struct {
+//	// TODO: need more states in sequencer to differentiate multiple chains
+//	TxBase
+//	Issuer         *common.Address
+//	BlsJointSig    hexutil.Bytes
+//	BlsJointPubKey hexutil.Bytes
+//	StateRoot      common.Hash
+//	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+//}
 
 //msgp:tuple SequencerJson
 type SequencerJson struct {
@@ -47,29 +45,20 @@ type SequencerJson struct {
 	Proposing      bool            `msg:"-",json:"-"`
 }
 
-func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
-	if s == nil {
-		return nil, nil
-	}
-	j := SequencerJson{
-		TxBaseJson:     *s.TxBase.ToSmallCase(),
-		Issuer:         s.Issuer,
-		BlsJointSig:    s.BlsJointSig,
-		BlsJointPubKey: s.BlsJointPubKey,
-		Proposing:      s.Proposing,
-	}
-
-	return json.Marshal(&j)
-}
-
-func (t *Sequencer) String() string {
-	if t.GetSender() == nil {
-		return fmt.Sprintf("%s-[nil]-%d-Seq", t.TxBase.String(), t.AccountNonce)
-	} else {
-		return fmt.Sprintf("%s-[%.10s]-%d-Seq", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
-	}
-
-}
+//func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
+//	if s == nil {
+//		return nil, nil
+//	}
+//	j := SequencerJson{
+//		TxBaseJson:     *s.TxBase.ToSmallCase(),
+//		Issuer:         s.Issuer,
+//		BlsJointSig:    s.BlsJointSig,
+//		BlsJointPubKey: s.BlsJointPubKey,
+//		Proposing:      s.Proposing,
+//	}
+//
+//	return json.Marshal(&j)
+//}
 
 //msgp:tuple BlsSigSet
 type BlsSigSet struct {
@@ -116,19 +105,19 @@ func RandomSequencer() *Sequencer {
 	return seq
 }
 
-func (t *Sequencer) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
-
-	w.Write(t.BlsJointPubKey, t.AccountNonce)
-	if !CanRecoverPubFromSig {
-		w.Write(t.Issuer.Bytes)
-	}
-	w.Write(t.Height, t.Weight, t.StateRoot.Bytes)
-	for _, parent := range t.Parents() {
-		w.Write(parent.Bytes)
-	}
-	return w.Bytes()
-}
+//func (t *Sequencer) SignatureTargets() []byte {
+//	w := types.NewBinaryWriter()
+//
+//	w.Write(t.BlsJointPubKey, t.AccountNonce)
+//	if !CanRecoverPubFromSig {
+//		w.Write(t.Issuer.Bytes)
+//	}
+//	w.Write(t.Height, t.Weight, t.StateRoot.Bytes)
+//	for _, parent := range t.Parents() {
+//		w.Write(parent.Bytes)
+//	}
+//	return w.Bytes()
+//}
 
 func (t *Sequencer) Sender() common.Address {
 	return *t.Issuer
@@ -146,17 +135,17 @@ func (t *Sequencer) Number() uint64 {
 	return t.GetHeight()
 }
 
-func (t *Sequencer) Compare(tx Txi) bool {
-	switch tx := tx.(type) {
-	case *Sequencer:
-		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
-			return true
-		}
-		return false
-	default:
-		return false
-	}
-}
+//func (t *Sequencer) Compare(tx Txi) bool {
+//	switch tx := tx.(type) {
+//	case *Sequencer:
+//		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+//			return true
+//		}
+//		return false
+//	default:
+//		return false
+//	}
+//}
 
 func (t *Sequencer) GetBase() *TxBase {
 	return &t.TxBase

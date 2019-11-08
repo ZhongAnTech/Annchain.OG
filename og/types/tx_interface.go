@@ -60,3 +60,7 @@ type Hashable interface {
 type Signable interface {
 	SignatureTargets() []byte
 }
+
+type Dumpable interface {
+	Dump() string
+}

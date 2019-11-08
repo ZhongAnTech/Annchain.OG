@@ -45,7 +45,7 @@ package archive
 //	if len(campaigns) < d.partner.NbParticipants {
 //		panic("never come here , programmer error")
 //	}
-//	randomSeed := CalculateRandomSeed(seq.BlsJointSig)
+//	randomSeed := CalculateRandomSeed(seq.Signature)
 //	log.WithField("rand seed ", hexutil.Encode(randomSeed)).Debug("generated")
 //	var vrfSelections VrfSelections
 //	var j int

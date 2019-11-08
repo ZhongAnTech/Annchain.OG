@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
+	"strings"
 )
 
 type Sequencer struct {
@@ -16,12 +17,30 @@ type Sequencer struct {
 	MineNonce   uint64
 	Weight      uint64
 
-	AccountNonce   uint64
-	Issuer         *common.Address
-	BlsJointSig    hexutil.Bytes
-	BlsJointPubKey hexutil.Bytes
-	StateRoot      common.Hash
-	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+	AccountNonce uint64
+	Issuer       *common.Address
+	Signature    hexutil.Bytes
+	PublicKey    hexutil.Bytes
+	StateRoot    common.Hash
+	Proposing    bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+}
+
+func (s Sequencer) Dump() string {
+	var phashes []string
+	for _, p := range s.ParentsHash {
+		phashes = append(phashes, p.Hex())
+	}
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s root: %s",
+		strings.Join(phashes, " ,"),
+		s.Issuer.Hex(),
+		s.Height,
+		s.Weight,
+		s.AccountNonce,
+		s.PublicKey,
+		hexutil.Encode(s.PublicKey),
+		hexutil.Encode(s.Signature),
+		s.StateRoot.Hex(),
+	)
 }
 
 func (s Sequencer) CalcTxHash() (hash common.Hash) {
@@ -33,7 +52,7 @@ func (s Sequencer) CalcTxHash() (hash common.Hash) {
 	}
 	// do not use Height to calculate tx hash.
 	w.Write(s.Weight)
-	w.Write(s.BlsJointSig)
+	w.Write(s.Signature)
 
 	result := sha3.Sum256(w.Bytes())
 	hash.MustSetBytes(result[0:], common.PaddingNone)
@@ -43,7 +62,7 @@ func (s Sequencer) CalcTxHash() (hash common.Hash) {
 func (s *Sequencer) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
-	w.Write(s.BlsJointPubKey, s.AccountNonce)
+	w.Write(s.PublicKey, s.AccountNonce)
 	w.Write(s.Issuer.Bytes)
 
 	w.Write(s.Height, s.Weight, s.StateRoot.Bytes)
@@ -65,7 +84,7 @@ func (s Sequencer) GetWeight() uint64 {
 	if s.Weight == 0 {
 		panic("implementation error: weight not initialized")
 	}
-	return t.Weight
+	return s.Weight
 }
 
 func (s Sequencer) GetTxHash() common.Hash {

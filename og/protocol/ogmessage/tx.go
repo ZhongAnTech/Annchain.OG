@@ -20,7 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 )
 
@@ -88,19 +87,6 @@ func RandomTx() *Tx {
 	}
 }
 
-//func (t *Tx) SignatureTargets() []byte {
-//	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
-//
-//	w := types.NewBinaryWriter()
-//
-//	w.Write(t.AccountNonce)
-//	if !CanRecoverPubFromSig {
-//		w.Write(t.From.Bytes)
-//	}
-//	w.Write(t.To.Bytes, t.Value.GetSigBytes(), t.Data, t.TokenId)
-//	return w.Bytes()
-//}
-
 func (t *Tx) Sender() common.Address {
 	return *t.From
 }
@@ -113,40 +99,6 @@ func (t *Tx) SetSender(addr common.Address) {
 	t.From = &addr
 }
 
-//func (t *Tx) GetValue() *math.BigInt {
-//	return t.Value
-//}
-
-//func (t *Tx) Parents() common.Hashes {
-//	return t.ParentsHash
-//}
-
-//func (t *Tx) Compare(tx Txi) bool {
-//	switch tx := tx.(type) {
-//	case *Tx:
-//		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
-//			return true
-//		}
-//		return false
-//	default:
-//		return false
-//	}
-//}
-
-func (t *Tx) GetBase() *TxBase {
-	return &t.TxBase
-}
-
-func (t *Tx) Dump() string {
-	var phashes []string
-	for _, p := range t.ParentsHash {
-		phashes = append(phashes, p.Hex())
-	}
-	return fmt.Sprintf("hash %s, pHash:[%s], from : %s , to :%s ,value : %s ,\n nonce : %d , signatute : %s, pubkey: %s ,"+
-		"height: %d , mined Nonce: %v, type: %v, weight: %d, data: %x", t.Hash.Hex(),
-		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight, t.Data)
-}
 
 func (t *Tx) RawTx() *RawTx {
 	if t == nil {

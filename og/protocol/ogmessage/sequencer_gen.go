@@ -130,12 +130,12 @@ func (z *Sequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	err = z.BlsJointSig.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	err = z.BlsJointPubKey.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	err = z.StateRoot.DecodeMsg(dc)
@@ -172,12 +172,12 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = z.BlsJointSig.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	err = z.BlsJointPubKey.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	err = z.StateRoot.EncodeMsg(en)
@@ -209,12 +209,12 @@ func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o, err = z.BlsJointSig.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	o, err = z.BlsJointPubKey.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	o, err = z.StateRoot.MarshalMsg(o)
@@ -260,12 +260,12 @@ func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	bts, err = z.BlsJointPubKey.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	bts, err = z.StateRoot.UnmarshalMsg(bts)
@@ -325,12 +325,12 @@ func (z *SequencerJson) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	err = z.BlsJointSig.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	err = z.BlsJointPubKey.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	return
@@ -362,12 +362,12 @@ func (z *SequencerJson) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = z.BlsJointSig.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	err = z.BlsJointPubKey.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	return
@@ -394,12 +394,12 @@ func (z *SequencerJson) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o, err = z.BlsJointSig.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	o, err = z.BlsJointPubKey.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	return
@@ -440,12 +440,12 @@ func (z *SequencerJson) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointSig")
+		err = msgp.WrapError(err, "Signature")
 		return
 	}
 	bts, err = z.BlsJointPubKey.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "BlsJointPubKey")
+		err = msgp.WrapError(err, "PublicKey")
 		return
 	}
 	o = bts

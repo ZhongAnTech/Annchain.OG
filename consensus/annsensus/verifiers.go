@@ -101,7 +101,7 @@ package annsensus
 //		}
 //
 //	}
-//	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.BlsJointSig, seq.BlsJointPubKey, a.bft.DKGTermId)
+//	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.Signature, seq.PublicKey, a.bft.DKGTermId)
 //
 //	if !ok {
 //		return false

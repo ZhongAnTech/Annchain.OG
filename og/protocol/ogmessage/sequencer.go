@@ -16,8 +16,6 @@ package ogmessage
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/kyber/v3/util/random"
-	"math/rand"
 	"strings"
 
 	"github.com/annchain/OG/common/hexutil"
@@ -30,8 +28,8 @@ import (
 //	// TODO: need more states in sequencer to differentiate multiple chains
 //	TxBase
 //	Issuer         *common.Address
-//	BlsJointSig    hexutil.Bytes
-//	BlsJointPubKey hexutil.Bytes
+//	Signature    hexutil.Bytes
+//	PublicKey hexutil.Bytes
 //	StateRoot      common.Hash
 //	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 //}
@@ -52,8 +50,8 @@ type SequencerJson struct {
 //	j := SequencerJson{
 //		TxBaseJson:     *s.TxBase.ToSmallCase(),
 //		Issuer:         s.Issuer,
-//		BlsJointSig:    s.BlsJointSig,
-//		BlsJointPubKey: s.BlsJointPubKey,
+//		Signature:    s.Signature,
+//		PublicKey: s.PublicKey,
 //		Proposing:      s.Proposing,
 //	}
 //
@@ -68,88 +66,6 @@ type BlsSigSet struct {
 
 //msgp:tuple Sequencers
 type Sequencers []*Sequencer
-
-func SampleSequencer() *Sequencer {
-	from := common.HexToAddress("0x33")
-	return &Sequencer{
-		TxBase: TxBase{
-			Height:       12,
-			ParentsHash:  common.Hashes{common.HexToHash("0xCCDD"), common.HexToHash("0xEEFF")},
-			Type:         TxBaseTypeSequencer,
-			AccountNonce: 234,
-		},
-		Issuer: &from,
-	}
-}
-
-func RandomSequencer() *Sequencer {
-	id := uint64(rand.Int63n(1000))
-	from := common.RandomAddress()
-	r := random.New()
-	seq := &Sequencer{
-		TxBase: TxBase{
-			Hash:         common.RandomHash(),
-			Height:       id,
-			ParentsHash:  common.Hashes{common.RandomHash(), common.RandomHash()},
-			Type:         TxBaseTypeSequencer,
-			AccountNonce: uint64(rand.Int63n(50000)),
-			Weight:       uint64(rand.Int31n(2000)),
-		},
-		Issuer: &from,
-	}
-	seq.BlsJointSig = make([]byte, 64)
-	seq.BlsJointPubKey = make([]byte, 128)
-
-	random.Bytes(seq.BlsJointPubKey, r)
-	random.Bytes(seq.BlsJointSig, r)
-	return seq
-}
-
-//func (t *Sequencer) SignatureTargets() []byte {
-//	w := types.NewBinaryWriter()
-//
-//	w.Write(t.BlsJointPubKey, t.AccountNonce)
-//	if !CanRecoverPubFromSig {
-//		w.Write(t.Issuer.Bytes)
-//	}
-//	w.Write(t.Height, t.Weight, t.StateRoot.Bytes)
-//	for _, parent := range t.Parents() {
-//		w.Write(parent.Bytes)
-//	}
-//	return w.Bytes()
-//}
-
-func (t *Sequencer) Sender() common.Address {
-	return *t.Issuer
-}
-
-func (t *Sequencer) GetSender() *common.Address {
-	return t.Issuer
-}
-
-func (t *Sequencer) Parents() common.Hashes {
-	return t.ParentsHash
-}
-
-func (t *Sequencer) Number() uint64 {
-	return t.GetHeight()
-}
-
-//func (t *Sequencer) Compare(tx Txi) bool {
-//	switch tx := tx.(type) {
-//	case *Sequencer:
-//		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
-//			return true
-//		}
-//		return false
-//	default:
-//		return false
-//	}
-//}
-
-func (t *Sequencer) GetBase() *TxBase {
-	return &t.TxBase
-}
 
 func (t *Sequencer) GetHead() *SequencerHeader {
 	return NewSequencerHead(t.GetTxHash(), t.Height)

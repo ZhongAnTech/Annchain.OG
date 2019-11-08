@@ -324,14 +324,14 @@ package ogmessage
 //		err = msgp.WrapError(err, "TxBase")
 //		return
 //	}
-//	z.BlsJointSig, err = dc.ReadBytes(z.BlsJointSig)
+//	z.Signature, err = dc.ReadBytes(z.Signature)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointSig")
+//		err = msgp.WrapError(err, "Signature")
 //		return
 //	}
-//	z.BlsJointPubKey, err = dc.ReadBytes(z.BlsJointPubKey)
+//	z.PublicKey, err = dc.ReadBytes(z.PublicKey)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointPubKey")
+//		err = msgp.WrapError(err, "PublicKey")
 //		return
 //	}
 //	err = z.StateRoot.DecodeMsg(dc)
@@ -354,14 +354,14 @@ package ogmessage
 //		err = msgp.WrapError(err, "TxBase")
 //		return
 //	}
-//	err = en.WriteBytes(z.BlsJointSig)
+//	err = en.WriteBytes(z.Signature)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointSig")
+//		err = msgp.WrapError(err, "Signature")
 //		return
 //	}
-//	err = en.WriteBytes(z.BlsJointPubKey)
+//	err = en.WriteBytes(z.PublicKey)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointPubKey")
+//		err = msgp.WrapError(err, "PublicKey")
 //		return
 //	}
 //	err = z.StateRoot.EncodeMsg(en)
@@ -382,8 +382,8 @@ package ogmessage
 //		err = msgp.WrapError(err, "TxBase")
 //		return
 //	}
-//	o = msgp.AppendBytes(o, z.BlsJointSig)
-//	o = msgp.AppendBytes(o, z.BlsJointPubKey)
+//	o = msgp.AppendBytes(o, z.Signature)
+//	o = msgp.AppendBytes(o, z.PublicKey)
 //	o, err = z.StateRoot.MarshalMsg(o)
 //	if err != nil {
 //		err = msgp.WrapError(err, "StateRoot")
@@ -409,14 +409,14 @@ package ogmessage
 //		err = msgp.WrapError(err, "TxBase")
 //		return
 //	}
-//	z.BlsJointSig, bts, err = msgp.ReadBytesBytes(bts, z.BlsJointSig)
+//	z.Signature, bts, err = msgp.ReadBytesBytes(bts, z.Signature)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointSig")
+//		err = msgp.WrapError(err, "Signature")
 //		return
 //	}
-//	z.BlsJointPubKey, bts, err = msgp.ReadBytesBytes(bts, z.BlsJointPubKey)
+//	z.PublicKey, bts, err = msgp.ReadBytesBytes(bts, z.PublicKey)
 //	if err != nil {
-//		err = msgp.WrapError(err, "BlsJointPubKey")
+//		err = msgp.WrapError(err, "PublicKey")
 //		return
 //	}
 //	bts, err = z.StateRoot.UnmarshalMsg(bts)
@@ -430,7 +430,7 @@ package ogmessage
 //
 //// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 //func (z *RawSequencer) Msgsize() (s int) {
-//	s = 1 + TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.BlsJointSig) + msgp.BytesPrefixSize + len(z.BlsJointPubKey) + z.StateRoot.Msgsize()
+//	s = 1 + TxBase.Msgsize() + msgp.BytesPrefixSize + len(z.Signature) + msgp.BytesPrefixSize + len(z.PublicKey) + z.StateRoot.Msgsize()
 //	return
 //}
 //

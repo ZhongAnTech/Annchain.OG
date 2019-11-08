@@ -90,7 +90,7 @@ package annsensus
 //		logrus.WithField("termId", currentTerm).WithError(err).Warn("joint sig verification failed")
 //		return nil, err
 //	}
-//	sequencerProposal.BlsJointSig = jointSig
+//	sequencerProposal.Signature = jointSig
 //	// TODO: may set the pubkey
 //	sequencerProposal.Proposing = false
 //	return sequencerProposal, nil

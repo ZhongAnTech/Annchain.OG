@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
+	"strings"
 )
 
 type Tx struct {
@@ -29,6 +30,17 @@ type Tx struct {
 	Signature    hexutil.Bytes
 	//confirm     time.Time
 	// CanRecoverPubFromSig
+}
+
+func (t Tx) Dump() string {
+	var phashes []string
+	for _, p := range t.ParentsHash {
+		phashes = append(phashes, p.Hex())
+	}
+	return fmt.Sprintf("hash %s, pHash:[%s], from: %s , to: %s ,value: %s ,\n nonce: %d , signatute: %s, pubkey: %s ,"+
+		"height: %d , mined Nonce: %v, weight: %d, data: %x", t.Hash.Hex(),
+		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
+		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey.Bytes), t.Height, t.MineNonce, t.Weight, t.Data)
 }
 
 func (t Tx) CalcTxHash() (hash common.Hash) {

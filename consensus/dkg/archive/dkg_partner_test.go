@@ -29,7 +29,7 @@ package archive
 //func TestDkg_VerifyBlsSig(t *testing.T) {
 //	seq := tx_types.RandomSequencer()
 //	fmt.Println(seq.GetTxHash().Hex())
-//	seq.BlsJointPubKey = []byte{}
+//	seq.PublicKey = []byte{}
 //}
 //
 //func logInit() {
@@ -61,7 +61,7 @@ package archive
 //		tm.AddCampaign(&cp)
 //	}
 //	seq := &tx_types.Sequencer{
-//		BlsJointSig: common.RandomAddress().ToBytes(),
+//		Signature: common.RandomAddress().ToBytes(),
 //	}
 //	d.myAccount = getRandomAccount()
 //	d.SelectCandidates(seq)

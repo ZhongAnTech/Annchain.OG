@@ -27,6 +27,9 @@ func (t *TxStatusSet) CreateIfNotExist(txi types.Txi) {
 }
 
 func (t *TxStatusSet) BindChild(parent types.Txi, child types.Txi) {
+	if parent == nil {
+		return
+	}
 	logrus.Tracef("tx status bind child, parent: %s, child: %s", parent.GetTxHash(), child.GetTxHash())
 
 	pHash := parent.GetTxHash()

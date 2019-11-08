@@ -59,6 +59,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("genesis", rpc.Genesis)
 	// broadcast API
 	router.POST("new_transaction", rpc.NewTransaction)
+	router.POST("new_sequencer", rpc.NewSequencer)
 	router.GET("new_transaction", rpc.NewTransaction)
 	router.POST("new_transactions", rpc.NewTransactions)
 	router.POST("new_secret_transactions", rpc.SecretTransaction)

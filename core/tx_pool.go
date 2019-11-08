@@ -568,19 +568,19 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	log.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
-	txquality := pool.isBadTx(tx)
-	if txquality == TxQualityIsFatal {
-		pool.remove(tx, removeFromEnd)
-		tx.SetInValid(true)
-		log.WithField("tx ", tx).Debug("set invalid ")
-		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
-	}
-	if txquality == TxQualityIsBad {
-		log.Tracef("bad tx: %s", tx)
-		pool.badtxs.Add(tx)
-		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
-		return nil
-	}
+	//txquality := pool.isBadTx(tx)
+	//if txquality == TxQualityIsFatal {
+	//	pool.remove(tx, removeFromEnd)
+	//	tx.SetInValid(true)
+	//	log.WithField("tx ", tx).Debug("set invalid ")
+	//	return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
+	//}
+	//if txquality == TxQualityIsBad {
+	//	log.Tracef("bad tx: %s", tx)
+	//	pool.badtxs.Add(tx)
+	//	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
+	//	return nil
+	//}
 
 	// move parents to pending
 	for _, pHash := range tx.Parents() {
@@ -885,15 +885,17 @@ func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) ([]types.Txi, *Confir
 
 // isBadSeq checks if a sequencer is correct.
 func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
-	// check if the nonce is duplicate
-	seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
-	if seqindag != nil {
-		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
-	}
-	if pool.dag.LatestSequencer().Height+1 != seq.Height {
-		return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.latestSequencer.Height)
-	}
 	return nil
+
+	// check if the nonce is duplicate
+	//seqindag := pool.dag.GetTxByNonce(seq.Sender(), seq.GetNonce())
+	//if seqindag != nil {
+	//	return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
+	//}
+	//if pool.dag.LatestSequencer().Height+1 != seq.Height {
+	//	return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.latestSequencer.Height)
+	//}
+	//return nil
 }
 
 func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
@@ -922,7 +924,8 @@ func (pool *TxPool) seekElders(baseTx types.Txi) ([]types.Txi, error) {
 		if elder == nil {
 			elder = pool.dag.GetTx(elderHash)
 			if elder == nil {
-				return nil, fmt.Errorf("can't find elder %s", elderHash)
+				return elders, nil
+				//return nil, fmt.Errorf("can't find elder %s", elderHash)
 			}
 			continue
 		}
@@ -1013,9 +1016,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders []types.T
 		if !(nonces.Len() > 0) {
 			continue
 		}
-		if nErr := pool.verifyNonce(addr, &nonces, seq); nErr != nil {
-			return nil, nErr
-		}
+		//if nErr := pool.verifyNonce(addr, &nonces, seq); nErr != nil {
+		//	return nil, nErr
+		//}
 	}
 
 	// bind confirm sequencer to be a child of its parents.

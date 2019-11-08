@@ -795,9 +795,9 @@ func (dag *Dag) FakePush(reduceAmount *math.BigInt) error {
 func (dag *Dag) push(batch *ConfirmBatch) error {
 	log.Tracef("push the batch: %s", batch.String())
 
-	if dag.latestSequencer.Height+1 != batch.Seq.Height {
-		return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
-	}
+	//if dag.latestSequencer.Height+1 != batch.Seq.Height {
+	//	return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
+	//}
 
 	var err error
 
@@ -813,7 +813,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	sId := dag.statedb.Snapshot()
 
 	// calculate previous sequencer to let seq airdrop happen.
-	dag.calTxRobSystem(batch.PrevSeq, batch.Status)
+	if batch.PrevSeq != nil {
+		dag.calTxRobSystem(batch.PrevSeq, batch.Status)
+	}
+	//dag.calTxRobSystem(batch.PrevSeq, batch.Status)
 
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
@@ -1106,6 +1109,11 @@ func (dag *Dag) calTxRobSystem(txi types.Txi, txStatusSet TxStatusSet) (*math.Bi
 	if txStatusSet == nil {
 		return nil, nil
 	}
+	if txi == nil {
+		return nil, nil
+	}
+
+	//fmt.Println(txi)
 
 	txStatus := txStatusSet[txi.GetTxHash()]
 	if txStatus == nil {

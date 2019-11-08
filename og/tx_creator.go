@@ -275,7 +275,7 @@ func (m *TxCreator) NewTxForHackathon(from common.Address, to common.Address, va
 	for _, hash := range parentsHash {
 		p := m.TxPool.Get(hash)
 		if p == nil {
-			return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
+			//return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
 		}
 		parents = append(parents, p)
 	}
@@ -310,7 +310,7 @@ func (m *TxCreator) NewTxForHackathonViewer(from common.Address, to common.Addre
 	for _, hash := range parentsHash {
 		p := m.TxPool.Get(hash)
 		if p == nil {
-			return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
+			//return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
 		}
 		parents = append(parents, p)
 	}
@@ -320,18 +320,30 @@ func (m *TxCreator) NewTxForHackathonViewer(from common.Address, to common.Addre
 	return tx, nil
 }
 
-func (m *TxCreator) NewSeqForHackathonViewer(from common.Address, treasure *math.BigInt, nonce uint64, parentsHash []common.Hash, hash common.Hash) (seq types.Txi, err error) {
+func (m *TxCreator) NewSeqForHackathonViewer(from common.Address, treasure *math.BigInt, nonce uint64, parentsHash []common.Hash, hash common.Hash, height uint64) (seq types.Txi, err error) {
 	seq = &tx_types.Sequencer{
 		Issuer:   &from,
 		Treasure: treasure,
 		TxBase: types.TxBase{
 			ParentsHash:  parentsHash,
 			AccountNonce: nonce,
+			Height:       height,
 			Type:         types.TxBaseTypeSequencer,
 		},
 	}
 	seq.GetBase().Signature = []byte{}
 	seq.GetBase().PublicKey = []byte{}
+
+	var parents []types.Txi
+	for _, hash := range parentsHash {
+		p := m.TxPool.Get(hash)
+		if p == nil {
+			//return nil, fmt.Errorf("cannot find parent %s... in txpool", hash.String())
+		}
+		parents = append(parents, p)
+	}
+	seq.GetBase().Weight = seq.CalculateWeight(parents)
+	seq.GetBase().Hash = hash
 
 	return seq, nil
 }

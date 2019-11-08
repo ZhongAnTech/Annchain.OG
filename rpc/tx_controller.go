@@ -36,8 +36,8 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
 		tx    types.Txi
 		txReq NewTxRequest
-		sig   crypto.Signature
-		pub   crypto.PublicKey
+		//sig   crypto.Signature
+		//pub   crypto.PublicKey
 	)
 
 	if status.ArchiveMode {
@@ -87,23 +87,23 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	nonce := txReq.Nonce
 
-	signature := common.FromHex(txReq.Signature)
+	//signature := common.FromHex(txReq.Signature)
 	//if signature == nil || txReq.Signature == "" {
 	//	Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 	//	return
 	//}
 
-	pub, err = crypto.Secp256k1PublicKeyFromString(txReq.Pubkey)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-		return
-	}
+	//pub, err = crypto.Secp256k1PublicKeyFromString(txReq.Pubkey)
+	//if err != nil {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+	//	return
+	//}
 
-	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
-		return
-	}
+	//sig = crypto.SignatureFromBytes(pub.Type, signature)
+	//if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
+	//	Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	//	return
+	//}
 
 	hash := common.HexToHash(txReq.Hash)
 	tx, err = r.TxCreator.NewTxForHackathonViewer(from, to, value, guarantee, []byte{}, nonce, parentsHash, BaseTokenID, hash)
@@ -144,8 +144,8 @@ func (r *RpcController) NewSequencer(c *gin.Context) {
 	var (
 		seq    types.Txi
 		seqReq NewSeqRequest
-		sig    crypto.Signature
-		pub    crypto.PublicKey
+		//sig    crypto.Signature
+		//pub    crypto.PublicKey
 	)
 
 	err := c.ShouldBindJSON(&seqReq)
@@ -185,26 +185,27 @@ func (r *RpcController) NewSequencer(c *gin.Context) {
 
 	nonce := seqReq.Nonce
 
-	signature := common.FromHex(seqReq.Signature)
+	//signature := common.FromHex(seqReq.Signature)
 	//if signature == nil || seqReq.Signature == "" {
 	//	Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
 	//	return
 	//}
 
-	pub, err = crypto.Secp256k1PublicKeyFromString(seqReq.Pubkey)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
-		return
-	}
+	//pub, err = crypto.Secp256k1PublicKeyFromString(seqReq.Pubkey)
+	//if err != nil {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("pubkey format error %v", err), nil)
+	//	return
+	//}
 
-	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
-		return
-	}
+	//sig = crypto.SignatureFromBytes(pub.Type, signature)
+	//if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
+	//	Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	//	return
+	//}
 
 	hash := common.HexToHash(seqReq.Hash)
-	seq, err = r.TxCreator.NewSeqForHackathonViewer(from, treasure, nonce, parentsHash, hash)
+	height := seqReq.Height
+	seq, err = r.TxCreator.NewSeqForHackathonViewer(from, treasure, nonce, parentsHash, hash, height)
 	if err != nil {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("new seq failed: %v", err), nil)
 		return
@@ -246,6 +247,7 @@ type NewSeqRequest struct {
 	Nonce     uint64   `json:"nonce"`
 	From      string   `json:"from"`
 	Treasure  string   `json:"treasure"`
+	Height    uint64   `json:"height"`
 	Signature string   `json:"signature"`
 	Pubkey    string   `json:"pubkey"`
 }

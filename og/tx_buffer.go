@@ -572,6 +572,8 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	// not in the pool, check its parents
 	var sendBloom bool
 	for _, parentHash := range tx.Parents() {
+		continue
+
 		// check if parent is in pool or dag.
 		if b.isLocalHash(parentHash) {
 			continue

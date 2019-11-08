@@ -194,6 +194,9 @@ func (t *TxBase) CalcMinedHash() (hash common.Hash) {
 func (t *TxBase) CalculateWeight(parents Txis) uint64 {
 	var maxWeight uint64
 	for _, p := range parents {
+		if p == nil {
+			continue
+		}
 		if p.GetWeight() > maxWeight {
 			maxWeight = p.GetWeight()
 		}

@@ -17,51 +17,12 @@ package ogmessage
 import (
 	"github.com/annchain/OG/common"
 	"github.com/tinylib/msgp/msgp"
-	"strings"
 )
 
 //go:generate msgp
 
 //msgp:tuple Txi
-type Txi interface {
-	// Implemented by TxBase
-	GetType() TxBaseType
-	GetHeight() uint64
-	GetWeight() uint64
-	GetTxHash() common.Hash
-	GetNonce() uint64
-	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
-	SetHash(h common.Hash)
-	String() string
-	CalcTxHash() common.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
-	CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
-	CalculateWeight(parents Txis) uint64
 
-	SetInValid(b bool)
-	InValid() bool
-
-	// implemented by each tx type
-	GetBase() *TxBase
-	Sender() common.Address
-	GetSender() *common.Address
-	SetSender(addr common.Address)
-	Dump() string             // For logger dump
-	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
-	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-
-	RawTxi() RawTxi // compressed txi
-
-	// implemented by msgp
-	DecodeMsg(dc *msgp.Reader) (err error)
-	EncodeMsg(en *msgp.Writer) (err error)
-	MarshalMsg(b []byte) (o []byte, err error)
-	UnmarshalMsg(bts []byte) (o []byte, err error)
-	Msgsize() (s int)
-	GetVersion() byte
-	ToSmallCaseJson() ([]byte, error)
-	IsVerified() VerifiedType
-	SetVerified(v VerifiedType)
-}
 
 type RawTxi interface {
 	GetType() TxBaseType
@@ -84,43 +45,6 @@ type RawTxi interface {
 	MarshalMsg(b []byte) (o []byte, err error)
 	UnmarshalMsg(bts []byte) (o []byte, err error)
 	Msgsize() (s int)
-}
-
-type Txis []Txi
-
-func (t Txis) String() string {
-	var strs []string
-	for _, v := range t {
-		strs = append(strs, v.String())
-	}
-	return strings.Join(strs, ", ")
-}
-
-func (t Txis) Len() int {
-	return len(t)
-}
-
-func (t Txis) Less(i, j int) bool {
-	if t[i].GetWeight() < t[j].GetWeight() {
-		return true
-	}
-	if t[i].GetWeight() > t[j].GetWeight() {
-		return false
-	}
-	if t[i].GetNonce() < t[j].GetNonce() {
-		return true
-	}
-	if t[i].GetNonce() > t[j].GetNonce() {
-		return false
-	}
-	if t[i].GetTxHash().Cmp(t[j].GetTxHash()) < 0 {
-		return true
-	}
-	return false
-}
-
-func (t Txis) Swap(i, j int) {
-	t[i], t[j] = t[j], t[i]
 }
 
 /*func (t Txis) ToTxs() (txs Txs, cps Campaigns, tcs TermChanges, seqs Sequencers) {

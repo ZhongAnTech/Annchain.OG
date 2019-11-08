@@ -16,7 +16,6 @@ package ogmessage
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
 	"math/rand"
 	"strings"
 	"time"
@@ -89,18 +88,18 @@ func RandomTx() *Tx {
 	}
 }
 
-func (t *Tx) SignatureTargets() []byte {
-	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
-
-	w := types.NewBinaryWriter()
-
-	w.Write(t.AccountNonce)
-	if !CanRecoverPubFromSig {
-		w.Write(t.From.Bytes)
-	}
-	w.Write(t.To.Bytes, t.Value.GetSigBytes(), t.Data, t.TokenId)
-	return w.Bytes()
-}
+//func (t *Tx) SignatureTargets() []byte {
+//	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
+//
+//	w := types.NewBinaryWriter()
+//
+//	w.Write(t.AccountNonce)
+//	if !CanRecoverPubFromSig {
+//		w.Write(t.From.Bytes)
+//	}
+//	w.Write(t.To.Bytes, t.Value.GetSigBytes(), t.Data, t.TokenId)
+//	return w.Bytes()
+//}
 
 func (t *Tx) Sender() common.Address {
 	return *t.From
@@ -114,25 +113,25 @@ func (t *Tx) SetSender(addr common.Address) {
 	t.From = &addr
 }
 
-func (t *Tx) GetValue() *math.BigInt {
-	return t.Value
-}
+//func (t *Tx) GetValue() *math.BigInt {
+//	return t.Value
+//}
 
-func (t *Tx) Parents() common.Hashes {
-	return t.ParentsHash
-}
+//func (t *Tx) Parents() common.Hashes {
+//	return t.ParentsHash
+//}
 
-func (t *Tx) Compare(tx Txi) bool {
-	switch tx := tx.(type) {
-	case *Tx:
-		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
-			return true
-		}
-		return false
-	default:
-		return false
-	}
-}
+//func (t *Tx) Compare(tx Txi) bool {
+//	switch tx := tx.(type) {
+//	case *Tx:
+//		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+//			return true
+//		}
+//		return false
+//	default:
+//		return false
+//	}
+//}
 
 func (t *Tx) GetBase() *TxBase {
 	return &t.TxBase

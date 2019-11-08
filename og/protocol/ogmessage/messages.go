@@ -659,7 +659,7 @@ func (m MessageAnnsensus) ToBinary() msg.BinaryMessage {
 	}
 }
 
-func (m MessageAnnsensus) FromBinary([]byte) error {
+func (m MessageAnnsensus) FromBinary(bs []byte) error {
 	_, err := m.UnmarshalMsg(bs)
 	return err
 }

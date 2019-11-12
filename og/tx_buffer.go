@@ -16,6 +16,7 @@ package og
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/protocol"
 	"sort"
@@ -455,7 +456,7 @@ func (b *TxBuffer) addToTxPool(tx ogmessage.Txi) error {
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx ogmessage.Txi, firstTime bool) {
 	var proposingSeq bool
-	if tx.GetType() == ogmessage.TxBaseTypeSequencer {
+	if tx.GetType() == archive.TxBaseTypeSequencer {
 		seq := tx.(*ogmessage.Sequencer)
 		if seq.Proposing {
 			function := func() {
@@ -610,7 +611,7 @@ func (b *TxBuffer) buildDependencies(tx ogmessage.Txi) bool {
 		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
-		if tx.GetType() == ogmessage.TxBaseTypeSequencer {
+		if tx.GetType() == archive.TxBaseTypeSequencer {
 			seq := tx.(*ogmessage.Sequencer)
 			//b.Syncer.SyncHashList(seq.GetTxHash())
 			//proposing seq

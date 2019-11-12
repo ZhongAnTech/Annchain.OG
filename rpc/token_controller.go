@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/status"
@@ -317,7 +318,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 			AccountNonce: txReq.Nonce,
 			TokenId:      0,
 		},
-		Action:    ogmessage.ActionTxActionSPO,
+		Action:    archive.ActionTxActionSPO,
 		EnableSpo: txReq.EnableSPO,
 		TokenName: txReq.TokenName,
 		Pubkey:    pub,

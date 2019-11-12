@@ -16,6 +16,7 @@ package miner
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -55,7 +56,7 @@ func (s SampleTx) SignatureTargets() []byte {
 	panic("implement me")
 }
 
-func (s SampleTx) RawTxi() ogmessage.RawTxi {
+func (s SampleTx) RawTxi() archive.RawTxi {
 	panic("implement me")
 }
 

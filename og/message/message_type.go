@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 )
 
 //go:generate msgp
@@ -47,13 +48,13 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 	var message ogmessage.Message
 	switch m {
 	case MessageTypeNewTx:
-		message = &ogmessage.MessageNewTx{}
+		message = &archive.MessageNewTx{}
 	case MessageTypeNewSequencer:
-		message = &ogmessage.MessageNewSequencer{}
+		message = &archive.MessageNewSequencer{}
 	case MessageTypeGetMsg:
-		message = &ogmessage.MessageGetMsg{}
+		message = &archive.MessageGetMsg{}
 	case MessageTypeControl:
-		message = &ogmessage.MessageControl{}
+		message = &archive.MessageControl{}
 	case MessageTypeCampaign:
 		message = &ogmessage.MessageCampaign{}
 	case MessageTypeTermChange:
@@ -75,7 +76,7 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 	case MessageTypeArchive:
 		message = &ogmessage.MessageNewArchive{}
 	case MessageTypeActionTX:
-		message = &ogmessage.MessageNewActionTx{}
+		message = &archive.MessageNewActionTx{}
 
 	//case MessageTypeProposal:
 	//	message = &bft.BftMessageProposal{
@@ -86,34 +87,34 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 	//case MessageTypePreCommit:
 	//	message = &bft.BftMessagePreCommit{}
 	case MessageTypeNewTxs:
-		message = &ogmessage.MessageNewTxs{}
+		message = &archive.MessageNewTxs{}
 	case MessageTypeSequencerHeader:
-		message = &ogmessage.MessageSequencerHeader{}
+		message = &archive.MessageSequencerHeader{}
 
 	case MessageTypeBodiesRequest:
-		message = &ogmessage.MessageBodiesRequest{}
+		message = &archive.MessageBodiesRequest{}
 	case MessageTypeBodiesResponse:
-		message = &ogmessage.MessageBodiesResponse{}
+		message = &archive.MessageBodiesResponse{}
 
 	case MessageTypeTxsRequest:
-		message = &ogmessage.MessageTxsRequest{}
+		message = &archive.MessageTxsRequest{}
 	case MessageTypeTxsResponse:
-		message = &ogmessage.MessageTxsResponse{}
+		message = &archive.MessageTxsResponse{}
 	case MessageTypeHeaderRequest:
-		message = &ogmessage.MessageHeaderRequest{}
+		message = &archive.MessageHeaderRequest{}
 	case MessageTypeHeaderResponse:
-		message = &ogmessage.MessageHeaderResponse{}
+		message = &archive.MessageHeaderResponse{}
 	case MessageTypeDuplicate:
-		var dup ogmessage.MessageDuplicate
+		var dup archive.MessageDuplicate
 		message = &dup
 	case MessageTypePing:
-		message = &ogmessage.MessagePing{}
+		message = &archive.MessagePing{}
 	case MessageTypePong:
-		message = &ogmessage.MessagePong{}
+		message = &archive.MessagePong{}
 	case MessageTypeFetchByHashRequest:
-		message = &ogmessage.MessageSyncRequest{}
+		message = &archive.MessageSyncRequest{}
 	case MessageTypeFetchByHashResponse:
-		message = &ogmessage.MessageSyncResponse{}
+		message = &archive.MessageSyncResponse{}
 	default:
 		return nil
 	}

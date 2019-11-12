@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -72,10 +73,10 @@ func (d *dummyDag) GetTx(hash common.Hash) ogmessage.Txi {
 	return nil
 }
 
-func sampleTx(selfHash string, parentsHash []string) *ogmessage.Tx {
-	tx := &ogmessage.Tx{TxBase: ogmessage.TxBase{
+func sampleTx(selfHash string, parentsHash []string) *archive.Tx {
+	tx := &archive.Tx{TxBase: ogmessage.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        ogmessage.TxBaseTypeNormal,
+		Type:        archive.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}

@@ -21,7 +21,9 @@ import (
 	"errors"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"math/rand"
 	"time"
@@ -64,10 +66,10 @@ type peerDropFn func(id string)
 // announce is the hash notification of the availability of a new sequencer in the
 // network.
 type announce struct {
-	hash   common.Hash                // Hash of the sequencer being announced
-	number uint64                     // Number of the sequencer being announced (0 = unknown | old protocol)
-	header *ogmessage.SequencerHeader // Header of the sequencer partially reassembled (new protocol)
-	time   time.Time                  // Timestamp of the announcement
+	hash   common.Hash                 // Hash of the sequencer being announced
+	number uint64                      // Number of the sequencer being announced (0 = unknown | old protocol)
+	header *dagmessage.SequencerHeader // Header of the sequencer partially reassembled (new protocol)
+	time   time.Time                   // Timestamp of the announcement
 
 	origin string // Identifier of the peer originating the notification
 
@@ -77,9 +79,9 @@ type announce struct {
 
 // headerFilterTask represents a batch of headers needing fetcher filtering.
 type headerFilterTask struct {
-	peer    string                       // The source peer of sequencer headers
-	headers []*ogmessage.SequencerHeader // Collection of headers to filter
-	time    time.Time                    // Arrival time of the headers
+	peer    string                        // The source peer of sequencer headers
+	headers []*dagmessage.SequencerHeader // Collection of headers to filter
+	time    time.Time                     // Arrival time of the headers
 }
 
 // bodyFilterTask represents a batch of sequencer bodies (transactions and uncles)
@@ -210,7 +212,7 @@ func (f *Fetcher) Enqueue(peer string, sequencer *ogmessage.Sequencer) error {
 
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
-func (f *Fetcher) FilterHeaders(peer string, headers ogmessage.SequencerHeaders, time time.Time) []*ogmessage.SequencerHeader {
+func (f *Fetcher) FilterHeaders(peer string, headers dagmessage.SequencerHeaders, time time.Time) []*dagmessage.SequencerHeader {
 	log.WithField("peer", peer).WithField("headers", headers).Trace(
 		"Filtering headers")
 
@@ -239,7 +241,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers ogmessage.SequencerHeaders,
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions []ogmessage.Txis, sequencers ogmessage.Sequencers, time time.Time) []ogmessage.Txis {
+func (f *Fetcher) FilterBodies(peer string, transactions []ogmessage.Txis, sequencers archive.Sequencers, time time.Time) []ogmessage.Txis {
 	log.WithField("txs", len(transactions)).WithField("sequencers ", sequencers).WithField(
 		"peer", peer).Trace("Filtering bodies")
 
@@ -441,7 +443,7 @@ func (f *Fetcher) loop() {
 
 			// Split the batch of headers into unknown ones (to return to the caller),
 			// known incomplete ones (requiring body retrievals) and completed sequencers.
-			unknown, incomplete, complete := []*ogmessage.SequencerHeader{}, []*announce{}, []*ogmessage.Sequencer{}
+			unknown, incomplete, complete := []*dagmessage.SequencerHeader{}, []*announce{}, []*ogmessage.Sequencer{}
 			for _, header := range task.headers {
 				hash := header.GetHash()
 

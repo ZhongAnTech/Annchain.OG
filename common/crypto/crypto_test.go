@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/ecies"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"math/big"
 	"testing"
@@ -101,7 +102,7 @@ func TestBenchMarks(t *testing.T) {
 	var txs []*TestTx
 	var Txlen = 40000
 	for i := 0; i < Txlen; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.Data = []byte("jhfffhhgfhgf46666856544563544535636568654864546546ewfjnfdjlfjldkjkflkjflkdsl;kfdfkjjkfsd;lsdl;kdfl;kjfjfsj;sd54645656854545435454")
 		testTx := TestTx{tx, tx.SignatureTargets(), nil}
 		txs = append(txs, &testTx)

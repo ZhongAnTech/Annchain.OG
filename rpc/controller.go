@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
@@ -44,7 +45,7 @@ type RpcController struct {
 	TxCreator          *txmaker.OGTxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor
-	NewRequestChan     chan ogmessage.TxBaseType
+	NewRequestChan     chan archive2.TxBaseType
 	AnnSensus          *annsensus.AnnSensus
 	FormatVerifier     *verifier.TxFormatVerifier
 }
@@ -96,7 +97,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		return
 	}
 	switch tx := txi.(type) {
-	case *ogmessage.Tx:
+	case *archive2.Tx:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	case *ogmessage.Sequencer:
@@ -111,7 +112,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *campaign.TermChange:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *ogmessage.ActionTx:
+	case *archive2.ActionTx:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	}

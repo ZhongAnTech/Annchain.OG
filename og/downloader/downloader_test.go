@@ -17,8 +17,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
+	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/protocol/ogmessage"
-
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"math/big"
@@ -46,15 +46,15 @@ type downloadTester struct {
 	genesis *ogmessage.Sequencer // Genesis blocks used by the tester and peers
 	peerDb  ogdb.Database        // Database of the peers containing all data
 
-	ownHashes  common.Hashes                              // Hash chain belonging to the tester
-	ownHeaders map[common.Hash]*ogmessage.SequencerHeader // Headers belonging to the tester
-	ownBlocks  map[common.Hash]*ogmessage.Sequencer       // Blocks belonging to the tester
-	ownChainTd map[common.Hash]uint64                     // id
+	ownHashes  common.Hashes                               // Hash chain belonging to the tester
+	ownHeaders map[common.Hash]*dagmessage.SequencerHeader // Headers belonging to the tester
+	ownBlocks  map[common.Hash]*ogmessage.Sequencer        // Blocks belonging to the tester
+	ownChainTd map[common.Hash]uint64                      // id
 
-	peerHashes   map[string]common.Hashes                              // Hash chain belonging to different test peers
-	peerHeaders  map[string]map[common.Hash]*ogmessage.SequencerHeader // Headers belonging to different test peers
-	peerBlocks   map[string]map[common.Hash]*ogmessage.Sequencer       // Blocks belonging to different test peers
-	peerChainTds map[string]map[common.Hash]*big.Int                   // Total difficulties of the blocks in the peer chains
+	peerHashes   map[string]common.Hashes                               // Hash chain belonging to different test peers
+	peerHeaders  map[string]map[common.Hash]*dagmessage.SequencerHeader // Headers belonging to different test peers
+	peerBlocks   map[string]map[common.Hash]*ogmessage.Sequencer        // Blocks belonging to different test peers
+	peerChainTds map[string]map[common.Hash]*big.Int                    // Total difficulties of the blocks in the peer chains
 
 	peerMissingStates map[string]map[common.Hash]bool // State entries that fast sync should not return
 
@@ -69,11 +69,11 @@ func newTester() *downloadTester {
 		genesis:           genesis,
 		peerDb:            testdb,
 		ownHashes:         common.Hashes{genesis.GetTxHash()},
-		ownHeaders:        map[common.Hash]*ogmessage.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
+		ownHeaders:        map[common.Hash]*dagmessage.SequencerHeader{genesis.GetTxHash(): types.NewSequencerHead(genesis.GetTxHash(), genesis.Number())},
 		ownBlocks:         map[common.Hash]*ogmessage.Sequencer{genesis.GetTxHash(): genesis},
 		ownChainTd:        map[common.Hash]uint64{genesis.GetTxHash(): genesis.Number()},
 		peerHashes:        make(map[string]common.Hashes),
-		peerHeaders:       make(map[string]map[common.Hash]*ogmessage.SequencerHeader),
+		peerHeaders:       make(map[string]map[common.Hash]*dagmessage.SequencerHeader),
 		peerBlocks:        make(map[string]map[common.Hash]*ogmessage.Sequencer),
 		peerChainTds:      make(map[string]map[common.Hash]*big.Int),
 		peerMissingStates: make(map[string]map[common.Hash]bool),

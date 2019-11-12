@@ -16,6 +16,7 @@ package campaign
 import (
 	"fmt"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/types"
 	"strings"
@@ -122,7 +123,7 @@ func (tc *TermChange) SignatureTargets() []byte {
 	w := types.NewBinaryWriter()
 
 	w.Write(tc.AccountNonce)
-	if !ogmessage.CanRecoverPubFromSig {
+	if !archive.CanRecoverPubFromSig {
 		w.Write(tc.Issuer.Bytes)
 	}
 	w.Write(tc.PkBls)
@@ -172,7 +173,7 @@ func (cs TermChanges) RawTermChanges() RawTermChanges {
 	return rawTcs
 }
 
-func (c *TermChange) RawTxi() ogmessage.RawTxi {
+func (c *TermChange) RawTxi() archive.RawTxi {
 	return c.RawTermChange()
 }
 

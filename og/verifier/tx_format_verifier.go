@@ -10,6 +10,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 	"math/big"
@@ -49,7 +50,7 @@ func (v *TxFormatVerifier) Verify(t ogmessage.Txi) bool {
 			return false
 		}
 	}
-	t.SetVerified(ogmessage.VerifiedFormat)
+	t.SetVerified(archive2.VerifiedFormat)
 	return true
 }
 
@@ -74,7 +75,7 @@ func (v *TxFormatVerifier) VerifyHash(t ogmessage.Txi) bool {
 }
 
 func (v *TxFormatVerifier) VerifySignature(t ogmessage.Txi) bool {
-	if t.GetType() == ogmessage.TxBaseTypeArchive {
+	if t.GetType() == archive2.TxBaseTypeArchive {
 		return true
 	}
 	base := t.GetBase()
@@ -133,8 +134,8 @@ func (v *TxFormatVerifier) VerifySourceAddress(t ogmessage.Txi) bool {
 		return true
 	}
 	switch t.(type) {
-	case *ogmessage.Tx:
-		return t.(*ogmessage.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *archive2.Tx:
+		return t.(*archive2.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *ogmessage.Sequencer:
 		return t.(*ogmessage.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *campaign.Campaign:

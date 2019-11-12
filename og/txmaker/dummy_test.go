@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 )
@@ -18,7 +19,7 @@ func (p *dummyTxPoolRandomTx) IsBadSeq(seq *ogmessage.Sequencer) error {
 
 func (p *dummyTxPoolRandomTx) GetRandomTips(n int) (v []ogmessage.Txi) {
 	for i := 0; i < n; i++ {
-		v = append(v, ogmessage.RandomTx())
+		v = append(v, archive.RandomTx())
 	}
 	return
 }

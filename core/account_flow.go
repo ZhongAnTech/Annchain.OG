@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"sort"
 	"sync"
@@ -42,7 +43,7 @@ func (a *AccountFlows) Add(tx ogmessage.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if tx.GetType() == ogmessage.TxBaseTypeArchive {
+	if tx.GetType() == archive.TxBaseTypeArchive {
 		return
 	}
 
@@ -166,11 +167,11 @@ func (af *AccountFlow) Add(tx ogmessage.Txi) error {
 		log.WithField("tx", tx).Errorf("add tx that has same nonce")
 		return fmt.Errorf("already exists")
 	}
-	if tx.GetType() != ogmessage.TxBaseTypeNormal {
+	if tx.GetType() != archive.TxBaseTypeNormal {
 		af.txlist.Put(tx)
 		return nil
 	}
-	txnormal := tx.(*ogmessage.Tx)
+	txnormal := tx.(*archive.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
@@ -191,11 +192,11 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	if tx.GetType() != ogmessage.TxBaseTypeNormal {
+	if tx.GetType() != archive.TxBaseTypeNormal {
 		af.txlist.Remove(nonce)
 		return nil
 	}
-	txnormal := tx.(*ogmessage.Tx)
+	txnormal := tx.(*archive.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Remove(nonce)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())

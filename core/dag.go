@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
@@ -304,7 +305,7 @@ func (dag *Dag) getTestTx(hash common.Hash) ogmessage.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx ogmessage.Tx
+		var tx archive2.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -391,7 +392,7 @@ func (dag *Dag) getTxis(hashs common.Hashes) ogmessage.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs common.Hashes, baseType ogmessage.TxBaseType) ogmessage.Txis {
+func (dag *Dag) getTxisByType(hashs common.Hashes, baseType archive2.TxBaseType) ogmessage.Txis {
 	var txs ogmessage.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
@@ -476,7 +477,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.S
 	return txs, &seq
 }
 
-func (dag *Dag) GetTxsByNumberAndType(height uint64, txType ogmessage.TxBaseType) ogmessage.Txis {
+func (dag *Dag) GetTxsByNumberAndType(height uint64, txType archive2.TxBaseType) ogmessage.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -783,7 +784,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		// Consensus related txs should not some specific types, should be
 		// changed to a modular way.
 		txType := txi.GetType()
-		if txType == ogmessage.TxBaseTypeCampaign || txType == ogmessage.TxBaseTypeTermChange {
+		if txType == archive2.TxBaseTypeCampaign || txType == archive2.TxBaseTypeTermChange {
 			consTxs = append(consTxs, txi)
 		}
 	}
@@ -926,7 +927,7 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 func (dag *Dag) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	if tx.GetType() != ogmessage.TxBaseTypeArchive {
+	if tx.GetType() != archive2.TxBaseTypeArchive {
 		err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
 		if err != nil {
 			return fmt.Errorf("write latest nonce err: %v", err)
@@ -953,7 +954,7 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 // contract, vm part will be initiated to handle this.
 func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
-	if tx.GetType() == ogmessage.TxBaseTypeArchive {
+	if tx.GetType() == archive2.TxBaseTypeArchive {
 		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
 		return nil, nil, nil
 	}
@@ -970,20 +971,20 @@ func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Rec
 		db.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
-	if tx.GetType() == ogmessage.TxBaseTypeSequencer {
+	if tx.GetType() == archive2.TxBaseTypeSequencer {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == ogmessage.TxBaseTypeCampaign {
+	if tx.GetType() == archive2.TxBaseTypeCampaign {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == ogmessage.TxBaseTypeTermChange {
+	if tx.GetType() == archive2.TxBaseTypeTermChange {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == ogmessage.TxBaseAction {
-		actionTx := tx.(*ogmessage.ActionTx)
+	if tx.GetType() == archive2.TxBaseAction {
+		actionTx := tx.(*archive2.ActionTx)
 		receipt, err := dag.processTokenTransaction(actionTx)
 		if err != nil {
 			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
@@ -991,13 +992,13 @@ func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Rec
 		return nil, receipt, nil
 	}
 
-	if tx.GetType() != ogmessage.TxBaseTypeNormal {
+	if tx.GetType() != archive2.TxBaseTypeNormal {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
 	// transfer balance
-	txnormal := tx.(*ogmessage.Tx)
+	txnormal := tx.(*archive2.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
@@ -1062,10 +1063,10 @@ func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Rec
 	return ret, receipt, nil
 }
 
-func (dag *Dag) processTokenTransaction(tx *ogmessage.ActionTx) (*Receipt, error) {
+func (dag *Dag) processTokenTransaction(tx *archive2.ActionTx) (*Receipt, error) {
 
-	actionData := tx.ActionData.(*ogmessage.PublicOffering)
-	if tx.Action == ogmessage.ActionTxActionIPO {
+	actionData := tx.ActionData.(*archive2.PublicOffering)
+	if tx.Action == archive2.ActionTxActionIPO {
 		issuer := tx.Sender()
 		name := actionData.TokenName
 		reIssuable := actionData.EnableSPO
@@ -1080,7 +1081,7 @@ func (dag *Dag) processTokenTransaction(tx *ogmessage.ActionTx) (*Receipt, error
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == ogmessage.ActionTxActionSPO {
+	if tx.Action == archive2.ActionTxActionSPO {
 		tokenID := actionData.TokenId
 		amount := actionData.Value
 
@@ -1092,7 +1093,7 @@ func (dag *Dag) processTokenTransaction(tx *ogmessage.ActionTx) (*Receipt, error
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 		return receipt, nil
 	}
-	if tx.Action == ogmessage.ActionTxActionDestroy {
+	if tx.Action == archive2.ActionTxActionDestroy {
 		tokenID := actionData.TokenId
 
 		err := dag.statedb.DestroyToken(tokenID)

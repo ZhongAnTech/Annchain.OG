@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 )
 
 type DummyDag struct {
@@ -42,7 +43,7 @@ func (d *DummyDag) GetSequencerByHeight(id uint64) *ogmessage.Sequencer {
 
 func (d *DummyDag) GetTxisByNumber(id uint64) ogmessage.Txis {
 	var txis ogmessage.Txis
-	txis = append(txis, ogmessage.RandomTx(), ogmessage.RandomTx())
+	txis = append(txis, archive.RandomTx(), archive.RandomTx())
 	return txis
 }
 

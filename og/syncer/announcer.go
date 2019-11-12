@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 )
 
 type Announcer struct {
@@ -32,12 +33,12 @@ func NewAnnouncer(messageSender MessageSender) *Announcer {
 //BroadcastNewTx brodcast newly created txi message
 func (m *Announcer) BroadcastNewTx(txi ogmessage.Txi) {
 	switch tx := txi.(type) {
-	case *ogmessage.Tx:
-		msgTx := ogmessage.MessageNewTx{RawTx: tx.RawTx()}
-		m.messageSender.BroadcastMessageWithLink(ogmessage.MessageTypeNewTx, &msgTx)
+	case *archive2.Tx:
+		msgTx := archive2.MessageNewTx{RawTx: tx.RawTx()}
+		m.messageSender.BroadcastMessageWithLink(archive2.MessageTypeNewTx, &msgTx)
 	case *ogmessage.Sequencer:
-		msgTx := ogmessage.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
-		m.messageSender.BroadcastMessageWithLink(ogmessage.MessageTypeNewSequencer, &msgTx)
+		msgTx := archive2.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
+		m.messageSender.BroadcastMessageWithLink(archive2.MessageTypeNewSequencer, &msgTx)
 	case *campaign.Campaign:
 		msg := ogmessage.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
@@ -53,12 +54,12 @@ func (m *Announcer) BroadcastNewTx(txi ogmessage.Txi) {
 		msg := ogmessage.MessageNewArchive{
 			Archive: tx,
 		}
-		m.messageSender.BroadcastMessage(ogmessage.MessageTypeArchive, &msg)
-	case *ogmessage.ActionTx:
-		msg := ogmessage.MessageNewActionTx{
+		m.messageSender.BroadcastMessage(archive2.MessageTypeArchive, &msg)
+	case *archive2.ActionTx:
+		msg := archive2.MessageNewActionTx{
 			ActionTx: tx,
 		}
-		m.messageSender.BroadcastMessage(ogmessage.MessageTypeActionTX, &msg)
+		m.messageSender.BroadcastMessage(archive2.MessageTypeActionTX, &msg)
 
 	default:
 		log.Warn("never come here, unknown tx type ", tx)

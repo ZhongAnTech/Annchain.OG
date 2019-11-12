@@ -17,11 +17,12 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"testing"
 )
 
 func TestConvertor(t *testing.T) {
-	tx := ogmessage.Tx{
+	tx := archive.Tx{
 		TxBase: ogmessage.TxBase{
 			Hash:        common.BytesToHash([]byte{1, 2, 3, 4, 5}),
 			ParentsHash: common.Hashes{common.BytesToHash([]byte{1, 1, 2, 2, 3, 3})},

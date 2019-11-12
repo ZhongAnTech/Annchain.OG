@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func Init() *OGTxCreator {
 func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	tx := txc.TipGenerator.GetRandomTips(1)[0].(*ogmessage.Tx)
+	tx := txc.TipGenerator.GetRandomTips(1)[0].(*archive.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 
@@ -82,7 +83,7 @@ func TestTxCreator(t *testing.T) {
 	txdata, _ := tx.MarshalMsg(nil)
 	rawtx := tx.RawTx()
 	rawTxData, _ := rawtx.MarshalMsg(nil)
-	msg := ogmessage.MessageNewTx{
+	msg := archive.MessageNewTx{
 		RawTx: rawtx,
 	}
 	msgData, _ := msg.MarshalMsg(nil)
@@ -113,11 +114,11 @@ func TestSequencerCreator(t *testing.T) {
 	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
-func sampleTxi(selfHash string, parentsHash []string, baseType ogmessage.TxBaseType) ogmessage.Txi {
+func sampleTxi(selfHash string, parentsHash []string, baseType archive.TxBaseType) ogmessage.Txi {
 
-	tx := &ogmessage.Tx{TxBase: ogmessage.TxBase{
+	tx := &archive.Tx{TxBase: ogmessage.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        ogmessage.TxBaseTypeNormal,
+		Type:        archive.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}

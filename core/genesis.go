@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -127,7 +128,7 @@ func newUnsignedSequencer(height uint64, accountNonce uint64) *ogmessage.Sequenc
 	tx := ogmessage.Sequencer{
 		TxBase: ogmessage.TxBase{
 			AccountNonce: accountNonce,
-			Type:         ogmessage.TxBaseTypeSequencer,
+			Type:         archive.TxBaseTypeSequencer,
 			Height:       height,
 		},
 	}

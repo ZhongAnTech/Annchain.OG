@@ -4,13 +4,14 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/dummy"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 	"testing"
 )
 
-func buildTx(from common.Address, accountNonce uint64) *ogmessage.Tx {
-	tx := ogmessage.RandomTx()
+func buildTx(from common.Address, accountNonce uint64) *archive.Tx {
+	tx := archive.RandomTx()
 	tx.AccountNonce = accountNonce
 	tx.From = &from
 	return tx

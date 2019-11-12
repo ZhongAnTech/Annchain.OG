@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/protocol/ogmessage"
 )
 
@@ -20,7 +21,7 @@ type dataPack interface {
 // headerPack is a batch of block headers returned by a peer.
 type headerPack struct {
 	peerID  string
-	headers []*ogmessage.SequencerHeader
+	headers []*dagmessage.SequencerHeader
 }
 
 func (p *headerPack) PeerId() string { return p.peerID }

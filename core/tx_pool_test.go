@@ -16,6 +16,7 @@ package core_test
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"testing"
@@ -58,7 +59,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *ogmessage.Sequencer,
 	}
 }
 
-func newTestPoolTx(nonce uint64) *ogmessage.Tx {
+func newTestPoolTx(nonce uint64) *archive.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -75,10 +76,10 @@ func newTestPoolTx(nonce uint64) *ogmessage.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*ogmessage.Tx)
+	return tx.(*archive.Tx)
 }
 
-func newTestPoolBadTx() *ogmessage.Tx {
+func newTestPoolBadTx() *archive.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
@@ -95,7 +96,7 @@ func newTestPoolBadTx() *ogmessage.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*ogmessage.Tx)
+	return tx.(*archive.Tx)
 }
 
 func TestPoolInit(t *testing.T) {

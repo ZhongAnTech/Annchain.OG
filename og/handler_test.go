@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"testing"
 )
 
 func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
-	var msgRes ogmessage.MessageBodiesResponse
+	var msgRes archive.MessageBodiesResponse
 	var bytes int
 	for i := 0; i < 2; i++ {
 		seq := ogmessage.RandomSequencer()
@@ -25,7 +26,7 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		body.RawSequencer = seq.RawSequencer()
 		var txs ogmessage.Txis
 		for j := 0; j < 3; j++ {
-			txs = append(txs, ogmessage.RandomTx())
+			txs = append(txs, archive.RandomTx())
 		}
 		rtxs := ogmessage.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
@@ -33,7 +34,7 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		}
 		bodyData, _ := body.MarshalMsg(nil)
 		bytes += len(bodyData)
-		msgRes.Bodies = append(msgRes.Bodies, ogmessage.RawData(bodyData))
+		msgRes.Bodies = append(msgRes.Bodies, archive.RawData(bodyData))
 		fmt.Println(body)
 	}
 	fmt.Println(&msgRes)

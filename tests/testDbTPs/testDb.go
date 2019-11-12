@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/ogdb"
 	"github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 				ar.Data = append(ar.Data, pub.Bytes[:]...)
 				txis = append(txis, ar)
 			} else {
-				tx := ogmessage.RandomTx()
+				tx := archive2.RandomTx()
 				tx.Value = math.NewBigInt(0)
 				tx.PublicKey = pub.Bytes[:]
 				tx.From = pub.Address()

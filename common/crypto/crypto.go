@@ -172,6 +172,13 @@ func (p *PublicKey) String() string {
 	return hexutil.Encode(bytes)
 }
 
+func (p *PublicKey) StringWithCryptoType() string {
+	var bytes []byte
+	bytes = append(bytes, byte(p.Type))
+	bytes = append(bytes, p.Bytes...)
+	return hexutil.Encode(bytes)
+}
+
 func NewSigner(cryptoType CryptoType) ISigner {
 	if cryptoType == CryptoTypeEd25519 {
 		return &SignerEd25519{}

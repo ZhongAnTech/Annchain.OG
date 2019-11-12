@@ -61,6 +61,7 @@ func genInit() {
 	genCmd.PersistentFlags().BoolVarP(&embededBootstrap, "embeded_bootstrap", "e", true, "if put bootstrap node info inside config")
 	genCmd.PersistentFlags().IntVarP(&nodesNum, "node_num", "n", 4, "the number of nodes that will participate in consensus system。 At least 2.")
 	genCmd.PersistentFlags().IntVarP(&port, "port", "t", 8000, "the port of private network")
+	genCmd.PersistentFlags().StringVarP(&bootUrl, "bootstrap", "b", "127.0.0.1", "the url of bootstrap node")
 }
 
 func privateChainWithServerConfig() {
@@ -123,7 +124,7 @@ func privateChainConfig() {
 	for i := 0; i < nodesNum; i++ {
 		priv, pub := account.GenAccount()
 		privateSet = append(privateSet, priv.String())
-		publicSet = append(publicSet, pub.String())
+		publicSet = append(publicSet, pub.StringWithCryptoType())
 	}
 	genesisPk := strings.Join(publicSet, ";")
 	viper.Set("annsensus.genesis_pk", genesisPk)
@@ -150,6 +151,7 @@ func privateChainConfig() {
 	//init bootstrap
 	viper.Set("p2p.node_key", nodekeyBoot)
 	viper.Set("p2p.bootstrap_node", true)
+	viper.Set("auto_client.sequencer.enabled", true)
 	viper.Set("leveldb.path", "rw/datadir_0")
 	viper.Set("annsensus.consensus_path", "consensus0.json")
 	err = viper.WriteConfigAs(path.Join(privateDirNode0, configFileName))
@@ -161,14 +163,15 @@ func privateChainConfig() {
 	//init other nodes
 	viper.Set("annsensus.campaign", true)
 	viper.Set("p2p.bootstrap_node", false)
+	portGap := 10
 	for i := 1; i < len(privateSet); i++ {
-		viper.Set("rpc.port", port+10*i)
-		viper.Set("p2p.port", port+10*i+1)
-		viper.Set("websocket.port", port+10*i+2)
-		viper.Set("profiling.port", port+10*i+3)
+		viper.Set("rpc.port", port+portGap*i)
+		viper.Set("p2p.port", port+portGap*i+1)
+		viper.Set("websocket.port", port+portGap*i+2)
+		viper.Set("profiling.port", port+portGap*i+3)
 		viper.Set("leveldb.path", fmt.Sprintf("rw/datadir_%d", i))
 		viper.Set("annsensus.consensus_path", fmt.Sprintf("consensus%d.json", i))
-		nodekey, _ := genBootONode(port + 10*i + 1)
+		nodekey, _ := genBootONode(port + portGap*i + 1)
 		viper.Set("p2p.node_key", nodekey)
 		fmt.Println("private key: ", i)
 

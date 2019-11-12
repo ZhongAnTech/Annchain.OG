@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"math/rand"
 	"sync"
 	"time"
@@ -55,7 +56,7 @@ type AutoClient struct {
 
 	Delegate *node.Delegate
 
-	ManualChan chan ogmessage.TxBaseType
+	ManualChan chan archive.TxBaseType
 	quit       chan bool
 
 	pause bool
@@ -77,7 +78,7 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
-	c.ManualChan = make(chan ogmessage.TxBaseType)
+	c.ManualChan = make(chan archive.TxBaseType)
 	c.NewRawTx = make(chan ogmessage.Txi)
 }
 
@@ -113,11 +114,11 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
-func (c *AutoClient) fireManualTx(txType ogmessage.TxBaseType, force bool) {
+func (c *AutoClient) fireManualTx(txType archive.TxBaseType, force bool) {
 	switch txType {
-	case ogmessage.TxBaseTypeNormal:
+	case archive.TxBaseTypeNormal:
 		c.doSampleTx(force)
-	case ogmessage.TxBaseTypeSequencer:
+	case archive.TxBaseTypeSequencer:
 		c.doSampleSequencer(force)
 	default:
 		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
@@ -388,7 +389,7 @@ func (c *AutoClient) doSampleTx(force bool) bool {
 	}
 	logrus.WithField("tx", tx).WithField("nonce", tx.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated tx")
-	tx.SetVerified(ogmessage.VerifiedFormat)
+	tx.SetVerified(archive.VerifiedFormat)
 	node.Announce(tx)
 	return true
 }
@@ -435,10 +436,10 @@ func (c *AutoClient) doRawTx(txi ogmessage.Txi) bool {
 	me := c.MyAccount
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
-	if txi.GetType() == ogmessage.TxBaseTypeCampaign {
+	if txi.GetType() == archive.TxBaseTypeCampaign {
 		cp := txi.(*campaign.Campaign)
 		cp.Issuer = &me.Address
-	} else if txi.GetType() == ogmessage.TxBaseTypeTermChange {
+	} else if txi.GetType() == archive.TxBaseTypeTermChange {
 		cp := txi.(*campaign.TermChange)
 		cp.Issuer = &me.Address
 	}
@@ -451,7 +452,7 @@ func (c *AutoClient) doRawTx(txi ogmessage.Txi) bool {
 
 	logrus.WithField("tx", txi).WithField("nonce", txi.GetNonce()).
 		WithField("id", c.MyIndex).Trace("Generated txi")
-	txi.SetVerified(ogmessage.VerifiedFormat)
+	txi.SetVerified(archive.VerifiedFormat)
 	node.Announce(txi)
 	return true
 }
@@ -474,7 +475,7 @@ func (c *AutoClient) doSampleSequencer(force bool) bool {
 	}
 	logrus.WithField("seq", seq).WithField("nonce", seq.GetNonce()).
 		WithField("id", c.MyIndex).WithField("dump ", seq.Dump()).Debug("Generated seq")
-	seq.SetVerified(ogmessage.VerifiedFormat)
+	seq.SetVerified(archive.VerifiedFormat)
 	node.Announce(seq)
 	return true
 }

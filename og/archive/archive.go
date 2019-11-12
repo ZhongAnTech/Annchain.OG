@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
@@ -36,7 +37,7 @@ type Archive struct {
 
 //msgp:tuple ArchiveJson
 type ArchiveJson struct {
-	ogmessage.TxBaseJson
+	archive.TxBaseJson
 	Data []byte `json:"data"`
 }
 
@@ -129,7 +130,7 @@ func (cs Archives) RawArchives() RawArchives {
 	return rawCps
 }
 
-func (c *Archive) RawTxi() ogmessage.RawTxi {
+func (c *Archive) RawTxi() archive.RawTxi {
 	return c.RawArchive()
 }
 
@@ -138,7 +139,7 @@ func RandomArchive() *Archive {
 		Hash:        common.RandomHash(),
 		Height:      uint64(rand.Int63n(1000)),
 		ParentsHash: common.Hashes{common.RandomHash(), common.RandomHash()},
-		Type:        ogmessage.TxBaseTypeArchive,
+		Type:        archive.TxBaseTypeArchive,
 		//AccountNonce: uint64(rand.Int63n(50000)),
 		Weight: uint64(rand.Int31n(2000)),
 	},

@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/types/msg"
 	"sync"
@@ -154,7 +155,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 	if len(buffer) == 0 {
 		return
 	}
-	req := ogmessage.MessageSyncRequest{
+	req := archive.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	var source interface{}
@@ -464,15 +465,15 @@ func (m *IncrementalSyncer) SyncHashList(seqHash common.Hash) {
 }
 
 func (m *IncrementalSyncer) syncHashList(peerId string) {
-	req := ogmessage.MessageSyncRequest{
+	req := archive.MessageSyncRequest{
 		RequestId: message.MsgCounter.Get(),
 	}
 	height := m.getHeight()
 	req.Height = &height
 	hashs := m.getTxsHashes()
-	var hashTerminates ogmessage.HashTerminats
+	var hashTerminates archive.HashTerminats
 	for _, hash := range hashs {
-		var hashTerminate ogmessage.HashTerminat
+		var hashTerminate archive.HashTerminat
 		copy(hashTerminate[:], hash.Bytes[:4])
 		hashTerminates = append(hashTerminates, hashTerminate)
 	}

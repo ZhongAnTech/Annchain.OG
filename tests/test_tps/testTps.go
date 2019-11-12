@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/rpc"
 	"time"
@@ -31,9 +32,9 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 	pub, priv := crypto.Signer.RandomKeyPair()
 	for i := 1; i < N; i++ {
 		from := pub.Address()
-		tx := ogmessage.Tx{
+		tx := archive.Tx{
 			TxBase: ogmessage.TxBase{
-				Type:         ogmessage.TxBaseTypeNormal,
+				Type:         archive.TxBaseTypeNormal,
 				AccountNonce: uint64(i),
 				PublicKey:    pub.Bytes[:],
 			},

@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/status"
 	"sort"
@@ -521,7 +522,7 @@ func (pool *TxPool) addTx(tx ogmessage.Txi, senderType TxType, noFeedBack bool) 
 		},
 	}
 
-	if normalTx, ok := tx.(*ogmessage.Tx); ok {
+	if normalTx, ok := tx.(*archive.Tx); ok {
 		normalTx.Setconfirm()
 		pool.confirmStatus.AddTxNum()
 	}
@@ -583,7 +584,7 @@ func (pool *TxPool) commit(tx ogmessage.Txi) error {
 			continue
 		}
 		// remove sequencer from pool
-		if parent.GetType() == ogmessage.TxBaseTypeSequencer {
+		if parent.GetType() == archive.TxBaseTypeSequencer {
 			pool.tips.Remove(pHash)
 			pool.txLookup.Remove(pHash, removeFromFront)
 			continue
@@ -593,14 +594,14 @@ func (pool *TxPool) commit(tx ogmessage.Txi) error {
 		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
-	if tx.GetType() != ogmessage.TxBaseTypeArchive {
+	if tx.GetType() != archive.TxBaseTypeArchive {
 		// add tx to pool
 		if pool.flows.Get(tx.Sender()) == nil {
 			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
 		}
 	}
-	if tx.GetType() == ogmessage.TxBaseTypeNormal {
-		txn := tx.(*ogmessage.Tx)
+	if tx.GetType() == archive.TxBaseTypeNormal {
+		txn := tx.(*archive.Tx)
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
 	}
 	pool.flows.Add(tx)
@@ -632,7 +633,7 @@ func (pool *TxPool) isBadTx(tx ogmessage.Txi) TxQuality {
 		}
 	}
 
-	if tx.GetType() == ogmessage.TxBaseTypeArchive {
+	if tx.GetType() == archive.TxBaseTypeArchive {
 		return TxQualityIsGood
 	}
 
@@ -675,7 +676,7 @@ func (pool *TxPool) isBadTx(tx ogmessage.Txi) TxQuality {
 	}
 
 	switch tx := tx.(type) {
-	case *ogmessage.Tx:
+	case *archive.Tx:
 		// check if the tx itself has no conflicts with local ledger
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
@@ -697,13 +698,13 @@ func (pool *TxPool) isBadTx(tx ogmessage.Txi) TxQuality {
 			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
-	case *ogmessage.ActionTx:
-		if tx.Action == ogmessage.ActionTxActionIPO {
+	case *archive.ActionTx:
+		if tx.Action == archive.ActionTxActionIPO {
 			//actionData := tx.ActionData.(*tx_types.PublicOffering)
 			//actionData.TokenId = pool.dag.GetLatestTokenId()
 		}
-		if tx.Action == ogmessage.ActionTxActionSPO {
-			actionData := tx.ActionData.(*ogmessage.PublicOffering)
+		if tx.Action == archive.ActionTxActionSPO {
+			actionData := tx.ActionData.(*archive.PublicOffering)
 			if actionData.TokenId == 0 {
 				log.WithField("tx ", tx).Warn("og token is disabled for publishing")
 				return TxQualityIsFatal
@@ -726,8 +727,8 @@ func (pool *TxPool) isBadTx(tx ogmessage.Txi) TxQuality {
 				return TxQualityIsFatal
 			}
 		}
-		if tx.Action == ogmessage.ActionTxActionDestroy {
-			actionData := tx.ActionData.(*ogmessage.PublicOffering)
+		if tx.Action == archive.ActionTxActionDestroy {
+			actionData := tx.ActionData.(*archive.PublicOffering)
 			if actionData.TokenId == 0 {
 				log.WithField("tx ", tx).Warn("og token is disabled for withdraw")
 				return TxQualityIsFatal
@@ -817,7 +818,7 @@ func (pool *TxPool) confirm(seq *ogmessage.Sequencer) error {
 	}
 
 	for _, tx := range batch.Txs {
-		if normalTx, ok := tx.(*ogmessage.Tx); ok {
+		if normalTx, ok := tx.(*archive.Tx); ok {
 			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
 		}
 	}
@@ -935,15 +936,15 @@ func (pool *TxPool) verifyConfirmBatch(seq *ogmessage.Sequencer, elders map[comm
 	cTxs := ogmessage.Txis{}
 	batch := map[common.Address]*BatchDetail{}
 	for _, txi := range elders {
-		if txi.GetType() != ogmessage.TxBaseTypeSequencer {
+		if txi.GetType() != archive.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
 		}
 
-		if txi.GetType() == ogmessage.TxBaseTypeArchive {
+		if txi.GetType() == archive.TxBaseTypeArchive {
 			continue
 		}
 
-		if txi.GetType() == ogmessage.TxBaseTypeNormal {
+		if txi.GetType() == archive.TxBaseTypeNormal {
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
@@ -956,7 +957,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *ogmessage.Sequencer, elders map[comm
 		case *ogmessage.Sequencer:
 			break
 
-		case *ogmessage.Tx:
+		case *archive.Tx:
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
@@ -1036,7 +1037,7 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 		// sequencer is removed from txpool later when calling
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
-		if tx.GetType() == ogmessage.TxBaseTypeSequencer {
+		if tx.GetType() == archive.TxBaseTypeSequencer {
 			continue
 		}
 		txsInPool = append(txsInPool, tx)

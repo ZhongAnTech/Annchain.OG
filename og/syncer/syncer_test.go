@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -56,7 +56,7 @@ func newTestIncrementalSyncer() *IncrementalSyncer {
 		heighter, newTxEnable)
 	syncer.Enabled = true
 	for i := 0; i < 5000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		err := syncer.bufferedIncomingTxCache.EnQueue(tx)
 		if err != nil {
 			panic(err)
@@ -80,9 +80,9 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 	pubKey, _ := signer.RandomKeyPair()
 	types.Signer = signer
 	for i := 0; i < 60000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.PublicKey = pubKey.Bytes
-		msg := &ogmessage.MessageNewTx{tx.RawTx()}
+		msg := &archive.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {
 			syncer.HandleNewTx(msg, "123")
@@ -100,9 +100,9 @@ func TestSyncBuffer_AddTxs(t *testing.T) {
 	types.Signer = signer
 	var wg sync.WaitGroup
 	for i := 0; i < 60000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.PublicKey = pubKey.Bytes
-		msg := &ogmessage.MessageNewTx{tx.RawTx()}
+		msg := &archive.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {
 			syncer.HandleNewTx(msg, "123")

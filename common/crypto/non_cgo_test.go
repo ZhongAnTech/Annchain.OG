@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto/secp256k1"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/protocol/ogmessage"
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
@@ -142,10 +143,10 @@ func TestSignBenchMarksCgo(t *testing.T) {
 	N := 10000
 
 	for i := 0; i < N; i++ {
-		txs1 = append(txs1, ogmessage.RandomTx())
+		txs1 = append(txs1, archive.RandomTx())
 	}
 	for i := 0; i < N; i++ {
-		txs2 = append(txs2, ogmessage.RandomTx())
+		txs2 = append(txs2, archive.RandomTx())
 	}
 	fmt.Println("started")
 	start := time.Now()

@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/types/msg"
 	"strings"
@@ -51,7 +52,7 @@ func (rc *RawCampaign) Campaign() *Campaign {
 		DkgPublicKey: rc.DkgPublicKey,
 		Vrf:          rc.Vrf,
 	}
-	if !ogmessage.CanRecoverPubFromSig {
+	if !archive.CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(rc.PublicKey)
 		cp.Issuer = &addr
 	}
@@ -68,7 +69,7 @@ func (r *RawTermChange) TermChange() *TermChange {
 		SigSet: r.SigSet,
 		TermID: r.TermId,
 	}
-	if !ogmessage.CanRecoverPubFromSig {
+	if !archive.CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(r.PublicKey)
 		t.Issuer = &addr
 	}

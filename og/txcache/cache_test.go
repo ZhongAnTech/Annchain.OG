@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -47,7 +48,7 @@ func (c *TxCache) addInitTxWithNum(num int) {
 			tx.GetBase().Height = uint64(i / 1000)
 			tx.GetBase().Weight = uint64(i%1000) + tx.GetBase().Height + minWeight
 		} else {
-			tx = ogmessage.RandomTx()
+			tx = archive.RandomTx()
 			tx.GetBase().Height = uint64(i / 1000)
 			tx.GetBase().Weight = uint64(i%1000) + tx.GetBase().Height + minWeight
 		}
@@ -77,8 +78,8 @@ func newTestTxcacheWithParam(size int, sorted bool, expire int) *TxCache {
 
 func TestTxCache_Get(t *testing.T) {
 	start := time.Now()
-	tx1 := ogmessage.RandomTx()
-	tx2 := ogmessage.RandomTx()
+	tx1 := archive.RandomTx()
+	tx2 := archive.RandomTx()
 	c := newTestTxcache(true)
 	c.addInitTx()
 	c.EnQueue(tx1)
@@ -164,7 +165,7 @@ func TestTxCache_EnQueue(t *testing.T) {
 	var wg sync.WaitGroup
 	start := time.Now()
 	for i := 0; i < 28000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		wg.Add(1)
 		go func() {
 			//begin := time.Now()
@@ -184,7 +185,7 @@ func TestTxCache_GetTop(t *testing.T) {
 	var wg sync.WaitGroup
 	start := time.Now()
 	for i := 0; i < 28000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		wg.Add(1)
 		go func(int) {
 			//begin := time.Now()
@@ -208,9 +209,9 @@ func TestTxCache_DeQueueBatch(t *testing.T) {
 	c.addInitTx()
 	c.DeQueueBatch(50000)
 	start := time.Now()
-	var txis []*ogmessage.Tx
+	var txis []*archive.Tx
 	for i := 0; i < 100; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.Weight = uint64(i)
 		txis = append(txis, tx)
 		//begin := time.Now()
@@ -239,7 +240,7 @@ func TestTxCache_AddFrontBatch(t *testing.T) {
 	c.addInitTx()
 	var txs []ogmessage.Txi
 	for i := 0; i < 100; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.Weight = uint64(i*3 + 2)
 		txs = append(txs, tx)
 		//begin := time.Now()
@@ -298,7 +299,7 @@ func TestTxCache_Sort2(t *testing.T) {
 
 			tx = seq
 		} else {
-			randTx := ogmessage.RandomTx()
+			randTx := archive.RandomTx()
 			randTx.Height = uint64(i / 100)
 			randTx.Weight = uint64(i%100) + randTx.Height
 			tx = randTx
@@ -346,5 +347,5 @@ func TestTxCache_Has(t *testing.T) {
 	gcache.DebugMode = true
 	hash := c.GetHashOrder()[150]
 	tx := c.Get(hash)
-	fmt.Println(hash, tx, c.cache.Len(), c.Get(hash), c.Has(hash), c.Has(ogmessage.RandomTx().GetTxHash()))
+	fmt.Println(hash, tx, c.cache.Len(), c.Get(hash), c.Has(hash), c.Has(archive.RandomTx().GetTxHash()))
 }

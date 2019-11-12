@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 )
@@ -59,7 +60,7 @@ func (d *DataLoader) GenerateGenesis() *ogmessage.Sequencer {
 	return &ogmessage.Sequencer{
 		Issuer: &from,
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseTypeSequencer,
+			Type:         archive.TxBaseTypeSequencer,
 			Hash:         common.HexToHash("0x00"),
 			Height:       0,
 			AccountNonce: 0,

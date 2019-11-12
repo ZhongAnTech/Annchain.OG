@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"io/ioutil"
@@ -63,7 +64,7 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 	}
 }
 
-func newTestUnsealTx(nonce uint64) *ogmessage.Tx {
+func newTestUnsealTx(nonce uint64) *archive.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -80,7 +81,7 @@ func newTestUnsealTx(nonce uint64) *ogmessage.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*ogmessage.Tx)
+	return tx.(*archive.Tx)
 }
 
 func newTestSeq(nonce uint64) *ogmessage.Sequencer {

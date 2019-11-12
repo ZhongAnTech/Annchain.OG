@@ -15,6 +15,7 @@ package core_test
 
 import (
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/txmaker"
 	"testing"
 
@@ -55,7 +56,7 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *ogmessage.Sequenc
 	}
 }
 
-func newTestDagTx(nonce uint64) *ogmessage.Tx {
+func newTestDagTx(nonce uint64) *archive.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -72,7 +73,7 @@ func newTestDagTx(nonce uint64) *ogmessage.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*ogmessage.Tx)
+	return tx.(*archive.Tx)
 }
 
 func TestDagInit(t *testing.T) {
@@ -229,7 +230,7 @@ func TestDagProcess(t *testing.T) {
 	// github.com/annchain/OG/vm/vm_test/contracts/setter.sol
 	contractCode := "6060604052341561000f57600080fd5b600a60008190555060006001819055506102078061002e6000396000f300606060405260043610610062576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680631c0f72e11461006b57806360fe47b114610094578063c605f76c146100b7578063e5aa3d5814610145575b34600181905550005b341561007657600080fd5b61007e61016e565b6040518082815260200191505060405180910390f35b341561009f57600080fd5b6100b56004808035906020019091905050610174565b005b34156100c257600080fd5b6100ca61017e565b6040518080602001828103825283818151815260200191508051906020019080838360005b8381101561010a5780820151818401526020810190506100ef565b50505050905090810190601f1680156101375780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b341561015057600080fd5b6101586101c1565b6040518082815260200191505060405180910390f35b60015481565b8060008190555050565b6101866101c7565b6040805190810160405280600a81526020017f68656c6c6f576f726c6400000000000000000000000000000000000000000000815250905090565b60005481565b6020604051908101604052806000815250905600a165627a7a723058208e1bdbeee227900e60082cfcc0e44d400385e8811ae77ac6d7f3b72f630f04170029"
 
-	createTx := &ogmessage.Tx{}
+	createTx := &archive.Tx{}
 	createTx.SetSender(addr)
 	createTx.Value = math.NewBigInt(0)
 	createTx.Data, err = hex.DecodeString(contractCode)
@@ -253,7 +254,7 @@ func TestDagProcess(t *testing.T) {
 
 	// get i from setter contract
 	calldata := "e5aa3d58"
-	callTx := &ogmessage.Tx{}
+	callTx := &archive.Tx{}
 	callTx.SetSender(addr)
 	callTx.Value = math.NewBigInt(0)
 	callTx.To = contractAddr
@@ -270,7 +271,7 @@ func TestDagProcess(t *testing.T) {
 
 	// set i to be 100
 	setdata := "60fe47b10000000000000000000000000000000000000000000000000000000000000064"
-	setTx := &ogmessage.Tx{}
+	setTx := &archive.Tx{}
 	setTx.SetSender(addr)
 	setTx.Value = math.NewBigInt(0)
 	setTx.To = contractAddr
@@ -292,7 +293,7 @@ func TestDagProcess(t *testing.T) {
 
 	// pay a 10 bill to contract
 	transferValue := int64(10)
-	payTx := &ogmessage.Tx{}
+	payTx := &archive.Tx{}
 	setTx.SetSender(addr)
 	payTx.Value = math.NewBigInt(transferValue)
 	payTx.To = contractAddr

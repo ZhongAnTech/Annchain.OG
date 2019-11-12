@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
@@ -81,7 +82,7 @@ func (c *Campaign) SignatureTargets() []byte {
 
 	w.Write(c.DkgPublicKey, c.Vrf.Vrf, c.Vrf.PublicKey, c.Vrf.Proof, c.Vrf.Message, c.AccountNonce)
 
-	if !ogmessage.CanRecoverPubFromSig {
+	if !archive.CanRecoverPubFromSig {
 		w.Write(c.Issuer.Bytes)
 	}
 
@@ -149,7 +150,7 @@ func (c *Campaign) MarshalDkgKey() error {
 	return nil
 }
 
-func (c *Campaign) RawTxi() ogmessage.RawTxi {
+func (c *Campaign) RawTxi() archive.RawTxi {
 	return c.RawCampaign()
 }
 

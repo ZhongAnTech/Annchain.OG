@@ -17,6 +17,7 @@ package rpc
 import (
 	"fmt"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"net/http"
@@ -135,7 +136,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
 		return
 	}
-	tx.SetVerified(ogmessage.VerifiedFormat)
+	tx.SetVerified(archive.VerifiedFormat)
 	logrus.WithField("tx", tx).Debugf("tx generated")
 	if !r.SyncerManager.IncrementalSyncer.Enabled {
 		Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
@@ -293,7 +294,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			}
 			logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated after retry")
 			//we don't verify hash , since we calculated the hash
-			tx.SetVerified(ogmessage.VerifiedFormat)
+			tx.SetVerified(archive.VerifiedFormat)
 			r.TxBuffer.ReceivedNewTxChan <- tx
 			hashes = append(hashes, tx.GetTxHash())
 			continue
@@ -313,7 +314,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 		//we don't verify hash , since we calculated the hash
-		tx.SetVerified(ogmessage.VerifiedFormat)
+		tx.SetVerified(archive.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
 		hashes = append(hashes, tx.GetTxHash())
 	}

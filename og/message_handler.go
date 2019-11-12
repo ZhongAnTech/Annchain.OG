@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"sort"
 	"sync/atomic"
@@ -87,7 +88,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 }
 
 func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_message.MessageSyncRequest, peerId string) {
-	var txs ogmessage.TxisMarshaler
+	var txs archive.TxisMarshaler
 	//var index []uint32
 	//encode bloom filter , send txs that the peer dose't have
 	if syncRequest.Filter != nil && len(syncRequest.Filter.Data) > 0 {
@@ -252,7 +253,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 	// Gather headers until the fetch or network limits is reached
 	var (
 		bytes   common.StorageSize
-		headers ogmessage.Sequencers
+		headers archive.Sequencers
 		unknown bool
 	)
 	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
@@ -338,7 +339,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 }
 
 func (h *IncomingMessageHandler) HandleTxsResponse(request *p2p_message.MessageTxsResponse) {
-	var rawTxs ogmessage.TxisMarshaler
+	var rawTxs archive.TxisMarshaler
 	var txis types.Txis
 	if request.RawTxs != nil {
 		rawTxs = *request.RawTxs
@@ -658,7 +659,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 	}
 	switch txi.GetType() {
 	case types.TxBaseTypeNormal:
-		tx := txi.(*ogmessage.Tx)
+		tx := txi.(*archive.Tx)
 		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewTx, &response)
 	case types.TxBaseTypeTermChange:
@@ -674,7 +675,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		response := p2p_message.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewSequencer, &response)
 	case types.TxBaseAction:
-		tx := txi.(*ogmessage.ActionTx)
+		tx := txi.(*archive.ActionTx)
 		response := p2p_message.MessageNewActionTx{ActionTx: tx}
 		h.Hub.SendToPeer(sourcePeerId, message.MessageTypeNewSequencer, &response)
 	}

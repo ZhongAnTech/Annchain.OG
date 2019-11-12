@@ -15,6 +15,7 @@ package syncer
 
 import (
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"sort"
 )
 
@@ -36,7 +37,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx ogmessage.Txi, peerId string) {
 		log.WithField("tx ", tx).Debug("cache txs for future.")
 	}
 
-	if tx.GetType() == ogmessage.TxBaseTypeSequencer {
+	if tx.GetType() == archive.TxBaseTypeSequencer {
 		m.SequencerCache.Add(tx.GetTxHash(), peerId)
 	}
 
@@ -51,7 +52,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx ogmessage.Txi, peerId string) {
 	//notify channel will be  blocked if tps is high ,check first and add
 }
 
-func (m *IncrementalSyncer) HandleNewTx(newTx *ogmessage.MessageNewTx, peerId string) {
+func (m *IncrementalSyncer) HandleNewTx(newTx *archive.MessageNewTx, peerId string) {
 	tx := newTx.RawTx.Tx()
 	if tx == nil {
 		log.Debug("empty MessageNewTx")
@@ -62,7 +63,7 @@ func (m *IncrementalSyncer) HandleNewTx(newTx *ogmessage.MessageNewTx, peerId st
 
 }
 
-func (m *IncrementalSyncer) HandleNewTxs(newTxs *ogmessage.MessageNewTxs, peerId string) {
+func (m *IncrementalSyncer) HandleNewTxs(newTxs *archive.MessageNewTxs, peerId string) {
 	if newTxs.RawTxs == nil || len(*newTxs.RawTxs) == 0 {
 		log.Debug("Empty MessageNewTx")
 		return
@@ -97,7 +98,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *ogmessage.MessageNewTxs, peerId
 	log.WithField("q", newTxs).Debug("incremental received MessageNewTxs")
 }
 
-func (m *IncrementalSyncer) HandleNewSequencer(newSeq *ogmessage.MessageNewSequencer, peerId string) {
+func (m *IncrementalSyncer) HandleNewSequencer(newSeq *archive.MessageNewSequencer, peerId string) {
 	seq := newSeq.RawSequencer.Sequencer()
 	if seq == nil {
 		log.Debug("empty NewSequence")
@@ -140,7 +141,7 @@ func (m *IncrementalSyncer) HandleArchive(request *ogmessage.MessageNewArchive, 
 
 }
 
-func (m *IncrementalSyncer) HandleActionTx(request *ogmessage.MessageNewActionTx, peerId string) {
+func (m *IncrementalSyncer) HandleActionTx(request *archive.MessageNewActionTx, peerId string) {
 	ax := request.ActionTx
 	if ax == nil {
 		log.Warn("got nil MessageNewActionTx")
@@ -150,7 +151,7 @@ func (m *IncrementalSyncer) HandleActionTx(request *ogmessage.MessageNewActionTx
 	log.WithField("q", request).Debug("incremental received MessageNewActionTx")
 }
 
-func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *ogmessage.MessageSyncResponse, sourceId string) {
+func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *archive.MessageSyncResponse, sourceId string) {
 	m.bloomFilterStatus.UpdateResponse(syncResponse.RequestedId)
 	if syncResponse.RawTxs == nil || len(*syncResponse.RawTxs) == 0 {
 		log.Debug("empty MessageSyncResponse")

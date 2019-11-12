@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/verifier"
 
 	"github.com/annchain/OG/rpc"
@@ -75,15 +76,15 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(8888888)
 
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionIPO,
+		Action: archive.ActionTxActionIPO,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSPO,
 			TokenName: tokenName,
@@ -103,7 +104,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    ogmessage.ActionTxActionIPO,
+		Action:    archive.ActionTxActionIPO,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -117,15 +118,15 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(0)
 
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionDestroy,
+		Action: archive.ActionTxActionDestroy,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value: value,
 			//EnableSPO:  enableSPO,
 			//TokenName: "test_token",
@@ -146,7 +147,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    ogmessage.ActionTxActionDestroy,
+		Action:    archive.ActionTxActionDestroy,
 		//EnableSPO: enableSPO,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -161,15 +162,15 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(100000)
 
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionSPO,
+		Action: archive.ActionTxActionSPO,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value: value,
 			//EnableSPO: true,
 			//TokenName: "test_token",
@@ -192,7 +193,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    pub.String(),
-		Action:    ogmessage.ActionTxActionSPO,
+		Action:    archive.ActionTxActionSPO,
 		//EnableSPO: true,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -206,9 +207,9 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 	to := topub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String(), to.String())
 
-	tx := ogmessage.Tx{
+	tx := archive.Tx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseTypeNormal,
+			Type:         archive.TxBaseTypeNormal,
 			PublicKey:    pub.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

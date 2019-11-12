@@ -19,7 +19,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -60,7 +60,7 @@ func TestSh256(t *testing.T) {
 	var msg []OGMessage
 	for i := 0; i < 10000; i++ {
 		var m OGMessage
-		m.MessageType = ogmessage.MessageTypeBodiesResponse
+		m.MessageType = archive.MessageTypeBodiesResponse
 		h := common.RandomHash()
 		m.Data = append(m.Data, h.Bytes[:]...)
 		msg = append(msg, m)
@@ -121,7 +121,7 @@ func TestCache(t *testing.T) {
 			Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build(),
 	}
 
-	tx := ogmessage.SampleTx()
+	tx := archive.SampleTx()
 	msg := &p2p_message.MessageNewTx{
 		RawTx: tx.RawTx(),
 	}

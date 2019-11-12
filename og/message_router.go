@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 )
 
 // MessageRouter is a bridge between hub and components
@@ -80,43 +81,43 @@ type GetMsgHandler interface {
 }
 
 type ControlMsgHandler interface {
-	HandleControlMsg(msg *ogmessage.MessageControl, peerId string)
+	HandleControlMsg(msg *archive.MessageControl, peerId string)
 }
 
 type NewTxsHandler interface {
-	HandleNewTxs(newTxs *ogmessage.MessageNewTxs, peerId string)
+	HandleNewTxs(newTxs *archive.MessageNewTxs, peerId string)
 }
 
 type NewSequencerHandler interface {
-	HandleNewSequencer(msg *ogmessage.MessageNewSequencer, peerId string)
+	HandleNewSequencer(msg *archive.MessageNewSequencer, peerId string)
 }
 
 type SequencerHeaderHandler interface {
-	HandleSequencerHeader(msgHeader *ogmessage.MessageSequencerHeader, peerId string)
+	HandleSequencerHeader(msgHeader *archive.MessageSequencerHeader, peerId string)
 }
 
 type BodiesRequestHandler interface {
-	HandleBodiesRequest(msgReq *ogmessage.MessageBodiesRequest, peerID string)
+	HandleBodiesRequest(msgReq *archive.MessageBodiesRequest, peerID string)
 }
 
 type BodiesResponseHandler interface {
-	HandleBodiesResponse(request *ogmessage.MessageBodiesResponse, peerId string)
+	HandleBodiesResponse(request *archive.MessageBodiesResponse, peerId string)
 }
 
 type TxsRequestHandler interface {
-	HandleTxsRequest(msgReq *ogmessage.MessageTxsRequest, peerID string)
+	HandleTxsRequest(msgReq *archive.MessageTxsRequest, peerID string)
 }
 
 type TxsResponseHandler interface {
-	HandleTxsResponse(request *ogmessage.MessageTxsResponse)
+	HandleTxsResponse(request *archive.MessageTxsResponse)
 }
 
 type HeaderRequestHandler interface {
-	HandleHeaderRequest(request *ogmessage.MessageHeaderRequest, peerID string)
+	HandleHeaderRequest(request *archive.MessageHeaderRequest, peerID string)
 }
 
 type HeaderResponseHandler interface {
-	HandleHeaderResponse(headerMsg *ogmessage.MessageHeaderResponse, peerID string)
+	HandleHeaderResponse(headerMsg *archive.MessageHeaderResponse, peerID string)
 }
 
 type CampaignHandler interface {
@@ -132,7 +133,7 @@ type ArchiveHandler interface {
 }
 
 type ActionTxHandler interface {
-	HandleActionTx(request *ogmessage.MessageNewActionTx, perid string)
+	HandleActionTx(request *archive.MessageNewActionTx, perid string)
 }
 
 type ConsensusDkgDealHandler interface {
@@ -161,7 +162,7 @@ type TermChangeResponseHandler interface {
 }
 
 func (m *MessageRouter) Start() {
-	m.Hub.BroadcastMessage(message.MessageTypePing, &ogmessage.MessagePing{Data: []byte{}})
+	m.Hub.BroadcastMessage(message.MessageTypePing, &archive.MessagePing{Data: []byte{}})
 }
 
 func (m *MessageRouter) Stop() {
@@ -180,65 +181,65 @@ func (m *MessageRouter) RoutePong(*OGMessage) {
 	m.PongHandler.HandlePong()
 }
 func (m *MessageRouter) RouteFetchByHashRequest(msg *OGMessage) {
-	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.Message.(*ogmessage.MessageSyncRequest), msg.SourceID)
+	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.Message.(*archive.MessageSyncRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteFetchByHashResponse(msg *OGMessage) {
-	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.Message.(*ogmessage.MessageSyncResponse), msg.SourceID)
+	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.Message.(*archive.MessageSyncResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewTx(msg *OGMessage) {
-	m.NewTxHandler.HandleNewTx(msg.Message.(*ogmessage.MessageNewTx), msg.SourceID)
+	m.NewTxHandler.HandleNewTx(msg.Message.(*archive.MessageNewTx), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewTxs(msg *OGMessage) {
 	//maybe received more transactions
-	m.NewTxsHandler.HandleNewTxs(msg.Message.(*ogmessage.MessageNewTxs), msg.SourceID)
+	m.NewTxsHandler.HandleNewTxs(msg.Message.(*archive.MessageNewTxs), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteNewSequencer(msg *OGMessage) {
-	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*ogmessage.MessageNewSequencer), msg.SourceID)
+	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*archive.MessageNewSequencer), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteGetMsg(msg *OGMessage) {
-	m.GetMsgHandler.HandleGetMsg(msg.Message.(*ogmessage.MessageGetMsg), msg.SourceID)
+	m.GetMsgHandler.HandleGetMsg(msg.Message.(*archive.MessageGetMsg), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteControlMsg(msg *OGMessage) {
-	m.ControlMsgHandler.HandleControlMsg(msg.Message.(*ogmessage.MessageControl), msg.SourceID)
+	m.ControlMsgHandler.HandleControlMsg(msg.Message.(*archive.MessageControl), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteSequencerHeader(msg *OGMessage) {
-	m.SequencerHeaderHandler.HandleSequencerHeader(msg.Message.(*ogmessage.MessageSequencerHeader), msg.SourceID)
+	m.SequencerHeaderHandler.HandleSequencerHeader(msg.Message.(*archive.MessageSequencerHeader), msg.SourceID)
 }
 func (m *MessageRouter) RouteBodiesRequest(msg *OGMessage) {
 
-	m.BodiesRequestHandler.HandleBodiesRequest(msg.Message.(*ogmessage.MessageBodiesRequest), msg.SourceID)
+	m.BodiesRequestHandler.HandleBodiesRequest(msg.Message.(*archive.MessageBodiesRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteBodiesResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.BodiesResponseHandler.HandleBodiesResponse(msg.Message.(*ogmessage.MessageBodiesResponse), msg.SourceID)
+	m.BodiesResponseHandler.HandleBodiesResponse(msg.Message.(*archive.MessageBodiesResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteTxsRequest(msg *OGMessage) {
 	// Decode the retrieval Message
-	m.TxsRequestHandler.HandleTxsRequest(msg.Message.(*ogmessage.MessageTxsRequest), msg.SourceID)
+	m.TxsRequestHandler.HandleTxsRequest(msg.Message.(*archive.MessageTxsRequest), msg.SourceID)
 
 }
 func (m *MessageRouter) RouteTxsResponse(msg *OGMessage) {
 	// A batch of block bodies arrived to one of our previous requests
-	m.TxsResponseHandler.HandleTxsResponse(msg.Message.(*ogmessage.MessageTxsResponse))
+	m.TxsResponseHandler.HandleTxsResponse(msg.Message.(*archive.MessageTxsResponse))
 
 }
 func (m *MessageRouter) RouteHeaderRequest(msg *OGMessage) {
 	// Decode the complex header query
-	m.HeaderRequestHandler.HandleHeaderRequest(msg.Message.(*ogmessage.MessageHeaderRequest), msg.SourceID)
+	m.HeaderRequestHandler.HandleHeaderRequest(msg.Message.(*archive.MessageHeaderRequest), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteHeaderResponse(msg *OGMessage) {
 	// A batch of headers arrived to one of our previous requests
-	m.HeaderResponseHandler.HandleHeaderResponse(msg.Message.(*ogmessage.MessageHeaderResponse), msg.SourceID)
+	m.HeaderResponseHandler.HandleHeaderResponse(msg.Message.(*archive.MessageHeaderResponse), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteCampaign(msg *OGMessage) {
@@ -255,7 +256,7 @@ func (m *MessageRouter) RouteArchive(msg *OGMessage) {
 }
 
 func (m *MessageRouter) RouteActionTx(msg *OGMessage) {
-	m.ActionTxHandler.HandleActionTx(msg.Message.(*ogmessage.MessageNewActionTx), msg.SourceID)
+	m.ActionTxHandler.HandleActionTx(msg.Message.(*archive.MessageNewActionTx), msg.SourceID)
 }
 
 func (m *MessageRouter) RouteConsensusDkgDeal(msg *OGMessage) {

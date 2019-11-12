@@ -15,6 +15,7 @@ package og
 
 import (
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/protocol"
 	"testing"
@@ -173,7 +174,7 @@ func TestTxBuffer_Handle(t *testing.T) {
 	N := 20
 	var txs ogmessage.Txis
 	for i := 0; i < N; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.Height = 1
 		tx.Weight = tx.Weight % uint64(N)
 		tx.SetSender(from)

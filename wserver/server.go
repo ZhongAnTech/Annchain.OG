@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/status"
 	"github.com/gin-gonic/gin"
@@ -181,7 +182,7 @@ func (s *Server) WatchNewTxs() {
 					}
 				}
 
-				blockdbData.Nodes = append(blockdbData.Nodes, ogmessage.TxiSmallCaseMarshal{tx})
+				blockdbData.Nodes = append(blockdbData.Nodes, archive.TxiSmallCaseMarshal{tx})
 			}
 
 			//if ac,ok := tx.(*tx_types.Archive);ok {

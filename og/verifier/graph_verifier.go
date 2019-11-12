@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/status"
 	"github.com/sirupsen/logrus"
@@ -93,7 +94,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogm
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
 			// found. verify nonce
-			if txi.GetType() != ogmessage.TxBaseTypeArchive {
+			if txi.GetType() != archive.TxBaseTypeArchive {
 				if txi.Sender() == currentTx.Sender() {
 					// verify if the nonce is larger
 					if txi.GetNonce() == currentTx.GetNonce()-1 {
@@ -106,7 +107,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogm
 			}
 
 			switch txi.GetType() {
-			case ogmessage.TxBaseTypeSequencer:
+			case archive.TxBaseTypeSequencer:
 				// nothing to do, since all txs before seq should already be archived
 			default:
 				// may be somewhere else
@@ -156,7 +157,7 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *ogmessage.Sequencer) (p
 
 		if txi != nil {
 			switch txi.GetType() {
-			case ogmessage.TxBaseTypeSequencer:
+			case archive.TxBaseTypeSequencer:
 				// found seq, check nonce
 				// verify if the nonce is larger
 				if txi.(*ogmessage.Sequencer).Height == currentSeq.Height-1 {
@@ -223,7 +224,7 @@ func (v *GraphVerifier) Verify(txi ogmessage.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
-	if txi.GetType() == ogmessage.TxBaseTypeSequencer {
+	if txi.GetType() == archive.TxBaseTypeSequencer {
 		seq := txi.(*ogmessage.Sequencer)
 		if err := v.TxPool.IsBadSeq(seq); err != nil {
 			logrus.WithField("seq ", seq).WithError(err).Warn("bad seq")
@@ -231,7 +232,7 @@ func (v *GraphVerifier) Verify(txi ogmessage.Txi) (ok bool) {
 		}
 	}
 
-	txi.SetVerified(ogmessage.VerifiedGraph)
+	txi.SetVerified(archive.VerifiedGraph)
 	return true
 }
 
@@ -239,11 +240,11 @@ func (v *GraphVerifier) verifyA3(txi ogmessage.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 1
 
-	if txi.GetType() == ogmessage.TxBaseTypeArchive {
+	if txi.GetType() == archive.TxBaseTypeArchive {
 		return true
 	}
 	if status.ArchiveMode {
-		if txi.GetType() != ogmessage.TxBaseTypeSequencer {
+		if txi.GetType() != archive.TxBaseTypeSequencer {
 			logrus.Warn("archive mode , only process archive")
 			return false
 		}
@@ -294,7 +295,7 @@ Out:
 
 	switch txi.GetType() {
 	// no additional check
-	case ogmessage.TxBaseTypeSequencer:
+	case archive.TxBaseTypeSequencer:
 		seq := txi.(*ogmessage.Sequencer)
 		// to check if there is a lower seq height in the path behind
 		_, ok = v.getPreviousSequencer(seq)

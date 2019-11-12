@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
@@ -259,7 +260,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) ogmessage.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx ogmessage.Tx
+		var tx archive2.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
@@ -304,7 +305,7 @@ func (da *Accessor) ReadTransaction(hash common.Hash) ogmessage.Txi {
 		return &ac
 	}
 	if bytes.Equal(prefix, contentPrefixActionTx) {
-		var ac ogmessage.ActionTx
+		var ac archive2.ActionTx
 		_, err := ac.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal archive error")
@@ -423,7 +424,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
 
 	// write tx
 	switch tx := tx.(type) {
-	case *ogmessage.Tx:
+	case *archive2.Tx:
 		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
 	case *ogmessage.Sequencer:
@@ -438,7 +439,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
 	case *archive.Archive:
 		prefix = contentPrefixArchive
 		data, err = tx.MarshalMsg(nil)
-	case *ogmessage.ActionTx:
+	case *archive2.ActionTx:
 		prefix = contentPrefixActionTx
 		data, err = tx.MarshalMsg(nil)
 	default:

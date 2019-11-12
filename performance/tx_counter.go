@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"go.uber.org/atomic"
 	"time"
@@ -56,7 +57,7 @@ func (t *TxCounter) loop() {
 		case tx := <-t.NewTxReceivedChan:
 			switch tx.GetType() {
 
-			case ogmessage.TxBaseTypeSequencer:
+			case archive.TxBaseTypeSequencer:
 				t.SequencerReceived.Inc()
 			default:
 				t.TxReceived.Inc()
@@ -65,7 +66,7 @@ func (t *TxCounter) loop() {
 		case batch := <-t.BatchConfirmedChan:
 			for _, tx := range batch {
 				switch tx.GetType() {
-				case ogmessage.TxBaseTypeSequencer:
+				case archive.TxBaseTypeSequencer:
 					t.SequencerConfirmed.Inc()
 				default:
 					t.TxConfirmed.Inc()
@@ -74,7 +75,7 @@ func (t *TxCounter) loop() {
 			}
 		case tx := <-t.NewTxGeneratedChan:
 			switch tx.GetType() {
-			case ogmessage.TxBaseTypeSequencer:
+			case archive.TxBaseTypeSequencer:
 				t.SequencerGenerated.Inc()
 			default:
 				t.TxGenerated.Inc()

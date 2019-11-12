@@ -7,6 +7,7 @@ import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/rpc"
@@ -37,15 +38,15 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionIPO,
+		Action: archive.ActionTxActionIPO,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value:     value,
 			EnableSPO: enableSPO,
 			TokenName: tokenName,
@@ -65,7 +66,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    ogmessage.ActionTxActionIPO,
+		Action:    archive.ActionTxActionIPO,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -80,15 +81,15 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 	fmt.Println(from.String())
 	value := math.NewBigInt(0)
 
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionDestroy,
+		Action: archive.ActionTxActionDestroy,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value: value,
 			//EnableSPO:  enableSPO,
 			//TokenName: "test_token",
@@ -109,7 +110,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    ogmessage.ActionTxActionDestroy,
+		Action:    archive.ActionTxActionDestroy,
 		//EnableSPO: enableSPO,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -124,15 +125,15 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 	if !r.Nodebug {
 		fmt.Println(from.String())
 	}
-	tx := ogmessage.ActionTx{
+	tx := archive.ActionTx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseAction,
+			Type:         archive.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
-		Action: ogmessage.ActionTxActionSPO,
+		Action: archive.ActionTxActionSPO,
 		From:   &from,
-		ActionData: &ogmessage.PublicOffering{
+		ActionData: &archive.PublicOffering{
 			Value: value,
 			//EnableSPO: true,
 			//TokenName: "test_token",
@@ -155,7 +156,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		Value:     value.String(),
 		Signature: tx.Signature.String(),
 		Pubkey:    r.publicKey.String(),
-		Action:    ogmessage.ActionTxActionSPO,
+		Action:    archive.ActionTxActionSPO,
 		//EnableSPO: true,
 		//TokenName: "test_token",
 		TokenId: tokenId,
@@ -169,9 +170,9 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 	if !r.Nodebug {
 		fmt.Println(from.String(), to.String())
 	}
-	tx := ogmessage.Tx{
+	tx := archive.Tx{
 		TxBase: ogmessage.TxBase{
-			Type:         ogmessage.TxBaseTypeNormal,
+			Type:         archive.TxBaseTypeNormal,
 			PublicKey:    r.publicKey.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

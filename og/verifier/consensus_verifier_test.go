@@ -3,7 +3,7 @@ package verifier
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -11,7 +11,7 @@ import (
 
 func TestConsensusVerifier_Verify(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
-	tx := ogmessage.RandomTx()
+	tx := archive.RandomTx()
 	//fmt.Println(tx)
 	pub, priv := crypto.Signer.RandomKeyPair()
 	tx.From = nil

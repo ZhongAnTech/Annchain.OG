@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ func TestVerify(t *testing.T) {
 	//var sigTerGets [][]byte
 	addr := pub.Address()
 	for i := 0; i < 10000; i++ {
-		tx := ogmessage.RandomTx()
+		tx := archive.RandomTx()
 		tx.From = &addr
 		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).Bytes
 		tx.PublicKey = pub.Bytes

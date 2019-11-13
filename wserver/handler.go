@@ -32,6 +32,7 @@ type websocketHandler struct {
 	upgrader *websocket.Upgrader
 
 	event2Cons *event2Cons
+	baseConns  []*Conn
 }
 
 // RegisterMessage defines message struct client send after connect
@@ -71,6 +72,7 @@ func (wh *websocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn.BeforeCloseFunc = func() {
 		wh.event2Cons.Remove(eventType, conn)
 	}
+	wh.event2Cons.Add(messageTypeBaseWs, conn)
 
 	conn.Listen()
 }

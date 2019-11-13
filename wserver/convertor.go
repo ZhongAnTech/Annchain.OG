@@ -17,22 +17,6 @@ import (
 	"github.com/annchain/OG/types"
 )
 
-//type Tx struct {
-//	TxBase
-//	From  Address
-//	To    Address
-//	Value *math.BigInt
-//}
-//type TxBase struct {
-//	Type         TxBaseType
-//	Hash         Hash
-//	ParentsHash  Hashes
-//	AccountNonce uint64
-//	Height       uint64
-//	PublicKey    []byte
-//	Signature    []byte
-//}
-
 type NodeData struct {
 	Unit   string `json:"unit"`
 	Unit_s string `json:"unit_s"`

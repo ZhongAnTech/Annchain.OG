@@ -76,6 +76,7 @@ func NewNode() *Node {
 	}
 	// network id is configured either in config.toml or env variable
 	networkId := viper.GetInt64("p2p.network_id")
+	logrus.Infof("get network_id: %d", networkId)
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}

@@ -600,12 +600,10 @@ func (h *Hub) SendToPeer(peerId string, messageType p2p_message.MessageType, msg
 func (h *Hub) SendGetMsg(peerId string, msg *p2p_message.MessageGetMsg) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
-		if p == nil {
-			ids := h.getMsgFromCache(p2p_message.MessageTypeControl, *msg.Hash)
-			ps := h.peers.GetPeers(ids, 1)
-			if len(ps) != 0 {
-				p = ps[0]
-			}
+		ids := h.getMsgFromCache(p2p_message.MessageTypeControl, *msg.Hash)
+		ps := h.peers.GetPeers(ids, 1)
+		if len(ps) != 0 {
+			p = ps[0]
 		}
 	}
 	if p == nil {

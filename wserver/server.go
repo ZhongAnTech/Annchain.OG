@@ -170,7 +170,7 @@ func (s *Server) Name() string {
 func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
-	//var uidata *UIData
+	var uidata *UIData
 	var blockdbData *BlockDbUIData
 	for {
 		select {
@@ -207,17 +207,19 @@ func (s *Server) WatchNewTxs() {
 
 			//uidata.AddToBatch(tx, true)
 
+		case <-s.BatchConfirmedChan:
 		//case batch := <-s.BatchConfirmedChan:
-		//	// first publish all pending txs
-		//	if status.ArchiveMode {
-		//		s.publishNewTxs(blockdbData)
-		//		blockdbData = nil
-		//	}
-		//	s.publishTxs(uidata)
-		//	uidata = nil
+		// first publish all pending txs
+		//if status.ArchiveMode {
+		//	s.publishNewTxs(blockdbData)
+		//	blockdbData = nil
+		//}
+		//s.publishTxs(uidata)
+		//uidata = nil
 		//
-		//	// then publish batch
-		//	s.publishBatch(batch)
+		//// then publish batch
+		//s.publishBatch(batch)
+
 		//case <-ticker.C:
 		//	if status.ArchiveMode {
 		//		s.publishNewTxs(blockdbData)

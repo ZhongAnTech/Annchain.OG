@@ -17,7 +17,7 @@ const (
 	StatusMsg OgMessageType = iota + 0
 	MessageTypePing
 	MessageTypePong
-	MessageTypeSyncRequest
+	MessageTypeBatchSyncRequest
 	MessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse

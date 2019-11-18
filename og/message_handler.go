@@ -197,7 +197,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 			}
 		}
 	} else {
-		message.msgLog.Debug("empty MessageSyncRequest")
+		message.msgLog.Debug("empty MessageBatchSyncRequest")
 		return
 	}
 	if len(txs) > 0 {

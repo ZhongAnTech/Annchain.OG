@@ -5,7 +5,6 @@ package ogmessage
 import (
 	"bytes"
 	"testing"
-
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -575,7 +574,7 @@ func BenchmarkDecodeMessagePong(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessageSyncRequest(t *testing.T) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -598,7 +597,7 @@ func TestMarshalUnmarshalMessageSyncRequest(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessageSyncRequest(b *testing.B) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -607,7 +606,7 @@ func BenchmarkMarshalMsgMessageSyncRequest(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessageSyncRequest(b *testing.B) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -619,7 +618,7 @@ func BenchmarkAppendMsgMessageSyncRequest(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessageSyncRequest(b *testing.B) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -633,7 +632,7 @@ func BenchmarkUnmarshalMessageSyncRequest(b *testing.B) {
 }
 
 func TestEncodeDecodeMessageSyncRequest(t *testing.T) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -642,7 +641,7 @@ func TestEncodeDecodeMessageSyncRequest(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeMessageSyncRequest Msgsize() is inaccurate")
 	}
 
-	vn := MessageSyncRequest{}
+	vn := MessageBatchSyncRequest{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -657,7 +656,7 @@ func TestEncodeDecodeMessageSyncRequest(t *testing.T) {
 }
 
 func BenchmarkEncodeMessageSyncRequest(b *testing.B) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -671,7 +670,7 @@ func BenchmarkEncodeMessageSyncRequest(b *testing.B) {
 }
 
 func BenchmarkDecodeMessageSyncRequest(b *testing.B) {
-	v := MessageSyncRequest{}
+	v := MessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -801,7 +800,7 @@ func BenchmarkDecodeMessageSyncResponse(b *testing.B) {
 }
 
 func TestMarshalUnmarshalMessageTxsRequest(t *testing.T) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -824,7 +823,7 @@ func TestMarshalUnmarshalMessageTxsRequest(t *testing.T) {
 }
 
 func BenchmarkMarshalMsgMessageTxsRequest(b *testing.B) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -833,7 +832,7 @@ func BenchmarkMarshalMsgMessageTxsRequest(b *testing.B) {
 }
 
 func BenchmarkAppendMsgMessageTxsRequest(b *testing.B) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -845,7 +844,7 @@ func BenchmarkAppendMsgMessageTxsRequest(b *testing.B) {
 }
 
 func BenchmarkUnmarshalMessageTxsRequest(b *testing.B) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -859,7 +858,7 @@ func BenchmarkUnmarshalMessageTxsRequest(b *testing.B) {
 }
 
 func TestEncodeDecodeMessageTxsRequest(t *testing.T) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
@@ -868,7 +867,7 @@ func TestEncodeDecodeMessageTxsRequest(t *testing.T) {
 		t.Log("WARNING: TestEncodeDecodeMessageTxsRequest Msgsize() is inaccurate")
 	}
 
-	vn := MessageTxsRequest{}
+	vn := MessageHeightSyncRequest{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -883,7 +882,7 @@ func TestEncodeDecodeMessageTxsRequest(t *testing.T) {
 }
 
 func BenchmarkEncodeMessageTxsRequest(b *testing.B) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -897,7 +896,7 @@ func BenchmarkEncodeMessageTxsRequest(b *testing.B) {
 }
 
 func BenchmarkDecodeMessageTxsRequest(b *testing.B) {
-	v := MessageTxsRequest{}
+	v := MessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

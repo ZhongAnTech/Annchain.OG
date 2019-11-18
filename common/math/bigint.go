@@ -25,7 +25,8 @@ import (
 // FORBID: go:generate msgp
 // FORBID: msgp:tuple BigInt
 
-// A BigInt represents a signed multi-precision integer.
+// A BigInt represents an unsigned multi-precision integer.
+// The BigInt should always be unsigned since the sign of the number is not serialized.
 type BigInt struct {
 	Value *big.Int
 }

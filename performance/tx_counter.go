@@ -16,9 +16,7 @@ package performance
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
-
+	"github.com/annchain/OG/og/types"
 	"go.uber.org/atomic"
 	"time"
 )
@@ -33,17 +31,17 @@ type TxCounter struct {
 	StartupTime        time.Time     `json:"startupTime"`        // timestamp of the program started.
 
 	// listeners
-	NewTxReceivedChan  chan ogmessage.Txi                 `json:"-"`
-	NewTxGeneratedChan chan ogmessage.Txi                 `json:"-"`
-	BatchConfirmedChan chan map[common.Hash]ogmessage.Txi `json:"-"`
-	quit               chan bool                          `json:"-"`
+	NewTxReceivedChan  chan types.Txi                 `json:"-"`
+	NewTxGeneratedChan chan types.Txi                 `json:"-"`
+	BatchConfirmedChan chan map[common.Hash]types.Txi `json:"-"`
+	quit               chan bool                      `json:"-"`
 }
 
 func NewTxCounter() *TxCounter {
 	return &TxCounter{
-		BatchConfirmedChan: make(chan map[common.Hash]ogmessage.Txi),
-		NewTxReceivedChan:  make(chan ogmessage.Txi),
-		NewTxGeneratedChan: make(chan ogmessage.Txi),
+		BatchConfirmedChan: make(chan map[common.Hash]types.Txi),
+		NewTxReceivedChan:  make(chan types.Txi),
+		NewTxGeneratedChan: make(chan types.Txi),
 		quit:               make(chan bool),
 		StartupTime:        time.Now(),
 	}
@@ -57,7 +55,7 @@ func (t *TxCounter) loop() {
 		case tx := <-t.NewTxReceivedChan:
 			switch tx.GetType() {
 
-			case archive.TxBaseTypeSequencer:
+			case types.TxBaseTypeSequencer:
 				t.SequencerReceived.Inc()
 			default:
 				t.TxReceived.Inc()
@@ -66,7 +64,7 @@ func (t *TxCounter) loop() {
 		case batch := <-t.BatchConfirmedChan:
 			for _, tx := range batch {
 				switch tx.GetType() {
-				case archive.TxBaseTypeSequencer:
+				case types.TxBaseTypeSequencer:
 					t.SequencerConfirmed.Inc()
 				default:
 					t.TxConfirmed.Inc()
@@ -75,7 +73,7 @@ func (t *TxCounter) loop() {
 			}
 		case tx := <-t.NewTxGeneratedChan:
 			switch tx.GetType() {
-			case archive.TxBaseTypeSequencer:
+			case types.TxBaseTypeSequencer:
 				t.SequencerGenerated.Inc()
 			default:
 				t.TxGenerated.Inc()

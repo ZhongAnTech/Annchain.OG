@@ -15,8 +15,8 @@ package miner
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -25,10 +25,10 @@ import (
 )
 
 type SampleTx struct {
-	ogmessage.TxBase
+	types.TxBase
 }
 
-func (s SampleTx) GetBase() *ogmessage.TxBase {
+func (s SampleTx) GetBase() *types.TxBase {
 	return &s.TxBase
 }
 
@@ -48,7 +48,7 @@ func (s SampleTx) Dump() string {
 	panic("implement me")
 }
 
-func (s SampleTx) Compare(tx ogmessage.Txi) bool {
+func (s SampleTx) Compare(tx types.Txi) bool {
 	panic("implement me")
 }
 

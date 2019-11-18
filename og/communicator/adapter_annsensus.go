@@ -3,7 +3,7 @@ package communicator
 import (
 	"errors"
 	"github.com/annchain/OG/consensus/annsensus"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/protocol/ogmessage"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -34,14 +34,15 @@ type SimpleAnnsensusAdapter struct {
 	annsensusMessageUnmarshaller *AnnsensusMessageUnmarshaller
 }
 
-func (s SimpleAnnsensusAdapter) AdaptOgMessage(incomingMsg msg.TransportableMessage) (msg annsensus.AnnsensusMessage, err error) {
-	if incomingMsg.GetType() != archive.MessageTypeAnnsensus {
+func (s SimpleAnnsensusAdapter) Adapttypes(incomingMsg msg.TransportableMessage) (annMsg annsensus.AnnsensusMessage, err error) {
+	mssageType := ogmessage.OgMessageType(incomingMsg.GetType())
+	if mssageType != ogmessage.MessageTypeAnnsensus {
 		err = errors.New("SimpleAnnsensusAdapter received a message of an unsupported type")
 		return
 	}
-	// incomingMsg.GetType() == ogmessage.MessageTypeAnnsensus
+	// incomingMsg.GetType() == types.MessageTypeAnnsensus
 	// incomingMsg.GetData
-	return s.annsensusMessageUnmarshaller.Unmarshal(incomingMsg.GetType(), )
+	return s.annsensusMessageUnmarshaller.Unmarshal(annsensus.AnnsensusMessageType(incomingMsg.GetType()), incomingMsg.GetData())
 }
 
 func (s SimpleAnnsensusAdapter) AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error) {

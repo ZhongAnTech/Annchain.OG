@@ -16,8 +16,8 @@ package syncer
 import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	archive2 "github.com/annchain/OG/og/types/archive"
 )
 
 type Announcer struct {
@@ -31,27 +31,27 @@ func NewAnnouncer(messageSender MessageSender) *Announcer {
 }
 
 //BroadcastNewTx brodcast newly created txi message
-func (m *Announcer) BroadcastNewTx(txi ogmessage.Txi) {
+func (m *Announcer) BroadcastNewTx(txi types.Txi) {
 	switch tx := txi.(type) {
 	case *archive2.Tx:
 		msgTx := archive2.MessageNewTx{RawTx: tx.RawTx()}
 		m.messageSender.BroadcastMessageWithLink(archive2.MessageTypeNewTx, &msgTx)
-	case *ogmessage.Sequencer:
+	case *types.Sequencer:
 		msgTx := archive2.MessageNewSequencer{RawSequencer: tx.RawSequencer()}
 		m.messageSender.BroadcastMessageWithLink(archive2.MessageTypeNewSequencer, &msgTx)
 	case *campaign.Campaign:
-		msg := ogmessage.MessageCampaign{
+		msg := types.MessageCampaign{
 			RawCampaign: tx.RawCampaign(),
 		}
-		m.messageSender.BroadcastMessage(ogmessage.MessageTypeCampaign, &msg)
+		m.messageSender.BroadcastMessage(types.MessageTypeCampaign, &msg)
 	case *campaign.TermChange:
-		msg := ogmessage.MessageTermChange{
+		msg := types.MessageTermChange{
 			RawTermChange: tx.RawTermChange(),
 		}
-		m.messageSender.BroadcastMessage(ogmessage.MessageTypeTermChange, &msg)
+		m.messageSender.BroadcastMessage(types.MessageTypeTermChange, &msg)
 
 	case *archive.Archive:
-		msg := ogmessage.MessageNewArchive{
+		msg := types.MessageNewArchive{
 			Archive: tx,
 		}
 		m.messageSender.BroadcastMessage(archive2.MessageTypeArchive, &msg)

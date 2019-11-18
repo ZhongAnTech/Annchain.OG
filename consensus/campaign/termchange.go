@@ -15,8 +15,8 @@ package campaign
 
 import (
 	"fmt"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/types"
 	"strings"
@@ -29,7 +29,7 @@ import (
 
 //msgp:tuple TermChange
 type TermChange struct {
-	ogmessage.TxBase
+	types.TxBase
 	TermID uint64
 	PkBls  hexutil.Bytes
 	SigSet []*SigSet
@@ -45,7 +45,7 @@ type SigSet struct {
 //msgp:tuple TermChanges
 type TermChanges []*TermChange
 
-func (tc *TermChange) GetBase() *ogmessage.TxBase {
+func (tc *TermChange) GetBase() *types.TxBase {
 	return &tc.TxBase
 }
 
@@ -57,7 +57,7 @@ func (tc *TermChange) GetSender() *common.Address {
 	return tc.Issuer
 }
 
-func (tc *TermChange) Compare(tx ogmessage.Txi) bool {
+func (tc *TermChange) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *TermChange:
 		if tc.GetTxHash().Cmp(tx.GetTxHash()) == 0 {

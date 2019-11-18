@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/protocol"
 	"github.com/sirupsen/logrus"
@@ -31,9 +31,9 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs        map[common.Hash]ogmessage.Txi
+	Txs        map[common.Hash]types.Txi
 	TxsList    common.Hashes
-	Seq        *ogmessage.Sequencer
+	Seq        *types.Sequencer
 	mu         sync.RWMutex
 	txPool     og.ITxPool
 	dag        og.IDag
@@ -63,7 +63,7 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:       make(map[common.Hash]ogmessage.Txi),
+		Txs:       make(map[common.Hash]types.Txi),
 		txPool:    config.TxPool,
 		dag:       config.Dag,
 		Verifiers: config.Verifiers,
@@ -81,7 +81,7 @@ func (s *SyncBuffer) Stop() {
 }
 
 // range map is random value ,so store hashs using slice
-func (s *SyncBuffer) addTxs(txs ogmessage.Txis, seq *ogmessage.Sequencer) error {
+func (s *SyncBuffer) addTxs(txs types.Txis, seq *types.Sequencer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Seq = seq
@@ -103,7 +103,7 @@ func (s *SyncBuffer) addTxs(txs ogmessage.Txis, seq *ogmessage.Sequencer) error 
 
 }
 
-func (s *SyncBuffer) AddTxs(seq *ogmessage.Sequencer, txs ogmessage.Txis) error {
+func (s *SyncBuffer) AddTxs(seq *types.Sequencer, txs types.Txis) error {
 	if atomic.LoadUint32(&s.acceptTxs) == 0 {
 		atomic.StoreUint32(&s.acceptTxs, 1)
 		defer atomic.StoreUint32(&s.acceptTxs, 0)
@@ -142,7 +142,7 @@ func (s *SyncBuffer) Count() int {
 	return len(s.Txs)
 }
 
-func (s *SyncBuffer) Get(hash common.Hash) ogmessage.Txi {
+func (s *SyncBuffer) Get(hash common.Hash) types.Txi {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.Txs[hash]
@@ -233,7 +233,7 @@ out:
 	return err
 }
 
-func (s *SyncBuffer) verifyElders(seq ogmessage.Txi) error {
+func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 
 	allKeys := s.GetAllKeys()
 	keysMap := make(map[common.Hash]int)

@@ -16,7 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/p2p"
 	"github.com/deckarep/golang-set"
@@ -33,7 +33,7 @@ func TestPeerSet_GetRandomPeers(t *testing.T) {
 			version:   1,
 			id:        fmt.Sprintf("%d", i),
 			knownMsg:  mapset.NewSet(),
-			queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
+			queuedMsg: make(chan []*types, maxqueuedMsg),
 			term:      make(chan struct{}),
 		}
 		set.Register(p)
@@ -57,12 +57,12 @@ func TestPeer_MarkMessage(t *testing.T) {
 		version:   1,
 		id:        "111",
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []*OGMessage, maxqueuedMsg),
+		queuedMsg: make(chan []*types, maxqueuedMsg),
 		term:      make(chan struct{}),
 	}
-	var msgs []OGMessage
+	var msgs []types
 	for i := 0; i < 100; i++ {
-		msg := OGMessage{Message: &p2p_message.MessageNewTx{RawTx: archive.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
+		msg := types{Message: &p2p_message.MessageNewTx{RawTx: archive.RandomTx().RawTx()}, MessageType: message.MessageTypeNewTx}
 		msg.Marshal()
 		msg.CalculateHash()
 		msgs = append(msgs, msg)

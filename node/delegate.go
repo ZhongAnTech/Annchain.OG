@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/sirupsen/logrus"
@@ -35,15 +35,15 @@ type TxRequest struct {
 	TokenId    int32
 }
 
-type insertTxsFn func(seq *ogmessage.Sequencer, txs ogmessage.Txis) error
+type insertTxsFn func(seq *types.Sequencer, txs types.Txis) error
 
 type Delegate struct {
 	TxCreator          *txmaker.OGTxCreator
-	ReceivedNewTxsChan chan []ogmessage.Txi
-	ReceivedNewTxChan  chan ogmessage.Txi
+	ReceivedNewTxsChan chan []types.Txi
+	ReceivedNewTxChan  chan types.Txi
 	TxPool             *core.TxPool
 	Dag                *core.Dag
-	OnNewTxiGenerated  []chan ogmessage.Txi
+	OnNewTxiGenerated  []chan types.Txi
 	InsertSyncBuffer   insertTxsFn
 }
 
@@ -58,7 +58,7 @@ func (d *Delegate) TooMoreTx() bool {
 	return false
 }
 
-func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx ogmessage.Txi, err error) {
+func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx types.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {
@@ -70,7 +70,7 @@ func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx ogmessage.Txi,
 	return
 }
 
-func (c *Delegate) GenerateArchive(data []byte) (tx ogmessage.Txi, err error) {
+func (c *Delegate) GenerateArchive(data []byte) (tx types.Txi, err error) {
 	tx, err = c.TxCreator.NewArchiveWithSeal(data)
 	if err != nil {
 		logrus.WithField("tx", tx).Debugf("tx generated")
@@ -86,7 +86,7 @@ type SeqRequest struct {
 }
 
 //discarded function
-func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *ogmessage.Sequencer, err error) {
+func (c *Delegate) GenerateSequencer(r SeqRequest) (seq *types.Sequencer, err error) {
 	// TODO: why twice?
 	seq, err, _ = c.TxCreator.GenerateSequencer(r.Issuer, r.Height, r.Nonce, &r.PrivateKey, nil)
 	if err != nil {
@@ -120,12 +120,12 @@ func (c *Delegate) GetLatestAccountNonce(addr common.Address) (uint64, error) {
 	return 0, fmt.Errorf("nonce for address not found")
 }
 
-func (c *Delegate) GetLatestDagSequencer() *ogmessage.Sequencer {
+func (c *Delegate) GetLatestDagSequencer() *types.Sequencer {
 	latestSeq := c.Dag.LatestSequencer()
 	return latestSeq
 }
 
-func (c *Delegate) Announce(txi ogmessage.Txi) {
+func (c *Delegate) Announce(txi types.Txi) {
 	for _, ch := range c.OnNewTxiGenerated {
 		ch <- txi
 	}

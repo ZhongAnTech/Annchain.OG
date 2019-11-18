@@ -20,8 +20,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/annchain/OG/common/crypto/ecies"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"math/big"
 	"testing"
@@ -95,7 +95,7 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 //tese signer benchmarks
 func TestBenchMarks(t *testing.T) {
 	type TestTx struct {
-		ogmessage.Txi
+		types.Txi
 		PlainData  []byte
 		CipherData []byte
 	}

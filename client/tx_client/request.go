@@ -6,8 +6,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/rpc"
@@ -39,8 +39,8 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		fmt.Println(from.String())
 	}
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
@@ -82,8 +82,8 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 	value := math.NewBigInt(0)
 
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
@@ -126,8 +126,8 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		fmt.Println(from.String())
 	}
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    r.publicKey.Bytes[:],
 		},
@@ -170,9 +170,9 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 	if !r.Nodebug {
 		fmt.Println(from.String(), to.String())
 	}
-	tx := archive.Tx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseTypeNormal,
+	tx := types.Tx{
+		TxBase: types.TxBase{
+			Type:         types.TxBaseTypeNormal,
 			PublicKey:    r.publicKey.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

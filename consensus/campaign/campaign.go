@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
@@ -31,7 +31,7 @@ import (
 
 //msgp:tuple Campaign
 type Campaign struct {
-	ogmessage.TxBase
+	types.TxBase
 	DkgPublicKey []byte
 	Vrf          vrf.VrfInfo
 	Issuer       *common.Address
@@ -41,7 +41,7 @@ type Campaign struct {
 //msgp:tuple Campaigns
 type Campaigns []*Campaign
 
-func (c *Campaign) GetBase() *ogmessage.TxBase {
+func (c *Campaign) GetBase() *types.TxBase {
 	return &c.TxBase
 }
 
@@ -53,7 +53,7 @@ func (tc *Campaign) GetSender() *common.Address {
 	return tc.Issuer
 }
 
-func (c *Campaign) Compare(tx ogmessage.Txi) bool {
+func (c *Campaign) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
 		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {

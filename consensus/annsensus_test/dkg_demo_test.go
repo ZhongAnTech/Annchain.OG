@@ -63,7 +63,7 @@ package annsensus_test
 //
 //type p2pMsg struct {
 //	data    []byte
-//	msgType message.OGMessageType
+//	msgType message.typesType
 //}
 //
 //type TestHub struct {
@@ -93,7 +93,7 @@ package annsensus_test
 //	}
 //}
 //
-//func (t *TestHub) BroadcastMessage(messageType message.OGMessageType, message p2p_message.Message) {
+//func (t *TestHub) BroadcastMessage(messageType message.typesType, message p2p_message.Message) {
 //	var sent bool
 //	for _, peer := range t.PeerPipeIns {
 //		tMsg := test.TestMsg{
@@ -111,11 +111,11 @@ package annsensus_test
 //	}
 //}
 //
-//func (t *TestHub) SendToPeer(peerId string, messageType message.OGMessageType, msg p2p_message.Message) error {
+//func (t *TestHub) SendToPeer(peerId string, messageType message.typesType, msg p2p_message.Message) error {
 //	return nil
 //}
 //
-//func (t *TestHub) AnonymousSendMessage(messageType message.OGMessageType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
+//func (t *TestHub) AnonymousSendMessage(messageType message.typesType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
 //	tMsg := test.TestMsg{
 //		MessageType: messageType,
 //		Message:     message,
@@ -203,7 +203,7 @@ package annsensus_test
 //				request := msg.Message.(*p2p_message.MessageConsensusDkgDeal)
 //				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 //					//elog.WithField("from ", msg.From).WithField("msg type",
-//					//	msg.OGMessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+//					//	msg.typesType).WithField("msg ", len(request.Data)).WithField("hash ",
 //					//	msg.GetHash()).Warn("duplicate dkg msg")
 //					continue
 //				}
@@ -212,7 +212,7 @@ package annsensus_test
 //				request := msg.Message.(*p2p_message.MessageConsensusDkgDealResponse)
 //				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 //					//elog.WithField("from ", msg.From).WithField("msg type",
-//					//	msg.OGMessageType).WithField("msg ", len(request.Data)).WithField("hash ",
+//					//	msg.typesType).WithField("msg ", len(request.Data)).WithField("hash ",
 //					//	msg.GetHash()).Warn("duplicate response  msg")
 //					continue
 //				}
@@ -221,7 +221,7 @@ package annsensus_test
 //				request := msg.Message.(*p2p_message.MessageConsensusDkgSigSets)
 //				if _, err := t.msgCache.GetIFPresent(hash); err == nil {
 //					//elog.WithField("from ", msg.From).WithField("msg type",
-//					//	msg.OGMessageType).WithField("msg ", len(request.PkBls)).WithField("hash ",
+//					//	msg.typesType).WithField("msg ", len(request.PkBls)).WithField("hash ",
 //					//	msg.GetHash()).Warn("duplicate response  msg")
 //					continue
 //				}

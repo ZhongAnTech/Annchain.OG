@@ -3,8 +3,8 @@ package verifier
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/og/protocol/ogmessage"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/status"
 	"github.com/sirupsen/logrus"
@@ -30,7 +30,7 @@ func (v *GraphVerifier) Name() string {
 
 // getTxFromTempSource tries to get tx from anywhere but dag itself.
 // return nil if not found in either txpool or buffer
-func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi ogmessage.Txi) {
+func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi types.Txi) {
 	// Re-think. Do we really need to check buffer?
 
 	//if v.Buffer != nil {
@@ -49,7 +49,7 @@ func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi ogmessage.Txi
 	return
 }
 
-func (v *GraphVerifier) getTxFromAnywhere(hash common.Hash) (txi ogmessage.Txi, archived bool) {
+func (v *GraphVerifier) getTxFromAnywhere(hash common.Hash) (txi types.Txi, archived bool) {
 	txi = v.getTxFromTempSource(hash)
 	if txi != nil {
 		archived = false
@@ -67,7 +67,7 @@ func (v *GraphVerifier) getTxFromAnywhere(hash common.Hash) (txi ogmessage.Txi, 
 
 // getMyPreviousTx tries to fetch the tx that is announced by the same source with nonce = current nonce -1
 // return true if found, or false if not found in txpool or in dag
-func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogmessage.Txi, ok bool) {
+func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.Txi, ok bool) {
 	if currentTx.GetNonce() == 1 {
 		ok = true
 		return
@@ -94,7 +94,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogm
 		txi, archived := v.getTxFromAnywhere(head)
 		if txi != nil {
 			// found. verify nonce
-			if txi.GetType() != archive.TxBaseTypeArchive {
+			if txi.GetType() != types.TxBaseTypeArchive {
 				if txi.Sender() == currentTx.Sender() {
 					// verify if the nonce is larger
 					if txi.GetNonce() == currentTx.GetNonce()-1 {
@@ -107,7 +107,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogm
 			}
 
 			switch txi.GetType() {
-			case archive.TxBaseTypeSequencer:
+			case types.TxBaseTypeSequencer:
 				// nothing to do, since all txs before seq should already be archived
 			default:
 				// may be somewhere else
@@ -143,7 +143,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx ogmessage.Txi) (previousTx ogm
 }
 
 // get the nearest previous sequencer from txpool
-func (v *GraphVerifier) getPreviousSequencer(currentSeq *ogmessage.Sequencer) (previousSeq *ogmessage.Sequencer, ok bool) {
+func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
 	seeked := map[common.Hash]bool{}
 	seekingHashes := common.Hashes{}
 	// seekingHashes := list.New()
@@ -157,12 +157,12 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *ogmessage.Sequencer) (p
 
 		if txi != nil {
 			switch txi.GetType() {
-			case archive.TxBaseTypeSequencer:
+			case types.TxBaseTypeSequencer:
 				// found seq, check nonce
 				// verify if the nonce is larger
-				if txi.(*ogmessage.Sequencer).Height == currentSeq.Height-1 {
+				if txi.(*types.Sequencer).Height == currentSeq.Height-1 {
 					// good
-					previousSeq = txi.(*ogmessage.Sequencer)
+					previousSeq = txi.(*types.Sequencer)
 					ok = true
 					return
 				}
@@ -207,7 +207,7 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *ogmessage.Sequencer) (p
 // B1: [My job] Nodes that are confirmed by at least N (=2) sequencers cannot be referenced.
 // B2: [My job] Two layer hash validation
 // Basically Verify checks whether txs are in their nonce order
-func (v *GraphVerifier) Verify(txi ogmessage.Txi) (ok bool) {
+func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
 	if txi.IsVerified().IsGraphVerified() {
 		return true
 	}
@@ -224,8 +224,8 @@ func (v *GraphVerifier) Verify(txi ogmessage.Txi) (ok bool) {
 		logrus.WithField("tx", txi).Debug("tx failed on graph B1")
 		return
 	}
-	if txi.GetType() == archive.TxBaseTypeSequencer {
-		seq := txi.(*ogmessage.Sequencer)
+	if txi.GetType() == types.TxBaseTypeSequencer {
+		seq := txi.(*types.Sequencer)
 		if err := v.TxPool.IsBadSeq(seq); err != nil {
 			logrus.WithField("seq ", seq).WithError(err).Warn("bad seq")
 			return false
@@ -236,15 +236,15 @@ func (v *GraphVerifier) Verify(txi ogmessage.Txi) (ok bool) {
 	return true
 }
 
-func (v *GraphVerifier) verifyA3(txi ogmessage.Txi) bool {
+func (v *GraphVerifier) verifyA3(txi types.Txi) bool {
 	// constantly check the ancestors until the same one issued by me is found.
 	// or nonce reaches 1
 
-	if txi.GetType() == archive.TxBaseTypeArchive {
+	if txi.GetType() == types.TxBaseTypeArchive {
 		return true
 	}
 	if status.ArchiveMode {
-		if txi.GetType() != archive.TxBaseTypeSequencer {
+		if txi.GetType() != types.TxBaseTypeSequencer {
 			logrus.Warn("archive mode , only process archive")
 			return false
 		}
@@ -295,8 +295,8 @@ Out:
 
 	switch txi.GetType() {
 	// no additional check
-	case archive.TxBaseTypeSequencer:
-		seq := txi.(*ogmessage.Sequencer)
+	case types.TxBaseTypeSequencer:
+		seq := txi.(*types.Sequencer)
 		// to check if there is a lower seq height in the path behind
 		_, ok = v.getPreviousSequencer(seq)
 		if !ok {
@@ -309,13 +309,13 @@ Out:
 	return true
 }
 
-func (v *GraphVerifier) verifyB1(txi ogmessage.Txi) bool {
+func (v *GraphVerifier) verifyB1(txi types.Txi) bool {
 	// compare the sequencer id
 	return true
 }
 
-func (v *GraphVerifier) verifyWeight(txi ogmessage.Txi) bool {
-	var parents ogmessage.Txis
+func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
+	var parents types.Txis
 	for _, pHash := range txi.Parents() {
 		parent := v.TxPool.Get(pHash)
 		if parent == nil {

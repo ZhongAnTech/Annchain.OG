@@ -15,7 +15,7 @@ package txcache
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/gcache"
 	log "github.com/sirupsen/logrus"
@@ -29,8 +29,8 @@ type TxCache struct {
 
 func newCacheItemCmpFunction() gcache.SearchCompareFunction {
 	cmpFunc := func(value interface{}, anotherValue interface{}) int {
-		tx1 := value.(ogmessage.Txi)
-		tx2 := anotherValue.(ogmessage.Txi)
+		tx1 := value.(types.Txi)
+		tx2 := anotherValue.(types.Txi)
 		if tx1.GetWeight() > tx2.GetWeight() {
 			return 1
 		} else if tx1.GetWeight() < tx2.GetWeight() {
@@ -44,9 +44,9 @@ func newCacheItemCmpFunction() gcache.SearchCompareFunction {
 func newCacheItemSortFunction() gcache.SortKeysFunction {
 	var allItem = false
 	sortByAllValue := func(keys []interface{}, values []interface{}, getItem func(key interface{}) (interface{}, bool)) (sortedKeys []interface{}, sortOk bool) {
-		var txis ogmessage.Txis
+		var txis types.Txis
 		for i, val := range values {
-			tx := val.(ogmessage.Txi)
+			tx := val.(types.Txi)
 			if tx == nil {
 				log.WithField("i", i).Error("got nil tx")
 				continue
@@ -63,13 +63,13 @@ func newCacheItemSortFunction() gcache.SortKeysFunction {
 		return sortedKeys, true
 	}
 	sortByGetEachItem := func(keys []interface{}, values []interface{}, getItem func(key interface{}) (interface{}, bool)) (sortedKeys []interface{}, sortOk bool) {
-		var txis ogmessage.Txis
+		var txis types.Txis
 		for i, k := range keys {
 			val, ok := getItem(k)
 			if !ok {
 				continue
 			}
-			tx := val.(ogmessage.Txi)
+			tx := val.(types.Txi)
 			if tx == nil {
 				log.WithField("i", i).WithField("key ", k).Error("got nil tx")
 				continue
@@ -123,10 +123,10 @@ func (t *TxCache) GetHashOrder() common.Hashes {
 }
 
 //Get get an item
-func (t *TxCache) Get(h common.Hash) ogmessage.Txi {
+func (t *TxCache) Get(h common.Hash) types.Txi {
 	v, err := t.cache.GetIFPresent(h)
 	if err == nil {
-		return v.(ogmessage.Txi)
+		return v.(types.Txi)
 	}
 	return nil
 }
@@ -140,19 +140,19 @@ func (t *TxCache) Has(h common.Hash) bool {
 }
 
 // Add tx into txCache
-func (t *TxCache) EnQueue(tx ogmessage.Txi) error {
+func (t *TxCache) EnQueue(tx types.Txi) error {
 	err := t.cache.EnQueue(tx.GetTxHash(), tx)
 	//log.WithField("enqueued tx",tx).WithField("used",time.Now().Sub(start)).Debug("enqueue total")
 	return err
 }
 
 //get top element end remove it
-func (t *TxCache) DeQueue() ogmessage.Txi {
+func (t *TxCache) DeQueue() types.Txi {
 	_, value, err := t.cache.DeQueue()
 	if err != nil {
 		return nil
 	}
-	return value.(ogmessage.Txi)
+	return value.(types.Txi)
 }
 
 // Remove tx from txCache
@@ -173,27 +173,27 @@ func (t *TxCache) Refresh() {
 	t.cache.Refresh()
 }
 
-func (c *TxCache) DeQueueBatch(count int) (txs ogmessage.Txis, err error) {
+func (c *TxCache) DeQueueBatch(count int) (txs types.Txis, err error) {
 	_, values, err := c.cache.DeQueueBatch(count)
 	if err != nil {
 		return nil, err
 	}
 	for _, v := range values {
-		txi := v.(ogmessage.Txi)
+		txi := v.(types.Txi)
 		txs = append(txs, txi)
 	}
 	return txs, nil
 }
 
 // Add tx into txCache
-func (t *TxCache) Prepend(tx ogmessage.Txi) error {
+func (t *TxCache) Prepend(tx types.Txi) error {
 	start := time.Now()
 	err := t.cache.Prepend(tx.GetTxHash(), tx)
 	log.WithField("Prepend tx", tx).WithField("used", time.Now().Sub(start)).Debug("Prepend total")
 	return err
 }
 
-func (c *TxCache) PrependBatch(txs ogmessage.Txis) error {
+func (c *TxCache) PrependBatch(txs types.Txis) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -211,7 +211,7 @@ func (c *TxCache) PrependBatch(txs ogmessage.Txis) error {
 	return err
 }
 
-func (c *TxCache) EnQueueBatch(txs ogmessage.Txis) error {
+func (c *TxCache) EnQueueBatch(txs types.Txis) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -225,12 +225,12 @@ func (c *TxCache) EnQueueBatch(txs ogmessage.Txis) error {
 	return c.cache.EnQueueBatch(keys, values)
 }
 
-func (t *TxCache) GetTop() ogmessage.Txi {
+func (t *TxCache) GetTop() types.Txi {
 	_, value, err := t.cache.GetTop()
 	if err != nil {
 		return nil
 	}
-	return value.(ogmessage.Txi)
+	return value.(types.Txi)
 }
 
 //MoveFront move an element to font, if searchFunction is set

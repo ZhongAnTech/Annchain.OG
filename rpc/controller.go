@@ -20,8 +20,8 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	archive2 "github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
@@ -100,7 +100,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *archive2.Tx:
 		Response(c, http.StatusOK, nil, tx)
 		return
-	case *ogmessage.Sequencer:
+	case *types.Sequencer:
 		Response(c, http.StatusOK, nil, tx)
 		return
 	case *archive.Archive:
@@ -169,8 +169,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
 		var txsResponse struct {
-			Total int            `json:"total"`
-			Txs   ogmessage.Txis `json:"txs"`
+			Total int        `json:"total"`
+			Txs   types.Txis `json:"txs"`
 		}
 		txsResponse.Total = len(txs)
 		txsResponse.Txs = txs
@@ -184,8 +184,8 @@ func (r *RpcController) Transactions(c *gin.Context) {
 		}
 		txs := r.Og.Dag.GetTxsByAddress(addr)
 		var txsResponse struct {
-			Total int             `json:"total"`
-			Txs   []ogmessage.Txi `json:"txs"`
+			Total int         `json:"total"`
+			Txs   []types.Txi `json:"txs"`
 		}
 		if len(txs) != 0 {
 			txsResponse.Total = len(txs)
@@ -212,7 +212,7 @@ func (r *RpcController) Genesis(c *gin.Context) {
 
 func (r *RpcController) Sequencer(c *gin.Context) {
 	cors(c)
-	var sq *ogmessage.Sequencer
+	var sq *types.Sequencer
 	hashtr := c.Query("hash")
 	seqId := c.Query("seq_id")
 	if seqId == "" {
@@ -257,7 +257,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 		switch t := txi.(type) {
-		case *ogmessage.Sequencer:
+		case *types.Sequencer:
 			Response(c, http.StatusOK, nil, t)
 			return
 		default:

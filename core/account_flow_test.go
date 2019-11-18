@@ -14,7 +14,6 @@
 package core_test
 
 import (
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/txmaker"
 	"testing"
 
@@ -24,7 +23,7 @@ import (
 	"github.com/annchain/OG/core/state"
 )
 
-func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *archive.Tx {
+func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -41,7 +40,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *archive.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*archive.Tx)
+	return tx.(*types.Tx)
 }
 
 func TestTxList(t *testing.T) {

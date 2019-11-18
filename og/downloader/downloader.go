@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/og/protocol/dagmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
@@ -132,8 +132,8 @@ type Downloader struct {
 }
 
 type IDag interface {
-	LatestSequencer() *ogmessage.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *ogmessage.Sequencer
+	LatestSequencer() *types.Sequencer
+	GetSequencer(hash common.Hash, id uint64) *types.Sequencer
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -1252,7 +1252,7 @@ func (d *Downloader) DeliverHeaders(id string, headers []*dagmessage.SequencerHe
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions []ogmessage.Txis, sequencers []*ogmessage.Sequencer) (err error) {
+func (d *Downloader) DeliverBodies(id string, transactions []types.Txis, sequencers []*types.Sequencer) (err error) {
 	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, sequencers}, bodyInMeter, bodyDropMeter)
 }
 

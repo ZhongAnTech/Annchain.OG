@@ -20,8 +20,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/btcsuite/btcd/btcec"
 	"math/big"
@@ -162,8 +162,8 @@ func TestSignBenchMarks(t *testing.T) {
 	signer := SignerSecp256k1{}
 	pk, priv := signer.RandomKeyPair()
 	signer2 := SignerSecp256k1Go{}
-	var txs1 ogmessage.Txis
-	var txs2 ogmessage.Txis
+	var txs1 types.Txis
+	var txs2 types.Txis
 	N := 10000
 
 	for i := 0; i < N; i++ {

@@ -28,8 +28,8 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers [
 	return d
 }
 
-func (d *dummyBftPeerCommunicator) wrapOGMessage(msg bft.BftMessage) *message.OGMessage{
-	return &message.OGMessage{
+func (d *dummyBftPeerCommunicator) wraptypes(msg bft.BftMessage) *message.types {
+	return &message.types{
 		MessageType:    msg2.BinaryMessageType(msg.GetType()),
 		Data:           nil,
 		Hash:           nil,

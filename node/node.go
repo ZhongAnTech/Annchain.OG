@@ -20,7 +20,7 @@ import (
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"

@@ -18,7 +18,7 @@ type P2PReceiver interface {
 }
 
 type AnnsensusMessageAdapter interface {
-	AdaptOgMessage(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
+	Adapttypes(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
 	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error)
 }
 

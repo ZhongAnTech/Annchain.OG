@@ -53,11 +53,11 @@ var errIncompatibleConfig = errors.New("incompatible configuration")
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 // DO NOT INVOLVE ANY BUSINESS LOGICS HERE.
 type Hub struct {
-	outgoing             chan *message.OGMessage
-	incoming             chan *message.OGMessage
-	quit                 chan bool
-	//CallbackRegistry     map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks
-	//CallbackRegistryOG02 map[message.BinaryMessageType]func(*message.OGMessage) // All callbacks of OG02
+	outgoing chan *message.types
+	incoming chan *message.types
+	quit     chan bool
+	//CallbackRegistry     map[message.BinaryMessageType]func(*message.types) // All callbacks
+	//CallbackRegistryOG02 map[message.BinaryMessageType]func(*message.types) // All callbacks of OG02
 	StatusDataProvider   NodeStatusDataProvider
 	peers                *peerSet
 	SubProtocols         []p2p.Protocol
@@ -81,7 +81,7 @@ type Hub struct {
 	encryptionPrivKey    *crypto.PrivateKey
 	encryptionPubKey     *crypto.PublicKey
 	disableEncryptGossip bool
-	MessageUnmarshaller  message.OGMessageUnmarshalManager
+	MessageUnmarshaller  message.typesUnmarshalManager
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -144,8 +144,8 @@ func DefaultHubConfig() HubConfig {
 }
 
 func (h *Hub) Init(config *HubConfig) {
-	h.outgoing = make(chan *message.OGMessage, config.OutgoingBufferSize)
-	h.incoming = make(chan *message.OGMessage, config.IncomingBufferSize)
+	h.outgoing = make(chan *message.types, config.OutgoingBufferSize)
+	h.incoming = make(chan *message.types, config.IncomingBufferSize)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
@@ -155,7 +155,7 @@ func (h *Hub) Init(config *HubConfig) {
 	h.messageCache = gcache.New(config.MessageCacheMaxSize).LRU().
 		Expiration(time.Second * time.Duration(config.MessageCacheExpirationSeconds)).Build()
 
-	//h.CallbackRegistryOG02 = make(map[message.BinaryMessageType]func(*message.OGMessage))
+	//h.CallbackRegistryOG02 = make(map[message.BinaryMessageType]func(*message.types))
 	h.broadCastMode = config.BroadCastMode
 	h.disableEncryptGossip = config.DisableEncryptGossip
 }
@@ -277,7 +277,7 @@ func (h *Hub) handleMsg(p *peer) error {
 	defer msg.Discard()
 	// Handle the Message depending on its contents
 	data, err := msg.GetPayLoad()
-	m := message.OGMessage{MessageType: message.BinaryMessageType(msg.Code), Data: data, SourceID: p.id, Version: p.version}
+	m := message.types{MessageType: message.BinaryMessageType(msg.Code), Data: data, SourceID: p.id, Version: p.version}
 	//log.Debug("start handle p2p Message ",p2pMsg.MessageType)
 	switch m.MessageType {
 	case message.StatusMsg:
@@ -491,7 +491,7 @@ func (h *Hub) loopReceive() {
 
 //MulticastToSource  multicast msg to source , for example , send tx request to the peer which Hash the tx
 func (h *Hub) MulticastToSource(messageType message.BinaryMessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticastToSource, SourceHash: sourceMsgHash}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticastToSource, SourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -504,7 +504,7 @@ func (h *Hub) MulticastToSource(messageType message.BinaryMessageType, msg p2p_m
 
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessage(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg err")
@@ -522,7 +522,7 @@ func (h *Hub) BroadcastMessageWithLink(messageType message.BinaryMessageType, ms
 		h.BroadcastMessage(messageType, msg)
 		return
 	}
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithLink}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithLink}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -535,7 +535,7 @@ func (h *Hub) BroadcastMessageWithLink(messageType message.BinaryMessageType, ms
 
 //BroadcastMessage broadcast to whole network
 func (h *Hub) BroadcastMessageWithFilter(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithFilter}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithFilter}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -548,7 +548,7 @@ func (h *Hub) BroadcastMessageWithFilter(messageType message.BinaryMessageType, 
 
 //MulticastMessage multicast Message to some peer
 func (h *Hub) MulticastMessage(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticast}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticast}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -565,7 +565,7 @@ func (h *Hub) MulticastMessage(messageType message.BinaryMessageType, msg p2p_me
 // TODO: support multi encryption keys in one Message
 // TODO: encrypt the Message whatever disableEncryptGossip is on or not
 func (h *Hub) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2p_message.Message, encryptionKey *crypto.PublicKey) {
-	msgOut := &message.OGMessage{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
+	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
 	if h.disableEncryptGossip {
 		msgOut.DisableEncrypt = true
 	}
@@ -590,7 +590,7 @@ func (h *Hub) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2
 
 }
 
-func (h *Hub) RelayMessage(msgOut *message.OGMessage) {
+func (h *Hub) RelayMessage(msgOut *message.types) {
 	msgLog.WithField("size", len(msgOut.Data)).WithField("type", msgOut.MessageType).Trace("relay Message")
 	h.outgoing <- msgOut
 }
@@ -673,7 +673,7 @@ func (h *Hub) BestPeerId() (peerId string, err error) {
 }
 
 //broadcastMessage
-func (h *Hub) broadcastMessage(msg *message.OGMessage) {
+func (h *Hub) broadcastMessage(msg *message.types) {
 	var peers []*peer
 	// choose all  peer and then send.
 	peers = h.peers.PeersWithoutMsg(*msg.Hash, msg.MessageType)
@@ -683,13 +683,13 @@ func (h *Hub) broadcastMessage(msg *message.OGMessage) {
 	return
 }
 
-func (h *Hub) broadcastMessageWithLink(msg *message.OGMessage) {
+func (h *Hub) broadcastMessageWithLink(msg *message.types) {
 	var peers []*peer
 	// choose all  peer and then send.
 	var hash common.Hash
 	hash = *msg.Hash
 	c := p2p_message.MessageControl{Hash: &hash}
-	var pMsg = &message.OGMessage{MessageType: message.MessageTypeControl, Message: &c}
+	var pMsg = &message.types{MessageType: message.MessageTypeControl, Message: &c}
 	//outgoing msg
 	if err := pMsg.Marshal(); err != nil {
 		msgLog.Error(err)
@@ -710,7 +710,7 @@ func (h *Hub) broadcastMessageWithLink(msg *message.OGMessage) {
 }
 
 /*
-func (h *Hub) broadcastMessageWithFilter(msg *message.OGMessage) {
+func (h *Hub) broadcastMessageWithFilter(msg *message.types) {
 	newSeq := msg.Message.(*p2p_message.MessageNewSequencer)
 	if newSeq.Filter == nil {
 		newSeq.Filter = types.NewDefaultBloomFilter()
@@ -745,7 +745,7 @@ func (h *Hub) broadcastMessageWithFilter(msg *message.OGMessage) {
 */
 
 //multicastMessage
-func (h *Hub) multicastMessage(msg *message.OGMessage) error {
+func (h *Hub) multicastMessage(msg *message.types) error {
 	peers := h.peers.GetRandomPeers(3)
 	// choose random peer and then send.
 	for _, peer := range peers {
@@ -755,7 +755,7 @@ func (h *Hub) multicastMessage(msg *message.OGMessage) error {
 }
 
 //multicastMessageToSource
-func (h *Hub) multicastMessageToSource(msg *message.OGMessage) error {
+func (h *Hub) multicastMessageToSource(msg *message.types) error {
 	if msg.SourceHash == nil {
 		msgLog.Warn("source msg Hash is nil , multicast to random")
 		return h.multicastMessage(msg)
@@ -782,7 +782,7 @@ func (h *Hub) multicastMessageToSource(msg *message.OGMessage) error {
 }
 
 //cacheMessge save msg to cache
-func (h *Hub) cacheMessage(m *message.OGMessage) (exists bool) {
+func (h *Hub) cacheMessage(m *message.types) (exists bool) {
 	if m.Hash == nil {
 		return false
 	}
@@ -818,7 +818,7 @@ func (h *Hub) getMsgFromCache(m message.BinaryMessageType, hash common.Hash) []s
 	return nil
 }
 
-func (h *Hub) receiveMessage(msg *message.OGMessage) {
+func (h *Hub) receiveMessage(msg *message.types) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG02 {
 		if v, ok := h.CallbackRegistryOG02[msg.MessageType]; ok {

@@ -18,8 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
 )
 
 func main() {
@@ -53,14 +52,14 @@ func main() {
 
 }
 
-func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) ogmessage.Txi {
-	tx := ogmessage.Sequencer{
+func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) types.Txi {
+	tx := types.Sequencer{
 		Issuer:            &issuer,
 		Id:                id,
 		ContractHashOrder: contractHashOrder,
-		TxBase: ogmessage.TxBase{
+		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
-			Type:         archive.TxBaseTypeSequencer,
+			Type:         types.TxBaseTypeSequencer,
 		},
 	}
 	return &tx

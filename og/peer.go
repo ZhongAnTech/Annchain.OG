@@ -212,7 +212,7 @@ func (p *peer) sendRawMessage(msgType msg.BinaryMessageType, msgBytes []byte) er
 
 // AsyncSendTransactions queues list of transactions propagation to a remote
 // peer. If the peer's broadcast queue is full, the event is silently dropped.
-func (p *peer) AsyncSendMessages(messages []*message.OGMessage) {
+func (p *peer) AsyncSendMessages(messages []*message.types) {
 	select {
 	case p.queuedMsg <- messages:
 		for _, msg := range messages {
@@ -224,8 +224,8 @@ func (p *peer) AsyncSendMessages(messages []*message.OGMessage) {
 	}
 }
 
-func (p *peer) AsyncSendMessage(msg *message.OGMessage) {
-	var messages []*message.OGMessage
+func (p *peer) AsyncSendMessage(msg *message.types) {
+	var messages []*message.types
 	messages = append(messages, msg)
 	select {
 	case p.queuedMsg <- messages:

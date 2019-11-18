@@ -18,7 +18,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
@@ -31,7 +31,7 @@ type AutoClientManager struct {
 	NodeStatusDataProvider og.NodeStatusDataProvider
 	quit                   chan bool
 	wg                     sync.WaitGroup
-	RegisterReceiver       func(c chan ogmessage.Txi)
+	RegisterReceiver       func(c chan types.Txi)
 	delegate               *node.Delegate
 }
 

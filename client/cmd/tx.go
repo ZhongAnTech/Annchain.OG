@@ -21,9 +21,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
-
+	"github.com/annchain/OG/og/types"
 	"github.com/spf13/cobra"
 )
 
@@ -79,14 +77,14 @@ func newTx(cmd *cobra.Command, args []string) {
 	if nonce <= 0 {
 		nonce = getNonce(from)
 	}
-	tx := archive.Tx{
+	tx := types.Tx{
 		Value: math.NewBigInt(value),
 		To:    toAddr,
 		From:  &from,
 		Data:  common.FromHex(payload),
-		TxBase: ogmessage.TxBase{
+		TxBase: types.TxBase{
 			AccountNonce: nonce,
-			Type:         archive.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeNormal,
 		},
 	}
 	signature := signer.Sign(key, tx.SignatureTargets())

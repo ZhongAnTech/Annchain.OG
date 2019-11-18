@@ -22,8 +22,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/protocol/dagmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"math/rand"
 	"time"
@@ -46,7 +46,7 @@ var (
 )
 
 // sequencerRetrievalFn is a callback type for retrieving a sequencer from the local chain.
-type sequencerRetrievalFn func(common.Hash) *ogmessage.Sequencer
+type sequencerRetrievalFn func(common.Hash) *types.Sequencer
 
 // headerRequesterFn is a callback type for sending a header retrieval request.
 type headerRequesterFn func(peerId string, hash common.Hash) error
@@ -58,7 +58,7 @@ type bodyRequesterFn func(peerId string, hashs common.Hashes) error
 type chainHeightFn func() uint64
 
 // chainInsertFn is a callback type to insert a batch of sequencers into the local chain.
-type chainInsertFn func(seq *ogmessage.Sequencer, txs ogmessage.Txis) error
+type chainInsertFn func(seq *types.Sequencer, txs types.Txis) error
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
@@ -87,16 +87,16 @@ type headerFilterTask struct {
 // bodyFilterTask represents a batch of sequencer bodies (transactions and uncles)
 // needing fetcher filtering.
 type bodyFilterTask struct {
-	peer         string           // The source peer of sequencer bodies
-	transactions []ogmessage.Txis // Collection of transactions per sequencer bodies
-	sequencers   []*ogmessage.Sequencer
+	peer         string       // The source peer of sequencer bodies
+	transactions []types.Txis // Collection of transactions per sequencer bodies
+	sequencers   []*types.Sequencer
 	time         time.Time // Arrival time of the sequencers' contents
 }
 
 // inject represents a schedules import operation.
 type inject struct {
 	origin    string
-	sequencer *ogmessage.Sequencer
+	sequencer *types.Sequencer
 }
 
 // Fetcher is responsible for accumulating sequencer announcements from various peers
@@ -106,7 +106,7 @@ type Fetcher struct {
 	notify chan *announce
 	inject chan *inject
 
-	sequencerFilter chan chan []*ogmessage.Sequencer
+	sequencerFilter chan chan []*types.Sequencer
 	headerFilter    chan chan *headerFilterTask
 	bodyFilter      chan chan *bodyFilterTask
 
@@ -132,11 +132,11 @@ type Fetcher struct {
 	dropPeer    peerDropFn    // Drops a peer for misbehaving
 
 	// Testing hooks
-	announceChangeHook func(common.Hash, bool)              // Method to call upon adding or deleting a hash from the announce list
-	queueChangeHook    func(common.Hash, bool)              // Method to call upon adding or deleting a sequencer from the import queue
-	fetchingHook       func(common.Hashes)                  // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
-	completingHook     func(common.Hashes)                  // Method to call upon starting a sequencer body fetch (eth/62)
-	importedHook       func(sequencer *ogmessage.Sequencer) // Method to call upon successful sequencer import (both eth/61 and eth/62)
+	announceChangeHook func(common.Hash, bool)          // Method to call upon adding or deleting a hash from the announce list
+	queueChangeHook    func(common.Hash, bool)          // Method to call upon adding or deleting a sequencer from the import queue
+	fetchingHook       func(common.Hashes)              // Method to call upon starting a sequencer (eth/61) or header (eth/62) fetch
+	completingHook     func(common.Hashes)              // Method to call upon starting a sequencer body fetch (eth/62)
+	importedHook       func(sequencer *types.Sequencer) // Method to call upon successful sequencer import (both eth/61 and eth/62)
 }
 
 // New creates a sequencer fetcher to retrieve sequencers based on hash announcements.
@@ -144,7 +144,7 @@ func New(getsequencer sequencerRetrievalFn, chainHeight chainHeightFn, insertCha
 	return &Fetcher{
 		notify:          make(chan *announce),
 		inject:          make(chan *inject),
-		sequencerFilter: make(chan chan []*ogmessage.Sequencer),
+		sequencerFilter: make(chan chan []*types.Sequencer),
 		headerFilter:    make(chan chan *headerFilterTask),
 		bodyFilter:      make(chan chan *bodyFilterTask),
 		done:            make(chan common.Hash),
@@ -197,7 +197,7 @@ func (f *Fetcher) Notify(peer string, hash common.Hash, number uint64, time time
 }
 
 // Enqueue tries to fill gaps the the fetcher's future import queue.
-func (f *Fetcher) Enqueue(peer string, sequencer *ogmessage.Sequencer) error {
+func (f *Fetcher) Enqueue(peer string, sequencer *types.Sequencer) error {
 	op := &inject{
 		origin:    peer,
 		sequencer: sequencer,
@@ -241,7 +241,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers dagmessage.SequencerHeaders
 
 // FilterBodies extracts all the sequencer bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions []ogmessage.Txis, sequencers archive.Sequencers, time time.Time) []ogmessage.Txis {
+func (f *Fetcher) FilterBodies(peer string, transactions []types.Txis, sequencers archive.Sequencers, time time.Time) []types.Txis {
 	log.WithField("txs", len(transactions)).WithField("sequencers ", sequencers).WithField(
 		"peer", peer).Trace("Filtering bodies")
 
@@ -443,7 +443,7 @@ func (f *Fetcher) loop() {
 
 			// Split the batch of headers into unknown ones (to return to the caller),
 			// known incomplete ones (requiring body retrievals) and completed sequencers.
-			unknown, incomplete, complete := []*dagmessage.SequencerHeader{}, []*announce{}, []*ogmessage.Sequencer{}
+			unknown, incomplete, complete := []*dagmessage.SequencerHeader{}, []*announce{}, []*types.Sequencer{}
 			for _, header := range task.headers {
 				hash := header.GetHash()
 
@@ -508,7 +508,7 @@ func (f *Fetcher) loop() {
 				return
 			}
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
-			sequencers := []*ogmessage.Sequencer{}
+			sequencers := []*types.Sequencer{}
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
 			select {
 			case filter <- task:
@@ -559,7 +559,7 @@ func (f *Fetcher) rescheduleComplete(complete *time.Timer) {
 
 // enqueue schedules a new future import operation, if the sequencer to be imported
 // has not yet been seen.
-func (f *Fetcher) enqueue(peer string, sequencer *ogmessage.Sequencer) {
+func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 	hash := sequencer.GetTxHash()
 
 	// Ensure the peer isn't DOSing us
@@ -598,7 +598,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *ogmessage.Sequencer) {
 // insert spawns a new goroutine to run a sequencer insertion into the chain. If the
 // sequencer's number is at the same height as the current import phase, it updates
 // the phase states accordingly.
-func (f *Fetcher) insert(peer string, sequencer *ogmessage.Sequencer, txs ogmessage.Txis) {
+func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs types.Txis) {
 	hash := sequencer.GetTxHash()
 
 	// Run the import on a new thread

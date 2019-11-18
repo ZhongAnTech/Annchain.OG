@@ -16,8 +16,8 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/og/txmaker"
 	"net/http"
@@ -34,7 +34,7 @@ import (
 
 func (r *RpcController) NewTransaction(c *gin.Context) {
 	var (
-		tx    ogmessage.Txi
+		tx    types.Txi
 		txReq NewTxRequest
 		sig   crypto.Signature
 		pub   crypto.PublicKey
@@ -188,7 +188,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		return
 	}
 	for i, txReq := range txrequsets.Txs {
-		var tx ogmessage.Txi
+		var tx types.Txi
 		from, err := common.StringToAddress(txReq.From)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("from address format error: %v", err), nil)

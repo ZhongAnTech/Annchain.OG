@@ -14,12 +14,12 @@
 package syncer
 
 import (
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 	"sort"
 )
 
-func (m *IncrementalSyncer) HandleNewTxi(tx ogmessage.Txi, peerId string) {
+func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
 	// cancel pending requests if it is there
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
@@ -37,7 +37,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx ogmessage.Txi, peerId string) {
 		log.WithField("tx ", tx).Debug("cache txs for future.")
 	}
 
-	if tx.GetType() == archive.TxBaseTypeSequencer {
+	if tx.GetType() == types.TxBaseTypeSequencer {
 		m.SequencerCache.Add(tx.GetTxHash(), peerId)
 	}
 
@@ -68,7 +68,7 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *archive.MessageNewTxs, peerId s
 		log.Debug("Empty MessageNewTx")
 		return
 	}
-	var validTxs ogmessage.Txis
+	var validTxs types.Txis
 	if !m.Enabled {
 		if !m.cacheNewTxEnabled() {
 			log.Debug("incremental received nexTx but sync disabled")
@@ -108,7 +108,7 @@ func (m *IncrementalSyncer) HandleNewSequencer(newSeq *archive.MessageNewSequenc
 	log.WithField("q", newSeq).Debug("incremental received NewSequence")
 }
 
-func (m *IncrementalSyncer) HandleCampaign(request *ogmessage.MessageCampaign, peerId string) {
+func (m *IncrementalSyncer) HandleCampaign(request *types.MessageCampaign, peerId string) {
 	cp := request.RawCampaign.Campaign()
 	if cp == nil {
 		log.Warn("got nil MessageCampaign")
@@ -119,7 +119,7 @@ func (m *IncrementalSyncer) HandleCampaign(request *ogmessage.MessageCampaign, p
 
 }
 
-func (m *IncrementalSyncer) HandleTermChange(request *ogmessage.MessageTermChange, peerId string) {
+func (m *IncrementalSyncer) HandleTermChange(request *types.MessageTermChange, peerId string) {
 	cp := request.RawTermChange.TermChange()
 	if cp == nil {
 		log.Warn("got nil MessageCampaign")
@@ -130,7 +130,7 @@ func (m *IncrementalSyncer) HandleTermChange(request *ogmessage.MessageTermChang
 
 }
 
-func (m *IncrementalSyncer) HandleArchive(request *ogmessage.MessageNewArchive, peerId string) {
+func (m *IncrementalSyncer) HandleArchive(request *types.MessageNewArchive, peerId string) {
 	ac := request.Archive
 	if ac == nil {
 		log.Warn("got nil MessageNewArchive")
@@ -163,7 +163,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *archive.Mess
 	//return
 	//}
 
-	var txis ogmessage.Txis
+	var txis types.Txis
 	//
 	//var currentIndex int
 	//var testVal int

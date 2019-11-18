@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-// ProxyAnnsensusPeerCommunicator routes ogmessages and judge which adapter to use and to receive.
+// ProxyAnnsensusPeerCommunicator routes typess and judge which adapter to use and to receive.
 // Do IO work only.
 type ProxyAnnsensusPeerCommunicator struct {
 	incoming          AnnsensusPeerCommunicatorIncoming

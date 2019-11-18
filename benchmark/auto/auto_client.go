@@ -21,8 +21,8 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 	"math/rand"
 	"sync"
 	"time"
@@ -56,7 +56,7 @@ type AutoClient struct {
 
 	Delegate *node.Delegate
 
-	ManualChan chan archive.TxBaseType
+	ManualChan chan types.TxBaseType
 	quit       chan bool
 
 	pause bool
@@ -66,7 +66,7 @@ type AutoClient struct {
 	nonceLock      sync.RWMutex
 	txLock         sync.RWMutex
 	archiveLock    sync.RWMutex
-	NewRawTx       chan ogmessage.Txi
+	NewRawTx       chan types.Txi
 	TpsTest        bool
 	TpsTestInit    bool
 	TestInsertPool bool
@@ -78,8 +78,8 @@ type AutoClient struct {
 
 func (c *AutoClient) Init() {
 	c.quit = make(chan bool)
-	c.ManualChan = make(chan archive.TxBaseType)
-	c.NewRawTx = make(chan ogmessage.Txi)
+	c.ManualChan = make(chan types.TxBaseType)
+	c.NewRawTx = make(chan types.Txi)
 }
 
 func (c *AutoClient) SetTxIntervalUs(i int) {
@@ -114,11 +114,11 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 	return sleepDuration
 }
 
-func (c *AutoClient) fireManualTx(txType archive.TxBaseType, force bool) {
+func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool) {
 	switch txType {
-	case archive.TxBaseTypeNormal:
+	case types.TxBaseTypeNormal:
 		c.doSampleTx(force)
-	case archive.TxBaseTypeSequencer:
+	case types.TxBaseTypeSequencer:
 		c.doSampleSequencer(force)
 	default:
 		logrus.WithField("type", txType).Warn("Unknown TxBaseType")
@@ -351,7 +351,7 @@ func (c *AutoClient) fireTxs() bool {
 				logrus.WithField("tx ", seq).WithError(err).Warn("add tx err")
 			}
 		} else if !c.TestSeal {
-			node.ReceivedNewTxsChan <- ogmessage.Txis{seq}
+			node.ReceivedNewTxsChan <- types.Txis{seq}
 			//c.Delegate.Announce(seq)
 		}
 	}
@@ -429,17 +429,17 @@ func (c *AutoClient) doSampleArchive(force bool) bool {
 	return true
 }
 
-func (c *AutoClient) doRawTx(txi ogmessage.Txi) bool {
+func (c *AutoClient) doRawTx(txi types.Txi) bool {
 	if !c.CampainEnable {
 		return false
 	}
 	me := c.MyAccount
 	txi.GetBase().PublicKey = me.PublicKey.Bytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
-	if txi.GetType() == archive.TxBaseTypeCampaign {
+	if txi.GetType() == types.TxBaseTypeCampaign {
 		cp := txi.(*campaign.Campaign)
 		cp.Issuer = &me.Address
-	} else if txi.GetType() == archive.TxBaseTypeTermChange {
+	} else if txi.GetType() == types.TxBaseTypeTermChange {
 		cp := txi.(*campaign.TermChange)
 		cp.Issuer = &me.Address
 	}

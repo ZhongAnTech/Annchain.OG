@@ -19,8 +19,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/og/verifier"
 
 	"github.com/annchain/OG/rpc"
@@ -77,8 +77,8 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 	value := math.NewBigInt(8888888)
 
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
@@ -119,8 +119,8 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 	value := math.NewBigInt(0)
 
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
@@ -163,8 +163,8 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 	value := math.NewBigInt(100000)
 
 	tx := archive.ActionTx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseAction,
+		TxBase: types.TxBase{
+			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
 			PublicKey:    pub.Bytes[:],
 		},
@@ -207,9 +207,9 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 	to := topub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String(), to.String())
 
-	tx := archive.Tx{
-		TxBase: ogmessage.TxBase{
-			Type:         archive.TxBaseTypeNormal,
+	tx := types.Tx{
+		TxBase: types.TxBase{
+			Type:         types.TxBaseTypeNormal,
 			PublicKey:    pub.Bytes[:],
 			AccountNonce: uint64(nonce),
 		},

@@ -6,8 +6,8 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	archive2 "github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/ogdb"
 	"github.com/sirupsen/logrus"
@@ -22,7 +22,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 	var batchs []*core.ConfirmBatch
 	for j := 0; j < totalHeight; j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
-		var txis ogmessage.Txis
+		var txis types.Txis
 		for i := 0; i < txnum; i++ {
 			if archive {
 				ar := archive.RandomArchive()
@@ -40,7 +40,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 				txis = append(txis, tx)
 			}
 		}
-		seq := ogmessage.RandomSequencer()
+		seq := types.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
 		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
 		batch := &core.ConfirmBatch{

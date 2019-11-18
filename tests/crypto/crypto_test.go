@@ -16,7 +16,7 @@ package crypto
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types/archive"
 	"testing"
 	"time"
 )
@@ -24,7 +24,7 @@ import (
 func TestRawTx_Tx(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	var num = 10000
-	var txs archive.Txs
+	var txs types.Txs
 	var rawtxs archive.RawTxs
 	for i := 0; i < num; i++ {
 		tx := archive.RandomTx()
@@ -44,7 +44,7 @@ func TestRawTx_encode(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
 	crypto.Signer = signer
 	var num = 10000
-	var txs archive.Txs
+	var txs types.Txs
 	type bytes struct {
 		archive.RawData
 	}
@@ -58,7 +58,7 @@ func TestRawTx_encode(t *testing.T) {
 	}
 	start := time.Now()
 	for i := 0; i < num; i++ {
-		var tx archive.Tx
+		var tx types.Tx
 		_, err := tx.UnmarshalMsg(rawtxs[i].RawData)
 		if err != nil {
 			panic(err)

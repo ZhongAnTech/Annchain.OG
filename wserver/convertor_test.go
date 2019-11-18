@@ -16,14 +16,13 @@ package wserver
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
 	"testing"
 )
 
 func TestConvertor(t *testing.T) {
-	tx := archive.Tx{
-		TxBase: ogmessage.TxBase{
+	tx := types.Tx{
+		TxBase: types.TxBase{
 			Hash:        common.BytesToHash([]byte{1, 2, 3, 4, 5}),
 			ParentsHash: common.Hashes{common.BytesToHash([]byte{1, 1, 2, 2, 3, 3})},
 		},

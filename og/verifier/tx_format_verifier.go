@@ -9,8 +9,8 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	archive2 "github.com/annchain/OG/og/types/archive"
 
 	"github.com/sirupsen/logrus"
 	"math/big"
@@ -36,7 +36,7 @@ func (v *TxFormatVerifier) Independent() bool {
 	return true
 }
 
-func (v *TxFormatVerifier) Verify(t ogmessage.Txi) bool {
+func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 	if t.IsVerified().IsFormatVerified() {
 		return true
 	}
@@ -54,7 +54,7 @@ func (v *TxFormatVerifier) Verify(t ogmessage.Txi) bool {
 	return true
 }
 
-func (v *TxFormatVerifier) VerifyHash(t ogmessage.Txi) bool {
+func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 	if !v.NoVerifyMindHash {
 		calMinedHash := t.CalcMinedHash()
 		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
@@ -74,7 +74,7 @@ func (v *TxFormatVerifier) VerifyHash(t ogmessage.Txi) bool {
 	return true
 }
 
-func (v *TxFormatVerifier) VerifySignature(t ogmessage.Txi) bool {
+func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	if t.GetType() == archive2.TxBaseTypeArchive {
 		return true
 	}
@@ -128,7 +128,7 @@ func (v *TxFormatVerifier) VerifySignature(t ogmessage.Txi) bool {
 	return true
 }
 
-func (v *TxFormatVerifier) VerifySourceAddress(t ogmessage.Txi) bool {
+func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
 	if crypto.Signer.CanRecoverPubFromSig() {
 		//address was set by recovering signature ,
 		return true
@@ -136,8 +136,8 @@ func (v *TxFormatVerifier) VerifySourceAddress(t ogmessage.Txi) bool {
 	switch t.(type) {
 	case *archive2.Tx:
 		return t.(*archive2.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
-	case *ogmessage.Sequencer:
-		return t.(*ogmessage.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+	case *types.Sequencer:
+		return t.(*types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *campaign.Campaign:
 		return t.(*campaign.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 	case *campaign.TermChange:

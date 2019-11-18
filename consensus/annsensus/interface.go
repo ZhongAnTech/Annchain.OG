@@ -42,8 +42,8 @@ type HeightProvider interface {
 
 //type SequencerProducer interface {
 //	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
-//		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *ogmessage.Sequencer, err error, genAgain bool)
-//	ValidateSequencer(seq ogmessage.Sequencer) error
+//		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *types.Sequencer, err error, genAgain bool)
+//	ValidateSequencer(seq types.Sequencer) error
 //}
 
 // BftMessageAdapter converts messages.

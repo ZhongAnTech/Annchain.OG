@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/vrf"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/types/msg"
 	"strings"
@@ -22,14 +22,14 @@ const (
 
 //msgp:tuple RawCampaign
 type RawCampaign struct {
-	ogmessage.TxBase
+	types.TxBase
 	DkgPublicKey []byte
 	Vrf          vrf.VrfInfo
 }
 
 //msgp:tuple RawTermChange
 type RawTermChange struct {
-	ogmessage.TxBase
+	types.TxBase
 	TermId uint64
 	PkBls  []byte
 	SigSet []*SigSet
@@ -75,11 +75,11 @@ func (r *RawTermChange) TermChange() *TermChange {
 	}
 	return t
 }
-func (t *RawTermChange) Txi() ogmessage.Txi {
+func (t *RawTermChange) Txi() types.Txi {
 	return t.TermChange()
 }
 
-func (t *RawCampaign) Txi() ogmessage.Txi {
+func (t *RawCampaign) Txi() types.Txi {
 	return t.Campaign()
 }
 
@@ -129,11 +129,11 @@ func (r RawCampaigns) String() string {
 	return strings.Join(strs, ", ")
 }
 
-func (r RawTermChanges) Txis() ogmessage.Txis {
+func (r RawTermChanges) Txis() types.Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs ogmessage.Txis
+	var cs types.Txis
 	for _, v := range r {
 		c := v.TermChange()
 		cs = append(cs, c)
@@ -141,11 +141,11 @@ func (r RawTermChanges) Txis() ogmessage.Txis {
 	return cs
 }
 
-func (r RawCampaigns) Txis() ogmessage.Txis {
+func (r RawCampaigns) Txis() types.Txis {
 	if len(r) == 0 {
 		return nil
 	}
-	var cs ogmessage.Txis
+	var cs types.Txis
 	for _, v := range r {
 		c := v.Campaign()
 		cs = append(cs, c)

@@ -16,8 +16,8 @@ package txcache
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -42,9 +42,9 @@ func (c *TxCache) addInitTx() {
 func (c *TxCache) addInitTxWithNum(num int) {
 	minWeight := uint64(500)
 	for i := 0; i < num; i++ {
-		var tx ogmessage.Txi
+		var tx types.Txi
 		if i%40 == 0 {
-			tx = ogmessage.RandomSequencer()
+			tx = types.RandomSequencer()
 			tx.GetBase().Height = uint64(i / 1000)
 			tx.GetBase().Weight = uint64(i%1000) + tx.GetBase().Height + minWeight
 		} else {
@@ -209,7 +209,7 @@ func TestTxCache_DeQueueBatch(t *testing.T) {
 	c.addInitTx()
 	c.DeQueueBatch(50000)
 	start := time.Now()
-	var txis []*archive.Tx
+	var txis []*types.Tx
 	for i := 0; i < 100; i++ {
 		tx := archive.RandomTx()
 		tx.Weight = uint64(i)
@@ -238,7 +238,7 @@ func TestTxCache_DeQueueBatch(t *testing.T) {
 func TestTxCache_AddFrontBatch(t *testing.T) {
 	c := newTestTxcache(true)
 	c.addInitTx()
-	var txs []ogmessage.Txi
+	var txs []types.Txi
 	for i := 0; i < 100; i++ {
 		tx := archive.RandomTx()
 		tx.Weight = uint64(i*3 + 2)
@@ -286,9 +286,9 @@ func TestTxCache_Sort2(t *testing.T) {
 	c.addInitTx()
 	c.DeQueueBatch(100000)
 	for i := 10; i < 40000; i++ {
-		var tx ogmessage.Txi
+		var tx types.Txi
 		if i%40 == 0 {
-			seq := ogmessage.RandomSequencer()
+			seq := types.RandomSequencer()
 			if i%200 == 0 {
 				seq.Height = uint64(i/1000 + 1)
 				seq.Weight = uint64(i%1000) + seq.Height

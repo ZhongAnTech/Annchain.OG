@@ -42,14 +42,14 @@ func (m *MessageRouterOG02) Name() string {
 	return "MessageRouterOG32"
 }
 
-func (m *MessageRouterOG02) RouteGetNodeDataMsg(msg *OGMessage) {
+func (m *MessageRouterOG02) RouteGetNodeDataMsg(msg *types) {
 	m.GetNodeDataMsgHandler.HandleGetNodeDataMsg(msg.SourceID)
 }
 
-func (m *MessageRouterOG02) RouteNodeDataMsg(msg *OGMessage) {
+func (m *MessageRouterOG02) RouteNodeDataMsg(msg *types) {
 	m.NodeDataMsgHandler.HandleNodeDataMsg(msg.SourceID)
 }
 
-func (m *MessageRouterOG02) RouteGetReceiptsMsg(msg *OGMessage) {
+func (m *MessageRouterOG02) RouteGetReceiptsMsg(msg *types) {
 	m.GetReceiptsMsgHandler.HandleGetReceiptsMsg(msg.SourceID)
 }

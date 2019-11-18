@@ -3,7 +3,6 @@ package verifier
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 
 	"github.com/sirupsen/logrus"
 	"testing"

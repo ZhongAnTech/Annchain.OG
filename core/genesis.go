@@ -23,9 +23,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
-
+	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
@@ -33,7 +31,7 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*ogmessage.Sequencer, map[common.Address]*math.BigInt) {
+func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
@@ -124,11 +122,11 @@ func GetSampleAccounts() []*account.Account {
 	return accounts
 }
 
-func newUnsignedSequencer(height uint64, accountNonce uint64) *ogmessage.Sequencer {
-	tx := ogmessage.Sequencer{
-		TxBase: ogmessage.TxBase{
+func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
+	tx := types.Sequencer{
+		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
-			Type:         archive.TxBaseTypeSequencer,
+			Type:         types.TxBaseTypeSequencer,
 			Height:       height,
 		},
 	}

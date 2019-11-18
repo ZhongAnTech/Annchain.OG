@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/types"
 	"github.com/sirupsen/logrus"
 	"sync"

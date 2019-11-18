@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 )
 
 //go:generate msgp
@@ -44,8 +44,8 @@ const (
 //	return true
 //}
 
-func (m BinaryMessageType) GetMsg() ogmessage.Message {
-	var message ogmessage.Message
+func (m BinaryMessageType) GetMsg() types.Message {
+	var message types.Message
 	switch m {
 	case MessageTypeNewTx:
 		message = &archive.MessageNewTx{}
@@ -56,25 +56,25 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 	case MessageTypeControl:
 		message = &archive.MessageControl{}
 	case MessageTypeCampaign:
-		message = &ogmessage.MessageCampaign{}
+		message = &types.MessageCampaign{}
 	case MessageTypeTermChange:
-		message = &ogmessage.MessageTermChange{}
+		message = &types.MessageTermChange{}
 	//case MessageTypeConsensusDkgDeal:
-	//	message = &ogmessage.MessageConsensusDkgDeal{}
+	//	message = &types.MessageConsensusDkgDeal{}
 	//case MessageTypeConsensusDkgDealResponse:
-	//	message = &ogmessage.MessageConsensusDkgDealResponse{}
+	//	message = &types.MessageConsensusDkgDealResponse{}
 	//case MessageTypeConsensusDkgSigSets:
-	//	message = &ogmessage.MessageConsensusDkgSigSets{}
+	//	message = &types.MessageConsensusDkgSigSets{}
 	//case MessageTypeConsensusDkgGenesisPublicKey:
-	//	message = &ogmessage.MessageConsensusDkgGenesisPublicKey{}
+	//	message = &types.MessageConsensusDkgGenesisPublicKey{}
 
 	case MessageTypeTermChangeResponse:
-		message = &ogmessage.MessageTermChangeResponse{}
+		message = &types.MessageTermChangeResponse{}
 	case MessageTypeTermChangeRequest:
-		message = &ogmessage.MessageTermChangeRequest{}
+		message = &types.MessageTermChangeRequest{}
 
 	case MessageTypeArchive:
-		message = &ogmessage.MessageNewArchive{}
+		message = &types.MessageNewArchive{}
 	case MessageTypeActionTX:
 		message = &archive.MessageNewActionTx{}
 
@@ -124,7 +124,7 @@ func (m BinaryMessageType) GetMsg() ogmessage.Message {
 
 //msgp:tuple SequencerProposal
 type SequencerProposal struct {
-	ogmessage.Sequencer
+	types.Sequencer
 }
 
 func (s *SequencerProposal) String() string {

@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 
 	"encoding/hex"
 
@@ -28,7 +28,7 @@ func TestSequencer(t *testing.T) {
 	addr := common.RandomAddress()
 	from := common.HexToAddress("0x1")
 	seq1 := Sequencer{TxBase: TxBase{ParentsHash: common.Hashes{common.HexToHash("0x0")}}, Issuer: &addr}
-	seq2 := Tx{ogmessage.TxBase: TxBase{ParentsHash: common.Hashes{common.HexToHash("0x0")}},
+	seq2 := Tx{types.TxBase: TxBase{ParentsHash: common.Hashes{common.HexToHash("0x0")}},
 		To:    common.HexToAddress("0x1"),
 		From:  &from,
 		Value: math.NewBigInt(0),

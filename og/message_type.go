@@ -29,7 +29,7 @@ var ProtocolName = "og"
 var ProtocolVersions = []uint32{OG02, OG01}
 
 // ProtocolLengths are the number of implemented Message corresponding to different protocol versions.
-//var ProtocolLengths = []message.OGMessageType{message.MessageTypeOg02Length, message.MessageTypeOg01Length}
+//var ProtocolLengths = []message.typesType{message.MessageTypeOg02Length, message.MessageTypeOg01Length}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol Message
 

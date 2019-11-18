@@ -18,7 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol/dagmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 	"strings"
 
 	"github.com/annchain/OG/common/math"
@@ -65,11 +65,11 @@ func (t *RawTx) Tx() *Tx {
 		return nil
 	}
 	tx := &Tx{
-		ogmessage.TxBase: t.TxBase,
-		To:               t.To,
-		Value:            t.Value,
-		Data:             t.Data,
-		TokenId:          t.TokenId,
+		types.TxBase: t.TxBase,
+		To:           t.To,
+		Value:        t.Value,
+		Data:         t.Data,
+		TokenId:      t.TokenId,
 	}
 	if !CanRecoverPubFromSig {
 		tx.SetSender(crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey))
@@ -102,9 +102,9 @@ func (t *RawActionTx) ActionTx() *ActionTx {
 		return nil
 	}
 	tx := &ActionTx{
-		ogmessage.TxBase: t.TxBase,
-		Action:           t.Action,
-		ActionData:       t.ActionData,
+		types.TxBase: t.TxBase,
+		Action:       t.Action,
+		ActionData:   t.ActionData,
 	}
 
 	if !CanRecoverPubFromSig {

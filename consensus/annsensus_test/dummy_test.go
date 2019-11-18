@@ -16,18 +16,18 @@ package annsensus_test
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 )
 
 type DummyDag struct {
 }
 
-func (d *DummyDag) GetTx(hash common.Hash) ogmessage.Txi {
+func (d *DummyDag) GetTx(hash common.Hash) types.Txi {
 	return nil
 }
 
-func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
+func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return nil
 }
 
@@ -35,32 +35,32 @@ func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
 	return 0, nil
 }
 
-func (d *DummyDag) GetSequencerByHeight(id uint64) *ogmessage.Sequencer {
-	return &ogmessage.Sequencer{
-		TxBase: ogmessage.TxBase{Height: id},
+func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
+	return &types.Sequencer{
+		TxBase: types.TxBase{Height: id},
 	}
 }
 
-func (d *DummyDag) GetTxisByNumber(id uint64) ogmessage.Txis {
-	var txis ogmessage.Txis
+func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
+	var txis types.Txis
 	txis = append(txis, archive.RandomTx(), archive.RandomTx())
 	return txis
 }
 
-func (d *DummyDag) LatestSequencer() *ogmessage.Sequencer {
-	return ogmessage.RandomSequencer()
+func (d *DummyDag) LatestSequencer() *types.Sequencer {
+	return types.RandomSequencer()
 }
 
-func (d *DummyDag) GetSequencer(hash common.Hash, id uint64) *ogmessage.Sequencer {
-	return &ogmessage.Sequencer{
-		TxBase: ogmessage.TxBase{Height: id,
+func (d *DummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
+	return &types.Sequencer{
+		TxBase: types.TxBase{Height: id,
 			Hash: hash},
 	}
 }
 
-func (d *DummyDag) Genesis() *ogmessage.Sequencer {
-	return &ogmessage.Sequencer{
-		TxBase: ogmessage.TxBase{Height: 0},
+func (d *DummyDag) Genesis() *types.Sequencer {
+	return &types.Sequencer{
+		TxBase: types.TxBase{Height: 0},
 	}
 }
 
@@ -68,7 +68,7 @@ func (d *DummyDag) GetHeight() uint64 {
 	return 0
 }
 
-func (d *DummyDag) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
+func (d *DummyDag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
 	return nil
 }
 

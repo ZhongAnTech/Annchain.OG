@@ -15,8 +15,7 @@ package og
 
 import (
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/protocol"
 	"sort"
@@ -47,30 +46,30 @@ type Syncer interface {
 }
 
 type Announcer interface {
-	BroadcastNewTx(txi ogmessage.Txi)
+	BroadcastNewTx(txi types.Txi)
 }
 
 type ITxPool interface {
-	Get(hash common.Hash) ogmessage.Txi
-	AddRemoteTx(tx ogmessage.Txi, noFeedBack bool) error
-	RegisterOnNewTxReceived(c chan ogmessage.Txi, name string, allTx bool)
+	Get(hash common.Hash) types.Txi
+	AddRemoteTx(tx types.Txi, noFeedBack bool) error
+	RegisterOnNewTxReceived(c chan types.Txi, name string, allTx bool)
 	GetLatestNonce(addr common.Address) (uint64, error)
 	IsLocalHash(hash common.Hash) bool
 	GetMaxWeight() uint64
-	GetByNonce(addr common.Address, nonce uint64) ogmessage.Txi
-	IsBadSeq(seq *ogmessage.Sequencer) error
+	GetByNonce(addr common.Address, nonce uint64) types.Txi
+	IsBadSeq(seq *types.Sequencer) error
 }
 
 type IDag interface {
-	GetTx(hash common.Hash) ogmessage.Txi
-	GetTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi
-	GetSequencerByHeight(id uint64) *ogmessage.Sequencer
-	GetTxisByNumber(id uint64) ogmessage.Txis
-	LatestSequencer() *ogmessage.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *ogmessage.Sequencer
-	Genesis() *ogmessage.Sequencer
+	GetTx(hash common.Hash) types.Txi
+	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
+	GetSequencerByHeight(id uint64) *types.Sequencer
+	GetTxisByNumber(id uint64) types.Txis
+	LatestSequencer() *types.Sequencer
+	GetSequencer(hash common.Hash, id uint64) *types.Sequencer
+	Genesis() *types.Sequencer
 	GetHeight() uint64
-	GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer
+	GetSequencerByHash(hash common.Hash) *types.Sequencer
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(addr common.Address) (uint64, error)
 }
@@ -86,12 +85,12 @@ type TxBuffer struct {
 	txPool                 ITxPool
 	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx
 	affmu                  sync.RWMutex
-	SelfGeneratedNewTxChan chan ogmessage.Txi
-	ReceivedNewTxChan      chan ogmessage.Txi
-	ReceivedNewTxsChan     chan []ogmessage.Txi
+	SelfGeneratedNewTxChan chan types.Txi
+	ReceivedNewTxChan      chan types.Txi
+	ReceivedNewTxsChan     chan []types.Txi
 	quit                   chan bool
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
-	txAddedToPoolChan      chan ogmessage.Txi
+	txAddedToPoolChan      chan types.Txi
 	OnProposalSeqCh        chan common.Hash
 	//children               *childrenCache //key : phash ,value :
 	//HandlingQueue           txQueue
@@ -199,10 +198,10 @@ func NewTxBuffer(config TxBufferConfig) *TxBuffer {
 		dependencyCache: gcache.New(config.DependencyCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build(),
 		//todo maybe we need big size channels
-		SelfGeneratedNewTxChan: make(chan ogmessage.Txi, config.NewTxQueueSize),
-		ReceivedNewTxChan:      make(chan ogmessage.Txi, config.NewTxQueueSize),
-		ReceivedNewTxsChan:     make(chan []ogmessage.Txi, config.NewTxQueueSize),
-		txAddedToPoolChan:      make(chan ogmessage.Txi, config.AddedToPoolQueueSize),
+		SelfGeneratedNewTxChan: make(chan types.Txi, config.NewTxQueueSize),
+		ReceivedNewTxChan:      make(chan types.Txi, config.NewTxQueueSize),
+		ReceivedNewTxsChan:     make(chan []types.Txi, config.NewTxQueueSize),
+		txAddedToPoolChan:      make(chan types.Txi, config.AddedToPoolQueueSize),
 		quit:                   make(chan bool),
 		knownCache: gcache.New(config.KnownCacheMaxSize).Simple().
 			Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build(),
@@ -244,7 +243,7 @@ func (b *TxBuffer) loop() {
 }
 
 // niceTx is the logic triggered when tx's ancestors are all fetched to local
-func (b *TxBuffer) niceTx(tx ogmessage.Txi, firstTime bool) {
+func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
 	b.knownCache.Remove(tx.GetTxHash())
@@ -267,7 +266,7 @@ func (b *TxBuffer) niceTx(tx ogmessage.Txi, firstTime bool) {
 }
 
 // in parallel
-func (b *TxBuffer) handleTx(tx ogmessage.Txi) {
+func (b *TxBuffer) handleTx(tx types.Txi) {
 	logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
@@ -317,7 +316,7 @@ func (b *TxBuffer) handleTx(tx ogmessage.Txi) {
 	}
 }
 
-func (b *TxBuffer) verify(tx ogmessage.Txi, validTxs *ogmessage.Txis) {
+func (b *TxBuffer) verify(tx types.Txi, validTxs *types.Txis) {
 	if !b.TestNoVerify {
 		for _, verifier := range b.Verifiers {
 			if !verifier.Independent() {
@@ -337,14 +336,14 @@ func (b *TxBuffer) verify(tx ogmessage.Txi, validTxs *ogmessage.Txis) {
 }
 
 // in parallel
-func (b *TxBuffer) handleTxs(txs ogmessage.Txis) {
+func (b *TxBuffer) handleTxs(txs types.Txis) {
 	logrus.WithField("tx", txs).Debug("buffer is handling txs")
 	start := time.Now()
 	defer func() {
 		logrus.WithField("txs", time.Now().Sub(start)).WithField("txs", txs).Debug("buffer handled txs")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
-	var validTxs ogmessage.Txis
+	var validTxs types.Txis
 	for i := range txs {
 		// already in the dag or tx_pool or buffer itself.
 		tx := txs[i]
@@ -392,15 +391,15 @@ func (b *TxBuffer) handleTxs(txs ogmessage.Txis) {
 	}
 }
 
-func (b *TxBuffer) GetFromBuffer(hash common.Hash) ogmessage.Txi {
+func (b *TxBuffer) GetFromBuffer(hash common.Hash) types.Txi {
 	a, err := b.knownCache.GetIFPresent(hash)
 	if err == nil {
-		return a.(ogmessage.Txi)
+		return a.(types.Txi)
 	}
 	return nil
 }
 
-func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) ogmessage.Txi {
+func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
 	if tx := b.GetFromBuffer(hash); tx != nil {
 		return tx
 	} else if tx := b.GetFromProviders(hash); tx != nil {
@@ -409,7 +408,7 @@ func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) ogmessage.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromProviders(hash common.Hash) ogmessage.Txi {
+func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 	if poolTx := b.txPool.Get(hash); poolTx != nil {
 		return poolTx
 	} else if dagTx := b.dag.GetTx(hash); dagTx != nil {
@@ -421,7 +420,7 @@ func (b *TxBuffer) GetFromProviders(hash common.Hash) ogmessage.Txi {
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 
-func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self ogmessage.Txi) {
+func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{
 			"parent": parentHash,
@@ -439,25 +438,25 @@ func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self ogmessage.Tx
 
 	if err != nil {
 		// key not present, need to build an inner map
-		v = map[common.Hash]ogmessage.Txi{self.GetBase().Hash: self}
+		v = map[common.Hash]types.Txi{self.GetTxHash(): self}
 	}
-	v.(map[common.Hash]ogmessage.Txi)[self.GetBase().Hash] = self
+	v.(map[common.Hash]types.Txi)[self.GetTxHash()] = self
 	b.dependencyCache.Set(parentHash, v)
 
 	b.affmu.Unlock()
 }
 
-func (b *TxBuffer) addToTxPool(tx ogmessage.Txi) error {
+func (b *TxBuffer) addToTxPool(tx types.Txi) error {
 	//no need to receive added tx by buffer
 	return b.txPool.AddRemoteTx(tx, true)
 }
 
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
-func (b *TxBuffer) resolve(tx ogmessage.Txi, firstTime bool) {
+func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	var proposingSeq bool
-	if tx.GetType() == archive.TxBaseTypeSequencer {
-		seq := tx.(*ogmessage.Sequencer)
+	if tx.GetType() == types.TxBaseTypeSequencer {
+		seq := tx.(*types.Sequencer)
 		if seq.Proposing {
 			function := func() {
 				b.OnProposalSeqCh <- seq.GetTxHash()
@@ -495,7 +494,7 @@ func (b *TxBuffer) resolve(tx ogmessage.Txi, firstTime bool) {
 		return
 	}
 	// try resolve the remainings
-	for _, v := range vs.(map[common.Hash]ogmessage.Txi) {
+	for _, v := range vs.(map[common.Hash]types.Txi) {
 		if v.GetTxHash() == tx.GetTxHash() {
 			// self already resolved
 			continue
@@ -557,7 +556,7 @@ func (b *TxBuffer) IsReceivedHash(hash common.Hash) bool {
 // tryResolve triggered when a Tx is added or resolved by other Tx
 // It will check if the given Hash has no more dependencies in the cache.
 // If so, resolve this Hash and try resolve its children
-func (b *TxBuffer) tryResolve(tx ogmessage.Txi) {
+func (b *TxBuffer) tryResolve(tx types.Txi) {
 	logrus.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.Parents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
@@ -576,7 +575,7 @@ func (b *TxBuffer) tryResolve(tx ogmessage.Txi) {
 // buildDependencies examines if all ancestors are in our local cache.
 // If not, goto fetch it and record it in the map for future reference
 // Returns true if all ancestors are local now.
-func (b *TxBuffer) buildDependencies(tx ogmessage.Txi) bool {
+func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
 	var sendBloom bool
@@ -611,8 +610,8 @@ func (b *TxBuffer) buildDependencies(tx ogmessage.Txi) bool {
 		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
-		if tx.GetType() == archive.TxBaseTypeSequencer {
-			seq := tx.(*ogmessage.Sequencer)
+		if tx.GetType() == types.TxBaseTypeSequencer {
+			seq := tx.(*types.Sequencer)
 			//b.Syncer.SyncHashList(seq.GetTxHash())
 			//proposing seq
 			//why ??
@@ -629,7 +628,7 @@ func (b *TxBuffer) buildDependencies(tx ogmessage.Txi) bool {
 	return allFetched
 }
 
-func (b *TxBuffer) getMissingHashes(txi ogmessage.Txi) common.Hashes {
+func (b *TxBuffer) getMissingHashes(txi types.Txi) common.Hashes {
 	start := time.Now()
 	logrus.WithField("tx", txi).Trace("missing hashes start")
 	defer func() {
@@ -693,7 +692,7 @@ func (b *TxBuffer) releasedTxCacheLoop() {
 			if err == nil {
 				//if len(children) != 0 {
 				b.dependencyCache.Remove(tx.GetTxHash())
-				for _, v := range vs.(map[common.Hash]ogmessage.Txi) {
+				for _, v := range vs.(map[common.Hash]types.Txi) {
 					if v.GetTxHash() == tx.GetTxHash() {
 						//self already resolved
 						continue
@@ -734,7 +733,7 @@ func (d *TxBuffer) Dump() string {
 	for k, v := range vs {
 		pHash := k.(common.Hash)
 		if v != nil {
-			for hash, txi := range v.(map[common.Hash]ogmessage.Txi) {
+			for hash, txi := range v.(map[common.Hash]types.Txi) {
 				str += " phash " + pHash.String() + " [ " + hash.String() + txi.String() + " p " + txi.Parents().String() + " ]; "
 			}
 		}
@@ -750,7 +749,7 @@ func (d *TxBuffer) DumpKnownCache() string {
 	for _, v := range vs {
 		//pHash := k.(common.Hash)
 		if v != nil {
-			txi := v.(ogmessage.Txi)
+			txi := v.(types.Txi)
 			str += txi.String()
 		}
 	}

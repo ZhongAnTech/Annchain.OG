@@ -22,9 +22,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
-
+	"github.com/annchain/OG/og/types"
 	"io"
 	"net/http"
 	"os"
@@ -164,8 +162,8 @@ func sendTx(algorithm string) error {
 	}
 
 	for nonce := 0; nonce < 10; nonce++ {
-		tx := archive.Tx{
-			TxBase: ogmessage.TxBase{
+		tx := types.Tx{
+			TxBase: types.TxBase{
 				AccountNonce: uint64(nonce),
 			},
 			From:  &fromAddr,

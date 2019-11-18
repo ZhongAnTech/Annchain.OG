@@ -16,8 +16,8 @@ package txmaker
 import (
 	"fmt"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"testing"
 	"time"
@@ -30,7 +30,7 @@ import (
 
 type AllOkVerifier struct{}
 
-func (AllOkVerifier) Verify(t ogmessage.Txi) bool {
+func (AllOkVerifier) Verify(t types.Txi) bool {
 	return true
 }
 
@@ -62,7 +62,7 @@ func Init() *OGTxCreator {
 func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	tx := txc.TipGenerator.GetRandomTips(1)[0].(*archive.Tx)
+	tx := txc.TipGenerator.GetRandomTips(1)[0].(*types.Tx)
 	_, priv := crypto.Signer.RandomKeyPair()
 	time1 := time.Now()
 
@@ -99,7 +99,7 @@ func TestSequencerCreator(t *testing.T) {
 	time1 := time.Now()
 
 	// for copy
-	randomSeq := ogmessage.RandomSequencer()
+	randomSeq := types.RandomSequencer()
 
 	txSigned := txc.NewSignedSequencer(SignedSequencerBuildRequest{
 		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
@@ -114,11 +114,11 @@ func TestSequencerCreator(t *testing.T) {
 	logrus.Infof("result: %t %v", ok, txSigned)
 }
 
-func sampleTxi(selfHash string, parentsHash []string, baseType archive.TxBaseType) ogmessage.Txi {
+func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {
 
-	tx := &archive.Tx{TxBase: ogmessage.TxBase{
+	tx := &types.Tx{TxBase: types.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        archive.TxBaseTypeNormal,
+		Type:        types.TxBaseTypeNormal,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}
@@ -144,7 +144,7 @@ func TestBuildDag(t *testing.T) {
 
 	_, privateKey := crypto.Signer.RandomKeyPair()
 
-	txs := []ogmessage.Txi{
+	txs := []types.Txi{
 		txc.NewSignedSequencer(SignedSequencerBuildRequest{
 			UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
 				Issuer:       common.Address{},
@@ -227,7 +227,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 }
 
 func TestSlice(t *testing.T) {
-	var parents ogmessage.Txis
+	var parents types.Txis
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetTxHash()

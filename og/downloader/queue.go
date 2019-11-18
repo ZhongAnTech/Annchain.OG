@@ -6,7 +6,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/og/protocol/dagmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 	"sync"
 	"time"
@@ -38,8 +38,8 @@ type fetchResult struct {
 	Hash    common.Hash // Hash of the header to prevent recalculating
 
 	Header       *dagmessage.SequencerHeader
-	Transactions ogmessage.Txis
-	Sequencer    *ogmessage.Sequencer
+	Transactions types.Txis
+	Sequencer    *types.Sequencer
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -724,7 +724,7 @@ func (q *queue) DeliverHeaders(id string, headers []*dagmessage.SequencerHeader,
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists []ogmessage.Txis, sequencers []*ogmessage.Sequencer) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists []types.Txis, sequencers []*types.Sequencer) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 

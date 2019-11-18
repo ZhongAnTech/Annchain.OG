@@ -3,8 +3,8 @@ package verifier
 import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"testing"
 	"time"
@@ -21,7 +21,7 @@ func (s *TestSigner) CanRecoverPubFromSig() bool {
 func TestVerify(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
 	pub, priv := signer.RandomKeyPair()
-	var txis ogmessage.Txis
+	var txis types.Txis
 	//var sigTerGets [][]byte
 	addr := pub.Address()
 	for i := 0; i < 10000; i++ {

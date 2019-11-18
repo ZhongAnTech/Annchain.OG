@@ -17,8 +17,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/types/msg"
 	"sync"
@@ -62,7 +62,7 @@ type IncrementalSyncer struct {
 	quitNotifyEvent          chan bool
 	EnableEvent              chan bool
 	Enabled                  bool
-	OnNewTxiReceived         []chan []ogmessage.Txi
+	OnNewTxiReceived         []chan []types.Txi
 	notifyTxEvent            chan bool
 	notifying                bool
 	cacheNewTxEnabled        func() bool
@@ -143,11 +143,11 @@ func (m *IncrementalSyncer) Name() string {
 	return "IncrementalSyncer"
 }
 
-func (m *IncrementalSyncer) CacheTxs(txs ogmessage.Txis) {
+func (m *IncrementalSyncer) CacheTxs(txs types.Txis) {
 	m.bufferedIncomingTxCache.EnQueueBatch(txs)
 }
 
-func (m *IncrementalSyncer) CacheTx(tx ogmessage.Txi) {
+func (m *IncrementalSyncer) CacheTx(tx types.Txi) {
 	m.bufferedIncomingTxCache.EnQueue(tx)
 }
 
@@ -379,7 +379,7 @@ func (m *IncrementalSyncer) notifyNewTxi() {
 			break
 		}
 		log.Trace("got txis ", txis)
-		var txs ogmessage.Txis
+		var txs types.Txis
 		for _, txi := range txis {
 			if txi != nil && !m.isKnownHash(txi.GetTxHash()) {
 				txs = append(txs, txi)

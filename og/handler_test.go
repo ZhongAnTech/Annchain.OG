@@ -3,8 +3,8 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/og/message"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/og/types/archive"
 	"testing"
 )
 
@@ -12,7 +12,7 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 	var msgRes archive.MessageBodiesResponse
 	var bytes int
 	for i := 0; i < 2; i++ {
-		seq := ogmessage.RandomSequencer()
+		seq := types.RandomSequencer()
 
 		if bytes >= softResponseLimit {
 			message.msgLog.Debug("reached softResponseLimit")
@@ -22,13 +22,13 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 			message.msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
-		var body ogmessage.MessageBodyData
+		var body types.MessageBodyData
 		body.RawSequencer = seq.RawSequencer()
-		var txs ogmessage.Txis
+		var txs types.Txis
 		for j := 0; j < 3; j++ {
 			txs = append(txs, archive.RandomTx())
 		}
-		rtxs := ogmessage.NewTxisMarshaler(txs)
+		rtxs := types.NewTxisMarshaler(txs)
 		if rtxs != nil && len(rtxs) != 0 {
 			body.RawTxs = &rtxs
 		}

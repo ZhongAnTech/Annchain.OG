@@ -11,7 +11,7 @@ package message
 //	"github.com/sirupsen/logrus"
 //)
 
-//type OGMessage struct {
+//type types struct {
 //	MessageType    BinaryMessageType
 //	Data           []byte
 //	Hash           *common.Hash //inner use to avoid resend a Message to the same peer
@@ -24,7 +24,7 @@ package message
 //	DisableEncrypt bool
 //}
 
-//func (m *OGMessage) CalculateHash() {
+//func (m *types) CalculateHash() {
 //	// for txs,or response msg , even if  source peer id is different ,they were duplicated txs
 //	//for request ,if source id is different they were different  msg ,don't drop it
 //	//if we dropped header response because of duplicate , header request will time out
@@ -82,7 +82,7 @@ package message
 //	m.Hash.MustSetBytes(sum, common.PaddingNone)
 //}
 //
-//func (p *OGMessage) GetMarkHashes() common.Hashes {
+//func (p *types) GetMarkHashes() common.Hashes {
 //	if p.Message == nil {
 //		panic("unmarshal first")
 //	}
@@ -102,7 +102,7 @@ package message
 //	return nil
 //}
 
-//func (m *OGMessage) Marshal() error {
+//func (m *types) Marshal() error {
 //	if m.MarshalState {
 //		return nil
 //	}
@@ -118,7 +118,7 @@ package message
 //	return err
 //}
 
-//func (m *OGMessage) AppendGossipTarget(pub *crypto.PublicKey) error {
+//func (m *types) AppendGossipTarget(pub *crypto.PublicKey) error {
 //	b := make([]byte, 2)
 //	//use one key for tx and sequencer
 //	binary.BigEndian.PutUint16(b, uint16(m.MessageType))
@@ -129,7 +129,7 @@ package message
 //	return nil
 //}
 
-//func (m *OGMessage) Encrypt(pub *crypto.PublicKey) error {
+//func (m *types) Encrypt(pub *crypto.PublicKey) error {
 //	//if m.MessageType == MessageTypeConsensusDkgDeal || m.MessageType == MessageTypeConsensusDkgDealResponse {
 //	b := make([]byte, 2)
 //	//use one key for tx and sequencer
@@ -146,7 +146,7 @@ package message
 //	return nil
 //}
 
-//func (m *OGMessage) CheckRequiredSize() bool {
+//func (m *types) CheckRequiredSize() bool {
 //	if m.MessageType == MessageTypeSecret {
 //		if m.DisableEncrypt {
 //			if len(m.Data) < 8 {
@@ -160,7 +160,7 @@ package message
 //	return true
 //}
 
-//func (m *OGMessage) MaybeIsforMe(myPub *crypto.PublicKey) bool {
+//func (m *types) MaybeIsforMe(myPub *crypto.PublicKey) bool {
 //	if m.MessageType != MessageTypeSecret {
 //		panic("not a secret Message")
 //	}
@@ -181,7 +181,7 @@ package message
 //	return true
 //}
 
-//func (m *OGMessage) RemoveGossipTarget() error {
+//func (m *types) RemoveGossipTarget() error {
 //	msg := make([]byte, len(m.Data)-8)
 //	copy(msg, m.Data[:len(m.Data)-8])
 //	if len(msg) < 3 {
@@ -198,7 +198,7 @@ package message
 //	return nil
 //}
 
-//func (m *OGMessage) Decrypt(priv *crypto.PrivateKey) error {
+//func (m *types) Decrypt(priv *crypto.PrivateKey) error {
 //	if m.MessageType != MessageTypeSecret {
 //		panic("not a secret Message")
 //	}
@@ -222,7 +222,7 @@ package message
 //	return nil
 //}
 
-//func (p *OGMessage) Unmarshal() error {
+//func (p *types) Unmarshal() error {
 //	if p.MarshalState {
 //		return nil
 //	}
@@ -288,11 +288,11 @@ package message
 //}
 //
 ////
-//func (m *OGMessage) AllowSendDuplicateMsg() bool {
+//func (m *types) AllowSendDuplicateMsg() bool {
 //	return m.MessageType == MessageTypeNewTx || m.MessageType == MessageTypeNewSequencer
 //}
 //
-//func (m *OGMessage) MsgKey() MsgKey {
+//func (m *types) MsgKey() MsgKey {
 //	return NewMsgKey(m.MessageType, *m.Hash)
 //}
 

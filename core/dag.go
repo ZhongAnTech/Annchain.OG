@@ -20,8 +20,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	archive2 "github.com/annchain/OG/og/protocol/ogmessage/archive"
+	"github.com/annchain/OG/og/types"
+	archive2 "github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
@@ -65,12 +65,12 @@ type Dag struct {
 	preloadDB *state.PreloadDB
 	statedb   *state.StateDB
 
-	genesis         *ogmessage.Sequencer
-	latestSequencer *ogmessage.Sequencer
+	genesis         *types.Sequencer
+	latestSequencer *types.Sequencer
 
 	txcached *txcached
 
-	OnConsensusTXConfirmed chan []ogmessage.Txi
+	OnConsensusTXConfirmed chan []types.Txi
 	close                  chan struct{}
 
 	mu sync.RWMutex
@@ -146,7 +146,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *ogmessage.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -217,7 +217,7 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 }
 
 // Genesis returns the genesis tx of dag
-func (dag *Dag) Genesis() *ogmessage.Sequencer {
+func (dag *Dag) Genesis() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -225,7 +225,7 @@ func (dag *Dag) Genesis() *ogmessage.Sequencer {
 }
 
 // LatestSequencer returns the latest sequencer stored in dag
-func (dag *Dag) LatestSequencer() *ogmessage.Sequencer {
+func (dag *Dag) LatestSequencer() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -265,13 +265,13 @@ func (dag *Dag) PrePush(batch *ConfirmBatch) (common.Hash, error) {
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
 // ogdb only.
-func (dag *Dag) GetTx(hash common.Hash) ogmessage.Txi {
+func (dag *Dag) GetTx(hash common.Hash) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTx(hash)
 }
-func (dag *Dag) getTx(hash common.Hash) ogmessage.Txi {
+func (dag *Dag) getTx(hash common.Hash) types.Txi {
 	tx := dag.txcached.get(hash)
 	if tx != nil {
 		return tx
@@ -288,14 +288,14 @@ func (dag *Dag) Exist(addr common.Address) bool {
 }
 
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
-func (dag *Dag) GetTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
+func (dag *Dag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxByNonce(addr, nonce)
 }
 
-func (dag *Dag) getTestTx(hash common.Hash) ogmessage.Txi {
+func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	data, _ := dag.testDb.Get(transactionKey(hash))
 	if len(data) == 0 {
 		log.Info("tx not found")
@@ -314,7 +314,7 @@ func (dag *Dag) getTestTx(hash common.Hash) ogmessage.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq ogmessage.Sequencer
+		var sq types.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -353,7 +353,7 @@ func (dag *Dag) getTestTx(hash common.Hash) ogmessage.Txi {
 	return nil
 }
 
-func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) ogmessage.Txi {
+func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 	if dag.testDb == nil {
@@ -369,20 +369,20 @@ func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) og
 	return dag.getTestTx(hash)
 }
 
-func (dag *Dag) getTxByNonce(addr common.Address, nonce uint64) ogmessage.Txi {
+func (dag *Dag) getTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	return dag.accessor.ReadTxByNonce(addr, nonce)
 }
 
 // GetTxs get a bundle of txs according to a hash list.
-func (dag *Dag) GetTxis(hashs common.Hashes) ogmessage.Txis {
+func (dag *Dag) GetTxis(hashs common.Hashes) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxis(hashs)
 }
 
-func (dag *Dag) getTxis(hashs common.Hashes) ogmessage.Txis {
-	var txs ogmessage.Txis
+func (dag *Dag) getTxis(hashs common.Hashes) types.Txis {
+	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
 		if tx != nil {
@@ -392,8 +392,8 @@ func (dag *Dag) getTxis(hashs common.Hashes) ogmessage.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs common.Hashes, baseType archive2.TxBaseType) ogmessage.Txis {
-	var txs ogmessage.Txis
+func (dag *Dag) getTxisByType(hashs common.Hashes, baseType archive2.TxBaseType) types.Txis {
+	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
 		if tx != nil && tx.GetType() == baseType {
@@ -419,7 +419,7 @@ func (dag *Dag) getTxConfirmHeight(hash common.Hash) (uint64, error) {
 	return tx.GetBase().GetHeight(), nil
 }
 
-func (dag *Dag) GetTxisByNumber(height uint64) ogmessage.Txis {
+func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -434,7 +434,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) ogmessage.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -446,7 +446,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.S
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq ogmessage.Sequencer
+	var seq types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
@@ -467,7 +467,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.S
 		return nil, &seq
 	}
 	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
-	var txs ogmessage.Txis
+	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTestTx(hash)
 		if tx != nil {
@@ -477,7 +477,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (ogmessage.Txis, *ogmessage.S
 	return txs, &seq
 }
 
-func (dag *Dag) GetTxsByNumberAndType(height uint64, txType archive2.TxBaseType) ogmessage.Txis {
+func (dag *Dag) GetTxsByNumberAndType(height uint64, txType archive2.TxBaseType) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -504,27 +504,27 @@ func (dag *Dag) GetReceipt(hash common.Hash) *Receipt {
 	return dag.accessor.ReadReceipt(seqid, hash)
 }
 
-func (dag *Dag) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
+func (dag *Dag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *ogmessage.Sequencer:
+	case *types.Sequencer:
 		return tx
 	default:
 		return nil
 	}
 }
 
-func (dag *Dag) GetSequencerByHeight(height uint64) *ogmessage.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerByHeight(height uint64) *ogmessage.Sequencer {
+func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height == 0 {
 		return dag.genesis
 	}
@@ -556,13 +556,13 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *ogmessage.Sequencer {
+func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *ogmessage.Sequencer:
+	case *types.Sequencer:
 		if tx.Height != seqHeight {
 			log.Warn("seq height mismatch")
 			return nil
@@ -701,20 +701,20 @@ func (dag *Dag) getState(addr common.Address, key common.Hash) common.Hash {
 }
 
 //GetTxsByAddress get all txs from this address
-func (dag *Dag) GetTxsByAddress(addr common.Address) []ogmessage.Txi {
+func (dag *Dag) GetTxsByAddress(addr common.Address) []types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTxsByAddress(addr)
 }
 
-func (dag *Dag) getTxsByAddress(addr common.Address) []ogmessage.Txi {
+func (dag *Dag) getTxsByAddress(addr common.Address) []types.Txi {
 	nonce, err := dag.getLatestNonce(addr)
 	if (err != nil) || (nonce == 0) {
 		return nil
 	}
 	var i int64
-	var txs []ogmessage.Txi
+	var txs []types.Txi
 	for i = int64(nonce); i > 0; i-- {
 		tx := dag.getTxByNonce(addr, uint64(i))
 		if tx != nil {
@@ -764,7 +764,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
 	txhashes := common.Hashes{}
-	consTxs := []ogmessage.Txi{}
+	consTxs := []types.Txi{}
 	sId := dag.statedb.Snapshot()
 
 	for _, txi := range batch.Txs {
@@ -788,7 +788,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			consTxs = append(consTxs, txi)
 		}
 	}
-	var writedTxs ogmessage.Txis
+	var writedTxs types.Txis
 	for _, txi := range batch.Txs {
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
@@ -911,7 +911,7 @@ func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
 func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
-	dag.latestSequencer = ogmessage.RandomSequencer()
+	dag.latestSequencer = types.RandomSequencer()
 	dag.latestSequencer.Height = cf.SeqHeight
 	return dag.writeConfirmTime(cf)
 }
@@ -924,7 +924,7 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
 // relation into db, finally write the tx itself. Data will be overwritten
 // if it already exists in db.
-func (dag *Dag) WriteTransaction(putter *Putter, tx ogmessage.Txi) error {
+func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
 	if tx.GetType() != archive2.TxBaseTypeArchive {
@@ -952,7 +952,7 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 //
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
-func (dag *Dag) ProcessTransaction(tx ogmessage.Txi, preload bool) ([]byte, *Receipt, error) {
+func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
 	if tx.GetType() == archive2.TxBaseTypeArchive {
 		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
@@ -1143,22 +1143,22 @@ func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
 type txcached struct {
 	maxsize int
 	order   common.Hashes
-	txs     map[common.Hash]ogmessage.Txi
+	txs     map[common.Hash]types.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
 		order:   common.Hashes{},
-		txs:     make(map[common.Hash]ogmessage.Txi),
+		txs:     make(map[common.Hash]types.Txi),
 	}
 }
 
-func (tc *txcached) get(hash common.Hash) ogmessage.Txi {
+func (tc *txcached) get(hash common.Hash) types.Txi {
 	return tc.txs[hash]
 }
 
-func (tc *txcached) add(tx ogmessage.Txi) {
+func (tc *txcached) add(tx types.Txi) {
 	if _, ok := tc.txs[tx.GetTxHash()]; ok {
 		return
 	}
@@ -1172,8 +1172,8 @@ func (tc *txcached) add(tx ogmessage.Txi) {
 }
 
 type ConfirmBatch struct {
-	Seq *ogmessage.Sequencer
-	Txs ogmessage.Txis
+	Seq *types.Sequencer
+	Txs types.Txis
 }
 
 func (c *ConfirmBatch) String() string {

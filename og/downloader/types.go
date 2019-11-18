@@ -3,13 +3,13 @@ package downloader
 import (
 	"fmt"
 	"github.com/annchain/OG/og/protocol/dagmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
 
-type insertTxsFn func(seq *ogmessage.Sequencer, txs ogmessage.Txis) error
+type insertTxsFn func(seq *types.Sequencer, txs types.Txis) error
 
 // dataPack is a data message returned by a peer for some query.
 type dataPack interface {
@@ -32,9 +32,9 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 //sequencer[i] includes txs transactions[i]
 type bodyPack struct {
 	peerID       string
-	transactions []ogmessage.Txis
+	transactions []types.Txis
 	//sequencer    *tx_types.Sequencer
-	sequencers []*ogmessage.Sequencer
+	sequencers []*types.Sequencer
 }
 
 /*
@@ -43,7 +43,7 @@ func (p *bodyPack) Sequencer() *tx_types.Sequencer {
 }
 */
 
-func (p *bodyPack) Sequencers() []*ogmessage.Sequencer {
+func (p *bodyPack) Sequencers() []*types.Sequencer {
 	return p.sequencers
 }
 

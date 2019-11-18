@@ -18,7 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/types"
 
 	"sync"
 	"time"
@@ -178,10 +178,10 @@ func GetOldDb() (ogdb.Database, error) {
 	}
 }
 
-func (og *Og) GetSequencerByHash(hash common.Hash) *ogmessage.Sequencer {
+func (og *Og) GetSequencerByHash(hash common.Hash) *types.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
-	case *ogmessage.Sequencer:
+	case *types.Sequencer:
 		return tx
 	default:
 		return nil
@@ -211,10 +211,10 @@ func (og *Og) BroadcastLatestSequencer() {
 			seq := og.Dag.LatestSequencer()
 			hash := seq.GetTxHash()
 			number := seq.Number()
-			msg := ogmessage.MessageSequencerHeader{Hash: &hash, Number: &number}
+			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
 			function := func() {
-				og.Manager.BroadcastMessage(ogmessage.MessageTypeSequencerHeader, &msg)
+				og.Manager.BroadcastMessage(types.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
 		case <-time.After(200 * time.Millisecond):
@@ -226,10 +226,10 @@ func (og *Og) BroadcastLatestSequencer() {
 				seq := og.Dag.LatestSequencer()
 				hash := seq.GetTxHash()
 				number := seq.Number()
-				msg := ogmessage.MessageSequencerHeader{Hash: &hash, Number: &number}
+				msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it
 				function := func() {
-					og.Manager.BroadcastMessage(ogmessage.MessageTypeSequencerHeader, &msg)
+					og.Manager.BroadcastMessage(types.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
 			}

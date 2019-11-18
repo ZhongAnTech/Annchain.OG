@@ -16,10 +16,8 @@ package core_test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/og/protocol/ogmessage"
-	"github.com/annchain/OG/og/protocol/ogmessage/archive"
-
 	"github.com/annchain/OG/og/txmaker"
+	"github.com/annchain/OG/og/types"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -64,7 +62,7 @@ func newTestLDB(dirPrefix string) (*ogdb.LevelDB, func()) {
 	}
 }
 
-func newTestUnsealTx(nonce uint64) *archive.Tx {
+func newTestUnsealTx(nonce uint64) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
@@ -81,10 +79,10 @@ func newTestUnsealTx(nonce uint64) *archive.Tx {
 	})
 	tx.SetHash(tx.CalcTxHash())
 
-	return tx.(*archive.Tx)
+	return tx.(*types.Tx)
 }
 
-func newTestSeq(nonce uint64) *ogmessage.Sequencer {
+func newTestSeq(nonce uint64) *types.Sequencer {
 	txCreator := &txmaker.OGTxCreator{}
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
@@ -99,10 +97,10 @@ func newTestSeq(nonce uint64) *ogmessage.Sequencer {
 	})
 	seq.SetHash(seq.CalcTxHash())
 
-	return seq.(*ogmessage.Sequencer)
+	return seq.(*types.Sequencer)
 }
 
-func compareTxi(tx1, tx2 ogmessage.Txi) bool {
+func compareTxi(tx1, tx2 types.Txi) bool {
 	return tx1.Compare(tx2)
 }
 
@@ -266,7 +264,7 @@ func TestDag_Start(t *testing.T) {
 	defer remove()
 
 	acc := core.NewAccessor(db)
-	seq := ogmessage.RandomSequencer()
+	seq := types.RandomSequencer()
 	height := seq.Height
 	//acc.WriteLatestSequencer(nil,seq)
 	batch := acc.NewBatch()

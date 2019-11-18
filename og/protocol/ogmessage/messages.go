@@ -63,8 +63,8 @@ func (z *MessagePong) FromBinary([]byte) error {
 	return nil
 }
 
-//msgp:tuple MessageSyncRequest
-type MessageSyncRequest struct {
+//msgp:tuple MessageBatchSyncRequest
+type MessageBatchSyncRequest struct {
 	Hashes      common.Hashes
 	BloomFilter []byte
 	RequestId   uint32 //avoid msg drop
@@ -73,11 +73,11 @@ type MessageSyncRequest struct {
 	//Height      *uint64
 }
 
-func (m *MessageSyncRequest) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeSyncRequest)
+func (m *MessageBatchSyncRequest) GetType() msg.BinaryMessageType {
+	return msg.BinaryMessageType(MessageTypeBatchSyncRequest)
 }
 
-func (m *MessageSyncRequest) GetData() []byte {
+func (m *MessageBatchSyncRequest) GetData() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -85,20 +85,20 @@ func (m *MessageSyncRequest) GetData() []byte {
 	return b
 }
 
-func (m *MessageSyncRequest) ToBinary() msg.BinaryMessage {
+func (m *MessageBatchSyncRequest) ToBinary() msg.BinaryMessage {
 	return msg.BinaryMessage{
 		Type: m.GetType(),
 		Data: m.GetData(),
 	}
 }
 
-func (m *MessageSyncRequest) FromBinary(bs []byte) error {
+func (m *MessageBatchSyncRequest) FromBinary(bs []byte) error {
 	_, err := m.UnmarshalMsg(bs)
 	return err
 }
 
-func (m *MessageSyncRequest) String() string {
-	return fmt.Sprintf("MessageSyncRequest[req %d]", m.RequestId)
+func (m *MessageBatchSyncRequest) String() string {
+	return fmt.Sprintf("MessageBatchSyncRequest[req %d]", m.RequestId)
 }
 
 //msgp:tuple MessageSyncResponse
@@ -173,19 +173,20 @@ func (m MessageNewResource) String() string {
 	return "MessageNewResource"
 }
 
-//msgp:tuple MessageTxsRequest
-type MessageTxsRequest struct {
-	Hashes    common.Hashes
-	SeqHash   common.Hash
+//msgp:tuple MessageHeightSyncRequest
+type MessageHeightSyncRequest struct {
+	//Hashes common.Hashes
+	//SeqHash   common.Hash
+	Height    uint64
 	Id        uint64
 	RequestId uint32 //avoid msg drop
 }
 
-func (z *MessageTxsRequest) GetType() msg.BinaryMessageType {
+func (z *MessageHeightSyncRequest) GetType() msg.BinaryMessageType {
 	return msg.BinaryMessageType(MessageTypeTxsRequest)
 }
 
-func (m *MessageTxsRequest) GetData() []byte {
+func (m *MessageHeightSyncRequest) GetData() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -193,69 +194,69 @@ func (m *MessageTxsRequest) GetData() []byte {
 	return b
 }
 
-func (m *MessageTxsRequest) ToBinary() msg.BinaryMessage {
+func (m *MessageHeightSyncRequest) ToBinary() msg.BinaryMessage {
 	return msg.BinaryMessage{
 		Type: m.GetType(),
 		Data: m.GetData(),
 	}
 }
 
-func (m *MessageTxsRequest) FromBinary(bs []byte) error {
+func (m *MessageHeightSyncRequest) FromBinary(bs []byte) error {
 	_, err := m.UnmarshalMsg(bs)
 	return err
 }
 
-func (m *MessageTxsRequest) String() string {
-	return fmt.Sprintf("hashes: [%s], seqHash: %s, id : %d, requstId : %d", m.Hashes.String(), m.SeqHash.String(), m.Id, m.RequestId)
+func (m *MessageHeightSyncRequest) String() string {
+	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
 }
 
-//msgp:tuple MessageTxsResponse
-type MessageTxsResponse struct {
-	//RawTxs         *RawTxs
-	//RawSequencer *RawSequencer
-	//RawCampaigns   *RawCampaigns
-	//RawTermChanges *RawTermChanges
-	//RawTxs      *TxisMarshaler
-	RequestedId uint32 //avoid msg drop
-	Resources   []MessageContentResource
-}
-
-func (m *MessageTxsResponse) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeTxsResponse)
-}
-
-func (m *MessageTxsResponse) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *MessageTxsResponse) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m *MessageTxsResponse) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageTxsResponse) String() string {
-	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String(), m.RequestedId)
-}
+////msgp:tuple MessageTxsResponse
+//type MessageTxsResponse struct {
+//	//RawTxs         *RawTxs
+//	//RawSequencer *RawSequencer
+//	//RawCampaigns   *RawCampaigns
+//	//RawTermChanges *RawTermChanges
+//	//RawTxs      *TxisMarshaler
+//	RequestedId uint32 //avoid msg drop
+//	Resources   []MessageContentResource
+//}
+//
+//func (m *MessageTxsResponse) GetType() msg.BinaryMessageType {
+//	return msg.BinaryMessageType(MessageTypeTxsResponse)
+//}
+//
+//func (m *MessageTxsResponse) GetData() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (m *MessageTxsResponse) ToBinary() msg.BinaryMessage {
+//	return msg.BinaryMessage{
+//		Type: m.GetType(),
+//		Data: m.GetData(),
+//	}
+//}
+//
+//func (m *MessageTxsResponse) FromBinary(bs []byte) error {
+//	_, err := m.UnmarshalMsg(bs)
+//	return err
+//}
+//
+//func (m *MessageTxsResponse) String() string {
+//	return fmt.Sprintf("txs: [%s], Sequencer: %s, requestedId %d", m.RawTxs.String(), m.RawSequencer.String(), m.RequestedId)
+//}
 
 // getBlockHeadersData represents a block header query.
 //msgp:tuple MessageHeaderRequest
 type MessageHeaderRequest struct {
 	//Origin    HashOrNumber // Block from which to retrieve headers
-	Amount    uint64       // Maximum number of headers to retrieve
-	Skip      uint64       // Blocks to skip between consecutive headers
-	Reverse   bool         // Query direction (false = rising towards latest, true = falling towards genesis)
-	RequestId uint32       //avoid msg drop
+	Amount    uint64 // Maximum number of headers to retrieve
+	Skip      uint64 // Blocks to skip between consecutive headers
+	Reverse   bool   // Query direction (false = rising towards latest, true = falling towards genesis)
+	RequestId uint32 //avoid msg drop
 }
 
 func (m *MessageHeaderRequest) GetType() msg.BinaryMessageType {
@@ -569,7 +570,7 @@ type MessageAnnsensus struct {
 }
 
 func (m MessageAnnsensus) GetType() msg.BinaryMessageType {
-	return MessageTypeAnnsensus
+	return msg.BinaryMessageType(MessageTypeAnnsensus)
 }
 
 func (m MessageAnnsensus) GetData() []byte {

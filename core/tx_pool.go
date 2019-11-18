@@ -68,20 +68,8 @@ func (ts *TxStatus) String() string {
 	}
 }
 
-type TxQuality uint8
-
 const (
-	TxQualityIsBad TxQuality = iota
-	TxQualityIsGood
-	TxQualityIsFatal
-)
-
-type hashOrderRemoveType byte
-
-const (
-	noRemove hashOrderRemoveType = iota
-	removeFromFront
-	removeFromEnd
+	PoolRejudgeThreshold int = 10
 )
 
 type TxPool struct {
@@ -103,7 +91,7 @@ type TxPool struct {
 
 	onNewTxReceived      map[channelName]chan types.Txi   // for notifications of new txs.
 	OnBatchConfirmed     []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	OnNewLatestSequencer []chan bool                      //for broadcasting new latest sequencer to record height
+	OnNewLatestSequencer []chan bool                      // for broadcasting new latest sequencer to record height
 
 	maxWeight     uint64
 	confirmStatus *ConfirmStatus
@@ -180,10 +168,24 @@ type txEvent struct {
 	callbackChan chan error
 }
 type txEnvelope struct {
-	tx         types.Txi
-	txType     TxType
-	status     TxStatus
-	noFeedBack bool
+	tx       types.Txi
+	txType   TxType
+	status   TxStatus
+	judgeNum int
+}
+
+func newTxEnvelope(t TxType, status TxStatus, tx types.Txi, judgeNum int) *txEnvelope {
+	te := &txEnvelope{}
+	te.txType = t
+	te.status = status
+	te.tx = tx
+	te.judgeNum = judgeNum
+
+	return te
+}
+
+func (t *txEnvelope) String() string {
+	return fmt.Sprintf("{ judgeNum: %d, tx: %s }", t.judgeNum, t.tx.String())
 }
 
 // Start begin the txpool sevices
@@ -204,10 +206,7 @@ func (pool *TxPool) Init(genesis *tx_types.Sequencer) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	genesisEnvelope := &txEnvelope{}
-	genesisEnvelope.tx = genesis
-	genesisEnvelope.status = TxStatusTip
-	genesisEnvelope.txType = TxTypeGenesis
+	genesisEnvelope := newTxEnvelope(TxTypeGenesis, TxStatusTip, genesis, 1)
 	pool.txLookup.Add(genesisEnvelope)
 	pool.tips.Add(genesis)
 
@@ -512,12 +511,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 
 	te := &txEvent{
 		callbackChan: make(chan error),
-		txEnv: &txEnvelope{
-			tx:         tx,
-			txType:     senderType,
-			status:     TxStatusQueue,
-			noFeedBack: noFeedBack,
-		},
+		txEnv:        newTxEnvelope(senderType, TxStatusQueue, tx, 1),
 	}
 
 	if normalTx, ok := tx.(*tx_types.Tx); ok {
@@ -612,6 +606,14 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	}
 	return nil
 }
+
+type TxQuality uint8
+
+const (
+	TxQualityIsBad TxQuality = iota
+	TxQualityIsGood
+	TxQualityIsFatal
+)
 
 func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	// check if the tx's parents exists and if is badtx
@@ -829,7 +831,6 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	}
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
-	pool.txLookup.Add(&txEnvelope{tx: seq})
 	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
 	// notification
@@ -1019,42 +1020,51 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
 
-	txsInPool := []types.Txi{}
 	// remove elders from pool
 	for _, tx := range batch.Txs {
 		elderHash := tx.GetTxHash()
 		pool.txLookup.removeTxFromMapOnly(elderHash)
 	}
 
+	var txsInPool []*txEnvelope
 	for _, hash := range pool.txLookup.getorder() {
-		tx := pool.get(hash)
-		if tx == nil {
+		txEnv := pool.txLookup.GetEnvelope(hash)
+		if txEnv == nil {
 			continue
 		}
 		// TODO
 		// sequencer is removed from txpool later when calling
 		// pool.clearall() but not added back. Try figure out if this
 		// will cause any problem.
-		if tx.GetType() == types.TxBaseTypeSequencer {
+		if txEnv.tx.GetType() == types.TxBaseTypeSequencer {
 			continue
 		}
-		txsInPool = append(txsInPool, tx)
+		txsInPool = append(txsInPool, txEnv)
 	}
+
+	seqEnv := pool.txLookup.GetEnvelope(batch.Seq.GetTxHash())
 	pool.clearAll()
-	for _, tx := range txsInPool {
+	if seqEnv != nil {
+		defer pool.txLookup.Add(seqEnv)
+	}
+
+	for _, txEnv := range txsInPool {
+		if txEnv.judgeNum >= PoolRejudgeThreshold {
+			log.WithField("txEnvelope")
+			continue
+		}
+
 		// TODO
 		// Throw away the txs that been rejudged for more than 5 times. In order
 		// to clear up the memory and the process pressure of tx pool.
-		log.WithField("tx", tx).Tracef("start rejudge")
-		txEnv := &txEnvelope{
-			tx:     tx,
-			txType: TxTypeRejudge,
-			status: TxStatusQueue,
-		}
+		log.WithField("txEnvelope", txEnv).Tracef("start rejudge")
+		txEnv.txType = TxTypeRejudge
+		txEnv.status = TxStatusQueue
+		txEnv.judgeNum += 1
 		pool.txLookup.Add(txEnv)
-		e := pool.commit(tx)
+		e := pool.commit(txEnv.tx)
 		if e != nil {
-			log.WithField("tx ", tx).WithError(e).Debug("rejudge error")
+			log.WithField("txEnvelope ", txEnv).WithError(e).Debug("rejudge error")
 		}
 	}
 }
@@ -1234,6 +1244,17 @@ func (t *txLookUp) get(h common.Hash) types.Txi {
 	return nil
 }
 
+// GetEnvelope return the entire tx envelope from txLookUp
+func (t *txLookUp) GetEnvelope(h common.Hash) *txEnvelope {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	if txEnv := t.txs[h]; txEnv != nil {
+		return txEnv
+	}
+	return nil
+}
+
 // Add tx into txLookUp
 func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.mu.Lock()
@@ -1249,6 +1270,14 @@ func (t *txLookUp) add(txEnv *txEnvelope) {
 	t.order = append(t.order, txEnv.tx.GetTxHash())
 	t.txs[txEnv.tx.GetTxHash()] = txEnv
 }
+
+type hashOrderRemoveType byte
+
+const (
+	noRemove hashOrderRemoveType = iota
+	removeFromFront
+	removeFromEnd
+)
 
 // Remove tx from txLookUp
 func (t *txLookUp) Remove(h common.Hash, removeType hashOrderRemoveType) {

@@ -175,7 +175,7 @@ type Server struct {
 	lastLookup   time.Time
 	DiscV5       *discv5.Network
 
-	// These are for Peers, PeerCount (and nothing else).
+	// These are for PeerPipeIns, PeerCount (and nothing else).
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
 
@@ -285,7 +285,7 @@ func (c *conn) set(f connFlag, val bool) {
 	}
 }
 
-// Peers returns all connected peers.
+// PeerPipeIns returns all connected peers.
 func (srv *Server) Peers() []*Peer {
 	var ps []*Peer
 	select {
@@ -733,7 +733,7 @@ running:
 				p.rw.set(trustedConn, false)
 			}
 		case op := <-srv.peerOp:
-			// This channel is used by Peers and PeerCount.
+			// This channel is used by PeerPipeIns and PeerCount.
 			op(peers)
 			srv.peerOpDone <- struct{}{}
 			//triggerTasks = false

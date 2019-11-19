@@ -58,7 +58,7 @@ type dummyBftPeerCommunicator struct {
 	pipeOut     chan bft.BftMessage
 }
 
-func (d *dummyBftPeerCommunicator) Adapttypes(incomingMsg msg.TransportableMessage) (bft.BftMessage, error) {
+func (d *dummyBftPeerCommunicator) AdaptMessage(incomingMsg msg.TransportableMessage) (bft.BftMessage, error) {
 	panic("implement me")
 }
 
@@ -187,7 +187,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.Pee
 		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting message")
 		go func(peer dkg.PeerInfo) {
 			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-			//d.Peers[peer.Id] <- msg
+			//d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
 	}
 }
@@ -195,7 +195,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.Pee
 func (d *dummyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo) {
 	go func(peerId int) {
 		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-		//d.Peers[peerId] <- msg
+		//d.PeerPipeIns[peerId] <- msg
 	}(peer.Id)
 }
 
@@ -282,7 +282,7 @@ func (d *dummyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessag
 		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting annsensus message")
 		go func(peer annsensus.AnnsensusPeer) {
 			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "annsensus")
-			//d.Peers[peer.Id] <- msg
+			//d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
 	}
 }

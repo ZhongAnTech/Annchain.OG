@@ -1050,13 +1050,10 @@ func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 
 	for _, txEnv := range txsInPool {
 		if txEnv.judgeNum >= PoolRejudgeThreshold {
-			log.WithField("txEnvelope")
+			log.WithField("txEnvelope", txEnv.String()).Infof("exceed rejudge time, throw away")
 			continue
 		}
 
-		// TODO
-		// Throw away the txs that been rejudged for more than 5 times. In order
-		// to clear up the memory and the process pressure of tx pool.
 		log.WithField("txEnvelope", txEnv).Tracef("start rejudge")
 		txEnv.txType = TxTypeRejudge
 		txEnv.status = TxStatusQueue

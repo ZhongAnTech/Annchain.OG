@@ -128,7 +128,7 @@ func (r *RpcController) Monitor(c *gin.Context) {
 			}
 				ipPort :=strings.Split(addr,":")
 				if len(ipPort) ==2 {
-					m.Peers = append(m.Peers ,ipPort[1])
+					m.PeerPipeIns = append(m.PeerPipeIns ,ipPort[1])
 				}
 		*/
 		var peer Peer

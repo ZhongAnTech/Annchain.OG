@@ -19,8 +19,8 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
 
 	"sort"
 	"sync/atomic"
@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/types"
 )
 
 // IncomingMessageHandler is the default handler of all incoming messages for OG

@@ -18,9 +18,22 @@ type P2PReceiver interface {
 }
 
 type AnnsensusMessageAdapter interface {
-	Adapttypes(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
+	AdaptMessage(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
 	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error)
 }
 
-type OgPeerInfo struct {
+type PeerIdentifier string
+
+type MessageEvent struct {
+	Msg    msg.TransportableMessage
+	Source PeerIdentifier
+}
+
+type OgPeerCommunicatorOutgoing interface {
+	Broadcast(msg msg.TransportableMessage, peers []PeerIdentifier)
+	Unicast(msg msg.TransportableMessage, peer PeerIdentifier)
+}
+type OgPeerCommunicatorIncoming interface {
+	GetPipeIn() chan *MessageEvent
+	GetPipeOut() chan *MessageEvent
 }

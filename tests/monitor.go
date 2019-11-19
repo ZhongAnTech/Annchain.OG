@@ -104,7 +104,7 @@ Out:
 				s.PeersNum[l] = 1
 			}
 
-			//m.Peers = nil
+			//m.PeerPipeIns = nil
 		}
 		monitors := Monitors{ms}
 		data, _ := json.MarshalIndent(&monitors, "", "\t")

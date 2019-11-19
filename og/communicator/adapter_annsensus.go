@@ -30,11 +30,13 @@ func (a AnnsensusMessageUnmarshaller) Unmarshal(messageType annsensus.AnnsensusM
 	return
 }
 
+// SimpleAnnsensusAdapter adapts a transportable message to an annsensus message
+// requires the message type to be MessageTypeAnnsensus
 type SimpleAnnsensusAdapter struct {
 	annsensusMessageUnmarshaller *AnnsensusMessageUnmarshaller
 }
 
-func (s SimpleAnnsensusAdapter) Adapttypes(incomingMsg msg.TransportableMessage) (annMsg annsensus.AnnsensusMessage, err error) {
+func (s SimpleAnnsensusAdapter) AdaptMessage(incomingMsg msg.TransportableMessage) (annMsg annsensus.AnnsensusMessage, err error) {
 	mssageType := ogmessage.OgMessageType(incomingMsg.GetType())
 	if mssageType != ogmessage.MessageTypeAnnsensus {
 		err = errors.New("SimpleAnnsensusAdapter received a message of an unsupported type")

@@ -31,7 +31,7 @@ func NewAnnsensusCommunicator(
 		bftMessageAdapter: bftMessageAdapter,
 		dkgMessageAdapter: dkgMessageAdapter,
 		termHolder:        termHolder,
-		quit:              nil,
+		quit:              make(chan bool),
 		quitWg:            sync.WaitGroup{},
 	}
 }

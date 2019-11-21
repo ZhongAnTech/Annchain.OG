@@ -17,7 +17,6 @@ package rpc
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/annchain/OG/common"
@@ -73,11 +72,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-		return
-	}
+	nonce := txReq.Nonce
 
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil || txReq.Signature == "" {
@@ -112,6 +107,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	ok = r.FormatVerifier.VerifySignature(tx)
+	fmt.Println(fmt.Sprintf("sig targets: %x", tx.SignatureTargets()))
 	if !ok {
 		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
@@ -139,7 +135,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 //NewTxrequest for RPC request
 //msgp:tuple NewTxRequest
 type NewTxRequest struct {
-	Nonce      string `json:"nonce"`
+	Nonce      uint64 `json:"nonce"`
 	From       string `json:"from"`
 	To         string `json:"to"`
 	Value      string `json:"value"`
@@ -202,11 +198,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			return
 		}
 
-		nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-		if err != nil {
-			Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-			return
-		}
+		nonce := txReq.Nonce
 
 		signature := common.FromHex(txReq.Signature)
 		if signature == nil {

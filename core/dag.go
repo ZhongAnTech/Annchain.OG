@@ -1068,7 +1068,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			return receipt, err
 		}
 		actionData.TokenId = tokenID
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, string(tokenID), emptyAddress)
 		return receipt, nil
 	}
 	if tx.Action == tx_types.ActionTxActionSPO {
@@ -1080,7 +1080,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 			return receipt, err
 		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, string(tokenID), emptyAddress)
 		return receipt, nil
 	}
 	if tx.Action == tx_types.ActionTxActionDestroy {
@@ -1091,7 +1091,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 			return receipt, err
 		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, string(tokenID), emptyAddress)
 		return receipt, nil
 	}
 

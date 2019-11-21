@@ -18,6 +18,8 @@ const (
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
 	MessageTypeNewResource
+	MessageTypeHeightSyncRequest
+
 	//MessageTypeNewSequencer
 	//MessageTypeNewTxs
 	MessageTypeSequencerHeader

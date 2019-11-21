@@ -33,11 +33,11 @@ const (
 type Receipt struct {
 	TxHash          common.Hash
 	Status          ReceiptStatus
-	ProcessResult   interface{}
+	ProcessResult   string
 	ContractAddress common.Address
 }
 
-func NewReceipt(hash common.Hash, status ReceiptStatus, pResult interface{}, addr common.Address) *Receipt {
+func NewReceipt(hash common.Hash, status ReceiptStatus, pResult string, addr common.Address) *Receipt {
 	return &Receipt{
 		TxHash:          hash,
 		Status:          status,

@@ -583,7 +583,7 @@ func (m MessageAnnsensus) GetData() []byte {
 
 func (m MessageAnnsensus) ToBinary() msg.BinaryMessage {
 	return msg.BinaryMessage{
-		Type: msg.BinaryMessageType(m.GetType()),
+		Type: m.GetType(),
 		Data: m.GetData(),
 	}
 }

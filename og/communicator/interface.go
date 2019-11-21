@@ -22,7 +22,9 @@ type AnnsensusMessageAdapter interface {
 	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error)
 }
 
-type PeerIdentifier string
+type PeerIdentifier struct {
+	Id int
+}
 
 type MessageEvent struct {
 	Msg    msg.TransportableMessage

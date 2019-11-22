@@ -14,7 +14,6 @@
 package tx_types
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
@@ -199,7 +198,7 @@ type TransactionMsg struct {
 	Weight  uint64   `json:"weight"`
 }
 
-func (t *Tx) ToJsonMsg() ([]byte, error) {
+func (t *Tx) ToJsonMsg() TransactionMsg {
 	txMsg := TransactionMsg{}
 
 	txMsg.Type = int(t.GetType())
@@ -215,5 +214,5 @@ func (t *Tx) ToJsonMsg() ([]byte, error) {
 		txMsg.Parents = append(txMsg.Parents, p.Hex())
 	}
 
-	return json.Marshal(&txMsg)
+	return txMsg
 }

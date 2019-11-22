@@ -241,9 +241,11 @@ func (s *Server) publishTxi(txi types.Txi) {
 	var err error
 	switch t := txi.(type) {
 	case *tx_types.Tx:
-		data, err = t.ToJsonMsg()
+		txMsg := t.ToJsonMsg()
+		data, err = json.Marshal(&txMsg)
 	case *tx_types.Sequencer:
-		data, err = t.ToJsonMsg()
+		txMsg := t.ToJsonMsg()
+		data, err = json.Marshal(&txMsg)
 	default:
 		err = fmt.Errorf("only support tx and sequencer")
 	}

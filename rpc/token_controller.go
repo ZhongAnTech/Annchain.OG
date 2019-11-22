@@ -156,20 +156,9 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	//if err != nil {
-	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-	//	return
-	//}
-
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
-		return
-	}
-
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("action  format error: %v", err), nil)
 		return
 	}
 
@@ -245,20 +234,9 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	//if err != nil {
-	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-	//	return
-	//}
-
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
-		return
-	}
-
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("action  format error: %v", err), nil)
 		return
 	}
 
@@ -314,6 +292,7 @@ type TokenResponse struct {
 	TokenID    int32    `json:"token_id"`
 	Name       string   `json:"name"`
 	Symbol     string   `json:"symbol"`
+	Issuer     string   `json:"issuer"`
 	ReIssuable bool     `json:"re_issuable"`
 	Issues     []string `json:"issues"`
 	Destroyed  bool     `json:"destroyed"`
@@ -324,8 +303,10 @@ func newTokenRespFromTokenObj(token *state.TokenObject) TokenResponse {
 	tokenResp.TokenID = token.TokenID
 	tokenResp.Name = token.Name
 	tokenResp.Symbol = token.Symbol
+	tokenResp.Issuer = token.Issuer.Hex()
 	tokenResp.ReIssuable = token.ReIssuable
 	tokenResp.Destroyed = token.Destroyed
+
 	tokenResp.Issues = make([]string, 0)
 	for _, issue := range token.Issues {
 		tokenResp.Issues = append(tokenResp.Issues, issue.String())

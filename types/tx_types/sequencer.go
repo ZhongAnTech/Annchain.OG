@@ -237,16 +237,18 @@ func (t *Sequencer) SetSender(addr common.Address) {
 }
 
 type SequencerMsg struct {
-	Type    int      `json:"type"`
-	Hash    string   `json:"hash"`
-	Parents []string `json:"parents"`
-	Issuer  string   `json:"issuer"`
-	Nonce   uint64   `json:"nonce"`
-	Height  uint64   `json:"height"`
-	Weight  uint64   `json:"weight"`
+	Type           int      `json:"type"`
+	Hash           string   `json:"hash"`
+	Parents        []string `json:"parents"`
+	Issuer         string   `json:"issuer"`
+	Nonce          uint64   `json:"nonce"`
+	Height         uint64   `json:"height"`
+	Weight         uint64   `json:"weight"`
+	BlsJointSig    string   `json:"bls_joint_sig"`
+	BlsJointPubKey string   `json:"bls_joint_pub_key"`
 }
 
-func (s *Sequencer) ToJsonMsg() ([]byte, error) {
+func (s *Sequencer) ToJsonMsg() SequencerMsg {
 
 	seqMsg := SequencerMsg{}
 
@@ -257,10 +259,13 @@ func (s *Sequencer) ToJsonMsg() ([]byte, error) {
 	seqMsg.Height = s.GetHeight()
 	seqMsg.Weight = s.GetWeight()
 
+	seqMsg.BlsJointSig = s.BlsJointSig.String()
+	seqMsg.BlsJointPubKey = s.BlsJointPubKey.String()
+
 	seqMsg.Parents = make([]string, 0)
 	for _, p := range s.ParentsHash {
 		seqMsg.Parents = append(seqMsg.Parents, p.Hex())
 	}
 
-	return json.Marshal(&seqMsg)
+	return seqMsg
 }

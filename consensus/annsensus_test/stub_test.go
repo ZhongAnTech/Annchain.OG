@@ -58,7 +58,7 @@ type dummyBftPeerCommunicator struct {
 	pipeOut     chan bft.BftMessage
 }
 
-func (d *dummyBftPeerCommunicator) AdaptMessage(incomingMsg msg.TransportableMessage) (bft.BftMessage, error) {
+func (d *dummyBftPeerCommunicator) AdaptMessage(incomingMsg msg.OgMessage) (bft.BftMessage, error) {
 	panic("implement me")
 }
 

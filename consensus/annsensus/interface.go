@@ -51,6 +51,7 @@ type HeightProvider interface {
 type BftMessageAdapter interface {
 	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (bft.BftMessage, error)
 	AdaptBftMessage(outgoingMsg bft.BftMessage) (AnnsensusMessage, error)
+	AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error)
 }
 
 type DkgMessageAdapter interface {

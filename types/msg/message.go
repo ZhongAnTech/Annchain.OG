@@ -16,8 +16,8 @@ type BinaryMessage struct {
 	Data []byte
 }
 
-// TransportableMessage is the message that can be convert to BinaryMessage
-type TransportableMessage interface {
+// OgMessage is the message that can be convert to BinaryMessage
+type OgMessage interface {
 	GetType() BinaryMessageType
 	GetData() []byte
 	ToBinary() BinaryMessage

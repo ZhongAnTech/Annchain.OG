@@ -112,7 +112,7 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 	termProviders := make([]annsensus.TermIdProvider, nodes)
 
 	for i := 0; i < nodes; i++ {
-		// init ProxyAnnsensusPeerCommunicator for each node
+		// init AnnsensusPeerCommunicator for each node
 		bftAdapter := annsensus.PlainBftAdapter{}
 		dkgAdapter := annsensus.PlainDkgAdapter{}
 

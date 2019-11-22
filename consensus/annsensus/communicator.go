@@ -1,26 +1,24 @@
 package annsensus
 
 import (
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 )
 
 type AnnsensusPeer struct {
 	Id             int
-	PublicKey      crypto.PublicKey `json:"-"`
-	Address        common.Address   `json:"address"`
-	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
+	//PublicKey      crypto.PublicKey `json:"-"`
+	//Address        common.Address   `json:"address"`
+	//PublicKeyBytes hexutil.Bytes    `json:"public_key"`
 }
 
 type ProxyBftPeerCommunicator struct {
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator
+	bftMessageAdapter     BftMessageAdapter
+	annsensusCommunicator *AnnsensusPeerCommunicator
 	pipe                  chan bft.BftMessage
 }
 
-func NewProxyBftPeerCommunicator(annsensusCommunicator *ProxyAnnsensusPeerCommunicator) *ProxyBftPeerCommunicator {
+func NewProxyBftPeerCommunicator(annsensusCommunicator *AnnsensusPeerCommunicator) *ProxyBftPeerCommunicator {
 	return &ProxyBftPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
 		pipe:                  make(chan bft.BftMessage),
@@ -28,8 +26,12 @@ func NewProxyBftPeerCommunicator(annsensusCommunicator *ProxyAnnsensusPeerCommun
 }
 
 func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+	annsensusMessage, err := p.bftMessageAdapter.AdaptBftMessage(msg)
+	if err != nil {
+		panic("adapt should never fail")
+	}
 	// adapt the interface so that the request can be handled by annsensus
-	p.annsensusCommunicator.BroadcastBft(msg, peers)
+	p.annsensusCommunicator.Broadcast(annsensusMessage, peers)
 }
 
 func (p *ProxyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
@@ -53,11 +55,11 @@ func (p *ProxyBftPeerCommunicator) Run() {
 }
 
 type ProxyDkgPeerCommunicator struct {
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator
+	annsensusCommunicator *AnnsensusPeerCommunicator
 	pipe                  chan dkg.DkgMessage
 }
 
-func NewProxyDkgPeerCommunicator(annsensusCommunicator *ProxyAnnsensusPeerCommunicator) *ProxyDkgPeerCommunicator {
+func NewProxyDkgPeerCommunicator(annsensusCommunicator *AnnsensusPeerCommunicator) *ProxyDkgPeerCommunicator {
 	return &ProxyDkgPeerCommunicator{
 		annsensusCommunicator: annsensusCommunicator,
 		pipe:                  make(chan dkg.DkgMessage),

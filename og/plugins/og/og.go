@@ -23,6 +23,6 @@ func (o OgPlugin) SupportedMessageTypes() []msg.BinaryMessageType {
 	return supportedMessageTypes
 }
 
-func (o OgPlugin) GetMessageHandler() router.MessageHandler {
+func (o OgPlugin) GetMessageHandler() router.OgMessageHandler {
 
 }

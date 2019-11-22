@@ -13,17 +13,12 @@ var supportedMessageTypes = []msg.BinaryMessageType{
 }
 
 type AnnsensusPlugin struct {
-	messageHandler router.MessageHandler
+	messageHandler router.OgMessageHandler
 }
 
 func NewAnnsensusPlugin() *AnnsensusPlugin {
 	return &AnnsensusPlugin{
-		messageHandler: &AnnsensusMessageHandler{
-			annsensusAdapter: &SimpleAnnsensusAdapter{
-				annsensusMessageUnmarshaller: &AnnsensusMessageUnmarshaller{
-
-				},
-			},
+		unmarshaller: &AnnsensusMessageUnmarshaller{
 		},
 	}
 }
@@ -32,6 +27,6 @@ func (a AnnsensusPlugin) SupportedMessageTypes() []msg.BinaryMessageType {
 	return supportedMessageTypes
 }
 
-func (a AnnsensusPlugin) GetMessageHandler() router.MessageHandler {
+func (a AnnsensusPlugin) GetMessageHandler() router.OgMessageHandler {
 	return a.messageHandler
 }

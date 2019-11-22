@@ -7,5 +7,5 @@ import (
 
 type Plugin interface {
 	SupportedMessageTypes() []msg.BinaryMessageType
-	GetMessageHandler() router.MessageHandler
+	GetMessageHandler() router.OgMessageHandler
 }

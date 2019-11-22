@@ -52,9 +52,9 @@ func (tc *TermCollection) Stop() {
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 type AnnsensusProcessor struct {
 	config                AnnsensusProcessorConfig
-	bftAdapter            BftMessageAdapter               // message handlers in common. Injected into commuinicator
-	dkgAdapter            DkgMessageAdapter               // message handlers in common. Injected into commuinicator
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator // interface to the p2p
+	bftAdapter            BftMessageAdapter          // message handlers in common. Injected into commuinicator
+	dkgAdapter            DkgMessageAdapter          // message handlers in common. Injected into commuinicator
+	annsensusCommunicator *AnnsensusPeerCommunicator // interface to the p2p
 	termProvider          TermIdProvider
 	termHolder            HistoricalTermsHolder // hold information for each term
 	bftPartnerProvider    BftPartnerProvider    // factory method to generate a bft partner for each term
@@ -66,7 +66,7 @@ func NewAnnsensusProcessor(
 	config AnnsensusProcessorConfig,
 	bftAdapter BftMessageAdapter,
 	dkgAdapter DkgMessageAdapter,
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator,
+	annsensusCommunicator *AnnsensusPeerCommunicator,
 	termProvider TermIdProvider,
 	termHolder HistoricalTermsHolder,
 	bftPartnerProvider BftPartnerProvider,
@@ -106,7 +106,7 @@ func checkConfig(config AnnsensusProcessorConfig) {
 //func NewAnnsensusProcessor(config AnnsensusProcessorConfig,
 //	signatureProvider account.SignatureProvider,
 //	termProvider TermIdProvider,
-//	annsensusCommunicator *ProxyAnnsensusPeerCommunicator,
+//	annsensusCommunicator *AnnsensusPeerCommunicator,
 //) *AnnsensusProcessor {
 //	// Prepare common facilities that will be reused during each term
 //	// Prepare adapters

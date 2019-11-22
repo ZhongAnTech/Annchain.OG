@@ -7,19 +7,19 @@ import (
 )
 
 type P2PSender interface {
-	BroadcastMessage(msg msg.TransportableMessage)
-	AnonymousSendMessage(msg msg.TransportableMessage, anonymousPubKey *crypto.PublicKey)
-	SendToPeer(msg msg.TransportableMessage, peerId PeerIdentifier) error
+	BroadcastMessage(msg msg.OgMessage)
+	AnonymousSendMessage(msg msg.OgMessage, anonymousPubKey *crypto.PublicKey)
+	SendToPeer(msg msg.OgMessage, peerId PeerIdentifier) error
 }
 
 // P2PReceiver provides a channel for consumer to receive messages from p2p
 type P2PReceiver interface {
-	GetMessageChannel() chan msg.TransportableMessage
+	GetMessageChannel() chan msg.OgMessage
 }
 
 type AnnsensusMessageAdapter interface {
-	AdaptMessage(incomingMsg msg.TransportableMessage) (annsensus.AnnsensusMessage, error)
-	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.TransportableMessage, error)
+	AdaptMessage(incomingMsg msg.OgMessage) (annsensus.AnnsensusMessage, error)
+	AdaptAnnsensusMessage(outgoingMsg annsensus.AnnsensusMessage) (msg.OgMessage, error)
 }
 
 type PeerIdentifier struct {
@@ -27,13 +27,13 @@ type PeerIdentifier struct {
 }
 
 type MessageEvent struct {
-	Msg    msg.TransportableMessage
+	Msg    msg.OgMessage
 	Source PeerIdentifier
 }
 
 type OgPeerCommunicatorOutgoing interface {
-	Broadcast(msg msg.TransportableMessage, peers []PeerIdentifier)
-	Unicast(msg msg.TransportableMessage, peer PeerIdentifier)
+	Broadcast(msg msg.OgMessage, peers []PeerIdentifier)
+	Unicast(msg msg.OgMessage, peer PeerIdentifier)
 }
 type OgPeerCommunicatorIncoming interface {
 	GetPipeIn() chan *MessageEvent

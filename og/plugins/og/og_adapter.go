@@ -6,14 +6,14 @@ import (
 )
 
 type OgMessageAdapter interface {
-	AdaptMessage(incomingMsg msg.BinaryMessage) (msg.TransportableMessage, error)
+	AdaptMessage(incomingMsg msg.BinaryMessage) (msg.OgMessage, error)
 }
 
 type DefaultOgMessageAdapter struct {
 }
 
-func (d DefaultOgMessageAdapter) AdaptMessage(incomingMsg msg.BinaryMessage) (msg.TransportableMessage, error) {
-	var m msg.TransportableMessage
+func (d DefaultOgMessageAdapter) AdaptMessage(incomingMsg msg.BinaryMessage) (msg.OgMessage, error) {
+	var m msg.OgMessage
 	switch OgMessageType(incomingMsg.Type) {
 	case MessageTypePing:
 		m = &MessagePing{}

@@ -34,7 +34,7 @@ func NewDummyOgPeerCommunicator(myid int, incoming chan *communicator.MessageEve
 	return d
 }
 
-func (o DummyOgPeerCommunicator) Broadcast(msg msg.TransportableMessage, peers []communicator.PeerIdentifier) {
+func (o DummyOgPeerCommunicator) Broadcast(msg msg.OgMessage, peers []communicator.PeerIdentifier) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("broadcasting message")
 		go func(peer communicator.PeerIdentifier) {
@@ -44,7 +44,7 @@ func (o DummyOgPeerCommunicator) Broadcast(msg msg.TransportableMessage, peers [
 	}
 }
 
-func (o DummyOgPeerCommunicator) Unicast(msg msg.TransportableMessage, peer communicator.PeerIdentifier) {
+func (o DummyOgPeerCommunicator) Unicast(msg msg.OgMessage, peer communicator.PeerIdentifier) {
 	logrus.Debug("unicasting by DummyOgPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")

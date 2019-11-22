@@ -28,7 +28,7 @@ type Signable interface {
 	SignatureTargets() []byte
 }
 
-// TransportableMessage is the message that can be convert to BinaryMessage
+// OgMessage is the message that can be convert to BinaryMessage
 type BftMessage interface {
 	Signable
 	GetType() BftMessageType

@@ -19,7 +19,7 @@ type DefaultAnnsensusPartnerProvider struct {
 	proposalGenerator     bft.ProposalGenerator   // interface to the ledger
 	proposalValidator     bft.ProposalValidator   // interface to the ledger
 	decisionMaker         bft.DecisionMaker       // interface to the ledger
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator
+	annsensusCommunicator *AnnsensusPeerCommunicator
 }
 
 func NewDefaultAnnsensusPartnerProvider(
@@ -27,7 +27,7 @@ func NewDefaultAnnsensusPartnerProvider(
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
-	annsensusCommunicator *ProxyAnnsensusPeerCommunicator) *DefaultAnnsensusPartnerProvider {
+	annsensusCommunicator *AnnsensusPeerCommunicator) *DefaultAnnsensusPartnerProvider {
 	return &DefaultAnnsensusPartnerProvider{
 		myAccountProvider:     myAccountProvider,
 		proposalGenerator:     proposalGenerator,

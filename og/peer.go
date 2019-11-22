@@ -67,9 +67,9 @@ type peer struct {
 	head      common.Hash
 	seqId     uint64
 	lock      sync.RWMutex
-	knownMsg  mapset.Set                      // Set of transaction hashes known to be known by this peer
-	queuedMsg chan []msg.TransportableMessage // Queue of transactions to broadcast to the peer
-	term      chan struct{}                   // Termination channel to stop the broadcaster
+	knownMsg  mapset.Set           // Set of transaction hashes known to be known by this peer
+	queuedMsg chan []msg.OgMessage // Queue of transactions to broadcast to the peer
+	term      chan struct{}        // Termination channel to stop the broadcaster
 	outPath   bool
 	inPath    bool
 	inBound   bool
@@ -92,7 +92,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:   version,
 		id:        fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownMsg:  mapset.NewSet(),
-		queuedMsg: make(chan []msg.TransportableMessage, maxqueuedMsg),
+		queuedMsg: make(chan []msg.OgMessage, maxqueuedMsg),
 		term:      make(chan struct{}),
 		outPath:   true,
 		inPath:    true,
@@ -188,7 +188,7 @@ func (p *peer) MarkMessage(m message.BinaryMessageType, hash common.Hash) {
 
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction Hash set for future reference.
-func (p *peer) SendMessages(messages []msg.TransportableMessage) error {
+func (p *peer) SendMessages(messages []msg.OgMessage) error {
 	var msgType msg.BinaryMessageType
 	var msgBytes []byte
 	if len(messages) == 0 {

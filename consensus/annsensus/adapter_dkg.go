@@ -64,7 +64,7 @@ func NewTrustfulDkgAdapter() *TrustfulDkgAdapter {
 	return &TrustfulDkgAdapter{}
 }
 
-func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg msg.TransportableMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
+func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg msg.OgMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
 	panic("not implemented yet")
 }
 

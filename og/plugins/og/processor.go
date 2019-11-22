@@ -45,7 +45,7 @@ func (o OgProcessor) Run() {
 	}()
 }
 
-func (o OgProcessor) HandleOgMessage(message msg.TransportableMessage, source communicator.PeerIdentifier) {
+func (o OgProcessor) HandleOgMessage(message msg.OgMessage, source communicator.PeerIdentifier) {
 	switch message.OgMessageType(message.GetType()) {
 	case message.MessageTypePing:
 		o.HandleMessagePing(source)
@@ -66,7 +66,7 @@ func (o OgProcessor) HandleMessagePong(source communicator.PeerIdentifier) {
 	logrus.Debugf("received pong from %d.", source.Id)
 }
 
-func (o OgProcessor) HandleMessageNewResource(message msg.TransportableMessage, identifier communicator.PeerIdentifier) {
+func (o OgProcessor) HandleMessageNewResource(message msg.OgMessage, identifier communicator.PeerIdentifier) {
 	msg := message.(*message.MessageNewResource)
 	// decode all resources and announce it to the receivers.
 	for _, resource := range msg.Resources {

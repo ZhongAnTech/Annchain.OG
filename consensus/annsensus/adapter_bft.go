@@ -3,6 +3,7 @@ package annsensus
 import (
 	"bytes"
 	"errors"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
@@ -39,6 +40,15 @@ type TrustfulBftAdapter struct {
 	signatureProvider      account.SignatureProvider
 	termHolder             HistoricalTermsHolder
 	bftMessageUnmarshaller *BftMessageUnmarshaller
+}
+
+func (r *TrustfulBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
+	return AnnsensusPeer{
+		Id:             0,
+		PublicKey:      crypto.PublicKey{},
+		Address:        common.Address{},
+		PublicKeyBytes: nil,
+	}
 }
 
 func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg AnnsensusMessage, err error) {

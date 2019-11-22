@@ -1,4 +1,4 @@
-package ogmessage
+package og
 
 // og protocol message codes
 // TODO: use MessageTypeManager to manage global messages

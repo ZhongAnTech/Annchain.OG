@@ -9,7 +9,7 @@ import (
 type P2PSender interface {
 	BroadcastMessage(msg msg.TransportableMessage)
 	AnonymousSendMessage(msg msg.TransportableMessage, anonymousPubKey *crypto.PublicKey)
-	SendToPeer(msg msg.TransportableMessage, peerId string) error
+	SendToPeer(msg msg.TransportableMessage, peerId PeerIdentifier) error
 }
 
 // P2PReceiver provides a channel for consumer to receive messages from p2p

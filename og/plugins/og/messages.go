@@ -1,4 +1,4 @@
-package ogmessage
+package og
 
 import (
 	"fmt"

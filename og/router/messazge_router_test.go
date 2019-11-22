@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/plugins/og"
 	"github.com/annchain/OG/types/msg"
 	"testing"
 )
@@ -9,7 +9,5 @@ import (
 func TestRouter(t *testing.T) {
 	msgRouter := NewMessageRouter()
 
-	ogProcessor := ogP
-
-	msgRouter.Register(msg.BinaryMessageType(ogmessage.MessageTypePing), )
+	msgRouter.Register(msg.BinaryMessageType(og.MessageTypePing), )
 }

@@ -1,9 +1,8 @@
-package processor
+package og
 
 import (
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/og/communicator"
-	"github.com/annchain/OG/og/protocol/ogmessage"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -47,19 +46,19 @@ func (o OgProcessor) Run() {
 }
 
 func (o OgProcessor) HandleOgMessage(message msg.TransportableMessage, source communicator.PeerIdentifier) {
-	switch ogmessage.OgMessageType(message.GetType()) {
-	case ogmessage.MessageTypePing:
+	switch message.OgMessageType(message.GetType()) {
+	case message.MessageTypePing:
 		o.HandleMessagePing(source)
-	case ogmessage.MessageTypePong:
+	case message.MessageTypePong:
 		o.HandleMessagePong(source)
-	case ogmessage.MessageTypeNewResource:
+	case message.MessageTypeNewResource:
 		o.HandleMessageNewResource(message, source)
 	}
 }
 
 func (o OgProcessor) HandleMessagePing(source communicator.PeerIdentifier) {
 	logrus.Debugf("received ping from %d. Respond you a pong.", source.Id)
-	o.outgoing.Unicast(&ogmessage.MessagePong{}, source)
+	o.outgoing.Unicast(&MessagePong{}, source)
 
 }
 
@@ -68,7 +67,7 @@ func (o OgProcessor) HandleMessagePong(source communicator.PeerIdentifier) {
 }
 
 func (o OgProcessor) HandleMessageNewResource(message msg.TransportableMessage, identifier communicator.PeerIdentifier) {
-	msg := message.(*ogmessage.MessageNewResource)
+	msg := message.(*message.MessageNewResource)
 	// decode all resources and announce it to the receivers.
 	for _, resource := range msg.Resources {
 		logrus.Infof("Received resource: %s", hexutil.Encode(resource.ResourceContent))
@@ -76,5 +75,5 @@ func (o OgProcessor) HandleMessageNewResource(message msg.TransportableMessage, 
 }
 
 func (o OgProcessor) SendMessagePing(peer communicator.PeerIdentifier) {
-	o.outgoing.Unicast(&ogmessage.MessagePing{}, peer)
+	o.outgoing.Unicast(&MessagePing{}, peer)
 }

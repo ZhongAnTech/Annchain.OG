@@ -1,10 +1,13 @@
 package router
 
-import "github.com/annchain/OG/types/msg"
+import (
+	"github.com/annchain/OG/og/communicator"
+	"github.com/annchain/OG/types/msg"
+)
 
 type MessageHandler interface {
-	UnmarshalMessage(message msg.BinaryMessage) msg.TransportableMessage
-	Handle(message msg.TransportableMessage)
+	UnmarshalMessage(message msg.BinaryMessage) (msg.TransportableMessage, error)
+	Handle(message msg.TransportableMessage, identifier communicator.PeerIdentifier)
 }
 
 type MessageRouter struct {

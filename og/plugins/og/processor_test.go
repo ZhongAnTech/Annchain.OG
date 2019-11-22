@@ -1,4 +1,4 @@
-package processor
+package og
 
 import (
 	"github.com/annchain/OG/ffchan"
@@ -92,9 +92,7 @@ func TestPingPong(t *testing.T) {
 
 	// send ping
 	logrus.Info("Sending ping")
-
 	processors[0].SendMessagePing(peerInfos[1])
-
 	time.Sleep(time.Minute * 4)
 
 }

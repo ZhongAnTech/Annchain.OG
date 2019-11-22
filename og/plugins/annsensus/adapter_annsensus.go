@@ -1,9 +1,9 @@
-package communicator
+package annsensus
 
 import (
 	"errors"
 	"github.com/annchain/OG/consensus/annsensus"
-	"github.com/annchain/OG/og/protocol/ogmessage"
+	"github.com/annchain/OG/og/plugins/og"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -37,8 +37,8 @@ type SimpleAnnsensusAdapter struct {
 }
 
 func (s SimpleAnnsensusAdapter) AdaptMessage(incomingMsg msg.TransportableMessage) (annMsg annsensus.AnnsensusMessage, err error) {
-	mssageType := ogmessage.OgMessageType(incomingMsg.GetType())
-	if mssageType != ogmessage.MessageTypeAnnsensus {
+	mssageType := og.OgMessageType(incomingMsg.GetType())
+	if mssageType != og.MessageTypeAnnsensus {
 		err = errors.New("SimpleAnnsensusAdapter received a message of an unsupported type")
 		return
 	}

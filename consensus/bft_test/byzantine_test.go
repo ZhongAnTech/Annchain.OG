@@ -16,14 +16,14 @@ type ByzantineFeatures struct {
 
 type dummyByzantineBftPeerCommunicator struct {
 	Myid              int
-	PeerPipeIns       []chan bft.BftMessage
-	pipeIn            chan bft.BftMessage
-	pipeOut           chan bft.BftMessage
+	PeerPipeIns       []chan *bft.BftMessageEvent
+	pipeIn            chan *bft.BftMessageEvent
+	pipeOut           chan *bft.BftMessageEvent
 	ByzantineFeatures ByzantineFeatures
 }
 
-func (d *dummyByzantineBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
-	d.pipeIn <- msg
+func (d *dummyByzantineBftPeerCommunicator) HandleIncomingMessage(msgEvent *bft.BftMessageEvent) {
+	d.pipeIn <- msgEvent
 }
 
 func (d *dummyByzantineBftPeerCommunicator) Run() {
@@ -49,7 +49,10 @@ func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers 
 	}
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
-			d.PeerPipeIns[peer.Id] <- msg
+			d.PeerPipeIns[peer.Id] <- &bft.BftMessageEvent{
+				Message: msg,
+				Peer:    peer,
+			}
 		}(peer)
 	}
 }
@@ -67,25 +70,28 @@ func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft
 		return
 	}
 	go func() {
-		d.PeerPipeIns[peer.Id] <- msg
+		d.PeerPipeIns[peer.Id] <- &bft.BftMessageEvent{
+			Message: msg,
+			Peer:    peer,
+		}
 	}()
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeIn() chan *bft.BftMessageEvent {
 	return d.pipeIn
 }
 
-func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+func (d *dummyByzantineBftPeerCommunicator) GetPipeOut() chan *bft.BftMessageEvent {
 	return d.pipeOut
 }
 
-func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage,
+func NewDummyByzantineBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, peers []chan *bft.BftMessageEvent,
 	byzantineFeatures ByzantineFeatures) *dummyByzantineBftPeerCommunicator {
 	d := &dummyByzantineBftPeerCommunicator{
 		PeerPipeIns:       peers,
 		Myid:              myid,
 		pipeIn:            incoming,
-		pipeOut:           make(chan bft.BftMessage),
+		pipeOut:           make(chan *bft.BftMessageEvent),
 		ByzantineFeatures: byzantineFeatures,
 	}
 	return d

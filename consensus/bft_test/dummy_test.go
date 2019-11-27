@@ -2,72 +2,60 @@ package bft_test
 
 import (
 	"github.com/annchain/OG/consensus/bft"
-	"github.com/annchain/OG/og/message"
-	msg2 "github.com/annchain/OG/types/msg"
 )
 
-type dummyBftPeerCommunicator struct {
+type LocalBftPeerCommunicator struct {
 	Myid    int
-	PeerIns []chan bft.BftMessage
-	pipeIn  chan bft.BftMessage //pipeIn is the receiver of the outside messages
-	pipeOut chan bft.BftMessage //pipeOut is the providing channel for new messages parsed from pipeIn
+	PeerIns []chan *bft.BftMessageEvent
+	pipeIn  chan *bft.BftMessageEvent //pipeIn is the receiver of the outside messages
+	pipeOut chan *bft.BftMessageEvent //pipeOut is the providing channel for new messages parsed from pipeIn
 }
 
-
-func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg bft.BftMessage) {
-	d.pipeIn <- msg
+func (d *LocalBftPeerCommunicator) HandleIncomingMessage(msgEvent *bft.BftMessageEvent) {
+	d.pipeIn <- msgEvent
 }
 
-func NewDummyBftPeerCommunicator(myid int, incoming chan bft.BftMessage, peers []chan bft.BftMessage) *dummyBftPeerCommunicator {
-	d := &dummyBftPeerCommunicator{
+func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, peers []chan *bft.BftMessageEvent) *LocalBftPeerCommunicator {
+	d := &LocalBftPeerCommunicator{
 		PeerIns: peers,
 		Myid:    myid,
 		pipeIn:  incoming,
-		pipeOut: make(chan bft.BftMessage),
+		pipeOut: make(chan *bft.BftMessageEvent),
 	}
 	return d
 }
 
-func (d *dummyBftPeerCommunicator) wraptypes(msg bft.BftMessage) *message.types {
-	return &message.types{
-		MessageType:    msg2.BinaryMessageType(msg.GetType()),
-		Data:           nil,
-		Hash:           nil,
-		SourceID:       "",
-		SendingType:    0,
-		Version:        0,
-		Message:        msg.Payload,
-		SourceHash:     nil,
-		MarshalState:   false,
-		DisableEncrypt: false,
-	}
-}
-
-func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+func (d *LocalBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
 	for _, peer := range peers {
 		go func(peer bft.PeerInfo) {
 			//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
-			d.PeerIns[peer.Id] <- msg
+			d.PeerIns[peer.Id] <- &bft.BftMessageEvent{
+				Message: msg,
+				Peer:    peer,
+			}
 		}(peer)
 	}
 }
 
-func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+func (d *LocalBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
-		d.PeerIns[peer.Id] <- msg
+		d.PeerIns[peer.Id] <- &bft.BftMessageEvent{
+			Message: msg,
+			Peer:    peer,
+		}
 	}()
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeIn() chan bft.BftMessage {
+func (d *LocalBftPeerCommunicator) GetPipeIn() chan *bft.BftMessageEvent {
 	return d.pipeIn
 }
 
-func (d *dummyBftPeerCommunicator) GetPipeOut() chan bft.BftMessage {
+func (d *LocalBftPeerCommunicator) GetPipeOut() chan *bft.BftMessageEvent {
 	return d.pipeOut
 }
 
-func (d *dummyBftPeerCommunicator) Run() {
+func (d *LocalBftPeerCommunicator) Run() {
 	go func() {
 		for {
 			v := <-d.pipeIn
@@ -82,7 +70,9 @@ type dummyProposalGenerator struct {
 }
 
 func (d dummyProposalGenerator) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
-	p := bft.StringProposal("xxx")
+	p := bft.StringProposal{
+		Content: "XXX",
+	}
 	return &p, bft.ProposalCondition{ValidHeight: d.CurrentHeight}
 }
 

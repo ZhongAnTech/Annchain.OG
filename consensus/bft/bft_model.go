@@ -139,3 +139,8 @@ type BftStatus struct {
 	Peers     []PeerInfo
 	States    HeightRoundStateMap // for line 55, round number -> count
 }
+type BftMessageEvent struct {
+	Message BftMessage
+	Peer    PeerInfo
+}
+

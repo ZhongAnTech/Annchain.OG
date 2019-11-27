@@ -309,7 +309,7 @@ func (d *LocalAnnsensusPeerCommunicator) GetPipeOut() chan annsensus.AnnsensusMe
 	return d.pipe
 }
 
-func NewDummyAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *LocalAnnsensusPeerCommunicator {
+func NewLocalAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *LocalAnnsensusPeerCommunicator {
 	d := &LocalAnnsensusPeerCommunicator{
 		Myid:  myid,
 		Peers: peers,

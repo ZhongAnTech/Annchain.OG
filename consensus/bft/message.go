@@ -36,11 +36,6 @@ type BftMessage interface {
 	String() string
 }
 
-type BftMessageEvent struct {
-	Message BftMessage
-	Peer    PeerInfo
-}
-
 // HeightRound is the current progress of the consensus.
 // Height is the block height, round is the sub-progress if no consensus can be easily reached
 //msgp:tuple HeightRound

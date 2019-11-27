@@ -13,64 +13,58 @@
 // limitations under the License.
 package annsensus_test
 
-import (
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/types"
-)
-
-type DummyDag struct {
-}
-
-func (d *DummyDag) GetTx(hash common.Hash) types.Txi {
-	return nil
-}
-
-func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
-	return nil
-}
-
-func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
-	return 0, nil
-}
-
-func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
-	return &types.Sequencer{
-		TxBase: types.TxBase{Height: id},
-	}
-}
-
-func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
-	var txis types.Txis
-	txis = append(txis, archive.RandomTx(), archive.RandomTx())
-	return txis
-}
-
-func (d *DummyDag) LatestSequencer() *types.Sequencer {
-	return types.RandomSequencer()
-}
-
-func (d *DummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
-	return &types.Sequencer{
-		TxBase: types.TxBase{Height: id,
-			Hash: hash},
-	}
-}
-
-func (d *DummyDag) Genesis() *types.Sequencer {
-	return &types.Sequencer{
-		TxBase: types.TxBase{Height: 0},
-	}
-}
-
-func (d *DummyDag) GetHeight() uint64 {
-	return 0
-}
-
-func (d *DummyDag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
-	return nil
-}
-
-func (d *DummyDag) GetBalance(addr common.Address, tokenId int32) *math.BigInt {
-	return math.NewBigInt(100000)
-}
+//type DummyDag struct {
+//}
+//
+//func (d *DummyDag) GetTx(hash common.Hash) types.Txi {
+//	return nil
+//}
+//
+//func (d *DummyDag) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
+//	return nil
+//}
+//
+//func (d *DummyDag) GetLatestNonce(addr common.Address) (uint64, error) {
+//	return 0, nil
+//}
+//
+//func (d *DummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
+//	return &types.Sequencer{
+//		TxBase: types.TxBase{Height: id},
+//	}
+//}
+//
+//func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
+//	var txis types.Txis
+//	txis = append(txis, archive.RandomTx(), archive.RandomTx())
+//	return txis
+//}
+//
+//func (d *DummyDag) LatestSequencer() *types.Sequencer {
+//	return types.RandomSequencer()
+//}
+//
+//func (d *DummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
+//	return &types.Sequencer{
+//		TxBase: types.TxBase{Height: id,
+//			Hash: hash},
+//	}
+//}
+//
+//func (d *DummyDag) Genesis() *types.Sequencer {
+//	return &types.Sequencer{
+//		TxBase: types.TxBase{Height: 0},
+//	}
+//}
+//
+//func (d *DummyDag) GetHeight() uint64 {
+//	return 0
+//}
+//
+//func (d *DummyDag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
+//	return nil
+//}
+//
+//func (d *DummyDag) GetBalance(addr common.Address, tokenId int32) *math.BigInt {
+//	return math.NewBigInt(100000)
+//}

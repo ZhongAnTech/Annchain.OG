@@ -358,7 +358,8 @@ func (p *DefaultBftPartner) WaitStepTimeout(stepType StepType, timeout time.Dura
 	})
 }
 
-func (p *DefaultBftPartner) handleMessage(message BftMessage) {
+func (p *DefaultBftPartner) handleMessage(messageEvent *BftMessageEvent) {
+	message := messageEvent.Message
 	switch message.GetType() {
 	case BftMessageTypeProposal:
 		msg, ok := message.(*BftMessageProposal)

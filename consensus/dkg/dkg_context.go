@@ -64,7 +64,7 @@ func NewDkgContext(s *bn256.Suite, termId uint32) *DkgContext {
 // Then it is possible to sign and verify data.
 func (p *DkgContext) GenerateDKGer() error {
 	// use all partPubs and my partSec to generate a dkg
-	log.WithField(" len", len(p.PartPubs)).Debug("part public keys")
+	log.WithField("partPubLen", len(p.PartPubs)).Debug("generating DKGer")
 	participants := PartPubs(p.PartPubs).Points()
 	dkger, err := dkg.NewDistKeyGenerator(p.Suite, p.Me.Scalar, participants, p.Threshold)
 	if err != nil {

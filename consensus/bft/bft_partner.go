@@ -92,7 +92,7 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 
 	logrus.WithField("n", p.BftStatus.N).WithField("F", p.BftStatus.F).
 		WithField("IM", p.Id).
-		WithField("maj23", p.BftStatus.Maj23).Debug("new bft")
+		WithField("maj23", p.BftStatus.Maj23).Debug("New BFT parnter generated")
 	return p
 }
 
@@ -180,14 +180,14 @@ func (p *DefaultBftPartner) StartNewEra(height uint64, round int) {
 		var proposal Proposal
 		var validCondition ProposalCondition
 		if currState.ValidValue != nil {
-			logrus.WithField("hr ", hr).Trace("will got valid value")
+			logrus.WithField("hr ", hr).Trace("proposal will use current state valid value")
 			proposal = currState.ValidValue
 		} else {
 			if round == 0 {
-				logrus.WithField("hr ", hr).Trace("will got new height value")
+				logrus.WithField("hr ", hr).Trace("proposal will use value in new height")
 				proposal, validCondition = p.GetValue(true)
 			} else {
-				logrus.WithField("hr ", hr).Trace("will got new round value")
+				logrus.WithField("hr ", hr).Trace("proposal will use value in new round")
 				proposal, validCondition = p.GetValue(false)
 			}
 			if validCondition.ValidHeight != p.BftStatus.CurrentHR.Height {
@@ -201,7 +201,7 @@ func (p *DefaultBftPartner) StartNewEra(height uint64, round int) {
 				//
 			}
 		}
-		logrus.WithField("proposal ", proposal).Trace("new proposal")
+		logrus.WithField("proposal ", proposal).Trace("new proposal generated")
 		// broadcastWaiterTimeoutChannel
 		p.Broadcast(BftMessageTypeProposal, p.BftStatus.CurrentHR, proposal, currState.ValidRound)
 	} else {

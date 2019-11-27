@@ -54,7 +54,6 @@ type BftMessageAdapter interface {
 
 	AdaptBftMessage(outgoingMsg bft.BftMessage) (AnnsensusMessage, error)
 	AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error)
-
 }
 
 type DkgMessageAdapter interface {
@@ -75,6 +74,7 @@ type AnnsensusPeerCommunicatorOutgoing interface {
 	Broadcast(msg AnnsensusMessage, peers []AnnsensusPeer)
 	Unicast(msg AnnsensusMessage, peer AnnsensusPeer)
 }
+
 type AnnsensusMessageHandler interface {
 	HandleMessage(msg AnnsensusMessage, peer AnnsensusPeer)
 	//GetPipeIn() chan AnnsensusMessage

@@ -11,10 +11,9 @@ import (
 
 // AnnsensusProcessor integrates dkg, bft and term change with vrf.
 type AnnsensusProcessor struct {
-	config     AnnsensusProcessorConfig
-	bftAdapter BftMessageAdapter // message handlers in common. Injected into commuinicator
-	dkgAdapter DkgMessageAdapter // message handlers in common. Injected into commuinicator
-	//annsensusCommunicator *AnnsensusPeerCommunicator // interface to the p2p
+	config             AnnsensusProcessorConfig
+	bftAdapter         BftMessageAdapter // message handlers in common. Injected into commuinicator
+	dkgAdapter         DkgMessageAdapter // message handlers in common. Injected into commuinicator
 	termProvider       TermIdProvider
 	termHolder         HistoricalTermsHolder // hold information for each term
 	bftPartnerProvider BftPartnerProvider    // factory method to generate a bft partner for each term

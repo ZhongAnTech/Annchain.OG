@@ -80,11 +80,11 @@ func (w *Waiter) StartEventLoop() {
 				if w.currentRequest != nil {
 					logrus.WithField("new", latestContext.(*TendermintContext).StepType).
 						WithField("old", w.currentRequest.Context.(*TendermintContext).StepType).
-						Debug("new state updated")
+						Debug("bft new state updated")
 				} else {
 					logrus.WithField("new", latestContext.(*TendermintContext).StepType).
 						WithField("old", nil).
-						Debug("new state updated")
+						Debug("bft new state updated")
 				}
 				if !timer.Stop() {
 					// drain the timer but do not use the method in document

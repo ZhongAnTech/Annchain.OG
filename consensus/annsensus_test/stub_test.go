@@ -285,16 +285,17 @@ type LocalAnnsensusPeerCommunicator struct {
 
 func (d *LocalAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
 	for _, peer := range peers {
-		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting annsensus message")
+		logrus.WithField("peer", peer.Id).WithField("IM", d.Myid).
+			WithField("msg", msg).Debug("local broadcasting annsensus message")
 		go func(peer annsensus.AnnsensusPeer) {
 			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "annsensus")
-			//d.PeerPipeIns[peer.Id] <- msg
+			//d.Peers[peer.Id] <- msg
 		}(peer)
 	}
 }
 
 func (d *LocalAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {
-	logrus.Debug("unicasting by dummyBftPeerCommunicator")
+	logrus.Debug("local unicasting by dummyBftPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
 		d.Peers[peer.Id] <- msg

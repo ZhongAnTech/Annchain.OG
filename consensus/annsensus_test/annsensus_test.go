@@ -105,7 +105,7 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 	// both bft and dkg messages will be adapted to AnnsensusMessage
 	peerChans := make([]chan annsensus.AnnsensusMessage, nodes)
 	for i := 0; i < nodes; i++ {
-		peerChans[i] = make(chan annsensus.AnnsensusMessage, 50)
+		peerChans[i] = make(chan annsensus.AnnsensusMessage)
 	}
 
 	aps := make([]*annsensus.AnnsensusProcessor, nodes)

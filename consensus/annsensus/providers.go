@@ -19,6 +19,8 @@ type DefaultAnnsensusPartnerProvider struct {
 	proposalGenerator bft.ProposalGenerator   // interface to the ledger
 	proposalValidator bft.ProposalValidator   // interface to the ledger
 	decisionMaker     bft.DecisionMaker       // interface to the ledger
+	bftAdatper        BftMessageAdapter
+	dkgAdatper        DkgMessageAdapter
 	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing
 }
 
@@ -27,18 +29,22 @@ func NewDefaultAnnsensusPartnerProvider(
 	proposalGenerator bft.ProposalGenerator,
 	proposalValidator bft.ProposalValidator,
 	decisionMaker bft.DecisionMaker,
+	bftAdatper BftMessageAdapter,
+	dkgAdatper DkgMessageAdapter,
 	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing) *DefaultAnnsensusPartnerProvider {
 	return &DefaultAnnsensusPartnerProvider{
 		myAccountProvider: myAccountProvider,
 		proposalGenerator: proposalGenerator,
 		proposalValidator: proposalValidator,
 		decisionMaker:     decisionMaker,
+		bftAdatper:        bftAdatper,
+		dkgAdatper:        dkgAdatper,
 		annsensusOutgoing: annsensusOutgoing,
 	}
 }
 
 func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
-	dkgComm := NewProxyDkgPeerCommunicator(d.annsensusOutgoing)
+	dkgComm := NewProxyDkgPeerCommunicator(d.dkgAdatper, d.annsensusOutgoing)
 	currentTerm := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
 		currentTerm.Suite,
@@ -53,7 +59,7 @@ func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context Consensus
 }
 
 func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context ConsensusContextProvider) bft.BftPartner {
-	bftComm := NewProxyBftPeerCommunicator(d.annsensusOutgoing)
+	bftComm := NewProxyBftPeerCommunicator(d.bftAdatper, d.annsensusOutgoing)
 
 	bftPartner := bft.NewDefaultBFTPartner(
 		context.GetTerm().PartsNum,

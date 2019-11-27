@@ -205,11 +205,11 @@ func (d *dummyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo
 	}(peer.Id)
 }
 
-func (d *dummyDkgPeerCommunicator) GetPipeIn() chan dkg.DkgMessage {
+func (d *dummyDkgPeerCommunicator) GetPipeIn() chan *dkg.DkgMessageEvent {
 	return d.pipeIn
 }
 
-func (d *dummyDkgPeerCommunicator) GetPipeOut() chan dkg.DkgMessage {
+func (d *dummyDkgPeerCommunicator) GetPipeOut() chan *dkg.DkgMessageEvent {
 	return d.pipeOut
 }
 
@@ -277,13 +277,13 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 	return bftPartner
 }
 
-type dummyAnnsensusPeerCommunicator struct {
+type LocalAnnsensusPeerCommunicator struct {
 	Myid  int
 	Peers []chan annsensus.AnnsensusMessage
 	pipe  chan annsensus.AnnsensusMessage
 }
 
-func (d *dummyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
+func (d *LocalAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting annsensus message")
 		go func(peer annsensus.AnnsensusPeer) {
@@ -293,7 +293,7 @@ func (d *dummyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessag
 	}
 }
 
-func (d *dummyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {
+func (d *LocalAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {
 	logrus.Debug("unicasting by dummyBftPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
@@ -301,16 +301,16 @@ func (d *dummyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage,
 	}()
 }
 
-func (d *dummyAnnsensusPeerCommunicator) GetPipeIn() chan annsensus.AnnsensusMessage {
+func (d *LocalAnnsensusPeerCommunicator) GetPipeIn() chan annsensus.AnnsensusMessage {
 	return d.pipe
 }
 
-func (d *dummyAnnsensusPeerCommunicator) GetPipeOut() chan annsensus.AnnsensusMessage {
+func (d *LocalAnnsensusPeerCommunicator) GetPipeOut() chan annsensus.AnnsensusMessage {
 	return d.pipe
 }
 
-func NewDummyAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *dummyAnnsensusPeerCommunicator {
-	d := &dummyAnnsensusPeerCommunicator{
+func NewDummyAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *LocalAnnsensusPeerCommunicator {
+	d := &LocalAnnsensusPeerCommunicator{
 		Myid:  myid,
 		Peers: peers,
 		pipe:  incoming,

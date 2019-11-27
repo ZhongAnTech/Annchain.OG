@@ -61,7 +61,7 @@ type DkgMessageAdapter interface {
 	AdaptAnnsensusPeer(AnnsensusPeer) (dkg.PeerInfo, error)
 
 	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (AnnsensusMessage, error)
-	AdaptDkgPeer(bftPeer dkg.PeerInfo) (AnnsensusPeer, error)
+	AdaptDkgPeer(dkgPeer dkg.PeerInfo) (AnnsensusPeer, error)
 }
 
 type AnnsensusMessage interface {

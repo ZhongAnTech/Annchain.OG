@@ -3,12 +3,55 @@ package annsensus
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/consensus/dkg"
 	"sync"
 )
 
 type HeightInfoCarrier interface {
 	ProvideHeight() uint64
 }
+
+type TermCollection struct {
+	contextProvider ConsensusContextProvider
+	BftPartner      bft.BftPartner
+	DkgPartner      dkg.DkgPartner
+	quit            chan bool
+	quitWg          sync.WaitGroup
+}
+
+func NewTermCollection(
+	contextProvider ConsensusContextProvider,
+	bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermCollection {
+	return &TermCollection{
+		contextProvider: contextProvider,
+		BftPartner:      bftPartner,
+		DkgPartner:      dkgPartner,
+		quit:            make(chan bool),
+		quitWg:          sync.WaitGroup{},
+	}
+}
+
+func (tc *TermCollection) Start() {
+	// start all operators for this term.
+	tc.quitWg.Add(1)
+loop:
+	for {
+		select {
+		case <-tc.quit:
+			tc.BftPartner.Stop()
+			tc.DkgPartner.Stop()
+			tc.quitWg.Done()
+			break loop
+		}
+	}
+}
+
+func (tc *TermCollection) Stop() {
+	close(tc.quit)
+	tc.quitWg.Wait()
+}
+
 
 type AnnsensusTermHolder struct {
 	// in case of disordered message, cache the terms and the correspondent processors.

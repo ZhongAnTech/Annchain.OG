@@ -50,13 +50,19 @@ type HeightProvider interface {
 // During the converting process there may be some validation and signing operations.
 type BftMessageAdapter interface {
 	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (bft.BftMessage, error)
+	AdaptAnnsensusPeer(AnnsensusPeer) (bft.PeerInfo, error)
+
 	AdaptBftMessage(outgoingMsg bft.BftMessage) (AnnsensusMessage, error)
 	AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error)
+
 }
 
 type DkgMessageAdapter interface {
 	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (dkg.DkgMessage, error)
+	AdaptAnnsensusPeer(AnnsensusPeer) (dkg.PeerInfo, error)
+
 	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (AnnsensusMessage, error)
+	AdaptDkgPeer(bftPeer dkg.PeerInfo) (AnnsensusPeer, error)
 }
 
 type AnnsensusMessage interface {
@@ -69,7 +75,8 @@ type AnnsensusPeerCommunicatorOutgoing interface {
 	Broadcast(msg AnnsensusMessage, peers []AnnsensusPeer)
 	Unicast(msg AnnsensusMessage, peer AnnsensusPeer)
 }
-type AnnsensusPeerCommunicatorIncoming interface {
-	GetPipeIn() chan AnnsensusMessage
-	GetPipeOut() chan AnnsensusMessage
+type AnnsensusMessageHandler interface {
+	HandleMessage(msg AnnsensusMessage, peer AnnsensusPeer)
+	//GetPipeIn() chan AnnsensusMessage
+	//GetPipeOut() chan AnnsensusMessage
 }

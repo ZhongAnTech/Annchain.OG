@@ -110,9 +110,9 @@ func (r *TrustfulDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (msg An
 	return
 }
 
-func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) AnnsensusMessageSigned {
+func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) AnnsensusMessageDkgSigned {
 	publicKey, signature := r.signatureProvider.Sign(message.SignatureTargets())
-	signed := AnnsensusMessageSigned{
+	signed := AnnsensusMessageDkgSigned{
 		InnerMessageType: uint16(message.GetType()),
 		InnerMessage:     message.SignatureTargets(),
 		Signature:        signature,
@@ -135,12 +135,30 @@ type PlainDkgAdapter struct {
 	dkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 
+func (p PlainDkgAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (dkg.PeerInfo, error) {
+	return dkg.PeerInfo{
+		Id:             annPeer.Id,
+		PublicKey:      annPeer.PublicKey,
+		Address:        annPeer.Address,
+		PublicKeyBytes: annPeer.PublicKeyBytes,
+	}, nil
+}
+
+func (p PlainDkgAdapter) AdaptDkgPeer(dkgPeer dkg.PeerInfo) (AnnsensusPeer, error) {
+	return AnnsensusPeer{
+		Id:             dkgPeer.Id,
+		PublicKey:      dkgPeer.PublicKey,
+		Address:        dkgPeer.Address,
+		PublicKeyBytes: dkgPeer.PublicKeyBytes,
+	}, nil
+}
+
 func (p PlainDkgAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg dkg.DkgMessage, err error) {
 	if incomingMsg.GetType() != AnnsensusMessageTypeDkgSigned {
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(*AnnsensusMessageSigned)
+	iMsg := incomingMsg.(*AnnsensusMessageDkgSigned)
 	innerMessageType := dkg.DkgMessageType(iMsg.InnerMessageType)
 
 	switch innerMessageType {
@@ -167,7 +185,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageDkgPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -177,7 +195,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageDkgPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -187,7 +205,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageDkgPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -197,7 +215,7 @@ func (p PlainDkgAdapter) AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageDkgPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}

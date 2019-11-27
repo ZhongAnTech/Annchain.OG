@@ -133,9 +133,9 @@ func NewTrustfulBftAdapter(
 	return &TrustfulBftAdapter{signatureProvider: signatureProvider, termHolder: termHolder}
 }
 
-func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSigned {
+func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBftSigned {
 	publicKey, signature := r.signatureProvider.Sign(rawMessage.SignatureTargets())
-	signedMessage := AnnsensusMessageSigned{
+	signedMessage := AnnsensusMessageBftSigned{
 		InnerMessageType: uint16(rawMessage.GetType()),
 		InnerMessage:     rawMessage.SignatureTargets(),
 		Signature:        signature,
@@ -160,7 +160,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageSig
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
 
-func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageSigned) error {
+func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageBftSigned) error {
 	term, err := b.termHolder.GetTermById(signedMsg.TermId)
 	if err != nil {
 		// this term is unknown.
@@ -190,9 +190,9 @@ func (b *TrustfulBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage)
 		return
 	}
 
-	signedMsg, ok := incomingMsg.(*AnnsensusMessageSigned)
+	signedMsg, ok := incomingMsg.(*AnnsensusMessageBftSigned)
 	if !ok {
-		err = errors.New("TrustfulBftAdapter received a message of type AnnsensusMessageSigned but it is not.")
+		err = errors.New("TrustfulBftAdapter received a message of type AnnsensusMessageBftSigned but it is not.")
 		return
 	}
 
@@ -224,6 +224,15 @@ type PlainBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
+func (p PlainBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo, error) {
+	return bft.PeerInfo{
+		Id:             annPeer.Id,
+		PublicKey:      annPeer.PublicKey,
+		Address:        annPeer.Address,
+		PublicKeyBytes: annPeer.PublicKeyBytes,
+	}, nil
+}
+
 func (p PlainBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
 	return AnnsensusPeer{
 		Id:             bftPeer.Id,
@@ -238,7 +247,7 @@ func (p PlainBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (ms
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}
-	iMsg := incomingMsg.(*AnnsensusMessagePlain)
+	iMsg := incomingMsg.(*AnnsensusMessageBftPlain)
 	innerMessageType := bft.BftMessageType(iMsg.InnerMessageType)
 
 	switch innerMessageType {
@@ -264,7 +273,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageBftPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -274,7 +283,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageBftPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}
@@ -284,7 +293,7 @@ func (p PlainBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (adaptedMes
 		if err != nil {
 			return
 		}
-		adaptedMessage = &AnnsensusMessagePlain{
+		adaptedMessage = &AnnsensusMessageBftPlain{
 			InnerMessageType: uint16(omsg.GetType()),
 			InnerMessage:     msgBytes,
 		}

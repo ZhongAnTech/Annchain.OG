@@ -113,8 +113,13 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 
 	for i := 0; i < nodes; i++ {
 		// init AnnsensusPeerCommunicator for each node
-		bftAdapter := annsensus.PlainBftAdapter{}
-		dkgAdapter := annsensus.PlainDkgAdapter{}
+		bftAdapter := &annsensus.PlainBftAdapter{}
+		dkgAdapter := &annsensus.PlainDkgAdapter{}
+		communicator := &LocalAnnsensusPeerCommunicator{
+			Myid:  i,
+			Peers: peerChans,
+			pipe:  peerChans[i],
+		}
 
 		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
@@ -123,11 +128,13 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 			&dummyProposalGenerator{},
 			&dummyProposalValidator{},
 			&dummyDecisionMaker{},
-			annsensusCommunicator,
+			bftAdapter,
+			dkgAdapter,
+			communicator,
 		)
 
 		ann := annsensus.NewAnnsensusProcessor(config,
-			bftAdapter, dkgAdapter, annsensusCommunicator,
+			bftAdapter, dkgAdapter, communicator,
 			termProvider, termHolder,
 			defaultAnnsensusPartnerProvider,
 			defaultAnnsensusPartnerProvider,

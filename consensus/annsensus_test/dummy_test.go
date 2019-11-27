@@ -17,7 +17,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
 )
 
 type DummyDag struct {

@@ -140,9 +140,9 @@ func (p *DefaultDkgPartner) gossipLoop() {
 		case <-timer.C:
 			logrus.WithField("IM", p.context.Me.Peer.Address.ShortString()).Warn("Blocked reading incoming dkg")
 			//p.checkWaitingForWhat()
-		case msg := <-pipeOutChannel:
-			logrus.WithField("me", p.context.MyIndex).WithField("type", msg.GetType()).Trace("received a message")
-			p.handleMessage(msg)
+		case msgEvent := <-pipeOutChannel:
+			logrus.WithField("me", p.context.MyIndex).WithField("type", msgEvent.Message.GetType()).Trace("received a message")
+			p.handleMessage(msgEvent)
 		}
 	}
 
@@ -206,7 +206,8 @@ func (p *DefaultDkgPartner) sendResponseToAllRestPartners(response *dkger.Respon
 	p.peerCommunicatorOutgoing.Broadcast(msg, p.otherPeers)
 }
 
-func (p *DefaultDkgPartner) handleMessage(message DkgMessage) {
+func (p *DefaultDkgPartner) handleMessage(msgEvent *DkgMessageEvent) {
+	message := msgEvent.Message
 	switch message.GetType() {
 	case DkgMessageTypeDeal:
 		msg, ok := message.(*MessageDkgDeal)

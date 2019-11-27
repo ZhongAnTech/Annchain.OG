@@ -7,6 +7,69 @@ import (
 	"github.com/annchain/OG/types/msg"
 )
 
+type ProxyDkgPeerCommunicator struct {
+	dkgMessageAdapter DkgMessageAdapter
+	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing
+	pipe              chan *dkg.DkgMessageEvent
+}
+
+func NewProxyDkgPeerCommunicator(
+	dkgMessageAdapter DkgMessageAdapter,
+	annsensusCommunicator AnnsensusPeerCommunicatorOutgoing) *ProxyDkgPeerCommunicator {
+	return &ProxyDkgPeerCommunicator{
+		dkgMessageAdapter: dkgMessageAdapter,
+		annsensusOutgoing: annsensusCommunicator,
+		pipe:              make(chan *dkg.DkgMessageEvent),
+	}
+}
+
+func (p *ProxyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
+	annsensusMessage, err := p.dkgMessageAdapter.AdaptDkgMessage(msg)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	// adapt the interface so that the request can be handled by annsensus
+	annsensusPeers := make([]AnnsensusPeer, len(peers))
+	for i, peer := range peers {
+		adaptedValue, err := p.dkgMessageAdapter.AdaptDkgPeer(peer)
+		if err != nil {
+			panic("adapt should never fail")
+		}
+		annsensusPeers[i] = adaptedValue
+	}
+
+	p.annsensusOutgoing.Broadcast(annsensusMessage, annsensusPeers)
+}
+
+func (p *ProxyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo) {
+	// adapt the interface so that the request can be handled by annsensus
+	annsensusMessage, err := p.dkgMessageAdapter.AdaptDkgMessage(msg)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	annsensusPeer, err := p.dkgMessageAdapter.AdaptDkgPeer(peer)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	p.annsensusOutgoing.Unicast(annsensusMessage, annsensusPeer)
+}
+
+func (p *ProxyDkgPeerCommunicator) GetPipeOut() chan *dkg.DkgMessageEvent {
+	// the channel to be consumed by the downstream.
+	return p.pipe
+}
+
+func (p *ProxyDkgPeerCommunicator) GetPipeIn() chan *dkg.DkgMessageEvent {
+	// the channel to be fed by other peers
+	return p.pipe
+}
+
+func (p *ProxyDkgPeerCommunicator) Run() {
+	// nothing to do
+	return
+}
+
+
 type DkgMessageUnmarshaller struct {
 }
 

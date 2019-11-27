@@ -15,8 +15,11 @@ type ProxyBftPeerCommunicator struct {
 	pipe              chan *bft.BftMessageEvent
 }
 
-func NewProxyBftPeerCommunicator(annsensusOutgoing AnnsensusPeerCommunicatorOutgoing) *ProxyBftPeerCommunicator {
+func NewProxyBftPeerCommunicator(
+	bftMessageAdapter BftMessageAdapter,
+	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing) *ProxyBftPeerCommunicator {
 	return &ProxyBftPeerCommunicator{
+		bftMessageAdapter: bftMessageAdapter,
 		annsensusOutgoing: annsensusOutgoing,
 		pipe:              make(chan *bft.BftMessageEvent),
 	}

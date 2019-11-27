@@ -18,13 +18,13 @@ const (
 	AnnsensusMessageTypeDkgEncrypted
 )
 
-//msgp:tuple AnnsensusMessagePlain
-type AnnsensusMessagePlain struct {
+//msgp:tuple AnnsensusMessageBftPlain
+type AnnsensusMessageBftPlain struct {
 	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessage     []byte
 }
 
-func (z *AnnsensusMessagePlain) GetData() []byte {
+func (z *AnnsensusMessageBftPlain) GetData() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -32,16 +32,16 @@ func (z *AnnsensusMessagePlain) GetData() []byte {
 	return b
 }
 
-func (z *AnnsensusMessagePlain) GetType() AnnsensusMessageType {
-	return AnnsensusMessageTypePlain
+func (z *AnnsensusMessageBftPlain) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeBftPlain
 }
 
-func (z *AnnsensusMessagePlain) String() string {
-	return "AnnsensusMessagePlain"
+func (z *AnnsensusMessageBftPlain) String() string {
+	return "AnnsensusMessageTypeBftPlain"
 }
 
-//msgp:tuple AnnsensusMessageSigned
-type AnnsensusMessageSigned struct {
+//msgp:tuple AnnsensusMessageBftSigned
+type AnnsensusMessageBftSigned struct {
 	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessage     []byte
 	Signature        hexutil.Bytes
@@ -49,11 +49,11 @@ type AnnsensusMessageSigned struct {
 	TermId           uint32
 }
 
-func (m *AnnsensusMessageSigned) GetType() AnnsensusMessageType {
-	return AnnsensusMessageTypeSigned
+func (m *AnnsensusMessageBftSigned) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeBftSigned
 }
 
-func (m *AnnsensusMessageSigned) GetData() []byte {
+func (m *AnnsensusMessageBftSigned) GetData() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -61,22 +61,22 @@ func (m *AnnsensusMessageSigned) GetData() []byte {
 	return b
 }
 
-func (m *AnnsensusMessageSigned) String() string {
-	return "AnnsensusMessageSigned"
+func (m *AnnsensusMessageBftSigned) String() string {
+	return "AnnsensusMessageBftSigned"
 }
 
 //msgp:tuple AnnsensusMessageEncrypted
-type AnnsensusMessageEncrypted struct {
+type AnnsensusMessageBftEncrypted struct {
 	InnerMessageType      uint16 // either bft or dkg type, use uint16 to generalize it
 	InnerMessageEncrypted []byte
 	PublicKey             hexutil.Bytes
 }
 
-func (m *AnnsensusMessageEncrypted) GetType() AnnsensusMessageType {
-	return AnnsensusMessageTypeEncrypted
+func (m *AnnsensusMessageBftEncrypted) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeBftEncrypted
 }
 
-func (m *AnnsensusMessageEncrypted) GetData() []byte {
+func (m *AnnsensusMessageBftEncrypted) GetData() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -84,20 +84,76 @@ func (m *AnnsensusMessageEncrypted) GetData() []byte {
 	return b
 }
 
-//
-//func (m *AnnsensusMessageEncrypted) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: m.GetType(),
-//		Data: m.GetData(),
-//	}
-//}
-//
-//func (m *AnnsensusMessageEncrypted) FromBinary(bs []byte) error {
-//	_, err := m.UnmarshalMsg(bs)
-//	return err
-//}
+func (m *AnnsensusMessageBftEncrypted) String() string {
+	return "AnnsensusMessageBftEncrypted " + hexutil.Encode(m.InnerMessageEncrypted)
+}
 
-func (m *AnnsensusMessageEncrypted) String() string {
-	return "AnnsensusMessageEncrypted " + hexutil.Encode(m.InnerMessageEncrypted)
+//msgp:tuple AnnsensusMessageDkgPlain
+type AnnsensusMessageDkgPlain struct {
+	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
+	InnerMessage     []byte
+}
 
+func (z *AnnsensusMessageDkgPlain) GetData() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *AnnsensusMessageDkgPlain) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeDkgPlain
+}
+
+func (z *AnnsensusMessageDkgPlain) String() string {
+	return "AnnsensusMessageTypeDkgPlain"
+}
+
+//msgp:tuple AnnsensusMessageDkgSigned
+type AnnsensusMessageDkgSigned struct {
+	InnerMessageType uint16 // either bft or dkg type, use uint16 to generalize it
+	InnerMessage     []byte
+	Signature        hexutil.Bytes
+	PublicKey        hexutil.Bytes
+	TermId           uint32
+}
+
+func (m *AnnsensusMessageDkgSigned) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeDkgSigned
+}
+
+func (m *AnnsensusMessageDkgSigned) GetData() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m *AnnsensusMessageDkgSigned) String() string {
+	return "AnnsensusMessageDkgSigned"
+}
+
+//msgp:tuple AnnsensusMessageEncrypted
+type AnnsensusMessageDkgEncrypted struct {
+	InnerMessageType      uint16 // either bft or dkg type, use uint16 to generalize it
+	InnerMessageEncrypted []byte
+	PublicKey             hexutil.Bytes
+}
+
+func (m *AnnsensusMessageDkgEncrypted) GetType() AnnsensusMessageType {
+	return AnnsensusMessageTypeDkgEncrypted
+}
+
+func (m *AnnsensusMessageDkgEncrypted) GetData() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m *AnnsensusMessageDkgEncrypted) String() string {
+	return "AnnsensusMessageDkgEncrypted " + hexutil.Encode(m.InnerMessageEncrypted)
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-func TestMarshalUnmarshalAnnsensusMessageEncrypted(t *testing.T) {
-	v := AnnsensusMessageEncrypted{}
+func TestMarshalUnmarshalAnnsensusMessageBftEncrypted(t *testing.T) {
+	v := AnnsensusMessageBftEncrypted{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,8 +32,8 @@ func TestMarshalUnmarshalAnnsensusMessageEncrypted(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgAnnsensusMessageEncrypted(b *testing.B) {
-	v := AnnsensusMessageEncrypted{}
+func BenchmarkMarshalMsgAnnsensusMessageBftEncrypted(b *testing.B) {
+	v := AnnsensusMessageBftEncrypted{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,8 +41,8 @@ func BenchmarkMarshalMsgAnnsensusMessageEncrypted(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgAnnsensusMessageEncrypted(b *testing.B) {
-	v := AnnsensusMessageEncrypted{}
+func BenchmarkAppendMsgAnnsensusMessageBftEncrypted(b *testing.B) {
+	v := AnnsensusMessageBftEncrypted{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -53,8 +53,8 @@ func BenchmarkAppendMsgAnnsensusMessageEncrypted(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalAnnsensusMessageEncrypted(b *testing.B) {
-	v := AnnsensusMessageEncrypted{}
+func BenchmarkUnmarshalAnnsensusMessageBftEncrypted(b *testing.B) {
+	v := AnnsensusMessageBftEncrypted{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -67,17 +67,17 @@ func BenchmarkUnmarshalAnnsensusMessageEncrypted(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeAnnsensusMessageEncrypted(t *testing.T) {
-	v := AnnsensusMessageEncrypted{}
+func TestEncodeDecodeAnnsensusMessageBftEncrypted(t *testing.T) {
+	v := AnnsensusMessageBftEncrypted{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageEncrypted Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageBftEncrypted Msgsize() is inaccurate")
 	}
 
-	vn := AnnsensusMessageEncrypted{}
+	vn := AnnsensusMessageBftEncrypted{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -91,8 +91,8 @@ func TestEncodeDecodeAnnsensusMessageEncrypted(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeAnnsensusMessageEncrypted(b *testing.B) {
-	v := AnnsensusMessageEncrypted{}
+func BenchmarkEncodeAnnsensusMessageBftEncrypted(b *testing.B) {
+	v := AnnsensusMessageBftEncrypted{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -105,8 +105,8 @@ func BenchmarkEncodeAnnsensusMessageEncrypted(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeAnnsensusMessageEncrypted(b *testing.B) {
-	v := AnnsensusMessageEncrypted{}
+func BenchmarkDecodeAnnsensusMessageBftEncrypted(b *testing.B) {
+	v := AnnsensusMessageBftEncrypted{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -122,8 +122,8 @@ func BenchmarkDecodeAnnsensusMessageEncrypted(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalAnnsensusMessagePlain(t *testing.T) {
-	v := AnnsensusMessagePlain{}
+func TestMarshalUnmarshalAnnsensusMessageBftPlain(t *testing.T) {
+	v := AnnsensusMessageBftPlain{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -145,8 +145,8 @@ func TestMarshalUnmarshalAnnsensusMessagePlain(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgAnnsensusMessagePlain(b *testing.B) {
-	v := AnnsensusMessagePlain{}
+func BenchmarkMarshalMsgAnnsensusMessageBftPlain(b *testing.B) {
+	v := AnnsensusMessageBftPlain{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -154,8 +154,8 @@ func BenchmarkMarshalMsgAnnsensusMessagePlain(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgAnnsensusMessagePlain(b *testing.B) {
-	v := AnnsensusMessagePlain{}
+func BenchmarkAppendMsgAnnsensusMessageBftPlain(b *testing.B) {
+	v := AnnsensusMessageBftPlain{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -166,8 +166,8 @@ func BenchmarkAppendMsgAnnsensusMessagePlain(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalAnnsensusMessagePlain(b *testing.B) {
-	v := AnnsensusMessagePlain{}
+func BenchmarkUnmarshalAnnsensusMessageBftPlain(b *testing.B) {
+	v := AnnsensusMessageBftPlain{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -180,17 +180,17 @@ func BenchmarkUnmarshalAnnsensusMessagePlain(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeAnnsensusMessagePlain(t *testing.T) {
-	v := AnnsensusMessagePlain{}
+func TestEncodeDecodeAnnsensusMessageBftPlain(t *testing.T) {
+	v := AnnsensusMessageBftPlain{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeAnnsensusMessagePlain Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageBftPlain Msgsize() is inaccurate")
 	}
 
-	vn := AnnsensusMessagePlain{}
+	vn := AnnsensusMessageBftPlain{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -204,8 +204,8 @@ func TestEncodeDecodeAnnsensusMessagePlain(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeAnnsensusMessagePlain(b *testing.B) {
-	v := AnnsensusMessagePlain{}
+func BenchmarkEncodeAnnsensusMessageBftPlain(b *testing.B) {
+	v := AnnsensusMessageBftPlain{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -218,8 +218,8 @@ func BenchmarkEncodeAnnsensusMessagePlain(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeAnnsensusMessagePlain(b *testing.B) {
-	v := AnnsensusMessagePlain{}
+func BenchmarkDecodeAnnsensusMessageBftPlain(b *testing.B) {
+	v := AnnsensusMessageBftPlain{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -235,8 +235,8 @@ func BenchmarkDecodeAnnsensusMessagePlain(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalAnnsensusMessageSigned(t *testing.T) {
-	v := AnnsensusMessageSigned{}
+func TestMarshalUnmarshalAnnsensusMessageBftSigned(t *testing.T) {
+	v := AnnsensusMessageBftSigned{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -258,8 +258,8 @@ func TestMarshalUnmarshalAnnsensusMessageSigned(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgAnnsensusMessageSigned(b *testing.B) {
-	v := AnnsensusMessageSigned{}
+func BenchmarkMarshalMsgAnnsensusMessageBftSigned(b *testing.B) {
+	v := AnnsensusMessageBftSigned{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -267,8 +267,8 @@ func BenchmarkMarshalMsgAnnsensusMessageSigned(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgAnnsensusMessageSigned(b *testing.B) {
-	v := AnnsensusMessageSigned{}
+func BenchmarkAppendMsgAnnsensusMessageBftSigned(b *testing.B) {
+	v := AnnsensusMessageBftSigned{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -279,8 +279,8 @@ func BenchmarkAppendMsgAnnsensusMessageSigned(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalAnnsensusMessageSigned(b *testing.B) {
-	v := AnnsensusMessageSigned{}
+func BenchmarkUnmarshalAnnsensusMessageBftSigned(b *testing.B) {
+	v := AnnsensusMessageBftSigned{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -293,17 +293,17 @@ func BenchmarkUnmarshalAnnsensusMessageSigned(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeAnnsensusMessageSigned(t *testing.T) {
-	v := AnnsensusMessageSigned{}
+func TestEncodeDecodeAnnsensusMessageBftSigned(t *testing.T) {
+	v := AnnsensusMessageBftSigned{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageSigned Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageBftSigned Msgsize() is inaccurate")
 	}
 
-	vn := AnnsensusMessageSigned{}
+	vn := AnnsensusMessageBftSigned{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -317,8 +317,8 @@ func TestEncodeDecodeAnnsensusMessageSigned(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeAnnsensusMessageSigned(b *testing.B) {
-	v := AnnsensusMessageSigned{}
+func BenchmarkEncodeAnnsensusMessageBftSigned(b *testing.B) {
+	v := AnnsensusMessageBftSigned{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -331,8 +331,347 @@ func BenchmarkEncodeAnnsensusMessageSigned(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeAnnsensusMessageSigned(b *testing.B) {
-	v := AnnsensusMessageSigned{}
+func BenchmarkDecodeAnnsensusMessageBftSigned(b *testing.B) {
+	v := AnnsensusMessageBftSigned{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+	dc := msgp.NewReader(rd)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := v.DecodeMsg(dc)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestMarshalUnmarshalAnnsensusMessageDkgEncrypted(t *testing.T) {
+	v := AnnsensusMessageDkgEncrypted{}
+	bts, err := v.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := v.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
+	left, err = msgp.Skip(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+	}
+}
+
+func BenchmarkMarshalMsgAnnsensusMessageDkgEncrypted(b *testing.B) {
+	v := AnnsensusMessageDkgEncrypted{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.MarshalMsg(nil)
+	}
+}
+
+func BenchmarkAppendMsgAnnsensusMessageDkgEncrypted(b *testing.B) {
+	v := AnnsensusMessageDkgEncrypted{}
+	bts := make([]byte, 0, v.Msgsize())
+	bts, _ = v.MarshalMsg(bts[0:0])
+	b.SetBytes(int64(len(bts)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bts, _ = v.MarshalMsg(bts[0:0])
+	}
+}
+
+func BenchmarkUnmarshalAnnsensusMessageDkgEncrypted(b *testing.B) {
+	v := AnnsensusMessageDkgEncrypted{}
+	bts, _ := v.MarshalMsg(nil)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bts)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := v.UnmarshalMsg(bts)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestEncodeDecodeAnnsensusMessageDkgEncrypted(t *testing.T) {
+	v := AnnsensusMessageDkgEncrypted{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+
+	m := v.Msgsize()
+	if buf.Len() > m {
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageDkgEncrypted Msgsize() is inaccurate")
+	}
+
+	vn := AnnsensusMessageDkgEncrypted{}
+	err := msgp.Decode(&buf, &vn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf.Reset()
+	msgp.Encode(&buf, &v)
+	err = msgp.NewReader(&buf).Skip()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkEncodeAnnsensusMessageDkgEncrypted(b *testing.B) {
+	v := AnnsensusMessageDkgEncrypted{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	en := msgp.NewWriter(msgp.Nowhere)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.EncodeMsg(en)
+	}
+	en.Flush()
+}
+
+func BenchmarkDecodeAnnsensusMessageDkgEncrypted(b *testing.B) {
+	v := AnnsensusMessageDkgEncrypted{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+	dc := msgp.NewReader(rd)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := v.DecodeMsg(dc)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestMarshalUnmarshalAnnsensusMessageDkgPlain(t *testing.T) {
+	v := AnnsensusMessageDkgPlain{}
+	bts, err := v.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := v.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
+	left, err = msgp.Skip(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+	}
+}
+
+func BenchmarkMarshalMsgAnnsensusMessageDkgPlain(b *testing.B) {
+	v := AnnsensusMessageDkgPlain{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.MarshalMsg(nil)
+	}
+}
+
+func BenchmarkAppendMsgAnnsensusMessageDkgPlain(b *testing.B) {
+	v := AnnsensusMessageDkgPlain{}
+	bts := make([]byte, 0, v.Msgsize())
+	bts, _ = v.MarshalMsg(bts[0:0])
+	b.SetBytes(int64(len(bts)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bts, _ = v.MarshalMsg(bts[0:0])
+	}
+}
+
+func BenchmarkUnmarshalAnnsensusMessageDkgPlain(b *testing.B) {
+	v := AnnsensusMessageDkgPlain{}
+	bts, _ := v.MarshalMsg(nil)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bts)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := v.UnmarshalMsg(bts)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestEncodeDecodeAnnsensusMessageDkgPlain(t *testing.T) {
+	v := AnnsensusMessageDkgPlain{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+
+	m := v.Msgsize()
+	if buf.Len() > m {
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageDkgPlain Msgsize() is inaccurate")
+	}
+
+	vn := AnnsensusMessageDkgPlain{}
+	err := msgp.Decode(&buf, &vn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf.Reset()
+	msgp.Encode(&buf, &v)
+	err = msgp.NewReader(&buf).Skip()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkEncodeAnnsensusMessageDkgPlain(b *testing.B) {
+	v := AnnsensusMessageDkgPlain{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	en := msgp.NewWriter(msgp.Nowhere)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.EncodeMsg(en)
+	}
+	en.Flush()
+}
+
+func BenchmarkDecodeAnnsensusMessageDkgPlain(b *testing.B) {
+	v := AnnsensusMessageDkgPlain{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+	dc := msgp.NewReader(rd)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := v.DecodeMsg(dc)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestMarshalUnmarshalAnnsensusMessageDkgSigned(t *testing.T) {
+	v := AnnsensusMessageDkgSigned{}
+	bts, err := v.MarshalMsg(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := v.UnmarshalMsg(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after UnmarshalMsg(): %q", len(left), left)
+	}
+
+	left, err = msgp.Skip(bts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) > 0 {
+		t.Errorf("%d bytes left over after Skip(): %q", len(left), left)
+	}
+}
+
+func BenchmarkMarshalMsgAnnsensusMessageDkgSigned(b *testing.B) {
+	v := AnnsensusMessageDkgSigned{}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.MarshalMsg(nil)
+	}
+}
+
+func BenchmarkAppendMsgAnnsensusMessageDkgSigned(b *testing.B) {
+	v := AnnsensusMessageDkgSigned{}
+	bts := make([]byte, 0, v.Msgsize())
+	bts, _ = v.MarshalMsg(bts[0:0])
+	b.SetBytes(int64(len(bts)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bts, _ = v.MarshalMsg(bts[0:0])
+	}
+}
+
+func BenchmarkUnmarshalAnnsensusMessageDkgSigned(b *testing.B) {
+	v := AnnsensusMessageDkgSigned{}
+	bts, _ := v.MarshalMsg(nil)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bts)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := v.UnmarshalMsg(bts)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestEncodeDecodeAnnsensusMessageDkgSigned(t *testing.T) {
+	v := AnnsensusMessageDkgSigned{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+
+	m := v.Msgsize()
+	if buf.Len() > m {
+		t.Log("WARNING: TestEncodeDecodeAnnsensusMessageDkgSigned Msgsize() is inaccurate")
+	}
+
+	vn := AnnsensusMessageDkgSigned{}
+	err := msgp.Decode(&buf, &vn)
+	if err != nil {
+		t.Error(err)
+	}
+
+	buf.Reset()
+	msgp.Encode(&buf, &v)
+	err = msgp.NewReader(&buf).Skip()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func BenchmarkEncodeAnnsensusMessageDkgSigned(b *testing.B) {
+	v := AnnsensusMessageDkgSigned{}
+	var buf bytes.Buffer
+	msgp.Encode(&buf, &v)
+	b.SetBytes(int64(buf.Len()))
+	en := msgp.NewWriter(msgp.Nowhere)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		v.EncodeMsg(en)
+	}
+	en.Flush()
+}
+
+func BenchmarkDecodeAnnsensusMessageDkgSigned(b *testing.B) {
+	v := AnnsensusMessageDkgSigned{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

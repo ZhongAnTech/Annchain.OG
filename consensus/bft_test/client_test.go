@@ -45,7 +45,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 	dm := &dummyDecisionMaker{}
 
 	var peers []bft.BftPartner
-	var peerChans []chan bft.BftMessage
+	var peerChans []chan *bft.BftMessageEvent
 	var peerInfo []bft.PeerInfo
 
 	total := good + bad
@@ -53,7 +53,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 
 	// prepare pipeIn channels
 	for ; i < total; i++ {
-		peerChans = append(peerChans, make(chan bft.BftMessage, 5))
+		peerChans = append(peerChans, make(chan *bft.BftMessageEvent, 5))
 	}
 
 	// building communication channels
@@ -76,7 +76,6 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 		pc := NewDummyByzantineBftPeerCommunicator(i, peerChans[i], peerChans, bf)
 		pc.Run()
 		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pc, pg, pv, dm, peerInfo)
-		peer.PeerCommunicator = pc
 		peer.ProposalGenerator = pg
 		peer.ProposalValidator = pv
 		peer.DecisionMaker = dm

@@ -185,16 +185,16 @@ func (ap *AnnsensusProcessor) HandleAnnsensusMessage(annsensusMessage AnnsensusM
 	case AnnsensusMessageTypeBftSigned:
 		bftMessage, err := ap.bftAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err != nil {
-			return
+			return err
 		}
 		bftPeer, err := ap.bftAdapter.AdaptAnnsensusPeer(peer)
 		if err != nil {
-			return
+			return err
 		}
 		// judge height
 		msgTerm, err := ap.termHolder.GetTermByHeight(bftMessage)
 		if err != nil {
-			return
+			return err
 		}
 		// route to correspondant BFTPartner
 		msgTerm.BftPartner.GetBftPeerCommunicatorIncoming().GetPipeIn() <- &bft.BftMessageEvent{
@@ -207,15 +207,15 @@ func (ap *AnnsensusProcessor) HandleAnnsensusMessage(annsensusMessage AnnsensusM
 	case AnnsensusMessageTypeDkgSigned:
 		dkgMessage, err := ap.dkgAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err != nil {
-			return
+			return err
 		}
 		dkgPeer, err := ap.dkgAdapter.AdaptAnnsensusPeer(peer)
 		if err != nil {
-			return
+			return err
 		}
 		msgTerm, err := ap.termHolder.GetTermByHeight(dkgMessage)
 		if err != nil {
-			return
+			return err
 		}
 		msgTerm.DkgPartner.GetDkgPeerCommunicatorIncoming().GetPipeIn() <- &dkg.DkgMessageEvent{
 			Message: dkgMessage,

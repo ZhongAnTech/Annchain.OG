@@ -62,14 +62,14 @@ func init() {
 
 func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
-	var peerInfos []dkg.PartSec
+	peerInfos := make([]dkg.PartSec, n)
 	for i := 0; i < n; i++ {
 		pubKey, privKey := signer.RandomKeyPair()
 		address := pubKey.Address()
 		// dkg kyber pub/priv key
 		dkgPrivKey, dkgPubKey := dkg.GenPartnerPair(suite)
 
-		peerInfos = append(peerInfos, dkg.PartSec{
+		peerInfos[i] = dkg.PartSec{
 			PartPub: dkg.PartPub{
 				Point: dkgPubKey,
 				Peer: dkg.PeerInfo{
@@ -81,7 +81,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 			},
 			Scalar:     dkgPrivKey,
 			PrivateKey: privKey,
-		})
+		}
 	}
 	return peerInfos
 }
@@ -139,8 +139,8 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 			defaultAnnsensusPartnerProvider,
 			defaultAnnsensusPartnerProvider,
 		)
-		aps = append(aps, ann)
-		termProviders = append(termProviders, termProvider)
+		aps[i] = ann
+		termProviders[i] = termProvider
 	}
 
 	// genesis accounts for dkg. Only partpub is shared.
@@ -165,27 +165,28 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 		}
 	}
 
-	genesisTerm := &term.Term{
-		Id:                0,
-		PartsNum:          len(peers),
-		Threshold:         len(peers)*2/3 + 1,
-		Senators:          senators,
-		AllPartPublicKeys: pubs,
-		PublicKey:         nil,
-		ActivateHeight:    0,
-		Suite:             nil,
-	}
-	// recover the public key now since everyone (including light peers) needs this info to verify txs.
 
+	// recover the public key now since everyone (including light peers) needs this info to verify txs.
 	for i := 0; i < nodes; i++ {
 		aps[i].Start()
 		c := termProviders[i].GetTermChangeEventChannel()
+
+		genesisTerm := &term.Term{
+			Id:                0,
+			PartsNum:          len(peers),
+			Threshold:         len(peers)*2/3 + 1,
+			Senators:          senators,
+			AllPartPublicKeys: pubs,
+			PublicKey:         peers[i].PartPub.Point,
+			ActivateHeight:    0,
+			Suite:             suite,
+		}
 
 		//tm := term.NewTerm(1,nodes,0)
 		contextProvider := dummyContextProvider{
 			term:      genesisTerm,
 			MyBftId:   i,
-			MyPartSec: dkg.PartSec{},
+			MyPartSec: peers[i],
 		}
 
 		c <- contextProvider

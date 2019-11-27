@@ -46,6 +46,11 @@ type DkgMessage interface {
 	String() string
 }
 
+type DkgMessageEvent struct {
+	Message DkgMessage
+	Peer    PeerInfo
+}
+
 //msgp:tuple DkgBasicInfo
 type DkgBasicInfo struct {
 	TermId uint32

@@ -10,9 +10,12 @@ type AnnsensusMessageType uint16
 
 // all message type that is supported by annsensus should be listed here
 const (
-	AnnsensusMessageTypePlain AnnsensusMessageType = iota + 100
-	AnnsensusMessageTypeSigned
-	AnnsensusMessageTypeEncrypted
+	AnnsensusMessageTypeBftPlain AnnsensusMessageType = iota + 100
+	AnnsensusMessageTypeBftSigned
+	AnnsensusMessageTypeBftEncrypted
+	AnnsensusMessageTypeDkgPlain
+	AnnsensusMessageTypeDkgSigned
+	AnnsensusMessageTypeDkgEncrypted
 )
 
 //msgp:tuple AnnsensusMessagePlain

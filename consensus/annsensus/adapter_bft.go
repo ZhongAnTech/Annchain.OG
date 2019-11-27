@@ -3,12 +3,70 @@ package annsensus
 import (
 	"bytes"
 	"errors"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
 	"github.com/sirupsen/logrus"
 )
+
+type ProxyBftPeerCommunicator struct {
+	bftMessageAdapter BftMessageAdapter // either TrustfulBftAdapter or PlainBftAdapter
+	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing
+	pipe              chan *bft.BftMessageEvent
+}
+
+func NewProxyBftPeerCommunicator(annsensusOutgoing AnnsensusPeerCommunicatorOutgoing) *ProxyBftPeerCommunicator {
+	return &ProxyBftPeerCommunicator{
+		annsensusOutgoing: annsensusOutgoing,
+		pipe:              make(chan *bft.BftMessageEvent),
+	}
+}
+
+func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+	annsensusMessage, err := p.bftMessageAdapter.AdaptBftMessage(msg)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	// adapt the interface so that the request can be handled by annsensus
+	annsensusPeers := make([]AnnsensusPeer, len(peers))
+	for i, peer := range peers {
+		adaptedValue, err := p.bftMessageAdapter.AdaptBftPeer(peer)
+		if err != nil {
+			panic("adapt should never fail")
+		}
+		annsensusPeers[i] = adaptedValue
+	}
+
+	p.annsensusOutgoing.Broadcast(annsensusMessage, annsensusPeers)
+}
+
+func (p *ProxyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+	// adapt the interface so that the request can be handled by annsensus
+	annsensusMessage, err := p.bftMessageAdapter.AdaptBftMessage(msg)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	annsensusPeer, err := p.bftMessageAdapter.AdaptBftPeer(peer)
+	if err != nil {
+		panic("adapt should never fail")
+	}
+	p.annsensusOutgoing.Unicast(annsensusMessage, annsensusPeer)
+}
+
+func (p *ProxyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessageEvent {
+	// the channel to be consumed by the downstream.
+	return p.pipe
+}
+
+func (p *ProxyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessageEvent {
+	// the channel to be fed by other peers
+	return p.pipe
+}
+
+func (p *ProxyBftPeerCommunicator) Run() {
+	// nothing to do
+	return
+}
 
 type BftMessageUnmarshaller struct {
 }
@@ -42,13 +100,22 @@ type TrustfulBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
+func (r *TrustfulBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo, error) {
+	return bft.PeerInfo{
+		Id:             annPeer.Id,
+		PublicKey:      annPeer.PublicKey,
+		Address:        annPeer.Address,
+		PublicKeyBytes: annPeer.PublicKeyBytes,
+	}, nil
+}
+
 func (r *TrustfulBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
 	return AnnsensusPeer{
-		Id:             0,
-		PublicKey:      crypto.PublicKey{},
-		Address:        common.Address{},
-		PublicKeyBytes: nil,
-	}
+		Id:             bftPeer.Id,
+		PublicKey:      bftPeer.PublicKey,
+		Address:        bftPeer.Address,
+		PublicKeyBytes: bftPeer.PublicKeyBytes,
+	}, nil
 }
 
 func (r *TrustfulBftAdapter) AdaptBftMessage(outgoingMsg bft.BftMessage) (msg AnnsensusMessage, err error) {
@@ -115,7 +182,7 @@ func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publi
 }
 
 func (b *TrustfulBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) { // Only allows SignedOgPartnerMessage
-	if incomingMsg.GetType() != AnnsensusMessageTypeSigned {
+	if incomingMsg.GetType() != AnnsensusMessageTypeBftSigned {
 		err = errors.New("TrustfulBftAdapter received a message of an unsupported type")
 		return
 	}
@@ -154,8 +221,17 @@ type PlainBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
+func (p PlainBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
+	return AnnsensusPeer{
+		Id:             bftPeer.Id,
+		PublicKey:      bftPeer.PublicKey,
+		Address:        bftPeer.Address,
+		PublicKeyBytes: bftPeer.PublicKeyBytes,
+	}, nil
+}
+
 func (p PlainBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg bft.BftMessage, err error) {
-	if incomingMsg.GetType() != AnnsensusMessageTypePlain {
+	if incomingMsg.GetType() != AnnsensusMessageTypeBftPlain {
 		err = errors.New("PlainBftAdapter received a message of an unsupported type")
 		return
 	}

@@ -73,7 +73,7 @@ type PlainDkgAdapter struct {
 }
 
 func (p PlainDkgAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg dkg.DkgMessage, err error) {
-	if incomingMsg.GetType() != AnnsensusMessageTypeSigned {
+	if incomingMsg.GetType() != AnnsensusMessageTypeDkgSigned {
 		err = errors.New("PlainDkgAdapter received a message of an unsupported type")
 		return
 	}

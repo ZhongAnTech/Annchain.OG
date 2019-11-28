@@ -7,20 +7,18 @@ import (
 type LocalBftPeerCommunicator struct {
 	Myid    int
 	PeerIns []chan *bft.BftMessageEvent
-	pipeIn  chan *bft.BftMessageEvent //pipeIn is the receiver of the outside messages
-	pipeOut chan *bft.BftMessageEvent //pipeOut is the providing channel for new messages parsed from pipeIn
+	pipe    chan *bft.BftMessageEvent //pipeIn is the receiver of the outside messages
 }
 
 func (d *LocalBftPeerCommunicator) HandleIncomingMessage(msgEvent *bft.BftMessageEvent) {
-	d.pipeIn <- msgEvent
+	d.pipe <- msgEvent
 }
 
 func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, peers []chan *bft.BftMessageEvent) *LocalBftPeerCommunicator {
 	d := &LocalBftPeerCommunicator{
 		PeerIns: peers,
 		Myid:    myid,
-		pipeIn:  incoming,
-		pipeOut: make(chan *bft.BftMessageEvent),
+		pipe:    incoming,
 	}
 	return d
 }
@@ -48,22 +46,13 @@ func (d *LocalBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo
 }
 
 func (d *LocalBftPeerCommunicator) GetPipeIn() chan *bft.BftMessageEvent {
-	return d.pipeIn
+	return d.pipe
 }
 
 func (d *LocalBftPeerCommunicator) GetPipeOut() chan *bft.BftMessageEvent {
-	return d.pipeOut
+	return d.pipe
 }
 
-func (d *LocalBftPeerCommunicator) Run() {
-	go func() {
-		for {
-			v := <-d.pipeIn
-			//vv := v.Message.(bft.BftMessage)
-			d.pipeOut <- v
-		}
-	}()
-}
 
 type dummyProposalGenerator struct {
 	CurrentHeight uint64

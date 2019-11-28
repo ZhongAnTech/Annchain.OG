@@ -6,8 +6,6 @@ import (
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
-	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -49,76 +47,6 @@ func (d dummyContextProvider) GetMyPartSec() dkg.PartSec {
 
 func (d dummyContextProvider) GetBlockTime() time.Duration {
 	return d.blockTime
-}
-
-type dummyBftPeerCommunicator struct {
-	Myid        int
-	PeerPipeIns []chan *bft.BftMessageEvent
-	pipeIn      chan *bft.BftMessageEvent
-	pipeOut     chan *bft.BftMessageEvent
-}
-
-func (d *dummyBftPeerCommunicator) AdaptMessage(incomingMsg msg.OgMessage) (bft.BftMessage, error) {
-	panic("implement me")
-}
-
-func (d *dummyBftPeerCommunicator) HandleIncomingMessage(msg *bft.BftMessageEvent) {
-	d.pipeIn <- msg
-}
-
-func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent,
-	peers []chan *bft.BftMessageEvent) *dummyBftPeerCommunicator {
-	d := &dummyBftPeerCommunicator{
-		PeerPipeIns: peers,
-		Myid:        myid,
-		pipeIn:      incoming,
-		pipeOut:     make(chan *bft.BftMessageEvent),
-	}
-	return d
-}
-
-func (d *dummyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
-	logrus.Debug("broadcasting by dummyBftPeerCommunicator")
-	for _, peer := range peers {
-		go func(peer bft.PeerInfo) {
-			//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
-			d.PeerPipeIns[peer.Id] <- &bft.BftMessageEvent{
-				Message: msg,
-				Peer:    peer,
-			}
-		}(peer)
-	}
-}
-
-func (d *dummyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
-	logrus.Debug("unicasting by dummyBftPeerCommunicator")
-	go func() {
-		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
-		d.PeerPipeIns[peer.Id] <- &bft.BftMessageEvent{
-			Message: msg,
-			Peer:    peer,
-		}
-	}()
-}
-
-func (d *dummyBftPeerCommunicator) GetPipeIn() chan *bft.BftMessageEvent {
-	return d.pipeIn
-}
-
-func (d *dummyBftPeerCommunicator) GetPipeOut() chan *bft.BftMessageEvent {
-	return d.pipeOut
-}
-
-func (d *dummyBftPeerCommunicator) Run() {
-	logrus.Info("dummyBftPeerCommunicator running")
-	go func() {
-		for {
-			v := <-d.pipeIn
-			//vv := v.Message.(bft.BftMessage)
-			logrus.WithField("type", v.Message.GetType()).Debug("dummyBftPeerCommunicator received a message")
-			d.pipeOut <- v
-		}
-	}()
 }
 
 type dummyProposalGenerator struct {
@@ -171,75 +99,29 @@ func (d dummyTermProvider) GetTermChangeEventChannel() chan annsensus.ConsensusC
 	return d.termChangeEventChan
 }
 
-type dummyDkgPeerCommunicator struct {
-	Myid    int
-	Peers   []chan *dkg.DkgMessageEvent
-	pipeIn  chan *dkg.DkgMessageEvent
-	pipeOut chan *dkg.DkgMessageEvent
-}
-
-func NewDummyDkgPeerCommunicator(myid int, incoming chan *dkg.DkgMessageEvent, peers []chan *dkg.DkgMessageEvent) *dummyDkgPeerCommunicator {
-	d := &dummyDkgPeerCommunicator{
-		Peers:   peers,
-		Myid:    myid,
-		pipeIn:  incoming,
-		pipeOut: make(chan *dkg.DkgMessageEvent, 10000), // must be big enough to avoid blocking issue
-	}
-	return d
-}
-
-func (d *dummyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
-	for _, peer := range peers {
-		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting message")
-		go func(peer dkg.PeerInfo) {
-			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-			//d.PeerPipeIns[peer.Id] <- msg
-		}(peer)
-	}
-}
-
-func (d *dummyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo) {
-	go func(peerId int) {
-		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
-		//d.PeerPipeIns[peerId] <- msg
-	}(peer.Id)
-}
-
-func (d *dummyDkgPeerCommunicator) GetPipeIn() chan *dkg.DkgMessageEvent {
-	return d.pipeIn
-}
-
-func (d *dummyDkgPeerCommunicator) GetPipeOut() chan *dkg.DkgMessageEvent {
-	return d.pipeOut
-}
-
-func (d *dummyDkgPeerCommunicator) Run() {
-	logrus.Info("dummyDkgPeerCommunicator running")
-	go func() {
-		for {
-			v := <-d.pipeIn
-			ffchan.NewTimeoutSenderShort(d.pipeOut, v, "pc")
-			//d.pipeOut <- v
-		}
-	}()
-}
-
 type dummyAnnsensusPartnerProvider struct {
-	peerChansBft []chan *bft.BftMessageEvent
-	peerChansDkg []chan *dkg.DkgMessageEvent
+	peerChans []chan *annsensus.AnnsensusMessageEvent
 }
 
-func NewDummyAnnsensusPartnerProivder(peerChansBft []chan *bft.BftMessageEvent, peerChansDkg []chan *dkg.DkgMessageEvent) *dummyAnnsensusPartnerProvider {
+func NewDummyAnnsensusPartnerProivder(peerChans []chan *annsensus.AnnsensusMessageEvent) *dummyAnnsensusPartnerProvider {
 	dapp := &dummyAnnsensusPartnerProvider{
-		peerChansBft: peerChansBft,
-		peerChansDkg: peerChansDkg,
+		peerChans: peerChans,
 	}
 	return dapp
 }
 
 func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
 	myId := context.GetMyBftId()
-	communicatorDkg := NewDummyDkgPeerCommunicator(myId, d.peerChansDkg[myId], d.peerChansDkg)
+
+	localAnnsensusPeerCommunicator := NewLocalAnnsensusPeerCommunicator(myId,
+		d.peerChans[myId], d.peerChans)
+
+	dkgMessageAdapter := &annsensus.PlainDkgAdapter{
+		DkgMessageUnmarshaller: &annsensus.DkgMessageUnmarshaller{},
+	}
+
+	commuicatorDkg := annsensus.NewProxyDkgPeerCommunicator(dkgMessageAdapter, localAnnsensusPeerCommunicator)
+
 	term := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
 		term.Suite,
@@ -248,8 +130,8 @@ func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.
 		term.Threshold,
 		term.AllPartPublicKeys,
 		context.GetMyPartSec(),
-		communicatorDkg,
-		communicatorDkg,
+		commuicatorDkg,
+		commuicatorDkg,
 	)
 	return
 
@@ -257,7 +139,15 @@ func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.
 
 func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.ConsensusContextProvider) bft.BftPartner {
 	myId := context.GetMyBftId()
-	commuicatorBft := NewDummyBftPeerCommunicator(myId, d.peerChansBft[myId], d.peerChansBft)
+
+	bftMessageAdapter := &annsensus.PlainBftAdapter{
+		BftMessageUnmarshaller: &annsensus.BftMessageUnmarshaller{},
+	}
+
+	localAnnsensusPeerCommunicator := NewLocalAnnsensusPeerCommunicator(myId,
+		d.peerChans[myId], d.peerChans)
+
+	commuicatorBft := annsensus.NewProxyBftPeerCommunicator(bftMessageAdapter, localAnnsensusPeerCommunicator)
 
 	currentTerm := context.GetTerm()
 
@@ -279,8 +169,8 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 
 type LocalAnnsensusPeerCommunicator struct {
 	Myid  int
-	Peers []chan annsensus.AnnsensusMessage
-	pipe  chan annsensus.AnnsensusMessage
+	Peers []chan *annsensus.AnnsensusMessageEvent
+	pipe  chan *annsensus.AnnsensusMessageEvent
 }
 
 func (d *LocalAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
@@ -288,8 +178,11 @@ func (d *LocalAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessag
 		logrus.WithField("peer", peer.Id).WithField("IM", d.Myid).
 			WithField("msg", msg).Debug("local broadcasting annsensus message")
 		go func(peer annsensus.AnnsensusPeer) {
-			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "annsensus")
-			//d.Peers[peer.Id] <- msg
+			//ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "annsensus")
+			d.Peers[peer.Id] <- &annsensus.AnnsensusMessageEvent{
+				Message: msg,
+				Peer:    peer,
+			}
 		}(peer)
 	}
 }
@@ -298,19 +191,23 @@ func (d *LocalAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage,
 	logrus.Debug("local unicasting by dummyBftPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
-		d.Peers[peer.Id] <- msg
+		d.Peers[peer.Id] <- &annsensus.AnnsensusMessageEvent{
+			Message: msg,
+			Peer:    peer,
+		}
 	}()
 }
 
-func (d *LocalAnnsensusPeerCommunicator) GetPipeIn() chan annsensus.AnnsensusMessage {
+func (d *LocalAnnsensusPeerCommunicator) GetPipeIn() chan *annsensus.AnnsensusMessageEvent {
 	return d.pipe
 }
 
-func (d *LocalAnnsensusPeerCommunicator) GetPipeOut() chan annsensus.AnnsensusMessage {
+func (d *LocalAnnsensusPeerCommunicator) GetPipeOut() chan *annsensus.AnnsensusMessageEvent {
 	return d.pipe
 }
 
-func NewLocalAnnsensusPeerCommunicator(myid int, incoming chan annsensus.AnnsensusMessage, peers []chan annsensus.AnnsensusMessage) *LocalAnnsensusPeerCommunicator {
+func NewLocalAnnsensusPeerCommunicator(myid int, incoming chan *annsensus.AnnsensusMessageEvent,
+	peers []chan *annsensus.AnnsensusMessageEvent) *LocalAnnsensusPeerCommunicator {
 	d := &LocalAnnsensusPeerCommunicator{
 		Myid:  myid,
 		Peers: peers,

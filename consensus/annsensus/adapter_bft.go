@@ -221,7 +221,7 @@ func (b *TrustfulBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage)
 
 // PlainBftAdapter will not wrap the message using MessageTypeAnnsensusSigned
 type PlainBftAdapter struct {
-	bftMessageUnmarshaller *BftMessageUnmarshaller
+	BftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
 func (p PlainBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo, error) {
@@ -256,7 +256,7 @@ func (p PlainBftAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (ms
 	case bft.BftMessageTypePreVote:
 		fallthrough
 	case bft.BftMessageTypePreCommit:
-		msg, err = p.bftMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
+		msg, err = p.BftMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainBftAdapter received a message of an unsupported inner type")
 	}

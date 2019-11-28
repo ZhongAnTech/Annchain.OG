@@ -54,8 +54,10 @@ type dummyProposalGenerator struct {
 }
 
 func (d dummyProposalGenerator) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
+	time.Sleep(1000 * time.Millisecond)
 	currentTime := time.Now()
 	p := bft.StringProposal{Content: currentTime.Format("2006-01-02 15:04:05")}
+
 	return &p, bft.ProposalCondition{ValidHeight: d.CurrentHeight}
 }
 

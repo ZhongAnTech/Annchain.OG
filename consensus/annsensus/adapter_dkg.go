@@ -132,7 +132,7 @@ func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg msg.OgMessage) (m
 }
 
 type PlainDkgAdapter struct {
-	dkgMessageUnmarshaller *DkgMessageUnmarshaller
+	DkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 
 func (p PlainDkgAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (dkg.PeerInfo, error) {
@@ -169,7 +169,7 @@ func (p PlainDkgAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (ms
 	case dkg.DkgMessageTypeSigSets:
 		fallthrough
 	case dkg.DkgMessageTypeGenesisPublicKey:
-		msg, err = p.dkgMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
+		msg, err = p.DkgMessageUnmarshaller.Unmarshal(innerMessageType, iMsg.InnerMessage)
 	default:
 		err = errors.New("PlainDkgAdapter received a message of an unsupported inner type")
 	}

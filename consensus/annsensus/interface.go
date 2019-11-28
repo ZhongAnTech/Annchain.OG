@@ -75,6 +75,12 @@ type AnnsensusPeerCommunicatorOutgoing interface {
 	Unicast(msg AnnsensusMessage, peer AnnsensusPeer)
 }
 
+type AnnsensusPeerCommunicatorIncoming interface {
+	GetPipeIn() chan *AnnsensusMessageEvent
+	GetPipeOut() chan *AnnsensusMessageEvent
+}
+
+
 type AnnsensusMessageHandler interface {
 	HandleMessage(msg AnnsensusMessage, peer AnnsensusPeer)
 	//GetPipeIn() chan AnnsensusMessage

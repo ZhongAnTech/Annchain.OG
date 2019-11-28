@@ -65,13 +65,14 @@ func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context Consensus
 		context.GetTerm().PartsNum,
 		context.GetMyBftId(),
 		context.GetBlockTime(),
-		bftComm,
-		bftComm,
+		bftComm, //BftPeerCommunicatorIncoming
+		bftComm, //BftPeerCommunicatorOutgoing
 		d.proposalGenerator,
 		d.proposalValidator,
 		d.decisionMaker,
 		DkgToBft(context.GetTerm().AllPartPublicKeys),
 	)
+	bftPartner.GetBftPeerCommunicatorIncoming()
 	return bftPartner
 }
 

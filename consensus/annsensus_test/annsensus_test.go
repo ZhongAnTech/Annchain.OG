@@ -103,23 +103,19 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 
 	// prepare message channel for each peer
 	// both bft and dkg messages will be adapted to AnnsensusMessage
-	peerChans := make([]chan annsensus.AnnsensusMessage, nodes)
+	peerChans := make([]chan *annsensus.AnnsensusMessageEvent, nodes)
 	for i := 0; i < nodes; i++ {
-		peerChans[i] = make(chan annsensus.AnnsensusMessage)
+		peerChans[i] = make(chan *annsensus.AnnsensusMessageEvent)
 	}
 
-	aps := make([]*annsensus.AnnsensusProcessor, nodes)
+	aps := make([]*annsensus.AnnsensusPartner, nodes)
 	termProviders := make([]annsensus.TermIdProvider, nodes)
 
 	for i := 0; i < nodes; i++ {
 		// init AnnsensusPeerCommunicator for each node
 		bftAdapter := &annsensus.PlainBftAdapter{}
 		dkgAdapter := &annsensus.PlainDkgAdapter{}
-		communicator := &LocalAnnsensusPeerCommunicator{
-			Myid:  i,
-			Peers: peerChans,
-			pipe:  peerChans[i],
-		}
+		communicator := NewLocalAnnsensusPeerCommunicator(i, peerChans[i], peerChans)
 
 		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
@@ -133,8 +129,9 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 			communicator,
 		)
 
-		ann := annsensus.NewAnnsensusProcessor(config,
-			bftAdapter, dkgAdapter, communicator,
+		ann := annsensus.NewAnnsensusPartner(config,
+			bftAdapter, dkgAdapter,
+			communicator, communicator,
 			termProvider, termHolder,
 			defaultAnnsensusPartnerProvider,
 			defaultAnnsensusPartnerProvider,
@@ -164,7 +161,6 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 			BlsPublicKey: pubs[i],
 		}
 	}
-
 
 	// recover the public key now since everyone (including light peers) needs this info to verify txs.
 	for i := 0; i < nodes; i++ {

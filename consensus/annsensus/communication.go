@@ -12,3 +12,8 @@ type AnnsensusPeer struct {
 	Address        common.Address   `json:"address"`
 	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
 }
+
+type AnnsensusMessageEvent struct {
+	Message AnnsensusMessage
+	Peer    AnnsensusPeer
+}

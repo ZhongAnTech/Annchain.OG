@@ -306,7 +306,7 @@ func NewNode() *Node {
 	miner := &miner2.PoWMiner{}
 	txCreator := &og.TxCreator{
 		Miner:              miner,
-		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		TipGenerator:       org.TxPool, //og.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,

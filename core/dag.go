@@ -1033,6 +1033,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	//var leftOverGas uint64
 	var contractAddress = emptyAddress
 	var err error
+	var receipt *Receipt
 	if txnormal.To.Bytes == emptyAddress.Bytes {
 		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
@@ -1043,8 +1044,11 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), contractAddress)
-
+	if txnormal.To.Bytes == emptyAddress.Bytes {
+		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), contractAddress)
+	} else {
+		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, fmt.Sprintf("%x", ret), contractAddress)
+	}
 	return ret, receipt, nil
 }
 

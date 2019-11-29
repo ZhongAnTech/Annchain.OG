@@ -467,9 +467,9 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
-	query, err := hex.DecodeString(reqdata.Data)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("can't decode data to bytes"), nil)
+	query := common.FromHex(reqdata.Data)
+	if query == nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("data not hex"), nil)
 		return
 	}
 

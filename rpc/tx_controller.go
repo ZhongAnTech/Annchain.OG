@@ -102,12 +102,12 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 	tx, err = r.TxCreator.NewTxWithSeal(from, to, value, data, nonce, pub, sig, txReq.TokenId)
 	if err != nil {
-		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed %v", err), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("new tx failed: %v", err), nil)
 		return
 	}
 
 	ok = r.FormatVerifier.VerifySignature(tx)
-	fmt.Println(fmt.Sprintf("sig targets: %x", tx.SignatureTargets()))
+	fmt.Println(fmt.Sprintf("hash: %s, sig targets: %x", tx.GetTxHash().String(), tx.SignatureTargets()))
 	if !ok {
 		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("signature invalid")
 		Response(c, http.StatusInternalServerError, fmt.Errorf("signature invalid"), nil)
@@ -116,7 +116,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	ok = r.FormatVerifier.VerifySourceAddress(tx)
 	if !ok {
 		logrus.WithField("request ", txReq).WithField("tx ", tx).Warn("source address invalid")
-		Response(c, http.StatusInternalServerError, fmt.Errorf("ource address invalid"), nil)
+		Response(c, http.StatusInternalServerError, fmt.Errorf("source address invalid"), nil)
 		return
 	}
 	tx.SetVerified(types.VerifiedFormat)

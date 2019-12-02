@@ -18,7 +18,7 @@ func GeneratePeers(suite *bn256.Suite, n int) []PartSec {
 		peerInfos = append(peerInfos, PartSec{
 			PartPub: PartPub{
 				Point: dkgPubKey,
-				Peer: PeerInfo{
+				Peer: DkgPeer{
 					Id:             i,
 					PublicKey:      pubKey,
 					Address:        address,

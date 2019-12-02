@@ -36,7 +36,7 @@ func (d *dummyByzantineBftPeerCommunicator) Run() {
 	}()
 }
 
-func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.BftPeer) {
 	msg, toSend := d.doBadThings(msg)
 	if !toSend {
 		// don't send it
@@ -48,7 +48,7 @@ func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers 
 		return
 	}
 	for _, peer := range peers {
-		go func(peer bft.PeerInfo) {
+		go func(peer bft.BftPeer) {
 			d.PeerPipeIns[peer.Id] <- &bft.BftMessageEvent{
 				Message: msg,
 				Peer:    peer,
@@ -57,7 +57,7 @@ func (d *dummyByzantineBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers 
 	}
 }
 
-func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+func (d *dummyByzantineBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.BftPeer) {
 	msg, toSend := d.doBadThings(msg)
 	if !toSend {
 		// don't send it

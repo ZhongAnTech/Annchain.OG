@@ -15,36 +15,17 @@ type DkgPartnerProvider interface {
 }
 
 type DefaultAnnsensusPartnerProvider struct {
-	myAccountProvider account.AccountProvider // interface to the ledger
-	proposalGenerator bft.ProposalGenerator   // interface to the ledger
-	proposalValidator bft.ProposalValidator   // interface to the ledger
-	decisionMaker     bft.DecisionMaker       // interface to the ledger
-	bftAdatper        BftMessageAdapter
-	dkgAdatper        DkgMessageAdapter
-	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing
-}
-
-func NewDefaultAnnsensusPartnerProvider(
-	myAccountProvider account.AccountProvider,
-	proposalGenerator bft.ProposalGenerator,
-	proposalValidator bft.ProposalValidator,
-	decisionMaker bft.DecisionMaker,
-	bftAdatper BftMessageAdapter,
-	dkgAdatper DkgMessageAdapter,
-	annsensusOutgoing AnnsensusPeerCommunicatorOutgoing) *DefaultAnnsensusPartnerProvider {
-	return &DefaultAnnsensusPartnerProvider{
-		myAccountProvider: myAccountProvider,
-		proposalGenerator: proposalGenerator,
-		proposalValidator: proposalValidator,
-		decisionMaker:     decisionMaker,
-		bftAdatper:        bftAdatper,
-		dkgAdatper:        dkgAdatper,
-		annsensusOutgoing: annsensusOutgoing,
-	}
+	MyAccountProvider account.AccountProvider // interface to the ledger
+	ProposalGenerator bft.ProposalGenerator   // interface to the ledger
+	ProposalValidator bft.ProposalValidator   // interface to the ledger
+	DecisionMaker     bft.DecisionMaker       // interface to the ledger
+	BftAdatper        BftMessageAdapter
+	DkgAdatper        DkgMessageAdapter
+	PeerOutgoing      AnnsensusPeerCommunicatorOutgoing
 }
 
 func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
-	dkgComm := NewProxyDkgPeerCommunicator(d.dkgAdatper, d.annsensusOutgoing)
+	dkgComm := NewProxyDkgPeerCommunicator(d.DkgAdatper, d.PeerOutgoing)
 	currentTerm := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
 		currentTerm.Suite,
@@ -59,7 +40,7 @@ func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context Consensus
 }
 
 func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context ConsensusContextProvider) bft.BftPartner {
-	bftComm := NewProxyBftPeerCommunicator(d.bftAdatper, d.annsensusOutgoing)
+	bftComm := NewProxyBftPeerCommunicator(d.BftAdatper, d.PeerOutgoing)
 
 	bftPartner := bft.NewDefaultBFTPartner(
 		context.GetTerm().PartsNum,
@@ -67,19 +48,19 @@ func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context Consensus
 		context.GetBlockTime(),
 		bftComm, //BftPeerCommunicatorIncoming
 		bftComm, //BftPeerCommunicatorOutgoing
-		d.proposalGenerator,
-		d.proposalValidator,
-		d.decisionMaker,
+		d.ProposalGenerator,
+		d.ProposalValidator,
+		d.DecisionMaker,
 		DkgToBft(context.GetTerm().AllPartPublicKeys),
 	)
 	bftPartner.GetBftPeerCommunicatorIncoming()
 	return bftPartner
 }
 
-func DkgToBft(dkgInfo []dkg.PartPub) []bft.PeerInfo {
-	var peerInfos []bft.PeerInfo
+func DkgToBft(dkgInfo []dkg.PartPub) []bft.BftPeer {
+	var peerInfos []bft.BftPeer
 	for _, peer := range dkgInfo {
-		peerInfos = append(peerInfos, bft.PeerInfo{
+		peerInfos = append(peerInfos, bft.BftPeer{
 			Id:             peer.Peer.Id,
 			PublicKey:      peer.Peer.PublicKey,
 			Address:        peer.Peer.Address,

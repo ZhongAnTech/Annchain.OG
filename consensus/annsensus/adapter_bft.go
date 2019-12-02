@@ -25,7 +25,7 @@ func NewProxyBftPeerCommunicator(
 	}
 }
 
-func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.BftPeer) {
 	annsensusMessage, err := p.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
 		panic("adapt should never fail")
@@ -43,7 +43,7 @@ func (p *ProxyBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.Pee
 	p.annsensusOutgoing.Broadcast(annsensusMessage, annsensusPeers)
 }
 
-func (p *ProxyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+func (p *ProxyBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.BftPeer) {
 	// adapt the interface so that the request can be handled by annsensus
 	annsensusMessage, err := p.bftMessageAdapter.AdaptBftMessage(msg)
 	if err != nil {
@@ -103,8 +103,8 @@ type TrustfulBftAdapter struct {
 	bftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (r *TrustfulBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo, error) {
-	return bft.PeerInfo{
+func (r *TrustfulBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.BftPeer, error) {
+	return bft.BftPeer{
 		Id:             annPeer.Id,
 		PublicKey:      annPeer.PublicKey,
 		Address:        annPeer.Address,
@@ -112,7 +112,7 @@ func (r *TrustfulBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.Peer
 	}, nil
 }
 
-func (r *TrustfulBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
+func (r *TrustfulBftAdapter) AdaptBftPeer(bftPeer bft.BftPeer) (AnnsensusPeer, error) {
 	return AnnsensusPeer{
 		Id:             bftPeer.Id,
 		PublicKey:      bftPeer.PublicKey,
@@ -147,7 +147,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBft
 }
 
 // Broadcast must be anonymous since it is actually among all partners, not all nodes.
-//func (r *TrustfulBftAdapter) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+//func (r *TrustfulBftAdapter) Broadcast(msg bft.BftMessage, peers []bft.BftPeer) {
 //	signed := r.Sign(msg)
 //	for _, peer := range peers {
 //		r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
@@ -155,7 +155,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBft
 //}
 //
 //// Unicast must be anonymous
-//func (r *TrustfulBftAdapter) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+//func (r *TrustfulBftAdapter) Unicast(msg bft.BftMessage, peer bft.BftPeer) {
 //	signed := r.Sign(msg)
 //	r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)
 //}
@@ -224,8 +224,8 @@ type PlainBftAdapter struct {
 	BftMessageUnmarshaller *BftMessageUnmarshaller
 }
 
-func (p PlainBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo, error) {
-	return bft.PeerInfo{
+func (p PlainBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.BftPeer, error) {
+	return bft.BftPeer{
 		Id:             annPeer.Id,
 		PublicKey:      annPeer.PublicKey,
 		Address:        annPeer.Address,
@@ -233,7 +233,7 @@ func (p PlainBftAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (bft.PeerInfo
 	}, nil
 }
 
-func (p PlainBftAdapter) AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error) {
+func (p PlainBftAdapter) AdaptBftPeer(bftPeer bft.BftPeer) (AnnsensusPeer, error) {
 	return AnnsensusPeer{
 		Id:             bftPeer.Id,
 		PublicKey:      bftPeer.PublicKey,

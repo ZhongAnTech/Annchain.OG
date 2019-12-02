@@ -50,18 +50,18 @@ type HeightProvider interface {
 // During the converting process there may be some validation and signing operations.
 type BftMessageAdapter interface {
 	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (bft.BftMessage, error)
-	AdaptAnnsensusPeer(AnnsensusPeer) (bft.PeerInfo, error)
+	AdaptAnnsensusPeer(AnnsensusPeer) (bft.BftPeer, error)
 
 	AdaptBftMessage(outgoingMsg bft.BftMessage) (AnnsensusMessage, error)
-	AdaptBftPeer(bftPeer bft.PeerInfo) (AnnsensusPeer, error)
+	AdaptBftPeer(bftPeer bft.BftPeer) (AnnsensusPeer, error)
 }
 
 type DkgMessageAdapter interface {
 	AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (dkg.DkgMessage, error)
-	AdaptAnnsensusPeer(AnnsensusPeer) (dkg.PeerInfo, error)
+	AdaptAnnsensusPeer(AnnsensusPeer) (dkg.DkgPeer, error)
 
 	AdaptDkgMessage(outgoingMsg dkg.DkgMessage) (AnnsensusMessage, error)
-	AdaptDkgPeer(dkgPeer dkg.PeerInfo) (AnnsensusPeer, error)
+	AdaptDkgPeer(dkgPeer dkg.DkgPeer) (AnnsensusPeer, error)
 }
 
 type AnnsensusMessage interface {

@@ -1,7 +1,6 @@
 package annsensus
 
 import (
-	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
@@ -11,42 +10,23 @@ import (
 
 // AnnsensusPartner integrates dkg, bft and term change with vrf.
 type AnnsensusPartner struct {
-	config             AnnsensusProcessorConfig
-	bftAdapter         BftMessageAdapter // message handlers in common. Injected into commuinicator
-	dkgAdapter         DkgMessageAdapter // message handlers in common. Injected into commuinicator
-	termProvider       TermIdProvider
-	termHolder         HistoricalTermsHolder // hold information for each term
-	bftPartnerProvider BftPartnerProvider    // factory method to generate a bft partner for each term
-	dkgPartnerProvider DkgPartnerProvider    // factory method to generate a dkg partner for each term
-	outgoing           AnnsensusPeerCommunicatorOutgoing
-	incoming           AnnsensusPeerCommunicatorIncoming
+	Config             AnnsensusProcessorConfig
+	BftAdapter         BftMessageAdapter // message handlers in common. Injected into commuinicator
+	DkgAdapter         DkgMessageAdapter // message handlers in common. Injected into commuinicator
+	TermProvider       TermIdProvider
+	TermHolder         HistoricalTermsHolder // hold information for each term
+	BftPartnerProvider BftPartnerProvider    // factory method to generate a bft partner for each term
+	DkgPartnerProvider DkgPartnerProvider    // factory method to generate a dkg partner for each term
+	PeerOutgoing       AnnsensusPeerCommunicatorOutgoing
+	PeerIncoming       AnnsensusPeerCommunicatorIncoming
 
 	quit   chan bool
 	quitWg sync.WaitGroup
 }
 
-func NewAnnsensusPartner(
-	config AnnsensusProcessorConfig,
-	bftAdapter BftMessageAdapter,
-	dkgAdapter DkgMessageAdapter,
-	outgoing AnnsensusPeerCommunicatorOutgoing,
-	incoming AnnsensusPeerCommunicatorIncoming,
-	termProvider TermIdProvider,
-	termHolder HistoricalTermsHolder,
-	bftPartnerProvider BftPartnerProvider,
-	dkgPartnerProvider DkgPartnerProvider) *AnnsensusPartner {
-	return &AnnsensusPartner{config: config,
-		bftAdapter:         bftAdapter,
-		dkgAdapter:         dkgAdapter,
-		outgoing:           outgoing,
-		incoming:           incoming,
-		termProvider:       termProvider,
-		termHolder:         termHolder,
-		bftPartnerProvider: bftPartnerProvider,
-		dkgPartnerProvider: dkgPartnerProvider,
-		quit:               make(chan bool),
-		quitWg:             sync.WaitGroup{},
-	}
+func (a *AnnsensusPartner) InitDefault() {
+	a.quitWg = sync.WaitGroup{}
+	a.quit = make(chan bool)
 }
 
 type AnnsensusProcessorConfig struct {
@@ -54,7 +34,7 @@ type AnnsensusProcessorConfig struct {
 	DisabledConsensus  bool
 	TermChangeInterval int
 	GenesisAccounts    crypto.PublicKeys
-	PartnerNum         int
+	//PartnerNum         int
 }
 
 func checkConfig(config AnnsensusProcessorConfig) {
@@ -65,40 +45,40 @@ func checkConfig(config AnnsensusProcessorConfig) {
 		if config.TermChangeInterval <= 0 && !config.DisableTermChange {
 			panic("require termChangeInterval")
 		}
-		if len(config.GenesisAccounts) < config.PartnerNum && !config.DisableTermChange {
-			panic("need more account")
-		}
-		if config.PartnerNum < 2 {
-			panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", config.PartnerNum))
-		}
+		//if len(config.GenesisAccounts) < config.PartnerNum && !config.DisableTermChange {
+		//	panic("need more account")
+		//}
+		//if config.PartnerNum < 2 {
+		//	panic(fmt.Sprintf("BFT needs at least 2 nodes, currently %d", config.PartnerNum))
+		//}
 	}
 }
 
-//func NewAnnsensusPartner(config AnnsensusProcessorConfig,
+//func NewAnnsensusPartner(Config AnnsensusProcessorConfig,
 //	signatureProvider account.SignatureProvider,
-//	termProvider TermIdProvider,
+//	TermProvider TermIdProvider,
 //	annsensusCommunicator *AnnsensusPeerCommunicator,
 //) *AnnsensusPartner {
 //	// Prepare common facilities that will be reused during each term
 //	// Prepare adapters
-//	bftAdapter := NewTrustfulBftAdapter(signatureProvider, termProvider)
-//	dkgAdapter := NewTrustfulDkgAdapter()
-//	termHolder := NewAnnsensusTermHolder(termProvider)
+//	BftAdapter := NewTrustfulBftAdapter(signatureProvider, TermProvider)
+//	DkgAdapter := NewTrustfulDkgAdapter()
+//	TermHolder := NewAnnsensusTermHolder(TermProvider)
 //
 //	// Prepare process itself.
 //	ap := &AnnsensusPartner{
-//		config:                config,
-//		bftAdapter:            bftAdapter,
-//		dkgAdapter:            dkgAdapter,
+//		Config:                Config,
+//		BftAdapter:            BftAdapter,
+//		DkgAdapter:            DkgAdapter,
 //		annsensusCommunicator: annsensusCommunicator,
-//		termHolder:            termHolder,
+//		TermHolder:            TermHolder,
 //	}
 //	return ap
 //}
 
 // Start makes AnnsensusPartner receive and handle consensus messages.
 func (ap *AnnsensusPartner) Start() {
-	if ap.config.DisabledConsensus {
+	if ap.Config.DisabledConsensus {
 		log.Warn("annsensus disabled")
 		return
 	}
@@ -112,8 +92,8 @@ func (ap *AnnsensusPartner) Start() {
 //	//TODO
 //	t := term.Term{
 //		Id:                0,
-//		PartsNum:          ap.config.PartnerNum,
-//		Threshold:         ap.config.PartnerNum*2/3 + 1,
+//		PartsNum:          ap.Config.PartnerNum,
+//		Threshold:         ap.Config.PartnerNum*2/3 + 1,
 //		Senators:          nil,
 //		AllPartPublicKeys: nil,
 //		PublicKey:         nil,
@@ -128,19 +108,19 @@ func (ap *AnnsensusPartner) StartNewTerm(context ConsensusContextProvider) error
 	//newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
-	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.termProvider, ap.p2pSender)
+	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.TermProvider, ap.p2pSender)
 
 	logrus.WithField("context", context).Debug("starting new term")
 	// the bft instance for this term
-	bftPartner := ap.bftPartnerProvider.GetBftPartnerInstance(context)
+	bftPartner := ap.BftPartnerProvider.GetBftPartnerInstance(context)
 	// the dkg instance for this term to generate next term
-	dkgPartner, err := ap.dkgPartnerProvider.GetDkgPartnerInstance(context)
+	dkgPartner, err := ap.DkgPartnerProvider.GetDkgPartnerInstance(context)
 	if err != nil {
 		return err
 	}
 
 	tc := NewTermCollection(context, bftPartner, dkgPartner)
-	ap.termHolder.SetTerm(context.GetTerm().Id, tc)
+	ap.TermHolder.SetTerm(context.GetTerm().Id, tc)
 	// start to generate proposals, vote and generate sequencers
 	go bftPartner.Start()
 	bftPartner.StartNewEra(0, 0)
@@ -161,7 +141,7 @@ func (ap *AnnsensusPartner) loop() {
 		case <-ap.quit:
 			ap.quitWg.Done()
 			return
-		case context := <-ap.termProvider.GetTermChangeEventChannel():
+		case context := <-ap.TermProvider.GetTermChangeEventChannel():
 			// new term is coming.
 			// it is coming because of either:
 			// 1, someone told you that you are keeping up-to-date with latest seq
@@ -172,7 +152,7 @@ func (ap *AnnsensusPartner) loop() {
 			if err != nil {
 				logrus.WithError(err).WithField("context", context).Error("failed to start a new term")
 			}
-		case msgEvent := <-ap.incoming.GetPipeOut():
+		case msgEvent := <-ap.PeerIncoming.GetPipeOut():
 			ap.HandleAnnsensusMessage(msgEvent)
 		}
 	}
@@ -191,20 +171,20 @@ func (ap *AnnsensusPartner) HandleAnnsensusMessage(msgEvent *AnnsensusMessageEve
 		// let adapter handle plain and signed
 		fallthrough
 	case AnnsensusMessageTypeBftSigned:
-		bftMessage, err := ap.bftAdapter.AdaptAnnsensusMessage(annsensusMessage)
+		bftMessage, err := ap.BftAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err != nil {
 			logrus.WithError(err).WithField("msg", annsensusMessage).
 				Error("error adapting annsensus to bft msg")
 			return
 		}
-		bftPeer, err := ap.bftAdapter.AdaptAnnsensusPeer(peer)
+		bftPeer, err := ap.BftAdapter.AdaptAnnsensusPeer(peer)
 		if err != nil {
 			logrus.WithError(err).WithField("peer", peer).
 				Error("error adapting annsensus to bft peer")
 			return
 		}
 		// judge height
-		msgTerm, err := ap.termHolder.GetTermByHeight(bftMessage)
+		msgTerm, err := ap.TermHolder.GetTermByHeight(bftMessage)
 		if err != nil {
 			logrus.WithError(err).WithField("msg", bftMessage).
 				Error("error finding msgTerm")
@@ -219,19 +199,19 @@ func (ap *AnnsensusPartner) HandleAnnsensusMessage(msgEvent *AnnsensusMessageEve
 	case AnnsensusMessageTypeDkgPlain:
 		fallthrough
 	case AnnsensusMessageTypeDkgSigned:
-		dkgMessage, err := ap.dkgAdapter.AdaptAnnsensusMessage(annsensusMessage)
+		dkgMessage, err := ap.DkgAdapter.AdaptAnnsensusMessage(annsensusMessage)
 		if err != nil {
 			logrus.WithError(err).WithField("msg", annsensusMessage).
 				Error("error adapting annsensus to dkg msg")
 			return
 		}
-		dkgPeer, err := ap.dkgAdapter.AdaptAnnsensusPeer(peer)
+		dkgPeer, err := ap.DkgAdapter.AdaptAnnsensusPeer(peer)
 		if err != nil {
 			logrus.WithError(err).WithField("peer", peer).
 				Error("error adapting annsensus to dkg peer")
 			return
 		}
-		msgTerm, err := ap.termHolder.GetTermByHeight(dkgMessage)
+		msgTerm, err := ap.TermHolder.GetTermByHeight(dkgMessage)
 		if err != nil {
 			logrus.WithError(err).WithField("msg", dkgMessage).
 				Error("error finding msgTerm")
@@ -247,7 +227,7 @@ func (ap *AnnsensusPartner) HandleAnnsensusMessage(msgEvent *AnnsensusMessageEve
 	case AnnsensusMessageTypeDkgEncrypted:
 		// decrypt first and then send to handler
 	default:
-		logrus.WithField("msg", annsensusMessage).WithField("IM", ap.termHolder.DebugMyId()).Warn("unsupported annsensus message type")
+		logrus.WithField("msg", annsensusMessage).WithField("IM", ap.TermHolder.DebugMyId()).Warn("unsupported annsensus message type")
 	}
 	return
 }

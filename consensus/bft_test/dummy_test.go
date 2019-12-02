@@ -23,9 +23,9 @@ func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, p
 	return d
 }
 
-func (d *LocalBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.PeerInfo) {
+func (d *LocalBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.BftPeer) {
 	for _, peer := range peers {
-		go func(peer bft.PeerInfo) {
+		go func(peer bft.BftPeer) {
 			//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
 			d.PeerIns[peer.Id] <- &bft.BftMessageEvent{
 				Message: msg,
@@ -35,7 +35,7 @@ func (d *LocalBftPeerCommunicator) Broadcast(msg bft.BftMessage, peers []bft.Pee
 	}
 }
 
-func (d *LocalBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.PeerInfo) {
+func (d *LocalBftPeerCommunicator) Unicast(msg bft.BftMessage, peer bft.BftPeer) {
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
 		d.PeerIns[peer.Id] <- &bft.BftMessageEvent{

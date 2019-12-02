@@ -7,7 +7,7 @@ import (
 	"github.com/annchain/kyber/v3"
 )
 
-type PeerInfo struct {
+type DkgPeer struct {
 	Id             int
 	PublicKey      crypto.PublicKey `json:"-"`
 	Address        common.Address   `json:"address"`
@@ -16,7 +16,7 @@ type PeerInfo struct {
 
 type PartPub struct {
 	Point kyber.Point
-	Peer  PeerInfo
+	Peer  DkgPeer
 }
 
 type PartSec struct {
@@ -35,8 +35,8 @@ func (p PartPubs) Points() []kyber.Point {
 	return points
 }
 
-func (p PartPubs) Peers() []PeerInfo {
-	var peers []PeerInfo
+func (p PartPubs) Peers() []DkgPeer {
+	var peers []DkgPeer
 	for _, v := range p {
 		peers = append(peers, v.Peer)
 	}
@@ -56,7 +56,7 @@ func (h PartPubs) Len() int {
 //	h[i], h[j] = h[j], h[i]
 //}
 //
-//type PeerInfo struct {
+//type DkgPeer struct {
 //	MyIndex        int
 //	PublicKey crypto.PublicKey `json:"-"`
 //

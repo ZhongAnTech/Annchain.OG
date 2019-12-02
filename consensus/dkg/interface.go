@@ -1,8 +1,8 @@
 package dkg
 
 type DkgPeerCommunicatorOutgoing interface {
-	Broadcast(msg DkgMessage, peers []PeerInfo)
-	Unicast(msg DkgMessage, peer PeerInfo)
+	Broadcast(msg DkgMessage, peers []DkgPeer)
+	Unicast(msg DkgMessage, peer DkgPeer)
 }
 
 type DkgPeerCommunicatorIncoming interface {

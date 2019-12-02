@@ -23,7 +23,7 @@ func NewProxyDkgPeerCommunicator(
 	}
 }
 
-func (p *ProxyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.PeerInfo) {
+func (p *ProxyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.DkgPeer) {
 	annsensusMessage, err := p.dkgMessageAdapter.AdaptDkgMessage(msg)
 	if err != nil {
 		panic("adapt should never fail")
@@ -41,7 +41,7 @@ func (p *ProxyDkgPeerCommunicator) Broadcast(msg dkg.DkgMessage, peers []dkg.Pee
 	p.annsensusOutgoing.Broadcast(annsensusMessage, annsensusPeers)
 }
 
-func (p *ProxyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.PeerInfo) {
+func (p *ProxyDkgPeerCommunicator) Unicast(msg dkg.DkgMessage, peer dkg.DkgPeer) {
 	// adapt the interface so that the request can be handled by annsensus
 	annsensusMessage, err := p.dkgMessageAdapter.AdaptDkgMessage(msg)
 	if err != nil {
@@ -135,8 +135,8 @@ type PlainDkgAdapter struct {
 	DkgMessageUnmarshaller *DkgMessageUnmarshaller
 }
 
-func (p PlainDkgAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (dkg.PeerInfo, error) {
-	return dkg.PeerInfo{
+func (p PlainDkgAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (dkg.DkgPeer, error) {
+	return dkg.DkgPeer{
 		Id:             annPeer.Id,
 		PublicKey:      annPeer.PublicKey,
 		Address:        annPeer.Address,
@@ -144,7 +144,7 @@ func (p PlainDkgAdapter) AdaptAnnsensusPeer(annPeer AnnsensusPeer) (dkg.PeerInfo
 	}, nil
 }
 
-func (p PlainDkgAdapter) AdaptDkgPeer(dkgPeer dkg.PeerInfo) (AnnsensusPeer, error) {
+func (p PlainDkgAdapter) AdaptDkgPeer(dkgPeer dkg.DkgPeer) (AnnsensusPeer, error) {
 	return AnnsensusPeer{
 		Id:             dkgPeer.Id,
 		PublicKey:      dkgPeer.PublicKey,

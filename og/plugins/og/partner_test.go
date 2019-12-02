@@ -2,7 +2,7 @@ package og
 
 import (
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/communicator"
+	"github.com/annchain/OG/og/communication"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -11,46 +11,46 @@ import (
 
 type DummyOgPeerCommunicator struct {
 	Myid        int
-	PeerPipeIns []chan *communicator.MessageEvent
-	pipeIn      chan *communicator.MessageEvent
-	pipeOut     chan *communicator.MessageEvent
+	PeerPipeIns []chan *communication.OgMessageEvent
+	pipeIn      chan *communication.OgMessageEvent
+	pipeOut     chan *communication.OgMessageEvent
 }
 
-func (o DummyOgPeerCommunicator) GetPipeIn() chan *communicator.MessageEvent {
+func (o DummyOgPeerCommunicator) GetPipeIn() chan *communication.OgMessageEvent {
 	return o.pipeIn
 }
 
-func (o DummyOgPeerCommunicator) GetPipeOut() chan *communicator.MessageEvent {
+func (o DummyOgPeerCommunicator) GetPipeOut() chan *communication.OgMessageEvent {
 	return o.pipeOut
 }
 
-func NewDummyOgPeerCommunicator(myid int, incoming chan *communicator.MessageEvent, peers []chan *communicator.MessageEvent) *DummyOgPeerCommunicator {
+func NewDummyOgPeerCommunicator(myid int, incoming chan *communication.OgMessageEvent, peers []chan *communication.OgMessageEvent) *DummyOgPeerCommunicator {
 	d := &DummyOgPeerCommunicator{
 		PeerPipeIns: peers,
 		Myid:        myid,
 		pipeIn:      incoming,
-		pipeOut:     make(chan *communicator.MessageEvent, 100), // must be big enough to avoid blocking issue
+		pipeOut:     make(chan *communication.OgMessageEvent, 100), // must be big enough to avoid blocking issue
 	}
 	return d
 }
 
-func (o DummyOgPeerCommunicator) Broadcast(msg msg.OgMessage, peers []communicator.PeerIdentifier) {
+func (o DummyOgPeerCommunicator) Broadcast(msg msg.OgMessage, peers []communication.OgPeer) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("broadcasting message")
-		go func(peer communicator.PeerIdentifier) {
+		go func(peer communication.OgPeer) {
 			ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg")
 			//d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
 	}
 }
 
-func (o DummyOgPeerCommunicator) Unicast(msg msg.OgMessage, peer communicator.PeerIdentifier) {
+func (o DummyOgPeerCommunicator) Unicast(msg msg.OgMessage, peer communication.OgPeer) {
 	logrus.Debug("unicasting by DummyOgPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
-		o.PeerPipeIns[peer.Id] <- &communicator.MessageEvent{
+		o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
 			Msg:    msg,
-			Source: communicator.PeerIdentifier{Id: o.Myid},
+			Source: communication.OgPeer{Id: o.Myid},
 		}
 	}()
 }
@@ -71,16 +71,16 @@ func TestPingPong(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	total := 2
 	// init two OG peers's In channel
-	peerChans := make([]chan *communicator.MessageEvent, total)
-	peerInfos := make([]communicator.PeerIdentifier, total)
+	peerChans := make([]chan *communication.OgMessageEvent, total)
+	peerInfos := make([]communication.OgPeer, total)
 
 	// build communication channels
 	for i := 0; i < total; i++ {
-		peerInfos[i] = communicator.PeerIdentifier{Id: i}
-		peerChans[i] = make(chan *communicator.MessageEvent, 10)
+		peerInfos[i] = communication.OgPeer{Id: i}
+		peerChans[i] = make(chan *communication.OgMessageEvent, 10)
 	}
 
-	processors := make([]*OgProcessor, total)
+	processors := make([]*OgPartner, total)
 
 	// build peer communicator
 	for i := 0; i < total; i++ {

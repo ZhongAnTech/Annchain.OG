@@ -46,7 +46,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 
 	var peers []bft.BftPartner
 	var peerChans []chan *bft.BftMessageEvent
-	var peerInfo []bft.PeerInfo
+	var peerInfo []bft.BftPeer
 
 	total := good + bad
 	i := 0
@@ -58,10 +58,10 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 
 	// building communication channels
 	for i = 0; i < good; i++ {
-		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
+		peerInfo = append(peerInfo, bft.BftPeer{Id: i})
 	}
 	for ; i < total; i++ {
-		peerInfo = append(peerInfo, bft.PeerInfo{Id: i})
+		peerInfo = append(peerInfo, bft.BftPeer{Id: i})
 	}
 	for i = 0; i < good; i++ {
 		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)

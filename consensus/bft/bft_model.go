@@ -79,7 +79,7 @@ func (t *TendermintContext) IsAfter(w WaiterContext) bool {
 	return t.HeightRound.IsAfter(v.HeightRound) || (t.HeightRound == v.HeightRound && t.StepType.IsAfter(v.StepType))
 }
 
-type PeerInfo struct {
+type BftPeer struct {
 	Id             int
 	PublicKey      crypto.PublicKey `json:"-"`
 	Address        common.Address   `json:"address"`
@@ -136,11 +136,11 @@ type BftStatus struct {
 	N         int // total number of participants
 	F         int // max number of Byzantines
 	Maj23     int
-	Peers     []PeerInfo
+	Peers     []BftPeer
 	States    HeightRoundStateMap // for line 55, round number -> count
 }
 type BftMessageEvent struct {
 	Message BftMessage
-	Peer    PeerInfo
+	Peer    BftPeer
 }
 

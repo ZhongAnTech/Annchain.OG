@@ -24,7 +24,7 @@ type DefaultDkgPartner struct {
 	dealReceivingCache       DisorderedCache // map[deal_sender_index]Deal
 	gossipStartCh            chan bool
 
-	otherPeers            []PeerInfo
+	otherPeers            []DkgPeer
 	notified              bool
 	DealResponseCache     map[int]*dkger.Response //my response for such deal should not be generated twice
 	ResponseCache         map[string]bool         // duplicate response should not be processed twice.
@@ -80,7 +80,7 @@ func NewDefaultDkgPartner(suite *bn256.Suite, termId uint32, numParts, threshold
 		peerCommunicatorOutgoing: dkgPeerCommunicatorOutgoing,
 		dealReceivingCache:       make(DisorderedCache),
 		gossipStartCh:            make(chan bool),
-		otherPeers:               []PeerInfo{},
+		otherPeers:               []DkgPeer{},
 		notified:                 false,
 		DealResponseCache:        make(map[int]*dkger.Response),
 		ResponseCache:            make(map[string]bool),

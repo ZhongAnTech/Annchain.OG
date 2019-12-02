@@ -57,7 +57,7 @@ func NewDefaultBFTPartner(nbParticipants int, id int, blockTime time.Duration,
 	proposalGenerator ProposalGenerator,
 	proposalValidator ProposalValidator,
 	decisionMaker DecisionMaker,
-	peerInfo []PeerInfo,
+	peerInfo []BftPeer,
 ) *DefaultBftPartner {
 	if nbParticipants < 2 {
 		panic(0)

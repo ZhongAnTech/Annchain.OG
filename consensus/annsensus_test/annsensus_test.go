@@ -72,7 +72,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 		peerInfos[i] = dkg.PartSec{
 			PartPub: dkg.PartPub{
 				Point: dkgPubKey,
-				Peer: dkg.PeerInfo{
+				Peer: dkg.DkgPeer{
 					Id:             i,
 					PublicKey:      pubKey,
 					Address:        address,
@@ -87,7 +87,7 @@ func generatePeers(suite *bn256.Suite, n int) []dkg.PartSec {
 }
 
 func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
-	nodes := 4
+	nodes := 8
 	accounts := sampleAccounts(nodes)
 
 	suite := bn256.NewSuiteG2()
@@ -98,7 +98,6 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 		DisabledConsensus:  false,
 		TermChangeInterval: 60 * 1000,
 		GenesisAccounts:    nil,
-		PartnerNum:         nodes,
 	}
 
 	// prepare message channel for each peer
@@ -115,27 +114,38 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 		// init AnnsensusPeerCommunicator for each node
 		bftAdapter := &annsensus.PlainBftAdapter{}
 		dkgAdapter := &annsensus.PlainDkgAdapter{}
-		communicator := NewLocalAnnsensusPeerCommunicator(i, peerChans[i], peerChans)
+		communicator := &LocalAnnsensusPeerCommunicator{
+			Myid:  i,
+			Peers: peerChans,
+			pipe:  peerChans[i],
+		}
 
 		termProvider := NewDummyTermProvider()
 		termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
-		defaultAnnsensusPartnerProvider := annsensus.NewDefaultAnnsensusPartnerProvider(
-			&dummyAccountProvider{MyAccount: accounts[i]},
-			&dummyProposalGenerator{},
-			&dummyProposalValidator{},
-			&dummyDecisionMaker{},
-			bftAdapter,
-			dkgAdapter,
-			communicator,
-		)
 
-		ann := annsensus.NewAnnsensusPartner(config,
-			bftAdapter, dkgAdapter,
-			communicator, communicator,
-			termProvider, termHolder,
-			defaultAnnsensusPartnerProvider,
-			defaultAnnsensusPartnerProvider,
-		)
+		defaultAnnsensusPartnerProvider := &annsensus.DefaultAnnsensusPartnerProvider{
+			MyAccountProvider: &dummyAccountProvider{MyAccount: accounts[i]},
+			ProposalGenerator: &dummyProposalGenerator{},
+			ProposalValidator: &dummyProposalValidator{},
+			DecisionMaker:     &dummyDecisionMaker{},
+			BftAdatper:        bftAdapter,
+			DkgAdatper:        dkgAdapter,
+			PeerOutgoing:      communicator,
+		}
+
+		ann := &annsensus.AnnsensusPartner{
+			Config:             config,
+			BftAdapter:         bftAdapter,
+			DkgAdapter:         dkgAdapter,
+			TermProvider:       termProvider,
+			TermHolder:         termHolder,
+			BftPartnerProvider: defaultAnnsensusPartnerProvider,
+			DkgPartnerProvider: defaultAnnsensusPartnerProvider,
+			PeerOutgoing:       communicator,
+			PeerIncoming:       communicator,
+		}
+		ann.InitDefault()
+
 		aps[i] = ann
 		termProviders[i] = termProvider
 	}

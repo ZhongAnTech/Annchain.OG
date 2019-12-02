@@ -93,7 +93,7 @@ func (d dummyTermProvider) CurrentTerm() (termId uint32) {
 	panic("implement me")
 }
 
-func (d dummyTermProvider) Peers(termId uint32) ([]bft.PeerInfo, error) {
+func (d dummyTermProvider) Peers(termId uint32) ([]bft.BftPeer, error) {
 	panic("implement me")
 }
 
@@ -115,8 +115,11 @@ func NewDummyAnnsensusPartnerProivder(peerChans []chan *annsensus.AnnsensusMessa
 func (d *dummyAnnsensusPartnerProvider) GetDkgPartnerInstance(context annsensus.ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
 	myId := context.GetMyBftId()
 
-	localAnnsensusPeerCommunicator := NewLocalAnnsensusPeerCommunicator(myId,
-		d.peerChans[myId], d.peerChans)
+	localAnnsensusPeerCommunicator := &LocalAnnsensusPeerCommunicator{
+		Myid:  myId,
+		Peers: d.peerChans,
+		pipe:  d.peerChans[myId],
+	}
 
 	dkgMessageAdapter := &annsensus.PlainDkgAdapter{
 		DkgMessageUnmarshaller: &annsensus.DkgMessageUnmarshaller{},
@@ -146,9 +149,11 @@ func (d *dummyAnnsensusPartnerProvider) GetBftPartnerInstance(context annsensus.
 		BftMessageUnmarshaller: &annsensus.BftMessageUnmarshaller{},
 	}
 
-	localAnnsensusPeerCommunicator := NewLocalAnnsensusPeerCommunicator(myId,
-		d.peerChans[myId], d.peerChans)
-
+	localAnnsensusPeerCommunicator := &LocalAnnsensusPeerCommunicator{
+		Myid:  myId,
+		Peers: d.peerChans,
+		pipe:  d.peerChans[myId],
+	}
 	commuicatorBft := annsensus.NewProxyBftPeerCommunicator(bftMessageAdapter, localAnnsensusPeerCommunicator)
 
 	currentTerm := context.GetTerm()
@@ -206,14 +211,4 @@ func (d *LocalAnnsensusPeerCommunicator) GetPipeIn() chan *annsensus.AnnsensusMe
 
 func (d *LocalAnnsensusPeerCommunicator) GetPipeOut() chan *annsensus.AnnsensusMessageEvent {
 	return d.pipe
-}
-
-func NewLocalAnnsensusPeerCommunicator(myid int, incoming chan *annsensus.AnnsensusMessageEvent,
-	peers []chan *annsensus.AnnsensusMessageEvent) *LocalAnnsensusPeerCommunicator {
-	d := &LocalAnnsensusPeerCommunicator{
-		Myid:  myid,
-		Peers: peers,
-		pipe:  incoming,
-	}
-	return d
 }

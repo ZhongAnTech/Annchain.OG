@@ -63,7 +63,7 @@ func (p *ByzantinePartner) send() {
 					"from":     p.Id,
 					"to":       peer.GetId(),
 					"msg":      msg.String(),
-				}).Tracef("Outgoing message")
+				}).Tracef("PeerOutgoing message")
 				ffchan.NewTimeoutSenderShort(peer.GetIncomingMessageChannel(), msg, "")
 			}
 		}

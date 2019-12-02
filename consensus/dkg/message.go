@@ -48,7 +48,7 @@ type DkgMessage interface {
 
 type DkgMessageEvent struct {
 	Message DkgMessage
-	Peer    PeerInfo
+	Peer    DkgPeer
 }
 
 //msgp:tuple DkgBasicInfo

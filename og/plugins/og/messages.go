@@ -3,7 +3,6 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -12,27 +11,27 @@ import (
 //msgp:tuple MessagePing
 type MessagePing struct{}
 
-func (z MessagePing) String() string {
+func (z *MessagePing) GetType() msg.OgMessageType {
+	return MessageTypePing
+}
+
+func (z *MessagePing) String() string {
 	return "MessageTypePing"
 }
 
-func (m *MessagePing) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypePing)
-}
-
-func (m *MessagePing) GetData() []byte {
-	return []byte{}
-}
-
-func (m *MessagePing) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
+func (z *MessagePing) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
 	}
+	return b
 }
 
-func (z *MessagePing) FromBinary([]byte) error {
-	// do nothing since the array is always empty
+func (z *MessagePing) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -43,23 +42,27 @@ func (m *MessagePong) String() string {
 	return "MessageTypePong"
 }
 
-func (m *MessagePong) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypePong)
+func (m *MessagePong) GetType() msg.OgMessageType {
+	return MessageTypePong
 }
 
 func (m *MessagePong) GetData() []byte {
-	return []byte{}
+	return nil
 }
 
-func (m *MessagePong) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: msg.BinaryMessageType(m.GetType()),
-		Data: m.GetData(),
+func (z *MessagePong) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
 	}
+	return b
 }
 
-func (z *MessagePong) FromBinary([]byte) error {
-	// do nothing since the array is always empty
+func (z *MessagePong) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -73,32 +76,28 @@ type MessageBatchSyncRequest struct {
 	//Height      *uint64
 }
 
-func (m *MessageBatchSyncRequest) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeBatchSyncRequest)
+func (m *MessageBatchSyncRequest) GetType() msg.OgMessageType {
+	return MessageTypeBatchSyncRequest
 }
 
-func (m *MessageBatchSyncRequest) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
+func (m *MessageBatchSyncRequest) String() string {
+	return fmt.Sprintf("MessageBatchSyncRequest[req %d]", m.RequestId)
+}
+
+func (z *MessageBatchSyncRequest) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
 }
 
-func (m *MessageBatchSyncRequest) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
+func (z *MessageBatchSyncRequest) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
 	}
-}
-
-func (m *MessageBatchSyncRequest) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageBatchSyncRequest) String() string {
-	return fmt.Sprintf("MessageBatchSyncRequest[req %d]", m.RequestId)
+	return nil
 }
 
 //msgp:tuple MessageSyncResponse
@@ -113,64 +112,57 @@ type MessageSyncResponse struct {
 	Resources []MessageContentResource
 }
 
-func (m *MessageSyncResponse) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeSyncResponse)
-}
-
-func (m *MessageSyncResponse) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *MessageSyncResponse) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m *MessageSyncResponse) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
+func (m *MessageSyncResponse) GetType() msg.OgMessageType {
+	return MessageTypeSyncResponse
 }
 
 func (m *MessageSyncResponse) String() string {
 	return fmt.Sprintf("MessageSyncResponse[req %d height %d]", m.RequestId, len(m.Resources))
 }
 
-type MessageNewResource struct {
-	Resources []MessageContentResource
-}
-
-func (m MessageNewResource) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeNewResource)
-}
-
-func (m MessageNewResource) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
+func (z *MessageSyncResponse) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
 }
 
-func (m MessageNewResource) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
+func (z *MessageSyncResponse) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-func (m MessageNewResource) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
+//msgp:tuple MessageNewResource
+type MessageNewResource struct {
+	Resources []MessageContentResource
 }
 
-func (m MessageNewResource) String() string {
+func (m *MessageNewResource) GetType() msg.OgMessageType {
+	return MessageTypeNewResource
+}
+
+func (m *MessageNewResource) String() string {
 	return "MessageNewResource"
+}
+
+func (z *MessageNewResource) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *MessageNewResource) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //msgp:tuple MessageHeightSyncRequest
@@ -182,33 +174,30 @@ type MessageHeightSyncRequest struct {
 	RequestId uint32 //avoid msg drop
 }
 
-func (z *MessageHeightSyncRequest) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeTxsRequest)
+func (z *MessageHeightSyncRequest) GetType() msg.OgMessageType {
+	return MessageTypeTxsRequest
 }
 
-func (m *MessageHeightSyncRequest) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
+func (m *MessageHeightSyncRequest) String() string {
+	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
+}
+
+func (z *MessageHeightSyncRequest) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
 }
 
-func (m *MessageHeightSyncRequest) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
+func (z *MessageHeightSyncRequest) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-func (m *MessageHeightSyncRequest) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageHeightSyncRequest) String() string {
-	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
-}
 
 ////msgp:tuple MessageTxsResponse
 //type MessageTxsResponse struct {
@@ -221,8 +210,8 @@ func (m *MessageHeightSyncRequest) String() string {
 //	Resources   []MessageContentResource
 //}
 //
-//func (m *MessageTxsResponse) GetType() msg.BinaryMessageType {
-//	return msg.BinaryMessageType(MessageTypeTxsResponse)
+//func (m *MessageTxsResponse) GetType() msg.OgMessageType {
+//	return msg.OgMessageType(MessageTypeTxsResponse)
 //}
 //
 //func (m *MessageTxsResponse) GetData() []byte {
@@ -233,8 +222,8 @@ func (m *MessageHeightSyncRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageTxsResponse) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
+//func (m *MessageTxsResponse) ToBinary() []byte {
+//	return []byte{
 //		Type: m.GetType(),
 //		Data: m.GetData(),
 //	}
@@ -250,6 +239,7 @@ func (m *MessageHeightSyncRequest) String() string {
 //}
 
 // getBlockHeadersData represents a block header query.
+
 //msgp:tuple MessageHeaderRequest
 type MessageHeaderRequest struct {
 	//Origin    HashOrNumber // Block from which to retrieve headers
@@ -259,33 +249,28 @@ type MessageHeaderRequest struct {
 	RequestId uint32 //avoid msg drop
 }
 
-func (m *MessageHeaderRequest) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeHeaderRequest)
+func (m *MessageHeaderRequest) GetType() msg.OgMessageType {
+	return MessageTypeHeaderRequest
 }
 
-func (m *MessageHeaderRequest) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
+func (m *MessageHeaderRequest) String() string {
+	return fmt.Sprintf("MessageHeaderRequest amount : %d ,skip : %d, reverse : %v, requestId :%d", m.Amount, m.Skip, m.Reverse, m.RequestId)
+}
+
+func (z *MessageHeaderRequest) Marshal() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
 }
 
-func (m *MessageHeaderRequest) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
+func (z *MessageHeaderRequest) Unmarshal(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
 	}
-}
-
-func (m *MessageHeaderRequest) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m *MessageHeaderRequest) String() string {
-	return fmt.Sprintf("MessageHeaderRequest amount : %d ,skip : %d, reverse : %v, requestId :%d", m.Amount, m.Skip, m.Reverse, m.RequestId)
-
+	return nil
 }
 
 ////msgp:tuple MessageSequencerHeader
@@ -294,8 +279,8 @@ func (m *MessageHeaderRequest) String() string {
 //	Number uint64
 //}
 //
-//func (m *MessageSequencerHeader) GetType() msg.BinaryMessageType {
-//	return msg.BinaryMessageType(MessageTypeSequencerHeader)
+//func (m *MessageSequencerHeader) GetType() msg.OgMessageType {
+//	return msg.OgMessageType(MessageTypeSequencerHeader)
 //}
 //
 //func (m *MessageSequencerHeader) GetData() []byte {
@@ -306,8 +291,8 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageSequencerHeader) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
+//func (m *MessageSequencerHeader) ToBinary() []byte {
+//	return []byte{
 //		Type: m.GetType(),
 //		Data: m.GetData(),
 //	}
@@ -328,8 +313,8 @@ func (m *MessageHeaderRequest) String() string {
 //	RequestedId uint32 //avoid msg drop
 //}
 //
-//func (m *MessageHeaderResponse) GetType() msg.BinaryMessageType {
-//	return msg.BinaryMessageType(MessageTypeHeaderResponse)
+//func (m *MessageHeaderResponse) GetType() msg.OgMessageType {
+//	return msg.OgMessageType(MessageTypeHeaderResponse)
 //}
 //
 //func (m *MessageHeaderResponse) GetData() []byte {
@@ -340,8 +325,8 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageHeaderResponse) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
+//func (m *MessageHeaderResponse) ToBinary() []byte {
+//	return []byte{
 //		Type: m.GetType(),
 //		Data: m.GetData(),
 //	}
@@ -362,8 +347,8 @@ func (m *MessageHeaderRequest) String() string {
 //	RequestId uint32 //avoid msg drop
 //}
 //
-//func (m *MessageBodiesRequest) GetType() msg.BinaryMessageType {
-//	return msg.BinaryMessageType(MessageTypeBodiesRequest)
+//func (m *MessageBodiesRequest) GetType() msg.OgMessageType {
+//	return msg.OgMessageType(MessageTypeBodiesRequest)
 //}
 //
 //func (m *MessageBodiesRequest) GetData() []byte {
@@ -374,8 +359,8 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageBodiesRequest) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
+//func (m *MessageBodiesRequest) ToBinary() []byte {
+//	return []byte{
 //		Type: m.GetType(),
 //		Data: m.GetData(),
 //	}
@@ -396,7 +381,7 @@ func (m *MessageHeaderRequest) String() string {
 //	RequestedId uint32 //avoid msg drop
 //}
 //
-//func (m *MessageBodiesResponse) GetType() msg.BinaryMessageType {
+//func (m *MessageBodiesResponse) GetType() msg.OgMessageType {
 //	return MessageTypeBodiesResponse
 //}
 //
@@ -408,9 +393,9 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageBodiesResponse) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: msg.BinaryMessageType(m.GetType()),
+//func (m *MessageBodiesResponse) ToBinary() []byte {
+//	return []byte{
+//		Type: msg.OgMessageType(m.GetType()),
 //		Data: m.GetData(),
 //	}
 //}
@@ -429,7 +414,7 @@ func (m *MessageHeaderRequest) String() string {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageControl) GetType() msg.BinaryMessageType {
+//func (m *MessageControl) GetType() msg.OgMessageType {
 //	return MessageTypeControl
 //}
 //
@@ -441,9 +426,9 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageControl) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: msg.BinaryMessageType(m.GetType()),
+//func (m *MessageControl) ToBinary() []byte {
+//	return []byte{
+//		Type: msg.OgMessageType(m.GetType()),
 //		Data: m.GetData(),
 //	}
 //}
@@ -465,7 +450,7 @@ func (m *MessageHeaderRequest) String() string {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageGetMsg) GetType() msg.BinaryMessageType {
+//func (m *MessageGetMsg) GetType() msg.OgMessageType {
 //	return MessageTypeGetMsg
 //}
 //
@@ -477,9 +462,9 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageGetMsg) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: msg.BinaryMessageType(m.GetType()),
+//func (m *MessageGetMsg) ToBinary() []byte {
+//	return []byte{
+//		Type: msg.OgMessageType(m.GetType()),
 //		Data: m.GetData(),
 //	}
 //}
@@ -499,7 +484,7 @@ func (m *MessageHeaderRequest) String() string {
 ////msgp:tuple MessageGetMsg
 //type MessageDuplicate bool
 //
-//func (m *MessageDuplicate) GetType() msg.BinaryMessageType {
+//func (m *MessageDuplicate) GetType() msg.OgMessageType {
 //	return MessageTypeDuplicate
 //}
 //
@@ -511,9 +496,9 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageDuplicate) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: msg.BinaryMessageType(m.GetType()),
+//func (m *MessageDuplicate) ToBinary() []byte {
+//	return []byte{
+//		Type: msg.OgMessageType(m.GetType()),
 //		Data: m.GetData(),
 //	}
 //}
@@ -532,7 +517,7 @@ func (m *MessageHeaderRequest) String() string {
 //	ActionTx *ActionTx
 //}
 //
-//func (m *MessageNewActionTx) GetType() msg.BinaryMessageType {
+//func (m *MessageNewActionTx) GetType() msg.OgMessageType {
 //	return MessageTypeNewActionTx
 //}
 //
@@ -544,9 +529,9 @@ func (m *MessageHeaderRequest) String() string {
 //	return b
 //}
 //
-//func (m *MessageNewActionTx) ToBinary() msg.BinaryMessage {
-//	return msg.BinaryMessage{
-//		Type: msg.BinaryMessageType(m.GetType()),
+//func (m *MessageNewActionTx) ToBinary() []byte {
+//	return []byte{
+//		Type: msg.OgMessageType(m.GetType()),
 //		Data: m.GetData(),
 //	}
 //}
@@ -562,37 +547,3 @@ func (m *MessageHeaderRequest) String() string {
 //	}
 //	return m.ActionTx.String()
 //}
-
-//msgp:tuple MessageAnnsensus
-type MessageAnnsensus struct {
-	InnerMessageType annsensus.AnnsensusMessageType
-	InnerMessage     []byte
-}
-
-func (m MessageAnnsensus) GetType() msg.BinaryMessageType {
-	return msg.BinaryMessageType(MessageTypeAnnsensus)
-}
-
-func (m MessageAnnsensus) GetData() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m MessageAnnsensus) ToBinary() msg.BinaryMessage {
-	return msg.BinaryMessage{
-		Type: m.GetType(),
-		Data: m.GetData(),
-	}
-}
-
-func (m MessageAnnsensus) FromBinary(bs []byte) error {
-	_, err := m.UnmarshalMsg(bs)
-	return err
-}
-
-func (m MessageAnnsensus) String() string {
-	return "MessageAnnsensus"
-}

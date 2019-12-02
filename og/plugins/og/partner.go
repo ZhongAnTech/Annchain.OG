@@ -2,23 +2,23 @@ package og
 
 import (
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/og/communicator"
+	"github.com/annchain/OG/og/communication"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
 
-type OgProcessor struct {
-	incoming communicator.OgPeerCommunicatorIncoming
-	outgoing communicator.OgPeerCommunicatorOutgoing
+type OgPartner struct {
+	incoming communication.OgPeerCommunicatorIncoming
+	outgoing communication.OgPeerCommunicatorOutgoing
 	quit     chan bool
 	quitWg   sync.WaitGroup
 }
 
 func NewOgProcessor(
-	incoming communicator.OgPeerCommunicatorIncoming,
-	outgoing communicator.OgPeerCommunicatorOutgoing) *OgProcessor {
-	return &OgProcessor{
+	incoming communication.OgPeerCommunicatorIncoming,
+	outgoing communication.OgPeerCommunicatorOutgoing) *OgPartner {
+	return &OgPartner{
 		incoming: incoming,
 		outgoing: outgoing,
 		quit:     make(chan bool),
@@ -26,17 +26,17 @@ func NewOgProcessor(
 	}
 }
 
-func (o OgProcessor) Handle(msgEvent *communicator.MessageEvent) {
+func (o OgPartner) Handle(msgEvent *communication.OgMessageEvent) {
 	o.incoming.GetPipeIn() <- msgEvent
 }
 
-func (o OgProcessor) Run() {
+func (o OgPartner) Run() {
 	go func() {
 		for {
 			select {
 			case <-o.quit:
 				o.quitWg.Done()
-				logrus.Debug("OgProcessor quit")
+				logrus.Debug("OgPartner quit")
 				return
 			case msgEvent := <-o.incoming.GetPipeOut():
 				o.HandleOgMessage(msgEvent.Msg, msgEvent.Source)
@@ -45,7 +45,7 @@ func (o OgProcessor) Run() {
 	}()
 }
 
-func (o OgProcessor) HandleOgMessage(message msg.OgMessage, source communicator.PeerIdentifier) {
+func (o OgPartner) HandleOgMessage(message msg.OgMessage, source communication.OgPeer) {
 	switch message.OgMessageType(message.GetType()) {
 	case message.MessageTypePing:
 		o.HandleMessagePing(source)
@@ -56,17 +56,17 @@ func (o OgProcessor) HandleOgMessage(message msg.OgMessage, source communicator.
 	}
 }
 
-func (o OgProcessor) HandleMessagePing(source communicator.PeerIdentifier) {
+func (o OgPartner) HandleMessagePing(source communication.OgPeer) {
 	logrus.Debugf("received ping from %d. Respond you a pong.", source.Id)
 	o.outgoing.Unicast(&MessagePong{}, source)
 
 }
 
-func (o OgProcessor) HandleMessagePong(source communicator.PeerIdentifier) {
+func (o OgPartner) HandleMessagePong(source communication.OgPeer) {
 	logrus.Debugf("received pong from %d.", source.Id)
 }
 
-func (o OgProcessor) HandleMessageNewResource(message msg.OgMessage, identifier communicator.PeerIdentifier) {
+func (o OgPartner) HandleMessageNewResource(message msg.OgMessage, identifier communication.OgPeer) {
 	msg := message.(*message.MessageNewResource)
 	// decode all resources and announce it to the receivers.
 	for _, resource := range msg.Resources {
@@ -74,6 +74,6 @@ func (o OgProcessor) HandleMessageNewResource(message msg.OgMessage, identifier 
 	}
 }
 
-func (o OgProcessor) SendMessagePing(peer communicator.PeerIdentifier) {
+func (o OgPartner) SendMessagePing(peer communication.OgPeer) {
 	o.outgoing.Unicast(&MessagePing{}, peer)
 }

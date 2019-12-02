@@ -7,20 +7,13 @@ package msg
 
 //go:generate msgp
 
-//msgp:tuple BinaryMessageType
-type BinaryMessageType uint16
-
-// BinaryMessage stores data that can be directly sent to the others, or be wrapped by another BinaryMessage.
-type BinaryMessage struct {
-	Type BinaryMessageType
-	Data []byte
-}
+type OgMessageType uint8
 
 // OgMessage is the message that can be convert to BinaryMessage
 type OgMessage interface {
-	GetType() BinaryMessageType
-	GetData() []byte
-	ToBinary() BinaryMessage
-	FromBinary([]byte) error
+	GetType() OgMessageType
 	String() string
+
+	Marshal() []byte
+	Unmarshal([]byte) error
 }

@@ -2,7 +2,7 @@ package communication
 
 import (
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 type P2PSender interface {

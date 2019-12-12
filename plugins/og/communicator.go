@@ -4,8 +4,8 @@ import (
 	"github.com/annchain/OG/common/utilfuncs"
 	general_communication "github.com/annchain/OG/communication"
 	general_message "github.com/annchain/OG/message"
-	"github.com/annchain/OG/og/communication"
-	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 type ProxyOgPeerCommunicator struct {

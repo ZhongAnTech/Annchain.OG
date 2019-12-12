@@ -4,7 +4,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 type OgPeer struct {

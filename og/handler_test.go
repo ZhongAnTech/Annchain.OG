@@ -2,7 +2,6 @@ package og
 
 import (
 	"fmt"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 	"testing"
@@ -15,11 +14,11 @@ func TestIncomingMessageHandler_HandleBodiesRequest(t *testing.T) {
 		seq := types.RandomSequencer()
 
 		if bytes >= softResponseLimit {
-			message.msgLog.Debug("reached softResponseLimit")
+			message_archive.msgLog.Debug("reached softResponseLimit")
 			break
 		}
 		if len(msgRes.Bodies) >= 400000 {
-			message.msgLog.Debug("reached MaxBlockFetch 128")
+			message_archive.msgLog.Debug("reached MaxBlockFetch 128")
 			break
 		}
 		var body types.MessageBodyData

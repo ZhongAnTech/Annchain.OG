@@ -5,7 +5,6 @@ import (
 )
 
 //go:generate msgp
-
 type AnnsensusMessageType uint16
 
 // all message type that is supported by annsensus should be listed here
@@ -24,7 +23,7 @@ type AnnsensusMessageBftPlain struct {
 	InnerMessage     []byte
 }
 
-func (z *AnnsensusMessageBftPlain) GetData() []byte {
+func (z *AnnsensusMessageBftPlain) GetBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -53,7 +52,7 @@ func (m *AnnsensusMessageBftSigned) GetType() AnnsensusMessageType {
 	return AnnsensusMessageTypeBftSigned
 }
 
-func (m *AnnsensusMessageBftSigned) GetData() []byte {
+func (m *AnnsensusMessageBftSigned) GetBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -76,7 +75,7 @@ func (m *AnnsensusMessageBftEncrypted) GetType() AnnsensusMessageType {
 	return AnnsensusMessageTypeBftEncrypted
 }
 
-func (m *AnnsensusMessageBftEncrypted) GetData() []byte {
+func (m *AnnsensusMessageBftEncrypted) GetBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -94,7 +93,7 @@ type AnnsensusMessageDkgPlain struct {
 	InnerMessage     []byte
 }
 
-func (z *AnnsensusMessageDkgPlain) GetData() []byte {
+func (z *AnnsensusMessageDkgPlain) GetBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -123,7 +122,7 @@ func (m *AnnsensusMessageDkgSigned) GetType() AnnsensusMessageType {
 	return AnnsensusMessageTypeDkgSigned
 }
 
-func (m *AnnsensusMessageDkgSigned) GetData() []byte {
+func (m *AnnsensusMessageDkgSigned) GetBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -146,7 +145,7 @@ func (m *AnnsensusMessageDkgEncrypted) GetType() AnnsensusMessageType {
 	return AnnsensusMessageTypeDkgEncrypted
 }
 
-func (m *AnnsensusMessageDkgEncrypted) GetData() []byte {
+func (m *AnnsensusMessageDkgEncrypted) GetBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)

@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/annchain/OG/og/plugins/og"
+	"github.com/annchain/OG/plugins/og"
 	"github.com/annchain/OG/types/msg"
 	"testing"
 )

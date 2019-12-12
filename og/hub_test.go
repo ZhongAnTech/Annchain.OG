@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/gcache"
@@ -79,7 +78,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			Data: []byte("this is a test of og Message"),
 			Id:   12,
 		}
-		m := types{Message: &msg, MessageType: message.MessageTypeConsensusDkgDeal}
+		m := types{Message: &msg, MessageType: message_archive.MessageTypeConsensusDkgDeal}
 		s := crypto.NewSigner(crypto.CryptoType(i))
 		fmt.Println(s.GetCryptoType())
 		pk, sk := s.RandomKeyPair()
@@ -90,7 +89,7 @@ func TestP2PMessage_Encrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 		logrus.Debug(len(m.Data))
-		mm := types{Data: m.Data, MessageType: message.MessageTypeSecret}
+		mm := types{Data: m.Data, MessageType: message_archive.MessageTypeSecret}
 		ok := mm.checkRequiredSize()
 		logrus.Debug(ok)
 		ok = mm.MaybeIsforMe(&pk)
@@ -126,12 +125,12 @@ func TestCache(t *testing.T) {
 		RawTx: tx.RawTx(),
 	}
 	data, _ := msg.MarshalMsg(nil)
-	p2pM := &types{MessageType: message.MessageTypeNewTx, Data: data, SourceID: "123", Message: msg}
+	p2pM := &types{MessageType: message_archive.MessageTypeNewTx, Data: data, SourceID: "123", Message: msg}
 	p2pM.CalculateHash()
 	hub.cacheMessage(p2pM)
-	ids := hub.getMsgFromCache(message.MessageTypeNewTx, *p2pM.Hash)
+	ids := hub.getMsgFromCache(message_archive.MessageTypeNewTx, *p2pM.Hash)
 	fmt.Println(ids)
 	p2pM = nil
-	ids = hub.getMsgFromCache(message.MessageTypeNewTx, tx.GetTxHash())
+	ids = hub.getMsgFromCache(message_archive.MessageTypeNewTx, tx.GetTxHash())
 	fmt.Println(ids)
 }

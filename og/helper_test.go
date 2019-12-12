@@ -21,7 +21,6 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/downloader"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/onode"
@@ -136,11 +135,11 @@ func (p *testPeer) handshake(t *testing.T, seqId uint64, head common.Hash, genes
 		CurrentBlock:    head,
 		GenesisBlock:    genesis,
 	}
-	if err := p2p.ExpectMsg(p.app, message.StatusMsg.Code(), msg); err != nil {
+	if err := p2p.ExpectMsg(p.app, message_archive.StatusMsg.Code(), msg); err != nil {
 		t.Fatalf("status recv: %v", err)
 	}
 	data, _ := msg.MarshalMsg(nil)
-	if err := p2p.Send(p.app, message.StatusMsg.Code(), data); err != nil {
+	if err := p2p.Send(p.app, message_archive.StatusMsg.Code(), data); err != nil {
 		t.Fatalf("status send: %v", err)
 	}
 }

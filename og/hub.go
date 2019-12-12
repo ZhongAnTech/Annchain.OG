@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/message"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
@@ -53,14 +52,14 @@ var errIncompatibleConfig = errors.New("incompatible configuration")
 // If there is any failure, Hub is NOT responsible for changing a peer and retry. (maybe enhanced in the future.)
 // DO NOT INVOLVE ANY BUSINESS LOGICS HERE.
 type Hub struct {
-	outgoing chan *message.types
-	incoming chan *message.types
+	outgoing chan *message_archive.types
+	incoming chan *message_archive.types
 	quit     chan bool
 	//CallbackRegistry     map[message.BinaryMessageType]func(*message.types) // All callbacks
 	//CallbackRegistryOG02 map[message.BinaryMessageType]func(*message.types) // All callbacks of OG02
-	StatusDataProvider   NodeStatusDataProvider
-	peers                *peerSet
-	SubProtocols         []p2p.Protocol
+	StatusDataProvider NodeStatusDataProvider
+	peers              *peerSet
+	SubProtocols       []p2p.Protocol
 
 	wg sync.WaitGroup // wait group is used for graceful shutdowns during downloading and processing
 
@@ -81,7 +80,7 @@ type Hub struct {
 	encryptionPrivKey    *crypto.PrivateKey
 	encryptionPubKey     *crypto.PublicKey
 	disableEncryptGossip bool
-	MessageUnmarshaller  message.typesUnmarshalManager
+	MessageUnmarshaller  message_archive.typesUnmarshalManager
 }
 
 func (h *Hub) GetBenchmarks() map[string]interface{} {
@@ -144,8 +143,8 @@ func DefaultHubConfig() HubConfig {
 }
 
 func (h *Hub) Init(config *HubConfig) {
-	h.outgoing = make(chan *message.types, config.OutgoingBufferSize)
-	h.incoming = make(chan *message.types, config.IncomingBufferSize)
+	h.outgoing = make(chan *message_archive.types, config.OutgoingBufferSize)
+	h.incoming = make(chan *message_archive.types, config.IncomingBufferSize)
 	h.peers = newPeerSet()
 	h.newPeerCh = make(chan *peer)
 	h.noMorePeers = make(chan struct{})
@@ -272,27 +271,27 @@ func (h *Hub) handleMsg(p *peer) error {
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
-		return message.ErrResp(message.ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
+		return message_archive.ErrResp(message_archive.ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
 	}
 	defer msg.Discard()
 	// Handle the Message depending on its contents
 	data, err := msg.GetPayLoad()
-	m := message.types{MessageType: message.BinaryMessageType(msg.Code), Data: data, SourceID: p.id, Version: p.version}
+	m := message_archive.types{MessageType: message_archive.BinaryMessageType(msg.Code), Data: data, SourceID: p.id, Version: p.version}
 	//log.Debug("start handle p2p Message ",p2pMsg.MessageType)
 	switch m.MessageType {
-	case message.StatusMsg:
+	case message_archive.StatusMsg:
 		// Handle the Message depending on its contents
 
 		// Status messages should never arrive after the handshake
-		return message.ErrResp(message.ErrExtraStatusMsg, "uncontrolled status Message")
+		return message_archive.ErrResp(message_archive.ErrExtraStatusMsg, "uncontrolled status Message")
 		// Block header query, collect the requested headers and reply
-	case message.MessageTypeDuplicate:
+	case message_archive.MessageTypeDuplicate:
 		msgLog.WithField("got msg", m.MessageType).WithField("peer ", p.String()).Trace("set path to false")
 		if !p.SetOutPath(false) {
 			msgLog.WithField("got msg again ", m.MessageType).WithField("peer ", p.String()).Warn("set path to false")
 		}
 		return nil
-	case message.MessageTypeSecret:
+	case message_archive.MessageTypeSecret:
 		if h.disableEncryptGossip {
 			m.DisableEncrypt = true
 		}
@@ -355,7 +354,7 @@ func (h *Hub) handleMsg(p *peer) error {
 		if len(hashes) != 0 {
 			msgLog.WithField("len hahses", len(hashes)).Trace("before mark msg")
 			for _, hash := range hashes {
-				p.MarkMessage(message.MessageTypeNewTx, hash)
+				p.MarkMessage(message_archive.MessageTypeNewTx, hash)
 			}
 			msgLog.WithField("len ", len(hashes)).Trace("after mark msg")
 		}
@@ -371,7 +370,7 @@ func (h *Hub) handleMsg(p *peer) error {
 				}
 				var dup p2p_message.MessageDuplicate
 				p.SetInPath(false)
-				return h.SendToPeer(message.MessageTypeDuplicate, &dup, p.id)
+				return h.SendToPeer(message_archive.MessageTypeDuplicate, &dup, p.id)
 			}
 			return nil
 		}
@@ -490,8 +489,8 @@ func (h *Hub) loopReceive() {
 }
 
 //MulticastToSource  multicast msg to source , for example , send tx request to the peer which Hash the tx
-func (h *Hub) MulticastToSource(messageType message.BinaryMessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticastToSource, SourceHash: sourceMsgHash}
+func (h *Hub) MulticastToSource(messageType message_archive.BinaryMessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeMulticastToSource, SourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -503,8 +502,8 @@ func (h *Hub) MulticastToSource(messageType message.BinaryMessageType, msg p2p_m
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessage(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
+func (h *Hub) BroadcastMessage(messageType message_archive.BinaryMessageType, msg p2p_message.Message) {
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeBroadcast}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg err")
@@ -516,13 +515,13 @@ func (h *Hub) BroadcastMessage(messageType message.BinaryMessageType, msg p2p_me
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessageWithLink(messageType message.BinaryMessageType, msg p2p_message.Message) {
+func (h *Hub) BroadcastMessageWithLink(messageType message_archive.BinaryMessageType, msg p2p_message.Message) {
 	if h.broadCastMode != FeedBackMode {
 		msgLog.WithField("type", messageType).Trace("broadcast withlink disabled")
 		h.BroadcastMessage(messageType, msg)
 		return
 	}
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithLink}
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeBroacastWithLink}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -534,8 +533,8 @@ func (h *Hub) BroadcastMessageWithLink(messageType message.BinaryMessageType, ms
 }
 
 //BroadcastMessage broadcast to whole network
-func (h *Hub) BroadcastMessageWithFilter(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroacastWithFilter}
+func (h *Hub) BroadcastMessageWithFilter(messageType message_archive.BinaryMessageType, msg p2p_message.Message) {
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeBroacastWithFilter}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -547,8 +546,8 @@ func (h *Hub) BroadcastMessageWithFilter(messageType message.BinaryMessageType, 
 }
 
 //MulticastMessage multicast Message to some peer
-func (h *Hub) MulticastMessage(messageType message.BinaryMessageType, msg p2p_message.Message) {
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeMulticast}
+func (h *Hub) MulticastMessage(messageType message_archive.BinaryMessageType, msg p2p_message.Message) {
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeMulticast}
 	err := msgOut.Marshal()
 	if err != nil {
 		msgLog.WithError(err).WithField("type", messageType).Warn("broadcast Message init msg  err")
@@ -564,8 +563,8 @@ func (h *Hub) MulticastMessage(messageType message.BinaryMessageType, msg p2p_me
 // the Message will append the target receiver pubkey to accelerate filtering on the target side.
 // TODO: support multi encryption keys in one Message
 // TODO: encrypt the Message whatever disableEncryptGossip is on or not
-func (h *Hub) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2p_message.Message, encryptionKey *crypto.PublicKey) {
-	msgOut := &message.types{MessageType: messageType, Message: msg, SendingType: message.SendingTypeBroadcast}
+func (h *Hub) AnonymousSendMessage(messageType message_archive.BinaryMessageType, msg p2p_message.Message, encryptionKey *crypto.PublicKey) {
+	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeBroadcast}
 	if h.disableEncryptGossip {
 		msgOut.DisableEncrypt = true
 	}
@@ -590,12 +589,12 @@ func (h *Hub) AnonymousSendMessage(messageType message.BinaryMessageType, msg p2
 
 }
 
-func (h *Hub) RelayMessage(msgOut *message.types) {
+func (h *Hub) RelayMessage(msgOut *message_archive.types) {
 	msgLog.WithField("size", len(msgOut.Data)).WithField("type", msgOut.MessageType).Trace("relay Message")
 	h.outgoing <- msgOut
 }
 
-func (h *Hub) SendToPeer(messageType message.BinaryMessageType, msg p2p_message.Message, peerId string) error {
+func (h *Hub) SendToPeer(messageType message_archive.BinaryMessageType, msg p2p_message.Message, peerId string) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -606,22 +605,22 @@ func (h *Hub) SendToPeer(messageType message.BinaryMessageType, msg p2p_message.
 func (h *Hub) SendGetMsg(peerId string, msg *p2p_message.MessageGetMsg) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
-		ids := h.getMsgFromCache(message.MessageTypeControl, *msg.Hash)
+		ids := h.getMsgFromCache(message_archive.MessageTypeControl, *msg.Hash)
 		ps := h.peers.GetPeers(ids, 1)
 		if len(ps) != 0 {
 			p = ps[0]
 		}
 	}
 	if p == nil {
-		h.MulticastMessage(message.MessageTypeGetMsg, msg)
+		h.MulticastMessage(message_archive.MessageTypeGetMsg, msg)
 		return nil
 	} else {
 		p.SetInPath(true)
 	}
-	return p.sendRequest(message.MessageTypeGetMsg, msg)
+	return p.sendRequest(message_archive.MessageTypeGetMsg, msg)
 }
 
-func (h *Hub) SendBytesToPeer(peerId string, messageType message.BinaryMessageType, msg []byte) error {
+func (h *Hub) SendBytesToPeer(peerId string, messageType message_archive.BinaryMessageType, msg []byte) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -673,7 +672,7 @@ func (h *Hub) BestPeerId() (peerId string, err error) {
 }
 
 //broadcastMessage
-func (h *Hub) broadcastMessage(msg *message.types) {
+func (h *Hub) broadcastMessage(msg *message_archive.types) {
 	var peers []*peer
 	// choose all  peer and then send.
 	peers = h.peers.PeersWithoutMsg(*msg.Hash, msg.MessageType)
@@ -683,13 +682,13 @@ func (h *Hub) broadcastMessage(msg *message.types) {
 	return
 }
 
-func (h *Hub) broadcastMessageWithLink(msg *message.types) {
+func (h *Hub) broadcastMessageWithLink(msg *message_archive.types) {
 	var peers []*peer
 	// choose all  peer and then send.
 	var hash common.Hash
 	hash = *msg.Hash
 	c := p2p_message.MessageControl{Hash: &hash}
-	var pMsg = &message.types{MessageType: message.MessageTypeControl, Message: &c}
+	var pMsg = &message_archive.types{MessageType: message_archive.MessageTypeControl, Message: &c}
 	//outgoing msg
 	if err := pMsg.Marshal(); err != nil {
 		msgLog.Error(err)
@@ -745,7 +744,7 @@ func (h *Hub) broadcastMessageWithFilter(msg *message.types) {
 */
 
 //multicastMessage
-func (h *Hub) multicastMessage(msg *message.types) error {
+func (h *Hub) multicastMessage(msg *message_archive.types) error {
 	peers := h.peers.GetRandomPeers(3)
 	// choose random peer and then send.
 	for _, peer := range peers {
@@ -755,14 +754,14 @@ func (h *Hub) multicastMessage(msg *message.types) error {
 }
 
 //multicastMessageToSource
-func (h *Hub) multicastMessageToSource(msg *message.types) error {
+func (h *Hub) multicastMessageToSource(msg *message_archive.types) error {
 	if msg.SourceHash == nil {
 		msgLog.Warn("source msg Hash is nil , multicast to random")
 		return h.multicastMessage(msg)
 	}
-	ids := h.getMsgFromCache(message.MessageTypeControl, *msg.SourceHash)
+	ids := h.getMsgFromCache(message_archive.MessageTypeControl, *msg.SourceHash)
 	if len(ids) == 0 {
-		ids = h.getMsgFromCache(message.MessageTypeNewTx, *msg.SourceHash)
+		ids = h.getMsgFromCache(message_archive.MessageTypeNewTx, *msg.SourceHash)
 	}
 	//send to 2 peer , considering if one peer disconnect,
 	peers := h.peers.GetPeers(ids, 3)
@@ -782,7 +781,7 @@ func (h *Hub) multicastMessageToSource(msg *message.types) error {
 }
 
 //cacheMessge save msg to cache
-func (h *Hub) cacheMessage(m *message.types) (exists bool) {
+func (h *Hub) cacheMessage(m *message_archive.types) (exists bool) {
 	if m.Hash == nil {
 		return false
 	}
@@ -807,8 +806,8 @@ func (h *Hub) cacheMessage(m *message.types) (exists bool) {
 }
 
 //getMsgFromCache
-func (h *Hub) getMsgFromCache(m message.BinaryMessageType, hash common.Hash) []string {
-	key := message.NewMsgKey(m, hash)
+func (h *Hub) getMsgFromCache(m message_archive.BinaryMessageType, hash common.Hash) []string {
+	key := message_archive.NewMsgKey(m, hash)
 	if a, err := h.messageCache.GetIFPresent(key); err == nil {
 		var peers []string
 		peers = a.([]string)
@@ -818,7 +817,7 @@ func (h *Hub) getMsgFromCache(m message.BinaryMessageType, hash common.Hash) []s
 	return nil
 }
 
-func (h *Hub) receiveMessage(msg *message.types) {
+func (h *Hub) receiveMessage(msg *message_archive.types) {
 	// route to specific callbacks according to the registry.
 	if msg.Version >= OG02 {
 		if v, ok := h.CallbackRegistryOG02[msg.MessageType]; ok {
@@ -827,7 +826,7 @@ func (h *Hub) receiveMessage(msg *message.types) {
 			return
 		}
 	}
-	if msg.MessageType == message.MessageTypeGetMsg {
+	if msg.MessageType == message_archive.MessageTypeGetMsg {
 		peer := h.peers.Peer(msg.SourceID)
 		if peer != nil {
 			msgLog.WithField("msg", msg.Message.String()).WithField("peer ", peer.String()).Trace("set path to true")

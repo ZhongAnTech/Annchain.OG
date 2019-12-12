@@ -9,8 +9,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-func TestMarshalUnmarshalMessageAnnsensus(t *testing.T) {
-	v := MessageAnnsensus{}
+func TestMarshalUnmarshalGeneralMessageOg(t *testing.T) {
+	v := GeneralMessageOg{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,8 +32,8 @@ func TestMarshalUnmarshalMessageAnnsensus(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageAnnsensus(b *testing.B) {
-	v := MessageAnnsensus{}
+func BenchmarkMarshalMsgGeneralMessageOg(b *testing.B) {
+	v := GeneralMessageOg{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -41,8 +41,8 @@ func BenchmarkMarshalMsgMessageAnnsensus(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageAnnsensus(b *testing.B) {
-	v := MessageAnnsensus{}
+func BenchmarkAppendMsgGeneralMessageOg(b *testing.B) {
+	v := GeneralMessageOg{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -53,8 +53,8 @@ func BenchmarkAppendMsgMessageAnnsensus(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageAnnsensus(b *testing.B) {
-	v := MessageAnnsensus{}
+func BenchmarkUnmarshalGeneralMessageOg(b *testing.B) {
+	v := GeneralMessageOg{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -67,17 +67,17 @@ func BenchmarkUnmarshalMessageAnnsensus(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageAnnsensus(t *testing.T) {
-	v := MessageAnnsensus{}
+func TestEncodeDecodeGeneralMessageOg(t *testing.T) {
+	v := GeneralMessageOg{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageAnnsensus Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeGeneralMessageOg Msgsize() is inaccurate")
 	}
 
-	vn := MessageAnnsensus{}
+	vn := GeneralMessageOg{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -91,8 +91,8 @@ func TestEncodeDecodeMessageAnnsensus(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageAnnsensus(b *testing.B) {
-	v := MessageAnnsensus{}
+func BenchmarkEncodeGeneralMessageOg(b *testing.B) {
+	v := GeneralMessageOg{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -105,8 +105,8 @@ func BenchmarkEncodeMessageAnnsensus(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageAnnsensus(b *testing.B) {
-	v := MessageAnnsensus{}
+func BenchmarkDecodeGeneralMessageOg(b *testing.B) {
+	v := GeneralMessageOg{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -122,8 +122,8 @@ func BenchmarkDecodeMessageAnnsensus(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageBatchSyncRequest(t *testing.T) {
-	v := MessageBatchSyncRequest{}
+func TestMarshalUnmarshalOgMessageBatchSyncRequest(t *testing.T) {
+	v := OgMessageBatchSyncRequest{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -145,8 +145,8 @@ func TestMarshalUnmarshalMessageBatchSyncRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageBatchSyncRequest(b *testing.B) {
-	v := MessageBatchSyncRequest{}
+func BenchmarkMarshalMsgOgMessageBatchSyncRequest(b *testing.B) {
+	v := OgMessageBatchSyncRequest{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -154,8 +154,8 @@ func BenchmarkMarshalMsgMessageBatchSyncRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageBatchSyncRequest(b *testing.B) {
-	v := MessageBatchSyncRequest{}
+func BenchmarkAppendMsgOgMessageBatchSyncRequest(b *testing.B) {
+	v := OgMessageBatchSyncRequest{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -166,8 +166,8 @@ func BenchmarkAppendMsgMessageBatchSyncRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageBatchSyncRequest(b *testing.B) {
-	v := MessageBatchSyncRequest{}
+func BenchmarkUnmarshalOgMessageBatchSyncRequest(b *testing.B) {
+	v := OgMessageBatchSyncRequest{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -180,17 +180,17 @@ func BenchmarkUnmarshalMessageBatchSyncRequest(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageBatchSyncRequest(t *testing.T) {
-	v := MessageBatchSyncRequest{}
+func TestEncodeDecodeOgMessageBatchSyncRequest(t *testing.T) {
+	v := OgMessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageBatchSyncRequest Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessageBatchSyncRequest Msgsize() is inaccurate")
 	}
 
-	vn := MessageBatchSyncRequest{}
+	vn := OgMessageBatchSyncRequest{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -204,8 +204,8 @@ func TestEncodeDecodeMessageBatchSyncRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageBatchSyncRequest(b *testing.B) {
-	v := MessageBatchSyncRequest{}
+func BenchmarkEncodeOgMessageBatchSyncRequest(b *testing.B) {
+	v := OgMessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -218,8 +218,8 @@ func BenchmarkEncodeMessageBatchSyncRequest(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageBatchSyncRequest(b *testing.B) {
-	v := MessageBatchSyncRequest{}
+func BenchmarkDecodeOgMessageBatchSyncRequest(b *testing.B) {
+	v := OgMessageBatchSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -235,8 +235,8 @@ func BenchmarkDecodeMessageBatchSyncRequest(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageHeaderRequest(t *testing.T) {
-	v := MessageHeaderRequest{}
+func TestMarshalUnmarshalOgMessageHeaderRequest(t *testing.T) {
+	v := OgMessageHeaderRequest{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -258,8 +258,8 @@ func TestMarshalUnmarshalMessageHeaderRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageHeaderRequest(b *testing.B) {
-	v := MessageHeaderRequest{}
+func BenchmarkMarshalMsgOgMessageHeaderRequest(b *testing.B) {
+	v := OgMessageHeaderRequest{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -267,8 +267,8 @@ func BenchmarkMarshalMsgMessageHeaderRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageHeaderRequest(b *testing.B) {
-	v := MessageHeaderRequest{}
+func BenchmarkAppendMsgOgMessageHeaderRequest(b *testing.B) {
+	v := OgMessageHeaderRequest{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -279,8 +279,8 @@ func BenchmarkAppendMsgMessageHeaderRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageHeaderRequest(b *testing.B) {
-	v := MessageHeaderRequest{}
+func BenchmarkUnmarshalOgMessageHeaderRequest(b *testing.B) {
+	v := OgMessageHeaderRequest{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -293,17 +293,17 @@ func BenchmarkUnmarshalMessageHeaderRequest(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageHeaderRequest(t *testing.T) {
-	v := MessageHeaderRequest{}
+func TestEncodeDecodeOgMessageHeaderRequest(t *testing.T) {
+	v := OgMessageHeaderRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageHeaderRequest Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessageHeaderRequest Msgsize() is inaccurate")
 	}
 
-	vn := MessageHeaderRequest{}
+	vn := OgMessageHeaderRequest{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -317,8 +317,8 @@ func TestEncodeDecodeMessageHeaderRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageHeaderRequest(b *testing.B) {
-	v := MessageHeaderRequest{}
+func BenchmarkEncodeOgMessageHeaderRequest(b *testing.B) {
+	v := OgMessageHeaderRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -331,8 +331,8 @@ func BenchmarkEncodeMessageHeaderRequest(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageHeaderRequest(b *testing.B) {
-	v := MessageHeaderRequest{}
+func BenchmarkDecodeOgMessageHeaderRequest(b *testing.B) {
+	v := OgMessageHeaderRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -348,8 +348,8 @@ func BenchmarkDecodeMessageHeaderRequest(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageHeightSyncRequest(t *testing.T) {
-	v := MessageHeightSyncRequest{}
+func TestMarshalUnmarshalOgMessageHeightSyncRequest(t *testing.T) {
+	v := OgMessageHeightSyncRequest{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -371,8 +371,8 @@ func TestMarshalUnmarshalMessageHeightSyncRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageHeightSyncRequest(b *testing.B) {
-	v := MessageHeightSyncRequest{}
+func BenchmarkMarshalMsgOgMessageHeightSyncRequest(b *testing.B) {
+	v := OgMessageHeightSyncRequest{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -380,8 +380,8 @@ func BenchmarkMarshalMsgMessageHeightSyncRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageHeightSyncRequest(b *testing.B) {
-	v := MessageHeightSyncRequest{}
+func BenchmarkAppendMsgOgMessageHeightSyncRequest(b *testing.B) {
+	v := OgMessageHeightSyncRequest{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -392,8 +392,8 @@ func BenchmarkAppendMsgMessageHeightSyncRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageHeightSyncRequest(b *testing.B) {
-	v := MessageHeightSyncRequest{}
+func BenchmarkUnmarshalOgMessageHeightSyncRequest(b *testing.B) {
+	v := OgMessageHeightSyncRequest{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -406,17 +406,17 @@ func BenchmarkUnmarshalMessageHeightSyncRequest(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageHeightSyncRequest(t *testing.T) {
-	v := MessageHeightSyncRequest{}
+func TestEncodeDecodeOgMessageHeightSyncRequest(t *testing.T) {
+	v := OgMessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageHeightSyncRequest Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessageHeightSyncRequest Msgsize() is inaccurate")
 	}
 
-	vn := MessageHeightSyncRequest{}
+	vn := OgMessageHeightSyncRequest{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -430,8 +430,8 @@ func TestEncodeDecodeMessageHeightSyncRequest(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageHeightSyncRequest(b *testing.B) {
-	v := MessageHeightSyncRequest{}
+func BenchmarkEncodeOgMessageHeightSyncRequest(b *testing.B) {
+	v := OgMessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -444,8 +444,8 @@ func BenchmarkEncodeMessageHeightSyncRequest(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageHeightSyncRequest(b *testing.B) {
-	v := MessageHeightSyncRequest{}
+func BenchmarkDecodeOgMessageHeightSyncRequest(b *testing.B) {
+	v := OgMessageHeightSyncRequest{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -461,8 +461,8 @@ func BenchmarkDecodeMessageHeightSyncRequest(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageNewResource(t *testing.T) {
-	v := MessageNewResource{}
+func TestMarshalUnmarshalOgMessageNewResource(t *testing.T) {
+	v := OgMessageNewResource{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -484,8 +484,8 @@ func TestMarshalUnmarshalMessageNewResource(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageNewResource(b *testing.B) {
-	v := MessageNewResource{}
+func BenchmarkMarshalMsgOgMessageNewResource(b *testing.B) {
+	v := OgMessageNewResource{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -493,8 +493,8 @@ func BenchmarkMarshalMsgMessageNewResource(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageNewResource(b *testing.B) {
-	v := MessageNewResource{}
+func BenchmarkAppendMsgOgMessageNewResource(b *testing.B) {
+	v := OgMessageNewResource{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -505,8 +505,8 @@ func BenchmarkAppendMsgMessageNewResource(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageNewResource(b *testing.B) {
-	v := MessageNewResource{}
+func BenchmarkUnmarshalOgMessageNewResource(b *testing.B) {
+	v := OgMessageNewResource{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -519,17 +519,17 @@ func BenchmarkUnmarshalMessageNewResource(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageNewResource(t *testing.T) {
-	v := MessageNewResource{}
+func TestEncodeDecodeOgMessageNewResource(t *testing.T) {
+	v := OgMessageNewResource{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageNewResource Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessageNewResource Msgsize() is inaccurate")
 	}
 
-	vn := MessageNewResource{}
+	vn := OgMessageNewResource{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -543,8 +543,8 @@ func TestEncodeDecodeMessageNewResource(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageNewResource(b *testing.B) {
-	v := MessageNewResource{}
+func BenchmarkEncodeOgMessageNewResource(b *testing.B) {
+	v := OgMessageNewResource{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -557,8 +557,8 @@ func BenchmarkEncodeMessageNewResource(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageNewResource(b *testing.B) {
-	v := MessageNewResource{}
+func BenchmarkDecodeOgMessageNewResource(b *testing.B) {
+	v := OgMessageNewResource{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -574,8 +574,8 @@ func BenchmarkDecodeMessageNewResource(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessagePing(t *testing.T) {
-	v := MessagePing{}
+func TestMarshalUnmarshalOgMessagePing(t *testing.T) {
+	v := OgMessagePing{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -597,8 +597,8 @@ func TestMarshalUnmarshalMessagePing(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessagePing(b *testing.B) {
-	v := MessagePing{}
+func BenchmarkMarshalMsgOgMessagePing(b *testing.B) {
+	v := OgMessagePing{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -606,8 +606,8 @@ func BenchmarkMarshalMsgMessagePing(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessagePing(b *testing.B) {
-	v := MessagePing{}
+func BenchmarkAppendMsgOgMessagePing(b *testing.B) {
+	v := OgMessagePing{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -618,8 +618,8 @@ func BenchmarkAppendMsgMessagePing(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessagePing(b *testing.B) {
-	v := MessagePing{}
+func BenchmarkUnmarshalOgMessagePing(b *testing.B) {
+	v := OgMessagePing{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -632,17 +632,17 @@ func BenchmarkUnmarshalMessagePing(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessagePing(t *testing.T) {
-	v := MessagePing{}
+func TestEncodeDecodeOgMessagePing(t *testing.T) {
+	v := OgMessagePing{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessagePing Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessagePing Msgsize() is inaccurate")
 	}
 
-	vn := MessagePing{}
+	vn := OgMessagePing{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -656,8 +656,8 @@ func TestEncodeDecodeMessagePing(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessagePing(b *testing.B) {
-	v := MessagePing{}
+func BenchmarkEncodeOgMessagePing(b *testing.B) {
+	v := OgMessagePing{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -670,8 +670,8 @@ func BenchmarkEncodeMessagePing(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessagePing(b *testing.B) {
-	v := MessagePing{}
+func BenchmarkDecodeOgMessagePing(b *testing.B) {
+	v := OgMessagePing{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -687,8 +687,8 @@ func BenchmarkDecodeMessagePing(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessagePong(t *testing.T) {
-	v := MessagePong{}
+func TestMarshalUnmarshalOgMessagePong(t *testing.T) {
+	v := OgMessagePong{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -710,8 +710,8 @@ func TestMarshalUnmarshalMessagePong(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessagePong(b *testing.B) {
-	v := MessagePong{}
+func BenchmarkMarshalMsgOgMessagePong(b *testing.B) {
+	v := OgMessagePong{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -719,8 +719,8 @@ func BenchmarkMarshalMsgMessagePong(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessagePong(b *testing.B) {
-	v := MessagePong{}
+func BenchmarkAppendMsgOgMessagePong(b *testing.B) {
+	v := OgMessagePong{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -731,8 +731,8 @@ func BenchmarkAppendMsgMessagePong(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessagePong(b *testing.B) {
-	v := MessagePong{}
+func BenchmarkUnmarshalOgMessagePong(b *testing.B) {
+	v := OgMessagePong{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -745,17 +745,17 @@ func BenchmarkUnmarshalMessagePong(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessagePong(t *testing.T) {
-	v := MessagePong{}
+func TestEncodeDecodeOgMessagePong(t *testing.T) {
+	v := OgMessagePong{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessagePong Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessagePong Msgsize() is inaccurate")
 	}
 
-	vn := MessagePong{}
+	vn := OgMessagePong{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -769,8 +769,8 @@ func TestEncodeDecodeMessagePong(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessagePong(b *testing.B) {
-	v := MessagePong{}
+func BenchmarkEncodeOgMessagePong(b *testing.B) {
+	v := OgMessagePong{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -783,8 +783,8 @@ func BenchmarkEncodeMessagePong(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessagePong(b *testing.B) {
-	v := MessagePong{}
+func BenchmarkDecodeOgMessagePong(b *testing.B) {
+	v := OgMessagePong{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -800,8 +800,8 @@ func BenchmarkDecodeMessagePong(b *testing.B) {
 	}
 }
 
-func TestMarshalUnmarshalMessageSyncResponse(t *testing.T) {
-	v := MessageSyncResponse{}
+func TestMarshalUnmarshalOgMessageSyncResponse(t *testing.T) {
+	v := OgMessageSyncResponse{}
 	bts, err := v.MarshalMsg(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -823,8 +823,8 @@ func TestMarshalUnmarshalMessageSyncResponse(t *testing.T) {
 	}
 }
 
-func BenchmarkMarshalMsgMessageSyncResponse(b *testing.B) {
-	v := MessageSyncResponse{}
+func BenchmarkMarshalMsgOgMessageSyncResponse(b *testing.B) {
+	v := OgMessageSyncResponse{}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -832,8 +832,8 @@ func BenchmarkMarshalMsgMessageSyncResponse(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendMsgMessageSyncResponse(b *testing.B) {
-	v := MessageSyncResponse{}
+func BenchmarkAppendMsgOgMessageSyncResponse(b *testing.B) {
+	v := OgMessageSyncResponse{}
 	bts := make([]byte, 0, v.Msgsize())
 	bts, _ = v.MarshalMsg(bts[0:0])
 	b.SetBytes(int64(len(bts)))
@@ -844,8 +844,8 @@ func BenchmarkAppendMsgMessageSyncResponse(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshalMessageSyncResponse(b *testing.B) {
-	v := MessageSyncResponse{}
+func BenchmarkUnmarshalOgMessageSyncResponse(b *testing.B) {
+	v := OgMessageSyncResponse{}
 	bts, _ := v.MarshalMsg(nil)
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bts)))
@@ -858,17 +858,17 @@ func BenchmarkUnmarshalMessageSyncResponse(b *testing.B) {
 	}
 }
 
-func TestEncodeDecodeMessageSyncResponse(t *testing.T) {
-	v := MessageSyncResponse{}
+func TestEncodeDecodeOgMessageSyncResponse(t *testing.T) {
+	v := OgMessageSyncResponse{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 
 	m := v.Msgsize()
 	if buf.Len() > m {
-		t.Log("WARNING: TestEncodeDecodeMessageSyncResponse Msgsize() is inaccurate")
+		t.Log("WARNING: TestEncodeDecodeOgMessageSyncResponse Msgsize() is inaccurate")
 	}
 
-	vn := MessageSyncResponse{}
+	vn := OgMessageSyncResponse{}
 	err := msgp.Decode(&buf, &vn)
 	if err != nil {
 		t.Error(err)
@@ -882,8 +882,8 @@ func TestEncodeDecodeMessageSyncResponse(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeMessageSyncResponse(b *testing.B) {
-	v := MessageSyncResponse{}
+func BenchmarkEncodeOgMessageSyncResponse(b *testing.B) {
+	v := OgMessageSyncResponse{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))
@@ -896,8 +896,8 @@ func BenchmarkEncodeMessageSyncResponse(b *testing.B) {
 	en.Flush()
 }
 
-func BenchmarkDecodeMessageSyncResponse(b *testing.B) {
-	v := MessageSyncResponse{}
+func BenchmarkDecodeOgMessageSyncResponse(b *testing.B) {
+	v := OgMessageSyncResponse{}
 	var buf bytes.Buffer
 	msgp.Encode(&buf, &v)
 	b.SetBytes(int64(buf.Len()))

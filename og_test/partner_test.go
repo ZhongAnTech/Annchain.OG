@@ -1,8 +1,10 @@
-package og
+package og_test
 
 import (
 	"github.com/annchain/OG/ffchan"
-	"github.com/annchain/OG/og/communication"
+	"github.com/annchain/OG/ogcore"
+	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/message"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
@@ -33,7 +35,7 @@ func NewDummyOgPeerCommunicator(myid int, incoming chan *communication.OgMessage
 	return d
 }
 
-func (o DummyOgPeerCommunicator) Broadcast(msg OgMessage, peers []communication.OgPeer) {
+func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage, peers []communication.OgPeer) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("broadcasting message")
 		go func(peer communication.OgPeer) {
@@ -43,13 +45,13 @@ func (o DummyOgPeerCommunicator) Broadcast(msg OgMessage, peers []communication.
 	}
 }
 
-func (o DummyOgPeerCommunicator) Unicast(msg msg.OgMessage, peer communication.OgPeer) {
+func (o DummyOgPeerCommunicator) Unicast(msg message.OgMessage, peer communication.OgPeer) {
 	logrus.Debug("unicasting by DummyOgPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
 		o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
-			Msg:    msg,
-			Source: communication.OgPeer{Id: o.Myid},
+			Message: msg,
+			Peer:    communication.OgPeer{Id: o.Myid},
 		}
 	}()
 }
@@ -60,7 +62,7 @@ func (d *DummyOgPeerCommunicator) Run() {
 		for {
 			v := <-d.pipeIn
 			//vv := v.Message.(bft.BftMessage)
-			logrus.WithField("type", v.Msg.GetType()).Debug("DummyOgPeerCommunicator received a message")
+			logrus.WithField("type", v.Message.GetType()).Debug("DummyOgPeerCommunicator received a message")
 			d.pipeOut <- v
 		}
 	}()
@@ -79,18 +81,24 @@ func TestPingPong(t *testing.T) {
 		peerChans[i] = make(chan *communication.OgMessageEvent, 10)
 	}
 
-	processors := make([]*OgPartner, total)
+	processors := make([]*ogcore.OgPartner, total)
 
 	// build peer communicator
 	for i := 0; i < total; i++ {
 		communicator := NewDummyOgPeerCommunicator(i, peerChans[i], peerChans)
 		communicator.Run()
-		processors[i] = NewOgProcessor(communicator, communicator)
-		processors[i].Run()
+
+		processor := &ogcore.OgPartner{
+			PeerOutgoing: communicator,
+			PeerIncoming: communicator,
+		}
+
+		processors[i] = processor
+		processors[i].Start()
 	}
 
 	// send ping
-	logrus.Info("Sending ping")
+	logrus.Debug("Sending ping")
 	processors[0].SendMessagePing(peerInfos[1])
 	time.Sleep(time.Minute * 4)
 

@@ -1,8 +1,8 @@
-package engine
+package ogcore
 
 import (
 	"github.com/annchain/OG/ogcore/communication"
-	"github.com/annchain/OG/types/msg"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 type OgMessageEventHandler interface {
@@ -10,6 +10,6 @@ type OgMessageEventHandler interface {
 }
 
 type OgPlugin interface {
-	SupportedMessageTypes() []msg.OgMessageType
+	SupportedMessageTypes() []message.OgMessageType
 	GetMessageEventHandler() OgMessageEventHandler
 }

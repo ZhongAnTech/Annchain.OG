@@ -3,8 +3,8 @@ package og
 import (
 	"errors"
 	general_message "github.com/annchain/OG/message"
-	"github.com/annchain/OG/og/communication"
-	"github.com/annchain/OG/og/message"
+	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 type OgMessageUnmarshaller struct {

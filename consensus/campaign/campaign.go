@@ -17,9 +17,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/vrf"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
-
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3"
 	"strings"

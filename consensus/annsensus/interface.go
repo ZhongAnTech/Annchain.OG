@@ -66,7 +66,7 @@ type DkgMessageAdapter interface {
 
 type AnnsensusMessage interface {
 	GetType() AnnsensusMessageType
-	GetData() []byte
+	GetBytes() []byte
 	String() string
 }
 

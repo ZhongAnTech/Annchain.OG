@@ -635,7 +635,7 @@ func (m *MessageNewActionTx) String() string {
 	return m.ActionTx.String()
 }
 
-//msgp:tuple MessageAnnsensus
+//msgp:tuple GeneralMessageAnnsensus
 type MessageAnnsensus struct {
 	InnerMessageType annsensus.AnnsensusMessageType
 	InnerMessage     []byte
@@ -666,5 +666,5 @@ func (m MessageAnnsensus) FromBinary(bs []byte) error {
 }
 
 func (m MessageAnnsensus) String() string {
-	return "MessageAnnsensus"
+	return "GeneralMessageAnnsensus"
 }

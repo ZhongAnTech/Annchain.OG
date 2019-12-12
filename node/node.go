@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/annchain/OG/og/txmaker"
@@ -414,7 +413,7 @@ func NewNode() *Node {
 	hub.OnNewPeerConnected = append(hub.OnNewPeerConnected, syncManager.CatchupSyncer.NewPeerConnectedEventListener)
 
 	//init msg requst id
-	message.MsgCountInit()
+	message_archive.MsgCountInit()
 
 	// DataLoader
 	dataLoader := &og.DataLoader{
@@ -519,26 +518,26 @@ func (n *Node) Stop() {
 
 // SetupCallbacks Regist callbacks to handle different messages
 func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
-	hub.CallbackRegistry[message.MessageTypePing] = m.RoutePing
-	hub.CallbackRegistry[message.MessageTypePong] = m.RoutePong
-	hub.CallbackRegistry[message.MessageTypeFetchByHashRequest] = m.RouteFetchByHashRequest
-	hub.CallbackRegistry[message.MessageTypeFetchByHashResponse] = m.RouteFetchByHashResponse
-	hub.CallbackRegistry[message.MessageTypeNewTx] = m.RouteNewTx
-	hub.CallbackRegistry[message.MessageTypeNewTxs] = m.RouteNewTxs
-	hub.CallbackRegistry[message.MessageTypeNewSequencer] = m.RouteNewSequencer
-	hub.CallbackRegistry[message.MessageTypeGetMsg] = m.RouteGetMsg
-	hub.CallbackRegistry[message.MessageTypeSequencerHeader] = m.RouteSequencerHeader
-	hub.CallbackRegistry[message.MessageTypeBodiesRequest] = m.RouteBodiesRequest
-	hub.CallbackRegistry[message.MessageTypeBodiesResponse] = m.RouteBodiesResponse
-	hub.CallbackRegistry[message.MessageTypeTxsRequest] = m.RouteTxsRequest
-	hub.CallbackRegistry[message.MessageTypeTxsResponse] = m.RouteTxsResponse
-	hub.CallbackRegistry[message.MessageTypeHeaderRequest] = m.RouteHeaderRequest
-	hub.CallbackRegistry[message.MessageTypeHeaderResponse] = m.RouteHeaderResponse
-	hub.CallbackRegistry[message.MessageTypeControl] = m.RouteControlMsg
-	hub.CallbackRegistry[message.MessageTypeCampaign] = m.RouteCampaign
-	hub.CallbackRegistry[message.MessageTypeTermChange] = m.RouteTermChange
-	hub.CallbackRegistry[message.MessageTypeArchive] = m.RouteArchive
-	hub.CallbackRegistry[message.MessageTypeActionTX] = m.RouteActionTx
+	hub.CallbackRegistry[message_archive.MessageTypePing] = m.RoutePing
+	hub.CallbackRegistry[message_archive.MessageTypePong] = m.RoutePong
+	hub.CallbackRegistry[message_archive.MessageTypeFetchByHashRequest] = m.RouteFetchByHashRequest
+	hub.CallbackRegistry[message_archive.MessageTypeFetchByHashResponse] = m.RouteFetchByHashResponse
+	hub.CallbackRegistry[message_archive.MessageTypeNewTx] = m.RouteNewTx
+	hub.CallbackRegistry[message_archive.MessageTypeNewTxs] = m.RouteNewTxs
+	hub.CallbackRegistry[message_archive.MessageTypeNewSequencer] = m.RouteNewSequencer
+	hub.CallbackRegistry[message_archive.MessageTypeGetMsg] = m.RouteGetMsg
+	hub.CallbackRegistry[message_archive.MessageTypeSequencerHeader] = m.RouteSequencerHeader
+	hub.CallbackRegistry[message_archive.MessageTypeBodiesRequest] = m.RouteBodiesRequest
+	hub.CallbackRegistry[message_archive.MessageTypeBodiesResponse] = m.RouteBodiesResponse
+	hub.CallbackRegistry[message_archive.MessageTypeTxsRequest] = m.RouteTxsRequest
+	hub.CallbackRegistry[message_archive.MessageTypeTxsResponse] = m.RouteTxsResponse
+	hub.CallbackRegistry[message_archive.MessageTypeHeaderRequest] = m.RouteHeaderRequest
+	hub.CallbackRegistry[message_archive.MessageTypeHeaderResponse] = m.RouteHeaderResponse
+	hub.CallbackRegistry[message_archive.MessageTypeControl] = m.RouteControlMsg
+	hub.CallbackRegistry[message_archive.MessageTypeCampaign] = m.RouteCampaign
+	hub.CallbackRegistry[message_archive.MessageTypeTermChange] = m.RouteTermChange
+	hub.CallbackRegistry[message_archive.MessageTypeArchive] = m.RouteArchive
+	hub.CallbackRegistry[message_archive.MessageTypeActionTX] = m.RouteActionTx
 	// Callbacks for DKG were moved to dkg package
 	//hub.CallbackRegistry[message.MessageTypeConsensusDkgDeal] = m.RouteConsensusDkgDeal
 	//hub.CallbackRegistry[message.MessageTypeConsensusDkgDealResponse] = m.RouteConsensusDkgDealResponse
@@ -550,12 +549,12 @@ func SetupCallbacks(m *og.MessageRouter, hub *og.Hub) {
 	//hub.CallbackRegistry[p2p_message.MessageTypePreCommit] = m.RouteConsensusPreCommit
 	// TODO: move dkg callbacks to consensus package
 
-	hub.CallbackRegistry[message.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
-	hub.CallbackRegistry[message.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse
+	hub.CallbackRegistry[message_archive.MessageTypeTermChangeRequest] = m.RouteTermChangeRequest
+	hub.CallbackRegistry[message_archive.MessageTypeTermChangeResponse] = m.RouteTermChangeResponse
 }
 
 func SetupCallbacksOG32(m *og.MessageRouterOG02, hub *og.Hub) {
-	hub.CallbackRegistryOG02[message.GetNodeDataMsg] = m.RouteGetNodeDataMsg
-	hub.CallbackRegistryOG02[message.NodeDataMsg] = m.RouteNodeDataMsg
-	hub.CallbackRegistryOG02[message.GetReceiptsMsg] = m.RouteGetReceiptsMsg
+	hub.CallbackRegistryOG02[message_archive.GetNodeDataMsg] = m.RouteGetNodeDataMsg
+	hub.CallbackRegistryOG02[message_archive.NodeDataMsg] = m.RouteNodeDataMsg
+	hub.CallbackRegistryOG02[message_archive.GetReceiptsMsg] = m.RouteGetReceiptsMsg
 }

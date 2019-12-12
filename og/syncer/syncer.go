@@ -16,7 +16,6 @@ package syncer
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/message"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -156,7 +155,7 @@ func (m *IncrementalSyncer) fireRequest(buffer map[common.Hash]struct{}) {
 		return
 	}
 	req := archive.MessageSyncRequest{
-		RequestId: message.MsgCounter.Get(),
+		RequestId: message_archive.MsgCounter.Get(),
 	}
 	var source interface{}
 	var err error
@@ -466,7 +465,7 @@ func (m *IncrementalSyncer) SyncHashList(seqHash common.Hash) {
 
 func (m *IncrementalSyncer) syncHashList(peerId string) {
 	req := archive.MessageSyncRequest{
-		RequestId: message.MsgCounter.Get(),
+		RequestId: message_archive.MsgCounter.Get(),
 	}
 	height := m.getHeight()
 	req.Height = &height

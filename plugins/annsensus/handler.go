@@ -12,12 +12,12 @@ type AnnsensusOgMessageHandler struct {
 }
 
 func (a AnnsensusOgMessageHandler) Handle(msgEvent *message.GeneralMessageEvent) {
-	annsensusMessage, err := a.AnnsensusMessageAdapter.AdaptOgMessage(msgEvent.Msg)
+	annsensusMessage, err := a.AnnsensusMessageAdapter.AdaptGeneralMessage(msgEvent.Msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt og message to annsensus")
 		return
 	}
-	annsensusPeer, err := a.AnnsensusMessageAdapter.AdaptOgPeer(msgEvent.Source)
+	annsensusPeer, err := a.AnnsensusMessageAdapter.AdaptGeneralPeer(msgEvent.Source)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt og peer to annsensus")
 		return

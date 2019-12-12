@@ -140,6 +140,7 @@ func (ap *AnnsensusPartner) loop() {
 		select {
 		case <-ap.quit:
 			ap.quitWg.Done()
+			logrus.Debug("AnnsensusPartner quit")
 			return
 		case context := <-ap.TermProvider.GetTermChangeEventChannel():
 			// new term is coming.

@@ -22,6 +22,6 @@ type GeneralPeer struct {
 }
 
 type GeneralMessageEvent struct {
-	Msg    GeneralMessage
-	Source GeneralPeer
+	Message GeneralMessage
+	Peer    GeneralPeer
 }

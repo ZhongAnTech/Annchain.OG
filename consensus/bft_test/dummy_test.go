@@ -14,7 +14,7 @@ func (d *LocalBftPeerCommunicator) HandleIncomingMessage(msgEvent *bft.BftMessag
 	d.pipe <- msgEvent
 }
 
-func NewDummyBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, peers []chan *bft.BftMessageEvent) *LocalBftPeerCommunicator {
+func NewLocalBftPeerCommunicator(myid int, incoming chan *bft.BftMessageEvent, peers []chan *bft.BftMessageEvent) *LocalBftPeerCommunicator {
 	d := &LocalBftPeerCommunicator{
 		PeerIns: peers,
 		Myid:    myid,

@@ -1,9 +1,9 @@
 package annsensus
 
 import (
+	"github.com/annchain/OG/communication"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/message"
-	"github.com/annchain/OG/og/engine"
 )
 
 var supportedMessageTypes = []message.GeneralMessageType{
@@ -11,7 +11,11 @@ var supportedMessageTypes = []message.GeneralMessageType{
 }
 
 type AnnsensusPlugin struct {
-	messageHandler engine.OgMessageEventHandler
+	messageHandler communication.GeneralMessageEventHandler
+}
+
+func (a *AnnsensusPlugin) GetMessageEventHandler() communication.GeneralMessageEventHandler {
+	return a.messageHandler
 }
 
 func NewAnnsensusPlugin() *AnnsensusPlugin {
@@ -27,7 +31,7 @@ func NewAnnsensusPlugin() *AnnsensusPlugin {
 
 	communicator := &ProxyAnnsensusPeerCommunicator{
 		AnnsensusMessageAdapter: nil,
-		annsensusOutgoing:       nil,
+		GeneralOutgoing:         nil,
 		pipe:                    nil,
 	}
 	communicator.InitDefault()
@@ -45,7 +49,7 @@ func NewAnnsensusPlugin() *AnnsensusPlugin {
 	}
 
 	return &AnnsensusPlugin{
-		messageHandler: &AnnsensusOgMessageHandler{
+		messageHandler: &AnnsensusMessageMessageHandler{
 			AnnsensusPartner: annsensus.NewAnnsensusPartner(),
 		},
 	}
@@ -53,10 +57,6 @@ func NewAnnsensusPlugin() *AnnsensusPlugin {
 
 func (a AnnsensusPlugin) SupportedMessageTypes() []message.GeneralMessageType {
 	return supportedMessageTypes
-}
-
-func (a AnnsensusPlugin) GetMessageEventHandler() engine.OgMessageEventHandler {
-	return a.messageHandler
 }
 
 type AnnsensusMessageAdapter interface {

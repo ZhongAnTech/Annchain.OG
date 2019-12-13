@@ -6,12 +6,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type AnnsensusOgMessageHandler struct {
+type AnnsensusMessageMessageHandler struct {
 	AnnsensusPartner        annsensus.AnnsensusPartner
 	AnnsensusMessageAdapter AnnsensusMessageAdapter
 }
 
-func (a AnnsensusOgMessageHandler) Handle(msgEvent *message.GeneralMessageEvent) {
+func (a AnnsensusMessageMessageHandler) Handle(msgEvent *message.GeneralMessageEvent) {
 	annsensusMessage, err := a.AnnsensusMessageAdapter.AdaptGeneralMessage(msgEvent.Msg)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt og message to annsensus")

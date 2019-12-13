@@ -9,8 +9,11 @@ import (
 )
 
 type OgPartner struct {
+	Config       OgProcessorConfig
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
 	PeerIncoming communication.OgPeerCommunicatorIncoming
+
+	//
 
 	quit   chan bool
 	quitWg sync.WaitGroup
@@ -88,4 +91,7 @@ func (o *OgPartner) SendMessagePing(peer communication.OgPeer) {
 
 func (a *OgPartner) HandleMessageStatus(msgEvent *communication.OgMessageEvent) {
 
+}
+
+type OgProcessorConfig struct {
 }

@@ -64,7 +64,7 @@ func setupPeers(good int, bad int, bf ByzantineFeatures) []bft.BftPartner {
 		peerInfo = append(peerInfo, bft.BftPeer{Id: i})
 	}
 	for i = 0; i < good; i++ {
-		pc := NewDummyBftPeerCommunicator(i, peerChans[i], peerChans)
+		pc := NewLocalBftPeerCommunicator(i, peerChans[i], peerChans)
 		pc.Run()
 
 		peer := bft.NewDefaultBFTPartner(total, i, BlockTime, pc, pc, pg, pv, dm, peerInfo)

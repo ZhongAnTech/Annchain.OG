@@ -1,16 +1,13 @@
 package og
 
 import (
-	"github.com/annchain/OG/message"
+	general_message "github.com/annchain/OG/message"
+	"github.com/annchain/OG/ogcore/message"
 )
 
 //go:generate msgp
 
-var MessageTypeOg message.GeneralMessageType = 1
-
-var supportedMessageTypes = []message.GeneralMessageType{
-	MessageTypeOg,
-}
+var MessageTypeOg general_message.GeneralMessageType = 1
 
 //msgp:tuple GeneralMessageOg
 type GeneralMessageOg struct {
@@ -18,7 +15,7 @@ type GeneralMessageOg struct {
 	InnerMessage     []byte
 }
 
-func (g *GeneralMessageOg) GetType() message.GeneralMessageType {
+func (g *GeneralMessageOg) GetType() general_message.GeneralMessageType {
 	return MessageTypeOg
 }
 

@@ -2,18 +2,88 @@ package engine
 
 import (
 	"github.com/annchain/OG/communication"
-	"github.com/annchain/OG/consensus/annsensus"
-	"github.com/annchain/OG/og/router"
+	"github.com/annchain/OG/message"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
+	"sync"
 )
 
-type OgEngine struct {
-	messageRouter router.MessageRouter
-	Plugins       []communication.GeneralMessageHandlerPlugin
+type EngineConfig struct {
 }
 
-func NewOgEngine() {
-	messageRouter := &router.NewMessageRouter()
+type Engine struct {
+	Config        EngineConfig
+	plugins       []communication.GeneralMessageHandlerPlugin
+	messageRouter map[message.GeneralMessageType]communication.GeneralMessageEventHandler
+	PeerOutgoing  communication.GeneralPeerCommunicatorOutgoing
+	PeerIncoming  communication.GeneralPeerCommunicatorIncoming
 
-	annsensusPlugin := annsensus.NewAnnsensusPlugin
-	messageRouter.Register()
+	quit   chan bool
+	quitWg sync.WaitGroup
+
+	performance map[string]interface{}
+}
+
+func (a *Engine) Name() string {
+	return "Engine"
+}
+
+func (a *Engine) GetBenchmarks() map[string]interface{} {
+	return a.performance
+}
+
+func (a *Engine) InitDefault() {
+	a.messageRouter = make(map[message.GeneralMessageType]communication.GeneralMessageEventHandler)
+	a.quitWg = sync.WaitGroup{}
+	a.quit = make(chan bool)
+	a.performance = make(map[string]interface{})
+	a.performance["mps"] = uint(0)
+}
+
+func (a *Engine) RegisterPlugin(plugin communication.GeneralMessageHandlerPlugin) {
+	a.plugins = append(a.plugins, plugin)
+	handler := plugin.GetMessageEventHandler()
+	for _, msgType := range plugin.SupportedMessageTypes() {
+		a.messageRouter[msgType] = handler
+	}
+}
+
+func (ap *Engine) Start() {
+	// start the plugins
+	for _, plugin := range ap.plugins {
+		plugin.Start()
+	}
+	// start the receiver
+	go ap.loop()
+	log.Info("Engine Started")
+}
+
+func (ap *Engine) Stop() {
+	ap.quit <- true
+	ap.quitWg.Wait()
+	logrus.Debug("Engine stopped")
+}
+
+func (ap *Engine) loop() {
+	for {
+		select {
+		case <-ap.quit:
+			ap.quitWg.Done()
+			logrus.Debug("AnnsensusPartner quit")
+			return
+		case msgEvent := <-ap.PeerIncoming.GetPipeOut():
+			ap.HandleGeneralMessage(msgEvent)
+			ap.performance["mps"] = ap.performance["mps"].(uint) + 1
+		}
+	}
+}
+
+func (ap *Engine) HandleGeneralMessage(msgEvent *message.GeneralMessageEvent) {
+	generalMessage := msgEvent.Message
+	handler, ok := ap.messageRouter[generalMessage.GetType()]
+	if !ok {
+		logrus.WithField("type", generalMessage.GetType()).Warn("message type not recognized by engine. not registered?")
+		return
+	}
+	handler.Handle(msgEvent)
 }

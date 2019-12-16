@@ -8,7 +8,7 @@ import (
 )
 
 // TermIdProvider provide Dkg term that will be changed every term switching.
-// TermIdProvider maintains historic Peer info that can be retrieved by height.
+// TermIdProvider maintains historic Sender info that can be retrieved by height.
 // Once a new term is started, the term info will be sent through TermChangeEventChannel
 type TermIdProvider interface {
 	// HeightTerm maps height to dkg term

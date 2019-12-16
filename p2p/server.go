@@ -751,7 +751,7 @@ running:
 				// Ensure that the trusted flag is set before checking against MaxPeers.
 				c.flags |= trustedConn
 			}
-			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
+			// TODO: track in-progress inbound node IDs (pre-Sender) to avoid dialing them.
 			select {
 			case c.cont <- srv.encHandshakeChecks(peers, inboundCount, c):
 			case <-srv.quit:
@@ -1050,7 +1050,7 @@ func (srv *Server) checkpoint(c *conn, stage chan<- *conn) error {
 }
 
 // runPeer runs in its own goroutine for each peer.
-// it waits until the Peer logic returns and removes
+// it waits until the Sender logic returns and removes
 // the peer.
 func (srv *Server) runPeer(p *Peer) {
 	if srv.newPeerHook != nil {
@@ -1060,7 +1060,7 @@ func (srv *Server) runPeer(p *Peer) {
 	// broadcast peer add
 	/*srv.peerFeed.Send(&PeerEvent{
 		Type: PeerEventTypeAdd,
-		Peer: p.ID(),
+		Sender: p.ID(),
 	})
 	*/
 
@@ -1071,7 +1071,7 @@ func (srv *Server) runPeer(p *Peer) {
 	/*
 		srv.peerFeed.Send(&PeerEvent{
 			Type:  PeerEventTypeDrop,
-			Peer:  p.ID(),
+			Sender:  p.ID(),
 			Error: err.Error(),
 		})
 	*/

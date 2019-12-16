@@ -114,7 +114,7 @@ func newMeteredConn(conn net.Conn, ingress bool, ip net.IP) net.Conn {
 		return conn
 	}
 	if ip.IsUnspecified() {
-		log.Warn("Peer IP is unspecified")
+		log.Warn("Sender IP is unspecified")
 		return conn
 	}
 	// Bump the connection counters and wrap the connection

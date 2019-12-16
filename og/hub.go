@@ -396,7 +396,7 @@ func (h *Hub) RemovePeer(id string) {
 	h.Downloader.UnregisterPeer(id)
 	if err := h.peers.Unregister(id); err != nil {
 		log.WithField("peer", "id").WithError(err).
-			Error("Peer removal failed")
+			Error("Sender removal failed")
 	}
 	// Hard disconnect at the networking layer
 	if peer != nil {

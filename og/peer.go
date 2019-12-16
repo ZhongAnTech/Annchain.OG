@@ -370,7 +370,7 @@ func (p *peer) sendRequest(msgType message_archive.BinaryMessageType, request p2
 
 // String implements fmt.Stringer.
 func (p *peer) String() string {
-	return fmt.Sprintf("Peer-%s-[%s]-[%s]", p.id,
+	return fmt.Sprintf("Sender-%s-[%s]-[%s]", p.id,
 		fmt.Sprintf("og/%2d", p.version), p.RemoteAddr().String(),
 	)
 }
@@ -425,7 +425,7 @@ func (ps *peerSet) Unregister(id string) error {
 	return nil
 }
 
-// Peer retrieves the registered peer with the given id.
+// Sender retrieves the registered peer with the given id.
 func (ps *peerSet) Peer(id string) *peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()

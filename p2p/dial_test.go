@@ -186,7 +186,7 @@ func TestDialStateDynDial(t *testing.T) {
 					&discoverTask{},
 				},
 			},
-			// Peer 7 is connected, but there still aren't enough dynamic peers
+			// Sender 7 is connected, but there still aren't enough dynamic peers
 			// (4 out of 5). However, a discovery is already running, so ensure
 			// no new is started.
 			{

@@ -200,7 +200,7 @@ func TestPeerDisconnect(t *testing.T) {
 	logrus.Debug("end here")
 }
 
-// This test is supposed to verify that Peer can reliably handle
+// This test is supposed to verify that Sender can reliably handle
 // multiple causes of disconnection occurring at the same time.
 func TestPeerDisconnectRace(t *testing.T) {
 	maybe := func() bool { return rand.Intn(1) == 1 }
@@ -243,10 +243,10 @@ func TestPeerDisconnectRace(t *testing.T) {
 		select {
 		case <-disc:
 		case <-time.After(2 * time.Second):
-			// Peer.run should return quickly. If it doesn't the Peer
+			// Sender.run should return quickly. If it doesn't the Sender
 			// goroutines are probably deadlocked. Call panic in order to
 			// show the stacks.
-			panic("Peer.run took to long to return.")
+			panic("Sender.run took to long to return.")
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package og
 
 import (
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
@@ -18,14 +19,17 @@ func (a OgGeneralMessageHandler) Handle(msgEvent *message.GeneralMessageEvent) {
 		logrus.WithError(err).Warn("failed to adapt og message to general")
 		return
 	}
-	ogPeer, err := a.OgMessageAdapter.AdaptGeneralPeer(msgEvent.Peer)
+	ogPeer, err := a.OgMessageAdapter.AdaptGeneralPeer(msgEvent.Sender)
 	if err != nil {
 		logrus.WithError(err).Warn("failed to adapt general peer to og")
 		return
 	}
 
-	a.OgPartner.HandleOgMessage(&communication.OgMessageEvent{
-		Message: annsensusMessage,
-		Peer:    ogPeer,
-	})
+	ffchan.NewTimeoutSenderShort(
+		a.OgPartner.PeerIncoming.GetPipeIn(),
+		&communication.OgMessageEvent{
+			Message: annsensusMessage,
+			Peer:    ogPeer,
+		}, "og handler")
+
 }

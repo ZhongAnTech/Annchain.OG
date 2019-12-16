@@ -1,13 +1,19 @@
 package plugin_test
 
 import (
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/message"
+	"github.com/sirupsen/logrus"
 )
 
+// LocalGeneralPeerCommunicator is the place for change GeneralMessage locally.
 type LocalGeneralPeerCommunicator struct {
 	Myid    int
 	PeerIns []chan *message.GeneralMessageEvent
 	pipe    chan *message.GeneralMessageEvent //pipeIn is the receiver of the outside messages
+	me      message.GeneralPeer
 }
 
 func (d *LocalGeneralPeerCommunicator) HandleIncomingMessage(msgEvent *message.GeneralMessageEvent) {
@@ -19,6 +25,12 @@ func NewLocalGeneralPeerCommunicator(myid int, incoming chan *message.GeneralMes
 		PeerIns: peers,
 		Myid:    myid,
 		pipe:    incoming,
+		me: message.GeneralPeer{
+			Id:             myid,
+			PublicKey:      crypto.PublicKey{},
+			Address:        common.Address{},
+			PublicKeyBytes: nil,
+		},
 	}
 	return d
 }
@@ -26,22 +38,29 @@ func NewLocalGeneralPeerCommunicator(myid int, incoming chan *message.GeneralMes
 func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage, peers []message.GeneralPeer) {
 	for _, peer := range peers {
 		go func(peer message.GeneralPeer) {
-			//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
-			d.PeerIns[peer.Id] <- &message.GeneralMessageEvent{
+			logrus.WithFields(logrus.Fields{
+				"from": d.me.Id,
+				"to":   peer.Id,
+				"type": msg.GetType()}).Trace("Sending message")
+			outMsg := &message.GeneralMessageEvent{
 				Message: msg,
-				Peer:    peer,
+				Sender:  d.me,
 			}
+			ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], outMsg, "bft")
 		}(peer)
 	}
 }
 
 func (d *LocalGeneralPeerCommunicator) Unicast(msg message.GeneralMessage, peer message.GeneralPeer) {
 	go func() {
-		//ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], msg, "bft")
-		d.PeerIns[peer.Id] <- &message.GeneralMessageEvent{
+		logrus.WithFields(logrus.Fields{
+			"from": d.me.Id,
+			"to":   peer.Id,
+			"type": msg.GetType()}).Trace("Sending message")
+		ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], &message.GeneralMessageEvent{
 			Message: msg,
-			Peer:    peer,
-		}
+			Sender:  d.me,
+		}, "lgp")
 	}()
 }
 

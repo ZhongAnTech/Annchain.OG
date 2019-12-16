@@ -84,7 +84,7 @@ func (w *Waiter) StartEventLoop() {
 		case <-timer.C:
 			// timeout, trigger callback
 			if w.currentRequest != nil {
-				ffchan.NewTimeoutSenderShort(w.callbackEventChanel, w.currentRequest, "waiterCallback")
+				<-ffchan.NewTimeoutSenderShort(w.callbackEventChanel, w.currentRequest, "waiterCallback").C
 				//w.currentRequest.TimeoutCallback(w.currentRequest.Context)
 			}
 		}

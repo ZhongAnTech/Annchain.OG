@@ -1,4 +1,4 @@
-package plugin_test
+package dep
 
 import (
 	"github.com/annchain/OG/common"
@@ -48,6 +48,7 @@ func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage, pee
 			//<- ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], outMsg, "bft").C
 			d.PeerIns[peer.Id] <- outMsg
 		}(peer)
+
 	}
 }
 
@@ -61,7 +62,7 @@ func (d *LocalGeneralPeerCommunicator) Unicast(msg message.GeneralMessage, peer 
 			Message: msg,
 			Sender:  d.me,
 		}
-		//<-ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], outMsg, "lgp").C
+		//<- ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], outMsg, "lgp").C
 		d.PeerIns[peer.Id] <- outMsg
 	}()
 }

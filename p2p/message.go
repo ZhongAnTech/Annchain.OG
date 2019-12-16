@@ -156,7 +156,7 @@ func (r *eofSignal) Read(buf []byte) (int, error) {
 	n, err := r.wrapped.Read(buf[:max])
 	r.count -= uint32(n)
 	if (err != nil || r.count == 0) && r.eof != nil {
-		r.eof <- struct{}{} // tell Peer that msg has been consumed
+		r.eof <- struct{}{} // tell Sender that msg has been consumed
 		r.eof = nil
 	}
 	return n, err
@@ -299,7 +299,7 @@ func (ev *msgEventer) ReadMsg() (Msg, error) {
 	}
 	ev.feed.Send(&PeerEvent{
 		Type:     PeerEventTypeMsgRecv,
-		Peer:     ev.peerID,
+		Sender:     ev.peerID,
 		Protocol: ev.Protocol,
 		MsgCode:  &msg.Code,
 		MsgSize:  &msg.Size,
@@ -316,7 +316,7 @@ func (ev *msgEventer) WriteMsg(msg Msg) error {
 	}
 	ev.feed.Send(&PeerEvent{
 		Type:     PeerEventTypeMsgSend,
-		Peer:     ev.peerID,
+		Sender:     ev.peerID,
 		Protocol: ev.Protocol,
 		MsgCode:  &msg.Code,
 		MsgSize:  &msg.Size,

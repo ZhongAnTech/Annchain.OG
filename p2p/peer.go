@@ -85,7 +85,7 @@ type PeerEvent struct {
 	MsgSize  *uint32       `json:"msg_size,omitempty"`
 }
 
-// Peer represents a connected remote node.
+// Sender represents a connected remote node.
 type Peer struct {
 	rw      *conn
 	running map[string]*protoRW
@@ -154,7 +154,7 @@ func (p *Peer) Disconnect(reason DiscReason) {
 // String implements fmt.Stringer.
 func (p *Peer) String() string {
 	id := p.ID()
-	return fmt.Sprintf("Peer %x %v", id[:8], p.RemoteAddr())
+	return fmt.Sprintf("Sender %x %v", id[:8], p.RemoteAddr())
 }
 
 // Inbound returns true if the peer is an inbound connection
@@ -388,7 +388,7 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 	select {
 	case <-rw.wstart:
 		err = rw.w.WriteMsg(msg)
-		// Report write status back to Peer.run. It will initiate
+		// Report write status back to Sender.run. It will initiate
 		// shutdown if the error is non-nil and unblock the next write
 		// otherwise. The calling protocol code should exit for errors
 		// as well but we don't want to rely on that.

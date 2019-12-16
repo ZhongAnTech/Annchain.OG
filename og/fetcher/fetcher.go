@@ -320,7 +320,7 @@ func (f *Fetcher) loop() {
 			count := f.announces[notification.origin] + 1
 			if count > hashLimit {
 				log.WithField("peer", notification.origin).WithField(
-					"limit", hashLimit).Debug("Peer exceeded outstanding announces")
+					"limit", hashLimit).Debug("Sender exceeded outstanding announces")
 				propAnnounceDOSMeter.Mark(1)
 				break
 			}
@@ -328,7 +328,7 @@ func (f *Fetcher) loop() {
 			if notification.number > 0 {
 				if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
 					log.WithField("peer", notification.origin).WithField("number", notification.number).WithField(
-						"hash", notification.hash).WithField("distance", dist).Debug("Peer discarded announcement")
+						"hash", notification.hash).WithField("distance", dist).Debug("Sender discarded announcement")
 					propAnnounceDropMeter.Mark(1)
 					break
 				}

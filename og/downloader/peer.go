@@ -74,7 +74,7 @@ type peerConnection struct {
 	lock    sync.RWMutex
 }
 
-// Peer encapsulates the methods required to synchronise with a remote full peer.
+// Sender encapsulates the methods required to synchronise with a remote full peer.
 type Peer interface {
 	Head() (common.Hash, uint64)
 	RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool) error
@@ -227,7 +227,7 @@ func (p *peerConnection) setIdle(started time.Time, delivered int, throughput *f
 		"hps": p.headerThroughput, "bps": p.blockThroughput,
 		"rps": p.receiptThroughput, "sps": p.stateThroughput,
 		"miss": len(p.lacking), "rtt": p.rtt,
-	}).Trace("Peer throughput measurements updated")
+	}).Trace("Sender throughput measurements updated")
 }
 
 // HeaderCapacity retrieves the peers header download allowance based on its
@@ -369,7 +369,7 @@ func (ps *peerSet) Unregister(id string) error {
 	return nil
 }
 
-// Peer retrieves the registered peer with the given id.
+// Sender retrieves the registered peer with the given id.
 func (ps *peerSet) Peer(id string) *peerConnection {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()

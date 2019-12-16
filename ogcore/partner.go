@@ -13,7 +13,7 @@ type OgPartner struct {
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
 	PeerIncoming communication.OgPeerCommunicatorIncoming
 
-	//
+	// partner should connect the backend service by announce events
 
 	quit   chan bool
 	quitWg sync.WaitGroup
@@ -75,6 +75,7 @@ func (o *OgPartner) HandleMessagePing(msgEvent *communication.OgMessageEvent) {
 func (o *OgPartner) HandleMessagePong(msgEvent *communication.OgMessageEvent) {
 	source := msgEvent.Peer
 	logrus.Debugf("received pong from %d.", source.Id)
+	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, source)
 }
 
 //func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEvent) {

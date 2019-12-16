@@ -67,3 +67,13 @@ func InitLogger(logger *logrus.Logger, logdir string, outputFile string) *logrus
 	}
 	return newLogger
 }
+
+func LogInit(level logrus.Level) {
+	Formatter := new(logrus.TextFormatter)
+	Formatter.TimestampFormat = "15:04:05.000000"
+	Formatter.FullTimestamp = true
+	Formatter.ForceColors = true
+	logrus.SetFormatter(Formatter)
+	logrus.SetLevel(level)
+	//logrus.SetReportCaller(true)
+}

@@ -21,8 +21,8 @@ package og
 //	"github.com/annchain/OG/og/types/archive"
 //)
 //
-//// MessageRouter is a bridge between hub and components
-//type MessageRouter struct {
+//// messageRouter is a bridge between hub and components
+//type messageRouter struct {
 //	Hub                                 *Hub
 //	PingHandler                         PingHandler
 //	PongHandler                         PongHandler
@@ -162,147 +162,147 @@ package og
 //	HandleTermChangeResponse(request *types.MessageTermChangeResponse, peerId string)
 //}
 //
-//func (m *MessageRouter) Start() {
+//func (m *messageRouter) Start() {
 //	m.Hub.BroadcastMessage(message.MessageTypePing, &archive.MessagePing{Data: []byte{}})
 //}
 //
-//func (m *MessageRouter) Stop() {
+//func (m *messageRouter) Stop() {
 //
 //}
 //
-//func (m *MessageRouter) Name() string {
-//	return "MessageRouter"
+//func (m *messageRouter) Name() string {
+//	return "messageRouter"
 //}
 //
-//func (m *MessageRouter) RoutePing(msg *types) {
+//func (m *messageRouter) RoutePing(msg *types) {
 //	m.PingHandler.HandlePing(msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RoutePong(*types) {
+//func (m *messageRouter) RoutePong(*types) {
 //	m.PongHandler.HandlePong()
 //}
-//func (m *MessageRouter) RouteFetchByHashRequest(msg *types) {
+//func (m *messageRouter) RouteFetchByHashRequest(msg *types) {
 //	m.FetchByHashRequestHandler.HandleFetchByHashRequest(msg.Message.(*archive.MessageSyncRequest), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteFetchByHashResponse(msg *types) {
+//func (m *messageRouter) RouteFetchByHashResponse(msg *types) {
 //	m.FetchByHashResponseHandler.HandleFetchByHashResponse(msg.Message.(*archive.MessageSyncResponse), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteNewTx(msg *types) {
+//func (m *messageRouter) RouteNewTx(msg *types) {
 //	m.NewTxHandler.HandleNewTx(msg.Message.(*archive.MessageNewTx), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteNewTxs(msg *types) {
+//func (m *messageRouter) RouteNewTxs(msg *types) {
 //	//maybe received more transactions
 //	m.NewTxsHandler.HandleNewTxs(msg.Message.(*archive.MessageNewTxs), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteNewSequencer(msg *types) {
+//func (m *messageRouter) RouteNewSequencer(msg *types) {
 //	m.NewSequencerHandler.HandleNewSequencer(msg.Message.(*archive.MessageNewSequencer), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteGetMsg(msg *types) {
+//func (m *messageRouter) RouteGetMsg(msg *types) {
 //	m.GetMsgHandler.HandleGetMsg(msg.Message.(*archive.MessageGetMsg), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteControlMsg(msg *types) {
+//func (m *messageRouter) RouteControlMsg(msg *types) {
 //	m.ControlMsgHandler.HandleControlMsg(msg.Message.(*archive.MessageControl), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteSequencerHeader(msg *types) {
+//func (m *messageRouter) RouteSequencerHeader(msg *types) {
 //	m.SequencerHeaderHandler.HandleSequencerHeader(msg.Message.(*archive.MessageSequencerHeader), msg.SourceID)
 //}
-//func (m *MessageRouter) RouteBodiesRequest(msg *types) {
+//func (m *messageRouter) RouteBodiesRequest(msg *types) {
 //
 //	m.BodiesRequestHandler.HandleBodiesRequest(msg.Message.(*archive.MessageBodiesRequest), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteBodiesResponse(msg *types) {
+//func (m *messageRouter) RouteBodiesResponse(msg *types) {
 //	// A batch of block bodies arrived to one of our previous requests
 //	m.BodiesResponseHandler.HandleBodiesResponse(msg.Message.(*archive.MessageBodiesResponse), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteTxsRequest(msg *types) {
+//func (m *messageRouter) RouteTxsRequest(msg *types) {
 //	// Decode the retrieval Message
 //	m.TxsRequestHandler.HandleTxsRequest(msg.Message.(*archive.MessageTxsRequest), msg.SourceID)
 //
 //}
-//func (m *MessageRouter) RouteTxsResponse(msg *types) {
+//func (m *messageRouter) RouteTxsResponse(msg *types) {
 //	// A batch of block bodies arrived to one of our previous requests
 //	m.TxsResponseHandler.HandleTxsResponse(msg.Message.(*archive.MessageTxsResponse))
 //
 //}
-//func (m *MessageRouter) RouteHeaderRequest(msg *types) {
+//func (m *messageRouter) RouteHeaderRequest(msg *types) {
 //	// Decode the complex header query
 //	m.HeaderRequestHandler.HandleHeaderRequest(msg.Message.(*archive.MessageHeaderRequest), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteHeaderResponse(msg *types) {
+//func (m *messageRouter) RouteHeaderResponse(msg *types) {
 //	// A batch of headers arrived to one of our previous requests
 //	m.HeaderResponseHandler.HandleHeaderResponse(msg.Message.(*archive.MessageHeaderResponse), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteCampaign(msg *types) {
+//func (m *messageRouter) RouteCampaign(msg *types) {
 //	// A batch of headers arrived to one of our previous requests
 //	m.CampaignHandler.HandleCampaign(msg.Message.(*types.MessageCampaign), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteTermChange(msg *types) {
+//func (m *messageRouter) RouteTermChange(msg *types) {
 //	m.TermChangeHandler.HandleTermChange(msg.Message.(*types.MessageTermChange), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteArchive(msg *types) {
+//func (m *messageRouter) RouteArchive(msg *types) {
 //	m.ArchiveHandler.HandleArchive(msg.Message.(*types.MessageNewArchive), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteActionTx(msg *types) {
+//func (m *messageRouter) RouteActionTx(msg *types) {
 //	m.ActionTxHandler.HandleActionTx(msg.Message.(*archive.MessageNewActionTx), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteConsensusDkgDeal(msg *types) {
+//func (m *messageRouter) RouteConsensusDkgDeal(msg *types) {
 //	m.ConsensusDkgDealHandler.HandleConsensusDkgDeal(msg.Message.(*types.MessageConsensusDkgDeal), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteConsensusDkgDealResponse(msg *types) {
+//func (m *messageRouter) RouteConsensusDkgDealResponse(msg *types) {
 //	m.ConsensusDkgDealResponseHandler.HandleConsensusDkgDealResponse(msg.Message.(*types.MessageConsensusDkgDealResponse), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteConsensusDkgSigSets(msg *types) {
+//func (m *messageRouter) RouteConsensusDkgSigSets(msg *types) {
 //	m.ConsensusDkgSigSetsHandler.HandleConsensusDkgSigSets(msg.Message.(*types.MessageConsensusDkgSigSets), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteConsensusDkgGenesisPublicKey(msg *types) {
+//func (m *messageRouter) RouteConsensusDkgGenesisPublicKey(msg *types) {
 //	m.ConsensusDkgGenesisPublicKeyHandler.HandleConsensusDkgGenesisPublicKey(msg.Message.(*types.MessageConsensusDkgGenesisPublicKey), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteTermChangeRequest(msg *types) {
+//func (m *messageRouter) RouteTermChangeRequest(msg *types) {
 //	m.TermChangeRequestHandler.HandleTermChangeRequest(msg.Message.(*types.MessageTermChangeRequest), msg.SourceID)
 //}
 //
-//func (m *MessageRouter) RouteTermChangeResponse(msg *types) {
+//func (m *messageRouter) RouteTermChangeResponse(msg *types) {
 //	m.TermChangeResponseHandler.HandleTermChangeResponse(msg.Message.(*types.MessageTermChangeResponse), msg.SourceID)
 //}
 //
 //// BroadcastMessage send Message to all peers
-//func (m *MessageRouter) BroadcastMessage(messageType message.BinaryMessageType, message types.Message) {
+//func (m *messageRouter) BroadcastMessage(messageType message.BinaryMessageType, message types.Message) {
 //	m.Hub.BroadcastMessage(messageType, message)
 //}
 //
 //// MulticastMessage send Message to a randomly chosen peer
-//func (m *MessageRouter) MulticastMessage(messageType message.BinaryMessageType, message types.Message) {
+//func (m *messageRouter) MulticastMessage(messageType message.BinaryMessageType, message types.Message) {
 //	m.Hub.MulticastMessage(messageType, message)
 //}
 //
-//func (m *MessageRouter) MulticastToSource(messageType message.BinaryMessageType, message types.Message, sourceMsgHash *common.Hash) {
+//func (m *messageRouter) MulticastToSource(messageType message.BinaryMessageType, message types.Message, sourceMsgHash *common.Hash) {
 //	m.Hub.MulticastToSource(messageType, message, sourceMsgHash)
 //}
 //
-//func (m *MessageRouter) BroadcastMessageWithLink(messageType message.BinaryMessageType, message types.Message) {
+//func (m *messageRouter) BroadcastMessageWithLink(messageType message.BinaryMessageType, message types.Message) {
 //	m.Hub.BroadcastMessageWithLink(messageType, message)
 //}
 //
-//func (m *MessageRouter) SendToPeer(peerId string, messageType message.BinaryMessageType, msg types.Message) {
+//func (m *messageRouter) SendToPeer(peerId string, messageType message.BinaryMessageType, msg types.Message) {
 //	err := m.Hub.SendToPeer(peerId, messageType, msg)
 //	if err != nil {
 //		message.msgLog.WithError(err).Warn("send failed")

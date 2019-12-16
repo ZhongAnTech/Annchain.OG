@@ -399,7 +399,7 @@ func (p *DefaultDkgPartner) verifyResponseSender(response *MessageDkgDealRespons
 // notifyListeners notifies listeners who has been registered for dkg generated events
 func (p *DefaultDkgPartner) notifyListeners() {
 	for _, listener := range p.dkgGeneratedListeners {
-		ffchan.NewTimeoutSenderShort(listener.GetDkgGeneratedEventChannel(), true, "listener")
+		<-ffchan.NewTimeoutSenderShort(listener.GetDkgGeneratedEventChannel(), true, "listener").C
 		//listener.GetDkgGeneratedEventChannel() <- true
 	}
 	p.notified = true

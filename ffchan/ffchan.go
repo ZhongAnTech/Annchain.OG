@@ -36,7 +36,7 @@ func NewTimeoutSender(channel interface{}, val interface{}, groupName string, ti
 	t := &TimeoutSender{
 		groupName: groupName,
 		channel:   channel,
-		timeout:   time.Duration(time.Millisecond * time.Duration(timeoutMs)),
+		timeout:   time.Millisecond * time.Duration(timeoutMs),
 		val:       val,
 		C:         make(chan bool),
 	}

@@ -26,7 +26,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg DkgMessage, peers []DkgPeer) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", d.Myid).Debug("broadcasting message")
 		go func(peer DkgPeer) {
-			ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+			<-ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg").C
 			logrus.WithField("len", msg.Msgsize()).Info("broadcast")
 			//d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
@@ -35,7 +35,7 @@ func (d *dummyDkgPeerCommunicator) Broadcast(msg DkgMessage, peers []DkgPeer) {
 
 func (d *dummyDkgPeerCommunicator) Unicast(msg DkgMessage, peer DkgPeer) {
 	go func(peerId int) {
-		ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg")
+		<-ffchan.NewTimeoutSenderShort(d.Peers[peer.Id], msg, "dkg").C
 		logrus.WithField("len", msg.Msgsize()).Info("unicast")
 		//d.PeerPipeIns[peerId] <- msg
 	}(peer.Id)
@@ -53,7 +53,7 @@ func (d *dummyDkgPeerCommunicator) Run() {
 	go func() {
 		for {
 			v := <-d.pipeIn
-			ffchan.NewTimeoutSenderShort(d.pipeOut, v, "pc")
+			<-ffchan.NewTimeoutSenderShort(d.pipeOut, v, "pc").C
 			//d.pipeOut <- v
 		}
 	}()

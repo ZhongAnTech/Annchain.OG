@@ -1,7 +1,6 @@
 package og_test
 
 import (
-	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/message"
@@ -39,8 +38,8 @@ func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage, peers []commun
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("broadcasting message")
 		go func(peer communication.OgPeer) {
-			ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg")
-			//d.PeerPipeIns[peer.Id] <- msg
+			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
+			d.PeerPipeIns[peer.Id] <- msg
 		}(peer)
 	}
 }

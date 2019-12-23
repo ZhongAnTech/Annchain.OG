@@ -2,6 +2,7 @@ package og
 
 import (
 	general_communication "github.com/annchain/OG/communication"
+	"github.com/annchain/OG/eventbus"
 	general_message "github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
@@ -16,6 +17,10 @@ type OgPlugin struct {
 	messageHandler general_communication.GeneralMessageEventHandler
 	OgPartner      *ogcore.OgPartner
 	Communicator   *ProxyOgPeerCommunicator
+}
+
+func (o *OgPlugin) SupportedEvents() []eventbus.EventRegisterInfo {
+	return []eventbus.EventRegisterInfo{}
 }
 
 func (o *OgPlugin) SetOutgoing(outgoing general_communication.GeneralPeerCommunicatorOutgoing) {

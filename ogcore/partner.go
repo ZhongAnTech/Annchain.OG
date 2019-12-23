@@ -2,6 +2,7 @@ package ogcore
 
 import (
 	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
@@ -12,9 +13,8 @@ type OgPartner struct {
 	Config       OgProcessorConfig
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
 	PeerIncoming communication.OgPeerCommunicatorIncoming
-
+	EventBus     EventBus
 	// partner should connect the backend service by announce events
-
 	quit   chan bool
 	quitWg sync.WaitGroup
 }
@@ -68,6 +68,7 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 func (o *OgPartner) HandleMessagePing(msgEvent *communication.OgMessageEvent) {
 	source := msgEvent.Peer
 	logrus.Debugf("received ping from %d. Respond you a pong.", source.Id)
+	o.EventBus.Route(&events.PingReceivedEvent{})
 	o.PeerOutgoing.Unicast(&message.OgMessagePong{}, source)
 
 }
@@ -75,6 +76,7 @@ func (o *OgPartner) HandleMessagePing(msgEvent *communication.OgMessageEvent) {
 func (o *OgPartner) HandleMessagePong(msgEvent *communication.OgMessageEvent) {
 	source := msgEvent.Peer
 	logrus.Debugf("received pong from %d.", source.Id)
+	o.EventBus.Route(&events.PongReceivedEvent{})
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, source)
 }
 

@@ -14,32 +14,37 @@ type EventHandler interface {
 	HandleEvent(Event)
 }
 
-type EventBus struct {
+type EventRegisterInfo struct {
+	Type    EventType
+	Handler EventHandler
+}
+
+type DefaultEventBus struct {
 	listeners map[EventType][]EventHandler
 	inited    bool       // do not use Mutex after initialization. It will downgrade performance
 	mu        sync.Mutex // use only during initialization
 }
 
-func (e *EventBus) InitDefault() {
+func (e *DefaultEventBus) InitDefault() {
 	e.listeners = make(map[EventType][]EventHandler)
 }
 
-func (e *EventBus) ListenTo(t EventType, handler EventHandler) {
+func (e *DefaultEventBus) ListenTo(regInfo EventRegisterInfo) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	l, ok := e.listeners[t]
+	l, ok := e.listeners[regInfo.Type]
 	if !ok {
-		l = []EventHandler{handler}
+		l = []EventHandler{regInfo.Handler}
 	} else {
-		l = append(l, handler)
+		l = append(l, regInfo.Handler)
 	}
-	e.listeners[t] = l
+	e.listeners[regInfo.Type] = l
 }
-func (e *EventBus) Build() {
+func (e *DefaultEventBus) Build() {
 	e.inited = true
 }
 
-func (e *EventBus) Route(ev Event) {
+func (e *DefaultEventBus) Route(ev Event) {
 	if !e.inited {
 		panic("bad code. build eventbus before routing")
 	}

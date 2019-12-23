@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/communication"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/message"
 	"github.com/annchain/OG/og/account"
 )
@@ -16,6 +17,10 @@ type AnnsensusPlugin struct {
 	messageHandler   communication.GeneralMessageEventHandler
 	Communicator     *ProxyAnnsensusPeerCommunicator
 	AnnsensusPartner *annsensus.AnnsensusPartner
+}
+
+func (a *AnnsensusPlugin) SupportedEvents() []eventbus.EventRegisterInfo {
+	return []eventbus.EventRegisterInfo{}
 }
 
 func (a *AnnsensusPlugin) Start() {

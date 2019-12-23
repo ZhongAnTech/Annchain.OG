@@ -1,6 +1,7 @@
-package annsensus_test
+package engine_test
 
 import (
+	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/bft"
@@ -9,6 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"time"
 )
+
+func sampleAccounts(count int) []*account.Account {
+	var accounts []*account.Account
+	for i := 0; i < count; i++ {
+		acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
+		fmt.Println(fmt.Sprintf("account address: %s, pubkey: %s, privkey: %s", acc.Address.String(), acc.PublicKey.String(), acc.PrivateKey.String()))
+		accounts = append(accounts, acc)
+	}
+	return accounts
+}
 
 type dummyAccountProvider struct {
 	MyAccount *account.Account
@@ -26,40 +37,27 @@ func (s dummySignatureProvider) Sign(data []byte) []byte {
 	return data
 }
 
-type dummyConsensusContext struct {
+type dummyContext struct {
 	term      *term.Term
 	MyBftId   int
 	MyPartSec dkg.PartSec
 	blockTime time.Duration
 }
 
-func (d dummyConsensusContext) GetTerm() *term.Term {
+func (d dummyContext) GetTerm() *term.Term {
 	return d.term
 }
 
-func (d dummyConsensusContext) GetMyBftId() int {
+func (d dummyContext) GetMyBftId() int {
 	return d.MyBftId
 }
 
-func (d dummyConsensusContext) GetMyPartSec() dkg.PartSec {
+func (d dummyContext) GetMyPartSec() dkg.PartSec {
 	return d.MyPartSec
 }
 
-func (d dummyConsensusContext) GetBlockTime() time.Duration {
+func (d dummyContext) GetBlockTime() time.Duration {
 	return d.blockTime
-}
-
-type dummyConsensusContextProivder struct {
-	Template annsensus.ConsensusContext
-}
-
-func (d dummyConsensusContextProivder) GetConsensusContext(newTerm *term.Term) annsensus.ConsensusContext {
-	return &dummyConsensusContext{
-		term:      newTerm,
-		MyBftId:   d.Template.GetMyBftId(),
-		MyPartSec: d.Template.GetMyPartSec(),
-		blockTime: d.Template.GetBlockTime(),
-	}
 }
 
 type dummyProposalGenerator struct {
@@ -67,7 +65,6 @@ type dummyProposalGenerator struct {
 }
 
 func (d dummyProposalGenerator) ProduceProposal() (proposal bft.Proposal, validCondition bft.ProposalCondition) {
-	time.Sleep(1000 * time.Millisecond)
 	currentTime := time.Now()
 	p := bft.StringProposal{Content: currentTime.Format("2006-01-02 15:04:05")}
 

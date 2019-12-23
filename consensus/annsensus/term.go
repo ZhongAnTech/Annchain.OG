@@ -1,8 +1,6 @@
 package annsensus
 
 import (
-	"errors"
-	"fmt"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
 	"sync"
@@ -13,7 +11,7 @@ type HeightInfoCarrier interface {
 }
 
 type TermCollection struct {
-	contextProvider ConsensusContextProvider
+	contextProvider ConsensusContext
 	BftPartner      bft.BftPartner
 	DkgPartner      dkg.DkgPartner
 	quit            chan bool
@@ -21,7 +19,7 @@ type TermCollection struct {
 }
 
 func NewTermCollection(
-	contextProvider ConsensusContextProvider,
+	contextProvider ConsensusContext,
 	bftPartner bft.BftPartner, dkgPartner dkg.DkgPartner) *TermCollection {
 	return &TermCollection{
 		contextProvider: contextProvider,
@@ -58,15 +56,12 @@ type AnnsensusTermHolder struct {
 	// TODO: wipe it constantly
 	termMap      map[uint32]*TermCollection
 	termProvider TermIdProvider
-	mu           sync.Mutex
+	mu           sync.RWMutex
 	debugMyId    int
 }
 
-func (b *AnnsensusTermHolder) GetTermById(u uint32) (msgTerm *TermCollection, err error) {
-	msgTerm, ok := b.termMap[u]
-	if !ok {
-		err = fmt.Errorf("term not found: %d ", u)
-	}
+func (b *AnnsensusTermHolder) GetTermById(termId uint32) (msgTerm *TermCollection, ok bool) {
+	msgTerm, ok = b.termMap[termId]
 	return
 }
 
@@ -84,14 +79,14 @@ func NewAnnsensusTermHolder(termProvider TermIdProvider) *AnnsensusTermHolder {
 	}
 }
 
-func (b *AnnsensusTermHolder) GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error) {
+func (b *AnnsensusTermHolder) GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, ok bool) {
 	height := heightInfoCarrier.ProvideHeight()
 	// judge term
 	termId := b.termProvider.HeightTerm(height)
-	msgTerm, ok := b.termMap[termId]
-	if !ok {
-		err = errors.New("term not found")
-	}
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	msgTerm, ok = b.termMap[termId]
 	return
 }
 

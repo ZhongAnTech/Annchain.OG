@@ -3,7 +3,9 @@ package annsensus
 import (
 	"github.com/annchain/OG/communication"
 	"github.com/annchain/OG/consensus/annsensus"
+	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/message"
+	"github.com/annchain/OG/og/account"
 )
 
 var supportedMessageTypes = []message.GeneralMessageType{
@@ -11,14 +13,32 @@ var supportedMessageTypes = []message.GeneralMessageType{
 }
 
 type AnnsensusPlugin struct {
-	messageHandler communication.GeneralMessageEventHandler
+	messageHandler   communication.GeneralMessageEventHandler
+	Communicator     *ProxyAnnsensusPeerCommunicator
+	AnnsensusPartner *annsensus.AnnsensusPartner
+}
+
+func (a *AnnsensusPlugin) Start() {
+	a.AnnsensusPartner.Start()
+}
+
+func (a *AnnsensusPlugin) Stop() {
+	a.AnnsensusPartner.Stop()
 }
 
 func (a *AnnsensusPlugin) GetMessageEventHandler() communication.GeneralMessageEventHandler {
 	return a.messageHandler
 }
 
-func NewAnnsensusPlugin() *AnnsensusPlugin {
+func (o *AnnsensusPlugin) SetOutgoing(outgoing communication.GeneralPeerCommunicatorOutgoing) {
+	o.Communicator.GeneralOutgoing = outgoing
+}
+
+func NewAnnsensusPlugin(termProvider annsensus.TermIdProvider,
+	myAccountProvider account.AccountProvider,
+	proposalGenerator bft.ProposalGenerator,
+	proposalValidator bft.ProposalValidator,
+	decisionMaker bft.DecisionMaker) *AnnsensusPlugin {
 	// load config first.
 	config := annsensus.AnnsensusProcessorConfig{
 		DisableTermChange:  false,
@@ -26,32 +46,49 @@ func NewAnnsensusPlugin() *AnnsensusPlugin {
 		TermChangeInterval: 60 * 1000,
 		GenesisAccounts:    nil,
 	}
-	bftAdapter := &annsensus.PlainBftAdapter{}
-	dkgAdapter := &annsensus.PlainDkgAdapter{}
+	annsensusMessageAdapter := &DefaultAnnsensusMessageAdapter{
+		unmarshaller: AnnsensusMessageUnmarshaller{},
+	}
 
 	communicator := &ProxyAnnsensusPeerCommunicator{
-		AnnsensusMessageAdapter: nil,
-		GeneralOutgoing:         nil,
-		pipe:                    nil,
+		AnnsensusMessageAdapter: annsensusMessageAdapter,
+		GeneralOutgoing:         nil, // place for p2p peer outgoing
 	}
 	communicator.InitDefault()
 
-	annsensusParteer := &annsensus.AnnsensusPartner{
-		Config:             annsensus.AnnsensusProcessorConfig{},
-		BftAdapter:         nil,
-		DkgAdapter:         nil,
-		TermProvider:       nil,
-		TermHolder:         nil,
-		BftPartnerProvider: nil,
-		DkgPartnerProvider: nil,
-		PeerOutgoing:       nil,
-		PeerIncoming:       nil,
+	bftAdapter := &annsensus.PlainBftAdapter{}
+	dkgAdapter := &annsensus.PlainDkgAdapter{}
+
+	annsensusPartnerProvider := &annsensus.DefaultAnnsensusPartnerProvider{
+		MyAccountProvider: myAccountProvider,
+		ProposalGenerator: proposalGenerator,
+		ProposalValidator: proposalValidator,
+		DecisionMaker:     decisionMaker,
+		BftAdatper:        bftAdapter, // for outgoing message only
+		DkgAdatper:        dkgAdapter, // for outgoing message only
+		PeerOutgoing:      communicator,
+	}
+	termHolder := annsensus.NewAnnsensusTermHolder(termProvider)
+
+	annsensusPartner := &annsensus.AnnsensusPartner{
+		Config:             config,
+		BftAdapter:         bftAdapter, // for incoming message only
+		DkgAdapter:         dkgAdapter, // for incoming message only
+		TermProvider:       termProvider,
+		TermHolder:         termHolder,
+		BftPartnerProvider: annsensusPartnerProvider,
+		DkgPartnerProvider: annsensusPartnerProvider,
+		PeerOutgoing:       communicator,
+		PeerIncoming:       communicator,
 	}
 
 	return &AnnsensusPlugin{
 		messageHandler: &AnnsensusMessageMessageHandler{
-			AnnsensusPartner: annsensus.NewAnnsensusPartner(),
+			AnnsensusPartner:        annsensusPartner,
+			AnnsensusMessageAdapter: annsensusMessageAdapter,
 		},
+		Communicator:     communicator,
+		AnnsensusPartner: annsensusPartner,
 	}
 }
 

@@ -1,4 +1,4 @@
-package plugin_test
+package engine_test
 
 import (
 	"github.com/annchain/OG/engine"
@@ -11,30 +11,31 @@ import (
 	"time"
 )
 
-func TestOgPartner(t *testing.T) {
+// TestPingPongBenchmark will try its best to send ping pong between two to benchmark
+func TestPingPongBenchmark(t *testing.T) {
 	mylog.LogInit(logrus.InfoLevel)
-	len := 2
-	plugins := make([]*og.OgPlugin, len)
-	chans := make([]chan *message.GeneralMessageEvent, len)
-	communicators := make([]*LocalGeneralPeerCommunicator, len)
+	nodes := 2
+	plugins := make([]*og.OgPlugin, nodes)
+	chans := make([]chan *message.GeneralMessageEvent, nodes)
+	communicators := make([]*LocalGeneralPeerCommunicator, nodes)
 
-	engines := make([]*engine.Engine, len)
+	engines := make([]*engine.Engine, nodes)
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < nodes; i++ {
 		chans[i] = make(chan *message.GeneralMessageEvent)
 	}
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < nodes; i++ {
 		communicators[i] = NewLocalGeneralPeerCommunicator(i, chans[i], chans)
 	}
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < nodes; i++ {
 		plugins[i] = og.NewOgPlugin()
 		plugins[i].SetOutgoing(communicators[i])
 	}
 
 	// init general processor
-	for i := 0; i < len; i++ {
+	for i := 0; i < nodes; i++ {
 		eng := engine.Engine{
 			Config:       engine.EngineConfig{},
 			PeerOutgoing: communicators[i],
@@ -47,6 +48,7 @@ func TestOgPartner(t *testing.T) {
 	}
 
 	logrus.Info("Started")
+
 
 	plugins[0].OgPartner.SendMessagePing(communication.OgPeer{Id: 1})
 
@@ -61,5 +63,6 @@ func TestOgPartner(t *testing.T) {
 		lastValue = v
 		time.Sleep(time.Second)
 	}
-
 }
+
+

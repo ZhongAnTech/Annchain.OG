@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/og/account"
-	"github.com/annchain/OG/types/msg"
 )
 
 type ProxyDkgPeerCommunicator struct {
@@ -127,7 +126,7 @@ func NewTrustfulDkgAdapter() *TrustfulDkgAdapter {
 	return &TrustfulDkgAdapter{}
 }
 
-func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg msg.OgMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
+func (b *TrustfulDkgAdapter) AdaptAnnsensusMessage(incomingMsg AnnsensusMessage) (msg dkg.DkgMessage, err error) { // Only allows SignedOgPartnerMessage
 	panic("not implemented yet")
 }
 

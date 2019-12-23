@@ -7,11 +7,11 @@ import (
 )
 
 type BftPartnerProvider interface {
-	GetBftPartnerInstance(context ConsensusContextProvider) bft.BftPartner
+	GetBftPartnerInstance(context ConsensusContext) bft.BftPartner
 }
 
 type DkgPartnerProvider interface {
-	GetDkgPartnerInstance(context ConsensusContextProvider) (dkg.DkgPartner, error)
+	GetDkgPartnerInstance(context ConsensusContext) (dkg.DkgPartner, error)
 }
 
 type DefaultAnnsensusPartnerProvider struct {
@@ -24,7 +24,10 @@ type DefaultAnnsensusPartnerProvider struct {
 	PeerOutgoing      AnnsensusPeerCommunicatorOutgoing
 }
 
-func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context ConsensusContextProvider) (dkgPartner dkg.DkgPartner, err error) {
+func (d *DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context ConsensusContext) (dkgPartner dkg.DkgPartner, err error) {
+	if d.PeerOutgoing == nil || d.DkgAdatper == nil {
+		panic("wrong init")
+	}
 	dkgComm := NewProxyDkgPeerCommunicator(d.DkgAdatper, d.PeerOutgoing)
 	currentTerm := context.GetTerm()
 	dkgPartner, err = dkg.NewDefaultDkgPartner(
@@ -39,7 +42,11 @@ func (d DefaultAnnsensusPartnerProvider) GetDkgPartnerInstance(context Consensus
 	return
 }
 
-func (d DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context ConsensusContextProvider) bft.BftPartner {
+func (d *DefaultAnnsensusPartnerProvider) GetBftPartnerInstance(context ConsensusContext) bft.BftPartner {
+	if d.PeerOutgoing == nil || d.BftAdatper == nil {
+		panic("wrong init")
+	}
+
 	bftComm := NewProxyBftPeerCommunicator(d.BftAdatper, d.PeerOutgoing)
 
 	bftPartner := bft.NewDefaultBFTPartner(

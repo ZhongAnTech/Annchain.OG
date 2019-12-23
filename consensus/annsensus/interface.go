@@ -14,24 +14,28 @@ type TermIdProvider interface {
 	// HeightTerm maps height to dkg term
 	HeightTerm(height uint64) (termId uint32)
 	CurrentTerm() (termId uint32)
-	GetTermChangeEventChannel() chan ConsensusContextProvider
+	GetTermChangeEventChannel() chan ConsensusContext
 }
 
 // HistoricalTermsHolder saves all historical term handlers(bft, dkg) and term info.
 // In case of some slow messages are coming.
 type HistoricalTermsHolder interface {
-	GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, err error)
-	GetTermById(u uint32) (msgTerm *TermCollection, err error)
-	SetTerm(u uint32, composer *TermCollection)
+	GetTermByHeight(heightInfoCarrier HeightInfoCarrier) (msgTerm *TermCollection, ok bool)
+	GetTermById(termId uint32) (msgTerm *TermCollection, ok bool)
+	SetTerm(termId uint32, composer *TermCollection)
 	DebugMyId() int
 }
 
-// ConsensusContextProvider provides not only term info but also the character the node play in this term.
-type ConsensusContextProvider interface {
+// ConsensusContext provides not only term info but also the character the node play in this term.
+type ConsensusContext interface {
 	GetTerm() *term.Term
 	GetMyBftId() int
 	GetMyPartSec() dkg.PartSec
 	GetBlockTime() time.Duration
+}
+
+type ConsensusContextProvider interface {
+	GetConsensusContext(newTerm *term.Term) ConsensusContext
 }
 
 // HeightProvider is called when a height is needed.
@@ -79,7 +83,6 @@ type AnnsensusPeerCommunicatorIncoming interface {
 	GetPipeIn() chan *AnnsensusMessageEvent
 	GetPipeOut() chan *AnnsensusMessageEvent
 }
-
 
 type AnnsensusMessageHandler interface {
 	HandleMessage(msg AnnsensusMessage, peer AnnsensusPeer)

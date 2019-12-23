@@ -533,7 +533,7 @@ func (p *DefaultBftPartner) handlePreCommit(commit *BftMessagePreCommit) {
 					"IM":    p.Id,
 					"hr":    p.BftStatus.CurrentHR.String(),
 					"value": state.Decision,
-				}).Debug("Decision made")
+				}).Info("Decision made")
 
 				//send the decision to upper client to process
 				p.notifyDecisionMade(p.BftStatus.CurrentHR, state.Decision)
@@ -635,7 +635,7 @@ func (p *DefaultBftPartner) checkRound(message *BftBasicInfo) (needHandle bool) 
 		}
 	} else {
 		// this is an old message. just discard it since we don't need to process old messages.
-		logrus.WithField("IM", p.Id).WithField("hr", message.HeightRound).Warn("received an old message")
+		logrus.WithField("IM", p.Id).WithField("hr", message.HeightRound).Debug("received an old message")
 		return false
 	}
 	// rule line 55

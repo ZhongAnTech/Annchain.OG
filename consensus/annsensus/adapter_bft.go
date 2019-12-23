@@ -161,10 +161,10 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBft
 //}
 
 func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageBftSigned) error {
-	term, err := b.termHolder.GetTermById(signedMsg.TermId)
-	if err != nil {
+	term, ok := b.termHolder.GetTermById(signedMsg.TermId)
+	if !ok {
 		// this term is unknown.
-		return err
+		return errors.New("term not found")
 	}
 
 	// use public key to find sourcePartner

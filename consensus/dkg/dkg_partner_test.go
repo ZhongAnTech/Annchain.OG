@@ -34,11 +34,11 @@ func setupPartners(termId uint32, numParts int, threshold int) (dkgPartners []*D
 	}
 
 	// setup partners
-	peerChans := make([]chan DkgMessage, numParts)
+	peerChans := make([]chan *DkgMessageEvent, numParts)
 
 	// prepare incoming channels
 	for i := 0; i < numParts; i++ {
-		peerChans[i] = make(chan DkgMessage, 5000)
+		peerChans[i] = make(chan *DkgMessageEvent, 5000)
 	}
 
 	dkgPartners = make([]*DefaultDkgPartner, numParts)

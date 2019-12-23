@@ -28,8 +28,6 @@ func (a OgGeneralMessageHandler) Handle(msgEvent *message.GeneralMessageEvent) {
 		Peer:    ogPeer,
 	}
 	a.OgPartner.PeerIncoming.GetPipeIn() <- ogMsgEvent
-
-	//<-ffchan.NewTimeoutSenderShort(
-	//	a.OgPartner.PeerIncoming.GetPipeIn(), ogMsgEvent, "og handler").C
+	//<-ffchan.NewTimeoutSenderShort(a.OgPartner.PeerIncoming.GetPipeIn(), ogMsgEvent, "og handler").C
 
 }

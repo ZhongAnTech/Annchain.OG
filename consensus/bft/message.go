@@ -19,7 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/msg"
+	"github.com/tinylib/msgp/msgp"
 )
 
 //go:generate msgp
@@ -66,7 +66,6 @@ func (h *HeightRound) IsBefore(o HeightRound) bool {
 		(h.Height == o.Height && h.Round < o.Round)
 }
 
-//msgp:tuple BftMessageType
 type BftMessageType uint16
 
 func (m BftMessageType) String() string {
@@ -193,8 +192,14 @@ func (m *BftMessageProposal) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
+type MsgpEnabled interface {
+	msgp.MarshalSizer
+	msgp.Unmarshaler
+	msgp.Decodable
+	msgp.Encodable
+}
 type Proposal interface {
-	msg.MsgpMember
+	MsgpEnabled
 	Equal(Proposal) bool
 	GetId() *common.Hash
 	String() string

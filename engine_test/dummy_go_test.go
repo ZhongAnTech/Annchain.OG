@@ -1,4 +1,4 @@
-package plugin_test
+package engine_test
 
 import (
 	"github.com/annchain/OG/common"

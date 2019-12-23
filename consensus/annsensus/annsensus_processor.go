@@ -1,6 +1,7 @@
 package annsensus
 
 import (
+	"errors"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/consensus/dkg"
@@ -10,15 +11,16 @@ import (
 
 // AnnsensusPartner integrates dkg, bft and term change with vrf.
 type AnnsensusPartner struct {
-	Config             AnnsensusProcessorConfig
-	BftAdapter         BftMessageAdapter // message handlers in common. Injected into commuinicator
-	DkgAdapter         DkgMessageAdapter // message handlers in common. Injected into commuinicator
-	TermProvider       TermIdProvider
-	TermHolder         HistoricalTermsHolder // hold information for each term
-	BftPartnerProvider BftPartnerProvider    // factory method to generate a bft partner for each term
-	DkgPartnerProvider DkgPartnerProvider    // factory method to generate a dkg partner for each term
-	PeerOutgoing       AnnsensusPeerCommunicatorOutgoing
-	PeerIncoming       AnnsensusPeerCommunicatorIncoming
+	Config                   AnnsensusProcessorConfig
+	BftAdapter               BftMessageAdapter // message handlers in common. Injected into commuinicator
+	DkgAdapter               DkgMessageAdapter // message handlers in common. Injected into commuinicator
+	TermProvider             TermIdProvider
+	TermHolder               HistoricalTermsHolder // hold information for each term
+	BftPartnerProvider       BftPartnerProvider    // factory method to generate a bft partner for each term
+	DkgPartnerProvider       DkgPartnerProvider    // factory method to generate a dkg partner for each term
+	ConsensusContextProvider ConsensusContextProvider
+	PeerOutgoing             AnnsensusPeerCommunicatorOutgoing
+	PeerIncoming             AnnsensusPeerCommunicatorIncoming
 
 	quit   chan bool
 	quitWg sync.WaitGroup
@@ -103,12 +105,17 @@ func (ap *AnnsensusPartner) Start() {
 //	return t
 //}
 
-func (ap *AnnsensusPartner) StartNewTerm(context ConsensusContextProvider) error { // build a new Term
+func (ap *AnnsensusPartner) StartNewTerm(context ConsensusContext) error { // build a new Term
 	// may need lots of information to build this term
 	//newTerm := ap.buildTerm(termId)
 
 	//build a reliable bft, dkg and term
 	//bftComm := communicator.NewTrustfulPeerCommunicator(ap.signatureProvider, ap.TermProvider, ap.p2pSender)
+
+	// check if the term is already there
+	if _, ok := ap.TermHolder.GetTermById(context.GetTerm().Id); ok {
+		return errors.New("term already there")
+	}
 
 	logrus.WithField("context", context).Debug("starting new term")
 	// the bft instance for this term
@@ -123,7 +130,7 @@ func (ap *AnnsensusPartner) StartNewTerm(context ConsensusContextProvider) error
 	ap.TermHolder.SetTerm(context.GetTerm().Id, tc)
 	// start to generate proposals, vote and generate sequencers
 	go bftPartner.Start()
-	bftPartner.StartNewEra(0, 0)
+	bftPartner.StartNewEra(context.GetTerm().ActivateHeight, 0)
 	// start to discuss next committee
 	go dkgPartner.Start()
 	return nil
@@ -185,10 +192,10 @@ func (ap *AnnsensusPartner) HandleAnnsensusMessage(msgEvent *AnnsensusMessageEve
 			return
 		}
 		// judge height
-		msgTerm, err := ap.TermHolder.GetTermByHeight(bftMessage)
-		if err != nil {
+		msgTerm, ok := ap.TermHolder.GetTermByHeight(bftMessage)
+		if !ok {
 			logrus.WithError(err).WithField("msg", bftMessage).
-				Error("error finding msgTerm")
+				Error("error finding or building msgTerm")
 			return
 		}
 		// route to correspondant BFTPartner
@@ -212,8 +219,8 @@ func (ap *AnnsensusPartner) HandleAnnsensusMessage(msgEvent *AnnsensusMessageEve
 				Error("error adapting annsensus to dkg peer")
 			return
 		}
-		msgTerm, err := ap.TermHolder.GetTermByHeight(dkgMessage)
-		if err != nil {
+		msgTerm, ok := ap.TermHolder.GetTermByHeight(dkgMessage)
+		if !ok {
 			logrus.WithError(err).WithField("msg", dkgMessage).
 				Error("error finding msgTerm")
 			return

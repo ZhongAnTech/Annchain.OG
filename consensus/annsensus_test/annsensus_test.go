@@ -133,16 +133,20 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 			PeerOutgoing:      communicator,
 		}
 
+		consensusContextProvider := dummyConsensusContextProivder{
+		}
+
 		ann := &annsensus.AnnsensusPartner{
-			Config:             config,
-			BftAdapter:         bftAdapter,
-			DkgAdapter:         dkgAdapter,
-			TermProvider:       termProvider,
-			TermHolder:         termHolder,
-			BftPartnerProvider: defaultAnnsensusPartnerProvider,
-			DkgPartnerProvider: defaultAnnsensusPartnerProvider,
-			PeerOutgoing:       communicator,
-			PeerIncoming:       communicator,
+			Config:                   config,
+			BftAdapter:               bftAdapter,
+			DkgAdapter:               dkgAdapter,
+			TermProvider:             termProvider,
+			TermHolder:               termHolder,
+			BftPartnerProvider:       defaultAnnsensusPartnerProvider,
+			DkgPartnerProvider:       defaultAnnsensusPartnerProvider,
+			PeerOutgoing:             communicator,
+			PeerIncoming:             communicator,
+			ConsensusContextProvider: consensusContextProvider,
 		}
 		ann.InitDefault()
 
@@ -189,7 +193,7 @@ func TestAnnSensusFourNodesGenesisTerm(t *testing.T) {
 		}
 
 		//tm := term.NewTerm(1,nodes,0)
-		contextProvider := dummyContextProvider{
+		contextProvider := dummyConsensusContext{
 			term:      genesisTerm,
 			MyBftId:   i,
 			MyPartSec: peers[i],

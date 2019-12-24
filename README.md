@@ -55,6 +55,8 @@ For more details of each RPC API, you can check document: [https://github.com/an
 
 ## Development
 
+Please be aware that OG is under heavy refactor(under layer-p2p).
+
 ## License
 
 

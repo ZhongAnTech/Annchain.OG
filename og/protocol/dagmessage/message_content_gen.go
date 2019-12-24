@@ -34,7 +34,7 @@ func (z *MessageContentTx) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.ParentsHash) >= int(zb0002) {
 		z.ParentsHash = (z.ParentsHash)[:zb0002]
 	} else {
-		z.ParentsHash = make([]common.Hashes, zb0002)
+		z.ParentsHash = make([]common.Hash, zb0002)
 	}
 	for za0001 := range z.ParentsHash {
 		err = z.ParentsHash[za0001].DecodeMsg(dc)
@@ -254,7 +254,7 @@ func (z *MessageContentTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if cap(z.ParentsHash) >= int(zb0002) {
 		z.ParentsHash = (z.ParentsHash)[:zb0002]
 	} else {
-		z.ParentsHash = make([]common.Hashes, zb0002)
+		z.ParentsHash = make([]common.Hash, zb0002)
 	}
 	for za0001 := range z.ParentsHash {
 		bts, err = z.ParentsHash[za0001].UnmarshalMsg(bts)
@@ -365,7 +365,7 @@ func (z *MessageContextSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
 	if cap(z.ParentsHash) >= int(zb0002) {
 		z.ParentsHash = (z.ParentsHash)[:zb0002]
 	} else {
-		z.ParentsHash = make([]common.Hashes, zb0002)
+		z.ParentsHash = make([]common.Hash, zb0002)
 	}
 	for za0001 := range z.ParentsHash {
 		err = z.ParentsHash[za0001].DecodeMsg(dc)
@@ -525,7 +525,7 @@ func (z *MessageContextSequencer) UnmarshalMsg(bts []byte) (o []byte, err error)
 	if cap(z.ParentsHash) >= int(zb0002) {
 		z.ParentsHash = (z.ParentsHash)[:zb0002]
 	} else {
-		z.ParentsHash = make([]common.Hashes, zb0002)
+		z.ParentsHash = make([]common.Hash, zb0002)
 	}
 	for za0001 := range z.ParentsHash {
 		bts, err = z.ParentsHash[za0001].UnmarshalMsg(bts)

@@ -12,8 +12,8 @@ import (
 
 //msgp:tuple MessageContentTx
 type MessageContentTx struct {
-	Hash         common.Hashes
-	ParentsHash  []common.Hashes
+	Hash         common.Hash
+	ParentsHash  []common.Hash
 	MineNonce    uint64
 	AccountNonce uint64
 	From         common.Address
@@ -27,12 +27,13 @@ type MessageContentTx struct {
 
 //msgp:tuple MessageContextSequencer
 type MessageContextSequencer struct {
-	Hash         common.Hashes
-	ParentsHash  []common.Hashes
+	Hash         common.Hash
+	ParentsHash  []common.Hash
 	MineNonce    uint64
 	AccountNonce uint64
 	Issuer       common.Address
 	PublicKey    []byte
 	Signature    []byte
 	StateRoot    common.Hash
+	Height       uint64
 }

@@ -62,21 +62,38 @@ func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
 	return Signature{Type: typev, Bytes: bytes}
 }
 
-func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
-	bytes, err := hexutil.Decode(value)
-	if err != nil {
-		return
-	}
+func PrivateKeyFromRawBytes(bytes []byte) PrivateKey {
 	cryptoType := CryptoTypeSecp256k1
 	if len(bytes) == 33 {
 		cryptoType = CryptoType(bytes[0])
 		bytes = bytes[1:]
 	}
-	priv = PrivateKey{
-		Type:  cryptoType,
-		Bytes: bytes,
+	return PrivateKeyFromBytes(cryptoType, bytes)
+}
+func PublicKeyFromRawBytes(bytes []byte) PublicKey {
+	cryptoType := CryptoTypeSecp256k1
+	if len(bytes) == 33 {
+		cryptoType = CryptoType(bytes[0])
+		bytes = bytes[1:]
 	}
-	return
+	return PublicKeyFromBytes(cryptoType, bytes)
+}
+func SignatureFromRawBytes(bytes []byte) Signature {
+	cryptoType := CryptoTypeSecp256k1
+	if len(bytes) == 33 {
+		cryptoType = CryptoType(bytes[0])
+		bytes = bytes[1:]
+	}
+	return SignatureFromBytes(cryptoType, bytes)
+}
+
+func PrivateKeyFromString(value string) (priv PrivateKey, err error) {
+	bytes, err := hexutil.Decode(value)
+	if err != nil {
+		return
+	}
+	priv = PrivateKeyFromRawBytes(bytes)
+	return priv, err
 }
 
 func PublicKeyFromString(value string) (pub PublicKey, err error) {
@@ -84,11 +101,8 @@ func PublicKeyFromString(value string) (pub PublicKey, err error) {
 	if err != nil {
 		return
 	}
-	pub = PublicKey{
-		Type:  CryptoType(bytes[0]),
-		Bytes: bytes[1:],
-	}
-	return
+	pub = PublicKeyFromRawBytes(bytes)
+	return pub, err
 }
 
 func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err error) {

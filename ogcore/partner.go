@@ -1,7 +1,11 @@
 package ogcore
 
 import (
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/og/protocol/dagmessage"
+	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
@@ -68,8 +72,8 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 		o.HandleMessageQueryStatusRequest(msgEvent)
 	case message.OgMessageTypeQueryStatusResponse:
 		o.HandleMessageQueryStatusResponse(msgEvent)
-	//case message.OgMessageTypeNewResource:
-	//	o.HandleMessageNewResource(msgEvent)
+	case message.OgMessageTypeNewResource:
+		o.HandleMessageNewResource(msgEvent)
 	default:
 		logrus.WithField("msg", msgEvent.Message).Warn("unsupported og message type")
 	}
@@ -125,20 +129,73 @@ func (o *OgPartner) HandleMessageQueryStatusResponse(msgEvent *communication.OgM
 		GenesisBlock:    resp.GenesisBlock,
 		CurrentHeight:   resp.CurrentHeight,
 	}
-
+	// this is ogcore inner process so do not involve event handler
 	o.OgCore.HandleStatusData(statusData)
 	o.FireEvent(&events.QueryStatusResponseReceivedEvent{
 		StatusData: statusData,
 	})
 }
 
-//func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEvent) {
-//	msg := msgEvent.Message.(*message.OgMessageNewResource)
-//	// decode all resources and announce it to the receivers.
-//	for _, resource := range msg.Resources {
-//		logrus.Infof("Received resource: %s", hexutil.Encode(resource.ResourceContent))
-//	}
-//}
+func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEvent) {
+	msg, ok := msgEvent.Message.(*message.OgMessageNewResource)
+	if !ok {
+		logrus.Warn("bad format: OgMessageNewResource")
+		return
+	}
+	// decode all resources and announce it to the receivers.
+	for _, resource := range msg.Resources {
+		logrus.Infof("Received resource: %d %s", resource.ResourceType, hexutil.Encode(resource.ResourceContent))
+		switch resource.ResourceType {
+		case message.ResourceTypeTx:
+			msgTx := &dagmessage.MessageContentTx{}
+			_, err := msgTx.UnmarshalMsg(resource.ResourceContent)
+			if err != nil {
+				logrus.Warn("bad format: MessageContentTx")
+				return
+			}
+			tx := &types.Tx{
+				Hash:         msgTx.Hash,
+				ParentsHash:  msgTx.ParentsHash,
+				MineNonce:    msgTx.MineNonce,
+				AccountNonce: msgTx.AccountNonce,
+				From:         msgTx.From,
+				To:           msgTx.To,
+				Value:        msgTx.Value,
+				TokenId:      msgTx.TokenId,
+				Data:         msgTx.Data,
+				PublicKey:    crypto.PublicKeyFromRawBytes(msgTx.PublicKey),
+				Signature:    crypto.SignatureFromRawBytes(msgTx.Signature),
+			}
+			// og knows first
+			o.OgCore.HandleNewTx(tx)
+			o.EventBus.Route(&events.TxReceivedEvent{Tx: tx})
+		case message.ResourceTypeSequencer:
+			msgSeq := &dagmessage.MessageContextSequencer{}
+			_, err := msgSeq.UnmarshalMsg(resource.ResourceContent)
+			if err != nil {
+				logrus.Warn("bad format: MessageContextSequencer")
+				return
+			}
+			seq := &types.Sequencer{
+				Hash:         msgSeq.Hash,
+				ParentsHash:  msgSeq.ParentsHash,
+				Height:       msgSeq.Height,
+				MineNonce:    msgSeq.MineNonce,
+				AccountNonce: msgSeq.AccountNonce,
+				Issuer:       msgSeq.Issuer,
+				Signature:    msgSeq.Signature,
+				PublicKey:    msgSeq.PublicKey,
+				StateRoot:    msgSeq.StateRoot,
+			}
+			// og knows first
+			o.OgCore.HandleNewSequencer(seq)
+			o.EventBus.Route(&events.SequencerReceivedEvent{Sequencer: seq})
+			//case message.ResourceTypeArchive:
+			//case message.ResourceTypeAction:
+
+		}
+	}
+}
 
 func (o *OgPartner) SendMessagePing(peer communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, peer)

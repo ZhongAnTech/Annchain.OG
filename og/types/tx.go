@@ -15,21 +15,23 @@ type Tx struct {
 	// graph structure info
 	Hash        common.Hash
 	ParentsHash common.Hashes
-	Height      uint64
 	MineNonce   uint64
-	Weight      uint64
 
 	// tx info
 	AccountNonce uint64
-	From         *common.Address
+	From         common.Address
 	To           common.Address
 	Value        *math.BigInt
 	TokenId      int32
 	Data         []byte
 	PublicKey    crypto.PublicKey
-	Signature    hexutil.Bytes
+	Signature    crypto.Signature
 	//confirm     time.Time
 	// CanRecoverPubFromSig
+
+	// Derived features
+	//Height      uint64
+	//Weight      uint64
 }
 
 func (t Tx) Dump() string {

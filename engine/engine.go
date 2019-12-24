@@ -2,6 +2,7 @@ package engine
 
 import (
 	"github.com/annchain/OG/communication"
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/message"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
@@ -15,12 +16,12 @@ type Engine struct {
 	Config        EngineConfig
 	plugins       []communication.GeneralMessageHandlerPlugin
 	messageRouter map[message.GeneralMessageType]communication.GeneralMessageEventHandler
+	eventBus      *eventbus.DefaultEventBus
 	PeerOutgoing  communication.GeneralPeerCommunicatorOutgoing
 	PeerIncoming  communication.GeneralPeerCommunicatorIncoming
 
-	quit   chan bool
-	quitWg sync.WaitGroup
-
+	quit        chan bool
+	quitWg      sync.WaitGroup
 	performance map[string]interface{}
 }
 
@@ -34,21 +35,31 @@ func (a *Engine) GetBenchmarks() map[string]interface{} {
 
 func (a *Engine) InitDefault() {
 	a.messageRouter = make(map[message.GeneralMessageType]communication.GeneralMessageEventHandler)
+	a.eventBus = &eventbus.DefaultEventBus{}
+	a.eventBus.InitDefault()
 	a.quitWg = sync.WaitGroup{}
 	a.quit = make(chan bool)
 	a.performance = make(map[string]interface{})
 	a.performance["mps"] = uint(0)
+
 }
 
 func (a *Engine) RegisterPlugin(plugin communication.GeneralMessageHandlerPlugin) {
 	a.plugins = append(a.plugins, plugin)
 	handler := plugin.GetMessageEventHandler()
+	// message handlers
 	for _, msgType := range plugin.SupportedMessageTypes() {
 		a.messageRouter[msgType] = handler
+	}
+	// event handlers
+	for _, handler := range plugin.SupportedEventHandlers() {
+		a.eventBus.ListenTo(handler)
 	}
 }
 
 func (ap *Engine) Start() {
+	// build eventbus
+	ap.eventBus.Build()
 	// start the plugins
 	for _, plugin := range ap.plugins {
 		plugin.Start()

@@ -19,8 +19,8 @@ type AnnsensusPlugin struct {
 	AnnsensusPartner *annsensus.AnnsensusPartner
 }
 
-func (a *AnnsensusPlugin) SupportedEvents() []eventbus.EventRegisterInfo {
-	return []eventbus.EventRegisterInfo{}
+func (a *AnnsensusPlugin) SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo {
+	return []eventbus.EventHandlerRegisterInfo{}
 }
 
 func (a *AnnsensusPlugin) Start() {

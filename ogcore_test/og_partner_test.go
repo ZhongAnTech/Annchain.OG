@@ -39,7 +39,10 @@ func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage, peers []commun
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("broadcasting message")
 		go func(peer communication.OgPeer) {
 			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
-			d.PeerPipeIns[peer.Id] <- msg
+			o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
+				Message: msg,
+				Peer:    peer,
+			}
 		}(peer)
 	}
 }

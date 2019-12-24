@@ -19,22 +19,6 @@ type OgPlugin struct {
 	Communicator   *ProxyOgPeerCommunicator
 }
 
-func (o *OgPlugin) SupportedEvents() []eventbus.EventRegisterInfo {
-	return []eventbus.EventRegisterInfo{}
-}
-
-func (o *OgPlugin) SetOutgoing(outgoing general_communication.GeneralPeerCommunicatorOutgoing) {
-	o.Communicator.GeneralOutgoing = outgoing
-}
-
-func (o *OgPlugin) Start() {
-	o.OgPartner.Start()
-}
-
-func (o *OgPlugin) Stop() {
-	o.OgPartner.Stop()
-}
-
 func NewOgPlugin() *OgPlugin {
 	config := ogcore.OgProcessorConfig{
 
@@ -63,6 +47,22 @@ func NewOgPlugin() *OgPlugin {
 		OgPartner:    ogPartner,
 		Communicator: communicator,
 	}
+}
+
+func (o *OgPlugin) SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo {
+	return []eventbus.EventHandlerRegisterInfo{}
+}
+
+func (o *OgPlugin) SetOutgoing(outgoing general_communication.GeneralPeerCommunicatorOutgoing) {
+	o.Communicator.GeneralOutgoing = outgoing
+}
+
+func (o *OgPlugin) Start() {
+	o.OgPartner.Start()
+}
+
+func (o *OgPlugin) Stop() {
+	o.OgPartner.Stop()
 }
 
 func (o *OgPlugin) SupportedMessageTypes() []general_message.GeneralMessageType {

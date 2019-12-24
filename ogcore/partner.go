@@ -1,6 +1,7 @@
 package ogcore
 
 import (
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
@@ -65,10 +66,16 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 	}
 }
 
+func (o *OgPartner) FireEvent(event eventbus.Event) {
+	if o.EventBus != nil {
+		o.EventBus.Route(event)
+	}
+}
+
 func (o *OgPartner) HandleMessagePing(msgEvent *communication.OgMessageEvent) {
 	source := msgEvent.Peer
 	logrus.Debugf("received ping from %d. Respond you a pong.", source.Id)
-	o.EventBus.Route(&events.PingReceivedEvent{})
+	o.FireEvent(&events.PingReceivedEvent{})
 	o.PeerOutgoing.Unicast(&message.OgMessagePong{}, source)
 
 }
@@ -76,7 +83,7 @@ func (o *OgPartner) HandleMessagePing(msgEvent *communication.OgMessageEvent) {
 func (o *OgPartner) HandleMessagePong(msgEvent *communication.OgMessageEvent) {
 	source := msgEvent.Peer
 	logrus.Debugf("received pong from %d.", source.Id)
-	o.EventBus.Route(&events.PongReceivedEvent{})
+	o.FireEvent(&events.PongReceivedEvent{})
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, source)
 }
 

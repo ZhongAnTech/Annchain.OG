@@ -6,7 +6,7 @@ type LedgerProvider interface {
 }
 
 type EnginePlugin interface {
-	SupportedEvents() []eventbus.EventRegisterInfo
+	SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo
 }
 
-type
+//type

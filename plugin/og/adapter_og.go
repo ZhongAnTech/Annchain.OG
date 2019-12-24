@@ -22,6 +22,14 @@ func (a *OgMessageUnmarshaller) Unmarshal(
 		m := &message.OgMessagePong{}
 		_, err = m.UnmarshalMsg(messageBytes)
 		outMsg = m
+	case message.OgMessageTypeQueryStatusRequest:
+		m := &message.OgMessageQueryStatusRequest{}
+		_, err = m.UnmarshalMsg(messageBytes)
+		outMsg = m
+	case message.OgMessageTypeQueryStatusResponse:
+		m := &message.OgMessageQueryStatusResponse{}
+		_, err = m.UnmarshalMsg(messageBytes)
+		outMsg = m
 	case message.OgMessageTypeBatchSyncRequest:
 		m := &message.OgMessageBatchSyncRequest{}
 		_, err = m.UnmarshalMsg(messageBytes)
@@ -75,7 +83,7 @@ func (d *DefaultOgMessageAdapter) AdaptGeneralPeer(gnrPeer general_message.Gener
 func (d *DefaultOgMessageAdapter) AdaptOgMessage(outgoingMsg message.OgMessage) (msg general_message.GeneralMessage, err error) {
 	msg = &GeneralMessageOg{
 		InnerMessageType: outgoingMsg.GetType(),
-		InnerMessage:     outgoingMsg.GetBytes(),
+		InnerMessage:     outgoingMsg.ToBytes(),
 	}
 	return
 }

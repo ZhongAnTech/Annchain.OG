@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/og/message_archive"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
@@ -98,11 +99,6 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 		}
 	}
 	return m
-}
-
-type NodeStatusDataProvider interface {
-	GetCurrentNodeStatus() StatusData
-	GetHeight() uint64
 }
 
 type PeerProvider interface {

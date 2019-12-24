@@ -11,10 +11,7 @@ import (
 	"time"
 )
 
-// TestPingPongBenchmark will try its best to send ping pong between two to benchmark
-func TestPingPongBenchmark(t *testing.T) {
-	mylog.LogInit(logrus.InfoLevel)
-	nodes := 2
+func preparePlugins(nodes int) ([]*og.OgPlugin, []*engine.Engine) {
 	plugins := make([]*og.OgPlugin, nodes)
 	chans := make([]chan *message.GeneralMessageEvent, nodes)
 	communicators := make([]*LocalGeneralPeerCommunicator, nodes)
@@ -48,7 +45,15 @@ func TestPingPongBenchmark(t *testing.T) {
 	}
 
 	logrus.Info("Started")
+	return plugins, engines
+}
 
+// TestPingPongBenchmark will try its best to send ping pong between two to benchmark
+func TestPingPongBenchmark(t *testing.T) {
+	mylog.LogInit(logrus.InfoLevel)
+	nodes := 2
+
+	plugins, engines := preparePlugins(nodes)
 
 	plugins[0].OgPartner.SendMessagePing(communication.OgPeer{Id: 1})
 
@@ -65,4 +70,24 @@ func TestPingPongBenchmark(t *testing.T) {
 	}
 }
 
+// TestQueryStatusBenchmark will try its best to send ping pong between two to benchmark
+func TestQueryStatusBenchmark(t *testing.T) {
+	mylog.LogInit(logrus.TraceLevel)
+	nodes := 2
 
+	plugins, engines := preparePlugins(nodes)
+
+	plugins[0].OgPartner.SendMessageQueryStatusRequest(communication.OgPeer{Id: 1})
+
+	var lastValue uint = 0
+	for i := 0; i < 60; i++ {
+		v := engines[0].GetBenchmarks()["mps"].(uint)
+		if lastValue == 0 {
+			lastValue = v
+		} else {
+			logrus.WithField("mps", v-lastValue).Info("performance")
+		}
+		lastValue = v
+		time.Sleep(time.Second)
+	}
+}

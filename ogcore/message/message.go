@@ -23,6 +23,8 @@ const (
 	OgMessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
+	OgMessageTypeQueryStatusRequest
+	OgMessageTypeQueryStatusResponse
 	OgMessageTypeNewResource
 	OgMessageTypeHeightSyncRequest
 
@@ -82,8 +84,9 @@ const (
 
 type OgMessage interface {
 	GetType() OgMessageType
-	GetBytes() []byte
 	String() string
+	ToBytes() []byte
+	FromBytes(bts []byte) error
 }
 
 //msgp:tuple OgMessagePing
@@ -93,7 +96,7 @@ func (z *OgMessagePing) GetType() OgMessageType {
 	return OgMessageTypePing
 }
 
-func (m *OgMessagePing) GetBytes() []byte {
+func (m *OgMessagePing) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -105,15 +108,7 @@ func (z *OgMessagePing) String() string {
 	return "MessageTypePing"
 }
 
-func (z *OgMessagePing) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessagePing) Unmarshal(bts []byte) error {
+func (z *OgMessagePing) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -132,7 +127,7 @@ func (m *OgMessagePong) GetType() OgMessageType {
 	return OgMessageTypePong
 }
 
-func (m *OgMessagePong) GetBytes() []byte {
+func (m *OgMessagePong) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -140,15 +135,7 @@ func (m *OgMessagePong) GetBytes() []byte {
 	return b
 }
 
-func (z *OgMessagePong) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessagePong) Unmarshal(bts []byte) error {
+func (z *OgMessagePong) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -170,7 +157,7 @@ func (m *OgMessageBatchSyncRequest) GetType() OgMessageType {
 	return OgMessageTypeBatchSyncRequest
 }
 
-func (m *OgMessageBatchSyncRequest) GetBytes() []byte {
+func (m *OgMessageBatchSyncRequest) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -182,15 +169,7 @@ func (m *OgMessageBatchSyncRequest) String() string {
 	return fmt.Sprintf("OgMessageBatchSyncRequest[req %d]", m.RequestId)
 }
 
-func (z *OgMessageBatchSyncRequest) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessageBatchSyncRequest) Unmarshal(bts []byte) error {
+func (z *OgMessageBatchSyncRequest) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -214,7 +193,7 @@ func (m *OgMessageSyncResponse) GetType() OgMessageType {
 	return OgMessageTypeSyncResponse
 }
 
-func (m *OgMessageSyncResponse) GetBytes() []byte {
+func (m *OgMessageSyncResponse) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -226,16 +205,68 @@ func (m *OgMessageSyncResponse) String() string {
 	return fmt.Sprintf("OgMessageSyncResponse[req %d height %d]", m.RequestId, len(m.Resources))
 }
 
-func (z *OgMessageSyncResponse) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
+func (z *OgMessageSyncResponse) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//msgp:tuple OgMessageQueryStatusRequest
+type OgMessageQueryStatusRequest struct{}
+
+func (m *OgMessageQueryStatusRequest) GetType() OgMessageType {
+	return OgMessageTypeQueryStatusRequest
+}
+
+func (m *OgMessageQueryStatusRequest) ToBytes() []byte {
+	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
 }
 
-func (z *OgMessageSyncResponse) Unmarshal(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
+func (m *OgMessageQueryStatusRequest) String() string {
+	return "OgMessageQueryStatusRequest"
+}
+
+func (m *OgMessageQueryStatusRequest) FromBytes(bts []byte) error {
+	_, err := m.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//msgp:tuple OgMessageQueryStatusResponse
+type OgMessageQueryStatusResponse struct {
+	ProtocolVersion uint32
+	NetworkId       uint64
+	CurrentBlock    common.Hash
+	GenesisBlock    common.Hash
+	CurrentHeight   uint64
+}
+
+func (m *OgMessageQueryStatusResponse) GetType() OgMessageType {
+	return OgMessageTypeQueryStatusResponse
+}
+
+func (m *OgMessageQueryStatusResponse) ToBytes() []byte {
+	b, err := m.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m *OgMessageQueryStatusResponse) String() string {
+	return "OgMessageQueryStatusResponse"
+}
+
+func (m *OgMessageQueryStatusResponse) FromBytes(bts []byte) error {
+	_, err := m.UnmarshalMsg(bts)
 	if err != nil {
 		return err
 	}
@@ -251,7 +282,7 @@ func (m *OgMessageNewResource) GetType() OgMessageType {
 	return OgMessageTypeNewResource
 }
 
-func (m *OgMessageNewResource) GetBytes() []byte {
+func (m *OgMessageNewResource) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -262,15 +293,7 @@ func (m *OgMessageNewResource) String() string {
 	return "OgMessageNewResource"
 }
 
-func (z *OgMessageNewResource) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessageNewResource) Unmarshal(bts []byte) error {
+func (z *OgMessageNewResource) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -291,7 +314,7 @@ func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
 	return OgMessageTypeTxsRequest
 }
 
-func (m *OgMessageHeightSyncRequest) GetBytes() []byte {
+func (m *OgMessageHeightSyncRequest) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -299,24 +322,16 @@ func (m *OgMessageHeightSyncRequest) GetBytes() []byte {
 	return b
 }
 
-func (m *OgMessageHeightSyncRequest) String() string {
-	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
-}
-
-func (z *OgMessageHeightSyncRequest) Marshal() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessageHeightSyncRequest) Unmarshal(bts []byte) error {
+func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (m *OgMessageHeightSyncRequest) String() string {
+	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
 }
 
 ////msgp:tuple MessageTxsResponse
@@ -373,7 +388,7 @@ func (m *OgMessageHeaderRequest) GetType() OgMessageType {
 	return OgMessageTypeHeaderRequest
 }
 
-func (m *OgMessageHeaderRequest) GetBytes() []byte {
+func (m *OgMessageHeaderRequest) ToBytes() []byte {
 	b, err := m.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -393,7 +408,7 @@ func (z *OgMessageHeaderRequest) Marshal() []byte {
 	return b
 }
 
-func (z *OgMessageHeaderRequest) Unmarshal(bts []byte) error {
+func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err

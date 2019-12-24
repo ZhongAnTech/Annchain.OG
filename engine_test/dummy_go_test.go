@@ -38,9 +38,10 @@ func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage, pee
 	for _, peer := range peers {
 		go func(peer message.GeneralPeer) {
 			logrus.WithFields(logrus.Fields{
-				"from": d.me.Id,
-				"to":   peer.Id,
-				"type": msg.GetType()}).Trace("Sending message")
+				"from":    d.me.Id,
+				"to":      peer.Id,
+				"content": msg.String(),
+				"type":    msg.GetType()}).Trace("Sending message")
 			outMsg := &message.GeneralMessageEvent{
 				Message: msg,
 				Sender:  d.me,
@@ -54,9 +55,10 @@ func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage, pee
 func (d *LocalGeneralPeerCommunicator) Unicast(msg message.GeneralMessage, peer message.GeneralPeer) {
 	go func() {
 		logrus.WithFields(logrus.Fields{
-			"from": d.me.Id,
-			"to":   peer.Id,
-			"type": msg.GetType()}).Trace("Sending message")
+			"from":    d.me.Id,
+			"to":      peer.Id,
+			"content": msg.String(),
+			"type":    msg.GetType()}).Trace("Sending message")
 		outMsg := &message.GeneralMessageEvent{
 			Message: msg,
 			Sender:  d.me,

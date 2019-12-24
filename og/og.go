@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/model"
 
 	"sync"
 	"time"
@@ -43,10 +44,10 @@ type Og struct {
 	quit      chan bool
 }
 
-func (og *Og) GetCurrentNodeStatus() StatusData {
-	return StatusData{
+func (og *Og) GetCurrentOgStatus() model.OgStatusData {
+	return model.OgStatusData{
 		CurrentBlock:    og.Dag.LatestSequencer().Hash,
-		CurrentId:       og.Dag.LatestSequencer().Height,
+		CurrentHeight:   og.Dag.LatestSequencer().Height,
 		GenesisBlock:    og.Dag.Genesis().Hash,
 		NetworkId:       og.NetworkId,
 		ProtocolVersion: 999, // this field should not be used

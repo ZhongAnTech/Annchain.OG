@@ -19,9 +19,8 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/og/types/archive"
-
 	"github.com/annchain/OG/og/txmaker"
+	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/protocol"

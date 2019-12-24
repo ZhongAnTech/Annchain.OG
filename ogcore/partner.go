@@ -5,7 +5,7 @@ import (
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
-	"github.com/prometheus/common/log"
+	"github.com/annchain/OG/ogcore/model"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
@@ -15,6 +15,11 @@ type OgPartner struct {
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
 	PeerIncoming communication.OgPeerCommunicatorIncoming
 	EventBus     EventBus
+
+	// og protocols
+	StatusProvider OgStatusProvider
+	OgCore         *OgCore
+
 	// partner should connect the backend service by announce events
 	quit   chan bool
 	quitWg sync.WaitGroup
@@ -27,14 +32,14 @@ func (a *OgPartner) InitDefault() {
 
 func (o *OgPartner) Start() {
 	go o.loop()
-	log.Info("OgPartner Started")
+	logrus.Info("OgPartner Started")
 
 }
 
 func (ap *OgPartner) Stop() {
 	ap.quit <- true
 	ap.quitWg.Wait()
-	logrus.Debug("OgPartner stopped")
+	logrus.Debug("OgPartner Stopped")
 }
 
 func (o *OgPartner) loop() {
@@ -59,6 +64,10 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 		o.HandleMessagePing(msgEvent)
 	case message.OgMessageTypePong:
 		o.HandleMessagePong(msgEvent)
+	case message.OgMessageTypeQueryStatusRequest:
+		o.HandleMessageQueryStatusRequest(msgEvent)
+	case message.OgMessageTypeQueryStatusResponse:
+		o.HandleMessageQueryStatusResponse(msgEvent)
 	//case message.OgMessageTypeNewResource:
 	//	o.HandleMessageNewResource(msgEvent)
 	default:
@@ -87,6 +96,42 @@ func (o *OgPartner) HandleMessagePong(msgEvent *communication.OgMessageEvent) {
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, source)
 }
 
+func (o *OgPartner) HandleMessageQueryStatusRequest(msgEvent *communication.OgMessageEvent) {
+	source := msgEvent.Peer
+	logrus.Debugf("received QueryStatusRequest from %d.", source.Id)
+	status := o.StatusProvider.GetCurrentOgStatus()
+	o.PeerOutgoing.Unicast(&message.OgMessageQueryStatusResponse{
+		ProtocolVersion: status.ProtocolVersion,
+		NetworkId:       status.NetworkId,
+		CurrentBlock:    status.CurrentBlock,
+		GenesisBlock:    status.GenesisBlock,
+		CurrentHeight:   status.CurrentHeight,
+	}, source)
+}
+
+func (o *OgPartner) HandleMessageQueryStatusResponse(msgEvent *communication.OgMessageEvent) {
+	// must be a response message
+	resp, ok := msgEvent.Message.(*message.OgMessageQueryStatusResponse)
+	if !ok {
+		logrus.Warn("bad format: OgMessageQueryStatusResponse")
+		return
+	}
+	source := msgEvent.Peer
+	logrus.Debugf("received QueryStatusRequest from %d.", source.Id)
+	statusData := model.OgStatusData{
+		ProtocolVersion: resp.ProtocolVersion,
+		NetworkId:       resp.NetworkId,
+		CurrentBlock:    resp.CurrentBlock,
+		GenesisBlock:    resp.GenesisBlock,
+		CurrentHeight:   resp.CurrentHeight,
+	}
+
+	o.OgCore.HandleStatusData(statusData)
+	o.FireEvent(&events.QueryStatusResponseReceivedEvent{
+		StatusData: statusData,
+	})
+}
+
 //func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEvent) {
 //	msg := msgEvent.Message.(*message.OgMessageNewResource)
 //	// decode all resources and announce it to the receivers.
@@ -99,8 +144,8 @@ func (o *OgPartner) SendMessagePing(peer communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, peer)
 }
 
-func (a *OgPartner) HandleMessageStatus(msgEvent *communication.OgMessageEvent) {
-
+func (o *OgPartner) SendMessageQueryStatusRequest(peer communication.OgPeer) {
+	o.PeerOutgoing.Unicast(&message.OgMessageQueryStatusRequest{}, peer)
 }
 
 type OgProcessorConfig struct {

@@ -20,10 +20,9 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	archive2 "github.com/annchain/OG/og/types/archive"
-
-	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/verifier"
 	"github.com/annchain/OG/types/token"
 	"net/http"

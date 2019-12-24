@@ -20,7 +20,6 @@ import (
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
-
 	"sort"
 	"sync/atomic"
 

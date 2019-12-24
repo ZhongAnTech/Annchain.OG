@@ -262,8 +262,8 @@ func (c *CatchupSyncer) syncToLatest() error {
 //we don't need to broadcast this ,because we broadcast all of our latest sequencer head when it change
 /*
 func (c *CatchupSyncer) notifyProgress() {
-	nodeStatus := c.NodeStatusDataProvider.GetCurrentNodeStatus()
-	if nodeStatus.CurrentId > 0 {
+	nodeStatus := c.NodeStatusDataProvider.GetCurrentOgStatus()
+	if nodeStatus.CurrentHeight > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify
 		// all its out-of-date peers of the availability of a new block. This failure
@@ -271,7 +271,7 @@ func (c *CatchupSyncer) notifyProgress() {
 		// degenerate connectivity, but it should be healthy for the mainnet too to
 		// more reliably update peers or the local TD state.
 		hash := nodeStatus.CurrentBlock
-		msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentId}
+		msg := p2p_message.MessageSequencerHeader{Hash: &hash, Number: nodeStatus.CurrentHeight}
 		data, _ := msg.MarshalMsg(nil)
 		c.Hub.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, data)
 	}

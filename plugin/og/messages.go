@@ -1,6 +1,8 @@
 package og
 
 import (
+	"fmt"
+	"github.com/annchain/OG/common/hexutil"
 	general_message "github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore/message"
 )
@@ -28,5 +30,6 @@ func (g *GeneralMessageOg) GetBytes() []byte {
 }
 
 func (g *GeneralMessageOg) String() string {
-	return "GeneralMessageOg"
+	return fmt.Sprintf("GeneralMessageOg %d len=%d %s", g.InnerMessageType, len(g.InnerMessage),
+		hexutil.Encode(g.InnerMessage))
 }

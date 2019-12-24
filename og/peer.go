@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/types/msg"
 	"sync"
 	"time"
@@ -594,37 +595,5 @@ func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis
 	}
 	p.head = status.CurrentBlock
 	p.seqId = status.CurrentId
-	return nil
-}
-
-func (p *peer) readStatus(network uint64, status *message_archive.StatusData, genesis common.Hash) (err error) {
-	msg, err := p.rw.ReadMsg()
-	if err != nil {
-		return err
-	}
-	if msg.Code != p2p.MsgCodeType(message_archive.StatusMsg) {
-		return ErrResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, message_archive.StatusMsg)
-	}
-	if msg.Size > ProtocolMaxMsgSize {
-		return ErrResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
-	}
-	data, err := msg.GetPayLoad()
-	if err != nil {
-		return ErrResp(ErrDecode, "msg %v: %v", msg, err)
-	}
-	_, err = status.UnmarshalMsg(data)
-	// Decode the handshake and make sure everything matches
-	if err != nil {
-		return ErrResp(ErrDecode, "msg %v: %v", msg, err)
-	}
-	if status.GenesisBlock != genesis {
-		return ErrResp(ErrGenesisBlockMismatch, "%x (!= %x)", status.GenesisBlock.Bytes[:8], genesis.Bytes[:8])
-	}
-	if status.NetworkId != network {
-		return ErrResp(ErrNetworkIdMismatch, "%d (!= %d)", status.NetworkId, network)
-	}
-	if int(status.ProtocolVersion) != p.version {
-		return ErrResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
-	}
 	return nil
 }

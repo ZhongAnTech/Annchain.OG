@@ -560,6 +560,204 @@ func (z OgMessagePong) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *OgMessageQueryStatusRequest) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 0 {
+		err = msgp.ArrayError{Wanted: 0, Got: zb0001}
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z OgMessageQueryStatusRequest) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 0
+	err = en.Append(0x90)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z OgMessageQueryStatusRequest) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 0
+	o = append(o, 0x90)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *OgMessageQueryStatusRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 0 {
+		err = msgp.ArrayError{Wanted: 0, Got: zb0001}
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z OgMessageQueryStatusRequest) Msgsize() (s int) {
+	s = 1
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *OgMessageQueryStatusResponse) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+		return
+	}
+	z.ProtocolVersion, err = dc.ReadUint32()
+	if err != nil {
+		err = msgp.WrapError(err, "ProtocolVersion")
+		return
+	}
+	z.NetworkId, err = dc.ReadUint64()
+	if err != nil {
+		err = msgp.WrapError(err, "NetworkId")
+		return
+	}
+	err = z.CurrentBlock.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentBlock")
+		return
+	}
+	err = z.GenesisBlock.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "GenesisBlock")
+		return
+	}
+	z.CurrentHeight, err = dc.ReadUint64()
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentHeight")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *OgMessageQueryStatusResponse) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 5
+	err = en.Append(0x95)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint32(z.ProtocolVersion)
+	if err != nil {
+		err = msgp.WrapError(err, "ProtocolVersion")
+		return
+	}
+	err = en.WriteUint64(z.NetworkId)
+	if err != nil {
+		err = msgp.WrapError(err, "NetworkId")
+		return
+	}
+	err = z.CurrentBlock.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentBlock")
+		return
+	}
+	err = z.GenesisBlock.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "GenesisBlock")
+		return
+	}
+	err = en.WriteUint64(z.CurrentHeight)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentHeight")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *OgMessageQueryStatusResponse) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 5
+	o = append(o, 0x95)
+	o = msgp.AppendUint32(o, z.ProtocolVersion)
+	o = msgp.AppendUint64(o, z.NetworkId)
+	o, err = z.CurrentBlock.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentBlock")
+		return
+	}
+	o, err = z.GenesisBlock.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "GenesisBlock")
+		return
+	}
+	o = msgp.AppendUint64(o, z.CurrentHeight)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *OgMessageQueryStatusResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 5 {
+		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+		return
+	}
+	z.ProtocolVersion, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "ProtocolVersion")
+		return
+	}
+	z.NetworkId, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "NetworkId")
+		return
+	}
+	bts, err = z.CurrentBlock.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentBlock")
+		return
+	}
+	bts, err = z.GenesisBlock.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "GenesisBlock")
+		return
+	}
+	z.CurrentHeight, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "CurrentHeight")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *OgMessageQueryStatusResponse) Msgsize() (s int) {
+	s = 1 + msgp.Uint32Size + msgp.Uint64Size + z.CurrentBlock.Msgsize() + z.GenesisBlock.Msgsize() + msgp.Uint64Size
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *OgMessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

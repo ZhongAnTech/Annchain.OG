@@ -33,10 +33,17 @@ func NewOgPlugin() *OgPlugin {
 	}
 	communicator.InitDefault()
 
+	ogCore := &ogcore.OgCore{
+		EventBus: nil,
+	}
+
 	ogPartner := &ogcore.OgPartner{
-		Config:       config,
-		PeerOutgoing: communicator,
-		PeerIncoming: communicator,
+		Config:         config,
+		PeerOutgoing:   communicator,
+		PeerIncoming:   communicator,
+		EventBus:       nil,
+		StatusProvider: ogCore,
+		OgCore:         ogCore,
 	}
 
 	return &OgPlugin{

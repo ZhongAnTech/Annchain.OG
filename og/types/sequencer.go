@@ -15,14 +15,14 @@ type Sequencer struct {
 	ParentsHash common.Hashes
 	Height      uint64
 	MineNonce   uint64
-	Weight      uint64
+	//Weight      uint64
 
 	AccountNonce uint64
-	Issuer       *common.Address
+	Issuer       common.Address
 	Signature    hexutil.Bytes
 	PublicKey    hexutil.Bytes
 	StateRoot    common.Hash
-	Proposing    bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+	//Proposing    bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
 func (s Sequencer) Dump() string {

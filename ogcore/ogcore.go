@@ -2,6 +2,7 @@ package ogcore
 
 import (
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/model"
 	"github.com/sirupsen/logrus"
@@ -12,17 +13,17 @@ type OgCore struct {
 	EventBus   EventBus
 }
 
-func (o OgCore) FireEvent(event eventbus.Event) {
+func (o *OgCore) FireEvent(event eventbus.Event) {
 	if o.EventBus != nil {
 		o.EventBus.Route(event)
 	}
 }
 
-func (o OgCore) GetCurrentOgStatus() model.OgStatusData {
+func (o *OgCore) GetCurrentOgStatus() model.OgStatusData {
 	return o.statusData
 }
 
-func (o OgCore) HandleStatusData(status model.OgStatusData) {
+func (o *OgCore) HandleStatusData(status model.OgStatusData) {
 	// compare the status with the current one.
 	if !o.statusData.IsCompatible(status) {
 		logrus.WithField("mine", o.statusData).WithField("theirs", status).Warn("StatusData not matched")
@@ -34,4 +35,11 @@ func (o OgCore) HandleStatusData(status model.OgStatusData) {
 	}
 	// we are behind. start sync.
 	o.FireEvent(&events.HeightBehindEvent{LatestKnownHeight: status.CurrentHeight})
+}
+
+func (o *OgCore) HandleNewTx(tx *types.Tx) {
+}
+
+func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {
+
 }

@@ -2,6 +2,7 @@ package events
 
 import (
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/model"
 )
 
@@ -11,6 +12,11 @@ const (
 	QueryStatusRequestReceivedEventType
 	QueryStatusResponseReceivedEventType
 	HeightBehindEventType
+
+	TxReceivedEventType
+	SequencerReceivedEventType
+	ArchiveReceivedEventType
+	ActionReceivedEventType
 )
 
 type PingReceivedEvent struct{}
@@ -46,4 +52,20 @@ type HeightBehindEvent struct {
 
 func (m *HeightBehindEvent) GetEventType() eventbus.EventType {
 	return HeightBehindEventType
+}
+
+type TxReceivedEvent struct {
+	Tx *types.Tx
+}
+
+func (m *TxReceivedEvent) GetEventType() eventbus.EventType {
+	return TxReceivedEventType
+}
+
+type SequencerReceivedEvent struct {
+	Sequencer *types.Sequencer
+}
+
+func (m *SequencerReceivedEvent) GetEventType() eventbus.EventType {
+	return SequencerReceivedEventType
 }

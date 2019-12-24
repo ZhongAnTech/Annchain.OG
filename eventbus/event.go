@@ -14,7 +14,7 @@ type EventHandler interface {
 	HandleEvent(Event)
 }
 
-type EventRegisterInfo struct {
+type EventHandlerRegisterInfo struct {
 	Type    EventType
 	Handler EventHandler
 }
@@ -29,7 +29,7 @@ func (e *DefaultEventBus) InitDefault() {
 	e.listeners = make(map[EventType][]EventHandler)
 }
 
-func (e *DefaultEventBus) ListenTo(regInfo EventRegisterInfo) {
+func (e *DefaultEventBus) ListenTo(regInfo EventHandlerRegisterInfo) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	l, ok := e.listeners[regInfo.Type]

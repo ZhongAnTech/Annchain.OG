@@ -1,6 +1,7 @@
 package communication
 
 import (
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/message"
 )
 
@@ -19,6 +20,7 @@ type GeneralMessageEventHandler interface {
 
 type GeneralMessageHandlerPlugin interface {
 	SupportedMessageTypes() []message.GeneralMessageType
+	SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo
 	GetMessageEventHandler() GeneralMessageEventHandler
 	SetOutgoing(GeneralPeerCommunicatorOutgoing)
 	Start()

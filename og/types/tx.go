@@ -29,9 +29,9 @@ type Tx struct {
 	//confirm     time.Time
 	// CanRecoverPubFromSig
 
-	// Derived features
-	//Height      uint64
-	//Weight      uint64
+	// Derived properties
+	Height uint64
+	Weight uint64
 }
 
 func (t Tx) Dump() string {
@@ -39,10 +39,10 @@ func (t Tx) Dump() string {
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("hash %s, pHash:[%s], from: %s , to: %s ,value: %s ,\n nonce: %d , signatute: %s, pubkey: %s ,"+
-		"height: %d , mined Nonce: %v, weight: %d, data: %x", t.Hash.Hex(),
+	return fmt.Sprintf("hash %s, pHash:[%s], from: %s, to: %s, value: %s,\n nonce: %d, signatute: %s, pubkey: %s, "+
+		"minedNonce: %v, data: %x", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
-		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey.Bytes), t.Height, t.MineNonce, t.Weight, t.Data)
+		t.AccountNonce, t.Signature, hexutil.Encode(t.PublicKey.Bytes), t.MineNonce, t.Data)
 }
 
 func (t Tx) CalcTxHash() (hash common.Hash) {
@@ -52,7 +52,7 @@ func (t Tx) CalcTxHash() (hash common.Hash) {
 		w.Write(ancestor.Bytes)
 	}
 	// do not use Height to calculate tx hash.
-	w.Write(t.Weight)
+	//w.Write(t.Weight)
 	w.Write(t.CalcMinedHash().Bytes)
 
 	result := sha3.Sum256(w.Bytes())

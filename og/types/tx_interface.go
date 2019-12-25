@@ -20,13 +20,16 @@ type Txi interface {
 	GetHeight() uint64
 	GetWeight() uint64
 	GetTxHash() common.Hash
-	//GetNonce() uint64
 	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
-	//SetHash(h common.Hash)
 	String() string
-	//CalcTxHash() common.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
-	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcTxHash() common.Hash // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
 	CalculateWeight(parents Txis) uint64
+	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
+	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
+
+	//GetNonce() uint64
+	//SetHash(h common.Hash)
+	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 
 	//SetInValid(b bool)
 	//InValid() bool
@@ -37,19 +40,10 @@ type Txi interface {
 	//GetSender() *common.Address
 	//SetSender(addr common.Address)
 	//Dump() string             // For logger dump
-	Compare(tx Txi) bool // Compare compares two txs, return true if they are the same.
-	//SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 
 	//RawTxi() RawTxi // compressed txi
 
-	// implemented by msgp
-	//DecodeMsg(dc *msgp.Reader) (err error)
-	//EncodeMsg(en *msgp.Writer) (err error)
-	//MarshalMsg(b []byte) (o []byte, err error)
-	//UnmarshalMsg(bts []byte) (o []byte, err error)
-	//Msgsize() (s int)
 	//GetVersion() byte
-	//ToSmallCaseJson() ([]byte, error)
 	//IsVerified() VerifiedType
 	//SetVerified(v VerifiedType)
 }
@@ -57,6 +51,7 @@ type Txi interface {
 type Hashable interface {
 	CalcTxHash() common.Hash // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
 }
+
 type Signable interface {
 	SignatureTargets() []byte
 }

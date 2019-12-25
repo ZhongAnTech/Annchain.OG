@@ -168,7 +168,7 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 			}
 			// og knows first
 			o.OgCore.HandleNewTx(tx)
-			o.EventBus.Route(&events.TxReceivedEvent{Tx: tx})
+			o.EventBus.Route(&events.TxsReceivedEvent{Tx: tx})
 		case message.ResourceTypeSequencer:
 			msgSeq := &dagmessage.MessageContextSequencer{}
 			_, err := msgSeq.UnmarshalMsg(resource.ResourceContent)

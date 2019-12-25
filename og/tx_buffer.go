@@ -419,7 +419,6 @@ func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 
 // updateDependencyMap will update dependency relationship currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
-
 func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 	if self == nil {
 		logrus.WithFields(logrus.Fields{

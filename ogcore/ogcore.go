@@ -38,6 +38,7 @@ func (o *OgCore) HandleStatusData(status model.OgStatusData) {
 }
 
 func (o *OgCore) HandleNewTx(tx *types.Tx) {
+
 }
 
 func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {

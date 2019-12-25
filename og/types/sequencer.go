@@ -11,18 +11,19 @@ import (
 
 type Sequencer struct {
 	// graph structure info
-	Hash        common.Hash
-	ParentsHash common.Hashes
-	Height      uint64
-	MineNonce   uint64
-	//Weight      uint64
-
+	Hash         common.Hash
+	ParentsHash  common.Hashes
+	Height       uint64
+	MineNonce    uint64
 	AccountNonce uint64
 	Issuer       common.Address
 	Signature    hexutil.Bytes
 	PublicKey    hexutil.Bytes
 	StateRoot    common.Hash
 	//Proposing    bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+
+	// derived properties
+	Weight uint64
 }
 
 func (s Sequencer) Dump() string {
@@ -30,11 +31,10 @@ func (s Sequencer) Dump() string {
 	for _, p := range s.ParentsHash {
 		phashes = append(phashes, p.Hex())
 	}
-	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, Weight: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s root: %s",
+	return fmt.Sprintf("pHash:[%s], Issuer : %s , Height: %d, nonce : %d , blspub: %s, signatute : %s, pubkey:  %s root: %s",
 		strings.Join(phashes, " ,"),
 		s.Issuer.Hex(),
 		s.Height,
-		s.Weight,
 		s.AccountNonce,
 		s.PublicKey,
 		hexutil.Encode(s.PublicKey),
@@ -51,7 +51,7 @@ func (s Sequencer) CalcTxHash() (hash common.Hash) {
 		w.Write(ancestor.Bytes)
 	}
 	// do not use Height to calculate tx hash.
-	w.Write(s.Weight)
+	//w.Write(s.Weight)
 	w.Write(s.Signature)
 
 	result := sha3.Sum256(w.Bytes())
@@ -65,7 +65,8 @@ func (s *Sequencer) SignatureTargets() []byte {
 	w.Write(s.PublicKey, s.AccountNonce)
 	w.Write(s.Issuer.Bytes)
 
-	w.Write(s.Height, s.Weight, s.StateRoot.Bytes)
+	//w.Write(s.Height, s.Weight, s.StateRoot.Bytes)
+	w.Write(s.Height, s.StateRoot.Bytes)
 	for _, parent := range s.Parents() {
 		w.Write(parent.Bytes)
 	}
@@ -99,11 +100,12 @@ func (s Sequencer) Parents() common.Hashes {
 }
 
 func (s Sequencer) String() string {
-	if s.Issuer == nil {
-		return fmt.Sprintf("Sq-[nil]-%d", s.AccountNonce)
-	} else {
-		return fmt.Sprintf("Sq-[%.10s]-%d", s.Issuer.String(), s.AccountNonce)
-	}
+	return fmt.Sprintf("Sq-[%.10s]:%d", s.Issuer.String(), s.AccountNonce)
+	//if s.Issuer == nil {
+	//	return fmt.Sprintf("Sq-[nil]-%d", s.AccountNonce)
+	//} else {
+	//
+	//}
 }
 
 func (s Sequencer) CalculateWeight(parents Txis) uint64 {

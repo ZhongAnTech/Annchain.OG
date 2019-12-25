@@ -52,6 +52,10 @@ type Signature struct {
 	Bytes []byte
 }
 
+func (s *Signature) String() string {
+	return fmt.Sprintf("sig%d:%s", s.Type, hexutil.Encode(s.Bytes))
+}
+
 func PrivateKeyFromBytes(typev CryptoType, bytes []byte) PrivateKey {
 	return PrivateKey{Type: typev, Bytes: bytes}
 }

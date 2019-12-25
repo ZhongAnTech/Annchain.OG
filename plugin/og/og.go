@@ -6,6 +6,7 @@ import (
 	general_message "github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
 )
 
@@ -17,6 +18,7 @@ type OgPlugin struct {
 	messageHandler general_communication.GeneralMessageEventHandler
 	OgPartner      *ogcore.OgPartner
 	Communicator   *ProxyOgPeerCommunicator
+	TxBuffer       *ogcore.TxBuffer
 }
 
 func NewOgPlugin() *OgPlugin {
@@ -57,7 +59,16 @@ func NewOgPlugin() *OgPlugin {
 }
 
 func (o *OgPlugin) SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo {
-	return []eventbus.EventHandlerRegisterInfo{}
+	return []eventbus.EventHandlerRegisterInfo{
+		{
+			Type:    events.TxsReceivedEventType,
+			Handler: o.TxBuffer,
+		},
+		{
+			Type:    events.SequencerReceivedEventType,
+			Handler: o.TxBuffer,
+		},
+	}
 }
 
 func (o *OgPlugin) SetOutgoing(outgoing general_communication.GeneralPeerCommunicatorOutgoing) {

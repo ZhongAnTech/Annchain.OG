@@ -30,6 +30,7 @@ type TxBuffer struct {
 
 func (t *TxBuffer) InitDefault() {
 	t.quit = make(chan bool)
+	t.newTxChan = make(chan types.Txi)
 }
 
 func (t *TxBuffer) Start() {
@@ -57,6 +58,14 @@ func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 	default:
 		logrus.Warn("event type not supported by txbuffer")
 		return
+	}
+}
+
+func (b *TxBuffer) DumpUnsolved() {
+	for k, v := range b.dependencyCache.GetALL(true) {
+		for k1 := range v.(map[common.Hash]types.Txi) {
+			logrus.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
+		}
 	}
 }
 

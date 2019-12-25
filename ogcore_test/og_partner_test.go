@@ -1,4 +1,4 @@
-package og_test
+package ogcore_test
 
 import (
 	"github.com/annchain/OG/ogcore"
@@ -91,8 +91,12 @@ func TestPingPong(t *testing.T) {
 		communicator.Run()
 
 		processor := &ogcore.OgPartner{
-			PeerOutgoing: communicator,
-			PeerIncoming: communicator,
+			Config:         ogcore.OgProcessorConfig{},
+			PeerOutgoing:   communicator,
+			PeerIncoming:   communicator,
+			EventBus:       nil,
+			StatusProvider: nil,
+			OgCore:         nil,
 		}
 
 		processors[i] = processor

@@ -17,6 +17,18 @@ type dummyDag struct {
 	dmap map[common.Hash]types.Txi
 }
 
+func (d *dummyDag) GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi {
+	var txs []types.Txi
+	for _, v := range d.dmap {
+		txs = append(txs, v)
+	}
+	if uint32(len(txs)) > offset+limit {
+		return txs[offset : offset+limit]
+	} else {
+		return txs[offset:]
+	}
+}
+
 func (d *dummyDag) IsLocalHash(hash common.Hash) bool {
 	_, ok := d.dmap[hash]
 	return ok

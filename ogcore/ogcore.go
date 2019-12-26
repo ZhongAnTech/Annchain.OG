@@ -44,3 +44,7 @@ func (o *OgCore) HandleNewTx(tx *types.Tx) {
 func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {
 
 }
+
+func (o *OgCore) LoadHeightTxs(height uint64, offset uint32) {
+
+}

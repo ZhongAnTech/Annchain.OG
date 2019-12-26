@@ -29,6 +29,10 @@ type LocalGraphInfoProvider interface {
 	GetMaxWeight() uint64
 }
 
+type LedgerTxProvider interface {
+	GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi
+}
+
 type Syncer interface {
 	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
 	SyncHashList(seqHash common.Hash)

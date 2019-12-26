@@ -74,6 +74,8 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 		o.HandleMessageQueryStatusResponse(msgEvent)
 	case message.OgMessageTypeNewResource:
 		o.HandleMessageNewResource(msgEvent)
+	case message.OgMessageTypeHeightSyncRequest:
+		o.OgMessageHeightSyncRequest(msgEvent)
 	default:
 		logrus.WithField("msg", msgEvent.Message).Warn("unsupported og message type")
 	}
@@ -192,7 +194,6 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 			o.EventBus.Route(&events.SequencerReceivedEvent{Sequencer: seq})
 			//case message.ResourceTypeArchive:
 			//case message.ResourceTypeAction:
-
 		}
 	}
 }
@@ -203,6 +204,20 @@ func (o *OgPartner) SendMessagePing(peer communication.OgPeer) {
 
 func (o *OgPartner) SendMessageQueryStatusRequest(peer communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessageQueryStatusRequest{}, peer)
+}
+
+func (a *OgPartner) HandleMessageBatchSyncRequest(msgEvent *communication.OgMessageEvent) {
+
+}
+
+func (a *OgPartner) OgMessageHeightSyncRequest(msgEvent *communication.OgMessageEvent) {
+	msg, ok := msgEvent.Message.(*message.OgMessageHeightSyncRequest)
+	if !ok {
+		logrus.Warn("bad format: OgMessageHeightSyncRequest")
+		return
+	}
+	// fetch from OG
+	a.OgCore.LoadHeightTxs(msg.Height, msg.Offset)
 }
 
 type OgProcessorConfig struct {

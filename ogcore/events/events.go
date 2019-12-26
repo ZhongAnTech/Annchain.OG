@@ -17,11 +17,10 @@ const (
 	SequencerReceivedEventType           // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
-	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
+	NewTxDependencyFulfilledEventType  // a new tx is fully resolved (thus can be broadcasted)
+	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
+	HeightSyncRequestReceivedEventType // someone is requesting a height
 )
-
-
 
 type PingReceivedEvent struct{}
 
@@ -91,3 +90,13 @@ type NeedSyncEvent struct {
 func (m *NeedSyncEvent) GetEventType() eventbus.EventType {
 	return NeedSyncEventType
 }
+
+//
+//type HeightSyncRequestReceivedEvent struct {
+//	Height uint64
+//	RequestId uint32
+//}
+//
+//func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
+//	return HeightSyncRequestReceivedEventType
+//}

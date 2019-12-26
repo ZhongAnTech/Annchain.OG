@@ -40,6 +40,32 @@ func (a *OgPartner) HandleEvent(ev eventbus.Event) {
 			Offset:    evt.Offset,
 			Resources: nil,
 		}, evt.Peer)
+	case events.NewTxGeneratedEventType:
+		// in the future, do buffer
+		evt := ev.(*events.NewTxGeneratedEvent)
+		tx := evt.Tx
+		msgTx := dagmessage.MessageContentTx{
+			Hash:         tx.Hash,
+			ParentsHash:  tx.ParentsHash,
+			MineNonce:    tx.MineNonce,
+			AccountNonce: tx.AccountNonce,
+			From:         tx.From,
+			To:           tx.To,
+			Value:        tx.Value,
+			TokenId:      tx.TokenId,
+			PublicKey:    tx.PublicKey.ToBytes(),
+			Data:         tx.Data,
+			Signature:    tx.Signature.ToBytes(),
+		}
+
+		a.PeerOutgoing.Multicast(&message.OgMessageNewResource{
+			Resources: []message.MessageContentResource{
+				{
+					ResourceType: message.ResourceTypeTx,
+					ResourceContent: // pass out the msgTx. You need to first serialize the MessageContentTx
+				},
+			},
+		})
 	default:
 		logrus.WithField("type", ev.GetEventType()).Warn("event type not supported")
 	}

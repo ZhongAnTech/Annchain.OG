@@ -3,11 +3,14 @@ package ogcore_test
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore"
+	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/message"
 	"github.com/sirupsen/logrus"
 
 	"github.com/annchain/gcache"
@@ -18,7 +21,7 @@ type dummyDag struct {
 }
 
 func (d *dummyDag) Name() string {
-	panic("implement me")
+	return "dummyDag"
 }
 
 func (d *dummyDag) GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi {
@@ -230,4 +233,84 @@ func (d *dummyVerifier) String() string {
 
 func (d *dummyVerifier) Independent() bool {
 	return false
+}
+
+type DummyOgPeerCommunicator struct {
+	Myid        int
+	PeerPipeIns []chan *communication.OgMessageEvent
+	pipeIn      chan *communication.OgMessageEvent
+	pipeOut     chan *communication.OgMessageEvent
+}
+
+func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
+	for i, peer := range o.PeerPipeIns {
+		logrus.WithField("peer", i).WithField("me", o.Myid).Debug("broadcasting message")
+		me := communication.OgPeer{
+			Id:             o.Myid,
+			PublicKey:      crypto.PublicKey{},
+			Address:        common.Address{},
+			PublicKeyBytes: nil,
+		}
+		go func(peer int) {
+			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
+			o.PeerPipeIns[peer] <- &communication.OgMessageEvent{
+				Message: msg,
+				Peer:    me,
+			}
+		}(i)
+	}
+}
+
+func (o DummyOgPeerCommunicator) GetPipeIn() chan *communication.OgMessageEvent {
+	return o.pipeIn
+}
+
+func (o DummyOgPeerCommunicator) GetPipeOut() chan *communication.OgMessageEvent {
+	return o.pipeOut
+}
+
+func NewDummyOgPeerCommunicator(myid int, incoming chan *communication.OgMessageEvent, peers []chan *communication.OgMessageEvent) *DummyOgPeerCommunicator {
+	d := &DummyOgPeerCommunicator{
+		PeerPipeIns: peers,
+		Myid:        myid,
+		pipeIn:      incoming,
+		pipeOut:     make(chan *communication.OgMessageEvent, 100), // must be big enough to avoid blocking issue
+	}
+	return d
+}
+
+func (o DummyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []communication.OgPeer) {
+	for _, peer := range peers {
+		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("multicasting message")
+		go func(peer communication.OgPeer) {
+			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
+			o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
+				Message: msg,
+				Peer:    peer,
+			}
+		}(peer)
+	}
+}
+
+func (o DummyOgPeerCommunicator) Unicast(msg message.OgMessage, peer communication.OgPeer) {
+	logrus.Debug("unicasting by DummyOgPeerCommunicator")
+	go func() {
+		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
+		o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
+			Message: msg,
+			Peer:    communication.OgPeer{Id: o.Myid},
+		}
+	}()
+}
+
+func (d *DummyOgPeerCommunicator) Run() {
+	logrus.Info("DummyOgPeerCommunicator running")
+	go func() {
+		for {
+			v := <-d.pipeIn
+			//vv := v.Message.(bft.BftMessage)
+			logrus.WithField("type", v.Message.GetType()).Debug("DummyOgPeerCommunicator received a message")
+			d.pipeOut <- v
+		}
+	}()
 }

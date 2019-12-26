@@ -18,7 +18,7 @@ func (p *ProxyOgPeerCommunicator) InitDefault() {
 	p.pipe = make(chan *communication.OgMessageEvent)
 }
 
-func (p ProxyOgPeerCommunicator) Broadcast(msg message.OgMessage, peers []communication.OgPeer) {
+func (p ProxyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []communication.OgPeer) {
 	ogMessage, err := p.OgMessageAdapter.AdaptOgMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 

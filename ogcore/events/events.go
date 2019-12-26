@@ -13,13 +13,15 @@ const (
 	QueryStatusRequestReceivedEventType  // global status query request is got
 	QueryStatusResponseReceivedEventType // global status query response is got
 	HeightBehindEventType                // my height is lower than others.
-	TxsReceivedEventType                 // a new tx list is received.
+	TxReceivedEventType                  // a new tx list is received.
 	SequencerReceivedEventType           // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
 	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
 	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
 )
+
+
 
 type PingReceivedEvent struct{}
 
@@ -56,12 +58,12 @@ func (m *HeightBehindEvent) GetEventType() eventbus.EventType {
 	return HeightBehindEventType
 }
 
-type TxsReceivedEvent struct {
-	Txs []*types.Tx
+type TxReceivedEvent struct {
+	Tx *types.Tx
 }
 
-func (m *TxsReceivedEvent) GetEventType() eventbus.EventType {
-	return TxsReceivedEventType
+func (m *TxReceivedEvent) GetEventType() eventbus.EventType {
+	return TxReceivedEventType
 }
 
 type SequencerReceivedEvent struct {

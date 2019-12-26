@@ -15,6 +15,11 @@ type dummyDag struct {
 	dmap map[common.Hash]types.Txi
 }
 
+func (d *dummyDag) IsLocalHash(hash common.Hash) bool {
+	_, ok := d.dmap[hash]
+	return ok
+}
+
 func (d *dummyDag) GetHeight() uint64 {
 	return 0
 }

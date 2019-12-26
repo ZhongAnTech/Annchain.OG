@@ -76,6 +76,11 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
+func (dag *Dag) IsLocalHash(hash common.Hash) bool {
+	tx := dag.getTx(hash)
+	return tx != nil
+}
+
 func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, testDb ogdb.Database) (*Dag, error) {
 	dag := &Dag{}
 

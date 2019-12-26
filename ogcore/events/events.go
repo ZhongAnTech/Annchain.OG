@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/model"
 )
 
@@ -20,6 +21,7 @@ const (
 	NewTxDependencyFulfilledEventType  // a new tx is fully resolved (thus can be broadcasted)
 	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
 	HeightSyncRequestReceivedEventType // someone is requesting a height
+	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
 )
 
 type PingReceivedEvent struct{}
@@ -91,12 +93,25 @@ func (m *NeedSyncEvent) GetEventType() eventbus.EventType {
 	return NeedSyncEventType
 }
 
-//
-//type HeightSyncRequestReceivedEvent struct {
-//	Height uint64
-//	RequestId uint32
-//}
-//
-//func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
-//	return HeightSyncRequestReceivedEventType
-//}
+type HeightSyncRequestReceivedEvent struct {
+	Height    uint64
+	Offset    uint32
+	RequestId uint32
+	Peer      communication.OgPeer
+}
+
+func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
+	return HeightSyncRequestReceivedEventType
+}
+
+type TxsFetchedForResponseEvent struct {
+	Txs       []types.Txi
+	Height    uint64
+	Offset    uint32
+	RequestId uint32
+	Peer      communication.OgPeer
+}
+
+func (m *TxsFetchedForResponseEvent) GetEventType() eventbus.EventType {
+	return TxsFetchedForResponseEventType
+}

@@ -185,6 +185,8 @@ type OgMessageSyncResponse struct {
 	//RawTermChanges *RawTermChanges
 	//RawTxs    *TxisMarshaler
 	RequestId uint32 //avoid msg drop
+	Height    uint64
+	Offset    uint32
 	Resources []MessageContentResource
 }
 
@@ -300,7 +302,7 @@ func (z *OgMessageNewResource) FromBytes(bts []byte) error {
 	return nil
 }
 
-//msgp:tuple OgMessageHeightSyncRequest
+//msgp:tuple HandleMessageHeightSyncRequest
 type OgMessageHeightSyncRequest struct {
 	//Hashes common.Hashes
 	//SeqHash   common.Hash
@@ -310,7 +312,7 @@ type OgMessageHeightSyncRequest struct {
 }
 
 func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
-	return OgMessageTypeTxsRequest
+	return OgMessageTypeHeightSyncRequest
 }
 
 func (m *OgMessageHeightSyncRequest) ToBytes() []byte {
@@ -330,7 +332,7 @@ func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
 }
 
 func (m *OgMessageHeightSyncRequest) String() string {
-	return fmt.Sprintf("height: %d, id : %d, requestId : %d", m.Height, m.Id, m.RequestId)
+	return fmt.Sprintf("height: %d, offset: %d, requestId: %d", m.Height, m.Offset, m.RequestId)
 }
 
 ////msgp:tuple MessageTxsResponse

@@ -8,9 +8,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type OgCoreConfig struct {
+	MaxTxCountInResponse uint32
+}
+
 type OgCore struct {
-	statusData model.OgStatusData
-	EventBus   EventBus
+	OgCoreConfig     OgCoreConfig
+	statusData       model.OgStatusData
+	EventBus         EventBus
+	LedgerTxProvider LedgerTxProvider
+}
+
+func (o *OgCore) Name() string {
+	return "OgCore"
 }
 
 func (o *OgCore) FireEvent(event eventbus.Event) {
@@ -45,6 +55,23 @@ func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {
 
 }
 
-func (o *OgCore) LoadHeightTxs(height uint64, offset uint32) {
+func (d *OgCore) HandleEvent(ev eventbus.Event) {
+	switch ev.GetEventType() {
+	case events.HeightSyncRequestReceivedEventType:
+		evt := ev.(*events.HeightSyncRequestReceivedEvent)
+		txs := d.LoadHeightTxs(evt.Height, evt.Offset)
+		d.EventBus.Route(&events.TxsFetchedForResponseEvent{
+			Txs:       txs,
+			Height:    evt.Height,
+			Offset:    evt.Offset,
+			RequestId: evt.RequestId,
+			Peer:      evt.Peer,
+		})
+	default:
+		logrus.Warn("event type not supported by txbuffer")
+	}
+}
 
+func (o *OgCore) LoadHeightTxs(height uint64, offset uint32) []types.Txi {
+	return o.LedgerTxProvider.GetHeightTxs(height, offset, o.OgCoreConfig.MaxTxCountInResponse)
 }

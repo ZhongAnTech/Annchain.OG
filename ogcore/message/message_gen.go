@@ -14,9 +14,26 @@ func (z *OgMessageBatchSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
+	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "Height")
+			return
+		}
+		z.Height = nil
+	} else {
+		if z.Height == nil {
+			z.Height = new(uint64)
+		}
+		*z.Height, err = dc.ReadUint64()
+		if err != nil {
+			err = msgp.WrapError(err, "Height")
+			return
+		}
 	}
 	err = z.Hashes.DecodeMsg(dc)
 	if err != nil {
@@ -38,10 +55,22 @@ func (z *OgMessageBatchSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *OgMessageBatchSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
+	}
+	if z.Height == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = en.WriteUint64(*z.Height)
+		if err != nil {
+			err = msgp.WrapError(err, "Height")
+			return
+		}
 	}
 	err = z.Hashes.EncodeMsg(en)
 	if err != nil {
@@ -64,8 +93,13 @@ func (z *OgMessageBatchSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *OgMessageBatchSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
+	if z.Height == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o = msgp.AppendUint64(o, *z.Height)
+	}
 	o, err = z.Hashes.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Hashes")
@@ -84,9 +118,25 @@ func (z *OgMessageBatchSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err erro
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.Height = nil
+	} else {
+		if z.Height == nil {
+			z.Height = new(uint64)
+		}
+		*z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "Height")
+			return
+		}
 	}
 	bts, err = z.Hashes.UnmarshalMsg(bts)
 	if err != nil {
@@ -109,7 +159,13 @@ func (z *OgMessageBatchSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err erro
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *OgMessageBatchSyncRequest) Msgsize() (s int) {
-	s = 1 + z.Hashes.Msgsize() + msgp.BytesPrefixSize + len(z.BloomFilter) + msgp.Uint32Size
+	s = 1
+	if z.Height == nil {
+		s += msgp.NilSize
+	} else {
+		s += msgp.Uint64Size
+	}
+	s += z.Hashes.Msgsize() + msgp.BytesPrefixSize + len(z.BloomFilter) + msgp.Uint32Size
 	return
 }
 
@@ -234,38 +290,56 @@ func (z *OgMessageHeaderRequest) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *OgMessageHeightSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
+	zb0001, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
-		return
-	}
-	z.Height, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "Height")
-		return
-	}
-	z.Id, err = dc.ReadUint64()
-	if err != nil {
-		err = msgp.WrapError(err, "Id")
-		return
-	}
-	z.RequestId, err = dc.ReadUint32()
-	if err != nil {
-		err = msgp.WrapError(err, "RequestId")
-		return
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Height":
+			z.Height, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "Height")
+				return
+			}
+		case "Offset":
+			z.Offset, err = dc.ReadUint32()
+			if err != nil {
+				err = msgp.WrapError(err, "Offset")
+				return
+			}
+		case "RequestId":
+			z.RequestId, err = dc.ReadUint32()
+			if err != nil {
+				err = msgp.WrapError(err, "RequestId")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z OgMessageHeightSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// map header, size 3
+	// write "Height"
+	err = en.Append(0x83, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	if err != nil {
 		return
 	}
@@ -274,9 +348,19 @@ func (z OgMessageHeightSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Height")
 		return
 	}
-	err = en.WriteUint64(z.Id)
+	// write "Offset"
+	err = en.Append(0xa6, 0x4f, 0x66, 0x66, 0x73, 0x65, 0x74)
 	if err != nil {
-		err = msgp.WrapError(err, "Id")
+		return
+	}
+	err = en.WriteUint32(z.Offset)
+	if err != nil {
+		err = msgp.WrapError(err, "Offset")
+		return
+	}
+	// write "RequestId"
+	err = en.Append(0xa9, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x64)
+	if err != nil {
 		return
 	}
 	err = en.WriteUint32(z.RequestId)
@@ -290,40 +374,62 @@ func (z OgMessageHeightSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z OgMessageHeightSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// map header, size 3
+	// string "Height"
+	o = append(o, 0x83, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	o = msgp.AppendUint64(o, z.Height)
-	o = msgp.AppendUint64(o, z.Id)
+	// string "Offset"
+	o = append(o, 0xa6, 0x4f, 0x66, 0x66, 0x73, 0x65, 0x74)
+	o = msgp.AppendUint32(o, z.Offset)
+	// string "RequestId"
+	o = append(o, 0xa9, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x64)
 	o = msgp.AppendUint32(o, z.RequestId)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *OgMessageHeightSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
-		return
-	}
-	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Height")
-		return
-	}
-	z.Id, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Id")
-		return
-	}
-	z.RequestId, bts, err = msgp.ReadUint32Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "RequestId")
-		return
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Height":
+			z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Height")
+				return
+			}
+		case "Offset":
+			z.Offset, bts, err = msgp.ReadUint32Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Offset")
+				return
+			}
+		case "RequestId":
+			z.RequestId, bts, err = msgp.ReadUint32Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "RequestId")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
 	}
 	o = bts
 	return
@@ -331,7 +437,7 @@ func (z *OgMessageHeightSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err err
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z OgMessageHeightSyncRequest) Msgsize() (s int) {
-	s = 1 + msgp.Uint64Size + msgp.Uint64Size + msgp.Uint32Size
+	s = 1 + 7 + msgp.Uint64Size + 7 + msgp.Uint32Size + 10 + msgp.Uint32Size
 	return
 }
 
@@ -765,13 +871,23 @@ func (z *OgMessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.RequestId, err = dc.ReadUint32()
 	if err != nil {
 		err = msgp.WrapError(err, "RequestId")
+		return
+	}
+	z.Height, err = dc.ReadUint64()
+	if err != nil {
+		err = msgp.WrapError(err, "Height")
+		return
+	}
+	z.Offset, err = dc.ReadUint32()
+	if err != nil {
+		err = msgp.WrapError(err, "Offset")
 		return
 	}
 	var zb0002 uint32
@@ -797,14 +913,24 @@ func (z *OgMessageSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *OgMessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
 	err = en.WriteUint32(z.RequestId)
 	if err != nil {
 		err = msgp.WrapError(err, "RequestId")
+		return
+	}
+	err = en.WriteUint64(z.Height)
+	if err != nil {
+		err = msgp.WrapError(err, "Height")
+		return
+	}
+	err = en.WriteUint32(z.Offset)
+	if err != nil {
+		err = msgp.WrapError(err, "Offset")
 		return
 	}
 	err = en.WriteArrayHeader(uint32(len(z.Resources)))
@@ -825,9 +951,11 @@ func (z *OgMessageSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *OgMessageSyncResponse) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendUint32(o, z.RequestId)
+	o = msgp.AppendUint64(o, z.Height)
+	o = msgp.AppendUint32(o, z.Offset)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Resources)))
 	for za0001 := range z.Resources {
 		o, err = z.Resources[za0001].MarshalMsg(o)
@@ -847,13 +975,23 @@ func (z *OgMessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.RequestId, bts, err = msgp.ReadUint32Bytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "RequestId")
+		return
+	}
+	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Height")
+		return
+	}
+	z.Offset, bts, err = msgp.ReadUint32Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Offset")
 		return
 	}
 	var zb0002 uint32
@@ -880,7 +1018,7 @@ func (z *OgMessageSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *OgMessageSyncResponse) Msgsize() (s int) {
-	s = 1 + msgp.Uint32Size + msgp.ArrayHeaderSize
+	s = 1 + msgp.Uint32Size + msgp.Uint64Size + msgp.Uint32Size + msgp.ArrayHeaderSize
 	for za0001 := range z.Resources {
 		s += z.Resources[za0001].Msgsize()
 	}

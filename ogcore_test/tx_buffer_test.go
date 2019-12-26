@@ -25,7 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func setup() (*ogcore.TxBuffer, ogcore.Syncer) {
+func setupTxBuffer() (*ogcore.TxBuffer, ogcore.Syncer) {
 	bus := &eventbus.DefaultEventBus{}
 	bus.InitDefault()
 
@@ -87,7 +87,7 @@ func doTest(buffer *ogcore.TxBuffer) {
 func TestBuffer(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
-	buffer, syncer := setup()
+	buffer, syncer := setupTxBuffer()
 	m := syncer.(*dummySyncer)
 	m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}))
@@ -116,7 +116,7 @@ func TestBuffer(t *testing.T) {
 func TestBufferMissing3(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
-	buffer, syncer := setup()
+	buffer, syncer := setupTxBuffer()
 	m := syncer.(*dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}))

@@ -29,6 +29,26 @@ type OgPartner struct {
 	quitWg sync.WaitGroup
 }
 
+func (a *OgPartner) HandleEvent(ev eventbus.Event) {
+	// handle sending events
+	switch ev.GetEventType() {
+	case events.TxsFetchedForResponseEventType:
+		evt := ev.(*events.TxsFetchedForResponseEvent)
+		a.PeerOutgoing.Unicast(&message.OgMessageSyncResponse{
+			RequestId: evt.RequestId,
+			Height:    evt.Height,
+			Offset:    evt.Offset,
+			Resources: nil,
+		}, evt.Peer)
+	default:
+		logrus.WithField("type", ev.GetEventType()).Warn("event type not supported")
+	}
+}
+
+func (a *OgPartner) Name() string {
+	return "OgPartner"
+}
+
 func (a *OgPartner) InitDefault() {
 	a.quitWg = sync.WaitGroup{}
 	a.quit = make(chan bool)
@@ -75,7 +95,9 @@ func (o *OgPartner) HandleOgMessage(msgEvent *communication.OgMessageEvent) {
 	case message.OgMessageTypeNewResource:
 		o.HandleMessageNewResource(msgEvent)
 	case message.OgMessageTypeHeightSyncRequest:
-		o.OgMessageHeightSyncRequest(msgEvent)
+		o.HandleMessageHeightSyncRequest(msgEvent)
+	case message.OgMessageTypeSyncResponse:
+		o.HandleMessageTypeSyncResponse(msgEvent)
 	default:
 		logrus.WithField("msg", msgEvent.Message).Warn("unsupported og message type")
 	}
@@ -206,18 +228,33 @@ func (o *OgPartner) SendMessageQueryStatusRequest(peer communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessageQueryStatusRequest{}, peer)
 }
 
+func (o *OgPartner) SendMessageHeightSyncRequest(peer communication.OgPeer) {
+	o.PeerOutgoing.Unicast(&message.OgMessageHeightSyncRequest{
+		Height:    1,
+		Offset:    0,
+		RequestId: 2,
+	}, peer)
+}
+
 func (a *OgPartner) HandleMessageBatchSyncRequest(msgEvent *communication.OgMessageEvent) {
 
 }
 
-func (a *OgPartner) OgMessageHeightSyncRequest(msgEvent *communication.OgMessageEvent) {
+func (a *OgPartner) HandleMessageHeightSyncRequest(msgEvent *communication.OgMessageEvent) {
 	msg, ok := msgEvent.Message.(*message.OgMessageHeightSyncRequest)
 	if !ok {
-		logrus.Warn("bad format: OgMessageHeightSyncRequest")
+		logrus.Warn("bad format: HandleMessageHeightSyncRequest")
 		return
 	}
-	// fetch from OG
-	a.OgCore.LoadHeightTxs(msg.Height, msg.Offset)
+	a.EventBus.Route(&events.HeightSyncRequestReceivedEvent{
+		Height:    msg.Height,
+		Offset:    msg.Offset,
+		RequestId: msg.RequestId,
+	})
+}
+
+func (a *OgPartner) HandleMessageTypeSyncResponse(event *communication.OgMessageEvent) {
+
 }
 
 type OgProcessorConfig struct {

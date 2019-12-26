@@ -17,6 +17,10 @@ type dummyDag struct {
 	dmap map[common.Hash]types.Txi
 }
 
+func (d *dummyDag) Name() string {
+	panic("implement me")
+}
+
 func (d *dummyDag) GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi {
 	var txs []types.Txi
 	for _, v := range d.dmap {

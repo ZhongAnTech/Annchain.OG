@@ -1,6 +1,7 @@
 package communication
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -12,6 +13,10 @@ type OgPeer struct {
 	PublicKey      crypto.PublicKey `json:"-"`
 	Address        common.Address   `json:"address"`
 	PublicKeyBytes hexutil.Bytes    `json:"public_key"`
+}
+
+func (o OgPeer) String() string {
+	return fmt.Sprintf("Peer%d", o.Id)
 }
 
 type OgMessageEvent struct {

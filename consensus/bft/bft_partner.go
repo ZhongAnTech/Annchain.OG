@@ -282,7 +282,7 @@ func (p *DefaultBftPartner) GetValue(newBlock bool) (Proposal, ProposalCondition
 	return &s, ProposalCondition{p.BftStatus.CurrentHR.Height}
 }
 
-// Broadcast encapsulate messages to all partners
+// Multicast encapsulate messages to all partners
 //
 func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound, content Proposal, validRound int) {
 	var m BftMessage
@@ -434,7 +434,7 @@ func (p *DefaultBftPartner) handleProposal(proposal *BftMessageProposal) {
 	state.MessageProposal = proposal
 	////if this is proposed by me , send precommit
 	//if proposal.SourceId == uint16(p.MyIndex)  {
-	//	p.Broadcast(BftMessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
+	//	p.Multicast(BftMessageTypePreVote, proposal.HeightRound, proposal.Value, 0)
 	//	p.changeStep(StepTypePreVote)
 	//	return
 	//}

@@ -249,7 +249,7 @@ func (p *DefaultPartner) GetValue() Proposal {
 	return StringProposal(v)
 }
 
-// Broadcast announce messages to all partners
+// Multicast announce messages to all partners
 func (p *DefaultPartner) Broadcast(messageType MessageType, hr HeightRound, content Proposal, validRound int) {
 	m := Message{
 		Type: messageType,

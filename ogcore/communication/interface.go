@@ -17,7 +17,8 @@ type P2PReceiver interface {
 }
 
 type OgPeerCommunicatorOutgoing interface {
-	Broadcast(msg message.OgMessage, peers []OgPeer)
+	//Broadcast(msg message.OgMessage)
+	Multicast(msg message.OgMessage, peers []OgPeer)
 	Unicast(msg message.OgMessage, peer OgPeer)
 }
 type OgPeerCommunicatorIncoming interface {

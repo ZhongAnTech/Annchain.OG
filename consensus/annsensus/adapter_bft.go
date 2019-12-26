@@ -146,8 +146,8 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBft
 	return signedMessage
 }
 
-// Broadcast must be anonymous since it is actually among all partners, not all nodes.
-//func (r *TrustfulBftAdapter) Broadcast(msg bft.BftMessage, peers []bft.BftPeer) {
+// Multicast must be anonymous since it is actually among all partners, not all nodes.
+//func (r *TrustfulBftAdapter) Multicast(msg bft.BftMessage, peers []bft.BftPeer) {
 //	signed := r.Sign(msg)
 //	for _, peer := range peers {
 //		r.p2pSender.AnonymousSendMessage(message.BinaryMessageType(msg.Type), &signed, &peer.PublicKey)

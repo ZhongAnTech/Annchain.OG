@@ -111,7 +111,7 @@ func (p *peer) broadcast() {
 				msgLog.WithError(err).Warn("send msg failed,quiting")
 				return
 			}
-			msgLog.WithField("count", len(msg)).Trace("Broadcast messages")
+			msgLog.WithField("count", len(msg)).Trace("Multicast messages")
 
 		case <-p.term:
 			msgLog.Debug("peer terminating,quiting")

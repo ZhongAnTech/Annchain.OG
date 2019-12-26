@@ -22,6 +22,7 @@ const (
 	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
 	HeightSyncRequestReceivedEventType // someone is requesting a height
 	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
+	NewTxGeneratedEventType            // a new tx is generated from local
 )
 
 type PingReceivedEvent struct{}
@@ -114,4 +115,12 @@ type TxsFetchedForResponseEvent struct {
 
 func (m *TxsFetchedForResponseEvent) GetEventType() eventbus.EventType {
 	return TxsFetchedForResponseEventType
+}
+
+type NewTxGeneratedEvent struct {
+	Tx *types.Tx
+}
+
+func (m *NewTxGeneratedEvent) GetEventType() eventbus.EventType {
+	return NewTxGeneratedEventType
 }

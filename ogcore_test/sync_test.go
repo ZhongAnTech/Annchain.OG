@@ -10,13 +10,14 @@ import (
 	"time"
 )
 
-func TestSync(t *testing.T) {
+func setupLog() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
 	})
+}
 
-	total := 2
+func setupSync(total int) []*ogcore.OgPartner {
 	// init two OG peers's In channel
 	peerChans := make([]chan *communication.OgMessageEvent, total)
 	peerInfos := make([]communication.OgPeer, total)
@@ -73,9 +74,34 @@ func TestSync(t *testing.T) {
 		})
 		bus.Build()
 	}
+	return processors
+}
+
+func TestSync(t *testing.T) {
+	total := 2
+	processors := setupSync(total)
 
 	// send sync request
 	logrus.Debug("Sending sync request on height 0")
 	processors[0].SendMessageHeightSyncRequest(communication.OgPeer{Id: 1})
+	time.Sleep(time.Second * 5)
+}
+
+func TestIncremental(t *testing.T) {
+	total := 3
+	processors := setupSync(total)
+
+	// one is generating new txs constantly
+	logrus.Debug("generating txs")
+
+	processors[0].EventBus.Route(&events.NewTxGeneratedEvent{
+		Tx: sampleTx("0x01", []string{"0x00"}),
+	})
+	processors[1].EventBus.Route(&events.NewTxGeneratedEvent{
+		Tx: sampleTx("0x02", []string{"0x01"}),
+	})
+	processors[2].EventBus.Route(&events.NewTxGeneratedEvent{
+		Tx: sampleTx("0x03", []string{"0x02"}),
+	})
 	time.Sleep(time.Second * 5)
 }

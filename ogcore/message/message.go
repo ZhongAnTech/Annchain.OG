@@ -145,12 +145,11 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 
 //msgp:tuple OgMessageBatchSyncRequest
 type OgMessageBatchSyncRequest struct {
+	Height      *uint64
 	Hashes      common.Hashes
 	BloomFilter []byte
 	RequestId   uint32 //avoid msg drop
-
 	//HashTerminats *HashTerminats
-	//Height      *uint64
 }
 
 func (m *OgMessageBatchSyncRequest) GetType() OgMessageType {
@@ -306,7 +305,7 @@ type OgMessageHeightSyncRequest struct {
 	//Hashes common.Hashes
 	//SeqHash   common.Hash
 	Height    uint64
-	Id        uint64
+	Offset    uint32
 	RequestId uint32 //avoid msg drop
 }
 

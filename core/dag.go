@@ -76,6 +76,10 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
+func (dag *Dag) GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi {
+	panic("implement me")
+}
+
 func (dag *Dag) IsLocalHash(hash common.Hash) bool {
 	tx := dag.getTx(hash)
 	return tx != nil

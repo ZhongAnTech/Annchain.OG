@@ -38,12 +38,6 @@ const (
 	txStatusConflicted          // ancestors are conflicted, or itself is conflicted
 )
 
-type Syncer interface {
-	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
-	SyncHashList(seqHash common.Hash)
-	ClearQueue()
-	IsCachedHash(hash common.Hash) bool
-}
 
 type Announcer interface {
 	BroadcastNewTx(txi types.Txi)

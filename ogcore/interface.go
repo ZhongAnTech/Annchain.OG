@@ -21,9 +21,17 @@ type PoolHashLocator interface {
 }
 
 type LedgerHashLocator interface {
+	IsLocalHash(hash common.Hash) bool
 	GetTx(hash common.Hash) types.Txi
 }
 
 type LocalGraphInfoProvider interface {
 	GetMaxWeight() uint64
+}
+
+type Syncer interface {
+	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
+	SyncHashList(seqHash common.Hash)
+	ClearQueue()
+	IsCachedHash(hash common.Hash) bool
 }

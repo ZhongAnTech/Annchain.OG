@@ -12,12 +12,27 @@ import (
 	"time"
 )
 
+type TxBufferConfig struct {
+	//Dag                              IDag
+	//Verifiers                        []protocol.Verifier
+	//Syncer                           Syncer
+	//TxAnnouncer                      Announcer
+	//TxPool                           ITxPool
+	DependencyCacheMaxSize           int
+	DependencyCacheExpirationSeconds int
+	NewTxQueueSize                   int
+	KnownCacheMaxSize                int
+	KnownCacheExpirationSeconds      int
+	AddedToPoolQueueSize             int
+	TestNoVerify                     bool
+}
+
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
 	Verifiers              []protocol.Verifier
-	LocalHashLocator       PoolHashLocator
+	PoolHashLocator        PoolHashLocator
 	LedgerHashLocator      LedgerHashLocator
 	LocalGraphInfoProvider LocalGraphInfoProvider
 	EventBus               EventBus
@@ -28,13 +43,17 @@ type TxBuffer struct {
 	quit                   chan bool
 }
 
-func (t *TxBuffer) InitDefault() {
+func (t *TxBuffer) InitDefault(config TxBufferConfig) {
 	t.quit = make(chan bool)
 	t.newTxChan = make(chan types.Txi)
+	t.knownCache = gcache.New(config.KnownCacheMaxSize).Simple().
+		Expiration(time.Second * time.Duration(config.KnownCacheExpirationSeconds)).Build()
+	t.dependencyCache = gcache.New(config.DependencyCacheMaxSize).Simple().
+		Expiration(time.Second * time.Duration(config.DependencyCacheExpirationSeconds)).Build()
 }
 
 func (t *TxBuffer) Start() {
-	panic("implement me")
+	go t.loop()
 }
 
 func (t *TxBuffer) Stop() {
@@ -47,11 +66,9 @@ func (t *TxBuffer) Name() string {
 
 func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
-	case events.TxsReceivedEventType:
-		txs := ev.(*events.TxsReceivedEvent).Txs
-		for _, tx := range txs {
-			t.newTxChan <- tx // send to buffer
-		}
+	case events.TxReceivedEventType:
+		tx := ev.(*events.TxReceivedEvent).Tx
+		t.newTxChan <- tx // send to buffer
 	case events.SequencerReceivedEventType:
 		seq := ev.(*events.SequencerReceivedEvent).Sequencer
 		t.newTxChan <- seq
@@ -67,6 +84,11 @@ func (b *TxBuffer) DumpUnsolved() {
 			logrus.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
 		}
 	}
+}
+
+// PendingLen returns the txs that is pending sync in the cache
+func (b *TxBuffer) PendingLen() int {
+	return b.dependencyCache.Len(false)
 }
 
 func (b *TxBuffer) loop() {
@@ -120,7 +142,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 // isKnownHash tests if the tx is ever heard of, either in local or in buffer.
 // if tx is known, do not broadcast anymore
 func (b *TxBuffer) IsKnownHash(hash common.Hash) bool {
-	return b.isBufferedHash(hash) || b.LocalHashLocator.IsLocalHash(hash)
+	return b.isBufferedHash(hash) || b.PoolHashLocator.IsLocalHash(hash)
 }
 
 // buildDependencies examines if all ancestors are in our local cache.
@@ -129,7 +151,7 @@ func (b *TxBuffer) IsKnownHash(hash common.Hash) bool {
 func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
-	var sendBloom bool
+	//var sendBloom bool
 	for _, parentHash := range tx.Parents() {
 		if !b.isLocalHash(parentHash) {
 			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
@@ -140,26 +162,33 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			if !b.isBufferedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
-				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
+				//logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				pHash := parentHash
 				//b.updateDependencyMap(parentHash, tx)
-				maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
-				if !sendBloom && tx.GetWeight() > maxWeight && tx.GetWeight()-maxWeight > 20 {
-					b.EventBus.Route(&events.NeedSyncEvent{
-						ParentHash:      pHash,
-						ChildHash:       tx.GetTxHash(),
-						SendBloomfilter: true,
-					})
-					//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
-					sendBloom = true
-				} else {
-					b.EventBus.Route(&events.NeedSyncEvent{
-						ParentHash:      pHash,
-						ChildHash:       tx.GetTxHash(),
-						SendBloomfilter: false,
-					})
-					//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
-				}
+				//maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
+				b.EventBus.Route(&events.NeedSyncEvent{
+					ParentHash:      pHash,
+					ChildHash:       tx.GetTxHash(),
+					SendBloomfilter: false,
+				})
+				// Weight is unknown until parents are got. So here why check this?
+				//
+				//if !sendBloom && tx.GetWeight() > maxWeight && tx.GetWeight()-maxWeight > 20 {
+				//	b.EventBus.Route(&events.NeedSyncEvent{
+				//		ParentHash:      pHash,
+				//		ChildHash:       tx.GetTxHash(),
+				//		SendBloomfilter: true,
+				//	})
+				//	//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
+				//	sendBloom = true
+				//} else {
+				//	b.EventBus.Route(&events.NeedSyncEvent{
+				//		ParentHash:      pHash,
+				//		ChildHash:       tx.GetTxHash(),
+				//		SendBloomfilter: false,
+				//	})
+				//	//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
+				//}
 				//b.children.AddChildren(parentHash, tx.GetTxHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
@@ -191,7 +220,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	return allFetched
 }
 func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
-	return b.LocalHashLocator.IsLocalHash(hash)
+	return b.PoolHashLocator.IsLocalHash(hash) || b.LedgerHashLocator.IsLocalHash(hash)
 }
 
 // updateDependencyMap will update dependency relationship currently known.
@@ -244,7 +273,7 @@ func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
 }
 
 func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
-	if poolTx := b.LocalHashLocator.Get(hash); poolTx != nil {
+	if poolTx := b.PoolHashLocator.Get(hash); poolTx != nil {
 		return poolTx
 	} else if dagTx := b.LedgerHashLocator.GetTx(hash); dagTx != nil {
 		return dagTx

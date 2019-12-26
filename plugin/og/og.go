@@ -61,7 +61,7 @@ func NewOgPlugin() *OgPlugin {
 func (o *OgPlugin) SupportedEventHandlers() []eventbus.EventHandlerRegisterInfo {
 	return []eventbus.EventHandlerRegisterInfo{
 		{
-			Type:    events.TxsReceivedEventType,
+			Type:    events.TxReceivedEventType,
 			Handler: o.TxBuffer,
 		},
 		{

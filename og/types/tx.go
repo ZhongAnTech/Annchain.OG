@@ -63,9 +63,9 @@ func (t Tx) CalcTxHash() (hash common.Hash) {
 func (t Tx) CalcMinedHash() (hash common.Hash) {
 	w := types.NewBinaryWriter()
 	//if !CanRecoverPubFromSig {
-	w.Write(t.PublicKey)
+	w.Write(t.PublicKey.ToBytes())
 	//}
-	w.Write(t.Signature, t.MineNonce)
+	w.Write(t.Signature.ToBytes(), t.MineNonce)
 	result := sha3.Sum256(w.Bytes())
 	hash.MustSetBytes(result[0:], common.PaddingNone)
 	return
@@ -109,7 +109,13 @@ func (t Tx) Parents() common.Hashes {
 }
 
 func (t Tx) String() string {
-	return fmt.Sprintf("T-%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
+	return t.DebugString()
+	//return fmt.Sprintf("T-%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
+}
+
+func (t Tx) DebugString() string {
+	s := t.GetTxHash().Hex()
+	return fmt.Sprintf("T-%d-[%s]-%d", t.Height, "0x"+s[len(s)-4:], t.Weight)
 }
 
 //CalculateWeight  a core algorithm for tx sorting,

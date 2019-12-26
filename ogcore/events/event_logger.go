@@ -11,3 +11,7 @@ type EventLogger struct {
 func (e EventLogger) HandleEvent(ev eventbus.Event) {
 	logrus.WithField("eventType", ev.GetEventType()).Debug("event received")
 }
+
+func (t EventLogger) Name() string {
+	return "EventLogger"
+}

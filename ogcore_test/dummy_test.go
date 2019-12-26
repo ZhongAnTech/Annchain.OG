@@ -8,12 +8,18 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/sirupsen/logrus"
 
 	"github.com/annchain/gcache"
 )
 
 type dummyDag struct {
 	dmap map[common.Hash]types.Txi
+}
+
+func (d *dummyDag) IsLocalHash(hash common.Hash) bool {
+	_, ok := d.dmap[hash]
+	return ok
 }
 
 func (d *dummyDag) GetHeight() uint64 {
@@ -90,12 +96,22 @@ type dummySyncer struct {
 	acquireTxDedupCache gcache.Cache
 }
 
+func (t *dummySyncer) Name() string {
+	return "dummySyncer"
+}
+
+func (d *dummySyncer) InitDefault() {
+	d.dmap = make(map[common.Hash]*types.Tx)
+}
+
 func (d *dummySyncer) HandleEvent(ev eventbus.Event) {
 	evt := ev.(*events.NeedSyncEvent)
 	v, ok := d.dmap[evt.ParentHash]
 	if ok {
-		d.EventBus.Route(&events.TxsReceivedEvent{
-			Txs: []*types.Tx{v},
+		// we already have this tx.
+		logrus.WithField("tx", v).Debug("syncer found new tx")
+		go d.EventBus.Route(&events.TxReceivedEvent{
+			Tx: v,
 		})
 	}
 }
@@ -110,6 +126,7 @@ func (d *dummySyncer) SyncHashList(seqHash common.Hash) {
 	return
 }
 
+// Know will let dummySyncer pretend it knows some tx
 func (d *dummySyncer) Know(tx *types.Tx) {
 	d.dmap[tx.GetTxHash()] = tx
 }

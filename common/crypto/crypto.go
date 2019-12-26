@@ -42,9 +42,44 @@ type PrivateKey struct {
 	Bytes []byte
 }
 
+func (p *PrivateKey) ToBytes() []byte {
+	var bytes []byte
+	bytes = append(bytes, byte(p.Type))
+	bytes = append(bytes, p.Bytes...)
+	return bytes
+}
+
+func (p *PrivateKey) DebugString() string {
+	return fmt.Sprintf("privk%d:%s", p.Type, hexutil.Encode(p.Bytes))
+}
+
+func (p *PrivateKey) String() string {
+	return hexutil.Encode(p.ToBytes())
+}
+
 type PublicKey struct {
 	Type  CryptoType
 	Bytes []byte
+}
+
+func (p *PublicKey) ToBytes() []byte {
+	var bytes []byte
+	bytes = append(bytes, byte(p.Type))
+	bytes = append(bytes, p.Bytes...)
+	return bytes
+}
+
+func (p *PublicKey) Address() common.Address {
+	s := NewSigner(p.Type)
+	return s.Address(*p)
+}
+
+func (p *PublicKey) String() string {
+	return hexutil.Encode(p.ToBytes())
+}
+
+func (p *PublicKey) DebugString() string {
+	return fmt.Sprintf("pubk%d:%s", p.Type, hexutil.Encode(p.Bytes))
 }
 
 type Signature struct {
@@ -52,8 +87,19 @@ type Signature struct {
 	Bytes []byte
 }
 
-func (s *Signature) String() string {
-	return fmt.Sprintf("sig%d:%s", s.Type, hexutil.Encode(s.Bytes))
+func (p *Signature) ToBytes() []byte {
+	var bytes []byte
+	bytes = append(bytes, byte(p.Type))
+	bytes = append(bytes, p.Bytes...)
+	return bytes
+}
+
+func (p *Signature) String() string {
+	return hexutil.Encode(p.ToBytes())
+}
+
+func (p *Signature) DebugString() string {
+	return fmt.Sprintf("sig%d:%s", p.Type, hexutil.Encode(p.Bytes))
 }
 
 func PrivateKeyFromBytes(typev CryptoType, bytes []byte) PrivateKey {
@@ -126,13 +172,6 @@ func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err err
 	return
 }
 
-func (k *PrivateKey) String() string {
-	var bytes []byte
-	bytes = append(bytes, byte(k.Type))
-	bytes = append(bytes, k.Bytes...)
-	return hexutil.Encode(bytes)
-}
-
 func (p *PrivateKey) PublicKey() *PublicKey {
 	s := NewSigner(p.Type)
 	pub := s.PubKey(*p)
@@ -172,18 +211,6 @@ func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
 		PrivateKey: privateKey,
 		Suit:       suite,
 	}
-}
-
-func (p *PublicKey) Address() common.Address {
-	s := NewSigner(p.Type)
-	return s.Address(*p)
-}
-
-func (p *PublicKey) String() string {
-	var bytes []byte
-	bytes = append(bytes, byte(p.Type))
-	bytes = append(bytes, p.Bytes...)
-	return hexutil.Encode(bytes)
 }
 
 func NewSigner(cryptoType CryptoType) ISigner {

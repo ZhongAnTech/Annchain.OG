@@ -10,19 +10,22 @@ import (
 
 const (
 	PingReceivedEventType eventbus.EventType = iota
+
 	PongReceivedEventType
 	QueryStatusRequestReceivedEventType  // global status query request is got
 	QueryStatusResponseReceivedEventType // global status query response is got
 	HeightBehindEventType                // my height is lower than others.
 	TxReceivedEventType                  // a new tx list is received.
-	SequencerReceivedEventType           // a new seq is received.
+
+	SequencerReceivedEventType // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxDependencyFulfilledEventType  // a new tx is fully resolved (thus can be broadcasted)
-	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
+	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
+	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
+
 	HeightSyncRequestReceivedEventType // someone is requesting a height
 	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
-	NewTxGeneratedEventType            // a new tx is generated from local
+	NewTxLocallyGeneratedEventType     // a new tx is generated from local
 )
 
 type PingReceivedEvent struct{}
@@ -117,10 +120,10 @@ func (m *TxsFetchedForResponseEvent) GetEventType() eventbus.EventType {
 	return TxsFetchedForResponseEventType
 }
 
-type NewTxGeneratedEvent struct {
+type NewTxLocallyGeneratedEvent struct {
 	Tx *types.Tx
 }
 
-func (m *NewTxGeneratedEvent) GetEventType() eventbus.EventType {
-	return NewTxGeneratedEventType
+func (m *NewTxLocallyGeneratedEvent) GetEventType() eventbus.EventType {
+	return NewTxLocallyGeneratedEventType
 }

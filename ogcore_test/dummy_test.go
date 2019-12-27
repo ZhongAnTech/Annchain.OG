@@ -243,7 +243,7 @@ type DummyOgPeerCommunicator struct {
 }
 
 func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
-	for i, peer := range o.PeerPipeIns {
+	for i, peerChan := range o.PeerPipeIns {
 		logrus.WithField("peer", i).WithField("me", o.Myid).Debug("broadcasting message")
 		me := communication.OgPeer{
 			Id:             o.Myid,
@@ -251,13 +251,13 @@ func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
 			Address:        common.Address{},
 			PublicKeyBytes: nil,
 		}
-		go func(peer int) {
+		go func(i int, peerChan chan *communication.OgMessageEvent) {
 			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
-			o.PeerPipeIns[peer] <- &communication.OgMessageEvent{
+			peerChan <- &communication.OgMessageEvent{
 				Message: msg,
 				Peer:    me,
 			}
-		}(i)
+		}(i, peerChan)
 	}
 }
 

@@ -83,10 +83,9 @@ const (
 )
 
 type OgMessage interface {
+	Bytable
 	GetType() OgMessageType
 	String() string
-	ToBytes() []byte
-	FromBytes(bts []byte) error
 }
 
 //msgp:tuple OgMessagePing

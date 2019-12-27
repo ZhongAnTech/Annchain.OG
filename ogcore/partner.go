@@ -2,9 +2,7 @@ package ogcore
 
 import (
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/eventbus"
-	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
@@ -29,22 +27,11 @@ type OgPartner struct {
 	quitWg sync.WaitGroup
 }
 
-func (a *OgPartner) HandleEvent(ev eventbus.Event) {
-	// handle sending events
-	switch ev.GetEventType() {
-	case events.TxsFetchedForResponseEventType:
-		evt := ev.(*events.TxsFetchedForResponseEvent)
-		a.PeerOutgoing.Unicast(&message.OgMessageSyncResponse{
-			RequestId: evt.RequestId,
-			Height:    evt.Height,
-			Offset:    evt.Offset,
-			Resources: nil,
-		}, evt.Peer)
-	case events.NewTxGeneratedEventType:
-		// in the future, do buffer
-		evt := ev.(*events.NewTxGeneratedEvent)
-		tx := evt.Tx
-		msgTx := dagmessage.MessageContentTx{
+func (a *OgPartner) AdaptTxiToResource(txi types.Txi) message.MessageContentResource {
+	switch txi.GetType() {
+	case types.TxBaseTypeNormal:
+		tx := txi.(*types.Tx)
+		content := message.MessageContentTx{
 			Hash:         tx.Hash,
 			ParentsHash:  tx.ParentsHash,
 			MineNonce:    tx.MineNonce,
@@ -57,13 +44,56 @@ func (a *OgPartner) HandleEvent(ev eventbus.Event) {
 			Data:         tx.Data,
 			Signature:    tx.Signature.ToBytes(),
 		}
+		return message.MessageContentResource{
+			ResourceType:    message.ResourceTypeTx,
+			ResourceContent: content.ToBytes(),
+		}
+	case types.TxBaseTypeSequencer:
+		seq := txi.(*types.Sequencer)
+		content := message.MessageContextSequencer{
+			Hash:         seq.Hash,
+			ParentsHash:  seq.ParentsHash,
+			MineNonce:    seq.MineNonce,
+			AccountNonce: seq.AccountNonce,
+			Issuer:       seq.Issuer,
+			PublicKey:    seq.PublicKey,
+			Signature:    seq.Signature,
+			StateRoot:    seq.StateRoot,
+			Height:       seq.Height,
+		}
+		return message.MessageContentResource{
+			ResourceType:    message.ResourceTypeSequencer,
+			ResourceContent: content.ToBytes(),
+		}
+	default:
+		panic("Should not be here. Do you miss adding tx type?")
+	}
+}
 
-		a.PeerOutgoing.Multicast(&message.OgMessageNewResource{
+func (a *OgPartner) HandleEvent(ev eventbus.Event) {
+	// handle sending events
+	switch ev.GetEventType() {
+	case events.TxsFetchedForResponseEventType:
+		evt := ev.(*events.TxsFetchedForResponseEvent)
+		resources := make([]message.MessageContentResource, len(evt.Txs))
+		for i, txi := range evt.Txs {
+			resources[i] = a.AdaptTxiToResource(txi)
+		}
+
+		a.PeerOutgoing.Unicast(&message.OgMessageSyncResponse{
+			RequestId: evt.RequestId,
+			Height:    evt.Height,
+			Offset:    evt.Offset,
+			Resources: resources,
+		}, evt.Peer)
+	case events.NewTxLocallyGeneratedEventType:
+		// in the future, do buffer
+		evt := ev.(*events.NewTxLocallyGeneratedEvent)
+		tx := evt.Tx
+
+		a.PeerOutgoing.Broadcast(&message.OgMessageNewResource{
 			Resources: []message.MessageContentResource{
-				{
-					ResourceType: message.ResourceTypeTx,
-					ResourceContent: // pass out the msgTx. You need to first serialize the MessageContentTx
-				},
+				a.AdaptTxiToResource(tx),
 			},
 		})
 	default:
@@ -194,11 +224,11 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 	}
 	// decode all resources and announce it to the receivers.
 	for _, resource := range msg.Resources {
-		logrus.Infof("Received resource: %d %s", resource.ResourceType, hexutil.Encode(resource.ResourceContent))
+		logrus.WithField("resource", resource.String()).Infof("Received resource")
 		switch resource.ResourceType {
 		case message.ResourceTypeTx:
-			msgTx := &dagmessage.MessageContentTx{}
-			_, err := msgTx.UnmarshalMsg(resource.ResourceContent)
+			msgTx := &message.MessageContentTx{}
+			err := msgTx.FromBytes(resource.ResourceContent)
 			if err != nil {
 				logrus.Warn("bad format: MessageContentTx")
 				return
@@ -220,8 +250,8 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 			o.OgCore.HandleNewTx(tx)
 			o.EventBus.Route(&events.TxReceivedEvent{Tx: tx})
 		case message.ResourceTypeSequencer:
-			msgSeq := &dagmessage.MessageContextSequencer{}
-			_, err := msgSeq.UnmarshalMsg(resource.ResourceContent)
+			msgSeq := &message.MessageContextSequencer{}
+			err := msgSeq.FromBytes(resource.ResourceContent)
 			if err != nil {
 				logrus.Warn("bad format: MessageContextSequencer")
 				return

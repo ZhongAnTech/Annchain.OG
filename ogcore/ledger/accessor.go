@@ -422,7 +422,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 
 	// write tx
 	switch tx := tx.(type) {
-	case *archive2.Tx:
+	case *types.Tx:
 		prefix = contentPrefixTransaction
 		data, err = tx.MarshalMsg(nil)
 	case *types.Sequencer:

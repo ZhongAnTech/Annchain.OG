@@ -27,9 +27,8 @@ type Txi interface {
 	CalculateWeight(parents Txis) uint64
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
-
 	GetNonce() uint64
-	//SetHash(h common.Hash)
+	SetHash(h common.Hash)
 	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 
 	//SetInValid(b bool)
@@ -39,7 +38,7 @@ type Txi interface {
 	//GetBase() *TxBase
 	Sender() common.Address
 	//GetSender() *common.Address
-	//SetSender(addr common.Address)
+	SetSender(addr common.Address)
 	//Dump() string             // For logger dump
 
 	//RawTxi() RawTxi // compressed txi

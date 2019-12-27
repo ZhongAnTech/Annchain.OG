@@ -26,6 +26,14 @@ type Sequencer struct {
 	Weight uint64
 }
 
+func (s *Sequencer) SetSender(addr common.Address) {
+	s.Issuer = addr
+}
+
+func (s *Sequencer) SetHash(h common.Hash) {
+	s.Hash = h
+}
+
 func (s *Sequencer) GetNonce() uint64 {
 	return s.AccountNonce
 }

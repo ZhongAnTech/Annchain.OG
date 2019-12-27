@@ -41,9 +41,9 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if tx.GetType() == types.TxBaseTypeArchive {
-		return
-	}
+	//if tx.GetType() == types.TxBaseTypeArchive {
+	//	return
+	//}
 
 	if a.afs[tx.Sender()] == nil {
 		log.WithField("tx", tx).Warnf("add to account flows failed")
@@ -174,7 +174,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
 	}
-	value := txnormal.GetValue()
+	value := txnormal.Value
 	err := af.balances[txnormal.TokenId].TrySubBalance(value)
 	if err != nil {
 		return err
@@ -199,7 +199,7 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 		af.txlist.Remove(nonce)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
 	}
-	value := txnormal.GetValue()
+	value := txnormal.Value
 	err := af.balances[txnormal.TokenId].TryRemoveValue(value)
 	if err != nil {
 		return err

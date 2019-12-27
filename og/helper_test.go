@@ -19,8 +19,9 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/downloader"
+	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/onode"
@@ -39,9 +40,9 @@ var (
 func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	var (
 		db               = ogdb.NewMemDatabase()
-		genesis, balance = core.DefaultGenesis("genesis.json")
-		config           = core.DagConfig{}
-		dag, _           = core.NewDag(config, state.StateDBConfig{}, db, nil)
+		genesis, balance = core2.DefaultGenesis("genesis.json")
+		config           = core2.DagConfig{}
+		dag, _           = core2.NewDag(config, state.StateDBConfig{}, db, nil)
 	)
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)

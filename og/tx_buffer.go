@@ -23,8 +23,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/common/math"
-
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
 )
@@ -54,19 +52,6 @@ type ITxPool interface {
 	IsBadSeq(seq *types.Sequencer) error
 }
 
-type IDag interface {
-	GetTx(hash common.Hash) types.Txi
-	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
-	GetSequencerByHeight(id uint64) *types.Sequencer
-	GetTxisByNumber(id uint64) types.Txis
-	LatestSequencer() *types.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *types.Sequencer
-	Genesis() *types.Sequencer
-	GetHeight() uint64
-	GetSequencerByHash(hash common.Hash) *types.Sequencer
-	GetBalance(addr common.Address, tokenID int32) *math.BigInt
-	GetLatestNonce(addr common.Address) (uint64, error)
-}
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
 // Tx will be buffered here until parents are got.

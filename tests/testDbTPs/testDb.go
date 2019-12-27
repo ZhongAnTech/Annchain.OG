@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/types"
 	archive2 "github.com/annchain/OG/og/types/archive"
+	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/state"
 
 	"github.com/annchain/OG/ogdb"
 	"github.com/sirupsen/logrus"
@@ -18,8 +18,8 @@ import (
 
 var archive bool
 
-func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch {
-	var batchs []*core.ConfirmBatch
+func generateTxs(height uint64, totalHeight int, txnum int) []*core2.ConfirmBatch {
+	var batchs []*core2.ConfirmBatch
 	for j := 0; j < totalHeight; j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
 		var txis types.Txis
@@ -43,7 +43,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 		seq := types.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
 		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
-		batch := &core.ConfirmBatch{
+		batch := &core2.ConfirmBatch{
 			Seq: seq,
 			Txs: txis,
 		}
@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	dag, err := core.NewDag(core.DagConfig{GenesisPath: "genesis.json"}, state.DefaultStateDBConfig(), db, nil)
+	dag, err := core2.NewDag(core2.DagConfig{GenesisPath: "genesis.json"}, state.DefaultStateDBConfig(), db, nil)
 	if err != nil {
 		panic(err)
 	}

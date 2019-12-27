@@ -17,22 +17,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/consensus/campaign"
-	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/types"
-	archive2 "github.com/annchain/OG/og/types/archive"
 
-	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/types"
 	"sort"
-	"time"
-
 	// "fmt"
 	"sync"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 	evm "github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"
@@ -67,6 +59,8 @@ type Dag struct {
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
+
+	txiLedgerMarshaller TxiLedgerMarshaller
 
 	txcached *txcached
 
@@ -313,53 +307,25 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	prefixLen := len(contentPrefixTransaction)
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
+
+	var txType types.TxBaseType
+
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx archive2.Tx
-		_, err := tx.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal tx  error")
-			return nil
-		}
-		return &tx
+		txType = types.TxBaseTypeNormal
+	} else if bytes.Equal(prefix, contentPrefixSequencer) {
+		txType = types.TxBaseTypeSequencer
+	} else {
+		panic("unknown txType from database")
 	}
-	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq types.Sequencer
-		_, err := sq.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal tx  error")
-			return nil
-		}
-		return &sq
+	//contentPrefixCampaign
+	//contentPrefixTermChg
+	//contentPrefixArchive
+	v, err := dag.txiLedgerMarshaller.FromBytes(data, txType)
+	if err != nil {
+		log.WithError(err).Warn("unmarshal tx  error")
+		return nil
 	}
-	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp campaign.Campaign
-		_, err := cp.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal camp error")
-			return nil
-		}
-		return &cp
-	}
-	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc campaign.TermChange
-		_, err := tc.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal termchg error")
-			return nil
-		}
-		return &tc
-	}
-	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac archive.Archive
-		_, err := ac.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal archive error")
-			return nil
-		}
-		return &ac
-	}
-	log.Warn("unknown prefix")
-	return nil
+	return v
 }
 
 func (dag *Dag) GetTestTxByAddressAndNonce(addr common.Address, nonce uint64) types.Txi {
@@ -401,7 +367,7 @@ func (dag *Dag) getTxis(hashs common.Hashes) types.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs common.Hashes, baseType archive2.TxBaseType) types.Txis {
+func (dag *Dag) getTxisByType(hashs common.Hashes, baseType types.TxBaseType) types.Txis {
 	var txs types.Txis
 	for _, hash := range hashs {
 		tx := dag.getTx(hash)
@@ -425,7 +391,7 @@ func (dag *Dag) getTxConfirmHeight(hash common.Hash) (uint64, error) {
 	if tx == nil {
 		return 0, fmt.Errorf("hash not exists: %s", hash)
 	}
-	return tx.GetBase().GetHeight(), nil
+	return tx.GetHeight(), nil
 }
 
 func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
@@ -455,25 +421,28 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq types.Sequencer
-	_, err := seq.UnmarshalMsg(data)
+	var seq *types.Sequencer
+	v, err := dag.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
 		return nil, nil
 	}
+	seq = v.(*types.Sequencer)
+
 	data, _ = dag.testDb.Get(txIndexKey(height))
 	if len(data) == 0 {
 		log.Warnf("tx hashs with seq height %d not found", height)
-		return nil, &seq
+		return nil, seq
 	}
+	// TODO: check here. any bug?
 	var hashs common.Hashes
 	_, err = hashs.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarshal err")
-		return nil, &seq
+		return nil, seq
 	}
 	if hashs == nil || len(hashs) == 0 {
-		return nil, &seq
+		return nil, seq
 	}
 	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
 	var txs types.Txis
@@ -483,10 +452,10 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer
 			txs = append(txs, tx)
 		}
 	}
-	return txs, &seq
+	return txs, seq
 }
 
-func (dag *Dag) GetTxsByNumberAndType(height uint64, txType archive2.TxBaseType) types.Txis {
+func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -582,23 +551,23 @@ func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *types.Sequence
 	}
 }
 
-func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
-
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	return dag.getConfirmTime(seqHeight)
-}
-
-func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
-	if seqHeight == 0 {
-		return nil
-	}
-	cf := dag.accessor.readConfirmTime(seqHeight)
-	if cf == nil {
-		log.Warn("ConfirmTime not found")
-	}
-	return cf
-}
+//func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//	return dag.getConfirmTime(seqHeight)
+//}
+//
+//func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//	if seqHeight == 0 {
+//		return nil
+//	}
+//	cf := dag.accessor.readConfirmTime(seqHeight)
+//	if cf == nil {
+//		log.Warn("ConfirmTime not found")
+//	}
+//	return cf
+//}
 
 func (dag *Dag) GetTxsHashesByNumber(Height uint64) *common.Hashes {
 	dag.mu.RLock()
@@ -608,7 +577,7 @@ func (dag *Dag) GetTxsHashesByNumber(Height uint64) *common.Hashes {
 }
 
 func (dag *Dag) getTxsHashesByNumber(Height uint64) *common.Hashes {
-	if Height > dag.latestSequencer.Number() {
+	if Height > dag.latestSequencer.GetHeight() {
 		return nil
 	}
 	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
@@ -773,11 +742,11 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
 	txhashes := common.Hashes{}
-	consTxs := []types.Txi{}
+	//var consTxs []types.Txi
 	sId := dag.statedb.Snapshot()
 
 	for _, txi := range batch.Txs {
-		txi.GetBase().Height = batch.Seq.Height
+		txi.SetHeight(batch.Seq.Height)
 
 		_, receipt, err := dag.ProcessTransaction(txi, false)
 		if err != nil {
@@ -792,10 +761,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		// TODO
 		// Consensus related txs should not some specific types, should be
 		// changed to a modular way.
-		txType := txi.GetType()
-		if txType == archive2.TxBaseTypeCampaign || txType == archive2.TxBaseTypeTermChange {
-			consTxs = append(consTxs, txi)
-		}
+		//txType := txi.GetType()
+		//if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
+		//	consTxs = append(consTxs, txi)
+		//}
 	}
 	var writedTxs types.Txis
 	for _, txi := range batch.Txs {
@@ -817,7 +786,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	}
 
 	// save latest sequencer into db
-	batch.Seq.GetBase().Height = batch.Seq.Height
+	//batch.Seq.GetBase().Height = batch.Seq.Height
 	err = dag.WriteTransaction(dbBatch, batch.Seq)
 	if err != nil {
 		return err
@@ -891,43 +860,43 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
 
-	// TODO: confirm time is for tps calculation, delete later.
-	cf := types.ConfirmTime{
-		SeqHeight:   batch.Seq.Height,
-		TxNum:       uint64(len(txhashes)),
-		ConfirmTime: time.Now().Format(time.RFC3339Nano),
-	}
-	dag.writeConfirmTime(&cf)
+	//// TODO: confirm time is for tps calculation, delete later.
+	//cf := types.ConfirmTime{
+	//	SeqHeight:   batch.Seq.Height,
+	//	TxNum:       uint64(len(txhashes)),
+	//	ConfirmTime: time.Now().Format(time.RFC3339Nano),
+	//}
+	//dag.writeConfirmTime(&cf)
 
 	// send consensus related txs.
-	if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
-		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		goroutine.New(func() {
-			dag.OnConsensusTXConfirmed <- consTxs
-			log.WithField("txs ", consTxs).Trace("sent consensus txs")
-		})
-	}
+	//if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
+	//	log.WithField("txs ", consTxs).Trace("sending consensus txs")
+	//	goroutine.New(func() {
+	//		dag.OnConsensusTXConfirmed <- consTxs
+	//		log.WithField("txs ", consTxs).Trace("sent consensus txs")
+	//	})
+	//}
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 
 	return nil
 }
 
-func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
-	return dag.accessor.writeConfirmTime(cf)
-}
+//func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
+//	return dag.accessor.writeConfirmTime(cf)
+//}
 
-func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.latestSequencer = types.RandomSequencer()
-	dag.latestSequencer.Height = cf.SeqHeight
-	return dag.writeConfirmTime(cf)
-}
+//func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
+//	dag.mu.Lock()
+//	defer dag.mu.Unlock()
+//	dag.latestSequencer = types.RandomSequencer()
+//	dag.latestSequencer.Height = cf.SeqHeight
+//	return dag.writeConfirmTime(cf)
+//}
 
-func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
-	return dag.accessor.readConfirmTime(seqHeight)
-}
+//func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//	return dag.accessor.readConfirmTime(seqHeight)
+//}
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
@@ -936,15 +905,12 @@ func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
 func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	if tx.GetType() != archive2.TxBaseTypeArchive {
-		err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
-		if err != nil {
-			return fmt.Errorf("write latest nonce err: %v", err)
-		}
+	err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
+	if err != nil {
+		return fmt.Errorf("write latest nonce err: %v", err)
 	}
-
 	// Write tx itself
-	err := dag.accessor.WriteTransaction(putter, tx)
+	err = dag.accessor.WriteTransaction(putter, tx)
 	if err != nil {
 		return err
 	}
@@ -963,10 +929,10 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 // contract, vm part will be initiated to handle this.
 func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
-	if tx.GetType() == archive2.TxBaseTypeArchive {
-		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
-		return nil, nil, nil
-	}
+	//if tx.GetType() == types.TxBaseTypeArchive {
+	//	//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
+	//	return nil, nil, nil
+	//}
 
 	var db state.StateDBInterface
 	if preload {
@@ -980,34 +946,34 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		db.SetNonce(tx.Sender(), tx.GetNonce())
 	}
 
-	if tx.GetType() == archive2.TxBaseTypeSequencer {
+	if tx.GetType() == types.TxBaseTypeSequencer {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
-	if tx.GetType() == archive2.TxBaseTypeCampaign {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
-	if tx.GetType() == archive2.TxBaseTypeTermChange {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
-	if tx.GetType() == archive2.TxBaseAction {
-		actionTx := tx.(*archive2.ActionTx)
-		receipt, err := dag.processTokenTransaction(actionTx)
-		if err != nil {
-			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
-		}
-		return nil, receipt, nil
-	}
+	//if tx.GetType() == types.TxBaseTypeCampaign {
+	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	return nil, receipt, nil
+	//}
+	//if tx.GetType() == types.TxBaseTypeTermChange {
+	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	return nil, receipt, nil
+	//}
+	//if tx.GetType() == archive2.TxBaseAction {
+	//	actionTx := tx.(*archive2.ActionTx)
+	//	receipt, err := dag.processTokenTransaction(actionTx)
+	//	if err != nil {
+	//		return nil, receipt, fmt.Errorf("process action tx error: %v", err)
+	//	}
+	//	return nil, receipt, nil
+	//}
 
-	if tx.GetType() != archive2.TxBaseTypeNormal {
+	if tx.GetType() != types.TxBaseTypeNormal {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
 	// transfer balance
-	txnormal := tx.(*archive2.Tx)
+	txnormal := tx.(*types.Tx)
 	if txnormal.Value.Value.Sign() != 0 {
 		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
@@ -1072,52 +1038,52 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	return ret, receipt, nil
 }
 
-func (dag *Dag) processTokenTransaction(tx *archive2.ActionTx) (*Receipt, error) {
-
-	actionData := tx.ActionData.(*archive2.PublicOffering)
-	if tx.Action == archive2.ActionTxActionIPO {
-		issuer := tx.Sender()
-		name := actionData.TokenName
-		reIssuable := actionData.EnableSPO
-		amount := actionData.Value
-
-		tokenID, err := dag.statedb.IssueToken(issuer, name, "", reIssuable, amount)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		actionData.TokenId = tokenID
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
-		return receipt, nil
-	}
-	if tx.Action == archive2.ActionTxActionSPO {
-		tokenID := actionData.TokenId
-		amount := actionData.Value
-
-		err := dag.statedb.ReIssueToken(tokenID, amount)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
-		return receipt, nil
-	}
-	if tx.Action == archive2.ActionTxActionDestroy {
-		tokenID := actionData.TokenId
-
-		err := dag.statedb.DestroyToken(tokenID)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
-		return receipt, nil
-	}
-
-	err := fmt.Errorf("unknown tx action: %d", tx.Action)
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-	return receipt, err
-}
+//func (dag *Dag) processTokenTransaction(tx *types.ActionTx) (*Receipt, error) {
+//
+//	actionData := tx.ActionData.(*archive2.PublicOffering)
+//	if tx.Action == archive2.ActionTxActionIPO {
+//		issuer := tx.Sender()
+//		name := actionData.TokenName
+//		reIssuable := actionData.EnableSPO
+//		amount := actionData.Value
+//
+//		tokenID, err := dag.statedb.IssueToken(issuer, name, "", reIssuable, amount)
+//		if err != nil {
+//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			return receipt, err
+//		}
+//		actionData.TokenId = tokenID
+//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		return receipt, nil
+//	}
+//	if tx.Action == archive2.ActionTxActionSPO {
+//		tokenID := actionData.TokenId
+//		amount := actionData.Value
+//
+//		err := dag.statedb.ReIssueToken(tokenID, amount)
+//		if err != nil {
+//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			return receipt, err
+//		}
+//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		return receipt, nil
+//	}
+//	if tx.Action == archive2.ActionTxActionDestroy {
+//		tokenID := actionData.TokenId
+//
+//		err := dag.statedb.DestroyToken(tokenID)
+//		if err != nil {
+//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			return receipt, err
+//		}
+//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		return receipt, nil
+//	}
+//
+//	err := fmt.Errorf("unknown tx action: %d", tx.Action)
+//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//	return receipt, err
+//}
 
 // CallContract calls contract but disallow any modifications on
 // statedb. This method will call ovm.StaticCall() to satisfy this.

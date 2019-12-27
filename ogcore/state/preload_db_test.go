@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types/token"
 	"testing"

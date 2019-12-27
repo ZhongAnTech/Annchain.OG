@@ -17,8 +17,8 @@ import (
 	"container/heap"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/state"
 	"sort"
 	"sync"
 

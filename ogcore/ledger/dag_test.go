@@ -16,6 +16,7 @@ package core_test
 import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"testing"
 
 	"encoding/hex"
@@ -25,7 +26,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 )
 
 var (
@@ -33,16 +34,16 @@ var (
 	testAddress02 = "0x0b5d53f433b7e4a4f853a01e987f977497dda262"
 )
 
-func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, func()) {
-	conf := core.DagConfig{}
-	db, remove := newTestLDB(dbDirPrefix)
+func newTestDag(t *testing.T, dbDirPrefix string) (*core2.Dag, *types.Sequencer, func()) {
+	conf := core2.DagConfig{}
+	db, remove := core2.newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
-	dag, errnew := core.NewDag(conf, stdbconf, db, nil)
+	dag, errnew := core2.NewDag(conf, stdbconf, db, nil)
 	if errnew != nil {
 		t.Fatalf("new dag failed with error: %v", errnew)
 	}
 
-	genesis, balance := core.DefaultGenesis("genesis.json")
+	genesis, balance := core2.DefaultGenesis("genesis.json")
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -57,8 +58,8 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *types.Sequencer, 
 
 func newTestDagTx(nonce uint64) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
+	addr := core2.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -103,16 +104,16 @@ func TestDagInit(t *testing.T) {
 func TestDagLoadGenesis(t *testing.T) {
 	t.Parallel()
 
-	conf := core.DagConfig{}
-	db, remove := newTestLDB("TestDagLoadGenesis")
+	conf := core2.DagConfig{}
+	db, remove := core2.newTestLDB("TestDagLoadGenesis")
 	defer remove()
-	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
+	dag, errnew := core2.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("can't new a dag: %v", errnew)
 	}
 
-	acc := core.NewAccessor(db)
-	genesis, _ := core.DefaultGenesis("genesis.json")
+	acc := core2.NewAccessor(db)
+	genesis, _ := core2.DefaultGenesis("genesis.json")
 	err := acc.WriteGenesis(genesis)
 	if err != nil {
 		t.Fatalf("can't write genesis into db: %v", err)
@@ -151,7 +152,7 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: core.NewTxList(), Neg: make(map[int32]*math.BigInt)}
+	bd := &core.BatchDetail{TxList: core2.NewTxList(), Neg: make(map[int32]*math.BigInt)}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
 	//bd.Pos = math.NewBigInt(0)
@@ -160,7 +161,7 @@ func TestDagPush(t *testing.T) {
 	batch := map[common.Address]*core.BatchDetail{}
 	batch[tx1.Sender()] = bd
 
-	seq := newTestSeq(1)
+	seq := core2.newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -168,7 +169,7 @@ func TestDagPush(t *testing.T) {
 
 	//hashes := &common.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
 
-	cb := &core.ConfirmBatch{}
+	cb := &core2.ConfirmBatch{}
 	cb.Seq = seq
 	//cb.Batch = batch
 	//cb.TxHashes = hashes
@@ -222,8 +223,8 @@ func TestDagProcess(t *testing.T) {
 	stdb := dag.StateDatabase()
 	defer finish()
 
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
+	addr := core2.newTestAddress(pk)
 
 	// evm contract bytecode, for source code detail please check:
 	// github.com/annchain/OG/vm/vm_test/contracts/setter.sol

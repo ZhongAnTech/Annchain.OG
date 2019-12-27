@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/types"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/model"
 
 	"sync"
@@ -28,12 +29,12 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 )
 
 type Og struct {
-	Dag      *core.Dag
+	Dag      *core2.Dag
 	TxPool   *core.TxPool
 	Manager  *MessageRouter
 	TxBuffer *TxBuffer
@@ -86,12 +87,12 @@ func NewOg(config OGConfig) (*Og, error) {
 	if err != nil {
 		return nil, err
 	}
-	dagConfig := core.DagConfig{GenesisPath: config.GenesisPath}
+	dagConfig := core2.DagConfig{GenesisPath: config.GenesisPath}
 	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
 	}
-	og.Dag, err = core.NewDag(dagConfig, stateDbConfig, db, testDb)
+	og.Dag, err = core2.NewDag(dagConfig, stateDbConfig, db, testDb)
 	if err != nil {
 		logrus.WithError(err).Warning("create db error")
 		return nil, err

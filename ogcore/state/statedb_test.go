@@ -6,7 +6,7 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 )
 

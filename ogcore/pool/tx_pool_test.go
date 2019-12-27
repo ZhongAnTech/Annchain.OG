@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core_test
+package pool
 
 import (
 	"github.com/annchain/OG/common"
@@ -60,8 +60,8 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core2.Dag, *types.Sequencer, fu
 
 func newTestPoolTx(nonce uint64) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
-	addr := core2.newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -80,8 +80,8 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 
 func newTestPoolBadTx() *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp2)
-	addr := core2.newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -226,7 +226,7 @@ func TestPoolConfirm(t *testing.T) {
 	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	pool.AddLocalTx(tx1, true)
 
-	seq := core2.newTestSeq(1)
+	seq := newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
 		tx0.GetTxHash(),
 		tx1.GetTxHash(),

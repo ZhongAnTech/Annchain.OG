@@ -16,9 +16,9 @@ package downloader
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/types"
 	"math/big"
@@ -64,7 +64,7 @@ type downloadTester struct {
 // newTester creates a new downloader test mocker.
 func newTester() *downloadTester {
 	testdb := ogdb.NewMemDatabase()
-	genesis, _ := core.DefaultGenesis(0)
+	genesis, _ := core2.DefaultGenesis(0)
 	tester := &downloadTester{
 		genesis:           genesis,
 		peerDb:            testdb,

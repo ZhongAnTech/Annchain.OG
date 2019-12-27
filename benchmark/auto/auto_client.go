@@ -19,10 +19,10 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"math/rand"
 	"sync"
 	"time"
@@ -285,7 +285,7 @@ func (c *AutoClient) fireTxs() bool {
 
 		}
 		if c.TestDagPush {
-			batch := &core.ConfirmBatch{seq, txis}
+			batch := &core2.ConfirmBatch{seq, txis}
 			err := c.Delegate.Dag.Push(batch)
 			if err != nil {
 				logrus.WithField("seq ", seq).WithError(err).Error("dag push err")

@@ -26,7 +26,19 @@ type Sequencer struct {
 	Weight uint64
 }
 
-func (s Sequencer) Dump() string {
+func (s *Sequencer) GetNonce() uint64 {
+	return s.AccountNonce
+}
+
+func (s *Sequencer) Sender() common.Address {
+	return s.Issuer
+}
+
+func (s *Sequencer) SetHeight(height uint64) {
+	s.Height = height
+}
+
+func (s *Sequencer) Dump() string {
 	var phashes []string
 	for _, p := range s.ParentsHash {
 		phashes = append(phashes, p.Hex())
@@ -43,7 +55,7 @@ func (s Sequencer) Dump() string {
 	)
 }
 
-func (s Sequencer) CalcTxHash() (hash common.Hash) {
+func (s *Sequencer) CalcTxHash() (hash common.Hash) {
 	// TODO: double check the hash content
 	w := types.NewBinaryWriter()
 
@@ -73,33 +85,33 @@ func (s *Sequencer) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (s Sequencer) GetType() TxBaseType {
+func (s *Sequencer) GetType() TxBaseType {
 	return TxBaseTypeSequencer
 }
 
-func (s Sequencer) GetHeight() uint64 {
+func (s *Sequencer) GetHeight() uint64 {
 	return s.Height
 }
 
-func (s Sequencer) GetWeight() uint64 {
+func (s *Sequencer) GetWeight() uint64 {
 	if s.Weight == 0 {
 		panic("implementation error: weight not initialized")
 	}
 	return s.Weight
 }
 
-func (s Sequencer) GetTxHash() common.Hash {
+func (s *Sequencer) GetTxHash() common.Hash {
 	if s.Hash.Empty() {
 		s.CalcTxHash()
 	}
 	return s.Hash
 }
 
-func (s Sequencer) Parents() common.Hashes {
+func (s *Sequencer) Parents() common.Hashes {
 	return s.ParentsHash
 }
 
-func (s Sequencer) String() string {
+func (s *Sequencer) String() string {
 	return fmt.Sprintf("Sq-[%.10s]:%d", s.Issuer.String(), s.AccountNonce)
 	//if s.Issuer == nil {
 	//	return fmt.Sprintf("Sq-[nil]-%d", s.AccountNonce)
@@ -108,7 +120,7 @@ func (s Sequencer) String() string {
 	//}
 }
 
-func (s Sequencer) CalculateWeight(parents Txis) uint64 {
+func (s *Sequencer) CalculateWeight(parents Txis) uint64 {
 	var maxWeight uint64
 	for _, p := range parents {
 		if p.GetWeight() > maxWeight {
@@ -118,7 +130,7 @@ func (s Sequencer) CalculateWeight(parents Txis) uint64 {
 	return maxWeight + 1
 }
 
-func (s Sequencer) Compare(tx Txi) bool {
+func (s *Sequencer) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:
 		if s.GetTxHash().Cmp(tx.GetTxHash()) == 0 {

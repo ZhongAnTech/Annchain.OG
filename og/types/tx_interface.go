@@ -18,6 +18,7 @@ type Txi interface {
 	// Implemented by TxBase
 	GetType() TxBaseType
 	GetHeight() uint64
+	SetHeight(uint64)
 	GetWeight() uint64
 	GetTxHash() common.Hash
 	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
@@ -27,7 +28,7 @@ type Txi interface {
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 
-	//GetNonce() uint64
+	GetNonce() uint64
 	//SetHash(h common.Hash)
 	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 
@@ -36,7 +37,7 @@ type Txi interface {
 
 	// implemented by each tx type
 	//GetBase() *TxBase
-	//Sender() common.Address
+	Sender() common.Address
 	//GetSender() *common.Address
 	//SetSender(addr common.Address)
 	//Dump() string             // For logger dump

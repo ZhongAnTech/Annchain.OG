@@ -15,12 +15,12 @@ package core_test
 
 import (
 	"github.com/annchain/OG/og/txmaker"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 )
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
@@ -48,7 +48,7 @@ func TestTxList(t *testing.T) {
 
 	testNonces := []uint64{208, 505, 910, 157, 771, 718, 98, 897, 538, 38}
 
-	tl := core.NewTxList()
+	tl := core2.NewTxList()
 	for _, nonce := range testNonces {
 		tx := newTestAccountFlowTx(nonce, math.NewBigInt(0))
 		tl.Put(tx)
@@ -83,7 +83,7 @@ func TestBalanceState(t *testing.T) {
 	var spent int64
 
 	originBalance := math.NewBigInt(100000)
-	bs := core.NewBalanceState(originBalance)
+	bs := core2.NewBalanceState(originBalance)
 
 	// test TrySubBalance
 	fstValue := int64(10000)
@@ -139,7 +139,7 @@ func TestAccountFlow(t *testing.T) {
 
 	//balancevalue := int64(100000)
 	originBalance := state.NewBalanceSet()
-	af := core.NewAccountFlow(originBalance)
+	af := core2.NewAccountFlow(originBalance)
 
 	tx0value := int64(1000)
 	tx1value := int64(2000)

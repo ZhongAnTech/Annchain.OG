@@ -72,6 +72,12 @@ func setupSync(total int) []*ogcore.OgPartner {
 			Name:    "TxsFetchedForResponseEventType",
 			Handler: partner,
 		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NewTxLocallyGeneratedEventType,
+			Name:    "NewTxLocallyGeneratedEventType",
+			Handler: partner,
+		})
+
 		bus.Build()
 	}
 	return processors
@@ -94,13 +100,14 @@ func TestIncremental(t *testing.T) {
 	// one is generating new txs constantly
 	logrus.Debug("generating txs")
 
-	processors[0].EventBus.Route(&events.NewTxGeneratedEvent{
+	// event should be generated outside the processor
+	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 		Tx: sampleTx("0x01", []string{"0x00"}),
 	})
-	processors[1].EventBus.Route(&events.NewTxGeneratedEvent{
+	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 		Tx: sampleTx("0x02", []string{"0x01"}),
 	})
-	processors[2].EventBus.Route(&events.NewTxGeneratedEvent{
+	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 		Tx: sampleTx("0x03", []string{"0x02"}),
 	})
 	time.Sleep(time.Second * 5)

@@ -14,6 +14,12 @@ type ProxyOgPeerCommunicator struct {
 	pipe             chan *communication.OgMessageEvent
 }
 
+func (p *ProxyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
+	ogMessage, err := p.OgMessageAdapter.AdaptOgMessage(msg)
+	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
+	p.GeneralOutgoing.Broadcast(ogMessage)
+}
+
 func (p *ProxyOgPeerCommunicator) InitDefault() {
 	p.pipe = make(chan *communication.OgMessageEvent)
 }
@@ -28,7 +34,7 @@ func (p ProxyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []commun
 		utilfuncs.PanicIfError(err, "Adapter for annsensus peer should never fail")
 		ogPeers[i] = adaptedValue
 	}
-	p.GeneralOutgoing.Broadcast(ogMessage, ogPeers)
+	p.GeneralOutgoing.Multicast(ogMessage, ogPeers)
 }
 
 func (p ProxyOgPeerCommunicator) Unicast(msg message.OgMessage, peer communication.OgPeer) {

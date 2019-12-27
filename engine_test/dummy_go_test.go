@@ -34,7 +34,26 @@ func NewLocalGeneralPeerCommunicator(myid int, incoming chan *message.GeneralMes
 	return d
 }
 
-func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage, peers []message.GeneralPeer) {
+func (d *LocalGeneralPeerCommunicator) Broadcast(msg message.GeneralMessage) {
+	outMsg := &message.GeneralMessageEvent{
+		Message: msg,
+		Sender:  d.me,
+	}
+	for i, peerChan := range d.PeerIns {
+		go func(peerChan chan *message.GeneralMessageEvent, i int) {
+			logrus.WithFields(logrus.Fields{
+				"from":    d.me.Id,
+				"to":      i,
+				"content": msg.String(),
+				"type":    msg.GetType()}).Trace("Sending message")
+
+			//<- ffchan.NewTimeoutSenderShort(d.PeerIns[peer.Id], outMsg, "bft").C
+			peerChan <- outMsg
+		}(peerChan, i)
+	}
+}
+
+func (d *LocalGeneralPeerCommunicator) Multicast(msg message.GeneralMessage, peers []message.GeneralPeer) {
 	for _, peer := range peers {
 		go func(peer message.GeneralPeer) {
 			logrus.WithFields(logrus.Fields{

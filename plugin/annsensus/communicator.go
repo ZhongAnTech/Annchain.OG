@@ -27,7 +27,7 @@ func (p ProxyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage
 		utilfuncs.PanicIfError(err, "Adapter for annsensus peer should never fail")
 		ogPeers[i] = adaptedValue
 	}
-	p.GeneralOutgoing.Broadcast(ogMessage, ogPeers)
+	p.GeneralOutgoing.Multicast(ogMessage, ogPeers)
 }
 
 func (p ProxyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {

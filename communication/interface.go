@@ -6,7 +6,8 @@ import (
 )
 
 type GeneralPeerCommunicatorOutgoing interface {
-	Broadcast(msg message.GeneralMessage, peers []message.GeneralPeer)
+	Broadcast(msg message.GeneralMessage)
+	Multicast(msg message.GeneralMessage, peers []message.GeneralPeer)
 	Unicast(msg message.GeneralMessage, peer message.GeneralPeer)
 }
 type GeneralPeerCommunicatorIncoming interface {

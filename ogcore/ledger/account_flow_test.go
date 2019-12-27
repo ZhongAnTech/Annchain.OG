@@ -15,6 +15,7 @@ package core_test
 
 import (
 	"github.com/annchain/OG/og/txmaker"
+	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"testing"
 
@@ -105,7 +106,7 @@ func TestBalanceState(t *testing.T) {
 	tx1 := newTestAccountFlowTx(1, math.NewBigInt(tx1value))
 	tx2 := newTestAccountFlowTx(2, math.NewBigInt(tx2value))
 
-	err = bs.TryRemoveValue(tx0.GetValue())
+	err = bs.TryRemoveValue(tx0.Value)
 	if err != nil {
 		t.Fatalf("TryRemoveValue tx0 error: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestBalanceState(t *testing.T) {
 	if spent != (fstValue - tx0value) {
 		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value, spent)
 	}
-	err = bs.TryRemoveValue(tx1.GetValue())
+	err = bs.TryRemoveValue(tx1.Value)
 	if err != nil {
 		t.Fatalf("TryRemoveValue tx1 error: %v", err)
 	}
@@ -121,7 +122,7 @@ func TestBalanceState(t *testing.T) {
 	if spent != (fstValue - tx0value - tx1value) {
 		t.Fatalf("the value of spent is not correct, expect %d, get %d", fstValue-tx0value-tx1value, spent)
 	}
-	err = bs.TryRemoveValue(tx2.GetValue())
+	err = bs.TryRemoveValue(tx2.Value)
 	if err != nil {
 		t.Fatalf("TryRemoveValue tx2 error: %v", err)
 	}

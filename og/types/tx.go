@@ -34,6 +34,14 @@ type Tx struct {
 	Weight uint64
 }
 
+func (t *Tx) SetSender(addr common.Address) {
+	t.From = addr
+}
+
+func (t *Tx) SetHash(h common.Hash) {
+	t.Hash = h
+}
+
 func (t *Tx) GetNonce() uint64 {
 	return t.AccountNonce
 }

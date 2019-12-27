@@ -23,9 +23,10 @@ const (
 	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
 	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
 
-	HeightSyncRequestReceivedEventType // someone is requesting a height
-	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
-	NewTxLocallyGeneratedEventType     // a new tx is generated from local
+	HeightSyncRequestReceivedEventType    // someone is requesting a height
+	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
+	NewTxLocallyGeneratedEventType        // a new tx is generated from local
+	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
 )
 
 type PingReceivedEvent struct{}
@@ -126,4 +127,12 @@ type NewTxLocallyGeneratedEvent struct {
 
 func (m *NewTxLocallyGeneratedEvent) GetEventType() eventbus.EventType {
 	return NewTxLocallyGeneratedEventType
+}
+
+type NewSequencerLocallyGeneratedEvent struct {
+	Sequencer *types.Sequencer
+}
+
+func (m *NewSequencerLocallyGeneratedEvent) GetEventType() eventbus.EventType {
+	return NewSequencerLocallyGeneratedEventType
 }

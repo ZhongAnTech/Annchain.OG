@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 	"testing"
 )
 

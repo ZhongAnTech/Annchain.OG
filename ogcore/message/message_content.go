@@ -64,8 +64,8 @@ func (z *MessageContentTx) FromBytes(bts []byte) error {
 	return nil
 }
 
-//msgp:tuple MessageContextSequencer
-type MessageContextSequencer struct {
+//msgp:tuple MessageContentSequencer
+type MessageContentSequencer struct {
 	Hash         common.Hash
 	ParentsHash  []common.Hash
 	MineNonce    uint64
@@ -77,7 +77,7 @@ type MessageContextSequencer struct {
 	Height       uint64
 }
 
-func (z *MessageContextSequencer) ToBytes() []byte {
+func (z *MessageContentSequencer) ToBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -85,7 +85,7 @@ func (z *MessageContextSequencer) ToBytes() []byte {
 	return b
 }
 
-func (z *MessageContextSequencer) FromBytes(bts []byte) error {
+func (z *MessageContentSequencer) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err

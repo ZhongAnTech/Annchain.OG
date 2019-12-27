@@ -26,7 +26,7 @@ common/crypto/debug.test
 core/debug.test
 app/debug
 *.test
-core/state/debug.test
+ogcore/state/debug.test
 /vm/compiler/
 tests/genesis_account/secret.json
 main.exe

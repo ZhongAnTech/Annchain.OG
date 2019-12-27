@@ -19,12 +19,13 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/types"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 
 	"github.com/sirupsen/logrus"
 )
 
 type DataLoader struct {
-	Dag    *core.Dag
+	Dag    *core2.Dag
 	TxPool *core.TxPool
 }
 

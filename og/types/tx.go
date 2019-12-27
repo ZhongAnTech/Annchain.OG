@@ -34,7 +34,19 @@ type Tx struct {
 	Weight uint64
 }
 
-func (t Tx) Dump() string {
+func (t *Tx) GetNonce() uint64 {
+	return t.AccountNonce
+}
+
+func (t *Tx) Sender() common.Address {
+	return t.From
+}
+
+func (t *Tx) SetHeight(height uint64) {
+	t.Height = height
+}
+
+func (t *Tx) Dump() string {
 	var phashes []string
 	for _, p := range t.ParentsHash {
 		phashes = append(phashes, p.Hex())
@@ -45,7 +57,7 @@ func (t Tx) Dump() string {
 		t.AccountNonce, t.Signature, hexutil.Encode(t.PublicKey.Bytes), t.MineNonce, t.Data)
 }
 
-func (t Tx) CalcTxHash() (hash common.Hash) {
+func (t *Tx) CalcTxHash() (hash common.Hash) {
 	w := types.NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
@@ -60,7 +72,7 @@ func (t Tx) CalcTxHash() (hash common.Hash) {
 	return
 }
 
-func (t Tx) CalcMinedHash() (hash common.Hash) {
+func (t *Tx) CalcMinedHash() (hash common.Hash) {
 	w := types.NewBinaryWriter()
 	//if !CanRecoverPubFromSig {
 	w.Write(t.PublicKey.ToBytes())
@@ -82,45 +94,45 @@ func (t *Tx) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (t Tx) GetType() TxBaseType {
+func (t *Tx) GetType() TxBaseType {
 	return TxBaseTypeNormal
 }
 
-func (t Tx) GetHeight() uint64 {
+func (t *Tx) GetHeight() uint64 {
 	return t.Height
 }
 
-func (t Tx) GetWeight() uint64 {
+func (t *Tx) GetWeight() uint64 {
 	if t.Weight == 0 {
 		panic("implementation error: weight not initialized")
 	}
 	return t.Weight
 }
 
-func (t Tx) GetTxHash() common.Hash {
+func (t *Tx) GetTxHash() common.Hash {
 	if t.Hash.Empty() {
 		t.CalcTxHash()
 	}
 	return t.Hash
 }
 
-func (t Tx) Parents() common.Hashes {
+func (t *Tx) Parents() common.Hashes {
 	return t.ParentsHash
 }
 
-func (t Tx) String() string {
+func (t *Tx) String() string {
 	return t.DebugString()
 	//return fmt.Sprintf("T-%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
 }
 
-func (t Tx) DebugString() string {
+func (t *Tx) DebugString() string {
 	s := t.GetTxHash().Hex()
 	return fmt.Sprintf("T-%d-[%s]-%d", t.Height, "0x"+s[len(s)-4:], t.Weight)
 }
 
 //CalculateWeight  a core algorithm for tx sorting,
 //a tx's weight must bigger than any of it's parent's weight  and bigger than any of it's elder transaction's
-func (t Tx) CalculateWeight(parents Txis) uint64 {
+func (t *Tx) CalculateWeight(parents Txis) uint64 {
 	var maxWeight uint64
 	for _, p := range parents {
 		if p.GetWeight() > maxWeight {
@@ -130,7 +142,7 @@ func (t Tx) CalculateWeight(parents Txis) uint64 {
 	return maxWeight + 1
 }
 
-func (t Tx) Compare(tx Txi) bool {
+func (t *Tx) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Tx:
 		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {

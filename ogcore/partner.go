@@ -50,7 +50,7 @@ func (a *OgPartner) AdaptTxiToResource(txi types.Txi) message.MessageContentReso
 		}
 	case types.TxBaseTypeSequencer:
 		seq := txi.(*types.Sequencer)
-		content := message.MessageContextSequencer{
+		content := message.MessageContentSequencer{
 			Hash:         seq.Hash,
 			ParentsHash:  seq.ParentsHash,
 			MineNonce:    seq.MineNonce,
@@ -250,10 +250,10 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 			o.OgCore.HandleNewTx(tx)
 			o.EventBus.Route(&events.TxReceivedEvent{Tx: tx})
 		case message.ResourceTypeSequencer:
-			msgSeq := &message.MessageContextSequencer{}
+			msgSeq := &message.MessageContentSequencer{}
 			err := msgSeq.FromBytes(resource.ResourceContent)
 			if err != nil {
-				logrus.Warn("bad format: MessageContextSequencer")
+				logrus.Warn("bad format: MessageContentSequencer")
 				return
 			}
 			seq := &types.Sequencer{

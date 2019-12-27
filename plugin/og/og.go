@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
+	"github.com/annchain/OG/ogcore/pool"
 )
 
 var supportedMessageTypes = []general_message.GeneralMessageType{
@@ -18,7 +19,7 @@ type OgPlugin struct {
 	messageHandler general_communication.GeneralMessageEventHandler
 	OgPartner      *ogcore.OgPartner
 	Communicator   *ProxyOgPeerCommunicator
-	TxBuffer       *ogcore.TxBuffer
+	TxBuffer       *pool.TxBuffer
 }
 
 func NewOgPlugin() *OgPlugin {

@@ -11,16 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core
+package pool
 
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
-	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/state"
 
 	"github.com/annchain/OG/status"
@@ -32,7 +31,6 @@ import (
 	"math/rand"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -90,13 +88,13 @@ const (
 
 type TxPool struct {
 	conf TxPoolConfig
-	dag  *core.Dag
+	dag  *Dag
 
 	queue    chan *txEvent // queue stores txs that need to validate later
 	tips     *TxMap        // tips stores all the tips
 	badtxs   *TxMap
 	pendings *TxMap
-	flows    *core.AccountFlows
+	flows    *AccountFlows
 	txLookup *txLookUp // txLookUp stores all the txs for external query
 	cached   *cachedConfirm
 
@@ -128,7 +126,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 	}
 }
 
-func NewTxPool(conf TxPoolConfig, d *core.Dag) *TxPool {
+func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	if conf.ConfirmStatusRefreshTime == 0 {
 		conf.ConfirmStatusRefreshTime = 30
 	}
@@ -139,7 +137,7 @@ func NewTxPool(conf TxPoolConfig, d *core.Dag) *TxPool {
 		tips:                   NewTxMap(),
 		badtxs:                 NewTxMap(),
 		pendings:               NewTxMap(),
-		flows:                  core.NewAccountFlows(),
+		flows:                  NewAccountFlows(),
 		txLookup:               newTxLookUp(),
 		close:                  make(chan struct{}),
 		onNewTxReceived:        make(map[channelName]chan types.Txi),
@@ -443,7 +441,7 @@ func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
-	pool.flows = core.NewAccountFlows()
+	pool.flows = NewAccountFlows()
 	pool.txLookup = newTxLookUp()
 }
 
@@ -682,7 +680,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
 			originBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
-			stateFrom = core.NewBalanceState(originBalance)
+			stateFrom = NewBalanceState(originBalance)
 		}
 
 		// if tx's value is larger than its balance, return fatal.
@@ -795,10 +793,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
 
 	var err error
-	var batch *core.ConfirmBatch
+	var batch *ConfirmBatch
 	var elders map[common.Hash]types.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
-		batch = &core.ConfirmBatch{
+		batch = &ConfirmBatch{
 			Seq: seq,
 			Txs: pool.cached.Txs(),
 		}
@@ -853,7 +851,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[common.Hash]types.Txi, *core.ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -930,7 +928,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.Hash]types.Txi) (*core.ConfirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.Hash]types.Txi) (*ConfirmBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
@@ -962,7 +960,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = core.NewTxList()
+				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				//batchFrom.Pos = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
@@ -974,7 +972,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = core.NewTxList()
+				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
@@ -1001,7 +999,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 		}
 	}
 
-	cb := &core.ConfirmBatch{}
+	cb := &ConfirmBatch{}
 	cb.Seq = seq
 	cb.Txs = cTxs
 	return cb, nil
@@ -1010,7 +1008,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(batch *core.ConfirmBatch) {
+func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -1062,7 +1060,7 @@ func (pool *TxPool) solveConflicts(batch *core.ConfirmBatch) {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr common.Address, noncesP *core.nonceHeap, seq *types.Sequencer) error {
+func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *types.Sequencer) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
@@ -1099,7 +1097,7 @@ func (pool *TxPool) reset() {
 // - TxList - represents the txs sent by this addrs, ordered by nonce.
 // - Neg    - means the amount this address should spent out.
 type BatchDetail struct {
-	TxList *core.TxList
+	TxList *TxList
 	Neg    map[int32]*math.BigInt
 }
 

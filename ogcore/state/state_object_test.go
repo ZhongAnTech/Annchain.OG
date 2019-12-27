@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
+	"github.com/annchain/OG/ogcore/state"
 )
 
 var (

@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -35,10 +36,10 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*m
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
-	seq.GetBase().Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
-	seq.GetBase().PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
-	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.GetBase().PublicKey))
-	seq.Issuer = &issuer
+	seq.Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
+	seq.PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
+	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.PublicKey))
+	seq.Issuer = issuer
 	hash := seq.CalcTxHash()
 	seq.SetHash(hash)
 
@@ -108,12 +109,12 @@ func GetSampleAccounts() []*account.Account {
 		}
 
 	} else {
-		logrus.WithField("len", math.MinInt(len(sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
+		logrus.WithField("len", math.MinInt(len(core.sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {
-			if i >= len(sampleEd25519PrivKeys) {
+			if i >= len(core.sampleEd25519PrivKeys) {
 				break
 			}
-			acc := account.NewAccount(sampleEd25519PrivKeys[i])
+			acc := account.NewAccount(core.sampleEd25519PrivKeys[i])
 			acc.Id = i
 			accounts = append(accounts, acc)
 		}
@@ -124,11 +125,16 @@ func GetSampleAccounts() []*account.Account {
 
 func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
 	tx := types.Sequencer{
-		TxBase: types.TxBase{
-			AccountNonce: accountNonce,
-			Type:         types.TxBaseTypeSequencer,
-			Height:       height,
-		},
+		Hash:         common.Hash{},
+		ParentsHash:  nil,
+		Height:       height,
+		MineNonce:    0,
+		AccountNonce: accountNonce,
+		Issuer:       common.Address{},
+		Signature:    nil,
+		PublicKey:    nil,
+		StateRoot:    common.Hash{},
+		Weight:       0,
 	}
 	return &tx
 }

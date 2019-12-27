@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
+	core2 "github.com/annchain/OG/ogcore/ledger"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -25,7 +26,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogdb"
 )
 
@@ -111,7 +111,7 @@ func TestTransactionStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core.NewAccessor(db)
+	acc := core2.NewAccessor(db)
 
 	// test tx read write
 	tx := newTestUnsealTx(0)
@@ -158,7 +158,7 @@ func TestGenesisStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core.NewAccessor(db)
+	acc := core2.NewAccessor(db)
 
 	genesis := newTestSeq(0)
 	err = acc.WriteGenesis(genesis)
@@ -181,7 +181,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core.NewAccessor(db)
+	acc := core2.NewAccessor(db)
 
 	latestSeq := newTestSeq(0)
 	err = acc.WriteLatestSequencer(nil, latestSeq)
@@ -204,7 +204,7 @@ func TestBalanceStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core.NewAccessor(db)
+	acc := core2.NewAccessor(db)
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
@@ -263,7 +263,7 @@ func TestDag_Start(t *testing.T) {
 	db, remove := newTestLDB("TestTransactionStorage")
 	defer remove()
 
-	acc := core.NewAccessor(db)
+	acc := core2.NewAccessor(db)
 	seq := types.RandomSequencer()
 	height := seq.Height
 	//acc.WriteLatestSequencer(nil,seq)

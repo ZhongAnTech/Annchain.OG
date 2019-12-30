@@ -36,7 +36,7 @@ type StateDBConfig struct {
 func DefaultStateDBConfig() StateDBConfig {
 	return StateDBConfig{
 		PurgeTimer:     time.Duration(10000),
-		BeatExpireTime: time.Duration(10 * time.Minute),
+		BeatExpireTime: 10 * time.Minute,
 	}
 }
 

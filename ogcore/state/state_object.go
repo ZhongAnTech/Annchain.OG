@@ -328,7 +328,7 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 type BalanceSet map[int32]*math.BigInt
 
 func NewBalanceSet() BalanceSet {
-	return BalanceSet(make(map[int32]*math.BigInt))
+	return make(map[int32]*math.BigInt)
 }
 
 func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {

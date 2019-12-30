@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/pool"
 
 	"github.com/annchain/OG/status"
 	"github.com/sirupsen/logrus"
@@ -13,7 +14,7 @@ import (
 // GraphVerifier verifies if the tx meets the OG hash and graph standards.
 type GraphVerifier struct {
 	Dag    og.IDag
-	TxPool og.ITxPool
+	TxPool pool.ITxPool
 	//Buffer *TxBuffer
 }
 

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/pool"
 
 	"github.com/annchain/OG/protocol"
 	"github.com/sirupsen/logrus"
@@ -35,7 +36,7 @@ type SyncBuffer struct {
 	TxsList    common.Hashes
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
-	txPool     og.ITxPool
+	txPool     pool.ITxPool
 	dag        og.IDag
 	acceptTxs  uint32
 	quitHandel bool
@@ -43,12 +44,12 @@ type SyncBuffer struct {
 }
 
 type SyncBufferConfig struct {
-	TxPool    og.ITxPool
+	TxPool    pool.ITxPool
 	Verifiers []protocol.Verifier
 	Dag       og.IDag
 }
 
-func DefaultSyncBufferConfig(txPool og.ITxPool, dag og.IDag, Verifiers []protocol.Verifier) SyncBufferConfig {
+func DefaultSyncBufferConfig(txPool pool.ITxPool, dag og.IDag, Verifiers []protocol.Verifier) SyncBufferConfig {
 	config := SyncBufferConfig{
 		TxPool:    txPool,
 		Dag:       dag,

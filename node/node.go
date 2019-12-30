@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/og/verifier"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/protocol"
 	"github.com/annchain/OG/rpc"
@@ -184,7 +185,7 @@ func NewNode() *Node {
 	verifiers := []protocol.Verifier{txFormatVerifier, graphVerifier}
 
 	// txBuffer
-	txBuffer := og.NewTxBuffer(og.TxBufferConfig{
+	txBuffer := pool.NewTxBuffer(pool.TxBufferConfig{
 		Verifiers:                        verifiers,
 		Dag:                              org.Dag,
 		TxPool:                           org.TxPool,

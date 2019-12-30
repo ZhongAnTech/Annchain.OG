@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/model"
+	"github.com/annchain/OG/ogcore/pool"
 
 	"sync"
 	"time"
@@ -28,16 +29,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 )
 
 type Og struct {
 	Dag      *core2.Dag
-	TxPool   *core.TxPool
+	TxPool   *pool.TxPool
 	Manager  *MessageRouter
-	TxBuffer *TxBuffer
+	TxBuffer *pool.TxBuffer
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
@@ -98,7 +98,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		return nil, err
 	}
 
-	txpoolconfig := core.TxPoolConfig{
+	txpoolconfig := pool.TxPoolConfig{
 		QueueSize:              viper.GetInt("txpool.queue_size"),
 		TipsSize:               viper.GetInt("txpool.tips_size"),
 		ResetDuration:          viper.GetInt("txpool.reset_duration"),
@@ -109,7 +109,7 @@ func NewOg(config OGConfig) (*Og, error) {
 		TimeoutConfirmation:    viper.GetInt("txpool.timeout_confirmation_ms"),
 		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
-	og.TxPool = core.NewTxPool(txpoolconfig, og.Dag)
+	og.TxPool = pool.NewTxPool(txpoolconfig, og.Dag)
 
 	// // initialize
 	// if !og.Dag.LoadLastState() {

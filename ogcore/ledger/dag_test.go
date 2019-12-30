@@ -26,7 +26,6 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogcore/state"
 )
 
@@ -153,13 +152,13 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: pool.NewTxList(), Neg: make(map[int32]*math.BigInt)}
+	bd := &pool.BatchDetail{TxList: pool.NewTxList(), Neg: make(map[int32]*math.BigInt)}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
 	//bd.Pos = math.NewBigInt(0)
 	bd.Neg[0] = math.NewBigInt(0)
 
-	batch := map[common.Address]*core.BatchDetail{}
+	batch := map[common.Address]*pool.BatchDetail{}
 	batch[tx1.Sender()] = bd
 
 	seq := core2.newTestSeq(1)

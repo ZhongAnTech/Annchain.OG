@@ -19,9 +19,9 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/sirupsen/logrus"
@@ -42,7 +42,7 @@ type Delegate struct {
 	TxCreator          *txmaker.OGTxCreator
 	ReceivedNewTxsChan chan []types.Txi
 	ReceivedNewTxChan  chan types.Txi
-	TxPool             *core.TxPool
+	TxPool             *pool.TxPool
 	Dag                *core2.Dag
 	OnNewTxiGenerated  []chan types.Txi
 	InsertSyncBuffer   insertTxsFn

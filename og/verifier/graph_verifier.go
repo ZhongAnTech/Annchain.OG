@@ -75,7 +75,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 	}
 	seeked := map[common.Hash]bool{}
 	seekingHashes := common.Hashes{}
-	for _, parent := range currentTx.Parents() {
+	for _, parent := range currentTx.GetParents() {
 		seekingHashes = append(seekingHashes, parent)
 	}
 
@@ -116,7 +116,7 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 				if archived {
 					continue
 				}
-				for _, parent := range txi.Parents() {
+				for _, parent := range txi.GetParents() {
 					if _, ok := seeked[parent]; !ok {
 						seekingHashes = append(seekingHashes, parent)
 						seeked[parent] = true
@@ -175,7 +175,7 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 			if archived {
 				continue
 			}
-			for _, parent := range txi.Parents() {
+			for _, parent := range txi.GetParents() {
 				if _, ok := seeked[parent]; !ok {
 					seekingHashes = append(seekingHashes, parent)
 					// seekingHashes.PushBack(parent)
@@ -317,7 +317,7 @@ func (v *GraphVerifier) verifyB1(txi types.Txi) bool {
 
 func (v *GraphVerifier) verifyWeight(txi types.Txi) bool {
 	var parents types.Txis
-	for _, pHash := range txi.Parents() {
+	for _, pHash := range txi.GetParents() {
 		parent := v.TxPool.Get(pHash)
 		if parent == nil {
 			parent = v.Dag.GetTx(pHash)

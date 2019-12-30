@@ -36,6 +36,14 @@ type Tx struct {
 	valid bool
 }
 
+func (t *Tx) SetParents(hashes common.Hashes) {
+	t.ParentsHash = hashes
+}
+
+func (t *Tx) SetWeight(weight uint64) {
+	t.Weight = weight
+}
+
 func (t *Tx) SetValid(b bool) {
 	t.valid = b
 }
@@ -134,7 +142,7 @@ func (t *Tx) GetTxHash() common.Hash {
 	return t.Hash
 }
 
-func (t *Tx) Parents() common.Hashes {
+func (t *Tx) GetParents() common.Hashes {
 	return t.ParentsHash
 }
 

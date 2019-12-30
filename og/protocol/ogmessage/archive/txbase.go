@@ -117,7 +117,7 @@ type TxBaseJson struct {
 //	return t.AccountNonce
 //}
 //
-//func (t *TxBase) Parents() common.Hashes {
+//func (t *TxBase) GetParents() common.Hashes {
 //	return t.ParentsHash
 //}
 //

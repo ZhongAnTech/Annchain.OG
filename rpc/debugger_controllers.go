@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/og/txmaker"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -107,7 +106,7 @@ func (r *RpcController) DebugCreateTxAndSendToBuffer(from, to common.Address, va
 	sigb, _ := hex.DecodeString(sigstr)
 	sig := crypto.SignatureFromBytes(crypto.CryptoTypeSecp256k1, sigb)
 
-	tx, err := r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+	tx, err := r.TxCreator.NewTxWithSeal(ogcore.TxWithSealBuildRequest{
 		From:    from,
 		To:      to,
 		Value:   value,

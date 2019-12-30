@@ -507,7 +507,7 @@ func (pool *TxPool) loop() {
 
 // addTx adds tx to the pool queue and wait to become tip after validation.
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
-	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.Parents().String())
+	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.GetParents().String())
 
 	te := &txEvent{
 		callbackChan: make(chan error),
@@ -567,7 +567,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	}
 
 	// move parents to pending
-	for _, pHash := range tx.Parents() {
+	for _, pHash := range tx.GetParents() {
 		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
 			log.WithField("parent", pHash).WithField("tx", tx).
@@ -614,7 +614,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 
 func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	// check if the tx's parents exists and if is badtx
-	for _, parentHash := range tx.Parents() {
+	for _, parentHash := range tx.GetParents() {
 		// check if tx in pool
 		if pool.get(parentHash) != nil {
 			if pool.getStatus(parentHash) == TxStatusBadTx {
@@ -897,7 +897,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 	inSeekingPool := map[common.Hash]int{}
 	seekingPool := common.Hashes{}
-	for _, parentHash := range baseTx.Parents() {
+	for _, parentHash := range baseTx.GetParents() {
 		seekingPool = append(seekingPool, parentHash)
 	}
 	for len(seekingPool) > 0 {
@@ -915,7 +915,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 		if batch[elder.GetTxHash()] == nil {
 			batch[elder.GetTxHash()] = elder
 		}
-		for _, elderParentHash := range elder.Parents() {
+		for _, elderParentHash := range elder.GetParents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool = append(seekingPool, elderParentHash)
 				inSeekingPool[elderParentHash] = 0

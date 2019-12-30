@@ -106,10 +106,10 @@ func (b *TxBuffer) loop() {
 
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
-	logrus.WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer is handling tx")
+	logrus.WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
-		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.Parents()).Debugf("buffer handled tx")
+		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 	// already in the dag or tx_pool or buffer itself.
@@ -153,7 +153,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	allFetched := true
 	// not in the pool, check its parents
 	//var sendBloom bool
-	for _, parentHash := range tx.Parents() {
+	for _, parentHash := range tx.GetParents() {
 		if !b.isLocalHash(parentHash) {
 			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
 			allFetched = false
@@ -361,7 +361,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 // If so, resolve this Hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) {
 	logrus.Debugf("try to resolve %s", tx)
-	for _, parent := range tx.Parents() {
+	for _, parent := range tx.GetParents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		//children := b.children.GetChildren(parent)
 		//if len(children) != 0 {

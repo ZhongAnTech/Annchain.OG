@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package ogcore
+package ogcore_test
 
 import (
 	"github.com/annchain/OG/og/txmaker"
@@ -29,8 +29,8 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
+		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        value,

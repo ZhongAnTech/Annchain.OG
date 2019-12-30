@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore_test"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -66,8 +67,8 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(ogcore.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(0),
@@ -86,8 +87,8 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
-		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
+	seq := txCreator.NewSignedSequencer(ogcore.SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: ogcore.UnsignedSequencerBuildRequest{
 			Issuer:       addr,
 			Height:       nonce,
 			AccountNonce: nonce,

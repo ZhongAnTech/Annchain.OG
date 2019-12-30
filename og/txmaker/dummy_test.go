@@ -62,7 +62,7 @@ func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 func (p *dummyTxPoolMiniTx) Add(v types.Txi) {
 	p.tipsMap[v.GetTxHash()] = v
 
-	for _, parentHash := range v.Parents() {
+	for _, parentHash := range v.GetParents() {
 		if vp, ok := p.tipsMap[parentHash]; ok {
 			delete(p.tipsMap, parentHash)
 			p.poolMap[parentHash] = vp

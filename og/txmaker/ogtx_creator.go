@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/protocol"
@@ -64,55 +63,60 @@ func (t *OGTxCreator) Stop() {
 	t.quit = true
 }
 
-func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
+func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) *types.Tx {
 	tx := types.Tx{
-		Value:   req.Value,
-		To:      req.To,
-		From:    &req.From,
-		TokenId: req.TokenId,
-		TxBase: types.TxBase{
-			AccountNonce: req.AccountNonce,
-			Type:         types.TxBaseTypeTx,
-		},
+		Hash: common.Hash{},
+		//ParentsHash:  nil,
+		//MineNonce:    0,
+		AccountNonce: req.AccountNonce,
+		From:         req.From,
+		To:           req.To,
+		Value:        req.Value,
+		TokenId:      req.TokenId,
+		//Data:         nil,
+		//PublicKey:    crypto.PublicKey{},
+		//Signature:    crypto.Signature{},
+		//Height:       0,
+		//Weight:       0,
 	}
 	return &tx
 }
 
-func (m *OGTxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
-	tx = &archive.Archive{
-		TxBase: types.TxBase{
-			AccountNonce: m.GetArchiveNonce(),
-			Type:         types.TxBaseTypeArchive,
-		},
-		Data: data,
-	}
-
-	if ok := m.SealTx(tx, nil); !ok {
-		logrus.Warn("failed to seal tx")
-		err = fmt.Errorf("failed to seal tx")
-		return
-	}
-	logrus.WithField("tx", tx).Debugf("tx generated")
-
-	return tx, nil
-}
+//func (m *OGTxCreator) NewArchiveWithSeal(data []byte) (tx types.Txi, err error) {
+//	tx = &archive.Archive{
+//		TxBase: types.TxBase{
+//			AccountNonce: m.GetArchiveNonce(),
+//			Type:         types.TxBaseTypeArchive,
+//		},
+//		Data: data,
+//	}
+//
+//	if ok := m.SealTx(tx, nil); !ok {
+//		logrus.Warn("failed to seal tx")
+//		err = fmt.Errorf("failed to seal tx")
+//		return
+//	}
+//	logrus.WithField("tx", tx).Debugf("tx generated")
+//
+//	return tx, nil
+//}
 
 func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, err error) {
 	tx = &types.Tx{
-		From: &req.From,
-		// TODO
-		// should consider the case that to is nil. (contract creation)
-		To:      req.To,
-		Value:   req.Value,
-		Data:    req.Data,
-		TokenId: req.TokenId,
-		TxBase: types.TxBase{
-			AccountNonce: req.Nonce,
-			Type:         types.TxBaseTypeTx,
-		},
+		//Hash:         common.Hash{},
+		//ParentsHash:  nil,
+		//MineNonce:    0,
+		AccountNonce: req.Nonce,
+		From:         req.From,
+		To:           req.To,
+		Value:        req.Value,
+		TokenId:      req.TokenId,
+		//Data:         nil,
+		PublicKey: req.Pubkey,
+		Signature: req.Sig,
+		//Height:       0,
+		//Weight:       0,
 	}
-	tx.GetBase().Signature = req.Sig.SignatureBytes
-	tx.GetBase().PublicKey = req.Pubkey.KeyBytes
 
 	if ok := m.SealTx(tx, nil); !ok {
 		logrus.Warn("failed to seal tx")
@@ -124,34 +128,34 @@ func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, e
 	return tx, nil
 }
 
-func (m *OGTxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi, err error) {
-	tx = &types.ActionTx{
-		From: &req.From,
-		// TODO
-		// should consider the case that to is nil. (contract creation)
-		TxBase: types.TxBase{
-			AccountNonce: req.AccountNonce,
-			Type:         types.TxBaseAction,
-		},
-		Action: req.Action,
-		ActionData: &types.PublicOffering{
-			Value:     req.Value,
-			EnableSPO: req.EnableSpo,
-			TokenId:   req.TokenId,
-			TokenName: req.TokenName,
-		},
-	}
-	tx.GetBase().Signature = req.Sig.SignatureBytes
-	tx.GetBase().PublicKey = req.Pubkey.KeyBytes
-
-	if ok := m.SealTx(tx, nil); !ok {
-		err = fmt.Errorf("failed to seal tx")
-		return
-	}
-	logrus.WithField("tx", tx).Debugf("tx generated")
-	tx.SetVerified(types.VerifiedFormat)
-	return tx, nil
-}
+//func (m *OGTxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Txi, err error) {
+//	tx = &types.ActionTx{
+//		From: &req.From,
+//		// TODO
+//		// should consider the case that to is nil. (contract creation)
+//		TxBase: types.TxBase{
+//			AccountNonce: req.AccountNonce,
+//			Type:         types.TxBaseAction,
+//		},
+//		Action: req.Action,
+//		ActionData: &types.PublicOffering{
+//			Value:     req.Value,
+//			EnableSPO: req.EnableSpo,
+//			TokenId:   req.TokenId,
+//			TokenName: req.TokenName,
+//		},
+//	}
+//	tx.GetBase().Signature = req.Sig.SignatureBytes
+//	tx.GetBase().PublicKey = req.Pubkey.KeyBytes
+//
+//	if ok := m.SealTx(tx, nil); !ok {
+//		err = fmt.Errorf("failed to seal tx")
+//		return
+//	}
+//	logrus.WithField("tx", tx).Debugf("tx generated")
+//	tx.SetVerified(types.VerifiedFormat)
+//	return tx, nil
+//}
 
 func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
@@ -160,21 +164,25 @@ func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	tx := m.newUnsignedTx(req.UnsignedTxBuildRequest)
 	// do sign work
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
-	tx.GetBase().Signature = signature.SignatureBytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
+	tx.Signature = signature
+	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey)
 	return tx
 }
 
 func (m *OGTxCreator) newUnsignedSequencer(req UnsignedSequencerBuildRequest) *types.Sequencer {
-	tx := types.Sequencer{
-		Issuer: &req.Issuer,
-		TxBase: types.TxBase{
-			AccountNonce: req.AccountNonce,
-			Type:         types.TxBaseTypeSequencer,
-			Height:       req.Height,
-		},
+	tx := &types.Sequencer{
+		//Hash:         common.Hash{},
+		//ParentsHash:  nil,
+		Height: req.Height,
+		//MineNonce:    0,
+		AccountNonce: req.AccountNonce,
+		Issuer:       req.Issuer,
+		//Signature:    nil,
+		//PublicKey:    nil,
+		//StateRoot:    common.Hash{},
+		//Weight:       0,
 	}
-	return &tx
+	return tx
 }
 
 //NewSignedSequencer this function is for test
@@ -186,8 +194,8 @@ func (m *OGTxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.
 	// do sign work
 	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
-	tx.GetBase().Signature = signature.SignatureBytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
+	tx.Signature = signature.SignatureBytes
+	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
 	return tx
 }
 
@@ -209,14 +217,13 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 		parentHashes[i] = parent.GetTxHash()
 	}
 	//calculate weight
-	tx.GetBase().Weight = tx.CalculateWeight(parents)
-
-	tx.GetBase().ParentsHash = parentHashes
+	tx.SetHeight(tx.CalculateWeight(parents))
+	tx.SetParents(parentHashes)
 	// verify if the hash of the structure meet the standard.
 	hash := tx.CalcTxHash()
 	if m.NoVerifyMaxTxHash || hash.Cmp(m.MaxTxHash) < 0 {
-		tx.GetBase().Hash = hash
-		logrus.WithField("hash", hash).WithField("parent", tx.Parents()).Trace("new tx connected")
+		tx.SetHash(hash)
+		logrus.WithField("hash", hash).WithField("parent", tx.GetParents()).Trace("new tx connected")
 		// yes
 		txRet = tx
 		//ok = m.validateGraphStructure(parents)
@@ -226,6 +233,7 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 			logrus.WithField("tx ", tx).Debug("NOT OK")
 			return txRet, ok
 		}
+
 		tx.SetVerified(types.VerifiedGraph)
 		//ok = true
 		logrus.WithFields(logrus.Fields{
@@ -234,8 +242,9 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 		}).Trace("validate graph structure for tx being connected")
 
 		if tx.GetType() == types.TxBaseTypeSequencer {
-			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
-			tx.GetBase().Hash = tx.CalcTxHash()
+			txs := tx.(*types.Sequencer)
+			txs.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
+			txs.SetHash(tx.CalcTxHash())
 		}
 
 		return txRet, ok
@@ -287,9 +296,10 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 				connectionTries++
 				var txs types.Txis
 				var ancestor types.Txi
-				if tx.GetType() != types.TxBaseTypeArchive {
-					ancestor = m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
-				}
+				//if tx.GetType() != types.TxBaseTypeArchive {
+				ancestor = m.TipGenerator.GetByNonce(tx.Sender(), tx.GetNonce()-1)
+				//}
+
 				// if there is a previous my tx that is in current seq,
 				// use it as my parent.
 				// it is required to accelerate validating
@@ -310,7 +320,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 					txs = m.TipGenerator.GetRandomTips(2)
 				}
 
-				//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
+				//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.GetParents()))
 				if len(txs) == 0 {
 					// Impossible. At least genesis is there
 					logrus.Warn("at least genesis is there. Wait for loading")
@@ -353,7 +363,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	//for sequencer no mined nonce
 	// record the mining times.
 	pubkey := crypto.Signer.PubKey(*privateKey)
-	tx.GetBase().PublicKey = pubkey.KeyBytes
+	tx.PublicKey = pubkey.KeyBytes
 	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
 		// proposed by bft
@@ -374,7 +384,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 		}
 		parents := m.TipGenerator.GetRandomTips(2)
 
-		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.Parents()))
+		//logrus.Debugf("Got %d Tips: %s", len(txs), common.HashesToString(tx.GetParents()))
 		if len(parents) == 0 {
 			// Impossible. At least genesis is there
 			logrus.Warn("at least genesis is there. Wait for loading")
@@ -387,10 +397,10 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 		}
 
 		//calculate weight
-		tx.GetBase().Weight = tx.CalculateWeight(parents)
-		tx.GetBase().ParentsHash = parentHashes
+		tx.SetWeight(tx.CalculateWeight(parents))
+		tx.SetParents(parentHashes)
 		// verify if the hash of the structure meet the standard.
-		logrus.WithField("id ", tx.GetHeight()).WithField("parent", tx.Parents()).Trace("new tx connected")
+		logrus.WithField("id ", tx.GetHeight()).WithField("parent", tx.GetParents()).Trace("new tx connected")
 		//ok = m.validateGraphStructure(parents)
 		ok = m.GraphVerifier.Verify(tx)
 		if !ok {
@@ -412,8 +422,8 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 				return nil, err, false
 			}
 			tx.StateRoot = root
-			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
-			tx.GetBase().Hash = tx.CalcTxHash()
+			tx.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
+			tx.SetHash(tx.CalcTxHash())
 			tx.SetVerified(types.VerifiedGraph)
 			tx.SetVerified(types.VerifiedFormat)
 			break

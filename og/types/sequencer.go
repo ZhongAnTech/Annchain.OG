@@ -28,6 +28,14 @@ type Sequencer struct {
 	invalid bool
 }
 
+func (s *Sequencer) SetParents(hashes common.Hashes) {
+	s.ParentsHash = hashes
+}
+
+func (s *Sequencer) SetWeight(weight uint64) {
+	s.Weight = weight
+}
+
 func (s *Sequencer) SetValid(b bool) {
 	s.invalid = !b
 }
@@ -97,7 +105,7 @@ func (s *Sequencer) SignatureTargets() []byte {
 
 	//w.Write(s.Height, s.Weight, s.StateRoot.KeyBytes)
 	w.Write(s.Height, s.StateRoot.Bytes)
-	for _, parent := range s.Parents() {
+	for _, parent := range s.GetParents() {
 		w.Write(parent.Bytes)
 	}
 	return w.Bytes()
@@ -125,7 +133,7 @@ func (s *Sequencer) GetTxHash() common.Hash {
 	return s.Hash
 }
 
-func (s *Sequencer) Parents() common.Hashes {
+func (s *Sequencer) GetParents() common.Hashes {
 	return s.ParentsHash
 }
 

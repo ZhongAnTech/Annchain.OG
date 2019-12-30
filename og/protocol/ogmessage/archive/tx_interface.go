@@ -29,7 +29,7 @@ type RawTxi interface {
 	GetWeight() uint64
 	GetTxHash() common.Hash
 	GetNonce() uint64
-	Parents() common.Hashes // Parents returns the hash of txs that it directly proves.
+	Parents() common.Hashes // GetParents returns the hash of txs that it directly proves.
 	SetHash(h common.Hash)
 	String() string
 	CalcTxHash() common.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)

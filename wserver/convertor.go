@@ -83,7 +83,7 @@ func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	u.Nodes = append(u.Nodes, node)
 
 	if includingEdge {
-		for _, parent := range tx.Parents() {
+		for _, parent := range tx.GetParents() {
 			edge := Edge{
 				Id:     tx.String() + "_" + parent.String(),
 				Source: tx.GetTxHash().Hex(),

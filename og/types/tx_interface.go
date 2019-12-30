@@ -7,7 +7,7 @@ import (
 type TxBaseType uint8
 
 const (
-	TxBaseTypeNormal TxBaseType = iota
+	TxBaseTypeTx TxBaseType = iota
 	TxBaseTypeSequencer
 )
 

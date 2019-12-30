@@ -80,7 +80,7 @@ func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
 func sampleTx(selfHash string, parentsHash []string) *types.Tx {
 	tx := &types.Tx{TxBase: types.TxBase{
 		ParentsHash: common.Hashes{},
-		Type:        types.TxBaseTypeNormal,
+		Type:        types.TxBaseTypeTx,
 		Hash:        common.HexToHash(selfHash),
 	},
 	}

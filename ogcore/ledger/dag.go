@@ -60,8 +60,6 @@ type Dag struct {
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
 
-	txiLedgerMarshaller TxiLedgerMarshaller
-
 	txcached *txcached
 
 	OnConsensusTXConfirmed chan []types.Txi
@@ -85,7 +83,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	dag.conf = conf
 	dag.db = db
 	dag.testDb = testDb
-	dag.accessor = NewAccessor(db)
+	dag.accessor = NewAccessor(db, )
 	// TODO
 	// default maxsize of txcached is 10000,
 	// move this size to config later.
@@ -183,7 +181,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[common.Address
 		//tx := &protocol_message.Tx{}
 		//tx.To = addr
 		//tx.Value = value
-		//tx.Type = protocol_message.TxBaseTypeNormal
+		//tx.Type = protocol_message.TxBaseTypeTx
 		//tx.GetBase().Hash = tx.CalcTxHash()
 		//dag.WriteTransaction(dbBatch, tx)
 
@@ -311,7 +309,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	var txType types.TxBaseType
 
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		txType = types.TxBaseTypeNormal
+		txType = types.TxBaseTypeTx
 	} else if bytes.Equal(prefix, contentPrefixSequencer) {
 		txType = types.TxBaseTypeSequencer
 	} else {
@@ -320,7 +318,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	//contentPrefixCampaign
 	//contentPrefixTermChg
 	//contentPrefixArchive
-	v, err := dag.txiLedgerMarshaller.FromBytes(data, txType)
+	v, err := dag.accessor.txiLedgerMarshaller.FromBytes(data, txType)
 	if err != nil {
 		log.WithError(err).Warn("unmarshal tx  error")
 		return nil
@@ -422,7 +420,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
 	var seq *types.Sequencer
-	v, err := dag.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
+	v, err := dag.accessor.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
 		return nil, nil
@@ -967,7 +965,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	//	return nil, receipt, nil
 	//}
 
-	if tx.GetType() != types.TxBaseTypeNormal {
+	if tx.GetType() != types.TxBaseTypeTx {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}

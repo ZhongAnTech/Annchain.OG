@@ -601,7 +601,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
 		}
 	}
-	if tx.GetType() == types.TxBaseTypeNormal {
+	if tx.GetType() == types.TxBaseTypeTx {
 		txn := tx.(*types.Tx)
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
 	}
@@ -945,7 +945,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			continue
 		}
 
-		if txi.GetType() == types.TxBaseTypeNormal {
+		if txi.GetType() == types.TxBaseTypeTx {
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.

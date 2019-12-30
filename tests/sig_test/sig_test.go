@@ -30,7 +30,7 @@ func TestSig(t *testing.T) {
 	//sk,_:= crypto.PrivateKeyFromString("0x01f2f9cfc3ca3d19654754045454487948448748734784234348079387342789342")
 	tx := types.Tx{
 		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 			AccountNonce: 3,
 			Hash:         common.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
 			PublicKey:    pk.KeyBytes,

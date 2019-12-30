@@ -84,7 +84,7 @@ func newTx(cmd *cobra.Command, args []string) {
 		Data:  common.FromHex(payload),
 		TxBase: types.TxBase{
 			AccountNonce: nonce,
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 		},
 	}
 	signature := signer.Sign(key, tx.SignatureTargets())

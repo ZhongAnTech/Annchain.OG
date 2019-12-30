@@ -32,7 +32,7 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 		from := pub.Address()
 		tx := types.Tx{
 			TxBase: types.TxBase{
-				Type:         types.TxBaseTypeNormal,
+				Type:         types.TxBaseTypeTx,
 				AccountNonce: uint64(i),
 				PublicKey:    pub.KeyBytes[:],
 			},

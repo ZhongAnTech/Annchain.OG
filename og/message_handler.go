@@ -655,7 +655,7 @@ func (h *IncomingMessageHandler) HandleGetMsg(msg *p2p_message.MessageGetMsg, so
 		return
 	}
 	switch txi.GetType() {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		tx := txi.(*types.Tx)
 		response := p2p_message.MessageNewTx{RawTx: tx.RawTx()}
 		h.Hub.SendToPeer(sourcePeerId, message_archive.MessageTypeNewTx, &response)

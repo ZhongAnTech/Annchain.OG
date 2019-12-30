@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/downloader"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
@@ -47,8 +47,8 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	if err := dag.Init(genesis, balance); err != nil {
 		panic(err)
 	}
-	txConf := core.DefaultTxPoolConfig()
-	txPool := core.NewTxPool(txConf, dag)
+	txConf := pool.DefaultTxPoolConfig()
+	txPool := pool.NewTxPool(txConf, dag)
 	txPool.Init(genesis)
 
 	hubConf := DefaultHubConfig()

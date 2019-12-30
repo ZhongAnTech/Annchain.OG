@@ -24,6 +24,7 @@ import (
 	"github.com/annchain/OG/og/types"
 	archive2 "github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/og/verifier"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/types/token"
 	"net/http"
 	"strconv"
@@ -40,7 +41,7 @@ import (
 type RpcController struct {
 	P2pServer          *p2p.Server
 	Og                 *og.Og
-	TxBuffer           *og.TxBuffer
+	TxBuffer           *pool.TxBuffer
 	TxCreator          *txmaker.OGTxCreator
 	SyncerManager      *syncer.SyncManager
 	PerformanceMonitor *performance.PerformanceMonitor

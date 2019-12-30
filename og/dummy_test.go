@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/pool"
 
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -92,7 +93,7 @@ func sampleTx(selfHash string, parentsHash []string) *types.Tx {
 
 type dummySyncer struct {
 	dmap                map[common.Hash]types.Txi
-	buffer              *TxBuffer
+	buffer              *pool.TxBuffer
 	acquireTxDedupCache gcache.Cache
 }
 

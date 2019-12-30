@@ -720,11 +720,11 @@ func (h *Hub) broadcastMessageWithFilter(msg *message.types) {
 	var peers []*peer
 	allpeers = h.peers.PeersWithoutMsg(msg.Hash)
 	for _, peer := range allpeers {
-		ok, _ := newSeq.Filter.LookUpItem(peer.ID().Bytes())
+		ok, _ := newSeq.Filter.LookUpItem(peer.ID().KeyBytes())
 		if ok {
 			msgLog.WithField("id ", peer.id).Debug("filtered ,don't send")
 		} else {
-			newSeq.Filter.AddItem(peer.ID().Bytes())
+			newSeq.Filter.AddItem(peer.ID().KeyBytes())
 			peers = append(peers, peer)
 			msgLog.WithField("id ", peer.id).Debug("not filtered , send")
 		}

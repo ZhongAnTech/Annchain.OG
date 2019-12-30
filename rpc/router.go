@@ -179,6 +179,6 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 	buf.WriteString("</body></html>")
 	//w.Header().Set("Content-Type", "text/html")
 	//w.WriteHeader(200)
-	//w.Write(buf.Bytes()) // nolint: errcheck
+	//w.Write(buf.KeyBytes()) // nolint: errcheck
 	c.Data(http.StatusOK, "text/html", buf.Bytes())
 }

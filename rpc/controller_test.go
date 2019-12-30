@@ -178,7 +178,7 @@ func sendTx(algorithm string) error {
 			"from":      tx.From.String(),
 			"to":        tx.To.String(),
 			"value":     fmt.Sprintf("%d", tx.Value.GetInt64()),
-			"signature": hexutil.Encode(signature.Bytes),
+			"signature": hexutil.Encode(signature.SignatureBytes),
 			"pubkey":    fromPub.String(),
 		}
 

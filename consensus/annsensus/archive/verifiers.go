@@ -170,7 +170,7 @@ package archive
 //		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
 //		var ok bool
 //		for _, gPk := range a.genesisAccounts {
-//			if bytes.Equal(pk.Bytes, gPk.Bytes) {
+//			if bytes.Equal(pk.KeyBytes, gPk.KeyBytes) {
 //				ok = true
 //			}
 //		}

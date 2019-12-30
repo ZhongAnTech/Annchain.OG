@@ -131,11 +131,11 @@ func (db *Database) insert(hash common.Hash, blob []byte) {
 		flushPrev: db.newest,
 	}
 	// Update the flush-list endpoints
-	//log.Tracef("Panic debug, insert hash: %x, db.oldest: %x", hash.Bytes, db.oldest.Bytes)
+	//log.Tracef("Panic debug, insert hash: %x, db.oldest: %x", hash.KeyBytes, db.oldest.KeyBytes)
 	if db.oldest == (common.Hash{}) {
 		db.oldest, db.newest = hash, hash
 	} else {
-		//log.Tracef("Panic debug, insert hash: %x, get db.newest: %x", hash.Bytes, db.newest.Bytes)
+		//log.Tracef("Panic debug, insert hash: %x, get db.newest: %x", hash.KeyBytes, db.newest.KeyBytes)
 		db.nodes[db.newest].flushNext, db.newest = hash, hash
 	}
 	db.nodesSize += common.StorageSize(common.HashLength + len(blob))
@@ -486,7 +486,7 @@ func (db *Database) commit(hash common.Hash, batch ogdb.Batch) error {
 // to disk.
 func (db *Database) uncache(hash common.Hash) {
 
-	//log.Tracef("Panic debug, uncache the node: %x, cur db.oldest: %x", hash.Bytes, db.oldest.Bytes)
+	//log.Tracef("Panic debug, uncache the node: %x, cur db.oldest: %x", hash.KeyBytes, db.oldest.KeyBytes)
 	// If the node does not exist, we're done on this path
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -494,10 +494,10 @@ func (db *Database) uncache(hash common.Hash) {
 	}
 	// Node still exists, remove it from the flush-list
 	if hash == db.oldest {
-		//log.Tracef("Panic debug, uncache the node: %x, set oldest to: %x", hash.Bytes, node.flushNext.Bytes)
+		//log.Tracef("Panic debug, uncache the node: %x, set oldest to: %x", hash.KeyBytes, node.flushNext.KeyBytes)
 		db.oldest = node.flushNext
 	} else {
-		//log.Tracef("Panic debug, uncache the node: %x, delete node between next: %x, prev: %x", hash.Bytes, node.flushNext.Bytes, node.flushPrev.Bytes)
+		//log.Tracef("Panic debug, uncache the node: %x, delete node between next: %x, prev: %x", hash.KeyBytes, node.flushNext.KeyBytes, node.flushPrev.KeyBytes)
 		db.nodes[node.flushPrev].flushNext = node.flushNext
 		db.nodes[node.flushNext].flushPrev = node.flushPrev
 	}

@@ -87,7 +87,7 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 		}
 		ok := crypto.Signer.Verify(
 			crypto.Signer.PublicKeyFromBytes(base.PublicKey),
-			crypto.Signature{Type: crypto.Signer.GetCryptoType(), Bytes: base.Signature},
+			crypto.Signature{Type: crypto.Signer.GetCryptoType(), SignatureBytes: base.Signature},
 			t.SignatureTargets())
 		return ok
 	}

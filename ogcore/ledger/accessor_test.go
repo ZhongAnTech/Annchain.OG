@@ -14,7 +14,6 @@
 package core_test
 
 import (
-	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
@@ -259,28 +258,28 @@ func TestBalanceStorage(t *testing.T) {
 // Note that nonce is now managed by statedb, so no need to test
 // latest nonce in accessor part.
 
-func TestDag_Start(t *testing.T) {
-	db, remove := newTestLDB("TestTransactionStorage")
-	defer remove()
-
-	acc := core2.NewAccessor(db)
-	seq := types.RandomSequencer()
-	height := seq.Height
-	//acc.WriteLatestSequencer(nil,seq)
-	batch := acc.NewBatch()
-	acc.WriteSequencerByHeight(batch, seq)
-	fmt.Println(seq)
-	err := batch.Write()
-	if err != nil {
-		t.Fatal(err)
-	}
-	readSeq, err := acc.ReadSequencerByHeight(height)
-	if err != nil {
-		fmt.Println(batch.ValueSize())
-		t.Fatal(err)
-	}
-	if readSeq.Height != height {
-		t.Fatal(readSeq, seq)
-	}
-	fmt.Println(seq, readSeq)
-}
+//func TestDag_Start(t *testing.T) {
+//	db, remove := newTestLDB("TestTransactionStorage")
+//	defer remove()
+//
+//	acc := core2.NewAccessor(db)
+//	seq := types.RandomSequencer()
+//	height := seq.Height
+//	//acc.WriteLatestSequencer(nil,seq)
+//	batch := acc.NewBatch()
+//	acc.WriteSequencerByHeight(batch, seq)
+//	fmt.Println(seq)
+//	err := batch.Write()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	readSeq, err := acc.ReadSequencerByHeight(height)
+//	if err != nil {
+//		fmt.Println(batch.ValueSize())
+//		t.Fatal(err)
+//	}
+//	if readSeq.Height != height {
+//		t.Fatal(readSeq, seq)
+//	}
+//	fmt.Println(seq, readSeq)
+//}

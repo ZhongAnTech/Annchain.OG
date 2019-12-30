@@ -42,7 +42,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    r.publicKey.Bytes[:],
+			PublicKey:    r.publicKey.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionIPO,
 		From:   &from,
@@ -52,7 +52,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 			TokenName: tokenName,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -85,7 +85,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    r.publicKey.Bytes[:],
+			PublicKey:    r.publicKey.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionDestroy,
 		From:   &from,
@@ -96,7 +96,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -129,7 +129,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    r.publicKey.Bytes[:],
+			PublicKey:    r.publicKey.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionSPO,
 		From:   &from,
@@ -140,7 +140,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
@@ -173,7 +173,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 	tx := types.Tx{
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeNormal,
-			PublicKey:    r.publicKey.Bytes[:],
+			PublicKey:    r.publicKey.KeyBytes[:],
 			AccountNonce: uint64(nonce),
 		},
 		From:    &from,
@@ -181,7 +181,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 		Value:   value,
 		To:      to,
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {

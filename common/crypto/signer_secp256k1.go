@@ -37,9 +37,9 @@ func (s *SignerSecp256k1) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, err := ToECDSA(privKey.Bytes)
+	priv, err := ToECDSA(privKey.KeyBytes)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("ToECDSA error: %v. priv bytes: %x", err, privKey.Bytes))
+		fmt.Println(fmt.Sprintf("ToECDSA error: %v. priv bytes: %x", err, privKey.KeyBytes))
 	}
 	hash := Sha256(msg)
 	if len(hash) != 32 {
@@ -54,7 +54,7 @@ func (s *SignerSecp256k1) Sign(privKey PrivateKey, msg []byte) Signature {
 }
 
 func (s *SignerSecp256k1) PubKey(privKey PrivateKey) PublicKey {
-	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.Bytes)
+	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.KeyBytes)
 	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
@@ -69,13 +69,13 @@ func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) PublicKey {
 
 func (s *SignerSecp256k1) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	signature = s.DealRecoverID(signature)
-	sig := signature.Bytes
+	sig := signature.SignatureBytes
 
-	//fmt.Println(fmt.Sprintf("pubkey bytes: %x", pubKey.Bytes))
+	//fmt.Println(fmt.Sprintf("pubkey bytes: %x", pubKey.KeyBytes))
 	//fmt.Println(fmt.Sprintf("msg: %x", msg))
 	//fmt.Println(fmt.Sprintf("sig: %x", sig))
 
-	return secp256k1.VerifySignature(pubKey.Bytes, Sha256(msg), sig)
+	return secp256k1.VerifySignature(pubKey.KeyBytes, Sha256(msg), sig)
 }
 
 func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
@@ -89,11 +89,11 @@ func (s *SignerSecp256k1) RandomKeyPair() (publicKey PublicKey, privateKey Priva
 
 // Address calculate the address from the pubkey
 func (s *SignerSecp256k1) Address(pubKey PublicKey) common.Address {
-	return common.BytesToAddress(Keccak256((pubKey.Bytes)[1:])[12:])
+	return common.BytesToAddress(Keccak256((pubKey.KeyBytes)[1:])[12:])
 }
 
 func (s *SignerSecp256k1) Encrypt(p PublicKey, m []byte) (ct []byte, err error) {
-	pub, err := UnmarshalPubkey(p.Bytes)
+	pub, err := UnmarshalPubkey(p.KeyBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +102,7 @@ func (s *SignerSecp256k1) Encrypt(p PublicKey, m []byte) (ct []byte, err error) 
 }
 
 func (s *SignerSecp256k1) Decrypt(p PrivateKey, ct []byte) (m []byte, err error) {
-	prive, err := ToECDSA(p.Bytes)
+	prive, err := ToECDSA(p.KeyBytes)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	return ecisesPriv.Decrypt(ct, nil, nil)
 }
@@ -110,9 +110,9 @@ func (s *SignerSecp256k1) Decrypt(p PrivateKey, ct []byte) (m []byte, err error)
 const sigLength int = 64
 
 func (s *SignerSecp256k1) DealRecoverID(sig Signature) Signature {
-	l := len(sig.Bytes)
+	l := len(sig.SignatureBytes)
 	if l == sigLength+1 {
-		sig.Bytes = sig.Bytes[:l-1]
+		sig.SignatureBytes = sig.SignatureBytes[:l-1]
 	}
 	return sig
 }

@@ -15,7 +15,7 @@ func TestConsensusVerifier_Verify(t *testing.T) {
 	pub, priv := crypto.Signer.RandomKeyPair()
 	tx.From = nil
 	fmt.Println(tx.SignatureTargets())
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes
 	tx.SetHash(tx.CalcTxHash())
 	tx.From = nil
 	//fmt.Println(tx,"hehe")

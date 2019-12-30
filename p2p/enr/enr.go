@@ -249,7 +249,7 @@ func (r *Record) AppendElements(list []msg.MsgpMember) []msg.MsgpMember {
 /*
 func (r *Record) encode(sig []byte) (raw []byte, err error) {
 	list := make([]msg.MsgpMember, 1, 2*len(r.Pairs)+1)
-	bs := msg.Bytes(sig)
+	bs := msg.KeyBytes(sig)
 	list[0] = &bs
 	msg := msg.Messages(r.AppendElements(list))
 	if raw,err = msg.MarshalMsg(nil);err!=nil{

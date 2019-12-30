@@ -147,7 +147,7 @@ package archive
 //	var myId int
 //	if !as.disable {
 //		for id, pk := range as.genesisAccounts {
-//			if bytes.Equal(pk.Bytes, as.MyAccount.PublicKey.Bytes) {
+//			if bytes.Equal(pk.KeyBytes, as.MyAccount.PublicKey.KeyBytes) {
 //				as.isGenesisPartner = true
 //				myId = id
 //				log.WithField("my id ", id).Info("i am a genesis partner")
@@ -441,7 +441,7 @@ package archive
 //			//DkgPublicKey: pkMsg.DkgPublicKey,
 //			Issuer: &addr,
 //			TxBase: types.TxBase{
-//				PublicKey: pk.Bytes,
+//				PublicKey: pk.KeyBytes,
 //				Weight:    uint64(id*10 + 10),
 //			},
 //		}
@@ -498,7 +498,7 @@ package archive
 //				if tx.GetType() == types.TxBaseTypeCampaign {
 //					cp := tx.(*tx_types.Campaign)
 //					cps = append(cps, cp)
-//					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
+//					if bytes.Equal(cp.Issuer.KeyBytes[:], as.MyAccount.Address.KeyBytes[:]) {
 //						if sentCampaign > 0 {
 //							log.Debug("i sent a campaign")
 //							sentCampaign = 0
@@ -761,7 +761,7 @@ package archive
 //			}
 //			id := -1
 //			for i, pk := range as.genesisAccounts {
-//				if bytes.Equal(pkMsg.PublicKey, pk.Bytes) {
+//				if bytes.Equal(pkMsg.PublicKey, pk.KeyBytes) {
 //					id = i
 //					break
 //				}

@@ -124,7 +124,7 @@ package message_archive
 //	binary.BigEndian.PutUint16(b, uint16(m.MessageType))
 //	m.Data = append(m.Data, b[:]...)
 //	m.DisableEncrypt = true
-//	m.Data = append(m.Data, pub.Bytes[:8]...)
+//	m.Data = append(m.Data, pub.KeyBytes[:8]...)
 //	m.MessageType = MessageTypeSecret
 //	return nil
 //}
@@ -142,7 +142,7 @@ package message_archive
 //	}
 //	m.Data = ct
 //	//add target
-//	m.Data = append(m.Data, pub.Bytes[:3]...)
+//	m.Data = append(m.Data, pub.KeyBytes[:3]...)
 //	return nil
 //}
 
@@ -167,14 +167,14 @@ package message_archive
 //	//check target
 //	if m.DisableEncrypt {
 //		target := m.Data[len(m.Data)-8:]
-//		if !bytes.Equal(target, myPub.Bytes[:8]) {
+//		if !bytes.Equal(target, myPub.KeyBytes[:8]) {
 //			//not four me
 //			return false
 //		}
 //		return true
 //	}
 //	target := m.Data[len(m.Data)-3:]
-//	if !bytes.Equal(target, myPub.Bytes[:3]) {
+//	if !bytes.Equal(target, myPub.KeyBytes[:3]) {
 //		//not four me
 //		return false
 //	}

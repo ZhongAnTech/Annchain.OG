@@ -246,8 +246,8 @@ package archive
 //
 //	//send  genesis term change
 //	tc := a.term.GetGenesisTermChange()
-//	tc.GetBase().PublicKey = a.MyAccount.PublicKey.Bytes
-//	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).Bytes
+//	tc.GetBase().PublicKey = a.MyAccount.PublicKey.KeyBytes
+//	tc.GetBase().Signature = s.Sign(a.MyAccount.PrivateKey, tc.SignatureTargets()).KeyBytes
 //	tc.GetBase().Hash = tc.CalcTxHash()
 //	msg := &p2p_message.MessageTermChangeResponse{
 //		TermChange: tc,

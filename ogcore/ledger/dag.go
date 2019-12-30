@@ -815,9 +815,9 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	// compare the state root between seq.StateRoot and root after committing statedb.
 	//if root.Cmp(batch.Seq.StateRoot) != 0 {
 	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
-	//		"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	//		"root in statedb: %x, root in seq: %x", root.KeyBytes, batch.Seq.StateRoot.KeyBytes)
 	//	dag.statedb.RevertToSnapshot(sId)
-	//	return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	//	return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.KeyBytes, batch.Seq.StateRoot.KeyBytes)
 	//}
 
 	// flush triedb into diskdb.

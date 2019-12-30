@@ -33,16 +33,16 @@ package archive
 //)
 //
 //type DkgConfig struct {
-//	DKgSecretKey      hexutil.Bytes `json:"d_kg_secret_key"`
-//	DKgJointPublicKey hexutil.Bytes `json:"d_kg_joint_public_key"`
+//	DKgSecretKey      hexutil.KeyBytes `json:"d_kg_secret_key"`
+//	DKgJointPublicKey hexutil.KeyBytes `json:"d_kg_joint_public_key"`
 //	jointPubKey       kyber.Point
 //	secretKey         kyber.Scalar
 //	keyShare          *dkg.DistKeyShare
 //	CommitLen         []int         `json:"commit_len"`
 //	PolyLen           []int         `json:"poly_len"`
-//	CommitsData       hexutil.Bytes `json:"commits_data"`
-//	PrivPolyData      hexutil.Bytes `json:"priv_poly_data"`
-//	ShareData         hexutil.Bytes `json:"share_data"`
+//	CommitsData       hexutil.KeyBytes `json:"commits_data"`
+//	PrivPolyData      hexutil.KeyBytes `json:"priv_poly_data"`
+//	ShareData         hexutil.KeyBytes `json:"share_data"`
 //	PartnerId         uint32        `json:"partner_id"`
 //	SigSets           map[common.Address]*tx_types.SigSet
 //}

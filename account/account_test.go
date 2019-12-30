@@ -13,7 +13,7 @@ import (
 //		To:    common.HexToAddress("0x1234567812345678"),
 //		Value: math.NewBigInt(0xAABBCCDDEEFF),
 //		TxBase: types.TxBase{
-//			PublicKey: acc.PublicKey.Bytes,
+//			PublicKey: acc.PublicKey.KeyBytes,
 //			Height:    10,
 //		},
 //	}
@@ -22,7 +22,7 @@ import (
 //	beforeSign := tx.SignatureTargets()
 //	fmt.Println(hexutil.Encode(beforeSign))
 //	sig := signer.Sign(acc.PrivateKey, tx.SignatureTargets())
-//	fmt.Println(hexutil.Encode(sig.Bytes))
+//	fmt.Println(hexutil.Encode(sig.KeyBytes))
 //}
 
 func TestSampleAccounts(t *testing.T) {

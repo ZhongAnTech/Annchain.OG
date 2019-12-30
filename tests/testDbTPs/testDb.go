@@ -26,23 +26,23 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core2.ConfirmBatc
 		for i := 0; i < txnum; i++ {
 			if archive {
 				ar := archive.RandomArchive()
-				ar.Data = append(ar.Data, pub.Bytes[:]...)
-				ar.Data = append(ar.Data, pub.Bytes[:]...)
-				ar.Data = append(ar.Data, pub.Bytes[:]...)
+				ar.Data = append(ar.Data, pub.KeyBytes[:]...)
+				ar.Data = append(ar.Data, pub.KeyBytes[:]...)
+				ar.Data = append(ar.Data, pub.KeyBytes[:]...)
 				txis = append(txis, ar)
 			} else {
 				tx := archive2.RandomTx()
 				tx.Value = math.NewBigInt(0)
-				tx.PublicKey = pub.Bytes[:]
+				tx.PublicKey = pub.KeyBytes[:]
 				tx.From = pub.Address()
 				tx.AccountNonce = uint64(i) + 1
-				tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+				tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 				txis = append(txis, tx)
 			}
 		}
 		seq := types.RandomSequencer()
-		seq.PublicKey = pub.Bytes[:]
-		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
+		seq.PublicKey = pub.KeyBytes[:]
+		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).SignatureBytes[:]
 		batch := &core2.ConfirmBatch{
 			Seq: seq,
 			Txs: txis,

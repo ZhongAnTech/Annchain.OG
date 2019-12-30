@@ -22,5 +22,5 @@ func (a AccountSignerSignatureProvider) Sign(data []byte) hexutil.Bytes {
 	if acc == nil {
 		panic("account for signing cannot be nil")
 	}
-	return a.Signer.Sign(acc.PrivateKey, data).Bytes
+	return a.Signer.Sign(acc.PrivateKey, data).SignatureBytes
 }

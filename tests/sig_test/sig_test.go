@@ -33,7 +33,7 @@ func TestSig(t *testing.T) {
 			Type:         types.TxBaseTypeNormal,
 			AccountNonce: 3,
 			Hash:         common.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
-			PublicKey:    pk.Bytes,
+			PublicKey:    pk.KeyBytes,
 		},
 		From:  common.HexToAddress("0x49fdaab0af739e16c9e1c9bf1715a6503edf4cab"),
 		Value: math.NewBigInt(0),
@@ -46,7 +46,7 @@ func TestSig(t *testing.T) {
 	fmt.Println(sh)
 	//fmt.Printf("%x ", tx.Data)
 	//sig :=crypto.Signer.Sign(sk,tx.SignatureTargets())
-	//fmt.Println(hexutil.Encode(sig.Bytes))
+	//fmt.Println(hexutil.Encode(sig.KeyBytes))
 	//_ = sig
 	//fmt.Println(sk.PublicKey().String())
 

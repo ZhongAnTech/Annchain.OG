@@ -33,9 +33,9 @@ var (
 	uint64T = reflect.TypeOf(Uint64(0))
 )
 
-// Bytes marshals/unmarshals as a JSON string with 0x prefix.
+// KeyBytes marshals/unmarshals as a JSON string with 0x prefix.
 // The empty slice marshals as "0x".
-//msgp:tuple Bytes
+//msgp:tuple KeyBytes
 type Bytes []byte
 
 // MarshalText implements encoding.TextMarshaler

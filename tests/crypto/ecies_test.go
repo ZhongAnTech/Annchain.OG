@@ -44,7 +44,7 @@ func TestEcies(t *testing.T) {
 
 	var curvPriv [32]byte
 	var edPriv [64]byte
-	copy(edPriv[:], priv.Bytes[:32])
+	copy(edPriv[:], priv.KeyBytes[:32])
 	extra25519.PrivateKeyToCurve25519(&curvPriv, &edPriv)
 	fmt.Println("edPriv ", hex.EncodeToString(edPriv[:]))
 	fmt.Println("curvPriv ", hex.EncodeToString(curvPriv[:]))
@@ -60,12 +60,12 @@ func TestEcies(t *testing.T) {
 		panic(err)
 	}
 	pc := suite.Point().Mul(sc, nil)
-	pk, _ := edwards25519.UnmarshalBinaryPoint(pub.Bytes)
+	pk, _ := edwards25519.UnmarshalBinaryPoint(pub.KeyBytes)
 	fmt.Println("kyber  prive  key ", sc)
 	fmt.Println("kyber pub key ", pc, pk)
 	var edPubkey [32]byte
 	var curvPubkey [32]byte
-	copy(edPubkey[:], pub.Bytes[:])
+	copy(edPubkey[:], pub.KeyBytes[:])
 	extra25519.PublicKeyToCurve25519(&curvPubkey, &edPubkey)
 	fmt.Println("ed pubkey ", hex.EncodeToString(edPubkey[:]))
 	fmt.Println(" cur pubkey", hex.EncodeToString(curvPubkey[:]))

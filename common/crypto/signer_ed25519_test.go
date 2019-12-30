@@ -27,24 +27,24 @@ func TestSigner(t *testing.T) {
 
 	pub, priv := signer.RandomKeyPair()
 
-	fmt.Println(hex.Dump(pub.Bytes))
+	fmt.Println(hex.Dump(pub.KeyBytes))
 
-	fmt.Println(hex.Dump(priv.Bytes))
+	fmt.Println(hex.Dump(priv.KeyBytes))
 	address := signer.Address(pub)
 	fmt.Println(hex.Dump(address.Bytes[:]))
 	fmt.Println(signer.Address(pub).Hex())
 
-	fmt.Printf("%x\n", priv.Bytes[:])
-	fmt.Printf("%x\n", pub.Bytes[:])
+	fmt.Printf("%x\n", priv.KeyBytes[:])
+	fmt.Printf("%x\n", pub.KeyBytes[:])
 	fmt.Printf("%x\n", address.Bytes[:])
 
 	pub2 := signer.PubKey(priv)
-	fmt.Println(hex.Dump(pub2.Bytes))
-	assert.True(t, bytes.Equal(pub.Bytes, pub2.Bytes))
+	fmt.Println(hex.Dump(pub2.KeyBytes))
+	assert.True(t, bytes.Equal(pub.KeyBytes, pub2.KeyBytes))
 
 	content := []byte("This is a test")
 	sig := signer.Sign(priv, content)
-	fmt.Println(hex.Dump(sig.Bytes))
+	fmt.Println(hex.Dump(sig.SignatureBytes))
 
 	assert.True(t, signer.Verify(pub2, sig, content))
 
@@ -59,7 +59,7 @@ func TestSignerEd25519_Sign(t *testing.T) {
 	//privKey,_:= PrivateKeyFromString("0x009d9d0fe5e9ef0bb3bb4934db878688500fd0fd8e026c1ff1249b7e268c8a363aa7d45d13a5accb299dc7fe0f3b5fb0e9526b67008f7ead02c51c7b1f5a1d7b00")
 	_, privKey := signer.RandomKeyPair()
 	sig := signer.Sign(privKey, data)
-	fmt.Printf("%x\n", sig.Bytes[:])
+	fmt.Printf("%x\n", sig.SignatureBytes[:])
 	ok := signer.Verify(signer.PubKey(privKey), sig, data)
 	if !ok {
 		t.Fatal(ok)

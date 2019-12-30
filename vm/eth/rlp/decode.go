@@ -642,7 +642,7 @@ func NewListStream(r io.Reader, len uint64) *Stream {
 	return s
 }
 
-// Bytes reads an RLP string and returns its contents as a byte slice.
+// KeyBytes reads an RLP string and returns its contents as a byte slice.
 // If the input does not contain an RLP string, the returned
 // error will be ErrExpectedString.
 func (s *Stream) Bytes() ([]byte, error) {

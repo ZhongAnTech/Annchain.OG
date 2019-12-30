@@ -163,7 +163,7 @@ func (t *ActionTx) SignatureTargets() []byte {
 	if !CanRecoverPubFromSig {
 		w.Write(t.From.Bytes)
 	}
-	//types.PanicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
+	//types.PanicIfError(binary.Write(&buf, binary.BigEndian, t.To.KeyBytes))
 	if t.Action == ActionTxActionIPO || t.Action == ActionTxActionSPO || t.Action == ActionTxActionDestroy {
 		of := t.GetPublicOffering()
 		w.Write(of.Value.GetSigBytes(), of.EnableSPO)

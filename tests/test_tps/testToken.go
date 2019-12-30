@@ -80,7 +80,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    pub.Bytes[:],
+			PublicKey:    pub.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionIPO,
 		From:   &from,
@@ -90,7 +90,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 			TokenName: tokenName,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -122,7 +122,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    pub.Bytes[:],
+			PublicKey:    pub.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionDestroy,
 		From:   &from,
@@ -133,7 +133,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -166,7 +166,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 		TxBase: types.TxBase{
 			Type:         types.TxBaseAction,
 			AccountNonce: uint64(nonce),
-			PublicKey:    pub.Bytes[:],
+			PublicKey:    pub.KeyBytes[:],
 		},
 		Action: archive.ActionTxActionSPO,
 		From:   &from,
@@ -177,7 +177,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
@@ -210,7 +210,7 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 	tx := types.Tx{
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeNormal,
-			PublicKey:    pub.Bytes[:],
+			PublicKey:    pub.KeyBytes[:],
 			AccountNonce: uint64(nonce),
 		},
 		From:    &from,
@@ -218,7 +218,7 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 		Value:   math.NewBigInt(66),
 		To:      to,
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()

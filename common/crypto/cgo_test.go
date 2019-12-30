@@ -45,7 +45,7 @@ func (s *SignerSecp256k1Go) GetCryptoType() CryptoType {
 //
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
-	prv, _ := ToECDSA(privKey.Bytes)
+	prv, _ := ToECDSA(privKey.KeyBytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		panic(fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash)))
@@ -104,9 +104,9 @@ func canonicalizeInt(val *big.Int) []byte {
 func (s *SignerSecp256k1Go) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	hash := Sha256(msg)
 	signature = s.DealRecoverID(signature)
-	sigs := signature.Bytes
+	sigs := signature.SignatureBytes
 	sig := &btcec.Signature{R: new(big.Int).SetBytes(sigs[:32]), S: new(big.Int).SetBytes(sigs[32:])}
-	key, err := btcec.ParsePubKey(pubKey.Bytes, btcec.S256())
+	key, err := btcec.ParsePubKey(pubKey.KeyBytes, btcec.S256())
 	if err != nil {
 		fmt.Println(err)
 		return false
@@ -120,15 +120,15 @@ func (s *SignerSecp256k1Go) Verify(pubKey PublicKey, signature Signature, msg []
 }
 
 func (s *SignerSecp256k1Go) DealRecoverID(sig Signature) Signature {
-	l := len(sig.Bytes)
+	l := len(sig.SignatureBytes)
 	if l == sigLength+1 {
-		sig.Bytes = sig.Bytes[:l-1]
+		sig.SignatureBytes = sig.SignatureBytes[:l-1]
 	}
 	return sig
 }
 
 func (s *SignerSecp256k1Go) PubKey(privKey PrivateKey) PublicKey {
-	_, ecdsapub := btcec.PrivKeyFromBytes(btcec.S256(), privKey.Bytes)
+	_, ecdsapub := btcec.PrivKeyFromBytes(btcec.S256(), privKey.KeyBytes)
 	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
@@ -145,11 +145,11 @@ func TestSignerNewPrivKeyGO(t *testing.T) {
 		if !signer.Verify(pk, sig, b) {
 			t.Fatalf("vertfy failed")
 		}
-		fmt.Println(hex.EncodeToString(sig.Bytes))
+		fmt.Println(hex.EncodeToString(sig.SignatureBytes))
 
 		signer2 := SignerSecp256k1Go{}
 		sig2 := signer2.Sign(priv, b)
-		fmt.Println(hex.EncodeToString(sig2.Bytes))
+		fmt.Println(hex.EncodeToString(sig2.SignatureBytes))
 		if !signer2.Verify(pk, sig2, b) {
 			t.Fatalf("vertfy failed")
 		}
@@ -177,7 +177,7 @@ func TestSignBenchMarks(t *testing.T) {
 	for i := 0; i < len(txs1); i++ {
 		b := txs1[i].SignatureTargets()
 		sig := signer.Sign(priv, b)
-		txs1[i].GetBase().Signature = sig.Bytes
+		txs1[i].GetBase().Signature = sig.SignatureBytes
 		//if !signer.Verify(pk, sig, b) {
 		//	t.Fatalf("vertfy failed")
 		//}
@@ -187,7 +187,7 @@ func TestSignBenchMarks(t *testing.T) {
 	for i := 0; i < len(txs1); i++ {
 		b := txs1[i].SignatureTargets()
 		sig := signer2.Sign(priv, b)
-		txs2[i].GetBase().Signature = sig.Bytes
+		txs2[i].GetBase().Signature = sig.SignatureBytes
 		//if !signer2.Verify(pk, sig, b) {
 		//	t.Fatalf("vertfy failed")
 		//}
@@ -197,7 +197,7 @@ func TestSignBenchMarks(t *testing.T) {
 	for i := 0; i < len(txs2); i++ {
 		b := txs2[i].SignatureTargets()
 		sig := signer2.Sign(priv, b)
-		txs2[i].GetBase().Signature = sig.Bytes
+		txs2[i].GetBase().Signature = sig.SignatureBytes
 		//if !signer2.Verify(pk, sig, b) {
 		//	t.Fatalf("vertfy failed")
 		//}
@@ -207,7 +207,7 @@ func TestSignBenchMarks(t *testing.T) {
 	for i := 0; i < len(txs2); i++ {
 		b := txs2[i].SignatureTargets()
 		sig := signer.Sign(priv, b)
-		txs2[i].GetBase().Signature = sig.Bytes
+		txs2[i].GetBase().Signature = sig.SignatureBytes
 		//if !signer.Verify(pk, sig, b) {
 		//	t.Fatalf("vertfy failed")
 		//}

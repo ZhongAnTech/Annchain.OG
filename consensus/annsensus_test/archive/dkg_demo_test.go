@@ -161,11 +161,11 @@ package archive_test
 //}
 //
 //func (as *TestAnnSensus) newCampaign(cp *tx_types.Campaign) {
-//	cp.GetBase().PublicKey = as.MyAccount.PublicKey.Bytes
+//	cp.GetBase().PublicKey = as.MyAccount.PublicKey.KeyBytes
 //	cp.GetBase().AccountNonce = uint64(as.dkg.GetId() * 10)
 //	cp.Issuer = &as.MyAccount.Address
 //	s := crypto.NewSigner(as.cryptoType)
-//	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).Bytes
+//	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).KeyBytes
 //	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 + 3)
 //	cp.Height = uint64(as.dkg.TermId + 3)
 //	cp.GetBase().Hash = cp.CalcTxHash()
@@ -265,7 +265,7 @@ package archive_test
 //		}
 //		pMsg := p2pMsg{data: data, msgType: msg.MessageType}
 //		for j := 0; j < n; j++ {
-//			if bytes.Equal(Anns[j].MyAccount.PublicKey.Bytes, pub.Bytes) {
+//			if bytes.Equal(Anns[j].MyAccount.PublicKey.KeyBytes, pub.KeyBytes) {
 //				Anns[j].Hub.(*TestHub).OutMsg <- pMsg
 //				logrus.WithField("from peer", msg.From.TerminalString()).WithField("to peer id ", Anns[j].Aid().String()).WithField("type ",
 //					msg.MessageType).Trace("send msg enc")
@@ -402,7 +402,7 @@ package archive_test
 //				if tx.GetType() == types.TxBaseTypeCampaign {
 //					cp := tx.(*tx_types.Campaign)
 //					cps = append(cps, cp)
-//					if bytes.Equal(cp.Issuer.Bytes[:], as.MyAccount.Address.Bytes[:]) {
+//					if bytes.Equal(cp.Issuer.KeyBytes[:], as.MyAccount.Address.KeyBytes[:]) {
 //
 //					}
 //				}

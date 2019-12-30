@@ -111,7 +111,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -224,7 +224,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -337,7 +337,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -450,7 +450,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -563,7 +563,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -676,7 +676,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()
@@ -789,7 +789,7 @@ package archive
 //	var buf bytes.Buffer
 //	msgp.Encode(&buf, &v)
 //	b.SetBytes(int64(buf.Len()))
-//	rd := msgp.NewEndlessReader(buf.Bytes(), b)
+//	rd := msgp.NewEndlessReader(buf.KeyBytes(), b)
 //	dc := msgp.NewReader(rd)
 //	b.ReportAllocs()
 //	b.ResetTimer()

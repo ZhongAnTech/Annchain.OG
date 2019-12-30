@@ -183,49 +183,47 @@ func (p *Putter) Put(key []byte, data []byte) error {
 
 // ReadGenesis get genesis sequencer from db.
 // return nil if there is no genesis.
-func (da *Accessor) ReadGenesis() *LedgerContentSequencer {
+func (da *Accessor) ReadGenesis() *types.Sequencer {
 	data, _ := da.db.Get(genesisKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq LedgerContentSequencer
-	_, err := seq.UnmarshalMsg(data)
+	var lseq LedgerContentSequencer
+	_, err := lseq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
+	seq := NewSequencerFromLedgerContentSequencer(&lseq)
 	return &seq
 }
 
 // WriteGenesis writes geneis into db.
-func (da *Accessor) WriteGenesis(genesis *LedgerContentSequencer) error {
-	data, err := genesis.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
+func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
+	lgenesis := NewLedgerContentSequencerFromSequencer(genesis)
+	data := lgenesis.ToBytes()
 	return da.put(nil, genesisKey(), data)
 }
 
 // ReadLatestSequencer get latest sequencer from db.
 // return nil if there is no sequencer.
-func (da *Accessor) ReadLatestSequencer() *LedgerContentSequencer {
+func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	data, _ := da.db.Get(latestSequencerKey())
 	if len(data) == 0 {
 		return nil
 	}
-	var seq LedgerContentSequencer
-	_, err := seq.UnmarshalMsg(data)
+	var lseq LedgerContentSequencer
+	_, err := lseq.UnmarshalMsg(data)
 	if err != nil {
 		return nil
 	}
+	seq := NewSequencerFromLedgerContentSequencer(&lseq)
 	return &seq
 }
 
 // WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *LedgerContentSequencer) error {
-	data, err := seq.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
+func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) error {
+	lseq := NewLedgerContentSequencerFromSequencer(seq)
+	data := lseq.ToBytes()
 	return da.put(putter, latestSequencerKey(), data)
 }
 
@@ -529,25 +527,24 @@ func (da *Accessor) SubBalance(putter *Putter, addr common.Address, amount *math
 }
 
 // ReadSequencerByHeight get sequencer from db by sequencer id.
-func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*LedgerContentSequencer, error) {
+func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, error) {
 	data, _ := da.db.Get(seqHeightKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
-	var seq LedgerContentSequencer
-	_, err := seq.UnmarshalMsg(data)
+	var lseq LedgerContentSequencer
+	err := lseq.FromBytes(data)
 	if err != nil {
 		return nil, err
 	}
+	seq := NewSequencerFromLedgerContentSequencer(&lseq)
 	return &seq, nil
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
-func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *LedgerContentSequencer) error {
-	data, err := seq.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
+func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer) error {
+	lseq := NewLedgerContentSequencerFromSequencer(seq)
+	data := lseq.ToBytes()
 	key := seqHeightKey(seq.Height)
 	return da.put(putter, key, data)
 }

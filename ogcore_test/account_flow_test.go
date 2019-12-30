@@ -11,12 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pool
+package ogcore
 
 import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
-	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
@@ -27,8 +26,8 @@ import (
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
-	addr := core2.newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{

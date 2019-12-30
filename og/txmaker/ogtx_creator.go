@@ -293,7 +293,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 				// if there is a previous my tx that is in current seq,
 				// use it as my parent.
 				// it is required to accelerate validating
-				if ancestor != nil && !ancestor.InValid() {
+				if ancestor != nil && ancestor.Valid() {
 					txs = m.TipGenerator.GetRandomTips(2)
 					var include bool
 					for _, tx := range txs {

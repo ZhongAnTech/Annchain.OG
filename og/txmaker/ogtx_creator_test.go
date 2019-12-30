@@ -218,7 +218,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 	f.GetRandomTips(3)
 	fmt.Println(f.fifoRing)
 	fmt.Println(f.fifoRingPos)
-	f.fifoRing[2].SetInValid(true)
+	f.fifoRing[2].SetValid(false)
 	f.validation()
 	fmt.Println(f.fifoRingPos)
 	fmt.Println(f.fifoRing)

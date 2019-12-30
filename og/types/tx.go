@@ -32,6 +32,16 @@ type Tx struct {
 	// Derived properties
 	Height uint64
 	Weight uint64
+
+	valid bool
+}
+
+func (t *Tx) SetValid(b bool) {
+	t.valid = b
+}
+
+func (t *Tx) Valid() bool {
+	return t.valid
 }
 
 func (t *Tx) SetSender(addr common.Address) {

@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/ogcore/state"
 
 	"github.com/annchain/OG/status"
@@ -90,13 +91,13 @@ const (
 
 type TxPool struct {
 	conf TxPoolConfig
-	dag  *core.Dag
+	dag  *ledger.Dag
 
 	queue    chan *txEvent // queue stores txs that need to validate later
 	tips     *TxMap        // tips stores all the tips
 	badtxs   *TxMap
 	pendings *TxMap
-	flows    *core.AccountFlows
+	flows    *pool.AccountFlows
 	txLookup *txLookUp // txLookUp stores all the txs for external query
 	cached   *cachedConfirm
 
@@ -128,7 +129,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 	}
 }
 
-func NewTxPool(conf TxPoolConfig, d *core.Dag) *TxPool {
+func NewTxPool(conf TxPoolConfig, d *ledger.Dag) *TxPool {
 	if conf.ConfirmStatusRefreshTime == 0 {
 		conf.ConfirmStatusRefreshTime = 30
 	}
@@ -139,7 +140,7 @@ func NewTxPool(conf TxPoolConfig, d *core.Dag) *TxPool {
 		tips:                   NewTxMap(),
 		badtxs:                 NewTxMap(),
 		pendings:               NewTxMap(),
-		flows:                  core.NewAccountFlows(),
+		flows:                  pool.NewAccountFlows(),
 		txLookup:               newTxLookUp(),
 		close:                  make(chan struct{}),
 		onNewTxReceived:        make(map[channelName]chan types.Txi),
@@ -263,7 +264,7 @@ func (pool *TxPool) IsLocalHash(hash common.Hash) bool {
 	if pool.Has(hash) {
 		return true
 	}
-	if pool.dag.Has(hash) {
+	if pool.dag.IsTxExists(hash) {
 		return true
 	}
 	return false
@@ -443,7 +444,7 @@ func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
-	pool.flows = core.NewAccountFlows()
+	pool.flows = pool.NewAccountFlows()
 	pool.txLookup = newTxLookUp()
 }
 
@@ -682,7 +683,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
 			originBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
-			stateFrom = core.NewBalanceState(originBalance)
+			stateFrom = pool.NewBalanceState(originBalance)
 		}
 
 		// if tx's value is larger than its balance, return fatal.
@@ -795,10 +796,10 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
 
 	var err error
-	var batch *core.ConfirmBatch
+	var batch *ledger.ConfirmBatch
 	var elders map[common.Hash]types.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
-		batch = &core.ConfirmBatch{
+		batch = &ledger.ConfirmBatch{
 			Seq: seq,
 			Txs: pool.cached.Txs(),
 		}
@@ -853,7 +854,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[common.Hash]types.Txi, *core.ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[common.Hash]types.Txi, *ledger.ConfirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -930,7 +931,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.Hash]types.Txi) (*core.ConfirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.Hash]types.Txi) (*ledger.ConfirmBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
@@ -962,7 +963,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = core.NewTxList()
+				batchFrom.TxList = pool.NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				//batchFrom.Pos = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
@@ -974,7 +975,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = core.NewTxList()
+				batchFrom.TxList = pool.NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
@@ -1001,7 +1002,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 		}
 	}
 
-	cb := &core.ConfirmBatch{}
+	cb := &ledger.ConfirmBatch{}
 	cb.Seq = seq
 	cb.Txs = cTxs
 	return cb, nil
@@ -1010,7 +1011,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(batch *core.ConfirmBatch) {
+func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -1062,7 +1063,7 @@ func (pool *TxPool) solveConflicts(batch *core.ConfirmBatch) {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr common.Address, noncesP *core.nonceHeap, seq *types.Sequencer) error {
+func (pool *TxPool) verifyNonce(addr common.Address, noncesP *ledger.nonceHeap, seq *types.Sequencer) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
@@ -1099,7 +1100,7 @@ func (pool *TxPool) reset() {
 // - TxList - represents the txs sent by this addrs, ordered by nonce.
 // - Neg    - means the amount this address should spent out.
 type BatchDetail struct {
-	TxList *core.TxList
+	TxList *pool.TxList
 	Neg    map[int32]*math.BigInt
 }
 

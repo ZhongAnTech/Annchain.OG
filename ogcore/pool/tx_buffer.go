@@ -14,7 +14,7 @@ import (
 )
 
 type TxBufferConfig struct {
-	//Dag                              IDag
+	//Dag                              ILedger
 	//Verifiers                        []protocol.Verifier
 	//Syncer                           Syncer
 	//TxAnnouncer                      Announcer

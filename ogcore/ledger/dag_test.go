@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core_test
+package ledger_test
 
 import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
 	"encoding/hex"
@@ -152,7 +153,7 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: core2.NewTxList(), Neg: make(map[int32]*math.BigInt)}
+	bd := &core.BatchDetail{TxList: pool.NewTxList(), Neg: make(map[int32]*math.BigInt)}
 	bd.TxList.Put(tx1)
 	bd.TxList.Put(tx2)
 	//bd.Pos = math.NewBigInt(0)

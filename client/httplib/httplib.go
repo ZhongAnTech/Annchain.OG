@@ -530,7 +530,7 @@ func (b *BeegoHTTPRequest) String() (string, error) {
 	return string(data), nil
 }
 
-// Bytes returns the body []byte in response.
+// KeyBytes returns the body []byte in response.
 // it calls Response inner.
 func (b *BeegoHTTPRequest) Bytes() ([]byte, error) {
 	if b.body != nil {

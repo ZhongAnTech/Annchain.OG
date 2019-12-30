@@ -38,19 +38,19 @@ var CryptoNameMap = map[string]CryptoType{
 }
 
 type PrivateKey struct {
-	Type  CryptoType
-	Bytes []byte
+	Type     CryptoType
+	KeyBytes []byte
 }
 
 func (p *PrivateKey) ToBytes() []byte {
 	var bytes []byte
 	bytes = append(bytes, byte(p.Type))
-	bytes = append(bytes, p.Bytes...)
+	bytes = append(bytes, p.KeyBytes...)
 	return bytes
 }
 
 func (p *PrivateKey) DebugString() string {
-	return fmt.Sprintf("privk%d:%s", p.Type, hexutil.Encode(p.Bytes))
+	return fmt.Sprintf("privk%d:%s", p.Type, hexutil.Encode(p.KeyBytes))
 }
 
 func (p *PrivateKey) String() string {
@@ -58,14 +58,14 @@ func (p *PrivateKey) String() string {
 }
 
 type PublicKey struct {
-	Type  CryptoType
-	Bytes []byte
+	Type     CryptoType
+	KeyBytes []byte
 }
 
 func (p *PublicKey) ToBytes() []byte {
 	var bytes []byte
 	bytes = append(bytes, byte(p.Type))
-	bytes = append(bytes, p.Bytes...)
+	bytes = append(bytes, p.KeyBytes...)
 	return bytes
 }
 
@@ -79,18 +79,18 @@ func (p *PublicKey) String() string {
 }
 
 func (p *PublicKey) DebugString() string {
-	return fmt.Sprintf("pubk%d:%s", p.Type, hexutil.Encode(p.Bytes))
+	return fmt.Sprintf("pubk%d:%s", p.Type, hexutil.Encode(p.KeyBytes))
 }
 
 type Signature struct {
-	Type  CryptoType
-	Bytes []byte
+	Type           CryptoType
+	SignatureBytes []byte
 }
 
 func (p *Signature) ToBytes() []byte {
 	var bytes []byte
 	bytes = append(bytes, byte(p.Type))
-	bytes = append(bytes, p.Bytes...)
+	bytes = append(bytes, p.SignatureBytes...)
 	return bytes
 }
 
@@ -99,17 +99,17 @@ func (p *Signature) String() string {
 }
 
 func (p *Signature) DebugString() string {
-	return fmt.Sprintf("sig%d:%s", p.Type, hexutil.Encode(p.Bytes))
+	return fmt.Sprintf("sig%d:%s", p.Type, hexutil.Encode(p.SignatureBytes))
 }
 
 func PrivateKeyFromBytes(typev CryptoType, bytes []byte) PrivateKey {
-	return PrivateKey{Type: typev, Bytes: bytes}
+	return PrivateKey{Type: typev, KeyBytes: bytes}
 }
 func PublicKeyFromBytes(typev CryptoType, bytes []byte) PublicKey {
-	return PublicKey{Type: typev, Bytes: bytes}
+	return PublicKey{Type: typev, KeyBytes: bytes}
 }
 func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
-	return Signature{Type: typev, Bytes: bytes}
+	return Signature{Type: typev, SignatureBytes: bytes}
 }
 
 func PrivateKeyFromRawBytes(bytes []byte) PrivateKey {
@@ -166,8 +166,8 @@ func PublicKeyFromStringWithCryptoType(ct, pkstr string) (pub PublicKey, err err
 		return
 	}
 	pub = PublicKey{
-		Type:  cryptoType,
-		Bytes: pk,
+		Type:     cryptoType,
+		KeyBytes: pk,
 	}
 	return
 }
@@ -200,7 +200,7 @@ func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte) (m []byte, err error) {
 func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
 	var edPrivKey [32]byte
 	var curvPrivKey [64]byte
-	copy(curvPrivKey[:], p.Bytes[:64])
+	copy(curvPrivKey[:], p.KeyBytes[:64])
 	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
 	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
 	suite := edwards25519.NewBlakeSHA256Ed25519()

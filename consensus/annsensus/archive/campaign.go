@@ -30,7 +30,7 @@ package archive
 //	// TODO
 //	base := types.TxBase{
 //		Type:      types.TxBaseTypeCampaign,
-//		PublicKey: as.MyAccount.PublicKey.Bytes[:],
+//		PublicKey: as.MyAccount.PublicKey.KeyBytes[:],
 //	}
 //	balance := as.Idag.GetBalance(as.MyAccount.Address, token.OGTokenID)
 //	if balance.Value.Cmp(campaigningMinBalance.Value) < 0 {

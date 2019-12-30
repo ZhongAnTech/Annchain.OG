@@ -34,13 +34,13 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 			TxBase: types.TxBase{
 				Type:         types.TxBaseTypeNormal,
 				AccountNonce: uint64(i),
-				PublicKey:    pub.Bytes[:],
+				PublicKey:    pub.KeyBytes[:],
 			},
 			From:  &from,
 			To:    toAdd,
 			Value: math.NewBigInt(0),
 		}
-		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes[:]
+		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 		//v:=  og.TxFormatVerifier{}
 		//ok:= v.VerifySignature(&tx)
 		//target := tx.SignatureTargets()

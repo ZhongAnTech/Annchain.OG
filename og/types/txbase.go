@@ -28,7 +28,7 @@ type TxBase struct {
 	//	AccountNonce uint64
 	Height uint64
 	//	PublicKey    crypto.PublicKey //
-	//	Signature    hexutil.Bytes
+	//	Signature    hexutil.KeyBytes
 	//	MineNonce    uint64
 	//	Weight       uint64
 	//	inValid      bool

@@ -34,16 +34,16 @@ func main() {
 	// do sign work
 	data := tx.SignatureTargets()
 	signature := signer.Sign(privKey, data)
-	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = signer.PubKey(privKey).Bytes
+	tx.GetBase().Signature = signature.SignatureBytes
+	tx.GetBase().PublicKey = signer.PubKey(privKey).KeyBytes
 	fmt.Println("dump ", tx.Dump())
 	fmt.Println("data ", hexutil.Encode(data))
-	fmt.Println("sig ", hexutil.Encode(signature.Bytes))
+	fmt.Println("sig ", hexutil.Encode(signature.SignatureBytes))
 	//data2 :=tx.SignatureTargets()
 	ok := signer.Verify(
-		//crypto.PublicKey{Type: signer.GetCryptoType(), Bytes: tx.GetBase().PublicKey},
+		//crypto.PublicKey{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().PublicKey},
 		pubKey,
-		//crypto.Signature{Type: signer.GetCryptoType(), Bytes: tx.GetBase().Signature},
+		//crypto.Signature{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().Signature},
 		signature,
 		data)
 	if !ok {

@@ -97,7 +97,7 @@ func (b *Bloom) UnmarshalText(input []byte) error {
 //		bin.Or(bin, LogsBloom(receipt.Logs))
 //	}
 //
-//	return BytesToBloom(bin.Bytes())
+//	return BytesToBloom(bin.KeyBytes())
 //}
 
 func LogsBloom(logs []*Log) *big.Int {

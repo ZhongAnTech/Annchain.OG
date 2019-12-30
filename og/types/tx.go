@@ -62,7 +62,7 @@ func (t *Tx) Dump() string {
 	return fmt.Sprintf("hash %s, pHash:[%s], from: %s, to: %s, value: %s,\n nonce: %d, signatute: %s, pubkey: %s, "+
 		"minedNonce: %v, data: %x", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
-		t.AccountNonce, t.Signature, hexutil.Encode(t.PublicKey.Bytes), t.MineNonce, t.Data)
+		t.AccountNonce, t.Signature, hexutil.Encode(t.PublicKey.KeyBytes), t.MineNonce, t.Data)
 }
 
 func (t *Tx) CalcTxHash() (hash common.Hash) {

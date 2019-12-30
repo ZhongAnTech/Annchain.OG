@@ -111,8 +111,8 @@ func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, e
 			Type:         types.TxBaseTypeNormal,
 		},
 	}
-	tx.GetBase().Signature = req.Sig.Bytes
-	tx.GetBase().PublicKey = req.Pubkey.Bytes
+	tx.GetBase().Signature = req.Sig.SignatureBytes
+	tx.GetBase().PublicKey = req.Pubkey.KeyBytes
 
 	if ok := m.SealTx(tx, nil); !ok {
 		logrus.Warn("failed to seal tx")
@@ -141,8 +141,8 @@ func (m *OGTxCreator) NewActionTxWithSeal(req ActionTxBuildRequest) (tx types.Tx
 			TokenName: req.TokenName,
 		},
 	}
-	tx.GetBase().Signature = req.Sig.Bytes
-	tx.GetBase().PublicKey = req.Pubkey.Bytes
+	tx.GetBase().Signature = req.Sig.SignatureBytes
+	tx.GetBase().PublicKey = req.Pubkey.KeyBytes
 
 	if ok := m.SealTx(tx, nil); !ok {
 		err = fmt.Errorf("failed to seal tx")
@@ -160,8 +160,8 @@ func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	tx := m.newUnsignedTx(req.UnsignedTxBuildRequest)
 	// do sign work
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
-	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).Bytes
+	tx.GetBase().Signature = signature.SignatureBytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
 	return tx
 }
 
@@ -186,8 +186,8 @@ func (m *OGTxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.
 	// do sign work
 	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
-	tx.GetBase().Signature = signature.Bytes
-	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).Bytes
+	tx.GetBase().Signature = signature.SignatureBytes
+	tx.GetBase().PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
 	return tx
 }
 
@@ -234,7 +234,7 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 		}).Trace("validate graph structure for tx being connected")
 
 		if tx.GetType() == types.TxBaseTypeSequencer {
-			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 		}
 
@@ -353,7 +353,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	//for sequencer no mined nonce
 	// record the mining times.
 	pubkey := crypto.Signer.PubKey(*privateKey)
-	tx.GetBase().PublicKey = pubkey.Bytes
+	tx.GetBase().PublicKey = pubkey.KeyBytes
 	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
 		// proposed by bft
@@ -412,7 +412,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 				return nil, err, false
 			}
 			tx.StateRoot = root
-			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).Bytes
+			tx.GetBase().Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
 			tx.GetBase().Hash = tx.CalcTxHash()
 			tx.SetVerified(types.VerifiedGraph)
 			tx.SetVerified(types.VerifiedFormat)

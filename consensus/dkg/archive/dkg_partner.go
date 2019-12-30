@@ -259,7 +259,7 @@ package archive
 //
 //func (d *DkgPartner) addPartner(c *tx_types.Campaign) {
 //	d.context.PartPubs = append(d.context.PartPubs, c.GetDkgPublicKey())
-//	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.Bytes) {
+//	if bytes.Equal(c.PublicKey, d.myAccount.PublicKey.KeyBytes) {
 //		d.context.MyIndex = uint32(len(d.context.PartPubs) - 1)
 //		dkg2.log.WithField("id ", d.context.MyIndex).Trace("my id")
 //	}
@@ -306,9 +306,9 @@ package archive
 //	for i := 0; i < len(genesisAccounts); i++ {
 //		msg := &p2p_message.MessageConsensusDkgGenesisPublicKey{
 //			DkgPublicKey: d.myPublicKey,
-//			PublicKey:    d.myAccount.PublicKey.Bytes,
+//			PublicKey:    d.myAccount.PublicKey.KeyBytes,
 //		}
-//		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
+//		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
 //		if uint32(i) == d.context.MyIndex {
 //			log.Tracef("escape me %d ", d.context.MyIndex)
 //			//myself
@@ -420,8 +420,8 @@ package archive
 ////		if cp == nil {
 ////			panic("campaign not found")
 ////		}
-////		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
-////		msg.PublicKey = d.myAccount.PublicKey.Bytes
+////		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
+////		msg.PublicKey = d.myAccount.PublicKey.KeyBytes
 ////		pk := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 ////		log.WithField("to ", addr.TerminalString()).WithField("deal",
 ////			deal.TerminateString()).WithField("msg", msg).trace("send dkg deal to")
@@ -514,8 +514,8 @@ package archive
 //			//	//MyIndex:   request.MyIndex,
 //			//	MyIndex: message.MsgCounter.Get(),
 //			//}
-//			//response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).Bytes
-//			//response.PublicKey = d.myAccount.PublicKey.Bytes
+//			//response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).KeyBytes
+//			//response.PublicKey = d.myAccount.PublicKey.KeyBytes
 //			//log.WithField("to request ", request).WithField("response ", &response).trace("will send response")
 //			//broadcast response to all context
 //
@@ -590,8 +590,8 @@ package archive
 //			//d.ann.dkgPkCh <- jointPub
 //			var msg p2p_message.MessageConsensusDkgSigSets
 //			msg.PkBls, _ = jointPub.MarshalBinary()
-//			msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).Bytes
-//			msg.PublicKey = d.myAccount.PublicKey.Bytes
+//			msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
+//			msg.PublicKey = d.myAccount.PublicKey.KeyBytes
 //
 //			for k, v := range d.term.Candidates() {
 //				if k == d.myAccount.Address {
@@ -882,7 +882,7 @@ package archive
 //	PartPubs           []kyber.Point          `json:"part_pubs"`
 //	MyPartSec          kyber.Scalar           `json:"-"`
 //	CandidatePartSec   []kyber.Scalar         `json:"-"`
-//	CandidatePublicKey []hexutil.Bytes        `json:"candidate_public_key"`
+//	CandidatePublicKey []hexutil.KeyBytes        `json:"candidate_public_key"`
 //	AddressIndex       map[common.Address]int `json:"address_index"`
 //}
 //

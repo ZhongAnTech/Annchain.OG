@@ -142,7 +142,7 @@ func (r *TrustfulBftAdapter) Sign(rawMessage bft.BftMessage) AnnsensusMessageBft
 		PublicKey:        publicKey,
 	}
 	//SessionId:     partner.CurrentTerm(),
-	//PublicKey: account.PublicKey.Bytes,
+	//PublicKey: account.PublicKey.KeyBytes,
 	return signedMessage
 }
 
@@ -169,7 +169,7 @@ func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageBf
 
 	// use public key to find sourcePartner
 	for _, peer := range term.contextProvider.GetTerm().Senators {
-		if bytes.Equal(peer.PublicKey.Bytes, signedMsg.PublicKey) {
+		if bytes.Equal(peer.PublicKey.KeyBytes, signedMsg.PublicKey) {
 			return nil
 		}
 	}

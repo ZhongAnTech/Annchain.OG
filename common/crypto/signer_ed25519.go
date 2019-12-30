@@ -38,12 +38,12 @@ func (s *SignerEd25519) CanRecoverPubFromSig() bool {
 }
 
 func (s *SignerEd25519) Sign(privKey PrivateKey, msg []byte) Signature {
-	signatureBytes := ed25519.Sign(privKey.Bytes, msg)
+	signatureBytes := ed25519.Sign(privKey.KeyBytes, msg)
 	return SignatureFromBytes(CryptoTypeEd25519, signatureBytes)
 }
 
 func (s *SignerEd25519) PubKey(privKey PrivateKey) PublicKey {
-	pubkey := ed25519.PrivateKey(privKey.Bytes).Public()
+	pubkey := ed25519.PrivateKey(privKey.KeyBytes).Public()
 	return PublicKeyFromBytes(CryptoTypeEd25519, []byte(pubkey.(ed25519.PublicKey)))
 }
 
@@ -57,12 +57,12 @@ func (s *SignerEd25519) PublicKeyFromBytes(b []byte) PublicKey {
 
 func (s *SignerEd25519) Verify(pubKey PublicKey, signature Signature, msg []byte) bool {
 	//validate to prevent panic
-	if l := len(pubKey.Bytes); l != ed25519.PublicKeySize {
+	if l := len(pubKey.KeyBytes); l != ed25519.PublicKeySize {
 		err := fmt.Errorf("ed25519: bad public key length: " + strconv.Itoa(l))
 		logrus.WithError(err).Warn("verify fail")
 		return false
 	}
-	return ed25519.Verify(pubKey.Bytes, msg, signature.Bytes)
+	return ed25519.Verify(pubKey.KeyBytes, msg, signature.SignatureBytes)
 }
 
 func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
@@ -79,7 +79,7 @@ func (s *SignerEd25519) RandomKeyPair() (publicKey PublicKey, privateKey Private
 func (s *SignerEd25519) Address(pubKey PublicKey) common.Address {
 	var w bytes.Buffer
 	w.Write([]byte{byte(pubKey.Type)})
-	w.Write(pubKey.Bytes)
+	w.Write(pubKey.KeyBytes)
 	hasher := ripemd160.New()
 	hasher.Write(w.Bytes())
 	result := hasher.Sum(nil)
@@ -89,7 +89,7 @@ func (s *SignerEd25519) Address(pubKey PublicKey) common.Address {
 func (s *SignerEd25519) Encrypt(publicKey PublicKey, m []byte) (ct []byte, err error) {
 	//convert our pubkey key to kyber pubkey
 	suite := edwards25519.NewBlakeSHA256Ed25519()
-	pubKey, err := edwards25519.UnmarshalBinaryPoint(publicKey.Bytes)
+	pubKey, err := edwards25519.UnmarshalBinaryPoint(publicKey.KeyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (s *SignerEd25519) Decrypt(p PrivateKey, ct []byte) (m []byte, err error) {
 	//convert our priv key to kyber privkey
 	var edPrivKey [32]byte
 	var curvPrivKey [64]byte
-	copy(curvPrivKey[:], p.Bytes[:64])
+	copy(curvPrivKey[:], p.KeyBytes[:64])
 	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
 	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
 	if err != nil {

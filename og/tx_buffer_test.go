@@ -178,8 +178,8 @@ func TestTxBuffer_Handle(t *testing.T) {
 		tx.Height = 1
 		tx.Weight = tx.Weight % uint64(N)
 		tx.SetSender(from)
-		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).Bytes
-		tx.PublicKey = pub.Bytes
+		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes
+		tx.PublicKey = pub.KeyBytes
 		tx.Hash = tx.CalcTxHash()
 		txs = append(txs, tx)
 	}

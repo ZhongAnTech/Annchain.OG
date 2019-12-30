@@ -95,7 +95,7 @@ func newTx(cmd *cobra.Command, args []string) {
 		To:        to,
 		Data:      payload,
 		Value:     tx.Value.String(),
-		Signature: hexutil.Encode(signature.Bytes),
+		Signature: hexutil.Encode(signature.SignatureBytes),
 		Pubkey:    pubKey.String(),
 	}
 	req := httplib.Post(Host + "/new_transaction")

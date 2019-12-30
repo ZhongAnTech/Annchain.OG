@@ -67,7 +67,7 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	//priv:= PrivateKey{PublicKey{}}
 	msg := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
 		"ufidurehfkkjfri566878798y5rejiodijfjioi;454646855455uiyrsduihfi54sdodoootoprew5468rre")
-	pub2, err := UnmarshalPubkey(pk.Bytes)
+	pub2, err := UnmarshalPubkey(pk.KeyBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +80,7 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	cf, err := ecies.Encrypt(rand.Reader, eciesPub, msg, nil, nil)
 	//cf, err := pk.Encrypt(msg)
 	fmt.Println(len(cf), hex.EncodeToString(cf), err)
-	prive, err := ToECDSA(sk.Bytes)
+	prive, err := ToECDSA(sk.KeyBytes)
 	fmt.Println(prive)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	fmt.Println(ecisesPriv)
@@ -114,10 +114,10 @@ func TestBenchMarks(t *testing.T) {
 	start := time.Now()
 	fmt.Println("number of tx ", Txlen)
 	for i, tx := range txs {
-		txs[i].GetBase().Signature = signerSecp.Sign(privKey, tx.PlainData).Bytes
+		txs[i].GetBase().Signature = signerSecp.Sign(privKey, tx.PlainData).SignatureBytes
 	}
 	second := time.Now()
-	fmt.Println(second.Sub(start), "for  secp256k1 sign", " pubKeyLen:", len(pubkey.Bytes), "len signatue:",
+	fmt.Println(second.Sub(start), "for  secp256k1 sign", " pubKeyLen:", len(pubkey.KeyBytes), "len signatue:",
 		len(txs[0].GetBase().Signature), "len target:", len(txs[0].PlainData))
 	for i, tx := range txs {
 		ok := signerSecp.Verify(pubkey, Signature{signerSecp.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)
@@ -129,10 +129,10 @@ func TestBenchMarks(t *testing.T) {
 	fmt.Println(third.Sub(second), "used for secp256k1 verify")
 
 	for i, tx := range txs {
-		txs[i].GetBase().Signature = signerEd.Sign(privEd, tx.PlainData).Bytes
+		txs[i].GetBase().Signature = signerEd.Sign(privEd, tx.PlainData).SignatureBytes
 	}
 	four := time.Now()
-	fmt.Println(four.Sub(third), "for ed25519 sign", " pubKeyLen:", len(pubEd.Bytes), "len signatue:",
+	fmt.Println(four.Sub(third), "for ed25519 sign", " pubKeyLen:", len(pubEd.KeyBytes), "len signatue:",
 		len(txs[0].GetBase().Signature), "len target:", len(txs[0].PlainData))
 	for i, tx := range txs {
 		ok := signerEd.Verify(pubEd, Signature{signerEd.GetCryptoType(), tx.GetBase().Signature}, tx.PlainData)

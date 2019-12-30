@@ -434,7 +434,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 		return false
 	}
 	me := c.MyAccount
-	txi.GetBase().PublicKey = me.PublicKey.Bytes
+	txi.GetBase().PublicKey = me.PublicKey.KeyBytes
 	txi.GetBase().AccountNonce = c.judgeNonce()
 	if txi.GetType() == types.TxBaseTypeCampaign {
 		cp := txi.(*campaign.Campaign)
@@ -444,7 +444,7 @@ func (c *AutoClient) doRawTx(txi types.Txi) bool {
 		cp.Issuer = &me.Address
 	}
 	s := crypto.NewSigner(me.PublicKey.Type)
-	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).Bytes
+	txi.GetBase().Signature = s.Sign(me.PrivateKey, txi.SignatureTargets()).SignatureBytes
 	if ok := c.Delegate.TxCreator.SealTx(txi, &me.PrivateKey); !ok {
 		logrus.Warn("delegate failed to seal tx")
 		return false

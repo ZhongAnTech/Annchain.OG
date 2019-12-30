@@ -61,7 +61,7 @@ func TestBloom9(t *testing.T) {
 	testCase := []byte("testtest")
 	bin := LogsBloom([]state.Log{
 		{testCase, [][]byte{[]byte("hellohello")}, nil},
-	}).Bytes()
+	}).KeyBytes()
 	res := BloomLookup(bin, testCase)
 
 	if !res {

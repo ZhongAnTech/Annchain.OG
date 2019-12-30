@@ -118,7 +118,7 @@ func (r *TrustfulDkgAdapter) Sign(message dkg.DkgMessage) AnnsensusMessageDkgSig
 		PublicKey:        publicKey,
 	}
 	//SessionId:     partner.CurrentTerm(),
-	//PublicKey: account.PublicKey.Bytes,
+	//PublicKey: account.PublicKey.KeyBytes,
 	return signed
 }
 

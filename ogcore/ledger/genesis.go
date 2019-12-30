@@ -23,7 +23,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -109,12 +108,12 @@ func GetSampleAccounts() []*account.Account {
 		}
 
 	} else {
-		logrus.WithField("len", math.MinInt(len(core.sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
+		logrus.WithField("len", math.MinInt(len(sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
 		for i := 0; i < MaxAccountCount; i++ {
-			if i >= len(core.sampleEd25519PrivKeys) {
+			if i >= len(sampleEd25519PrivKeys) {
 				break
 			}
-			acc := account.NewAccount(core.sampleEd25519PrivKeys[i])
+			acc := account.NewAccount(sampleEd25519PrivKeys[i])
 			acc.Id = i
 			accounts = append(accounts, acc)
 		}

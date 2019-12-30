@@ -27,8 +27,8 @@ func TestVerify(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		tx := archive.RandomTx()
 		tx.From = &addr
-		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).Bytes
-		tx.PublicKey = pub.Bytes
+		tx.Signature = signer.Sign(priv, tx.SignatureTargets()).SignatureBytes
+		tx.PublicKey = pub.KeyBytes
 		txis = append(txis, tx)
 	}
 	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}

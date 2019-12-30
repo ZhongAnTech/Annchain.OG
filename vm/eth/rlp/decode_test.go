@@ -100,7 +100,7 @@ func TestStreamErrors(t *testing.T) {
 		newStream func([]byte) *Stream // uses bytes.Reader if nil
 		error     error
 	}{
-		{"C0", calls{"Bytes"}, nil, ErrExpectedString},
+		{"C0", calls{"KeyBytes"}, nil, ErrExpectedString},
 		{"C0", calls{"Uint"}, nil, ErrExpectedString},
 		{"89000000000000000001", calls{"Uint"}, nil, errUintOverflow},
 		{"00", calls{"List"}, nil, ErrExpectedList},
@@ -124,14 +124,14 @@ func TestStreamErrors(t *testing.T) {
 		// Size tags must use the smallest possible encoding.
 		// Leading zero bytes in the size tag are also rejected.
 		{"8100", calls{"Uint"}, nil, ErrCanonSize},
-		{"8100", calls{"Bytes"}, nil, ErrCanonSize},
-		{"8101", calls{"Bytes"}, nil, ErrCanonSize},
-		{"817F", calls{"Bytes"}, nil, ErrCanonSize},
-		{"8180", calls{"Bytes"}, nil, nil},
+		{"8100", calls{"KeyBytes"}, nil, ErrCanonSize},
+		{"8101", calls{"KeyBytes"}, nil, ErrCanonSize},
+		{"817F", calls{"KeyBytes"}, nil, ErrCanonSize},
+		{"8180", calls{"KeyBytes"}, nil, nil},
 		{"B800", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
 		{"B90000", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
 		{"B90055", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
-		{"BA0002FFFF", calls{"Bytes"}, withoutInputLimit, ErrCanonSize},
+		{"BA0002FFFF", calls{"KeyBytes"}, withoutInputLimit, ErrCanonSize},
 		{"F800", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
 		{"F90000", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
 		{"F90055", calls{"Kind"}, withoutInputLimit, ErrCanonSize},
@@ -149,10 +149,10 @@ func TestStreamErrors(t *testing.T) {
 		{"C0", calls{"List", "ListEnd", "List"}, withoutInputLimit, io.EOF},
 
 		// Input limit errors.
-		{"81", calls{"Bytes"}, nil, ErrValueTooLarge},
+		{"81", calls{"KeyBytes"}, nil, ErrValueTooLarge},
 		{"81", calls{"Uint"}, nil, ErrValueTooLarge},
 		{"81", calls{"Raw"}, nil, ErrValueTooLarge},
-		{"BFFFFFFFFFFFFFFFFFFF", calls{"Bytes"}, nil, ErrValueTooLarge},
+		{"BFFFFFFFFFFFFFFFFFFF", calls{"KeyBytes"}, nil, ErrValueTooLarge},
 		{"C801", calls{"List"}, nil, ErrValueTooLarge},
 
 		// Test for list element size check overflow.
@@ -170,26 +170,26 @@ func TestStreamErrors(t *testing.T) {
 
 		// Unexpected EOF. This only happens when there is
 		// no input limit, so the reader needs to be 'dumbed down'.
-		{"81", calls{"Bytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
+		{"81", calls{"KeyBytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
 		{"81", calls{"Uint"}, withoutInputLimit, io.ErrUnexpectedEOF},
-		{"BFFFFFFFFFFFFFFF", calls{"Bytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
+		{"BFFFFFFFFFFFFFFF", calls{"KeyBytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
 		{"C801", calls{"List", "Uint", "Uint"}, withoutInputLimit, io.ErrUnexpectedEOF},
 
 		// This test verifies that the input position is advanced
-		// correctly when calling Bytes for empty strings. Kind can be called
+		// correctly when calling KeyBytes for empty strings. Kind can be called
 		// any number of times in between and doesn't advance.
 		{"C3808080", calls{
-			"List",  // enter the list
-			"Bytes", // past first element
+			"List",     // enter the list
+			"KeyBytes", // past first element
 
 			"Kind", "Kind", "Kind", // this shouldn't advance
 
-			"Bytes", // past second element
+			"KeyBytes", // past second element
 
 			"Kind", "Kind", // can't hurt to try
 
-			"Bytes", // past final element
-			"Bytes", // this one should fail
+			"KeyBytes", // past final element
+			"KeyBytes", // this one should fail
 		}, nil, EOL},
 	}
 

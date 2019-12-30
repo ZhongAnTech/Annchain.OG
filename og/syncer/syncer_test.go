@@ -81,7 +81,7 @@ func TestIncrementalSyncer_AddTxs(t *testing.T) {
 	types.Signer = signer
 	for i := 0; i < 60000; i++ {
 		tx := archive.RandomTx()
-		tx.PublicKey = pubKey.Bytes
+		tx.PublicKey = pubKey.KeyBytes
 		msg := &archive.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {
@@ -101,7 +101,7 @@ func TestSyncBuffer_AddTxs(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 60000; i++ {
 		tx := archive.RandomTx()
-		tx.PublicKey = pubKey.Bytes
+		tx.PublicKey = pubKey.KeyBytes
 		msg := &archive.MessageNewTx{tx.RawTx()}
 		wg.Add(1)
 		go func() {

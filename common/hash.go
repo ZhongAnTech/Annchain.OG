@@ -113,7 +113,7 @@ func (h Hash) String() string {
 // Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
 // without going through the stringer interface used for logging.
 //func (h Hash) Format(s fmt.State, c rune) {
-//	fmt.Fprintf(s, "%"+string(c), h.Bytes)
+//	fmt.Fprintf(s, "%"+string(c), h.KeyBytes)
 //}
 
 // UnmarshalText parses an Hash in hex syntax.

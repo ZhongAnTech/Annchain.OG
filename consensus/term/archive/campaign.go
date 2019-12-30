@@ -19,7 +19,7 @@ package archive
 //		log.Debug("campaign number is equal to participant number ,all will be senator")
 //		var txs types.Txis
 //		for _, cp := range campaigns {
-//			if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
+//			if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.KeyBytes) {
 //				d.isValidPartner = true
 //				d.dkgOn = true
 //			}
@@ -77,7 +77,7 @@ package archive
 //		publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 //		d.term.AddCandidate(cp, publicKey)
 //		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
-//		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.Bytes) {
+//		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.KeyBytes) {
 //			log.Debug("congratulation i am a partner of dkg")
 //			d.isValidPartner = true
 //			d.partner.Id = uint32(j)
@@ -102,8 +102,8 @@ package archive
 
 //type VrfSelection struct {
 //	addr   common.Address
-//	Vrf    hexutil.Bytes
-//	XORVRF hexutil.Bytes
+//	Vrf    hexutil.KeyBytes
+//	XORVRF hexutil.KeyBytes
 //	Id     int //for test
 //}
 //
@@ -118,7 +118,7 @@ package archive
 //}
 //
 //func (v VrfSelection) String() string {
-//	return fmt.Sprintf("id-%d-a-%s-v-%s-xor-%s", v.Id, hexutil.Encode(v.addr.Bytes[:4]), hexutil.Encode(v.Vrf[:4]), hexutil.Encode(v.XORVRF[:4]))
+//	return fmt.Sprintf("id-%d-a-%s-v-%s-xor-%s", v.Id, hexutil.Encode(v.addr.KeyBytes[:4]), hexutil.Encode(v.Vrf[:4]), hexutil.Encode(v.XORVRF[:4]))
 //}
 //
 //// XOR takes two byte slices, XORs them together, returns the resulting slice.

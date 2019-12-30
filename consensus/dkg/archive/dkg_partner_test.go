@@ -54,7 +54,7 @@ package archive
 //		h := common.RandomHash()
 //		cp := tx_types.Campaign{
 //			Vrf: tx_types.VrfInfo{
-//				Vrf: h.Bytes[:],
+//				Vrf: h.KeyBytes[:],
 //			},
 //			Issuer: &addr,
 //		}

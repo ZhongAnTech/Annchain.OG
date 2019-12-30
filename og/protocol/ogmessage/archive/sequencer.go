@@ -29,8 +29,8 @@ import (
 //	// TODO: need more states in sequencer to differentiate multiple chains
 //	TxBase
 //	Issuer         *common.Address
-//	Signature    hexutil.Bytes
-//	PublicKey hexutil.Bytes
+//	Signature    hexutil.KeyBytes
+//	PublicKey hexutil.KeyBytes
 //	StateRoot      common.Hash
 //	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 //}

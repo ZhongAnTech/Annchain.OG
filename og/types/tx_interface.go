@@ -31,8 +31,8 @@ type Txi interface {
 	SetHash(h common.Hash)
 	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 
-	//SetInValid(b bool)
-	//InValid() bool
+	SetValid(b bool)
+	Valid() bool
 
 	// implemented by each tx type
 	//GetBase() *TxBase

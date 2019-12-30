@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/ledger"
 )
 
 type ILedger interface {
@@ -21,4 +22,6 @@ type ILedger interface {
 
 	IsTxExists(hash common.Hash) bool
 	IsAddressExists(addr common.Address) bool
+
+	Push(batch *ledger.ConfirmBatch) error
 }

@@ -81,7 +81,7 @@ type TxBaseJson struct {
 //	return json.Marshal(b)
 //}
 //
-//func (t *TxBase) SetInValid(b bool) {
+//func (t *TxBase) SetValid(b bool) {
 //	t.inValid = b
 //}
 //
@@ -93,7 +93,7 @@ type TxBaseJson struct {
 //	t.verified = t.verified.Merge(v)
 //}
 //
-//func (t *TxBase) InValid() bool {
+//func (t *TxBase) Valid() bool {
 //	return t.inValid
 //}
 //

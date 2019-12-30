@@ -38,7 +38,7 @@ func (f *FIFOTipGenerator) validation() {
 			break
 		}
 		//if the tx is became fatal tx ,remove it from tips
-		if f.fifoRing[i].InValid() {
+		if !f.fifoRing[i].Valid() {
 			logrus.WithField("tx ", f.fifoRing[i]).Debug("found invalid tx")
 			if !f.fifoRingFull {
 				if f.fifoRingPos > 0 {

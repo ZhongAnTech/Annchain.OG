@@ -554,7 +554,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	txquality := pool.isBadTx(tx)
 	if txquality == TxQualityIsFatal {
 		pool.remove(tx, removeFromEnd)
-		tx.SetInValid(true)
+		tx.SetValid(false)
 		log.WithField("tx", tx).Debug("set invalid")
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
 	}
@@ -765,24 +765,25 @@ func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 		return common.Hash{}, err
 	}
 	return common.Hash{}, nil
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	if seq.GetHeight() <= pool.dag.GetHeight() {
-		return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
-			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.GetHeight())
-	}
-	elders, batch, err := pool.confirmHelper(seq)
-	if err != nil {
-		log.WithField("error", err).Errorf("confirm error: %v", err)
-		return common.Hash{}, err
-	}
-	rootHash, err := pool.dag.PrePush(batch)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
-	return rootHash, nil
+	// disabled.
+	//pool.mu.Lock()
+	//defer pool.mu.Unlock()
+	//
+	//if seq.GetHeight() <= pool.dag.GetHeight() {
+	//	return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
+	//		"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.GetHeight())
+	//}
+	//elders, batch, err := pool.confirmHelper(seq)
+	//if err != nil {
+	//	log.WithField("error", err).Errorf("confirm error: %v", err)
+	//	return common.Hash{}, err
+	//}
+	//rootHash, err := pool.dag.PrePush(batch)
+	//if err != nil {
+	//	return common.Hash{}, err
+	//}
+	//pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
+	//return rootHash, nil
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
@@ -813,11 +814,11 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 		return err
 	}
 
-	for _, tx := range batch.Txs {
-		if normalTx, ok := tx.(*types.Tx); ok {
-			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
-		}
-	}
+	//for _, tx := range batch.Txs {
+	//	if normalTx, ok := tx.(*types.Tx); ok {
+	//		pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
+	//	}
+	//}
 
 	// solve conflicts of txs in pool
 	pool.solveConflicts(batch)
@@ -1398,9 +1399,9 @@ func (t *txLookUp) switchstatus(h common.Hash, status TxStatus) {
 	}
 }
 
-func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
-	return pool.confirmStatus.GetInfo()
-}
+//func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
+//	return pool.confirmStatus.GetInfo()
+//}
 
 func (pool *TxPool) GetOrder() common.Hashes {
 	return pool.txLookup.GetOrder()

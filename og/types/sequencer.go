@@ -24,7 +24,16 @@ type Sequencer struct {
 	//Proposing    bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 
 	// derived properties
-	Weight uint64
+	Weight  uint64
+	invalid bool
+}
+
+func (s *Sequencer) SetValid(b bool) {
+	s.invalid = !b
+}
+
+func (s *Sequencer) Valid() bool {
+	return !s.invalid
 }
 
 func (s *Sequencer) SetSender(addr common.Address) {

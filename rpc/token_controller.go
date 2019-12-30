@@ -21,7 +21,6 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
-	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/status"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -107,8 +106,8 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 
 	fmt.Println(fmt.Sprintf("tx req action: %x", txReq.Action))
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx, err = r.TxCreator.NewActionTxWithSeal(ogcore.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
 			From:         from,
 			To:           common.Address{},
 			Value:        math.NewBigInt(0),
@@ -209,8 +208,8 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx, err = r.TxCreator.NewActionTxWithSeal(ogcore.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
 			From:         from,
 			To:           common.Address{},
 			Value:        value,
@@ -310,8 +309,8 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewActionTxWithSeal(txmaker.ActionTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx, err = r.TxCreator.NewActionTxWithSeal(ogcore.ActionTxBuildRequest{
+		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
 			From:         from,
 			To:           common.Address{},
 			Value:        value,

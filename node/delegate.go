@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
+	"github.com/annchain/OG/ogcore_test"
 
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func (d *Delegate) TooMoreTx() bool {
 	return false
 }
 
-func (c *Delegate) GenerateTx(r txmaker.SignedTxBuildRequest) (tx types.Txi, err error) {
+func (c *Delegate) GenerateTx(r ogcore.SignedTxBuildRequest) (tx types.Txi, err error) {
 	tx = c.TxCreator.NewSignedTx(r)
 
 	if ok := c.TxCreator.SealTx(tx, nil); !ok {

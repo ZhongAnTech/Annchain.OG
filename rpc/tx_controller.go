@@ -19,7 +19,6 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
-	"github.com/annchain/OG/og/txmaker"
 	"net/http"
 	"strconv"
 	"time"
@@ -109,7 +108,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+	tx, err = r.TxCreator.NewTxWithSeal(ogcore.TxWithSealBuildRequest{
 		From:    from,
 		To:      to,
 		Value:   value,
@@ -251,7 +250,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			Response(c, http.StatusOK, fmt.Errorf("tx is disabled when syncing"), nil)
 			return
 		}
-		tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+		tx, err = r.TxCreator.NewTxWithSeal(ogcore.TxWithSealBuildRequest{
 			From:    from,
 			To:      to,
 			Value:   value,
@@ -277,7 +276,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 				return
 			}
 			time.Sleep(time.Microsecond * 2)
-			tx, err = r.TxCreator.NewTxWithSeal(txmaker.TxWithSealBuildRequest{
+			tx, err = r.TxCreator.NewTxWithSeal(ogcore.TxWithSealBuildRequest{
 				From:    from,
 				To:      to,
 				Value:   value,

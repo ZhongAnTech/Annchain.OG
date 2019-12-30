@@ -244,7 +244,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 
 	inSeekingPool := map[common.Hash]int{}
 	seekingPool := common.Hashes{}
-	for _, parentHash := range seq.Parents() {
+	for _, parentHash := range seq.GetParents() {
 		seekingPool = append(seekingPool, parentHash)
 		// seekingPool.PushBack(parentHash)
 	}
@@ -263,7 +263,7 @@ func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 			return err
 		}
 		delete(keysMap, elderHash)
-		for _, elderParentHash := range elder.Parents() {
+		for _, elderParentHash := range elder.GetParents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
 				seekingPool = append(seekingPool, elderParentHash)
 				// seekingPool.PushBack(elderParentHash)

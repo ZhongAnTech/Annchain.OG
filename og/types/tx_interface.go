@@ -20,14 +20,17 @@ type Txi interface {
 	GetHeight() uint64
 	SetHeight(uint64)
 	GetWeight() uint64
+	SetWeight(weight uint64)
 	GetTxHash() common.Hash
-	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
+	GetParents() common.Hashes // GetParents returns the common.Hash of txs that it directly proves.
+	SetParents(hashes common.Hashes)
 	String() string
 	CalcTxHash() common.Hash // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
 	CalculateWeight(parents Txis) uint64
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 	GetNonce() uint64
+
 	SetHash(h common.Hash)
 	//CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 

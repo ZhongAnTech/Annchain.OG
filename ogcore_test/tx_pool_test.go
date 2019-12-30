@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package ogcore
+package ogcore_test
 
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
-	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
@@ -49,8 +49,8 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
-		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
+	seq := txCreator.NewSignedSequencer(SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
 			Issuer:       addr,
 			Height:       nonce,
 			AccountNonce: nonce,
@@ -62,7 +62,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	return seq.(*types.Sequencer)
 }
 
-func newTestTxPool(t *testing.T) (*pool.TxPool, *core2.Dag, *types.Sequencer, func()) {
+func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, func()) {
 	txpoolconfig := pool.TxPoolConfig{
 		QueueSize:     100,
 		TipsSize:      100,
@@ -71,13 +71,13 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *core2.Dag, *types.Sequencer, fu
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag, errnew := core2.NewDag(core2.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
+	dag, errnew := ledger.NewDag(ledger.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
 	pool := pool.NewTxPool(txpoolconfig, dag)
 
-	genesis, balance := core2.DefaultGenesis("genesis.json")
+	genesis, balance := ledger.DefaultGenesis("genesis.json")
 	err := dag.Init(genesis, balance)
 	if err != nil {
 		t.Fatalf("init dag failed with error: %v", err)
@@ -98,8 +98,8 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
+		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(0),
@@ -118,8 +118,8 @@ func newTestPoolBadTx() *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
+		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(100),

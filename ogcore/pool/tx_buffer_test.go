@@ -11,9 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package og
+package pool
 
 import (
+	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/og/verifier"
@@ -30,24 +31,24 @@ import (
 )
 
 func setup() *TxBuffer {
-	ver := new(dummyVerifier)
+	ver := new(og.dummyVerifier)
 	buffer := NewTxBuffer(TxBufferConfig{
 		Verifiers:                        []protocol.Verifier{ver},
 		DependencyCacheMaxSize:           20,
-		TxPool:                           new(dummyTxPool),
-		Dag:                              new(dummyDag),
-		Syncer:                           new(dummySyncer),
+		TxPool:                           new(og.dummyTxPool),
+		Dag:                              new(og.dummyDag),
+		Syncer:                           new(og.dummySyncer),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
 		KnownCacheMaxSize:                10000,
 		KnownCacheExpirationSeconds:      30,
 	})
-	buffer.Syncer.(*dummySyncer).dmap = make(map[common.Hash]types.Txi)
-	buffer.Syncer.(*dummySyncer).buffer = buffer
-	buffer.Syncer.(*dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
+	buffer.Syncer.(*og.dummySyncer).dmap = make(map[common.Hash]types.Txi)
+	buffer.Syncer.(*og.dummySyncer).buffer = buffer
+	buffer.Syncer.(*og.dummySyncer).acquireTxDedupCache = gcache.New(100).Simple().
 		Expiration(time.Second * 10).Build()
-	buffer.dag.(*dummyDag).init()
-	buffer.txPool.(*dummyTxPool).init()
+	buffer.dag.(*og.dummyDag).init()
+	buffer.txPool.(*og.dummyTxPool).init()
 	return buffer
 }
 
@@ -67,17 +68,17 @@ func TestBuffer(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.Syncer.(*dummySyncer)
+	m := buffer.Syncer.(*og.dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
-	m.Know(sampleTx("0x02", []string{"0x00"}))
-	m.Know(sampleTx("0x03", []string{"0x00"}))
-	m.Know(sampleTx("0x04", []string{"0x02"}))
-	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
-	m.Know(sampleTx("0x06", []string{"0x02"}))
-	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
-	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
-	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	tx := sampleTx("0x0A", []string{"0x09"})
+	m.Know(og.sampleTx("0x02", []string{"0x00"}))
+	m.Know(og.sampleTx("0x03", []string{"0x00"}))
+	m.Know(og.sampleTx("0x04", []string{"0x02"}))
+	m.Know(og.sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
+	m.Know(og.sampleTx("0x06", []string{"0x02"}))
+	m.Know(og.sampleTx("0x07", []string{"0x04", "0x05"}))
+	m.Know(og.sampleTx("0x08", []string{"0x05", "0x06"}))
+	m.Know(og.sampleTx("0x09", []string{"0x07", "0x08"}))
+	tx := og.sampleTx("0x0A", []string{"0x09"})
 	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	//buffer.AddTx(sampleTx("0x09", []string{"0x04"}))
 
@@ -91,17 +92,17 @@ func TestBufferMissing3(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.Syncer.(*dummySyncer)
+	m := buffer.Syncer.(*og.dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
-	m.Know(sampleTx("0x02", []string{"0x00"}))
+	m.Know(og.sampleTx("0x02", []string{"0x00"}))
 	//m.Know(sampleTx("0x03", []string{"0x00"}))
-	m.Know(sampleTx("0x04", []string{"0x02"}))
-	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
-	m.Know(sampleTx("0x06", []string{"0x02"}))
-	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
-	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
-	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	tx := sampleTx("0x0A", []string{"0x09"})
+	m.Know(og.sampleTx("0x04", []string{"0x02"}))
+	m.Know(og.sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
+	m.Know(og.sampleTx("0x06", []string{"0x02"}))
+	m.Know(og.sampleTx("0x07", []string{"0x04", "0x05"}))
+	m.Know(og.sampleTx("0x08", []string{"0x05", "0x06"}))
+	m.Know(og.sampleTx("0x09", []string{"0x07", "0x08"}))
+	tx := og.sampleTx("0x0A", []string{"0x09"})
 	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	//buffer.AddTx(sampleTx("0x09", []string{"0x04"}))
 
@@ -116,8 +117,8 @@ func TestBufferCache(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer := setup()
-	m := buffer.Syncer.(*dummySyncer)
-	tx := sampleTx("0x0A", []string{"0x09"})
+	m := buffer.Syncer.(*og.dummySyncer)
+	tx := og.sampleTx("0x0A", []string{"0x09"})
 	<-ffchan.NewTimeoutSenderShort(buffer.ReceivedNewTxChan, tx, "test").C
 	buffer.Start()
 	success := false
@@ -142,8 +143,8 @@ func TestLocalHash(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(&logrus.TextFormatter{})
 	buffer := setup()
-	tx2 := sampleTx("0x02", []string{"0x00"})
-	tx3 := sampleTx("0x03", []string{"0x00"})
+	tx2 := og.sampleTx("0x02", []string{"0x00"})
+	tx3 := og.sampleTx("0x03", []string{"0x00"})
 	buffer.txPool.AddRemoteTx(tx2, true)
 	if !buffer.isLocalHash(tx2.GetTxHash()) {
 		t.Fatal("is localhash")
@@ -163,7 +164,7 @@ func TestTxBuffer_Handle(t *testing.T) {
 	buffer := NewTxBuffer(TxBufferConfig{
 		Verifiers:                        []protocol.Verifier{ver},
 		DependencyCacheMaxSize:           20,
-		TxPool:                           new(dummyTxPool),
+		TxPool:                           new(og.dummyTxPool),
 		DependencyCacheExpirationSeconds: 60,
 		NewTxQueueSize:                   100,
 		KnownCacheMaxSize:                10000,

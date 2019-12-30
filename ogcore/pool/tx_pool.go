@@ -11,29 +11,23 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core
+package pool
 
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/ogcore/ledger"
-	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/ogcore/state"
 
 	"github.com/annchain/OG/status"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
-	"time"
-
-	"math/rand"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -91,13 +85,13 @@ const (
 
 type TxPool struct {
 	conf TxPoolConfig
-	dag  *ledger.Dag
+	dag  ILedger
 
 	queue    chan *txEvent // queue stores txs that need to validate later
 	tips     *TxMap        // tips stores all the tips
 	badtxs   *TxMap
 	pendings *TxMap
-	flows    *pool.AccountFlows
+	flows    *AccountFlows
 	txLookup *txLookUp // txLookUp stores all the txs for external query
 	cached   *cachedConfirm
 
@@ -112,7 +106,7 @@ type TxPool struct {
 	OnNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
 	txNum                  uint32
 	maxWeight              uint64
-	confirmStatus          *ConfirmStatus
+	//confirmStatus          *ConfirmStatus
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -122,17 +116,17 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 		"txlookup":   len(pool.txLookup.txs),
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
-		"latest_seq": int(pool.dag.latestSequencer.Number()),
+		"latest_seq": int(pool.dag.GetHeight()),
 		"pendings":   len(pool.pendings.txs),
 		"flows":      len(pool.flows.afs),
 		"hashordr":   len(pool.txLookup.order),
 	}
 }
 
-func NewTxPool(conf TxPoolConfig, d *ledger.Dag) *TxPool {
-	if conf.ConfirmStatusRefreshTime == 0 {
-		conf.ConfirmStatusRefreshTime = 30
-	}
+func NewTxPool(conf TxPoolConfig, d ILedger) *TxPool {
+	//if conf.ConfirmStatusRefreshTime == 0 {
+	//	conf.ConfirmStatusRefreshTime = 30
+	//}
 	pool := &TxPool{
 		conf:                   conf,
 		dag:                    d,
@@ -140,29 +134,29 @@ func NewTxPool(conf TxPoolConfig, d *ledger.Dag) *TxPool {
 		tips:                   NewTxMap(),
 		badtxs:                 NewTxMap(),
 		pendings:               NewTxMap(),
-		flows:                  pool.NewAccountFlows(),
+		flows:                  NewAccountFlows(),
 		txLookup:               newTxLookUp(),
 		close:                  make(chan struct{}),
 		onNewTxReceived:        make(map[channelName]chan types.Txi),
 		OnBatchConfirmed:       []chan map[common.Hash]types.Txi{},
 		OnConsensusTXConfirmed: []chan map[common.Hash]types.Txi{},
-		confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
+		//confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)},
 	}
 
 	return pool
 }
 
 type TxPoolConfig struct {
-	QueueSize                int `mapstructure:"queue_size"`
-	TipsSize                 int `mapstructure:"tips_size"`
-	ResetDuration            int `mapstructure:"reset_duration"`
-	TxVerifyTime             int `mapstructure:"tx_verify_time"`
-	TxValidTime              int `mapstructure:"tx_valid_time"`
-	TimeOutPoolQueue         int `mapstructure:"timeout_pool_queue_ms"`
-	TimeoutSubscriber        int `mapstructure:"timeout_subscriber_ms"`
-	TimeoutConfirmation      int `mapstructure:"timeout_confirmation_ms"`
-	TimeoutLatestSequencer   int `mapstructure:"timeout_latest_seq_ms"`
-	ConfirmStatusRefreshTime int //minute
+	QueueSize              int `mapstructure:"queue_size"`
+	TipsSize               int `mapstructure:"tips_size"`
+	ResetDuration          int `mapstructure:"reset_duration"`
+	TxVerifyTime           int `mapstructure:"tx_verify_time"`
+	TxValidTime            int `mapstructure:"tx_valid_time"`
+	TimeOutPoolQueue       int `mapstructure:"timeout_pool_queue_ms"`
+	TimeoutSubscriber      int `mapstructure:"timeout_subscriber_ms"`
+	TimeoutConfirmation    int `mapstructure:"timeout_confirmation_ms"`
+	TimeoutLatestSequencer int `mapstructure:"timeout_latest_seq_ms"`
+	//ConfirmStatusRefreshTime int //minute
 }
 
 func DefaultTxPoolConfig() TxPoolConfig {
@@ -444,7 +438,7 @@ func (pool *TxPool) clearAll() {
 	pool.badtxs = NewTxMap()
 	pool.tips = NewTxMap()
 	pool.pendings = NewTxMap()
-	pool.flows = pool.NewAccountFlows()
+	pool.flows = NewAccountFlows()
 	pool.txLookup = newTxLookUp()
 }
 
@@ -496,7 +490,7 @@ func (pool *TxPool) loop() {
 					if maxWeight < tx.GetWeight() {
 						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 					}
-					tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
+					tx.SetHeight(pool.dag.LatestSequencer().Height + 1) //temporary height ,will be re write after confirm
 				}
 
 			}
@@ -524,10 +518,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		},
 	}
 
-	if normalTx, ok := tx.(*types.Tx); ok {
-		normalTx.Setconfirm()
-		pool.confirmStatus.AddTxNum()
-	}
+	//if normalTx, ok := tx.(*types.Tx); ok {
+	//	normalTx.Setconfirm()
+	//	pool.confirmStatus.AddTxNum()
+	//}
 
 	pool.queue <- te
 
@@ -596,12 +590,12 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.pendings.Add(parent)
 		pool.txLookup.SwitchStatus(pHash, TxStatusPending)
 	}
-	if tx.GetType() != types.TxBaseTypeArchive {
-		// add tx to pool
-		if pool.flows.Get(tx.Sender()) == nil {
-			pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
-		}
-	}
+	//if tx.GetType() != types.TxBaseTypeArchive {
+	//	// add tx to pool
+	//	if pool.flows.Get(tx.Sender()) == nil {
+	//		pool.flows.ResetFlow(tx.Sender(), state.NewBalanceSet())
+	//	}
+	//}
 	if tx.GetType() == types.TxBaseTypeTx {
 		txn := tx.(*types.Tx)
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
@@ -635,9 +629,9 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		}
 	}
 
-	if tx.GetType() == types.TxBaseTypeArchive {
-		return TxQualityIsGood
-	}
+	//if tx.GetType() == types.TxBaseTypeArchive {
+	//	return TxQualityIsGood
+	//}
 
 	// check if nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
@@ -683,7 +677,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		stateFrom := pool.flows.GetBalanceState(tx.Sender(), tx.TokenId)
 		if stateFrom == nil {
 			originBalance := pool.dag.GetBalance(tx.Sender(), tx.TokenId)
-			stateFrom = pool.NewBalanceState(originBalance)
+			stateFrom = NewBalanceState(originBalance)
 		}
 
 		// if tx's value is larger than its balance, return fatal.
@@ -700,59 +694,59 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
-	case *archive.ActionTx:
-		if tx.Action == archive.ActionTxActionIPO {
-			//actionData := tx.ActionData.(*tx_types.PublicOffering)
-			//actionData.TokenId = pool.dag.GetLatestTokenId()
-		}
-		if tx.Action == archive.ActionTxActionSPO {
-			actionData := tx.ActionData.(*archive.PublicOffering)
-			if actionData.TokenId == 0 {
-				log.WithField("tx ", tx).Warn("og token is disabled for publishing")
-				return TxQualityIsFatal
-			}
-			token := pool.dag.GetToken(actionData.TokenId)
-			if token == nil {
-				log.WithField("tx ", tx).Warn("token not found")
-				return TxQualityIsFatal
-			}
-			if !token.ReIssuable {
-				log.WithField("tx ", tx).Warn("token is disabled for second publishing")
-				return TxQualityIsFatal
-			}
-			if token.Destroyed {
-				log.WithField("tx ", tx).Warn("token is destroyed already")
-				return TxQualityIsFatal
-			}
-			if token.Issuer != tx.Sender() {
-				log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
-				return TxQualityIsFatal
-			}
-		}
-		if tx.Action == archive.ActionTxActionDestroy {
-			actionData := tx.ActionData.(*archive.PublicOffering)
-			if actionData.TokenId == 0 {
-				log.WithField("tx ", tx).Warn("og token is disabled for withdraw")
-				return TxQualityIsFatal
-			}
-			token := pool.dag.GetToken(actionData.TokenId)
-			if token == nil {
-				log.WithField("tx ", tx).Warn("token not found")
-				return TxQualityIsFatal
-			}
-			if token.Destroyed {
-				log.WithField("tx ", tx).Warn("token is destroyed already")
-				return TxQualityIsFatal
-			}
-			if token.Issuer != tx.Sender() {
-				log.WithField("tx ", tx).WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
-				return TxQualityIsFatal
-			}
-		}
-	case *campaign.Campaign:
-		// TODO
-	case *campaign.TermChange:
-		// TODO
+	//case *archive.ActionTx:
+	//	if tx.Action == archive.ActionTxActionIPO {
+	//		//actionData := tx.ActionData.(*tx_types.PublicOffering)
+	//		//actionData.TokenId = pool.dag.GetLatestTokenId()
+	//	}
+	//	if tx.Action == archive.ActionTxActionSPO {
+	//		actionData := tx.ActionData.(*archive.PublicOffering)
+	//		if actionData.TokenId == 0 {
+	//			log.WithField("tx ", tx).Warn("og token is disabled for publishing")
+	//			return TxQualityIsFatal
+	//		}
+	//		token := pool.dag.GetToken(actionData.TokenId)
+	//		if token == nil {
+	//			log.WithField("tx ", tx).Warn("token not found")
+	//			return TxQualityIsFatal
+	//		}
+	//		if !token.ReIssuable {
+	//			log.WithField("tx ", tx).Warn("token is disabled for second publishing")
+	//			return TxQualityIsFatal
+	//		}
+	//		if token.Destroyed {
+	//			log.WithField("tx ", tx).Warn("token is destroyed already")
+	//			return TxQualityIsFatal
+	//		}
+	//		if token.Issuer != tx.Sender() {
+	//			log.WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
+	//			return TxQualityIsFatal
+	//		}
+	//	}
+	//	if tx.Action == archive.ActionTxActionDestroy {
+	//		actionData := tx.ActionData.(*archive.PublicOffering)
+	//		if actionData.TokenId == 0 {
+	//			log.WithField("tx ", tx).Warn("og token is disabled for withdraw")
+	//			return TxQualityIsFatal
+	//		}
+	//		token := pool.dag.GetToken(actionData.TokenId)
+	//		if token == nil {
+	//			log.WithField("tx ", tx).Warn("token not found")
+	//			return TxQualityIsFatal
+	//		}
+	//		if token.Destroyed {
+	//			log.WithField("tx ", tx).Warn("token is destroyed already")
+	//			return TxQualityIsFatal
+	//		}
+	//		if token.Issuer != tx.Sender() {
+	//			log.WithField("tx ", tx).WithField("token ", token).WithField("you address", tx.Sender()).Warn("you have no authority to second publishing for this token")
+	//			return TxQualityIsFatal
+	//		}
+	//	}
+	//case *campaign.Campaign:
+	//	// TODO
+	//case *campaign.TermChange:
+	//	// TODO
 	default:
 		// TODO
 	}
@@ -774,9 +768,9 @@ func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
+	if seq.GetHeight() <= pool.dag.GetHeight() {
 		return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
-			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
+			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.GetHeight())
 	}
 	elders, batch, err := pool.confirmHelper(seq)
 	if err != nil {
@@ -882,7 +876,7 @@ func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
 	if pool.dag.LatestSequencer().Height+1 != seq.Height {
-		return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.latestSequencer.Height)
+		return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.GetHeight())
 	}
 	return nil
 }
@@ -942,9 +936,9 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			cTxs = append(cTxs, txi)
 		}
 
-		if txi.GetType() == types.TxBaseTypeArchive {
-			continue
-		}
+		//if txi.GetType() == types.TxBaseTypeArchive {
+		//	continue
+		//}
 
 		if txi.GetType() == types.TxBaseTypeTx {
 		}
@@ -963,7 +957,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = pool.NewTxList()
+				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				//batchFrom.Pos = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
@@ -975,7 +969,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
 				batchFrom = &BatchDetail{}
-				batchFrom.TxList = pool.NewTxList()
+				batchFrom.TxList = NewTxList()
 				batchFrom.Neg = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
@@ -1023,7 +1017,7 @@ func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 	// be removed from pool, pool.clearall() will be called to remove all
 	// the txs in the pool including pool.txLookUp.order.
 
-	txsInPool := []types.Txi{}
+	var txsInPool []types.Txi
 	// remove elders from pool
 	for _, tx := range batch.Txs {
 		elderHash := tx.GetTxHash()
@@ -1063,7 +1057,7 @@ func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr common.Address, noncesP *ledger.nonceHeap, seq *types.Sequencer) error {
+func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *types.Sequencer) error {
 	sort.Sort(noncesP)
 	nonces := *noncesP
 
@@ -1100,7 +1094,7 @@ func (pool *TxPool) reset() {
 // - TxList - represents the txs sent by this addrs, ordered by nonce.
 // - Neg    - means the amount this address should spent out.
 type BatchDetail struct {
-	TxList *pool.TxList
+	TxList *TxList
 	Neg    map[int32]*math.BigInt
 }
 

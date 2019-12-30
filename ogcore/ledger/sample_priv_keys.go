@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core
+package ledger
 
 var sampleEd25519PrivKeys = []string{
 	"0x00af1b6df8cc06d79902029c0e446c3dc2788893185759d2308b5bb10aa0614b7d26d7a6d356f6c26cd5ae514869f78b8353356e7973c7d3f25ae3fdec77b892bd",

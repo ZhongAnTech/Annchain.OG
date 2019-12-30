@@ -302,7 +302,7 @@ func (pd *PreloadDB) HasSuicided(addr common.Address) bool {
 	return state.suicided
 }
 
-// Exist reports whether the given account exists in state.
+// IsAddressExists reports whether the given account exists in state.
 // Notably this should also return true for suicided accounts.
 func (pd *PreloadDB) Exist(addr common.Address) bool {
 	if state := pd.getStateObject(addr); state != nil {

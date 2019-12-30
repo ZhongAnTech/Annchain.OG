@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core_test
+package pool_test
 
 import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
@@ -26,8 +27,8 @@ import (
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
+	addr := core2.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -49,7 +50,7 @@ func TestTxList(t *testing.T) {
 
 	testNonces := []uint64{208, 505, 910, 157, 771, 718, 98, 897, 538, 38}
 
-	tl := core2.NewTxList()
+	tl := pool.NewTxList()
 	for _, nonce := range testNonces {
 		tx := newTestAccountFlowTx(nonce, math.NewBigInt(0))
 		tl.Put(tx)
@@ -84,7 +85,7 @@ func TestBalanceState(t *testing.T) {
 	var spent int64
 
 	originBalance := math.NewBigInt(100000)
-	bs := core2.NewBalanceState(originBalance)
+	bs := pool.NewBalanceState(originBalance)
 
 	// test TrySubBalance
 	fstValue := int64(10000)
@@ -140,7 +141,7 @@ func TestAccountFlow(t *testing.T) {
 
 	//balancevalue := int64(100000)
 	originBalance := state.NewBalanceSet()
-	af := core2.NewAccountFlow(originBalance)
+	af := pool.NewAccountFlow(originBalance)
 
 	tx0value := int64(1000)
 	tx1value := int64(2000)

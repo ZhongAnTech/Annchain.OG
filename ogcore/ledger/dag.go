@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package core
+package ledger
 
 import (
 	"bytes"
@@ -280,11 +280,11 @@ func (dag *Dag) getTx(hash common.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
-func (dag *Dag) Has(hash common.Hash) bool {
+func (dag *Dag) IsTxExists(hash common.Hash) bool {
 	return dag.GetTx(hash) != nil
 }
 
-func (dag *Dag) Exist(addr common.Address) bool {
+func (dag *Dag) IsAddressExists(addr common.Address) bool {
 	return dag.statedb.Exist(addr)
 }
 

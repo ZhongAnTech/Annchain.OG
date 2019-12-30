@@ -6,7 +6,7 @@ import (
 	"github.com/annchain/OG/og/types"
 )
 
-type IDag interface {
+type ILedger interface {
 	GetTx(hash common.Hash) types.Txi
 	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
 	GetSequencerByHeight(id uint64) *types.Sequencer
@@ -18,4 +18,7 @@ type IDag interface {
 	GetSequencerByHash(hash common.Hash) *types.Sequencer
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(addr common.Address) (uint64, error)
+
+	IsTxExists(hash common.Hash) bool
+	IsAddressExists(addr common.Address) bool
 }

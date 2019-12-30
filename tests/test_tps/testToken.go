@@ -209,7 +209,7 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 
 	tx := types.Tx{
 		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 			PublicKey:    pub.KeyBytes[:],
 			AccountNonce: uint64(nonce),
 		},

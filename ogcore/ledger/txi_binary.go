@@ -12,7 +12,7 @@ type TxiLedgerMarshaller struct {
 
 func (t TxiLedgerMarshaller) ToBytes(txi types.Txi) []byte {
 	switch txi.GetType() {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		tx := txi.(*types.Tx)
 		ledgerObject := LedgerContentTx{
 			Hash:         tx.Hash,
@@ -49,7 +49,7 @@ func (t TxiLedgerMarshaller) ToBytes(txi types.Txi) []byte {
 
 func (t TxiLedgerMarshaller) FromBytes(bts []byte, bType types.TxBaseType) (tx types.Txi, err error) {
 	switch bType {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		txdb := &LedgerContentTx{}
 		err := txdb.FromBytes(bts)
 		if err != nil {

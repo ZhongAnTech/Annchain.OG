@@ -172,7 +172,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 	}
 	tx := types.Tx{
 		TxBase: types.TxBase{
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 			PublicKey:    r.publicKey.KeyBytes[:],
 			AccountNonce: uint64(nonce),
 		},

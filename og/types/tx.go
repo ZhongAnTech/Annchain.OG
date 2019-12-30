@@ -103,7 +103,7 @@ func (t *Tx) SignatureTargets() []byte {
 }
 
 func (t *Tx) GetType() TxBaseType {
-	return TxBaseTypeNormal
+	return TxBaseTypeTx
 }
 
 func (t *Tx) GetHeight() uint64 {

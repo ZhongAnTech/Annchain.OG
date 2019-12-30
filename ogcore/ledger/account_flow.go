@@ -165,7 +165,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		log.WithField("tx", tx).Errorf("add tx that has same nonce")
 		return fmt.Errorf("already exists")
 	}
-	if tx.GetType() != types.TxBaseTypeNormal {
+	if tx.GetType() != types.TxBaseTypeTx {
 		af.txlist.Put(tx)
 		return nil
 	}
@@ -190,7 +190,7 @@ func (af *AccountFlow) Remove(nonce uint64) error {
 	if tx == nil {
 		return nil
 	}
-	if tx.GetType() != types.TxBaseTypeNormal {
+	if tx.GetType() != types.TxBaseTypeTx {
 		af.txlist.Remove(nonce)
 		return nil
 	}

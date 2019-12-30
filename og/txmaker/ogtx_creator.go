@@ -72,7 +72,7 @@ func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) types.Txi {
 		TokenId: req.TokenId,
 		TxBase: types.TxBase{
 			AccountNonce: req.AccountNonce,
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 		},
 	}
 	return &tx
@@ -108,7 +108,7 @@ func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, e
 		TokenId: req.TokenId,
 		TxBase: types.TxBase{
 			AccountNonce: req.Nonce,
-			Type:         types.TxBaseTypeNormal,
+			Type:         types.TxBaseTypeTx,
 		},
 	}
 	tx.GetBase().Signature = req.Sig.SignatureBytes

@@ -116,7 +116,7 @@ func (c *AutoClient) nextSleepDuraiton() time.Duration {
 
 func (c *AutoClient) fireManualTx(txType types.TxBaseType, force bool) {
 	switch txType {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		c.doSampleTx(force)
 	case types.TxBaseTypeSequencer:
 		c.doSampleSequencer(force)

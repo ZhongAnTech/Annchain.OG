@@ -29,7 +29,7 @@ type OgPartner struct {
 
 func (a *OgPartner) AdaptTxiToResource(txi types.Txi) message.MessageContentResource {
 	switch txi.GetType() {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		tx := txi.(*types.Tx)
 		content := message.MessageContentTx{
 			Hash:         tx.Hash,

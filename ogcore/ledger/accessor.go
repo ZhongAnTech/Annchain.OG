@@ -103,7 +103,8 @@ func stateRootKey() []byte {
 }
 
 type Accessor struct {
-	db ogdb.Database
+	db                  ogdb.Database
+	txiLedgerMarshaller TxiLedgerMarshaller
 }
 
 func NewAccessor(db ogdb.Database) *Accessor {
@@ -188,19 +189,17 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	var lseq LedgerContentSequencer
-	_, err := lseq.UnmarshalMsg(data)
+	v, err := da.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 	if err != nil {
 		return nil
 	}
-	seq := NewSequencerFromLedgerContentSequencer(&lseq)
-	return &seq
+
+	return v.(*types.Sequencer)
 }
 
 // WriteGenesis writes geneis into db.
 func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
-	lgenesis := NewLedgerContentSequencerFromSequencer(genesis)
-	data := lgenesis.ToBytes()
+	data := da.txiLedgerMarshaller.ToBytes(genesis)
 	return da.put(nil, genesisKey(), data)
 }
 
@@ -211,19 +210,16 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	if len(data) == 0 {
 		return nil
 	}
-	var lseq LedgerContentSequencer
-	_, err := lseq.UnmarshalMsg(data)
+	v, err := da.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 	if err != nil {
 		return nil
 	}
-	seq := NewSequencerFromLedgerContentSequencer(&lseq)
-	return &seq
+	return v.(*types.Sequencer)
 }
 
 // WriteGenesis writes latest sequencer into db.
 func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) error {
-	lseq := NewLedgerContentSequencerFromSequencer(seq)
-	data := lseq.ToBytes()
+	data := da.txiLedgerMarshaller.ToBytes(seq)
 	return da.put(putter, latestSequencerKey(), data)
 }
 
@@ -254,24 +250,18 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var ltx LedgerContentTx
-		_, err := ltx.UnmarshalMsg(data)
+		v, err := da.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeTx)
 		if err != nil {
-			log.WithError(err).Warn("unmarshal tx error")
 			return nil
 		}
-		tx := NewTxFromLedgerContentTx(&ltx)
-		return &tx
+		return v.(*types.Tx)
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var lsq LedgerContentSequencer
-		_, err := lsq.UnmarshalMsg(data)
+		v, err := da.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 		if err != nil {
-			log.WithError(err).Warn("unmarshal seq error")
 			return nil
 		}
-		seq := NewSequencerFromLedgerContentSequencer(&lsq)
-		return &seq
+		return v.(*types.Sequencer)
 	}
 	//if bytes.Equal(prefix, contentPrefixCampaign) {
 	//	var cp campaign.Campaign
@@ -421,14 +411,12 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 
 	// write tx
 	switch tx.GetType() {
-	case types.TxBaseTypeNormal:
+	case types.TxBaseTypeTx:
 		prefix = contentPrefixTransaction
-		ltx := NewLedgerContentTxFromTx(tx.(*types.Tx))
-		data = ltx.ToBytes()
+		data = da.txiLedgerMarshaller.ToBytes(tx.(*types.Tx))
 	case types.TxBaseTypeSequencer:
 		prefix = contentPrefixSequencer
-		ltx := NewLedgerContentSequencerFromSequencer(tx.(*types.Sequencer))
-		data = ltx.ToBytes()
+		data = da.txiLedgerMarshaller.ToBytes(tx.(*types.Sequencer))
 	//case *campaign.Campaign:
 	//	prefix = contentPrefixCampaign
 	//	data, err = tx.MarshalMsg(nil)
@@ -532,19 +520,17 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, e
 	if len(data) == 0 {
 		return nil, fmt.Errorf("sequencer with SeqHeight %d not found", SeqHeight)
 	}
-	var lseq LedgerContentSequencer
-	err := lseq.FromBytes(data)
+	v, err := da.txiLedgerMarshaller.FromBytes(data, types.TxBaseTypeSequencer)
 	if err != nil {
 		return nil, err
 	}
-	seq := NewSequencerFromLedgerContentSequencer(&lseq)
-	return &seq, nil
+	return v.(*types.Sequencer), nil
+
 }
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
 func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer) error {
-	lseq := NewLedgerContentSequencerFromSequencer(seq)
-	data := lseq.ToBytes()
+	data := da.txiLedgerMarshaller.ToBytes(seq)
 	key := seqHeightKey(seq.Height)
 	return da.put(putter, key, data)
 }

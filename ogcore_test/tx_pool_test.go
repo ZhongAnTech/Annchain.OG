@@ -11,24 +11,59 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package pool
+package ogcore
 
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
+	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
 )
 
-func newTestTxPool(t *testing.T) (*core.TxPool, *core2.Dag, *types.Sequencer, func()) {
-	txpoolconfig := core.TxPoolConfig{
+var (
+	// Secp256k1 Address "0x7349f7a6f622378d5fb0e2c16b9d4a3e5237c187"
+	testPkSecp0 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F00"
+
+	// Secp256k1 Address "0x96f4ac2f3215b80ea3a6466ebc1f268f6f1d5406"
+	testPkSecp1 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F01"
+
+	// Secp256k1 Address "0xa70c8a9485441f6fa2141d550c26d793107d3dea"
+	testPkSecp2 = "0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F02"
+)
+
+func newTestAddress(priv crypto.PrivateKey) common.Address {
+	signer := crypto.NewSigner(priv.Type)
+	pubkey := signer.PubKey(priv)
+	return signer.Address(pubkey)
+}
+
+func newTestSeq(nonce uint64) *types.Sequencer {
+	txCreator := &txmaker.OGTxCreator{}
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
+	addr := newTestAddress(pk)
+
+	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
+			Issuer:       addr,
+			Height:       nonce,
+			AccountNonce: nonce,
+		},
+		PrivateKey: pk,
+	})
+	seq.SetHash(seq.CalcTxHash())
+
+	return seq.(*types.Sequencer)
+}
+
+func newTestTxPool(t *testing.T) (*pool.TxPool, *core2.Dag, *types.Sequencer, func()) {
+	txpoolconfig := pool.TxPoolConfig{
 		QueueSize:     100,
 		TipsSize:      100,
 		ResetDuration: 5,
@@ -40,7 +75,7 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core2.Dag, *types.Sequencer, fu
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
-	pool := core.NewTxPool(txpoolconfig, dag)
+	pool := pool.NewTxPool(txpoolconfig, dag)
 
 	genesis, balance := core2.DefaultGenesis("genesis.json")
 	err := dag.Init(genesis, balance)
@@ -60,8 +95,8 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core2.Dag, *types.Sequencer, fu
 
 func newTestPoolTx(nonce uint64) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
-	addr := core2.newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -80,8 +115,8 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 
 func newTestPoolBadTx() *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp2)
-	addr := core2.newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
+	addr := newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
 		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
@@ -101,11 +136,11 @@ func newTestPoolBadTx() *types.Tx {
 func TestPoolInit(t *testing.T) {
 	t.Parallel()
 
-	pool, _, genesis, finish := newTestTxPool(t)
+	poolTest, _, genesis, finish := newTestTxPool(t)
 	defer finish()
 
 	// check if genesis is the only tip
-	tips := pool.GetAllTips()
+	tips := poolTest.GetAllTips()
 	if len(tips) != 1 {
 		t.Fatalf("should have only one tip")
 	}
@@ -115,14 +150,14 @@ func TestPoolInit(t *testing.T) {
 	}
 
 	// check if genesis is in txLookUp
-	ge := pool.Get(genesis.GetTxHash())
+	ge := poolTest.Get(genesis.GetTxHash())
 	if ge == nil {
-		t.Fatalf("cant get genesis from pool.txLookUp")
+		t.Fatalf("cant get genesis from poolTest.txLookUp")
 	}
 
 	// check genesis's status
-	status := pool.GetStatus(genesis.GetTxHash())
-	if status != core.TxStatusTip {
+	status := poolTest.GetStatus(genesis.GetTxHash())
+	if status != pool.TxStatusTip {
 		t.Fatalf("genesis's status is not tip but %s", status.String())
 	}
 
@@ -131,7 +166,7 @@ func TestPoolInit(t *testing.T) {
 func TestPoolCommit(t *testing.T) {
 	t.Parallel()
 
-	pool, _, genesis, finish := newTestTxPool(t)
+	poolTest, _, genesis, finish := newTestTxPool(t)
 	defer finish()
 
 	var err error
@@ -139,52 +174,52 @@ func TestPoolCommit(t *testing.T) {
 	// tx0's parent is genesis
 	tx0 := newTestPoolTx(0)
 	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
-	err = pool.AddLocalTx(tx0, true)
+	err = poolTest.AddLocalTx(tx0, true)
 	if err != nil {
-		t.Fatalf("add tx0 to pool failed: %v", err)
+		t.Fatalf("add tx0 to poolTest failed: %v", err)
 	}
-	if pool.Get(tx0.GetTxHash()) == nil {
-		t.Fatalf("tx0 is not added into pool")
+	if poolTest.Get(tx0.GetTxHash()) == nil {
+		t.Fatalf("tx0 is not added into poolTest")
 	}
-	if status := pool.GetStatus(tx0.GetTxHash()); status != core.TxStatusTip {
+	if status := poolTest.GetStatus(tx0.GetTxHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx0's status is not tip but %s after commit, addr %s", status.String(), tx0.Sender())
 	}
-	geInPool := pool.Get(genesis.GetTxHash())
+	geInPool := poolTest.Get(genesis.GetTxHash())
 	if geInPool != nil {
-		t.Fatalf("parent genesis is not removed from pool.")
+		t.Fatalf("parent genesis is not removed from poolTest.")
 	}
 
 	// tx1's parent is tx0
 	tx1 := newTestPoolTx(1)
 	tx1.ParentsHash = common.Hashes{tx0.GetTxHash()}
-	err = pool.AddLocalTx(tx1, true)
+	err = poolTest.AddLocalTx(tx1, true)
 	if err != nil {
-		t.Fatalf("add tx1 to pool failed: %v", err)
+		t.Fatalf("add tx1 to poolTest failed: %v", err)
 	}
-	if pool.Get(tx1.GetTxHash()) == nil {
-		t.Fatalf("tx1 is not added into pool")
+	if poolTest.Get(tx1.GetTxHash()) == nil {
+		t.Fatalf("tx1 is not added into poolTest")
 	}
-	if status := pool.GetStatus(tx1.GetTxHash()); status != core.TxStatusTip {
+	if status := poolTest.GetStatus(tx1.GetTxHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx1's status is not tip but %s after commit", status.String())
 	}
-	if pool.Get(tx0.GetTxHash()) == nil {
-		t.Fatalf("tx0 is not in pool after added tx1")
+	if poolTest.Get(tx0.GetTxHash()) == nil {
+		t.Fatalf("tx0 is not in poolTest after added tx1")
 	}
-	if status := pool.GetStatus(tx0.GetTxHash()); status != core.TxStatusPending {
+	if status := poolTest.GetStatus(tx0.GetTxHash()); status != pool.TxStatusPending {
 		t.Fatalf("tx0's status is not pending but %s after tx1 added", status.String())
 	}
 
-	// tx2's parent is genesis which is not in pool yet
+	// tx2's parent is genesis which is not in poolTest yet
 	tx2 := newTestPoolTx(2)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
-	err = pool.AddLocalTx(tx2, true)
+	err = poolTest.AddLocalTx(tx2, true)
 	if err != nil {
-		t.Fatalf("add tx2 to pool failed: %v", err)
+		t.Fatalf("add tx2 to poolTest failed: %v", err)
 	}
-	if pool.Get(tx2.GetTxHash()) == nil {
-		t.Fatalf("tx2 is not added into pool")
+	if poolTest.Get(tx2.GetTxHash()) == nil {
+		t.Fatalf("tx2 is not added into poolTest")
 	}
-	if status := pool.GetStatus(tx2.GetTxHash()); status != core.TxStatusTip {
+	if status := poolTest.GetStatus(tx2.GetTxHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx2's status is not tip but %s after commit", status.String())
 	}
 
@@ -192,14 +227,14 @@ func TestPoolCommit(t *testing.T) {
 	// // test bad tx
 	// badtx := newTestPoolBadTx()
 	// badtx.ParentsHash = common.Hashes{genesis.GetTxHash()}
-	// err = pool.AddLocalTx(badtx)
+	// err = poolTest.AddLocalTx(badtx)
 	// if err != nil {
-	// 	t.Fatalf("add badtx to pool failed: %v", err)
+	// 	t.Fatalf("add badtx to poolTest failed: %v", err)
 	// }
-	// if pool.Get(badtx.GetTxHash()) == nil {
-	// 	t.Fatalf("badtx is not added into pool")
+	// if poolTest.Get(badtx.GetTxHash()) == nil {
+	// 	t.Fatalf("badtx is not added into poolTest")
 	// }
-	// if status := pool.GetStatus(badtx.GetTxHash()); status != core.TxStatusBadTx {
+	// if status := poolTest.GetStatus(badtx.GetTxHash()); status != TxStatusBadTx {
 	// 	t.Fatalf("badtx's status is not badtx but %s after commit", status.String())
 	// }
 
@@ -208,7 +243,7 @@ func TestPoolCommit(t *testing.T) {
 func TestPoolConfirm(t *testing.T) {
 	t.Parallel()
 
-	pool, dag, genesis, finish := newTestTxPool(t)
+	poolTest, dag, genesis, finish := newTestTxPool(t)
 	defer finish()
 
 	var err error
@@ -216,36 +251,36 @@ func TestPoolConfirm(t *testing.T) {
 	// sequencer's parents are normal txs
 	tx0 := newTestPoolTx(0)
 	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
-	pool.AddLocalTx(tx0, true)
+	poolTest.AddLocalTx(tx0, true)
 
 	// TODO
 	// tx3 := newTestPoolBadTx()
-	// pool.AddLocalTx(tx3)
+	// poolTest.AddLocalTx(tx3)
 
 	tx1 := newTestPoolTx(1)
 	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
-	pool.AddLocalTx(tx1, true)
+	poolTest.AddLocalTx(tx1, true)
 
-	seq := core2.newTestSeq(1)
+	seq := newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
 		tx0.GetTxHash(),
 		tx1.GetTxHash(),
 	}
-	err = pool.AddLocalTx(seq, true)
+	err = poolTest.AddLocalTx(seq, true)
 	if err != nil {
-		t.Fatalf("add seq to pool failed: %v", err)
+		t.Fatalf("add seq to poolTest failed: %v", err)
 	}
-	if pool.Get(seq.GetTxHash()) == nil {
-		t.Fatalf("sequencer is not added into pool")
+	if poolTest.Get(seq.GetTxHash()) == nil {
+		t.Fatalf("sequencer is not added into poolTest")
 	}
-	if status := pool.GetStatus(seq.GetTxHash()); status != core.TxStatusTip {
+	if status := poolTest.GetStatus(seq.GetTxHash()); status != pool.TxStatusTip {
 		t.Fatalf("sequencer's status is not tip but %s after added", status.String())
 	}
-	if pool.Get(tx0.GetTxHash()) != nil {
-		t.Fatalf("tx0 is not removed from pool")
+	if poolTest.Get(tx0.GetTxHash()) != nil {
+		t.Fatalf("tx0 is not removed from poolTest")
 	}
-	if pool.Get(tx1.GetTxHash()) != nil {
-		t.Fatalf("tx1 is not removed from pool")
+	if poolTest.Get(tx1.GetTxHash()) != nil {
+		t.Fatalf("tx1 is not removed from poolTest")
 	}
 	if dag.GetTx(tx0.GetTxHash()) == nil {
 		t.Fatalf("tx0 is not stored in dag")
@@ -264,7 +299,7 @@ func TestPoolConfirm(t *testing.T) {
 	// // sequencer's parent is bad tx
 	// badtx := newTestPoolBadTx()
 	// badtx.ParentsHash = common.Hashes{seq.GetTxHash()}
-	// pool.AddLocalTx(badtx)
+	// poolTest.AddLocalTx(badtx)
 
 	// addr := common.HexToAddress(testAddr2)
 	// dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
@@ -272,18 +307,18 @@ func TestPoolConfirm(t *testing.T) {
 	// badtxseq := newTestSeq(2)
 	// badtxseq.ParentsHash = common.Hashes{badtx.GetTxHash()}
 	// badtxseq.ContractHashOrder = common.Hashes{badtx.GetTxHash()}
-	// err = pool.AddLocalTx(badtxseq)
+	// err = poolTest.AddLocalTx(badtxseq)
 	// if err != nil {
-	// 	t.Fatalf("add badtxseq to pool failed: %v", err)
+	// 	t.Fatalf("add badtxseq to poolTest failed: %v", err)
 	// }
-	// if pool.Get(badtxseq.GetTxHash()) == nil {
-	// 	t.Fatalf("badtxseq is not added into pool")
+	// if poolTest.Get(badtxseq.GetTxHash()) == nil {
+	// 	t.Fatalf("badtxseq is not added into poolTest")
 	// }
-	// if status := pool.GetStatus(badtxseq.GetTxHash()); status != core.TxStatusTip {
+	// if status := poolTest.GetStatus(badtxseq.GetTxHash()); status != TxStatusTip {
 	// 	t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
 	// }
-	// if pool.Get(badtx.GetTxHash()) != nil {
-	// 	t.Fatalf("badtx is not removed from pool")
+	// if poolTest.Get(badtx.GetTxHash()) != nil {
+	// 	t.Fatalf("badtx is not removed from poolTest")
 	// }
 	// if dag.GetTx(badtx.GetTxHash()) == nil {
 	// 	t.Fatalf("badtx is not stored in dag")

@@ -464,6 +464,7 @@ func (pool *TxPool) loop() {
 			// check if tx is duplicate
 			if pool.get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+				// use event bus
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
 			}

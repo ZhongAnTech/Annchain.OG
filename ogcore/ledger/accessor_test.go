@@ -17,8 +17,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
-	core2 "github.com/annchain/OG/ogcore/ledger"
-	"github.com/annchain/OG/ogcore_test"
+	"github.com/annchain/OG/ogcore/ledger"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -67,8 +66,8 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(ogcore.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(0),
@@ -87,8 +86,8 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(ogcore.SignedSequencerBuildRequest{
-		UnsignedSequencerBuildRequest: ogcore.UnsignedSequencerBuildRequest{
+	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
 			Issuer:       addr,
 			Height:       nonce,
 			AccountNonce: nonce,
@@ -111,7 +110,7 @@ func TestTransactionStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core2.NewAccessor(db)
+	acc := ledger.NewAccessor(db)
 
 	// test tx read write
 	tx := newTestUnsealTx(0)
@@ -158,7 +157,7 @@ func TestGenesisStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core2.NewAccessor(db)
+	acc := ledger.NewAccessor(db)
 
 	genesis := newTestSeq(0)
 	err = acc.WriteGenesis(genesis)
@@ -181,7 +180,7 @@ func TestLatestSeqStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core2.NewAccessor(db)
+	acc := ledger.NewAccessor(db)
 
 	latestSeq := newTestSeq(0)
 	err = acc.WriteLatestSequencer(nil, latestSeq)
@@ -204,7 +203,7 @@ func TestBalanceStorage(t *testing.T) {
 	defer remove()
 
 	var err error
-	acc := core2.NewAccessor(db)
+	acc := ledger.NewAccessor(db)
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
@@ -263,7 +262,7 @@ func TestBalanceStorage(t *testing.T) {
 //	db, remove := newTestLDB("TestTransactionStorage")
 //	defer remove()
 //
-//	acc := core2.NewAccessor(db)
+//	acc := ledger.NewAccessor(db)
 //	seq := types.RandomSequencer()
 //	height := seq.Height
 //	//acc.WriteLatestSequencer(nil,seq)

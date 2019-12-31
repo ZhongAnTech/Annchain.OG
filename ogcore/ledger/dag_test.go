@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
-	"github.com/annchain/OG/ogcore_test"
 	"testing"
 
 	"encoding/hex"
@@ -62,8 +61,8 @@ func newTestDagTx(nonce uint64) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(core2.testPkSecp0)
 	addr := core2.newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(ogcore.SignedTxBuildRequest{
-		UnsignedTxBuildRequest: ogcore.UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(0),

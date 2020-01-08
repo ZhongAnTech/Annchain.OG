@@ -27,6 +27,10 @@ const (
 	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
 	NewTxLocallyGeneratedEventType        // a new tx is generated from local
 	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
+
+	NewTxReceivedInPoolEventType // a new tx is received in the pool	and to be processed. (including sequencer)
+	//BatchConfirmed
+	SequencerConfirmedEventType // a sequencer is received and validated to be on the graph
 )
 
 type PingReceivedEvent struct{}
@@ -135,4 +139,20 @@ type NewSequencerLocallyGeneratedEvent struct {
 
 func (m *NewSequencerLocallyGeneratedEvent) GetEventType() eventbus.EventType {
 	return NewSequencerLocallyGeneratedEventType
+}
+
+type NewTxReceivedInPoolEvent struct {
+	Tx types.Txi
+}
+
+func (m *NewTxReceivedInPoolEvent) GetEventType() eventbus.EventType {
+	return NewTxReceivedInPoolEventType
+}
+
+type SequencerConfirmedEvent struct {
+	Tx types.Txi
+}
+
+func (m *SequencerConfirmedEvent) GetEventType() eventbus.EventType {
+	return SequencerConfirmedEventType
 }

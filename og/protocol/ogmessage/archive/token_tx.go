@@ -15,6 +15,7 @@ package archive
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/byteutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/msg"
 )
 
@@ -157,7 +157,7 @@ func (t *ActionTx) CheckActionIsValid() bool {
 func (t *ActionTx) SignatureTargets() []byte {
 	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
 
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	w.Write(t.AccountNonce, t.Action)
 	if !CanRecoverPubFromSig {

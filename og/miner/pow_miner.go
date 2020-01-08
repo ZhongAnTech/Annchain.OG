@@ -23,12 +23,15 @@ import (
 type PoWMiner struct {
 }
 
+func (m *PoWMiner) MineTx(tx *types.Tx, targetMax common.Hash, start uint64) common.Hash {
+}
+
 func (m *PoWMiner) StartMine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) {
 	// do brute force
+	//
 	var i uint64
-	base := tx.GetBase()
 	for i = start; i <= math.MaxUint64; i++ {
-		base.MineNonce = i
+		tx.SetMineNonce(i)
 		//logrus.Debugf("%10d %s %s", i, tx.Hash().Hex(), targetMax.Hex())
 		if tx.CalcMinedHash().Cmp(targetMax) < 0 {
 			//logrus.Debugf("Hash found: %s with %d", tx.CalcMinedHash().Hex(), i)

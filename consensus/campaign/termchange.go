@@ -15,6 +15,7 @@ package campaign
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -120,7 +121,7 @@ func (tc *TermChange) Dump() string {
 
 func (tc *TermChange) SignatureTargets() []byte {
 	// add parents infornmation.
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	w.Write(tc.AccountNonce)
 	if !archive.CanRecoverPubFromSig {

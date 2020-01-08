@@ -49,8 +49,8 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp1)
 	addr := newTestAddress(pk)
 
-	seq := txCreator.NewSignedSequencer(SignedSequencerBuildRequest{
-		UnsignedSequencerBuildRequest: UnsignedSequencerBuildRequest{
+	seq := txCreator.NewSignedSequencer(txmaker.SignedSequencerBuildRequest{
+		UnsignedSequencerBuildRequest: txmaker.UnsignedSequencerBuildRequest{
 			Issuer:       addr,
 			Height:       nonce,
 			AccountNonce: nonce,
@@ -98,8 +98,8 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
-		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(0),
@@ -118,8 +118,8 @@ func newTestPoolBadTx() *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
-		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        math.NewBigInt(100),

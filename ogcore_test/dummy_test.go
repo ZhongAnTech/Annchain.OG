@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
@@ -110,7 +109,7 @@ func sampleTx(selfHash string, parentsHash []string) *types.Tx {
 }
 
 type dummySyncer struct {
-	EventBus            ogcore.EventBus
+	EventBus            eventbus.EventBus
 	dmap                map[common.Hash]*types.Tx
 	acquireTxDedupCache gcache.Cache
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/archive"
+	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/types"
 	archive2 "github.com/annchain/OG/og/types/archive"
 
@@ -19,9 +20,10 @@ import (
 type TxFormatVerifier struct {
 	MaxTxHash         common.Hash // The difficulty of TxHash
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
-	NoVerifyMindHash  bool
+	NoVerifyMineHash  bool
 	NoVerifyMaxTxHash bool
 	NoVerifySignatrue bool
+	powMiner          miner.PoWMiner
 }
 
 func (v *TxFormatVerifier) Name() string {
@@ -55,7 +57,22 @@ func (v *TxFormatVerifier) Verify(t types.Txi) bool {
 }
 
 func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
-	if !v.NoVerifyMindHash {
+	txType := t.GetType()
+
+	switch txType {
+	case types.TxBaseTypeTx:
+		// hash is valid
+
+		// hash under pow
+		if !v.powMiner.IsGoodTx(t.(*types.Tx), v.MaxMinedHash, v.MaxTxHash) {
+			logrus.WithField("tx", t).Debug("Hash is not under pow limit")
+			return false
+		}
+	case types.TxBaseTypeSequencer:
+	}
+
+	if !v.NoVerifyMineHash {
+
 		calMinedHash := t.CalcMinedHash()
 		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
 			logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")

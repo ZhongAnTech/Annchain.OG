@@ -31,7 +31,7 @@ func TestVerify(t *testing.T) {
 		tx.PublicKey = pub.KeyBytes
 		txis = append(txis, tx)
 	}
-	v := TxFormatVerifier{NoVerifyMindHash: true, NoVerifyMaxTxHash: true}
+	v := TxFormatVerifier{NoVerifyMineHash: true, NoVerifyMaxTxHash: true}
 	now := time.Now()
 	fmt.Println("start ", now)
 	for i, tx := range txis {

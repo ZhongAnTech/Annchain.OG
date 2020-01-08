@@ -16,6 +16,7 @@ package campaign
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
@@ -77,7 +78,7 @@ func (c *Campaign) Dump() string {
 
 func (c *Campaign) SignatureTargets() []byte {
 	// add parents infornmation.
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	w.Write(c.DkgPublicKey, c.Vrf.Vrf, c.Vrf.PublicKey, c.Vrf.Proof, c.Vrf.Message, c.AccountNonce)
 

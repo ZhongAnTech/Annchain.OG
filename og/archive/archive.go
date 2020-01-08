@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
@@ -148,7 +149,7 @@ func RandomArchive() *Archive {
 }
 
 func (t *Archive) CalcTxHash() (hash common.Hash) {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
 		w.Write(ancestor.Bytes)

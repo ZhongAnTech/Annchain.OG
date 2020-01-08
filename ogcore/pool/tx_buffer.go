@@ -36,7 +36,7 @@ type TxBuffer struct {
 	PoolHashLocator        ogcore.PoolHashLocator
 	LedgerHashLocator      ogcore.LedgerHashLocator
 	LocalGraphInfoProvider ogcore.LocalGraphInfoProvider
-	EventBus               ogcore.EventBus
+	EventBus               eventbus.EventBus
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx
 	affmu                  sync.RWMutex

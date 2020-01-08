@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 	"strings"
 )
@@ -26,6 +26,10 @@ type Sequencer struct {
 	// derived properties
 	Weight  uint64
 	invalid bool
+}
+
+func (s *Sequencer) SetMineNonce(v uint64) {
+	s.MineNonce = v
 }
 
 func (s *Sequencer) SetParents(hashes common.Hashes) {
@@ -83,7 +87,7 @@ func (s *Sequencer) Dump() string {
 
 func (s *Sequencer) CalcTxHash() (hash common.Hash) {
 	// TODO: double check the hash content
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range s.ParentsHash {
 		w.Write(ancestor.Bytes)
@@ -98,7 +102,7 @@ func (s *Sequencer) CalcTxHash() (hash common.Hash) {
 }
 
 func (s *Sequencer) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	w.Write(s.PublicKey, s.AccountNonce)
 	w.Write(s.Issuer.Bytes)

@@ -2,7 +2,7 @@ package dkg
 
 import (
 	"fmt"
-	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/common/byteutil"
 	dkg "github.com/annchain/kyber/v3/share/dkg/pedersen"
 )
 
@@ -95,7 +95,7 @@ func (z *MessageDkgSigSets) String() string {
 }
 
 func (m *MessageDkgSigSets) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	w.Write(m.PkBls)
 	return w.Bytes()
 }
@@ -118,7 +118,7 @@ func (m *MessageDkgDeal) GetDeal() (*dkg.Deal, error) {
 }
 
 func (m *MessageDkgDeal) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	d := m.Data
 	//w.Write(d, m.Id)
 	w.Write(d)
@@ -157,7 +157,7 @@ func (m MessageDkgDealResponse) String() string {
 
 func (m *MessageDkgDealResponse) SignatureTargets() []byte {
 	d := m.Data
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	//w.Write(d, m.Id)
 	w.Write(d)
 	return w.Bytes()

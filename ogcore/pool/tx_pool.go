@@ -17,7 +17,9 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/state"
 
@@ -84,11 +86,12 @@ const (
 )
 
 type TxPool struct {
-	conf TxPoolConfig
-	dag  ILedger
+	eventBus eventbus.EventBus
+	conf     TxPoolConfig
+	dag      ILedger
 
-	queue    chan *txEvent // queue stores txs that need to validate later
-	tips     *TxMap        // tips stores all the tips
+	queue    chan *txEnvelope // queue stores txs that need to validate later
+	tips     *TxMap           // tips stores all the tips
 	badtxs   *TxMap
 	pendings *TxMap
 	flows    *AccountFlows
@@ -130,7 +133,7 @@ func NewTxPool(conf TxPoolConfig, d ILedger) *TxPool {
 	pool := &TxPool{
 		conf:                   conf,
 		dag:                    d,
-		queue:                  make(chan *txEvent, conf.QueueSize),
+		queue:                  make(chan *txEnvelope, conf.QueueSize),
 		tips:                   NewTxMap(),
 		badtxs:                 NewTxMap(),
 		pendings:               NewTxMap(),
@@ -174,10 +177,6 @@ func DefaultTxPoolConfig() TxPoolConfig {
 	return config
 }
 
-type txEvent struct {
-	txEnv        *txEnvelope
-	callbackChan chan error
-}
 type txEnvelope struct {
 	tx         types.Txi
 	txType     TxType
@@ -457,24 +456,24 @@ func (pool *TxPool) loop() {
 			return
 
 		case txEvent := <-pool.queue:
-			log.WithField("tx", txEvent.txEnv.tx).Trace("get tx from queue")
+			log.WithField("tx", txEvent.tx).Trace("get tx from queue")
 
 			var err error
-			tx := txEvent.txEnv.tx
+			tx := txEvent.tx
 			// check if tx is duplicate
 			if pool.get(tx.GetTxHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 				// use event bus
-				txEvent.callbackChan <- types.ErrDuplicateTx
+				//txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
 			}
 			pool.mu.Lock()
-			pool.txLookup.Add(txEvent.txEnv)
+			pool.txLookup.Add(txEvent)
 			switch tx := tx.(type) {
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 				if err != nil {
-					pool.txLookup.Remove(txEvent.txEnv.tx.GetTxHash(), removeFromEnd)
+					pool.txLookup.Remove(txEvent.tx.GetTxHash(), removeFromEnd)
 				} else {
 					atomic.StoreUint32(&pool.txNum, 0)
 					maxWeight := atomic.LoadUint64(&pool.maxWeight)
@@ -497,7 +496,13 @@ func (pool *TxPool) loop() {
 			}
 			pool.mu.Unlock()
 
-			txEvent.callbackChan <- err
+			// TODO: Use event
+			log.WithField("tx", tx).Trace("successfully added tx to txPool")
+
+			pool.eventBus.Route(&events.NewTxReceivedInPoolEvent{
+				Tx: tx,
+			})
+			//txEvent.callbackChan <- err
 
 			//case <-resetTimer.C:
 			//pool.reset()
@@ -509,39 +514,38 @@ func (pool *TxPool) loop() {
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
 	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.GetParents().String())
 
-	te := &txEvent{
-		callbackChan: make(chan error),
-		txEnv: &txEnvelope{
-			tx:         tx,
-			txType:     senderType,
-			status:     TxStatusQueue,
-			noFeedBack: noFeedBack,
-		},
+	txEnv := &txEnvelope{
+		tx:         tx,
+		txType:     senderType,
+		status:     TxStatusQueue,
+		noFeedBack: noFeedBack,
 	}
+
+	//te := &txEnvelope{
+	//callbackChan: make(chan error),
+	//}
 
 	//if normalTx, ok := tx.(*types.Tx); ok {
 	//	normalTx.Setconfirm()
 	//	pool.confirmStatus.AddTxNum()
 	//}
 
-	pool.queue <- te
+	pool.queue <- txEnv
 
 	// waiting for callback
-	select {
-	case err := <-te.callbackChan:
-		if err != nil {
-			return err
-		}
-		// notify all subscribers of newTxEvent
-		for name, subscriber := range pool.onNewTxReceived {
-			log.WithField("tx", tx).Trace("notify subscriber: ", name)
-			if !noFeedBack || name.allMsg {
-				subscriber <- tx
-			}
-		}
-	}
-
-	log.WithField("tx", tx).Trace("successfully added tx to txPool")
+	//select {
+	//case err := <-te.callbackChan:
+	//	if err != nil {
+	//		return err
+	//	}
+	//	// notify all subscribers of newTxEvent
+	//	for name, subscriber := range pool.onNewTxReceived {
+	//		log.WithField("tx", tx).Trace("notify subscriber: ", name)
+	//		if !noFeedBack || name.allMsg {
+	//			subscriber <- tx
+	//		}
+	//	}
+	//}
 	return nil
 }
 

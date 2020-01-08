@@ -29,8 +29,8 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
 	addr := newTestAddress(pk)
 
-	tx := txCreator.NewSignedTx(SignedTxBuildRequest{
-		UnsignedTxBuildRequest: UnsignedTxBuildRequest{
+	tx := txCreator.NewSignedTx(txmaker.SignedTxBuildRequest{
+		UnsignedTxBuildRequest: txmaker.UnsignedTxBuildRequest{
 			From:         addr,
 			To:           addr,
 			Value:        value,

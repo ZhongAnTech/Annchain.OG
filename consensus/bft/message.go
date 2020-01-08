@@ -17,8 +17,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/hexutil"
-	"github.com/annchain/OG/types"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -159,7 +159,7 @@ func (m BftMessagePreCommit) String() string {
 }
 
 func (m *BftMessagePreVote) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	if m.Idv != nil {
 		w.Write(m.Idv.Bytes)
 	}
@@ -168,13 +168,13 @@ func (m *BftMessagePreVote) SignatureTargets() []byte {
 }
 
 func (m *BftMessagePreCommit) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	w.Write(m.BlsSignature)
 	return w.Bytes()
 }
 
 func (m *BftMessagePreCommit) BlsSignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	if m.Idv != nil {
 		w.Write(m.Idv.Bytes)
 	}
@@ -183,7 +183,7 @@ func (m *BftMessagePreCommit) BlsSignatureTargets() []byte {
 }
 
 func (m *BftMessageProposal) SignatureTargets() []byte {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	if idv := m.Value.GetId(); idv != nil {
 		w.Write(idv.Bytes)
 	}

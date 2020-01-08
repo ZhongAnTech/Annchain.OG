@@ -3,10 +3,10 @@ package types
 import (
 	"fmt"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	"golang.org/x/crypto/sha3"
 	"strings"
 )
@@ -34,6 +34,10 @@ type Tx struct {
 	Weight uint64
 
 	valid bool
+}
+
+func (t *Tx) SetMineNonce(v uint64) {
+	t.MineNonce = v
 }
 
 func (t *Tx) SetParents(hashes common.Hashes) {
@@ -84,7 +88,7 @@ func (t *Tx) Dump() string {
 }
 
 func (t *Tx) CalcTxHash() (hash common.Hash) {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
 		w.Write(ancestor.Bytes)
@@ -99,7 +103,7 @@ func (t *Tx) CalcTxHash() (hash common.Hash) {
 }
 
 func (t *Tx) CalcMinedHash() (hash common.Hash) {
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 	//if !CanRecoverPubFromSig {
 	w.Write(t.PublicKey.ToBytes())
 	//}
@@ -112,7 +116,7 @@ func (t *Tx) CalcMinedHash() (hash common.Hash) {
 func (t *Tx) SignatureTargets() []byte {
 	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
 
-	w := types.NewBinaryWriter()
+	w := byteutil.NewBinaryWriter()
 
 	w.Write(t.AccountNonce)
 	w.Write(t.From.Bytes)

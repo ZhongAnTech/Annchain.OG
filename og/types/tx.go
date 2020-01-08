@@ -7,7 +7,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
-	"golang.org/x/crypto/sha3"
 	"strings"
 )
 
@@ -85,32 +84,6 @@ func (t *Tx) Dump() string {
 		"minedNonce: %v, data: %x", t.Hash.Hex(),
 		strings.Join(phashes, " ,"), t.From.Hex(), t.To.Hex(), t.Value,
 		t.AccountNonce, t.Signature, hexutil.Encode(t.PublicKey.KeyBytes), t.MineNonce, t.Data)
-}
-
-func (t *Tx) CalcTxHash() (hash common.Hash) {
-	w := byteutil.NewBinaryWriter()
-
-	for _, ancestor := range t.ParentsHash {
-		w.Write(ancestor.Bytes)
-	}
-	// do not use Height to calculate tx hash.
-	//w.Write(t.Weight)
-	w.Write(t.CalcMinedHash().Bytes)
-
-	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
-	return
-}
-
-func (t *Tx) CalcMinedHash() (hash common.Hash) {
-	w := byteutil.NewBinaryWriter()
-	//if !CanRecoverPubFromSig {
-	w.Write(t.PublicKey.ToBytes())
-	//}
-	w.Write(t.Signature.ToBytes(), t.MineNonce)
-	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
-	return
 }
 
 func (t *Tx) SignatureTargets() []byte {

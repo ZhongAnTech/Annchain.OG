@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/hexutil"
-	"golang.org/x/crypto/sha3"
 	"strings"
 )
 
@@ -85,21 +84,7 @@ func (s *Sequencer) Dump() string {
 	)
 }
 
-func (s *Sequencer) CalcTxHash() (hash common.Hash) {
-	// TODO: double check the hash content
-	w := byteutil.NewBinaryWriter()
 
-	for _, ancestor := range s.ParentsHash {
-		w.Write(ancestor.Bytes)
-	}
-	// do not use Height to calculate tx hash.
-	//w.Write(s.Weight)
-	w.Write(s.Signature)
-
-	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
-	return
-}
 
 func (s *Sequencer) SignatureTargets() []byte {
 	w := byteutil.NewBinaryWriter()

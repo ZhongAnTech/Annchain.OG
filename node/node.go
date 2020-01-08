@@ -173,7 +173,7 @@ func NewNode() *Node {
 		MaxMinedHash: common.HexToHash(viper.GetString("max_mined_hash")),
 	}
 	if txFormatVerifier.MaxMinedHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
-		txFormatVerifier.NoVerifyMindHash = true
+		txFormatVerifier.NoVerifyMineHash = true
 		logrus.Info("no verify mined hash")
 	}
 	if txFormatVerifier.MaxTxHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
@@ -310,7 +310,7 @@ func NewNode() *Node {
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
-		NoVerifyMindHash:   txFormatVerifier.NoVerifyMindHash,
+		NoVerifyMindHash:   txFormatVerifier.NoVerifyMineHash,
 		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,

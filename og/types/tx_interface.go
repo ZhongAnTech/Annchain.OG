@@ -34,9 +34,6 @@ type Txi interface {
 	SetMineNonce(uint64)
 
 	SetHash(h common.Hash)
-	CalcTxHash() common.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
-	CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
-
 	SetValid(b bool)
 	Valid() bool
 

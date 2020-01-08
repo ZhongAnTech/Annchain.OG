@@ -15,9 +15,12 @@ package crypto
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/kyber/v3"
+	"github.com/sirupsen/logrus"
+	"math/big"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/poc/extra25519"
@@ -108,6 +111,53 @@ func PrivateKeyFromBytes(typev CryptoType, bytes []byte) PrivateKey {
 func PublicKeyFromBytes(typev CryptoType, bytes []byte) PublicKey {
 	return PublicKey{Type: typev, KeyBytes: bytes}
 }
+
+func SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
+	if len(sig) != 65 {
+		return r, s, v, fmt.Errorf("wrong size for signature: got %d, want 65", len(sig))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v, nil
+}
+
+func PublicKeyFromSignature(sighash common.Hash, signature *Signature) (pubKey PublicKey, err error) {
+	// only some signature types can be used to recover pubkey
+	R, S, Vb, err := SignatureValues(signature.SignatureBytes)
+	if err != nil {
+		logrus.WithError(err).Debug("verify sigBytes failed")
+		return
+	}
+	if Vb.BitLen() > 8 {
+		err = errors.New("v len error")
+		logrus.WithError(err).Debug("v len error")
+		return
+	}
+	V := byte(Vb.Uint64() - 27)
+	if !ValidateSignatureValues(V, R, S, false) {
+		err = errors.New("vrs error")
+		logrus.WithError(err).Debug("validate signature error")
+		return
+	}
+	// encode the signature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sigBytes := make([]byte, 65)
+	copy(sigBytes[32-len(r):32], r)
+	copy(sigBytes[64-len(s):64], s)
+	sigBytes[64] = V
+	// recover the public key from the signature
+	pub, err := Ecrecover(sighash.Bytes[:], sigBytes)
+	if err != nil {
+		logrus.WithError(err).Debug("sigBytes verify failed")
+	}
+	if len(pub) == 0 || pub[0] != 4 {
+		err := errors.New("invalid public key")
+		logrus.WithError(err).Debug("verify sigBytes failed")
+	}
+	return PublicKeyFromRawBytes(pub), nil
+}
+
 func SignatureFromBytes(typev CryptoType, bytes []byte) Signature {
 	return Signature{Type: typev, SignatureBytes: bytes}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/types"
-	archive2 "github.com/annchain/OG/og/types/archive"
 
 	"github.com/sirupsen/logrus"
 	"math/big"
@@ -20,8 +19,7 @@ import (
 type TxFormatVerifier struct {
 	MaxTxHash         common.Hash // The difficulty of TxHash
 	MaxMinedHash      common.Hash // The difficulty of MinedHash
-	NoVerifyMineHash  bool
-	NoVerifyMaxTxHash bool
+	NoVerifyHash      bool
 	NoVerifySignatrue bool
 	powMiner          miner.PoWMiner
 }
@@ -39,20 +37,18 @@ func (v *TxFormatVerifier) Independent() bool {
 }
 
 func (v *TxFormatVerifier) Verify(t types.Txi) bool {
-	if t.IsVerified().IsFormatVerified() {
-		return true
-	}
-	if !v.VerifyHash(t) {
+	// NOTE: disabled shortcut verification because of complexity.
+	//if t.IsVerified().IsFormatVerified() {
+	//	return true
+	//}
+	if !v.NoVerifyHash && !v.VerifyHash(t) {
 		logrus.WithField("tx", t).Debug("Hash not valid")
 		return false
 	}
-	if v.NoVerifySignatrue {
-		if !v.VerifySignature(t) {
-			logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx dump: ", t.Dump()).WithField("tx", t).Debug("Signature not valid")
-			return false
-		}
+	if !v.NoVerifySignatrue && !v.VerifySignature(t) {
+		logrus.WithField("sig targets ", hex.EncodeToString(t.SignatureTargets())).WithField("tx", t).Warn("signature not valid")
+		return false
 	}
-	t.SetVerified(archive2.VerifiedFormat)
 	return true
 }
 
@@ -61,52 +57,48 @@ func (v *TxFormatVerifier) VerifyHash(t types.Txi) bool {
 
 	switch txType {
 	case types.TxBaseTypeTx:
-		// hash is valid
-
 		// hash under pow
 		if !v.powMiner.IsGoodTx(t.(*types.Tx), v.MaxMinedHash, v.MaxTxHash) {
 			logrus.WithField("tx", t).Debug("Hash is not under pow limit")
 			return false
 		}
 	case types.TxBaseTypeSequencer:
-	}
-
-	if !v.NoVerifyMineHash {
-
-		calMinedHash := t.CalcMinedHash()
-		if !(calMinedHash.Cmp(v.MaxMinedHash) < 0) {
-			logrus.WithField("tx", t).WithField("hash", calMinedHash).Debug("MinedHash is not less than MaxMinedHash")
+		// hash under pow
+		if !v.powMiner.IsGoodSequencer(t.(*types.Sequencer), v.MaxMinedHash, v.MaxTxHash) {
+			logrus.WithField("tx", t).Debug("Hash is not under pow limit")
 			return false
 		}
-	}
-	if calcHash := t.CalcTxHash(); calcHash != t.GetTxHash() {
-		logrus.WithField("calcHash ", calcHash).WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not aligned with content")
-		return false
-	}
-
-	if !v.NoVerifyMaxTxHash && !(t.GetTxHash().Cmp(v.MaxTxHash) < 0) {
-		logrus.WithField("tx", t).WithField("hash", t.GetTxHash()).Debug("TxHash is not less than MaxTxHash")
-		return false
 	}
 	return true
 }
 
-func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
-	if t.GetType() == archive2.TxBaseTypeArchive {
-		return true
-	}
-	base := t.GetBase()
+func (v *TxFormatVerifier) VerifyFrom(t types.Txi) bool {
+	//if t.GetSender() == nil {
+	//	logrus.Warn("verify sig failed, from is nil")
+	//	return false
+	//}
+	if crypto.Signer.CanRecoverPubFromSig() {
 
-	if !crypto.Signer.CanRecoverPubFromSig() {
-		if t.GetSender() == nil {
-			logrus.Warn("verify sig failed, from is nil")
-			return false
-		}
+	}
+}
+
+func (v *TxFormatVerifier) AddressFromSignature(sig crypto.Signature) common.Address
+
+func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
+	//if t.GetType() == archive2.TxBaseTypeArchive {
+	//	return true
+	//}
+	txType := t.GetType()
+
+	switch txType {
+	case types.TxBaseTypeTx:
+		tx := t.(*types.Tx)
 		ok := crypto.Signer.Verify(
-			crypto.Signer.PublicKeyFromBytes(base.PublicKey),
-			crypto.Signature{Type: crypto.Signer.GetCryptoType(), SignatureBytes: base.Signature},
+			crypto.Signer.PublicKeyFromBytes(tx.PublicKey),
+			crypto.Signature{Type: crypto.Signer.GetCryptoType(), SignatureBytes:},
 			t.SignatureTargets())
 		return ok
+	case types.TxBaseTypeSequencer:
 	}
 
 	R, S, Vb, err := v.SignatureValues(base.Signature)

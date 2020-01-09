@@ -209,9 +209,9 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 // B2: [My job] Two layer hash validation
 // Basically Verify checks whether txs are in their nonce order
 func (v *GraphVerifier) Verify(txi types.Txi) (ok bool) {
-	if txi.IsVerified().IsGraphVerified() {
-		return true
-	}
+	//if txi.IsVerified().IsGraphVerified() {
+	//	return true
+	//}
 	ok = false
 	if ok = v.verifyWeight(txi); !ok {
 		logrus.WithField("tx", txi).Debug("tx failed on weight")

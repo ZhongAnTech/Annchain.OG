@@ -310,7 +310,7 @@ func NewNode() *Node {
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,
-		NoVerifyMindHash:   txFormatVerifier.NoVerifyMineHash,
+		NoVerifyMineHash:   txFormatVerifier.NoVerifyMineHash,
 		NoVerifyMaxTxHash:  txFormatVerifier.NoVerifyMaxTxHash,
 		DebugNodeId:        viper.GetInt("debug.node_id"),
 		GraphVerifier:      graphVerifier,

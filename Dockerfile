@@ -3,7 +3,7 @@ FROM golang:1.12-alpine as builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 
-ENV GOPROXY https://goproxy.io
+ENV GOPROXY https://goproxy.cn
 ENV GO111MODULE on
 
 WORKDIR /go/src/github.com/annchain/OG

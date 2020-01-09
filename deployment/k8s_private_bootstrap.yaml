@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ognb
+spec:
+  selector:
+    matchLabels:
+      app: ognb
+  replicas: 7
+  template:
+    metadata:
+      labels:
+        app: ognb
+    spec:
+      containers:
+        - name: ognb
+          image: 172.28.152.101:5000/ognb
+          env:
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://ogboot:8008/7"
+            - name: OG_P2P.NETWORK_ID
+              value: "6"
+            - name: OG_MODE
+              value: "normal"
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          volumeMounts:
+            - name: rw
+              mountPath: /rw
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+          resources:
+            limits:
+              cpu: "2"
+            requests:
+              cpu: "100m"
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi
+        selector:
+          matchLabels:
+            target: og
+
+-----
+apiVersion: v1
+kind: Service
+metadata:
+  name: ognb
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      nodePort: 30300
+      name: rpc
+    - port: 8002
+      nodePort: 30302
+      name: websocket
+    - port: 8003
+      nodePort: 30303
+      name: profiling
+  selector:
+    app: ognb

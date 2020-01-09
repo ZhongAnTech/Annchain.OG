@@ -1,0 +1,103 @@
+# This is a TOML document.
+
+title = "TOML Example"
+mode ="normal"
+
+[log]
+level = "<log_level>"
+
+[rpc]
+enabled = true
+port = <rpc_port>
+
+[p2p]
+enabled = true
+bootstrap_node = false
+port = <p2p_port>
+max_peers = 50
+network_id = 1
+enable_sync = true
+
+bootstrap_nodes = "<bootstrap_onode>"
+# node_key = "3fa29b2f6b83e037e2573545a6d9c06c0809aeb929cc8c14f992546ae5530b7d"
+no_encryption = false
+genkey = true
+
+[websocket]
+enabled = true
+port = <websocket_port>
+
+[profiling]
+port = <profiling_port>
+
+[db]
+name = "leveldb"
+
+[leveldb]
+path = "rw/datadir_1"
+cache = 16
+handles = 16
+
+[statedb]
+flush_timer_s = 5
+purge_timer_s = 10
+beat_expire_time_s = 300
+
+[txpool]
+queue_size = 100
+tips_size = 1000
+reset_duration = 10
+tx_verify_time = 2
+tx_valid_time = 100
+timeout_pool_queue_ms = 10000
+timeout_subscriber_ms = 10000
+timeout_confirmation_ms = 10000
+timeout_latest_seq_ms = 10000
+
+[auto_client]
+# whether auto_tx will maintain its own nonce records.
+# false to query latest nonce every time.
+nonce_self_discipline = false
+
+[auto_client.sequencer]
+enabled = false
+interval_us = 5_000_000
+
+[auto_client.tx]
+enabled = false
+interval_us = 500_000
+account_ids = [0,1]
+interval_mode = "random"
+test_dag_push = false
+test_insert_pool = false
+
+[debug]
+node_id = 1
+
+[hub]
+sync_cycle_ms = 10000
+disable_encrypt_gossip = false
+
+[crypto]
+# ed25519 or secp256k1
+algorithm = "secp256k1"
+
+[dag]
+genesis_path = "genesis.json"
+#your own coinbase private key
+my_private_key = "<coinbase_pri_key>"
+
+
+[annsensus]
+campaign = true
+disable_term_change = true
+partner_number = 4
+threshold = 4
+genesis_pk ="<genesis_pk>"
+consensus_path ="consensus.json"
+#disable consensus module
+disable = false
+ # after 10 sequencer , will term change
+term_change_interval = 10
+
+

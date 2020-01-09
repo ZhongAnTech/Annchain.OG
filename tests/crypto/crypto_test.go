@@ -1,0 +1,71 @@
+// Copyright © 2019 Annchain Authors <EMAIL ADDRESS>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+package crypto
+
+import (
+	"fmt"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/types/p2p_message"
+	"github.com/annchain/OG/types/tx_types"
+	"testing"
+	"time"
+)
+
+func TestRawTx_Tx(t *testing.T) {
+	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
+	var num = 10000
+	var txs tx_types.Txs
+	var rawtxs tx_types.RawTxs
+	for i := 0; i < num; i++ {
+		tx := tx_types.RandomTx()
+		pub, _ := signer.RandomKeyPair()
+		tx.PublicKey = pub.Bytes[:]
+		rawtxs = append(rawtxs, tx.RawTx())
+	}
+	start := time.Now()
+	for i := 0; i < num; i++ {
+		txs = append(txs, rawtxs[i].Tx())
+	}
+	fmt.Println("used time ", time.Now().Sub(start))
+
+}
+
+func TestRawTx_encode(t *testing.T) {
+	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
+	crypto.Signer = signer
+	var num = 10000
+	var txs tx_types.Txs
+	type bytes struct {
+		p2p_message.RawData
+	}
+	var rawtxs []bytes
+	for i := 0; i < num; i++ {
+		tx := tx_types.RandomTx()
+		pub, _ := signer.RandomKeyPair()
+		tx.PublicKey = pub.Bytes[:]
+		data, _ := tx.MarshalMsg(nil)
+		rawtxs = append(rawtxs, bytes{data})
+	}
+	start := time.Now()
+	for i := 0; i < num; i++ {
+		var tx tx_types.Tx
+		_, err := tx.UnmarshalMsg(rawtxs[i].RawData)
+		if err != nil {
+			panic(err)
+		}
+		txs = append(txs, &tx)
+	}
+	fmt.Println("used time ", time.Now().Sub(start))
+
+}

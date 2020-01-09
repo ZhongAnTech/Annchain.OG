@@ -1,0 +1,158 @@
+    /* "../vm_test/contracts/delegatecall.sol":1290:1443  contract CallHelper {... */
+  mstore(0x40, 0x60)
+  jumpi(tag_1, iszero(callvalue))
+  0x0
+  dup1
+  revert
+tag_1:
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../vm_test/contracts/delegatecall.sol":1290:1443  contract CallHelper {... */
+      mstore(0x40, 0x60)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0xeec6a2d6
+      eq
+      tag_2
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../vm_test/contracts/delegatecall.sol":1316:1441  function justCall(Caller _caller, Callee _callee, uint _value) {... */
+    tag_2:
+      jumpi(tag_3, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_3:
+      tag_4
+      0x4
+      dup1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap2
+      swap1
+      dup1
+      calldataload
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      swap1
+      0x20
+      add
+      swap1
+      swap2
+      swap1
+      dup1
+      calldataload
+      swap1
+      0x20
+      add
+      swap1
+      swap2
+      swap1
+      pop
+      pop
+      jump(tag_5)
+    tag_4:
+      stop
+    tag_5:
+        /* "../vm_test/contracts/delegatecall.sol":1389:1396  _caller */
+      dup3
+        /* "../vm_test/contracts/delegatecall.sol":1389:1417  _caller.delegatecallSetValue */
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0x9207ba9a
+        /* "../vm_test/contracts/delegatecall.sol":1418:1425  _callee */
+      dup4
+        /* "../vm_test/contracts/delegatecall.sol":1427:1433  _value */
+      dup4
+        /* "../vm_test/contracts/delegatecall.sol":1389:1434  _caller.delegatecallSetValue(_callee, _value) */
+      mload(0x40)
+      dup4
+      0xffffffff
+      and
+      0x100000000000000000000000000000000000000000000000000000000
+      mul
+      dup2
+      mstore
+      0x4
+      add
+      dup1
+      dup4
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      0xffffffffffffffffffffffffffffffffffffffff
+      and
+      dup2
+      mstore
+      0x20
+      add
+      dup3
+      dup2
+      mstore
+      0x20
+      add
+      swap3
+      pop
+      pop
+      pop
+      0x0
+      mload(0x40)
+      dup1
+      dup4
+      sub
+      dup2
+      0x0
+      dup8
+      dup1
+      extcodesize
+      iszero
+      iszero
+      tag_7
+      jumpi
+      0x0
+      dup1
+      revert
+    tag_7:
+      sub(gas, 0x2c6)
+      call
+      iszero
+      iszero
+      tag_8
+      jumpi
+      0x0
+      dup1
+      revert
+    tag_8:
+      pop
+      pop
+      pop
+        /* "../vm_test/contracts/delegatecall.sol":1316:1441  function justCall(Caller _caller, Callee _callee, uint _value) {... */
+      pop
+      pop
+      pop
+      jump	// out
+
+    auxdata: 0xa165627a7a7230582058075c295d0ab7f09cfcbb5362faf8652a6ebab63a6ebb58967a750c97dbf73b0029
+}

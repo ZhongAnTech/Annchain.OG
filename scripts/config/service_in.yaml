@@ -1,0 +1,11 @@
+# internal p2p port
+apiVersion: v1
+kind: Service
+metadata:
+  name: ognb-0
+spec:
+  ports:
+    - port: 8001
+      name: p2p
+  selector:
+    statefulset.kubernetes.io/pod-name: ognb-0

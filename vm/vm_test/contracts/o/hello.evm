@@ -1,0 +1,214 @@
+    /* "../contracts/hello.sol":26:135  contract hello {... */
+  mstore(0x40, 0x60)
+  jumpi(tag_1, iszero(callvalue))
+  0x0
+  dup1
+  revert
+tag_1:
+  dataSize(sub_0)
+  dup1
+  dataOffset(sub_0)
+  0x0
+  codecopy
+  0x0
+  return
+stop
+
+sub_0: assembly {
+        /* "../contracts/hello.sol":26:135  contract hello {... */
+      mstore(0x40, 0x60)
+      jumpi(tag_1, lt(calldatasize, 0x4))
+      calldataload(0x0)
+      0x100000000000000000000000000000000000000000000000000000000
+      swap1
+      div
+      0xffffffff
+      and
+      dup1
+      0xc605f76c
+      eq
+      tag_2
+      jumpi
+    tag_1:
+      0x0
+      dup1
+      revert
+        /* "../contracts/hello.sol":47:133  function helloWorld() public pure returns (string){... */
+    tag_2:
+      jumpi(tag_3, iszero(callvalue))
+      0x0
+      dup1
+      revert
+    tag_3:
+      tag_4
+      jump(tag_5)
+    tag_4:
+      mload(0x40)
+      dup1
+      dup1
+      0x20
+      add
+      dup3
+      dup2
+      sub
+      dup3
+      mstore
+      dup4
+      dup2
+      dup2
+      mload
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+      dup1
+      mload
+      swap1
+      0x20
+      add
+      swap1
+      dup1
+      dup4
+      dup4
+        /* "--CODEGEN--":23:24   */
+      0x0
+        /* "--CODEGEN--":8:108   */
+    tag_6:
+        /* "--CODEGEN--":33:36   */
+      dup4
+        /* "--CODEGEN--":30:31   */
+      dup2
+        /* "--CODEGEN--":27:37   */
+      lt
+        /* "--CODEGEN--":8:108   */
+      iszero
+      tag_7
+      jumpi
+        /* "--CODEGEN--":99:100   */
+      dup1
+        /* "--CODEGEN--":94:97   */
+      dup3
+        /* "--CODEGEN--":90:101   */
+      add
+        /* "--CODEGEN--":84:102   */
+      mload
+        /* "--CODEGEN--":80:81   */
+      dup2
+        /* "--CODEGEN--":75:78   */
+      dup5
+        /* "--CODEGEN--":71:82   */
+      add
+        /* "--CODEGEN--":64:103   */
+      mstore
+        /* "--CODEGEN--":52:54   */
+      0x20
+        /* "--CODEGEN--":49:50   */
+      dup2
+        /* "--CODEGEN--":45:55   */
+      add
+        /* "--CODEGEN--":40:55   */
+      swap1
+      pop
+        /* "--CODEGEN--":8:108   */
+      jump(tag_6)
+    tag_7:
+        /* "--CODEGEN--":12:26   */
+      pop
+        /* "../contracts/hello.sol":47:133  function helloWorld() public pure returns (string){... */
+      pop
+      pop
+      pop
+      swap1
+      pop
+      swap1
+      dup2
+      add
+      swap1
+      0x1f
+      and
+      dup1
+      iszero
+      tag_9
+      jumpi
+      dup1
+      dup3
+      sub
+      dup1
+      mload
+      0x1
+      dup4
+      0x20
+      sub
+      0x100
+      exp
+      sub
+      not
+      and
+      dup2
+      mstore
+      0x20
+      add
+      swap2
+      pop
+    tag_9:
+      pop
+      swap3
+      pop
+      pop
+      pop
+      mload(0x40)
+      dup1
+      swap2
+      sub
+      swap1
+      return
+    tag_5:
+        /* "../contracts/hello.sol":90:96  string */
+      tag_10
+      jump	// in(tag_11)
+    tag_10:
+        /* "../contracts/hello.sol":107:126  return 'helloWorld' */
+      0x40
+      dup1
+      mload
+      swap1
+      dup2
+      add
+      0x40
+      mstore
+      dup1
+      0xa
+      dup2
+      mstore
+      0x20
+      add
+      0x68656c6c6f576f726c6400000000000000000000000000000000000000000000
+      dup2
+      mstore
+      pop
+      swap1
+      pop
+        /* "../contracts/hello.sol":47:133  function helloWorld() public pure returns (string){... */
+      swap1
+      jump	// out
+        /* "../contracts/hello.sol":26:135  contract hello {... */
+    tag_11:
+      0x20
+      mload(0x40)
+      swap1
+      dup2
+      add
+      0x40
+      mstore
+      dup1
+      0x0
+      dup2
+      mstore
+      pop
+      swap1
+      jump	// out
+
+    auxdata: 0xa165627a7a72305820c2e7a24c71858a11d5be7e81de5ff69bcfcee87b11dd2c7addb4433df383ab2e0029
+}

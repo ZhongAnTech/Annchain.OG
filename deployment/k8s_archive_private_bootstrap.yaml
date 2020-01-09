@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ogblockdb
+  labels:
+    app: ogblockdb
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ogblockdb
+  template:
+    metadata:
+      labels:
+        app: ogblockdb
+    spec:
+      containers:
+        - name: ogblockdb
+          image: 172.28.152.101:5000/ognb
+          env:
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://ogboot.production:8008/2"
+            - name: OG_P2P.NETWORK_ID
+              value: "2"
+            - name: OG_MODE
+              value: "archive"
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          volumeMounts:
+            - name: rw
+              mountPath: /rw
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "prod-huge"
+        resources:
+          requests:
+            storage: 50Gi
+        selector:
+          matchLabels:
+            target: og
+------ogar service--------
+apiVersion: v1
+kind: Service
+metadata:
+  name: ogblockdb-service
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: rpc
+    - port: 8002
+      targetPort: 8002
+      name: websocket
+    - port: 8003
+      targetPort: 8003
+      name: profiling
+  selector:
+    app: ogblockdb

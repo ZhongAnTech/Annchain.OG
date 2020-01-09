@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ogblockdb-ex-0
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      nodePort: 32200
+      name: rpc
+    - port: 8002
+      nodePort: 32202
+      name: websocket
+    - port: 8003
+      nodePort: 32203
+      name: profiling
+  selector:
+    statefulset.kubernetes.io/pod-name: ogblockdb-0
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ogblockdb-0
+spec:
+  ports:
+    - port: 8001
+  selector:
+    statefulset.kubernetes.io/pod-name: ogblockdb-0

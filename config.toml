@@ -1,0 +1,111 @@
+config = "config.toml"
+datadir = "D:\\ws\\git\\OG\\build\\private\\node_0"
+genkey = false
+log_line_number = false
+max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+multifile_by_level = false
+multifile_by_module = false
+title = "OG configuration"
+mode="normal"
+
+[annsensus]
+  campaign = true
+  consensus_path = "consensus0.json"
+  disable = false
+  disable_term_change = true
+  genesis_pk = "0x0104c544565e015346da7c29b1161a8369bf58da2adb3a6fc6a806386de2a7965c7fe2990574156d9e5103e0ef2daf081dd0ffce7b434710b908c4b61083322b2b2c;0x0104ed90b29606e51dc050d56b205d5001e1aa8472c9bf10882a9af49d250e735e46cf8164e1174cd35ef5273269fbcced7f72e4f8ecf660dc79ea27e152c16a8475;0x01044e83369a8bacaae5492089904dfaa49e19635cf29c7e6d2697a6f3be63a08cec6f356d506c42fbcda5dffaaca05f8486a3576db53121fbd275f192a95b3b3bee;0x01044ad86a816fd62ec410a3f49bfcfa171929b1b1ddffaced8c5d5ac35b35e6ced61f5b1f30c4d1f9aa8d24944a9e13f6413646f88ffaaf79ff44fd67de01ae12d5"
+  partner_number = 4
+  term_change_interval = 10
+  threshold = 4
+  sequencerTime = 2000
+
+[auto_client]
+  nonce_self_discipline = false
+
+  [auto_client.archive]
+    enabled = false
+    interval_us = 500000
+
+  [auto_client.sequencer]
+    enabled = true
+    interval_us = 5000000
+
+  [auto_client.tx]
+    account_ids = [0,1]
+    enabled = false
+    interval_mode = "random"
+    interval_us = 500000
+    test_dag_push = false
+    test_insert_pool = false
+
+
+[crypto]
+  algorithm = "secp256k1"
+
+[dag]
+  genesis_path = "genesis.json"
+
+[db]
+  name = "leveldb"
+
+[debug]
+  node_id = 1
+
+[hub]
+  disable_encrypt_gossip = false
+  incoming_buffer_size = 100
+  message_cache_expiration_seconds = 60
+  message_cache_max_size = 30000
+  outgoing_buffer_size = 100
+  sync_cycle_ms = 10000
+
+[leveldb]
+  cache = 16
+  handles = 16
+  path = "rw/datadir_0"
+
+[log]
+  level = "debug"
+  log_dir = ""
+
+[p2p]
+  bootstrap_node = "true"
+  bootstrap_nodes = "onode://c5d29092fdbfd12bbb36822f5b9a494e04586a55cd8b82ada7254ee1daf50239334f5b05608ef169f83f3c2f2a5b6332aba2ee1e9145c8033804f1894450a604@127.0.0.1:8001"
+  enable_sync = true
+  enabled = true
+  max_peers = 50
+  network_id = "2"
+  no_encryption = false
+  node_key = "9c2a300ed9a7e5783debe11b9a940dbf3dd9a9c27a7e6af8e0b7533312cbbf06"
+  port = 8001
+
+[profiling]
+  port = 8003
+
+[rpc]
+  enabled = true
+  port = 8000
+
+[statedb]
+  beat_expire_time_s = 300
+  flush_timer_s = 5
+  purge_timer_s = 10
+
+[txpool]
+  queue_size = 100
+  reset_duration = 10
+  timeout_confirmation_ms = 10000
+  timeout_latest_seq_ms = 10000
+  timeout_pool_queue_ms = 10000
+  timeout_subscriber_ms = 10000
+  tips_size = 1000
+  tx_valid_time = 100
+  tx_verify_time = 2
+
+[websocket]
+  enabled = true
+  port = 8002
+
+[tx_buffer]
+no_verify_signature = false

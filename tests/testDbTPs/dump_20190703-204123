@@ -1,0 +1,20 @@
+Panic: runtime error: slice bounds out of range
+goroutine 400158 [running]:
+runtime/debug.Stack(0xc007074150, 0x2, 0xc0169a1c80)
+	C:/Go/src/runtime/debug/stack.go:24 +0xa4
+github.com/annchain/OG/common/goroutine.DumpStack(0x103b201)
+	D:/work/annchain/OG/common/goroutine/goroutine.go:48 +0x1c7
+panic(0x9d1840, 0x941750)
+	C:/Go/src/runtime/panic.go:522 +0x1c3
+github.com/syndtr/goleveldb/leveldb.(*Batch).appendRec(0xc008e05900, 0x1, 0xc000018480, 0x22, 0x30, 0xc000def040, 0x133, 0x140)
+	D:/work/go/pkg/mod/github.com/syndtr/goleveldb@v1.0.0/leveldb/batch.go:96 +0x554
+github.com/syndtr/goleveldb/leveldb.(*Batch).Put(...)
+	D:/work/go/pkg/mod/github.com/syndtr/goleveldb@v1.0.0/leveldb/batch.go:118
+github.com/annchain/OG/ogdb.(*ldbBatch).Put(0xc01b2db200, 0xc000018480, 0x22, 0x30, 0xc000def040, 0x133, 0x140, 0xc0169a1f90, 0x430d58)
+	D:/work/annchain/OG/ogdb/leveldb.go:392 +0x83
+github.com/annchain/OG/core.(*Putter).Put.func1()
+	D:/work/annchain/OG/core/accessor.go:152 +0xd3
+github.com/annchain/OG/common/goroutine.New.func1(0xc008e05d80)
+	D:/work/annchain/OG/common/goroutine/goroutine.go:31 +0x5c
+created by github.com/annchain/OG/common/goroutine.New
+	D:/work/annchain/OG/common/goroutine/goroutine.go:26 +0x5f

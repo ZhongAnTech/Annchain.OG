@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ognb
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: ognb
+      annotations:
+        kubernetes.io/ingress-bandwidth: 1024M
+        kubernetes.io/egress-bandwidth: 1024M
+    spec:
+      containers:
+        - name: ognb
+          image: localhost:5000/ognb
+          env:
+            - name: og_p2p.bootstrap_nodes
+              value: "onode://13efd71bea2c423307c4c477a2c73205bd3d22c1ed588f9c4aac4fa1d8fdb05d92033218218551ccd0b771020c0415d480d3e25ab366ce356f8aab2d50c1485d@192.168.53.203:8001"
+            - name: og_p2p.bootstrap_node
+              value: "false"
+            - name: og_p2p.network_id
+              value: 2
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+          resources:
+            limits:
+              cpu: "2"
+            requests:
+              cpu: "100m"

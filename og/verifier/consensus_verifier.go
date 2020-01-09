@@ -13,23 +13,26 @@ type ConsensusVerifier struct {
 }
 
 func (c *ConsensusVerifier) Verify(t types.Txi) bool {
-	switch tx := t.(type) {
-	case *types.Tx:
-		return true
-	case *types.Archive:
-		return true
-	case *types.ActionTx:
-		return true
-	case *types.Sequencer:
-		return c.VerifySequencer(tx)
-	case *campaign.Campaign:
-		return c.VerifyCampaign(tx)
-	case *campaign.TermChange:
-		return c.VerifyTermChange(tx)
-	default:
-		return false
-	}
-	return false
+	// TODO: verify consensus
+	//switch tx := t.(type) {
+	//case *types.Tx:
+	//	return true
+	//case *types.Archive:
+	//	return true
+	//case *types.ActionTx:
+	//	return true
+	//case *types.Sequencer:
+	//	return c.VerifySequencer(tx)
+	//case *campaign.Campaign:
+	//	return c.VerifyCampaign(tx)
+	//case *campaign.TermChange:
+	//	return c.VerifyTermChange(tx)
+	//default:
+	//	return false
+	//}
+	//return false
+	return true
+
 }
 
 func (c *ConsensusVerifier) Name() string {

@@ -41,7 +41,7 @@ type StateRootProvider interface {
 
 // OGTxCreator creates tx and do the signing and mining for OG.
 type OGTxCreator struct {
-	Miner              miner.Miner
+	Miner              *miner.PoWMiner
 	TipGenerator       TipGenerator      // usually tx_pool
 	MaxTxHash          common.Hash       // The difficultiy of TxHash
 	MaxMinedHash       common.Hash       // The difficultiy of MinedHash
@@ -50,7 +50,7 @@ type OGTxCreator struct {
 	GraphVerifier      protocol.Verifier // To verify the graph structure
 	quit               bool
 	archiveNonce       uint64
-	NoVerifyMindHash   bool
+	NoVerifyMineHash   bool
 	NoVerifyMaxTxHash  bool
 	StateRootProvider  StateRootProvider
 }
@@ -220,8 +220,8 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 	tx.SetHeight(tx.CalculateWeight(parents))
 	tx.SetParents(parentHashes)
 	// verify if the hash of the structure meet the standard.
-	hash := tx.CalcTxHash()
-	if m.NoVerifyMaxTxHash || hash.Cmp(m.MaxTxHash) < 0 {
+	hash := m.Miner.CalcHash(tx)
+	if m.NoVerifyMaxTxHash || m.Miner.IsHashValid(tx, hash, m.MaxTxHash) {
 		tx.SetHash(hash)
 		logrus.WithField("hash", hash).WithField("parent", tx.GetParents()).Trace("new tx connected")
 		// yes
@@ -234,7 +234,7 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 			return txRet, ok
 		}
 
-		tx.SetVerified(types.VerifiedGraph)
+		//tx.SetVerified(types.VerifiedGraph)
 		//ok = true
 		logrus.WithFields(logrus.Fields{
 			"tx": tx,
@@ -244,7 +244,7 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 		if tx.GetType() == types.TxBaseTypeSequencer {
 			txs := tx.(*types.Sequencer)
 			txs.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
-			txs.SetHash(tx.CalcTxHash())
+			txs.SetHash(m.Miner.CalcHash(tx))
 		}
 
 		return txRet, ok
@@ -272,9 +272,10 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 			return false
 		}
 		mineCount++
-		if !m.NoVerifyMindHash {
+		if !m.NoVerifyMineHash {
 			goroutine.New(func() {
-				m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+				m.Miner.Mine(tx, m.MaxMinedHash, minedNonce+1, respChan)
+				//m.Miner.StartMine(tx, m.MaxMinedHash, minedNonce+1, respChan)
 			})
 		} else {
 			goroutine.New(func() {
@@ -285,7 +286,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 		case minedNonce = <-respChan:
 			// Actually, this value is already set during mining.
 			// Incase that other implementation does not do that, re-assign
-			tx.GetBase().MineNonce = minedNonce
+			tx.SetMineNonce(minedNonce)
 			//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 			// pick up parents.
 			for i := 0; i < m.MaxConnectingTries; i++ {
@@ -339,7 +340,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 				return false
 			}
 		case <-time.NewTimer(time.Minute * 5).C:
-			m.Miner.Stop()
+			//m.Miner.Stop()
 			return false
 		}
 	}
@@ -423,9 +424,9 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 			}
 			tx.StateRoot = root
 			tx.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
-			tx.SetHash(tx.CalcTxHash())
-			tx.SetVerified(types.VerifiedGraph)
-			tx.SetVerified(types.VerifiedFormat)
+			tx.SetHash(m.Miner.CalcHash(tx))
+			//tx.SetVerified(types.VerifiedGraph)
+			//tx.SetVerified(types.VerifiedFormat)
 			break
 		}
 	}
@@ -446,5 +447,5 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 func (t *OGTxCreator) ValidateSequencer(seq types.Sequencer) error {
 	// TODO: validate sequencer's graph structure and txs being confirmed.
 	// using Preconfirm in tx_pool
-
+	return nil
 }

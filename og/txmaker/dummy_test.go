@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/sirupsen/logrus"
 )

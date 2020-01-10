@@ -826,6 +826,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// TODO
 	// compare the state root between seq.StateRoot and root after committing statedb.
+	batch.Seq.StateRoot = root
 	//if root.Cmp(batch.Seq.StateRoot) != 0 {
 	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
 	//		"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)

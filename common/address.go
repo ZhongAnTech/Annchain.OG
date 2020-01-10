@@ -138,3 +138,7 @@ func (h Address) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	return reflect.ValueOf(h)
 }
+
+func (h Address) EqualTo(b Address) bool {
+	return h.Hex() == b.Hex()
+}

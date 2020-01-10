@@ -21,6 +21,7 @@ import (
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
 	"sort"
+	"strconv"
 	"time"
 
 	// "fmt"
@@ -825,6 +826,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// TODO
 	// compare the state root between seq.StateRoot and root after committing statedb.
+	batch.Seq.StateRoot = root
 	//if root.Cmp(batch.Seq.StateRoot) != 0 {
 	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
 	//		"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
@@ -989,7 +991,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 
 	// transfer balance
 	txnormal := tx.(*tx_types.Tx)
-	if txnormal.Value.Value.Sign() != 0 {
+	if txnormal.Value.Value.Sign() != 0 && !txnormal.To.EqualTo(emptyAddress) {
 		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
 		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
 	}
@@ -1029,27 +1031,25 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	ogvm := ovm.NewOVM(vmContext, []ovm.Interpreter{evmInterpreter}, ovmconf)
 
 	var ret []byte
-	var leftOverGas uint64
+	//var leftOverGas uint64
 	var contractAddress = emptyAddress
 	var err error
+	var receipt *Receipt
 	if txnormal.To.Bytes == emptyAddress.Bytes {
-		ret, contractAddress, leftOverGas, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
-		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, _, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
 		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", contractAddress)
-
-	// TODO
-	// not finished yet
-	//
-	// 1. refund gas
-	// 2. add service fee to coinbase
-	log.Debugf("leftOverGas not used yet, this log is for compiling, ret: %x, leftOverGas: %d", ret, leftOverGas)
+	if txnormal.To.Bytes == emptyAddress.Bytes {
+		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), contractAddress)
+	} else {
+		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, fmt.Sprintf("%x", ret), contractAddress)
+	}
 	return ret, receipt, nil
 }
 
@@ -1068,7 +1068,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			return receipt, err
 		}
 		actionData.TokenId = tokenID
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
 		return receipt, nil
 	}
 	if tx.Action == tx_types.ActionTxActionSPO {
@@ -1080,7 +1080,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 			return receipt, err
 		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
 		return receipt, nil
 	}
 	if tx.Action == tx_types.ActionTxActionDestroy {
@@ -1091,7 +1091,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 			return receipt, err
 		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
 		return receipt, nil
 	}
 

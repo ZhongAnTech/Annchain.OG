@@ -22,6 +22,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/OG/types/tx_types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,7 @@ const (
 	messageTypeNewUnit   = "new_unit"
 	messageTypeConfirmed = "confirmed"
 	messageTypeNewTx     = "new_tx"
+	messageTypeBaseWs    = "base_ws"
 )
 
 var defaultUpgrader = &websocket.Upgrader{
@@ -168,7 +170,7 @@ func (s *Server) Name() string {
 func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
-	var uidata *UIData
+	//var uidata *UIData
 	var blockdbData *BlockDbUIData
 	for {
 		select {
@@ -183,6 +185,8 @@ func (s *Server) WatchNewTxs() {
 				blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
 			}
 
+			s.publishTxi(tx)
+
 			//if ac,ok := tx.(*tx_types.Archive);ok {
 			//	data := base64.StdEncoding.EncodeToString(ac.Data)
 			//	var a tx_types.Archive
@@ -193,37 +197,63 @@ func (s *Server) WatchNewTxs() {
 			//blockData.Nodes = append(blockData.Nodes, types.TxiSmallCaseMarshal{tx})
 			//}
 
-			if uidata == nil {
-				uidata = &UIData{
-					Type: messageTypeNewUnit,
-					//Nodes: []Node{},
-					//Edges: []Edge{},
-				}
-			}
-			uidata.AddToBatch(tx, true)
-		case batch := <-s.BatchConfirmedChan:
-			// first publish all pending txs
-			if status.ArchiveMode {
-				s.publishNewTxs(blockdbData)
-				blockdbData = nil
-			}
-			s.publishTxs(uidata)
-			uidata = nil
+			//if uidata == nil {
+			//	uidata = &UIData{
+			//		Type: messageTypeNewUnit,
+			//		//Nodes: []Node{},
+			//		//Edges: []Edge{},
+			//	}
+			//}
 
-			// then publish batch
-			s.publishBatch(batch)
-		case <-ticker.C:
-			if status.ArchiveMode {
-				s.publishNewTxs(blockdbData)
-				blockdbData = nil
-			}
-			s.publishTxs(uidata)
-			uidata = nil
+			//uidata.AddToBatch(tx, true)
+
+		case <-s.BatchConfirmedChan:
+		//case batch := <-s.BatchConfirmedChan:
+		// first publish all pending txs
+		//if status.ArchiveMode {
+		//	s.publishNewTxs(blockdbData)
+		//	blockdbData = nil
+		//}
+		//s.publishTxs(uidata)
+		//uidata = nil
+		//
+		//// then publish batch
+		//s.publishBatch(batch)
+
+		//case <-ticker.C:
+		//	if status.ArchiveMode {
+		//		s.publishNewTxs(blockdbData)
+		//		blockdbData = nil
+		//	}
+		//	s.publishTxs(uidata)
+		//	uidata = nil
 
 		case <-s.quit:
 			break
 		}
 	}
+}
+
+// works only for seq and tx.
+func (s *Server) publishTxi(txi types.Txi) {
+
+	var data []byte
+	var err error
+	switch t := txi.(type) {
+	case *tx_types.Tx:
+		txMsg := t.ToJsonMsg()
+		data, err = json.Marshal(&txMsg)
+	case *tx_types.Sequencer:
+		txMsg := t.ToJsonMsg()
+		data, err = json.Marshal(&txMsg)
+	default:
+		err = fmt.Errorf("only support tx and sequencer")
+	}
+	if err != nil {
+		logrus.Errorf("websocket publish error: %v", err)
+		return
+	}
+	s.Push(messageTypeBaseWs, string(data))
 }
 
 func (s *Server) publishTxs(uidata *UIData) {

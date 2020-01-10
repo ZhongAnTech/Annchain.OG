@@ -27,6 +27,10 @@
 		{
 			"address": "0xcb88e47e1426149c4354474339b2e2ee13143ca3",
 			"balance": 1000000
+		},
+		{
+			"address": "0x3f17f1962b36e491b30a40b2405849e597ba5fb5",
+			"balance": 1000000
 		}
 	]
 }

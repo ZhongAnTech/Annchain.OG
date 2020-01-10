@@ -80,6 +80,12 @@ func (r *RpcController) Query(c *gin.Context) {
 	Response(c, http.StatusOK, nil, "not implemented yet")
 }
 
+type TransactionResp struct {
+	Type        uint8                    `json:"type"`
+	Transaction *tx_types.TransactionMsg `json:"transaction"`
+	Sequencer   *tx_types.SequencerMsg   `json:"sequencer"`
+}
+
 //Transaction  get  transaction
 func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
@@ -97,28 +103,35 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("tx not found"), nil)
 		return
 	}
+
+	txResp := TransactionResp{}
+	txResp.Type = uint8(txi.GetType())
 	switch tx := txi.(type) {
 	case *tx_types.Tx:
-		Response(c, http.StatusOK, nil, tx)
+		txMsg := tx.ToJsonMsg()
+		txResp.Transaction = &txMsg
+		Response(c, http.StatusOK, nil, txResp)
 		return
 	case *tx_types.Sequencer:
-		Response(c, http.StatusOK, nil, tx)
+		seqMsg := tx.ToJsonMsg()
+		txResp.Sequencer = &seqMsg
+		Response(c, http.StatusOK, nil, seqMsg)
 		return
-	case *tx_types.Archive:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.Campaign:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.TermChange:
-		Response(c, http.StatusOK, nil, tx)
-		return
-	case *tx_types.ActionTx:
-		Response(c, http.StatusOK, nil, tx)
-		return
+		//case *tx_types.Archive:
+		//	Response(c, http.StatusOK, nil, tx)
+		//	return
+		//case *tx_types.Campaign:
+		//	Response(c, http.StatusOK, nil, tx)
+		//	return
+		//case *tx_types.TermChange:
+		//	Response(c, http.StatusOK, nil, tx)
+		//	return
+		//case *tx_types.ActionTx:
+		//	Response(c, http.StatusOK, nil, tx)
+		//	return
 	}
 
-	Response(c, http.StatusNotFound, fmt.Errorf("status not found"), nil)
+	Response(c, http.StatusNotFound, fmt.Errorf("status not found, only support transaction and sequencer"), nil)
 }
 
 //Confirm checks if tx has already been confirmed.
@@ -153,51 +166,55 @@ func (r *RpcController) Confirm(c *gin.Context) {
 
 }
 
+type TxsResponse struct {
+	Total int               `json:"total"`
+	Txs   []TransactionResp `json:"txs"`
+}
+
 //Transactions query Transactions
 func (r *RpcController) Transactions(c *gin.Context) {
-	seqId := c.Query("seq_id")
+	heightStr := c.Query("height")
 	address := c.Query("address")
 	cors(c)
+
+	var txs types.Txis
 	if address == "" {
-		id, err := strconv.Atoi(seqId)
-		if err != nil || id < 0 {
+		height, err := strconv.Atoi(heightStr)
+		if err != nil || height < 0 {
 			Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
 			return
 		}
-		if r.Og.Dag.GetHeight() < uint64(id) {
+		if r.Og.Dag.GetHeight() < uint64(height) {
 			Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
 			return
 		}
-		txs := r.Og.Dag.GetTxisByNumber(uint64(id))
-		var txsResponse struct {
-			Total int        `json:"total"`
-			Txs   types.Txis `json:"txs"`
-		}
-		txsResponse.Total = len(txs)
-		txsResponse.Txs = txs
-		Response(c, http.StatusOK, nil, txsResponse)
-		return
+		txs = r.Og.Dag.GetTxisByNumber(uint64(height))
 	} else {
 		addr, err := common.StringToAddress(address)
 		if err != nil {
 			Response(c, http.StatusOK, fmt.Errorf("address format error"), nil)
 			return
 		}
-		txs := r.Og.Dag.GetTxsByAddress(addr)
-		var txsResponse struct {
-			Total int         `json:"total"`
-			Txs   []types.Txi `json:"txs"`
-		}
-		if len(txs) != 0 {
-			txsResponse.Total = len(txs)
-			txsResponse.Txs = txs
-			Response(c, http.StatusOK, nil, txsResponse)
-			return
-		}
-		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
-		return
+		txs = r.Og.Dag.GetTxsByAddress(addr)
 	}
 
+	var txsResp TxsResponse
+	txsResp.Total = len(txs)
+	txsResp.Txs = make([]TransactionResp, 0)
+	for _, txi := range txs {
+		txResp := TransactionResp{}
+		switch tx := txi.(type) {
+		case *tx_types.Tx:
+			txMsg := tx.ToJsonMsg()
+
+			txResp.Type = uint8(types.TxBaseTypeNormal)
+			txResp.Transaction = &txMsg
+			break
+		}
+		txsResp.Txs = append(txsResp.Txs, txResp)
+	}
+
+	Response(c, http.StatusOK, nil, txsResp)
 }
 
 func (r *RpcController) Genesis(c *gin.Context) {
@@ -398,10 +415,10 @@ func (r *RpcController) ConfirmStatus(c *gin.Context) {
 }
 
 type ReceiptResponse struct {
-	TxHash          string      `json:"tx_hash"`
-	Status          int         `json:"status"`
-	Result          interface{} `json:"result"`
-	ContractAddress string      `json:"contract_address"`
+	TxHash          string `json:"tx_hash"`
+	Status          int    `json:"status"`
+	Result          string `json:"result"`
+	ContractAddress string `json:"contract_address"`
 }
 
 func (r *RpcController) QueryReceipt(c *gin.Context) {
@@ -450,9 +467,9 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 		Response(c, http.StatusBadRequest, err, nil)
 		return
 	}
-	query, err := hex.DecodeString(reqdata.Data)
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("can't decode data to bytes"), nil)
+	query := common.FromHex(reqdata.Data)
+	if query == nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("data not hex"), nil)
 		return
 	}
 
@@ -482,7 +499,7 @@ func Response(c *gin.Context, status int, err error, data interface{}) {
 		msg = err.Error()
 	}
 	c.JSON(status, gin.H{
-		"message": msg,
-		"data":    data,
+		"err":  msg,
+		"data": data,
 	})
 }

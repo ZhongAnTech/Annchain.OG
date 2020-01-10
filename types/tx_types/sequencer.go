@@ -235,3 +235,37 @@ func (c *Sequencer) RawTxi() types.RawTxi {
 func (t *Sequencer) SetSender(addr common.Address) {
 	t.Issuer = &addr
 }
+
+type SequencerMsg struct {
+	Type           int      `json:"type"`
+	Hash           string   `json:"hash"`
+	Parents        []string `json:"parents"`
+	Issuer         string   `json:"issuer"`
+	Nonce          uint64   `json:"nonce"`
+	Height         uint64   `json:"height"`
+	Weight         uint64   `json:"weight"`
+	BlsJointSig    string   `json:"bls_joint_sig"`
+	BlsJointPubKey string   `json:"bls_joint_pub_key"`
+}
+
+func (s *Sequencer) ToJsonMsg() SequencerMsg {
+
+	seqMsg := SequencerMsg{}
+
+	seqMsg.Type = int(s.GetType())
+	seqMsg.Hash = s.GetTxHash().Hex()
+	seqMsg.Issuer = s.Sender().Hex()
+	seqMsg.Nonce = s.GetNonce()
+	seqMsg.Height = s.GetHeight()
+	seqMsg.Weight = s.GetWeight()
+
+	seqMsg.BlsJointSig = s.BlsJointSig.String()
+	seqMsg.BlsJointPubKey = s.BlsJointPubKey.String()
+
+	seqMsg.Parents = make([]string, 0)
+	for _, p := range s.ParentsHash {
+		seqMsg.Parents = append(seqMsg.Parents, p.Hex())
+	}
+
+	return seqMsg
+}

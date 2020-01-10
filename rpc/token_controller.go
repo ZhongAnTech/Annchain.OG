@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
@@ -155,20 +156,9 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 		return
 	}
 
-	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	//if err != nil {
-	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-	//	return
-	//}
-
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
-		return
-	}
-
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("action  format error: %v", err), nil)
 		return
 	}
 
@@ -244,20 +234,9 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 		return
 	}
 
-	//nonce, err := strconv.ParseUint(txReq.Nonce, 10, 64)
-	//if err != nil {
-	//	Response(c, http.StatusBadRequest, fmt.Errorf("nonce format error"), nil)
-	//	return
-	//}
-
 	signature := common.FromHex(txReq.Signature)
 	if signature == nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("signature format error"), nil)
-		return
-	}
-
-	if err != nil {
-		Response(c, http.StatusBadRequest, fmt.Errorf("action  format error: %v", err), nil)
 		return
 	}
 
@@ -309,6 +288,33 @@ func (r *RpcController) Tokens(c *gin.Context) {
 	Response(c, http.StatusOK, nil, tokens)
 }
 
+type TokenResponse struct {
+	TokenID    int32    `json:"token_id"`
+	Name       string   `json:"name"`
+	Symbol     string   `json:"symbol"`
+	Issuer     string   `json:"issuer"`
+	ReIssuable bool     `json:"re_issuable"`
+	Issues     []string `json:"issues"`
+	Destroyed  bool     `json:"destroyed"`
+}
+
+func newTokenRespFromTokenObj(token *state.TokenObject) TokenResponse {
+	tokenResp := TokenResponse{}
+	tokenResp.TokenID = token.TokenID
+	tokenResp.Name = token.Name
+	tokenResp.Symbol = token.Symbol
+	tokenResp.Issuer = token.Issuer.Hex()
+	tokenResp.ReIssuable = token.ReIssuable
+	tokenResp.Destroyed = token.Destroyed
+
+	tokenResp.Issues = make([]string, 0)
+	for _, issue := range token.Issues {
+		tokenResp.Issues = append(tokenResp.Issues, issue.String())
+	}
+
+	return tokenResp
+}
+
 func (r *RpcController) GetToken(c *gin.Context) {
 	str := c.Query("id")
 	tokenId, err := strconv.Atoi(str)
@@ -317,5 +323,7 @@ func (r *RpcController) GetToken(c *gin.Context) {
 		return
 	}
 	token := r.Og.Dag.GetToken(int32(tokenId))
-	Response(c, http.StatusOK, nil, token)
+	tokenResp := newTokenRespFromTokenObj(token)
+
+	Response(c, http.StatusOK, nil, tokenResp)
 }

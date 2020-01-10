@@ -76,6 +76,7 @@ func NewNode() *Node {
 	}
 	// network id is configured either in config.toml or env variable
 	networkId := viper.GetInt64("p2p.network_id")
+	logrus.Infof("get network_id: %d", networkId)
 	if networkId == 0 {
 		networkId = defaultNetworkId
 	}
@@ -305,7 +306,7 @@ func NewNode() *Node {
 	miner := &miner2.PoWMiner{}
 	txCreator := &og.TxCreator{
 		Miner:              miner,
-		TipGenerator:       og.NewFIFOTIpGenerator(org.TxPool, 6),
+		TipGenerator:       org.TxPool, //og.NewFIFOTIpGenerator(org.TxPool, 6),
 		MaxConnectingTries: 100,
 		MaxTxHash:          txFormatVerifier.MaxTxHash,
 		MaxMinedHash:       txFormatVerifier.MaxMinedHash,

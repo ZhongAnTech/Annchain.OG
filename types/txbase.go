@@ -11,7 +11,7 @@ import (
 //go:generate msgp
 var CanRecoverPubFromSig bool
 
-type TxBaseType uint16
+type TxBaseType uint8
 
 //add tx types here
 const (

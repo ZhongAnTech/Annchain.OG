@@ -186,3 +186,33 @@ func (t Txs) ToRawTxs() RawTxs {
 func (c *Tx) RawTxi() types.RawTxi {
 	return c.RawTx()
 }
+
+type TransactionMsg struct {
+	Type    int      `json:"type"`
+	Hash    string   `json:"hash"`
+	Parents []string `json:"parents"`
+	From    string   `json:"from"`
+	To      string   `json:"to"`
+	Nonce   uint64   `json:"nonce"`
+	Value   string   `json:"value"`
+	Weight  uint64   `json:"weight"`
+}
+
+func (t *Tx) ToJsonMsg() TransactionMsg {
+	txMsg := TransactionMsg{}
+
+	txMsg.Type = int(t.GetType())
+	txMsg.Hash = t.GetTxHash().Hex()
+	txMsg.From = t.From.Hex()
+	txMsg.To = t.To.Hex()
+	txMsg.Nonce = t.GetNonce()
+	txMsg.Value = t.GetValue().String()
+	txMsg.Weight = t.GetWeight()
+
+	txMsg.Parents = make([]string, 0)
+	for _, p := range t.ParentsHash {
+		txMsg.Parents = append(txMsg.Parents, p.Hex())
+	}
+
+	return txMsg
+}

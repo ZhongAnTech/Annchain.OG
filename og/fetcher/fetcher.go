@@ -286,7 +286,7 @@ func (f *Fetcher) loop() {
 		height := f.chainHeight()
 		for !f.queue.Empty() {
 			op := f.queue.PopItem().(*inject)
-			hash := op.sequencer.GetTxHash()
+			hash := op.sequencer.GetHash()
 			if f.queueChangeHook != nil {
 				f.queueChangeHook(hash, false)
 			}
@@ -494,7 +494,7 @@ func (f *Fetcher) loop() {
 			}
 			// Schedule the header-only sequencers for import
 			for _, sequencer := range complete {
-				if announce := f.completing[sequencer.GetTxHash()]; announce != nil {
+				if announce := f.completing[sequencer.GetHash()]; announce != nil {
 					f.enqueue(announce.origin, sequencer)
 				}
 			}
@@ -517,7 +517,7 @@ func (f *Fetcher) loop() {
 			}
 			// Schedule the retrieved sequencers for ordered import
 			for _, sequencer := range sequencers {
-				if announce := f.completing[sequencer.GetTxHash()]; announce != nil {
+				if announce := f.completing[sequencer.GetHash()]; announce != nil {
 					f.enqueue(announce.origin, sequencer)
 				}
 			}
@@ -560,7 +560,7 @@ func (f *Fetcher) rescheduleComplete(complete *time.Timer) {
 // enqueue schedules a new future import operation, if the sequencer to be imported
 // has not yet been seen.
 func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
-	hash := sequencer.GetTxHash()
+	hash := sequencer.GetHash()
 
 	// Ensure the peer isn't DOSing us
 	count := f.queues[peer] + 1
@@ -588,7 +588,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 		f.queued[hash] = op
 		f.queue.Push(op, -float32(sequencer.Number()))
 		if f.queueChangeHook != nil {
-			f.queueChangeHook(op.sequencer.GetTxHash(), true)
+			f.queueChangeHook(op.sequencer.GetHash(), true)
 		}
 		log.WithField("peer", peer).WithField("Number", sequencer.Number()).WithField("hash", hash).WithField(
 			"queued", f.queue.Size()).Debug("Queued propagated sequencer")
@@ -599,7 +599,7 @@ func (f *Fetcher) enqueue(peer string, sequencer *types.Sequencer) {
 // sequencer's number is at the same height as the current import phase, it updates
 // the phase states accordingly.
 func (f *Fetcher) insert(peer string, sequencer *types.Sequencer, txs types.Txis) {
-	hash := sequencer.GetTxHash()
+	hash := sequencer.GetHash()
 
 	// Run the import on a new thread
 	log.WithField("peer", peer).WithField("number", sequencer.Number()).WithField(

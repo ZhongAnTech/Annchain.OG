@@ -34,3 +34,11 @@ type Syncer interface {
 	ClearQueue()
 	IsCachedHash(hash common.Hash) bool
 }
+
+type Hasher interface {
+	CalcHash(tx types.Txi) (hash common.Hash)
+}
+
+type Miner interface {
+	Mine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) bool
+}

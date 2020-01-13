@@ -144,19 +144,19 @@ func TestPoolInit(t *testing.T) {
 	if len(tips) != 1 {
 		t.Fatalf("should have only one tip")
 	}
-	tip := tips[genesis.GetTxHash()]
+	tip := tips[genesis.GetHash()]
 	if tip == nil {
 		t.Fatalf("genesis not stored in tips")
 	}
 
 	// check if genesis is in txLookUp
-	ge := poolTest.Get(genesis.GetTxHash())
+	ge := poolTest.Get(genesis.GetHash())
 	if ge == nil {
 		t.Fatalf("cant get genesis from poolTest.txLookUp")
 	}
 
 	// check genesis's status
-	status := poolTest.GetStatus(genesis.GetTxHash())
+	status := poolTest.GetStatus(genesis.GetHash())
 	if status != pool.TxStatusTip {
 		t.Fatalf("genesis's status is not tip but %s", status.String())
 	}
@@ -173,68 +173,68 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx0's parent is genesis
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	tx0.ParentsHash = common.Hashes{genesis.GetHash()}
 	err = poolTest.AddLocalTx(tx0, true)
 	if err != nil {
 		t.Fatalf("add tx0 to poolTest failed: %v", err)
 	}
-	if poolTest.Get(tx0.GetTxHash()) == nil {
+	if poolTest.Get(tx0.GetHash()) == nil {
 		t.Fatalf("tx0 is not added into poolTest")
 	}
-	if status := poolTest.GetStatus(tx0.GetTxHash()); status != pool.TxStatusTip {
+	if status := poolTest.GetStatus(tx0.GetHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx0's status is not tip but %s after commit, addr %s", status.String(), tx0.Sender())
 	}
-	geInPool := poolTest.Get(genesis.GetTxHash())
+	geInPool := poolTest.Get(genesis.GetHash())
 	if geInPool != nil {
 		t.Fatalf("parent genesis is not removed from poolTest.")
 	}
 
 	// tx1's parent is tx0
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = common.Hashes{tx0.GetTxHash()}
+	tx1.ParentsHash = common.Hashes{tx0.GetHash()}
 	err = poolTest.AddLocalTx(tx1, true)
 	if err != nil {
 		t.Fatalf("add tx1 to poolTest failed: %v", err)
 	}
-	if poolTest.Get(tx1.GetTxHash()) == nil {
+	if poolTest.Get(tx1.GetHash()) == nil {
 		t.Fatalf("tx1 is not added into poolTest")
 	}
-	if status := poolTest.GetStatus(tx1.GetTxHash()); status != pool.TxStatusTip {
+	if status := poolTest.GetStatus(tx1.GetHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx1's status is not tip but %s after commit", status.String())
 	}
-	if poolTest.Get(tx0.GetTxHash()) == nil {
+	if poolTest.Get(tx0.GetHash()) == nil {
 		t.Fatalf("tx0 is not in poolTest after added tx1")
 	}
-	if status := poolTest.GetStatus(tx0.GetTxHash()); status != pool.TxStatusPending {
+	if status := poolTest.GetStatus(tx0.GetHash()); status != pool.TxStatusPending {
 		t.Fatalf("tx0's status is not pending but %s after tx1 added", status.String())
 	}
 
 	// tx2's parent is genesis which is not in poolTest yet
 	tx2 := newTestPoolTx(2)
-	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	tx2.ParentsHash = common.Hashes{genesis.GetHash()}
 	err = poolTest.AddLocalTx(tx2, true)
 	if err != nil {
 		t.Fatalf("add tx2 to poolTest failed: %v", err)
 	}
-	if poolTest.Get(tx2.GetTxHash()) == nil {
+	if poolTest.Get(tx2.GetHash()) == nil {
 		t.Fatalf("tx2 is not added into poolTest")
 	}
-	if status := poolTest.GetStatus(tx2.GetTxHash()); status != pool.TxStatusTip {
+	if status := poolTest.GetStatus(tx2.GetHash()); status != pool.TxStatusTip {
 		t.Fatalf("tx2's status is not tip but %s after commit", status.String())
 	}
 
 	// TODO bad tx unit test
 	// // test bad tx
 	// badtx := newTestPoolBadTx()
-	// badtx.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	// badtx.ParentsHash = common.Hashes{genesis.GetHash()}
 	// err = poolTest.AddLocalTx(badtx)
 	// if err != nil {
 	// 	t.Fatalf("add badtx to poolTest failed: %v", err)
 	// }
-	// if poolTest.Get(badtx.GetTxHash()) == nil {
+	// if poolTest.Get(badtx.GetHash()) == nil {
 	// 	t.Fatalf("badtx is not added into poolTest")
 	// }
-	// if status := poolTest.GetStatus(badtx.GetTxHash()); status != TxStatusBadTx {
+	// if status := poolTest.GetStatus(badtx.GetHash()); status != TxStatusBadTx {
 	// 	t.Fatalf("badtx's status is not badtx but %s after commit", status.String())
 	// }
 
@@ -250,7 +250,7 @@ func TestPoolConfirm(t *testing.T) {
 
 	// sequencer's parents are normal txs
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	tx0.ParentsHash = common.Hashes{genesis.GetHash()}
 	poolTest.AddLocalTx(tx0, true)
 
 	// TODO
@@ -258,75 +258,75 @@ func TestPoolConfirm(t *testing.T) {
 	// poolTest.AddLocalTx(tx3)
 
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
+	tx1.ParentsHash = common.Hashes{genesis.GetHash()}
 	poolTest.AddLocalTx(tx1, true)
 
 	seq := newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
-		tx0.GetTxHash(),
-		tx1.GetTxHash(),
+		tx0.GetHash(),
+		tx1.GetHash(),
 	}
 	err = poolTest.AddLocalTx(seq, true)
 	if err != nil {
 		t.Fatalf("add seq to poolTest failed: %v", err)
 	}
-	if poolTest.Get(seq.GetTxHash()) == nil {
+	if poolTest.Get(seq.GetHash()) == nil {
 		t.Fatalf("sequencer is not added into poolTest")
 	}
-	if status := poolTest.GetStatus(seq.GetTxHash()); status != pool.TxStatusTip {
+	if status := poolTest.GetStatus(seq.GetHash()); status != pool.TxStatusTip {
 		t.Fatalf("sequencer's status is not tip but %s after added", status.String())
 	}
-	if poolTest.Get(tx0.GetTxHash()) != nil {
+	if poolTest.Get(tx0.GetHash()) != nil {
 		t.Fatalf("tx0 is not removed from poolTest")
 	}
-	if poolTest.Get(tx1.GetTxHash()) != nil {
+	if poolTest.Get(tx1.GetHash()) != nil {
 		t.Fatalf("tx1 is not removed from poolTest")
 	}
-	if dag.GetTx(tx0.GetTxHash()) == nil {
+	if dag.GetTx(tx0.GetHash()) == nil {
 		t.Fatalf("tx0 is not stored in dag")
 	}
-	if dag.GetTx(tx1.GetTxHash()) == nil {
+	if dag.GetTx(tx1.GetHash()) == nil {
 		t.Fatalf("tx1 is not stored in dag")
 	}
-	if dag.GetTx(seq.GetTxHash()) == nil {
+	if dag.GetTx(seq.GetHash()) == nil {
 		t.Fatalf("seq is not stored in dag")
 	}
-	if dag.LatestSequencer().GetTxHash().Cmp(seq.GetTxHash()) != 0 {
+	if dag.LatestSequencer().GetHash().Cmp(seq.GetHash()) != 0 {
 		t.Fatalf("latest seq in dag is not the seq we want")
 	}
 
 	// TODO bad tx unit test
 	// // sequencer's parent is bad tx
 	// badtx := newTestPoolBadTx()
-	// badtx.ParentsHash = common.Hashes{seq.GetTxHash()}
+	// badtx.ParentsHash = common.Hashes{seq.GetHash()}
 	// poolTest.AddLocalTx(badtx)
 
 	// addr := common.HexToAddress(testAddr2)
 	// dag.Accessor().SetBalance(addr, math.NewBigInt(1000))
 
 	// badtxseq := newTestSeq(2)
-	// badtxseq.ParentsHash = common.Hashes{badtx.GetTxHash()}
-	// badtxseq.ContractHashOrder = common.Hashes{badtx.GetTxHash()}
+	// badtxseq.ParentsHash = common.Hashes{badtx.GetHash()}
+	// badtxseq.ContractHashOrder = common.Hashes{badtx.GetHash()}
 	// err = poolTest.AddLocalTx(badtxseq)
 	// if err != nil {
 	// 	t.Fatalf("add badtxseq to poolTest failed: %v", err)
 	// }
-	// if poolTest.Get(badtxseq.GetTxHash()) == nil {
+	// if poolTest.Get(badtxseq.GetHash()) == nil {
 	// 	t.Fatalf("badtxseq is not added into poolTest")
 	// }
-	// if status := poolTest.GetStatus(badtxseq.GetTxHash()); status != TxStatusTip {
+	// if status := poolTest.GetStatus(badtxseq.GetHash()); status != TxStatusTip {
 	// 	t.Fatalf("badtxseq's status is not tip but %s after added", status.String())
 	// }
-	// if poolTest.Get(badtx.GetTxHash()) != nil {
+	// if poolTest.Get(badtx.GetHash()) != nil {
 	// 	t.Fatalf("badtx is not removed from poolTest")
 	// }
-	// if dag.GetTx(badtx.GetTxHash()) == nil {
+	// if dag.GetTx(badtx.GetHash()) == nil {
 	// 	t.Fatalf("badtx is not stored in dag")
 	// }
-	// if dag.GetTx(badtxseq.GetTxHash()) == nil {
+	// if dag.GetTx(badtxseq.GetHash()) == nil {
 	// 	t.Fatalf("battxseq is not stored in dag")
 	// }
-	// if dag.LatestSequencer().GetTxHash().Cmp(badtxseq.GetTxHash()) != 0 {
+	// if dag.LatestSequencer().GetHash().Cmp(badtxseq.GetHash()) != 0 {
 	// 	t.Fatalf("latest seq in dag is not the battxseq we want")
 	// }
 

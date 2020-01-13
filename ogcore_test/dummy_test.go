@@ -87,7 +87,7 @@ func (d *dummyDag) Genesis() *types.Sequencer {
 func (d *dummyDag) InitDefault() {
 	d.dmap = make(map[common.Hash]types.Txi)
 	tx := sampleTx("0x00", []string{})
-	d.dmap[tx.GetTxHash()] = tx
+	d.dmap[tx.GetHash()] = tx
 }
 
 func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
@@ -146,7 +146,7 @@ func (d *dummySyncer) SyncHashList(seqHash common.Hash) {
 
 // Know will let dummySyncer pretend it knows some tx
 func (d *dummySyncer) Know(tx *types.Tx) {
-	d.dmap[tx.GetTxHash()] = tx
+	d.dmap[tx.GetHash()] = tx
 }
 
 func (d *dummySyncer) IsCachedHash(hash common.Hash) bool {
@@ -197,7 +197,7 @@ func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 func (d *dummyTxPool) InitDefault() {
 	d.dmap = make(map[common.Hash]types.Txi)
 	tx := sampleTx("0x01", []string{"0x00"})
-	d.dmap[tx.GetTxHash()] = tx
+	d.dmap[tx.GetHash()] = tx
 }
 
 func (d *dummyTxPool) Get(hash common.Hash) types.Txi {
@@ -208,7 +208,7 @@ func (d *dummyTxPool) Get(hash common.Hash) types.Txi {
 }
 
 func (d *dummyTxPool) AddRemoteTx(tx types.Txi, b bool) error {
-	d.dmap[tx.GetTxHash()] = tx
+	d.dmap[tx.GetHash()] = tx
 	return nil
 }
 

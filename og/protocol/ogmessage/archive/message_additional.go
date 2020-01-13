@@ -15,7 +15,7 @@ func (m *MessageSyncResponse) Hashes() common.Hashes {
 			if tx == nil {
 				continue
 			}
-			hashes = append(hashes, GetTxHash())
+			hashes = append(hashes, GetHash())
 		}
 	}
 
@@ -29,7 +29,7 @@ func (m *MessageNewTx) GetHash() *common.Hash {
 	if m.RawTx == nil {
 		return nil
 	}
-	hash := m.RawTx.GetTxHash()
+	hash := m.RawTx.GetHash()
 	return &hash
 
 }
@@ -45,7 +45,7 @@ func (m *MessageNewSequencer) GetHash() *common.Hash {
 	if m.RawSequencer == nil {
 		return nil
 	}
-	hash := m.RawSequencer.GetTxHash()
+	hash := m.RawSequencer.GetHash()
 	return &hash
 
 }
@@ -70,7 +70,7 @@ func (m *MessageNewTxs) Hashes() common.Hashes {
 		if tx == nil {
 			continue
 		}
-		hashes = append(hashes, tx.GetTxHash())
+		hashes = append(hashes, tx.GetHash())
 	}
 	return hashes
 }
@@ -84,10 +84,10 @@ func (m *MessageTxsResponse) Hashes() common.Hashes {
 		if tx == nil {
 			continue
 		}
-		hashes = append(hashes, GetTxHash())
+		hashes = append(hashes, GetHash())
 	}
 	if m.RawSequencer != nil {
-		hashes = append(hashes, m.RawSequencer.GetTxHash())
+		hashes = append(hashes, m.RawSequencer.GetHash())
 	}
 	return hashes
 }

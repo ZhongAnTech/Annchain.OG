@@ -131,6 +131,6 @@ func TestCache(t *testing.T) {
 	ids := hub.getMsgFromCache(message_archive.MessageTypeNewTx, *p2pM.Hash)
 	fmt.Println(ids)
 	p2pM = nil
-	ids = hub.getMsgFromCache(message_archive.MessageTypeNewTx, tx.GetTxHash())
+	ids = hub.getMsgFromCache(message_archive.MessageTypeNewTx, tx.GetHash())
 	fmt.Println(ids)
 }

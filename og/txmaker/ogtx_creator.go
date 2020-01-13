@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/ogcore/miner"
 	"github.com/sirupsen/logrus"
 )
 
@@ -166,6 +166,7 @@ func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.Signature = signature
 	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey)
+	tx.Hash = m.Miner.CalcHash(tx)
 	return tx
 }
 
@@ -196,6 +197,7 @@ func (m *OGTxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.
 	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.Signature = signature.SignatureBytes
 	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
+	tx.Hash = m.Miner.CalcHash(tx)
 	return tx
 }
 
@@ -214,7 +216,7 @@ func (m *OGTxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
-		parentHashes[i] = parent.GetTxHash()
+		parentHashes[i] = parent.GetHash()
 	}
 	//calculate weight
 	tx.SetHeight(tx.CalculateWeight(parents))
@@ -308,7 +310,7 @@ func (m *OGTxCreator) SealTx(tx types.Txi, priveKey *crypto.PrivateKey) (ok bool
 					txs = m.TipGenerator.GetRandomTips(2)
 					var include bool
 					for _, tx := range txs {
-						if tx.GetTxHash() == ancestor.GetTxHash() {
+						if tx.GetHash() == ancestor.GetHash() {
 							include = true
 							break
 						}
@@ -368,8 +370,9 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
 		// proposed by bft
-		tx.BlsJointPubKey = blsPubKey
-		tx.Proposing = true
+		tx.PublicKey = blsPubKey
+		//tx.BlsJointPubKey = blsPubKey
+		//tx.Proposing = true
 	}
 	// else it is proposed by delegate for solo
 	connectionTries := 0
@@ -394,7 +397,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 		}
 		parentHashes := make(common.Hashes, len(parents))
 		for i, parent := range parents {
-			parentHashes[i] = parent.GetTxHash()
+			parentHashes[i] = parent.GetHash()
 		}
 
 		//calculate weight

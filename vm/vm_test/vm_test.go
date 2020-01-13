@@ -31,7 +31,7 @@ func TestContractSmallStorage(t *testing.T) {
 
 	ldb := DefaultLDB(from, coinBase)
 
-	logrus.Info("Init accounts done")
+	logrus.Info("init accounts done")
 
 	context := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &coinBase, ldb)
 

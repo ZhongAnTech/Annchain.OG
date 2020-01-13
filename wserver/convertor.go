@@ -64,7 +64,7 @@ type BlockDbUIData struct {
 
 func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 	nodeData := NodeData{
-		Unit:   tx.GetTxHash().Hex(),
+		Unit:   tx.GetHash().Hex(),
 		Unit_s: tx.String(),
 	}
 	node := Node{
@@ -86,7 +86,7 @@ func (u *UIData) AddToBatch(tx types.Txi, includingEdge bool) {
 		for _, parent := range tx.GetParents() {
 			edge := Edge{
 				Id:     tx.String() + "_" + parent.String(),
-				Source: tx.GetTxHash().Hex(),
+				Source: tx.GetHash().Hex(),
 				Target: parent.Hex(),
 			}
 			u.Edges = append(u.Edges, edge)

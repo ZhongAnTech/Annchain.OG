@@ -55,7 +55,7 @@ func newCacheItemSortFunction() gcache.SortKeysFunction {
 		}
 		sort.Sort(txis)
 		for _, tx := range txis {
-			sortedKeys = append(sortedKeys, tx.GetTxHash())
+			sortedKeys = append(sortedKeys, tx.GetHash())
 		}
 		if len(keys) != len(sortedKeys) {
 			log.WithField("len keys", len(keys)).WithField("len txis ", len(txis)).Info("sorted tx")
@@ -78,7 +78,7 @@ func newCacheItemSortFunction() gcache.SortKeysFunction {
 		}
 		sort.Sort(txis)
 		for _, tx := range txis {
-			sortedKeys = append(sortedKeys, tx.GetTxHash())
+			sortedKeys = append(sortedKeys, tx.GetHash())
 		}
 		if len(keys) != len(sortedKeys) {
 			log.WithField("len keys", len(keys)).WithField("len txis ", len(txis)).Info("sorted tx")
@@ -141,7 +141,7 @@ func (t *TxCache) Has(h common.Hash) bool {
 
 // Add tx into txCache
 func (t *TxCache) EnQueue(tx types.Txi) error {
-	err := t.cache.EnQueue(tx.GetTxHash(), tx)
+	err := t.cache.EnQueue(tx.GetHash(), tx)
 	//log.WithField("enqueued tx",tx).WithField("used",time.Now().Sub(start)).Debug("enqueue total")
 	return err
 }
@@ -188,7 +188,7 @@ func (c *TxCache) DeQueueBatch(count int) (txs types.Txis, err error) {
 // Add tx into txCache
 func (t *TxCache) Prepend(tx types.Txi) error {
 	start := time.Now()
-	err := t.cache.Prepend(tx.GetTxHash(), tx)
+	err := t.cache.Prepend(tx.GetHash(), tx)
 	log.WithField("Prepend tx", tx).WithField("used", time.Now().Sub(start)).Debug("Prepend total")
 	return err
 }
@@ -201,7 +201,7 @@ func (c *TxCache) PrependBatch(txs types.Txis) error {
 	var keys []interface{}
 	var values []interface{}
 	for _, tx := range txs {
-		keys = append(keys, tx.GetTxHash())
+		keys = append(keys, tx.GetHash())
 		values = append(values, tx)
 	}
 	start := time.Now()
@@ -219,7 +219,7 @@ func (c *TxCache) EnQueueBatch(txs types.Txis) error {
 	var keys []interface{}
 	var values []interface{}
 	for _, tx := range txs {
-		keys = append(keys, tx.GetTxHash())
+		keys = append(keys, tx.GetHash())
 		values = append(values, tx)
 	}
 	return c.cache.EnQueueBatch(keys, values)
@@ -236,7 +236,7 @@ func (t *TxCache) GetTop() types.Txi {
 //MoveFront move an element to font, if searchFunction is set
 //func (t *TxCache) MoveFront(tx types.Txi) error {
 //	defer log.WithField(" tx", tx).Debug("moved to front")
-//	return t.cache.MoveFront(tx.GetTxHash())
+//	return t.cache.MoveFront(tx.GetHash())
 //}
 
 func (t *TxCache) Sort() {

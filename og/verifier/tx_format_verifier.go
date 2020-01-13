@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/miner"
 	"github.com/annchain/OG/og/types"
+	"github.com/annchain/OG/ogcore/miner"
 
 	"github.com/sirupsen/logrus"
 	"math/big"

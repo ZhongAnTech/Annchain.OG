@@ -27,9 +27,9 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
 			return
 		}
 	}
-	m.RemoveContrlMsgFromCache(tx.GetTxHash())
-	m.firedTxCache.Remove(tx.GetTxHash())
-	if m.isKnownHash(tx.GetTxHash()) {
+	m.RemoveContrlMsgFromCache(tx.GetHash())
+	m.firedTxCache.Remove(tx.GetHash())
+	if m.isKnownHash(tx.GetHash()) {
 		log.WithField("tx ", tx).Debug("duplicated tx received")
 		return
 	}
@@ -38,7 +38,7 @@ func (m *IncrementalSyncer) HandleNewTxi(tx types.Txi, peerId string) {
 	}
 
 	if tx.GetType() == types.TxBaseTypeSequencer {
-		m.SequencerCache.Add(tx.GetTxHash(), peerId)
+		m.SequencerCache.Add(tx.GetHash(), peerId)
 	}
 
 	err := m.bufferedIncomingTxCache.EnQueue(tx)
@@ -76,9 +76,9 @@ func (m *IncrementalSyncer) HandleNewTxs(newTxs *archive.MessageNewTxs, peerId s
 		}
 	}
 	for _, tx := range *newTxs.RawTxs {
-		m.RemoveContrlMsgFromCache(tx.GetTxHash())
-		m.firedTxCache.Remove(tx.GetTxHash())
-		if m.isKnownHash(tx.GetTxHash()) {
+		m.RemoveContrlMsgFromCache(tx.GetHash())
+		m.firedTxCache.Remove(tx.GetHash())
+		if m.isKnownHash(tx.GetHash()) {
 			log.WithField("tx ", tx).Debug("duplicated tx received")
 			continue
 		}
@@ -175,7 +175,7 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *archive.Mess
 			testVal++
 			tx := syncResponse.RawSequencers[currentIndex].Sequencer()
 			m.firedTxCache.Remove(tx.Hash)
-			if m.isKnownHash(tx.GetTxHash()) {
+			if m.isKnownHash(tx.GetHash()) {
 				log.WithField("tx ", tx).Debug("duplicated tx received")
 			} else {
 				if !m.Enabled {
@@ -191,9 +191,9 @@ func (m *IncrementalSyncer) HandleFetchByHashResponse(syncResponse *archive.Mess
 			log.Warn("nil tx received")
 			continue
 		}
-		m.RemoveContrlMsgFromCache(rawTx.GetTxHash())
-		m.firedTxCache.Remove(rawTx.GetTxHash())
-		if m.isKnownHash(rawTx.GetTxHash()) {
+		m.RemoveContrlMsgFromCache(rawTx.GetHash())
+		m.firedTxCache.Remove(rawTx.GetHash())
+		if m.isKnownHash(rawTx.GetHash()) {
 			log.WithField("tx ", rawTx).Debug("duplicated tx received")
 			continue
 		}

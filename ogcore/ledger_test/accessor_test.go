@@ -76,7 +76,6 @@ func newTestUnsealTx(nonce uint64) *types.Tx {
 		},
 		PrivateKey: pk,
 	})
-	tx.SetHash(tx.CalcTxHash())
 
 	return tx.(*types.Tx)
 }
@@ -94,7 +93,6 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 		},
 		PrivateKey: pk,
 	})
-	seq.SetHash(seq.CalcTxHash())
 
 	return seq.(*types.Sequencer)
 }
@@ -116,34 +114,34 @@ func TestTransactionStorage(t *testing.T) {
 	tx := newTestUnsealTx(0)
 	err = acc.WriteTransaction(nil, tx)
 	if err != nil {
-		t.Fatalf("write tx %s failed: %v", tx.GetTxHash().String(), err)
+		t.Fatalf("write tx %s failed: %v", tx.GetHash().String(), err)
 	}
-	txRead := acc.ReadTransaction(tx.GetTxHash())
+	txRead := acc.ReadTransaction(tx.GetHash())
 	if txRead == nil {
-		t.Fatalf("cannot read tx %s from db", tx.GetTxHash().String())
+		t.Fatalf("cannot read tx %s from db", tx.GetHash().String())
 	}
 	if !compareTxi(tx, txRead) {
 		t.Fatalf("the tx from db is not equal to the base tx")
 	}
 	// test tx delete
-	err = acc.DeleteTransaction(tx.GetTxHash())
+	err = acc.DeleteTransaction(tx.GetHash())
 	if err != nil {
-		t.Fatalf("delete tx %s failed: %v", tx.GetTxHash().String(), err)
+		t.Fatalf("delete tx %s failed: %v", tx.GetHash().String(), err)
 	}
-	txDeleted := acc.ReadTransaction(tx.GetTxHash())
+	txDeleted := acc.ReadTransaction(tx.GetHash())
 	if txDeleted != nil {
-		t.Fatalf("tx %s have not deleted yet", tx.GetTxHash().String())
+		t.Fatalf("tx %s have not deleted yet", tx.GetHash().String())
 	}
 
 	// test sequencer read write
 	seq := newTestSeq(1)
 	err = acc.WriteTransaction(nil, seq)
 	if err != nil {
-		t.Fatalf("write seq %s failed: %v", seq.GetTxHash().String(), err)
+		t.Fatalf("write seq %s failed: %v", seq.GetHash().String(), err)
 	}
-	seqRead := acc.ReadTransaction(seq.GetTxHash())
+	seqRead := acc.ReadTransaction(seq.GetHash())
 	if seqRead == nil {
-		t.Fatalf("cannot read seq %s from db", seq.GetTxHash().String())
+		t.Fatalf("cannot read seq %s from db", seq.GetHash().String())
 	}
 	if !compareTxi(seq, seqRead) {
 		t.Fatalf("the seq from db is not equal to the base seq")

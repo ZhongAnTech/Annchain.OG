@@ -113,7 +113,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 	// already in the dag or tx_pool or buffer itself.
-	if b.IsKnownHash(tx.GetTxHash()) {
+	if b.IsKnownHash(tx.GetHash()) {
 		return
 	}
 	//if err := b.verifyTxFormat(tx); err != nil {
@@ -130,7 +130,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		}
 	}
 
-	b.knownCache.Set(tx.GetTxHash(), tx)
+	b.knownCache.Set(tx.GetHash(), tx)
 
 	if b.buildDependencies(tx) {
 		// directly fulfilled, insert into txpool
@@ -169,7 +169,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
 				b.EventBus.Route(&events.NeedSyncEvent{
 					ParentHash:      pHash,
-					ChildHash:       tx.GetTxHash(),
+					ChildHash:       tx.GetHash(),
 					SendBloomfilter: false,
 				})
 				// Weight is unknown until parents are got. So here why check this?
@@ -177,20 +177,20 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//if !sendBloom && tx.GetWeight() > maxWeight && tx.GetWeight()-maxWeight > 20 {
 				//	b.EventBus.Route(&events.NeedSyncEvent{
 				//		ParentHash:      pHash,
-				//		ChildHash:       tx.GetTxHash(),
+				//		ChildHash:       tx.GetHash(),
 				//		SendBloomfilter: true,
 				//	})
-				//	//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), true)
+				//	//b.Syncer.Enqueue(&pHash, tx.GetHash(), true)
 				//	sendBloom = true
 				//} else {
 				//	b.EventBus.Route(&events.NeedSyncEvent{
 				//		ParentHash:      pHash,
-				//		ChildHash:       tx.GetTxHash(),
+				//		ChildHash:       tx.GetHash(),
 				//		SendBloomfilter: false,
 				//	})
-				//	//b.Syncer.Enqueue(&pHash, tx.GetTxHash(), false)
+				//	//b.Syncer.Enqueue(&pHash, tx.GetHash(), false)
 				//}
-				//b.children.AddChildren(parentHash, tx.GetTxHash())
+				//b.children.AddChildren(parentHash, tx.GetHash())
 			} else {
 				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
 				// TODO: check consequence
@@ -205,18 +205,18 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 		// add myself to the dependency map
 		//if tx.GetType() == types.TxBaseTypeSequencer {
 		//	seq := tx.(*types.Sequencer)
-		//	//b.Syncer.SyncHashList(seq.GetTxHash())
+		//	//b.Syncer.SyncHashList(seq.GetHash())
 		//	//proposing seq
 		//	//why ??
 		//	if seq.Proposing {
 		//		//return allFetched
-		//		b.Syncer.SyncHashList(seq.GetTxHash())
+		//		b.Syncer.SyncHashList(seq.GetHash())
 		//		return allFetched
 		//	}
 		//	//seq.Hash
 		//
 		//}
-		b.updateDependencyMap(tx.GetTxHash(), tx)
+		b.updateDependencyMap(tx.GetHash(), tx)
 	}
 	return allFetched
 }
@@ -244,9 +244,9 @@ func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 
 	if err != nil {
 		// key not present, need to build an inner map
-		v = map[common.Hash]types.Txi{self.GetTxHash(): self}
+		v = map[common.Hash]types.Txi{self.GetHash(): self}
 	}
-	v.(map[common.Hash]types.Txi)[self.GetTxHash()] = self
+	v.(map[common.Hash]types.Txi)[self.GetHash()] = self
 	b.dependencyCache.Set(parentHash, v)
 
 	b.affmu.Unlock()
@@ -286,7 +286,7 @@ func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
 func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 	// Check if the tx is valid based on graph structure rules
 	// Only txs that are obeying rules will be added to the graph.
-	b.knownCache.Remove(tx.GetTxHash())
+	b.knownCache.Remove(tx.GetHash())
 
 	// added verifier for specific tx types. e.g. Campaign, TermChange.
 	for _, verifier := range b.Verifiers {
@@ -306,8 +306,8 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 // resolve is called when all ancestors of the tx is got.
 // Once resolved, add it to the pool
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
-	vs, err := b.dependencyCache.GetIFPresent(tx.GetTxHash())
-	//children := b.children.GetAndRemove(tx.GetTxHash())
+	vs, err := b.dependencyCache.GetIFPresent(tx.GetHash())
+	//children := b.children.GetAndRemove(tx.GetHash())
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
 
 	// announcer and txpool both listen to this event.
@@ -319,7 +319,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	//
 	//	//b.Announcer.BroadcastNewTx(tx)
 	//}
-	b.dependencyCache.Remove(tx.GetTxHash())
+	b.dependencyCache.Remove(tx.GetHash())
 
 	logrus.WithField("tx", tx).Debugf("tx resolved")
 
@@ -335,7 +335,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	}
 	// try resolve the remainings
 	for _, v := range vs.(map[common.Hash]types.Txi) {
-		if v.GetTxHash() == tx.GetTxHash() {
+		if v.GetHash() == tx.GetHash() {
 			// self already resolved
 			continue
 		}

@@ -148,7 +148,7 @@ package archive
 //		return
 //	}
 //	//cache them and sent to buffer to verify
-//	a.bft.CacheProposal(seq.GetTxHash(), request)
+//	a.bft.CacheProposal(seq.GetHash(), request)
 //	a.HandleNewTxi(&seq, peerId)
 //	log.Debug("response ok")
 //	//m := BftMessage{

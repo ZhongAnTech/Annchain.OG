@@ -179,6 +179,8 @@ func (p *Putter) Put(key []byte, data []byte) error {
 	p.writeConcurrenceChan <- true
 	p.wg.Add(1)
 	goroutine.New(put)
+	// TODO: verify wait
+	p.wg.Wait()
 	return p.err
 }
 
@@ -233,7 +235,7 @@ func (da *Accessor) ReadLastStateRoot() common.Hash {
 }
 
 // WriteLastStateRoot write latest state root into db.
-// TODO
+// TODO: remove it
 // this is a temp function. The latest state root should be stored
 // in latest sequencer.
 func (da *Accessor) WriteLastStateRoot(putter *Putter, root common.Hash) error {
@@ -433,10 +435,10 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 		return fmt.Errorf("unknown tx type")
 	}
 	if err != nil {
-		return fmt.Errorf("marshal tx %s err: %v", tx.GetTxHash(), err)
+		return fmt.Errorf("marshal tx %s err: %v", tx.GetHash(), err)
 	}
 	data = append(prefix, data...)
-	key := transactionKey(tx.GetTxHash())
+	key := transactionKey(tx.GetHash())
 	da.put(putter, key, data)
 
 	return nil

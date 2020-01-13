@@ -69,7 +69,7 @@ type BlsSigSet struct {
 type Sequencers []*Sequencer
 
 func (t *Sequencer) GetHead() *dagmessage.SequencerHeader {
-	return dagmessage.NewSequencerHead(t.GetTxHash(), t.Height)
+	return dagmessage.NewSequencerHead(t.GetHash(), t.Height)
 }
 
 func (t *Sequencer) Dump() string {

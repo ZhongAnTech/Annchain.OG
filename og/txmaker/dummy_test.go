@@ -60,7 +60,7 @@ func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 }
 
 func (p *dummyTxPoolMiniTx) Add(v types.Txi) {
-	p.tipsMap[v.GetTxHash()] = v
+	p.tipsMap[v.GetHash()] = v
 
 	for _, parentHash := range v.GetParents() {
 		if vp, ok := p.tipsMap[parentHash]; ok {
@@ -105,7 +105,7 @@ func (p *dummyTxPoolParents) Get(hash common.Hash) types.Txi {
 }
 
 func (p *dummyTxPoolParents) AddRemoteTx(tx types.Txi, b bool) error {
-	p.poolMap[tx.GetTxHash()] = tx
+	p.poolMap[tx.GetHash()] = tx
 	return nil
 }
 

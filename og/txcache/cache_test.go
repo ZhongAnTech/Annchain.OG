@@ -83,10 +83,10 @@ func TestTxCache_Get(t *testing.T) {
 	c := newTestTxcache(true)
 	c.addInitTx()
 	c.EnQueue(tx1)
-	if !c.Has(tx1.GetTxHash()) {
+	if !c.Has(tx1.GetHash()) {
 		t.Fatal("tx is in cache")
 	}
-	if c.Has(tx2.GetTxHash()) {
+	if c.Has(tx2.GetHash()) {
 		t.Fatal("tx is not in cache")
 	}
 	hash := c.GetHashOrder()[5]
@@ -96,7 +96,7 @@ func TestTxCache_Get(t *testing.T) {
 	} else {
 		t.Fatal("tx not found")
 	}
-	if tx := c.Get(tx1.GetTxHash()); tx != tx1 {
+	if tx := c.Get(tx1.GetHash()); tx != tx1 {
 		t.Fatalf("requied %v ;got %v", tx1.String(), tx.String())
 	}
 	t.Log("len", c.Len())
@@ -108,10 +108,10 @@ func TestTxCache_Get(t *testing.T) {
 	if c.cache.Len() != 0 {
 		t.Fatalf("requied 0 , got %d", c.Len())
 	}
-	if tx := c.Get(tx1.GetTxHash()); tx != nil {
+	if tx := c.Get(tx1.GetHash()); tx != nil {
 		t.Fatalf("requied nil  ;got %v", tx.String())
 	}
-	c.Remove(tx1.GetTxHash())
+	c.Remove(tx1.GetHash())
 	t.Log("len", c.Len())
 	c.RemoveExpiredAndInvalid(100)
 	t.Log("len", c.Len())
@@ -347,5 +347,5 @@ func TestTxCache_Has(t *testing.T) {
 	gcache.DebugMode = true
 	hash := c.GetHashOrder()[150]
 	tx := c.Get(hash)
-	fmt.Println(hash, tx, c.cache.Len(), c.Get(hash), c.Has(hash), c.Has(archive.RandomTx().GetTxHash()))
+	fmt.Println(hash, tx, c.cache.Len(), c.Get(hash), c.Has(hash), c.Has(archive.RandomTx().GetHash()))
 }

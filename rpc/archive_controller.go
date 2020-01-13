@@ -78,6 +78,6 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	r.TxBuffer.ReceivedNewTxChan <- tx
 	logrus.WithField("used time ", time.Since(now)).WithField("id ", id).WithField("tx ", tx).Trace("send ok")
 
-	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	Response(c, http.StatusOK, nil, tx.GetHash().Hex())
 	return
 }

@@ -195,7 +195,7 @@ func (t *ActionTx) GetOfferValue() *math.BigInt {
 func (t *ActionTx) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *ActionTx:
-		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if t.GetHash().Cmp(tx.GetHash()) == 0 {
 			return true
 		}
 		return false

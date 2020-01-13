@@ -27,7 +27,7 @@ type RawTxi interface {
 	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
-	GetTxHash() common.Hash
+	GetHash() common.Hash
 	GetNonce() uint64
 	Parents() common.Hashes // GetParents returns the hash of txs that it directly proves.
 	SetHash(h common.Hash)

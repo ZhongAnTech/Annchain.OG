@@ -27,7 +27,7 @@ func buildSeq(from common.Address, accountNonce uint64, id uint64) *types.Sequen
 func setParents(tx types.Txi, parents []types.Txi) {
 	tx.GetBase().ParentsHash = common.Hashes{}
 	for _, parent := range parents {
-		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetTxHash())
+		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetHash())
 	}
 }
 

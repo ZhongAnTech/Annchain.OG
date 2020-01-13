@@ -148,8 +148,8 @@ func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previ
 	seeked := map[common.Hash]bool{}
 	seekingHashes := common.Hashes{}
 	// seekingHashes := list.New()
-	seekingHashes = append(seekingHashes, currentSeq.GetTxHash())
-	// seekingHashes.PushBack(currentSeq.GetTxHash())
+	seekingHashes = append(seekingHashes, currentSeq.GetHash())
+	// seekingHashes.PushBack(currentSeq.GetHash())
 	for len(seekingHashes) > 0 {
 		head := seekingHashes[0]
 		seekingHashes = seekingHashes[1:]

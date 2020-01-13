@@ -81,7 +81,7 @@ func (f *FIFOTipGenerator) GetRandomTips(n int) (v []types.Txi) {
 	for _, upstreamTip := range upstreamTips {
 		duplicated := false
 		for i := 0; i < f.maxCacheSize; i++ {
-			if f.fifoRing[i] != nil && f.fifoRing[i].GetTxHash() == upstreamTip.GetTxHash() {
+			if f.fifoRing[i] != nil && f.fifoRing[i].GetHash() == upstreamTip.GetHash() {
 				// duplicate, ignore directly
 				duplicated = true
 				break

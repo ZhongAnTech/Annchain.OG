@@ -407,19 +407,19 @@ func (pool *TxPool) Remove(tx types.Txi, removeType hashOrderRemoveType) {
 }
 
 func (pool *TxPool) remove(tx types.Txi, removeType hashOrderRemoveType) {
-	status := pool.getStatus(tx.GetTxHash())
+	status := pool.getStatus(tx.GetHash())
 	if status == TxStatusBadTx {
-		pool.badtxs.Remove(tx.GetTxHash())
+		pool.badtxs.Remove(tx.GetHash())
 	}
 	if status == TxStatusTip {
-		pool.tips.Remove(tx.GetTxHash())
+		pool.tips.Remove(tx.GetHash())
 		pool.flows.Remove(tx)
 	}
 	if status == TxStatusPending {
-		pool.pendings.Remove(tx.GetTxHash())
+		pool.pendings.Remove(tx.GetHash())
 		pool.flows.Remove(tx)
 	}
-	pool.txLookup.Remove(tx.GetTxHash(), removeType)
+	pool.txLookup.Remove(tx.GetHash(), removeType)
 }
 
 // ClearAll removes all the txs in the pool.
@@ -461,7 +461,7 @@ func (pool *TxPool) loop() {
 			var err error
 			tx := txEvent.tx
 			// check if tx is duplicate
-			if pool.get(tx.GetTxHash()) != nil {
+			if pool.get(tx.GetHash()) != nil {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 				// use event bus
 				//txEvent.callbackChan <- types.ErrDuplicateTx
@@ -473,7 +473,7 @@ func (pool *TxPool) loop() {
 			case *types.Sequencer:
 				err = pool.confirm(tx)
 				if err != nil {
-					pool.txLookup.Remove(txEvent.tx.GetTxHash(), removeFromEnd)
+					pool.txLookup.Remove(txEvent.tx.GetHash(), removeFromEnd)
 				} else {
 					atomic.StoreUint32(&pool.txNum, 0)
 					maxWeight := atomic.LoadUint64(&pool.maxWeight)
@@ -561,12 +561,12 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.remove(tx, removeFromEnd)
 		tx.SetValid(false)
 		log.WithField("tx", tx).Debug("set invalid")
-		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetTxHash())
+		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetHash())
 	}
 	if txquality == TxQualityIsBad {
 		log.Tracef("bad tx: %s", tx)
 		pool.badtxs.Add(tx)
-		pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusBadTx)
+		pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusBadTx)
 		return nil
 	}
 
@@ -607,11 +607,11 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	}
 	pool.flows.Add(tx)
 	pool.tips.Add(tx)
-	pool.txLookup.SwitchStatus(tx.GetTxHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusTip)
 
 	// TODO delete this line later.
 	if log.GetLevel() >= log.TraceLevel {
-		log.WithField("tx", tx).WithField("status", pool.getStatus(tx.GetTxHash())).Tracef("finished commit tx")
+		log.WithField("tx", tx).WithField("status", pool.getStatus(tx.GetHash())).Tracef("finished commit tx")
 	}
 	return nil
 }
@@ -641,7 +641,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	// check if nonce is duplicate
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
-		if txinpool.GetTxHash() == tx.GetTxHash() {
+		if txinpool.GetHash() == tx.GetHash() {
 			log.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
 			return TxQualityIsFatal
 		}
@@ -650,7 +650,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	}
 	txindag := pool.dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
-		if txindag.GetTxHash() == tx.GetTxHash() {
+		if txindag.GetHash() == tx.GetHash() {
 			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
 		}
 		log.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in dag")
@@ -798,7 +798,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	var err error
 	var batch *ledger.ConfirmBatch
 	var elders map[common.Hash]types.Txi
-	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
+	if pool.cached != nil && seq.GetHash() == pool.cached.SeqHash() {
 		batch = &ledger.ConfirmBatch{
 			Seq: seq,
 			Txs: pool.cached.Txs(),
@@ -834,7 +834,7 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.flows.Add(seq)
 	pool.tips.Add(seq)
 	pool.txLookup.Add(&txEnvelope{tx: seq})
-	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+	pool.txLookup.SwitchStatus(seq.GetHash(), TxStatusTip)
 
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
@@ -916,8 +916,8 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 			}
 			continue
 		}
-		if batch[elder.GetTxHash()] == nil {
-			batch[elder.GetTxHash()] = elder
+		if batch[elder.GetHash()] == nil {
+			batch[elder.GetHash()] = elder
 		}
 		for _, elderParentHash := range elder.GetParents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
@@ -952,7 +952,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 		// return error if a sequencer confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
-				seq.GetNonce(), txi.GetTxHash())
+				seq.GetNonce(), txi.GetHash())
 		}
 
 		switch tx := txi.(type) {
@@ -1026,7 +1026,7 @@ func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 	var txsInPool []types.Txi
 	// remove elders from pool
 	for _, tx := range batch.Txs {
-		elderHash := tx.GetTxHash()
+		elderHash := tx.GetHash()
 		pool.txLookup.removeTxFromMapOnly(elderHash)
 	}
 
@@ -1123,7 +1123,7 @@ type cachedConfirm struct {
 
 func newCachedConfirm(seq *types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
 	return &cachedConfirm{
-		seqHash: seq.GetTxHash(),
+		seqHash: seq.GetHash(),
 		seq:     seq,
 		root:    root,
 		txs:     txs,
@@ -1191,7 +1191,7 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
+	if _, ok := tm.txs[tx.GetHash()]; !ok {
 		return false
 	}
 	return true
@@ -1206,8 +1206,8 @@ func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
-		tm.txs[tx.GetTxHash()] = tx
+	if _, ok := tm.txs[tx.GetHash()]; !ok {
+		tm.txs[tx.GetHash()] = tx
 	}
 }
 
@@ -1246,12 +1246,12 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.add(txEnv)
 }
 func (t *txLookUp) add(txEnv *txEnvelope) {
-	if _, ok := t.txs[txEnv.tx.GetTxHash()]; ok {
+	if _, ok := t.txs[txEnv.tx.GetHash()]; ok {
 		return
 	}
 
-	t.order = append(t.order, txEnv.tx.GetTxHash())
-	t.txs[txEnv.tx.GetTxHash()] = txEnv
+	t.order = append(t.order, txEnv.tx.GetHash())
+	t.txs[txEnv.tx.GetHash()] = txEnv
 }
 
 // Remove tx from txLookUp

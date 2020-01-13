@@ -44,7 +44,7 @@ var (
 )
 
 type DagConfig struct {
-	GenesisPath string
+	GenesisGenerator GenesisGenerator
 }
 
 type Dag struct {
@@ -77,7 +77,7 @@ func (dag *Dag) IsLocalHash(hash common.Hash) bool {
 	return tx != nil
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, testDb ogdb.Database) (*Dag, error) {
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, testDb ogdb.Database) (*Dag, *types.Sequencer, error) {
 	dag := &Dag{}
 
 	dag.conf = conf
@@ -90,30 +90,27 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	dag.txcached = newTxcached(10000)
 	dag.close = make(chan struct{})
 
-	restart, root := dag.LoadLastState()
+	inited, root := dag.LoadLastState()
 
 	log.Infof("the root loaded from last state is: %x", root.ToBytes())
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
 	if err != nil {
-		return nil, fmt.Errorf("create statedb err: %v", err)
+		return nil, nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
 
 	preloadDB := state.NewPreloadDB(statedb.Database(), statedb)
 	dag.preloadDB = preloadDB
 
-	if restart && dag.GetHeight() > 0 && root.Empty() {
+	if inited && dag.GetHeight() > 0 && root.Empty() {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
 	}
 
-	if !restart {
-		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis(conf.GenesisPath)
-		if err := dag.Init(seq, balance); err != nil {
-			return nil, err
-		}
+	if !inited {
+		genesis := dag.conf.GenesisGenerator.WriteGenesis(dag)
+		return dag, genesis, nil
 	}
-	return dag, nil
+	return dag, nil, nil
 }
 
 func DefaultDagConfig() DagConfig {
@@ -146,55 +143,6 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 	return dag.statedb
 }
 
-// Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
-	if genesis.Height != 0 {
-		return fmt.Errorf("invalheight genesis: height is not zero")
-	}
-	var err error
-	//dbBatch := dag.db.NewBatch()
-
-	// init genesis
-	err = dag.accessor.WriteGenesis(genesis)
-	if err != nil {
-		return err
-	}
-	// init latest sequencer
-	err = dag.accessor.WriteLatestSequencer(nil, genesis)
-	if err != nil {
-		return err
-	}
-
-	err = dag.accessor.WriteSequencerByHeight(nil, genesis)
-	if err != nil {
-		return err
-	}
-	// store genesis as first tx
-	err = dag.WriteTransaction(nil, genesis)
-	if err != nil {
-		return err
-	}
-	log.Tracef("successfully store genesis: %s", genesis)
-
-	// init genesis balance
-	for addr, value := range genesisBalance {
-		//tx := &protocol_message.Tx{}
-		//tx.To = addr
-		//tx.Value = value
-		//tx.Type = protocol_message.TxBaseTypeTx
-		//tx.GetBase().Hash = tx.CalcTxHash()
-		//dag.WriteTransaction(dbBatch, tx)
-
-		dag.statedb.SetBalance(addr, value)
-	}
-
-	dag.genesis = genesis
-	dag.latestSequencer = genesis
-
-	log.Infof("Dag finish init")
-	return nil
-}
-
 // LoadLastState load genesis and latestsequencer data from ogdb.
 // return false if there is no genesis stored in the db.
 func (dag *Dag) LoadLastState() (bool, common.Hash) {
@@ -212,7 +160,7 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 	} else {
 		dag.latestSequencer = seq
 	}
-	root := dag.LoadStateRoot()
+	root := dag.latestSequencer.StateRoot
 
 	return true, root
 }
@@ -528,7 +476,7 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 		log.WithField("height", height).Warn("head not found")
 		return nil
 	}
-	hash := seq.GetTxHash()
+	hash := seq.GetHash()
 	return &hash
 }
 
@@ -749,13 +697,13 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		_, receipt, err := dag.ProcessTransaction(txi, false)
 		if err != nil {
 			dag.statedb.RevertToSnapshot(sId)
-			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
+			log.WithField("sid ", sId).WithField("hash ", txi.GetHash()).WithError(err).Warn(
 				"process tx error , revert to snap short")
 			return err
 		}
-		receipts[txi.GetTxHash().Hex()] = receipt
+		receipts[txi.GetHash().Hex()] = receipt
 
-		txhashes = append(txhashes, txi.GetTxHash())
+		txhashes = append(txhashes, txi.GetHash())
 		// TODO
 		// Consensus related txs should not some specific types, should be
 		// changed to a modular way.
@@ -771,7 +719,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 			log.WithError(err).Error("write tx error, normally never happen")
 			dag.statedb.RevertToSnapshot(sId)
 			for _, txi := range writedTxs {
-				e := dag.DeleteTransaction(txi.GetTxHash())
+				e := dag.DeleteTransaction(txi.GetHash())
 				if e != nil {
 					log.WithField("tx ", txi).WithError(e).Error("delete tx error")
 				}
@@ -793,7 +741,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	receipts[batch.Seq.GetTxHash().Hex()] = receipt
+	receipts[batch.Seq.GetHash().Hex()] = receipt
 
 	// write receipts.
 	err = dag.accessor.WriteReceipts(dbBatch, batch.Seq.Height, receipts)
@@ -811,6 +759,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 
 	// TODO
 	// compare the state root between seq.StateRoot and root after committing statedb.
+	batch.Seq.StateRoot = root
 	//if root.Cmp(batch.Seq.StateRoot) != 0 {
 	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
 	//		"root in statedb: %x, root in seq: %x", root.KeyBytes, batch.Seq.StateRoot.KeyBytes)
@@ -843,20 +792,21 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	if err != nil {
 		return err
 	}
-	// set latest sequencer
-	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
-	if err != nil {
-		return err
-	}
 
 	err = dbBatch.Write()
 	if err != nil {
 		log.WithError(err).Warn("dbbatch write error")
 		return err
 	}
+	// set latest sequencer
+	err = dag.accessor.WriteLatestSequencer(nil, batch.Seq)
+	if err != nil {
+		return err
+	}
+
 	dag.latestSequencer = batch.Seq
 
-	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
+	log.Tracef("successfully store seq: %s", batch.Seq.GetHash())
 
 	//// TODO: confirm time is for tps calculation, delete later.
 	//cf := types.ConfirmTime{
@@ -874,7 +824,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	//		log.WithField("txs ", consTxs).Trace("sent consensus txs")
 	//	})
 	//}
-	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash())
+	log.Tracef("successfully update latest seq: %s", batch.Seq.GetHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 
 	return nil
@@ -903,7 +853,7 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
-	err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetTxHash())
+	err := dag.accessor.WriteTxHashByNonce(putter, tx.Sender(), tx.GetNonce(), tx.GetHash())
 	if err != nil {
 		return fmt.Errorf("write latest nonce err: %v", err)
 	}
@@ -928,7 +878,7 @@ func (dag *Dag) DeleteTransaction(hash common.Hash) error {
 func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
 	// update nonce
 	//if tx.GetType() == types.TxBaseTypeArchive {
-	//	//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
+	//	//receipt := NewReceipt(tx.GetHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
 	//	return nil, nil, nil
 	//}
 
@@ -945,15 +895,15 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	if tx.GetType() == types.TxBaseTypeSequencer {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 	//if tx.GetType() == types.TxBaseTypeCampaign {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, "", emptyAddress)
 	//	return nil, receipt, nil
 	//}
 	//if tx.GetType() == types.TxBaseTypeTermChange {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, "", emptyAddress)
 	//	return nil, receipt, nil
 	//}
 	//if tx.GetType() == archive2.TxBaseAction {
@@ -966,7 +916,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	//}
 
 	if tx.GetType() != types.TxBaseTypeTx {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
+		receipt := NewReceipt(tx.GetHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
@@ -978,7 +928,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 	// return when its not contract related tx.
 	if len(txnormal.Data) == 0 {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+		receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
 	}
 
@@ -1021,11 +971,11 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		ret, leftOverGas, err = ogvm.Call(vmtypes.AccountRef(txContext.From), txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
+		receipt := NewReceipt(tx.GetHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
 		log.WithError(err).Warn("vm processing error")
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", contractAddress)
+	receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, "", contractAddress)
 
 	// TODO
 	// not finished yet
@@ -1047,11 +997,11 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 //
 //		tokenID, err := dag.statedb.IssueToken(issuer, name, "", reIssuable, amount)
 //		if err != nil {
-//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			receipt := NewReceipt(tx.GetHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 //			return receipt, err
 //		}
 //		actionData.TokenId = tokenID
-//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 //		return receipt, nil
 //	}
 //	if tx.Action == archive2.ActionTxActionSPO {
@@ -1060,10 +1010,10 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 //
 //		err := dag.statedb.ReIssueToken(tokenID, amount)
 //		if err != nil {
-//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			receipt := NewReceipt(tx.GetHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 //			return receipt, err
 //		}
-//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 //		return receipt, nil
 //	}
 //	if tx.Action == archive2.ActionTxActionDestroy {
@@ -1071,15 +1021,15 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 //
 //		err := dag.statedb.DestroyToken(tokenID)
 //		if err != nil {
-//			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//			receipt := NewReceipt(tx.GetHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 //			return receipt, err
 //		}
-//		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
+//		receipt := NewReceipt(tx.GetHash(), ReceiptStatusSuccess, tokenID, emptyAddress)
 //		return receipt, nil
 //	}
 //
 //	err := fmt.Errorf("unknown tx action: %d", tx.Action)
-//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
+//	receipt := NewReceipt(tx.GetHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
 //	return receipt, err
 //}
 
@@ -1132,7 +1082,7 @@ func (tc *txcached) get(hash common.Hash) types.Txi {
 }
 
 func (tc *txcached) add(tx types.Txi) {
-	if _, ok := tc.txs[tx.GetTxHash()]; ok {
+	if _, ok := tc.txs[tx.GetHash()]; ok {
 		return
 	}
 	if len(tc.order) >= tc.maxsize {
@@ -1140,8 +1090,8 @@ func (tc *txcached) add(tx types.Txi) {
 		delete(tc.txs, fstHash)
 		tc.order = tc.order[1:]
 	}
-	tc.order = append(tc.order, tx.GetTxHash())
-	tc.txs[tx.GetTxHash()] = tx
+	tc.order = append(tc.order, tx.GetHash())
+	tc.txs[tx.GetHash()] = tx
 }
 
 type ConfirmBatch struct {

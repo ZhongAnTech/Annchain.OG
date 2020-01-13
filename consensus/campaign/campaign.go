@@ -56,7 +56,7 @@ func (tc *Campaign) GetSender() *common.Address {
 func (c *Campaign) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *Campaign:
-		if c.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if c.GetHash().Cmp(tx.GetHash()) == 0 {
 			return true
 		}
 		return false

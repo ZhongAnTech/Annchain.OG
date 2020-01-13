@@ -51,7 +51,7 @@ func (t TxiLedgerMarshaller) FromBytes(bts []byte, bType types.TxBaseType) (tx t
 	switch bType {
 	case types.TxBaseTypeTx:
 		txdb := &LedgerContentTx{}
-		err := txdb.FromBytes(bts)
+		err = txdb.FromBytes(bts)
 		if err != nil {
 			return
 		}
@@ -73,7 +73,7 @@ func (t TxiLedgerMarshaller) FromBytes(bts []byte, bType types.TxBaseType) (tx t
 		return
 	case types.TxBaseTypeSequencer:
 		txdb := &LedgerContentSequencer{}
-		err := txdb.FromBytes(bts)
+		err = txdb.FromBytes(bts)
 		if err != nil {
 			return
 		}

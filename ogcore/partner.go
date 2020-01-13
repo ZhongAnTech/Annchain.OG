@@ -16,7 +16,7 @@ type OgPartner struct {
 	Config       OgProcessorConfig
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
 	PeerIncoming communication.OgPeerCommunicatorIncoming
-	EventBus     EventBus
+	EventBus     eventbus.EventBus
 
 	// og protocols
 	StatusProvider OgStatusProvider

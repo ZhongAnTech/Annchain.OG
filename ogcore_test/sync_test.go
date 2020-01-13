@@ -35,7 +35,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 		communicator := NewDummyOgPeerCommunicator(i, peerChans[i], peerChans)
 		communicator.Run()
 
-		bus := &eventbus.DefaultEventBus{}
+		bus := &eventbus.DefaultEventBus{ID: i}
 		bus.InitDefault()
 
 		dag := &dummyDag{}
@@ -77,6 +77,11 @@ func setupSync(total int) []*ogcore.OgPartner {
 			Name:    "NewTxLocallyGeneratedEventType",
 			Handler: partner,
 		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.TxReceivedEventType,
+			Name:    "TxReceivedEventType",
+			Handler: ogCore,
+		})
 
 		bus.Build()
 	}
@@ -84,6 +89,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 }
 
 func TestSync(t *testing.T) {
+	setupLog()
 	total := 2
 	processors := setupSync(total)
 
@@ -94,7 +100,8 @@ func TestSync(t *testing.T) {
 }
 
 func TestIncremental(t *testing.T) {
-	total := 3
+	setupLog()
+	total := 4
 	processors := setupSync(total)
 
 	// one is generating new txs constantly
@@ -104,11 +111,11 @@ func TestIncremental(t *testing.T) {
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 		Tx: sampleTx("0x01", []string{"0x00"}),
 	})
-	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x02", []string{"0x01"}),
-	})
-	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x03", []string{"0x02"}),
-	})
+	//processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x02", []string{"0x01"}),
+	//})
+	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x03", []string{"0x02"}),
+	//})
 	time.Sleep(time.Second * 5)
 }

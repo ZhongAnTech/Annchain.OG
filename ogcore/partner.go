@@ -247,7 +247,7 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 				Signature:    crypto.SignatureFromRawBytes(msgTx.Signature),
 			}
 			// og knows first
-			o.OgCore.HandleNewTx(tx)
+			//o.OgCore.HandleNewTx(tx)
 			o.EventBus.Route(&events.TxReceivedEvent{Tx: tx})
 		case message.ResourceTypeSequencer:
 			msgSeq := &message.MessageContentSequencer{}
@@ -268,7 +268,7 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 				StateRoot:    msgSeq.StateRoot,
 			}
 			// og knows first
-			o.OgCore.HandleNewSequencer(seq)
+			//o.OgCore.HandleNewSequencer(seq)
 			o.EventBus.Route(&events.SequencerReceivedEvent{Sequencer: seq})
 			//case message.ResourceTypeArchive:
 			//case message.ResourceTypeAction:

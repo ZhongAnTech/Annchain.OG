@@ -48,25 +48,31 @@ func (o *OgCore) HandleStatusData(status model.OgStatusData) {
 }
 
 func (o *OgCore) HandleNewTx(tx *types.Tx) {
-
+	logrus.WithField("tx", tx).Info("I received this tx")
 }
 
 func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {
 
 }
 
-func (d *OgCore) HandleEvent(ev eventbus.Event) {
+func (o *OgCore) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
 	case events.HeightSyncRequestReceivedEventType:
 		evt := ev.(*events.HeightSyncRequestReceivedEvent)
-		txs := d.LoadHeightTxs(evt.Height, evt.Offset)
-		d.EventBus.Route(&events.TxsFetchedForResponseEvent{
+		txs := o.LoadHeightTxs(evt.Height, evt.Offset)
+		o.EventBus.Route(&events.TxsFetchedForResponseEvent{
 			Txs:       txs,
 			Height:    evt.Height,
 			Offset:    evt.Offset,
 			RequestId: evt.RequestId,
 			Peer:      evt.Peer,
 		})
+	case events.TxReceivedEventType:
+		evt := ev.(*events.TxReceivedEvent)
+		o.HandleNewTx(evt.Tx)
+	case events.SequencerReceivedEventType:
+		evt := ev.(*events.SequencerReceivedEvent)
+		o.HandleNewSequencer(evt.Sequencer)
 	default:
 		logrus.Warn("event type not supported by txbuffer")
 	}

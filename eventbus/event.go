@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"github.com/sirupsen/logrus"
+	"strconv"
 	"sync"
 )
 
@@ -22,6 +23,7 @@ type EventHandlerRegisterInfo struct {
 }
 
 type DefaultEventBus struct {
+	ID         int
 	knownNames map[EventType]string
 	listeners  map[EventType][]EventHandler
 	inited     bool       // do not use Mutex after initialization. It will downgrade performance
@@ -45,6 +47,9 @@ func (e *DefaultEventBus) ListenTo(regInfo EventHandlerRegisterInfo) {
 	e.listeners[regInfo.Type] = l
 	e.knownNames[regInfo.Type] = regInfo.Name
 }
+
+// Eventbus must be built before events are to be received.
+// This is an commit from programmer, showing that all modules are inited and well-prepared to receive events.
 func (e *DefaultEventBus) Build() {
 	e.inited = true
 }
@@ -53,16 +58,19 @@ func (e *DefaultEventBus) Route(ev Event) {
 	if !e.inited {
 		panic("bad code. build eventbus before routing")
 	}
-	name := e.knownNames[ev.GetEventType()]
-	logrus.WithField("type", name).WithField("v", ev).Debug("router received event")
+	name, ok := e.knownNames[ev.GetEventType()]
+	if !ok {
+		name = strconv.Itoa(int(ev.GetEventType()))
+	}
+	logrus.WithField("me", e.ID).WithField("type", name).WithField("v", ev).Debug("router received event")
 	handlers, ok := e.listeners[ev.GetEventType()]
 	if !ok {
-		logrus.WithField("type", name).WithField("typecode", ev.GetEventType()).Warn("no event handler to handle event type")
+		logrus.WithField("me", e.ID).WithField("type", name).WithField("typecode", ev.GetEventType()).Warn("no event handler to handle event type")
 		return
 	}
 	for _, handler := range handlers {
-		logrus.WithField("handler", handler.Name()).Debug("handling")
+		logrus.WithField("me", e.ID).WithField("handler", handler.Name()).Debug("handling")
 		handler.HandleEvent(ev)
 	}
-	logrus.WithField("type", name).WithField("v", ev).Debug("router handled event")
+	logrus.WithField("me", e.ID).WithField("type", name).WithField("v", ev).Debug("router handled event")
 }

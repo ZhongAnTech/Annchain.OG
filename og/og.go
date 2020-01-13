@@ -87,7 +87,7 @@ func NewOg(config OGConfig) (*Og, error) {
 	if err != nil {
 		return nil, err
 	}
-	dagConfig := core2.DagConfig{GenesisPath: config.GenesisPath}
+	dagConfig := core2.DagConfig{GenesisGenerator: &core2.ConfigFileGenesisGenerator{Path: config.GenesisPath}}
 	stateDbConfig := state.StateDBConfig{
 		PurgeTimer:     time.Duration(viper.GetInt("statedb.purge_timer_s")),
 		BeatExpireTime: time.Second * time.Duration(viper.GetInt("statedb.beat_expire_time_s")),
@@ -116,7 +116,7 @@ func NewOg(config OGConfig) (*Og, error) {
 	// 	logrus.Trace("no existing Data found in db")
 	// 	// TODO use config to load the genesis
 	// 	seq, balance := core.DefaultGenesis(config.CryptoType)
-	// 	if err := og.Dag.Init(seq, balance); err != nil {
+	// 	if err := og.Dag.init(seq, balance); err != nil {
 	// 		return nil, err
 	// 	}
 	// }
@@ -211,7 +211,7 @@ func (og *Og) BroadcastLatestSequencer() {
 			notSend = false
 			mu.Unlock()
 			seq := og.Dag.LatestSequencer()
-			hash := seq.GetTxHash()
+			hash := seq.GetHash()
 			number := seq.Number()
 			msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 			// latest sequencer updated , broadcast it
@@ -226,7 +226,7 @@ func (og *Og) BroadcastLatestSequencer() {
 				mu.Unlock()
 				logrus.Debug("sequencer updated")
 				seq := og.Dag.LatestSequencer()
-				hash := seq.GetTxHash()
+				hash := seq.GetHash()
 				number := seq.Number()
 				msg := types.MessageSequencerHeader{Hash: &hash, Number: &number}
 				// latest sequencer updated , broadcast it

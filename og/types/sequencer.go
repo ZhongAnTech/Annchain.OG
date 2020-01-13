@@ -115,10 +115,7 @@ func (s *Sequencer) GetWeight() uint64 {
 	return s.Weight
 }
 
-func (s *Sequencer) GetTxHash() common.Hash {
-	if s.Hash.Empty() {
-		s.CalcTxHash()
-	}
+func (s *Sequencer) GetHash() common.Hash {
 	return s.Hash
 }
 
@@ -148,7 +145,7 @@ func (s *Sequencer) CalculateWeight(parents Txis) uint64 {
 func (s *Sequencer) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Sequencer:
-		if s.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if s.GetHash().Cmp(tx.GetHash()) == 0 {
 			return true
 		}
 		return false

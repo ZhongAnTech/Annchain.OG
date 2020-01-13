@@ -380,7 +380,7 @@ func (m *IncrementalSyncer) notifyNewTxi() {
 		log.Trace("got txis ", txis)
 		var txs types.Txis
 		for _, txi := range txis {
-			if txi != nil && !m.isKnownHash(txi.GetTxHash()) {
+			if txi != nil && !m.isKnownHash(txi.GetHash()) {
 				txs = append(txs, txi)
 			}
 		}
@@ -401,7 +401,7 @@ func (m *IncrementalSyncer) notifyAllCachedTxs() {
 	txs := m.bufferedIncomingTxCache.PopALl()
 	for _, tx := range txs {
 		// announce and then remove
-		if m.isKnownHash(tx.GetTxHash()) {
+		if m.isKnownHash(tx.GetHash()) {
 			log.WithField("tx ", tx).Debug("duplicated tx ")
 			continue
 		}

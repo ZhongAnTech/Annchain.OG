@@ -109,7 +109,7 @@ type TxBaseJson struct {
 //	return t.Weight
 //}
 //
-//func (t *TxBase) GetTxHash() common.Hash {
+//func (t *TxBase) GetHash() common.Hash {
 //	return t.Hash
 //}
 //

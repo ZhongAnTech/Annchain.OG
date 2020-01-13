@@ -144,7 +144,7 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	Response(c, http.StatusOK, nil, tx.GetHash().Hex())
 	return
 }
 
@@ -295,7 +295,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 			//we don't verify hash , since we calculated the hash
 			tx.SetVerified(archive.VerifiedFormat)
 			r.TxBuffer.ReceivedNewTxChan <- tx
-			hashes = append(hashes, tx.GetTxHash())
+			hashes = append(hashes, tx.GetHash())
 			continue
 		}
 		logrus.WithField("i ", i).WithField("tx", tx).Debugf("tx generated")
@@ -315,7 +315,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		//we don't verify hash , since we calculated the hash
 		tx.SetVerified(archive.VerifiedFormat)
 		r.TxBuffer.ReceivedNewTxChan <- tx
-		hashes = append(hashes, tx.GetTxHash())
+		hashes = append(hashes, tx.GetHash())
 	}
 
 	//r.TxBuffer.ReceivedNewTxsChan <- txs

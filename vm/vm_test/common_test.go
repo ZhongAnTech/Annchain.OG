@@ -43,7 +43,7 @@ func DefaultLDB(from common.Address, coinBase common.Address) *ovm.LayerStateDB 
 	ldb.AddBalance(from, math.NewBigInt(10000000))
 	ldb.CreateAccount(coinBase)
 	ldb.AddBalance(coinBase, math.NewBigInt(10000000))
-	logrus.Info("Init accounts done")
+	logrus.Info("init accounts done")
 	return ldb
 }
 

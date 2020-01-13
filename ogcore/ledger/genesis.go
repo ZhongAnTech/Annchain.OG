@@ -15,7 +15,6 @@ package ledger
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -23,7 +22,9 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/common/utilfuncs"
 	"github.com/annchain/OG/og/types"
+	miner2 "github.com/annchain/OG/ogcore/miner"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
@@ -31,7 +32,21 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*math.BigInt) {
+type ConfigFileGenesisGenerator struct {
+	Path string
+}
+
+func (c *ConfigFileGenesisGenerator) WriteGenesis(dag *Dag) *types.Sequencer {
+	//var genesis *types.Sequencer
+	//var genesisBalance map[common.Address]*math.BigInt
+	return nil
+}
+
+type HardcodeGenesisGenerator struct {
+}
+
+func (c *HardcodeGenesisGenerator) WriteGenesis(dag *Dag) *types.Sequencer {
+	miner := &miner2.PoWMiner{}
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
@@ -39,9 +54,74 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*m
 	seq.PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
 	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.PublicKey))
 	seq.Issuer = issuer
-	hash := seq.CalcTxHash()
+	hash := miner.CalcHash(seq)
 	seq.SetHash(hash)
 
+	balance := map[common.Address]*math.BigInt{}
+
+	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
+	balance[addr] = math.NewBigInt(12345678)
+
+	// write to ledger
+	err := c.init(dag, seq, balance)
+	utilfuncs.PanicIfError(err, "init genesis in ledger")
+	return seq
+}
+
+// init inits genesis sequencer and genesis state of the network.
+func (c *HardcodeGenesisGenerator) init(dag *Dag, genesis *types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
+	var err error
+	//dbBatch := dag.db.NewBatch()
+
+	// init genesis
+	err = dag.accessor.WriteGenesis(genesis)
+	if err != nil {
+		return err
+	}
+	// init latest sequencer
+	err = dag.accessor.WriteLatestSequencer(nil, genesis)
+	if err != nil {
+		return err
+	}
+
+	err = dag.accessor.WriteSequencerByHeight(nil, genesis)
+	if err != nil {
+		return err
+	}
+	// store genesis as first tx
+	err = dag.WriteTransaction(nil, genesis)
+	if err != nil {
+		return err
+	}
+	logrus.Infof("successfully store genesis: %s", genesis)
+
+	// init genesis balance
+	for addr, value := range genesisBalance {
+		//tx := &protocol_message.Tx{}
+		//tx.To = addr
+		//tx.Value = value
+		//tx.Type = protocol_message.TxBaseTypeTx
+		//tx.GetBase().Hash = tx.CalcTxHash()
+		//dag.WriteTransaction(dbBatch, tx)
+
+		dag.statedb.SetBalance(addr, value)
+	}
+
+	_, err = dag.statedb.Commit() // return state root
+	if err != nil {
+		return err
+	}
+
+	dag.genesis = genesis
+	dag.latestSequencer = genesis
+
+	logrus.Info("ledger initialized")
+	return nil
+}
+
+func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*math.BigInt) {
+
+	// signer
 	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance := map[common.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
@@ -53,13 +133,13 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*m
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Balance)
 	}
-	h := sha256.New()
-	h.Write(buf.Bytes())
-	sum := h.Sum(nil)
-	hash.MustSetBytes(sum, common.PaddingNone)
-	seq.SetHash(hash)
-
-	return seq, balance
+	//h := sha256.New()
+	//h.Write(buf.Bytes())
+	//sum := h.Sum(nil)
+	//hash.MustSetBytes(sum, common.PaddingNone)
+	//seq.SetHash(hash)
+	// TODO: remove this
+	return nil, balance
 }
 
 type Account struct {

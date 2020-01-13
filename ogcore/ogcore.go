@@ -15,7 +15,7 @@ type OgCoreConfig struct {
 type OgCore struct {
 	OgCoreConfig     OgCoreConfig
 	statusData       model.OgStatusData
-	EventBus         EventBus
+	EventBus         eventbus.EventBus
 	LedgerTxProvider LedgerTxProvider
 }
 

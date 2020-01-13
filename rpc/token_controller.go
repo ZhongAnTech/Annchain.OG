@@ -133,7 +133,7 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	Response(c, http.StatusOK, nil, tx.GetHash().Hex())
 	return
 }
 
@@ -235,7 +235,7 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	Response(c, http.StatusOK, nil, tx.GetHash().Hex())
 	return
 }
 
@@ -336,7 +336,7 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 
 	r.TxBuffer.ReceivedNewTxChan <- tx
 
-	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
+	Response(c, http.StatusOK, nil, tx.GetHash().Hex())
 	return
 }
 

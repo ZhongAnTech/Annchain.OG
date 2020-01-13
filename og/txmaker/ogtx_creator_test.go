@@ -23,7 +23,7 @@ import (
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/og/miner"
+	"github.com/annchain/OG/ogcore/miner"
 	"github.com/sirupsen/logrus"
 )
 
@@ -229,6 +229,6 @@ func TestSlice(t *testing.T) {
 	var parents types.Txis
 	parentHashes := make(common.Hashes, len(parents))
 	for i, parent := range parents {
-		parentHashes[i] = parent.GetTxHash()
+		parentHashes[i] = parent.GetHash()
 	}
 }

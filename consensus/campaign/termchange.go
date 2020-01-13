@@ -61,7 +61,7 @@ func (tc *TermChange) GetSender() *common.Address {
 func (tc *TermChange) Compare(tx types.Txi) bool {
 	switch tx := tx.(type) {
 	case *TermChange:
-		if tc.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if tc.GetHash().Cmp(tx.GetHash()) == 0 {
 			return true
 		}
 		return false

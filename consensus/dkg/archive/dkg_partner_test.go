@@ -28,7 +28,7 @@ package archive
 //
 //func TestDkg_VerifyBlsSig(t *testing.T) {
 //	seq := tx_types.RandomSequencer()
-//	fmt.Println(seq.GetTxHash().Hex())
+//	fmt.Println(seq.GetHash().Hex())
 //	seq.PublicKey = []byte{}
 //}
 //

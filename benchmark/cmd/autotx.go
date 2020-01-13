@@ -22,7 +22,7 @@ func runAutoClientManager(cmd *cobra.Command, args []string) {
 	//
 	//accountIds := StringArrayToIntArray(viper.GetStringSlice("auto_client.tx.account_ids"))
 	//
-	//autoClientManager.Init(
+	//autoClientManager.init(
 	//	accountIds,
 	//	delegate,
 	//	myAcount,

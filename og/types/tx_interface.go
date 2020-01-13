@@ -21,7 +21,7 @@ type Txi interface {
 	SetHeight(uint64)
 	GetWeight() uint64
 	SetWeight(weight uint64)
-	GetTxHash() common.Hash
+	GetHash() common.Hash
 	GetParents() common.Hashes // GetParents returns the common.Hash of txs that it directly proves.
 	SetParents(hashes common.Hashes)
 	String() string

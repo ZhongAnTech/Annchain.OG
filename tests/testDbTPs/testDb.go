@@ -63,7 +63,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	dag, err := core2.NewDag(core2.DagConfig{GenesisPath: "genesis.json"}, state.DefaultStateDBConfig(), db, nil)
+	dag, err := core2.NewDag(core2.DagConfig{GenesisGenerator: &core2.ConfigFileGenesisGenerator{Path: "genesis.json"}},
+		state.DefaultStateDBConfig(), db, nil)
 	if err != nil {
 		panic(err)
 	}

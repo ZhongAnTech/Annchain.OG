@@ -112,7 +112,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 				if dagHashes != nil {
 					filterHashes = *dagHashes
 				}
-				filterHashes = append(filterHashes, h.Og.Dag.LatestSequencer().GetTxHash())
+				filterHashes = append(filterHashes, h.Og.Dag.LatestSequencer().GetHash())
 			}
 			message_archive.msgLog.WithField("len ", len(filterHashes)).Trace("get hashes")
 			for _, hash := range filterHashes {
@@ -285,7 +285,7 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 				unknown = true
 			} else {
 				seq := h.Og.Dag.GetSequencerByHeight(*query.Origin.Number - ancestor)
-				hash := seq.GetTxHash()
+				hash := seq.GetHash()
 				num := seq.Number()
 				query.Origin.Hash, query.Origin.Number = &hash, &num
 				unknown = query.Origin.Hash == nil
@@ -301,9 +301,9 @@ func (h *IncomingMessageHandler) HandleHeaderRequest(query *p2p_message.MessageH
 				unknown = true
 			} else {
 				if header := h.Og.Dag.GetSequencerByHeight(next); header != nil {
-					nextHash := header.GetTxHash()
+					nextHash := header.GetHash()
 					oldSeq := h.Og.Dag.GetSequencerByHeight(next - (query.Skip + 1))
-					expOldHash := oldSeq.GetTxHash()
+					expOldHash := oldSeq.GetHash()
 					if expOldHash == *query.Origin.Hash {
 						num := next
 						query.Origin.Hash, query.Origin.Number = &nextHash, &num

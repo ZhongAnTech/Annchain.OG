@@ -106,7 +106,7 @@ func (h Hash) TerminalString() string {
 // doing full logging into a file.
 func (h Hash) String() string {
 	s := h.Hex()
-	return "0x" + s[len(s)-4:]
+	return "0x" + s[len(s)-8:]
 	//return h.Hex()[:10]
 }
 

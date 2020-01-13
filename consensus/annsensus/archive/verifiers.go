@@ -101,7 +101,7 @@ package archive
 //		}
 //
 //	}
-//	ok := a.dkg.VerifyBlsSig(seq.GetTxHash().ToBytes(), seq.Signature, seq.PublicKey, a.bft.DKGTermId)
+//	ok := a.dkg.VerifyBlsSig(seq.GetHash().ToBytes(), seq.Signature, seq.PublicKey, a.bft.DKGTermId)
 //
 //	if !ok {
 //		return false

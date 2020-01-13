@@ -27,7 +27,7 @@ var gRandInfo *randInfo
 
 func init() {
 	gRandInfo = &randInfo{}
-	gRandInfo.MixEntropy(randBytes(32)) // Init
+	gRandInfo.MixEntropy(randBytes(32)) // init
 }
 
 // Mix additional bytes of randomness, e.g. from hardware, user-input, etc.

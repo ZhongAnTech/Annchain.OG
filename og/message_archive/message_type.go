@@ -136,13 +136,13 @@ func (s SequencerProposal) Equal(o bft.Proposal) bool {
 	if !ok || v == nil {
 		return false
 	}
-	return s.GetTxHash() == v.GetTxHash()
+	return s.GetHash() == v.GetHash()
 }
 
 func (s SequencerProposal) GetId() *common.Hash {
 	//should copy ?
 	var hash common.Hash
-	hash.MustSetBytes(s.GetTxHash().ToBytes(), common.PaddingNone)
+	hash.MustSetBytes(s.GetHash().ToBytes(), common.PaddingNone)
 	return &hash
 }
 

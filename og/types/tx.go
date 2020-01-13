@@ -112,10 +112,7 @@ func (t *Tx) GetWeight() uint64 {
 	return t.Weight
 }
 
-func (t *Tx) GetTxHash() common.Hash {
-	if t.Hash.Empty() {
-		t.CalcTxHash()
-	}
+func (t *Tx) GetHash() common.Hash {
 	return t.Hash
 }
 
@@ -125,11 +122,11 @@ func (t *Tx) GetParents() common.Hashes {
 
 func (t *Tx) String() string {
 	return t.DebugString()
-	//return fmt.Sprintf("T-%d-[%.10s]-%d", t.Height, t.GetTxHash().Hex(), t.Weight)
+	//return fmt.Sprintf("T-%d-[%.10s]-%d", t.Height, t.GetHash().Hex(), t.Weight)
 }
 
 func (t *Tx) DebugString() string {
-	s := t.GetTxHash().Hex()
+	s := t.GetHash().Hex()
 	return fmt.Sprintf("T-%d-[%s]-%d", t.Height, "0x"+s[len(s)-4:], t.Weight)
 }
 
@@ -148,7 +145,7 @@ func (t *Tx) CalculateWeight(parents Txis) uint64 {
 func (t *Tx) Compare(tx Txi) bool {
 	switch tx := tx.(type) {
 	case *Tx:
-		if t.GetTxHash().Cmp(tx.GetTxHash()) == 0 {
+		if t.GetHash().Cmp(tx.GetHash()) == 0 {
 			return true
 		}
 		return false

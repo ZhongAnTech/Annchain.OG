@@ -94,11 +94,11 @@ func (s *SyncBuffer) addTxs(txs types.Txis, seq *types.Sequencer) error {
 			log.Debug("nil tx")
 			continue
 		}
-		if _, ok := s.Txs[tx.GetTxHash()]; !ok {
+		if _, ok := s.Txs[tx.GetHash()]; !ok {
 
-			s.Txs[tx.GetTxHash()] = tx
+			s.Txs[tx.GetHash()] = tx
 		}
-		s.TxsList = append(s.TxsList, tx.GetTxHash())
+		s.TxsList = append(s.TxsList, tx.GetHash())
 	}
 	return nil
 

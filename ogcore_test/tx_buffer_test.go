@@ -17,7 +17,7 @@ import (
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/events"
-	pool2 "github.com/annchain/OG/ogcore/pool"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/protocol"
 	"testing"
 	"time"
@@ -26,26 +26,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func setupTxBuffer() (*pool2.TxBuffer, ogcore.Syncer) {
+func setupTxBuffer() (*pool.TxBuffer, ogcore.Syncer) {
 	bus := &eventbus.DefaultEventBus{}
 	bus.InitDefault()
 
 	ver := new(dummyVerifier)
-	pool := new(dummyTxPool)
-	pool.InitDefault()
+	txPool := new(dummyTxPool)
+	txPool.InitDefault()
 	dag := new(dummyDag)
 	dag.InitDefault()
 	syncer := &dummySyncer{EventBus: bus}
 	syncer.InitDefault()
 
-	buffer := &pool2.TxBuffer{
+	buffer := &pool.TxBuffer{
 		Verifiers:              []protocol.Verifier{ver},
-		PoolHashLocator:        pool,
+		PoolHashLocator:        txPool,
 		LedgerHashLocator:      dag,
-		LocalGraphInfoProvider: pool,
+		LocalGraphInfoProvider: txPool,
 		EventBus:               bus,
 	}
-	buffer.InitDefault(pool2.TxBufferConfig{
+	buffer.InitDefault(pool.TxBufferConfig{
 		DependencyCacheMaxSize:           10,
 		DependencyCacheExpirationSeconds: 30,
 		NewTxQueueSize:                   10,
@@ -79,7 +79,7 @@ func setupTxBuffer() (*pool2.TxBuffer, ogcore.Syncer) {
 	return buffer, syncer
 }
 
-func doTest(buffer *pool2.TxBuffer) {
+func doTest(buffer *pool.TxBuffer) {
 	buffer.Start()
 	time.Sleep(time.Second * 3)
 	buffer.DumpUnsolved()

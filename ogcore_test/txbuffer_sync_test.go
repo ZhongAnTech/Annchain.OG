@@ -5,12 +5,14 @@ import (
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/pool"
+	"github.com/annchain/OG/protocol"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 )
 
-func setupSync(total int) []*ogcore.OgPartner {
+func setupSyncBuffer(total int) []*ogcore.OgPartner {
 	// init two OG peers's In channel
 	peerChans := make([]chan *communication.OgMessageEvent, total)
 	peerInfos := make([]communication.OgPeer, total)
@@ -31,8 +33,29 @@ func setupSync(total int) []*ogcore.OgPartner {
 		bus := &eventbus.DefaultEventBus{ID: i}
 		bus.InitDefault()
 
+		ver := new(dummyVerifier)
+		txPool := new(dummyTxPool)
+		txPool.InitDefault()
 		dag := &dummyDag{}
 		dag.InitDefault()
+
+		buffer := &pool.TxBuffer{
+			Verifiers:              []protocol.Verifier{ver},
+			PoolHashLocator:        txPool,
+			LedgerHashLocator:      dag,
+			LocalGraphInfoProvider: txPool,
+			EventBus:               bus,
+		}
+		buffer.InitDefault(pool.TxBufferConfig{
+			DependencyCacheMaxSize:           10,
+			DependencyCacheExpirationSeconds: 30,
+			NewTxQueueSize:                   10,
+			KnownCacheMaxSize:                10,
+			KnownCacheExpirationSeconds:      30,
+			AddedToPoolQueueSize:             10,
+			TestNoVerify:                     false,
+		})
+		buffer.Start()
 
 		ogCore := &ogcore.OgCore{
 			OgCoreConfig: ogcore.OgCoreConfig{
@@ -75,34 +98,28 @@ func setupSync(total int) []*ogcore.OgPartner {
 			Name:    "TxReceivedEventType",
 			Handler: ogCore,
 		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.TxReceivedEventType,
+			Name:    "TxReceivedEventType",
+			Handler: buffer,
+		})
 
 		bus.Build()
 	}
 	return processors
 }
 
-func TestSync(t *testing.T) {
+func TestSyncAndBuffer(t *testing.T) {
 	setupLog()
 	total := 2
-	processors := setupSync(total)
-
-	// send sync request
-	logrus.Debug("Sending sync request on height 0")
-	processors[0].SendMessageHeightSyncRequest(communication.OgPeer{Id: 1})
-	time.Sleep(time.Second * 5)
-}
-
-func TestIncremental(t *testing.T) {
-	setupLog()
-	total := 4
-	processors := setupSync(total)
+	processors := setupSyncBuffer(total)
 
 	// one is generating new txs constantly
 	logrus.Debug("generating txs")
 
 	// event should be generated outside the processor
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x01", []string{"0x00"}),
+		Tx: sampleTx("0x01", []string{"0x04"}),
 	})
 	//processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 	//	Tx: sampleTx("0x02", []string{"0x01"}),

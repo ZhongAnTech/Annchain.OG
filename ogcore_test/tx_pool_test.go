@@ -62,6 +62,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	return seq.(*types.Sequencer)
 }
 
+
 func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, func()) {
 	txpoolconfig := pool.TxPoolConfig{
 		QueueSize:     100,
@@ -85,7 +86,7 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, f
 	pool.Start()
 	dag.Start()
 
-	return pool, dag, genesis, func() {
+	return pool, dag, generatedGenesis, func() {
 		pool.Stop()
 		dag.Stop()
 	}

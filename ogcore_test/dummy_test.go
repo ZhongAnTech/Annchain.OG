@@ -243,7 +243,7 @@ type DummyOgPeerCommunicator struct {
 
 func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
 	for i, peerChan := range o.PeerPipeIns {
-		logrus.WithField("peer", i).WithField("me", o.Myid).Debug("broadcasting message")
+		logrus.WithField("peer", i).WithField("me", o.Myid).WithField("type", msg.GetType()).Debug("broadcasting message")
 		me := communication.OgPeer{
 			Id:             o.Myid,
 			PublicKey:      crypto.PublicKey{},

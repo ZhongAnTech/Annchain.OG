@@ -127,7 +127,7 @@ func (t *Tx) String() string {
 
 func (t *Tx) DebugString() string {
 	s := t.GetHash().Hex()
-	return fmt.Sprintf("T-%d-[%s]-%d", t.Height, "0x"+s[len(s)-4:], t.Weight)
+	return fmt.Sprintf("Tx-H%d-[%s]-%d", t.Height, s[len(s)-8:], t.Weight)
 }
 
 //CalculateWeight  a core algorithm for tx sorting,

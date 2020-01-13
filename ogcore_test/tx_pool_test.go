@@ -57,7 +57,7 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 		},
 		PrivateKey: pk,
 	})
-	seq.SetHash(seq.CalcTxHash())
+	seq.SetHash(miner.CalcHash(seq))
 
 	return seq.(*types.Sequencer)
 }
@@ -71,18 +71,16 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, f
 		TxValidTime:   7,
 	}
 	db := ogdb.NewMemDatabase()
-	dag, errnew := ledger.NewDag(ledger.DagConfig{}, state.DefaultStateDBConfig(), db, nil)
+
+	conf := ledger.DagConfig{GenesisGenerator: &ledger.HardcodeGenesisGenerator{}}
+
+	dag, generatedGenesis, errnew := ledger.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
 	pool := pool.NewTxPool(txpoolconfig, dag)
 
-	genesis, balance := ledger.DefaultGenesis("genesis.json")
-	err := dag.Init(genesis, balance)
-	if err != nil {
-		t.Fatalf("init dag failed with error: %v", err)
-	}
-	pool.Init(genesis)
+	pool.Init(generatedGenesis)
 
 	pool.Start()
 	dag.Start()
@@ -108,7 +106,7 @@ func newTestPoolTx(nonce uint64) *types.Tx {
 		},
 		PrivateKey: pk,
 	})
-	tx.SetHash(tx.CalcTxHash())
+	tx.SetHash(miner.CalcHash(tx))
 
 	return tx.(*types.Tx)
 }
@@ -128,7 +126,7 @@ func newTestPoolBadTx() *types.Tx {
 		},
 		PrivateKey: pk,
 	})
-	tx.SetHash(tx.CalcTxHash())
+	tx.SetHash(miner.CalcHash(tx))
 
 	return tx.(*types.Tx)
 }

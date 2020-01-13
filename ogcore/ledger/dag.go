@@ -113,10 +113,6 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	return dag, nil, nil
 }
 
-func DefaultDagConfig() DagConfig {
-	return DagConfig{}
-}
-
 func (dag *Dag) Start() {
 	log.Infof("Dag Start")
 

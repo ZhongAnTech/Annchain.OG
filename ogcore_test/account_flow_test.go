@@ -16,6 +16,7 @@ package ogcore_test
 import (
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
+	miner2 "github.com/annchain/OG/ogcore/miner"
 	"github.com/annchain/OG/ogcore/pool"
 	"testing"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogcore/state"
 )
+
+var miner miner2.PoWMiner
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 	txCreator := &txmaker.OGTxCreator{}
@@ -39,7 +42,7 @@ func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *types.Tx {
 		},
 		PrivateKey: pk,
 	})
-	tx.SetHash(tx.CalcTxHash())
+	tx.SetHash(miner.CalcHash(tx))
 
 	return tx.(*types.Tx)
 }

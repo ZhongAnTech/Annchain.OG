@@ -12,6 +12,7 @@ type Event interface {
 	GetEventType() EventType
 }
 type EventHandler interface {
+	HandlerDescription(EventType) string
 	HandleEvent(Event)
 	Name() string
 }
@@ -69,8 +70,13 @@ func (e *DefaultEventBus) Route(ev Event) {
 		return
 	}
 	for _, handler := range handlers {
-		logrus.WithField("me", e.ID).WithField("handler", handler.Name()).Debug("handling")
+		logrus.WithFields(logrus.Fields{
+			"me":      e.ID,
+			"handler": handler.Name(),
+			"desc":    handler.HandlerDescription(ev.GetEventType()),
+		}).Debug("handling")
 		handler.HandleEvent(ev)
 	}
+
 	logrus.WithField("me", e.ID).WithField("type", name).WithField("v", ev).Debug("router handled event")
 }

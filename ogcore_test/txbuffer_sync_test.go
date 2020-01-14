@@ -111,7 +111,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 
 func TestSyncAndBuffer(t *testing.T) {
 	setupLog()
-	total := 2
+	total := 3
 	processors := setupSyncBuffer(total)
 
 	// one is generating new txs constantly
@@ -119,13 +119,13 @@ func TestSyncAndBuffer(t *testing.T) {
 
 	// event should be generated outside the processor
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x01", []string{"0x04"}),
+		Tx: sampleTx("0x01", []string{"0x00"}),
 	})
-	//processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x02", []string{"0x01"}),
-	//})
-	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x03", []string{"0x02"}),
-	//})
+	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx: sampleTx("0x02", []string{"0x01"}),
+	})
+	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx: sampleTx("0x03", []string{"0x04"}),
+	})
 	time.Sleep(time.Second * 5)
 }

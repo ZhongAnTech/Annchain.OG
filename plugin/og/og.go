@@ -94,7 +94,7 @@ func (o *OgPlugin) GetMessageEventHandler() general_communication.GeneralMessage
 
 type OgMessageAdapter interface {
 	AdaptGeneralMessage(incomingMsg general_message.GeneralMessage) (ogMessage message.OgMessage, err error)
-	AdaptGeneralPeer(gnrPeer general_message.GeneralPeer) (communication.OgPeer, error)
+	AdaptGeneralPeer(gnrPeer *general_message.GeneralPeer) (communication.OgPeer, error)
 	AdaptOgMessage(outgoingMsg message.OgMessage) (msg general_message.GeneralMessage, err error)
-	AdaptOgPeer(annPeer communication.OgPeer) (general_message.GeneralPeer, error)
+	AdaptOgPeer(annPeer *communication.OgPeer) (general_message.GeneralPeer, error)
 }

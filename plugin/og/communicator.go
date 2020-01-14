@@ -30,14 +30,14 @@ func (p ProxyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []commun
 
 	ogPeers := make([]general_message.GeneralPeer, len(peers))
 	for i, peer := range peers {
-		adaptedValue, err := p.OgMessageAdapter.AdaptOgPeer(peer)
+		adaptedValue, err := p.OgMessageAdapter.AdaptOgPeer(&peer)
 		utilfuncs.PanicIfError(err, "Adapter for annsensus peer should never fail")
 		ogPeers[i] = adaptedValue
 	}
 	p.GeneralOutgoing.Multicast(ogMessage, ogPeers)
 }
 
-func (p ProxyOgPeerCommunicator) Unicast(msg message.OgMessage, peer communication.OgPeer) {
+func (p ProxyOgPeerCommunicator) Unicast(msg message.OgMessage, peer *communication.OgPeer) {
 	ogMessage, err := p.OgMessageAdapter.AdaptOgMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 	ogPeer, err := p.OgMessageAdapter.AdaptOgPeer(peer)

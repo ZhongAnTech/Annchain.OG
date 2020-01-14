@@ -88,7 +88,7 @@ func (d *DefaultOgMessageAdapter) AdaptOgMessage(outgoingMsg message.OgMessage) 
 	return
 }
 
-func (d *DefaultOgMessageAdapter) AdaptOgPeer(annPeer communication.OgPeer) (general_message.GeneralPeer, error) {
+func (d *DefaultOgMessageAdapter) AdaptOgPeer(annPeer *communication.OgPeer) (general_message.GeneralPeer, error) {
 	return general_message.GeneralPeer{
 		Id:             annPeer.Id,
 		PublicKey:      annPeer.PublicKey,

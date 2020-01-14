@@ -15,8 +15,8 @@ package ogcore_test
 
 import (
 	"github.com/annchain/OG/eventbus"
-	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/interfaces"
 	"github.com/annchain/OG/ogcore/pool"
 	"github.com/annchain/OG/protocol"
 	"testing"
@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func setupTxBuffer() (*pool.TxBuffer, ogcore.Syncer) {
+func setupTxBuffer() (*pool.TxBuffer, interfaces.Syncer) {
 	bus := &eventbus.DefaultEventBus{}
 	bus.InitDefault()
 

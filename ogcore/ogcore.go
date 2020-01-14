@@ -4,19 +4,21 @@ import (
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/interfaces"
 	"github.com/annchain/OG/ogcore/model"
+	"github.com/annchain/OG/ogcore/pool"
 	"github.com/sirupsen/logrus"
 )
 
-type OgCoreConfig struct {
-	MaxTxCountInResponse uint32
-}
-
+// OgCore includes the basic components needed to build an Og
+// Focus on internal affairs. Any communication modules should be in OgPartner.
+// This means that a solo node will require OgCore ONLY.
 type OgCore struct {
-	OgCoreConfig     OgCoreConfig
 	statusData       model.OgStatusData
 	EventBus         eventbus.EventBus
-	LedgerTxProvider LedgerTxProvider
+	LedgerTxProvider interfaces.LedgerTxProvider
+	TxBuffer         *pool.TxBuffer
+	TxPool           *pool.TxPool
 }
 
 func (o *OgCore) Name() string {
@@ -47,32 +49,8 @@ func (o *OgCore) HandleStatusData(status model.OgStatusData) {
 	o.FireEvent(&events.HeightBehindEvent{LatestKnownHeight: status.CurrentHeight})
 }
 
-func (o *OgCore) HandleNewTx(tx *types.Tx) {
-	logrus.WithField("tx", tx).Info("I received this tx")
-}
-
-func (o *OgCore) HandleNewSequencer(seq *types.Sequencer) {
-
-}
-
 func (o *OgCore) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
-	case events.HeightSyncRequestReceivedEventType:
-		evt := ev.(*events.HeightSyncRequestReceivedEvent)
-		txs := o.LoadHeightTxs(evt.Height, evt.Offset)
-		o.EventBus.Route(&events.TxsFetchedForResponseEvent{
-			Txs:       txs,
-			Height:    evt.Height,
-			Offset:    evt.Offset,
-			RequestId: evt.RequestId,
-			Peer:      evt.Peer,
-		})
-	case events.TxReceivedEventType:
-		evt := ev.(*events.TxReceivedEvent)
-		o.HandleNewTx(evt.Tx)
-	case events.SequencerReceivedEventType:
-		evt := ev.(*events.SequencerReceivedEvent)
-		o.HandleNewSequencer(evt.Sequencer)
 	default:
 		logrus.Warn("event type not supported by txbuffer")
 	}
@@ -80,17 +58,11 @@ func (o *OgCore) HandleEvent(ev eventbus.Event) {
 
 func (o *OgCore) HandlerDescription(ev eventbus.EventType) string {
 	switch ev {
-	case events.HeightSyncRequestReceivedEventType:
-		return "LoadHeightAndSendBaCK"
-	case events.TxReceivedEventType:
-		return "PrintLog"
-	case events.SequencerReceivedEventType:
-		return "PrintLog"
 	default:
 		return "N/A"
 	}
 }
 
-func (o *OgCore) LoadHeightTxs(height uint64, offset uint32) []types.Txi {
-	return o.LedgerTxProvider.GetHeightTxs(height, offset, o.OgCoreConfig.MaxTxCountInResponse)
+func (o *OgCore) LoadHeightTxs(height uint64, offset uint32, count uint32) []types.Txi {
+	return o.LedgerTxProvider.GetHeightTxs(height, offset, count)
 }

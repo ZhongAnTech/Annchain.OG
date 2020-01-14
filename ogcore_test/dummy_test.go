@@ -294,7 +294,7 @@ func (o DummyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []commun
 	}
 }
 
-func (o DummyOgPeerCommunicator) Unicast(msg message.OgMessage, peer communication.OgPeer) {
+func (o DummyOgPeerCommunicator) Unicast(msg message.OgMessage, peer *communication.OgPeer) {
 	logrus.Debug("unicasting by DummyOgPeerCommunicator")
 	go func() {
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")

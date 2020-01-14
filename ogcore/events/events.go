@@ -106,7 +106,7 @@ type HeightSyncRequestReceivedEvent struct {
 	Height    uint64
 	Offset    uint32
 	RequestId uint32
-	Peer      communication.OgPeer
+	Peer      *communication.OgPeer
 }
 
 func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
@@ -118,7 +118,7 @@ type TxsFetchedForResponseEvent struct {
 	Height    uint64
 	Offset    uint32
 	RequestId uint32
-	Peer      communication.OgPeer
+	Peer      *communication.OgPeer
 }
 
 func (m *TxsFetchedForResponseEvent) GetEventType() eventbus.EventType {

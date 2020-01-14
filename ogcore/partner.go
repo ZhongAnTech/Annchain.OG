@@ -303,15 +303,15 @@ func (o *OgPartner) HandleMessageNewResource(msgEvent *communication.OgMessageEv
 	}
 }
 
-func (o *OgPartner) SendMessagePing(peer communication.OgPeer) {
+func (o *OgPartner) SendMessagePing(peer *communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessagePing{}, peer)
 }
 
-func (o *OgPartner) SendMessageQueryStatusRequest(peer communication.OgPeer) {
+func (o *OgPartner) SendMessageQueryStatusRequest(peer *communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessageQueryStatusRequest{}, peer)
 }
 
-func (o *OgPartner) SendMessageHeightSyncRequest(peer communication.OgPeer) {
+func (o *OgPartner) SendMessageHeightSyncRequest(peer *communication.OgPeer) {
 	o.PeerOutgoing.Unicast(&message.OgMessageHeightSyncRequest{
 		Height:    1,
 		Offset:    0,

@@ -21,5 +21,5 @@ func (o OgPeer) String() string {
 
 type OgMessageEvent struct {
 	Message message.OgMessage
-	Peer    OgPeer
+	Peer    *OgPeer
 }

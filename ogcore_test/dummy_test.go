@@ -133,6 +133,9 @@ func (d *dummySyncer) HandleEvent(ev eventbus.Event) {
 		})
 	}
 }
+func (o *dummySyncer) HandlerDescription(ev eventbus.EventType) string {
+	return "N/A"
+}
 
 func (d *dummySyncer) ClearQueue() {
 	for k := range d.dmap {

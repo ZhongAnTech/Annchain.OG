@@ -81,7 +81,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 	return processors
 }
 
-func TestSync(t *testing.T) {
+func TestBroadcast(t *testing.T) {
 	setupLog()
 	total := 2
 	processors := setupSync(total)
@@ -94,7 +94,7 @@ func TestSync(t *testing.T) {
 
 func TestIncremental(t *testing.T) {
 	setupLog()
-	total := 4
+	total := 2
 	processors := setupSync(total)
 
 	// one is generating new txs constantly

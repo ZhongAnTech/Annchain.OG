@@ -79,6 +79,17 @@ func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 	}
 }
 
+func (o *TxBuffer) HandlerDescription(ev eventbus.EventType) string {
+	switch ev {
+	case events.TxReceivedEventType:
+		return "SendTxToBuffer"
+	case events.SequencerReceivedEventType:
+		return "SendSeqToBuffer"
+	default:
+		return "N/A"
+	}
+}
+
 func (b *TxBuffer) DumpUnsolved() {
 	for k, v := range b.dependencyCache.GetALL(true) {
 		for k1 := range v.(map[common.Hash]types.Txi) {

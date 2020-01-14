@@ -101,6 +101,17 @@ func (a *OgPartner) HandleEvent(ev eventbus.Event) {
 	}
 }
 
+func (o *OgPartner) HandlerDescription(ev eventbus.EventType) string {
+	switch ev {
+	case events.TxsFetchedForResponseEventType:
+		return "SendingTxsFetchedResponse"
+	case events.NewTxLocallyGeneratedEventType:
+		return "BroadcastNewlyGeneratedTx"
+	default:
+		return "N/A"
+	}
+}
+
 func (a *OgPartner) Name() string {
 	return "OgPartner"
 }

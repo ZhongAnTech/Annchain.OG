@@ -78,6 +78,19 @@ func (o *OgCore) HandleEvent(ev eventbus.Event) {
 	}
 }
 
+func (o *OgCore) HandlerDescription(ev eventbus.EventType) string {
+	switch ev {
+	case events.HeightSyncRequestReceivedEventType:
+		return "LoadHeightAndSendBaCK"
+	case events.TxReceivedEventType:
+		return "PrintLog"
+	case events.SequencerReceivedEventType:
+		return "PrintLog"
+	default:
+		return "N/A"
+	}
+}
+
 func (o *OgCore) LoadHeightTxs(height uint64, offset uint32) []types.Txi {
 	return o.LedgerTxProvider.GetHeightTxs(height, offset, o.OgCoreConfig.MaxTxCountInResponse)
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/protocol"
 	"github.com/annchain/gcache"
@@ -33,9 +32,9 @@ type TxBufferConfig struct {
 // Once the parents are got, Tx will be send to TxPool for further processing.
 type TxBuffer struct {
 	Verifiers              []protocol.Verifier
-	PoolHashLocator        ogcore.PoolHashLocator
-	LedgerHashLocator      ogcore.LedgerHashLocator
-	LocalGraphInfoProvider ogcore.LocalGraphInfoProvider
+	PoolHashLocator        PoolHashLocator
+	LedgerHashLocator      LedgerHashLocator
+	LocalGraphInfoProvider LocalGraphInfoProvider
 	EventBus               eventbus.EventBus
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
 	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx

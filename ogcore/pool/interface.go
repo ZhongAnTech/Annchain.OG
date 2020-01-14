@@ -25,3 +25,17 @@ type ILedger interface {
 
 	Push(batch *ledger.ConfirmBatch) error
 }
+
+type PoolHashLocator interface {
+	IsLocalHash(hash common.Hash) bool
+	Get(hash common.Hash) types.Txi
+}
+
+type LedgerHashLocator interface {
+	IsLocalHash(hash common.Hash) bool
+	GetTx(hash common.Hash) types.Txi
+}
+
+type LocalGraphInfoProvider interface {
+	GetMaxWeight() uint64
+}

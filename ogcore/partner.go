@@ -6,12 +6,15 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/interfaces"
 	"github.com/annchain/OG/ogcore/message"
 	"github.com/annchain/OG/ogcore/model"
 	"github.com/sirupsen/logrus"
 	"sync"
 )
 
+// OgPartner handles messages coming from the outside. It is the ingress of internal core.
+// Focus on I/O. Any modules that can be run under solo mode should be in ogcore.
 type OgPartner struct {
 	Config       OgProcessorConfig
 	PeerOutgoing communication.OgPeerCommunicatorOutgoing
@@ -19,8 +22,9 @@ type OgPartner struct {
 	EventBus     eventbus.EventBus
 
 	// og protocols
-	StatusProvider OgStatusProvider
+	StatusProvider interfaces.OgStatusProvider
 	OgCore         *OgCore
+	Syncer         interfaces.Syncer
 
 	// partner should connect the backend service by announce events
 	quit   chan bool
@@ -73,6 +77,16 @@ func (a *OgPartner) AdaptTxiToResource(txi types.Txi) message.MessageContentReso
 func (a *OgPartner) HandleEvent(ev eventbus.Event) {
 	// handle sending events
 	switch ev.GetEventType() {
+	case events.HeightSyncRequestReceivedEventType:
+		evt := ev.(*events.HeightSyncRequestReceivedEvent)
+		txs := a.OgCore.LoadHeightTxs(evt.Height, evt.Offset, a.Config.MaxTxCountInResponse)
+		a.EventBus.Route(&events.TxsFetchedForResponseEvent{
+			Txs:       txs,
+			Height:    evt.Height,
+			Offset:    evt.Offset,
+			RequestId: evt.RequestId,
+			Peer:      evt.Peer,
+		})
 	case events.TxsFetchedForResponseEventType:
 		evt := ev.(*events.TxsFetchedForResponseEvent)
 		resources := make([]message.MessageContentResource, len(evt.Txs))
@@ -103,6 +117,8 @@ func (a *OgPartner) HandleEvent(ev eventbus.Event) {
 
 func (o *OgPartner) HandlerDescription(ev eventbus.EventType) string {
 	switch ev {
+	case events.HeightSyncRequestReceivedEventType:
+		return "LoadHeightAndSendBaCK"
 	case events.TxsFetchedForResponseEventType:
 		return "SendingTxsFetchedResponse"
 	case events.NewTxLocallyGeneratedEventType:
@@ -325,4 +341,5 @@ func (a *OgPartner) HandleMessageTypeSyncResponse(event *communication.OgMessage
 }
 
 type OgProcessorConfig struct {
+	MaxTxCountInResponse uint32
 }

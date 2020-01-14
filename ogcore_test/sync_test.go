@@ -35,15 +35,14 @@ func setupSync(total int) []*ogcore.OgPartner {
 		dag.InitDefault()
 
 		ogCore := &ogcore.OgCore{
-			OgCoreConfig: ogcore.OgCoreConfig{
-				MaxTxCountInResponse: 100,
-			},
 			EventBus:         bus,
 			LedgerTxProvider: dag,
 		}
 
 		partner := &ogcore.OgPartner{
-			Config:         ogcore.OgProcessorConfig{},
+			Config: ogcore.OgProcessorConfig{
+				MaxTxCountInResponse: 100,
+			},
 			PeerOutgoing:   communicator,
 			PeerIncoming:   communicator,
 			EventBus:       bus,
@@ -70,11 +69,11 @@ func setupSync(total int) []*ogcore.OgPartner {
 			Name:    "NewTxLocallyGeneratedEventType",
 			Handler: partner,
 		})
-		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
-			Type:    events.TxReceivedEventType,
-			Name:    "TxReceivedEventType",
-			Handler: ogCore,
-		})
+		//bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+		//	Type:    events.TxReceivedEventType,
+		//	Name:    "TxReceivedEventType",
+		//	Handler: ogCore,
+		//})
 
 		bus.Build()
 	}

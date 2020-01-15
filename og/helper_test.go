@@ -48,7 +48,12 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 		panic(err)
 	}
 	txConf := pool.DefaultTxPoolConfig()
-	txPool := pool.NewTxPool(txConf, dag)
+	txPool := &pool.TxPool{
+		EventBus: nil,
+		Config:   txConf,
+		Dag:      dag,
+	}
+	txPool.InitDefault()
 	txPool.Init(genesis)
 
 	hubConf := DefaultHubConfig()

@@ -109,7 +109,12 @@ func NewOg(config OGConfig) (*Og, error) {
 		TimeoutConfirmation:    viper.GetInt("txpool.timeout_confirmation_ms"),
 		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
-	og.TxPool = pool.NewTxPool(txpoolconfig, og.Dag)
+	og.TxPool = &pool.TxPool{
+		EventBus: nil,
+		Config:   txpoolconfig,
+		Dag:      og.Dag,
+	}
+	og.TxPool.InitDefault()
 
 	// // initialize
 	// if !og.Dag.LoadLastState() {

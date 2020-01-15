@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/interfaces"
 	"github.com/annchain/OG/ogcore/pool"
+	"github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
 	"testing"
 	"time"
@@ -88,8 +89,8 @@ func doTest(buffer *pool.TxBuffer) {
 func TestBuffer(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
-	buffer, syncer := setupTxBuffer()
-	m := syncer.(*dummySyncer)
+	buffer, syncerInst := setupTxBuffer()
+	m := syncerInst.(*dummySyncer)
 	m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}))
 	m.Know(sampleTx("0x03", []string{"0x00"}))
@@ -103,9 +104,10 @@ func TestBuffer(t *testing.T) {
 	buffer.Start()
 
 	buffer.EventBus.Route(&events.NeedSyncEvent{
-		ParentHash:      tx.ParentsHash[0],
-		ChildHash:       tx.Hash,
-		SendBloomfilter: false,
+		SyncRequest: syncer.SyncRequest{
+			Hash:            tx.ParentsHash[0],
+			SpecifiedSource: nil,
+		},
 	})
 
 	doTest(buffer)

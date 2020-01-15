@@ -2,9 +2,12 @@ package syncer
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore/communication"
+	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
 	"github.com/annchain/gcache"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -32,13 +35,33 @@ type Syncer2 struct {
 	PeerOutgoing            communication.OgPeerCommunicatorOutgoing
 	acquireTxQueue          chan *SyncRequest
 	acquireTxDuplicateCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
+	quit                    chan bool
+}
+
+func (s *Syncer2) HandlerDescription(et eventbus.EventType) string {
+	switch et {
+	case events.NeedSyncEventType:
+		return "SendSyncRequestToPartner"
+	default:
+		return "N/A"
+	}
+}
+
+func (s *Syncer2) HandleEvent(ev eventbus.Event) {
+	switch ev.GetEventType() {
+	case events.NeedSyncEventType:
+		evs := ev.(*events.NeedSyncEvent)
+		s.EnqueueRequest(&evs.SyncRequest)
+	default:
+		logrus.Warn("event type not supported by syncer2")
+	}
 }
 
 func (s *Syncer2) InitDefault() {
 	s.acquireTxQueue = make(chan *SyncRequest)
 	s.acquireTxDuplicateCache = gcache.New(s.Config.AcquireTxDedupCacheMaxSize).Simple().
 		Expiration(time.Second * time.Duration(s.Config.AcquireTxDedupCacheExpirationSeconds)).Build()
-
+	s.quit = make(chan bool)
 }
 
 func (s *Syncer2) Start() {
@@ -46,7 +69,7 @@ func (s *Syncer2) Start() {
 }
 
 func (s *Syncer2) Stop() {
-	panic("implement me")
+	close(s.quit)
 }
 
 func (s *Syncer2) Name() string {
@@ -60,10 +83,10 @@ func (s *Syncer2) loop() {
 		select {
 		//case <- timer.C:
 		// send all requests in toSend if available
-
 		case v := <-s.acquireTxQueue:
-			// send this request
+			// TODO: dedup in acquireTxDuplicateCache
 			if v.SpecifiedSource == nil {
+				// send this request to all peers
 				s.PeerOutgoing.Broadcast(&message.OgMessageBatchSyncRequest{
 					Height: nil,
 					Hashes: common.Hashes{
@@ -73,6 +96,7 @@ func (s *Syncer2) loop() {
 					RequestId:   0,
 				})
 			} else {
+				// send this request to one peer
 				s.PeerOutgoing.Unicast(&message.OgMessageBatchSyncRequest{
 					Height: nil,
 					Hashes: common.Hashes{
@@ -82,11 +106,12 @@ func (s *Syncer2) loop() {
 					RequestId:   0,
 				}, v.SpecifiedSource)
 			}
-
+		case <-s.quit:
+			break
 		}
 	}
 }
 
-func (s *Syncer2) EnqueueRequest(request SyncRequest) {
-
+func (s *Syncer2) EnqueueRequest(request *SyncRequest) {
+	s.acquireTxQueue <- request
 }

@@ -247,7 +247,7 @@ type DummyOgPeerCommunicator struct {
 func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
 	for i, peerChan := range o.PeerPipeIns {
 		logrus.WithField("peer", i).WithField("me", o.Myid).WithField("type", msg.GetType()).Debug("broadcasting message")
-		me := communication.OgPeer{
+		me := &communication.OgPeer{
 			Id:             o.Myid,
 			PublicKey:      crypto.PublicKey{},
 			Address:        common.Address{},
@@ -281,10 +281,10 @@ func NewDummyOgPeerCommunicator(myid int, incoming chan *communication.OgMessage
 	return d
 }
 
-func (o DummyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []communication.OgPeer) {
+func (o DummyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []*communication.OgPeer) {
 	for _, peer := range peers {
 		logrus.WithField("peer", peer.Id).WithField("me", o.Myid).Debug("multicasting message")
-		go func(peer communication.OgPeer) {
+		go func(peer *communication.OgPeer) {
 			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
 			o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
 				Message: msg,

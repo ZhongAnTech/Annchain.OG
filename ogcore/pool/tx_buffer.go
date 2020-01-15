@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -28,8 +29,8 @@ type TxBufferConfig struct {
 }
 
 // TxBuffer rebuild graph by buffering newly incoming txs and find their parents.
-// Tx will be buffered here until parents are got.
-// Once the parents are got, Tx will be send to TxPool for further processing.
+// Txi will be buffered here until parents are got.
+// Once the parents are got, Txi will be send to TxPool for further processing.
 type TxBuffer struct {
 	Verifiers              []protocol.Verifier
 	PoolHashLocator        PoolHashLocator
@@ -37,7 +38,7 @@ type TxBuffer struct {
 	LocalGraphInfoProvider LocalGraphInfoProvider
 	EventBus               eventbus.EventBus
 	knownCache             gcache.Cache // txs that are already fulfilled and pushed to txpool
-	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Tx
+	dependencyCache        gcache.Cache // list of hashes that are pending on the parent. map[common.Hash]map[common.Hash]types.Txi
 	affmu                  sync.RWMutex
 	newTxChan              chan types.Txi
 	quit                   chan bool
@@ -122,7 +123,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer handled tx")
 		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
-	// already in the dag or tx_pool or buffer itself.
+	// already in the Dag or tx_pool or buffer itself.
 	if b.IsKnownHash(tx.GetHash()) {
 		return
 	}
@@ -177,10 +178,16 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				pHash := parentHash
 				//b.updateDependencyMap(parentHash, tx)
 				//maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
+				//b.EventBus.Route(&events.NeedSyncEvent{
+				//	ParentHash:      pHash,
+				//	ChildHash:       tx.GetHash(),
+				//	SendBloomfilter: false,
+				//})
 				b.EventBus.Route(&events.NeedSyncEvent{
-					ParentHash:      pHash,
-					ChildHash:       tx.GetHash(),
-					SendBloomfilter: false,
+					SyncRequest: syncer.SyncRequest{
+						Hash:            pHash,
+						SpecifiedSource: nil,
+					},
 				})
 				// Weight is unknown until parents are got. So here why check this?
 				//
@@ -321,7 +328,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
 
 	// announcer and txpool both listen to this event.
-	b.EventBus.Route(&events.NewTxDependencyFulfilledEvent{Tx: tx})
+	b.EventBus.Route(&events.NewTxiDependencyFulfilledEvent{Txi: tx})
 	//addErr := b.addToTxPool(tx)
 	//if addErr != nil {
 	//	logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
@@ -366,7 +373,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 //	return b.txPool.AddRemoteTx(tx, true)
 //}
 
-// tryResolve triggered when a Tx is added or resolved by other Tx
+// tryResolve triggered when a Txi is added or resolved by other Txi
 // It will check if the given Hash has no more dependencies in the cache.
 // If so, resolve this Hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) {

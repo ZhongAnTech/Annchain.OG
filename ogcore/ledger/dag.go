@@ -813,10 +813,10 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 	//dag.writeConfirmTime(&cf)
 
 	// send consensus related txs.
-	//if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
+	//if len(consTxs) != 0 && dag.onConsensusTXConfirmed != nil && !status.NodeStopped {
 	//	log.WithField("txs ", consTxs).Trace("sending consensus txs")
 	//	goroutine.New(func() {
-	//		dag.OnConsensusTXConfirmed <- consTxs
+	//		dag.onConsensusTXConfirmed <- consTxs
 	//		log.WithField("txs ", consTxs).Trace("sent consensus txs")
 	//	})
 	//}

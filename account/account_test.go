@@ -8,7 +8,7 @@ import (
 //func TestSignature(t *testing.T) {
 //	acc := NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02d", 00))
 //
-//	tx := &types.Tx{
+//	tx := &types.Txi{
 //		From:  acc.Address,
 //		To:    common.HexToAddress("0x1234567812345678"),
 //		Value: math.NewBigInt(0xAABBCCDDEEFF),

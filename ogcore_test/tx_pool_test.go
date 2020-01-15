@@ -79,7 +79,12 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, f
 	if errnew != nil {
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
-	pool := pool.NewTxPool(txpoolconfig, dag)
+	pool := &pool.TxPool{
+		EventBus: nil,
+		Config:   txpoolconfig,
+		Dag:      dag,
+	}
+	pool.InitDefault()
 
 	pool.Init(generatedGenesis)
 

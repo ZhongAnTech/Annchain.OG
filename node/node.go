@@ -267,7 +267,7 @@ func NewNode() *Node {
 			NewTxsChannelSize:                        15,
 		}, m, org.TxPool.GetHashOrder, org.TxBuffer.IsKnownHash,
 		heighter, syncManager.CatchupSyncer.CacheNewTxEnabled)
-	org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, org.NewLatestSequencerCh,
+	org.TxPool.onNewLatestSequencer = append(org.TxPool.onNewLatestSequencer, org.NewLatestSequencerCh,
 		syncManager.IncrementalSyncer.NewLatestSequencerCh)
 	m.NewSequencerHandler = syncManager.IncrementalSyncer
 	m.NewTxsHandler = syncManager.IncrementalSyncer
@@ -407,7 +407,7 @@ func NewNode() *Node {
 		m.TermChangeRequestHandler = annSensus
 		txBuffer.OnProposalSeqCh = annSensus.ProposalSeqChan
 
-		org.TxPool.OnNewLatestSequencer = append(org.TxPool.OnNewLatestSequencer, annSensus.NewLatestSequencer)
+		org.TxPool.onNewLatestSequencer = append(org.TxPool.onNewLatestSequencer, annSensus.NewLatestSequencer)
 		pm.Register(annSensus)
 	}
 
@@ -453,7 +453,7 @@ func NewNode() *Node {
 		wsServer := wserver.NewServer(fmt.Sprintf(":%d", viper.GetInt("websocket.port")))
 		n.Components = append(n.Components, wsServer)
 		org.TxPool.RegisterOnNewTxReceived(wsServer.NewTxReceivedChan, "wsServer.NewTxReceivedChan", true)
-		org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, wsServer.BatchConfirmedChan)
+		org.TxPool.onBatchConfirmed = append(org.TxPool.onBatchConfirmed, wsServer.BatchConfirmedChan)
 		pm.Register(wsServer)
 	}
 
@@ -465,7 +465,7 @@ func NewNode() *Node {
 	txCounter := performance.NewTxCounter()
 
 	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
-	org.TxPool.OnBatchConfirmed = append(org.TxPool.OnBatchConfirmed, txCounter.BatchConfirmedChan)
+	org.TxPool.onBatchConfirmed = append(org.TxPool.onBatchConfirmed, txCounter.BatchConfirmedChan)
 	delegate.OnNewTxiGenerated = append(delegate.OnNewTxiGenerated, txCounter.NewTxGeneratedChan)
 	n.Components = append(n.Components, txCounter)
 

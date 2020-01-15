@@ -26,7 +26,6 @@ import (
 	"sync/atomic"
 
 	"github.com/annchain/OG/og"
-	"github.com/annchain/OG/types"
 )
 
 var MaxBufferSiza = 4096 * 16

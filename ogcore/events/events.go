@@ -1,11 +1,11 @@
 package events
 
 import (
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/model"
+	"github.com/annchain/OG/ogcore/syncer"
 )
 
 const (
@@ -20,8 +20,8 @@ const (
 	SequencerReceivedEventType // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
-	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
+	NewTxiDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
+	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
 
 	HeightSyncRequestReceivedEventType    // someone is requesting a height
 	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
@@ -84,18 +84,19 @@ func (m *SequencerReceivedEvent) GetEventType() eventbus.EventType {
 	return SequencerReceivedEventType
 }
 
-type NewTxDependencyFulfilledEvent struct {
-	Tx types.Txi
+type NewTxiDependencyFulfilledEvent struct {
+	Txi types.Txi
 }
 
-func (m *NewTxDependencyFulfilledEvent) GetEventType() eventbus.EventType {
-	return NewTxDependencyFulfilledEventType
+func (m *NewTxiDependencyFulfilledEvent) GetEventType() eventbus.EventType {
+	return NewTxiDependencyFulfilledEventType
 }
 
 type NeedSyncEvent struct {
-	ParentHash      common.Hash
-	ChildHash       common.Hash
-	SendBloomfilter bool
+	SyncRequest syncer.SyncRequest
+	//ParentHash      common.Hash
+	//ChildHash       common.Hash
+	//SendBloomfilter bool
 }
 
 func (m *NeedSyncEvent) GetEventType() eventbus.EventType {

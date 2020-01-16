@@ -582,7 +582,7 @@ func BenchmarkHash(b *testing.B) {
 			code    = crypto.Keccak256(nil)
 		)
 		accstr := fmt.Sprintf("%d %v %s %v", nonce, balance.Bytes(), root.String(), code)
-		accounts[i] = common.Hex2Bytes(accstr)
+		accounts[i] = common.Hex2BytesNoError(accstr)
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()

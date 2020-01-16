@@ -1,10 +1,14 @@
 package ogcore_test
 
 import (
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/utilfuncs"
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
 	syncer2 "github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
@@ -46,6 +50,25 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Dag:      dag,
 		}
 		txPool.InitDefault()
+
+		genesis := &types.Sequencer{
+			Hash:         common.HexToHashNoError("0x00"),
+			ParentsHash:  nil,
+			Height:       1,
+			MineNonce:    0,
+			AccountNonce: 0,
+			Issuer:       common.HexToAddressNoError("0x00"),
+			Signature:    nil,
+			PublicKey:    nil,
+			StateRoot:    common.Hash{},
+			Weight:       1,
+		}
+
+		err := txPool.PushBatch(&ledger.ConfirmBatch{
+			Seq: genesis,
+			Txs: nil,
+		})
+		utilfuncs.PanicIfError(err, "writing genesis")
 
 		txBuffer := &pool.TxBuffer{
 			Verifiers:              []protocol.Verifier{ver},

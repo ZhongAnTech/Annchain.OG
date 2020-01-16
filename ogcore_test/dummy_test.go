@@ -93,7 +93,7 @@ func (d *dummyDag) GetTestTxisByNumber(id uint64) types.Txis {
 }
 
 func (d *dummyDag) LatestSequencer() *types.Sequencer {
-	return d.dmap[common.HexToHash("0x00")].(*types.Sequencer)
+	return d.Genesis()
 }
 
 func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
@@ -101,14 +101,16 @@ func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
 }
 
 func (d *dummyDag) Genesis() *types.Sequencer {
-	return d.dmap[common.HexToHash("0x00")].(*types.Sequencer)
+	genesisHash, err := common.HexToHash("0x00")
+	utilfuncs.PanicIfError(err, "latest sequencer")
+	return d.dmap[genesisHash].(*types.Sequencer)
 }
 
 func (d *dummyDag) InitDefault() {
 	d.dmap = make(map[common.Hash]types.Txi)
-	tx := sampleSequencer("0x00", []string{}, 0)
-	tx.Weight = 1
-	d.dmap[tx.GetHash()] = tx
+	//tx := sampleSequencer("0x00", []string{}, 0)
+	//tx.Weight = 1
+	//d.dmap[tx.GetHash()] = tx
 }
 
 func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
@@ -119,11 +121,13 @@ func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
 }
 
 func sampleSequencer(selfHash string, parentsHash []string, nonce uint64) *types.Sequencer {
-	parents, err := common.HexStringsToHashes(parentsHash)
-	utilfuncs.PanicIfError(err, "sampleseq bad hex")
+	myHash, err := common.HexToHash(selfHash)
+	utilfuncs.PanicIfError(err, "sample sequencer my hash")
 
+	parents, err := common.HexStringsToHashes(parentsHash)
+	utilfuncs.PanicIfError(err, "sample sequencer parent hashes")
 	seq := &types.Sequencer{
-		Hash:         common.HexToHash(selfHash),
+		Hash:         myHash,
 		ParentsHash:  parents,
 		Height:       0,
 		MineNonce:    0,
@@ -138,16 +142,16 @@ func sampleSequencer(selfHash string, parentsHash []string, nonce uint64) *types
 }
 
 func sampleTx(selfHash string, parentsHash []string, nonce uint64) *types.Tx {
+	myHash, err := common.HexToHash(selfHash)
+	utilfuncs.PanicIfError(err, "sample tx my hash")
+
 	parents, err := common.HexStringsToHashes(parentsHash)
-	utilfuncs.PanicIfError(err, "sampletx bad hex")
+	utilfuncs.PanicIfError(err, "sample tx parent hashes")
 	tx := &types.Tx{
-		Hash:         common.HexToHash(selfHash),
+		Hash:         myHash,
 		ParentsHash:  parents,
 		AccountNonce: nonce,
 		Value:        math.NewBigInt(0),
-	}
-	for _, h := range parentsHash {
-		tx.ParentsHash = append(tx.ParentsHash, common.HexToHash(h))
 	}
 	return tx
 }

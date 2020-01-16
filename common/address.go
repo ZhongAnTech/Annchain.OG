@@ -18,6 +18,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/utilfuncs"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -53,7 +54,11 @@ func BytesToAddress(b []byte) Address {
 
 func StringToAddress(s string) (add Address, err error) {
 	var h Address
-	err = h.SetBytes(FromHex(s))
+	bytes, err := FromHex(s)
+	if err != nil {
+		return
+	}
+	err = h.SetBytes(bytes)
 	return h, err
 }
 
@@ -63,7 +68,20 @@ func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 
 // HexToAddress sets byte representation of s to Address.
 // If b is larger than len(h), b will be cropped from the left.
-func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
+func HexToAddress(s string) (address Address, err error) {
+	bytes, err := FromHex(s)
+	if err != nil {
+		return
+	}
+	address = BytesToAddress(bytes)
+	return
+}
+
+func HexToAddressNoError(s string) (address Address) {
+	address, err := HexToAddress(s)
+	utilfuncs.PanicIfError(err, "hexToAddress")
+	return
+}
 
 // ToBytes convers Address to []byte.
 func (h Address) ToBytes() []byte { return h.Bytes[:] }

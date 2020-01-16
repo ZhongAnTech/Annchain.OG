@@ -17,7 +17,10 @@
 // Package common contains various helper functions.
 package common
 
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"github.com/annchain/OG/common/utilfuncs"
+)
 
 // ToHex returns the hex representation of b, prefixed with '0x'.
 // For empty slices, the return value is "0x0".
@@ -33,7 +36,7 @@ func ToHex(b []byte) string {
 
 // FromHex returns the bytes represented by the hexadecimal string s.
 // s may be prefixed with "0x".
-func FromHex(s string) []byte {
+func FromHex(s string) ([]byte, error) {
 	if len(s) > 1 {
 		if s[0:2] == "0x" || s[0:2] == "0X" {
 			s = s[2:]
@@ -85,8 +88,15 @@ func Bytes2Hex(d []byte) string {
 }
 
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
-func Hex2Bytes(str string) []byte {
-	h, _ := hex.DecodeString(str)
+func Hex2Bytes(str string) ([]byte, error) {
+	h, err := hex.DecodeString(str)
+	return h, err
+}
+
+// Hex2BytesNoError panics if hex is wrong. Use it ONLY in test code
+func Hex2BytesNoError(str string) []byte {
+	h, err := Hex2Bytes(str)
+	utilfuncs.PanicIfError(err, "hex2bytes")
 	return h
 }
 

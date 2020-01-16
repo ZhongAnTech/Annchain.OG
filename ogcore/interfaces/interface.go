@@ -16,10 +16,10 @@ type LedgerTxProvider interface {
 }
 
 type Syncer interface {
-	Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
-	SyncHashList(seqHash common.Hash)
+	//Enqueue(hash *common.Hash, childHash common.Hash, sendBloomFilter bool)
+	//SyncHashList(seqHash common.Hash)
 	ClearQueue()
-	IsCachedHash(hash common.Hash) bool
+	//IsCachedHash(hash common.Hash) bool
 }
 
 type Hasher interface {

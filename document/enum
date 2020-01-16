@@ -1,0 +1,35 @@
+00	PingReceivedEventType eventbus.EventType = iota
+
+01	PongReceivedEventType
+02	QueryStatusRequestReceivedEventType  // global status query request is got
+03	QueryStatusResponseReceivedEventType // global status query response is got
+04	HeightBehindEventType                // my height is lower than others.
+05	TxReceivedEventType                  // a new tx list is received.
+
+06	SequencerReceivedEventType // a new seq is received.
+07	ArchiveReceivedEventType
+08	ActionReceivedEventType
+09	NewTxDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
+10	NeedSyncEventType                 // a hash is needed but not found locally (thus need sync)
+
+11	HeightSyncRequestReceivedEventType    // someone is requesting a height
+12	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
+13	NewTxLocallyGeneratedEventType        // a new tx is generated from local
+14	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
+
+15	NewTxReceivedInPoolEventType // a new tx is received in the pool	and to be processed. (including sequencer)
+	//BatchConfirmed
+16	SequencerConfirmedEventType // a sequencer is received and validated to be on the graph
+
+
+00	OgMessageTypeStatus OgMessageType = iota + 0
+01	OgMessageTypePing
+02	OgMessageTypePong
+03	OgMessageTypeBatchSyncRequest
+04	OgMessageTypeSyncResponse
+05	MessageTypeFetchByHashRequest
+06	MessageTypeFetchByHashResponse
+07	OgMessageTypeQueryStatusRequest
+08	OgMessageTypeQueryStatusResponse
+09	OgMessageTypeNewResource
+10	OgMessageTypeHeightSyncRequest

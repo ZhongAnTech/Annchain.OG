@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/pool"
+	syncer2 "github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -34,19 +35,26 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 		bus.InitDefault()
 
 		ver := new(dummyVerifier)
-		txPool := new(dummyTxPool)
-		txPool.InitDefault()
+		//txPool := new(dummyTxPool)
+		//txPool.InitDefault()
 		dag := &dummyDag{}
 		dag.InitDefault()
 
-		buffer := &pool.TxBuffer{
+		txPool := &pool.TxPool{
+			EventBus: bus,
+			Config:   pool.DefaultTxPoolConfig(),
+			Dag:      dag,
+		}
+		txPool.InitDefault()
+
+		txBuffer := &pool.TxBuffer{
 			Verifiers:              []protocol.Verifier{ver},
 			PoolHashLocator:        txPool,
 			LedgerHashLocator:      dag,
 			LocalGraphInfoProvider: txPool,
 			EventBus:               bus,
 		}
-		buffer.InitDefault(pool.TxBufferConfig{
+		txBuffer.InitDefault(pool.TxBufferConfig{
 			DependencyCacheMaxSize:           10,
 			DependencyCacheExpirationSeconds: 30,
 			NewTxQueueSize:                   10,
@@ -55,15 +63,21 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			AddedToPoolQueueSize:             10,
 			TestNoVerify:                     false,
 		})
-		buffer.Start()
-
+		txBuffer.Start()
 		ogCore := &ogcore.OgCore{
-			OgCoreConfig: ogcore.OgCoreConfig{
-				MaxTxCountInResponse: 100,
-			},
 			EventBus:         bus,
 			LedgerTxProvider: dag,
+			TxBuffer:         txBuffer,
+			TxPool:           txPool,
 		}
+		syncer := &syncer2.Syncer2{
+			Config: &syncer2.SyncerConfig{
+				AcquireTxDedupCacheMaxSize:           10,
+				AcquireTxDedupCacheExpirationSeconds: 10,
+			},
+			PeerOutgoing: communicator,
+		}
+		syncer.Start()
 
 		partner := &ogcore.OgPartner{
 			Config:         ogcore.OgProcessorConfig{},
@@ -72,6 +86,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			EventBus:       bus,
 			StatusProvider: nil,
 			OgCore:         ogCore,
+			Syncer:         syncer,
 		}
 
 		processors[i] = partner
@@ -94,6 +109,11 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Handler: partner,
 		})
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NewTxLocallyGeneratedEventType,
+			Name:    "NewTxLocallyGeneratedEventType",
+			Handler: txBuffer,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.TxReceivedEventType,
 			Name:    "TxReceivedEventType",
 			Handler: ogCore,
@@ -101,7 +121,17 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.TxReceivedEventType,
 			Name:    "TxReceivedEventType",
-			Handler: buffer,
+			Handler: txBuffer,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NeedSyncEventType,
+			Name:    "BufferLackTxSyncerHelps",
+			Handler: syncer,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NewTxiDependencyFulfilledEventType,
+			Name:    "BufferGotAllDependencies",
+			Handler: txPool,
 		})
 
 		bus.Build()
@@ -111,7 +141,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 
 func TestSyncAndBuffer(t *testing.T) {
 	setupLog()
-	total := 3
+	total := 2
 	processors := setupSyncBuffer(total)
 
 	// one is generating new txs constantly
@@ -119,13 +149,17 @@ func TestSyncAndBuffer(t *testing.T) {
 
 	// event should be generated outside the processor
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x01", []string{"0x00"}),
+		Tx: sampleTx("0x01", []string{"0x00"}, 1),
 	})
 	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x02", []string{"0x01"}),
+		Tx: sampleTx("0x02", []string{"0x01"}, 2),
 	})
-	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x03", []string{"0x04"}),
-	})
+	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x03", []string{"0x04"}),
+	//})
 	time.Sleep(time.Second * 5)
+	for _, processor := range processors {
+		processor.OgCore.TxBuffer.DumpUnsolved()
+	}
+	time.Sleep(time.Second * 1500)
 }

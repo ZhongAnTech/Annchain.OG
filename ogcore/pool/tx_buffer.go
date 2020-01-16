@@ -5,7 +5,6 @@ import (
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
-	"github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -73,8 +72,11 @@ func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 	case events.SequencerReceivedEventType:
 		seq := ev.(*events.SequencerReceivedEvent).Sequencer
 		t.newTxChan <- seq
+	case events.NewTxLocallyGeneratedEventType:
+		evt := ev.(*events.NewTxLocallyGeneratedEvent)
+		t.newTxChan <- evt.Tx // send to buffer
 	default:
-		logrus.Warn("event type not supported by txbuffer")
+		logrus.WithField("type", ev.GetEventType()).Warn("event type not supported by txbuffer")
 		return
 	}
 }
@@ -85,6 +87,8 @@ func (o *TxBuffer) HandlerDescription(ev eventbus.EventType) string {
 		return "SendTxToBuffer"
 	case events.SequencerReceivedEventType:
 		return "SendSeqToBuffer"
+	case events.NewTxLocallyGeneratedEventType:
+		return "SendLocalTxToBuffer"
 	default:
 		return "N/A"
 	}
@@ -184,10 +188,8 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//	SendBloomfilter: false,
 				//})
 				b.EventBus.Route(&events.NeedSyncEvent{
-					SyncRequest: syncer.SyncRequest{
-						Hash:            pHash,
-						SpecifiedSource: nil,
-					},
+					Hash:            pHash,
+					SpecifiedSource: nil,
 				})
 				// Weight is unknown until parents are got. So here why check this?
 				//

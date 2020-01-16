@@ -6,7 +6,6 @@ import (
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/model"
-	"github.com/annchain/OG/ogcore/syncer"
 )
 
 const (
@@ -94,7 +93,8 @@ func (m *NewTxiDependencyFulfilledEvent) GetEventType() eventbus.EventType {
 }
 
 type NeedSyncEvent struct {
-	SyncRequest syncer.SyncRequest
+	Hash            common.Hash
+	SpecifiedSource *communication.OgPeer
 	//ParentHash      common.Hash
 	//ChildHash       common.Hash
 	//SendBloomfilter bool

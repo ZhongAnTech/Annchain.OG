@@ -87,7 +87,7 @@ func TestBroadcast(t *testing.T) {
 
 	// send sync request
 	logrus.Debug("Sending sync request on height 0")
-	processors[0].SendMessageHeightSyncRequest(communication.OgPeer{Id: 1})
+	processors[0].SendMessageHeightSyncRequest(&communication.OgPeer{Id: 1})
 	time.Sleep(time.Second * 5)
 }
 
@@ -101,7 +101,7 @@ func TestIncremental(t *testing.T) {
 
 	// event should be generated outside the processor
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x01", []string{"0x00"}),
+		Tx: sampleTx("0x01", []string{"0x00"}, 1),
 	})
 	//processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 	//	Tx: sampleTx("0x02", []string{"0x01"}),

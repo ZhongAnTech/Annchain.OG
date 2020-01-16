@@ -13,11 +13,11 @@ func TestPingPong(t *testing.T) {
 	total := 2
 	// init two OG peers's In channel
 	peerChans := make([]chan *communication.OgMessageEvent, total)
-	peerInfos := make([]communication.OgPeer, total)
+	peerInfos := make([]*communication.OgPeer, total)
 
 	// build communication channels
 	for i := 0; i < total; i++ {
-		peerInfos[i] = communication.OgPeer{Id: i}
+		peerInfos[i] = &communication.OgPeer{Id: i}
 		peerChans[i] = make(chan *communication.OgMessageEvent, 10)
 	}
 

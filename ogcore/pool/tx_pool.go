@@ -14,9 +14,9 @@
 package pool
 
 import (
+	"errors"
 	"fmt"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/utilfuncs"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
@@ -98,17 +98,15 @@ type TxPool struct {
 	txLookup *txLookUp // txLookUp stores all the txs for external query
 	cached   *cachedConfirm
 
-	quit chan struct{}
+	//quit chan struct{}
 
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
 	onTxiGetInPool         map[channelName]chan types.Txi   // for notifications of new txs.
 	onConsensusTXConfirmed []chan map[common.Hash]types.Txi // for notifications of  consensus tx confirmation.
-	//onBatchConfirmed       []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	//onNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
-	txNum     uint32
-	maxWeight uint64
+	txNum                  uint32
+	maxWeight              uint64
 	//confirmStatus          *ConfirmStatus
 }
 
@@ -140,7 +138,7 @@ func (pool *TxPool) InitDefault() {
 	pool.pendings = NewTxMap()
 	pool.flows = NewAccountFlows()
 	pool.txLookup = newTxLookUp()
-	pool.quit = make(chan struct{})
+	//pool.quit = make(chan struct{})
 	pool.onTxiGetInPool = make(map[channelName]chan types.Txi)
 	//pool.onBatchConfirmed = []chan map[common.Hash]types.Txi{}
 	//pool.onConsensusTXConfirmed = []chan map[common.Hash]types.Txi{}
@@ -198,18 +196,18 @@ type txEnvelope struct {
 }
 
 // Start begin the txpool sevices
-func (pool *TxPool) Start() {
-	logrus.Infof("TxPool Start")
-	goroutine.New(pool.loop)
-}
+//func (pool *TxPool) Start() {
+//	logrus.Infof("TxPool Start")
+//	//goroutine.New(pool.loop)
+//}
 
 // Stop stops all the txpool sevices
-func (pool *TxPool) Stop() {
-	close(pool.quit)
-	pool.wg.Wait()
-
-	logrus.Infof("TxPool Stopped")
-}
+//func (pool *TxPool) Stop() {
+//	close(pool.quit)
+//	pool.wg.Wait()
+//
+//	logrus.Infof("TxPool Stopped")
+//}
 
 func (pool *TxPool) Init(genesis *types.Sequencer) {
 	pool.mu.Lock()
@@ -454,85 +452,104 @@ func (pool *TxPool) clearAll() {
 	pool.txLookup = newTxLookUp()
 }
 
-func (pool *TxPool) loop() {
-	defer logrus.Tracef("TxPool.loop() terminates")
+//func (pool *TxPool) loop() {
+//	defer logrus.Tracef("TxPool.loop() terminates")
+//
+//	pool.wg.Add(1)
+//	defer pool.wg.Done()
+//
+//	//resetTimer := time.NewTicker(time.Duration(pool.Config.ResetDuration) * time.Second)
+//
+//	for {
+//		select {
+//		case <-pool.quit:
+//			logrus.Info("pool got quit signal quiting...")
+//			return
+//
+//		case txEvent := <-pool.queue:
+//
+//			//txEvent.callbackChan <- err
+//
+//			//case <-resetTimer.C:
+//			//pool.reset()
+//		}
+//	}
+//}
 
-	pool.wg.Add(1)
-	defer pool.wg.Done()
-
-	//resetTimer := time.NewTicker(time.Duration(pool.Config.ResetDuration) * time.Second)
-
-	for {
-		select {
-		case <-pool.quit:
-			logrus.Info("pool got quit signal quiting...")
-			return
-
-		case txEvent := <-pool.queue:
-			logrus.WithField("tx", txEvent.tx).Trace("get tx from queue")
-
-			var err error
-			tx := txEvent.tx
-			// check if tx is duplicate
-			if pool.get(tx.GetHash()) != nil {
-				logrus.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				// use event bus
-				//txEvent.callbackChan <- types.ErrDuplicateTx
-				continue
-			}
-			pool.mu.Lock()
-			pool.txLookup.Add(txEvent)
-			switch tx := tx.(type) {
-			case *types.Sequencer:
-				err = pool.confirm(tx)
-				if err != nil {
-					pool.txLookup.Remove(txEvent.tx.GetHash(), removeFromEnd)
-				} else {
-					atomic.StoreUint32(&pool.txNum, 0)
-					maxWeight := atomic.LoadUint64(&pool.maxWeight)
-					if maxWeight < tx.GetWeight() {
-						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
-					}
-				}
-			default:
-				err = pool.commit(tx)
-				//if err is not nil , item removed inside commit
-				if err == nil {
-					atomic.AddUint32(&pool.txNum, 1)
-					maxWeight := atomic.LoadUint64(&pool.maxWeight)
-					if maxWeight < tx.GetWeight() {
-						atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
-					}
-					tx.SetHeight(pool.Dag.LatestSequencer().Height + 1) //temporary height ,will be re write after confirm
-				}
-
-			}
-			pool.mu.Unlock()
-
-			// TODO: Use event
-			logrus.WithField("tx", tx).Trace("successfully added tx to txPool")
-
-			pool.EventBus.Route(&events.NewTxReceivedInPoolEvent{
-				Tx: tx,
-			})
-			//txEvent.callbackChan <- err
-
-			//case <-resetTimer.C:
-			//pool.reset()
-		}
-	}
-}
-
-// addTx adds tx to the pool queue and wait to become tip after validation.
+// addTx adds tx to the pool queue and No async[wait to become tip after validation.]
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
 	logrus.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.GetParents().String())
 
-	txEnv := &txEnvelope{
+	txEvent := &txEnvelope{
 		tx:         tx,
 		txType:     senderType,
 		status:     TxStatusQueue,
 		noFeedBack: noFeedBack,
 	}
+
+	logrus.WithField("tx", txEvent.tx).Trace("get tx from queue")
+
+	var err error
+	//tx := txEvent.tx
+	// check if tx is duplicate
+	if pool.get(tx.GetHash()) != nil {
+		logrus.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+		// use event bus
+		//txEvent.callbackChan <- types.ErrDuplicateTx
+		return nil
+	}
+	pool.mu.Lock()
+	pool.txLookup.Add(txEvent)
+
+	// form weight
+	parentMaxWeight := uint64(0)
+	for _, parentHash := range tx.GetParents() {
+		parentTx := pool.get(parentHash)
+		if parentTx == nil {
+			parentTx = pool.Dag.GetTx(parentHash)
+			if parentTx == nil {
+				// not possible, since all tx sent from buffer should be completely fulfilled
+				logrus.WithField("tx", tx).Error("failed to find parents of tx")
+				return errors.New("failed to find parents of tx")
+			}
+		}
+		parentMaxWeight = math.MaxUint64(parentTx.GetWeight(), parentMaxWeight)
+	}
+	tx.SetWeight(parentMaxWeight + 1)
+
+	switch tx := tx.(type) {
+	case *types.Sequencer:
+		err = pool.confirm(tx)
+		if err != nil {
+			pool.txLookup.Remove(txEvent.tx.GetHash(), removeFromEnd)
+		} else {
+			atomic.StoreUint32(&pool.txNum, 0)
+			maxWeight := atomic.LoadUint64(&pool.maxWeight)
+			if maxWeight < tx.GetWeight() {
+				atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
+			}
+		}
+	default:
+		err = pool.commit(tx)
+		//if err is not nil , item removed inside commit
+		if err == nil {
+			atomic.AddUint32(&pool.txNum, 1)
+			maxWeight := atomic.LoadUint64(&pool.maxWeight)
+			if maxWeight < tx.GetWeight() {
+				atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
+			}
+			tx.SetHeight(pool.Dag.LatestSequencer().Height + 1) //temporary height ,will be re write after confirm
+		}
+
+	}
+	pool.mu.Unlock()
+
+	// TODO: Use event
+	logrus.WithField("tx", tx).Trace("successfully added tx to txPool")
+
+	pool.EventBus.Route(&events.NewTxReceivedInPoolEvent{
+		Tx: tx,
+	})
 
 	//te := &txEnvelope{
 	//callbackChan: make(chan error),
@@ -543,7 +560,8 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 	//	pool.confirmStatus.AddTxNum()
 	//}
 
-	pool.queue <- txEnv
+	// must be a sync method to avoid middle state of tx.
+	// pool.queue <- txEnv
 
 	// waiting for callback
 	//select {
@@ -684,7 +702,11 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			return TxQualityIsFatal
 		}
 		if tx.GetNonce() != latestNonce+1 {
-			logrus.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", tx.GetNonce(), latestNonce, tx)
+			logrus.WithFields(logrus.Fields{
+				"given":  tx.GetNonce(),
+				"should": latestNonce + 1,
+				"tx":     tx,
+			}).Warn("bad tx. nonce should be sequential")
 			return TxQualityIsFatal
 		}
 	}

@@ -1,0 +1,15 @@
+# https://sequencediagram.org/
+
+title Event Sequence Flow
+
+partner->ogCore: HeightSyncRequestReceivedEvent
+ogCore-->partner: TxsFetchedForResponseEvent
+ogCore->partner: NewTxLocallyGeneratedEventType
+partner->ogCore: TxReceivedEvent(TBD)
+partner->TxBuffer: TxReceivedEvent
+partner->TxBuffer: SequencerReceivedEvent
+TxBuffer->Syncer: NeedSyncEvent
+TxBuffer->TxPool: NewTxiDependencyFulfilledEvent(TBD)
+TxBuffer->Announcer: NewTxiDependencyFulfilledEvent(TBD)
+TxPool->A:SequencerBatchConfirmedEvent
+TxPool->A: SequencerConfirmedEvent

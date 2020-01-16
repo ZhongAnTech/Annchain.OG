@@ -25,7 +25,6 @@ import (
 	"github.com/annchain/OG/ogcore/state"
 	"github.com/sirupsen/logrus"
 
-	"github.com/annchain/OG/status"
 	"math/rand"
 	"sort"
 	"sync"
@@ -104,12 +103,12 @@ type TxPool struct {
 	mu sync.RWMutex
 	wg sync.WaitGroup // for TxPool Stop()
 
-	onNewTxReceived        map[channelName]chan types.Txi   // for notifications of new txs.
+	onTxiGetInPool         map[channelName]chan types.Txi   // for notifications of new txs.
 	onConsensusTXConfirmed []chan map[common.Hash]types.Txi // for notifications of  consensus tx confirmation.
-	onBatchConfirmed       []chan map[common.Hash]types.Txi // for notifications of confirmation.
-	onNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
-	txNum                  uint32
-	maxWeight              uint64
+	//onBatchConfirmed       []chan map[common.Hash]types.Txi // for notifications of confirmation.
+	//onNewLatestSequencer   []chan bool                      //for broadcasting new latest sequencer to record height
+	txNum     uint32
+	maxWeight uint64
 	//confirmStatus          *ConfirmStatus
 }
 
@@ -142,9 +141,9 @@ func (pool *TxPool) InitDefault() {
 	pool.flows = NewAccountFlows()
 	pool.txLookup = newTxLookUp()
 	pool.quit = make(chan struct{})
-	pool.onNewTxReceived = make(map[channelName]chan types.Txi)
-	pool.onBatchConfirmed = []chan map[common.Hash]types.Txi{}
-	pool.onConsensusTXConfirmed = []chan map[common.Hash]types.Txi{}
+	pool.onTxiGetInPool = make(map[channelName]chan types.Txi)
+	//pool.onBatchConfirmed = []chan map[common.Hash]types.Txi{}
+	//pool.onConsensusTXConfirmed = []chan map[common.Hash]types.Txi{}
 	//confirmStatus:          &ConfirmStatus{RefreshTime: time.Minute * time.Duration(Config.ConfirmStatusRefreshTime)},
 
 }
@@ -152,7 +151,7 @@ func (pool *TxPool) InitDefault() {
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 	return map[string]interface{}{
 		"queue":      len(pool.queue),
-		"event":      len(pool.onNewTxReceived),
+		"event":      len(pool.onTxiGetInPool),
 		"txlookup":   len(pool.txLookup.txs),
 		"tips":       len(pool.tips.txs),
 		"badtxs":     len(pool.badtxs.txs),
@@ -333,7 +332,7 @@ func (c channelName) String() string {
 func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, allTx bool) {
 	logrus.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
 	chName := channelName{chanName, allTx}
-	pool.onNewTxReceived[chName] = c
+	pool.onTxiGetInPool[chName] = c
 }
 
 // GetRandomTips returns n tips randomly.
@@ -553,7 +552,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 	//		return err
 	//	}
 	//	// notify all subscribers of newTxEvent
-	//	for name, subscriber := range pool.onNewTxReceived {
+	//	for name, subscriber := range pool.onTxiGetInPool {
 	//		logrus.WithField("tx", tx).Trace("notify subscriber: ", name)
 	//		if !noFeedBack || name.allMsg {
 	//			subscriber <- tx
@@ -851,18 +850,22 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	pool.txLookup.SwitchStatus(seq.GetHash(), TxStatusTip)
 
 	// notification
-	for _, c := range pool.onBatchConfirmed {
-		if status.NodeStopped {
-			break
-		}
-		c <- elders
-	}
-	for _, c := range pool.onNewLatestSequencer {
-		if status.NodeStopped {
-			break
-		}
-		c <- true
-	}
+	pool.EventBus.Route(&events.SequencerBatchConfirmedEvent{Elders: elders})
+
+	pool.EventBus.Route(&events.SequencerConfirmedEvent{Sequencer: seq})
+
+	//for _, c := range pool.onBatchConfirmed {
+	//	if status.NodeStopped {
+	//		break
+	//	}
+	//	c <- elders
+	//}
+	//for _, c := range pool.onNewLatestSequencer {
+	//	if status.NodeStopped {
+	//		break
+	//	}
+	//	c <- true
+	//}
 
 	logrus.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
 	return nil

@@ -14,9 +14,11 @@
 package miner
 
 import (
+	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
-	"github.com/annchain/OG/og/types/archive"
 
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
@@ -24,52 +26,35 @@ import (
 	"time"
 )
 
-type SampleTx struct {
-	types.TxBase
-}
-
-func (s SampleTx) GetBase() *types.TxBase {
-	return &s.TxBase
-}
-
-func (s SampleTx) Sender() common.Address {
-	panic("implement me")
-}
-
-func (s SampleTx) GetSender() *common.Address {
-	panic("implement me")
-}
-
-func (s SampleTx) SetSender(addr common.Address) {
-	panic("implement me")
-}
-
-func (s SampleTx) Dump() string {
-	panic("implement me")
-}
-
-func (s SampleTx) Compare(tx types.Txi) bool {
-	panic("implement me")
-}
-
-func (s SampleTx) SignatureTargets() []byte {
-	panic("implement me")
-}
-
-func (s SampleTx) RawTxi() archive.RawTxi {
-	panic("implement me")
-}
-
 func TestPoW(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	t.Parallel()
 
 	miner := PoWMiner{}
 
-	tx := &SampleTx{}
+	account := account.RandomAccount()
+
+	tx := &types.Tx{
+		Hash: common.Hash{},
+		ParentsHash: common.Hashes{
+			common.HexToHash("0x0003"),
+			common.HexToHash("0x0004"),
+		},
+		MineNonce:    0,
+		AccountNonce: 100,
+		From:         common.HexToAddress("0x0001"),
+		To:           common.HexToAddress("0x0002"),
+		Value:        math.NewBigInt(50),
+		TokenId:      0,
+		Data:         []byte{1, 2, 3, 4},
+		PublicKey:    account.PublicKey,
+		Signature:    crypto.Signature{},
+		Height:       10,
+		Weight:       10,
+	}
 	responseChan := make(chan uint64)
 	start := time.Now()
-	go miner.StartMine(tx, common.HexToHash("0x00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
+	go miner.Mine(tx, common.HexToHash("0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
 
 	c, ok := <-responseChan
 	logrus.Infof("time: %d ms", time.Since(start).Nanoseconds()/1000000)

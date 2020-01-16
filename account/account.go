@@ -13,10 +13,11 @@ type Account struct {
 	PrivateKey  crypto.PrivateKey
 	PublicKey   crypto.PublicKey
 	Address     common.Address
+	InitBalance uint64
+
 	nonce       atomic.Uint64
 	nonceInited bool
 	mu          sync.RWMutex
-	InitBalance uint64
 }
 
 func NewAccount(privateKeyHex string) *Account {

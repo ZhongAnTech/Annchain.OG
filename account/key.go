@@ -20,3 +20,16 @@ func GenAccount() (crypto.PrivateKey, crypto.PublicKey) {
 
 	return priv, pub
 }
+
+func RandomAccount() *Account {
+	sk, pk := GenAccount()
+	signer := crypto.NewSigner(sk.Type)
+
+	return &Account{
+		Id:          0,
+		PrivateKey:  sk,
+		PublicKey:   pk,
+		Address:     signer.Address(pk),
+		InitBalance: 0,
+	}
+}

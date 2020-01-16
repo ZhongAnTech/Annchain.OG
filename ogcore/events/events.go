@@ -1,6 +1,7 @@
 package events
 
 import (
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
@@ -28,9 +29,9 @@ const (
 	NewTxLocallyGeneratedEventType        // a new tx is generated from local
 	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
 
-	NewTxReceivedInPoolEventType // a new tx is received in the pool	and to be processed. (including sequencer)
-	//BatchConfirmed
-	SequencerConfirmedEventType // a sequencer is received and validated to be on the graph
+	NewTxReceivedInPoolEventType     // a new tx is received in the pool and to be processed. (including sequencer)
+	SequencerBatchConfirmedEventType // a sequencer and its txs are all confirmed in a batch
+	SequencerConfirmedEventType      // a sequencer is received and validated to be on the graph
 )
 
 type PingReceivedEvent struct{}
@@ -150,8 +151,16 @@ func (m *NewTxReceivedInPoolEvent) GetEventType() eventbus.EventType {
 	return NewTxReceivedInPoolEventType
 }
 
+type SequencerBatchConfirmedEvent struct {
+	Elders map[common.Hash]types.Txi
+}
+
+func (m *SequencerBatchConfirmedEvent) GetEventType() eventbus.EventType {
+	return SequencerBatchConfirmedEventType
+}
+
 type SequencerConfirmedEvent struct {
-	Tx types.Txi
+	Sequencer *types.Sequencer
 }
 
 func (m *SequencerConfirmedEvent) GetEventType() eventbus.EventType {

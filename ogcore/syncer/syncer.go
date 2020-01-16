@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-type SyncRequest struct {
-	Hash            common.Hash
-	SpecifiedSource *communication.OgPeer
-}
-
 type SyncerConfig struct {
 	//AcquireTxQueueSize uint
 	//MaxBatchSize                             int
@@ -33,9 +28,13 @@ type SyncerConfig struct {
 type Syncer2 struct {
 	Config                  *SyncerConfig
 	PeerOutgoing            communication.OgPeerCommunicatorOutgoing
-	acquireTxQueue          chan *SyncRequest
+	acquireTxQueue          chan *events.NeedSyncEvent
 	acquireTxDuplicateCache gcache.Cache // list of hashes that are queried recently. Prevent duplicate requests.
 	quit                    chan bool
+}
+
+func (s *Syncer2) ClearQueue() {
+	panic("implement me")
 }
 
 func (s *Syncer2) HandlerDescription(et eventbus.EventType) string {
@@ -51,14 +50,14 @@ func (s *Syncer2) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
 	case events.NeedSyncEventType:
 		evs := ev.(*events.NeedSyncEvent)
-		s.EnqueueRequest(&evs.SyncRequest)
+		s.EnqueueRequest(evs)
 	default:
 		logrus.Warn("event type not supported by syncer2")
 	}
 }
 
 func (s *Syncer2) InitDefault() {
-	s.acquireTxQueue = make(chan *SyncRequest)
+	s.acquireTxQueue = make(chan *events.NeedSyncEvent)
 	s.acquireTxDuplicateCache = gcache.New(s.Config.AcquireTxDedupCacheMaxSize).Simple().
 		Expiration(time.Second * time.Duration(s.Config.AcquireTxDedupCacheExpirationSeconds)).Build()
 	s.quit = make(chan bool)
@@ -112,6 +111,6 @@ func (s *Syncer2) loop() {
 	}
 }
 
-func (s *Syncer2) EnqueueRequest(request *SyncRequest) {
+func (s *Syncer2) EnqueueRequest(request *events.NeedSyncEvent) {
 	s.acquireTxQueue <- request
 }

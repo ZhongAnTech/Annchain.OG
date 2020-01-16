@@ -52,7 +52,7 @@ func (o *OgCore) HandleStatusData(status model.OgStatusData) {
 func (o *OgCore) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
 	default:
-		logrus.Warn("event type not supported by txbuffer")
+		logrus.Warn("event type not supported by ogcore")
 	}
 }
 

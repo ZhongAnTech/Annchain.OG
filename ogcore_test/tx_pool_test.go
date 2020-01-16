@@ -88,11 +88,11 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, f
 
 	pool.Init(generatedGenesis)
 
-	pool.Start()
+	//pool.Start()
 	dag.Start()
 
 	return pool, dag, generatedGenesis, func() {
-		pool.Stop()
+		//pool.Stop()
 		dag.Stop()
 	}
 }

@@ -5,10 +5,13 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/common/utilfuncs"
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
+	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/message"
 	"github.com/sirupsen/logrus"
 
@@ -17,6 +20,23 @@ import (
 
 type dummyDag struct {
 	dmap map[common.Hash]types.Txi
+}
+
+func (d *dummyDag) IsTxExists(hash common.Hash) bool {
+	_, ok := d.dmap[hash]
+	return ok
+}
+
+func (d *dummyDag) IsAddressExists(addr common.Address) bool {
+	panic("implement me")
+}
+
+func (d *dummyDag) Push(batch *ledger.ConfirmBatch) error {
+	d.dmap[batch.Seq.Hash] = batch.Seq
+	for _, tx := range batch.Txs {
+		d.dmap[tx.GetHash()] = tx
+	}
+	return nil
 }
 
 func (d *dummyDag) Name() string {
@@ -73,7 +93,7 @@ func (d *dummyDag) GetTestTxisByNumber(id uint64) types.Txis {
 }
 
 func (d *dummyDag) LatestSequencer() *types.Sequencer {
-	return nil
+	return d.dmap[common.HexToHash("0x00")].(*types.Sequencer)
 }
 
 func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
@@ -81,12 +101,13 @@ func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
 }
 
 func (d *dummyDag) Genesis() *types.Sequencer {
-	return nil
+	return d.dmap[common.HexToHash("0x00")].(*types.Sequencer)
 }
 
 func (d *dummyDag) InitDefault() {
 	d.dmap = make(map[common.Hash]types.Txi)
-	tx := sampleTx("0x00", []string{})
+	tx := sampleSequencer("0x00", []string{}, 0)
+	tx.Weight = 1
 	d.dmap[tx.GetHash()] = tx
 }
 
@@ -97,10 +118,33 @@ func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
 	return nil
 }
 
-func sampleTx(selfHash string, parentsHash []string) *types.Tx {
+func sampleSequencer(selfHash string, parentsHash []string, nonce uint64) *types.Sequencer {
+	parents, err := common.HexStringsToHashes(parentsHash)
+	utilfuncs.PanicIfError(err, "sampleseq bad hex")
+
+	seq := &types.Sequencer{
+		Hash:         common.HexToHash(selfHash),
+		ParentsHash:  parents,
+		Height:       0,
+		MineNonce:    0,
+		AccountNonce: nonce,
+		Issuer:       common.Address{},
+		Signature:    nil,
+		PublicKey:    nil,
+		StateRoot:    common.Hash{},
+		Weight:       0,
+	}
+	return seq
+}
+
+func sampleTx(selfHash string, parentsHash []string, nonce uint64) *types.Tx {
+	parents, err := common.HexStringsToHashes(parentsHash)
+	utilfuncs.PanicIfError(err, "sampletx bad hex")
 	tx := &types.Tx{
-		Hash:        common.HexToHash(selfHash),
-		ParentsHash: common.Hashes{},
+		Hash:         common.HexToHash(selfHash),
+		ParentsHash:  parents,
+		AccountNonce: nonce,
+		Value:        math.NewBigInt(0),
 	}
 	for _, h := range parentsHash {
 		tx.ParentsHash = append(tx.ParentsHash, common.HexToHash(h))
@@ -124,7 +168,7 @@ func (d *dummySyncer) InitDefault() {
 
 func (d *dummySyncer) HandleEvent(ev eventbus.Event) {
 	evt := ev.(*events.NeedSyncEvent)
-	v, ok := d.dmap[evt.ParentHash]
+	v, ok := d.dmap[evt.Hash]
 	if ok {
 		// we already have this tx.
 		logrus.WithField("tx", v).Debug("syncer found new tx")
@@ -199,7 +243,7 @@ func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 
 func (d *dummyTxPool) InitDefault() {
 	d.dmap = make(map[common.Hash]types.Txi)
-	tx := sampleTx("0x01", []string{"0x00"})
+	tx := sampleTx("0x01", []string{"0x00"}, 0)
 	d.dmap[tx.GetHash()] = tx
 }
 
@@ -255,10 +299,14 @@ func (o DummyOgPeerCommunicator) Broadcast(msg message.OgMessage) {
 		}
 		go func(i int, peerChan chan *communication.OgMessageEvent) {
 			//<- ffchan.NewTimeoutSenderShort(o.PeerPipeIns[peer.Id], msg, "dkg").C
-			peerChan <- &communication.OgMessageEvent{
+			ffchan.NewTimeoutSenderShort(peerChan, &communication.OgMessageEvent{
 				Message: msg,
 				Peer:    me,
-			}
+			}, "peercomm")
+			//peerChan <- &communication.OgMessageEvent{
+			//	Message: msg,
+			//	Peer:    me,
+			//}
 		}(i, peerChan)
 	}
 }
@@ -300,7 +348,7 @@ func (o DummyOgPeerCommunicator) Unicast(msg message.OgMessage, peer *communicat
 		//ffchan.NewTimeoutSenderShort(d.PeerPipeIns[peer.Id], msg, "bft")
 		o.PeerPipeIns[peer.Id] <- &communication.OgMessageEvent{
 			Message: msg,
-			Peer:    communication.OgPeer{Id: o.Myid},
+			Peer:    &communication.OgPeer{Id: o.Myid},
 		}
 	}()
 }

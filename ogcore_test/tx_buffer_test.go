@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/interfaces"
 	"github.com/annchain/OG/ogcore/pool"
-	"github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
 	"testing"
 	"time"
@@ -91,23 +90,21 @@ func TestBuffer(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer, syncerInst := setupTxBuffer()
 	m := syncerInst.(*dummySyncer)
-	m.Know(sampleTx("0x01", []string{"0x00"}))
-	m.Know(sampleTx("0x02", []string{"0x00"}))
-	m.Know(sampleTx("0x03", []string{"0x00"}))
-	m.Know(sampleTx("0x04", []string{"0x02"}))
-	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
-	m.Know(sampleTx("0x06", []string{"0x02"}))
-	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
-	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
-	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	tx := sampleTx("0x0A", []string{"0x09"})
+	m.Know(sampleTx("0x01", []string{"0x00"}, 1))
+	m.Know(sampleTx("0x02", []string{"0x00"}, 2))
+	m.Know(sampleTx("0x03", []string{"0x00"}, 3))
+	m.Know(sampleTx("0x04", []string{"0x02"}, 4))
+	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}, 5))
+	m.Know(sampleTx("0x06", []string{"0x02"}, 6))
+	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}, 7))
+	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}, 8))
+	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}, 9))
+	tx := sampleTx("0x0A", []string{"0x09"}, 10)
 	buffer.Start()
 
 	buffer.EventBus.Route(&events.NeedSyncEvent{
-		SyncRequest: syncer.SyncRequest{
-			Hash:            tx.ParentsHash[0],
-			SpecifiedSource: nil,
-		},
+		Hash:            tx.ParentsHash[0],
+		SpecifiedSource: nil,
 	})
 
 	doTest(buffer)
@@ -122,15 +119,15 @@ func TestBufferMissing3(t *testing.T) {
 	buffer, syncer := setupTxBuffer()
 	m := syncer.(*dummySyncer)
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
-	m.Know(sampleTx("0x02", []string{"0x00"}))
+	m.Know(sampleTx("0x02", []string{"0x00"}, 1))
 	//m.Know(sampleTx("0x03", []string{"0x00"}))
-	m.Know(sampleTx("0x04", []string{"0x02"}))
-	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}))
-	m.Know(sampleTx("0x06", []string{"0x02"}))
-	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}))
-	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}))
-	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}))
-	tx := sampleTx("0x0A", []string{"0x09"})
+	m.Know(sampleTx("0x04", []string{"0x02"}, 2))
+	m.Know(sampleTx("0x05", []string{"0x01", "0x02", "0x03"}, 3))
+	m.Know(sampleTx("0x06", []string{"0x02"}, 4))
+	m.Know(sampleTx("0x07", []string{"0x04", "0x05"}, 5))
+	m.Know(sampleTx("0x08", []string{"0x05", "0x06"}, 6))
+	m.Know(sampleTx("0x09", []string{"0x07", "0x08"}, 7))
+	tx := sampleTx("0x0A", []string{"0x09"}, 8)
 
 	buffer.Start()
 	buffer.EventBus.Route(&events.TxReceivedEvent{

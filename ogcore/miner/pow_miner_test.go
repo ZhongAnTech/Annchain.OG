@@ -32,7 +32,7 @@ func TestPoW(t *testing.T) {
 
 	miner := PoWMiner{}
 
-	account := account.RandomAccount()
+	acc := account.RandomAccount()
 
 	tx := &types.Tx{
 		Hash: common.Hash{},
@@ -47,7 +47,7 @@ func TestPoW(t *testing.T) {
 		Value:        math.NewBigInt(50),
 		TokenId:      0,
 		Data:         []byte{1, 2, 3, 4},
-		PublicKey:    account.PublicKey,
+		PublicKey:    acc.PublicKey,
 		Signature:    crypto.Signature{},
 		Height:       10,
 		Weight:       10,

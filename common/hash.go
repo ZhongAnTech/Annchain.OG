@@ -86,6 +86,17 @@ func HexStringToHash(s string) (Hash, error) {
 	err := h.SetBytes(FromHex(s))
 	return h, err
 }
+func HexStringsToHashes(ss []string) (Hashes, error) {
+	hs := make([]Hash, len(ss))
+	var err error
+	for i, s := range ss {
+		hs[i], err = HexStringToHash(s)
+		if err != nil {
+			return hs, err
+		}
+	}
+	return hs, nil
+}
 
 // ToBytes convers hash to []byte.
 func (h Hash) ToBytes() []byte { return h.Bytes[:] }

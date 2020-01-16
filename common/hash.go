@@ -20,6 +20,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/common/utilfuncs"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -79,23 +80,30 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 
 // HexToHash sets byte representation of s to Hash.
 // If b is larger than len(h), b will be cropped from the left.
-func HexToHash(s string) Hash { return BytesToHash(FromHex(s)) }
-
-func HexStringToHash(s string) (Hash, error) {
-	var h Hash
-	err := h.SetBytes(FromHex(s))
-	return h, err
+func HexToHash(s string) (hash Hash, err error) {
+	bytes, err := FromHex(s)
+	if err != nil {
+		return
+	}
+	hash = BytesToHash(bytes)
+	return
 }
-func HexStringsToHashes(ss []string) (Hashes, error) {
-	hs := make([]Hash, len(ss))
-	var err error
+
+func HexToHashNoError(s string) (hash Hash) {
+	hash, err := HexToHash(s)
+	utilfuncs.PanicIfError(err, "hexToHash")
+	return
+}
+
+func HexStringsToHashes(ss []string) (hashes Hashes, err error) {
+	hashes = make([]Hash, len(ss))
 	for i, s := range ss {
-		hs[i], err = HexStringToHash(s)
+		hashes[i], err = HexToHash(s)
 		if err != nil {
-			return hs, err
+			return
 		}
 	}
-	return hs, nil
+	return
 }
 
 // ToBytes convers hash to []byte.

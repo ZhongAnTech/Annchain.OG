@@ -40,7 +40,7 @@ var (
 
 	DefaultGasLimit = uint64(10000000000)
 
-	DefaultCoinbase = common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	DefaultCoinbase = common.HexToAddressNoError("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
 type DagConfig struct {

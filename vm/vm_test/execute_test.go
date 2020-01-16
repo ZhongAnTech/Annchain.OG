@@ -15,7 +15,7 @@ func ExampleExecute() {
 		From:       common.HexToAddress("0x01"),
 		To:         common.HexToAddress("0x02"),
 		Value:      math.NewBigInt(10),
-		Data:       common.Hex2Bytes("6060604052600a8060106000396000f360606040526008565b00"),
+		Data:       common.Hex2BytesNoError("6060604052600a8060106000396000f360606040526008565b00"),
 		GasPrice:   math.NewBigInt(10000),
 		GasLimit:   DefaultGasLimit,
 		Coinbase:   common.HexToAddress("0x01"),

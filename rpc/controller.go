@@ -82,7 +82,7 @@ func (r *RpcController) Query(c *gin.Context) {
 //Transaction  get  transaction
 func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := common.HexStringToHash(hashtr)
+	hash, err := common.HexToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -123,7 +123,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 //Confirm checks if tx has already been confirmed.
 func (r *RpcController) Confirm(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := common.HexStringToHash(hashtr)
+	hash, err := common.HexToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -243,7 +243,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 	} else {
-		hash, err := common.HexStringToHash(hashtr)
+		hash, err := common.HexToHash(hashtr)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 			return

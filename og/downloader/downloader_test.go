@@ -85,7 +85,7 @@ func newTester() *downloadTester {
 }
 
 func TestHeaderEuqual(t *testing.T) {
-	testHash, _ := common.HexStringToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
+	testHash, _ := common.HexToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
 	head := types.NewSequencerHead(testHash, 1447)
 	seq := &types.Sequencer{}
 	seq.Height = 1447

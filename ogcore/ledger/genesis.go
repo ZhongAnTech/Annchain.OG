@@ -50,8 +50,8 @@ func (c *HardcodeGenesisGenerator) WriteGenesis(dag *Dag) *types.Sequencer {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
-	seq.Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
-	seq.PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
+	seq.Signature = common.Hex2BytesNoError("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
+	seq.PublicKey = common.Hex2BytesNoError("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
 	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.PublicKey))
 	seq.Issuer = issuer
 	hash := miner.CalcHash(seq)
@@ -59,7 +59,7 @@ func (c *HardcodeGenesisGenerator) WriteGenesis(dag *Dag) *types.Sequencer {
 
 	balance := map[common.Address]*math.BigInt{}
 
-	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
+	addr := common.HexToAddressNoError("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance[addr] = math.NewBigInt(12345678)
 
 	// write to ledger
@@ -122,7 +122,7 @@ func (c *HardcodeGenesisGenerator) init(dag *Dag, genesis *types.Sequencer, gene
 func DefaultGenesis(genesisPath string) (*types.Sequencer, map[common.Address]*math.BigInt) {
 
 	// signer
-	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
+	addr := common.HexToAddressNoError("643d534e15a315173a3c18cd13c9f95c7484a9bc")
 	balance := map[common.Address]*math.BigInt{}
 	balance[addr] = math.NewBigInt(99999999)
 	accounts := GetGenesisAccounts(genesisPath)

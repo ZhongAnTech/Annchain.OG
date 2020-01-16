@@ -519,7 +519,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 
 	switch tx := tx.(type) {
 	case *types.Sequencer:
-		err = pool.confirm(tx)
+		err = pool.Confirm(tx)
 		if err != nil {
 			pool.txLookup.Remove(txEvent.tx.GetHash(), removeFromEnd)
 		} else {
@@ -538,7 +538,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 			if maxWeight < tx.GetWeight() {
 				atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
 			}
-			tx.SetHeight(pool.Dag.LatestSequencer().Height + 1) //temporary height ,will be re write after confirm
+			tx.SetHeight(pool.Dag.LatestSequencer().Height + 1) //temporary height ,will be re write after Confirm
 		}
 
 	}
@@ -794,7 +794,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
-// PreConfirm simulates the confirm process of a sequencer and store the related data
+// PreConfirm simulates the Confirm process of a sequencer and store the related data
 // into pool.cached. Once a real sequencer with same hash comes, reload cached data without
 // any more calculates.
 func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err error) {
@@ -810,12 +810,12 @@ func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 	//defer pool.mu.Unlock()
 	//
 	//if seq.GetHeight() <= pool.Dag.GetHeight() {
-	//	return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
+	//	return common.Hash{}, fmt.Errorf("the height of seq to pre-Confirm is lower than "+
 	//		"the latest seq in Dag. get height: %d, latest: %d", seq.GetHeight(), pool.Dag.GetHeight())
 	//}
 	//elders, batch, err := pool.confirmHelper(seq)
 	//if err != nil {
-	//	logrus.WithField("error", err).Errorf("confirm error: %v", err)
+	//	logrus.WithField("error", err).Errorf("Confirm error: %v", err)
 	//	return common.Hash{}, err
 	//}
 	//rootHash, err := pool.Dag.PrePush(batch)
@@ -826,9 +826,9 @@ func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 	//return rootHash, nil
 }
 
-// confirm pushes a batch of txs that confirmed by a sequencer to the Dag.
-func (pool *TxPool) confirm(seq *types.Sequencer) error {
-	logrus.WithField("seq", seq).Trace("start confirm seq")
+// Confirm pushes a batch of txs that confirmed by a sequencer to the Dag.
+func (pool *TxPool) Confirm(seq *types.Sequencer) error {
+	logrus.WithField("seq", seq).Trace("start Confirm seq")
 
 	var err error
 	var batch *ledger.ConfirmBatch
@@ -842,34 +842,16 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	} else {
 		elders, batch, err = pool.confirmHelper(seq)
 		if err != nil {
-			logrus.WithField("error", err).Errorf("confirm error: %v", err)
+			logrus.WithField("error", err).Errorf("Confirm error: %v", err)
 			return err
 		}
 	}
 	pool.cached = nil
 
-	// push batch to Dag
-	if err := pool.Dag.Push(batch); err != nil {
-		logrus.WithField("error", err).Errorf("Dag Push error: %v", err)
+	err = pool.PushBatch(batch)
+	if err != nil {
 		return err
 	}
-
-	//for _, tx := range batch.Txs {
-	//	if normalTx, ok := tx.(*types.Txi); ok {
-	//		pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
-	//	}
-	//}
-
-	// solve conflicts of txs in pool
-	pool.solveConflicts(batch)
-	// add seq to txpool
-	if pool.flows.Get(seq.Sender()) == nil {
-		pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
-	}
-	pool.flows.Add(seq)
-	pool.tips.Add(seq)
-	pool.txLookup.Add(&txEnvelope{tx: seq})
-	pool.txLookup.SwitchStatus(seq.GetHash(), TxStatusTip)
 
 	// notification
 	pool.EventBus.Route(&events.SequencerBatchConfirmedEvent{Elders: elders})
@@ -889,7 +871,35 @@ func (pool *TxPool) confirm(seq *types.Sequencer) error {
 	//	c <- true
 	//}
 
-	logrus.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
+	logrus.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished Confirm seq")
+	return nil
+}
+
+func (pool *TxPool) PushBatch(batch *ledger.ConfirmBatch) error {
+	// push batch to Dag
+	if err := pool.Dag.Push(batch); err != nil {
+		logrus.WithField("error", err).Errorf("Dag Push error: %v", err)
+		return err
+	}
+
+	//for _, tx := range batch.Txs {
+	//	if normalTx, ok := tx.(*types.Txi); ok {
+	//		pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
+	//	}
+	//}
+
+	seq := batch.Seq
+
+	// solve conflicts of txs in pool
+	pool.solveConflicts(batch)
+	// add seq to txpool
+	if pool.flows.Get(seq.Sender()) == nil {
+		pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
+	}
+	pool.flows.Add(seq)
+	pool.tips.Add(seq)
+	pool.txLookup.Add(&txEnvelope{tx: seq})
+	pool.txLookup.SwitchStatus(seq.GetHash(), TxStatusTip)
 	return nil
 }
 
@@ -988,7 +998,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *types.Sequencer, elders map[common.H
 		if txi.GetType() == types.TxBaseTypeTx {
 		}
 
-		// return error if a sequencer confirm a tx that has same nonce as itself.
+		// return error if a sequencer Confirm a tx that has same nonce as itself.
 		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
 			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
 				seq.GetNonce(), txi.GetHash())
@@ -1122,7 +1132,7 @@ func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *ty
 
 	if seq.Sender().Hex() == addr.Hex() {
 		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
-			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
+			return fmt.Errorf("seq's nonce is not the next nonce of Confirm list, seq nonce: %d, latest nonce in Confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
 		}
 	}
 

@@ -12,7 +12,8 @@ type OgStatusProvider interface {
 
 
 type LedgerTxProvider interface {
-	GetHeightTxs(height uint64, offset uint32, limit uint32) []types.Txi
+	GetHeightTxs(height uint64, offset int, limit int) []types.Txi
+	GetTxis(hashes common.Hashes) types.Txis
 }
 
 type Syncer interface {

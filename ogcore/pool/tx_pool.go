@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
@@ -86,6 +87,7 @@ const (
 )
 
 type TxPool struct {
+	debuglog.NodeLogger
 	EventBus eventbus.EventBus
 	Config   TxPoolConfig
 	Dag      ILedger
@@ -120,6 +122,10 @@ func (pool *TxPool) HandlerDescription(et eventbus.EventType) string {
 }
 
 func (pool *TxPool) HandleEvent(ev eventbus.Event) {
+	if pool.queue == nil {
+		panic("not initialized.")
+	}
+
 	switch ev.GetEventType() {
 	case events.NewTxiDependencyFulfilledEventType:
 		evt := ev.(*events.NewTxiDependencyFulfilledEvent)
@@ -127,7 +133,7 @@ func (pool *TxPool) HandleEvent(ev eventbus.Event) {
 		err := pool.AddRemoteTx(evt.Txi, true)
 		utilfuncs.PanicIfError(err, "should not have any error now")
 	default:
-		logrus.WithField("type", ev.GetEventType()).Warn("event type not supported")
+		pool.Logger.WithField("type", ev.GetEventType()).Warn("event type not supported")
 	}
 }
 
@@ -220,7 +226,7 @@ func (pool *TxPool) Init(genesis *types.Sequencer) {
 	pool.txLookup.Add(genesisEnvelope)
 	pool.tips.Add(genesis)
 
-	logrus.Infof("TxPool finish init")
+	pool.Logger.Infof("TxPool finish init")
 }
 
 func (pool *TxPool) Name() string {
@@ -328,7 +334,7 @@ func (c channelName) String() string {
 }
 
 func (pool *TxPool) RegisterOnNewTxReceived(c chan types.Txi, chanName string, allTx bool) {
-	logrus.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
+	pool.Logger.Tracef("RegisterOnNewTxReceived with chan: %s ,all %v", chanName, allTx)
 	chName := channelName{chanName, allTx}
 	pool.onTxiGetInPool[chName] = c
 }
@@ -478,7 +484,7 @@ func (pool *TxPool) clearAll() {
 
 // addTx adds tx to the pool queue and No async[wait to become tip after validation.]
 func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
-	logrus.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.GetParents().String())
+	pool.Logger.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addTx, tx parents: %s", tx.GetParents().String())
 
 	txEvent := &txEnvelope{
 		tx:         tx,
@@ -487,13 +493,13 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		noFeedBack: noFeedBack,
 	}
 
-	logrus.WithField("tx", txEvent.tx).Trace("get tx from queue")
+	pool.Logger.WithField("tx", txEvent.tx).Trace("get tx from queue")
 
 	var err error
 	//tx := txEvent.tx
 	// check if tx is duplicate
 	if pool.get(tx.GetHash()) != nil {
-		logrus.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+		pool.Logger.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 		// use event bus
 		//txEvent.callbackChan <- types.ErrDuplicateTx
 		return nil
@@ -509,7 +515,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 			parentTx = pool.Dag.GetTx(parentHash)
 			if parentTx == nil {
 				// not possible, since all tx sent from buffer should be completely fulfilled
-				logrus.WithField("tx", tx).Error("failed to find parents of tx")
+				pool.Logger.WithField("tx", tx).Error("failed to find parents of tx")
 				return errors.New("failed to find parents of tx")
 			}
 		}
@@ -545,7 +551,7 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 	pool.mu.Unlock()
 
 	// TODO: Use event
-	logrus.WithField("tx", tx).Trace("successfully added tx to txPool")
+	pool.Logger.WithField("tx", tx).Trace("successfully added tx to txPool")
 
 	pool.EventBus.Route(&events.NewTxReceivedInPoolEvent{
 		Tx: tx,
@@ -584,18 +590,18 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
 // tip pool, those tips will be removed from tips but stored in pending.
 func (pool *TxPool) commit(tx types.Txi) error {
-	logrus.WithField("tx", tx).Trace("start commit tx")
+	pool.Logger.WithField("tx", tx).Trace("start commit tx")
 
 	// check tx's quality.
 	txquality := pool.isBadTx(tx)
 	if txquality == TxQualityIsFatal {
 		pool.remove(tx, removeFromEnd)
 		tx.SetValid(false)
-		logrus.WithField("tx", tx).Debug("set invalid")
+		pool.Logger.WithField("tx", tx).Debug("set invalid")
 		return fmt.Errorf("tx is surely incorrect to commit, hash: %s", tx.GetHash())
 	}
 	if txquality == TxQualityIsBad {
-		logrus.Tracef("bad tx: %s", tx)
+		pool.Logger.Tracef("bad tx: %s", tx)
 		pool.badtxs.Add(tx)
 		pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusBadTx)
 		return nil
@@ -605,13 +611,13 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	for _, pHash := range tx.GetParents() {
 		status := pool.getStatus(pHash)
 		if status != TxStatusTip {
-			logrus.WithField("parent", pHash).WithField("tx", tx).
+			pool.Logger.WithField("parent", pHash).WithField("tx", tx).
 				Tracef("parent is not a tip")
 			continue
 		}
 		parent := pool.tips.Get(pHash)
 		if parent == nil {
-			logrus.WithField("parent", pHash).WithField("tx", tx).
+			pool.Logger.WithField("parent", pHash).WithField("tx", tx).
 				Warn("parent status is tip but can not find in tips")
 			continue
 		}
@@ -641,8 +647,8 @@ func (pool *TxPool) commit(tx types.Txi) error {
 	pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusTip)
 
 	// TODO delete this line later.
-	if logrus.GetLevel() >= logrus.TraceLevel {
-		logrus.WithField("tx", tx).WithField("status", pool.getStatus(tx.GetHash())).Tracef("finished commit tx")
+	if pool.Logger.GetLevel() >= logrus.TraceLevel {
+		pool.Logger.WithField("tx", tx).WithField("status", pool.getStatus(tx.GetHash())).Tracef("finished commit tx")
 	}
 	return nil
 }
@@ -653,14 +659,14 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		// check if tx in pool
 		if pool.get(parentHash) != nil {
 			if pool.getStatus(parentHash) == TxStatusBadTx {
-				logrus.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
+				pool.Logger.WithField("tx", tx).Tracef("bad tx, parent %s is bad tx", parentHash)
 				return TxQualityIsBad
 			}
 			continue
 		}
 		// check if tx in Dag
 		if pool.Dag.GetTx(parentHash) == nil {
-			logrus.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash)
+			pool.Logger.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash)
 			return TxQualityIsFatal
 		}
 	}
@@ -673,18 +679,18 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	txinpool := pool.flows.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txinpool != nil {
 		if txinpool.GetHash() == tx.GetHash() {
-			logrus.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
+			pool.Logger.WithField("tx", tx).Error("duplicated tx in pool. Why received many times")
 			return TxQualityIsFatal
 		}
-		logrus.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
+		pool.Logger.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
 	}
 	txindag := pool.Dag.GetTxByNonce(tx.Sender(), tx.GetNonce())
 	if txindag != nil {
 		if txindag.GetHash() == tx.GetHash() {
-			logrus.WithField("tx", tx).Error("duplicated tx in Dag. Why received many times")
+			pool.Logger.WithField("tx", tx).Error("duplicated tx in Dag. Why received many times")
 		}
-		logrus.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in Dag")
+		pool.Logger.WithField("tx", tx).WithField("existing", txindag).Trace("bad tx, duplicate nonce found in Dag")
 		return TxQualityIsFatal
 	}
 
@@ -692,17 +698,17 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 
 	if e == nil {
 		if tx.GetNonce() != latestNonce+1 {
-			logrus.WithField("should be ", latestNonce+1).WithField("tx", tx).Error("nonce err")
+			pool.Logger.WithField("should be ", latestNonce+1).WithField("tx", tx).Error("nonce err")
 			return TxQualityIsFatal
 		}
 	} else {
 		latestNonce, nErr := pool.Dag.GetLatestNonce(tx.Sender())
 		if nErr != nil {
-			logrus.Errorf("get latest nonce err: %v", nErr)
+			pool.Logger.Errorf("get latest nonce err: %v", nErr)
 			return TxQualityIsFatal
 		}
 		if tx.GetNonce() != latestNonce+1 {
-			logrus.WithFields(logrus.Fields{
+			pool.Logger.WithFields(logrus.Fields{
 				"given":  tx.GetNonce(),
 				"should": latestNonce + 1,
 				"tx":     tx,
@@ -722,7 +728,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 
 		// if tx's value is larger than its balance, return fatal.
 		if tx.Value.Value.Cmp(stateFrom.OriginBalance().Value) > 0 {
-			logrus.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
+			pool.Logger.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
 			return TxQualityIsFatal
 		}
 		// if ( the value that 'from' already spent )
@@ -731,7 +737,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		totalspent := math.NewBigInt(0)
 		if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
 			stateFrom.originBalance.Value) > 0 {
-			logrus.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
+			pool.Logger.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
 			return TxQualityIsBad
 		}
 	//case *archive.ActionTx:
@@ -828,7 +834,7 @@ func (pool *TxPool) PreConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 
 // Confirm pushes a batch of txs that confirmed by a sequencer to the Dag.
 func (pool *TxPool) Confirm(seq *types.Sequencer) error {
-	logrus.WithField("seq", seq).Trace("start Confirm seq")
+	pool.Logger.WithField("seq", seq).Trace("start Confirm seq")
 
 	var err error
 	var batch *ledger.ConfirmBatch
@@ -842,7 +848,7 @@ func (pool *TxPool) Confirm(seq *types.Sequencer) error {
 	} else {
 		elders, batch, err = pool.confirmHelper(seq)
 		if err != nil {
-			logrus.WithField("error", err).Errorf("Confirm error: %v", err)
+			pool.Logger.WithField("error", err).Errorf("Confirm error: %v", err)
 			return err
 		}
 	}
@@ -871,14 +877,14 @@ func (pool *TxPool) Confirm(seq *types.Sequencer) error {
 	//	c <- true
 	//}
 
-	logrus.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished Confirm seq")
+	pool.Logger.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished Confirm seq")
 	return nil
 }
 
 func (pool *TxPool) PushBatch(batch *ledger.ConfirmBatch) error {
 	// push batch to Dag
 	if err := pool.Dag.Push(batch); err != nil {
-		logrus.WithField("error", err).Errorf("Dag Push error: %v", err)
+		pool.Logger.WithField("error", err).Errorf("Dag Push error: %v", err)
 		return err
 	}
 
@@ -915,7 +921,7 @@ func (pool *TxPool) confirmHelper(seq *types.Sequencer) (map[common.Hash]types.T
 		return nil, nil, errElders
 	}
 	// verify the elders
-	logrus.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
+	pool.Logger.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
 	batch, err := pool.verifyConfirmBatch(seq, elders)
 	if err != nil {
 		return nil, nil, err
@@ -1098,7 +1104,7 @@ func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 		// TODO
 		// Throw away the txs that been rejudged for more than 5 times. In order
 		// to clear up the memory and the process pressure of tx pool.
-		logrus.WithField("tx", tx).Tracef("start rejudge")
+		pool.Logger.WithField("tx", tx).Tracef("start rejudge")
 		txEnv := &txEnvelope{
 			tx:     tx,
 			txType: TxTypeRejudge,
@@ -1107,7 +1113,7 @@ func (pool *TxPool) solveConflicts(batch *ledger.ConfirmBatch) {
 		pool.txLookup.Add(txEnv)
 		e := pool.commit(tx)
 		if e != nil {
-			logrus.WithField("tx ", tx).WithError(e).Debug("rejudge error")
+			pool.Logger.WithField("tx ", tx).WithError(e).Debug("rejudge error")
 		}
 	}
 }

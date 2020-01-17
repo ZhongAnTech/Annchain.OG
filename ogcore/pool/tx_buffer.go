@@ -2,7 +2,9 @@ package pool
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
+	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/protocol"
@@ -31,6 +33,7 @@ type TxBufferConfig struct {
 // Txi will be buffered here until parents are got.
 // Once the parents are got, Txi will be send to TxPool for further processing.
 type TxBuffer struct {
+	debuglog.NodeLogger
 	Verifiers              []protocol.Verifier
 	PoolHashLocator        PoolHashLocator
 	LedgerHashLocator      LedgerHashLocator
@@ -68,7 +71,8 @@ func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 	switch ev.GetEventType() {
 	case events.TxReceivedEventType:
 		tx := ev.(*events.TxReceivedEvent).Tx
-		t.newTxChan <- tx // send to buffer
+		<-ffchan.NewTimeoutSenderShort(t.newTxChan, tx, "txbufferchan").C
+		//t.newTxChan <- tx // send to buffer
 	case events.SequencerReceivedEventType:
 		seq := ev.(*events.SequencerReceivedEvent).Sequencer
 		t.newTxChan <- seq
@@ -76,7 +80,7 @@ func (t *TxBuffer) HandleEvent(ev eventbus.Event) {
 		evt := ev.(*events.NewTxLocallyGeneratedEvent)
 		t.newTxChan <- evt.Tx // send to buffer
 	default:
-		logrus.WithField("type", ev.GetEventType()).Warn("event type not supported by txbuffer")
+		t.Logger.WithField("type", ev.GetEventType()).Warn("event type not supported by txbuffer")
 		return
 	}
 }
@@ -95,10 +99,15 @@ func (o *TxBuffer) HandlerDescription(ev eventbus.EventType) string {
 }
 
 func (b *TxBuffer) DumpUnsolved() {
+	ever := false
 	for k, v := range b.dependencyCache.GetALL(true) {
 		for k1 := range v.(map[common.Hash]types.Txi) {
-			logrus.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
+			b.Logger.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
+			ever = true
 		}
+	}
+	if !ever {
+		b.Logger.Debug("Dependency all clear")
 	}
 }
 
@@ -109,9 +118,10 @@ func (b *TxBuffer) PendingLen() int {
 
 func (b *TxBuffer) loop() {
 	for {
+		b.Logger.Info("looping")
 		select {
 		case <-b.quit:
-			logrus.Info("tx buffer received quit Message. Quitting...")
+			b.Logger.Info("tx buffer received quit Message. Quitting...")
 			return
 		case v := <-b.newTxChan:
 			b.handleTx(v)
@@ -121,18 +131,18 @@ func (b *TxBuffer) loop() {
 
 // in parallel
 func (b *TxBuffer) handleTx(tx types.Txi) {
-	logrus.WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer is handling tx")
+	b.Logger.WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer is handling tx")
 	start := time.Now()
 	defer func() {
-		logrus.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer handled tx")
-		// logrus.WithField("tx", tx).Debugf("buffer handled tx")
+		b.Logger.WithField("ts", time.Now().Sub(start)).WithField("tx", tx).WithField("parents", tx.GetParents()).Debugf("buffer handled tx")
+		// b.Logger.WithField("tx", tx).Debugf("buffer handled tx")
 	}()
 	// already in the Dag or tx_pool or buffer itself.
 	if b.IsKnownHash(tx.GetHash()) {
 		return
 	}
 	//if err := b.verifyTxFormat(tx); err != nil {
-	//	logrus.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
+	//	b.Logger.WithError(err).WithField("tx", tx).Debugf("buffer received invalid tx")
 	//	return
 	//}
 	for _, verifier := range b.Verifiers {
@@ -140,7 +150,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 			continue
 		}
 		if !verifier.Verify(tx) {
-			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+			b.Logger.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 			return
 		}
 	}
@@ -150,7 +160,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 	if b.buildDependencies(tx) {
 		// directly fulfilled, insert into txpool
 		// needs to resolve itself first
-		logrus.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
+		b.Logger.WithField("tx", tx).Debugf("new tx directly fulfilled in buffer")
 		b.niceTx(tx, true)
 	}
 }
@@ -170,7 +180,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	//var sendBloom bool
 	for _, parentHash := range tx.GetParents() {
 		if !b.isLocalHash(parentHash) {
-			logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
+			b.Logger.WithField("parent", parentHash).WithField("tx", tx).Debugf("parent not known by pool or dag tx")
 			allFetched = false
 			//this line is for test , may be can fix
 			b.updateDependencyMap(parentHash, tx)
@@ -178,7 +188,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 			if !b.isBufferedHash(parentHash) {
 				// not in cache, never synced before.
 				// sync.
-				//logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
+				//b.Logger.WithField("parent", parentHash).WithField("tx", tx).Debugf("enqueue parent to syncer")
 				pHash := parentHash
 				//b.updateDependencyMap(parentHash, tx)
 				//maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
@@ -211,7 +221,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//}
 				//b.children.AddChildren(parentHash, tx.GetHash())
 			} else {
-				logrus.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
+				b.Logger.WithField("parent", parentHash).WithField("tx", tx).Debugf("cached by someone before.")
 				// TODO: check consequence
 				//b.Syncer.Enqueue(nil, common.Hash{}, false)
 			}
@@ -219,7 +229,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	}
 	if !allFetched {
 		//missingHashes := b.getMissingHashes(tx)
-		//logrus.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
+		//b.Logger.WithField("missingAncestors", missingHashes).WithField("tx", tx).Debugf("tx is pending on ancestors")
 
 		// add myself to the dependency map
 		//if tx.GetType() == types.TxBaseTypeSequencer {
@@ -247,12 +257,12 @@ func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 	if self == nil {
-		logrus.WithFields(logrus.Fields{
+		b.Logger.WithFields(logrus.Fields{
 			"parent": parentHash,
 			"child":  nil,
 		}).Debugf("updating dependency map")
 	} else {
-		logrus.WithFields(logrus.Fields{
+		b.Logger.WithFields(logrus.Fields{
 			"parent": parentHash,
 			"child":  self,
 		}).Debugf("updating dependency map")
@@ -313,11 +323,11 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 			continue
 		}
 		if !verifier.Verify(tx) {
-			logrus.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
+			b.Logger.WithField("tx", tx).WithField("verifier", verifier).Warn("bad tx")
 			return
 		}
 	}
-	logrus.WithField("tx", tx).Debugf("nice tx")
+	b.Logger.WithField("tx", tx).Debugf("nice tx")
 	// resolve other dependencies
 	b.resolve(tx, firstTime)
 }
@@ -327,28 +337,28 @@ func (b *TxBuffer) niceTx(tx types.Txi, firstTime bool) {
 func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 	vs, err := b.dependencyCache.GetIFPresent(tx.GetHash())
 	//children := b.children.GetAndRemove(tx.GetHash())
-	logrus.WithField("tx", tx).Trace("after cache GetIFPresent")
+	b.Logger.WithField("tx", tx).Trace("after cache GetIFPresent")
 
 	// announcer and txpool both listen to this event.
 	b.EventBus.Route(&events.NewTxiDependencyFulfilledEvent{Txi: tx})
 	//addErr := b.addToTxPool(tx)
 	//if addErr != nil {
-	//	logrus.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
+	//	b.Logger.WithField("txi", tx).WithError(addErr).Warn("add tx to txpool err")
 	//} else {
 	//
 	//	//b.Announcer.BroadcastNewTx(tx)
 	//}
 	b.dependencyCache.Remove(tx.GetHash())
 
-	logrus.WithField("tx", tx).Debugf("tx resolved")
+	b.Logger.WithField("tx", tx).Debugf("tx resolved")
 
 	if err != nil {
 		// if len(children) == 0 {
 		// key not present, already resolved.
 		if firstTime {
-			logrus.WithField("tx", tx).Debug("new local tx")
+			b.Logger.WithField("tx", tx).Debug("new local tx")
 		} else {
-			logrus.WithField("tx", tx).Warn("already been resolved before")
+			b.Logger.WithField("tx", tx).Warn("already been resolved before")
 		}
 		return
 	}
@@ -365,7 +375,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		//}
 		//txi := v.(types.Txi)
 		txi := v
-		logrus.WithField("resolved", tx).WithField("resolving", txi).Debugf("cascade resolving")
+		b.Logger.WithField("resolved", tx).WithField("resolving", txi).Debugf("cascade resolving")
 		b.tryResolve(txi)
 	}
 }
@@ -379,14 +389,14 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 // It will check if the given Hash has no more dependencies in the cache.
 // If so, resolve this Hash and try resolve its children
 func (b *TxBuffer) tryResolve(tx types.Txi) {
-	logrus.Debugf("try to resolve %s", tx)
+	b.Logger.Debugf("try to resolve %s", tx)
 	for _, parent := range tx.GetParents() {
 		_, err := b.dependencyCache.GetIFPresent(parent)
 		//children := b.children.GetChildren(parent)
 		//if len(children) != 0 {
 		if err == nil {
 			// dependency presents.
-			logrus.WithField("parent", parent).WithField("tx", tx).Debugf("cascade resolving is still ongoing")
+			b.Logger.WithField("parent", parent).WithField("tx", tx).Debugf("cascade resolving is still ongoing")
 			return
 		}
 	}

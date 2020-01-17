@@ -348,7 +348,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 		return nil
 	}
 	log.WithField("len tx ", len(*hashs)).WithField("height", height).Trace("get txs")
-	return dag.getTxis(*hashs)
+	return dag.GetTxis(*hashs)
 }
 
 func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer) {

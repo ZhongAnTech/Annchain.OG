@@ -17,6 +17,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	"reflect"
+	"runtime/debug"
 	"time"
 )
 
@@ -61,6 +62,7 @@ func NewTimeoutSender(channel interface{}, val interface{}, groupName string, ti
 					WithField("val", t.val).
 					WithField("elapse", time.Now().Sub(start)).
 					Warn("Timeout on channel writing. Potential block issue.")
+				debug.PrintStack()
 				if t.timeout < time.Second {
 					time.Sleep(time.Second)
 				}

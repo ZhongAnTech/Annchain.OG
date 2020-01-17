@@ -25,6 +25,10 @@ func (p *ProxyOgPeerCommunicator) InitDefault() {
 }
 
 func (p ProxyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []communication.OgPeer) {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	ogMessage, err := p.OgMessageAdapter.AdaptOgMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 
@@ -38,6 +42,10 @@ func (p ProxyOgPeerCommunicator) Multicast(msg message.OgMessage, peers []commun
 }
 
 func (p ProxyOgPeerCommunicator) Unicast(msg message.OgMessage, peer *communication.OgPeer) {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	ogMessage, err := p.OgMessageAdapter.AdaptOgMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 	ogPeer, err := p.OgMessageAdapter.AdaptOgPeer(peer)
@@ -46,9 +54,17 @@ func (p ProxyOgPeerCommunicator) Unicast(msg message.OgMessage, peer *communicat
 }
 
 func (p ProxyOgPeerCommunicator) GetPipeIn() chan *communication.OgMessageEvent {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	return p.pipe
 }
 
 func (p ProxyOgPeerCommunicator) GetPipeOut() chan *communication.OgMessageEvent {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	return p.pipe
 }

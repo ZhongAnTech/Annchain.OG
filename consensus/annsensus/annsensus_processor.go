@@ -80,6 +80,9 @@ func checkConfig(config AnnsensusProcessorConfig) {
 
 // Start makes AnnsensusPartner receive and handle consensus messages.
 func (ap *AnnsensusPartner) Start() {
+	if ap.quit == nil {
+		panic("not initialized.")
+	}
 	if ap.Config.DisabledConsensus {
 		log.Warn("annsensus disabled")
 		return

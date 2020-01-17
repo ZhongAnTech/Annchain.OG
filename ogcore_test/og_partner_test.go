@@ -1,6 +1,7 @@
 package ogcore_test
 
 import (
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/sirupsen/logrus"
@@ -25,7 +26,15 @@ func TestPingPong(t *testing.T) {
 
 	// build peer communicator
 	for i := 0; i < total; i++ {
-		communicator := NewDummyOgPeerCommunicator(i, peerChans[i], peerChans)
+		communicator := &DummyOgPeerCommunicator{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logrus.StandardLogger(),
+			},
+			Myid:        i,
+			PeerPipeIns: peerChans,
+			PipeIn:      peerChans[i],
+		}
+		communicator.InitDefault()
 		communicator.Run()
 
 		processor := &ogcore.OgPartner{

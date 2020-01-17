@@ -643,6 +643,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
 	}
 	pool.flows.Add(tx)
+	pool.Logger.Warn(pool.flows.afs)
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusTip)
 
@@ -695,6 +696,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	}
 
 	latestNonce, e := pool.flows.GetLatestNonce(tx.Sender())
+	pool.Logger.WithField("nonce", latestNonce).Info("latestNonce")
 
 	if e == nil {
 		if tx.GetNonce() != latestNonce+1 {

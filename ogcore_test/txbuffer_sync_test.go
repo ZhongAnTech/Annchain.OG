@@ -237,24 +237,32 @@ func TestBroadcastAndBuffer(t *testing.T) {
 
 	// event should be generated outside the processor
 	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x01", []string{"0x00"}, 1),
+		Tx:               sampleTx("0x01", []string{"0x00"}, 1),
+		RequireBroadcast: true,
 	})
 	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x02", []string{"0x01"}, 2),
+		Tx:               sampleTx("0x02", []string{"0x01"}, 2),
+		RequireBroadcast: true,
 	})
 	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x03", []string{"0x02"}, 3),
+		Tx:               sampleTx("0x03", []string{"0x02"}, 3),
+		RequireBroadcast: true,
 	})
 	processors[3].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x04", []string{"0x03"}, 3),
+		Tx:               sampleTx("0x04", []string{"0x03"}, 4),
+		RequireBroadcast: true,
 	})
 	processors[4].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-		Tx: sampleTx("0x05", []string{"0x04"}, 3),
+		Tx:               sampleTx("0x05", []string{"0x04"}, 5),
+		RequireBroadcast: true,
 	})
 	time.Sleep(time.Second * 5)
 	for _, processor := range processors {
 		processor.OgCore.TxBuffer.DumpUnsolved()
+		assert.Equal(t, processor.OgCore.TxBuffer.PendingLen(), 0)
+		assert.Equal(t, int(processor.OgCore.TxPool.GetTxNum()), total)
 	}
+
 }
 
 func TestSyncAndBuffer(t *testing.T) {
@@ -277,17 +285,49 @@ func TestSyncAndBuffer(t *testing.T) {
 		RequireBroadcast: false,
 	})
 	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x03", []string{"0x02"}, 3),
+	//	Tx: sampleTx("0x03", []string{"0x02"}, 1),
+	//	RequireBroadcast: false,
 	//})
 	//processors[3].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x04", []string{"0x03"}, 3),
+	//	Tx: sampleTx("0x04", []string{"0x03"}, 1),
+	//	RequireBroadcast: false,
 	//})
 	//processors[4].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x05", []string{"0x04"}, 3),
+	//	Tx: sampleTx("0x05", []string{"0x04"}, 1),
+	//	RequireBroadcast: false,
 	//})
 	time.Sleep(time.Second * 5)
-	for _, processor := range processors {
+	for i, processor := range processors {
 		processor.OgCore.TxBuffer.DumpUnsolved()
 		assert.Equal(t, processor.OgCore.TxBuffer.PendingLen(), 0)
+		assert.Equal(t, int(processor.OgCore.TxPool.GetTxNum()), i+1)
 	}
 }
+
+func TestBufferSingleNode(t *testing.T) {
+	setupLog()
+	total := 1
+	processors := setupSyncBuffer(total)
+
+	// one is generating new txs constantly
+	logrus.Debug("generating txs")
+
+	// event should be generated outside the processor
+	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx:               sampleTx("0x01", []string{"0x00"}, 1),
+		RequireBroadcast: false,
+	})
+	// nonce error
+	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx:               sampleTx("0x02", []string{"0x01"}, 3),
+		RequireBroadcast: false,
+	})
+	time.Sleep(time.Second)
+
+	for i, processor := range processors {
+		processor.OgCore.TxBuffer.DumpUnsolved()
+		assert.Equal(t, processor.OgCore.TxBuffer.PendingLen(), 0)
+		assert.Equal(t, int(processor.OgCore.TxPool.GetTxNum()), i+1)
+	}
+}
+

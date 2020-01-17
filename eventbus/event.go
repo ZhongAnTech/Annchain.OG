@@ -1,6 +1,7 @@
 package eventbus
 
 import (
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
@@ -24,6 +25,7 @@ type EventHandlerRegisterInfo struct {
 }
 
 type DefaultEventBus struct {
+	debuglog.NodeLogger
 	ID         int
 	knownNames map[EventType]string
 	listeners  map[EventType][]EventHandler
@@ -52,6 +54,9 @@ func (e *DefaultEventBus) ListenTo(regInfo EventHandlerRegisterInfo) {
 // Eventbus must be built before events are to be received.
 // This is an commit from programmer, showing that all modules are inited and well-prepared to receive events.
 func (e *DefaultEventBus) Build() {
+	if e.knownNames == nil {
+		panic("not initialized.")
+	}
 	e.inited = true
 }
 
@@ -63,20 +68,19 @@ func (e *DefaultEventBus) Route(ev Event) {
 	if !ok {
 		name = strconv.Itoa(int(ev.GetEventType()))
 	}
-	logrus.WithField("me", e.ID).WithField("type", name).WithField("v", ev).Debug("router received event")
+	e.Logger.WithField("type", name).WithField("v", ev).Debug("router received event")
 	handlers, ok := e.listeners[ev.GetEventType()]
 	if !ok {
-		logrus.WithField("me", e.ID).WithField("type", name).WithField("typecode", ev.GetEventType()).Warn("no event handler to handle event type")
+		e.Logger.WithField("type", name).WithField("typecode", ev.GetEventType()).Warn("no event handler to handle event type")
 		return
 	}
 	for _, handler := range handlers {
-		logrus.WithFields(logrus.Fields{
-			"me":      e.ID,
+		e.Logger.WithFields(logrus.Fields{
 			"handler": handler.Name(),
 			"desc":    handler.HandlerDescription(ev.GetEventType()),
 		}).Debug("handling")
 		handler.HandleEvent(ev)
 	}
 
-	logrus.WithField("me", e.ID).WithField("type", name).WithField("v", ev).Debug("router handled event")
+	e.Logger.WithField("type", name).WithField("v", ev).Debug("router handled event")
 }

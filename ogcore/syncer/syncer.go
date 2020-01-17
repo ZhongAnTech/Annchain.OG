@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/ogcore/events"
@@ -26,6 +27,7 @@ type SyncerConfig struct {
 }
 
 type Syncer2 struct {
+	debuglog.NodeLogger
 	Config                  *SyncerConfig
 	PeerOutgoing            communication.OgPeerCommunicatorOutgoing
 	acquireTxQueue          chan *events.NeedSyncEvent
@@ -64,6 +66,9 @@ func (s *Syncer2) InitDefault() {
 }
 
 func (s *Syncer2) Start() {
+	if s.quit == nil {
+		panic("not initialized.")
+	}
 	go s.loop()
 }
 
@@ -83,25 +88,22 @@ func (s *Syncer2) loop() {
 		//case <- timer.C:
 		// send all requests in toSend if available
 		case v := <-s.acquireTxQueue:
+			s.Logger.WithField("synctask", v).Debug("take one sync task from sync queue")
 			// TODO: dedup in acquireTxDuplicateCache
 			if v.SpecifiedSource == nil {
 				// send this request to all peers
 				s.PeerOutgoing.Broadcast(&message.OgMessageBatchSyncRequest{
-					Height: nil,
 					Hashes: common.Hashes{
 						v.Hash,
 					},
-					BloomFilter: nil,
-					RequestId:   0,
+					RequestId: 0,
 				})
 			} else {
 				// send this request to one peer
 				s.PeerOutgoing.Unicast(&message.OgMessageBatchSyncRequest{
-					Height: nil,
 					Hashes: common.Hashes{
 						v.Hash,
 					},
-					BloomFilter: nil,
 					RequestId:   0,
 				}, v.SpecifiedSource)
 			}

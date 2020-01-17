@@ -18,6 +18,10 @@ func (p *ProxyAnnsensusPeerCommunicator) InitDefault() {
 }
 
 func (p ProxyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage, peers []annsensus.AnnsensusPeer) {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	ogMessage, err := p.AnnsensusMessageAdapter.AdaptAnnsensusMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 
@@ -31,6 +35,10 @@ func (p ProxyAnnsensusPeerCommunicator) Broadcast(msg annsensus.AnnsensusMessage
 }
 
 func (p ProxyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, peer annsensus.AnnsensusPeer) {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
+
 	ogMessage, err := p.AnnsensusMessageAdapter.AdaptAnnsensusMessage(msg)
 	utilfuncs.PanicIfError(err, "Adapter for annsensus should never fail")
 	ogPeer, err := p.AnnsensusMessageAdapter.AdaptAnnsensusPeer(peer)
@@ -39,9 +47,15 @@ func (p ProxyAnnsensusPeerCommunicator) Unicast(msg annsensus.AnnsensusMessage, 
 }
 
 func (p ProxyAnnsensusPeerCommunicator) GetPipeIn() chan *annsensus.AnnsensusMessageEvent {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
 	return p.pipe
 }
 
 func (p ProxyAnnsensusPeerCommunicator) GetPipeOut() chan *annsensus.AnnsensusMessageEvent {
+	if p.pipe == nil {
+		panic("not initialized.")
+	}
 	return p.pipe
 }

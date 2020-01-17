@@ -3,6 +3,7 @@ package ogcore_test
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore"
@@ -12,6 +13,7 @@ import (
 	"github.com/annchain/OG/ogcore/pool"
 	syncer2 "github.com/annchain/OG/ogcore/syncer"
 	"github.com/annchain/OG/protocol"
+	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
@@ -32,19 +34,36 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 
 	// build peer communicator
 	for i := 0; i < total; i++ {
-		communicator := NewDummyOgPeerCommunicator(i, peerChans[i], peerChans)
+
+		logger := debuglog.SetupOrderedLog(i)
+
+		communicator := &DummyOgPeerCommunicator{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
+			Myid:        i,
+			PeerPipeIns: peerChans,
+			PipeIn:      peerChans[i],
+		}
+		communicator.InitDefault()
 		communicator.Run()
 
-		bus := &eventbus.DefaultEventBus{ID: i}
+		bus := &eventbus.DefaultEventBus{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
+			ID: i,
+		}
 		bus.InitDefault()
 
 		ver := new(dummyVerifier)
-		//txPool := new(dummyTxPool)
-		//txPool.InitDefault()
 		dag := &dummyDag{}
 		dag.InitDefault()
 
 		txPool := &pool.TxPool{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
 			EventBus: bus,
 			Config:   pool.DefaultTxPoolConfig(),
 			Dag:      dag,
@@ -71,6 +90,9 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 		utilfuncs.PanicIfError(err, "writing genesis")
 
 		txBuffer := &pool.TxBuffer{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
 			Verifiers:              []protocol.Verifier{ver},
 			PoolHashLocator:        txPool,
 			LedgerHashLocator:      dag,
@@ -87,22 +109,45 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			TestNoVerify:                     false,
 		})
 		txBuffer.Start()
+
+		knownTxiCache := &pool.KnownTxiCache{
+			AdditionalHashLocators: []pool.LedgerHashLocator{
+				dag,
+			},
+			Config: pool.KnownTxiCacheConfig{
+				MaxSize:           100,
+				ExpirationSeconds: 100,
+			},
+		}
+		knownTxiCache.InitDefault()
+
 		ogCore := &ogcore.OgCore{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
 			EventBus:         bus,
 			LedgerTxProvider: dag,
 			TxBuffer:         txBuffer,
 			TxPool:           txPool,
+			KnownTxiCache:    knownTxiCache,
 		}
 		syncer := &syncer2.Syncer2{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
 			Config: &syncer2.SyncerConfig{
 				AcquireTxDedupCacheMaxSize:           10,
 				AcquireTxDedupCacheExpirationSeconds: 10,
 			},
 			PeerOutgoing: communicator,
 		}
+		syncer.InitDefault()
 		syncer.Start()
 
 		partner := &ogcore.OgPartner{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logger,
+			},
 			Config:         ogcore.OgProcessorConfig{},
 			PeerOutgoing:   communicator,
 			PeerIncoming:   communicator,
@@ -111,7 +156,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			OgCore:         ogCore,
 			Syncer:         syncer,
 		}
-
+		partner.InitDefault()
 		processors[i] = partner
 		processors[i].Start()
 
@@ -119,7 +164,12 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.HeightSyncRequestReceivedEventType,
 			Name:    "HeightSyncRequestReceivedEventType",
-			Handler: ogCore,
+			Handler: partner,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.BatchSyncRequestReceivedEventType,
+			Name:    "BatchSyncRequestReceivedEventType",
+			Handler: partner,
 		})
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.TxsFetchedForResponseEventType,
@@ -137,8 +187,23 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Handler: txBuffer,
 		})
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NewTxLocallyGeneratedEventType,
+			Name:    "NewTxLocallyGeneratedEventType",
+			Handler: ogCore,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.NewSequencerLocallyGeneratedEventType,
+			Name:    "NewSequencerLocallyGeneratedEventType",
+			Handler: ogCore,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.TxReceivedEventType,
 			Name:    "TxReceivedEventType",
+			Handler: ogCore,
+		})
+		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
+			Type:    events.SequencerReceivedEventType,
+			Name:    "SequencerReceivedEventType",
 			Handler: ogCore,
 		})
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
@@ -162,9 +227,9 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 	return processors
 }
 
-func TestSyncAndBuffer(t *testing.T) {
+func TestBroadcastAndBuffer(t *testing.T) {
 	setupLog()
-	total := 2
+	total := 5
 	processors := setupSyncBuffer(total)
 
 	// one is generating new txs constantly
@@ -177,12 +242,52 @@ func TestSyncAndBuffer(t *testing.T) {
 	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
 		Tx: sampleTx("0x02", []string{"0x01"}, 2),
 	})
-	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
-	//	Tx: sampleTx("0x03", []string{"0x04"}),
-	//})
+	processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx: sampleTx("0x03", []string{"0x02"}, 3),
+	})
+	processors[3].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx: sampleTx("0x04", []string{"0x03"}, 3),
+	})
+	processors[4].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx: sampleTx("0x05", []string{"0x04"}, 3),
+	})
 	time.Sleep(time.Second * 5)
 	for _, processor := range processors {
 		processor.OgCore.TxBuffer.DumpUnsolved()
 	}
-	time.Sleep(time.Second * 1500)
+}
+
+func TestSyncAndBuffer(t *testing.T) {
+	setupLog()
+	total := 2
+	processors := setupSyncBuffer(total)
+
+	// one is generating new txs constantly
+	logrus.Debug("generating txs")
+
+	// event should be generated outside the processor
+	processors[0].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx:               sampleTx("0x01", []string{"0x00"}, 1),
+		RequireBroadcast: false,
+	})
+	// sleep 2 seconds for node 0 handling
+	time.Sleep(time.Second * 2)
+	processors[1].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+		Tx:               sampleTx("0x02", []string{"0x01"}, 2),
+		RequireBroadcast: false,
+	})
+	//processors[2].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x03", []string{"0x02"}, 3),
+	//})
+	//processors[3].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x04", []string{"0x03"}, 3),
+	//})
+	//processors[4].EventBus.Route(&events.NewTxLocallyGeneratedEvent{
+	//	Tx: sampleTx("0x05", []string{"0x04"}, 3),
+	//})
+	time.Sleep(time.Second * 5)
+	for _, processor := range processors {
+		processor.OgCore.TxBuffer.DumpUnsolved()
+		assert.Equal(t, processor.OgCore.TxBuffer.PendingLen(), 0)
+	}
 }

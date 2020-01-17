@@ -1,6 +1,7 @@
 package ogcore_test
 
 import (
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore"
 	"github.com/annchain/OG/ogcore/communication"
@@ -25,7 +26,15 @@ func setupSync(total int) []*ogcore.OgPartner {
 
 	// build peer communicator
 	for i := 0; i < total; i++ {
-		communicator := NewDummyOgPeerCommunicator(i, peerChans[i], peerChans)
+		communicator := &DummyOgPeerCommunicator{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logrus.StandardLogger(),
+			},
+			Myid:        i,
+			PeerPipeIns: peerChans,
+			PipeIn:      peerChans[i],
+		}
+		communicator.InitDefault()
 		communicator.Run()
 
 		bus := &eventbus.DefaultEventBus{ID: i}

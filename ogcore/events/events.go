@@ -9,28 +9,25 @@ import (
 )
 
 const (
-	PingReceivedEventType eventbus.EventType = iota
-
+	PingReceivedEventType eventbus.EventType = iota + 1
 	PongReceivedEventType
 	QueryStatusRequestReceivedEventType  // global status query request is got
 	QueryStatusResponseReceivedEventType // global status query response is got
 	HeightBehindEventType                // my height is lower than others.
 	TxReceivedEventType                  // a new tx list is received.
-
-	SequencerReceivedEventType // a new seq is received.
+	SequencerReceivedEventType           // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxiDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
-	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
-
+	NewTxiDependencyFulfilledEventType    // a new tx is fully resolved (thus can be broadcasted)
+	NeedSyncEventType                     // a hash is needed but not found locally (thus need sync)
 	HeightSyncRequestReceivedEventType    // someone is requesting a height
+	BatchSyncRequestReceivedEventType     // someone is requesting some txs by hash
 	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
 	NewTxLocallyGeneratedEventType        // a new tx is generated from local
 	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
-
-	NewTxReceivedInPoolEventType     // a new tx is received in the pool and to be processed. (including sequencer)
-	SequencerBatchConfirmedEventType // a sequencer and its txs are all confirmed in a batch
-	SequencerConfirmedEventType      // a sequencer is received and validated to be on the graph
+	NewTxReceivedInPoolEventType          // a new tx is received in the pool and to be processed. (including sequencer)
+	SequencerBatchConfirmedEventType      // a sequencer and its txs are all confirmed in a batch
+	SequencerConfirmedEventType           // a sequencer is received and validated to be on the graph
 )
 
 type PingReceivedEvent struct{}
@@ -106,7 +103,7 @@ func (m *NeedSyncEvent) GetEventType() eventbus.EventType {
 
 type HeightSyncRequestReceivedEvent struct {
 	Height    uint64
-	Offset    uint32
+	Offset    int
 	RequestId uint32
 	Peer      *communication.OgPeer
 }
@@ -115,10 +112,20 @@ func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
 	return HeightSyncRequestReceivedEventType
 }
 
+type BatchSyncRequestReceivedEvent struct {
+	Hashes    common.Hashes
+	RequestId uint32
+	Peer      *communication.OgPeer
+}
+
+func (m *BatchSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
+	return BatchSyncRequestReceivedEventType
+}
+
 type TxsFetchedForResponseEvent struct {
-	Txs       []types.Txi
+	Txs       types.Txis
 	Height    uint64
-	Offset    uint32
+	Offset    int
 	RequestId uint32
 	Peer      *communication.OgPeer
 }
@@ -128,7 +135,8 @@ func (m *TxsFetchedForResponseEvent) GetEventType() eventbus.EventType {
 }
 
 type NewTxLocallyGeneratedEvent struct {
-	Tx *types.Tx
+	Tx               *types.Tx
+	RequireBroadcast bool
 }
 
 func (m *NewTxLocallyGeneratedEvent) GetEventType() eventbus.EventType {

@@ -58,6 +58,9 @@ func (a *Engine) RegisterPlugin(plugin communication.GeneralMessageHandlerPlugin
 }
 
 func (ap *Engine) Start() {
+	if ap.quit == nil {
+		panic("not initialized.")
+	}
 	// build eventbus
 	ap.eventBus.Build()
 	// start the plugins

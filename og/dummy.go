@@ -35,6 +35,10 @@ func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) type
 	return nil
 }
 
+func (p *dummyTxPoolRandomTx) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
+}
+
 type DummyTxPoolMiniTx struct {
 	poolMap map[common.Hash]types.Txi
 	tipsMap map[common.Hash]types.Txi
@@ -73,6 +77,10 @@ func (p *DummyTxPoolMiniTx) Add(v types.Txi) {
 	}
 	logrus.Infof("added tx %s to tip. current pool size: tips: %d pool: %d",
 		v.String(), len(p.tipsMap), len(p.poolMap))
+}
+
+func (p *DummyTxPoolMiniTx) IsBadSeq(seq *tx_types.Sequencer) error {
+	return nil
 }
 
 type dummyTxPoolParents struct {

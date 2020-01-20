@@ -853,12 +853,6 @@ func (dag *Dag) push(batch *ConfirmBatch) error {
 		return err
 	}
 
-	//// TODO
-	//// this is a temp function, the state root should be stored in latest seq.
-	//err = dag.accessor.WriteLastStateRoot(dbBatch, root)
-	//if err != nil {
-	//	return err
-	//}
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
 	if err != nil {

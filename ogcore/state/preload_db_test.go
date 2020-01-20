@@ -20,7 +20,7 @@ func TestPreloadDBWorkFlows(t *testing.T) {
 		t.Errorf("create StateDB error: %v", err)
 	}
 
-	addr := common.HexToAddress(testAddress)
+	addr := common.HexToAddressNoError(testAddress)
 	stdb.CreateAccount(addr)
 
 	testnonce := uint64(123456)

@@ -37,7 +37,7 @@ func TestStateStorage(t *testing.T) {
 	t.Parallel()
 
 	stdb := newTestStateDB(t)
-	addr := common.HexToAddress(testAddress)
+	addr := common.HexToAddressNoError(testAddress)
 
 	stdb.SetState(addr, storageKey1, storageValue1)
 	stdb.SetState(addr, storageKey2, storageValue2)
@@ -69,7 +69,7 @@ func TestStateStorage(t *testing.T) {
 func TestStateWorkFlow(t *testing.T) {
 	t.Parallel()
 
-	addr := common.HexToAddress(testAddress)
+	addr := common.HexToAddressNoError(testAddress)
 	testnonce := uint64(123456)
 	testblc := int64(666)
 

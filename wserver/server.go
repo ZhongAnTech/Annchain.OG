@@ -16,6 +16,7 @@ package wserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/common"
@@ -171,21 +172,33 @@ func (s *Server) WatchNewTxs() {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
 	//var uidata *UIData
-	var blockdbData *BlockDbUIData
 	for {
 		select {
 		case tx := <-s.NewTxReceivedChan:
+			var sent bool
 			if status.ArchiveMode {
-				if blockdbData == nil {
-					blockdbData = &BlockDbUIData{
-						//Type: messageTypeNewTx,
-					}
+				//if blockdbData == nil {
+				//	blockdbData = &BlockDbUIData{
+				//		//Type: messageTypeNewTx,
+				//	}
+				//}
+				var blockdbData = &BlockDbUIData{}
+				if ac, ok := tx.(*tx_types.Archive); ok {
+					data := base64.StdEncoding.EncodeToString(ac.Data)
+					var a tx_types.Archive
+					a = *ac
+					a.Data = []byte(data)
+					blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
+					s.publishNewTxs(blockdbData)
+					sent = true
 				}
 
-				blockdbData.Nodes = append(blockdbData.Nodes, types.TxiSmallCaseMarshal{tx})
 			}
+			if !sent {
+				//TODO optimize later, run first
 
-			s.publishTxi(tx)
+				s.publishTxi(tx)
+			}
 
 			//if ac,ok := tx.(*tx_types.Archive);ok {
 			//	data := base64.StdEncoding.EncodeToString(ac.Data)

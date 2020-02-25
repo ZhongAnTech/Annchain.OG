@@ -74,6 +74,8 @@ func (wh *websocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	wh.event2Cons.Add(messageTypeBaseWs, conn)
 
+	logrus.WithField("event_type",eventType).WithField("client ip ",r.RemoteAddr).Info("serve websocket client")
+
 	conn.Listen()
 }
 

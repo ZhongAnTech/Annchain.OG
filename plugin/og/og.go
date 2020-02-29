@@ -2,6 +2,7 @@ package og
 
 import (
 	general_communication "github.com/annchain/OG/communication"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	general_message "github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore"
@@ -9,6 +10,7 @@ import (
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/message"
 	"github.com/annchain/OG/ogcore/pool"
+	"github.com/sirupsen/logrus"
 )
 
 var supportedMessageTypes = []general_message.GeneralMessageType{
@@ -23,9 +25,7 @@ type OgPlugin struct {
 }
 
 func NewOgPlugin() *OgPlugin {
-	config := ogcore.OgProcessorConfig{
-
-	}
+	config := ogcore.OgProcessorConfig{}
 	ogMessageAdapter := &DefaultOgMessageAdapter{
 		unmarshaller: OgMessageUnmarshaller{},
 	}
@@ -37,10 +37,16 @@ func NewOgPlugin() *OgPlugin {
 	communicator.InitDefault()
 
 	ogCore := &ogcore.OgCore{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		EventBus: nil,
 	}
 
 	ogPartner := &ogcore.OgPartner{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		Config:         config,
 		PeerOutgoing:   communicator,
 		PeerIncoming:   communicator,

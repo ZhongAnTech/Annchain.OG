@@ -2,6 +2,7 @@ package engine
 
 import (
 	"github.com/annchain/OG/communication"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/message"
 	"github.com/prometheus/common/log"
@@ -35,7 +36,11 @@ func (a *Engine) GetBenchmarks() map[string]interface{} {
 
 func (a *Engine) InitDefault() {
 	a.messageRouter = make(map[message.GeneralMessageType]communication.GeneralMessageEventHandler)
-	a.eventBus = &eventbus.DefaultEventBus{}
+	a.eventBus = &eventbus.DefaultEventBus{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
+	}
 	a.eventBus.InitDefault()
 	a.quitWg = sync.WaitGroup{}
 	a.quit = make(chan bool)

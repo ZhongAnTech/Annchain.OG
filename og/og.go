@@ -18,6 +18,7 @@ import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/model"
@@ -110,6 +111,9 @@ func NewOg(config OGConfig) (*Og, error) {
 		TimeoutLatestSequencer: viper.GetInt("txpool.timeout_latest_seq_ms"),
 	}
 	og.TxPool = &pool.TxPool{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		EventBus: nil,
 		Config:   txpoolconfig,
 		Dag:      og.Dag,

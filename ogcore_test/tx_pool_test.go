@@ -15,10 +15,12 @@ package ogcore_test
 
 import (
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
+	"github.com/sirupsen/logrus"
 	"testing"
 
 	"github.com/annchain/OG/common/crypto"
@@ -62,7 +64,6 @@ func newTestSeq(nonce uint64) *types.Sequencer {
 	return seq.(*types.Sequencer)
 }
 
-
 func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, func()) {
 	txpoolconfig := pool.TxPoolConfig{
 		QueueSize:     100,
@@ -80,6 +81,9 @@ func newTestTxPool(t *testing.T) (*pool.TxPool, *ledger.Dag, *types.Sequencer, f
 		t.Fatalf("new a dag failed with error: %v", errnew)
 	}
 	pool := &pool.TxPool{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		EventBus: nil,
 		Config:   txpoolconfig,
 		Dag:      dag,

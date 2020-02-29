@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/downloader"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
@@ -25,6 +26,7 @@ import (
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/onode"
+	"github.com/sirupsen/logrus"
 	"testing"
 )
 
@@ -49,6 +51,9 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 	}
 	txConf := pool.DefaultTxPoolConfig()
 	txPool := &pool.TxPool{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		EventBus: nil,
 		Config:   txConf,
 		Dag:      dag,

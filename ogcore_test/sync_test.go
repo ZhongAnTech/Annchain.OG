@@ -44,11 +44,17 @@ func setupSync(total int) []*ogcore.OgPartner {
 		dag.InitDefault()
 
 		ogCore := &ogcore.OgCore{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logrus.StandardLogger(),
+			},
 			EventBus:         bus,
 			LedgerTxProvider: dag,
 		}
 
 		partner := &ogcore.OgPartner{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logrus.StandardLogger(),
+			},
 			Config: ogcore.OgProcessorConfig{
 				MaxTxCountInResponse: 100,
 			},

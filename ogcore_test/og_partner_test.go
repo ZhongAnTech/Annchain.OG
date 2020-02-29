@@ -38,6 +38,9 @@ func TestPingPong(t *testing.T) {
 		communicator.Run()
 
 		processor := &ogcore.OgPartner{
+			NodeLogger: debuglog.NodeLogger{
+				Logger: logrus.StandardLogger(),
+			},
 			Config:         ogcore.OgProcessorConfig{},
 			PeerOutgoing:   communicator,
 			PeerIncoming:   communicator,
@@ -45,6 +48,7 @@ func TestPingPong(t *testing.T) {
 			StatusProvider: nil,
 			OgCore:         nil,
 		}
+		processor.InitDefault()
 
 		processors[i] = processor
 		processors[i].Start()

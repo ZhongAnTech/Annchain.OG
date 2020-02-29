@@ -14,6 +14,7 @@
 package ogcore_test
 
 import (
+	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore/events"
 	"github.com/annchain/OG/ogcore/interfaces"
@@ -39,6 +40,9 @@ func setupTxBuffer() (*pool.TxBuffer, interfaces.Syncer) {
 	syncer.InitDefault()
 
 	buffer := &pool.TxBuffer{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
 		Verifiers:              []protocol.Verifier{ver},
 		PoolHashLocator:        txPool,
 		LedgerHashLocator:      dag,

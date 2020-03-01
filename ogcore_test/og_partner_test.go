@@ -28,7 +28,7 @@ func TestPingPong(t *testing.T) {
 	for i := 0; i < total; i++ {
 		communicator := &DummyOgPeerCommunicator{
 			NodeLogger: debuglog.NodeLogger{
-				Logger: logrus.StandardLogger(),
+				Logger: debuglog.SetupOrderedLog(i),
 			},
 			Myid:        i,
 			PeerPipeIns: peerChans,
@@ -39,7 +39,7 @@ func TestPingPong(t *testing.T) {
 
 		processor := &ogcore.OgPartner{
 			NodeLogger: debuglog.NodeLogger{
-				Logger: logrus.StandardLogger(),
+				Logger: debuglog.SetupOrderedLog(i),
 			},
 			Config:         ogcore.OgProcessorConfig{},
 			PeerOutgoing:   communicator,

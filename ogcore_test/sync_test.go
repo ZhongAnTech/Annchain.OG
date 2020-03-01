@@ -28,7 +28,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 	for i := 0; i < total; i++ {
 		communicator := &DummyOgPeerCommunicator{
 			NodeLogger: debuglog.NodeLogger{
-				Logger: logrus.StandardLogger(),
+				Logger: debuglog.SetupOrderedLog(i),
 			},
 			Myid:        i,
 			PeerPipeIns: peerChans,
@@ -37,7 +37,9 @@ func setupSync(total int) []*ogcore.OgPartner {
 		communicator.InitDefault()
 		communicator.Run()
 
-		bus := &eventbus.DefaultEventBus{ID: i}
+		bus := &eventbus.DefaultEventBus{NodeLogger: debuglog.NodeLogger{
+			Logger: debuglog.SetupOrderedLog(i),
+		}, ID: i}
 		bus.InitDefault()
 
 		dag := &dummyDag{}
@@ -45,7 +47,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 
 		ogCore := &ogcore.OgCore{
 			NodeLogger: debuglog.NodeLogger{
-				Logger: logrus.StandardLogger(),
+				Logger: debuglog.SetupOrderedLog(i),
 			},
 			EventBus:         bus,
 			LedgerTxProvider: dag,
@@ -53,7 +55,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 
 		partner := &ogcore.OgPartner{
 			NodeLogger: debuglog.NodeLogger{
-				Logger: logrus.StandardLogger(),
+				Logger: debuglog.SetupOrderedLog(i),
 			},
 			Config: ogcore.OgProcessorConfig{
 				MaxTxCountInResponse: 100,
@@ -64,7 +66,7 @@ func setupSync(total int) []*ogcore.OgPartner {
 			StatusProvider: nil,
 			OgCore:         ogCore,
 		}
-
+		partner.InitDefault()
 		processors[i] = partner
 		processors[i].Start()
 

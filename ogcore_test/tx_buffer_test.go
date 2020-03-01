@@ -28,7 +28,15 @@ import (
 )
 
 func setupTxBuffer() (*pool.TxBuffer, interfaces.Syncer) {
-	bus := &eventbus.DefaultEventBus{}
+	logrus.StandardLogger().Formatter = &logrus.TextFormatter{
+		ForceColors: true,
+	}
+
+	bus := &eventbus.DefaultEventBus{
+		NodeLogger: debuglog.NodeLogger{
+			Logger: logrus.StandardLogger(),
+		},
+	}
 	bus.InitDefault()
 
 	ver := new(dummyVerifier)
@@ -89,11 +97,13 @@ func doTest(buffer *pool.TxBuffer) {
 	buffer.DumpUnsolved()
 }
 
-func TestBuffer(t *testing.T) {
+func TestBufferAllOK(t *testing.T) {
 	t.Parallel()
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer, syncerInst := setupTxBuffer()
 	m := syncerInst.(*dummySyncer)
+	m.Know(sampleTx("0x00", nil, 0))
+
 	m.Know(sampleTx("0x01", []string{"0x00"}, 1))
 	m.Know(sampleTx("0x02", []string{"0x00"}, 2))
 	m.Know(sampleTx("0x03", []string{"0x00"}, 3))
@@ -122,6 +132,8 @@ func TestBufferMissing3(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	buffer, syncer := setupTxBuffer()
 	m := syncer.(*dummySyncer)
+	m.Know(sampleTx("0x00", nil, 0))
+
 	//m.Know(sampleTx("0x01", []string{"0x00"}))
 	m.Know(sampleTx("0x02", []string{"0x00"}, 1))
 	//m.Know(sampleTx("0x03", []string{"0x00"}))

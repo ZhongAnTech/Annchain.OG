@@ -11,6 +11,7 @@ import (
 )
 
 type EngineConfig struct {
+	Id int
 }
 
 type Engine struct {
@@ -38,7 +39,7 @@ func (a *Engine) InitDefault() {
 	a.messageRouter = make(map[message.GeneralMessageType]communication.GeneralMessageEventHandler)
 	a.eventBus = &eventbus.DefaultEventBus{
 		NodeLogger: debuglog.NodeLogger{
-			Logger: logrus.StandardLogger(),
+			Logger: debuglog.SetupOrderedLog(a.Config.Id),
 		},
 	}
 	a.eventBus.InitDefault()

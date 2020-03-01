@@ -157,8 +157,12 @@ func sampleTx(selfHash string, parentsHash []string, nonce uint64) *types.Tx {
 	myHash, err := common.HexToHash(selfHash)
 	utilfuncs.PanicIfError(err, "sample tx my hash")
 
-	parents, err := common.HexStringsToHashes(parentsHash)
-	utilfuncs.PanicIfError(err, "sample tx parent hashes")
+	var parents common.Hashes
+	if parentsHash != nil {
+		parents, err = common.HexStringsToHashes(parentsHash)
+		utilfuncs.PanicIfError(err, "sample tx parent hashes")
+	}
+
 	tx := &types.Tx{
 		Hash:         myHash,
 		ParentsHash:  parents,

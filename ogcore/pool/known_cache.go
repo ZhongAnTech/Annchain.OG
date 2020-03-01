@@ -23,6 +23,7 @@ type KnownTxiCache struct {
 }
 
 func (k *KnownTxiCache) InitDefault() {
+	// if there is a cache miss, gcache will try to load it from LedgerHashLocators (basically from disk)
 	k.txiCache = gcache.New(k.Config.MaxSize).LRU().
 		Expiration(time.Second * time.Duration(k.Config.ExpirationSeconds)).LoaderFunc(k.load).Build()
 }

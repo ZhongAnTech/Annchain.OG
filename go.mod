@@ -3,10 +3,13 @@ module github.com/annchain/OG
 go 1.13
 
 require (
+	github.com/Showmax/go-fqdn v0.0.0-20180501083314-6f60894d629f // indirect
+	github.com/Showmax/sockrus v0.0.0-20180502110302-db781913d916
 	github.com/annchain/bloom v2.0.4+incompatible
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
+	github.com/bshuster-repo/logrus-logstash-hook v0.0.0-20190911164539-b3d898b5138a
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1

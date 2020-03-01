@@ -643,7 +643,7 @@ func (pool *TxPool) commit(tx types.Txi) error {
 		pool.flows.GetBalanceState(txn.Sender(), txn.TokenId)
 	}
 	pool.flows.Add(tx)
-	pool.Logger.Warn(pool.flows.afs)
+	pool.Logger.WithField("flows.afs", pool.flows.afs).Warn("pool commit")
 	pool.tips.Add(tx)
 	pool.txLookup.SwitchStatus(tx.GetHash(), TxStatusTip)
 

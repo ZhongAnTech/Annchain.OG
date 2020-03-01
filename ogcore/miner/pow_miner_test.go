@@ -37,13 +37,13 @@ func TestPoW(t *testing.T) {
 	tx := &types.Tx{
 		Hash: common.Hash{},
 		ParentsHash: common.Hashes{
-			common.HexToHash("0x0003"),
-			common.HexToHash("0x0004"),
+			common.HexToHashNoError("0x0003"),
+			common.HexToHashNoError("0x0004"),
 		},
 		MineNonce:    0,
 		AccountNonce: 100,
-		From:         common.HexToAddress("0x0001"),
-		To:           common.HexToAddress("0x0002"),
+		From:         common.HexToAddressNoError("0x0001"),
+		To:           common.HexToAddressNoError("0x0002"),
 		Value:        math.NewBigInt(50),
 		TokenId:      0,
 		Data:         []byte{1, 2, 3, 4},
@@ -54,7 +54,7 @@ func TestPoW(t *testing.T) {
 	}
 	responseChan := make(chan uint64)
 	start := time.Now()
-	go miner.Mine(tx, common.HexToHash("0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
+	go miner.Mine(tx, common.HexToHashNoError("0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
 
 	c, ok := <-responseChan
 	logrus.Infof("time: %d ms", time.Since(start).Nanoseconds()/1000000)

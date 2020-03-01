@@ -176,16 +176,19 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Name:    "TxsFetchedForResponseEventType",
 			Handler: partner,
 		})
+		// broadcast new txs
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.NewTxLocallyGeneratedEventType,
 			Name:    "NewTxLocallyGeneratedEventType",
 			Handler: partner,
 		})
+		// record it in myself
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.NewTxLocallyGeneratedEventType,
 			Name:    "NewTxLocallyGeneratedEventType",
 			Handler: txBuffer,
 		})
+		// known tx cache
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
 			Type:    events.NewTxLocallyGeneratedEventType,
 			Name:    "NewTxLocallyGeneratedEventType",
@@ -330,4 +333,3 @@ func TestBufferSingleNode(t *testing.T) {
 		assert.Equal(t, int(processor.OgCore.TxPool.GetTxNum()), i+1)
 	}
 }
-

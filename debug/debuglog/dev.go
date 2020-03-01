@@ -2,7 +2,9 @@ package debuglog
 
 import (
 	"fmt"
+	"github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/sirupsen/logrus"
+	"net"
 	"strconv"
 )
 
@@ -31,6 +33,15 @@ func (a AddPeerLogHook) Fire(e *logrus.Entry) error {
 func SetupOrderedLog(id int) *logrus.Logger {
 	logger := logrus.New()
 	logger.Hooks.Add(AddPeerLogHook{Id: strconv.Itoa(id)})
+	// for socket debugging
+	conn, err := net.Dial("tcp", "127.0.0.1:1088")
+	if err != nil {
+		logrus.Warn("socket logger is not enabled")
+	}
+	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{"type": "myappName"}))
+
+	logger.Hooks.Add(hook)
+
 	logger.SetLevel(logrus.TraceLevel)
 	logger.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,

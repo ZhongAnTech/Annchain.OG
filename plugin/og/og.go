@@ -54,6 +54,7 @@ func NewOgPlugin() *OgPlugin {
 		StatusProvider: ogCore,
 		OgCore:         ogCore,
 	}
+	ogPartner.InitDefault()
 
 	return &OgPlugin{
 		messageHandler: &OgGeneralMessageHandler{

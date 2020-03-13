@@ -14,16 +14,19 @@ const (
 	QueryStatusRequestReceivedEventType  // global status query request is got
 	QueryStatusResponseReceivedEventType // global status query response is got
 	HeightBehindEventType                // my height is lower than others.
-	TxReceivedEventType                  // a new tx list is received.
-	SequencerReceivedEventType           // a new seq is received.
+
+	TxReceivedEventType        // a new tx list is received.
+	SequencerReceivedEventType // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxiDependencyFulfilledEventType    // a new tx is fully resolved (thus can be broadcasted)
-	NeedSyncEventType                     // a hash is needed but not found locally (thus need sync)
-	HeightSyncRequestReceivedEventType    // someone is requesting a height
-	BatchSyncRequestReceivedEventType     // someone is requesting some txs by hash
-	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
-	NewTxLocallyGeneratedEventType        // a new tx is generated from local
+	NewTxiDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
+
+	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
+	HeightSyncRequestReceivedEventType // someone is requesting a height
+	BatchSyncRequestReceivedEventType  // someone is requesting some txs by hash
+	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
+	NewTxLocallyGeneratedEventType     // a new tx is generated from local
+
 	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
 	NewTxReceivedInPoolEventType          // a new tx is received in the pool and to be processed. (including sequencer)
 	SequencerBatchConfirmedEventType      // a sequencer and its txs are all confirmed in a batch

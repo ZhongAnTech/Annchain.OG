@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <style type="text/css">
+        .tbox {
+            height: 100%;
+            overflow: auto;
+        }
+
+        .trace {
+            color: #95999c;
+            background-color: #FFFFFF;
+        }
+
+        .debug {
+            color: #95999c;
+            background-color: #FFFFFF;
+        }
+
+        .info {
+            color: #000;
+            background-color: #FFFFFF;
+        }
+
+        .warn {
+            color: #FFF;
+            background-color: #004085;
+        }
+
+        .error {
+            color: #000;
+            background-color: #FF0000;
+        }
+
+        .pc {
+            overflow-x: scroll;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        .msg {
+            font-weight: bold;
+        }
+
+        .key {
+            font-weight: bold;
+        }
+
+        .line {
+            font-family: "Fira Code Retina";
+            border-bottom: dashed 1px;
+        }
+
+    </style>
+    <title>Title</title>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm tbox">
+            <pre class="pc" id="pc0">
+            </pre>
+        </div>
+        <div class="col-sm tbox">
+             <pre class="pc" id="pc1">
+            </pre>
+        </div>
+        <div class="col-sm tbox">
+             <pre class="pc" id="pc2">
+            </pre>
+        </div>
+        <div class="col-sm tbox">
+             <pre class="pc" id="pc3">
+            </pre>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    for (let i = 0; i < 4; i++) {
+        document.getElementById('pc' + i).innerText = '';
+    }
+
+    function buildString(data) {
+        delete data['@timestamp'];
+        delete data['@version'];
+
+        let level = data['level'].substring(0, 1);
+        delete data['level'];
+
+        msg = data['message'].substring(4, data['message'].length);
+        delete data['message'];
+
+        let s = '[' + level + ']<span class="msg">' + msg + ' ■</span>';
+        Object.keys(data).sort().forEach(function (key) {
+            s += '<span class="key">' + key + '=</span>';
+            s += '<span class="value">' + data[key] + ';</span>';
+
+        });
+        return s;
+
+    }
+
+    function connect() {
+        var ws = new WebSocket('ws://127.0.0.1:1099/');
+        ws.onopen = function () {
+            console.log("WebSocketClient connected");
+        };
+
+        ws.onmessage = function (e) {
+            let data = null;
+            try {
+                data = JSON.parse(e.data);
+            } catch {
+                return;
+            }
+
+            let node = parseInt(data.message.substring(1, 2));
+
+            for (let i = 0; i < 4; i++) {
+                let logNode = document.createElement("SPAN");
+                logNode.classList.add('line');
+                if (node === i) {
+                    logNode.classList.add(data.level);
+                    logNode.innerHTML = buildString(data) + "\r\n";
+                    document.getElementById('pc' + i).append(logNode);
+                } else {
+                    logNode.innerText = "\r\n";
+                    document.getElementById('pc' + i).append(logNode);
+                }
+            }
+        };
+
+        ws.onclose = function (e) {
+            console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+            setTimeout(function () {
+                connect();
+            }, 1000);
+        };
+
+        ws.onerror = function (err) {
+            console.error('Socket encountered error: ', err.message, 'Closing socket');
+            ws.close();
+        };
+    }
+
+    console.log('connecting');
+    connect();
+</script>
+</body>
+</html>

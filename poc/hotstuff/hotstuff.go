@@ -2,6 +2,7 @@ package hotstuff
 
 import (
 	"fmt"
+	"github.com/annchain/OG/debuglog"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -37,6 +38,7 @@ func (h *Hub) SendToAllButMe(msg *Msg, myId int) {
 type Partner struct {
 	MessageHub *Hub
 	NodeCache  map[string]*Node
+	logger     *logrus.Logger
 
 	LockedQC    *QC
 	PreparedQC  *QC
@@ -55,6 +57,7 @@ type Partner struct {
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
 	n.currentView = 1
+	n.logger = debuglog.SetupOrderedLog(n.Id)
 }
 func (n *Partner) Start() {
 	for {

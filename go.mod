@@ -7,6 +7,7 @@ require (
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
+	github.com/bshuster-repo/logrus-logstash-hook v0.4.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect

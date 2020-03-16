@@ -8,6 +8,8 @@ require (
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
+	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
+	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
@@ -28,7 +30,7 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/cobra v0.0.4
+	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0

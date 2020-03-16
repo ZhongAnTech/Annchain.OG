@@ -1,4 +1,4 @@
-package debuglog
+package hotstuff
 
 import (
 	"fmt"

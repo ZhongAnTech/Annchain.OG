@@ -40,6 +40,7 @@ var runCmd = &cobra.Command{
 				F:           num / 3,
 				LeaderFunc:  pickLeader,
 			}
+			partners[i].InitDefault()
 		}
 		for i := 0; i < num; i++ {
 			go partners[i].Start()

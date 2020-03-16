@@ -2,7 +2,6 @@ package hotstuff
 
 import (
 	"fmt"
-	"github.com/annchain/OG/debuglog"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -57,7 +56,7 @@ type Partner struct {
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
 	n.currentView = 1
-	n.logger = debuglog.SetupOrderedLog(n.Id)
+	n.logger = SetupOrderedLog(n.Id)
 }
 func (n *Partner) Start() {
 	for {
@@ -224,13 +223,13 @@ func (n *Partner) doReplica() {
 }
 
 func (n *Partner) waitForMatchingMsg(msgType MsgType, viewNumber int, waitCount int, senderId int) (collected bool, goodMessages []*Msg) {
-	logrus.WithFields(logrus.Fields{
+	n.logger.WithFields(logrus.Fields{
 		"Id":    n.Id,
 		"type":  msgType,
 		"viewN": viewNumber,
 		"for":   "msg",
 	}).Info("waiting")
-	defer logrus.WithFields(logrus.Fields{
+	defer n.logger.WithFields(logrus.Fields{
 		"Id":    n.Id,
 		"type":  msgType,
 		"viewN": viewNumber,
@@ -253,19 +252,19 @@ func (n *Partner) waitForMatchingMsg(msgType MsgType, viewNumber int, waitCount 
 					}
 				}
 			} else {
-				logrus.Info("no match 2")
+				n.logger.Info("no match 2")
 			}
 		}
 	}
 }
 func (n *Partner) waitForMatchingQC(msgType MsgType, viewNumber int, waitCount int, senderId int) (collected bool, goodMessages []*Msg) {
-	logrus.WithFields(logrus.Fields{
+	n.logger.WithFields(logrus.Fields{
 		"Id":    n.Id,
 		"type":  msgType,
 		"viewN": viewNumber,
 		"for":   "qc",
 	}).Info("waiting")
-	defer logrus.WithFields(logrus.Fields{
+	defer n.logger.WithFields(logrus.Fields{
 		"Id":    n.Id,
 		"type":  msgType,
 		"viewN": viewNumber,
@@ -288,7 +287,7 @@ func (n *Partner) waitForMatchingQC(msgType MsgType, viewNumber int, waitCount i
 					}
 				}
 			} else {
-				logrus.Info("no match 1")
+				n.logger.Info("no match 1")
 			}
 		}
 	}
@@ -378,7 +377,7 @@ func (n *Partner) doReplicaDecide() bool {
 	}
 	msg := msgs[0]
 	n.NodeCache[msg.Justify.Node.content] = msg.Justify.Node
-	logrus.WithFields(logrus.Fields{
+	n.logger.WithFields(logrus.Fields{
 		"Id":      n.Id,
 		"ViewN":   n.currentView,
 		"content": msg.Justify.Node.content,

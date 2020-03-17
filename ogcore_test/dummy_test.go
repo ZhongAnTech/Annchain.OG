@@ -187,7 +187,7 @@ func (d *dummySyncer) InitDefault() {
 }
 
 func (d *dummySyncer) HandleEvent(ev eventbus.Event) {
-	evt := ev.(*events.NeedSyncEvent)
+	evt := ev.(*events.NeedSyncTxEvent)
 	v, ok := d.dmap[evt.Hash]
 	if ok {
 		// we already have this tx.

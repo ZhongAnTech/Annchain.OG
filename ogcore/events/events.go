@@ -19,13 +19,13 @@ const (
 	SequencerReceivedEventType // a new seq is received.
 	ArchiveReceivedEventType
 	ActionReceivedEventType
-	NewTxiDependencyFulfilledEventType // a new tx is fully resolved (thus can be broadcasted)
+	NewTxiDependencyFulfilledEventType    // a new tx is fully resolved (thus can be broadcasted)
 
-	NeedSyncEventType                  // a hash is needed but not found locally (thus need sync)
-	HeightSyncRequestReceivedEventType // someone is requesting a height
-	BatchSyncRequestReceivedEventType  // someone is requesting some txs by hash
-	TxsFetchedForResponseEventType     // txs are fetched from db and ready for response
-	NewTxLocallyGeneratedEventType     // a new tx is generated from local
+	NeedSyncTxEventType                   // a hash is needed but not found locally (thus need sync)
+	HeightSyncRequestReceivedEventType    // someone is requesting a height
+	BatchSyncRequestReceivedEventType     // someone is requesting some txs by hash
+	TxsFetchedForResponseEventType        // txs are fetched from db and ready for response
+	NewTxLocallyGeneratedEventType        // a new tx is generated from local
 
 	NewSequencerLocallyGeneratedEventType // a new seq is generated from local (by annsensus)
 	NewTxReceivedInPoolEventType          // a new tx is received in the pool and to be processed. (including sequencer)
@@ -92,7 +92,7 @@ func (m *NewTxiDependencyFulfilledEvent) GetEventType() eventbus.EventType {
 	return NewTxiDependencyFulfilledEventType
 }
 
-type NeedSyncEvent struct {
+type NeedSyncTxEvent struct {
 	Hash            common.Hash
 	SpecifiedSource *communication.OgPeer
 	//ParentHash      common.Hash
@@ -100,8 +100,8 @@ type NeedSyncEvent struct {
 	//SendBloomfilter bool
 }
 
-func (m *NeedSyncEvent) GetEventType() eventbus.EventType {
-	return NeedSyncEventType
+func (m *NeedSyncTxEvent) GetEventType() eventbus.EventType {
+	return NeedSyncTxEventType
 }
 
 type HeightSyncRequestReceivedEvent struct {

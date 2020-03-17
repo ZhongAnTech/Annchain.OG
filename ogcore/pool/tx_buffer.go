@@ -192,19 +192,19 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				pHash := parentHash
 				//b.updateDependencyMap(parentHash, tx)
 				//maxWeight := b.LocalGraphInfoProvider.GetMaxWeight()
-				//b.EventBus.Route(&events.NeedSyncEvent{
+				//b.EventBus.Route(&events.NeedSyncTxEvent{
 				//	ParentHash:      pHash,
 				//	ChildHash:       tx.GetHash(),
 				//	SendBloomfilter: false,
 				//})
-				b.EventBus.Route(&events.NeedSyncEvent{
+				b.EventBus.Route(&events.NeedSyncTxEvent{
 					Hash:            pHash,
 					SpecifiedSource: nil,
 				})
 				// Weight is unknown until parents are got. So here why check this?
 				//
 				//if !sendBloom && tx.GetWeight() > maxWeight && tx.GetWeight()-maxWeight > 20 {
-				//	b.EventBus.Route(&events.NeedSyncEvent{
+				//	b.EventBus.Route(&events.NeedSyncTxEvent{
 				//		ParentHash:      pHash,
 				//		ChildHash:       tx.GetHash(),
 				//		SendBloomfilter: true,
@@ -212,7 +212,7 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 				//	//b.Syncer.Enqueue(&pHash, tx.GetHash(), true)
 				//	sendBloom = true
 				//} else {
-				//	b.EventBus.Route(&events.NeedSyncEvent{
+				//	b.EventBus.Route(&events.NeedSyncTxEvent{
 				//		ParentHash:      pHash,
 				//		ChildHash:       tx.GetHash(),
 				//		SendBloomfilter: false,

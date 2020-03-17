@@ -215,7 +215,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Handler: txBuffer,
 		})
 		bus.ListenTo(eventbus.EventHandlerRegisterInfo{
-			Type:    events.NeedSyncEventType,
+			Type:    events.NeedSyncTxEventType,
 			Name:    "BufferLackTxSyncerHelps",
 			Handler: syncer,
 		})

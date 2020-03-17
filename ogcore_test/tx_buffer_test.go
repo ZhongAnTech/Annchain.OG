@@ -83,8 +83,8 @@ func setupTxBuffer() (*pool.TxBuffer, interfaces.Syncer) {
 		Handler: buffer,
 	})
 	bus.ListenTo(eventbus.EventHandlerRegisterInfo{
-		Type:    events.NeedSyncEventType,
-		Name:    "NeedSyncEventType",
+		Type:    events.NeedSyncTxEventType,
+		Name:    "NeedSyncTxEventType",
 		Handler: syncer,
 	})
 	bus.Build()
@@ -116,7 +116,7 @@ func TestBufferAllOK(t *testing.T) {
 	tx := sampleTx("0x0A", []string{"0x09"}, 10)
 	buffer.Start()
 
-	buffer.EventBus.Route(&events.NeedSyncEvent{
+	buffer.EventBus.Route(&events.NeedSyncTxEvent{
 		Hash:            tx.ParentsHash[0],
 		SpecifiedSource: nil,
 	})

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package cmd
+package config
 
 import (
 	"encoding/hex"
@@ -20,37 +20,16 @@ import (
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/onode"
-	"github.com/spf13/cobra"
 )
 
-var (
-	onodeCmd = &cobra.Command{
-		Use:   "onode",
-		Short: "onode helps you generate a random onode address",
-		Run:   genONode,
-	}
-	output string
-)
-
-func onodeInit() {
-	onodeCmd.Flags().StringVarP(&output, "output", "o", "", "")
-}
-
-func genONode(cmd *cobra.Command, args []string) {
-	nodekey, node := genBootONode(port)
-
-	fmt.Println("nodekey: ", nodekey)
-	fmt.Println("ndoe: ", node)
-}
-
-func genBootONode(port int) (nodekey string, node string) {
+func genBootONode(port int, bootNodeIp string) (nodekey string, node string) {
 
 	key, err := crypto.GenerateKey()
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 	}
 	nodekey = hex.EncodeToString(crypto.FromECDSA(key))
-	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), port, port).String()
+	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootNodeIp), port, port).String()
 
 	return
 }

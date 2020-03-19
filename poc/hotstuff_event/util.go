@@ -1,5 +1,11 @@
 package hotstuff_event
 
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"strconv"
+)
+
 type MsgType int
 
 const (
@@ -8,6 +14,10 @@ const (
 	TIMEOUT
 	LOCAL_TIMEOUT
 )
+
+type Hashable interface {
+	GetHashContent() string
+}
 
 // Node is a block
 type Node struct {
@@ -29,22 +39,16 @@ type Msg struct {
 	//Justify       *QC
 	//FromPartnerId int
 }
-type Block struct {
-	Round    int
-	Payload  string
-	ParentQC *QC
-	Id       string // hash of the previous 3 fields
-}
 
 type Content interface {
-	IContent()
+	SignatureTarget() string
 }
 
 type ContentProposal struct {
 	Proposal Block
 }
 
-func (c ContentProposal) IContent() {
+func (c ContentProposal) SignatureTarget() string {
 	panic("implement me")
 }
 
@@ -52,80 +56,47 @@ type ContentTimeout struct {
 	Round int
 }
 
-func (c ContentTimeout) IContent() {
-	panic("implement me")
+func (c ContentTimeout) SignatureTarget() string {
+	return strconv.Itoa(c.Round)
 }
 
 type ContentVote struct {
+	VoteInfo         VoteInfo
+	LedgerCommitInfo LedgerCommitInfo
 }
 
-func (c ContentVote) IContent() {
+func (c ContentVote) SignatureTarget() string {
 	panic("implement me")
 }
 
 type ContentLocalTimeout struct {
 }
 
-func (c ContentLocalTimeout) IContent() {
+func (c ContentLocalTimeout) SignatureTarget() string {
 	panic("implement me")
 }
 
-type LedgerCommitInfo struct {
-	CommitStateId *int
-}
-
 type QC struct {
+	VoteInfo         VoteInfo
 	LedgerCommitInfo LedgerCommitInfo
 	GrandParentId    int
-	Round            int
-
+	Signatures       []Signature // simulate sig by give an id to the vote
 	//Typev      MsgType
 	//ViewNumber int
 	//Node       *Node
-	//Sigs       []Signature // simulate sig by give an id to the vote
+
 }
 
 type Signature struct {
 	PartnerId int
-	Vote      bool
+	Signature string
 }
 
-func MatchingMsg(msg *Msg, typev MsgType, viewNumber int) bool {
-	return msg.Typev == typev && msg.ViewNumber == viewNumber
+func Hash(s string) string {
+	bs := md5.Sum([]byte(s))
+	return hex.EncodeToString(bs[:])
 }
 
-func MatchingQC(qc *QC, typev MsgType, viewNumber int) bool {
-	return qc.Typev == typev && qc.ViewNumber == viewNumber
-}
-
-func SafeNode(node *Node, qc *QC, partner *Partner) bool {
-	return IsExtends(node, partner.LockedQC, partner.NodeCache) && // safety rule
-		qc.ViewNumber > partner.LockedQC.ViewNumber // liveness rule
-}
-
-func IsExtends(node *Node, qc *QC, cache map[string]*Node) bool {
-	current := node
-	for current != nil {
-		if current.content == qc.Node.content {
-			return true
-		}
-		current = cache[current.Previous]
-	}
-	return false
-}
-
-func GenQC(msgs []*Msg) *QC {
-	var sigs []Signature
-	for _, msg := range msgs {
-		sigs = append(sigs, Signature{
-			PartnerId: msg.FromPartnerId,
-			Vote:      true,
-		})
-	}
-	return &QC{
-		Typev:      msgs[0].Typev,
-		ViewNumber: msgs[0].ViewNumber,
-		Node:       msgs[0].Node,
-		Sigs:       sigs,
-	}
+type NilInt struct {
+	Value int
 }

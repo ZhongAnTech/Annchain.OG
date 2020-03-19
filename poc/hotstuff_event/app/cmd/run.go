@@ -14,6 +14,47 @@ func pickLeader(n int, viewNumber int) int {
 	return viewNumber % n
 }
 
+func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_event.Partner {
+	ledger := &hotstuff_event.Ledger{}
+	safety := &hotstuff_event.Safety{
+		Ledger: ledger,
+	}
+
+	blockTree := &hotstuff_event.BlockTree{
+		Ledger: ledger,
+		F:      F,
+	}
+	proposerElection := &hotstuff_event.ProposerElection{N: N}
+
+	paceMaker := &hotstuff_event.PaceMaker{
+		MyId:             myId,
+		CurrentRound:     0,
+		Safety:           safety,
+		MessageHub:       hub,
+		BlockTree:        blockTree,
+		ProposerElection: proposerElection,
+		Partner:          nil,
+	}
+
+	blockTree.PaceMaker = paceMaker
+
+	partner := &hotstuff_event.Partner{
+		MessageHub:       hub,
+		Ledger:           ledger,
+		MyId:             myId,
+		N:                N,
+		F:                F,
+		PaceMaker:        nil,
+		Safety:           safety,
+		BlockTree:        blockTree,
+		ProposerElection: proposerElection,
+	}
+	paceMaker.Partner = partner
+
+	partner.InitDefault()
+	return partner
+}
+
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -28,19 +69,8 @@ var runCmd = &cobra.Command{
 
 		for i := 0; i < num; i++ {
 			hub.Channels[i] = make(chan *hotstuff_event.Msg, 30)
-			partners[i] = &hotstuff_event.Partner{
-				MessageHub:  hub,
-				NodeCache:   make(map[string]*hotstuff_event.Node),
-				LockedQC:    nil,
-				PreparedQC:  nil,
-				PreCommitQC: nil,
-				CommitQC:    nil,
-				Id:          i,
-				N:           num,
-				F:           num / 3,
-				LeaderFunc:  pickLeader,
-			}
-			partners[i].InitDefault()
+			partners[i] = MakePartner(i, num, num/3, hub)
+
 		}
 		for i := 0; i < num; i++ {
 			go partners[i].Start()

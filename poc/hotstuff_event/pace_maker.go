@@ -11,47 +11,88 @@ type PaceMaker struct {
 	ProposerElection *ProposerElection
 	Partner          *Partner
 
-	timeoutsPerRound map[int]map[int]bool // round : sender list:true
+	timeoutsPerRound map[int]SignatureCollector // round : sender list:true
+	timer            *time.Timer
+	quit             chan bool
+}
+
+func (m *PaceMaker) InitDefault() {
+	m.quit = make(chan bool)
+	m.timeoutsPerRound = make(map[int]SignatureCollector)
+	m.timer = time.NewTimer(time.Second * 2)
 }
 
 func (m *PaceMaker) ProcessRemoteTimeout(msg *Msg) {
 	contentTimeout := msg.Content.(*ContentTimeout)
-	m.timeoutsPerRound[contentTimeout.Round][msg.SenderId] = true
-	if len(m.timeoutsPerRound[contentTimeout.Round]) == m.Partner.F*2+1 {
-		m.AdvanceRound(contentTimeout.Round)
+
+	if _, ok := m.timeoutsPerRound[contentTimeout.Round]; !ok {
+		collector := SignatureCollector{}
+		collector.InitDefault()
+		m.timeoutsPerRound[contentTimeout.Round] = collector
+	}
+	collector := m.timeoutsPerRound[contentTimeout.Round]
+	collector.Collect(msg.Sig)
+
+	if collector.Count() == m.Partner.F*2+1 {
+		m.AdvanceRound(&QC{
+			VoteInfo: VoteInfo{
+				Round: contentTimeout.Round,
+			},
+			LedgerCommitInfo: LedgerCommitInfo{},
+			Signatures:       collector.AllSignatures(),
+		}, "remote tc got")
 	}
 }
 
 func (m *PaceMaker) LocalTimeoutRound() {
-	if _, ok := m.timeoutsPerRound[m.CurrentRound][m.MyId]; ok {
-		return
+	if _, ok := m.timeoutsPerRound[m.CurrentRound]; !ok {
+		collector := SignatureCollector{}
+		collector.InitDefault()
+		m.timeoutsPerRound[m.CurrentRound] = collector
+	} else {
+		collector := m.timeoutsPerRound[m.CurrentRound]
+		if collector.Has(m.MyId) {
+			return
+		}
 	}
+
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
-	SaveConsensusSate()
+	m.Partner.SaveConsensusState()
 
 	timeoutMsg := m.MakeTimeoutMessage()
-	m.MessageHub.SendToAllButMe(timeoutMsg, m.MyId)
-
-	m.timeoutsPerRound[m.CurrentRound][m.MyId] = true
+	m.MessageHub.SendToAllButMe(timeoutMsg, m.MyId, "LocalTimeoutRound")
+	collector := m.timeoutsPerRound[m.CurrentRound]
+	collector.Collect(timeoutMsg.Sig)
 }
 
-func (m *PaceMaker) AdvanceRound(latestRound int) {
+func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
+	latestRound := qc.VoteInfo.Round
 	if latestRound < m.CurrentRound {
 		return
 	}
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
 	if m.MyId != m.ProposerElection.GetLeader(m.CurrentRound) {
-		m.MessageHub.Send(qc, m.ProposerElection.GetLeader(m.CurrentRound))
+		m.MessageHub.Send(&Msg{
+			Typev:    Vote,
+			Sig:      Signature{},
+			SenderId: 0,
+			Content: &ContentVote{
+				VoteInfo:         qc.VoteInfo,
+				LedgerCommitInfo: qc.LedgerCommitInfo,
+				Signatures:       qc.Signatures,
+			},
+		}, m.ProposerElection.GetLeader(m.CurrentRound), "AdvanceRound:"+reason)
+
 	}
 	m.StartLocalTimer(m.CurrentRound, m.GetRoundTimer(m.CurrentRound))
 	m.Partner.ProcessNewRoundEvent()
 }
 
 func (m *PaceMaker) MakeTimeoutMessage() *Msg {
-	content := ContentTimeout{Round: m.CurrentRound}
+	content := &ContentTimeout{Round: m.CurrentRound, HighQC: m.BlockTree.highQC}
 	return &Msg{
-		Typev: TIMEOUT,
+		Typev: Timeout,
 		Sig: Signature{
 			PartnerId: m.MyId,
 			Signature: content.SignatureTarget(),
@@ -62,13 +103,13 @@ func (m *PaceMaker) MakeTimeoutMessage() *Msg {
 }
 
 func (m *PaceMaker) StopLocalTimer(r int) {
-
+	m.timer.Stop()
 }
 
 func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
 	return time.Second * 5
 }
 
-func (m *PaceMaker) StartLocalTimer(round int, timer time.Duration) {
-
+func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {
+	m.timer.Reset(duration)
 }

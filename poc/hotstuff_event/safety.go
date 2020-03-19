@@ -1,11 +1,15 @@
 package hotstuff_event
 
+import "github.com/sirupsen/logrus"
+
 type Safety struct {
 	lastVoteRound  int
 	preferredRound int
 	Ledger         *Ledger
+	Partner        *Partner
+	Logger         *logrus.Logger
 	//	voteMsg := &Msg{
-	//	Typev:    VOTE,
+	//	Typev:    Vote,
 	//	ParentQC: msg.ParentQC,
 	//	Round:    msg.Round,
 	//	SenderId: nil,
@@ -15,6 +19,7 @@ type Safety struct {
 
 func (s *Safety) UpdatePreferredRound(qc *QC) {
 	if qc.VoteInfo.ParentRound > s.preferredRound {
+		s.Logger.WithField("qc", qc).Info("update preferred round")
 		s.preferredRound = qc.VoteInfo.ParentRound
 	}
 }
@@ -25,14 +30,17 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *QC) *Content
 		return nil
 	}
 	s.IncreaseLastVoteRound(blockRound)
-	SaveConsensusState()
+	s.Partner.SaveConsensusState()
 
+	// VoteINfo carries the potential QC info with ids and rounds of the whole three-chain
 	voteInfo := VoteInfo{
-		Id:          blockId,
-		Round:       blockRound,
-		ParentId:    parentQC.VoteInfo.Id,
-		ParentRound: parentQC.VoteInfo.Round,
-		ExecStateId: s.Ledger.GetState(blockId),
+		Id:               blockId,
+		Round:            blockRound,
+		ParentId:         parentQC.VoteInfo.Id,
+		ParentRound:      parentQC.VoteInfo.Round,
+		GrandParentId:    parentQC.VoteInfo.ParentId,
+		GrandParentRound: parentQC.VoteInfo.ParentRound,
+		ExecStateId:      s.Ledger.GetState(blockId),
 	}
 	potentialCommitId := s.CommitRule(parentQC, blockRound) // TODO: might be empty string
 

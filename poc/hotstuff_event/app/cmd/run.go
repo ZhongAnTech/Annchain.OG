@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/annchain/OG/poc/hotstuff_event"
 	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -10,20 +11,26 @@ import (
 	"syscall"
 )
 
-func pickLeader(n int, viewNumber int) int {
-	return viewNumber % n
-}
-
 func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_event.Partner {
-	ledger := &hotstuff_event.Ledger{}
+	logger := hotstuff_event.SetupOrderedLog(myId)
+	ledger := &hotstuff_event.Ledger{
+		Logger: logger,
+	}
+	ledger.InitDefault()
+
 	safety := &hotstuff_event.Safety{
 		Ledger: ledger,
+		Logger: logger,
 	}
 
 	blockTree := &hotstuff_event.BlockTree{
 		Ledger: ledger,
 		F:      F,
+		Logger: logger,
 	}
+	blockTree.InitDefault()
+	blockTree.InitGenesisOrLatest()
+
 	proposerElection := &hotstuff_event.ProposerElection{N: N}
 
 	paceMaker := &hotstuff_event.PaceMaker{
@@ -33,8 +40,9 @@ func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_even
 		MessageHub:       hub,
 		BlockTree:        blockTree,
 		ProposerElection: proposerElection,
-		Partner:          nil,
+		Partner:          nil, // fill later
 	}
+	paceMaker.InitDefault()
 
 	blockTree.PaceMaker = paceMaker
 
@@ -44,14 +52,17 @@ func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_even
 		MyId:             myId,
 		N:                N,
 		F:                F,
-		PaceMaker:        nil,
+		PaceMaker:        paceMaker,
 		Safety:           safety,
 		BlockTree:        blockTree,
 		ProposerElection: proposerElection,
+		Logger:           logger,
 	}
-	paceMaker.Partner = partner
-
 	partner.InitDefault()
+
+	paceMaker.Partner = partner
+	safety.Partner = partner
+
 	return partner
 }
 
@@ -61,6 +72,7 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
+		setupLogger()
 		num := viper.GetInt("number")
 
 		// prepare partners
@@ -93,6 +105,14 @@ var runCmd = &cobra.Command{
 		}()
 
 	},
+}
+
+func setupLogger() {
+	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,
+		TimestampFormat: "15:04:05.000000",
+	})
 }
 
 func init() {

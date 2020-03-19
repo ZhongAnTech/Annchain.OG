@@ -1,6 +1,6 @@
 module github.com/annchain/OG/poc/hotstuff_event
 
-go 1.14
+go 1.13
 
 require (
 	github.com/bshuster-repo/logrus-logstash-hook v0.4.1

@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net"
 	"strconv"
+	"time"
 )
 
 // All stucts that need call InitDefault() before being used
@@ -34,7 +35,7 @@ func SetupOrderedLog(id int) *logrus.Logger {
 	logger := logrus.New()
 	logger.Hooks.Add(AddPeerLogHook{Id: strconv.Itoa(id)})
 	// for socket debugging
-	conn, err := net.Dial("tcp", "127.0.0.1:1088")
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:1088", time.Millisecond*50)
 	if err != nil {
 		logrus.Warn("socket logger is not enabled")
 	}

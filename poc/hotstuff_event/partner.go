@@ -21,14 +21,13 @@ type Partner struct {
 	Safety           *Safety
 	BlockTree        *BlockTree
 	ProposerElection *ProposerElection
-	logger           *logrus.Logger
+	Logger           *logrus.Logger
 
 	quit chan bool
 }
 
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
-	n.logger = SetupOrderedLog(n.MyId)
 }
 func (n *Partner) Start() {
 	messageChannel := n.MessageHub.GetChannel(n.MyId)
@@ -38,22 +37,24 @@ func (n *Partner) Start() {
 			return
 		case msg := <-messageChannel:
 			switch msg.Typev {
-			case PROPOSAL:
+			case Proposal:
 				n.ProcessProposalMessage(msg)
-			case VOTE:
+			case Vote:
 				n.ProcessVoteMessage(msg)
-			case TIMEOUT:
+			case Timeout:
 				n.PaceMaker.ProcessRemoteTimeout(msg)
-			case LOCAL_TIMEOUT:
-				n.PaceMaker.LocalTimeoutRound()
+			//case LocalTimeout:
+			//	n.PaceMaker.LocalTimeoutRound()
 			default:
 			}
+		case <-n.PaceMaker.timer.C:
+			n.PaceMaker.LocalTimeoutRound()
 		}
 	}
 }
 
 func (n *Partner) Stop() {
-	panic("implement me")
+	close(n.quit)
 }
 
 func (n *Partner) Name() string {
@@ -83,7 +84,7 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 	if voteMsg != nil {
 		voteAggregator := n.ProposerElection.GetLeader(currentRound + 1)
 		outMsg := &Msg{
-			Typev:    VOTE,
+			Typev:    Vote,
 			SenderId: n.MyId,
 			Content:  voteMsg,
 			Sig: Signature{
@@ -91,20 +92,20 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 				Signature: voteMsg.SignatureTarget(),
 			},
 		}
-		n.MessageHub.Send(outMsg, voteAggregator)
+		n.MessageHub.Send(outMsg, voteAggregator, "ProcessProposalMessage")
 	}
 }
 
 func (n *Partner) ProcessVoteMessage(msg *Msg) {
 	contentVote := msg.Content.(*ContentVote)
-	n.BlockTree.ProcessVote(contentVote)
+	n.BlockTree.ProcessVote(contentVote, msg.Sig)
 }
 
 func (n *Partner) ProcessCertificates(qc *QC) {
-	n.PaceMaker.AdvanceRound(qc.VoteInfo.Round)
+	n.PaceMaker.AdvanceRound(qc, "ProcessCertificates")
 	n.Safety.UpdatePreferredRound(qc)
-	if qc.LedgerCommitInfo.CommitStateId != nil {
-		n.BlockTree.ProcessCommit(qc.GrandParentId)
+	if qc.LedgerCommitInfo.CommitStateId != "" {
+		n.BlockTree.ProcessCommit(qc.VoteInfo.GrandParentId)
 	}
 }
 
@@ -115,14 +116,22 @@ func (n *Partner) ProcessNewRoundEvent() {
 	}
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, RandString(15))
 	n.MessageHub.SendToAllButMe(&Msg{
-		Typev:    PROPOSAL,
+		Typev:    Proposal,
 		SenderId: n.MyId,
 		Content:  b,
 		Sig: Signature{
 			PartnerId: n.MyId,
 			Signature: b.SignatureTarget(),
 		},
-	}, n.MyId)
+	}, n.MyId, "ProcessNewRoundEvent")
+}
+
+func (n *Partner) SaveConsensusState() {
+	n.Logger.WithFields(logrus.Fields{
+		"lastVoteRound":  n.Safety.lastVoteRound,
+		"preferredRound": n.Safety.preferredRound,
+		"pendingBlkTree": n.BlockTree.pendingBlkTree,
+	}).Info("Persist")
 }
 
 type ProposerElection struct {

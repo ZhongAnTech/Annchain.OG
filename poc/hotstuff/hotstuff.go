@@ -3,6 +3,7 @@ package hotstuff
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -21,15 +22,17 @@ func (h *Hub) GetChannel(id int) chan *Msg {
 }
 
 func (h *Hub) Send(msg *Msg, id int) {
-	logrus.WithField("msg", msg).WithField("to", id).Info("sending")
-	defer logrus.WithField("msg", msg).WithField("to", id).Info("sent")
+	logrus.WithField("msg", msg).WithField("to", id).Trace("sending")
+	//defer logrus.WithField("msg", msg).WithField("to", id).Trace("sent")
 	h.Channels[id] <- msg
 }
 
 func (h *Hub) SendToAllButMe(msg *Msg, myId int) {
 	for id := range h.Channels {
 		if id != myId {
-			h.Send(msg, id)
+			logrus.WithField("msg", msg).WithField("to", id).Trace("broadcasting")
+			//defer logrus.WithField("msg", msg).WithField("to", id).Trace("sent")
+			h.Channels[id] <- msg
 		}
 	}
 }
@@ -40,7 +43,7 @@ type Partner struct {
 	logger     *logrus.Logger
 
 	LockedQC    *QC
-	PreparedQC  *QC
+	PrepareQC   *QC
 	PreCommitQC *QC
 	CommitQC    *QC
 
@@ -49,16 +52,30 @@ type Partner struct {
 	F           int
 	currentView int
 	LeaderFunc  func(n int, currentView int) int
+	Height      int
 
 	quit chan bool
 }
 
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
-	n.currentView = 1
+	n.currentView = 0
 	n.logger = SetupOrderedLog(n.Id)
+	genesis := &Node{content: "genesis"}
+	n.NodeCache["genesis"] = genesis
+	n.LockedQC = &QC{
+		Typev:      PREPARE,
+		ViewNumber: 0,
+		Node:       genesis,
+		Sigs:       nil,
+	}
 }
+
 func (n *Partner) Start() {
+	n.StartMe(0)
+	n.loop()
+}
+func (n *Partner) loop() {
 	for {
 		select {
 		case <-n.quit:
@@ -66,6 +83,9 @@ func (n *Partner) Start() {
 		default:
 
 		}
+		n.currentView += 1
+		n.logger.WithField("newview", n.currentView).Info("current view advanced")
+		// do this first to avoid status mess
 		if n.LeaderFunc(n.N, n.currentView) == n.Id {
 			// I am leader in this round
 			n.doLeader()
@@ -77,28 +97,34 @@ func (n *Partner) Start() {
 }
 
 func (n *Partner) Stop() {
-	panic("implement me")
+	n.logger.Info("Stopping")
+	close(n.quit)
+	n.logger.Info("Stopped")
 }
 
 func (n *Partner) Name() string {
 	return fmt.Sprintf("Node %d", n.Id)
 }
 
-func (n *Partner) StartMe() {
-	n.NodeCache["genesis"] = &Node{content: "genesis"}
-	// send NEWVIEW to leader
-	leaderId := n.LeaderFunc(n.N, n.currentView)
+// StartMe sends a lockedQC to the current leader so that leader may trigger start.
+// myCurrentView is the latest view we locked in database.
+// Call this BEFORE main loop
+func (n *Partner) StartMe(myCurrentView int) {
+	// send NEWVIEW to the next leader
+	n.currentView = myCurrentView
+	n.logger.WithField("newview", n.currentView).Info("current view set")
+
+	leaderId := n.LeaderFunc(n.N, n.currentView+1)
+
 	n.MessageHub.Send(&Msg{
-		Typev:      NEWVIEW,
-		ViewNumber: 0,
-		Node:       nil,
-		Justify: &QC{
-			Typev:      PREPARE,
-			ViewNumber: 0,
-			Node:       n.NodeCache["genesis"],
-			Sigs:       nil,
-		},
+		Typev:         NEWVIEW,
+		ViewNumber:    n.currentView, // I already advanced to next view, send previous view to the current leader to let him start
+		Node:          n.LockedQC.Node,
+		Justify:       n.LockedQC,
+		FromPartnerId: n.Id,
+		Sig:           Signature{},
 	}, leaderId)
+
 }
 
 func (n *Partner) doLeader() {
@@ -106,12 +132,18 @@ func (n *Partner) doLeader() {
 	keepGoing = n.doLeaderPrepare()
 	if keepGoing {
 		keepGoing = n.doLeaderPreCommit()
+	} else {
+		n.logger.Warn("bad result in leader prepare")
 	}
 	if keepGoing {
 		keepGoing = n.doLeaderCommit()
+	} else {
+		n.logger.Warn("bad result in leader precommit")
 	}
 	if keepGoing {
 		keepGoing = n.doLeaderDecide()
+	} else {
+		n.logger.Warn("bad result in leader commit")
 	}
 	// finally
 	n.doFinally()
@@ -151,12 +183,12 @@ func (n *Partner) doLeaderPreCommit() bool {
 	if !collected {
 		return false
 	}
-	n.PreparedQC = GenQC(goodMessages)
+	n.PrepareQC = GenQC(goodMessages)
 	n.MessageHub.SendToAllButMe(&Msg{
 		Typev:         PRECOMMIT,
 		ViewNumber:    n.currentView,
 		Node:          nil,
-		Justify:       n.PreparedQC,
+		Justify:       n.PrepareQC,
 		FromPartnerId: n.Id,
 	}, n.Id)
 	return true
@@ -184,6 +216,10 @@ func (n *Partner) doLeaderDecide() bool {
 		return false
 	}
 	n.CommitQC = GenQC(goodMessages)
+
+	n.NodeCache[n.CommitQC.Node.content] = n.CommitQC.Node
+	n.reachConsensus(n.CommitQC.Node)
+
 	n.MessageHub.SendToAllButMe(&Msg{
 		Typev:         DECIDE,
 		ViewNumber:    n.currentView,
@@ -195,14 +231,15 @@ func (n *Partner) doLeaderDecide() bool {
 }
 
 func (n *Partner) doFinally() {
-	// do this first to avoid status mess
-	n.currentView += 1
+	nextView := n.currentView + 1 // TODO: if the node falls behind too much, it will take a very long time to catch up.
 	n.MessageHub.Send(&Msg{
-		Typev:      NEWVIEW,
-		ViewNumber: n.currentView - 1, // send previous view number to indicate that this message is for last round
-		Node:       nil,
-		Justify:    n.PreparedQC,
-	}, n.LeaderFunc(n.N, n.currentView)) // next round leader
+		Typev:         NEWVIEW,
+		ViewNumber:    n.currentView, // send previous view number to indicate that this message is for last round
+		Node:          nil,
+		Justify:       n.PrepareQC,
+		FromPartnerId: n.Id,
+		Sig:           Signature{},
+	}, n.LeaderFunc(n.N, nextView)) // next round leader
 	return
 }
 
@@ -211,12 +248,18 @@ func (n *Partner) doReplica() {
 	keepGoing = n.doReplicaPrepare()
 	if keepGoing {
 		keepGoing = n.doReplicaPreCommit()
+	} else {
+		n.logger.Warn("bad result in replica prepare")
 	}
 	if keepGoing {
 		keepGoing = n.doReplicaCommit()
+	} else {
+		n.logger.Warn("bad result in replica precommit")
 	}
 	if keepGoing {
 		keepGoing = n.doReplicaDecide()
+	} else {
+		n.logger.Warn("bad result in replica commit")
 	}
 	// finally
 	n.doFinally()
@@ -224,22 +267,24 @@ func (n *Partner) doReplica() {
 
 func (n *Partner) waitForMatchingMsg(msgType MsgType, viewNumber int, waitCount int, senderId int) (collected bool, goodMessages []*Msg) {
 	n.logger.WithFields(logrus.Fields{
-		"Id":    n.Id,
-		"type":  msgType,
-		"viewN": viewNumber,
-		"for":   "msg",
-	}).Info("waiting")
-	defer n.logger.WithFields(logrus.Fields{
-		"Id":    n.Id,
-		"type":  msgType,
-		"viewN": viewNumber,
-		"for":   "msg",
-	}).Info("collected ")
+		"Id":          n.Id,
+		"waitForType": msgType,
+		"waitForVN":   viewNumber,
+		"myVN":        n.currentView,
+		"for":         "msg",
+	}).Trace("waiting")
 	myChannel := n.MessageHub.GetChannel(n.Id)
 	timer := time.NewTimer(time.Second * 5)
 	for {
 		select {
 		case <-timer.C:
+			n.logger.WithFields(logrus.Fields{
+				"Id":          n.Id,
+				"waitForType": msgType,
+				"waitForVN":   viewNumber,
+				"myVN":        n.currentView,
+				"for":         "msg",
+			}).Warn("timeout")
 			return false, nil
 		case msg := <-myChannel:
 			if senderId == -1 || senderId == msg.FromPartnerId {
@@ -248,28 +293,31 @@ func (n *Partner) waitForMatchingMsg(msgType MsgType, viewNumber int, waitCount 
 					goodMessages = append(goodMessages, msg)
 					if len(goodMessages) >= waitCount {
 						collected = true
+						//n.logger.WithFields(logrus.Fields{
+						//	"Id":   n.Id,
+						//	"type": msgType,
+						//	"VN":   viewNumber,
+						//	"myVN": n.currentView,
+						//	"for":  "msg",
+						//}).Info("collected----------")
 						return
 					}
 				}
 			} else {
-				n.logger.Info("no match 2")
+				n.logger.Warn("no match 2")
 			}
 		}
 	}
 }
 func (n *Partner) waitForMatchingQC(msgType MsgType, viewNumber int, waitCount int, senderId int) (collected bool, goodMessages []*Msg) {
 	n.logger.WithFields(logrus.Fields{
-		"Id":    n.Id,
-		"type":  msgType,
-		"viewN": viewNumber,
-		"for":   "qc",
-	}).Info("waiting")
-	defer n.logger.WithFields(logrus.Fields{
-		"Id":    n.Id,
-		"type":  msgType,
-		"viewN": viewNumber,
-		"for":   "qc",
-	}).Info("collected ")
+		"Id":          n.Id,
+		"waitForType": msgType,
+		"waitForVN":   viewNumber,
+		"myVN":        n.currentView,
+		"for":         "qc",
+	}).Trace("waiting")
+
 	myChannel := n.MessageHub.GetChannel(n.Id)
 	timer := time.NewTimer(time.Second * 5)
 	for {
@@ -277,17 +325,28 @@ func (n *Partner) waitForMatchingQC(msgType MsgType, viewNumber int, waitCount i
 		case <-timer.C:
 			return false, nil
 		case msg := <-myChannel:
+			if msg.Justify == nil {
+				logrus.Warn("unexpected message")
+				continue
+			}
 			if MatchingQC(msg.Justify, msgType, viewNumber) {
 				if senderId == -1 || senderId == msg.FromPartnerId {
 					// TODO: add dedup
 					goodMessages = append(goodMessages, msg)
 					if len(goodMessages) >= waitCount {
 						collected = true
+						n.logger.WithFields(logrus.Fields{
+							"Id":    n.Id,
+							"type":  msgType,
+							"viewN": viewNumber,
+							"myVN":  n.currentView,
+							"for":   "qc",
+						}).Trace("collected ")
 						return
 					}
 				}
 			} else {
-				n.logger.Info("no match 1")
+				n.logger.WithField("msg.Justify", msg.Justify).WithField("msgType", msgType).WithField("viewNumber", viewNumber).Warn("no match 1")
 			}
 		}
 	}
@@ -296,7 +355,8 @@ func (n *Partner) waitForMatchingQC(msgType MsgType, viewNumber int, waitCount i
 func (n *Partner) CreateLeaf(node *Node) (newNode Node) {
 	return Node{
 		Previous: node.content,
-		content:  RandString(15), // get some random string,
+		//content:  RandString(15), // get some random string,
+		content: strconv.Itoa(n.Height + 1), // get some random string,
 	}
 }
 
@@ -333,7 +393,7 @@ func (n *Partner) doReplicaPreCommit() bool {
 	}
 	msg := msgs[0]
 
-	n.PreparedQC = msg.Justify
+	n.PrepareQC = msg.Justify
 	n.MessageHub.Send(&Msg{
 		Typev:         PRECOMMIT,
 		ViewNumber:    n.currentView,
@@ -377,10 +437,16 @@ func (n *Partner) doReplicaDecide() bool {
 	}
 	msg := msgs[0]
 	n.NodeCache[msg.Justify.Node.content] = msg.Justify.Node
-	n.logger.WithFields(logrus.Fields{
-		"Id":      n.Id,
-		"ViewN":   n.currentView,
-		"content": msg.Justify.Node.content,
-	}).Info("reached consensus")
+	n.reachConsensus(msg.Justify.Node)
 	return true
+}
+
+func (n *Partner) reachConsensus(node *Node) {
+	n.Height, _ = strconv.Atoi(node.content)
+	n.logger.WithFields(logrus.Fields{
+		"Id":    n.Id,
+		"ViewN": n.currentView,
+		//"content": n.CommitQC.Node.content,
+		"content": node.content,
+	}).Info("reached consensus")
 }

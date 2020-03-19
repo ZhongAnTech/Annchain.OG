@@ -1,6 +1,28 @@
 package hotstuff
 
+import (
+	"fmt"
+	"github.com/sirupsen/logrus"
+)
+
 type MsgType int
+
+func (m MsgType) String() string {
+	switch m {
+	case NEWVIEW:
+		return "NEWVIEW"
+	case PREPARE:
+		return "PREPARE"
+	case PRECOMMIT:
+		return "PRECOMMIT"
+	case COMMIT:
+		return "COMMIT"
+	case DECIDE:
+		return "DECIDE"
+	default:
+		return "NA"
+	}
+}
 
 const (
 	NEWVIEW MsgType = iota
@@ -16,6 +38,10 @@ type Node struct {
 	content  string
 }
 
+func (n Node) String() string {
+	return "c:" + n.content
+}
+
 type Msg struct {
 	Typev         MsgType
 	ViewNumber    int
@@ -25,11 +51,20 @@ type Msg struct {
 	Sig           Signature
 }
 
+func (m Msg) String() string {
+	return fmt.Sprintf("[type:%s VN:%d Node:%s JT:%s From:%d]", m.Typev, m.ViewNumber, m.Node, m.Justify, m.FromPartnerId)
+}
+
 type QC struct {
 	Typev      MsgType
 	ViewNumber int
 	Node       *Node
 	Sigs       []Signature // simulate sig by give an id to the vote
+}
+
+func (m QC) String() string {
+	return fmt.Sprintf("[type:%s VN:%d Node:%s Sigs:%+v]", m.Typev, m.ViewNumber, m.Node.content, m.Sigs)
+
 }
 
 type Signature struct {
@@ -45,9 +80,25 @@ func MatchingQC(qc *QC, typev MsgType, viewNumber int) bool {
 	return qc.Typev == typev && qc.ViewNumber == viewNumber
 }
 
-func SafeNode(node *Node, qc *QC, partner *Partner) bool {
-	return IsExtends(node, partner.LockedQC, partner.NodeCache) && // safety rule
-		qc.ViewNumber > partner.LockedQC.ViewNumber // liveness rule
+func SafeNode(node *Node, qc *QC, partner *Partner) (isSafe bool) {
+	isExtends := IsExtends(node, partner.LockedQC, partner.NodeCache)                           // safety rule
+	liveness := qc.ViewNumber > partner.LockedQC.ViewNumber || partner.LockedQC.ViewNumber == 0 // liveness rule
+
+	isSafe = isExtends || liveness
+	if !isSafe {
+		if !isExtends {
+			logrus.Warn("isExtends warn")
+		}
+		if !liveness {
+			logrus.WithField("qc", qc).WithField("lockedqc", partner.LockedQC).Warn("liveness warn")
+		}
+	}
+	if !isExtends {
+		if liveness {
+			logrus.Warn("liveness jump")
+		}
+	}
+	return
 }
 
 func IsExtends(node *Node, qc *QC, cache map[string]*Node) bool {
@@ -58,6 +109,7 @@ func IsExtends(node *Node, qc *QC, cache map[string]*Node) bool {
 		}
 		current = cache[current.Previous]
 	}
+	logrus.Warn("not isextends")
 	return false
 }
 

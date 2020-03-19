@@ -32,7 +32,7 @@ var runCmd = &cobra.Command{
 				MessageHub:  hub,
 				NodeCache:   make(map[string]*hotstuff.Node),
 				LockedQC:    nil,
-				PreparedQC:  nil,
+				PrepareQC:   nil,
 				PreCommitQC: nil,
 				CommitQC:    nil,
 				Id:          i,
@@ -44,9 +44,6 @@ var runCmd = &cobra.Command{
 		}
 		for i := 0; i < num; i++ {
 			go partners[i].Start()
-		}
-		for i := 0; i < num; i++ {
-			go partners[i].StartMe()
 		}
 
 		// prevent sudden stop. Do your clean up here

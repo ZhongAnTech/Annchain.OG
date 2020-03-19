@@ -100,9 +100,9 @@ func (t *BlockTree) InitGenesisOrLatest() {
 		VoteInfo: VoteInfo{
 			Id:               "genesis",
 			Round:            0,
-			ParentId:         "",
+			ParentId:         "genesis-1",
 			ParentRound:      0,
-			GrandParentId:    "",
+			GrandParentId:    "genesis-2",
 			GrandParentRound: 0,
 			ExecStateId:      "genesisstate",
 		},

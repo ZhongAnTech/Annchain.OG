@@ -1,6 +1,9 @@
 package hotstuff_event
 
-import "time"
+import (
+	"github.com/sirupsen/logrus"
+	"time"
+)
 
 type PaceMaker struct {
 	MyId             int
@@ -10,6 +13,7 @@ type PaceMaker struct {
 	BlockTree        *BlockTree
 	ProposerElection *ProposerElection
 	Partner          *Partner
+	Logger           *logrus.Logger
 
 	timeoutsPerRound map[int]SignatureCollector // round : sender list:true
 	timer            *time.Timer
@@ -66,6 +70,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 }
 
 func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
+	m.Logger.WithField("qc", qc).WithField("reason", reason).Info("advancing round")
 	latestRound := qc.VoteInfo.Round
 	if latestRound < m.CurrentRound {
 		return

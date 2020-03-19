@@ -40,6 +40,7 @@ func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_even
 		MessageHub:       hub,
 		BlockTree:        blockTree,
 		ProposerElection: proposerElection,
+		Logger:           logger,
 		Partner:          nil, // fill later
 	}
 	paceMaker.InitDefault()

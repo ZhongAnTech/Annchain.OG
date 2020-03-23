@@ -89,6 +89,7 @@ type BlockTree struct {
 	Ledger    *Ledger
 	PaceMaker *PaceMaker
 	F         int
+	MyId      int
 
 	pendingBlkTree PendingBlockTree              // tree of blocks pending commitment
 	pendingVotes   map[string]SignatureCollector // collected votes per block indexed by their LedgerInfo hash
@@ -121,8 +122,11 @@ func (t *BlockTree) InitGenesisOrLatest() {
 }
 
 func (t *BlockTree) InitDefault() {
+	t.pendingBlkTree = PendingBlockTree{
+		MyId:   t.MyId,
+		Logger: t.Logger,
+	}
 	t.pendingBlkTree.InitDefault()
-	t.pendingBlkTree.Logger = t.Logger
 	t.pendingVotes = make(map[string]SignatureCollector)
 }
 
@@ -136,16 +140,19 @@ func (t *BlockTree) ProcessVote(vote *ContentVote, signature Signature) {
 	collector := t.pendingVotes[voteIndex]
 	collector.Collect(signature)
 	if collector.Count() == 2*t.F+1 {
+		t.Logger.WithField("vote", vote).Info("votes collected")
 		qc := &QC{
 			VoteInfo:         vote.VoteInfo,
 			LedgerCommitInfo: vote.LedgerCommitInfo,
 			Signatures:       collector.AllSignatures(),
 		}
-		t.PaceMaker.AdvanceRound(qc, "vote qc got")
 		if qc.VoteInfo.Round > t.highQC.VoteInfo.Round {
 			t.highQC = qc
 		}
+		t.PaceMaker.AdvanceRound(qc, "vote qc got")
 
+	} else {
+		t.Logger.WithField("vote", vote).WithField("now", collector.Count()).Info("votes yet collected")
 	}
 }
 

@@ -73,10 +73,12 @@ func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
 	m.Logger.WithField("qc", qc).WithField("reason", reason).Info("advancing round")
 	latestRound := qc.VoteInfo.Round
 	if latestRound < m.CurrentRound {
+		m.Logger.WithField("qc", qc).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("qc round is less than current round so do not advance")
 		return
 	}
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
+	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
 	if m.MyId != m.ProposerElection.GetLeader(m.CurrentRound) {
 		m.MessageHub.Send(&Msg{
 			Typev:    Vote,

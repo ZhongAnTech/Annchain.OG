@@ -3,6 +3,7 @@ package hotstuff_event
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"strconv"
 )
 
 /**
@@ -36,6 +37,8 @@ func (n *Partner) Start() {
 		case <-n.quit:
 			return
 		case msg := <-messageChannel:
+			n.Logger.WithField("msgType", msg.Typev.String()).WithField("msgc", msg).Info("received message")
+
 			switch msg.Typev {
 			case Proposal:
 				n.ProcessProposalMessage(msg)
@@ -72,11 +75,14 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 	p := msg.Content.(*ContentProposal).Proposal
 
 	n.ProcessCertificates(p.ParentQC)
+
 	currentRound := n.PaceMaker.CurrentRound
 	if p.Round != currentRound {
+		n.Logger.WithField("pRound", p.Round).WithField("currentRound", currentRound).Warn("current round not match.")
 		return
 	}
 	if msg.SenderId != n.ProposerElection.GetLeader(currentRound) {
+		n.Logger.WithField("msg.SenderId", msg.SenderId).WithField("current leader", n.ProposerElection.GetLeader(currentRound)).Warn("current leader not match.")
 		return
 	}
 	n.BlockTree.ExecuteAndInsert(&p)
@@ -92,7 +98,7 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 				Signature: voteMsg.SignatureTarget(),
 			},
 		}
-		n.MessageHub.Send(outMsg, voteAggregator, "ProcessProposalMessage")
+		n.MessageHub.Send(outMsg, voteAggregator, "ProcessProposalMessage"+strconv.Itoa(n.PaceMaker.CurrentRound))
 	}
 }
 
@@ -102,7 +108,7 @@ func (n *Partner) ProcessVoteMessage(msg *Msg) {
 }
 
 func (n *Partner) ProcessCertificates(qc *QC) {
-	n.PaceMaker.AdvanceRound(qc, "ProcessCertificates")
+	n.PaceMaker.AdvanceRound(qc, "ProcessCertificates"+strconv.Itoa(n.PaceMaker.CurrentRound))
 	n.Safety.UpdatePreferredRound(qc)
 	if qc.LedgerCommitInfo.CommitStateId != "" {
 		n.BlockTree.ProcessCommit(qc.VoteInfo.GrandParentId)
@@ -112,9 +118,11 @@ func (n *Partner) ProcessCertificates(qc *QC) {
 func (n *Partner) ProcessNewRoundEvent() {
 	if n.MyId != n.ProposerElection.GetLeader(n.PaceMaker.CurrentRound) {
 		// not the leader
+		n.Logger.Info("I'm not the leader so just return")
 		return
 	}
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, RandString(15))
+	n.Logger.WithField("proposal", b).Info("I'm the current leader")
 	n.MessageHub.SendToAllButMe(&Msg{
 		Typev:    Proposal,
 		SenderId: n.MyId,
@@ -123,7 +131,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 			PartnerId: n.MyId,
 			Signature: b.SignatureTarget(),
 		},
-	}, n.MyId, "ProcessNewRoundEvent")
+	}, n.MyId, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))
 }
 
 func (n *Partner) SaveConsensusState() {
@@ -131,7 +139,7 @@ func (n *Partner) SaveConsensusState() {
 		"lastVoteRound":  n.Safety.lastVoteRound,
 		"preferredRound": n.Safety.preferredRound,
 		"pendingBlkTree": n.BlockTree.pendingBlkTree,
-	}).Info("Persist")
+	}).Info("Persist" + strconv.Itoa(n.PaceMaker.CurrentRound))
 }
 
 type ProposerElection struct {

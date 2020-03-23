@@ -7,6 +7,7 @@ import (
 
 // Stores state merkle tree.
 type PendingBlockTree struct {
+	MyId           int
 	Logger         *logrus.Logger
 	cache          map[string]*Block
 	childRelations map[string][]string
@@ -33,5 +34,6 @@ func (t *PendingBlockTree) Add(p *Block) {
 }
 
 func (t *PendingBlockTree) Commit(id string) {
+	fmt.Printf("[%d] %s\n", t.MyId, id)
 	t.Logger.WithField("id", id).Info("block commit")
 }

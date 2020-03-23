@@ -2,7 +2,7 @@ package hotstuff_event
 
 import (
 	"fmt"
-	"github.com/bshuster-repo/logrus-logstash-hook"
+	"github.com/latifrons/logrus-logstash-hook"
 	"github.com/sirupsen/logrus"
 	"net"
 	"strconv"
@@ -39,10 +39,7 @@ func SetupOrderedLog(id int) *logrus.Logger {
 	if err != nil {
 		logrus.Warn("socket logger is not enabled")
 	}
-	hook, err := logrustash.NewHookWithConn(conn, "og")
-	if err != nil {
-		logrus.Warn("socket logger is not enabled")
-	}
+	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{}))
 
 	logger.Hooks.Add(hook)
 

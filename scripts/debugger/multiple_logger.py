@@ -86,7 +86,7 @@ def start_socket_listener():
 def consume():
     while True:
         q = queue.get()
-        l.append(q)
+        # l.append(q)
         server.send_message_to_all(q)
 
 

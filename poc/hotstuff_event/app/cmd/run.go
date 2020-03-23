@@ -27,6 +27,7 @@ func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_even
 		Ledger: ledger,
 		F:      F,
 		Logger: logger,
+		MyId:   myId,
 	}
 	blockTree.InitDefault()
 	blockTree.InitGenesisOrLatest()
@@ -35,7 +36,7 @@ func MakePartner(myId int, N int, F int, hub *hotstuff_event.Hub) *hotstuff_even
 
 	paceMaker := &hotstuff_event.PaceMaker{
 		MyId:             myId,
-		CurrentRound:     0,
+		CurrentRound:     1, // must be 1 which is AFTER GENESIS
 		Safety:           safety,
 		MessageHub:       hub,
 		BlockTree:        blockTree,

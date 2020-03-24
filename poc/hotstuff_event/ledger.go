@@ -37,5 +37,5 @@ func (l *Ledger) GetState(id string) (stateId string) {
 
 // Commit commits the pending prefix of the given blockId and prune other branches
 func (l *Ledger) Commit(stateId string) {
-	l.Logger.WithField("stateId", stateId).Info("ledger commit")
+	l.Logger.WithField("stateId", stateId).Debug("ledger commit")
 }

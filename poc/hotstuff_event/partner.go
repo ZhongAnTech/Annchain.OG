@@ -37,7 +37,7 @@ func (n *Partner) Start() {
 		case <-n.quit:
 			return
 		case msg := <-messageChannel:
-			n.Logger.WithField("msgType", msg.Typev.String()).WithField("msgc", msg).Info("received message")
+			n.Logger.WithField("msgType", msg.Typev.String()).WithField("msgc", msg).Trace("received message")
 
 			switch msg.Typev {
 			case Proposal:
@@ -118,12 +118,12 @@ func (n *Partner) ProcessCertificates(qc *QC) {
 func (n *Partner) ProcessNewRoundEvent() {
 	if n.MyId != n.ProposerElection.GetLeader(n.PaceMaker.CurrentRound) {
 		// not the leader
-		n.Logger.Info("I'm not the leader so just return")
+		n.Logger.Trace("I'm not the leader so just return")
 		return
 	}
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, RandString(15))
-	n.Logger.WithField("proposal", b).Info("I'm the current leader")
-	n.MessageHub.SendToAllButMe(&Msg{
+	n.Logger.WithField("proposal", b).Trace("I'm the current leader")
+	n.MessageHub.SendToAllIncludingMe(&Msg{
 		Typev:    Proposal,
 		SenderId: n.MyId,
 		Content:  b,
@@ -139,7 +139,7 @@ func (n *Partner) SaveConsensusState() {
 		"lastVoteRound":  n.Safety.lastVoteRound,
 		"preferredRound": n.Safety.preferredRound,
 		"pendingBlkTree": n.BlockTree.pendingBlkTree,
-	}).Info("Persist" + strconv.Itoa(n.PaceMaker.CurrentRound))
+	}).Trace("Persist" + strconv.Itoa(n.PaceMaker.CurrentRound))
 }
 
 type ProposerElection struct {

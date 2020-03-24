@@ -38,12 +38,13 @@ func SetupOrderedLog(id int) *logrus.Logger {
 	conn, err := net.DialTimeout("tcp", "127.0.0.1:1088", time.Millisecond*50)
 	if err != nil {
 		logrus.Warn("socket logger is not enabled")
+	} else {
+		hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{}))
+
+		logger.Hooks.Add(hook)
 	}
-	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{}))
 
-	logger.Hooks.Add(hook)
-
-	logger.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.InfoLevel)
 	logger.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
 		TimestampFormat: "15:04:05.000000",

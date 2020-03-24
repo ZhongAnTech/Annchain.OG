@@ -3,6 +3,7 @@ package hotstuff_event
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type Block struct {
@@ -140,7 +141,7 @@ func (t *BlockTree) ProcessVote(vote *ContentVote, signature Signature) {
 	collector := t.pendingVotes[voteIndex]
 	collector.Collect(signature)
 	if collector.Count() == 2*t.F+1 {
-		t.Logger.WithField("vote", vote).Info("votes collected")
+		t.Logger.WithField("vote", vote).Trace("votes collected")
 		qc := &QC{
 			VoteInfo:         vote.VoteInfo,
 			LedgerCommitInfo: vote.LedgerCommitInfo,
@@ -152,7 +153,7 @@ func (t *BlockTree) ProcessVote(vote *ContentVote, signature Signature) {
 		t.PaceMaker.AdvanceRound(qc, "vote qc got")
 
 	} else {
-		t.Logger.WithField("vote", vote).WithField("now", collector.Count()).Info("votes yet collected")
+		t.Logger.WithField("vote", vote).WithField("now", collector.Count()).Trace("votes yet collected")
 	}
 }
 
@@ -164,7 +165,7 @@ func (t *BlockTree) ProcessCommit(id string) {
 func (t *BlockTree) ExecuteAndInsert(p *Block) {
 	// it is a proposal message
 	executeStateId := t.Ledger.Speculate(p.ParentQC.VoteInfo.Id, p.Id, p.Payload)
-	fmt.Println(executeStateId)
+	fmt.Printf("[%d] ExecuteState: %s\n", t.MyId, executeStateId)
 	t.pendingBlkTree.Add(p)
 	if p.ParentQC.VoteInfo.Round > t.highQC.VoteInfo.Round {
 		t.highQC = p.ParentQC
@@ -173,6 +174,7 @@ func (t *BlockTree) ExecuteAndInsert(p *Block) {
 }
 
 func (t *BlockTree) GenerateProposal(currentRound int, payload string) *ContentProposal {
+	time.Sleep(time.Second * 5)
 	return &ContentProposal{
 		Proposal: Block{
 			Round:    currentRound,

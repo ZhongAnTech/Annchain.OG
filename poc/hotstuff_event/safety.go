@@ -19,7 +19,7 @@ type Safety struct {
 
 func (s *Safety) UpdatePreferredRound(qc *QC) {
 	if qc.VoteInfo.ParentRound > s.preferredRound {
-		s.Logger.WithField("qc", qc).Info("update preferred round")
+		s.Logger.WithField("qc", qc).Trace("update preferred round")
 		s.preferredRound = qc.VoteInfo.ParentRound
 	}
 }

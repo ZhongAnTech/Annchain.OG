@@ -64,31 +64,35 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	m.Partner.SaveConsensusState()
 
 	timeoutMsg := m.MakeTimeoutMessage()
-	m.MessageHub.SendToAllButMe(timeoutMsg, m.MyId, "LocalTimeoutRound")
+	m.MessageHub.SendToAllIncludingMe(timeoutMsg, m.MyId, "LocalTimeoutRound")
 	collector := m.timeoutsPerRound[m.CurrentRound]
 	collector.Collect(timeoutMsg.Sig)
 }
 
 func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
-	m.Logger.WithField("qc", qc).WithField("reason", reason).Info("advancing round")
+	m.Logger.WithField("qc", qc).WithField("reason", reason).Trace("advancing round")
 	latestRound := qc.VoteInfo.Round
 	if latestRound < m.CurrentRound {
-		m.Logger.WithField("qc", qc).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("qc round is less than current round so do not advance")
+		m.Logger.WithField("qc", qc).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Trace("qc round is less than current round so do not advance")
 		return
 	}
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
-	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
+	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("round advanced")
 	if m.MyId != m.ProposerElection.GetLeader(m.CurrentRound) {
+		content := &ContentVote{
+			VoteInfo:         qc.VoteInfo,
+			LedgerCommitInfo: qc.LedgerCommitInfo,
+			Signatures:       qc.Signatures,
+		}
 		m.MessageHub.Send(&Msg{
-			Typev:    Vote,
-			Sig:      Signature{},
-			SenderId: 0,
-			Content: &ContentVote{
-				VoteInfo:         qc.VoteInfo,
-				LedgerCommitInfo: qc.LedgerCommitInfo,
-				Signatures:       qc.Signatures,
+			Typev: Vote,
+			Sig: Signature{
+				PartnerId: m.MyId,
+				Signature: content.SignatureTarget(),
 			},
+			SenderId: m.MyId,
+			Content:  content,
 		}, m.ProposerElection.GetLeader(m.CurrentRound), "AdvanceRound:"+reason)
 
 	}
@@ -114,7 +118,7 @@ func (m *PaceMaker) StopLocalTimer(r int) {
 }
 
 func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
-	return time.Second * 5
+	return time.Second * 10
 }
 
 func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {

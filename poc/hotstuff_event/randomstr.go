@@ -22,3 +22,7 @@ func RandStringWithCharset(length int, charset string) string {
 func RandString(length int) string {
 	return RandStringWithCharset(length, charset)
 }
+
+func RandInt() int {
+	return seededRand.Intn(10000)
+}

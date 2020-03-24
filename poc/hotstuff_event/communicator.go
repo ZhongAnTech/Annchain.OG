@@ -16,7 +16,9 @@ func (h *Hub) GetChannel(id int) chan *Msg {
 func (h *Hub) Send(msg *Msg, id int, pos string) {
 	logrus.WithField("message", msg).WithField("to", id).Trace(fmt.Sprintf("[%d] sending [%s] to [%d]", msg.SenderId, pos, id))
 	//defer logrus.WithField("msg", msg).WithField("to", id).Info("sent")
+	//if id > 2 { // Byzantine test
 	h.Channels[id] <- msg
+	//}
 }
 
 func (h *Hub) SendToAllButMe(msg *Msg, myId int, pos string) {

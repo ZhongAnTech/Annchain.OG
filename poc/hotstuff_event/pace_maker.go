@@ -1,6 +1,7 @@
 package hotstuff_event
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -38,6 +39,7 @@ func (m *PaceMaker) ProcessRemoteTimeout(msg *Msg) {
 	collector.Collect(msg.Sig)
 
 	if collector.Count() == m.Partner.F*2+1 {
+		fmt.Printf("TC got for round %d\n", contentTimeout.Round)
 		m.AdvanceRound(&QC{
 			VoteInfo: VoteInfo{
 				Round: contentTimeout.Round,
@@ -118,7 +120,7 @@ func (m *PaceMaker) StopLocalTimer(r int) {
 }
 
 func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
-	return time.Second * 10
+	return time.Second * 3
 }
 
 func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {

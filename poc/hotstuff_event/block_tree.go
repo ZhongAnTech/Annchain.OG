@@ -3,7 +3,6 @@ package hotstuff_event
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type Block struct {
@@ -114,6 +113,8 @@ func (t *BlockTree) InitGenesisOrLatest() {
 		},
 		Signatures: nil,
 	}
+	t.Ledger.Speculate("", "genesis", "0")
+	t.Ledger.Commit("genesis")
 	//t.pendingBlkTree.Add(&Block{
 	//	Round:    0,
 	//	Payload:  "genesispayload",
@@ -165,7 +166,7 @@ func (t *BlockTree) ProcessCommit(id string) {
 func (t *BlockTree) ExecuteAndInsert(p *Block) {
 	// it is a proposal message
 	executeStateId := t.Ledger.Speculate(p.ParentQC.VoteInfo.Id, p.Id, p.Payload)
-	fmt.Printf("[%d] ExecuteState: %s\n", t.MyId, executeStateId)
+	fmt.Printf("[%d] at [%d-%d] [%s] ExecuteState: %s\n", t.MyId, p.Round, t.Ledger.cache[p.Id].total, p.Id, executeStateId)
 	t.pendingBlkTree.Add(p)
 	if p.ParentQC.VoteInfo.Round > t.highQC.VoteInfo.Round {
 		t.highQC = p.ParentQC
@@ -174,7 +175,8 @@ func (t *BlockTree) ExecuteAndInsert(p *Block) {
 }
 
 func (t *BlockTree) GenerateProposal(currentRound int, payload string) *ContentProposal {
-	time.Sleep(time.Second * 5)
+	//time.Sleep(time.Second * 5)
+	//time.Sleep(time.Millisecond * 2)
 	return &ContentProposal{
 		Proposal: Block{
 			Round:    currentRound,

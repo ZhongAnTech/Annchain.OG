@@ -34,6 +34,6 @@ func (t *PendingBlockTree) Add(p *Block) {
 }
 
 func (t *PendingBlockTree) Commit(id string) {
-	fmt.Printf("[%d] Block %s\n", t.MyId, id)
+	//fmt.Printf("[%d] Block %s\n", t.MyId, id)
 	t.Logger.WithField("id", id).Debug("block commit")
 }

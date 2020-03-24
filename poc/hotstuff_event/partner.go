@@ -121,8 +121,10 @@ func (n *Partner) ProcessNewRoundEvent() {
 		n.Logger.Trace("I'm not the leader so just return")
 		return
 	}
-	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, RandString(15))
+	//b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, strconv.Itoa(RandInt()))
+	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, "1")
 	n.Logger.WithField("proposal", b).Trace("I'm the current leader")
+	fmt.Printf("[%d] pp %d %s\n", n.MyId, b.Proposal.Round, b.Proposal.Payload)
 	n.MessageHub.SendToAllIncludingMe(&Msg{
 		Typev:    Proposal,
 		SenderId: n.MyId,

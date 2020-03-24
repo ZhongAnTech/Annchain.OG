@@ -1,14 +1,21 @@
 package hotstuff_event
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-// Node is a block
+// Node is a block with state
 type Node struct {
 	Previous string
 	content  string
+	total    int
+	state    string
+}
+
+func (n Node) String() string {
+	return fmt.Sprintf("%s %s %d", n.Previous, n.content, n.total)
 }
 
 // Stores state merkle tree.
@@ -23,16 +30,30 @@ func (l *Ledger) InitDefault() {
 
 // Speculate applies cmds speculatively
 func (l *Ledger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
-	l.cache[blockId] = Node{
+	v, err := strconv.Atoi(cmds)
+	if err != nil {
+		panic(err)
+	}
+	if prevBlockId != "" {
+		if _, ok := l.cache[prevBlockId]; !ok {
+			l.Logger.WithField("missing block", prevBlockId).Warn("I'm behind. Previous block not found")
+		}
+	}
+
+	n := Node{
 		Previous: prevBlockId,
 		content:  cmds,
+		total:    l.cache[prevBlockId].total + v,
 	}
-	return Hash("len" + strconv.Itoa(len(l.cache)))
+	n.state = Hash(n.String())
+	l.cache[blockId] = n
+
+	return l.cache[blockId].state
 }
 
 // GetState finds the pending state for the given blockId or nil if not present
 func (l *Ledger) GetState(id string) (stateId string) {
-	return "1"
+	return l.cache[id].state
 }
 
 // Commit commits the pending prefix of the given blockId and prune other branches

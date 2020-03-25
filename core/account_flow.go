@@ -27,20 +27,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type AccountFlows struct {
-	afs  map[common.Address]*AccountFlow
-	pool *TxPool
-	mu   sync.RWMutex
+type AccountFlowSet struct {
+	afs    map[common.Address]*AccountFlow
+	ledger Ledger
+	mu     sync.RWMutex
 }
 
-func NewAccountFlows(pool *TxPool) *AccountFlows {
-	return &AccountFlows{
-		afs:  make(map[common.Address]*AccountFlow),
-		pool: pool,
+func NewAccountFlowSet(ledger Ledger) *AccountFlowSet {
+	return &AccountFlowSet{
+		afs:    make(map[common.Address]*AccountFlow),
+		ledger: ledger,
 	}
 }
 
-func (a *AccountFlows) Add(tx types.Txi) {
+func (a *AccountFlowSet) Add(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -55,7 +55,7 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	if tx.GetType() == types.TxBaseTypeNormal {
 		txn := tx.(*tx_types.Tx)
 		if af.balances[txn.TokenId] == nil {
-			blc := a.pool.dag.GetBalance(txn.Sender(), txn.TokenId)
+			blc := a.ledger.GetBalance(txn.Sender(), txn.TokenId)
 			af.balances[txn.TokenId] = NewBalanceState(blc)
 		}
 	}
@@ -63,14 +63,14 @@ func (a *AccountFlows) Add(tx types.Txi) {
 	a.afs[tx.Sender()] = af
 }
 
-func (a *AccountFlows) Get(addr common.Address) *AccountFlow {
+func (a *AccountFlowSet) Get(addr common.Address) *AccountFlow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	return a.afs[addr]
 }
 
-func (a *AccountFlows) GetBalanceState(addr common.Address, tokenID int32) *BalanceState {
+func (a *AccountFlowSet) GetBalanceState(addr common.Address, tokenID int32) *BalanceState {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -85,7 +85,7 @@ func (a *AccountFlows) GetBalanceState(addr common.Address, tokenID int32) *Bala
 	return bls[tokenID]
 }
 
-func (a *AccountFlows) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (a *AccountFlowSet) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -96,7 +96,7 @@ func (a *AccountFlows) GetTxByNonce(addr common.Address, nonce uint64) types.Txi
 	return flow.GetTx(nonce)
 }
 
-func (a *AccountFlows) GetLatestNonce(addr common.Address) (uint64, error) {
+func (a *AccountFlowSet) GetLatestNonce(addr common.Address) (uint64, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -110,14 +110,14 @@ func (a *AccountFlows) GetLatestNonce(addr common.Address) (uint64, error) {
 	return flow.LatestNonce()
 }
 
-func (a *AccountFlows) ResetFlow(addr common.Address, originBalance state.BalanceSet) {
+func (a *AccountFlowSet) ResetFlow(addr common.Address, originBalance state.BalanceSet) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
-func (a *AccountFlows) Remove(tx types.Txi) {
+func (a *AccountFlowSet) Remove(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -126,7 +126,7 @@ func (a *AccountFlows) Remove(tx types.Txi) {
 		log.WithField("tx", tx).Warnf("remove tx from accountflows failed")
 		return
 	}
-	flow.Remove(tx.GetNonce())
+	flow.Remove(tx)
 	// remove account flow if there is no txs sent by this address in pool
 	if flow.Len() == 0 {
 		delete(a.afs, tx.Sender())
@@ -186,7 +186,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
 	}
 	value := txnormal.GetValue()
-	err := af.balances[txnormal.TokenId].TrySubBalance(value)
+	err := af.balances[txnormal.TokenId].TryProcessTx(value)
 	if err != nil {
 		return err
 	}
@@ -196,11 +196,15 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 
 // Remove a tx from account flow, find tx by nonce first, then
 // rolls back the balance and remove tx from txlist.
-func (af *AccountFlow) Remove(nonce uint64) error {
-	tx := af.txlist.Get(nonce)
+func (af *AccountFlow) Remove(txToRemove types.Txi) error {
+	tx := af.txlist.Get(txToRemove.GetNonce())
 	if tx == nil {
 		return nil
 	}
+	if tx.GetTxHash().Cmp(txToRemove.GetTxHash()) != 0 {
+		return nil
+	}
+	nonce := tx.GetNonce()
 	if tx.GetType() != types.TxBaseTypeNormal {
 		af.txlist.Remove(nonce)
 		return nil
@@ -253,10 +257,28 @@ func (bs *BalanceState) OriginBalance() *math.BigInt {
 	return bs.originBalance
 }
 
-// TrySubBalance checks if origin balance is enough for total spent of
+//func (bs *BalanceState) isValid(spend *math.BigInt) error {
+//
+//	// if tx's value is larger than its balance, return fatal.
+//	if spend.Value.Cmp(bs.originBalance.Value) > 0 {
+//		log.WithField("tx", tx).Tracef("fatal tx, tx's value larger than balance")
+//		return TxQualityIsFatal
+//	}
+//	// if ( the value that 'from' already spent )
+//	// 	+ ( the value that 'from' newly spent )
+//	// 	> ( balance of 'from' in db )
+//	totalspent := math.NewBigInt(0)
+//	if totalspent.Value.Add(stateFrom.spent.Value, tx.Value.Value).Cmp(
+//		stateFrom.originBalance.Value) > 0 {
+//		log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
+//		return TxQualityIsBad
+//	}
+//}
+
+// TryProcessTx checks if origin balance is enough for total spent of
 // txs in pool. It trys to add new spent "value" into total spent and
 // compare total spent with origin balance.
-func (bs *BalanceState) TrySubBalance(value *math.BigInt) error {
+func (bs *BalanceState) TryProcessTx(value *math.BigInt) error {
 	totalspent := math.NewBigInt(0)
 	totalspent.Value.Add(bs.spent.Value, value.Value)
 	// check if (already spent + new spent) > confirmed balance

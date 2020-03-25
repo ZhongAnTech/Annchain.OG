@@ -78,12 +78,12 @@ func TestBalanceState(t *testing.T) {
 	originBalance := math.NewBigInt(100000)
 	bs := core.NewBalanceState(originBalance)
 
-	// test TrySubBalance
+	// test TryProcessTx
 	fstValue := int64(10000)
 	subValue := math.NewBigInt(fstValue)
-	err = bs.TrySubBalance(subValue)
+	err = bs.TryProcessTx(subValue)
 	if err != nil {
-		t.Fatalf("TrySubBalance err: %v", err)
+		t.Fatalf("TryProcessTx err: %v", err)
 	}
 	spent = bs.Spent().GetInt64()
 	if spent != fstValue {

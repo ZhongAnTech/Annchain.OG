@@ -13,7 +13,7 @@ Maofan Yin, Dahlia Malkhi, Michael K. Reiter, Guy Golan Gueta and Ittai Abraham
 */
 
 type Partner struct {
-	MessageHub       *Hub
+	MessageHub       Hub
 	Ledger           *Ledger
 	MyId             int
 	N                int
@@ -133,7 +133,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 			PartnerId: n.MyId,
 			Signature: b.SignatureTarget(),
 		},
-	}, n.MyId, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))
+	}, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))
 }
 
 func (n *Partner) SaveConsensusState() {

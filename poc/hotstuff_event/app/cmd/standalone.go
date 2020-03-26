@@ -1,17 +1,19 @@
 package cmd
 
 import (
+	"bufio"
 	"github.com/annchain/OG/poc/hotstuff_event"
 	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
-func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hotstuff_event.Partner {
+func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub) *hotstuff_event.Partner {
 	logger := hotstuff_event.SetupOrderedLog(myId)
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
@@ -69,26 +71,27 @@ func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hot
 }
 
 // runCmd represents the run command
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Start multiple nodes locally.",
-	Long:  `Start multiple nodes locally. They will communicate inside the program.`,
+var standaloneCmd = &cobra.Command{
+	Use:   "standalone",
+	Short: "Start a standalone node",
+	Long:  `Start a standalone node and communicate with other standalone nodes`,
 	Run: func(cmd *cobra.Command, args []string) {
 		setupLogger()
-		num := viper.GetInt("total")
 
-		// prepare partners
-		hub := &hotstuff_event.LocalHub{Channels: map[int]chan *hotstuff_event.Msg{}}
-		partners := make([]*hotstuff_event.Partner, num)
+		peers := readList(viper.GetString("list"))
+		total := len(peers)
 
-		for i := 0; i < num; i++ {
-			hub.Channels[i] = make(chan *hotstuff_event.Msg, 30)
-			partners[i] = MakeLocalPartner(i, num, num/3, hub)
-
+		hub := &hotstuff_event.RemoteHub{
+			Port: viper.GetInt("port"),
 		}
-		for i := 0; i < num; i++ {
-			go partners[i].Start()
-		}
+		hub.InitDefault()
+		hub.InitPeers(peers)
+		go hub.Start()
+
+		partners := make([]*hotstuff_event.Partner, total)
+
+		partner := MakeStandalonePartner(viper.GetInt("mei"), total, total/3, hub)
+		go partner.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -109,16 +112,37 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func setupLogger() {
-	logrus.SetLevel(logrus.InfoLevel)
-	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceColors:     true,
-		TimestampFormat: "15:04:05.000000",
-	})
+func readList(filename string) (peers []string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			panic(err)
+		}
+		s := strings.TrimSpace(line)
+		peers = append(peers, s)
+	}
+	return
+
 }
 
 func init() {
-	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().IntP("total", "t", 4, "Partners to be started")
-	_ = viper.BindPFlag("total", runCmd.Flags().Lookup("total"))
+	rootCmd.AddCommand(standaloneCmd)
+	standaloneCmd.Flags().StringP("list", "l", "peers.lst", "Partners to be started in file list")
+	_ = viper.BindPFlag("list", standaloneCmd.Flags().Lookup("list"))
+
+	standaloneCmd.Flags().IntP("mei", "i", 1, "My IP index in the list")
+	_ = viper.BindPFlag("me", standaloneCmd.Flags().Lookup("mei"))
+
+	standaloneCmd.Flags().IntP("port", "p", 3301, "Local IO port")
+	_ = viper.BindPFlag("port", standaloneCmd.Flags().Lookup("port"))
 }

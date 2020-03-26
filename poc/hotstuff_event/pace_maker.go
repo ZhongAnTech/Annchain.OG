@@ -10,7 +10,7 @@ type PaceMaker struct {
 	MyId             int
 	CurrentRound     int
 	Safety           *Safety
-	MessageHub       *Hub
+	MessageHub       Hub
 	BlockTree        *BlockTree
 	ProposerElection *ProposerElection
 	Partner          *Partner
@@ -66,7 +66,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	m.Partner.SaveConsensusState()
 
 	timeoutMsg := m.MakeTimeoutMessage()
-	m.MessageHub.SendToAllIncludingMe(timeoutMsg, m.MyId, "LocalTimeoutRound")
+	m.MessageHub.SendToAllIncludingMe(timeoutMsg, "LocalTimeoutRound")
 	collector := m.timeoutsPerRound[m.CurrentRound]
 	collector.Collect(timeoutMsg.Sig)
 }

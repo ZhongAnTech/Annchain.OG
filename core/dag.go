@@ -243,7 +243,7 @@ func (dag *Dag) Accessor() *Accessor {
 }
 
 // Push trys to move a tx from tx pool to dag db.
-func (dag *Dag) Push(batch *ConfirmBatch) error {
+func (dag *Dag) Push(batch *PushBatch) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
@@ -253,7 +253,7 @@ func (dag *Dag) Push(batch *ConfirmBatch) error {
 // PrePush simulates the action of pushing sequencer into Dag ledger. Simulates will
 // store the changes into cache statedb. Once the same sequencer comes, the cached
 // states will becomes regular ones.
-func (dag *Dag) PrePush(batch *ConfirmBatch) (common.Hash, error) {
+func (dag *Dag) PrePush(batch *PushBatch) (common.Hash, error) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
@@ -606,7 +606,7 @@ func (dag *Dag) getTxsHashesByNumber(Height uint64) *common.Hashes {
 	return hashs
 }
 
-// GetBalance read the confirmed balance of an address from ogdb.
+// getBalance read the confirmed balance of an address from ogdb.
 func (dag *Dag) GetBalance(addr common.Address, tokenID int32) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -729,7 +729,7 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
+func (dag *Dag) prePush(batch *PushBatch) (common.Hash, error) {
 	log.Tracef("prePush the batch: %s", batch.String())
 
 	sort.Sort(batch.Txs)
@@ -744,7 +744,7 @@ func (dag *Dag) prePush(batch *ConfirmBatch) (common.Hash, error) {
 	return dag.preloadDB.Commit()
 }
 
-func (dag *Dag) push(batch *ConfirmBatch) error {
+func (dag *Dag) push(batch *PushBatch) error {
 	log.Tracef("push the batch: %s", batch.String())
 
 	if dag.latestSequencer.Height+1 != batch.Seq.Height {
@@ -1165,11 +1165,11 @@ func (tc *txcached) add(tx types.Txi) {
 	tc.txs[tx.GetTxHash()] = tx
 }
 
-type ConfirmBatch struct {
+type PushBatch struct {
 	Seq *tx_types.Sequencer
 	Txs types.Txis
 }
 
-func (c *ConfirmBatch) String() string {
+func (c *PushBatch) String() string {
 	return fmt.Sprintf("seq: %s, txs: [%s]", c.Seq.String(), c.Txs.String())
 }

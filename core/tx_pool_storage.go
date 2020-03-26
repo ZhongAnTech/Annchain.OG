@@ -175,7 +175,7 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	totalspent := math.NewBigInt(0)
 	if totalspent.Value.Add(stateFrom.spent.Value, txNormal.Value.Value).Cmp(
 		stateFrom.originBalance.Value) > 0 {
-		log.WithField("tx", tx).Tracef("bad tx, total spent larget than balance")
+		log.WithField("tx", tx).Tracef("bad tx, total spent larger than balance")
 		return TxQualityIsBad
 	}
 

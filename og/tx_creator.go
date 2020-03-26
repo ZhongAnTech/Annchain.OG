@@ -38,7 +38,7 @@ type TipGenerator interface {
 }
 
 type GetStateRoot interface {
-	PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
+	SimConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error)
 }
 
 type FIFOTipGenerator struct {
@@ -511,7 +511,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 		} else {
 			//calculate root
 			//calculate signatrue
-			root, err := m.GetStateRoot.PreConfirm(tx)
+			root, err := m.GetStateRoot.SimConfirm(tx)
 			if err != nil {
 				logrus.WithField("seq ", tx).Errorf("CalculateStateRoot err  %v", err)
 				return nil, false

@@ -718,35 +718,42 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
-// PreConfirm simulates the confirm process of a sequencer and store the related data
-// into pool.cached. Once a real sequencer with same hash comes, reload cached data without
-// any more calculates.
-func (pool *TxPool) PreConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
-	//TODO , exists a panic bug in statedb commit , fix later
-	//and recover this later
+// SimConfirm simulates the process of confirming a sequencer and return the
+// state root as result.
+func (pool *TxPool) SimConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
+	// TODO
+	// not implemented yet.
 	err = pool.IsBadSeq(seq)
 	if err != nil {
 		return common.Hash{}, err
 	}
 	return common.Hash{}, nil
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+}
+
+// preConfirm try to confirm sequencer and store the related data into pool.cached.
+// Once a sequencer is hardly confirmed after 3 later preConfirms, the function confirm()
+// will be dialed.
+func (pool *TxPool) preConfirm(seq *tx_types.Sequencer) error {
+	err := pool.isBadSeq(seq)
+	if err != nil {
+		return err
+	}
 
 	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
-		return common.Hash{}, fmt.Errorf("the height of seq to pre-confirm is lower than "+
+		return fmt.Errorf("the height of seq to pre-confirm is lower than "+
 			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
 	}
 	elders, batch, err := pool.confirmHelper(seq)
 	if err != nil {
 		log.WithField("error", err).Errorf("confirm error: %v", err)
-		return common.Hash{}, err
+		return err
 	}
 	rootHash, err := pool.dag.PrePush(batch)
 	if err != nil {
-		return common.Hash{}, err
+		return err
 	}
 	pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
-	return rootHash, nil
+	return nil
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
@@ -754,10 +761,10 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	log.WithField("seq", seq).Trace("start confirm seq")
 
 	var err error
-	var batch *ConfirmBatch
+	var batch *PushBatch
 	var elders map[common.Hash]types.Txi
 	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
-		batch = &ConfirmBatch{
+		batch = &PushBatch{
 			Seq: seq,
 			Txs: pool.cached.Txs(),
 		}
@@ -811,7 +818,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *ConfirmBatch, error) {
+func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *PushBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -888,12 +895,12 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*ConfirmBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*PushBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
 	cTxs := types.Txis{}
-	batch := map[common.Address]*BatchDetail{}
+	batch := newConfirmBatch()
 	for _, txi := range elders {
 		if txi.GetType() != types.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
@@ -917,40 +924,45 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 			break
 
 		case *tx_types.Tx:
+			senderBatchDetail := batch.getDetail(tx.Sender())
+			if senderBatchDetail == nil {
+				batch.createDetail(tx.Sender())
+			}
+
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
-				batchFrom = &BatchDetail{}
-				batchFrom.TxList = NewTxList()
-				batchFrom.Neg = make(map[int32]*math.BigInt)
+				batchFrom = &batchDetail{}
+				batchFrom.txList = NewTxList()
+				batchFrom.cost = make(map[int32]*math.BigInt)
 				//batchFrom.Pos = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
-			batchFrom.TxList.put(tx)
-			batchFrom.AddNeg(tx.TokenId, tx.Value)
+			batchFrom.txList.put(tx)
+			batchFrom.addCost(tx.TokenId, tx.Value)
 
 		default:
 			batchFrom, okFrom := batch[tx.Sender()]
 			if !okFrom {
-				batchFrom = &BatchDetail{}
-				batchFrom.TxList = NewTxList()
-				batchFrom.Neg = make(map[int32]*math.BigInt)
+				batchFrom = &batchDetail{}
+				batchFrom.txList = NewTxList()
+				batchFrom.cost = make(map[int32]*math.BigInt)
 				batch[tx.Sender()] = batchFrom
 			}
-			batchFrom.TxList.put(tx)
+			batchFrom.txList.put(tx)
 		}
 	}
 	// verify balance and nonce
 	for addr, batchDetail := range batch {
 		// check balance
 		// for every token, if balance < outcome, then verify failed
-		for tokenID, spent := range batchDetail.Neg {
+		for tokenID, spent := range batchDetail.cost {
 			confirmedBalance := pool.dag.GetBalance(addr, tokenID)
 			if confirmedBalance.Value.Cmp(spent.Value) < 0 {
 				return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
 			}
 		}
 		// check nonce order
-		nonces := *batchDetail.TxList.keys
+		nonces := *batchDetail.txList.keys
 		if !(nonces.Len() > 0) {
 			continue
 		}
@@ -959,7 +971,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		}
 	}
 
-	cb := &ConfirmBatch{}
+	cb := &PushBatch{}
 	cb.Seq = seq
 	cb.Txs = cTxs
 	return cb, nil
@@ -968,7 +980,7 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(batch *ConfirmBatch) {
+func (pool *TxPool) solveConflicts(batch *PushBatch) {
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -1058,22 +1070,104 @@ func (pool *TxPool) reset() {
 	// TODO
 }
 
-// BatchDetail describes all the details of a specific address within a
-// sequencer confirmation term.
-// - TxList - represents the txs sent by this addrs, ordered by nonce.
-// - Neg    - means the amount this address should spent out.
-type BatchDetail struct {
-	TxList *TxList
-	Neg    map[int32]*math.BigInt
+type confirmBatch struct {
+	tempLedger Ledger
+	ledger     Ledger
+	seq        *tx_types.Sequencer
+	elders     []types.Txi
+	details    map[common.Address]*batchDetail
 }
 
-func (bd *BatchDetail) AddNeg(tokenID int32, amount *math.BigInt) {
-	v, ok := bd.Neg[tokenID]
+func newConfirmBatch() *confirmBatch {
+	return &confirmBatch{}
+}
+
+func (c *confirmBatch) getDetail(addr common.Address) *batchDetail {
+	return c.details[addr]
+}
+
+func (c *confirmBatch) createDetail(addr common.Address) {
+	c.details[addr] = newBatchDetail(addr, c.tempLedger, c.ledger)
+}
+
+func (c *confirmBatch) processTx(tx types.Txi) {
+	// TODO
+	// not implemented yet.
+}
+
+// batchDetail describes all the details of a specific address within a
+// sequencer confirmation term.
+// - tempLedger    - ledger that temporarily stored in previous unconfirmed sequencer.
+// - ledger        - confirmed ledger.
+// - txList        - represents the txs sent by this addrs, ordered by nonce.
+// - earn          - the amount this address have earned.
+// - cost          - the amount this address should spent out.
+// - OriginBalance - balance of this address before this batch is confirmed.
+// - resultBalance - balance of this address after this batch is confirmed.
+type batchDetail struct {
+	address    common.Address
+	tempLedger Ledger
+	ledger     Ledger
+
+	txList *TxList
+	earn   map[int32]*math.BigInt
+	cost   map[int32]*math.BigInt
+	//OriginBalance map[int32]*math.BigInt
+	resultBalance map[int32]*math.BigInt
+}
+
+func newBatchDetail(addr common.Address, tempLedger, ledger Ledger) *batchDetail {
+	bd := &batchDetail{}
+	bd.address = addr
+	bd.tempLedger = tempLedger
+	bd.ledger = ledger
+
+	bd.txList = NewTxList()
+	bd.earn = make(map[int32]*math.BigInt)
+	bd.cost = make(map[int32]*math.BigInt)
+	bd.resultBalance = make(map[int32]*math.BigInt)
+
+	return bd
+}
+
+func (bd *batchDetail) getBalance(tokenID int32) *math.BigInt {
+	return bd.resultBalance[tokenID]
+}
+
+func (bd *batchDetail) addCost(tokenID int32, amount *math.BigInt) {
+	v, ok := bd.cost[tokenID]
 	if !ok {
 		v = math.NewBigInt(0)
 	}
 	v.Value.Add(v.Value, amount.Value)
-	bd.Neg[tokenID] = v
+	bd.cost[tokenID] = v
+
+	blc, ok := bd.resultBalance[tokenID]
+	if !ok {
+		blc = bd.tempLedger.GetBalance(bd.address, tokenID)
+	}
+	if blc == nil {
+		blc = bd.ledger.GetBalance(bd.address, tokenID)
+	}
+	bd.resultBalance[tokenID] = blc.Sub(amount)
+}
+
+func (bd *batchDetail) addEarn(tokenID int32, amount *math.BigInt) {
+	v, ok := bd.earn[tokenID]
+	if !ok {
+		v = math.NewBigInt(0)
+	}
+	v.Value.Add(v.Value, amount.Value)
+	bd.earn[tokenID] = v
+
+	blc, ok := bd.resultBalance[tokenID]
+	if !ok {
+		blc = bd.tempLedger.GetBalance(bd.address, tokenID)
+	}
+	if blc == nil {
+		blc = bd.ledger.GetBalance(bd.address, tokenID)
+	}
+	bd.resultBalance[tokenID] = blc.Add(amount)
 }
 
 type cachedConfirm struct {

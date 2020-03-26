@@ -16,8 +16,8 @@ import (
 
 var archive bool
 
-func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch {
-	var batchs []*core.ConfirmBatch
+func generateTxs(height uint64, totalHeight int, txnum int) []*core.PushBatch {
+	var batchs []*core.PushBatch
 	for j := 0; j < totalHeight; j++ {
 		pub, priv := crypto.Signer.RandomKeyPair()
 		var txis types.Txis
@@ -41,7 +41,7 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core.ConfirmBatch
 		seq := tx_types.RandomSequencer()
 		seq.PublicKey = pub.Bytes[:]
 		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).Bytes[:]
-		batch := &core.ConfirmBatch{
+		batch := &core.PushBatch{
 			Seq: seq,
 			Txs: txis,
 		}

@@ -143,13 +143,13 @@ func TestDagPush(t *testing.T) {
 	tx2 := newTestDagTx(1)
 	tx2.ParentsHash = common.Hashes{genesis.GetTxHash()}
 
-	bd := &core.BatchDetail{TxList: core.NewTxList(), Neg: make(map[int32]*math.BigInt)}
-	bd.TxList.Put(tx1)
-	bd.TxList.Put(tx2)
+	bd := &core.batchDetail{txList: core.NewTxList(), cost: make(map[int32]*math.BigInt)}
+	bd.txList.Put(tx1)
+	bd.txList.Put(tx2)
 	//bd.Pos = math.NewBigInt(0)
-	bd.Neg[0] = math.NewBigInt(0)
+	bd.cost[0] = math.NewBigInt(0)
 
-	batch := map[common.Address]*core.BatchDetail{}
+	batch := map[common.Address]*core.batchDetail{}
 	batch[tx1.Sender()] = bd
 
 	seq := newTestSeq(1)
@@ -160,7 +160,7 @@ func TestDagPush(t *testing.T) {
 
 	//hashes := &common.Hashes{tx1.GetTxHash(), tx2.GetTxHash()}
 
-	cb := &core.ConfirmBatch{}
+	cb := &core.PushBatch{}
 	cb.Seq = seq
 	//cb.Batch = batch
 	//cb.TxHashes = hashes
@@ -326,7 +326,7 @@ func TestDag_PrePush(t *testing.T) {
 	//seq.AccountNonce = 2
 	//seq.ParentsHash = types.Hashes{tx1.Hash}
 	//
-	//batch := &core.ConfirmBatch{}
+	//batch := &core.PushBatch{}
 	//batch.Seq = &seq
 	//batch.Txs = types.Txis{&tx1}
 	//

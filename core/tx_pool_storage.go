@@ -12,6 +12,7 @@ import (
 
 type Ledger interface {
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
+	GetLatestNonce(addr common.Address) (uint64, error)
 }
 
 type txPoolStorage struct {

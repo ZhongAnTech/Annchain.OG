@@ -76,14 +76,9 @@ type TxPool struct {
 	conf TxPoolConfig
 	dag  *Dag
 
-	queue chan *txEvent // queue stores txs that need to validate later
-	//tips     *TxMap        // tips stores all the tips
-	//badtxs   *TxMap
-	//pendings *TxMap
-	//flows    *AccountFlowSet
-	//txLookup *txLookUp // txLookUp stores all the txs for external query
+	queue   chan *txEvent // queue stores txs that need to validate later
 	storage *txPoolStorage
-	cached  *cachedConfirm
+	cached  *cachedConfirms
 
 	close chan struct{}
 
@@ -818,7 +813,7 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *PushBatch, error) {
+func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *confirmBatch, error) {
 	// check if sequencer is correct
 	checkErr := pool.isBadSeq(seq)
 	if checkErr != nil {
@@ -895,22 +890,21 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 // verifyConfirmBatch verifies if the elders are correct.
 // If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*PushBatch, error) {
+func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*confirmBatch, error) {
 	// statistics of the confirmation txs.
 	// Sums up the related address' income and outcome values for later verify
 	// and combine the txs as confirmbatch
 	cTxs := types.Txis{}
+
+	// TODO
+	// confirmbatch variables.
 	batch := newConfirmBatch()
 	for _, txi := range elders {
 		if txi.GetType() != types.TxBaseTypeSequencer {
 			cTxs = append(cTxs, txi)
 		}
-
 		if txi.GetType() == types.TxBaseTypeArchive {
 			continue
-		}
-
-		if txi.GetType() == types.TxBaseTypeNormal {
 		}
 
 		// return error if a sequencer confirm a tx that has same nonce as itself.
@@ -922,37 +916,14 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		switch tx := txi.(type) {
 		case *tx_types.Sequencer:
 			break
-
 		case *tx_types.Tx:
-			senderBatchDetail := batch.getDetail(tx.Sender())
-			if senderBatchDetail == nil {
-				batch.createDetail(tx.Sender())
-			}
-
-			batchFrom, okFrom := batch[tx.Sender()]
-			if !okFrom {
-				batchFrom = &batchDetail{}
-				batchFrom.txList = NewTxList()
-				batchFrom.cost = make(map[int32]*math.BigInt)
-				//batchFrom.Pos = make(map[int32]*math.BigInt)
-				batch[tx.Sender()] = batchFrom
-			}
-			batchFrom.txList.put(tx)
-			batchFrom.addCost(tx.TokenId, tx.Value)
-
+			batch.processTx(tx)
 		default:
-			batchFrom, okFrom := batch[tx.Sender()]
-			if !okFrom {
-				batchFrom = &batchDetail{}
-				batchFrom.txList = NewTxList()
-				batchFrom.cost = make(map[int32]*math.BigInt)
-				batch[tx.Sender()] = batchFrom
-			}
-			batchFrom.txList.put(tx)
+			batch.addTx(tx)
 		}
 	}
 	// verify balance and nonce
-	for addr, batchDetail := range batch {
+	for addr, batchDetail := range batch.getDetails() {
 		// check balance
 		// for every token, if balance < outcome, then verify failed
 		for tokenID, spent := range batchDetail.cost {
@@ -971,10 +942,10 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		}
 	}
 
-	cb := &PushBatch{}
-	cb.Seq = seq
-	cb.Txs = cTxs
-	return cb, nil
+	//cb := &PushBatch{}
+	//cb.Seq = seq
+	//cb.Txs = cTxs
+	return batch, nil
 }
 
 // solveConflicts remove elders from txpool and reprocess
@@ -1071,56 +1042,162 @@ func (pool *TxPool) reset() {
 }
 
 type confirmBatch struct {
-	tempLedger Ledger
-	ledger     Ledger
-	seq        *tx_types.Sequencer
-	elders     []types.Txi
-	details    map[common.Address]*batchDetail
+	//tempLedger Ledger
+	ledger Ledger
+
+	parent   *confirmBatch
+	children []*confirmBatch
+
+	seq     *tx_types.Sequencer
+	elders  []types.Txi
+	details map[common.Address]*batchDetail
 }
 
-func newConfirmBatch() *confirmBatch {
-	return &confirmBatch{}
+func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer, parent *confirmBatch) *confirmBatch {
+	c := &confirmBatch{}
+	//c.tempLedger = tempLedger
+	c.ledger = ledger
+	c.seq = seq
+
+	c.parent = parent
+	c.children = make([]*confirmBatch, 0)
+
+	c.elders = make([]types.Txi, 0)
+	c.details = make(map[common.Address]*batchDetail)
+
+	return c
+}
+
+func (c *confirmBatch) getOrCreateDetail(addr common.Address) *batchDetail {
+	detailCost := c.getDetail(addr)
+	if detailCost == nil {
+		detailCost = c.createDetail(addr)
+	}
+	return detailCost
 }
 
 func (c *confirmBatch) getDetail(addr common.Address) *batchDetail {
 	return c.details[addr]
 }
 
-func (c *confirmBatch) createDetail(addr common.Address) {
-	c.details[addr] = newBatchDetail(addr, c.tempLedger, c.ledger)
+func (c *confirmBatch) getDetails() map[common.Address]*batchDetail {
+	return c.details
 }
 
-func (c *confirmBatch) processTx(tx types.Txi) {
-	// TODO
-	// not implemented yet.
+func (c *confirmBatch) createDetail(addr common.Address) *batchDetail {
+	c.details[addr] = newBatchDetail(addr, c)
+	return c.details[addr]
+}
+
+func (c *confirmBatch) setDetail(detail *batchDetail) {
+	c.details[detail.address] = detail
+}
+
+func (c *confirmBatch) processTx(txi types.Txi) {
+	if txi.GetType() != types.TxBaseTypeNormal {
+		return
+	}
+	tx := txi.(*tx_types.Tx)
+
+	detailCost := c.getOrCreateDetail(*tx.From)
+	detailCost.addCost(tx.TokenId, tx.Value)
+	detailCost.addTx(tx)
+	c.setDetail(detailCost)
+
+	detailEarn := c.getOrCreateDetail(tx.To)
+	detailEarn.addEarn(tx.TokenId, tx.Value)
+	c.setDetail(detailEarn)
+
+	c.elders = append(c.elders, tx)
+}
+
+// addTx adds tx only without any processing.
+func (c *confirmBatch) addTx(tx types.Txi) {
+	detailSender := c.getOrCreateDetail(tx.Sender())
+	detailSender.addTx(tx)
+
+	c.elders = append(c.elders, tx)
+}
+
+func (c *confirmBatch) getBalance(addr common.Address, tokenID int32) *math.BigInt {
+	detail := c.getDetail(addr)
+	if detail == nil {
+		return nil
+	}
+	return detail.getBalance(tokenID)
+}
+
+func (c *confirmBatch) getConfirmedBalance(addr common.Address, tokenID int32) *math.BigInt {
+	if c.parent == nil {
+		return c.ledger.GetBalance(addr, tokenID)
+	}
+
+	blc := c.parent.getBalance(addr, tokenID)
+	if blc == nil {
+		blc = c.ledger.GetBalance(addr, tokenID)
+	}
+	return blc
+}
+
+func (c *confirmBatch) getLatestNonce(addr common.Address) (uint64, error) {
+	detail := c.getDetail(addr)
+	if detail == nil {
+		return 0, fmt.Errorf("latest nonce not found")
+	}
+	return detail.getNonce()
+}
+
+func (c *confirmBatch) getConfirmedLatestNonce(addr common.Address) (uint64, error) {
+	if c.parent == nil {
+		return c.ledger.GetLatestNonce(addr)
+	}
+
+	nonce, err := c.parent.getLatestNonce(addr)
+	if err != nil {
+		return c.ledger.GetLatestNonce(addr)
+	}
+	return nonce, err
+}
+
+//func (c *confirmBatch) bindParent(parent *confirmBatch) {
+//	c.parent = parent
+//}
+
+func (c *confirmBatch) bindChildren(child *confirmBatch) {
+	c.children = append(c.children, child)
+}
+
+func (c *confirmBatch) confirmParent(confirmed *confirmBatch) {
+	if c.parent.seq.Hash.Cmp(confirmed.seq.Hash) != 0 {
+		return
+	}
+	c.parent = nil
 }
 
 // batchDetail describes all the details of a specific address within a
 // sequencer confirmation term.
-// - tempLedger    - ledger that temporarily stored in previous unconfirmed sequencer.
-// - ledger        - confirmed ledger.
+//
+// - batch         - confirmBatch
 // - txList        - represents the txs sent by this addrs, ordered by nonce.
 // - earn          - the amount this address have earned.
 // - cost          - the amount this address should spent out.
 // - OriginBalance - balance of this address before this batch is confirmed.
 // - resultBalance - balance of this address after this batch is confirmed.
 type batchDetail struct {
-	address    common.Address
-	tempLedger Ledger
-	ledger     Ledger
+	address common.Address
+	batch   *confirmBatch
 
-	txList *TxList
-	earn   map[int32]*math.BigInt
-	cost   map[int32]*math.BigInt
-	//OriginBalance map[int32]*math.BigInt
+	txList        *TxList
+	earn          map[int32]*math.BigInt
+	cost          map[int32]*math.BigInt
 	resultBalance map[int32]*math.BigInt
 }
 
-func newBatchDetail(addr common.Address, tempLedger, ledger Ledger) *batchDetail {
+func newBatchDetail(addr common.Address, batch *confirmBatch) *batchDetail {
 	bd := &batchDetail{}
 	bd.address = addr
-	bd.tempLedger = tempLedger
-	bd.ledger = ledger
+
+	bd.batch = batch
 
 	bd.txList = NewTxList()
 	bd.earn = make(map[int32]*math.BigInt)
@@ -1134,20 +1211,30 @@ func (bd *batchDetail) getBalance(tokenID int32) *math.BigInt {
 	return bd.resultBalance[tokenID]
 }
 
+func (bd *batchDetail) getNonce() (uint64, error) {
+	if bd.txList == nil {
+		return 0, fmt.Errorf("txlist is nil")
+	}
+	if !(bd.txList.Len() > 0) {
+		return 0, fmt.Errorf("txlist is empty")
+	}
+	return bd.txList.keys.Tail(), nil
+}
+
+func (bd *batchDetail) addTx(tx types.Txi) {
+	bd.txList.Put(tx)
+}
+
 func (bd *batchDetail) addCost(tokenID int32, amount *math.BigInt) {
 	v, ok := bd.cost[tokenID]
 	if !ok {
 		v = math.NewBigInt(0)
 	}
-	v.Value.Add(v.Value, amount.Value)
-	bd.cost[tokenID] = v
+	bd.cost[tokenID] = v.Add(amount)
 
 	blc, ok := bd.resultBalance[tokenID]
 	if !ok {
-		blc = bd.tempLedger.GetBalance(bd.address, tokenID)
-	}
-	if blc == nil {
-		blc = bd.ledger.GetBalance(bd.address, tokenID)
+		blc = bd.batch.getConfirmedBalance(bd.address, tokenID)
 	}
 	bd.resultBalance[tokenID] = blc.Sub(amount)
 }
@@ -1157,42 +1244,86 @@ func (bd *batchDetail) addEarn(tokenID int32, amount *math.BigInt) {
 	if !ok {
 		v = math.NewBigInt(0)
 	}
-	v.Value.Add(v.Value, amount.Value)
-	bd.earn[tokenID] = v
+	bd.earn[tokenID] = v.Add(amount)
 
 	blc, ok := bd.resultBalance[tokenID]
 	if !ok {
-		blc = bd.tempLedger.GetBalance(bd.address, tokenID)
-	}
-	if blc == nil {
-		blc = bd.ledger.GetBalance(bd.address, tokenID)
+		blc = bd.batch.getConfirmedBalance(bd.address, tokenID)
 	}
 	bd.resultBalance[tokenID] = blc.Add(amount)
 }
 
-type cachedConfirm struct {
-	seqHash common.Hash
-	seq     *tx_types.Sequencer
-	root    common.Hash
-	txs     types.Txis
-	elders  map[common.Hash]types.Txi
+func (bd *batchDetail) isValid() error {
+	// check balance
+	// for every token, if balance < cost, verify failed
+	for tokenID, cost := range bd.cost {
+		confirmedBalance := bd.batch.getConfirmedBalance(bd.address, tokenID)
+		if confirmedBalance.Value.Cmp(cost.Value) < 0 {
+			return fmt.Errorf("the balance of addr %s is not enough", bd.address.String())
+		}
+	}
+
+	// check nonce order
+	nonces := bd.txList.keys
+	if !(nonces.Len() > 0) {
+		return nil
+	}
+	if nErr := bd.verifyNonce(*nonces); nErr != nil {
+		return nErr
+	}
+	return nil
 }
 
-func newCachedConfirm(seq *tx_types.Sequencer, root common.Hash, txs types.Txis, elders map[common.Hash]types.Txi) *cachedConfirm {
-	return &cachedConfirm{
-		seqHash: seq.GetTxHash(),
-		seq:     seq,
-		root:    root,
-		txs:     txs,
-		elders:  elders,
+func (bd *batchDetail) verifyNonce(nonces nonceHeap) error {
+	sort.Sort(nonces)
+	addr := bd.address
+
+	latestNonce, err := bd.batch.getConfirmedLatestNonce(addr)
+	if err != nil {
+		return fmt.Errorf("get latest nonce err: %v", err)
+	}
+	if nonces[0] != latestNonce+1 {
+		return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
+	}
+
+	for i := 1; i < nonces.Len(); i++ {
+		if nonces[i] != nonces[i-1]+1 {
+			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
+		}
+	}
+
+	seq := bd.batch.seq
+	if seq.Sender().Hex() == addr.Hex() {
+		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
+			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
+		}
+	}
+	return nil
+}
+
+type cachedConfirms struct {
+	fronts  []*confirmBatch
+	batches map[common.Hash]*confirmBatch
+
+	//seqHash common.Hash
+	//seq     *tx_types.Sequencer
+	//root    common.Hash
+	//txs     types.Txis
+	//elders  map[common.Hash]types.Txi
+}
+
+func newCachedConfirm() *cachedConfirms {
+	return &cachedConfirms{
+		fronts:  make([]*confirmBatch, 0),
+		batches: make(map[common.Hash]*confirmBatch),
 	}
 }
 
-func (c *cachedConfirm) SeqHash() common.Hash              { return c.seqHash }
-func (c *cachedConfirm) Seq() *tx_types.Sequencer          { return c.seq }
-func (c *cachedConfirm) Root() common.Hash                 { return c.root }
-func (c *cachedConfirm) Txs() types.Txis                   { return c.txs }
-func (c *cachedConfirm) Elders() map[common.Hash]types.Txi { return c.elders }
+//func (c *cachedConfirms) SeqHash() common.Hash              { return c.seqHash }
+//func (c *cachedConfirms) Seq() *tx_types.Sequencer          { return c.seq }
+//func (c *cachedConfirms) Root() common.Hash                 { return c.root }
+//func (c *cachedConfirms) Txs() types.Txis                   { return c.txs }
+//func (c *cachedConfirms) Elders() map[common.Hash]types.Txi { return c.elders }
 
 func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
 	return pool.confirmStatus.GetInfo()

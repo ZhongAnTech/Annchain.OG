@@ -4,15 +4,26 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
-	"strconv"
+	"github.com/spf13/viper"
+	"io/ioutil"
+	"log"
+	"sync"
+	"time"
 )
+
+var ProtocolId protocol.ID = "/og/1.0.0"
 
 type Hub interface {
 	Send(msg *Msg, id int, pos string)
@@ -62,6 +73,7 @@ type RemoteHub struct {
 	outgoingChannel chan *OutgoingRequest
 	node            host.Host
 	quit            chan bool
+	initWait        sync.WaitGroup
 }
 
 func (hub *RemoteHub) InitDefault() {
@@ -69,19 +81,10 @@ func (hub *RemoteHub) InitDefault() {
 	hub.incomingChannel = make(chan *Msg)
 	hub.outgoingChannel = make(chan *OutgoingRequest)
 	hub.quit = make(chan bool)
+	hub.initWait.Add(1)
 }
 
 func (hub *RemoteHub) Start() {
-	ctx := context.Background()
-	// start a libp2p node with default settings
-	node, err := libp2p.New(ctx, libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/"+strconv.Itoa(hub.Port)))
-	//node, err := libp2p.New(ctx, libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
-	if err != nil {
-		panic(err)
-	}
-	hub.node = node
-	// print the node's listening addresses
-	fmt.Println("Listen addresses:", node.Addrs())
 }
 
 func (hub *RemoteHub) Stop() {
@@ -92,38 +95,152 @@ func (hub *RemoteHub) Stop() {
 	}
 }
 
+func (hub *RemoteHub) LoadPrivateKey() core.PrivKey {
+	// read key file
+	keyFile := viper.GetString("file")
+	bytes, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		panic(err)
+	}
+
+	pi := &PrivateInfo{}
+	err = json.Unmarshal(bytes, pi)
+	if err != nil {
+		panic(err)
+	}
+
+	privb, err := hex.DecodeString(pi.PrivateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	priv, err := core.UnmarshalPrivateKey(privb)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func (hub *RemoteHub) MakeHost(priv core.PrivKey) (host.Host, error) {
+	opts := []libp2p.Option{
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", hub.Port)),
+		libp2p.Identity(priv),
+		libp2p.DisableRelay(),
+	}
+	basicHost, err := libp2p.New(context.Background(), opts...)
+	if err != nil {
+		return nil, err
+	}
+	return basicHost, nil
+}
+
+func (hub *RemoteHub) printHostInfo(basicHost host.Host) {
+
+	// print the node's listening addresses
+	// protocol is always p2p
+	hostAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", basicHost.ID().Pretty()))
+	if err != nil {
+		panic(err)
+	}
+
+	addr := basicHost.Addrs()[0]
+	fullAddr := addr.Encapsulate(hostAddr)
+	log.Printf("I am %s\n", fullAddr)
+}
+
+func (hub *RemoteHub) Listen() {
+	// start a libp2p node with default settings
+	privKey := hub.LoadPrivateKey()
+	host, err := hub.MakeHost(privKey)
+	if err != nil {
+		panic(err)
+	}
+	hub.node = host
+
+	hub.printHostInfo(hub.node)
+
+	hub.node.SetStreamHandler(ProtocolId, hub.handleStream)
+	hub.initWait.Done()
+	select {}
+}
+
+func (hub *RemoteHub) handleStream(s network.Stream) {
+	logrus.Info("Got a new stream!")
+
+	// Create a buffered stream so that read and writes are non blocking.
+	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+
+	// Create a thread to read and write data.
+	go hub.writeData(rw)
+	go hub.readData(rw)
+}
 func (hub *RemoteHub) InitPeers(ips []string) {
-	for i, v := range ips {
-		maddr, err := multiaddr.NewMultiaddr(v)
+	hub.initWait.Wait()
+	if hub.Port == 3300 {
+		return
+	}
+
+	for _, v := range ips {
+		logrus.WithField("ip", v).Info("processing")
+		fullAddr, err := multiaddr.NewMultiaddr(v)
 		if err != nil {
 			logrus.WithField("v", v).WithError(err).Warn("bad address")
 			continue
 		}
-		logrus.WithField("maddr", maddr).WithError(err).Info("process address")
-		info, err := peer.AddrInfoFromP2pAddr(maddr)
-		if err != nil {
-			logrus.WithField("info", info).WithError(err).Warn("process address")
+		logrus.WithField("fullAddr", fullAddr).Info("processing address")
+
+		// p2p layer address
+		p2pAddr, err := fullAddr.ValueForProtocol(multiaddr.P_P2P)
+		protocolAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", p2pAddr))
+
+		// self checking
+		if hub.node.ID().String() == p2pAddr {
+			// myself, skip
 			continue
 		}
-		hub.node.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
-		// start a stream
-		s, err := hub.node.NewStream(context.Background(), info.ID, "/libra/1.0")
+
 		if err != nil {
-			logrus.WithField("s", s).WithError(err).Warn("start stream")
-			continue
+			log.Fatalln(err)
 		}
-		hub.ipAddresses[i] = info.ID
+		// keep only the connection info, wipe out the p2p layer
+		connectionAddr := fullAddr.Decapsulate(protocolAddr)
+		fmt.Println("connectionAddr:" + connectionAddr.String())
 
-		// Create a buffered stream so that read and writes are non blocking.
-		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+		// recover peerId from Base58 Encoded p2pAddr
+		peerId, err := peer.Decode(p2pAddr)
+		if err != nil {
+			panic(err)
+		}
 
-		// Create a thread to read and write data.
-		go hub.writeData(rw, i)
-		go hub.readData(rw, i)
+		fmt.Println("p2pAddr:" + p2pAddr)
+		fmt.Println("peerIdxxx:" + peerId.String())
+
+		hub.node.Peerstore().AddAddr(peerId, connectionAddr, peerstore.PermanentAddrTTL)
+
+		for {
+			// start a stream
+			s, err := hub.node.NewStream(context.Background(), peerId, ProtocolId)
+			if err != nil {
+				logrus.WithField("s", s).WithError(err).Warn("error on starting stream")
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			hub.handleStream(s)
+			//// Create a buffered stream so that read and writes are non blocking.
+			//rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+			//
+			//// Create a thread to read and write data.
+			//go hub.writeData(rw)
+			//go hub.readData(rw)
+			//logrus.WithField("s", info).WithError(err).Warn("connection established")
+
+			break
+		}
+
 	}
 }
 
-func (hub *RemoteHub) readData(rw *bufio.ReadWriter, fromId int) {
+func (hub *RemoteHub) readData(rw *bufio.ReadWriter) {
 	for {
 		bytes, err := rw.ReadBytes('\n')
 		if err != nil {
@@ -140,7 +257,7 @@ func (hub *RemoteHub) readData(rw *bufio.ReadWriter, fromId int) {
 	}
 }
 
-func (hub *RemoteHub) writeData(rw *bufio.ReadWriter, fromId int) {
+func (hub *RemoteHub) writeData(rw *bufio.ReadWriter) {
 	for {
 		select {
 		case req := <-hub.outgoingChannel:

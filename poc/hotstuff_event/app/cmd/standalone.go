@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/annchain/OG/poc/hotstuff_event"
 	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io"
@@ -85,13 +86,17 @@ var standaloneCmd = &cobra.Command{
 			Port: viper.GetInt("port"),
 		}
 		hub.InitDefault()
-		hub.InitPeers(peers)
-		go hub.Start()
+		// init me before init peers
+		go hub.Listen()
+		//go hub.Start()
 
+		go hub.InitPeers(peers)
+
+		logrus.Info("waiting for connection...")
 		partners := make([]*hotstuff_event.Partner, total)
 
-		partner := MakeStandalonePartner(viper.GetInt("mei"), total, total/3, hub)
-		go partner.Start()
+		//partner := MakeStandalonePartner(viper.GetInt("mei"), total, total/3, hub)
+		//go partner.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -140,8 +145,8 @@ func init() {
 	standaloneCmd.Flags().StringP("list", "l", "peers.lst", "Partners to be started in file list")
 	_ = viper.BindPFlag("list", standaloneCmd.Flags().Lookup("list"))
 
-	standaloneCmd.Flags().IntP("mei", "i", 1, "My IP index in the list")
-	_ = viper.BindPFlag("me", standaloneCmd.Flags().Lookup("mei"))
+	standaloneCmd.Flags().StringP("file", "f", "id.key", "my key file")
+	_ = viper.BindPFlag("file", standaloneCmd.Flags().Lookup("file"))
 
 	standaloneCmd.Flags().IntP("port", "p", 3301, "Local IO port")
 	_ = viper.BindPFlag("port", standaloneCmd.Flags().Lookup("port"))

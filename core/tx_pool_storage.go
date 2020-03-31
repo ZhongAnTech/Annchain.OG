@@ -10,9 +10,34 @@ import (
 	"sync"
 )
 
-type Ledger interface {
-	GetBalance(addr common.Address, tokenID int32) *math.BigInt
-	GetLatestNonce(addr common.Address) (uint64, error)
+type TxStatus uint8
+
+const (
+	TxStatusNotExist TxStatus = iota
+	TxStatusQueue
+	TxStatusTip
+	TxStatusBadTx
+	TxStatusPending
+	//TxStatusPreConfirm
+)
+
+func (ts *TxStatus) String() string {
+	switch *ts {
+	case TxStatusBadTx:
+		return "BadTx"
+	case TxStatusNotExist:
+		return "NotExist"
+	case TxStatusPending:
+		return "Pending"
+	case TxStatusQueue:
+		return "Queueing"
+	case TxStatusTip:
+		return "Tip"
+	//case TxStatusPreConfirm:
+	//	return "PreConfirmed"
+	default:
+		return "UnknownStatus"
+	}
 }
 
 type txPoolStorage struct {

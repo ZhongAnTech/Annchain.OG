@@ -41,36 +41,15 @@ const (
 	TxTypeRejudge
 )
 
-type TxStatus uint8
-
-const (
-	TxStatusNotExist TxStatus = iota
-	TxStatusQueue
-	TxStatusTip
-	TxStatusBadTx
-	TxStatusPending
-)
-
-func (ts *TxStatus) String() string {
-	switch *ts {
-	case TxStatusBadTx:
-		return "BadTx"
-	case TxStatusNotExist:
-		return "NotExist"
-	case TxStatusPending:
-		return "Pending"
-	case TxStatusQueue:
-		return "Queueing"
-	case TxStatusTip:
-		return "Tip"
-	default:
-		return "UnknownStatus"
-	}
-}
-
 const (
 	PoolRejudgeThreshold int = 10
 )
+
+type Ledger interface {
+	GetTx(hash common.Hash) types.Txi
+	GetBalance(addr common.Address, tokenID int32) *math.BigInt
+	GetLatestNonce(addr common.Address) (uint64, error)
+}
 
 type TxPool struct {
 	conf TxPoolConfig
@@ -855,12 +834,12 @@ func (pool *TxPool) IsBadSeq(seq *tx_types.Sequencer) error {
 }
 
 // seekElders finds all the unconfirmed elders of baseTx.
-func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, error) {
-	batch := make(map[common.Hash]types.Txi)
+func (pool *TxPool) seekElders(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, error) {
+	elders := make(map[common.Hash]types.Txi)
 
 	inSeekingPool := map[common.Hash]int{}
 	seekingPool := common.Hashes{}
-	for _, parentHash := range baseTx.Parents() {
+	for _, parentHash := range seq.Parents() {
 		seekingPool = append(seekingPool, parentHash)
 	}
 	for len(seekingPool) > 0 {
@@ -869,14 +848,18 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 
 		elder := pool.get(elderHash)
 		if elder == nil {
+			// check if elder has been preConfirmed or confirmed.
+			pool.cached.existTx(seq.GetPreviousSeqHash(), elderHash)
+
 			elder = pool.dag.GetTx(elderHash)
 			if elder == nil {
 				return nil, fmt.Errorf("can't find elder %s", elderHash)
 			}
 			continue
 		}
-		if batch[elder.GetTxHash()] == nil {
-			batch[elder.GetTxHash()] = elder
+
+		if elders[elder.GetTxHash()] == nil {
+			elders[elder.GetTxHash()] = elder
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash]; !in {
@@ -885,7 +868,7 @@ func (pool *TxPool) seekElders(baseTx types.Txi) (map[common.Hash]types.Txi, err
 			}
 		}
 	}
-	return batch, nil
+	return elders, nil
 }
 
 // verifyConfirmBatch verifies if the elders are correct.
@@ -923,22 +906,10 @@ func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[commo
 		}
 	}
 	// verify balance and nonce
-	for addr, batchDetail := range batch.getDetails() {
-		// check balance
-		// for every token, if balance < outcome, then verify failed
-		for tokenID, spent := range batchDetail.cost {
-			confirmedBalance := pool.dag.GetBalance(addr, tokenID)
-			if confirmedBalance.Value.Cmp(spent.Value) < 0 {
-				return nil, fmt.Errorf("the balance of addr %s is not enough", addr.String())
-			}
-		}
-		// check nonce order
-		nonces := *batchDetail.txList.keys
-		if !(nonces.Len() > 0) {
-			continue
-		}
-		if nErr := pool.verifyNonce(addr, &nonces, seq); nErr != nil {
-			return nil, nErr
+	for _, batchDetail := range batch.getDetails() {
+		err := batchDetail.isValid()
+		if err != nil {
+			return batch, err
 		}
 	}
 
@@ -1009,36 +980,59 @@ func (pool *TxPool) solveConflicts(batch *PushBatch) {
 	}
 }
 
-func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *tx_types.Sequencer) error {
-	sort.Sort(noncesP)
-	nonces := *noncesP
+//func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *tx_types.Sequencer) error {
+//	sort.Sort(noncesP)
+//	nonces := *noncesP
+//
+//	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
+//	if nErr != nil {
+//		return fmt.Errorf("get latest nonce err: %v", nErr)
+//	}
+//	if nonces[0] != latestNonce+1 {
+//		return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
+//	}
+//
+//	for i := 1; i < nonces.Len(); i++ {
+//		if nonces[i] != nonces[i-1]+1 {
+//			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
+//		}
+//	}
+//
+//	if seq.Sender().Hex() == addr.Hex() {
+//		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
+//			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
+//		}
+//	}
+//
+//	return nil
+//}
 
-	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
-	if nErr != nil {
-		return fmt.Errorf("get latest nonce err: %v", nErr)
-	}
-	if nonces[0] != latestNonce+1 {
-		return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
-	}
+type cachedConfirms struct {
+	ledger Ledger
 
-	for i := 1; i < nonces.Len(); i++ {
-		if nonces[i] != nonces[i-1]+1 {
-			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
-		}
-	}
+	fronts  []*confirmBatch
+	batches map[common.Hash]*confirmBatch
 
-	if seq.Sender().Hex() == addr.Hex() {
-		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
-			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
-		}
-	}
-
-	return nil
+	//seqHash common.Hash
+	//seq     *tx_types.Sequencer
+	//root    common.Hash
+	//txs     types.Txis
+	//elders  map[common.Hash]types.Txi
 }
 
-// reset clears the txs that conflicts with sequencer
-func (pool *TxPool) reset() {
-	// TODO
+func newCachedConfirm() *cachedConfirms {
+	return &cachedConfirms{
+		fronts:  make([]*confirmBatch, 0),
+		batches: make(map[common.Hash]*confirmBatch),
+	}
+}
+
+func (c *cachedConfirms) existTx(seqHash common.Hash, txHash common.Hash) bool {
+	batch := c.batches[seqHash]
+	if batch != nil {
+		return batch.existTx(txHash)
+	}
+	return c.ledger.GetTx(txHash) != nil
 }
 
 type confirmBatch struct {
@@ -1048,9 +1042,10 @@ type confirmBatch struct {
 	parent   *confirmBatch
 	children []*confirmBatch
 
-	seq     *tx_types.Sequencer
-	elders  []types.Txi
-	details map[common.Address]*batchDetail
+	seq            *tx_types.Sequencer
+	elders         []types.Txi
+	eldersQueryMap map[common.Hash]types.Txi
+	details        map[common.Address]*batchDetail
 }
 
 func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer, parent *confirmBatch) *confirmBatch {
@@ -1063,6 +1058,7 @@ func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer, parent *confirmBatc
 	c.children = make([]*confirmBatch, 0)
 
 	c.elders = make([]types.Txi, 0)
+	c.eldersQueryMap = make(map[common.Hash]types.Txi)
 	c.details = make(map[common.Address]*batchDetail)
 
 	return c
@@ -1108,7 +1104,7 @@ func (c *confirmBatch) processTx(txi types.Txi) {
 	detailEarn.addEarn(tx.TokenId, tx.Value)
 	c.setDetail(detailEarn)
 
-	c.elders = append(c.elders, tx)
+	c.addTxToElders(tx)
 }
 
 // addTx adds tx only without any processing.
@@ -1116,10 +1112,39 @@ func (c *confirmBatch) addTx(tx types.Txi) {
 	detailSender := c.getOrCreateDetail(tx.Sender())
 	detailSender.addTx(tx)
 
-	c.elders = append(c.elders, tx)
+	c.addTxToElders(tx)
 }
 
-func (c *confirmBatch) getBalance(addr common.Address, tokenID int32) *math.BigInt {
+func (c *confirmBatch) addTxToElders(tx types.Txi) {
+	c.elders = append(c.elders, tx)
+	c.eldersQueryMap[tx.GetTxHash()] = tx
+}
+
+func (c *confirmBatch) existCurrentTx(hash common.Hash) bool {
+	return c.eldersQueryMap[hash] != nil
+}
+
+// existTx checks if input tx exists in current confirm batch. If not
+// exists, then check parents confirm batch and check DAG ledger at last.
+func (c *confirmBatch) existTx(hash common.Hash) bool {
+	exists := c.existCurrentTx(hash)
+	if exists {
+		return exists
+	}
+	if c.parent != nil {
+		return c.parent.existTx(hash)
+	}
+	return c.ledger.GetTx(hash) != nil
+}
+
+//func (c *confirmBatch) existConfirmedTx(hash common.Hash) bool {
+//	if c.parent != nil {
+//		return c.parent.existTx(hash)
+//	}
+//	return c.ledger.GetTx(hash) != nil
+//}
+
+func (c *confirmBatch) getCurrentBalance(addr common.Address, tokenID int32) *math.BigInt {
 	detail := c.getDetail(addr)
 	if detail == nil {
 		return nil
@@ -1127,36 +1152,50 @@ func (c *confirmBatch) getBalance(addr common.Address, tokenID int32) *math.BigI
 	return detail.getBalance(tokenID)
 }
 
-func (c *confirmBatch) getConfirmedBalance(addr common.Address, tokenID int32) *math.BigInt {
-	if c.parent == nil {
-		return c.ledger.GetBalance(addr, tokenID)
+// getBalance get balance from itself first, if not found then check
+// the parents confirm batch, if parents can't find the balance then check
+// the DAG ledger.
+func (c *confirmBatch) getBalance(addr common.Address, tokenID int32) *math.BigInt {
+	blc := c.getCurrentBalance(addr, tokenID)
+	if blc != nil {
+		return blc
 	}
-
-	blc := c.parent.getBalance(addr, tokenID)
-	if blc == nil {
-		blc = c.ledger.GetBalance(addr, tokenID)
-	}
-	return blc
+	return c.getConfirmedBalance(addr, tokenID)
 }
 
-func (c *confirmBatch) getLatestNonce(addr common.Address) (uint64, error) {
+func (c *confirmBatch) getConfirmedBalance(addr common.Address, tokenID int32) *math.BigInt {
+	if c.parent != nil {
+		return c.parent.getBalance(addr, tokenID)
+	}
+	return c.ledger.GetBalance(addr, tokenID)
+}
+
+func (c *confirmBatch) getCurrentLatestNonce(addr common.Address) (uint64, error) {
 	detail := c.getDetail(addr)
 	if detail == nil {
-		return 0, fmt.Errorf("latest nonce not found")
+		return 0, fmt.Errorf("can't find latest nonce for addr: %s", addr.Hex())
 	}
 	return detail.getNonce()
 }
 
-func (c *confirmBatch) getConfirmedLatestNonce(addr common.Address) (uint64, error) {
-	if c.parent == nil {
-		return c.ledger.GetLatestNonce(addr)
+// getLatestNonce get latest nonce from itself, if not fount then check
+// the parents confirm batch, if parents can't find the nonce then check
+// the DAG ledger.
+func (c *confirmBatch) getLatestNonce(addr common.Address) (uint64, error) {
+	nonce, err := c.getCurrentLatestNonce(addr)
+	if err == nil {
+		return nonce, nil
 	}
+	return c.getConfirmedLatestNonce(addr)
+}
 
-	nonce, err := c.parent.getLatestNonce(addr)
-	if err != nil {
-		return c.ledger.GetLatestNonce(addr)
+// getConfirmedLatestNonce get latest nonce from parents and DAG ledger. Note
+// that this confirm batch itself is not included in this nonce search.
+func (c *confirmBatch) getConfirmedLatestNonce(addr common.Address) (uint64, error) {
+	if c.parent != nil {
+		return c.parent.getLatestNonce(addr)
 	}
-	return nonce, err
+	return c.ledger.GetLatestNonce(addr)
 }
 
 //func (c *confirmBatch) bindParent(parent *confirmBatch) {
@@ -1221,6 +1260,10 @@ func (bd *batchDetail) getNonce() (uint64, error) {
 	return bd.txList.keys.Tail(), nil
 }
 
+func (bd *batchDetail) existTx(tx types.Txi) bool {
+	return bd.txList.Get(tx.GetNonce()) != nil
+}
+
 func (bd *batchDetail) addTx(tx types.Txi) {
 	bd.txList.Put(tx)
 }
@@ -1278,7 +1321,7 @@ func (bd *batchDetail) verifyNonce(nonces nonceHeap) error {
 	sort.Sort(nonces)
 	addr := bd.address
 
-	latestNonce, err := bd.batch.getConfirmedLatestNonce(addr)
+	latestNonce, err := bd.batch.getConfirmedLatestNonce(bd.address)
 	if err != nil {
 		return fmt.Errorf("get latest nonce err: %v", err)
 	}
@@ -1300,30 +1343,6 @@ func (bd *batchDetail) verifyNonce(nonces nonceHeap) error {
 	}
 	return nil
 }
-
-type cachedConfirms struct {
-	fronts  []*confirmBatch
-	batches map[common.Hash]*confirmBatch
-
-	//seqHash common.Hash
-	//seq     *tx_types.Sequencer
-	//root    common.Hash
-	//txs     types.Txis
-	//elders  map[common.Hash]types.Txi
-}
-
-func newCachedConfirm() *cachedConfirms {
-	return &cachedConfirms{
-		fronts:  make([]*confirmBatch, 0),
-		batches: make(map[common.Hash]*confirmBatch),
-	}
-}
-
-//func (c *cachedConfirms) SeqHash() common.Hash              { return c.seqHash }
-//func (c *cachedConfirms) Seq() *tx_types.Sequencer          { return c.seq }
-//func (c *cachedConfirms) Root() common.Hash                 { return c.root }
-//func (c *cachedConfirms) Txs() types.Txis                   { return c.txs }
-//func (c *cachedConfirms) Elders() map[common.Hash]types.Txi { return c.elders }
 
 func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
 	return pool.confirmStatus.GetInfo()

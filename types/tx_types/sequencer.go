@@ -236,6 +236,12 @@ func (t *Sequencer) SetSender(addr common.Address) {
 	t.Issuer = &addr
 }
 
+func (s *Sequencer) GetPreviousSeqHash() common.Hash {
+	// TODO
+	// not implemented yet!
+	return common.Hash{}
+}
+
 type SequencerMsg struct {
 	Type           int      `json:"type"`
 	Hash           string   `json:"hash"`

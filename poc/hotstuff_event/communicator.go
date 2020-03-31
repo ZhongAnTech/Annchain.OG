@@ -212,9 +212,6 @@ func (hub *RemoteHub) InitPeers(ips []string) {
 
 		// recover peerId from Base58 Encoded p2pAddr
 		peerId, err := peer.Decode(p2pAddr)
-		if err != nil {
-			panic(err)
-		}
 
 		fmt.Println("p2pAddr:" + p2pAddr)
 		fmt.Println("peerIdxxx:" + peerId.String())
@@ -285,9 +282,22 @@ func (hub *RemoteHub) writeData(rw *bufio.ReadWriter) {
 			if err != nil {
 				panic(err)
 			}
-			rw.Write(bytes)
-			rw.WriteByte(byte('\n'))
-			rw.Flush()
+			_, err = rw.Write(bytes)
+			if err != nil {
+				logrus.WithError(err).Warn("write err")
+				return
+			}
+			err = rw.WriteByte(byte('\n'))
+			if err != nil {
+				logrus.WithError(err).Warn("write err")
+				return
+			}
+
+			err = rw.Flush()
+			if err != nil {
+				logrus.WithError(err).Warn("write err")
+				return
+			}
 		case <-hub.quit:
 			return
 

@@ -63,6 +63,19 @@ func (b Block) String() string {
 	return fmt.Sprintf("[Block round=%d payload=%s parentQC=%s id=%s]", b.Round, b.Payload, b.ParentQC, b.Id)
 }
 
+//msgp:tuple ContentString
+type ContentString struct {
+	Content string
+}
+
+func (z *ContentString) String() string {
+	return z.Content
+}
+
+func (z *ContentString) SignatureTarget() string {
+	return z.Content
+}
+
 //msgp:tuple ContentProposal
 type ContentProposal struct {
 	Proposal Block

@@ -180,7 +180,11 @@ func (hub *RemoteHub) InitPeers(ips []string) {
 		return
 	}
 
-	for _, v := range ips {
+	for i, v := range ips {
+		if i >= 2 {
+			break
+		}
+
 		logrus.WithField("ip", v).Info("processing")
 		fullAddr, err := multiaddr.NewMultiaddr(v)
 		if err != nil {
@@ -225,7 +229,20 @@ func (hub *RemoteHub) InitPeers(ips []string) {
 				time.Sleep(time.Second * 5)
 				continue
 			}
-			hub.handleStream(s)
+			go func(i int) {
+				fmt.Printf("Start sending contents to %d\n", i)
+				for {
+					hub.Send(&Msg{
+						Typev:    0,
+						Sig:      Signature{},
+						SenderId: 0,
+						Content:  &ContentString{Content: "Test"},
+					}, i, "")
+					fmt.Printf("Enqueue contents to %d\n", i)
+					time.Sleep(time.Second * 2)
+				}
+			}(i)
+			//hub.handleStream(s)
 			//// Create a buffered stream so that read and writes are non blocking.
 			//rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 			//
@@ -253,7 +270,8 @@ func (hub *RemoteHub) readData(rw *bufio.ReadWriter) {
 			logrus.WithError(err).Warn("read err")
 			return
 		}
-		hub.incomingChannel <- msg
+		fmt.Println("Received: " + msg.Content.String())
+		//hub.incomingChannel <- msg
 	}
 }
 
@@ -262,6 +280,8 @@ func (hub *RemoteHub) writeData(rw *bufio.ReadWriter) {
 		select {
 		case req := <-hub.outgoingChannel:
 			bytes, err := req.Msg.MarshalMsg([]byte{})
+			fmt.Println("Sent: " + hex.EncodeToString(bytes))
+
 			if err != nil {
 				panic(err)
 			}
@@ -275,24 +295,24 @@ func (hub *RemoteHub) writeData(rw *bufio.ReadWriter) {
 	}
 }
 
-func (hub *RemoteHub) Send(msg *Msg, id int, pos string) {
+func (hub *RemoteHub) Send(msg *Msg, id int, why string) {
 	hub.outgoingChannel <- &OutgoingRequest{
 		Msg:      msg,
 		Receiver: id,
 	}
 }
 
-func (hub *RemoteHub) SendToAllButMe(msg *Msg, myId int, pos string) {
+func (hub *RemoteHub) SendToAllButMe(msg *Msg, myId int, why string) {
 	for id := range hub.ipAddresses {
 		if id != myId {
-			hub.Send(msg, id, pos)
+			hub.Send(msg, id, why)
 		}
 	}
 }
 
-func (hub *RemoteHub) SendToAllIncludingMe(msg *Msg, pos string) {
+func (hub *RemoteHub) SendToAllIncludingMe(msg *Msg, why string) {
 	for id := range hub.ipAddresses {
-		hub.Send(msg, id, pos)
+		hub.Send(msg, id, why)
 	}
 }
 

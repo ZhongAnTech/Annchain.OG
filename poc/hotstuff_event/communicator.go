@@ -1,46 +1,38 @@
 package hotstuff_event
 
 import (
-	"bufio"
-	"bytes"
-	"context"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"io/ioutil"
-	"log"
-	"sync"
-	"time"
 )
 
 var ProtocolId protocol.ID = "/og/1.0.0"
 
+type SendType int
+
+const (
+	SendTypeUnicast   SendType = iota // send to only one
+	SendTypeMulticast                 // send to multiple receivers
+	SendTypeBroadcast                 // send to all peers in the network
+)
+
 type Hub interface {
-	Send(msg *Msg, id int, pos string)
-	SendToAllButMe(msg *Msg, myId int, pos string)
+	Send(msg *Msg, id string, pos string)
+	SendToAllButMe(msg *Msg, myId string, pos string)
 	SendToAllIncludingMe(msg *Msg, pos string)
-	GetChannel(id int) chan *Msg
+	GetChannel(id string) chan *Msg
 }
 
-type LocalHub struct {
-	Channels map[int]chan *Msg
+type LocalCommunicator struct {
+	Channels map[string]chan *Msg
 }
 
-func (h *LocalHub) GetChannel(id int) chan *Msg {
+func (h *LocalCommunicator) GetChannel(id string) chan *Msg {
 	return h.Channels[id]
 }
 
-func (h *LocalHub) Send(msg *Msg, id int, pos string) {
+func (h *LocalCommunicator) Send(msg *Msg, id string, pos string) {
 	logrus.WithField("message", msg).WithField("to", id).Trace(fmt.Sprintf("[%d] sending [%s] to [%d]", msg.SenderId, pos, id))
 	//defer logrus.WithField("msg", msg).WithField("to", id).Info("sent")
 	//if id > 2 { // Byzantine test
@@ -48,289 +40,92 @@ func (h *LocalHub) Send(msg *Msg, id int, pos string) {
 	//}
 }
 
-func (h *LocalHub) SendToAllButMe(msg *Msg, myId int, pos string) {
+func (h *LocalCommunicator) SendToAllButMe(msg *Msg, myId string, pos string) {
 	for id := range h.Channels {
 		if id != myId {
 			h.Send(msg, id, pos)
 		}
 	}
 }
-func (h *LocalHub) SendToAllIncludingMe(msg *Msg, pos string) {
+func (h *LocalCommunicator) SendToAllIncludingMe(msg *Msg, pos string) {
 	for id := range h.Channels {
 		h.Send(msg, id, pos)
 	}
 }
 
 type OutgoingRequest struct {
-	Msg      *Msg
-	Receiver int
+	Msg          *Msg
+	SendType     SendType
+	EndReceivers []string
 }
 
-type RemoteHub struct {
-	ipAddresses     map[int]peer.ID
-	Port            int
-	incomingChannel chan *Msg
-	outgoingChannel chan *OutgoingRequest
-	node            host.Host
-	quit            chan bool
-	initWait        sync.WaitGroup
+// LogicalCommunicator is for logical send. LogicalCommunicator only specify receiver peerId and message.
+// LogicalCommunicator does not known how to deliver the message. It only specify who to receive.
+// Use some physical sending such as PhysicalCommunicator to either directly send or relay messages.
+type LogicalCommunicator struct {
+	PhysicalCommunicator *PhysicalCommunicator // do the real communication. connection management
+	MyId                 string                // my peerId in the p2p network
 }
 
-func (hub *RemoteHub) InitDefault() {
-	hub.ipAddresses = make(map[int]peer.ID)
-	hub.incomingChannel = make(chan *Msg)
-	hub.outgoingChannel = make(chan *OutgoingRequest)
-	hub.quit = make(chan bool)
-	hub.initWait.Add(1)
+func (hub *LogicalCommunicator) InitDefault() {
+
 }
 
-func (hub *RemoteHub) Start() {
-}
-
-func (hub *RemoteHub) Stop() {
-	close(hub.quit)
-	// shut the node down
-	if err := hub.node.Close(); err != nil {
-		panic(err)
-	}
-}
-
-func (hub *RemoteHub) LoadPrivateKey() core.PrivKey {
-	// read key file
-	keyFile := viper.GetString("file")
-	bytes, err := ioutil.ReadFile(keyFile)
+// Deliver send the message to a specific peer
+// Let PhysicalCommunicator decide how to reach this peer.
+// Either send it directly, or let others relay the message.
+func (hub *LogicalCommunicator) Deliver(msg *Msg, targetPeerId string, why string) {
+	// get channel from communicatorManager
+	peerId, err := peer.Decode(id)
 	if err != nil {
 		panic(err)
 	}
 
-	pi := &PrivateInfo{}
-	err = json.Unmarshal(bytes, pi)
-	if err != nil {
-		panic(err)
-	}
-
-	privb, err := hex.DecodeString(pi.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-
-	priv, err := core.UnmarshalPrivateKey(privb)
-	if err != nil {
-		panic(err)
-	}
-	return priv
-}
-
-func (hub *RemoteHub) MakeHost(priv core.PrivKey) (host.Host, error) {
-	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", hub.Port)),
-		libp2p.Identity(priv),
-		libp2p.DisableRelay(),
-	}
-	basicHost, err := libp2p.New(context.Background(), opts...)
-	if err != nil {
-		return nil, err
-	}
-	return basicHost, nil
-}
-
-func (hub *RemoteHub) printHostInfo(basicHost host.Host) {
-
-	// print the node's listening addresses
-	// protocol is always p2p
-	hostAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", basicHost.ID().Pretty()))
-	if err != nil {
-		panic(err)
-	}
-
-	addr := basicHost.Addrs()[0]
-	fullAddr := addr.Encapsulate(hostAddr)
-	log.Printf("I am %s\n", fullAddr)
-}
-
-func (hub *RemoteHub) Listen() {
-	// start a libp2p node with default settings
-	privKey := hub.LoadPrivateKey()
-	host, err := hub.MakeHost(privKey)
-	if err != nil {
-		panic(err)
-	}
-	hub.node = host
-
-	hub.printHostInfo(hub.node)
-
-	hub.node.SetStreamHandler(ProtocolId, hub.handleStream)
-	hub.initWait.Done()
-	select {}
-}
-
-func (hub *RemoteHub) handleStream(s network.Stream) {
-	logrus.Info("Got a new stream!")
-
-	// Create a buffered stream so that read and writes are non blocking.
-	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-
-	// Create a thread to read and write data.
-	go hub.writeData(rw)
-	go hub.readData(rw)
-}
-func (hub *RemoteHub) InitPeers(ips []string) {
-	hub.initWait.Wait()
-	if hub.Port == 3300 {
+	peer := hub.PhysicalCommunicator.GetNeighbour(peerId)
+	if peer == nil {
+		// peer not found in Neighbour Management, request connection
+		hub.PhysicalCommunicator.SuggestConnection(peerId)
+		// since the connection is not built yet, we return.
 		return
 	}
-
-	for i, v := range ips {
-		if i >= 2 {
-			break
-		}
-
-		logrus.WithField("ip", v).Info("processing")
-		fullAddr, err := multiaddr.NewMultiaddr(v)
-		if err != nil {
-			logrus.WithField("v", v).WithError(err).Warn("bad address")
-			continue
-		}
-		logrus.WithField("fullAddr", fullAddr).Info("processing address")
-
-		// p2p layer address
-		p2pAddr, err := fullAddr.ValueForProtocol(multiaddr.P_P2P)
-		protocolAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", p2pAddr))
-
-		// self checking
-		if hub.node.ID().String() == p2pAddr {
-			// myself, skip
-			continue
-		}
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-		// keep only the connection info, wipe out the p2p layer
-		connectionAddr := fullAddr.Decapsulate(protocolAddr)
-		fmt.Println("connectionAddr:" + connectionAddr.String())
-
-		// recover peerId from Base58 Encoded p2pAddr
-		peerId, err := peer.Decode(p2pAddr)
-
-		fmt.Println("p2pAddr:" + p2pAddr)
-		fmt.Println("peerIdxxx:" + peerId.String())
-
-		hub.node.Peerstore().AddAddr(peerId, connectionAddr, peerstore.PermanentAddrTTL)
-
-		for {
-			// start a stream
-			s, err := hub.node.NewStream(context.Background(), peerId, ProtocolId)
-			if err != nil {
-				logrus.WithField("s", s).WithError(err).Warn("error on starting stream")
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			go func(i int) {
-				fmt.Printf("Start sending contents to %d\n", i)
-				for {
-					hub.Send(&Msg{
-						Typev:    0,
-						Sig:      Signature{},
-						SenderId: 0,
-						Content:  &ContentString{Content: "Test"},
-					}, i, "")
-					fmt.Printf("Enqueue contents to %d\n", i)
-					time.Sleep(time.Second * 2)
-				}
-			}(i)
-			//hub.handleStream(s)
-			//// Create a buffered stream so that read and writes are non blocking.
-			//rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-			//
-			//// Create a thread to read and write data.
-			//go hub.writeData(rw)
-			//go hub.readData(rw)
-			//logrus.WithField("s", info).WithError(err).Warn("connection established")
-
-			break
-		}
-
+	peer.outgoingChannel <- &OutgoingRequest{
+		Msg:          msg,
+		SendType:     SendTypeUnicast,
+		EndReceivers: []string{id},
 	}
 }
 
-func (hub *RemoteHub) readData(rw *bufio.ReadWriter) {
-	for {
-		bytes, err := rw.ReadBytes('\n')
-		if err != nil {
-			logrus.WithError(err).Warn("read err")
-			return
-		}
-		msg := &Msg{}
-		_, err = msg.UnmarshalMsg(bytes)
-		if err != nil {
-			logrus.WithError(err).Warn("read err")
-			return
-		}
-		fmt.Println("Received: " + msg.Content.String())
-		//hub.incomingChannel <- msg
-	}
-}
-
-func (hub *RemoteHub) writeData(rw *bufio.ReadWriter) {
-	for {
-		select {
-		case req := <-hub.outgoingChannel:
-			bytes, err := req.Msg.MarshalMsg([]byte{})
-			fmt.Println("Sent: " + hex.EncodeToString(bytes))
-
-			if err != nil {
-				panic(err)
-			}
-			_, err = rw.Write(bytes)
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				return
-			}
-			err = rw.WriteByte(byte('\n'))
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				return
-			}
-
-			err = rw.Flush()
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				return
-			}
-		case <-hub.quit:
-			return
-
+func (hub *LogicalCommunicator) SendToThemButMe(msg *Msg, peerIds []string, why string) {
+	var newPeerIds []string
+	for _, id := range peerIds {
+		if id != hub.MyId {
+			newPeerIds = append(newPeerIds, id)
 		}
 	}
+	if len(newPeerIds) == 0 {
+		return
+	}
+	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
+		Msg:          msg,
+		SendType:     SendTypeMulticast,
+		EndReceivers: newPeerIds,
+	})
 }
 
-func (hub *RemoteHub) Send(msg *Msg, id int, why string) {
-	hub.outgoingChannel <- &OutgoingRequest{
+func (hub *LogicalCommunicator) SendToThemIncludingMe(msg *Msg, peerIds []string, why string) {
+	if len(peerIds) == 0 {
+		return
+	}
+	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
+		Msg:          msg,
+		SendType:     SendTypeMulticast,
+		EndReceivers: peerIds,
+	})
+}
+
+func (hub *LogicalCommunicator) Broadcast(msg *Msg, why string) {
+	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
 		Msg:      msg,
-		Receiver: id,
-	}
-}
-
-func (hub *RemoteHub) SendToAllButMe(msg *Msg, myId int, why string) {
-	for id := range hub.ipAddresses {
-		if id != myId {
-			hub.Send(msg, id, why)
-		}
-	}
-}
-
-func (hub *RemoteHub) SendToAllIncludingMe(msg *Msg, why string) {
-	for id := range hub.ipAddresses {
-		hub.Send(msg, id, why)
-	}
-}
-
-func (hub *RemoteHub) GetChannel(id int) chan *Msg {
-	return hub.incomingChannel
-}
-
-func isTransportOver(data []byte) (over bool) {
-	over = bytes.HasSuffix(data, []byte{0})
-	return
+		SendType: SendTypeBroadcast,
+	})
 }

@@ -765,180 +765,6 @@ func (z LedgerCommitInfo) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *Msg) DecodeMsg(dc *msgp.Reader) (err error) {
-	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
-		return
-	}
-	{
-		var zb0002 int
-		zb0002, err = dc.ReadInt()
-		if err != nil {
-			err = msgp.WrapError(err, "Typev")
-			return
-		}
-		z.Typev = MsgType(zb0002)
-	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
-		err = msgp.WrapError(err, "Sig")
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.Sig.PartnerId, err = dc.ReadInt()
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "PartnerId")
-		return
-	}
-	z.Sig.Signature, err = dc.ReadString()
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "Signature")
-		return
-	}
-	z.SenderId, err = dc.ReadInt()
-	if err != nil {
-		err = msgp.WrapError(err, "SenderId")
-		return
-	}
-	err = z.Content.DecodeMsg(dc)
-	if err != nil {
-		err = msgp.WrapError(err, "Content")
-		return
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *Msg) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 4
-	err = en.Append(0x94)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(int(z.Typev))
-	if err != nil {
-		err = msgp.WrapError(err, "Typev")
-		return
-	}
-	// array header, size 2
-	err = en.Append(0x92)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.Sig.PartnerId)
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "PartnerId")
-		return
-	}
-	err = en.WriteString(z.Sig.Signature)
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "Signature")
-		return
-	}
-	err = en.WriteInt(z.SenderId)
-	if err != nil {
-		err = msgp.WrapError(err, "SenderId")
-		return
-	}
-	err = z.Content.EncodeMsg(en)
-	if err != nil {
-		err = msgp.WrapError(err, "Content")
-		return
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *Msg) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
-	o = msgp.AppendInt(o, int(z.Typev))
-	// array header, size 2
-	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.Sig.PartnerId)
-	o = msgp.AppendString(o, z.Sig.Signature)
-	o = msgp.AppendInt(o, z.SenderId)
-	o, err = z.Content.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "Content")
-		return
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *Msg) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
-		return
-	}
-	{
-		var zb0002 int
-		zb0002, bts, err = msgp.ReadIntBytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Typev")
-			return
-		}
-		z.Typev = MsgType(zb0002)
-	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Sig")
-		return
-	}
-	if zb0003 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
-		return
-	}
-	z.Sig.PartnerId, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "PartnerId")
-		return
-	}
-	z.Sig.Signature, bts, err = msgp.ReadStringBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Sig", "Signature")
-		return
-	}
-	z.SenderId, bts, err = msgp.ReadIntBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "SenderId")
-		return
-	}
-	bts, err = z.Content.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Content")
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Msg) Msgsize() (s int) {
-	s = 1 + msgp.IntSize + 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Sig.Signature) + msgp.IntSize + z.Content.Msgsize()
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
 func (z *MsgType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zb0001 int
@@ -1682,5 +1508,108 @@ func (z *VoteMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *VoteMsg) Msgsize() (s int) {
 	s = 1 + z.VoteInfo.Msgsize() + 1 + msgp.StringPrefixSize + len(z.LedgerCommitInfo.CommitStateId) + msgp.StringPrefixSize + len(z.LedgerCommitInfo.VoteInfoHash) + msgp.IntSize + 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signature.Signature)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *WireMessage) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	z.MsgType, err = dc.ReadInt()
+	if err != nil {
+		err = msgp.WrapError(err, "MsgType")
+		return
+	}
+	z.ContentBytes, err = dc.ReadBytes(z.ContentBytes)
+	if err != nil {
+		err = msgp.WrapError(err, "ContentBytes")
+		return
+	}
+	z.SenderId, err = dc.ReadString()
+	if err != nil {
+		err = msgp.WrapError(err, "SenderId")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *WireMessage) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 3
+	err = en.Append(0x93)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.MsgType)
+	if err != nil {
+		err = msgp.WrapError(err, "MsgType")
+		return
+	}
+	err = en.WriteBytes(z.ContentBytes)
+	if err != nil {
+		err = msgp.WrapError(err, "ContentBytes")
+		return
+	}
+	err = en.WriteString(z.SenderId)
+	if err != nil {
+		err = msgp.WrapError(err, "SenderId")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *WireMessage) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 3
+	o = append(o, 0x93)
+	o = msgp.AppendInt(o, z.MsgType)
+	o = msgp.AppendBytes(o, z.ContentBytes)
+	o = msgp.AppendString(o, z.SenderId)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *WireMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+		return
+	}
+	z.MsgType, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "MsgType")
+		return
+	}
+	z.ContentBytes, bts, err = msgp.ReadBytesBytes(bts, z.ContentBytes)
+	if err != nil {
+		err = msgp.WrapError(err, "ContentBytes")
+		return
+	}
+	z.SenderId, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "SenderId")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *WireMessage) Msgsize() (s int) {
+	s = 1 + msgp.IntSize + msgp.BytesPrefixSize + len(z.ContentBytes) + msgp.StringPrefixSize + len(z.SenderId)
 	return
 }

@@ -11,6 +11,26 @@ type Hashable interface {
 	GetHashContent() string
 }
 
+// Msg is NOT for transportation. It is only an internal structure
+type Msg struct {
+	Typev    MsgType
+	Sig      Signature
+	SenderId string // no need to fill it when sending
+	Content  Content
+	//ParentQC *QC
+	//Round    int
+	//Id       int //
+
+	//ViewNumber    int
+	//Node          *Node
+	//Justify       *QC
+	//FromPartnerId int
+}
+
+func (m Msg) String() string {
+	return fmt.Sprintf("[type:%s sender=%d content=%s sig=%s]", m.Typev, m.SenderId, m.Content, m.Sig)
+}
+
 type Content interface {
 	fmt.Stringer
 	msgp.Marshaler

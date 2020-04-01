@@ -8,11 +8,20 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 )
 
-func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hotstuff_event.Partner {
-	logger := hotstuff_event.SetupOrderedLog(myId)
+func MakeLocalPartner(myIdIndex int, N int, F int, hub *hotstuff_event.LocalCommunicator) *hotstuff_event.Partner {
+	// peer info should be loaded separately.
+	// either from file, from ledger or hard coded.
+	// for local testing, we hard coded. parter id is the string value starts from 0.
+	peerIds := make([]string, N)
+	for i := 0; i < N; i++ {
+		peerIds[i] = strconv.Itoa(i)
+	}
+
+	logger := hotstuff_event.SetupOrderedLog(myIdIndex)
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
 	}
@@ -24,10 +33,10 @@ func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hot
 	}
 
 	blockTree := &hotstuff_event.BlockTree{
-		Ledger: ledger,
-		F:      F,
-		Logger: logger,
-		MyId:   myId,
+		Ledger:    ledger,
+		F:         F,
+		Logger:    logger,
+		MyIdIndex: myIdIndex,
 	}
 	blockTree.InitDefault()
 	blockTree.InitGenesisOrLatest()
@@ -35,7 +44,8 @@ func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hot
 	proposerElection := &hotstuff_event.ProposerElection{N: N}
 
 	paceMaker := &hotstuff_event.PaceMaker{
-		MyId:             myId,
+		PeerIds:          peerIds,
+		MyIdIndex:        myIdIndex,
 		CurrentRound:     1, // must be 1 which is AFTER GENESIS
 		Safety:           safety,
 		MessageHub:       hub,
@@ -49,9 +59,10 @@ func MakeLocalPartner(myId int, N int, F int, hub *hotstuff_event.LocalHub) *hot
 	blockTree.PaceMaker = paceMaker
 
 	partner := &hotstuff_event.Partner{
+		PeerIds:          peerIds,
 		MessageHub:       hub,
 		Ledger:           ledger,
-		MyId:             myId,
+		MyIdIndex:        myIdIndex,
 		N:                N,
 		F:                F,
 		PaceMaker:        paceMaker,
@@ -78,11 +89,11 @@ var runCmd = &cobra.Command{
 		num := viper.GetInt("total")
 
 		// prepare partners
-		hub := &hotstuff_event.LocalHub{Channels: map[int]chan *hotstuff_event.Msg{}}
+		hub := &hotstuff_event.LocalCommunicator{Channels: map[string]chan *hotstuff_event.Msg{}}
 		partners := make([]*hotstuff_event.Partner, num)
 
 		for i := 0; i < num; i++ {
-			hub.Channels[i] = make(chan *hotstuff_event.Msg, 30)
+			hub.Channels[strconv.Itoa(i)] = make(chan *hotstuff_event.Msg, 30)
 			partners[i] = MakeLocalPartner(i, num, num/3, hub)
 
 		}

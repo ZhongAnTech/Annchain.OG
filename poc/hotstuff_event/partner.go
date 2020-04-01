@@ -15,7 +15,8 @@ Maofan Yin, Dahlia Malkhi, Michael K. Reiter, Guy Golan Gueta and Ittai Abraham
 type Partner struct {
 	MessageHub       Hub
 	Ledger           *Ledger
-	MyId             int
+	PeerIds          []string
+	MyIdIndex        int
 	N                int
 	F                int
 	PaceMaker        *PaceMaker
@@ -31,7 +32,7 @@ func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
 }
 func (n *Partner) Start() {
-	messageChannel := n.MessageHub.GetChannel(n.MyId)
+	messageChannel := n.MessageHub.GetChannel(n.PeerIds[n.MyIdIndex])
 	for {
 		select {
 		case <-n.quit:
@@ -61,7 +62,7 @@ func (n *Partner) Stop() {
 }
 
 func (n *Partner) Name() string {
-	return fmt.Sprintf("Node %d", n.MyId)
+	return fmt.Sprintf("Node %d", n.MyIdIndex)
 }
 
 func (n *Partner) CreateLeaf(node *Node) (newNode Node) {
@@ -81,7 +82,7 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 		n.Logger.WithField("pRound", p.Round).WithField("currentRound", currentRound).Warn("current round not match.")
 		return
 	}
-	if msg.SenderId != n.ProposerElection.GetLeader(currentRound) {
+	if msg.SenderId != n.PeerIds[n.ProposerElection.GetLeader(currentRound)] {
 		n.Logger.WithField("msg.SenderId", msg.SenderId).WithField("current leader", n.ProposerElection.GetLeader(currentRound)).Warn("current leader not match.")
 		return
 	}
@@ -91,14 +92,14 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 		voteAggregator := n.ProposerElection.GetLeader(currentRound + 1)
 		outMsg := &Msg{
 			Typev:    Vote,
-			SenderId: n.MyId,
+			SenderId: n.PeerIds[n.MyIdIndex],
 			Content:  voteMsg,
 			Sig: Signature{
-				PartnerId: n.MyId,
+				PartnerId: n.MyIdIndex,
 				Signature: voteMsg.SignatureTarget(),
 			},
 		}
-		n.MessageHub.Send(outMsg, voteAggregator, "ProcessProposalMessage"+strconv.Itoa(n.PaceMaker.CurrentRound))
+		n.MessageHub.Send(outMsg, n.PeerIds[voteAggregator], "ProcessProposalMessage"+strconv.Itoa(n.PaceMaker.CurrentRound))
 	}
 }
 
@@ -116,7 +117,7 @@ func (n *Partner) ProcessCertificates(qc *QC) {
 }
 
 func (n *Partner) ProcessNewRoundEvent() {
-	if n.MyId != n.ProposerElection.GetLeader(n.PaceMaker.CurrentRound) {
+	if n.MyIdIndex != n.ProposerElection.GetLeader(n.PaceMaker.CurrentRound) {
 		// not the leader
 		n.Logger.Trace("I'm not the leader so just return")
 		return
@@ -124,13 +125,13 @@ func (n *Partner) ProcessNewRoundEvent() {
 	//b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, strconv.Itoa(RandInt()))
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, "1")
 	n.Logger.WithField("proposal", b).Trace("I'm the current leader")
-	fmt.Printf("[%d] pp %d %s\n", n.MyId, b.Proposal.Round, b.Proposal.Payload)
+	fmt.Printf("[%d] pp %d %s\n", n.MyIdIndex, b.Proposal.Round, b.Proposal.Payload)
 	n.MessageHub.SendToAllIncludingMe(&Msg{
 		Typev:    Proposal,
-		SenderId: n.MyId,
+		SenderId: n.PeerIds[n.MyIdIndex],
 		Content:  b,
 		Sig: Signature{
-			PartnerId: n.MyId,
+			PartnerId: n.MyIdIndex,
 			Signature: b.SignatureTarget(),
 		},
 	}, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))

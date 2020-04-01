@@ -7,7 +7,8 @@ import (
 )
 
 type PaceMaker struct {
-	MyId             int
+	PeerIds          []string
+	MyIdIndex        int
 	CurrentRound     int
 	Safety           *Safety
 	MessageHub       Hub
@@ -57,7 +58,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 		m.timeoutsPerRound[m.CurrentRound] = collector
 	} else {
 		collector := m.timeoutsPerRound[m.CurrentRound]
-		if collector.Has(m.MyId) {
+		if collector.Has(m.MyIdIndex) {
 			return
 		}
 	}
@@ -81,7 +82,7 @@ func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("round advanced")
-	if m.MyId != m.ProposerElection.GetLeader(m.CurrentRound) {
+	if m.MyIdIndex != m.ProposerElection.GetLeader(m.CurrentRound) {
 		content := &ContentVote{
 			VoteInfo:         qc.VoteInfo,
 			LedgerCommitInfo: qc.LedgerCommitInfo,
@@ -90,12 +91,12 @@ func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
 		m.MessageHub.Send(&Msg{
 			Typev: Vote,
 			Sig: Signature{
-				PartnerId: m.MyId,
+				PartnerId: m.MyIdIndex,
 				Signature: content.SignatureTarget(),
 			},
-			SenderId: m.MyId,
+			SenderId: m.PeerIds[m.MyIdIndex],
 			Content:  content,
-		}, m.ProposerElection.GetLeader(m.CurrentRound), "AdvanceRound:"+reason)
+		}, m.PeerIds[m.ProposerElection.GetLeader(m.CurrentRound)], "AdvanceRound:"+reason)
 
 	}
 	m.StartLocalTimer(m.CurrentRound, m.GetRoundTimer(m.CurrentRound))
@@ -107,10 +108,10 @@ func (m *PaceMaker) MakeTimeoutMessage() *Msg {
 	return &Msg{
 		Typev: Timeout,
 		Sig: Signature{
-			PartnerId: m.MyId,
+			PartnerId: m.MyIdIndex,
 			Signature: content.SignatureTarget(),
 		},
-		SenderId: m.MyId,
+		SenderId: m.PeerIds[m.MyIdIndex],
 		Content:  content,
 	}
 }

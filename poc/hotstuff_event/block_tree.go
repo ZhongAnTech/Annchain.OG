@@ -40,7 +40,7 @@ type BlockTree struct {
 	Ledger    *Ledger
 	PaceMaker *PaceMaker
 	F         int
-	MyId      int
+	MyIdIndex int
 
 	pendingBlkTree PendingBlockTree              // tree of blocks pending commitment
 	pendingVotes   map[string]SignatureCollector // collected votes per block indexed by their LedgerInfo hash
@@ -76,7 +76,7 @@ func (t *BlockTree) InitGenesisOrLatest() {
 
 func (t *BlockTree) InitDefault() {
 	t.pendingBlkTree = PendingBlockTree{
-		MyId:   t.MyId,
+		MyId:   t.MyIdIndex,
 		Logger: t.Logger,
 	}
 	t.pendingBlkTree.InitDefault()
@@ -117,7 +117,7 @@ func (t *BlockTree) ProcessCommit(id string) {
 func (t *BlockTree) ExecuteAndInsert(p *Block) {
 	// it is a proposal message
 	executeStateId := t.Ledger.Speculate(p.ParentQC.VoteInfo.Id, p.Id, p.Payload)
-	fmt.Printf("[%d] at [%d-%d] [%s] ExecuteState: %s\n", t.MyId, p.Round, t.Ledger.cache[p.Id].total, p.Id, executeStateId)
+	fmt.Printf("[%d] at [%d-%d] [%s] ExecuteState: %s\n", t.MyIdIndex, p.Round, t.Ledger.cache[p.Id].total, p.Id, executeStateId)
 	t.pendingBlkTree.Add(p)
 	if p.ParentQC.VoteInfo.Round > t.highQC.VoteInfo.Round {
 		t.highQC = p.ParentQC

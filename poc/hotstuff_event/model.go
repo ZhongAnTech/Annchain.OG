@@ -31,26 +31,6 @@ const (
 	LocalTimeout
 )
 
-//msgp:tuple Msg
-type Msg struct {
-	Typev    MsgType
-	Sig      Signature
-	SenderId int
-	Content  Content
-	//ParentQC *QC
-	//Round    int
-	//Id       int //
-
-	//ViewNumber    int
-	//Node          *Node
-	//Justify       *QC
-	//FromPartnerId int
-}
-
-func (m Msg) String() string {
-	return fmt.Sprintf("[type:%s sender=%d content=%s sig=%s]", m.Typev, m.SenderId, m.Content, m.Sig)
-}
-
 //msgp:tuple Block
 type Block struct {
 	Round    int    // the round that generated this proposal
@@ -61,6 +41,14 @@ type Block struct {
 
 func (b Block) String() string {
 	return fmt.Sprintf("[Block round=%d payload=%s parentQC=%s id=%s]", b.Round, b.Payload, b.ParentQC, b.Id)
+}
+
+// WireMessage is for transportation.
+//msgp:tuple WireMessage
+type WireMessage struct {
+	MsgType      int
+	ContentBytes []byte // this Byte will be recovered to implementation of Content interface
+	SenderId     string
 }
 
 //msgp:tuple ContentString

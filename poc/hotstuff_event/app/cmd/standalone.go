@@ -14,7 +14,7 @@ import (
 	"syscall"
 )
 
-func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub) *hotstuff_event.Partner {
+func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
 	logger := hotstuff_event.SetupOrderedLog(myId)
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
@@ -27,10 +27,10 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub) *hots
 	}
 
 	blockTree := &hotstuff_event.BlockTree{
-		Ledger: ledger,
-		F:      F,
-		Logger: logger,
-		MyId:   myId,
+		Ledger:    ledger,
+		F:         F,
+		Logger:    logger,
+		MyIdIndex: myId,
 	}
 	blockTree.InitDefault()
 	blockTree.InitGenesisOrLatest()
@@ -38,7 +38,8 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub) *hots
 	proposerElection := &hotstuff_event.ProposerElection{N: N}
 
 	paceMaker := &hotstuff_event.PaceMaker{
-		MyId:             myId,
+		PeerIds:          peerIds,
+		MyIdIndex:        myId,
 		CurrentRound:     1, // must be 1 which is AFTER GENESIS
 		Safety:           safety,
 		MessageHub:       hub,
@@ -52,9 +53,10 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub) *hots
 	blockTree.PaceMaker = paceMaker
 
 	partner := &hotstuff_event.Partner{
+		PeerIds:          peerIds,
 		MessageHub:       hub,
 		Ledger:           ledger,
-		MyId:             myId,
+		MyIdIndex:        myId,
 		N:                N,
 		F:                F,
 		PaceMaker:        paceMaker,
@@ -82,7 +84,7 @@ var standaloneCmd = &cobra.Command{
 		peers := readList(viper.GetString("list"))
 		total := len(peers)
 
-		hub := &hotstuff_event.RemoteHub{
+		hub := &hotstuff_event.LogicalCommunicator{
 			Port: viper.GetInt("port"),
 		}
 		hub.InitDefault()

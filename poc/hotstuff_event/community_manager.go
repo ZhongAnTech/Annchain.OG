@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/ffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -59,9 +58,8 @@ func (c *Neighbour) StartRead() {
 			break
 		}
 
-		fmt.Println("WiredReceived: " + msg.String())
-		ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read")
-		//c.IncomingChannel <- msg
+		//ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read")
+		c.IncomingChannel <- msg
 	}
 	// neighbour disconnected, notify the communicator
 	c.IoEventChannel <- &IoEvent{
@@ -78,7 +76,7 @@ loop:
 	for {
 		select {
 		case req := <-c.outgoingChannel:
-			logrus.Info("neighbour got send request")
+			logrus.Trace("neighbour got send request")
 			contentBytes, err := req.Content.MarshalMsg([]byte{})
 			if err != nil {
 				panic(err)
@@ -98,7 +96,7 @@ loop:
 			if err != nil {
 				break
 			}
-			logrus.Info("neighbour sent")
+			logrus.Trace("neighbour sent")
 
 		case <-c.quit:
 			break loop
@@ -112,8 +110,8 @@ loop:
 }
 
 func (c *Neighbour) Send(req *Msg) {
-	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
-	//c.outgoingChannel <- req
+	//<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
+	c.outgoingChannel <- req
 }
 
 // PhysicalCommunicator
@@ -229,7 +227,10 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	logrus.Info("Got a new stream! " + s.Conn().RemotePeer().String())
+	logrus.WithFields(logrus.Fields{
+		"peerId":  s.Conn().RemotePeer().String(),
+		"address": s.Conn().RemoteMultiaddr().String(),
+	}).Info("Peer connection established")
 	peerId := s.Conn().RemotePeer()
 
 	// deregister in the trying list
@@ -277,13 +278,12 @@ func (c *PhysicalCommunicator) GetNeighbour(id string) (neighbour *Neighbour, er
 // SuggestConnection takes a peerId and try to connect to it.
 func (c *PhysicalCommunicator) SuggestConnection(address string) {
 	c.initWait.Wait()
-	logrus.WithField("address", address).Info("processing")
+	logrus.WithField("address", address).Info("registering address")
 	fullAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
 		logrus.WithField("address", address).WithError(err).Warn("bad address")
 		return
 	}
-	logrus.WithField("fullAddr", fullAddr).Info("processing address")
 
 	// p2p layer address
 	p2pAddr, err := fullAddr.ValueForProtocol(multiaddr.P_P2P)
@@ -299,7 +299,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 	}
 	// keep only the connection info, wipe out the p2p layer
 	connectionAddr := fullAddr.Decapsulate(protocolAddr)
-	fmt.Println("connectionAddr:" + connectionAddr.String())
+	//fmt.Println("connectionAddr:" + connectionAddr.String())
 
 	// recover peerId from Base58 Encoded p2pAddr
 	peerId, err := peer.Decode(p2pAddr)
@@ -307,7 +307,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 		logrus.WithField("address", address).WithError(err).Warn("bad address")
 	}
 
-	fmt.Println("peerId:" + p2pAddr)
+	//fmt.Println("peerId:" + p2pAddr)
 	// check if it is a self connection.
 	if peerId == c.node.ID() {
 		return
@@ -328,13 +328,13 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 
 func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
 	c.initWait.Wait()
-	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
-	//c.outgoingChannel <- req
+	//<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
+	c.outgoingChannel <- req
 }
 
 // we use direct connection currently so let's build a connection if not exists.
 func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
-	logrus.Info("handling send request")
+	logrus.Trace("handling send request")
 	if req.SendType == SendTypeBroadcast {
 		for _, neighbour := range c.activePeers {
 			go neighbour.Send(req.Msg)
@@ -373,6 +373,7 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
+	logrus.WithField("peerId", peerId).Debug("connecting peer")
 	s, err := c.node.NewStream(context.Background(), peerId, ProtocolId)
 	if err != nil {
 		if err != swarm.ErrDialBackoff {

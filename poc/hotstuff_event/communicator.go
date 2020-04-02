@@ -97,26 +97,36 @@ func (hub *LogicalCommunicator) Start() {
 
 func (hub *LogicalCommunicator) pump() {
 	for {
+		logrus.Info("pump round")
 		select {
 		case <-hub.quit:
 			return
 		case wmsg := <-hub.PhysicalCommunicator.GetIncomingChannel():
 			// decode msg
+			var content Content
 			switch MsgType(wmsg.MsgType) {
+			case Proposal:
+				content = &ContentProposal{}
+			case Vote:
+				content = &ContentVote{}
+			case Timeout:
+				content = &ContentTimeout{}
 			case String:
-				msg := &ContentString{}
-				_, err := msg.UnmarshalMsg(wmsg.ContentBytes)
-				if err != nil {
-					logrus.WithError(err).Warn("unmarshal")
-				}
-				hub.msgChan <- &Msg{
-					Typev:    String,
-					Sig:      Signature{},
-					SenderId: wmsg.SenderId,
-					Content:  msg,
-				}
+				content = &ContentString{}
 			default:
-				panic("unsupported type")
+				logrus.WithField("type", wmsg.MsgType).Warn("unsupported type")
+				continue
+			}
+			_, err := content.UnmarshalMsg(wmsg.ContentBytes)
+			if err != nil {
+				logrus.WithError(err).Warn("unmarshal")
+			}
+
+			hub.msgChan <- &Msg{
+				Typev:    MsgType(wmsg.MsgType),
+				Sig:      wmsg.Signature,
+				SenderId: wmsg.SenderId,
+				Content:  content,
 			}
 		}
 	}
@@ -126,6 +136,11 @@ func (hub *LogicalCommunicator) pump() {
 // Let PhysicalCommunicator decide how to reach this peer.
 // Either send it directly, or let others relay the message.
 func (hub *LogicalCommunicator) Deliver(msg *Msg, targetPeerId string, why string) {
+	if targetPeerId == hub.MyId {
+		// send to myself
+		hub.DeliverToMe(hub.msgChan, msg)
+		return
+	}
 	// get channel from communicatorManager
 	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
 		Msg:          msg,
@@ -155,16 +170,36 @@ func (hub *LogicalCommunicator) DeliverToThemIncludingMe(msg *Msg, peerIds []str
 	if len(peerIds) == 0 {
 		return
 	}
+	var newPeerIds []string
+	for _, id := range peerIds {
+		if id == hub.MyId {
+			hub.DeliverToMe(hub.msgChan, msg)
+		} else {
+			newPeerIds = append(newPeerIds, id)
+		}
+	}
+	if len(newPeerIds) == 0 {
+		return
+	}
+
 	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
 		Msg:          msg,
 		SendType:     SendTypeMulticast,
-		EndReceivers: peerIds,
+		EndReceivers: newPeerIds,
 	})
 }
 
 func (hub *LogicalCommunicator) Broadcast(msg *Msg, why string) {
+	hub.DeliverToMe(hub.msgChan, msg)
 	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
 		Msg:      msg,
 		SendType: SendTypeBroadcast,
 	})
+}
+
+func (hub *LogicalCommunicator) DeliverToMe(msgChan chan *Msg, msg *Msg) {
+	// should be handled carefully since delevering message to myself may cause deadlock
+	go func() {
+		hub.msgChan <- msg
+	}()
 }

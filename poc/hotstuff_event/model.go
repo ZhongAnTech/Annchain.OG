@@ -17,8 +17,8 @@ func (m MsgType) String() string {
 		return "Vote"
 	case Timeout:
 		return "Timeout"
-	case LocalTimeout:
-		return "LocalTimeout"
+	//case LocalTimeout:
+	//	return "LocalTimeout"
 	case String:
 		return "String"
 	default:
@@ -30,7 +30,7 @@ const (
 	Proposal MsgType = iota
 	Vote
 	Timeout
-	LocalTimeout
+	//LocalTimeout
 	String
 )
 
@@ -52,6 +52,7 @@ type WireMessage struct {
 	MsgType      int    // what ContentByte is.
 	ContentBytes []byte // this Byte will be recovered to implementation of Content interface
 	SenderId     string
+	Signature    Signature
 }
 
 func (z *WireMessage) String() string {

@@ -121,7 +121,7 @@ var runCmd = &cobra.Command{
 }
 
 func setupLogger() {
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
 		TimestampFormat: "15:04:05.000000",

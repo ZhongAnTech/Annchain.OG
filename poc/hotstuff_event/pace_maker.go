@@ -70,6 +70,8 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	m.MessageHub.DeliverToThemIncludingMe(timeoutMsg, m.PeerIds, "LocalTimeoutRound")
 	collector := m.timeoutsPerRound[m.CurrentRound]
 	collector.Collect(timeoutMsg.Sig)
+	logrus.Info("reset timer")
+	m.timer.Reset(m.GetRoundTimer(m.CurrentRound))
 }
 
 func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
@@ -121,7 +123,7 @@ func (m *PaceMaker) StopLocalTimer(r int) {
 }
 
 func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
-	return time.Second * 3
+	return time.Second * 4
 }
 
 func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {

@@ -86,6 +86,7 @@ loop:
 				MsgType:      int(req.Typev),
 				ContentBytes: contentBytes,
 				SenderId:     req.SenderId,
+				Signature:    req.Sig,
 			}
 
 			err = wireMessage.EncodeMsg(c.msgpWriter)
@@ -275,8 +276,8 @@ func (c *PhysicalCommunicator) GetNeighbour(id string) (neighbour *Neighbour, er
 	return
 }
 
-// SuggestConnection takes a peerId and try to connect to it.
-func (c *PhysicalCommunicator) SuggestConnection(address string) {
+// SuggestConnection takes a peer address and try to connect to it.
+func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string) {
 	c.initWait.Wait()
 	logrus.WithField("address", address).Info("registering address")
 	fullAddr, err := multiaddr.NewMultiaddr(address)
@@ -306,6 +307,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 	if err != nil {
 		logrus.WithField("address", address).WithError(err).Warn("bad address")
 	}
+	peerIds = peerId.String()
 
 	//fmt.Println("peerId:" + p2pAddr)
 	// check if it is a self connection.
@@ -323,10 +325,11 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 		return
 	}
 	c.tryingPeers[peerId] = true
-
+	return
 }
 
 func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
+	logrus.WithField("req", req).Info("enqueue sending")
 	c.initWait.Wait()
 	//<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
 	c.outgoingChannel <- req

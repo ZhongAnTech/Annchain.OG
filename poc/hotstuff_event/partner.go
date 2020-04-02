@@ -37,26 +37,33 @@ func (n *Partner) Start() {
 		logrus.WithError(err).WithField("peerId", n.PeerIds[n.MyIdIndex]).Warn("failed to get channel for peer")
 	}
 	for {
+		logrus.Info("partner round start")
 		select {
 		case <-n.quit:
 			return
 		case msg := <-messageChannel:
-			n.Logger.WithField("msgType", msg.Typev.String()).WithField("msgc", msg).Trace("received message")
+			n.Logger.WithField("msgType", msg.Typev.String()).WithField("msgc", msg).Info("received message")
 
 			switch msg.Typev {
 			case Proposal:
+				logrus.Info("in proposal")
 				n.ProcessProposalMessage(msg)
 			case Vote:
+				logrus.Info("in vote")
 				n.ProcessVoteMessage(msg)
 			case Timeout:
+				logrus.Info("in timeout")
 				n.PaceMaker.ProcessRemoteTimeout(msg)
 			//case LocalTimeout:
 			//	n.PaceMaker.LocalTimeoutRound()
 			default:
+				panic("unsupported typev")
 			}
 		case <-n.PaceMaker.timer.C:
+			logrus.Warn("timeout")
 			n.PaceMaker.LocalTimeoutRound()
 		}
+		logrus.Info("partner round end")
 	}
 }
 

@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/annchain/OG/poc/hotstuff_event"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -15,11 +16,10 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 )
 
-func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
-	logger := hotstuff_event.SetupOrderedLog(myId)
+func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
+	logger := hotstuff_event.SetupOrderedLog(myIdIndex)
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
 	}
@@ -34,7 +34,7 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerI
 		Ledger:    ledger,
 		F:         F,
 		Logger:    logger,
-		MyIdIndex: myId,
+		MyIdIndex: myIdIndex,
 	}
 	blockTree.InitDefault()
 	blockTree.InitGenesisOrLatest()
@@ -43,7 +43,7 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerI
 
 	paceMaker := &hotstuff_event.PaceMaker{
 		PeerIds:          peerIds,
-		MyIdIndex:        myId,
+		MyIdIndex:        myIdIndex,
 		CurrentRound:     1, // must be 1 which is AFTER GENESIS
 		Safety:           safety,
 		MessageHub:       hub,
@@ -60,7 +60,7 @@ func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerI
 		PeerIds:          peerIds,
 		MessageHub:       hub,
 		Ledger:           ledger,
-		MyIdIndex:        myId,
+		MyIdIndex:        myIdIndex,
 		N:                N,
 		F:                F,
 		PaceMaker:        paceMaker,
@@ -86,7 +86,7 @@ var standaloneCmd = &cobra.Command{
 		setupLogger()
 
 		peers := readList(viper.GetString("list"))
-		//total := len(peers)
+		total := len(peers)
 
 		priv, id := loadPrivateKey()
 
@@ -107,38 +107,43 @@ var standaloneCmd = &cobra.Command{
 		// init me before init peers
 		hub.PhysicalCommunicator.Start()
 
-		go func() {
-			for {
-				// now broadcast constantly
-				hub.Broadcast(&hotstuff_event.Msg{
-					Typev:    hotstuff_event.String,
-					Sig:      hotstuff_event.Signature{},
-					SenderId: hub.MyId,
-					Content: &hotstuff_event.ContentString{
-						Content: fmt.Sprintf("MSG %s->%s", hub.MyId, time.Now().String())},
-				}, "")
-				time.Sleep(time.Second * 2)
-			}
-		}()
-		go func() {
-			// preconnect peers
-			for _, peer := range peers {
-				hub.PhysicalCommunicator.SuggestConnection(peer)
-			}
-		}()
+		peerIds := make([]string, len(peers))
+		// preconnect peers
+		for i, peer := range peers {
+			peerId := hub.PhysicalCommunicator.SuggestConnection(peer)
+			peerIds[i] = peerId
+		}
 
-		go func() {
-			messageChannel, _ := hub.GetChannel(hub.MyId)
-			for {
-				v := <-messageChannel
-				fmt.Println("I received " + v.Content.String())
-			}
-		}()
+		// Debugging broadcasting and printing
+		//go func() {
+		//	messageChannel, _ := hub.GetChannel(hub.MyId)
+		//	for {
+		//		v := <-messageChannel
+		//		fmt.Println("I received " + v.Content.String())
+		//	}
+		//}()
+		//go func() {
+		//	for {
+		//		// now broadcast constantly
+		//		hub.Broadcast(&hotstuff_event.Msg{
+		//			Typev:    hotstuff_event.String,
+		//			Sig:      hotstuff_event.Signature{},
+		//			SenderId: hub.MyId,
+		//			Content: &hotstuff_event.ContentString{
+		//				Content: fmt.Sprintf("MSG %s->%s", hub.MyId, time.Now().String())},
+		//		}, "")
+		//		time.Sleep(time.Second * 2)
+		//	}
+		//}()
 
-		//partners := make([]*hotstuff_event.Partner, total)
+		// get my index in the peer list
+		myIdIndex, err := getMyIdIndexInList(id, peerIds)
+		if err != nil {
+			panic(err)
+		}
 
-		//partner := MakeStandalonePartner(viper.GetInt("mei"), total, total/3, hub)
-		//go partner.Start()
+		partner := MakeStandalonePartner(myIdIndex, total, total/3, hub, peerIds)
+		go partner.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -157,6 +162,18 @@ var standaloneCmd = &cobra.Command{
 		}()
 
 	},
+}
+
+func getMyIdIndexInList(id string, peers []string) (myIdIndex int, err error) {
+	// just for simple
+	for i, peer := range peers {
+		if peer == id {
+			return i, nil
+		}
+	}
+	logrus.WithField("peer", id).WithField("list", peers).Warn("peer not found in list")
+
+	return -1, errors.New("peer not found in list")
 }
 
 func readList(filename string) (peers []string) {

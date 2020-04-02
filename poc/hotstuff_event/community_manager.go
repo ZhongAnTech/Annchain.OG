@@ -1,21 +1,20 @@
 package hotstuff_event
 
 import (
-	"bufio"
 	"context"
-	"encoding/hex"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/annchain/OG/ffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"io/ioutil"
+	"github.com/tinylib/msgp/msgp"
 	"log"
 	"sync"
 	"time"
@@ -32,8 +31,9 @@ type Neighbour struct {
 	Id              peer.ID
 	Stream          network.Stream
 	IoEventChannel  chan *IoEvent
-	IncomingChannel chan *Msg
-	rw              *bufio.ReadWriter
+	IncomingChannel chan *WireMessage
+	msgpReader      *msgp.Reader
+	msgpWriter      *msgp.Writer
 	event           chan bool
 	outgoingChannel chan *Msg
 	quit            chan bool
@@ -43,27 +43,23 @@ func (c *Neighbour) InitDefault() {
 	c.event = make(chan bool)
 	c.quit = make(chan bool)
 	c.outgoingChannel = make(chan *Msg) // messages already dispatched
-	c.rw = bufio.NewReadWriter(bufio.NewReader(c.Stream), bufio.NewWriter(c.Stream))
 }
 
 func (c *Neighbour) StartRead() {
 	var err error
+	c.msgpReader = msgp.NewReader(c.Stream)
 	for {
-
-		bytes, err := c.rw.ReadBytes('\n')
-		if err != nil {
-			logrus.WithError(err).Warn("read err")
-			break
-		}
 		msg := &WireMessage{}
-		msg.
-			_, err = msg.UnmarshalMsg(bytes)
+		err = msg.DecodeMsg(c.msgpReader)
 		if err != nil {
-			logrus.WithError(err).Warn("read err")
+			// bad message, drop
+			logrus.WithError(err).Warn("bad message")
 			break
 		}
-		fmt.Println("Received: " + msg.Content.String())
-		c.IncomingChannel <- msg
+
+		fmt.Println("WiredReceived: " + msg.String())
+		ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read")
+		//c.IncomingChannel <- msg
 	}
 	// neighbour disconnected, notify the communicator
 	c.IoEventChannel <- &IoEvent{
@@ -75,11 +71,12 @@ func (c *Neighbour) StartRead() {
 
 func (c *Neighbour) StartWrite() {
 	var err error
+	c.msgpWriter = msgp.NewWriter(c.Stream)
 loop:
 	for {
 		select {
 		case req := <-c.outgoingChannel:
-
+			logrus.Info("neighbour got send request")
 			contentBytes, err := req.Content.MarshalMsg([]byte{})
 			if err != nil {
 				panic(err)
@@ -91,28 +88,16 @@ loop:
 				SenderId:     req.SenderId,
 			}
 
-			bytes, err := wireMessage.MarshalMsg([]byte{})
-			fmt.Println("Sent: " + hex.EncodeToString(bytes))
+			err = wireMessage.EncodeMsg(c.msgpWriter)
+			if err != nil {
+				break
+			}
+			err = c.msgpWriter.Flush()
+			if err != nil {
+				break
+			}
+			logrus.Info("neighbour sent")
 
-			if err != nil {
-				panic(err)
-			}
-			_, err = c.rw.Write(bytes)
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				break loop
-			}
-			err = c.rw.WriteByte(byte('\n'))
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				break loop
-			}
-
-			err = c.rw.Flush()
-			if err != nil {
-				logrus.WithError(err).Warn("write err")
-				break loop
-			}
 		case <-c.quit:
 			break loop
 		}
@@ -125,37 +110,41 @@ loop:
 }
 
 func (c *Neighbour) Send(req *Msg) {
-	c.outgoingChannel <- req
+	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
+	//c.outgoingChannel <- req
 }
 
 // PhysicalCommunicator
 type PhysicalCommunicator struct {
+	Port       int // listening port
+	PrivateKey core.PrivKey
+
 	node            host.Host              // p2p host to receive new streams
-	Port            int                    // listening port
-	ActivePeers     map[peer.ID]*Neighbour // active peers that will be reconnect if error
+	activePeers     map[peer.ID]*Neighbour // active peers that will be reconnect if error
 	outgoingChannel chan *OutgoingRequest  // universal outgoing channel to collect send requests
 	initWait        sync.WaitGroup
 	quit            chan bool
-	ioEventChannel  chan *IoEvent // receive event when peer disconnects
-	incomingChannel chan *Msg     // incoming message channel
+	ioEventChannel  chan *IoEvent     // receive event when peer disconnects
+	incomingChannel chan *WireMessage // incoming message channel
 }
 
 func (c *PhysicalCommunicator) InitDefault() {
-	c.ActivePeers = make(map[peer.ID]*Neighbour)
+	c.activePeers = make(map[peer.ID]*Neighbour)
 	c.outgoingChannel = make(chan *OutgoingRequest)
-	c.incomingChannel = make(chan *Msg)
+	c.incomingChannel = make(chan *WireMessage)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
 	c.quit = make(chan bool)
 }
 
 func (c *PhysicalCommunicator) Start() {
-	c.initWait.Wait()
 	// start consuming queue
+	go c.Listen()
 	go c.consumeQueue()
 }
 
 func (c *PhysicalCommunicator) consumeQueue() {
+	c.initWait.Wait()
 	for {
 		select {
 		case req := <-c.outgoingChannel:
@@ -175,7 +164,11 @@ func (c *PhysicalCommunicator) Stop() {
 	}
 }
 
-func (c *PhysicalCommunicator) MakeHost(priv core.PrivKey) (host.Host, error) {
+func (c *PhysicalCommunicator) GetIncomingChannel() chan *WireMessage {
+	return c.incomingChannel
+}
+
+func (c *PhysicalCommunicator) makeHost(priv core.PrivKey) (host.Host, error) {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", c.Port)),
 		libp2p.Identity(priv),
@@ -204,8 +197,7 @@ func (c *PhysicalCommunicator) printHostInfo(basicHost host.Host) {
 
 func (c *PhysicalCommunicator) Listen() {
 	// start a libp2p node with default settings
-	privKey := c.LoadPrivateKey()
-	host, err := c.MakeHost(privKey)
+	host, err := c.makeHost(c.PrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -215,33 +207,8 @@ func (c *PhysicalCommunicator) Listen() {
 
 	c.node.SetStreamHandler(ProtocolId, c.HandlePeerStream)
 	c.initWait.Done()
+	logrus.Info("waiting for connection...")
 	select {}
-}
-
-func (hub *LogicalCommunicator) LoadPrivateKey() core.PrivKey {
-	// read key file
-	keyFile := viper.GetString("file")
-	bytes, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		panic(err)
-	}
-
-	pi := &PrivateInfo{}
-	err = json.Unmarshal(bytes, pi)
-	if err != nil {
-		panic(err)
-	}
-
-	privb, err := hex.DecodeString(pi.PrivateKey)
-	if err != nil {
-		panic(err)
-	}
-
-	priv, err := core.UnmarshalPrivateKey(privb)
-	if err != nil {
-		panic(err)
-	}
-	return priv
 }
 
 func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
@@ -254,23 +221,32 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 		IncomingChannel: c.incomingChannel,
 	}
 	neightbour.InitDefault()
-	c.ActivePeers[peerId] = neightbour
+	c.activePeers[peerId] = neightbour
 
 	go neightbour.StartRead()
 	go neightbour.StartWrite()
 
 }
 
-func (c *PhysicalCommunicator) ClosePeer(id peer.ID) {
+func (c *PhysicalCommunicator) ClosePeer(id string) {
 
 }
 
-func (c *PhysicalCommunicator) MustGetNeighbour(id peer.ID) *Neighbour {
-	return c.ActivePeers[id]
+func (c *PhysicalCommunicator) GetNeighbour(id string) (neighbour *Neighbour, err error) {
+	idp, err := peer.Decode(id)
+	if err != nil {
+		return
+	}
+	neighbour, ok := c.activePeers[idp]
+	if !ok {
+		err = errors.New("peer not active")
+	}
+	return
 }
 
 // SuggestConnection takes a peerId and try to connect to it.
 func (c *PhysicalCommunicator) SuggestConnection(address string) {
+	c.initWait.Wait()
 	logrus.WithField("address", address).Info("processing")
 	fullAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
@@ -301,8 +277,11 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 		logrus.WithField("address", address).WithError(err).Warn("bad address")
 	}
 
-	fmt.Println("p2pAddr:" + p2pAddr)
-	fmt.Println("peerIdxxx:" + peerId.String())
+	fmt.Println("peerId:" + p2pAddr)
+	// check if it is a self connection.
+	if peerId == c.node.ID() {
+		return
+	}
 
 	// save address and peer info
 	c.node.Peerstore().AddAddr(peerId, connectionAddr, peerstore.PermanentAddrTTL)
@@ -311,11 +290,20 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 }
 
 func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
-	c.outgoingChannel <- req
+	c.initWait.Wait()
+	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
+	//c.outgoingChannel <- req
 }
 
 // we use direct connection currently so let's build a connection if not exists.
 func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
+	logrus.Info("handling send request")
+	if req.SendType == SendTypeBroadcast {
+		for _, neighbour := range c.activePeers {
+			go neighbour.Send(req.Msg)
+		}
+		return
+	}
 	// find neighbour first
 	for _, peerIdEncoded := range req.EndReceivers {
 		peerId, err := peer.Decode(peerIdEncoded)
@@ -323,7 +311,7 @@ func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
 			logrus.WithError(err).WithField("peerIdEncoded", peerIdEncoded).Warn("decoding peer")
 		}
 		// get active neighbour
-		neighbour, ok := c.ActivePeers[peerId]
+		neighbour, ok := c.activePeers[peerId]
 		if !ok {
 			// wait for node to be connected. currently node address are pre-located and connections are built ahead.
 			return
@@ -337,11 +325,14 @@ func (c *PhysicalCommunicator) keepTryingToConnect(peerId peer.ID) {
 		// start a stream
 		s, err := c.node.NewStream(context.Background(), peerId, ProtocolId)
 		if err != nil {
-			logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+			if err != swarm.ErrDialBackoff {
+				logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+			}
 			time.Sleep(time.Second * 5)
 			continue
 		}
 		// stream built
+		c.HandlePeerStream(s)
 
 		//hub.handleStream(s)
 		//// Create a buffered stream so that read and writes are non blocking.

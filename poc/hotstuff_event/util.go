@@ -49,3 +49,10 @@ func Hash(s string) string {
 type NilInt struct {
 	Value int
 }
+
+func ToBriefHex(bytes []byte, maxLen int) string {
+	if maxLen >= len(bytes) {
+		return hex.EncodeToString(bytes)
+	}
+	return hex.EncodeToString(bytes[0:maxLen/2]) + "..." + hex.EncodeToString(bytes[maxLen/2:len(bytes)])
+}

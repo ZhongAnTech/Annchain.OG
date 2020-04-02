@@ -32,7 +32,10 @@ func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
 }
 func (n *Partner) Start() {
-	messageChannel := n.MessageHub.GetChannel(n.PeerIds[n.MyIdIndex])
+	messageChannel, err := n.MessageHub.GetChannel(n.PeerIds[n.MyIdIndex])
+	if err != nil {
+		logrus.WithError(err).WithField("peerId", n.PeerIds[n.MyIdIndex]).Warn("failed to get channel for peer")
+	}
 	for {
 		select {
 		case <-n.quit:
@@ -99,7 +102,7 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 				Signature: voteMsg.SignatureTarget(),
 			},
 		}
-		n.MessageHub.Send(outMsg, n.PeerIds[voteAggregator], "ProcessProposalMessage"+strconv.Itoa(n.PaceMaker.CurrentRound))
+		n.MessageHub.Deliver(outMsg, n.PeerIds[voteAggregator], "ProcessProposalMessage"+strconv.Itoa(n.PaceMaker.CurrentRound))
 	}
 }
 
@@ -126,7 +129,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, "1")
 	n.Logger.WithField("proposal", b).Trace("I'm the current leader")
 	fmt.Printf("[%d] pp %d %s\n", n.MyIdIndex, b.Proposal.Round, b.Proposal.Payload)
-	n.MessageHub.SendToAllIncludingMe(&Msg{
+	n.MessageHub.DeliverToThemIncludingMe(&Msg{
 		Typev:    Proposal,
 		SenderId: n.PeerIds[n.MyIdIndex],
 		Content:  b,
@@ -134,7 +137,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 			PartnerId: n.MyIdIndex,
 			Signature: b.SignatureTarget(),
 		},
-	}, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))
+	}, n.PeerIds, "ProcessNewRoundEvent"+strconv.Itoa(n.PaceMaker.CurrentRound))
 }
 
 func (n *Partner) SaveConsensusState() {

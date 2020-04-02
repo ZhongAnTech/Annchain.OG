@@ -19,6 +19,8 @@ func (m MsgType) String() string {
 		return "Timeout"
 	case LocalTimeout:
 		return "LocalTimeout"
+	case String:
+		return "String"
 	default:
 		return "NAMsg"
 	}
@@ -29,6 +31,7 @@ const (
 	Vote
 	Timeout
 	LocalTimeout
+	String
 )
 
 //msgp:tuple Block
@@ -46,9 +49,13 @@ func (b Block) String() string {
 // WireMessage is for transportation.
 //msgp:tuple WireMessage
 type WireMessage struct {
-	MsgType      int
+	MsgType      int    // what ContentByte is.
 	ContentBytes []byte // this Byte will be recovered to implementation of Content interface
 	SenderId     string
+}
+
+func (z *WireMessage) String() string {
+	return fmt.Sprintf("WM: Type=%d SenderId=%s ContentBytes=%s", z.MsgType, z.SenderId, ToBriefHex(z.ContentBytes, 100))
 }
 
 //msgp:tuple ContentString

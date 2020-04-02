@@ -2,16 +2,20 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/annchain/OG/poc/hotstuff_event"
+	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func MakeStandalonePartner(myId int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
@@ -82,20 +86,56 @@ var standaloneCmd = &cobra.Command{
 		setupLogger()
 
 		peers := readList(viper.GetString("list"))
-		total := len(peers)
+		//total := len(peers)
+
+		priv, id := loadPrivateKey()
+
+		p2p := &hotstuff_event.PhysicalCommunicator{
+			Port:       viper.GetInt("port"),
+			PrivateKey: priv,
+		}
+		p2p.InitDefault()
 
 		hub := &hotstuff_event.LogicalCommunicator{
-			Port: viper.GetInt("port"),
+			PhysicalCommunicator: p2p,
+			MyId:                 id,
 		}
+
 		hub.InitDefault()
+		hub.Start()
+
 		// init me before init peers
-		go hub.Listen()
-		//go hub.Start()
+		hub.PhysicalCommunicator.Start()
 
-		go hub.InitPeers(peers)
+		go func() {
+			for {
+				// now broadcast constantly
+				hub.Broadcast(&hotstuff_event.Msg{
+					Typev:    hotstuff_event.String,
+					Sig:      hotstuff_event.Signature{},
+					SenderId: hub.MyId,
+					Content: &hotstuff_event.ContentString{
+						Content: fmt.Sprintf("MSG %s->%s", hub.MyId, time.Now().String())},
+				}, "")
+				time.Sleep(time.Second * 2)
+			}
+		}()
+		go func() {
+			// preconnect peers
+			for _, peer := range peers {
+				hub.PhysicalCommunicator.SuggestConnection(peer)
+			}
+		}()
 
-		logrus.Info("waiting for connection...")
-		partners := make([]*hotstuff_event.Partner, total)
+		go func() {
+			messageChannel, _ := hub.GetChannel(hub.MyId)
+			for {
+				v := <-messageChannel
+				fmt.Println("I received " + v.Content.String())
+			}
+		}()
+
+		//partners := make([]*hotstuff_event.Partner, total)
 
 		//partner := MakeStandalonePartner(viper.GetInt("mei"), total, total/3, hub)
 		//go partner.Start()
@@ -110,9 +150,9 @@ var standaloneCmd = &cobra.Command{
 			sig := <-gracefulStop
 			log.Warnf("caught sig: %+v", sig)
 			log.Warn("Exiting... Please do no kill me")
-			for _, partner := range partners {
-				partner.Stop()
-			}
+			//for _, partner := range partners {
+			//	partner.Stop()
+			//}
 			os.Exit(0)
 		}()
 
@@ -126,20 +166,48 @@ func readList(filename string) (peers []string) {
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(file)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			panic(err)
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
-		s := strings.TrimSpace(line)
-		peers = append(peers, s)
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		peers = append(peers, line)
+
 	}
 	return
 
+}
+
+func loadPrivateKey() (core.PrivKey, string) {
+	// read key file
+	keyFile := viper.GetString("file")
+	bytes, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		panic(err)
+	}
+
+	pi := &hotstuff_event.PrivateInfo{}
+	err = json.Unmarshal(bytes, pi)
+	if err != nil {
+		panic(err)
+	}
+
+	privb, err := hex.DecodeString(pi.PrivateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	priv, err := core.UnmarshalPrivateKey(privb)
+	if err != nil {
+		panic(err)
+	}
+	return priv, pi.Id
 }
 
 func init() {

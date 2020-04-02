@@ -67,7 +67,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	m.Partner.SaveConsensusState()
 
 	timeoutMsg := m.MakeTimeoutMessage()
-	m.MessageHub.SendToAllIncludingMe(timeoutMsg, "LocalTimeoutRound")
+	m.MessageHub.DeliverToThemIncludingMe(timeoutMsg, m.PeerIds, "LocalTimeoutRound")
 	collector := m.timeoutsPerRound[m.CurrentRound]
 	collector.Collect(timeoutMsg.Sig)
 }
@@ -88,7 +88,7 @@ func (m *PaceMaker) AdvanceRound(qc *QC, reason string) {
 			LedgerCommitInfo: qc.LedgerCommitInfo,
 			Signatures:       qc.Signatures,
 		}
-		m.MessageHub.Send(&Msg{
+		m.MessageHub.Deliver(&Msg{
 			Typev: Vote,
 			Sig: Signature{
 				PartnerId: m.MyIdIndex,

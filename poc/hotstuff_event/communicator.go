@@ -2,7 +2,6 @@ package hotstuff_event
 
 import (
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/sirupsen/logrus"
 )
@@ -18,21 +17,27 @@ const (
 )
 
 type Hub interface {
-	Send(msg *Msg, id string, pos string)
-	SendToAllButMe(msg *Msg, myId string, pos string)
-	SendToAllIncludingMe(msg *Msg, pos string)
-	GetChannel(id string) chan *Msg
+	Deliver(msg *Msg, id string, why string)
+	DeliverToThemButMe(msg *Msg, targetPeerIds []string, why string)
+	DeliverToThemIncludingMe(sg *Msg, peerIds []string, why string)
+	Broadcast(msg *Msg, why string)
+	GetChannel(myId string) (c chan *Msg, err error)
 }
 
 type LocalCommunicator struct {
 	Channels map[string]chan *Msg
+	myId     string
 }
 
-func (h *LocalCommunicator) GetChannel(id string) chan *Msg {
-	return h.Channels[id]
+func (h *LocalCommunicator) Broadcast(msg *Msg, why string) {
+	panic("implement me")
 }
 
-func (h *LocalCommunicator) Send(msg *Msg, id string, pos string) {
+func (h *LocalCommunicator) GetChannel(id string) (c chan *Msg, err error) {
+	return h.Channels[id], nil
+}
+
+func (h *LocalCommunicator) Deliver(msg *Msg, id string, pos string) {
 	logrus.WithField("message", msg).WithField("to", id).Trace(fmt.Sprintf("[%d] sending [%s] to [%d]", msg.SenderId, pos, id))
 	//defer logrus.WithField("msg", msg).WithField("to", id).Info("sent")
 	//if id > 2 { // Byzantine test
@@ -40,16 +45,23 @@ func (h *LocalCommunicator) Send(msg *Msg, id string, pos string) {
 	//}
 }
 
-func (h *LocalCommunicator) SendToAllButMe(msg *Msg, myId string, pos string) {
-	for id := range h.Channels {
-		if id != myId {
-			h.Send(msg, id, pos)
+func (h *LocalCommunicator) DeliverToThemButMe(msg *Msg, targetPeerIds []string, why string) {
+	for _, id := range targetPeerIds {
+		if id != h.myId {
+			if _, ok := h.Channels[id]; !ok {
+				panic("id not in channel list: " + id)
+			}
+			h.Deliver(msg, id, why)
 		}
 	}
 }
-func (h *LocalCommunicator) SendToAllIncludingMe(msg *Msg, pos string) {
-	for id := range h.Channels {
-		h.Send(msg, id, pos)
+
+func (h *LocalCommunicator) DeliverToThemIncludingMe(msg *Msg, targetPeerIds []string, why string) {
+	for _, id := range targetPeerIds {
+		if _, ok := h.Channels[id]; !ok {
+			panic("id not in channel list: " + id)
+		}
+		h.Deliver(msg, id, why)
 	}
 }
 
@@ -65,10 +77,49 @@ type OutgoingRequest struct {
 type LogicalCommunicator struct {
 	PhysicalCommunicator *PhysicalCommunicator // do the real communication. connection management
 	MyId                 string                // my peerId in the p2p network
+	quit                 chan bool
+	msgChan              chan *Msg
+}
+
+func (hub *LogicalCommunicator) GetChannel(myId string) (c chan *Msg, err error) {
+	return hub.msgChan, nil
 }
 
 func (hub *LogicalCommunicator) InitDefault() {
+	hub.quit = make(chan bool)
+	hub.msgChan = make(chan *Msg)
+}
 
+func (hub *LogicalCommunicator) Start() {
+	// consume incoming channel of pyhsicalCommunicator and relay it to upper
+	go hub.pump()
+}
+
+func (hub *LogicalCommunicator) pump() {
+	for {
+		select {
+		case <-hub.quit:
+			return
+		case wmsg := <-hub.PhysicalCommunicator.GetIncomingChannel():
+			// decode msg
+			switch MsgType(wmsg.MsgType) {
+			case String:
+				msg := &ContentString{}
+				_, err := msg.UnmarshalMsg(wmsg.ContentBytes)
+				if err != nil {
+					logrus.WithError(err).Warn("unmarshal")
+				}
+				hub.msgChan <- &Msg{
+					Typev:    String,
+					Sig:      Signature{},
+					SenderId: wmsg.SenderId,
+					Content:  msg,
+				}
+			default:
+				panic("unsupported type")
+			}
+		}
+	}
 }
 
 // Deliver send the message to a specific peer
@@ -76,28 +127,16 @@ func (hub *LogicalCommunicator) InitDefault() {
 // Either send it directly, or let others relay the message.
 func (hub *LogicalCommunicator) Deliver(msg *Msg, targetPeerId string, why string) {
 	// get channel from communicatorManager
-	peerId, err := peer.Decode(id)
-	if err != nil {
-		panic(err)
-	}
-
-	peer := hub.PhysicalCommunicator.GetNeighbour(peerId)
-	if peer == nil {
-		// peer not found in Neighbour Management, request connection
-		hub.PhysicalCommunicator.SuggestConnection(peerId)
-		// since the connection is not built yet, we return.
-		return
-	}
-	peer.outgoingChannel <- &OutgoingRequest{
+	hub.PhysicalCommunicator.Enqueue(&OutgoingRequest{
 		Msg:          msg,
 		SendType:     SendTypeUnicast,
-		EndReceivers: []string{id},
-	}
+		EndReceivers: []string{targetPeerId},
+	})
 }
 
-func (hub *LogicalCommunicator) SendToThemButMe(msg *Msg, peerIds []string, why string) {
+func (hub *LogicalCommunicator) DeliverToThemButMe(msg *Msg, targetPeerIds []string, why string) {
 	var newPeerIds []string
-	for _, id := range peerIds {
+	for _, id := range targetPeerIds {
 		if id != hub.MyId {
 			newPeerIds = append(newPeerIds, id)
 		}
@@ -112,7 +151,7 @@ func (hub *LogicalCommunicator) SendToThemButMe(msg *Msg, peerIds []string, why 
 	})
 }
 
-func (hub *LogicalCommunicator) SendToThemIncludingMe(msg *Msg, peerIds []string, why string) {
+func (hub *LogicalCommunicator) DeliverToThemIncludingMe(msg *Msg, peerIds []string, why string) {
 	if len(peerIds) == 0 {
 		return
 	}

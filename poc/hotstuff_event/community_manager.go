@@ -16,11 +16,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
 
 var BackoffConnect = time.Second * 5
+var IpLayerProtocol = "tcp"
 
 type IoEvent struct {
 	Neighbour *Neighbour
@@ -53,7 +55,7 @@ func (c *Neighbour) StartRead() {
 		err = msg.DecodeMsg(c.msgpReader)
 		if err != nil {
 			// bad message, drop
-			logrus.WithError(err).Warn("bad message")
+			logrus.WithError(err).Warn("read error")
 			break
 		}
 
@@ -121,15 +123,19 @@ type PhysicalCommunicator struct {
 
 	node            host.Host              // p2p host to receive new streams
 	activePeers     map[peer.ID]*Neighbour // active peers that will be reconnect if error
+	tryingPeers     map[peer.ID]bool       // peers that is trying to connect.
+	incomingChannel chan *WireMessage      // incoming message channel
 	outgoingChannel chan *OutgoingRequest  // universal outgoing channel to collect send requests
-	initWait        sync.WaitGroup
-	quit            chan bool
-	ioEventChannel  chan *IoEvent     // receive event when peer disconnects
-	incomingChannel chan *WireMessage // incoming message channel
+	ioEventChannel  chan *IoEvent          // receive event when peer disconnects
+
+	initWait sync.WaitGroup
+	quit     chan bool
+	mu       sync.RWMutex
 }
 
 func (c *PhysicalCommunicator) InitDefault() {
 	c.activePeers = make(map[peer.ID]*Neighbour)
+	c.tryingPeers = make(map[peer.ID]bool)
 	c.outgoingChannel = make(chan *OutgoingRequest)
 	c.incomingChannel = make(chan *WireMessage)
 	c.ioEventChannel = make(chan *IoEvent)
@@ -141,6 +147,7 @@ func (c *PhysicalCommunicator) Start() {
 	// start consuming queue
 	go c.Listen()
 	go c.consumeQueue()
+	go c.recoverPeer()
 }
 
 func (c *PhysicalCommunicator) consumeQueue() {
@@ -170,7 +177,7 @@ func (c *PhysicalCommunicator) GetIncomingChannel() chan *WireMessage {
 
 func (c *PhysicalCommunicator) makeHost(priv core.PrivKey) (host.Host, error) {
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", c.Port)),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/127.0.0.1/%s/%d", IpLayerProtocol, c.Port)),
 		libp2p.Identity(priv),
 		libp2p.DisableRelay(),
 	}
@@ -208,12 +215,36 @@ func (c *PhysicalCommunicator) Listen() {
 	c.node.SetStreamHandler(ProtocolId, c.HandlePeerStream)
 	c.initWait.Done()
 	logrus.Info("waiting for connection...")
-	select {}
+	select {
+	case <-c.quit:
+		err := c.node.Close()
+		if err != nil {
+			logrus.WithError(err).Warn("closing communicator")
+		}
+	}
 }
 
 func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
-	logrus.Info("Got a new stream!")
+	// must lock to prevent double channel
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	logrus.Info("Got a new stream! " + s.Conn().RemotePeer().String())
 	peerId := s.Conn().RemotePeer()
+
+	// deregister in the trying list
+	delete(c.tryingPeers, s.Conn().RemotePeer())
+
+	// prevent double channel
+	if _, ok := c.activePeers[peerId]; ok {
+		// already established. close
+		err := s.Close()
+		if err != nil {
+			logrus.WithError(err).Warn("closing peer")
+		}
+		return
+	}
+
 	neightbour := &Neighbour{
 		Id:              peerId,
 		Stream:          s,
@@ -225,7 +256,6 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 
 	go neightbour.StartRead()
 	go neightbour.StartWrite()
-
 }
 
 func (c *PhysicalCommunicator) ClosePeer(id string) {
@@ -286,7 +316,14 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) {
 	// save address and peer info
 	c.node.Peerstore().AddAddr(peerId, connectionAddr, peerstore.PermanentAddrTTL)
 
-	go c.keepTryingToConnect(peerId)
+	// reg in the trying list
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.tryingPeers[peerId]; ok {
+		return
+	}
+	c.tryingPeers[peerId] = true
+
 }
 
 func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
@@ -320,29 +357,60 @@ func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
 	}
 }
 
-func (c *PhysicalCommunicator) keepTryingToConnect(peerId peer.ID) {
-	for {
-		// start a stream
-		s, err := c.node.NewStream(context.Background(), peerId, ProtocolId)
-		if err != nil {
-			if err != swarm.ErrDialBackoff {
-				logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
-			}
-			time.Sleep(time.Second * 5)
-			continue
-		}
-		// stream built
-		c.HandlePeerStream(s)
+func (c *PhysicalCommunicator) pickOneAndConnect() {
+	c.mu.RLock()
 
-		//hub.handleStream(s)
-		//// Create a buffered stream so that read and writes are non blocking.
-		//rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-		//
-		//// Create a thread to read and write data.
-		//go hub.writeData(rw)
-		//go hub.readData(rw)
-		//logrus.WithField("s", info).WithError(err).Warn("connection established")
-
-		break
+	if len(c.tryingPeers) == 0 {
+		c.mu.RUnlock()
+		return
 	}
+	peerIds := []peer.ID{}
+	for k, _ := range c.tryingPeers {
+		peerIds = append(peerIds, k)
+	}
+	c.mu.RUnlock()
+
+	peerId := peerIds[rand.Intn(len(peerIds))]
+
+	// start a stream
+	s, err := c.node.NewStream(context.Background(), peerId, ProtocolId)
+	if err != nil {
+		if err != swarm.ErrDialBackoff {
+			logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+		}
+		return
+	}
+	// stream built
+	// release the lock
+	c.HandlePeerStream(s)
+
+	//hub.handleStream(s)
+	//// Create a buffered stream so that read and writes are non blocking.
+	//rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+	//
+	//// Create a thread to read and write data.
+	//go hub.writeData(rw)
+	//go hub.readData(rw)
+	//logrus.WithField("s", info).WithError(err).Warn("connection established")
+}
+
+func (c *PhysicalCommunicator) recoverPeer() {
+	for {
+		select {
+		case <-c.quit:
+			return
+		case event := <-c.ioEventChannel:
+			c.reportPeerDown(event.Neighbour)
+		default:
+			time.Sleep(time.Second) // at least sleep one second to prevent flood
+			c.pickOneAndConnect()
+		}
+	}
+}
+
+func (c *PhysicalCommunicator) reportPeerDown(neighbour *Neighbour) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.activePeers, neighbour.Id)
+	c.tryingPeers[neighbour.Id] = true
 }

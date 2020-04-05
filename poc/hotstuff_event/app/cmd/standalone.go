@@ -14,12 +14,15 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
-	logger := hotstuff_event.SetupOrderedLog(myIdIndex)
+	//logger := hotstuff_event.SetupOrderedLog(myIdIndex)
+	logger := logrus.StandardLogger()
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
 	}
@@ -79,12 +82,11 @@ func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, 
 
 // runCmd represents the run command
 var standaloneCmd = &cobra.Command{
-	Use:   "standalone",
+	Use:   "std",
 	Short: "Start a standalone node",
 	Long:  `Start a standalone node and communicate with other standalone nodes`,
 	Run: func(cmd *cobra.Command, args []string) {
-		setupLogger()
-
+		//setupLogger()
 		peers := readList(viper.GetString("list"))
 		total := len(peers)
 
@@ -95,6 +97,25 @@ var standaloneCmd = &cobra.Command{
 			PrivateKey: priv,
 		}
 		p2p.InitDefault()
+		// init me before init peers
+		p2p.Start()
+
+		peerIds := make([]string, len(peers))
+		// preconnect peers
+		for i, peer := range peers {
+			peerId := p2p.SuggestConnection(peer)
+			peerIds[i] = peerId
+		}
+		hotstuff_event.SetPeers(peerIds)
+
+		// get my index in the peer list
+		myIdIndex, err := getMyIdIndexInList(id, peerIds)
+		if err != nil {
+			panic(err)
+		}
+
+		logrus.Info("setup logger")
+		hotstuff_event.SetupOrderedLog(myIdIndex)
 
 		hub := &hotstuff_event.LogicalCommunicator{
 			PhysicalCommunicator: p2p,
@@ -103,16 +124,6 @@ var standaloneCmd = &cobra.Command{
 
 		hub.InitDefault()
 		hub.Start()
-
-		// init me before init peers
-		hub.PhysicalCommunicator.Start()
-
-		peerIds := make([]string, len(peers))
-		// preconnect peers
-		for i, peer := range peers {
-			peerId := hub.PhysicalCommunicator.SuggestConnection(peer)
-			peerIds[i] = peerId
-		}
 
 		// Debugging broadcasting and printing
 		//go func() {
@@ -135,15 +146,25 @@ var standaloneCmd = &cobra.Command{
 		//		time.Sleep(time.Second * 2)
 		//	}
 		//}()
-
-		// get my index in the peer list
-		myIdIndex, err := getMyIdIndexInList(id, peerIds)
-		if err != nil {
-			panic(err)
-		}
+		go func() {
+			for {
+				logrus.WithField("number", runtime.NumGoroutine()).Info("go rountine numbers")
+				time.Sleep(time.Second * 10)
+			}
+		}()
 
 		partner := MakeStandalonePartner(myIdIndex, total, total/3, hub, peerIds)
 		go partner.Start()
+
+		//go func() {
+		//	for {
+		//		// dump contstantly
+		//		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+		//		pprof.Lookup("block").WriteTo(os.Stdout, 1)
+		//
+		//		time.Sleep(time.Second * 30)
+		//	}
+		//}()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)

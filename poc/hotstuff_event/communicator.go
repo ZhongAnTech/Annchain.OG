@@ -10,6 +10,19 @@ var ProtocolId protocol.ID = "/og/1.0.0"
 
 type SendType int
 
+func (s SendType) String() string {
+	switch s {
+	case SendTypeUnicast:
+		return "Unicast"
+	case SendTypeMulticast:
+		return "Multicast"
+	case SendTypeBroadcast:
+		return "Broadcast"
+	default:
+		panic("unknown send type")
+	}
+}
+
 const (
 	SendTypeUnicast   SendType = iota // send to only one
 	SendTypeMulticast                 // send to multiple receivers
@@ -38,7 +51,7 @@ func (h *LocalCommunicator) GetChannel(id string) (c chan *Msg, err error) {
 }
 
 func (h *LocalCommunicator) Deliver(msg *Msg, id string, pos string) {
-	logrus.WithField("message", msg).WithField("to", id).Trace(fmt.Sprintf("[%d] sending [%s] to [%d]", msg.SenderId, pos, id))
+	logrus.WithField("message", msg).WithField("to", PrettyId(id)).Trace(fmt.Sprintf("[%s] sending [%s] to [%s]", msg.SenderId, pos, id))
 	//defer logrus.WithField("msg", msg).WithField("to", id).Info("sent")
 	//if id > 2 { // Byzantine test
 	h.Channels[id] <- msg
@@ -71,6 +84,11 @@ type OutgoingRequest struct {
 	EndReceivers []string
 }
 
+func (o OutgoingRequest) String() string {
+	return fmt.Sprintf("sendtype=%s receivers=%s msg=%s", o.SendType, PrettyIds(o.EndReceivers), o.Msg)
+
+}
+
 // LogicalCommunicator is for logical send. LogicalCommunicator only specify receiver peerId and message.
 // LogicalCommunicator does not known how to deliver the message. It only specify who to receive.
 // Use some physical sending such as PhysicalCommunicator to either directly send or relay messages.
@@ -97,7 +115,7 @@ func (hub *LogicalCommunicator) Start() {
 
 func (hub *LogicalCommunicator) pump() {
 	for {
-		logrus.Info("pump round")
+		logrus.Trace("pump a message")
 		select {
 		case <-hub.quit:
 			return
@@ -121,7 +139,7 @@ func (hub *LogicalCommunicator) pump() {
 			if err != nil {
 				logrus.WithError(err).Warn("unmarshal")
 			}
-
+			logrus.WithField("wmsg", wmsg).Trace("received wmsg")
 			hub.msgChan <- &Msg{
 				Typev:    MsgType(wmsg.MsgType),
 				Sig:      wmsg.Signature,
@@ -199,6 +217,8 @@ func (hub *LogicalCommunicator) Broadcast(msg *Msg, why string) {
 
 func (hub *LogicalCommunicator) DeliverToMe(msgChan chan *Msg, msg *Msg) {
 	// should be handled carefully since delevering message to myself may cause deadlock
+	logrus.WithField("msg", msg).Info("delivering message to myself")
+
 	go func() {
 		hub.msgChan <- msg
 	}()

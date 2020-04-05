@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
 )
 
 // Node is a block with state
@@ -22,6 +23,7 @@ func (n Node) String() string {
 type Ledger struct {
 	Logger *logrus.Logger
 	cache  map[string]Node
+	mu     sync.RWMutex
 }
 
 func (l *Ledger) InitDefault() {
@@ -30,6 +32,8 @@ func (l *Ledger) InitDefault() {
 
 // Speculate applies cmds speculatively
 func (l *Ledger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	v, err := strconv.Atoi(cmds)
 	if err != nil {
 		panic(err)
@@ -53,6 +57,8 @@ func (l *Ledger) Speculate(prevBlockId string, blockId string, cmds string) (exe
 
 // GetState finds the pending state for the given blockId or nil if not present
 func (l *Ledger) GetState(id string) (stateId string) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 	return l.cache[id].state
 }
 

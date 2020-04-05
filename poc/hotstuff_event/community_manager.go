@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/ffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -58,8 +59,8 @@ func (c *Neighbour) StartRead() {
 			break
 		}
 
-		//ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read")
-		c.IncomingChannel <- msg
+		<-ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read").C
+		//c.IncomingChannel <- msg
 	}
 	// neighbour disconnected, notify the communicator
 	c.IoEventChannel <- &IoEvent{
@@ -111,8 +112,8 @@ loop:
 }
 
 func (c *Neighbour) Send(req *Msg) {
-	//<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
-	c.outgoingChannel <- req
+	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
+	//c.outgoingChannel <- req
 }
 
 // PhysicalCommunicator
@@ -154,6 +155,7 @@ func (c *PhysicalCommunicator) consumeQueue() {
 	for {
 		select {
 		case req := <-c.outgoingChannel:
+			logrus.WithField("req", req).Trace("physical communicator got a request from outgoing channel")
 			go c.handleRequest(req)
 		case <-c.quit:
 			return
@@ -329,10 +331,10 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string
 }
 
 func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
-	logrus.WithField("req", req).Info("enqueue sending")
+	logrus.WithField("req", req).Info("Sending message")
 	c.initWait.Wait()
-	//<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
-	c.outgoingChannel <- req
+	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
+	//c.outgoingChannel <- req
 }
 
 // we use direct connection currently so let's build a connection if not exists.
@@ -350,12 +352,15 @@ func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
 		if err != nil {
 			logrus.WithError(err).WithField("peerIdEncoded", peerIdEncoded).Warn("decoding peer")
 		}
+		logrus.WithField("peerId", peerId).Trace("handling sending requets")
 		// get active neighbour
 		neighbour, ok := c.activePeers[peerId]
 		if !ok {
 			// wait for node to be connected. currently node address are pre-located and connections are built ahead.
-			return
+			logrus.WithField("peerId", peerId).Trace("connection not in active peers")
+			continue
 		}
+		logrus.WithField("peerId", peerId).Trace("go send")
 		go neighbour.Send(req.Msg)
 	}
 }
@@ -376,11 +381,11 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
-	logrus.WithField("peerId", peerId).Debug("connecting peer")
+	logrus.WithField("peerId", peerId).Trace("connecting peer")
 	s, err := c.node.NewStream(context.Background(), peerId, ProtocolId)
 	if err != nil {
 		if err != swarm.ErrDialBackoff {
-			logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+			//logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
 		}
 		return
 	}
@@ -406,7 +411,7 @@ func (c *PhysicalCommunicator) recoverPeer() {
 		case event := <-c.ioEventChannel:
 			c.reportPeerDown(event.Neighbour)
 		default:
-			time.Sleep(time.Second) // at least sleep one second to prevent flood
+			time.Sleep(time.Second * 1) // at least sleep one second to prevent flood
 			c.pickOneAndConnect()
 		}
 	}

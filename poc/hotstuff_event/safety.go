@@ -18,15 +18,15 @@ type Safety struct {
 }
 
 func (s *Safety) UpdatePreferredRound(qc *QC) {
-	if qc.VoteInfo.ParentRound > s.preferredRound {
+	if qc.VoteData.ParentRound > s.preferredRound {
 		s.Logger.WithField("qc", qc).Trace("update preferred round")
-		s.preferredRound = qc.VoteInfo.ParentRound
+		s.preferredRound = qc.VoteData.ParentRound
 	}
 }
 
 func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *QC) *ContentVote {
 	// This function exercises both the voting and the commit rules
-	if blockRound < s.lastVoteRound || parentQC.VoteInfo.Round < s.preferredRound {
+	if blockRound < s.lastVoteRound || parentQC.VoteData.Round < s.preferredRound {
 		return nil
 	}
 	s.IncreaseLastVoteRound(blockRound)
@@ -36,10 +36,10 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *QC) *Content
 	voteInfo := VoteInfo{
 		Id:               blockId,
 		Round:            blockRound,
-		ParentId:         parentQC.VoteInfo.Id,
-		ParentRound:      parentQC.VoteInfo.Round,
-		GrandParentId:    parentQC.VoteInfo.ParentId,
-		GrandParentRound: parentQC.VoteInfo.ParentRound,
+		ParentId:         parentQC.VoteData.Id,
+		ParentRound:      parentQC.VoteData.Round,
+		GrandParentId:    parentQC.VoteData.ParentId,
+		GrandParentRound: parentQC.VoteData.ParentRound,
 		ExecStateId:      s.Ledger.GetState(blockId),
 	}
 	potentialCommitId := s.CommitRule(parentQC, blockRound) // TODO: might be empty string
@@ -52,6 +52,8 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *QC) *Content
 	return &ContentVote{
 		VoteInfo:         voteInfo,
 		LedgerCommitInfo: ledgerCommitInfo,
+		QC:               nil,
+		TC:               nil,
 	}
 }
 
@@ -65,8 +67,8 @@ func (s *Safety) IncreaseLastVoteRound(targetRound int) {
 
 func (s *Safety) CommitRule(qc *QC, voteRound int) string {
 	// find the committed id in case a qc is formed in the vote round
-	if qc.VoteInfo.ParentRound+1 == qc.VoteInfo.Round && qc.VoteInfo.Round+1 == voteRound {
-		return qc.VoteInfo.ParentId
+	if qc.VoteData.ParentRound+1 == qc.VoteData.Round && qc.VoteData.Round+1 == voteRound {
+		return qc.VoteData.ParentId
 	} else {
 		return ""
 	}

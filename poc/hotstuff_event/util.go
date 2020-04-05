@@ -28,7 +28,7 @@ type Msg struct {
 }
 
 func (m Msg) String() string {
-	return fmt.Sprintf("[type:%s sender=%s content=%s sig=%s]", m.Typev, m.SenderId, m.Content, m.Sig)
+	return fmt.Sprintf("[type:%s sender=%s content=%s sig=%s]", m.Typev, PrettyId(m.SenderId), m.Content, m.Sig)
 }
 
 type Content interface {

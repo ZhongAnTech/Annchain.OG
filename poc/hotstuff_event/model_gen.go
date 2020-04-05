@@ -177,8 +177,8 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	err = z.Proposal.DecodeMsg(dc)
@@ -186,13 +186,73 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "Proposal")
 		return
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
+		}
+		var zb0002 uint32
+		zb0002, err = dc.ReadArrayHeader()
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+		if zb0002 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+			return
+		}
+		z.TC.Round, err = dc.ReadInt()
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Round")
+			return
+		}
+		var zb0003 uint32
+		zb0003, err = dc.ReadArrayHeader()
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Signatures")
+			return
+		}
+		if cap(z.TC.Signatures) >= int(zb0003) {
+			z.TC.Signatures = (z.TC.Signatures)[:zb0003]
+		} else {
+			z.TC.Signatures = make([]Signature, zb0003)
+		}
+		for za0001 := range z.TC.Signatures {
+			var zb0004 uint32
+			zb0004, err = dc.ReadArrayHeader()
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001)
+				return
+			}
+			if zb0004 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0004}
+				return
+			}
+			z.TC.Signatures[za0001].PartnerIndex, err = dc.ReadInt()
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "PartnerIndex")
+				return
+			}
+			z.TC.Signatures[za0001].Signature, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "Signature")
+				return
+			}
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 1
-	err = en.Append(0x91)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
@@ -201,18 +261,71 @@ func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Proposal")
 		return
 	}
+	if z.TC == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		// array header, size 2
+		err = en.Append(0x92)
+		if err != nil {
+			return
+		}
+		err = en.WriteInt(z.TC.Round)
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Round")
+			return
+		}
+		err = en.WriteArrayHeader(uint32(len(z.TC.Signatures)))
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Signatures")
+			return
+		}
+		for za0001 := range z.TC.Signatures {
+			// array header, size 2
+			err = en.Append(0x92)
+			if err != nil {
+				return
+			}
+			err = en.WriteInt(z.TC.Signatures[za0001].PartnerIndex)
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "PartnerIndex")
+				return
+			}
+			err = en.WriteString(z.TC.Signatures[za0001].Signature)
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "Signature")
+				return
+			}
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *ContentProposal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 1
-	o = append(o, 0x91)
+	// array header, size 2
+	o = append(o, 0x92)
 	o, err = z.Proposal.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Proposal")
 		return
+	}
+	if z.TC == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		// array header, size 2
+		o = append(o, 0x92)
+		o = msgp.AppendInt(o, z.TC.Round)
+		o = msgp.AppendArrayHeader(o, uint32(len(z.TC.Signatures)))
+		for za0001 := range z.TC.Signatures {
+			// array header, size 2
+			o = append(o, 0x92)
+			o = msgp.AppendInt(o, z.TC.Signatures[za0001].PartnerIndex)
+			o = msgp.AppendString(o, z.TC.Signatures[za0001].Signature)
+		}
 	}
 	return
 }
@@ -225,14 +338,73 @@ func (z *ContentProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
 	bts, err = z.Proposal.UnmarshalMsg(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Proposal")
 		return
+	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
+		}
+		var zb0002 uint32
+		zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+		if zb0002 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+			return
+		}
+		z.TC.Round, bts, err = msgp.ReadIntBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Round")
+			return
+		}
+		var zb0003 uint32
+		zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Signatures")
+			return
+		}
+		if cap(z.TC.Signatures) >= int(zb0003) {
+			z.TC.Signatures = (z.TC.Signatures)[:zb0003]
+		} else {
+			z.TC.Signatures = make([]Signature, zb0003)
+		}
+		for za0001 := range z.TC.Signatures {
+			var zb0004 uint32
+			zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001)
+				return
+			}
+			if zb0004 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0004}
+				return
+			}
+			z.TC.Signatures[za0001].PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "PartnerIndex")
+				return
+			}
+			z.TC.Signatures[za0001].Signature, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "TC", "Signatures", za0001, "Signature")
+				return
+			}
+		}
 	}
 	o = bts
 	return
@@ -241,6 +413,14 @@ func (z *ContentProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ContentProposal) Msgsize() (s int) {
 	s = 1 + z.Proposal.Msgsize()
+	if z.TC == nil {
+		s += msgp.NilSize
+	} else {
+		s += 1 + msgp.IntSize + msgp.ArrayHeaderSize
+		for za0001 := range z.TC.Signatures {
+			s += 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.TC.Signatures[za0001].Signature)
+		}
+	}
 	return
 }
 
@@ -323,8 +503,8 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	z.Round, err = dc.ReadInt()
@@ -349,13 +529,30 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
+		}
+		err = z.TC.DecodeMsg(dc)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 2
-	err = en.Append(0x92)
+	// array header, size 3
+	err = en.Append(0x93)
 	if err != nil {
 		return
 	}
@@ -376,14 +573,26 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	if z.TC == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.TC.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *ContentTimeout) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendInt(o, z.Round)
 	if z.HighQC == nil {
 		o = msgp.AppendNil(o)
@@ -391,6 +600,15 @@ func (z *ContentTimeout) MarshalMsg(b []byte) (o []byte, err error) {
 		o, err = z.HighQC.MarshalMsg(o)
 		if err != nil {
 			err = msgp.WrapError(err, "HighQC")
+			return
+		}
+	}
+	if z.TC == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.TC.MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
 			return
 		}
 	}
@@ -405,8 +623,8 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	z.Round, bts, err = msgp.ReadIntBytes(bts)
@@ -430,6 +648,22 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
+		}
+		bts, err = z.TC.UnmarshalMsg(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
+	}
 	o = bts
 	return
 }
@@ -442,6 +676,11 @@ func (z *ContentTimeout) Msgsize() (s int) {
 	} else {
 		s += z.HighQC.Msgsize()
 	}
+	if z.TC == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.TC.Msgsize()
+	}
 	return
 }
 
@@ -453,8 +692,8 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	err = z.VoteInfo.DecodeMsg(dc)
@@ -482,36 +721,37 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
 		return
 	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
-		err = msgp.WrapError(err, "Signatures")
-		return
-	}
-	if cap(z.Signatures) >= int(zb0003) {
-		z.Signatures = (z.Signatures)[:zb0003]
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "QC")
+			return
+		}
+		z.QC = nil
 	} else {
-		z.Signatures = make([]Signature, zb0003)
+		if z.QC == nil {
+			z.QC = new(QC)
+		}
+		err = z.QC.DecodeMsg(dc)
+		if err != nil {
+			err = msgp.WrapError(err, "QC")
+			return
+		}
 	}
-	for za0001 := range z.Signatures {
-		var zb0004 uint32
-		zb0004, err = dc.ReadArrayHeader()
+	if dc.IsNil() {
+		err = dc.ReadNil()
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001)
+			err = msgp.WrapError(err, "TC")
 			return
 		}
-		if zb0004 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0004}
-			return
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
 		}
-		z.Signatures[za0001].PartnerId, err = dc.ReadInt()
+		err = z.TC.DecodeMsg(dc)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
-			return
-		}
-		z.Signatures[za0001].Signature, err = dc.ReadString()
-		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			err = msgp.WrapError(err, "TC")
 			return
 		}
 	}
@@ -520,8 +760,8 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -545,25 +785,27 @@ func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Signatures)))
-	if err != nil {
-		err = msgp.WrapError(err, "Signatures")
-		return
+	if z.QC == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.QC.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "QC")
+			return
+		}
 	}
-	for za0001 := range z.Signatures {
-		// array header, size 2
-		err = en.Append(0x92)
+	if z.TC == nil {
+		err = en.WriteNil()
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.Signatures[za0001].PartnerId)
+	} else {
+		err = z.TC.EncodeMsg(en)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
-			return
-		}
-		err = en.WriteString(z.Signatures[za0001].Signature)
-		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			err = msgp.WrapError(err, "TC")
 			return
 		}
 	}
@@ -573,8 +815,8 @@ func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *ContentVote) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
 	o, err = z.VoteInfo.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "VoteInfo")
@@ -584,12 +826,23 @@ func (z *ContentVote) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0x92)
 	o = msgp.AppendString(o, z.LedgerCommitInfo.CommitStateId)
 	o = msgp.AppendString(o, z.LedgerCommitInfo.VoteInfoHash)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Signatures)))
-	for za0001 := range z.Signatures {
-		// array header, size 2
-		o = append(o, 0x92)
-		o = msgp.AppendInt(o, z.Signatures[za0001].PartnerId)
-		o = msgp.AppendString(o, z.Signatures[za0001].Signature)
+	if z.QC == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.QC.MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "QC")
+			return
+		}
+	}
+	if z.TC == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.TC.MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "TC")
+			return
+		}
 	}
 	return
 }
@@ -602,8 +855,8 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	bts, err = z.VoteInfo.UnmarshalMsg(bts)
@@ -631,36 +884,35 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
 		return
 	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Signatures")
-		return
-	}
-	if cap(z.Signatures) >= int(zb0003) {
-		z.Signatures = (z.Signatures)[:zb0003]
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.QC = nil
 	} else {
-		z.Signatures = make([]Signature, zb0003)
+		if z.QC == nil {
+			z.QC = new(QC)
+		}
+		bts, err = z.QC.UnmarshalMsg(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "QC")
+			return
+		}
 	}
-	for za0001 := range z.Signatures {
-		var zb0004 uint32
-		zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001)
 			return
 		}
-		if zb0004 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0004}
-			return
+		z.TC = nil
+	} else {
+		if z.TC == nil {
+			z.TC = new(TC)
 		}
-		z.Signatures[za0001].PartnerId, bts, err = msgp.ReadIntBytes(bts)
+		bts, err = z.TC.UnmarshalMsg(bts)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
-			return
-		}
-		z.Signatures[za0001].Signature, bts, err = msgp.ReadStringBytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			err = msgp.WrapError(err, "TC")
 			return
 		}
 	}
@@ -670,9 +922,16 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ContentVote) Msgsize() (s int) {
-	s = 1 + z.VoteInfo.Msgsize() + 1 + msgp.StringPrefixSize + len(z.LedgerCommitInfo.CommitStateId) + msgp.StringPrefixSize + len(z.LedgerCommitInfo.VoteInfoHash) + msgp.ArrayHeaderSize
-	for za0001 := range z.Signatures {
-		s += 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signatures[za0001].Signature)
+	s = 1 + z.VoteInfo.Msgsize() + 1 + msgp.StringPrefixSize + len(z.LedgerCommitInfo.CommitStateId) + msgp.StringPrefixSize + len(z.LedgerCommitInfo.VoteInfoHash)
+	if z.QC == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.QC.Msgsize()
+	}
+	if z.TC == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.TC.Msgsize()
 	}
 	return
 }
@@ -824,60 +1083,40 @@ func (z *QC) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	err = z.VoteInfo.DecodeMsg(dc)
+	err = z.VoteData.DecodeMsg(dc)
 	if err != nil {
-		err = msgp.WrapError(err, "VoteInfo")
+		err = msgp.WrapError(err, "VoteData")
 		return
 	}
 	var zb0002 uint32
 	zb0002, err = dc.ReadArrayHeader()
 	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo")
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.LedgerCommitInfo.CommitStateId, err = dc.ReadString()
-	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "CommitStateId")
-		return
-	}
-	z.LedgerCommitInfo.VoteInfoHash, err = dc.ReadString()
-	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
-		return
-	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
-	if err != nil {
 		err = msgp.WrapError(err, "Signatures")
 		return
 	}
-	if cap(z.Signatures) >= int(zb0003) {
-		z.Signatures = (z.Signatures)[:zb0003]
+	if cap(z.Signatures) >= int(zb0002) {
+		z.Signatures = (z.Signatures)[:zb0002]
 	} else {
-		z.Signatures = make([]Signature, zb0003)
+		z.Signatures = make([]Signature, zb0002)
 	}
 	for za0001 := range z.Signatures {
-		var zb0004 uint32
-		zb0004, err = dc.ReadArrayHeader()
+		var zb0003 uint32
+		zb0003, err = dc.ReadArrayHeader()
 		if err != nil {
 			err = msgp.WrapError(err, "Signatures", za0001)
 			return
 		}
-		if zb0004 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0004}
+		if zb0003 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 			return
 		}
-		z.Signatures[za0001].PartnerId, err = dc.ReadInt()
+		z.Signatures[za0001].PartnerIndex, err = dc.ReadInt()
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
 			return
 		}
 		z.Signatures[za0001].Signature, err = dc.ReadString()
@@ -891,29 +1130,14 @@ func (z *QC) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *QC) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
-	if err != nil {
-		return
-	}
-	err = z.VoteInfo.EncodeMsg(en)
-	if err != nil {
-		err = msgp.WrapError(err, "VoteInfo")
-		return
-	}
 	// array header, size 2
 	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(z.LedgerCommitInfo.CommitStateId)
+	err = z.VoteData.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "CommitStateId")
-		return
-	}
-	err = en.WriteString(z.LedgerCommitInfo.VoteInfoHash)
-	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
+		err = msgp.WrapError(err, "VoteData")
 		return
 	}
 	err = en.WriteArrayHeader(uint32(len(z.Signatures)))
@@ -927,9 +1151,9 @@ func (z *QC) EncodeMsg(en *msgp.Writer) (err error) {
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.Signatures[za0001].PartnerId)
+		err = en.WriteInt(z.Signatures[za0001].PartnerIndex)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
 			return
 		}
 		err = en.WriteString(z.Signatures[za0001].Signature)
@@ -944,22 +1168,18 @@ func (z *QC) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *QC) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
-	o, err = z.VoteInfo.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "VoteInfo")
-		return
-	}
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendString(o, z.LedgerCommitInfo.CommitStateId)
-	o = msgp.AppendString(o, z.LedgerCommitInfo.VoteInfoHash)
+	o, err = z.VoteData.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "VoteData")
+		return
+	}
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Signatures)))
 	for za0001 := range z.Signatures {
 		// array header, size 2
 		o = append(o, 0x92)
-		o = msgp.AppendInt(o, z.Signatures[za0001].PartnerId)
+		o = msgp.AppendInt(o, z.Signatures[za0001].PartnerIndex)
 		o = msgp.AppendString(o, z.Signatures[za0001].Signature)
 	}
 	return
@@ -973,60 +1193,40 @@ func (z *QC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	bts, err = z.VoteInfo.UnmarshalMsg(bts)
+	bts, err = z.VoteData.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "VoteInfo")
+		err = msgp.WrapError(err, "VoteData")
 		return
 	}
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo")
-		return
-	}
-	if zb0002 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
-		return
-	}
-	z.LedgerCommitInfo.CommitStateId, bts, err = msgp.ReadStringBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "CommitStateId")
-		return
-	}
-	z.LedgerCommitInfo.VoteInfoHash, bts, err = msgp.ReadStringBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "LedgerCommitInfo", "VoteInfoHash")
-		return
-	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
 		err = msgp.WrapError(err, "Signatures")
 		return
 	}
-	if cap(z.Signatures) >= int(zb0003) {
-		z.Signatures = (z.Signatures)[:zb0003]
+	if cap(z.Signatures) >= int(zb0002) {
+		z.Signatures = (z.Signatures)[:zb0002]
 	} else {
-		z.Signatures = make([]Signature, zb0003)
+		z.Signatures = make([]Signature, zb0002)
 	}
 	for za0001 := range z.Signatures {
-		var zb0004 uint32
-		zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		var zb0003 uint32
+		zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "Signatures", za0001)
 			return
 		}
-		if zb0004 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0004}
+		if zb0003 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 			return
 		}
-		z.Signatures[za0001].PartnerId, bts, err = msgp.ReadIntBytes(bts)
+		z.Signatures[za0001].PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
 		if err != nil {
-			err = msgp.WrapError(err, "Signatures", za0001, "PartnerId")
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
 			return
 		}
 		z.Signatures[za0001].Signature, bts, err = msgp.ReadStringBytes(bts)
@@ -1041,7 +1241,7 @@ func (z *QC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *QC) Msgsize() (s int) {
-	s = 1 + z.VoteInfo.Msgsize() + 1 + msgp.StringPrefixSize + len(z.LedgerCommitInfo.CommitStateId) + msgp.StringPrefixSize + len(z.LedgerCommitInfo.VoteInfoHash) + msgp.ArrayHeaderSize
+	s = 1 + z.VoteData.Msgsize() + msgp.ArrayHeaderSize
 	for za0001 := range z.Signatures {
 		s += 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signatures[za0001].Signature)
 	}
@@ -1060,9 +1260,9 @@ func (z *Signature) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.PartnerId, err = dc.ReadInt()
+	z.PartnerIndex, err = dc.ReadInt()
 	if err != nil {
-		err = msgp.WrapError(err, "PartnerId")
+		err = msgp.WrapError(err, "PartnerIndex")
 		return
 	}
 	z.Signature, err = dc.ReadString()
@@ -1080,9 +1280,9 @@ func (z Signature) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.PartnerId)
+	err = en.WriteInt(z.PartnerIndex)
 	if err != nil {
-		err = msgp.WrapError(err, "PartnerId")
+		err = msgp.WrapError(err, "PartnerIndex")
 		return
 	}
 	err = en.WriteString(z.Signature)
@@ -1098,7 +1298,7 @@ func (z Signature) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.PartnerId)
+	o = msgp.AppendInt(o, z.PartnerIndex)
 	o = msgp.AppendString(o, z.Signature)
 	return
 }
@@ -1115,9 +1315,9 @@ func (z *Signature) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.PartnerId, bts, err = msgp.ReadIntBytes(bts)
+	z.PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "PartnerId")
+		err = msgp.WrapError(err, "PartnerIndex")
 		return
 	}
 	z.Signature, bts, err = msgp.ReadStringBytes(bts)
@@ -1132,6 +1332,175 @@ func (z *Signature) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z Signature) Msgsize() (s int) {
 	s = 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signature)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *TC) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	z.Round, err = dc.ReadInt()
+	if err != nil {
+		err = msgp.WrapError(err, "Round")
+		return
+	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "Signatures")
+		return
+	}
+	if cap(z.Signatures) >= int(zb0002) {
+		z.Signatures = (z.Signatures)[:zb0002]
+	} else {
+		z.Signatures = make([]Signature, zb0002)
+	}
+	for za0001 := range z.Signatures {
+		var zb0003 uint32
+		zb0003, err = dc.ReadArrayHeader()
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001)
+			return
+		}
+		if zb0003 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+			return
+		}
+		z.Signatures[za0001].PartnerIndex, err = dc.ReadInt()
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
+			return
+		}
+		z.Signatures[za0001].Signature, err = dc.ReadString()
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			return
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *TC) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 2
+	err = en.Append(0x92)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.Round)
+	if err != nil {
+		err = msgp.WrapError(err, "Round")
+		return
+	}
+	err = en.WriteArrayHeader(uint32(len(z.Signatures)))
+	if err != nil {
+		err = msgp.WrapError(err, "Signatures")
+		return
+	}
+	for za0001 := range z.Signatures {
+		// array header, size 2
+		err = en.Append(0x92)
+		if err != nil {
+			return
+		}
+		err = en.WriteInt(z.Signatures[za0001].PartnerIndex)
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
+			return
+		}
+		err = en.WriteString(z.Signatures[za0001].Signature)
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *TC) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 2
+	o = append(o, 0x92)
+	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Signatures)))
+	for za0001 := range z.Signatures {
+		// array header, size 2
+		o = append(o, 0x92)
+		o = msgp.AppendInt(o, z.Signatures[za0001].PartnerIndex)
+		o = msgp.AppendString(o, z.Signatures[za0001].Signature)
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *TC) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	z.Round, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Round")
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signatures")
+		return
+	}
+	if cap(z.Signatures) >= int(zb0002) {
+		z.Signatures = (z.Signatures)[:zb0002]
+	} else {
+		z.Signatures = make([]Signature, zb0002)
+	}
+	for za0001 := range z.Signatures {
+		var zb0003 uint32
+		zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001)
+			return
+		}
+		if zb0003 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0003}
+			return
+		}
+		z.Signatures[za0001].PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "PartnerIndex")
+			return
+		}
+		z.Signatures[za0001].Signature, bts, err = msgp.ReadStringBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "Signatures", za0001, "Signature")
+			return
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *TC) Msgsize() (s int) {
+	s = 1 + msgp.IntSize + msgp.ArrayHeaderSize
+	for za0001 := range z.Signatures {
+		s += 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signatures[za0001].Signature)
+	}
 	return
 }
 
@@ -1354,9 +1723,9 @@ func (z *VoteMsg) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 		return
 	}
-	z.Signature.PartnerId, err = dc.ReadInt()
+	z.Signature.PartnerIndex, err = dc.ReadInt()
 	if err != nil {
-		err = msgp.WrapError(err, "Signature", "PartnerId")
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
 		return
 	}
 	z.Signature.Signature, err = dc.ReadString()
@@ -1404,9 +1773,9 @@ func (z *VoteMsg) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Signature.PartnerId)
+	err = en.WriteInt(z.Signature.PartnerIndex)
 	if err != nil {
-		err = msgp.WrapError(err, "Signature", "PartnerId")
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
 		return
 	}
 	err = en.WriteString(z.Signature.Signature)
@@ -1434,7 +1803,7 @@ func (z *VoteMsg) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendInt(o, z.Sender)
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendInt(o, z.Signature.PartnerId)
+	o = msgp.AppendInt(o, z.Signature.PartnerIndex)
 	o = msgp.AppendString(o, z.Signature.Signature)
 	return
 }
@@ -1491,9 +1860,9 @@ func (z *VoteMsg) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0003}
 		return
 	}
-	z.Signature.PartnerId, bts, err = msgp.ReadIntBytes(bts)
+	z.Signature.PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Signature", "PartnerId")
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
 		return
 	}
 	z.Signature.Signature, bts, err = msgp.ReadStringBytes(bts)
@@ -1519,8 +1888,8 @@ func (z *WireMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.MsgType, err = dc.ReadInt()
@@ -1538,13 +1907,33 @@ func (z *WireMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "SenderId")
 		return
 	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	if zb0002 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+		return
+	}
+	z.Signature.PartnerIndex, err = dc.ReadInt()
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
+		return
+	}
+	z.Signature.Signature, err = dc.ReadString()
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "Signature")
+		return
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *WireMessage) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 3
-	err = en.Append(0x93)
+	// array header, size 4
+	err = en.Append(0x94)
 	if err != nil {
 		return
 	}
@@ -1563,17 +1952,36 @@ func (z *WireMessage) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "SenderId")
 		return
 	}
+	// array header, size 2
+	err = en.Append(0x92)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.Signature.PartnerIndex)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
+		return
+	}
+	err = en.WriteString(z.Signature.Signature)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "Signature")
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *WireMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 3
-	o = append(o, 0x93)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendInt(o, z.MsgType)
 	o = msgp.AppendBytes(o, z.ContentBytes)
 	o = msgp.AppendString(o, z.SenderId)
+	// array header, size 2
+	o = append(o, 0x92)
+	o = msgp.AppendInt(o, z.Signature.PartnerIndex)
+	o = msgp.AppendString(o, z.Signature.Signature)
 	return
 }
 
@@ -1585,8 +1993,8 @@ func (z *WireMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 3 {
-		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	z.MsgType, bts, err = msgp.ReadIntBytes(bts)
@@ -1604,12 +2012,32 @@ func (z *WireMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "SenderId")
 		return
 	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature")
+		return
+	}
+	if zb0002 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+		return
+	}
+	z.Signature.PartnerIndex, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "PartnerIndex")
+		return
+	}
+	z.Signature.Signature, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Signature", "Signature")
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *WireMessage) Msgsize() (s int) {
-	s = 1 + msgp.IntSize + msgp.BytesPrefixSize + len(z.ContentBytes) + msgp.StringPrefixSize + len(z.SenderId)
+	s = 1 + msgp.IntSize + msgp.BytesPrefixSize + len(z.ContentBytes) + msgp.StringPrefixSize + len(z.SenderId) + 1 + msgp.IntSize + msgp.StringPrefixSize + len(z.Signature.Signature)
 	return
 }

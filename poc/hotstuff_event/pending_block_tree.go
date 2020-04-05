@@ -25,12 +25,12 @@ func (t *PendingBlockTree) InitDefault() {
 func (t *PendingBlockTree) Add(p *Block) {
 	t.cache[p.Id] = p
 
-	vs, ok := t.childRelations[p.ParentQC.VoteInfo.Id]
+	vs, ok := t.childRelations[p.ParentQC.VoteData.Id]
 	if !ok {
 		vs = []string{}
 	}
 	vs = append(vs, p.Id)
-	t.childRelations[p.ParentQC.VoteInfo.Id] = vs
+	t.childRelations[p.ParentQC.VoteData.Id] = vs
 }
 
 func (t *PendingBlockTree) Commit(id string) {

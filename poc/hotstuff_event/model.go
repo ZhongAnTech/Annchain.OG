@@ -56,7 +56,7 @@ type WireMessage struct {
 }
 
 func (z *WireMessage) String() string {
-	return fmt.Sprintf("WM: Type=%d SenderId=%s ContentBytes=%s", z.MsgType, z.SenderId, ToBriefHex(z.ContentBytes, 100))
+	return fmt.Sprintf("WM: Type=%d SenderId=%s ContentBytes=%s", z.MsgType, PrettyId(z.SenderId), ToBriefHex(z.ContentBytes, 100))
 }
 
 //msgp:tuple ContentString
@@ -75,10 +75,11 @@ func (z *ContentString) SignatureTarget() string {
 //msgp:tuple ContentProposal
 type ContentProposal struct {
 	Proposal Block
+	TC       *TC
 }
 
 func (c ContentProposal) String() string {
-	return fmt.Sprintf("[CProposal: %s]", c.Proposal)
+	return fmt.Sprintf("[CProposal: p=%s tc=%s]", c.Proposal, c.TC)
 }
 
 func (c ContentProposal) SignatureTarget() string {
@@ -89,6 +90,7 @@ func (c ContentProposal) SignatureTarget() string {
 type ContentTimeout struct {
 	Round  int
 	HighQC *QC
+	TC     *TC
 }
 
 func (c ContentTimeout) SignatureTarget() string {
@@ -96,58 +98,59 @@ func (c ContentTimeout) SignatureTarget() string {
 }
 
 func (c ContentTimeout) String() string {
-	return fmt.Sprintf("[CTimeout: round=%d highQC=%s]", c.Round, c.HighQC)
+	return fmt.Sprintf("[CTimeout: round=%d highQC=%s tc=%s]", c.Round, c.HighQC, c.TC)
 }
 
 //msgp:tuple ContentVote
 type ContentVote struct {
 	VoteInfo         VoteInfo
 	LedgerCommitInfo LedgerCommitInfo
-	Signatures       []Signature
+	QC               *QC
+	TC               *TC
 }
 
 func (c ContentVote) String() string {
-	return fmt.Sprintf("[CVote: voteInfo=%s ledgerCommitInfo=%s]", c.VoteInfo, c.LedgerCommitInfo)
+	return fmt.Sprintf("[CVote: voteinfo=%s ledgercinfo=%s qc=%s tc=%s]", c.VoteInfo, c.LedgerCommitInfo, c.QC, c.TC)
 }
 
 func (c ContentVote) SignatureTarget() string {
-	return fmt.Sprintf("[CVote: voteInfo=%s ledgerCommitInfo=%s]", c.VoteInfo, c.LedgerCommitInfo)
+	return fmt.Sprintf("[CVote: voteinfo=%s ledgercinfo=%s qc=%s tc=%s]", c.VoteInfo, c.LedgerCommitInfo, c.QC, c.TC)
 }
-
-//type ContentLocalTimeout struct {
-//}
-//
-//func (c ContentLocalTimeout) String() string {
-//	return ""
-//}
-//
-//func (c ContentLocalTimeout) SignatureTarget() string {
-//	panic("implement me")
-//}
 
 //msgp:tuple QC
 type QC struct {
-	VoteInfo         VoteInfo
-	LedgerCommitInfo LedgerCommitInfo
-	Signatures       []Signature // simulate sig by give an id to the vote
-	//Typev      MsgType
-	//ViewNumber int
-	//Node       *Node
-
+	VoteData   VoteInfo
+	Signatures []Signature // simulate sig by give an id to the vote, use joint signature instead
 }
 
-func (q QC) String() string {
-	return fmt.Sprintf("[QC: voteInfo=%s ledgerCommitInfo=%s sigs=%d]", q.VoteInfo, q.LedgerCommitInfo, len(q.Signatures))
+func (q *QC) String() string {
+	if q == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("[QC: voteInfo=%s sigs=%d]", q.VoteData, len(q.Signatures))
+}
+
+//msgp:tuple TC
+type TC struct {
+	Round      int         // round of the block
+	Signatures []Signature // simulate sig by give an id to the vote, use joint signature instead
+}
+
+func (t *TC) String() string {
+	if t == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("[TC: round=%d, sigs=%d]", t.Round, len(t.Signatures))
 }
 
 //msgp:tuple Signature
 type Signature struct {
-	PartnerId int
-	Signature string
+	PartnerIndex int
+	Signature    string
 }
 
 func (s Signature) String() string {
-	return fmt.Sprintf("[Sig: partnerId %d]", s.PartnerId)
+	return fmt.Sprintf("[Sig: partnerId %d Sig %s]", s.PartnerIndex, s.Signature)
 }
 
 //msgp:tuple VoteInfo

@@ -14,8 +14,10 @@
 package ffchan
 
 import (
+	"fmt"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"reflect"
 	"time"
 )
@@ -33,6 +35,8 @@ func NewTimeoutSenderShort(channel interface{}, val interface{}, groupName strin
 }
 
 func NewTimeoutSender(channel interface{}, val interface{}, groupName string, timeoutMs int) *TimeoutSender {
+	ri := rand.Int()
+	logrus.WithField("groupName", groupName).WithField("rand", ri).Trace("ffchan received a msg to send")
 	t := &TimeoutSender{
 		groupName: groupName,
 		channel:   channel,
@@ -54,13 +58,20 @@ func NewTimeoutSender(channel interface{}, val interface{}, groupName string, ti
 		for {
 			select {
 			case <-c:
-				t.C <- true
+				select {
+				case t.C <- true:
+					logrus.WithField("groupName", groupName).WithField("rand", ri).Trace("message now in channel")
+				case <-time.After(t.timeout):
+					logrus.WithField("groupName", groupName).WithField("rand", ri).Warn("ffchan cannot write to this channel. Are you missing a consume operation (<- xx.C)?")
+				}
 				break loop
 			case <-time.After(t.timeout):
-				logrus.WithField("chan", t.groupName).
+				logrus.WithField("groupName", t.groupName).
+					WithField("rand", ri).
 					WithField("val", t.val).
 					WithField("elapse", time.Now().Sub(start)).
 					Warn("Timeout on channel writing. Potential block issue.")
+				fmt.Println("Timeout on channel writing: " + groupName)
 				if t.timeout < time.Second {
 					time.Sleep(time.Second)
 				}

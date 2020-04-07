@@ -59,8 +59,13 @@ func (n *Partner) Start() {
 			case Timeout:
 				logrus.Info("handling timeout")
 				n.PaceMaker.ProcessRemoteTimeout(msg)
-			//case LocalTimeout:
-			//	n.PaceMaker.LocalTimeoutRound()
+			// sync, not a core protocol of the LibraBFT but necessary
+			case SyncRequest:
+				logrus.Info("handling sync request")
+				n.ProcessSyncRequest(msg)
+			case SyncResponse:
+				logrus.Info("handling sync response")
+				n.ProcessSyncResponse(msg)
 			default:
 				panic("unsupported typev")
 			}
@@ -87,21 +92,28 @@ func (n *Partner) CreateLeaf(node *Node) (newNode Node) {
 	}
 }
 
+func (n *Partner) handleBlock(block *Block) {
+	n.ProcessCertificates(block.ParentQC, p.TC, "handleBlock")
+	n.BlockTree.ExecuteAndInsert(block)
+}
+
 func (n *Partner) ProcessProposalMessage(msg *Msg) {
 	p := msg.Content.(*ContentProposal)
 
-	n.ProcessCertificates(p.Proposal.ParentQC, p.TC, "ProposalM")
-
 	currentRound := n.PaceMaker.CurrentRound
+
 	if p.Proposal.Round != currentRound {
 		n.Logger.WithField("pRound", p.Proposal.Round).WithField("currentRound", currentRound).Warn("current round not match.")
 		return
 	}
+
 	if msg.SenderId != n.PeerIds[n.ProposerElection.GetLeader(currentRound)] {
 		n.Logger.WithField("msg.SenderId", msg.SenderId).WithField("current leader", n.ProposerElection.GetLeader(currentRound)).Warn("current leader not match.")
 		return
 	}
-	n.BlockTree.ExecuteAndInsert(&p.Proposal)
+
+	n.handleBlock(&p.Proposal)
+
 	voteMsg := n.Safety.MakeVote(p.Proposal.Id, p.Proposal.Round, p.Proposal.ParentQC)
 	if voteMsg != nil {
 		voteAggregator := n.ProposerElection.GetLeader(currentRound + 1)
@@ -166,6 +178,38 @@ func (n *Partner) signatureOk(msg *Msg) bool {
 		return false
 	}
 	return msg.SenderId == n.PeerIds[msg.Sig.PartnerIndex]
+}
+
+func (n *Partner) ProcessSyncRequest(msg *Msg) {
+	contentSyncRequest := msg.Content.(*ContentSyncRequest)
+	blk, err := n.BlockTree.pendingBlkTree.GetBlock(contentSyncRequest.Id)
+	if err != nil {
+		logrus.WithError(err).Warn("block not found for sync")
+	}
+	contentSyncResponse := &ContentSyncResponse{Block: blk}
+	// send response
+	outMsg := &Msg{
+		Typev:    SyncResponse,
+		SenderId: n.PeerIds[n.MyIdIndex],
+		Content:  contentSyncResponse,
+	}
+	n.MessageHub.Deliver(outMsg, msg.SenderId, "sync response")
+}
+
+func (n *Partner) RequestBlock(id string) {
+	contentSyncRequest := &ContentSyncRequest{Id: id}
+	// broadcast request
+	outMsg := &Msg{
+		Typev:    SyncRequest,
+		SenderId: n.PeerIds[n.MyIdIndex],
+		Content:  contentSyncRequest,
+	}
+	n.MessageHub.Broadcast(outMsg, "request block")
+}
+
+func (n *Partner) ProcessSyncResponse(msg *Msg) {
+	contentSyncResponse := msg.Content.(*ContentSyncResponse)
+	n.handleBlock(contentSyncResponse.Block)
 }
 
 type ProposerElection struct {

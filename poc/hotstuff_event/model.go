@@ -30,8 +30,9 @@ const (
 	Proposal MsgType = iota
 	Vote
 	Timeout
-	//LocalTimeout
 	String
+	SyncRequest  // block sync
+	SyncResponse // block sync
 )
 
 //msgp:tuple Block
@@ -192,4 +193,31 @@ type VoteMsg struct {
 	LedgerCommitInfo LedgerCommitInfo
 	Sender           int
 	Signature        Signature
+}
+
+//msgp:tuple ContentSync
+type ContentSyncResponse struct {
+	Block *Block
+}
+
+func (z *ContentSyncResponse) String() string {
+	return fmt.Sprintf("SyncResponse: Block %d: %s", z.Block.Round, z.Block.Id)
+}
+
+func (z *ContentSyncResponse) SignatureTarget() string {
+	return fmt.Sprintf("SyncResponse: Block %d: %s", z.Block.Round, z.Block.Id)
+}
+
+//msgp:tuple ContentSyncRequest
+type ContentSyncRequest struct {
+	Id string
+}
+
+func (z *ContentSyncRequest) String() string {
+	return fmt.Sprintf("SyncRequest %s", z.Id)
+
+}
+
+func (z *ContentSyncRequest) SignatureTarget() string {
+	return fmt.Sprintf("SyncRequest %s", z.Id)
 }

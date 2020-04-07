@@ -7,6 +7,15 @@ import (
 	"sync"
 )
 
+type DummySyncer struct {
+}
+
+// Fetch returns a block based on blockId
+// it can be bruteforced. since block content is only
+func (d *DummySyncer) Fetch(blockId string) {
+
+}
+
 // Node is a block with state
 type Node struct {
 	Previous string
@@ -41,6 +50,7 @@ func (l *Ledger) Speculate(prevBlockId string, blockId string, cmds string) (exe
 	if prevBlockId != "" {
 		if _, ok := l.cache[prevBlockId]; !ok {
 			l.Logger.WithField("missing block", prevBlockId).Warn("I'm behind. Previous block not found")
+			// simulate a syncer
 		}
 	}
 

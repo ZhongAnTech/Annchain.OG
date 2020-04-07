@@ -1,6 +1,7 @@
 package hotstuff_event
 
 import (
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 )
@@ -36,4 +37,13 @@ func (t *PendingBlockTree) Add(p *Block) {
 func (t *PendingBlockTree) Commit(id string) {
 	//fmt.Printf("[%d] Block %s\n", t.MyId, id)
 	t.Logger.WithField("id", id).Debug("block commit")
+}
+
+func (l *PendingBlockTree) GetBlock(id string) (block *Block, err error) {
+	if v, ok := l.cache[id]; ok {
+		block = v
+		return
+	}
+	err = errors.New("block not found")
+	return
 }

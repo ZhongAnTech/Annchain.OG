@@ -496,6 +496,223 @@ func (z ContentString) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
+func (z *ContentSyncRequest) DecodeMsg(dc *msgp.Reader) (err error) {
+	var zb0001 uint32
+	zb0001, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Id, err = dc.ReadString()
+	if err != nil {
+		err = msgp.WrapError(err, "Id")
+		return
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z ContentSyncRequest) EncodeMsg(en *msgp.Writer) (err error) {
+	// array header, size 1
+	err = en.Append(0x91)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Id)
+	if err != nil {
+		err = msgp.WrapError(err, "Id")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z ContentSyncRequest) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 1
+	o = append(o, 0x91)
+	o = msgp.AppendString(o, z.Id)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *ContentSyncRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 1 {
+		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+		return
+	}
+	z.Id, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Id")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z ContentSyncRequest) Msgsize() (s int) {
+	s = 1 + msgp.StringPrefixSize + len(z.Id)
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *ContentSyncResponse) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Block":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					err = msgp.WrapError(err, "Block")
+					return
+				}
+				z.Block = nil
+			} else {
+				if z.Block == nil {
+					z.Block = new(Block)
+				}
+				err = z.Block.DecodeMsg(dc)
+				if err != nil {
+					err = msgp.WrapError(err, "Block")
+					return
+				}
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *ContentSyncResponse) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 1
+	// write "Block"
+	err = en.Append(0x81, 0xa5, 0x42, 0x6c, 0x6f, 0x63, 0x6b)
+	if err != nil {
+		return
+	}
+	if z.Block == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.Block.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "Block")
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *ContentSyncResponse) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 1
+	// string "Block"
+	o = append(o, 0x81, 0xa5, 0x42, 0x6c, 0x6f, 0x63, 0x6b)
+	if z.Block == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.Block.MarshalMsg(o)
+		if err != nil {
+			err = msgp.WrapError(err, "Block")
+			return
+		}
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *ContentSyncResponse) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Block":
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.Block = nil
+			} else {
+				if z.Block == nil {
+					z.Block = new(Block)
+				}
+				bts, err = z.Block.UnmarshalMsg(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "Block")
+					return
+				}
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *ContentSyncResponse) Msgsize() (s int) {
+	s = 1 + 6
+	if z.Block == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.Block.Msgsize()
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zb0001 uint32
 	zb0001, err = dc.ReadArrayHeader()

@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/annchain/OG/poc/hotstuff_event"
+	"github.com/latifrons/soccerdash"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
@@ -23,6 +25,10 @@ import (
 func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, peerIds []string) *hotstuff_event.Partner {
 	//logger := hotstuff_event.SetupOrderedLog(myIdIndex)
 	logger := logrus.StandardLogger()
+	reporter := &soccerdash.Reporter{
+		Name:          fmt.Sprintf("Peer-%d", myIdIndex),
+		TargetAddress: "127.0.0.1:2088",
+	}
 	ledger := &hotstuff_event.Ledger{
 		Logger: logger,
 	}
@@ -34,10 +40,11 @@ func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, 
 	}
 
 	blockTree := &hotstuff_event.BlockTree{
+		Logger:    logger,
 		Ledger:    ledger,
 		F:         F,
-		Logger:    logger,
 		MyIdIndex: myIdIndex,
+		Report:    reporter,
 	}
 	blockTree.InitDefault()
 	blockTree.InitGenesisOrLatest()
@@ -71,6 +78,7 @@ func MakeStandalonePartner(myIdIndex int, N int, F int, hub hotstuff_event.Hub, 
 		BlockTree:        blockTree,
 		ProposerElection: proposerElection,
 		Logger:           logger,
+		Report:           reporter,
 	}
 	partner.InitDefault()
 

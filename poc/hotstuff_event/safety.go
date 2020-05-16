@@ -21,6 +21,7 @@ func (s *Safety) UpdatePreferredRound(qc *QC) {
 	if qc.VoteData.ParentRound > s.preferredRound {
 		s.Logger.WithField("qc", qc).Trace("update preferred round")
 		s.preferredRound = qc.VoteData.ParentRound
+		s.Partner.Report.Report("PreferredRound", s.preferredRound, false)
 	}
 }
 

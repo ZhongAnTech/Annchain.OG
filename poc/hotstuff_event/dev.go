@@ -48,7 +48,7 @@ func SetupOrderedLog(id int) *logrus.Logger {
 		logger.Hooks.Add(hook)
 	}
 
-	logger.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.WarnLevel)
 	logger.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
 		TimestampFormat: "15:04:05.000000",

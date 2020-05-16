@@ -2,6 +2,7 @@ package hotstuff_event
 
 import (
 	"fmt"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -24,8 +25,8 @@ type Partner struct {
 	BlockTree        *BlockTree
 	ProposerElection *ProposerElection
 	Logger           *logrus.Logger
-
-	quit chan bool
+	Report           *soccerdash.Reporter
+	quit             chan bool
 }
 
 func (n *Partner) InitDefault() {
@@ -155,6 +156,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 	//b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, strconv.Itoa(RandInt()))
 	b := n.BlockTree.GenerateProposal(n.PaceMaker.CurrentRound, "1")
 	n.Logger.WithField("proposal", b).Warn("I'm the current leader")
+	n.Report.Report("leader", b.Proposal.Round, false)
 	n.MessageHub.DeliverToThemIncludingMe(&Msg{
 		Typev:    Proposal,
 		SenderId: n.PeerIds[n.MyIdIndex],

@@ -2,8 +2,10 @@ package hotstuff_event
 
 import (
 	"fmt"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"sync"
+	"time"
 )
 
 type SignatureCollector struct {
@@ -53,6 +55,7 @@ type BlockTree struct {
 	PaceMaker *PaceMaker
 	F         int
 	MyIdIndex int
+	Report    *soccerdash.Reporter
 
 	pendingBlkTree PendingBlockTree              // tree of blocks pending commitment
 	pendingVotes   map[string]SignatureCollector // collected votes per block indexed by their LedgerInfo hash
@@ -60,7 +63,7 @@ type BlockTree struct {
 }
 
 func (t *BlockTree) InitGenesisOrLatest() {
-	t.highQC = &QC{
+	t.updateHighQC(&QC{
 
 		VoteData: VoteInfo{
 			Id:               "genesis",
@@ -72,7 +75,7 @@ func (t *BlockTree) InitGenesisOrLatest() {
 			ExecStateId:      "genesis-state",
 		},
 		Signatures: nil,
-	}
+	})
 	t.Ledger.Speculate("", "genesis", "0")
 	t.Ledger.Commit("genesis")
 	//t.pendingBlkTree.Add(&Block{
@@ -109,7 +112,7 @@ func (t *BlockTree) ProcessVote(vote *ContentVote, signature Signature) {
 			Signatures: collector.AllSignatures(),
 		}
 		if qc.VoteData.Round > t.highQC.VoteData.Round {
-			t.highQC = qc
+			t.updateHighQC(qc)
 		}
 		t.PaceMaker.AdvanceRound(qc, nil, "vote qc got")
 
@@ -136,7 +139,7 @@ func (t *BlockTree) ExecuteAndInsert(p *Block) {
 	t.pendingBlkTree.Add(p)
 	if p.ParentQC.VoteData.Round > t.highQC.VoteData.Round {
 		t.Logger.WithField("old", t.highQC).WithField("new", p.ParentQC).Info("highQC updated")
-		t.highQC = p.ParentQC
+		t.updateHighQC(p.ParentQC)
 	} else {
 		t.Logger.WithField("old", t.highQC).WithField("new", p.ParentQC).Warn("highQC is not updated")
 	}
@@ -144,7 +147,7 @@ func (t *BlockTree) ExecuteAndInsert(p *Block) {
 }
 
 func (t *BlockTree) GenerateProposal(currentRound int, payload string) *ContentProposal {
-	//time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 1)
 	//time.Sleep(time.Millisecond * 2)
 	return &ContentProposal{
 		Proposal: Block{
@@ -155,4 +158,9 @@ func (t *BlockTree) GenerateProposal(currentRound int, payload string) *ContentP
 		},
 		TC: t.PaceMaker.lastTC,
 	}
+}
+
+func (t *BlockTree) updateHighQC(qc *QC) {
+	t.highQC = qc
+	t.Report.Report("t.highQC", t.highQC.VoteData.Round, false)
 }

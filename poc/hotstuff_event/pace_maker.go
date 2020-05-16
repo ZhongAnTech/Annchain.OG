@@ -88,6 +88,9 @@ func (m *PaceMaker) AdvanceRound(qc *QC, tc *TC, reason string) {
 	}
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
+
+	m.Partner.Report.Report("CurrentRound", m.CurrentRound, false)
+
 	m.lastTC = tc
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Warn("round advanced")
 	if m.MyIdIndex != m.ProposerElection.GetLeader(m.CurrentRound) {

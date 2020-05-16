@@ -93,13 +93,14 @@ func (n *Partner) CreateLeaf(node *Node) (newNode Node) {
 	}
 }
 
-func (n *Partner) handleBlock(block *Block) {
-	n.ProcessCertificates(block.ParentQC, p.TC, "handleBlock")
-	n.BlockTree.ExecuteAndInsert(block)
+func (n *Partner) handleBlock(block *Block, tc *TC) {
+
 }
 
 func (n *Partner) ProcessProposalMessage(msg *Msg) {
 	p := msg.Content.(*ContentProposal)
+
+	n.ProcessCertificates(p.Proposal.ParentQC, p.TC, "ProposalM")
 
 	currentRound := n.PaceMaker.CurrentRound
 
@@ -112,8 +113,7 @@ func (n *Partner) ProcessProposalMessage(msg *Msg) {
 		n.Logger.WithField("msg.SenderId", msg.SenderId).WithField("current leader", n.ProposerElection.GetLeader(currentRound)).Warn("current leader not match.")
 		return
 	}
-
-	n.handleBlock(&p.Proposal)
+	n.BlockTree.ExecuteAndInsert(&p.Proposal)
 
 	voteMsg := n.Safety.MakeVote(p.Proposal.Id, p.Proposal.Round, p.Proposal.ParentQC)
 	if voteMsg != nil {
@@ -211,7 +211,7 @@ func (n *Partner) RequestBlock(id string) {
 
 func (n *Partner) ProcessSyncResponse(msg *Msg) {
 	contentSyncResponse := msg.Content.(*ContentSyncResponse)
-	n.handleBlock(contentSyncResponse.Block)
+	n.handleBlock(contentSyncResponse.Block, nil)
 }
 
 type ProposerElection struct {

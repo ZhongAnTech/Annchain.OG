@@ -136,6 +136,8 @@ func (t *BlockTree) ExecuteAndInsert(p *Block) {
 		"blockContent":   p.Payload,
 		"executeStateId": executeStateId,
 	}).Info("Block Executed")
+	t.Report.Report("blockId", p.Id, false)
+	t.Report.Report("executeStateId", executeStateId, false)
 	t.pendingBlkTree.Add(p)
 	if p.ParentQC.VoteData.Round > t.highQC.VoteData.Round {
 		t.Logger.WithField("old", t.highQC).WithField("new", p.ParentQC).Info("highQC updated")

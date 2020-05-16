@@ -1,6 +1,6 @@
 module github.com/annchain/OG/poc/hotstuff_event
 
-go 1.14
+go 1.13
 
 require (
 	github.com/annchain/OG v0.0.5
